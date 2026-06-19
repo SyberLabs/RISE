@@ -1,0 +1,453 @@
+/* ═══════════════════════════════════════════════════════════
+   Chamber Component Styles
+   The session space - darkness as container, content as light
+   ═══════════════════════════════════════════════════════════ */
+
+.chamber {
+  min-height: 100vh;
+  background: var(--color-void);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   PRE-SESSION STATE
+   ───────────────────────────────────────────────────────────── */
+
+.chamber-pre-session {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-xl);
+  gap: var(--space-2xl);
+}
+
+.chamber-back {
+  position: absolute;
+  top: var(--space-xl);
+  left: var(--space-xl);
+  color: var(--color-fog);
+  font-size: 14px;
+}
+
+.chamber-ready {
+  position: absolute;
+  top: var(--space-xl);
+  right: var(--space-xl);
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ready-indicator {
+  color: var(--color-threshold);
+}
+
+.chamber-info {
+  text-align: center;
+  max-width: 600px;
+}
+
+.chamber-session-title {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: var(--font-weight-light);
+  margin-bottom: var(--space-md);
+  letter-spacing: 0.02em;
+}
+
+.chamber-session-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  font-size: 14px;
+}
+
+.meta-separator {
+  color: var(--color-shadow);
+}
+
+.chamber-begin {
+  min-width: 200px;
+  height: 56px;
+  font-size: 16px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   SESSION DISPLAY
+   ───────────────────────────────────────────────────────────── */
+
+.chamber-display {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Content Field ─── */
+
+.chamber-field {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  position: relative;
+}
+
+.atom-display {
+  font-family: var(--font-literary);
+  font-size: 72px;
+  font-weight: var(--font-weight-regular);
+  color: var(--color-light);
+  text-align: center;
+  max-width: 80%;
+  line-height: 1.4;
+  transition: opacity 150ms var(--ease-out);
+}
+
+/* Display Mode: Focal (RSVP - default) */
+
+/* Display Mode: Chamber (Immersive) */
+.chamber-field-chamber {
+  background: linear-gradient(180deg,
+      rgba(26, 26, 30, 0.3) 0%,
+      var(--color-void) 50%,
+      rgba(26, 26, 30, 0.3) 100%);
+}
+
+.chamber-field-chamber .atom-display {
+  text-shadow: 0 0 40px rgba(232, 232, 236, 0.1);
+}
+
+/* Display Mode: Orbital */
+
+/* ─── Progress Indicator ─── */
+
+.chamber-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-shadow);
+  z-index: 100000;
+}
+
+.chamber-progress-fill {
+  height: 100%;
+  background: var(--color-threshold);
+  transition: width 100ms linear;
+}
+
+/* ─── Hidden Controls ─── */
+
+.chamber-controls {
+  position: absolute;
+  bottom: var(--space-xl);
+  left: 50%;
+  transform: translateX(-50%);
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+
+  background: rgba(18, 18, 20, 0.9);
+  border: 1px solid var(--color-shadow);
+  border-radius: 24px;
+
+  transition: opacity 200ms var(--ease-out);
+  pointer-events: all;
+  z-index: 100000;
+}
+
+.chamber-controls[style*="opacity: 0"] {
+  pointer-events: none;
+}
+
+.control-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-fog);
+  font-size: 18px;
+  padding: var(--space-xs);
+  cursor: pointer;
+  transition: color var(--transition-fast) var(--ease-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.control-btn:hover {
+  color: var(--color-light);
+}
+
+.control-btn .icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.time-display {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-fog);
+  min-width: 100px;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+.time-separator {
+  margin: 0 4px;
+  color: var(--color-shadow);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   POST-SESSION STATE
+   ───────────────────────────────────────────────────────────── */
+
+.chamber-post-session {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-xl);
+  gap: var(--space-xl);
+}
+
+.post-sigil {
+  font-size: 72px;
+  margin-bottom: var(--space-md);
+}
+
+.post-title {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: var(--font-weight-light);
+  margin-bottom: var(--space-sm);
+}
+
+.post-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 14px;
+  margin-bottom: var(--space-xl);
+}
+
+.post-actions {
+  display: flex;
+  gap: var(--space-md);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   RESPONSIVE
+   ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .atom-display {
+    font-size: 48px;
+    max-width: 90%;
+  }
+
+  .chamber-session-title {
+    font-size: 28px;
+  }
+
+  .chamber-controls {
+    bottom: var(--space-md);
+    gap: var(--space-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .atom-display {
+    font-size: 36px;
+  }
+
+  .chamber-field {
+    padding: var(--space-xl);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   VOLUME MODAL
+   ───────────────────────────────────────────────────────────── */
+
+.volume-modal {
+  z-index: 200;
+  animation: volume-appear 150ms var(--ease-out);
+}
+
+@keyframes volume-appear {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.volume-modal-content {
+  background: var(--color-abyss);
+  border: 1px solid var(--color-threshold);
+  padding: var(--space-md);
+  min-width: 200px;
+}
+
+.volume-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.volume-icon {
+  font-size: 18px;
+  color: var(--color-threshold);
+}
+
+.volume-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-fog);
+}
+
+.volume-slider-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.volume-slider {
+  flex: 1;
+}
+
+.volume-value {
+  min-width: 45px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-threshold);
+}
+
+.volume-presets {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.volume-preset {
+  flex: 1;
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  border: 1px solid var(--color-shadow);
+  color: var(--color-fog);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all var(--transition-fast) var(--ease-default);
+}
+
+.volume-preset:hover {
+  border-color: var(--color-threshold);
+  color: var(--color-light);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   FOCALS: Persistent gentle focal point
+   Neurosensitive-friendly visual anchor
+   ───────────────────────────────────────────────────────────── */
+
+.chamber-focal {
+  position: absolute;
+  top: 33%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  /* Behind atom text (z-index: 10) */
+  pointer-events: none;
+  opacity: 0.4;
+  transition: opacity 2s var(--ease-default);
+}
+
+/* Glyph-based focals */
+.focal-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.focal-icon {
+  font-size: 180px;
+  color: var(--color-threshold);
+  opacity: 0.6;
+  text-shadow: 0 0 60px rgba(139, 127, 212, 0.3);
+}
+
+/* Dynamic glyph animations */
+.focal-dynamic .focal-icon {
+  animation: focal-breathe 6s ease-in-out infinite;
+}
+
+@keyframes focal-breathe {
+
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+/* Personal image focals */
+.focal-personal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.focal-image {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  object-fit: cover;
+  opacity: 0.5;
+  box-shadow: 0 0 80px rgba(139, 127, 212, 0.2);
+  animation: focal-glow 8s ease-in-out infinite;
+}
+
+@keyframes focal-glow {
+
+  0%,
+  100% {
+    opacity: 0.4;
+    box-shadow: 0 0 60px rgba(139, 127, 212, 0.15);
+  }
+
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 100px rgba(139, 127, 212, 0.3);
+  }
+}
+
+/* Ensure atom text appears above focal */
+.chamber-field .atom-display {
+  position: relative;
+  z-index: 10;
+}

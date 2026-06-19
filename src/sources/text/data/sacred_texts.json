@@ -1,0 +1,58 @@
+{
+  "tao-te-ching-full": {
+    "id": "tao-te-ching-full",
+    "title": "Tao Te Ching (Complete)",
+    "author": "Lao Tzu",
+    "tradition": "Taoist",
+    "category": "sacred",
+    "description": "The complete 81 chapters of the Tao Te Ching",
+    "tags": ["wisdom", "nature", "paradox", "stillness"],
+    "chapters": [
+      "Chapter 1: The Tao that can be told is not the eternal Tao. The name that can be named is not the eternal name. The nameless is the beginning of heaven and earth. The named is the mother of ten thousand things. Ever desireless, one can see the mystery. Ever desiring, one can see the manifestations. These two spring from the same source but differ in name; this appears as darkness. Darkness within darkness. The gate to all mystery.",
+      "Chapter 2: Under heaven all can see beauty as beauty only because there is ugliness. All can know good as good only because there is evil. Therefore having and not having arise together. Difficult and easy complement each other. Long and short contrast each other. High and low rest upon each other. Voice and sound harmonize each other. Front and back follow one another.",
+      "Chapter 3: Not exalting the gifted prevents quarreling. Not collecting treasures prevents stealing. Not seeing desirable things prevents confusion of the heart. The wise therefore rule by emptying hearts and stuffing bellies, by weakening ambitions and strengthening bones. If people lack knowledge and desire, then intellectuals will not try to interfere. If nothing is done, then all will be well."
+    ]
+  },
+  "bhagavad-gita-full": {
+    "id": "bhagavad-gita-full",
+    "title": "Bhagavad Gita (Extended)",
+    "author": "Vyasa",
+    "tradition": "Hindu",
+    "category": "sacred",
+    "description": "Extended passages from the Bhagavad Gita",
+    "tags": ["action", "duty", "self", "liberation"],
+    "chapters": [
+      "Chapter 2 - Sankhya Yoga: You have the right to work, but never to the fruit of work. You should never engage in action for the sake of reward, nor should you long for inaction. Perform work in this world, Arjuna, as a man established within himself - without selfish attachments, and alike in success and defeat. For yoga is perfect evenness of mind.",
+      "Chapter 3 - Karma Yoga: Action is greater than inaction. Perform your task in life. Even the life of the body could not be maintained if there were no action. The world is bound by action unless action is performed as sacrifice. Therefore, Arjuna, perform action as sacrifice, free from attachment.",
+      "Chapter 6 - Dhyana Yoga: When meditation is mastered, the mind is unwavering like the flame of a lamp in a windless place. In the still mind, in the depths of meditation, the Self reveals itself. Beholding the Self by the Self, an aspirant knows the joy and peace of complete fulfillment."
+    ]
+  },
+  "dhammapada-full": {
+    "id": "dhammapada-full",
+    "title": "Dhammapada (Extended)",
+    "author": "Buddha",
+    "tradition": "Buddhist",
+    "category": "sacred",
+    "description": "Extended verses from the Dhammapada",
+    "tags": ["mind", "suffering", "liberation", "wisdom"],
+    "chapters": [
+      "Chapter 1 - Twin Verses: All that we are is the result of what we have thought: it is founded on our thoughts, it is made up of our thoughts. If a man speaks or acts with an evil thought, pain follows him, as the wheel follows the foot of the ox that draws the carriage. If a man speaks or acts with a pure thought, happiness follows him, like a shadow that never leaves him.",
+      "Chapter 2 - Earnestness: Earnestness is the path of immortality, thoughtlessness the path of death. Those who are in earnest do not die, those who are thoughtless are as if dead already. Having understood this clearly, those who have progressed in earnestness delight in earnestness, and rejoice in the knowledge of the elect.",
+      "Chapter 3 - Thought: As a fletcher makes straight his arrow, a wise man makes straight his trembling and unsteady thought, which is difficult to guard, difficult to hold back. It is good to tame the mind, which is difficult to hold in and flighty, rushing wherever it listeth; a tamed mind brings happiness."
+    ]
+  },
+  "upanishads-full": {
+    "id": "upanishads-full",
+    "title": "Upanishads (Selected)",
+    "author": "Ancient Sages",
+    "tradition": "Hindu",
+    "category": "sacred",
+    "description": "Selected passages from the principal Upanishads",
+    "tags": ["self", "consciousness", "reality", "liberation"],
+    "chapters": [
+      "Isha Upanishad: The whole world is pervaded by the Lord. Enjoy what has been given to you, and do not covet what belongs to others. Who sees all beings in his own Self, and his own Self in all beings, loses all fear. When a sage sees this great Unity and his Self has become all beings, what delusion and what sorrow can ever be near him?",
+      "Kena Upanishad: The eye does not go thither, nor speech, nor the mind. We do not know That, we do not understand how anyone can teach it. It is different from the known; It is also above the unknown. That which makes the tongue speak, but which cannot be spoken by the tongue, know that alone to be Brahman.",
+      "Mandukya Upanishad: AUM. This syllable is the whole world. The past, the present, the future - everything is just the word AUM. And whatever transcends the three divisions of time, that too is just AUM. Brahman is all, and the Self is Brahman. This Self has four states of consciousness."
+    ]
+  }
+}

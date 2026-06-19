@@ -1,0 +1,342 @@
+/*
+ * SOL Component Styles - Premium Revision
+ */
+
+.sol-view {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: var(--spacing-2xl) var(--spacing-xl);
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: radial-gradient(circle at 50% 0%, rgba(200, 160, 80, 0.08) 0%, transparent 60%),
+                var(--surface-base);
+}
+
+.view-header {
+    margin-bottom: var(--spacing-2xl);
+    text-align: center;
+    position: relative;
+}
+
+.nav-back {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.nav-back:hover {
+    color: var(--accent-gold);
+}
+
+.view-title h1 {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xl);
+    letter-spacing: 0.3em;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-xs);
+    font-weight: 300;
+}
+
+.view-subtitle {
+    font-family: var(--font-serif);
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: var(--font-size-md);
+    margin: 0;
+}
+
+.sol-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3xl);
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+    padding-bottom: var(--spacing-3xl);
+}
+
+.sol-recommendation-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: var(--spacing-3xl) var(--spacing-2xl);
+    background: rgba(15, 15, 18, 0.4);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-xl);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.glow-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(200, 160, 80, 0.6), transparent);
+}
+
+.sol-sun-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: var(--spacing-xl);
+    color: var(--accent-gold);
+    filter: drop-shadow(0 0 12px rgba(200, 160, 80, 0.4));
+    animation: pulse-glow 6s infinite ease-in-out alternate;
+}
+
+@keyframes pulse-glow {
+    0% { filter: drop-shadow(0 0 8px rgba(200, 160, 80, 0.3)); transform: scale(0.98); }
+    100% { filter: drop-shadow(0 0 24px rgba(200, 160, 80, 0.6)); transform: scale(1.02); }
+}
+
+.sol-greeting {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-md);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.sol-current-time {
+    color: var(--accent-gold);
+}
+
+.sol-context {
+    font-size: var(--font-size-lg);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-2xl);
+    font-family: var(--font-serif);
+    font-style: italic;
+}
+
+.sol-suggested-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    margin-bottom: var(--spacing-sm);
+}
+
+.sol-suggested-title {
+    font-family: var(--font-serif);
+    font-size: var(--font-size-3xl);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-2xl);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.sol-browser {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2xl);
+}
+
+.sol-tabs {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-xl);
+    position: relative;
+}
+
+.sol-tabs::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 20%;
+    right: 20%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+}
+
+.sol-tab {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.sol-tab:hover {
+    color: var(--text-secondary);
+}
+
+.sol-tab.active {
+    color: var(--accent-gold);
+}
+
+.sol-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 1px;
+    background: var(--accent-gold);
+    box-shadow: 0 0 8px var(--accent-gold);
+}
+
+.sol-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 28px;
+}
+
+.sol-card {
+    display: flex;
+    flex-direction: column;
+    padding: 28px 28px 24px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 2px solid rgba(255, 255, 255, 0.04);
+    border-radius: var(--radius-lg);
+    transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    backdrop-filter: blur(8px);
+    min-height: 200px;
+}
+
+.sol-card:hover {
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(200, 160, 80, 0.25);
+    border-top-color: rgba(200, 160, 80, 0.6);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), 0 0 30px rgba(200, 160, 80, 0.06);
+}
+
+.sol-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+}
+
+.sol-card-title {
+    font-family: var(--font-sans);
+    font-size: var(--font-size-lg);
+    font-weight: 400;
+    color: var(--text-primary);
+    margin: 0;
+    letter-spacing: 0.02em;
+}
+
+.sol-card-duration {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+}
+
+.sol-card-subtitle {
+    font-family: var(--font-serif);
+    font-size: var(--font-size-md);
+    color: var(--accent-gold);
+    margin-bottom: 16px;
+    font-style: italic;
+    opacity: 0.85;
+    line-height: 1.4;
+}
+
+.sol-card-desc {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.75;
+    margin: 0 0 24px 0;
+    flex-grow: 1;
+    letter-spacing: 0.01em;
+}
+
+.sol-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 16px;
+    margin-top: auto;
+}
+
+.sol-card-tone {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sol-btn-launch {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    padding: 6px 16px;
+    border-radius: var(--radius-full);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.sol-btn-launch:hover {
+    background: var(--text-primary);
+    color: var(--surface-base);
+    border-color: var(--text-primary);
+}
+
+.sol-btn-begin {
+    padding: 12px 32px;
+    font-size: var(--font-size-sm);
+    letter-spacing: 0.15em;
+    background: transparent;
+    border: 1px solid var(--accent-gold);
+    color: var(--accent-gold);
+    border-radius: var(--radius-full);
+    transition: all 0.3s ease;
+}
+
+.sol-btn-begin:hover {
+    background: var(--accent-gold);
+    color: var(--surface-base);
+    box-shadow: 0 0 20px rgba(200, 160, 80, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sol-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .sol-tabs {
+        flex-direction: column;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+}
