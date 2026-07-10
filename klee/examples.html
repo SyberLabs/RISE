@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Klee Engine - Gallery of Examples</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background: #2c3e50;
+      color: #ecf0f1;
+      padding: 20px;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 3em;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 1.2em;
+      margin-bottom: 40px;
+      color: #bdc3c7;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 30px;
+      margin-bottom: 50px;
+    }
+
+    .artwork {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      transition: transform 0.3s;
+    }
+
+    .artwork:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+    }
+
+    .artwork canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .artwork-info {
+      padding: 20px;
+      background: #34495e;
+      color: white;
+    }
+
+    .artwork-info h3 {
+      margin: 0 0 10px 0;
+      font-size: 1.5em;
+    }
+
+    .artwork-info p {
+      margin: 5px 0;
+      color: #bdc3c7;
+      font-size: 0.9em;
+      line-height: 1.6;
+    }
+
+    .code-section {
+      background: #34495e;
+      padding: 20px;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+
+    .code-section pre {
+      background: #2c3e50;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+      font-size: 0.85em;
+      line-height: 1.5;
+    }
+
+    .stats {
+      display: flex;
+      gap: 15px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      background: #2c3e50;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 0.85em;
+    }
+
+    button {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 1em;
+      margin-top: 10px;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #2980b9;
+    }
+
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #34495e;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+      z-index: 1000;
+    }
+
+    .controls button {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 768px) {
+      .gallery {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 Klee Engine Gallery</h1>
+    <p class="subtitle">A collection of algorithmic art examples showcasing the 25 line variations</p>
+
+    <div class="gallery" id="gallery"></div>
+  </div>
+
+  <div class="controls">
+    <button onclick="regenerateAll()">Regenerate All</button>
+    <button onclick="downloadAll()">Download All</button>
+    <button onclick="toggleCode()">Toggle Code</button>
+  </div>
+
+  <script src="kleeEngine.js"></script>
+  <script>
+    let showCode = false;
+
+    const examples = [
+      {
+        name: "Pure Organic",
+        description: "Perlin noise-driven natural movement creating flowing, plant-like structures.",
+        code: `engine.addSeed({
+  x: 256, y: 256,
+  variations: { organic: 1.0 },
+  branchProbability: 0.04,
+  params: {
+    noiseScale: 0.08,
+    noiseAmount: 0.6
+  }
+});`,
+        setup: (engine) => {
+          engine.addSeed({
+            x: 256, y: 256,
+            variations: { organic: 1.0 },
+            branchProbability: 0.04,
+            params: { noiseScale: 0.08, noiseAmount: 0.6 }
+          });
+        }
+      },
+      {
+        name: "Symmetrical Spiral",
+        description: "8-way rotational symmetry creates a mesmerizing mandala pattern.",
+        code: `engine.addSeed({
+  x: 256, y: 256,
+  variations: { spiral: 0.7, harmonic: 0.3 },
+  symmetry: 8,
+  params: {
+    spiralFactor: 1.01,
+    spiralRate: 0.09
+  }
+});`,
+        setup: (engine) => {
+          engine.addSeed({
+            x: 256, y: 256,
+            variations: { spiral: 0.7, harmonic: 0.3 },
+            symmetry: 8,
+            params: { spiralFactor: 1.01, spiralRate: 0.09 }
+          });
+        }
+      },
+      {
+        name: "Twittering Machine",
+        description: "Homage to Klee's famous work with trembling, oscillating lines.",
+        code: `for (let i = 0; i < 5; i++) {
+  engine.addSeed({
+    x: 100 + i * 80,
+    y: 150,
+    variations: {
+      twittering: 0.7,
+      trembling: 0.3
+    },
+    params: { stepLength: 3 }
+  });
+}`,
+        setup: (engine) => {
+          for (let i = 0; i < 5; i++) {
+            engine.addSeed({
+              x: 100 + i * 80, y: 150,
+              variations: { twittering: 0.7, trembling: 0.3 },
+              params: { stepLength: 3 }
+            });
+          }
+        }
+      },
+      {
+        name: "Corporeal Forms",
+        description: "Lines that tend to loop back, forming body-like organic shapes.",
+        code: `engine.addSeed({
+  variations: {
+    corporeal: 0.6,
+    organic: 0.3,
+    flowing: 0.1
+  },
+  branchProbability: 0.05
+});`,
+        setup: (engine) => {
+          for (let i = 0; i < 3; i++) {
+            engine.addSeed({
+              x: 150 + i * 100, y: 256,
+              variations: { corporeal: 0.6, organic: 0.3, flowing: 0.1 },
+              branchProbability: 0.05
+            });
+          }
+        }
+      },
+      {
+        name: "Architectural Grid",
+        description: "Right-angle movements create constructivist compositions.",
+        code: `engine.addSeed({
+  variations: {
+    architectural: 0.8,
+    angular: 0.2
+  },
+  symmetry: 2,
+  params: { stepLength: 10 }
+});`,
+        setup: (engine) => {
+          engine.addSeed({
+            x: 256, y: 100,
+            angle: Math.PI / 2,
+            variations: { architectural: 0.8, angular: 0.2 },
+            symmetry: 2,
+            params: { stepLength: 10 }
+          });
+        }
+      },
+      {
+        name: "Chaotic Explosion",
+        description: "Unpredictable jumps and explosive growth create energetic chaos.",
+        code: `for (let i = 0; i < 4; i++) {
+  engine.addSeed({
+    variations: {
+      chaotic: 0.5,
+      explosive: 0.3,
+      trembling: 0.2
+    }
+  });
+}`,
+        setup: (engine) => {
+          for (let i = 0; i < 4; i++) {
+            engine.addSeed({
+              x: 256 + (Math.random() - 0.5) * 200,
+              y: 256 + (Math.random() - 0.5) * 200,
+              variations: { chaotic: 0.5, explosive: 0.3, trembling: 0.2 }
+            });
+          }
+        }
+      },
+      {
+        name: "Harmonic Resonance",
+        description: "Multiple sine wave frequencies create complex interference patterns.",
+        code: `engine.addSeed({
+  variations: {
+    harmonic: 0.7,
+    rhythmic: 0.3
+  },
+  symmetry: 6
+});`,
+        setup: (engine) => {
+          engine.addSeed({
+            x: 256, y: 256,
+            variations: { harmonic: 0.7, rhythmic: 0.3 },
+            symmetry: 6
+          });
+        }
+      },
+      {
+        name: "Crystalline Structure",
+        description: "Geometric lattice movements suggest mineral growth patterns.",
+        code: `engine.addSeed({
+  variations: {
+    crystalline: 0.6,
+    angular: 0.4
+  },
+  symmetry: 6,
+  params: { latticeAngle: Math.PI / 3 }
+});`,
+        setup: (engine) => {
+          engine.addSeed({
+            x: 256, y: 256,
+            variations: { crystalline: 0.6, angular: 0.4 },
+            symmetry: 6,
+            params: { latticeAngle: Math.PI / 3 }
+          });
+        }
+      },
+      {
+        name: "Gravitational Pull",
+        description: "Lines attracted to the center create cosmic vortex effects.",
+        code: `for (let i = 0; i < 8; i++) {
+  const angle = (i / 8) * Math.PI * 2;
+  engine.addSeed({
+    x: 256 + Math.cos(angle) * 200,
+    y: 256 + Math.sin(angle) * 200,
+    variations: { gravitational: 0.8, flowing: 0.2 },
+    params: { gravity: 0.08 }
+  });
+}`,
+        setup: (engine) => {
+          for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            engine.addSeed({
+              x: 256 + Math.cos(angle) * 200,
+              y: 256 + Math.sin(angle) * 200,
+              variations: { gravitational: 0.8, flowing: 0.2 },
+              params: { gravity: 0.08, centerX: 256, centerY: 256 }
+            });
+          }
+        }
+      },
+      {
+        name: "Mythical Dragon",
+        description: "Serpentine curves and scales evoke mythological creatures.",
+        code: `engine.addSeed({
+  variations: {
+    mythical: 0.7,
+    organic: 0.3
+  },
+  branchProbability: 0.02
+});`,
+        setup: (engine) => {
+          engine.addSeed({
+            x: 100, y: 256,
+            angle: 0,
+            variations: { mythical: 0.7, organic: 0.3 },
+            branchProbability: 0.02
+          });
+        }
+      },
+      {
+        name: "Mechanical Precision",
+        description: "Gear-like movements create clockwork compositions.",
+        code: `engine.addSeed({
+  variations: {
+    mechanical: 0.8,
+    angular: 0.2
+  },
+  symmetry: 4,
+  params: { gearSteps: 12 }
+});`,
+        setup: (engine) => {
+          engine.addSeed({
+            x: 256, y: 256,
+            variations: { mechanical: 0.8, angular: 0.2 },
+            symmetry: 4,
+            params: { gearSteps: 12 }
+          });
+        }
+      },
+      {
+        name: "Flowing Water",
+        description: "Smooth sinuous curves mimic the movement of water.",
+        code: `for (let i = 0; i < 3; i++) {
+  engine.addSeed({
+    x: 50,
+    y: 100 + i * 150,
+    variations: {
+      flowing: 0.7,
+      wavy: 0.3
+    },
+    params: { flow: 0.04 }
+  });
+}`,
+        setup: (engine) => {
+          for (let i = 0; i < 3; i++) {
+            engine.addSeed({
+              x: 50, y: 100 + i * 150,
+              angle: 0,
+              variations: { flowing: 0.7, wavy: 0.3 },
+              params: { flow: 0.04 }
+            });
+          }
+        }
+      }
+    ];
+
+    function generateArtwork(example, canvas) {
+      const engine = new KleeEngine();
+      engine.width = 512;
+      engine.height = 512;
+
+      example.setup(engine);
+
+      const startTime = performance.now();
+      const result = engine.generateArtwork({
+        width: 512,
+        height: 512,
+        steps: 400
+      });
+      const genTime = performance.now() - startTime;
+
+      const renderStart = performance.now();
+      engine.render(canvas, {
+        lineWidth: 1.5,
+        lineAlpha: 0.8,
+        showForms: true,
+        texture: 0.05
+      });
+      const renderTime = performance.now() - renderStart;
+
+      return {
+        lines: result.lines.length,
+        forms: result.forms.length,
+        genTime: genTime.toFixed(1),
+        renderTime: renderTime.toFixed(1),
+        engine
+      };
+    }
+
+    function createArtworkCard(example, index) {
+      const card = document.createElement('div');
+      card.className = 'artwork';
+      card.id = `artwork-${index}`;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+
+      const stats = generateArtwork(example, canvas);
+
+      const info = document.createElement('div');
+      info.className = 'artwork-info';
+
+      info.innerHTML = `
+        <h3>${example.name}</h3>
+        <p>${example.description}</p>
+        <div class="stats">
+          <span class="stat">Lines: ${stats.lines}</span>
+          <span class="stat">Forms: ${stats.forms}</span>
+          <span class="stat">Gen: ${stats.genTime}ms</span>
+          <span class="stat">Render: ${stats.renderTime}ms</span>
+        </div>
+        <button onclick="regenerate(${index})">Regenerate</button>
+        <button onclick="download(${index})">Download PNG</button>
+        <div class="code-section" style="display: ${showCode ? 'block' : 'none'}">
+          <pre>${example.code}</pre>
+        </div>
+      `;
+
+      card.appendChild(canvas);
+      card.appendChild(info);
+
+      // Store reference for later
+      card.dataset.stats = JSON.stringify(stats);
+
+      return card;
+    }
+
+    function regenerate(index) {
+      const card = document.getElementById(`artwork-${index}`);
+      const canvas = card.querySelector('canvas');
+      const example = examples[index];
+
+      const stats = generateArtwork(example, canvas);
+
+      // Update stats
+      const statsDiv = card.querySelector('.stats');
+      statsDiv.innerHTML = `
+        <span class="stat">Lines: ${stats.lines}</span>
+        <span class="stat">Forms: ${stats.forms}</span>
+        <span class="stat">Gen: ${stats.genTime}ms</span>
+        <span class="stat">Render: ${stats.renderTime}ms</span>
+      `;
+    }
+
+    function download(index) {
+      const card = document.getElementById(`artwork-${index}`);
+      const canvas = card.querySelector('canvas');
+      const example = examples[index];
+
+      const dataURL = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `klee-${example.name.replace(/\s+/g, '-').toLowerCase()}.png`;
+      link.href = dataURL;
+      link.click();
+    }
+
+    function regenerateAll() {
+      examples.forEach((_, index) => regenerate(index));
+    }
+
+    function downloadAll() {
+      examples.forEach((_, index) => {
+        setTimeout(() => download(index), index * 500);
+      });
+    }
+
+    function toggleCode() {
+      showCode = !showCode;
+      document.querySelectorAll('.code-section').forEach(section => {
+        section.style.display = showCode ? 'block' : 'none';
+      });
+    }
+
+    // Generate gallery on load
+    window.addEventListener('load', () => {
+      const gallery = document.getElementById('gallery');
+
+      examples.forEach((example, index) => {
+        const card = createArtworkCard(example, index);
+        gallery.appendChild(card);
+      });
+
+      console.log('Gallery generated with', examples.length, 'examples');
+    });
+  </script>
+</body>
+</html>

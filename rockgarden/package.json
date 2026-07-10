@@ -1,0 +1,42 @@
+{
+  "name": "abstract-figure-engine",
+  "version": "1.0.0",
+  "description": "Procedural generator for minimalist abstract figures inspired by Japanese Zen rock gardens (karesansui)",
+  "main": "abstract-figure-engine.js",
+  "scripts": {
+    "demo": "open demo.html",
+    "test": "open test.html"
+  },
+  "keywords": [
+    "generative-art",
+    "procedural-generation",
+    "zen",
+    "karesansui",
+    "rock-garden",
+    "minimalist",
+    "canvas",
+    "abstract-art",
+    "javascript",
+    "wabi-sabi"
+  ],
+  "author": "Syberlabs",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/syberlabs/rockgarden.git"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "browser": {
+    "canvas": false
+  },
+  "files": [
+    "abstract-figure-engine.js",
+    "examples.js",
+    "demo.html",
+    "test.html",
+    "README.md",
+    "TECHNICAL.md"
+  ]
+}

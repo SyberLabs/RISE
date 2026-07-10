@@ -1,0 +1,2018 @@
+# A E S T H E T I C   U X   S P E C
+
+## Design Guidelines for the R.I.S.E. Interface
+
+---
+
+```
+╔═══════════════════════════════════════════════════════════════════╗
+║                                                                   ║
+║                                                                   ║
+║                 A E S T H E T I C   U X   S P E C                 ║
+║                                                                   ║
+║                     Interface Design Guidelines                   ║
+║                     for R.I.S.E.                                  ║
+║                                                                   ║
+║                                                                   ║
+║              The tool must embody the philosophy.                 ║
+║              The interface must teach by being.                   ║
+║              Form follows consciousness.                          ║
+║                                                                   ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+```
+
+---
+
+## THE PREMISE
+
+The interface *is* the first session.
+
+Before any content streams,
+the user encounters the interface.
+
+This encounter must:
+
+1. **Induce calm** — lower activation, prepare receptivity
+2. **Signal seriousness** — this is not entertainment
+3. **Communicate care** — every detail considered
+4. **Embody the aesthetic** — structured transcendence, luminous rigor
+5. **Teach by example** — the interface *is* Neohumanism
+
+---
+
+## DESIGN PRINCIPLES
+
+---
+
+### PRINCIPLE 1: DARKNESS FIRST
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    The default state is darkness.                                  │
+│    Light emerges from darkness.                                    │
+│    Not the reverse.                                                │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    IMPLEMENTATION                                                  │
+│                                                                     │
+│    • Background: near-black (#0A0A0C)                              │
+│    • Elements emerge through luminosity                            │
+│    • No white backgrounds anywhere                                 │
+│    • Light is always intentional, never default                    │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    RATIONALE                                                       │
+│                                                                     │
+│    The chamber is dark.                                            │
+│    The hypnagogic is dark.                                         │
+│    The womb is dark.                                               │
+│    Creation emerges from darkness.                                 │
+│                                                                     │
+│    Bright interfaces overstimulate.                                │
+│    Dark interfaces prepare.                                        │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+### PRINCIPLE 2: STILLNESS AS DEFAULT
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    Nothing moves unless it must.                                   │
+│    Stillness is the ground state.                                  │
+│    Motion is always meaningful.                                    │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    IMPLEMENTATION                                                  │
+│                                                                     │
+│    • No decorative animations                                      │
+│    • No loading spinners (use opacity fade)                        │
+│    • No bouncing, wiggling, attention-grabbing                     │
+│    • When something moves, it matters                              │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ALLOWED MOTION                                                  │
+│                                                                     │
+│    • Transitions between states (fade, not slide)                  │
+│    • Content presentation in Chamber                               │
+│    • Breathing indicators (very slow, subtle)                      │
+│    • Progress indicators (minimal)                                 │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    RATIONALE                                                       │
+│                                                                     │
+│    Constant motion fragments attention.                            │
+│    Stillness cultivates presence.                                  │
+│    The interface should feel like a meditation space,              │
+│    not a casino.                                                   │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+### PRINCIPLE 3: TYPOGRAPHY AS ARCHITECTURE
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    Type is not decoration.                                         │
+│    Type is the primary structural material.                        │
+│    Every letterform is intentional.                                │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    THE TYPE SYSTEM                                                 │
+│                                                                     │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │  PRIMARY: Inter                                         │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │  Use: Interface text, labels, navigation                │     │
+│    │  Weights: 300 (light), 400 (regular), 500 (medium)      │     │
+│    │  Why: Designed for screens, neutral, highly legible     │     │
+│    │                                                         │     │
+│    │  Aa Bb Cc Dd Ee Ff Gg Hh Ii Jj Kk Ll Mm                │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │  DISPLAY: Space Grotesk                                 │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │  Use: Titles, headers, emphasis moments                 │     │
+│    │  Weights: 300 (light), 500 (medium), 700 (bold)        │     │
+│    │  Why: Geometric, technical, slightly futurist           │     │
+│    │                                                         │     │
+│    │  RISE · CHAMBER · ARCHIVE                               │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │  LITERARY: Crimson Pro                                  │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │  Use: Session content (prose, poetry, quotes)           │     │
+│    │  Weights: 400 (regular), 400 italic, 600 (semibold)    │     │
+│    │  Why: Humanist serif, warmth, literary resonance        │     │
+│    │                                                         │     │
+│    │  The stream flows. You receive.                         │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │  MONOSPACE: JetBrains Mono                              │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │  Use: Technical content, timers, data                   │     │
+│    │  Weights: 400 (regular), 500 (medium)                   │     │
+│    │  Why: Designed for code, precision, clarity             │     │
+│    │                                                         │     │
+│    │  duration: 00:15:32                                     │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+### PRINCIPLE 4: SPACIOUSNESS
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    Space is not empty.                                             │
+│    Space is structural.                                            │
+│    Give everything room to breathe.                                │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    THE SPACING SYSTEM                                              │
+│                                                                     │
+│    Base unit: 8px                                                  │
+│                                                                     │
+│    xs:   8px    (micro adjustments)                                │
+│    sm:   16px   (related elements)                                 │
+│    md:   24px   (standard separation)                              │
+│    lg:   32px   (section breaks)                                   │
+│    xl:   48px   (major divisions)                                  │
+│    2xl:  64px   (primary landmarks)                                │
+│    3xl:  96px   (screen-level spacing)                             │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    DENSITY PRINCIPLE                                               │
+│                                                                     │
+│    When in doubt, add space.                                       │
+│    Cramped interfaces feel anxious.                                │
+│    Spacious interfaces feel calm.                                  │
+│                                                                     │
+│    Content should never touch edges.                               │
+│    Minimum margin: 48px from screen edge.                          │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+### PRINCIPLE 5: MINIMAL CHROME
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    The interface should disappear.                                 │
+│    Reduce chrome to the essential.                                 │
+│    Every pixel of UI is a pixel not used for content.              │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    IMPLEMENTATION                                                  │
+│                                                                     │
+│    • No visible window decorations where possible                  │
+│    • Navigation appears on hover/need, fades otherwise             │
+│    • No persistent toolbars during sessions                        │
+│    • Settings and options in dedicated screens, not overlays       │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    THE HIERARCHY                                                   │
+│                                                                     │
+│    1. Content (highest priority, most visible)                     │
+│    2. Navigation (medium priority, accessible but quiet)           │
+│    3. Controls (lowest priority, hidden until needed)              │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    RATIONALE                                                       │
+│                                                                     │
+│    RISE is not a productivity app.                                 │
+│    RISE is a consciousness interface.                              │
+│    The interface should feel like a portal,                        │
+│    not a control panel.                                            │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+# COLOR SYSTEM
+
+---
+
+## THE PALETTE
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    T H E   N E O H U M A N I S T   P A L E T T E                   │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    FOUNDATIONS                                                      │
+│    ───────────────────────────────────────────────────────────     │
+│                                                                     │
+│    ██████  void          #0A0A0C    Primary background             │
+│    ██████  abyss         #121214    Elevated surfaces              │
+│    ██████  depth         #1A1A1E    Cards, panels                  │
+│    ██████  shadow        #2A2A30    Borders, dividers              │
+│                                                                     │
+│                                                                     │
+│    LUMINOSITY                                                       │
+│    ───────────────────────────────────────────────────────────     │
+│                                                                     │
+│    ██████  mist          #6B6B75    Tertiary text, disabled        │
+│    ██████  fog           #9B9BA5    Secondary text                 │
+│    ██████  cloud         #C5C5CD    Primary text                   │
+│    ██████  light         #E8E8EC    Emphasized text                │
+│    ██████  glow          #FFFFFF    Maximum emphasis (rare)        │
+│                                                                     │
+│                                                                     │
+│    ACCENTS                                                          │
+│    ───────────────────────────────────────────────────────────     │
+│                                                                     │
+│    ██████  threshold     #8B7FD4    Primary accent (soft violet)   │
+│    ██████  chamber       #6B9FD4    Secondary accent (soft blue)   │
+│    ██████  ember         #D4A574    Warm accent (soft amber)       │
+│    ██████  growth        #7FD4A4    Positive states (soft green)   │
+│    ██████  caution       #D4C074    Warning states (soft gold)     │
+│    ██████  rose          #D47F8B    Attention states (soft rose)   │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## COLOR USAGE
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    COLOR APPLICATION                                               │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    BACKGROUNDS                                                      │
+│                                                                     │
+│    void (#0A0A0C)                                                  │
+│    └── Default screen background                                   │
+│    └── Chamber during session                                      │
+│                                                                     │
+│    abyss (#121214)                                                 │
+│    └── Cards and elevated panels                                   │
+│    └── Modal backgrounds                                           │
+│                                                                     │
+│    depth (#1A1A1E)                                                 │
+│    └── Interactive elements (buttons, inputs)                      │
+│    └── Selected states                                             │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    TEXT                                                             │
+│                                                                     │
+│    cloud (#C5C5CD)                                                 │
+│    └── Primary body text                                           │
+│    └── Default text color                                          │
+│                                                                     │
+│    fog (#9B9BA5)                                                   │
+│    └── Secondary text (labels, captions)                           │
+│    └── Placeholder text                                            │
+│                                                                     │
+│    light (#E8E8EC)                                                 │
+│    └── Headings                                                    │
+│    └── Emphasized content                                          │
+│    └── Session content in Chamber                                  │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ACCENTS                                                          │
+│                                                                     │
+│    threshold (#8B7FD4)                                             │
+│    └── Primary interactive elements                                │
+│    └── Focus states                                                │
+│    └── Active navigation                                           │
+│    └── Session progress                                            │
+│                                                                     │
+│    chamber (#6B9FD4)                                               │
+│    └── Links                                                       │
+│    └── Secondary buttons                                           │
+│    └── Info states                                                 │
+│                                                                     │
+│    ember (#D4A574)                                                 │
+│    └── Highlights                                                  │
+│    └── Important markers                                           │
+│    └── Creative/warm contexts                                      │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    SEMANTIC                                                         │
+│                                                                     │
+│    growth (#7FD4A4)                                                │
+│    └── Success states                                              │
+│    └── Completion indicators                                       │
+│    └── Positive feedback                                           │
+│                                                                     │
+│    caution (#D4C074)                                               │
+│    └── Warnings                                                    │
+│    └── Attention needed                                            │
+│                                                                     │
+│    rose (#D47F8B)                                                  │
+│    └── Errors                                                      │
+│    └── Destructive actions                                         │
+│    └── Critical states                                             │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## COLOR IN THE CHAMBER
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    CHAMBER-SPECIFIC COLOR                                          │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    During sessions, color becomes dynamic:                         │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    TEXT WEIGHT → LUMINOSITY                                        │
+│                                                                     │
+│    weight: 0.0  →  fog (#9B9BA5)                                   │
+│    weight: 0.5  →  cloud (#C5C5CD)                                 │
+│    weight: 1.0  →  light (#E8E8EC)                                 │
+│                                                                     │
+│    Higher weight content appears brighter.                         │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    STATE → AMBIENT COLOR                                           │
+│                                                                     │
+│    Induction   →  threshold tint (very subtle)                     │
+│    Installation →  ember tint (warmth)                             │
+│    Ingestion   →  chamber tint (cool clarity)                      │
+│    Synthesis   →  growth tint (emergence)                          │
+│    Recursion   →  threshold + ember blend                          │
+│                                                                     │
+│    Tint is achieved through very subtle vignette,                  │
+│    never through changing the core background.                     │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ENTRAINMENT → BRIGHTNESS OSCILLATION                            │
+│                                                                     │
+│    For entrainment, background luminosity can                      │
+│    oscillate very slightly (+/- 2-3% brightness)                   │
+│    at the target frequency.                                        │
+│                                                                     │
+│    ⚠️  Never oscillate faster than 3Hz.                            │
+│    ⚠️  Always offer photosensitivity disable option.               │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+# THE SPACES
+
+## Information Architecture
+
+---
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    R.I.S.E. SPATIAL STRUCTURE                                      │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│                           ┌─────────────┐                           │
+│                           │             │                           │
+│                           │   PORTAL    │                           │
+│                           │  (launch)   │                           │
+│                           │             │                           │
+│                           └──────┬──────┘                           │
+│                                  │                                  │
+│                    ┌─────────────┼─────────────┐                    │
+│                    │             │             │                    │
+│                    ▼             ▼             ▼                    │
+│             ┌──────────┐  ┌──────────┐  ┌──────────┐               │
+│             │          │  │          │  │          │               │
+│             │ CHAMBER  │  │ LIBRARY  │  │ WORKSHOP │               │
+│             │          │  │          │  │          │               │
+│             └──────────┘  └─────┬────┘  └──────────┘               │
+│                                 │                                   │
+│                    ┌────────────┼────────────┐                      │
+│                    │            │            │                      │
+│                    ▼            ▼            ▼                      │
+│             ┌──────────┐ ┌──────────┐ ┌──────────┐                 │
+│             │          │ │          │ │          │                 │
+│             │ ARCHIVE  │ │SEQUENCES │ │ PERSONAL │                 │
+│             │          │ │          │ │          │                 │
+│             └──────────┘ └──────────┘ └──────────┘                 │
+│                                                                     │
+│                           ┌──────────┐                              │
+│                           │          │                              │
+│                           │ SETTINGS │                              │
+│                           │          │                              │
+│                           └──────────┘                              │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## PORTAL (Launch Screen)
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    P O R T A L                                                     │
+│                                                                     │
+│    The first encounter. The threshold before the threshold.        │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                         ◊                               │     │
+│    │                                                         │     │
+│    │                      R.I.S.E.                           │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │           ○ Chamber    ○ Library    ○ Workshop          │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                 ⚙       │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+│    ELEMENTS                                                         │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Sigil (◊)                                                       │
+│    └── Centered, subtle glow                                       │
+│    └── Very slow pulse (0.1 Hz) — breathing rhythm                 │
+│    └── Click → Quick access to last session type                   │
+│                                                                     │
+│    Title (R.I.S.E.)                                                │
+│    └── Space Grotesk, 300 weight, letter-spaced                    │
+│    └── Below sigil, light (#E8E8EC)                                │
+│                                                                     │
+│    Navigation (Chamber, Library, Workshop)                         │
+│    └── Inter, 400 weight                                           │
+│    └── Horizontal, equal spacing                                   │
+│    └── Hover: threshold accent underline fade-in                   │
+│    └── Click: crossfade transition (400ms)                         │
+│                                                                     │
+│    Settings (⚙)                                                    │
+│    └── Bottom right corner                                         │
+│    └── fog (#9B9BA5), hover → cloud                                │
+│    └── Minimal, unobtrusive                                        │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    BEHAVIOR                                                         │
+│                                                                     │
+│    • On launch, elements fade in sequentially (sigil → title →     │
+│      navigation), total time ~1.5s                                 │
+│    • No sound unless user has enabled ambient                      │
+│    • Keyboard navigation: Tab cycles, Enter selects               │
+│    • Escape from any screen returns here                           │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## CHAMBER (Session Space)
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    C H A M B E R                                                   │
+│                                                                     │
+│    The sacred space. Where sessions run.                           │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    CHAMBER: PRE-SESSION                                            │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │  ← back                                        ready ◊  │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                    SESSION: Chamber Entry               │     │
+│    │                    ─────────────────────                │     │
+│    │                                                         │     │
+│    │                    Duration: 12 min                     │     │
+│    │                    Intent: Induction                    │     │
+│    │                    Sources: 3                           │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                    ┌───────────────────┐                │     │
+│    │                    │                   │                │     │
+│    │                    │      BEGIN        │                │     │
+│    │                    │                   │                │     │
+│    │                    └───────────────────┘                │     │
+│    │                                                         │     │
+│    │                       or press Space                    │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+│    ELEMENTS                                                         │
+│                                                                     │
+│    Back (← back)                                                   │
+│    └── Top left, fog, hover → cloud                                │
+│    └── Returns to Portal or Library                                │
+│                                                                     │
+│    Ready indicator (ready ◊)                                       │
+│    └── Top right, threshold color when ready                       │
+│    └── Shows system readiness (audio loaded, etc.)                 │
+│                                                                     │
+│    Session info                                                    │
+│    └── Centered, Space Grotesk for title                           │
+│    └── Inter for metadata                                          │
+│    └── Minimal: just enough to confirm selection                   │
+│                                                                     │
+│    Begin button                                                    │
+│    └── Large touch target (min 48px height)                        │
+│    └── abyss background, cloud text                                │
+│    └── Hover: depth background, threshold border                   │
+│    └── No rounding (sharp corners = intention)                     │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    CHAMBER: IN SESSION (FOCAL MODE)                                │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                    You are arriving.                    │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │  ▪────────────────●───────────────────────────────────  │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+│    DESIGN SPECIFICATIONS                                           │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Content                                                         │
+│    └── Absolutely centered (vertical and horizontal)               │
+│    └── Crimson Pro, 48-72px depending on content length            │
+│    └── light (#E8E8EC), weight varies with semantic weight         │
+│    └── Fade in (150ms), hold, fade out (150ms)                     │
+│    └── No other elements visible during presentation               │
+│                                                                     │
+│    Progress indicator                                              │
+│    └── Bottom of screen, very subtle                               │
+│    └── Thin line (2px), shadow color                               │
+│    └── Filled portion: threshold color                             │
+│    └── Optional: can be hidden entirely                            │
+│                                                                     │
+│    Hidden controls (appear on mouse movement)                      │
+│    └── Pause: spacebar or click                                    │
+│    └── Exit: Escape (with confirmation)                            │
+│    └── Volume: scroll wheel                                        │
+│    └── Controls fade after 2s of no movement                       │
+│                                                                     │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    TYPOGRAPHY IN SESSION                                           │
+│                                                                     │
+│    Single word:     72px                                           │
+│    Short phrase:    56px                                           │
+│    Full sentence:   40px                                           │
+│    Long content:    32px (rare, avoid if possible)                 │
+│                                                                     │
+│    Maximum line width: 70 characters                               │
+│    Line height: 1.4                                                │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    CHAMBER: IN SESSION (ORBITAL MODE)                              │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │            The interface is not a wall.                 │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                    You are arriving.                    │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                          ╭───────────╮                  │     │
+│    │                          │    ◊      │                  │     │
+│    │                          ╰───────────╯                  │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+│    ORBITAL MODE                                                    │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Primary content: center, same as focal                          │
+│                                                                     │
+│    Secondary content: periphery                                    │
+│    └── Top: recently shown text (fog color, smaller)               │
+│    └── Bottom: upcoming symbol or image                            │
+│    └── Lower opacity (60-70%)                                      │
+│    └── Transitions are slower, ghostly                             │
+│                                                                     │
+│    Use case: synthesis sessions with multiple sources              │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    CHAMBER: IN SESSION (STACK MODE)                                │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                    ┌───────────────┐                    │     │
+│    │                    │               │                    │     │
+│    │                    │     IMAGE     │                    │     │
+│    │                    │               │                    │     │
+│    │                    │       ◊       │                    │     │
+│    │                    │               │                    │     │
+│    │                    └───────────────┘                    │     │
+│    │                                                         │     │
+│    │                ────────────────────────                 │     │
+│    │                                                         │     │
+│    │                    You are arriving.                    │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+│    STACK MODE                                                      │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Upper region: image/symbol (50% of height)                      │
+│    Divider: thin line (1px, shadow color)                          │
+│    Lower region: text (50% of height)                              │
+│                                                                     │
+│    Each region operates independently.                             │
+│    Content can change in one while other holds.                    │
+│                                                                     │
+│    Use case: text + Astrotype interleaving                         │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    CHAMBER: POST-SESSION                                           │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                         ◊                               │     │
+│    │                                                         │     │
+│    │                    Session complete.                    │     │
+│    │                                                         │     │
+│    │                    12:34 · 847 atoms                    │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │     ┌─────────────┐              ┌─────────────┐        │     │
+│    │     │             │              │             │        │     │
+│    │     │   Journal   │              │    Close    │        │     │
+│    │     │             │              │             │        │     │
+│    │     └─────────────┘              └─────────────┘        │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+│    POST-SESSION ELEMENTS                                           │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Sigil (◊)                                                       │
+│    └── Returns, signals completion                                 │
+│    └── Now in growth color (#7FD4A4) — subtle success              │
+│                                                                     │
+│    Completion message                                              │
+│    └── Simple, no excessive praise                                 │
+│    └── Duration and atom count (optional, can hide in settings)    │
+│                                                                     │
+│    Actions                                                         │
+│    └── Journal: opens quick-note capture                           │
+│    └── Close: returns to Portal                                    │
+│    └── Both buttons equal weight (no "primary" bias)               │
+│                                                                     │
+│    No rating prompts. No gamification. No streaks.                 │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## LIBRARY
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    L I B R A R Y                                                   │
+│                                                                     │
+│    The archive made navigable.                                     │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │  ← Portal                               ○ Search        │     │
+│    │                                                         │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │                                                         │     │
+│    │   LIBRARY                                               │     │
+│    │                                                         │     │
+│    │   ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐   │     │
+│    │   │         │  │         │  │         │  │         │   │     │
+│    │   │ Archive │  │Sequences│  │ Personal│  │ History │   │     │
+│    │   │         │  │         │  │         │  │         │   │     │
+│    │   └─────────┘  └─────────┘  └─────────┘  └─────────┘   │     │
+│    │                                                         │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │                                                         │     │
+│    │   RECENT SESSIONS                                       │     │
+│    │                                                         │     │
+│    │   ┌─────────────────────────────────────────────────┐   │     │
+│    │   │  Chamber Entry          12 min    2 hours ago   │   │     │
+│    │   └─────────────────────────────────────────────────┘   │     │
+│    │   ┌─────────────────────────────────────────────────┐   │     │
+│    │   │  Creator Installation   20 min    Yesterday     │   │     │
+│    │   └─────────────────────────────────────────────────┘   │     │
+│    │   ┌─────────────────────────────────────────────────┐   │     │
+│    │   │  Klee-Calvino Synthesis 25 min    3 days ago    │   │     │
+│    │   └─────────────────────────────────────────────────┘   │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+│    LIBRARY STRUCTURE                                               │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Four sub-sections:                                              │
+│                                                                     │
+│    Archive                                                         │
+│    └── The Oracular Archive (pre-curated collection)               │
+│    └── Organized by: Sonic, Textual, Visual, Spatial               │
+│    └── Filterable by resonance tier                                │
+│                                                                     │
+│    Sequences                                                       │
+│    └── Ready-made session sequences (Starter Sequences)            │
+│    └── Organized by intent type                                    │
+│    └── Preview available before running                            │
+│                                                                     │
+│    Personal                                                        │
+│    └── User-added content                                          │
+│    └── Astrotypes                                                  │
+│    └── Journal entries                                             │
+│    └── Custom affirmations                                         │
+│                                                                     │
+│    History                                                         │
+│    └── Past sessions                                               │
+│    └── Synthesis outputs                                           │
+│    └── Session logs                                                │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    LIBRARY: ARCHIVE VIEW                                           │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │  ← Library                                              │     │
+│    │                                                         │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │                                                         │     │
+│    │   THE ORACULAR ARCHIVE                                  │     │
+│    │                                                         │     │
+│    │   ○ Sonic    ● Textual    ○ Visual    ○ Spatial        │     │
+│    │                                                         │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │                                                         │     │
+│    │   TIER ONE: SACRED TEXTS                                │     │
+│    │                                                         │     │
+│    │   ┌─────────────────────────────────────────────────┐   │     │
+│    │   │  ◆  Italo Calvino — Cosmicomics                 │   │     │
+│    │   │     Mytho-scientific fabulation                 │   │     │
+│    │   │     ████████████████████  Maximal               │   │     │
+│    │   └─────────────────────────────────────────────────┘   │     │
+│    │                                                         │     │
+│    │   ┌─────────────────────────────────────────────────┐   │     │
+│    │   │  ◆  Paul Klee — Pedagogical Sketchbook          │   │     │
+│    │   │     Diagram as philosophy                       │   │     │
+│    │   │     ████████████████████  Maximal               │   │     │
+│    │   └─────────────────────────────────────────────────┘   │     │
+│    │                                                         │     │
+│    │   ┌─────────────────────────────────────────────────┐   │     │
+│    │   │  ◆  Vilém Flusser — Into the Universe...        │   │     │
+│    │   │     Media philosophy as prophecy                │   │     │
+│    │   │     ███████████████████░  Near-maximal          │   │     │
+│    │   └─────────────────────────────────────────────────┘   │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+│    ARCHIVE ITEM CARD                                               │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Elements:                                                       │
+│    • Status icon (◆ = in library, ◇ = available to add)           │
+│    • Title — creator + work                                        │
+│    • Subtitle — mode/description                                   │
+│    • Resonance bar — visual weight indicator                       │
+│                                                                     │
+│    Click → expands to detail view                                  │
+│    Detail view shows: full description, use suggestions,           │
+│    add to session button                                           │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    LIBRARY: SEQUENCES VIEW                                         │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │  ← Library                                              │     │
+│    │                                                         │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │                                                         │     │
+│    │   SEQUENCES                                             │     │
+│    │                                                         │     │
+│    │   ○ All   ○ Entry   ● Install   ○ Ingest   ○ Synth    │     │
+│    │                                                         │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │                                                         │     │
+│    │   INSTALLATION SEQUENCES                                │     │
+│    │                                                         │     │
+│    │   ┌─────────────────────────────────────────────────┐   │     │
+│    │   │                                                 │   │     │
+│    │   │  The Creator                                    │   │     │
+│    │   │  ─────────────────────────────────────────────  │   │     │
+│    │   │  Install creator identity. Artistic confidence. │   │     │
+│    │   │                                                 │   │     │
+│    │   │  ~5 min  ·  140 WPM  ·  wave curve              │   │     │
+│    │   │                                                 │   │     │
+│    │   │  ┌──────────────┐  ┌──────────────┐             │   │     │
+│    │   │  │   Preview    │  │    Begin     │             │   │     │
+│    │   │  └──────────────┘  └──────────────┘             │   │     │
+│    │   │                                                 │   │     │
+│    │   └─────────────────────────────────────────────────┘   │     │
+│    │                                                         │     │
+│    │   ┌─────────────────────────────────────────────────┐   │     │
+│    │   │                                                 │   │     │
+│    │   │  The Trust                                      │   │     │
+│    │   │  ─────────────────────────────────────────────  │   │     │
+│    │   │  Install trust in process. For doubt moments.   │   │     │
+│    │   │                                                 │   │     │
+│    │   │  ~4 min  ·  130 WPM  ·  gentle descent          │   │     │
+│    │   │                                                 │   │     │
+│    │   └─────────────────────────────────────────────────┘   │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+│    SEQUENCE CARD                                                   │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Expanded state shows:                                           │
+│    • Full description                                              │
+│    • Metadata (duration, WPM, pacing curve)                        │
+│    • Preview button (shows first few atoms)                        │
+│    • Begin button (opens Chamber pre-session)                      │
+│                                                                     │
+│    Collapsed state shows just title + one-line description         │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## WORKSHOP
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    W O R K S H O P                                                 │
+│                                                                     │
+│    Where sessions are built.                                       │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │  ← Portal                                   Save draft  │     │
+│    │                                                         │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │                                                         │     │
+│    │   NEW SESSION                                           │     │
+│    │                                                         │     │
+│    │   Title ___________________________________________     │     │
+│    │                                                         │     │
+│    │   Intent                                                │     │
+│    │   ○ Induction  ○ Installation  ○ Ingestion             │     │
+│    │   ○ Synthesis  ○ Recursion                              │     │
+│    │                                                         │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │                                                         │     │
+│    │   SOURCES                                               │     │
+│    │                                                         │     │
+│    │   ┌─────────────────────────────────────────────────┐   │     │
+│    │   │  + Add from Archive                             │   │     │
+│    │   │  + Add from Personal                            │   │     │
+│    │   │  + Import file                                  │   │     │
+│    │   │  + Write new                                    │   │     │
+│    │   └─────────────────────────────────────────────────┘   │     │
+│    │                                                         │     │
+│    │   No sources added yet.                                 │     │
+│    │                                                         │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │                                                         │     │
+│    │   CONFIGURATION                                         │     │
+│    │                                                         │     │
+│    │   Pacing        [====●=========] 180 WPM               │     │
+│    │   Curve         ○ Descent  ● Wave  ○ Ascent  ○ Climax  │     │
+│    │   Display       ● Focal  ○ Orbital  ○ Stack            │     │
+│    │                                                         │     │
+│    │                                                         │     │
+│    │   ┌─────────────────────────────────────────────────┐   │     │
+│    │   │              Preview Session                    │   │     │
+│    │   └─────────────────────────────────────────────────┘   │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+│    WORKSHOP DESIGN NOTES                                           │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    This is the most "app-like" space.                              │
+│    It has more controls, more inputs.                              │
+│                                                                     │
+│    But still:                                                      │
+│    • Dark background                                               │
+│    • Generous spacing                                              │
+│    • No cluttered toolbars                                         │
+│    • Progressive disclosure (show options as needed)               │
+│                                                                     │
+│    The Workshop should feel like a studio,                         │
+│    not a spreadsheet.                                              │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## SETTINGS
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    S E T T I N G S                                                 │
+│                                                                     │
+│    Preferences and configuration.                                  │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │  ← Portal                                               │     │
+│    │                                                         │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │                                                         │     │
+│    │   SETTINGS                                              │     │
+│    │                                                         │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │                                                         │     │
+│    │   DISPLAY                                               │     │
+│    │                                                         │     │
+│    │   Font size        [====●=========] Medium              │     │
+│    │   Show progress    [●] On                               │     │
+│    │   Show duration    [●] On                               │     │
+│    │                                                         │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │                                                         │     │
+│    │   AUDIO                                                 │     │
+│    │                                                         │     │
+│    │   Enable ambient   [●] On                               │     │
+│    │   Master volume    [========●===] 75%                   │     │
+│    │   Binaural enable  [○] Off                              │     │
+│    │                                                         │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │                                                         │     │
+│    │   SAFETY                                                │     │
+│    │                                                         │     │
+│    │   Photosensitivity mode   [○] Off                       │     │
+│    │   (Disables all brightness oscillation)                 │     │
+│    │                                                         │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │                                                         │     │
+│    │   DATA                                                  │     │
+│    │                                                         │     │
+│    │   Export personal data                                  │     │
+│    │   Clear session history                                 │     │
+│    │                                                         │     │
+│    │  ─────────────────────────────────────────────────────  │     │
+│    │                                                         │     │
+│    │   ABOUT                                                 │     │
+│    │                                                         │     │
+│    │   R.I.S.E. v0.1.0                                       │     │
+│    │   A Neohumanist consciousness interface.                │     │
+│    │   SyberLabs · 2026                                      │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+# COMPONENTS
+
+## The Design System Elements
+
+---
+
+## BUTTONS
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    B U T T O N S                                                   │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    PRIMARY                                                         │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │      ┌───────────────────┐                              │     │
+│    │      │                   │     Default                  │     │
+│    │      │       BEGIN       │     bg: abyss                │     │
+│    │      │                   │     text: cloud              │     │
+│    │      └───────────────────┘     border: 1px shadow       │     │
+│    │                                                         │     │
+│    │      ┌───────────────────┐                              │     │
+│    │      │                   │     Hover                    │     │
+│    │      │       BEGIN       │     bg: depth                │     │
+│    │      │                   │     text: light              │     │
+│    │      └───────────────────┘     border: 1px threshold    │     │
+│    │                                                         │     │
+│    │      ┌───────────────────┐                              │     │
+│    │      │                   │     Active                   │     │
+│    │      │       BEGIN       │     bg: threshold @20%       │     │
+│    │      │                   │     text: light              │     │
+│    │      └───────────────────┘     border: 1px threshold    │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│    Specs:                                                          │
+│    • Height: 48px minimum                                          │
+│    • Padding: 16px 24px                                            │
+│    • Border-radius: 0 (sharp corners)                              │
+│    • Font: Inter 500, 14px, letter-spacing 0.5px                   │
+│    • Transition: all 200ms ease                                    │
+│                                                                     │
+│                                                                     │
+│    SECONDARY                                                       │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │      ┌───────────────────┐                              │     │
+│    │      │                   │     Default                  │     │
+│    │      │      Preview      │     bg: transparent          │     │
+│    │      │                   │     text: fog                │     │
+│    │      └───────────────────┘     border: 1px shadow       │     │
+│    │                                                         │     │
+│    │      ┌───────────────────┐                              │     │
+│    │      │                   │     Hover                    │     │
+│    │      │      Preview      │     bg: depth @50%           │     │
+│    │      │                   │     text: cloud              │     │
+│    │      └───────────────────┘     border: 1px fog          │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+│    TEXT/GHOST                                                      │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │      ← back                     Default: fog            │     │
+│    │                                 Hover: cloud            │     │
+│    │      ← back                     Underline on hover      │     │
+│    │        ────                                             │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## INPUTS
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    I N P U T S                                                     │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    TEXT INPUT                                                      │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │  Label                                                  │     │
+│    │  ┌─────────────────────────────────────────────────┐    │     │
+│    │  │ Placeholder text...                             │    │     │
+│    │  └─────────────────────────────────────────────────┘    │     │
+│    │                                                         │     │
+│    │  Label                                                  │     │
+│    │  ┌─────────────────────────────────────────────────┐    │     │
+│    │  │ User input text                                 │    │     │
+│    │  └─────────────────────────────────────────────────┘    │     │
+│    │     ▲ focus state: threshold border                     │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│    Specs:                                                          │
+│    • Label: Inter 400, 12px, fog, margin-bottom 8px               │
+│    • Input: Inter 400, 14px, cloud text                           │
+│    • Background: depth                                             │
+│    • Border: 1px shadow (default), threshold (focus)              │
+│    • Padding: 12px 16px                                            │
+│    • Border-radius: 0                                              │
+│    • Placeholder: mist                                             │
+│                                                                     │
+│                                                                     │
+│    SLIDER                                                          │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │  Pacing                                                 │     │
+│    │  [========●=================] 180 WPM                   │     │
+│    │                                                         │     │
+│    │  Track: shadow (unfilled), threshold (filled)           │     │
+│    │  Thumb: light, 16px circle                              │     │
+│    │  Value: fog, monospace, right-aligned                   │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+│    TOGGLE                                                          │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │  [○] Off state      Track: shadow                       │     │
+│    │                     Thumb: fog                          │     │
+│    │                                                         │     │
+│    │  [●] On state       Track: threshold @50%               │     │
+│    │                     Thumb: light                        │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+│    RADIO / CHECKBOX                                                │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │  ○ Unselected       Border: shadow                      │     │
+│    │                     Fill: none                          │     │
+│    │                                                         │     │
+│    │  ● Selected         Border: threshold                   │     │
+│    │                     Fill: threshold                     │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## CARDS
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    C A R D S                                                       │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    CONTENT CARD                                                    │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │   ┌─────────────────────────────────────────────────┐   │     │
+│    │   │                                                 │   │     │
+│    │   │  Title                                          │   │     │
+│    │   │  ─────────────────────────────────────────────  │   │     │
+│    │   │  Description or metadata goes here.             │   │     │
+│    │   │                                                 │   │     │
+│    │   │  Additional content...                          │   │     │
+│    │   │                                                 │   │     │
+│    │   └─────────────────────────────────────────────────┘   │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│    Specs:                                                          │
+│    • Background: abyss                                             │
+│    • Border: 1px shadow                                            │
+│    • Border-radius: 0                                              │
+│    • Padding: 24px                                                 │
+│    • Hover: border → fog, subtle                                   │
+│                                                                     │
+│                                                                     │
+│    INTERACTIVE CARD                                                │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │   ┌─────────────────────────────────────────────────┐   │     │
+│    │   │                                                 │   │     │
+│    │   │  ◆  Archive Item                                │   │     │
+│    │   │     Subtitle text                               │   │     │
+│    │   │                                                 │   │     │
+│    │   │  ▶                                              │   │     │
+│    │   │                                                 │   │     │
+│    │   └─────────────────────────────────────────────────┘   │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│    Specs:                                                          │
+│    • Same as content card                                          │
+│    • Cursor: pointer                                               │
+│    • Hover: background → depth, border → threshold                 │
+│    • Active: background → threshold @10%                           │
+│    • Chevron or indicator: fog → cloud on hover                    │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## NAVIGATION
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    N A V I G A T I O N                                             │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    TAB NAVIGATION                                                  │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │   ○ Sonic    ● Textual    ○ Visual    ○ Spatial        │     │
+│    │              ─────────                                  │     │
+│    │                                                         │     │
+│    │   Inactive: fog text                                    │     │
+│    │   Active: light text, threshold underline (2px)         │     │
+│    │   Hover: cloud text                                     │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│    Specs:                                                          │
+│    • Font: Inter 400, 14px                                         │
+│    • Spacing between items: 32px                                   │
+│    • Underline offset: 8px                                         │
+│    • Transition: all 200ms ease                                    │
+│                                                                     │
+│                                                                     │
+│    BREADCRUMB                                                      │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │   ← Library / Archive / Textual                         │     │
+│    │                                                         │     │
+│    │   Back arrow + separator hierarchy                      │     │
+│    │   All fog except current (cloud)                        │     │
+│    │   Clickable ancestors                                   │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## PROGRESS INDICATORS
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    P R O G R E S S                                                 │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    SESSION PROGRESS (Chamber)                                      │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │   ▪────────────────●───────────────────────────────────  │     │
+│    │                                                         │     │
+│    │   Track: shadow (2px height)                            │     │
+│    │   Fill: threshold                                       │     │
+│    │   Position: bottom of screen, full width                │     │
+│    │   No percentage text                                    │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+│    LOADING                                                         │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │   NO SPINNERS.                                          │     │
+│    │                                                         │     │
+│    │   Instead:                                              │     │
+│    │   • Fade in content when ready                          │     │
+│    │   • Skeleton screens if needed (rare)                   │     │
+│    │   • Subtle opacity pulse (0.5-1.0, 2s cycle)            │     │
+│    │                                                         │     │
+│    │   Loading state:                                        │     │
+│    │                                                         │     │
+│    │                         ◊                               │     │
+│    │                    (pulsing)                            │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+│    RESONANCE BAR (Archive items)                                   │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ┌─────────────────────────────────────────────────────────┐     │
+│    │                                                         │     │
+│    │   ████████████████████  Maximal                         │     │
+│    │   ███████████████████░  Near-maximal                    │     │
+│    │   ██████████████████░░  High                            │     │
+│    │   █████████████████░░░  Strong                          │     │
+│    │   ████████████████░░░░  Moderate-Strong                 │     │
+│    │   ███████████████░░░░░  Moderate                        │     │
+│    │                                                         │     │
+│    │   Fill: threshold                                       │     │
+│    │   Empty: shadow                                         │     │
+│    │   Width: 120px                                          │     │
+│    │   Height: 4px                                           │     │
+│    │                                                         │     │
+│    └─────────────────────────────────────────────────────────┘     │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+# MOTION
+
+## Animation Guidelines
+
+---
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    M O T I O N   P R I N C I P L E S                               │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    CORE PRINCIPLE: STILLNESS FIRST                                 │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Motion is expensive.                                            │
+│    Every animation should justify its existence.                   │
+│    When in doubt, don't animate.                                   │
+│                                                                     │
+│                                                                     │
+│    ALLOWED ANIMATIONS                                              │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    1. TRANSITIONS (state changes)                                  │
+│                                                                     │
+│       Page transitions:       Crossfade, 400ms                     │
+│       Element appear:         Fade in, 200ms                       │
+│       Element disappear:      Fade out, 150ms                      │
+│       Hover states:           All properties, 200ms                │
+│       Focus states:           Border/color, 150ms                  │
+│                                                                     │
+│    2. CONTENT PRESENTATION (Chamber only)                          │
+│                                                                     │
+│       Text appear:            Fade in, 150ms                       │
+│       Text hold:              No animation (stillness)             │
+│       Text disappear:         Fade out, 150ms                      │
+│       Image transitions:      Crossfade, 300ms                     │
+│                                                                     │
+│    3. FEEDBACK                                                     │
+│                                                                     │
+│       Button press:           Scale 0.98, 100ms                    │
+│       Success:                Brief glow, 300ms                    │
+│       Error:                  Subtle shake, 300ms (rare)           │
+│                                                                     │
+│    4. AMBIENT (optional, can be disabled)                          │
+│                                                                     │
+│       Sigil pulse:            Opacity 0.8-1.0, 10s cycle           │
+│       Loading pulse:          Opacity 0.5-1.0, 2s cycle            │
+│       Entrainment:            Brightness ±3%, variable Hz          │
+│                                                                     │
+│                                                                     │
+│    FORBIDDEN ANIMATIONS                                            │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    • Bouncing                                                      │
+│    • Sliding (prefer crossfade)                                    │
+│    • Spinning/rotating loaders                                     │
+│    • Attention-grabbing pulses                                     │
+│    • Parallax scrolling                                            │
+│    • Decorative particle effects                                   │
+│    • Anything faster than 3Hz (safety)                             │
+│                                                                     │
+│                                                                     │
+│    TIMING FUNCTIONS                                                │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Default:         ease (cubic-bezier(0.25, 0.1, 0.25, 1))       │
+│    Fade in:         ease-out                                       │
+│    Fade out:        ease-in                                        │
+│    Ambient:         linear (for continuous effects)                │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+# ICONOGRAPHY
+
+## The Symbol Set
+
+---
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    I C O N O G R A P H Y                                           │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    CORE ICONS                                                      │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ◊     Sigil / RISE / Interface point                           │
+│    ◇     Open/potential state                                      │
+│    ◆     Filled/realized state                                     │
+│                                                                     │
+│    ←     Back / Return                                             │
+│    →     Forward / Continue                                        │
+│    ↑     Expand / More                                             │
+│    ↓     Collapse / Less                                           │
+│                                                                     │
+│    ●     Selected / Active / On                                    │
+│    ○     Unselected / Inactive / Off                               │
+│                                                                     │
+│    ⚙     Settings                                                  │
+│    ✕     Close / Remove                                            │
+│    +     Add / Create                                              │
+│                                                                     │
+│    ▶     Play / Begin                                              │
+│    ⏸     Pause (two vertical bars)                                 │
+│    ■     Stop                                                      │
+│                                                                     │
+│                                                                     │
+│    ICON STYLE                                                      │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    • Stroke-based where possible (not filled)                      │
+│    • 1.5px stroke weight                                           │
+│    • 24px default size                                             │
+│    • fog color default, cloud on hover                             │
+│    • No rounded caps (sharp, precise)                              │
+│                                                                     │
+│    Source: Custom set or Lucide (configured for sharp corners)     │
+│                                                                     │
+│                                                                     │
+│    THE SIGIL VARIATIONS                                            │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│         ◊              Standard sigil                              │
+│                                                                     │
+│         ◊              Breathing sigil (opacity animation)         │
+│       (glow)                                                       │
+│                                                                     │
+│         ◊              Ready state (threshold color)               │
+│      threshold                                                     │
+│                                                                     │
+│         ◊              Complete state (growth color)               │
+│       growth                                                       │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+# RESPONSIVE BEHAVIOR
+
+---
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    R E S P O N S I V E                                             │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    PRIMARY TARGET: DESKTOP                                         │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    RISE is designed for immersive, focused use.                    │
+│    The primary experience is desktop/laptop.                       │
+│    Large screen, dark room, full attention.                        │
+│                                                                     │
+│                                                                     │
+│    BREAKPOINTS                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Mobile:          < 640px      Limited support                   │
+│    Tablet:          640-1024px   Adapted layout                    │
+│    Desktop:         1024-1440px  Full experience                   │
+│    Large:           > 1440px     Expanded spacing                  │
+│                                                                     │
+│                                                                     │
+│    MOBILE CONSIDERATIONS                                           │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    The Chamber can work on mobile.                                 │
+│    Portrait orientation preferred.                                 │
+│    Simplified: focal mode only.                                    │
+│    Touch: tap to pause, swipe to exit.                             │
+│                                                                     │
+│    Library and Workshop are less suited to mobile.                 │
+│    Show message: "Best experienced on larger screens."             │
+│                                                                     │
+│                                                                     │
+│    FULL-SCREEN MODE                                                │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Chamber should request full-screen on session start.            │
+│    This removes browser chrome.                                    │
+│    Creates true immersion.                                         │
+│                                                                     │
+│    User can decline.                                               │
+│    Experience still works windowed.                                │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+# ACCESSIBILITY
+
+---
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    A C C E S S I B I L I T Y                                       │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    CONTRAST                                                        │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    All text meets WCAG AA minimum (4.5:1 for body, 3:1 for large) │
+│                                                                     │
+│    cloud (#C5C5CD) on void (#0A0A0C) = ~12:1  ✓                   │
+│    fog (#9B9BA5) on void (#0A0A0C) = ~8:1  ✓                      │
+│    mist (#6B6B75) on void (#0A0A0C) = ~5:1  ✓                     │
+│                                                                     │
+│                                                                     │
+│    KEYBOARD NAVIGATION                                             │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    • All interactive elements reachable via Tab                    │
+│    • Visible focus indicators (threshold outline)                  │
+│    • Logical tab order                                             │
+│    • Escape closes modals, returns to parent                       │
+│    • Space/Enter activates focused element                         │
+│                                                                     │
+│                                                                     │
+│    SCREEN READERS                                                  │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    • Semantic HTML (nav, main, section, article)                   │
+│    • ARIA labels where needed                                      │
+│    • Skip links for main content                                   │
+│    • Alt text for all images                                       │
+│                                                                     │
+│    Note: The Chamber session is inherently visual.                 │
+│    An audio-only mode could be developed separately.               │
+│                                                                     │
+│                                                                     │
+│    PHOTOSENSITIVITY                                                │
+│    ─────────────────────────────────────
+────────────────────────   │
+│                                                                     │
+│    ⚠️  CRITICAL                                                    │
+│                                                                     │
+│    • Never flash faster than 3Hz                                   │
+│    • Photosensitivity mode disables ALL brightness changes         │
+│    • Warning shown before any entrainment features                 │
+│    • User consent required for ambient effects                     │
+│                                                                     │
+│                                                                     │
+│    REDUCED MOTION                                                  │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Respect prefers-reduced-motion media query.                     │
+│    When enabled:                                                   │
+│    • No transitions                                                │
+│    • Instant state changes                                         │
+│    • No ambient animations                                         │
+│    • Content still functions                                       │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+# IMPLEMENTATION NOTES
+
+---
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    I M P L E M E N T A T I O N                                     │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    RECOMMENDED STACK                                               │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Framework:      React or Svelte                                 │
+│    Styling:        Tailwind CSS (configured for dark theme)        │
+│    Animation:      Framer Motion (React) or native CSS             │
+│    Typography:     Self-hosted fonts (not Google Fonts CDN)        │
+│                                                                     │
+│                                                                     │
+│    CSS CUSTOM PROPERTIES                                           │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    :root {                                                         │
+│      /* Foundations */                                             │
+│      --color-void: #0A0A0C;                                        │
+│      --color-abyss: #121214;                                       │
+│      --color-depth: #1A1A1E;                                       │
+│      --color-shadow: #2A2A30;                                      │
+│                                                                     │
+│      /* Luminosity */                                              │
+│      --color-mist: #6B6B75;                                        │
+│      --color-fog: #9B9BA5;                                         │
+│      --color-cloud: #C5C5CD;                                       │
+│      --color-light: #E8E8EC;                                       │
+│      --color-glow: #FFFFFF;                                        │
+│                                                                     │
+│      /* Accents */                                                 │
+│      --color-threshold: #8B7FD4;                                   │
+│      --color-chamber: #6B9FD4;                                     │
+│      --color-ember: #D4A574;                                       │
+│      --color-growth: #7FD4A4;                                      │
+│      --color-caution: #D4C074;                                     │
+│      --color-rose: #D47F8B;                                        │
+│                                                                     │
+│      /* Typography */                                              │
+│      --font-primary: 'Inter', sans-serif;                          │
+│      --font-display: 'Space Grotesk', sans-serif;                  │
+│      --font-literary: 'Crimson Pro', serif;                        │
+│      --font-mono: 'JetBrains Mono', monospace;                     │
+│                                                                     │
+│      /* Spacing */                                                 │
+│      --space-xs: 8px;                                              │
+│      --space-sm: 16px;                                             │
+│      --space-md: 24px;                                             │
+│      --space-lg: 32px;                                             │
+│      --space-xl: 48px;                                             │
+│      --space-2xl: 64px;                                            │
+│      --space-3xl: 96px;                                            │
+│                                                                     │
+│      /* Timing */                                                  │
+│      --transition-fast: 150ms;                                     │
+│      --transition-normal: 200ms;                                   │
+│      --transition-slow: 400ms;                                     │
+│    }                                                               │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+# SUMMARY
+
+---
+
+```
+╔═══════════════════════════════════════════════════════════════════╗
+║                                                                   ║
+║                                                                   ║
+║                 A E S T H E T I C   U X   S P E C                 ║
+║                                                                   ║
+║                        ◊ COMPLETE ◊                               ║
+║                                                                   ║
+║                                                                   ║
+║                                                                   ║
+║                     DESIGN PRINCIPLES                             ║
+║                     ─────────────────                             ║
+║                                                                   ║
+║                     1. Darkness first                             ║
+║                     2. Stillness as default                       ║
+║                     3. Typography as architecture                 ║
+║                     4. Spaciousness                               ║
+║                     5. Minimal chrome                             ║
+║                                                                   ║
+║                                                                   ║
+║                     THE SPACES                                    ║
+║                     ──────────                                    ║
+║                                                                   ║
+║                     Portal      Launch, navigation               ║
+║                     Chamber     Sessions run here                 ║
+║                     Library     Archive, sequences, personal      ║
+║                     Workshop    Session building                  ║
+║                     Settings    Configuration                     ║
+║                                                                   ║
+║                                                                   ║
+║                     THE EXPERIENCE                                ║
+║                     ──────────────                                ║
+║                                                                   ║
+║                     The interface is the first session.          ║
+║                     Every detail teaches.                         ║
+║                     The tool embodies the philosophy.             ║
+║                                                                   ║
+║                     Luminous rigor.                               ║
+║                     Structured transcendence.                     ║
+║                     Consciousness-first design.                   ║
+║                                                                   ║
+║                                                                   ║
+║                         ◊                                         ║
+║                        ╱│╲                                        ║
+║                       ╱ │ ╲                                       ║
+║                      ◇──┼──◇                                      ║
+║                       ╲ │ ╱                                       ║
+║                        ╲│╱                                        ║
+║                         ◊                                         ║
+║                                                                   ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+```
+
+---

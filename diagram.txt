@@ -1,0 +1,1480 @@
+# E X T E R N A L   V I S U A L   S O U R C E S
+
+## Open-Access Diagrammatic Resources for R.I.S.E.
+
+---
+
+```
+╔═══════════════════════════════════════════════════════════════════╗
+║                                                                   ║
+║                                                                   ║
+║           E X T E R N A L   V I S U A L   S O U R C E S           ║
+║                                                                   ║
+║                     Diagrams · Schematics · Mathematics           ║
+║                                                                   ║
+║                     For Chamber Interlocution                     ║
+║                                                                   ║
+║                                                                   ║
+║              The image is not illustration.                       ║
+║              The image is cognition in visual form.               ║
+║              Some thoughts exist only as relation                 ║
+║              between elements in space.                           ║
+║                                                                   ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+```
+
+---
+
+## PURPOSE
+
+This document catalogs **open-access, public domain, and Creative Commons** visual resources suitable for RISE Chamber sessions.
+
+All sources are:
+
+- **Legally reproducible** (public domain, CC0, CC-BY, or CC-BY-SA)
+- **Visually resonant** with Neohumanist aesthetics
+- **Diagrammatically rich** (not merely decorative)
+- **Available digitally** for processing and display
+
+---
+
+## LICENSING GUIDE
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│    LICENSE TYPES                                                   │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│    PUBLIC DOMAIN                                                   │
+│    ─────────────────────────────────────────────────────────────   │
+│    No restrictions. Full freedom.                                  │
+│    Sources: Works pre-1929, government works, dedicated works      │
+│                                                                     │
+│    CC0 (Creative Commons Zero)                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│    Dedicated to public domain by creator.                          │
+│    No restrictions. Equivalent to public domain.                   │
+│                                                                     │
+│    CC-BY (Attribution)                                             │
+│    ─────────────────────────────────────────────────────────────   │
+│    Free to use with attribution.                                   │
+│    Credit creator in session metadata.                             │
+│                                                                     │
+│    CC-BY-SA (Attribution-ShareAlike)                               │
+│    ─────────────────────────────────────────────────────────────   │
+│    Free to use with attribution.                                   │
+│    Derivatives must use same license.                              │
+│                                                                     │
+│    ⚠️  AVOID: CC-NC (Non-Commercial), CC-ND (No Derivatives)       │
+│    These restrict modification and some uses.                      │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+# PART ONE: POETIC & PHILOSOPHICAL DIAGRAMS
+
+## Thought Made Visible
+
+---
+
+## 1.1 — HISTORICAL DIAGRAMS (Public Domain)
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    P U B L I C   D O M A I N   P H I L O S O P H I C A L          │
+│                                                                     │
+│    Works published before 1929 (US) or by authors                  │
+│    deceased 70+ years are public domain.                           │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    ROBERT FLUDD (1574-1637)                                        │
+│    ─────────────────────────────────────────────────────────────   │
+│    Hermetic cosmological diagrams                                  │
+│    Source: "Utriusque Cosmi" (1617-1621)                          │
+│    Access: Wikimedia Commons, Internet Archive                     │
+│                                                                     │
+│    Notable works:                                                  │
+│    • The Macrocosm and Microcosm diagrams                         │
+│    • "Et sic in infinitum" (darkness/void image)                  │
+│    • The Divine Monochord                                         │
+│    • Correspondences between music and cosmos                      │
+│                                                                     │
+│    Resonance: Hermetic, recursive, cosmological                   │
+│    Use: Induction, macro/micro correspondence                      │
+│                                                                     │
+│                                                                     │
+│    ATHANASIUS KIRCHER (1602-1680)                                  │
+│    ─────────────────────────────────────────────────────────────   │
+│    Baroque encyclopedic diagrams                                   │
+│    Source: Various works including "Ars Magna Lucis"              │
+│    Access: Wikimedia Commons, Stanford Libraries (digitized)       │
+│                                                                     │
+│    Notable works:                                                  │
+│    • Light and shadow diagrams                                     │
+│    • Musical/mathematical correspondences                          │
+│    • Subterranean world maps                                       │
+│    • Magnetic cosmologies                                          │
+│                                                                     │
+│    Resonance: Synthesis, universal correspondence                 │
+│    Use: Integration sessions, knowledge mapping                    │
+│                                                                     │
+│                                                                     │
+│    GIORDANO BRUNO (1548-1600)                                      │
+│    ─────────────────────────────────────────────────────────────   │
+│    Memory palace diagrams                                          │
+│    Source: "De Umbris Idearum," mnemonic works                    │
+│    Access: Warburg Institute, various archives                     │
+│                                                                     │
+│    Notable works:                                                  │
+│    • Circular memory wheels                                        │
+│    • Combinatorial diagrams                                        │
+│    • Cosmological infinity models                                  │
+│                                                                     │
+│    Resonance: Memory, recursion, infinity                         │
+│    Use: Ingestion sessions, memory installation                    │
+│                                                                     │
+│                                                                     │
+│    RAMON LLULL (1232-1316)                                         │
+│    ─────────────────────────────────────────────────────────────   │
+│    Combinatorial logic wheels                                      │
+│    Source: "Ars Magna" and related works                          │
+│    Access: Wikimedia Commons, university archives                  │
+│                                                                     │
+│    Notable works:                                                  │
+│    • The Lullian wheels/circles                                   │
+│    • Combinatorial trees                                           │
+│    • Elemental correspondence diagrams                             │
+│                                                                     │
+│    Resonance: Combinatorics, generative logic                     │
+│    Use: Synthesis, creative combination                            │
+│                                                                     │
+│                                                                     │
+│    WILLIAM BLAKE (1757-1827)                                       │
+│    ─────────────────────────────────────────────────────────────   │
+│    Visionary cosmological images                                   │
+│    Source: Illuminated books, separate prints                     │
+│    Access: Wikimedia Commons, Yale Blake Archive, Tate            │
+│                                                                     │
+│    Notable works:                                                  │
+│    • "The Ancient of Days" (compass/creation)                     │
+│    • Newton (geometric absorption)                                 │
+│    • Jerusalem plates                                              │
+│    • Four Zoas cosmology                                           │
+│                                                                     │
+│    Resonance: Vision, creation, human form divine                 │
+│    Use: Poetic sessions, creative installation                     │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## 1.2 — PAUL KLEE (1879-1940)
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    P A U L   K L E E                                               │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│    STATUS: Complex. Check individual works.                        │
+│                                                                     │
+│    Klee died in 1940. In most jurisdictions, his work              │
+│    entered public domain in 2011 (life + 70 years).                │
+│                                                                     │
+│    However: Photographs of his work may have separate              │
+│    copyright. Use museum-authorized reproductions or               │
+│    create your own from public domain sources.                     │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    PEDAGOGICAL SKETCHBOOK                                          │
+│    Published 1925, original diagrams by Klee                       │
+│                                                                     │
+│    The *concepts* are freely usable:                               │
+│    • Point, line, plane progressions                               │
+│    • Active, medial, passive line states                           │
+│    • Arrow as directed force                                       │
+│    • Pendulum and balance diagrams                                 │
+│    • Scale and measurement theory                                  │
+│                                                                     │
+│    RECOMMENDATION: Create your own diagrams based on               │
+│    Klee's principles. This is both legally clear and               │
+│    generative for your practice.                                   │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ACCESSIBLE WORKS                                                │
+│                                                                     │
+│    Zentrum Paul Klee (Bern) provides some open-access              │
+│    educational materials. Check their usage terms.                 │
+│                                                                     │
+│    MoMA and Tate have some works with educational use              │
+│    permissions. Verify per image.                                  │
+│                                                                     │
+│    Your own Astrotypes are the best response to Klee —             │
+│    they continue his lineage in your own hand.                     │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## 1.3 — HILMA AF KLINT (1862-1944)
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    H I L M A   A F   K L I N T                                     │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│    STATUS: Entering public domain (died 1944)                      │
+│                                                                     │
+│    In most jurisdictions: public domain as of 2015.                │
+│    In EU/UK: public domain as of 2015.                             │
+│    In US: works published before 1929 are public domain.           │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    RELEVANT WORKS                                                  │
+│                                                                     │
+│    "Paintings for the Temple" series                               │
+│    • Geometric spiritual diagrams                                  │
+│    • Color as consciousness state                                  │
+│    • Evolution and involution spirals                              │
+│    • Duality and unity visualizations                              │
+│                                                                     │
+│    "The Ten Largest" series                                        │
+│    • Life stages as abstract form                                  │
+│    • Biomorphic geometry                                           │
+│                                                                     │
+│    Notebooks and diagrams                                          │
+│    • Direct diagrammatic notation                                  │
+│    • Closer to RISE usage than paintings                           │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ACCESS                                                          │
+│                                                                     │
+│    Hilma af Klint Foundation controls the estate.                  │
+│    Some works available via Wikimedia Commons.                     │
+│    Check individual image status.                                  │
+│                                                                     │
+│    Resonance: Transcendent, theosophical, proto-abstract          │
+│    Use: Induction, spiritual installation, cosmological            │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## 1.4 — CONTEMPORARY PHILOSOPHICAL (CC Licensed)
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    C O N T E M P O R A R Y   O P E N   S O U R C E S              │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    WIKIPEDIA / WIKIMEDIA COMMONS                                   │
+│    ─────────────────────────────────────────────────────────────   │
+│    License: Various (check each image)                             │
+│    Access: commons.wikimedia.org                                   │
+│                                                                     │
+│    Rich collection of:                                             │
+│    • Historical diagrams (public domain)                           │
+│    • Scientific visualizations (often CC)                          │
+│    • Mathematical illustrations (often CC)                         │
+│    • User-contributed original diagrams (CC)                       │
+│                                                                     │
+│    Search categories:                                              │
+│    • "Category:Diagrams"                                           │
+│    • "Category:Mathematical diagrams"                              │
+│    • "Category:Philosophical diagrams"                             │
+│    • "Category:Systems diagrams"                                   │
+│                                                                     │
+│                                                                     │
+│    OPEN EDUCATIONAL RESOURCES                                      │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    MIT OpenCourseWare                                              │
+│    License: CC-BY-NC-SA (check for non-commercial restriction)     │
+│    Access: ocw.mit.edu                                             │
+│    Content: Course diagrams, especially philosophy, cognitive sci  │
+│                                                                     │
+│    Stanford Encyclopedia of Philosophy                             │
+│    License: Content is free to read; diagrams vary                 │
+│    Access: plato.stanford.edu                                      │
+│    Content: Conceptual diagrams in articles                        │
+│                                                                     │
+│    OpenStax                                                        │
+│    License: CC-BY                                                  │
+│    Access: openstax.org                                            │
+│    Content: Textbook diagrams (psychology, philosophy, physics)    │
+│                                                                     │
+│                                                                     │
+│    CONCEPT MAPPING COMMUNITIES                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Many concept maps shared under CC licenses.                     │
+│    Search for:                                                     │
+│    • Rhizomatic diagrams                                           │
+│    • Systems thinking visualizations                               │
+│    • Cybernetics diagrams                                          │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## 1.5 — DELEUZE-ADJACENT RESOURCES
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    D E L E U Z I A N   V I S U A L S                               │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    NOTE ON DELEUZE                                                 │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Deleuze's own diagrams (from his books) are under               │
+│    copyright held by publishers. However:                          │
+│                                                                     │
+│    The CONCEPTS are not copyrightable:                             │
+│    • Rhizome structure                                             │
+│    • Plane of immanence                                            │
+│    • Fold topology                                                 │
+│    • Smooth vs striated space                                      │
+│    • Deterritorialization flows                                    │
+│    • Body without organs                                           │
+│                                                                     │
+│    You can create your own diagrams of these concepts.             │
+│    This is the recommended approach.                               │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    OPEN VISUALIZATIONS OF DELEUZIAN CONCEPTS                       │
+│                                                                     │
+│    Academic presentations (often CC-BY)                            │
+│    • Search: "rhizome diagram CC"                                  │
+│    • Search: "plane of immanence visualization"                    │
+│    • Search: "assemblage theory diagram"                           │
+│                                                                     │
+│    Topology resources (mathematical, often public domain)          │
+│    • Fold/catastrophe theory diagrams                              │
+│    • Manifold visualizations                                       │
+│    • Differential geometry illustrations                           │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    SOURCES FOR TOPOLOGICAL IMAGERY                                 │
+│                                                                     │
+│    Wikipedia/Commons: "Category:Topology"                          │
+│    • Möbius strips                                                 │
+│    • Klein bottles                                                 │
+│    • Torus variations                                              │
+│    • Manifold cross-sections                                       │
+│                                                                     │
+│    These mathematical objects embody Deleuzian concepts            │
+│    without requiring his specific diagrams.                        │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+# PART TWO: SCHEMATICS
+
+## Informational, Precise, Technical
+
+---
+
+## 2.1 — CYBERNETICS & SYSTEMS
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    C Y B E R N E T I C S   &   S Y S T E M S                       │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    CLASSIC CYBERNETICS (Pre-1929 or Government)                    │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Feedback loop diagrams                                          │
+│    • Basic circular causality                                      │
+│    • Thermostat models                                             │
+│    • Homeostatic systems                                           │
+│                                                                     │
+│    Many classic cybernetic diagrams are simple enough              │
+│    that you can recreate them as needed.                           │
+│                                                                     │
+│    Concepts to diagram:                                            │
+│    • Input → Process → Output → Feedback → Input                  │
+│    • First-order and second-order cybernetics                      │
+│    • Observer-in-the-system                                        │
+│    • Variety and requisite variety                                 │
+│    • Autopoietic loops                                             │
+│                                                                     │
+│                                                                     │
+│    NASA TECHNICAL REPORTS SERVER                                   │
+│    ─────────────────────────────────────────────────────────────   │
+│    License: Public Domain (US Government works)                    │
+│    Access: ntrs.nasa.gov                                           │
+│                                                                     │
+│    Vast archive of:                                                │
+│    • Systems engineering diagrams                                  │
+│    • Control system schematics                                     │
+│    • Human factors visualizations                                  │
+│    • Mission architecture diagrams                                 │
+│                                                                     │
+│    Search: "systems diagram," "control system,"                    │
+│    "human-machine interface"                                       │
+│                                                                     │
+│                                                                     │
+│    NIST (National Institute of Standards and Technology)           │
+│    ─────────────────────────────────────────────────────────────   │
+│    License: Public Domain (US Government)                          │
+│    Access: nist.gov                                                │
+│                                                                     │
+│    Technical diagrams for:                                         │
+│    • Measurement systems                                           │
+│    • Standards visualization                                       │
+│    • Cybersecurity frameworks (as diagrams)                        │
+│                                                                     │
+│                                                                     │
+│    OPEN SYSTEMS INTERCONNECTION MODELS                             │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    OSI model diagrams (widely reproduced, effectively standard)    │
+│    Network topology diagrams (generic forms are standard)          │
+│    Protocol stack visualizations                                   │
+│                                                                     │
+│    Create your own versions based on the concepts.                 │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## 2.2 — ELECTRONICS & CIRCUITS
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    E L E C T R O N I C S   &   C I R C U I T S                     │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    CIRCUIT SYMBOLS (Standardized, not copyrightable)               │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Standard symbols for:                                           │
+│    • Resistors, capacitors, inductors                              │
+│    • Transistors, diodes                                           │
+│    • Logic gates                                                   │
+│    • Operational amplifiers                                        │
+│    • Ground, power, connections                                    │
+│                                                                     │
+│    These are standardized (IEEE/IEC) and freely usable.            │
+│    Create any circuit diagram you need.                            │
+│                                                                     │
+│                                                                     │
+│    WIKIMEDIA COMMONS: ELECTRONICS                                  │
+│    ─────────────────────────────────────────────────────────────   │
+│    License: Various (check each)                                   │
+│    Access: commons.wikimedia.org                                   │
+│                                                                     │
+│    Categories:                                                     │
+│    • "Category:Circuit diagrams"                                   │
+│    • "Category:Electronic symbols"                                 │
+│    • "Category:Logic gate diagrams"                                │
+│                                                                     │
+│                                                                     │
+│    OPEN HARDWARE PROJECTS                                          │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Arduino schematics                                              │
+│    License: CC-BY-SA                                               │
+│    Access: arduino.cc                                              │
+│                                                                     │
+│    Adafruit schematics                                             │
+│    License: Various open (check each)                              │
+│    Access: adafruit.com                                            │
+│                                                                     │
+│    SparkFun schematics                                             │
+│    License: CC-BY-SA typically                                     │
+│    Access: sparkfun.com                                            │
+│                                                                     │
+│    Open Source Ecology                                             │
+│    License: Open Source                                            │
+│    Access: opensourceecology.org                                   │
+│    (Machine and system schematics)                                 │
+│                                                                     │
+│                                                                     │
+│    VINTAGE ELECTRONICS (Public Domain)                             │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Pre-1929 electronics manuals contain beautiful                  │
+│    hand-drawn schematics:                                          │
+│    • Vacuum tube circuits                                          │
+│    • Early radio schematics                                        │
+│    • Telegraph systems                                             │
+│    • Electrical distribution diagrams                              │
+│                                                                     │
+│    Access: Internet Archive, HathiTrust                            │
+│                                                                     │
+│    Resonance: Historical depth, craft, materiality                │
+│    Use: Grounding, technical lineage, beauty of precision          │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## 2.3 — BIOLOGY & NEUROSCIENCE
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    B I O L O G Y   &   N E U R O S C I E N C E                     │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    NIH / NLM (National Institutes of Health)                       │
+│    ─────────────────────────────────────────────────────────────   │
+│    License: Public Domain (US Government)                          │
+│    Access: nih.gov, nlm.nih.gov                                    │
+│                                                                     │
+│    Vast resources:                                                 │
+│    • Anatomical diagrams                                           │
+│    • Neural pathway visualizations                                 │
+│    • Cell biology schematics                                       │
+│    • Brain region maps                                             │
+│                                                                     │
+│                                                                     │
+│    OPEN-I (NIH Image Search)                                       │
+│    ─────────────────────────────────────────────────────────────   │
+│    License: Various (many public domain/CC)                        │
+│    Access: openi.nlm.nih.gov                                       │
+│                                                                     │
+│    Searchable database of biomedical images from                   │
+│    open-access publications.                                       │
+│                                                                     │
+│    Search: "neural diagram," "brain schematic,"                    │
+│    "cell signaling pathway"                                        │
+│                                                                     │
+│                                                                     │
+│    CAJAL'S DRAWINGS (Public Domain)                                │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Santiago Ramón y Cajal (1852-1934)                             │
+│    Nobel laureate's hand-drawn neurons                             │
+│                                                                     │
+│    These are public domain and extraordinarily beautiful:          │
+│    • Neuron morphologies                                           │
+│    • Retinal structures                                            │
+│    • Cerebellar circuits                                           │
+│    • Hippocampal formations                                        │
+│                                                                     │
+│    Access: Wikimedia Commons "Category:Drawings by                 │
+│    Santiago Ramón y Cajal"                                        │
+│                                                                     │
+│    Resonance: The interface of art and science,                   │
+│    consciousness studying itself                                   │
+│    Use: Sessions on embodiment, neural being, observation          │
+│                                                                     │
+│                                                                     │
+│    ERNST HAECKEL (1834-1919)                                       │
+│    ─────────────────────────────────────────────────────────────   │
+│    License: Public Domain                                          │
+│    Access: Wikimedia, Internet Archive, biodiversitylibrary.org    │
+│                                                                     │
+│    "Kunstformen der Natur" (Art Forms in Nature)                  │
+│    • Radiolaria (geometric microscopic organisms)                  │
+│    • Jellyfish and marine life                                     │
+│    • Plant structures                                              │
+│    • Biological symmetry                                           │
+│                                                                     │
+│    Resonance: Nature as geometry, emergence of form               │
+│    Use: Pattern recognition, natural tessellation,                 │
+│    beauty of organic structure                                     │
+│                                                                     │
+│                                                                     │
+│    BIORENDER / SIMILAR (CC Options)                                │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Some scientific illustration platforms offer                    │
+│    CC-licensed templates. Check terms carefully.                   │
+│                                                                     │
+│    Better: Create your own biological diagrams.                    │
+│    The concepts (cell, neuron, pathway) are universal.             │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## 2.4 — ARCHITECTURE & ENGINEERING
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    A R C H I T E C T U R E   &   E N G I N E E R I N G             │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    HISTORICAL ARCHITECTURAL DRAWINGS (Public Domain)               │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Vitruvius manuscripts                                           │
+│    • Classical proportions                                         │
+│    • Human body as measure                                         │
+│    • Architectural orders                                          │
+│                                                                     │
+│    Palladio drawings                                               │
+│    • Villa plans and elevations                                    │
+│    • Harmonic proportions                                          │
+│    • Symmetry principles                                           │
+│                                                                     │
+│    Renaissance architectural treatises                             │
+│    • Alberti, Serlio, etc.                                         │
+│    • Geometric construction methods                                │
+│    • Perspective systems                                           │
+│                                                                     │
+│    Access: Wikimedia, Getty Research Institute,                    │
+│    university digital archives                                     │
+│                                                                     │
+│                                                                     │
+│    PATENT DRAWINGS (Public Domain)                                 │
+│    ─────────────────────────────────────────────────────────────   │
+│    License: Public Domain (US patents)                             │
+│    Access: patents.google.com, USPTO                               │
+│                                                                     │
+│    Vast archive of technical drawings:                             │
+│    • Mechanical inventions                                         │
+│    • Electrical devices                                            │
+│    • Process diagrams                                              │
+│    • System architectures                                          │
+│                                                                     │
+│    Search for any concept; find its patent visualization.          │
+│    Edison, Tesla, Bell patents are particularly rich.              │
+│                                                                     │
+│                                                                     │
+│    ENGINEERING STANDARDS (Generic Forms)                           │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Standard engineering notation is not copyrightable:             │
+│    • Flowchart symbols                                             │
+│    • Process diagrams                                              │
+│    • Block diagrams                                                │
+│    • State machines                                                │
+│                                                                     │
+│    Create your own using standard conventions.                     │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+# PART THREE: MATHEMATICS
+
+## Holofractal, Geometry, Transcendent Notation
+
+---
+
+## 3.1 — SACRED & CLASSICAL GEOMETRY
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    S A C R E D   &   C L A S S I C A L   G E O M E T R Y           │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    FUNDAMENTAL FORMS (Universal, not copyrightable)                │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    These geometric forms are mathematical facts:                   │
+│                                                                     │
+│    Platonic Solids                                                 │
+│    • Tetrahedron (4 faces)                                         │
+│    • Cube/Hexahedron (6 faces)                                     │
+│    • Octahedron (8 faces)                                          │
+│    • Dodecahedron (12 faces)                                       │
+│    • Icosahedron (20 faces)                                        │
+│                                                                     │
+│    Sacred Geometry Patterns                                        │
+│    • Flower of Life                                                │
+│    • Seed of Life                                                  │
+│    • Metatron's Cube                                               │
+│    • Sri Yantra                                                    │
+│    • Vesica Piscis                                                 │
+│    • Golden Spiral                                                 │
+│                                                                     │
+│    Classical Constructions                                         │
+│    • Golden ratio divisions                                        │
+│    • Square root spirals                                           │
+│    • Pythagorean constructions                                     │
+│    • Compass-and-straightedge forms                                │
+│                                                                     │
+│    All of these can be constructed or generated freely.            │
+│                                                                     │
+│                                                                     │
+│    EUCLID'S ELEMENTS DIAGRAMS (Public Domain)                      │
+│    ─────────────────────────────────────────────────────────────   │
+│    Access: Various editions on Internet Archive                    │
+│                                                                     │
+│    The original geometric proofs visualized:                       │
+│    • Proposition diagrams                                          │
+│    • Construction sequences                                        │
+│    • Proof visualizations                                          │
+│                                                                     │
+│    Oliver Byrne's 1847 color edition is particularly               │
+│    beautiful (public domain).                                      │
+│                                                                     │
+│                                                                     │
+│    ISLAMIC GEOMETRIC PATTERNS (Historical, Public Domain)          │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Historical pattern documentation:                               │
+│    • Owen Jones "Grammar of Ornament" (1856)                      │
+│    • Various architectural surveys                                 │
+│                                                                     │
+│    The patterns themselves are mathematical and                    │
+│    can be constructed by anyone.                                   │
+│                                                                     │
+│    Resources:                                                      │
+│    • Wikimedia Commons Islamic geometry categories                 │
+│    • Metropolitan Museum open access                               │
+│    • Victoria & Albert Museum open images                          │
+│                                                                     │
+│    Resonance: Infinity, tessellation, the one and many            │
+│    Use: Pattern sessions, unity/multiplicity, meditation           │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## 3.2 — FRACTALS & COMPLEXITY
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    F R A C T A L S   &   C O M P L E X I T Y                       │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    MATHEMATICAL FRACTALS (Computable, universal)                   │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    These are defined by equations, freely generatable:             │
+│                                                                     │
+│    Mandelbrot Set                                                  │
+│    • z → z² + c iteration                                          │
+│    • Infinite boundary detail                                      │
+│    • Self-similarity across scales                                 │
+│                                                                     │
+│    Julia Sets                                                      │
+│    • Related family of fractals                                    │
+│    • Each point in Mandelbrot has a Julia                          │
+│                                                                     │
+│    Classic Fractals                                                │
+│    • Sierpiński triangle                                           │
+│    • Sierpiński carpet                                             │
+│    • Koch snowflake                                                │
+│    • Cantor set                                                    │
+│    • Menger sponge                                                 │
+│    • Dragon curve                                                  │
+│                                                                     │
+│    L-Systems / Lindenmayer Systems                                 │
+│    • Algorithmic plant structures                                  │
+│    • Branching patterns                                            │
+│    • Growth simulations                                            │
+│                                                                     │
+│    GENERATION: Use any fractal software (many free/open source)    │
+│    to generate your own. The mathematics is public.                │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    OPEN SOURCE FRACTAL TOOLS                                       │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Mandelbulb 3D                                                   │
+│    License: Open source                                            │
+│    3D fractal generation                                           │
+│                                                                     │
+│    XaoS                                                            │
+│    License: GPL                                                    │
+│    Real-time fractal zoomer                                        │
+│                                                                     │
+│    Ultra Fractal                                                   │
+│    License: Commercial, but many free formula files shared         │
+│                                                                     │
+│    Processing / p5.js                                              │
+│    License: Open source                                            │
+│    Code your own fractal generators                                │
+│                                                                     │
+│                                                                     │
+│    WIKIMEDIA FRACTAL COLLECTIONS                                   │
+│    ─────────────────────────────────────────────────────────────   │
+│    License: Various (many CC or public domain)                     │
+│                                                                     │
+│    Categories:                                                     │
+│    • "Category:Fractals"                                           │
+│    • "Category:Mandelbrot set"                                     │
+│    • "Category:Julia sets"                                         │
+│    • "Category:L-systems"                                          │
+│                                                                     │
+│    Resonance: Infinity, recursion, scale-invariance               │
+│    Use: Recursion sessions, self-similarity installation,          │
+│    cosmic zoom                                                     │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## 3.3 — TOPOLOGY & HIGHER MATHEMATICS
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    T O P O L O G Y   &   H I G H E R   M A T H                     │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    TOPOLOGICAL FORMS (Mathematical objects, universal)             │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Surfaces                                                        │
+│    • Möbius strip (one-sided surface)                             │
+│    • Klein bottle (non-orientable)                                 │
+│    • Torus (donut)                                                 │
+│    • Boy's surface                                                 │
+│    • Cross-cap                                                     │
+│    • Real projective plane                                         │
+│                                                                     │
+│    Knot Theory                                                     │
+│    • Trefoil knot                                                  │
+│    • Figure-eight knot                                             │
+│    • Borromean rings                                               │
+│    • Celtic knots (historically public domain)                     │
+│                                                                     │
+│    Higher-Dimensional Projections                                  │
+│    • Hypercube/tesseract projections                               │
+│    • 4D polytope shadows                                           │
+│    • Calabi-Yau manifold visualizations                            │
+│                                                                     │
+│    All can be generated mathematically or found in                 │
+│    Wikimedia with appropriate licenses.                            │
+│                                                                     │
+│                                                                     │
+│    MATHEMATICAL VISUALIZATION ARCHIVES                             │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    3Blue1Brown visuals                                             │
+│    License: Some CC (check individual)                             │
+│    Beautiful animated math explanations                            │
+│    (Stills may be extractable with permission)                     │
+│                                                                     │
+│    Wolfram MathWorld                                               │
+│    License: Diagrams are illustrative of math facts                │
+│    Reference, then recreate                                        │
+│                                                                     │
+│    AMS (American Mathematical Society)                             │
+│    Some publications with open diagrams                            │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    GENERATE YOUR OWN                                               │
+│                                                                     │
+│    Mathematica / Wolfram Language                                  │
+│    • Powerful visualization                                        │
+│    • Your outputs are yours                                        │
+│                                                                     │
+│    GeoGebra                                                        │
+│    License: Open source                                            │
+│    Interactive geometry                                            │
+│                                                                     │
+│    Desmos                                                          │
+│    License: Free to use                                            │
+│    Graphing and visualization                                      │
+│                                                                     │
+│    SageMath                                                        │
+│    License: GPL                                                    │
+│    Full mathematical computing                                     │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## 3.4 — MATHEMATICAL NOTATION AS ART
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    N O T A T I O N   A S   A R T                                   │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    EQUATIONS AS VISUAL OBJECTS                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Mathematical notation itself is not copyrightable.              │
+│    Famous equations can be rendered beautifully:                   │
+│                                                                     │
+│    Euler's Identity                                                │
+│    e^(iπ) + 1 = 0                                                  │
+│                                                                     │
+│    Schrödinger Equation                                            │
+│    iℏ ∂/∂t |ψ⟩ = Ĥ |ψ⟩                                           │
+│                                                                     │
+│    Einstein Field Equations                                        │
+│    Gμν + Λgμν = (8πG/c⁴) Tμν                                      │
+│                                                                     │
+│    Maxwell's Equations                                             │
+│    ∇·E = ρ/ε₀, etc.                                               │
+│                                                                     │
+│    Navier-Stokes                                                   │
+│    (fluid dynamics, beautiful in tensor form)                      │
+│                                                                     │
+│    Render these in LaTeX, display as visual content.               │
+│    The equations themselves are humanity's heritage.               │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    ALTERNATIVE NOTATIONS                                           │
+│                                                                     │
+│    Diagrammatic Tensor Notation                                    │
+│    (Penrose graphical notation)                                    │
+│    Mathematical relationships as connected shapes                  │
+│                                                                     │
+│    Category Theory Diagrams                                        │
+│    Commutative diagrams, morphism arrows                          │
+│    Universal properties visualized                                 │
+│                                                                     │
+│    Lambda Calculus Trees                                           │
+│    Computation as branching structure                              │
+│                                                                     │
+│    These notational systems can be generated freely.               │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    TOOLS FOR MATHEMATICAL TYPOGRAPHY                               │
+│                                                                     │
+│    LaTeX / KaTeX                                                   │
+│    License: Open source                                            │
+│    Beautiful equation rendering                                    │
+│                                                                     │
+│    MathJax                                                         │
+│    License: Apache 2.0                                             │
+│    Web-based math rendering                                        │
+│                                                                     │
+│    Your RISE system can render equations directly.                 │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+## 3.5 — HOLOFRACTAL & UNIFIED FIELD
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    H O L O F R A C T A L   &   U N I F I E D   F I E L D           │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    NOTE: "Holofractal" refers to theoretical frameworks            │
+│    relating fractals to cosmological/consciousness models.         │
+│    The visualizations are mathematical; generate your own.         │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    RELEVANT MATHEMATICAL VISUALIZATIONS                            │
+│                                                                     │
+│    Flower of Life / 64 Tetrahedron Grid                           │
+│    • Construct geometrically (public mathematical forms)           │
+│    • 3D versions via sacred geometry software                      │
+│                                                                     │
+│    Torus Dynamics                                                  │
+│    • Toroidal flow patterns                                        │
+│    • Vector field visualizations on torus                          │
+│    • Generate with mathematical software                           │
+│                                                                     │
+│    Fibonacci / Golden Ratio in Nature                              │
+│    • Phyllotaxis patterns                                          │
+│    • Spiral galaxy forms                                           │
+│    • Shell growth patterns                                         │
+│    (Photograph your own or use CC nature images)                   │
+│                                                                     │
+│    Scale Relationships                                             │
+│    • Powers of Ten visualizations                                  │
+│    • (Original film is copyrighted, but the concept               │
+│      of scale comparison is universal — create your own)           │
+│    • Cosmic zoom diagrams                                          │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    PHYSICS VISUALIZATIONS                                          │
+│                                                                     │
+│    Quantum Field Diagrams                                          │
+│    • Feynman diagrams (notational system, freely usable)          │
+│    • Wave function visualizations                                  │
+│    • Probability density plots                                     │
+│                                                                     │
+│    Relativity Visualizations                                       │
+│    • Spacetime curvature diagrams                                  │
+│    • Light cone visualizations                                     │
+│    • Gravitational lensing simulations                             │
+│                                                                     │
+│    Cosmological Diagrams                                           │
+│    • Observable universe scale models                              │
+│    • Cosmic web simulations (many from NASA, public domain)        │
+│    • CMB visualizations (NASA, public domain)                      │
+│                                                                     │
+│    Access: NASA image archives, ESA, arXiv preprints               │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+# PART FOUR: COMPREHENSIVE REPOSITORIES
+
+## Major Open-Access Archives
+
+---
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    M A J O R   O P E N   A R C H I V E S                           │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    WIKIMEDIA COMMONS                                               │
+│    ─────────────────────────────────────────────────────────────   │
+│    URL: commons.wikimedia.org                                      │
+│    License: Various (clearly marked per image)                     │
+│    Size: 90+ million files                                         │
+│                                                                     │
+│    THE primary resource. Nearly everything is here.                │
+│    Always check the license on individual files.                   │
+│                                                                     │
+│    Key categories for RISE:                                        │
+│    • Category:Diagrams                                             │
+│    • Category:Mathematical diagrams                                │
+│    • Category:Scientific diagrams                                  │
+│    • Category:Fractals                                             │
+│    • Category:Sacred geometry                                      │
+│    • Category:Circuit diagrams                                     │
+│    • Category:Anatomical diagrams                                  │
+│    • Category:Philosophical diagrams                               │
+│    • Category:Systems diagrams                                     │
+│                                                                     │
+│                                                                     │
+│    INTERNET ARCHIVE                                                │
+│    ─────────────────────────────────────────────────────────────   │
+│    URL: archive.org                                                │
+│    License: Various (many public domain)                           │
+│                                                                     │
+│    Historical books with diagrams:                                 │
+│    • Scientific treatises                                          │
+│    • Architectural pattern books                                   │
+│    • Mathematical texts                                            │
+│    • Alchemical manuscripts                                        │
+│    • Early technical manuals                                       │
+│                                                                     │
+│                                                                     │
+│    NASA IMAGE AND VIDEO LIBRARY                                    │
+│    ─────────────────────────────────────────────────────────────   │
+│    URL: images.nasa.gov                                            │
+│    License: Public Domain (US Government)                          │
+│                                                                     │
+│    • Space imagery                                                 │
+│    • Technical diagrams                                            │
+│    • Cosmic scale visualizations                                   │
+│    • Earth observation                                             │
+│    • Mission schematics                                            │
+│                                                                     │
+│                                                                     │
+│    SMITHSONIAN OPEN ACCESS                                         │
+│    ─────────────────────────────────────────────────────────────   │
+│    URL: si.edu/openaccess                                          │
+│    License: CC0 (millions of items)                                │
+│                                                                     │
+│    • Historical scientific instruments                             │
+│    • Natural history illustrations                                 │
+│    • Technical drawings                                            │
+│    • Manuscript pages                                              │
+│                                                                     │
+│                                                                     │
+│    METROPOLITAN MUSEUM OPEN ACCESS                                 │
+│    ─────────────────────────────────────────────────────────────   │
+│    URL: metmuseum.org/art/collection                               │
+│    License: CC0 (public domain works)                              │
+│                                                                     │
+│    • Historical diagrams and manuscripts                           │
+│    • Islamic geometric patterns                                    │
+│    • Architectural drawings                                        │
+│    • Scientific instruments                                        │
+│                                                                     │
+│                                                                     │
+│    RIJKSMUSEUM                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│    URL: rijksmuseum.nl/en/rijksstudio                              │
+│    License: Public Domain (downloadable high-res)                  │
+│                                                                     │
+│    • Dutch Golden Age scientific illustrations                     │
+│    • Anatomical drawings                                           │
+│    • Natural history                                               │
+│    • Technical drawings                                            │
+│                                                                     │
+│                                                                     │
+│    BIODIVERSITY HERITAGE LIBRARY                                   │
+│    ─────────────────────────────────────────────────────────────   │
+│    URL: biodiversitylibrary.org                                    │
+│    License: Public Domain (pre-1929 materials)                     │
+│                                                                     │
+│    • Natural history illustrations                                 │
+│    • Botanical diagrams                                            │
+│    • Anatomical plates                                             │
+│    • Scientific expedition records                                 │
+│                                                                     │
+│                                                                     │
+│    EUROPEANA                                                       │
+│    ─────────────────────────────────────────────────────────────   │
+│    URL: europeana.eu                                               │
+│    License: Various (filter by rights)                             │
+│                                                                     │
+│    Aggregates European cultural heritage:                          │
+│    • Manuscript diagrams                                           │
+│    • Historical scientific illustrations                           │
+│    • Architectural drawings                                        │
+│                                                                     │
+│                                                                     │
+│    ARTSTOR PUBLIC COLLECTIONS                                      │
+│    ─────────────────────────────────────────────────────────────   │
+│    URL: artstor.org (check open collections)                       │
+│    License: Various                                                │
+│                                                                     │
+│    Academic image database with some open collections.             │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+# PART FIVE: GENERATION STRATEGIES
+
+## Creating Your Own Visual Content
+
+---
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    G E N E R A T I O N   S T R A T E G I E S                       │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    The cleanest approach: CREATE YOUR OWN.                         │
+│                                                                     │
+│    Mathematical and diagrammatic forms are universal.              │
+│    The concepts are not copyrightable.                             │
+│    Your implementations are fully yours.                           │
+│                                                                     │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│                                                                     │
+│    VECTOR TOOLS                                                    │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Figma (free tier)                                               │
+│    Inkscape (GPL, fully free)                                      │
+│    Adobe Illustrator (commercial)                                  │
+│    Affinity Designer (one-time purchase)                           │
+│                                                                     │
+│    For: Clean geometric diagrams, scalable graphics                │
+│                                                                     │
+│                                                                     │
+│    CODE-BASED GENERATION                                           │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Processing / p5.js (open source)                                │
+│    • Algorithmic visual generation                                 │
+│    • Fractals, particles, flows                                    │
+│    • Real-time generative graphics                                 │
+│                                                                     │
+│    D3.js (BSD license)                                             │
+│    • Data-driven diagrams                                          │
+│    • Network visualizations                                        │
+│    • Hierarchical structures                                       │
+│                                                                     │
+│    Three.js (MIT license)                                          │
+│    • 3D geometry                                                   │
+│    • Topological forms                                             │
+│    • Mathematical surfaces                                         │
+│                                                                     │
+│    Manim (MIT license)                                             │
+│    • Mathematical animation                                        │
+│    • The engine behind 3Blue1Brown                                 │
+│                                                                     │
+│    GLSL Shaders                                                    │
+│    • GPU-generated fractals                                        │
+│    • Real-time mathematical visualization                          │
+│    • Shadertoy as reference/inspiration                            │
+│                                                                     │
+│                                                                     │
+│    DIAGRAMMING TOOLS                                               │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Mermaid (MIT license)                                           │
+│    • Text-to-diagram                                               │
+│    • Flowcharts, sequences, graphs                                 │
+│    • Integrates with markdown                                      │
+│                                                                     │
+│    Graphviz (EPL)                                                  │
+│    • Graph/network diagrams                                        │
+│    • DOT language                                                  │
+│    • Automatic layout                                              │
+│                                                                     │
+│    PlantUML (GPL)                                                  │
+│    • UML and beyond                                                │
+│    • Text-based diagram specification                              │
+│                                                                     │
+│    Excalidraw (MIT license)                                        │
+│    • Hand-drawn aesthetic                                          │
+│    • Collaborative                                                 │
+│    • Export as SVG                                                 │
+│                                                                     │
+│                                                                     │
+│    MATHEMATICAL TOOLS                                              │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    GeoGebra (GPL)                                                  │
+│    • Interactive geometry                                          │
+│    • Function plotting                                             │
+│    • 3D visualization                                              │
+│                                                                     │
+│    Desmos (free)                                                   │
+│    • Graphing calculator                                           │
+│    • Beautiful function visualization                              │
+│    • Export images                                                 │
+│                                                                     │
+│    SageMath (GPL)                                                  │
+│    • Full mathematical computing                                   │
+│    • Plotting and visualization                                    │
+│    • Symbolic computation                                          │
+│                                                                     │
+│    Matplotlib/Seaborn (BSD)                                        │
+│    • Python visualization                                          │
+│    • Scientific plotting                                           │
+│    • Highly customizable                                           │
+│                                                                     │
+│                                                                     │
+│    3D TOOLS                                                        │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    Blender (GPL)                                                   │
+│    • Full 3D suite                                                 │
+│    • Mathematical surface generation                               │
+│    • Animation for RISE                                            │
+│                                                                     │
+│    OpenSCAD (GPL)                                                  │
+│    • Code-based 3D modeling                                        │
+│    • Precise geometric forms                                       │
+│                                                                     │
+│                                                                     │
+│    YOUR OWN ASTROTYPES                                             │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    The most resonant visuals for YOUR RISE sessions                │
+│    are your own Astrotypes.                                        │
+│                                                                     │
+│    Scan → Process → Display                                        │
+│                                                                     │
+│    No copyright issues.                                            │
+│    Maximum personal resonance.                                     │
+│    Recursive: your output becomes input.                           │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+# SUMMARY: CURATED SHORT LIST
+
+## Highest-Value Open Sources for RISE
+
+---
+
+```
+╭─────────────────────────────────────────────────────────────────────╮
+│                                                                     │
+│                                                                     │
+│    T O P   R E C O M M E N D A T I O N S                           │
+│                                                                     │
+│    ═══════════════════════════════════════════════════════════     │
+│                                                                     │
+│                                                                     │
+│    PHILOSOPHICAL / POETIC                                          │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    1. Robert Fludd — Hermetic cosmology (Wikimedia)                │
+│    2. William Blake — Visionary images (Wikimedia, Yale)           │
+│    3. Hilma af Klint — Temple paintings (verify status)            │
+│    4. Ramon Llull — Combinatorial wheels (Wikimedia)               │
+│    5. Athanasius Kircher — Baroque diagrams (Stanford)             │
+│                                                                     │
+│                                                                     │
+│    SCIENTIFIC / TECHNICAL                                          │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    1. Cajal's neurons — Hand-drawn neuroscience (Wikimedia)        │
+│    2. Haeckel's Kunstformen — Natural forms (Wikimedia)            │
+│    3. NASA archives — Cosmic imagery (images.nasa.gov)             │
+│    4. Patent drawings — Technical history (patents.google.com)     │
+│    5. Circuit diagrams — Generate your own                         │
+│                                                                     │
+│                                                                     │
+│    MATHEMATICAL                                                    │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    1. Mandelbrot/Julia sets — Generate your own                    │
+│    2. Sacred geometry — Construct geometrically                    │
+│    3. Topological forms — Generate with software                   │
+│    4. Byrne's Euclid — Color geometry (Internet Archive)           │
+│    5. Equations as art — Render with LaTeX                         │
+│                                                                     │
+│                                                                     │
+│    GENERATE YOUR OWN                                               │
+│    ─────────────────────────────────────────────────────────────   │
+│                                                                     │
+│    1. Astrotypes — Your primary visual language                    │
+│    2. Processing/p5.js fractals — Algorithmic                      │
+│    3. Inkscape diagrams — Vector precision                         │
+│    4. Blender 3D forms — Mathematical surfaces                     │
+│    5. Mermaid/Graphviz — System diagrams                           │
+│                                                                     │
+│                                                                     │
+╰─────────────────────────────────────────────────────────────────────╯
+```
+
+---
+
+# CODA
+
+---
+
+```
+╔═══════════════════════════════════════════════════════════════════╗
+║                                                                   ║
+║                                                                   ║
+║       E X T E R N A L   V I S U A L   S O U R C E S               ║
+║                                                                   ║
+║                        ◊ COMPLETE ◊                               ║
+║                                                                   ║
+║                                                                   ║
+║                                                                   ║
+║              The visual is not secondary.                         ║
+║              The diagram is not illustration.                     ║
+║              Some thoughts exist only in space.                   ║
+║                                                                   ║
+║                                                                   ║
+║              These sources are open.                              ║
+║              These forms are humanity's heritage.                 ║
+║              Use them. Transform them. Continue them.             ║
+║                                                                   ║
+║                                                                   ║
+║              And always:                                          ║
+║                                                                   ║
+║              Your own hand is the deepest source.                 ║
+║              Your Astrotypes are the true archive.                ║
+║              Feed yourself back into yourself.                    ║
+║                                                                   ║
+║                                                                   ║
+║                              ◊                                    ║
+║                             ╱│╲                                   ║
+║                            ╱ │ ╲                                  ║
+║                           ╱  │  ╲                                 ║
+║                          ◇───┼───◇                                ║
+║                           ╲  │  ╱                                 ║
+║                            ╲ │ ╱                                  ║
+║                             ╲│╱                                   ║
+║                              ●                                    ║
+║                                                                   ║
+║                         THE EYE                                   ║
+║                        THAT SEES                                  ║
+║                        IS ITSELF                                  ║
+║                           SEEN                                    ║
+║                                                                   ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+```
+
+---
+

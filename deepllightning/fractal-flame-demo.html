@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fractal Flame Generator Demo</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #e0e0e0;
+    }
+
+    h1 {
+      text-align: center;
+      color: #ff6b6b;
+      text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .canvas-container {
+      background: #000;
+      border: 2px solid #333;
+      border-radius: 8px;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 600px;
+    }
+
+    canvas {
+      max-width: 100%;
+      border-radius: 4px;
+      box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+    }
+
+    .controls {
+      background: #2a2a2a;
+      border: 2px solid #333;
+      border-radius: 8px;
+      padding: 20px;
+      overflow-y: auto;
+      max-height: 800px;
+    }
+
+    .control-group {
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #333;
+      border-radius: 6px;
+    }
+
+    .control-group h3 {
+      margin-top: 0;
+      color: #ff6b6b;
+      border-bottom: 2px solid #ff6b6b;
+      padding-bottom: 8px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #aaa;
+      font-size: 14px;
+    }
+
+    input[type="number"],
+    input[type="range"],
+    select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      background: #1a1a1a;
+      border: 1px solid #555;
+      border-radius: 4px;
+      color: #e0e0e0;
+      box-sizing: border-box;
+    }
+
+    input[type="range"] {
+      padding: 0;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin: 5px 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.secondary {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    button.success {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .status {
+      margin-top: 10px;
+      padding: 10px;
+      background: #1a1a1a;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #4facfe;
+      text-align: center;
+      min-height: 20px;
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .preset-btn {
+      padding: 8px;
+      font-size: 14px;
+    }
+
+    .range-value {
+      display: inline-block;
+      float: right;
+      color: #ff6b6b;
+      font-weight: bold;
+    }
+
+    .info {
+      background: #1a3a4a;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      border-left: 4px solid #4facfe;
+    }
+
+    .info p {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔥 Fractal Flame Generator 🔥</h1>
+
+  <div class="info">
+    <p><strong>About:</strong> This implements the fractal flame algorithm (Scott Draves, 1992)</p>
+    <p><strong>How it works:</strong> Uses iterated function systems with non-linear variations to create organic, flame-like fractals</p>
+  </div>
+
+  <div class="container">
+    <div class="canvas-container">
+      <canvas id="canvas" width="800" height="800"></canvas>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <h3>Quick Start</h3>
+        <button onclick="generateRandom()">Generate Random Flame</button>
+        <button onclick="loadPreset('sierpinski')" class="preset-btn">Sierpinski Triangle</button>
+        <div class="preset-grid">
+          <button onclick="loadPreset('swirl')" class="preset-btn">Swirl</button>
+          <button onclick="loadPreset('spiral')" class="preset-btn">Spiral</button>
+          <button onclick="loadPreset('julia')" class="preset-btn">Julia</button>
+          <button onclick="loadPreset('dragon')" class="preset-btn">Dragon</button>
+          <button onclick="loadPreset('heart')" class="preset-btn">Heart</button>
+          <button onclick="loadPreset('phoenix')" class="preset-btn">Phoenix</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h3>Render Settings</h3>
+
+        <label>
+          Quality (iterations)
+          <span class="range-value" id="quality-value">1M</span>
+        </label>
+        <input type="range" id="quality" min="5" max="8" step="0.1" value="6">
+
+        <label>
+          Gamma
+          <span class="range-value" id="gamma-value">4.0</span>
+        </label>
+        <input type="range" id="gamma" min="1" max="10" step="0.1" value="4">
+
+        <label>
+          Brightness
+          <span class="range-value" id="brightness-value">4.0</span>
+        </label>
+        <input type="range" id="brightness" min="1" max="20" step="0.5" value="4">
+
+        <label>
+          Vibrancy
+          <span class="range-value" id="vibrancy-value">1.0</span>
+        </label>
+        <input type="range" id="vibrancy" min="0.1" max="2" step="0.1" value="1">
+
+        <label>Resolution</label>
+        <select id="resolution">
+          <option value="512">512x512</option>
+          <option value="800" selected>800x800</option>
+          <option value="1024">1024x1024</option>
+          <option value="1600">1600x1600</option>
+          <option value="2048">2048x2048 (slow)</option>
+        </select>
+
+        <button onclick="render()" class="secondary">Render Flame</button>
+      </div>
+
+      <div class="control-group">
+        <h3>Camera</h3>
+
+        <label>Zoom</label>
+        <input type="range" id="zoom" min="0.1" max="5" step="0.1" value="1">
+
+        <label>Center X</label>
+        <input type="number" id="centerX" step="0.1" value="0">
+
+        <label>Center Y</label>
+        <input type="number" id="centerY" step="0.1" value="0">
+
+        <label>Rotation (degrees)</label>
+        <input type="number" id="rotation" step="1" value="0">
+
+        <button onclick="updateCamera()" class="success">Update Camera</button>
+      </div>
+
+      <div class="control-group">
+        <h3>Export/Import</h3>
+        <button onclick="downloadImage()">Download Image (PNG)</button>
+        <button onclick="exportFlame()" class="secondary">Export Flame JSON</button>
+        <button onclick="document.getElementById('importFile').click()" class="success">Import Flame JSON</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importFlame(event)">
+      </div>
+
+      <div class="status" id="status">Ready</div>
+    </div>
+  </div>
+
+  <script src="fractal-flame.js"></script>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const generator = new FractalFlameGenerator();
+
+    let isRendering = false;
+
+    // Update range value displays
+    document.getElementById('quality').addEventListener('input', (e) => {
+      const val = Math.pow(10, parseFloat(e.target.value));
+      document.getElementById('quality-value').textContent =
+        val >= 1000000 ? (val / 1000000).toFixed(1) + 'M' : (val / 1000).toFixed(0) + 'K';
+    });
+
+    document.getElementById('gamma').addEventListener('input', (e) => {
+      document.getElementById('gamma-value').textContent = parseFloat(e.target.value).toFixed(1);
+    });
+
+    document.getElementById('brightness').addEventListener('input', (e) => {
+      document.getElementById('brightness-value').textContent = parseFloat(e.target.value).toFixed(1);
+    });
+
+    document.getElementById('vibrancy').addEventListener('input', (e) => {
+      document.getElementById('vibrancy-value').textContent = parseFloat(e.target.value).toFixed(1);
+    });
+
+    // Generate random flame
+    function generateRandom() {
+      generator.generateRandomFlame();
+      render();
+    }
+
+    // Render the current flame
+    async function render() {
+      if (isRendering) {
+        updateStatus('Already rendering...');
+        return;
+      }
+
+      isRendering = true;
+      updateStatus('Rendering...');
+
+      try {
+        const quality = Math.pow(10, parseFloat(document.getElementById('quality').value));
+        const gamma = parseFloat(document.getElementById('gamma').value);
+        const brightness = parseFloat(document.getElementById('brightness').value);
+        const vibrancy = parseFloat(document.getElementById('vibrancy').value);
+        const resolution = parseInt(document.getElementById('resolution').value);
+
+        canvas.width = resolution;
+        canvas.height = resolution;
+
+        const imageData = await generator.generateImage({
+          iterations: quality,
+          width: resolution,
+          height: resolution,
+          gamma: gamma,
+          brightness: brightness,
+          vibrancy: vibrancy,
+          oversample: 2
+        });
+
+        ctx.putImageData(imageData, 0, 0);
+        updateStatus('Render complete!');
+      } catch (error) {
+        updateStatus('Error: ' + error.message);
+        console.error(error);
+      } finally {
+        isRendering = false;
+      }
+    }
+
+    // Update camera settings
+    function updateCamera() {
+      const zoom = parseFloat(document.getElementById('zoom').value);
+      const centerX = parseFloat(document.getElementById('centerX').value);
+      const centerY = parseFloat(document.getElementById('centerY').value);
+      const rotation = parseFloat(document.getElementById('rotation').value) * Math.PI / 180;
+
+      generator.setCamera(centerX, centerY, zoom, rotation);
+      render();
+    }
+
+    // Update status message
+    function updateStatus(message) {
+      document.getElementById('status').textContent = message;
+    }
+
+    // Download rendered image
+    function downloadImage() {
+      const link = document.createElement('a');
+      link.download = 'fractal-flame-' + Date.now() + '.png';
+      link.href = canvas.toDataURL();
+      link.click();
+    }
+
+    // Export flame parameters
+    function exportFlame() {
+      const json = generator.exportJSON();
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = 'flame-' + Date.now() + '.json';
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+      updateStatus('Flame exported!');
+    }
+
+    // Import flame parameters
+    function importFlame(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          generator.importJSON(e.target.result);
+          render();
+          updateStatus('Flame imported!');
+        } catch (error) {
+          updateStatus('Error importing: ' + error.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Preset flames
+    function loadPreset(name) {
+      generator.clearTransforms();
+
+      switch (name) {
+        case 'sierpinski':
+          // Classic Sierpinski triangle
+          generator.addTransform({
+            affine: [0.5, 0, 0, 0, 0.5, 0],
+            variations: { linear: 1 },
+            color: 0,
+            weight: 1
+          });
+          generator.addTransform({
+            affine: [0.5, 0, 0.5, 0, 0.5, 0],
+            variations: { linear: 1 },
+            color: 0.5,
+            weight: 1
+          });
+          generator.addTransform({
+            affine: [0.5, 0, 0.25, 0, 0.5, 0.5],
+            variations: { linear: 1 },
+            color: 1,
+            weight: 1
+          });
+          break;
+
+        case 'swirl':
+          generator.addTransform({
+            affine: [0.7, -0.3, 0, 0.3, 0.7, 0],
+            variations: { swirl: 0.7, linear: 0.3 },
+            color: 0.2,
+            weight: 1
+          });
+          generator.addTransform({
+            affine: [-0.5, 0.5, 0.5, -0.5, -0.5, 0],
+            variations: { swirl: 0.8, spherical: 0.2 },
+            color: 0.8,
+            weight: 1
+          });
+          break;
+
+        case 'spiral':
+          generator.addTransform({
+            affine: [0.8, 0, 0, 0, 0.8, 0],
+            variations: { spiral: 0.6, linear: 0.4 },
+            color: 0.1,
+            weight: 1
+          });
+          generator.addTransform({
+            affine: [-0.6, 0.4, 0, -0.4, -0.6, 0],
+            variations: { spiral: 0.7, handkerchief: 0.3 },
+            color: 0.7,
+            weight: 1
+          });
+          break;
+
+        case 'julia':
+          generator.addTransform({
+            affine: [1, 0, 0, 0, 1, 0],
+            variations: { julia: 1 },
+            color: 0.3,
+            weight: 1
+          });
+          generator.addTransform({
+            affine: [0.8, 0.2, 0, -0.2, 0.8, 0],
+            variations: { julia: 0.8, spherical: 0.2 },
+            color: 0.9,
+            weight: 1
+          });
+          break;
+
+        case 'dragon':
+          generator.addTransform({
+            affine: [0.824, 0.281, 0, -0.212, 0.864, 0],
+            variations: { linear: 0.7, swirl: 0.3 },
+            color: 0.1,
+            weight: 1
+          });
+          generator.addTransform({
+            affine: [0.088, 0.520, 0, -0.463, -0.377, 1.0],
+            variations: { linear: 0.5, horseshoe: 0.5 },
+            color: 0.6,
+            weight: 1
+          });
+          generator.addTransform({
+            affine: [-0.5, 0, 1, 0, -0.5, 0.8],
+            variations: { linear: 0.6, disc: 0.4 },
+            color: 0.9,
+            weight: 1
+          });
+          break;
+
+        case 'heart':
+          generator.addTransform({
+            affine: [0.7, 0, 0, 0, 0.7, 0],
+            variations: { heart: 0.8, linear: 0.2 },
+            color: 0.1,
+            weight: 1
+          });
+          generator.addTransform({
+            affine: [-0.6, 0.3, 0, -0.3, -0.6, 0],
+            variations: { heart: 0.7, sinusoidal: 0.3 },
+            color: 0.5,
+            weight: 1
+          });
+          generator.addTransform({
+            affine: [0.4, 0.4, 0.5, -0.4, 0.4, 0],
+            variations: { heart: 0.6, spherical: 0.4 },
+            color: 0.9,
+            weight: 1
+          });
+          break;
+
+        case 'phoenix':
+          generator.addTransform({
+            affine: [0.6, -0.4, 0, 0.4, 0.6, 0],
+            variations: { linear: 0.3, swirl: 0.3, horseshoe: 0.4 },
+            color: 0.0,
+            weight: 1
+          });
+          generator.addTransform({
+            affine: [-0.5, 0.5, 0.5, -0.5, -0.5, 0.3],
+            variations: { handkerchief: 0.4, spiral: 0.3, disc: 0.3 },
+            color: 0.33,
+            weight: 1
+          });
+          generator.addTransform({
+            affine: [0.7, 0.2, -0.3, -0.2, 0.7, 0],
+            variations: { heart: 0.3, julia: 0.4, spherical: 0.3 },
+            color: 0.66,
+            weight: 1
+          });
+          generator.addTransform({
+            affine: [0.3, -0.6, 0, 0.6, 0.3, -0.5],
+            variations: { polar: 0.5, sinusoidal: 0.5 },
+            color: 1.0,
+            weight: 1
+          });
+          break;
+      }
+
+      generator.setCamera(0, 0, 1, 0);
+      document.getElementById('centerX').value = 0;
+      document.getElementById('centerY').value = 0;
+      document.getElementById('zoom').value = 1;
+      document.getElementById('rotation').value = 0;
+
+      render();
+    }
+
+    // Initialize with random flame
+    window.addEventListener('load', () => {
+      loadPreset('phoenix');
+    });
+  </script>
+</body>
+</html>

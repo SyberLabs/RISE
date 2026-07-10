@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Abstract Figure Engine - Zen Rock Garden Art Generator</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: linear-gradient(135deg, #f5f5f0 0%, #e8e8e0 100%);
+      color: #333;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      color: #2c2c2c;
+      letter-spacing: 2px;
+    }
+
+    .subtitle {
+      font-size: 1.1em;
+      color: #666;
+      font-style: italic;
+    }
+
+    .main-content {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    .controls {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      height: fit-content;
+      position: sticky;
+      top: 20px;
+    }
+
+    .controls h2 {
+      margin-bottom: 20px;
+      font-size: 1.3em;
+      border-bottom: 2px solid #333;
+      padding-bottom: 10px;
+    }
+
+    .control-group {
+      margin-bottom: 20px;
+    }
+
+    .control-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #444;
+    }
+
+    .control-group input,
+    .control-group select {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 5px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+    }
+
+    .control-group input[type="range"] {
+      cursor: pointer;
+    }
+
+    .range-value {
+      display: inline-block;
+      margin-left: 10px;
+      color: #666;
+      font-weight: bold;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: #2c2c2c;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      font-weight: bold;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    button:hover {
+      background: #444;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .theme-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .theme-buttons button {
+      padding: 10px;
+      font-size: 12px;
+    }
+
+    .canvas-container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    canvas {
+      max-width: 100%;
+      height: auto;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .info-section {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      margin-top: 30px;
+    }
+
+    .info-section h3 {
+      margin-bottom: 15px;
+      color: #2c2c2c;
+    }
+
+    .info-section p {
+      line-height: 1.6;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    .variation-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .variation-item {
+      background: #f9f9f9;
+      padding: 8px;
+      border-radius: 5px;
+      font-size: 12px;
+      text-align: center;
+      border: 1px solid #ddd;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .stat-card {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 5px;
+      text-align: center;
+      border: 1px solid #ddd;
+    }
+
+    .stat-value {
+      font-size: 2em;
+      font-weight: bold;
+      color: #2c2c2c;
+    }
+
+    .stat-label {
+      font-size: 0.9em;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    @media (max-width: 1024px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        position: static;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>Abstract Figure Engine</h1>
+      <p class="subtitle">Procedural Zen Rock Garden Art Generator</p>
+      <p class="subtitle">Inspired by Japanese Karesansui Aesthetics</p>
+    </header>
+
+    <div class="main-content">
+      <div class="controls">
+        <h2>Generation Controls</h2>
+
+        <div class="control-group">
+          <label>Distribution Style</label>
+          <div class="theme-buttons">
+            <button onclick="generateGarden('scatter')">Scatter</button>
+            <button onclick="generateGarden('lateral')">Lateral</button>
+            <button onclick="generateGarden('mountains')">Mountains</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Canvas Size</label>
+          <select id="canvas-size" onchange="updateCanvasSize()">
+            <option value="512">512 x 512</option>
+            <option value="768">768 x 768</option>
+            <option value="1024" selected>1024 x 1024</option>
+            <option value="1280">1280 x 1280</option>
+            <option value="1920">1920 x 1080</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>
+            <input type="checkbox" id="background-raking" checked> Background Raking
+          </label>
+        </div>
+
+        <button onclick="generateRandom()">Generate Random</button>
+        <button onclick="exportImage()">Export as PNG</button>
+      </div>
+
+      <div class="canvas-container">
+        <canvas id="main-canvas" width="1024" height="1024"></canvas>
+      </div>
+    </div>
+
+    <div class="info-section">
+      <h3>About This Engine</h3>
+      <p>
+        The Abstract Figure Engine generates minimalist abstract figures inspired by Japanese Zen rock gardens
+        (karesansui).
+        Each composition is procedurally created from overlapping rock-like shapes that coalesce into a singular
+        sculptural form,
+        embodying principles of wabi-sabi (imperfect beauty), asymmetry, and contemplative negative space.
+      </p>
+
+      <div class="stats" id="stats">
+        <div class="stat-card">
+          <div class="stat-value" id="shape-count">0</div>
+          <div class="stat-label">Shapes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="variation-count">15</div>
+          <div class="stat-label">Variations Available</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="render-time">0ms</div>
+          <div class="stat-label">Generation Time</div>
+        </div>
+      </div>
+
+      <h3>Available Shape Variations</h3>
+      <div class="variation-list">
+        <div class="variation-item">Ellipse</div>
+        <div class="variation-item">Blob</div>
+        <div class="variation-item">Irregular Poly</div>
+        <div class="variation-item">Teardrop</div>
+        <div class="variation-item">Crescent</div>
+        <div class="variation-item">Fractal Rock</div>
+        <div class="variation-item">Asymmetrical Oval</div>
+        <div class="variation-item">Layered</div>
+        <div class="variation-item">Raked</div>
+        <div class="variation-item">Enso</div>
+        <div class="variation-item">Stacked Boulders</div>
+        <div class="variation-item">Wave Distorted</div>
+        <div class="variation-item">Spiral Rock</div>
+        <div class="variation-item">Triangular Cluster</div>
+        <div class="variation-item">Petal Form</div>
+        <div class="variation-item">Split Rock</div>
+      </div>
+
+      <h3>Aesthetic Principles</h3>
+      <p><strong>Wabi-Sabi:</strong> Embracing imperfection through random perturbations and organic irregularities.</p>
+      <p><strong>Ma (Negative Space):</strong> Sparse composition emphasizing emptiness as part of the design.</p>
+      <p><strong>Asymmetry:</strong> Dynamic balance through non-uniform placement and biased positioning.</p>
+      <p><strong>Simplicity:</strong> Monochromatic palette and minimal elements creating contemplative forms.</p>
+    </div>
+  </div>
+
+  <script src="abstract-figure-engine.js"></script>
+  <script>
+    // Initialize engine
+    const engine = new AbstractFigureEngine();
+    const canvas = document.getElementById('main-canvas');
+
+    // Update range value displays
+    function updateRangeValue(id) {
+      const input = document.getElementById(id);
+      const display = document.getElementById(id + '-value');
+      display.textContent = input.value;
+    }
+
+    // Update canvas size
+    function updateCanvasSize() {
+      const select = document.getElementById('canvas-size');
+      const size = select.value;
+
+      if (size === '1920') {
+        canvas.width = 1920;
+        canvas.height = 1080;
+      } else {
+        canvas.width = parseInt(size);
+        canvas.height = parseInt(size);
+      }
+    }
+
+    // Generate rock garden with distribution
+    function generateGarden(distribution = 'mountains') {
+      const startTime = performance.now();
+
+      engine.generateRockGarden({
+        width: canvas.width,
+        height: canvas.height,
+        distribution: distribution
+        // rockCount defaults to random 5-8
+      });
+
+      const renderConfig = {
+        backgroundRaking: document.getElementById('background-raking').checked,
+        brushStroke: true, // Always use brush stroke for rock garden
+        strokeWidth: 2.5,
+        strokeColor: '#2c2c2c'
+      };
+
+      engine.renderRockGarden(canvas, renderConfig);
+
+      const endTime = performance.now();
+      updateStats(engine.shapes.length, Math.round(endTime - startTime));
+    }
+
+    // Generate completely random rock garden
+    function generateRandom() {
+      const distributions = ['scatter', 'lateral', 'mountains'];
+      const randomDist = distributions[Math.floor(Math.random() * distributions.length)];
+      generateGarden(randomDist);
+    }
+
+    // Export canvas as image
+    function exportImage() {
+      const dataURL = engine.export(canvas, 'png');
+      const link = document.createElement('a');
+      link.download = `zen-figure-${Date.now()}.png`;
+      link.href = dataURL;
+      link.click();
+    }
+
+    // Save configuration
+    function saveConfig() {
+      const config = engine.saveConfig();
+      const blob = new Blob([config], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `zen-figure-config-${Date.now()}.json`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Update statistics display
+    function updateStats(shapeCount, renderTime) {
+      document.getElementById('shape-count').textContent = shapeCount;
+      document.getElementById('render-time').textContent = renderTime + 'ms';
+    }
+
+    // Generate initial rock garden on load
+    window.addEventListener('load', () => {
+      generateGarden('mountains');
+    });
+  </script>
+</body>
+
+</html>

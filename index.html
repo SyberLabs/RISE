@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Recursive Installation of Symbolic Experience - Consciousness-first content delivery system">
+  <meta name="theme-color" content="#0A0A0C">
+  <title>R.I.S.E.</title>
+
+  <!-- Styles imported via app.js module -->
+</head>
+
+<body>
+  <!-- View Containers -->
+  <div id="view-portal" class="view-container" hidden></div>
+  <div id="view-vault" class="view-container" hidden></div>
+  <div id="view-chamber" class="view-container" hidden></div>
+  <div id="view-library" class="view-container" hidden></div>
+  <div id="view-workshop" class="view-container" hidden></div>
+  <div id="view-sol" class="view-container" hidden></div>
+
+  <!-- Toast notifications -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay hidden" role="status" aria-live="polite">
+    <div class="loading-content">
+      <div class="loading-sigil">◇</div>
+      <div class="loading-text">Preparing Session</div>
+      <div class="loading-status" id="loading-status">Initializing...</div>
+    </div>
+  </div>
+
+  <!-- Photosensitivity Safety Modal -->
+  <div id="photosensitivity-modal" class="modal-overlay hidden" role="alertdialog" aria-modal="true"
+    aria-labelledby="safety-title">
+    <div class="modal-content safety-modal-content">
+      <div class="modal-header">
+        <div class="safety-icon" aria-hidden="true">⚠</div>
+        <h2 id="safety-title">Photosensitivity Warning</h2>
+      </div>
+
+      <div class="modal-body">
+        <p class="safety-notice">
+          Visual Interlocution generates brief, subliminal flashes of light and color patterns
+          during your session. These interrupts are designed to enhance the consciousness
+          experience but may not be suitable for everyone.
+        </p>
+
+        <div class="safety-risks">
+          <p class="risk-title">This feature may cause issues for individuals with:</p>
+          <ul class="risk-list">
+            <li>Photosensitive epilepsy or seizure disorders</li>
+            <li>Migraine sensitivity to light</li>
+            <li>Visual processing sensitivities</li>
+            <li>Motion sickness susceptibility</li>
+          </ul>
+        </div>
+
+        <div class="safety-protections">
+          <p class="protection-title">Safety protections in place:</p>
+          <ul class="protection-list">
+            <li>Maximum frequency limited to prevent rapid flashing</li>
+            <li>Configurable duration (16-200ms per flash)</li>
+            <li>Can be disabled at any time during session</li>
+            <li>Respects system accessibility preferences</li>
+          </ul>
+        </div>
+
+        <p class="safety-disclaimer">
+          By enabling this feature, you acknowledge that you have read this warning and
+          accept responsibility for any effects. If you experience discomfort, dizziness,
+          or visual disturbances, disable this feature immediately.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" id="safety-cancel">Cancel</button>
+        <button class="btn-primary" id="safety-accept">I Understand, Enable</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Visual Cortex (shared layer for subliminal flashes) -->
+  <div id="visual-cortex" class="visual-cortex" hidden>
+    <canvas id="klee-canvas" width="1920" height="1080" hidden></canvas>
+    <div id="turrell-field" hidden></div>
+    <canvas id="fractal-canvas" width="1920" height="1080" hidden></canvas>
+    <!-- diagram-display created dynamically by visual-cortex.js -->
+  </div>
+
+  <!-- App Orchestrator -->
+  <script type="module" src="/src/app.js"></script>
+</body>
+
+</html>

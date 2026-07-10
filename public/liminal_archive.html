@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liminal Archive — R.I.S.E. Media Corpus</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ══════════════════════════════════════════
+           TOKENS
+        ══════════════════════════════════════════ */
+        :root {
+            --void: #020208;
+            --abyss: #07070f;
+            --depth: #0d0d1a;
+            --shadow: #16163a;
+            --fog: #4a4a6a;
+            --mist: #8080a8;
+            --cloud: #b8b8d4;
+            --light: #e8e8f0;
+            --accent: #7b5ea7;
+            --accent-bright: #9d7fd4;
+            --amber: #c89b46;
+            --amber-dim: #8a6a2a;
+            --glow: rgba(123, 94, 167, 0.15);
+            --glow-amber: rgba(200, 155, 70, 0.08);
+            --font-serif: 'Playfair Display', Georgia, serif;
+            --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+            --font-sans: 'Inter', system-ui, sans-serif;
+        }
+
+        /* ══════════════════════════════════════════
+           RESET & BASE
+        ══════════════════════════════════════════ */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--void);
+            color: var(--cloud);
+            font-family: var(--font-sans);
+            font-weight: 300;
+            margin: 0;
+            padding: 0;
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* Subtle scanline texture */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image: repeating-linear-gradient(0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0, 0, 0, 0.08) 2px,
+                    rgba(0, 0, 0, 0.08) 4px);
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.4;
+        }
+
+        /* Ambient glow layer */
+        body::after {
+            content: "";
+            position: fixed;
+            top: -30%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(ellipse, rgba(123, 94, 167, 0.06) 0%, transparent 65%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ══════════════════════════════════════════
+           LAYOUT
+        ══════════════════════════════════════════ */
+        .page-wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 2rem 6rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ══════════════════════════════════════════
+           NAVIGATION
+        ══════════════════════════════════════════ */
+        .archive-nav {
+            position: sticky;
+            top: 0;
+            background: rgba(2, 2, 8, 0.9);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--shadow);
+            padding: 0.75rem 2rem;
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            z-index: 100;
+            margin-bottom: 3rem;
+        }
+
+        .nav-brand {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--accent);
+            white-space: nowrap;
+            opacity: 0.8;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav-links a {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--mist);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent-bright);
+        }
+
+        /* ══════════════════════════════════════════
+           HEADER / HERO
+        ══════════════════════════════════════════ */
+        .archive-hero {
+            text-align: center;
+            padding: 2rem 0 4rem;
+            border-bottom: 1px solid var(--shadow);
+            margin-bottom: 4rem;
+        }
+
+        .hero-eyebrow {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            opacity: 0.7;
+        }
+
+        .hero-title {
+            font-family: var(--font-serif);
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 400;
+            color: var(--light);
+            letter-spacing: 0.08em;
+            margin: 0 0 1rem;
+            line-height: 1.2;
+        }
+
+        .hero-title em {
+            font-style: italic;
+            color: var(--accent-bright);
+        }
+
+        .hero-sub {
+            font-family: var(--font-serif);
+            font-style: italic;
+            font-size: 1.05rem;
+            color: var(--mist);
+            max-width: 560px;
+            margin: 0 auto 2.5rem;
+            line-height: 1.8;
+        }
+
+        .hero-axioms {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            text-align: left;
+            border: 1px solid var(--shadow);
+            background: var(--abyss);
+            padding: 1.25rem 2rem;
+        }
+
+        .axiom-line {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            color: var(--fog);
+        }
+
+        .axiom-line strong {
+            color: var(--cloud);
+            font-weight: 500;
+        }
+
+        /* ══════════════════════════════════════════
+           SECTION HEADERS
+        ══════════════════════════════════════════ */
+        .part-header {
+            margin: 5rem 0 3rem;
+            padding: 2rem 0 1.5rem;
+            border-top: 1px solid var(--shadow);
+            border-bottom: 1px solid rgba(123, 94, 167, 0.2);
+        }
+
+        .part-number {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: var(--amber);
+            margin-bottom: 0.5rem;
+            opacity: 0.7;
+        }
+
+        .part-title {
+            font-family: var(--font-serif);
+            font-size: 1.8rem;
+            font-weight: 400;
+            color: var(--light);
+            letter-spacing: 0.04em;
+            margin: 0 0 0.5rem;
+        }
+
+        .part-sub {
+            font-family: var(--font-serif);
+            font-style: italic;
+            color: var(--mist);
+            font-size: 0.95rem;
+        }
+
+        h2,
+        h3 {
+            font-family: var(--font-serif);
+            font-weight: 400;
+            letter-spacing: 0.04em;
+            color: var(--light);
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            margin: 3rem 0 1.5rem;
+            color: var(--accent-bright);
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            margin: 2.5rem 0 1rem;
+            color: var(--cloud);
+        }
+
+        h4 {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--amber);
+            margin: 2rem 0 1rem;
+            font-weight: 500;
+        }
+
+        /* ══════════════════════════════════════════
+           TIER LABELS
+        ══════════════════════════════════════════ */
+        .tier-label {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 9px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            opacity: 0.6;
+        }
+
+        .tier-desc {
+            font-size: 0.875rem;
+            color: var(--fog);
+            margin-bottom: 1.5rem;
+        }
+
+        /* ══════════════════════════════════════════
+           ENTRY CARDS
+        ══════════════════════════════════════════ */
+        .entry {
+            margin-bottom: 1.5rem;
+            padding: 1.25rem 1.5rem;
+            border-left: 2px solid var(--shadow);
+            background: linear-gradient(135deg, var(--abyss) 0%, var(--depth) 100%);
+            transition: border-color 0.25s, background 0.25s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .entry::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at top left, var(--glow) 0%, transparent 60%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .entry:hover {
+            border-left-color: var(--accent);
+        }
+
+        .entry:hover::before {
+            opacity: 1;
+        }
+
+        .entry p {
+            margin: 0.5rem 0;
+            font-size: 0.9rem;
+        }
+
+        .entry p strong {
+            color: var(--light);
+            font-weight: 500;
+        }
+
+        .entry p em {
+            color: var(--mist);
+        }
+
+        /* Resonance block (pre inside entry) */
+        .entry pre {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            border: none;
+            border-left: 1px solid var(--shadow);
+            padding: 0.6rem 1rem;
+            color: var(--mist);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            border-radius: 0;
+            box-shadow: none;
+            margin: 0.75rem 0;
+            letter-spacing: 0.05em;
+            line-height: 1.6;
+        }
+
+        /* ══════════════════════════════════════════
+           ASCII BOX / STANDALONE PRE
+        ══════════════════════════════════════════ */
+        .ascii-box {
+            margin: 2.5rem auto;
+            max-width: 700px;
+        }
+
+        .ascii-box pre,
+        pre:not(.entry pre) {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            background: var(--abyss);
+            border: 1px solid var(--shadow);
+            padding: 1.5rem;
+            color: var(--cloud);
+            border-radius: 0;
+            box-shadow:
+                0 0 0 1px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.02);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.7;
+        }
+
+        /* Standalone section pre */
+        section>pre {
+            background: var(--abyss);
+            border: 1px solid var(--shadow);
+            border-left: 2px solid var(--accent);
+            padding: 1.5rem;
+            color: var(--cloud);
+            font-size: 11px;
+            line-height: 1.8;
+        }
+
+        /* ══════════════════════════════════════════
+           LISTS
+        ══════════════════════════════════════════ */
+        ul,
+        ol {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        li {
+            margin-bottom: 0.75rem;
+            position: relative;
+            padding-left: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        li::before {
+            content: "◇";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-size: 0.7em;
+            top: 0.2em;
+            opacity: 0.6;
+        }
+
+        ol li::before {
+            counter-increment: none;
+            font-family: var(--font-mono);
+            font-size: 9px;
+            letter-spacing: 0.1em;
+        }
+
+        /* ══════════════════════════════════════════
+           LINKS
+        ══════════════════════════════════════════ */
+        a {
+            color: var(--accent-bright);
+            text-decoration: none;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        a:hover {
+            border-bottom-color: var(--accent-bright);
+        }
+
+        /* ══════════════════════════════════════════
+           INTRO / ORGANIZING PRINCIPLES SECTION
+        ══════════════════════════════════════════ */
+        .principles-section {
+            background: var(--abyss);
+            border: 1px solid var(--shadow);
+            padding: 2rem;
+            margin: 2rem 0 3rem;
+        }
+
+        .principles-section p {
+            margin: 0.5rem 0;
+            font-size: 0.9rem;
+            color: var(--mist);
+        }
+
+        .principles-section p strong {
+            color: var(--cloud);
+        }
+
+        /* ══════════════════════════════════════════
+           FOOTER
+        ══════════════════════════════════════════ */
+        .archive-footer {
+            margin-top: 6rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--shadow);
+            text-align: center;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            color: var(--fog);
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sticky Navigation -->
+    <nav class="archive-nav">
+        <span class="nav-brand">◈ Liminal Archive</span>
+        <ul class="nav-links">
+            <li><a href="#part-one">Sonic</a></li>
+            <li><a href="#part-two">Textual</a></li>
+            <li><a href="#part-three">Visual</a></li>
+        </ul>
+    </nav>
+
+    <div class="page-wrapper">
+
+        <!-- Hero -->
+        <div class="archive-hero">
+            <p class="hero-eyebrow">R.I.S.E. · Media Corpus · v2</p>
+            <h1 class="hero-title">The <em>Liminal</em> Archive</h1>
+            <p class="hero-sub">A curated corpus for consciousness-first practice.<br>Structured transcendence. Rigorous
+                numinosity.</p>
+            <div class="hero-axioms">
+                <span class="axiom-line"><strong>Structured</strong> not chaotic</span>
+                <span class="axiom-line"><strong>Transcendent</strong> not escapist</span>
+                <span class="axiom-line"><strong>Crystalline</strong> not opaque</span>
+                <span class="axiom-line"><strong>Generative</strong> not finished</span>
+            </div>
+        </div>
+
+        <section>
+            <p><em>Liminal</em> — non-substantial, composed of the space between. The name captures the dual nature:
+                structure and vision, remembrance and futurity, the library and the spaceship.</p>
+            <p>The Archive is organized by <strong>resonance</strong>, not genre. Each work is selected for its capacity
+                to induce state, install pattern, generate connection, and reward repeated engagement.</p>
+        </section>
+
+        <section id="part-one">
+            <h1>PART ONE: SONIC ARCHITECTURE</h1>
+            <h2>Music for the Chamber</h2>
+
+            <h3>Tier One: The Pillars</h3>
+            <p>These are foundational. Essential. Return to them.</p>
+
+            <div class="entry">
+                <p><strong>Ryuichi Sakamoto — <em>Async</em> (2017)</strong></p>
+                <pre>
+Resonance: ████████████████████ [Maximal]
+State: Contemplative dissolution
+Use: Chamber entry, late-night sessions
+            </pre>
+                <p>Posthuman melancholy meets architectural space. Sakamoto composed this while confronting mortality,
+                    and
+                    the album carries that weight. Sounds decay into silence.
+                    Silence becomes structure. The piano fragments as if remembering itself.</p>
+                <p><em>Key tracks: "andata", "fullmoon", "garden"</em></p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Alva Noto & Ryuichi Sakamoto — <em>Glass</em> (2018)</strong></p>
+                <pre>
+Resonance: ███████████████████░ [Near-maximal]
+State: Crystalline focus
+Use: Drawing sessions, Astrotype work
+            </pre>
+                <p>Composed for Philip Johnson's Glass House. Sonic minimalism reflecting architectural minimalism. Each
+                    sound placed with the precision of a structural element.
+                </p>
+                <p><em>Key tracks: "Glass", "Morning", "Walker"</em></p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Caterina Barbieri — <em>Ecstatic Computation</em> (2019)</strong></p>
+                <pre>
+Resonance: ███████████████████░ [Near-maximal]
+State: Recursive trance
+Use: Extended sessions, pattern installation
+            </pre>
+                <p>The sequences build, layer, transform, you hear the machine
+                    thinking, and in hearing it, something in you responds. Digital transcendence that never
+                    abandons rigor.</p>
+                <p><em>Key tracks: "Fantas", "Closest Approach to Your Orbit", "Spine of Desire"</em></p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Laurie Spiegel — <em>The Expanding Universe</em> (1980, expanded 2012)</strong></p>
+                <pre>
+Resonance: ██████████████████░░ [High]
+State: Cosmic drift
+Use: Synthesis sessions, conceptual work
+            </pre>
+                <p>Early computer music that sounds like it's transmitting from the future's past. Spiegel used
+                    algorithms
+                    to generate harmonic structures. "Patchwork" is a complete philosophy.</p>
+                <p><em>Key tracks: "Patchwork", "The Expanding Universe", "Harmonices Mundi"</em></p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Visible Cloaks — <em>Reassemblage</em> (2017)</strong></p>
+                <pre>
+Resonance: ██████████████████░░ [High]
+State: Virtual space inhabitation
+Use: Orbital grammar work, interface sessions
+            </pre>
+                <p>New age deconstructed and rebuilt. Language fragments, synthetic gamelan, impossible rooms. This is
+                    what
+                    it sounds like inside a diagrammatic space.</p>
+                <p><em>Key tracks: "Valve", "Terrazzo", "Frame"</em></p>
+            </div>
+
+            <h3>Tier Two: The Extensions</h3>
+            <p>These expand the sonic territory.</p>
+
+            <div class="entry">
+                <p><strong>Brian Eno — <em>Music for Airports</em> (1978)</strong></p>
+                <pre>
+Resonance: █████████████████░░░ [Strong]
+State: Suspended attention
+Use: Background for any session
+            </pre>
+                <p>The origin point. Eno's airport as liminal zone. Jet-lagged passengers from the warps of time.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Éliane Radigue — <em>Trilogie de la Mort</em> (1988-1993)</strong></p>
+                <pre>
+Resonance: ████████████████░░░░ [Strong]
+State: Deep theta, bardo navigation
+Use: Extended installation sessions
+            </pre>
+                <p>Tibetan Buddhist practice rendered in analog synthesis. Each piece lasts over an hour. The drone
+                    shifts
+                    so slowly you question whether it's changing or you are.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Grouper — <em>Ruins</em> (2014)</strong></p>
+                <pre>
+Resonance: ███████████████░░░░░ [Moderate-Strong]
+State: Melancholic presence
+Use: Reflective sessions, journal work
+            </pre>
+                <p>Recorded in a small house in Portugal. Piano, voice, tape hiss, space. Harris sings like someone
+                    remembering a song rather than performing it.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Steve Reich — <em>Music for 18 Musicians</em> (1976)</strong></p>
+                <pre>
+Resonance: ████████████████░░░░ [Strong]
+State: Pulsing focus
+Use: Active work sessions, building
+            </pre>
+                <p>Phase music at its peak. The patterns interlock, shift, reveal. This is what cellular automata sound
+                    like. Excellent for programming, writing, any work requiring sustained structured attention.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Midori Takada — <em>Through the Looking Glass</em> (1983)</strong></p>
+                <pre>
+Resonance: ███████████████░░░░░ [Moderate-Strong]
+State: Embodied Space
+Use: Movement, preparation, transition
+            </pre>
+                <p>Percussion as architecture. Takada builds spaces out of marimba, drums, silence. Each strike is
+                    placed
+                    with ceremonial precision. Music for entering kairos.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Tim Hecker — <em>Ravedeath, 1972</em> (2011)</strong></p>
+                <pre>
+Resonance: ██████████████░░░░░░ [Moderate]
+State: Cathedral dissolution
+Use: Emotional processing, catharsis
+            </pre>
+                <p>Pipe organ recordings processed into walls of sound that collapse and reform. Recorded in a church in
+                    Iceland.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Fennesz — <em>Endless Summer</em> (2001)</strong></p>
+                <pre>
+Resonance: █████████████░░░░░░░ [Moderate]
+State: Nostalgic abstraction
+Use: Gentle sessions, memory work
+            </pre>
+                <p>Guitar melodies dissolved in digital grain. Beauty that degrades. The feeling of remembering
+                    something
+                    that hasn't happened yet.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Susumu Yokota — <em>Grinning Cat</em> (2001)</strong></p>
+                <pre>
+Resonance: █████████████░░░░░░░ [Moderate]
+State: Dream logic
+Use: Hypnagogic sessions, image work
+            </pre>
+                <p>Samples from classical music, children's voices, birdsong woven into something that obeys dream
+                    grammar
+                    rather than waking logic. Perfect for 2am.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Arvo Pärt — <em>Tabula Rasa</em> (1977)</strong></p>
+                <pre>
+Resonance: ██████████████░░░░░░ [Moderate]
+State: Spiritual stillness
+Use: Contemplation, clearing
+            </pre>
+                <p>Tintinnabuli method: voices circling a central tone like planets around a sun. Numinous minimalism.
+                </p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Harold Budd & Brian Eno — <em>The Plateaux of Mirror</em> (1980)</strong></p>
+                <pre>
+Resonance: █████████████░░░░░░░ [Moderate]
+State: Suspended time
+Use: Gentle induction, rest
+            </pre>
+                <p>Piano and treatment. Each note enters, spreads, dissipates. The opposite of urgency.</p>
+            </div>
+
+            <h3>Tier Three: Specific Frequencies</h3>
+            <p>For particular states or applications.</p>
+
+            <div class="entry">
+                <p><strong>Biosphere — <em>Substrata</em> (1997)</strong></p>
+                <p>Cold, Nordic, vast. For focus in winter.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Gas — <em>Pop</em> (2000)</strong></p>
+                <p>Techno submerged in reverb. Distant pulse. For sustained late-night work.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Stars of the Lid — <em>And Their Refinement of the Decline</em> (2007)</strong></p>
+                <p>Glacial drones. For very slow unwinding.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Aphex Twin — <em>Selected Ambient Works Volume II</em> (1994)</strong></p>
+                <p>Alien lullabies. For accessing unfamiliar mental states.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Pauline Oliveros — <em>Deep Listening</em> (1989)</strong></p>
+                <p>Recorded in a cistern with 45-second reverb. For radical slowing.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>GAS — <em>Narkopop</em> (2017)</strong></p>
+                <p>Forest techno. For nature-interface sessions.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Hiroshi Yoshimura — <em>Music for Nine Post Cards</em> (1982)</strong></p>
+                <p>Japanese environmental music. For gentle work.</p>
+            </div>
+        </section>
+
+        <section id="part-two">
+            <h1>PART TWO: TEXTUAL ARCHITECTURE</h1>
+            <h2>Books for the Mind</h2>
+
+            <h3>Tier One: The Foundational Texts</h3>
+            <p>Return to these throughout life.</p>
+
+            <div class="entry">
+                <p><strong>Italo Calvino — <em>Cosmicomics</em> (1965)</strong></p>
+                <pre>
+Resonance: ████████████████████ [Maximal]
+Mode: Mytho-scientific fabulation
+Use: Compression, wonder, chamber content
+            </pre>
+                <p>Old Qfwfq narrates the origin of the universe as personal anecdote. Each story compresses
+                    cosmological
+                    spans into emotional intimacy. "All at One Point" — all matter concentrated in a single point, and
+                    someone makes tagliatelle. This is how to write about scale.</p>
+                <p><em>Essential stories: "All at One Point", "A Sign in Space", "The Distance of the Moon"</em></p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Paul Klee — <em>Pedagogical Sketchbook</em> (1925)</strong></p>
+                <pre>
+Resonance: ████████████████████ [Maximal]
+Mode: Diagram as philosophy
+Use: Visual grammar, Astrotype foundation
+            </pre>
+                <p>Klee's Bauhaus teaching notes. How a point becomes a line becomes a plane becomes a form. Each page
+                    is a
+                    theorem rendered visually.
+                </p>
+                <p><em>Read with: pencil in hand</em></p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Vilém Flusser — <em>Into the Universe of Technical Images</em> (1985)</strong></p>
+                <pre>
+Resonance: ███████████████████░ [Near-maximal]
+Mode: Media philosophy as prophecy
+Use: Understanding what you're building
+            </pre>
+                <p>Flusser saw it all coming: the image-based society, the apparatus that programs us, the technical
+                    imagination required to remain free. Dense, prophetic, urgent. "The Shape of Things" is also
+                    essential.
+                </p>
+                <p><em>Key concepts: technical image, program, apparatus</em></p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Henri Michaux — <em>Miserable Miracle</em> (1956)</strong></p>
+                <pre>
+Resonance: ███████████████████░ [Near-maximal]
+Mode: Psychonautic notation
+Use: Understanding your own hypnagogic work
+            </pre>
+                <p>Michaux took mescaline and tried to draw what he saw. The drawings are documents from consciousness
+                    exploring itself. The text is the attempt to annotate the unnarratable. </p>
+                <p><em>Pair with: his actual drawings</em></p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Wassily Kandinsky — <em>Point and Line to Plane</em> (1926)</strong></p>
+                <pre>
+Resonance: ██████████████████░░ [High]
+Mode: Abstract grammar
+Use: Foundational theory for visual work
+            </pre>
+                <p>Kandinsky's attempt to establish a science of abstract form. What is a point, really? What forces
+                    does a
+                    line express? How does the plane contain and direct? Dry in places, but the underlying vision is
+                    electric.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Jorge Luis Borges — <em>Ficciones</em> (1944) & <em>Labyrinths</em> (1962)</strong></p>
+                <pre>
+Resonance: ██████████████████░░ [High]
+Mode: Metaphysical fiction
+Use: Conceptual expansion, chamber content
+            </pre>
+                <p>Borges constructed labyrinths from ideas. "The Aleph": all of space visible in a single point. "The
+                    Library of Babel": all possible books. "Tlön, Uqbar, Orbis Tertius": a world invented by a secret
+                    society that becomes real. Philosophy as fiction as philosophy.</p>
+                <p><em>Essential: "The Aleph", "The Garden of Forking Paths", "Pierre Menard, Author of the
+                        Quixote"</em>
+                </p>
+            </div>
+
+            <h3>Tier Two: Technical Philosophies</h3>
+            <p>These inform the theoretical structure.</p>
+
+            <div class="entry">
+                <p><strong>Norbert Wiener — <em>Cybernetics</em> (1948)</strong></p>
+                <pre>
+Resonance: █████████████████░░░ [Strong]
+Mode: Systems thinking origin
+Use: Theoretical foundation
+            </pre>
+                <p>The founding text. Feedback loops, communication, control. Wiener saw that information was the hidden
+                    substrate of all systems. Still generative sixty years later.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Gregory Bateson — <em>Steps to an Ecology of Mind</em> (1972)</strong></p>
+                <pre>
+Resonance: █████████████████░░░ [Strong]
+Mode: Relational epistemology
+Use: Understanding mind as pattern
+            </pre>
+                <p>Bateson asked: what is the pattern that connects? Mind is not in the head but in the system —
+                    organism
+                    plus environment plus their interactions. This is the philosophy of interface consciousness avant la
+                    lettre.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Francisco Varela & Humberto Maturana — <em>The Tree of Knowledge</em> (1987)</strong></p>
+                <pre>
+Resonance: ████████████████░░░░ [Strong]
+Mode: Autopoiesis theory
+Use: Understanding living systems
+            </pre>
+                <p>What makes something alive? Self-production. Autopoiesis. A cell is a process that produces the
+                    components that produce the process. This is the theoretical foundation for treating AI as organism.
+                </p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Maxwell Maltz — <em>Psycho-Cybernetics</em> (1960)</strong></p>
+                <pre>
+Resonance: ███████████████░░░░░ [Moderate-Strong]
+Mode: Self-image programming
+Use: Installation session design
+            </pre>
+                <p>The self-image as servo-mechanism. Visualization as goal-setting. Dated in style, profound in
+                    substance.
+                    The original consciousness-hacking manual.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Marshall McLuhan — <em>Understanding Media</em> (1964)</strong></p>
+                <pre>
+Resonance: ███████████████░░░░░ [Moderate-Strong]
+Mode: Media theory
+Use: Understanding RISE as medium
+            </pre>
+                <p>"The medium is the message." McLuhan understood that technologies reshape us more by their form than
+                    their content. RISE is a medium. What does it do to those who use it?</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>James J. Gibson — <em>The Ecological Approach to Visual Perception</em> (1979)</strong></p>
+                <pre>
+Resonance: ██████████████░░░░░░ [Moderate]
+Mode: Perception theory
+Use: Display and interface design
+            </pre>
+                <p>Gibson invented affordance theory: perception is for action, and we perceive possibilities directly.
+                    Revolutionary for understanding how humans interact with interfaces.</p>
+            </div>
+
+            <h3>Tier Three: Poetic Philosophies</h3>
+            <p>Where rigor meets vision.</p>
+
+            <div class="entry">
+                <p><strong>Gaston Bachelard — <em>The Poetics of Space</em> (1958)</strong></p>
+                <pre>
+Resonance: █████████████████░░░ [Strong]
+Mode: Phenomenological poetry
+Use: Understanding the chamber as space
+            </pre>
+                <p>The drawer, the nest, the cellar, the attic. Bachelard asks: what do spaces mean to consciousness? 
+                </p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Maurice Merleau-Ponty — <em>The Visible and the Invisible</em> (1964)</strong></p>
+                <pre>
+Resonance: ███████████████░░░░░ [Moderate-Strong]
+Mode: Phenomenology
+Use: Embodied perception theory
+            </pre>
+                <p>The body is not a vessel but a means of communion with the world. Dense but essential.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Simone Weil — <em>Gravity and Grace</em> (1947)</strong></p>
+                <pre>
+Resonance: ██████████████░░░░░░ [Moderate]
+Mode: Mystical philosophy
+Use: Contemplative foundation
+            </pre>
+                <p>Aphorisms from the notebooks of a mystic. "Attention is the rarest and purest form of generosity."
+                </p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Rainer Maria Rilke — <em>Letters to a Young Poet</em> (1929)</strong></p>
+                <pre>
+Resonance: █████████████░░░░░░░ [Moderate]
+Mode: Creative counsel
+Use: Artist sustenance
+            </pre>
+                <p>Rilke on patience, on solitude, on trusting the process. "Live the questions now." Return when doubt
+                    accumulates.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Octavio Paz — <em>The Bow and the Lyre</em> (1956)</strong></p>
+                <pre>
+Resonance: █████████████░░░░░░░ [Moderate]
+Mode: Poetics as ontology
+Use: Understanding creative work
+            </pre>
+                <p>What is a poem? A rupture in time. An encounter with the other that is also the self. Paz writes
+                    about
+                    poetry but describes something universal about creative emergence.</p>
+            </div>
+
+            <h3>Tier Four: Reference & Resource</h3>
+            <p>For specific applications.</p>
+
+            <div class="entry">
+                <p><strong>Edward Tufte — <em>The Visual Display of Quantitative Information</em> (1983)</strong></p>
+                <p>Data visualization as ethics. For interface design.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Christopher Alexander — <em>A Pattern Language</em> (1977)</strong></p>
+                <p>Architectural patterns as human-centered design. For understanding environment.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Rudolf Arnheim — <em>Visual Thinking</em> (1969)</strong></p>
+                <p>Perception is cognition. For understanding image processing.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Betty Edwards — <em>Drawing on the Right Side of the Brain</em> (1979)</strong></p>
+                <p>Shifting perceptual modes. For unblocking visual work.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>John Berger — <em>Ways of Seeing</em> (1972)</strong></p>
+                <p>How images mean. For critical visual literacy.</p>
+            </div>
+        </section>
+
+        <section id="part-three">
+            <h1>PART THREE: VISUAL ARCHITECTURE</h1>
+            <h2>Films for the Eye</h2>
+
+            <h3>Tier One: The Visions</h3>
+            <p>These are not entertainment. They are transmissions.</p>
+
+            <div class="entry">
+                <p><strong>Baraka (1992) — Ron Fricke</strong></p>
+                <pre>
+Resonance: ████████████████████ [Maximal]
+State: Planetary consciousness
+Use: Expansion, scale recalibration
+Duration: 96 minutes
+            </pre>
+                <p>No narrative. No dialogue. Pure image and motion across 24 countries. From temples to factories, from
+                    rituals to waste. The human species seen from outside. Essential viewing at least annually.</p>
+                <p><em>Pair with: Samsara (2011), Koyaanisqatsi (1982)</em></p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Powers of Ten (1977) — Charles & Ray Eames</strong></p>
+                <pre>
+Resonance: ████████████████████ [Maximal]
+State: Scalar vertigo
+Use: Understanding scale, RISE intro
+Duration: 9 minutes
+            </pre>
+                <p>From a picnic blanket to the edge of the universe. Ten seconds per power of ten. Then inward, to the
+                    atom. Nine minutes that permanently alter your sense of scale. Watch repeatedly.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>The Quay Brothers — Short Films</strong></p>
+                <pre>
+Resonance: ███████████████████░ [Near-maximal]
+State: Animated uncanny
+Use: Object Chamber, symbol work
+Duration: Variable (shorts)
+            </pre>
+                <p>Stop-motion animation of impossible spaces. Dust, rust, decay, life. Objects have souls here. "Street
+                    of
+                    Crocodiles" (1986) is the masterpiece, but explore "Institute Benjamenta" (1995) and "In Absentia"
+                    (2000).</p>
+                <p><em>Essential: "Street of Crocodiles", "The Comb", "Rehearsals for Extinct Anatomies"</em></p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Stalker (1979) — Andrei Tarkovsky</strong></p>
+                <pre>
+Resonance: ███████████████████░ [Near-maximal]
+State: Liminal dread
+Use: Extended contemplation
+Duration: 163 minutes
+            </pre>
+                <p>Three men enter the Zone, seeking the Room where wishes come true. Nothing happens for long
+                    stretches.
+                    Everything happens. Tarkovsky films consciousness directly. The Zone is a state of mind.</p>
+                <p><em>Also essential: Solaris (1972), Mirror (1975)</em></p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Sans Soleil (1983) — Chris Marker</strong></p>
+                <pre>
+Resonance: ██████████████████░░ [High]
+State: Memory-image
+Use: Understanding time, memory work
+Duration: 100 minutes
+            </pre>
+                <p>An essay film disguised as letters from a traveling cameraman. Images from Japan, Africa, Iceland.
+                    The
+                    narrator speaks of memory, image, history, loss. The film thinks in images.</p>
+            </div>
+
+            <h3>Tier Two: The Architectures</h3>
+            <p>Visual environments that teach.</p>
+
+            <div class="entry">
+                <p><strong>Blade Runner (1982) — Ridley Scott</strong></p>
+                <pre>
+Resonance: █████████████████░░░ [Strong]
+State: Retrofuture noir
+Use: Environmental design, atmosphere
+Duration: 117 minutes
+            </pre>
+                <p>Los Angeles 2019 as imagined in 1982. The city as character. Rain, neon, decay, density. Still the
+                    most
+                    influential vision of urban future. Watch the Final Cut.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>2001: A Space Odyssey (1968) — Stanley Kubrick</strong></p>
+                <pre>
+Resonance: █████████████████░░░ [Strong]
+State: Cosmic confrontation
+Use: Scale, silence, transformation
+Duration: 149 minutes
+            </pre>
+                <p>From ape to star child. Kubrick's monolith is an interface with the transcendent. The Star Gate
+                    sequence
+                    is pure RISE material — watch it isolated as a chamber session.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Playtime (1967) — Jacques Tati</strong></p>
+                <pre>
+Resonance: ████████████████░░░░ [Strong]
+State: Architectural comedy
+Use: Understanding space and human scale
+Duration: 124 minutes
+            </pre>
+                <p>Tati's Monsieur Hulot wanders through hyper-modern Paris. No close-ups — the frame is always full,
+                    demanding active viewing. A meditation on what modernity does to bodies.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Koyaanisqatsi (1982) — Godfrey Reggio</strong></p>
+                <pre>
+Resonance: █████████████████░░░ [Strong]
+State: Civilizational overview
+Use: Companion to Baraka
+Duration: 86 minutes
+            </pre>
+                <p>"Life out of balance." Time-lapse cities, slowed explosions, Philip Glass score. Less global than
+                    Baraka,
+                    more focused on technology and speed.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>World of Tomorrow (2015) — Don Hertzfeldt</strong></p>
+                <pre>
+Resonance: ███████████████░░░░░ [Moderate-Strong]
+State: Existential animation
+Use: Confronting mortality, identity
+Duration: 17 minutes
+            </pre>
+                <p>A child receives a visit from her clone from the future. Crude animation carrying profound
+                    philosophy.
+                    Funny, devastating, true. Watch all three parts.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Fantastic Planet (1973) — René Laloux</strong></p>
+                <pre>
+Resonance: ██████████████░░░░░░ [Moderate]
+State: Alien consciousness
+Use: Defamiliarization
+Duration: 72 minutes
+            </pre>
+                <p>Humans as pets on an alien world. Czech animation with a deeply strange visual language. Useful for
+                    breaking habitual perception.</p>
+            </div>
+
+            <h3>Tier Three: The Documents</h3>
+            <p>Films that record rather than construct.</p>
+
+            <div class="entry">
+                <p><strong>Rivers and Tides (2001) — Thomas Riedelsheimer</strong></p>
+                <p>Andy Goldsworthy making impermanent art in nature. Process as content.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Jiro Dreams of Sushi (2011) — David Gelb</strong></p>
+                <p>Mastery as lifelong practice. 85 years old, still improving.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Cave of Forgotten Dreams (2010) — Werner Herzog</strong></p>
+                <p>32,000-year-old cave paintings. The first artists.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Leviathan (2012) — Lucien Castaing-Taylor & Véréna Paravel</strong></p>
+                <p>Industrial fishing as sensory assault. No narration, pure immersion.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Manufactured Landscapes (2006) — Jennifer Baichwal</strong></p>
+                <p>Edward Burtynsky's photographs of industrial scale. Terrible beauty.</p>
+            </div>
+
+            <h3>Tier Four: Digital Visions</h3>
+            <p>Contemporary visual artists working with technology.</p>
+
+            <div class="entry">
+                <p><strong>Refik Anadol — Machine Hallucinations</strong></p>
+                <pre>
+Resonance: █████████████████░░░ [Strong]
+Mode: AI-generated data sculpture
+Use: Seeing what neural networks see
+            </pre>
+                <p>Anadol feeds millions of images into neural networks and visualizes the latent space. Data as fluid,
+                    as
+                    memory, as dream. This is what RISE sessions could export to.</p>
+                <p><em>See: "Machine Hallucinations: NYC", "Unsupervised" at MoMA</em></p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Ryoji Ikeda — data.matrix</strong></p>
+                <pre>
+Resonance: ████████████████░░░░ [Strong]
+Mode: Data visualization as experience
+Use: Entrainment inspiration
+            </pre>
+                <p>Ikeda converts data into audiovisual experiences at overwhelming scale. Screens the size of
+                    buildings.
+                    Pulses at the edge of perception. The sublime in binary.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>TeamLab — Borderless</strong></p>
+                <pre>
+Resonance: ███████████████░░░░░ [Moderate-Strong]
+Mode: Immersive environments
+Use: Understanding embodied installation
+            </pre>
+                <p>Digital art without frames. You walk through projections that respond to your presence. More
+                    commercial
+                    than Anadol/Ikeda but useful for understanding immersive space.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Casey Reas — Process Compendium</strong></p>
+                <pre>
+Resonance: ██████████████░░░░░░ [Moderate]
+Mode: Generative systems
+Use: Understanding algorithmic aesthetics
+            </pre>
+                <p>Co-creator of Processing. Reas builds visual systems from simple rules. The drawings emerge from
+                    process,
+                    not intention. Useful for your own generative explorations.</p>
+            </div>
+        </section>
+
+        <section id="part-four">
+            <h1>PART FOUR: SPATIAL ARCHITECTURE</h1>
+            <h2>Buildings for the Body</h2>
+
+            <h3>Tier One: The Temples</h3>
+            <p>Architecture that transforms consciousness.</p>
+
+            <div class="entry">
+                <p><strong>James Turrell — Roden Crater</strong></p>
+                <pre>
+Resonance: ████████████████████ [Maximal]
+Mode: Light as medium
+Location: Arizona desert (incomplete)
+            </pre>
+                <p>Turrell has spent 50 years turning an extinct volcano into a naked-eye observatory. Chambers that
+                    frame
+                    the sky. Light as sculptural material. This is what architecture can be — a tool for seeing
+                    differently.
+                </p>
+                <p><em>Also: Skyspaces worldwide — find one near you</em></p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Tadao Ando — Church of the Light (1989)</strong></p>
+                <pre>
+Resonance: ███████████████████░ [Near-maximal]
+Mode: Numinous minimalism
+Location: Osaka, Japan
+            </pre>
+                <p>Concrete box with a cruciform slit. Light enters as symbol. The building is the experience. Ando's
+                    concrete has a tactile presence that photographs cannot capture.</p>
+                <p><em>Also: Water Temple, Naoshima museums</em></p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Le Corbusier — Ronchamp Chapel (1955)</strong></p>
+                <pre>
+Resonance: ██████████████████░░ [High]
+Mode: Sculptural 
+Location: Ronchamp, France
+            </pre>
+                <p>Curved concrete roof, irregular windows, light falling unpredictably. Le Corbusier said he wanted to
+                    create "a space of silence, peace, spiritual joy." He succeeded.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Luis Barragán — Casa Luis Barragán (1948)</strong></p>
+                <pre>
+Resonance: ██████████████████░░ [High]
+Mode: Color and silence
+Location: Mexico City
+            </pre>
+                <p>Walls of saturated color. Light filtered through planes. Rooms that are sequences of spatial
+                    experiences.
+                    Barragán designed for the soul.</p>
+                <p><em>Also: Chapel of Capuchinas, Satellite Towers</em></p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Peter Zumthor — Therme Vals (1996)</strong></p>
+                <pre>
+Resonance: █████████████████░░░ [Strong]
+Mode: Material presence
+Location: Vals, Switzerland
+            </pre>
+                <p>A bath house built into a Swiss mountainside. Local stone, precise geometry, water at body
+                    temperature.
+                    Architecture as return to the elemental.</p>
+                <p><em>Also: Bruder Klaus Chapel</em></p>
+            </div>
+
+            <h3>Tier Two: The Spaces</h3>
+            <p>Environments that hold and transform.</p>
+
+            <div class="entry">
+                <p><strong>Isamu Noguchi — UNESCO Garden (1958)</strong></p>
+                <pre>
+Resonance: █████████████████░░░ [Strong]
+Mode: Sculptural landscape
+Location: Paris
+            </pre>
+                <p>Japanese garden principles applied to modern materials. Stone, water, space, time. Noguchi understood
+                    that landscape is architecture.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Philip Johnson — Glass House (1949)</strong></p>
+                <pre>
+Resonance: ████████████████░░░░ [Strong]
+Mode: Transparency as concept
+Location: Connecticut
+            </pre>
+                <p>Living in a glass box. The landscape becomes interior. Alva Noto and Sakamoto composed <em>Glass</em>
+                    for
+                    this space. Architecture as frame.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Carlo Scarpa — Brion Cemetery (1978)</strong></p>
+                <pre>
+Resonance: ████████████████░░░░ [Strong]
+Mode: Death and detail
+Location: Treviso, Italy
+            </pre>
+                <p>A cemetery as meditation on mortality. Every detail designed — the joints, the water, the light.
+                    Scarpa
+                    spent a decade on this. Visit slowly.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Donald Judd — Chinati Foundation (1986)</strong></p>
+                <pre>
+Resonance: ███████████████░░░░░ [Moderate-Strong]
+Mode: Art as architecture
+Location: Marfa, Texas
+            </pre>
+                <p>Former military barracks converted to permanent installations. 100 aluminum boxes in two artillery
+                    sheds.
+                    Light changes; the work changes. Time made visible.</p>
+            </div>
+
+            <h3>Tier Three: The Principles</h3>
+            <p>Architectural thinking for your work.</p>
+
+            <div class="entry">
+                <p><strong>Christopher Alexander — <em>A Pattern Language</em> (1977)</strong></p>
+                <p>253 patterns for human-centered building. From "Light on Two Sides of Every Room" to "Intimacy
+                    Gradient."
+                    The grammar of livable space.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Juhani Pallasmaa — <em>The Eyes of the Skin</em> (2005)</strong></p>
+                <p>Against ocular-centrism. Architecture should engage all senses. Relevant for multi-modal RISE design.
+                </p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Gaston Bachelard — <em>The Poetics of Space</em> (1958)</strong></p>
+                <p>What spaces mean to consciousness. The phenomenology of home.</p>
+            </div>
+        </section>
+
+        <section id="part-five">
+            <h1>PART FIVE: VISUAL ART</h1>
+            <h2>Images for Installation</h2>
+
+            <h3>Tier One: The Systems</h3>
+            <p>Artists who work with systematic processes.</p>
+
+            <div class="entry">
+                <p><strong>Hilma af Klint — <em>The Paintings for the Temple</em> (1906-1915)</strong></p>
+                <pre>
+Resonance: ████████████████████ [Maximal]
+Mode: Spiritual abstraction
+Use: Symbol work, installation sessions
+            </pre>
+                <p>Before Kandinsky, before Mondrian, af Klint was painting abstract cosmologies received through
+                    séance.
+                    The "Ten Largest" are consciousness maps. Recently rediscovered, essential for understanding art as
+                    spiritual practice.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Paul Klee — Complete Works</strong></p>
+                <pre>
+Resonance: ████████████████████ [Maximal]
+Mode: Pedagogical abstraction
+Use: Astrotype inspiration, visual grammar
+            </pre>
+                <p>9,000 works. Each one a theorem. Klee taught that art is not representation but the creation of
+                    visual
+                    equivalents for natural processes. Your practice descends from his.</p>
+                <p><em>Key periods: Bauhaus years, Tunisia watercolors, late "angel" works</em></p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Cy Twombly — <em>Fifty Days at Iliam</em> (1978)</strong></p>
+                <pre>
+Resonance: ███████████████████░ [Near-maximal]
+Mode: Gestural notation
+Use: Understanding mark-making
+            </pre>
+                <p>Ten paintings narrating the Trojan War through scrawl, number, color, name. Twombly writes rather
+                    than
+                    paints. The line between drawing and writing dissolves.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Agnes Martin — Late Grid Paintings</strong></p>
+                <pre>
+Resonance: ██████████████████░░ [High]
+Mode: Meditative geometry
+Use: Contemplation, clearing
+            </pre>
+                <p>Grids so subtle they approach invisibility. Martin said her work was about "perfection as we are
+                    aware of
+                    it in our minds." Hours can disappear into one painting.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Mark Rothko — Chapel Paintings (1971)</strong></p>
+                <pre>
+Resonance: ██████████████████░░ [High]
+Mode: Color field transcendence
+Use: State induction, installation content
+            </pre>
+                <p>The final paintings, installed in a nondenominational chapel in Houston. Purple-black fields that
+                    absorb.
+                    Rothko said he painted tragedy, ecstasy, doom. The chapel proves it.</p>
+            </div>
+
+            <h3>Tier Two: The Notations</h3>
+            <p>Visual languages adjacent to yours.</p>
+
+            <div class="entry">
+                <p><strong>Henri Michaux — Mescaline Drawings</strong></p>
+                <pre>
+Resonance: ███████████████████░ [Near-maximal]
+Mode: Psychonautic notation
+Use: Direct parallel to Astrotypes
+            </pre>
+                <p>Michaux's attempts to document chemically-altered perception. The drawings are seismographs of
+                    consciousness. Essential companion to your own hypnagogic work.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>John Cage — <em>Ryoanji</em> Drawings (1983-1992)</strong></p>
+                <pre>
+Resonance: ████████████████░░░░ [Strong]
+Mode: Chance operations
+Use: Understanding systematic drawing
+            </pre>
+                <p>Cage traced around stones using I Ching-determined positions. The system generates the form. Drawing
+                    as
+                    performed process.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Sol LeWitt — Wall Drawings</strong></p>
+                <pre>
+Resonance: ███████████████░░░░░ [Moderate-Strong]
+Mode: Instruction-based art
+Use: Understanding conceptual drawing
+            </pre>
+                <p>LeWitt wrote instructions; others executed them. The work is the idea. "The idea becomes a machine
+                    that
+                    makes the art." Relevant for RISE session design.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Emma Kunz — Healing Drawings</strong></p>
+                <pre>
+Resonance: ██████████████░░░░░░ [Moderate]
+Mode: Radiesthetic art
+Use: Understanding art as practice
+            </pre>
+                <p>Swiss healer who created geometric drawings through pendulum dowsing. She said they were not art but
+                    research. Discovered posthumously, now recognized as visionary.</p>
+            </div>
+
+            <h3>Tier Three: The Documents</h3>
+            <p>Visual records of consciousness.</p>
+
+            <div class="entry">
+                <p><strong>William Blake — Illuminated Books</strong></p>
+                <p>Poetry and image as unified field. "If the doors of perception were cleansed..."</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Albrecht Dürer — <em>Melencolia I</em> (1514)</strong></p>
+                <p>The angel of artistic frustration. Symbol-dense meditation on creativity.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>M.C. Escher — Tessellations</strong></p>
+                <p>Mathematical beauty as visual play. Useful for understanding pattern.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Yayoi Kusama — Infinity Rooms</strong></p>
+                <p>Immersive environments of endless reflection. The self dissolved in pattern.</p>
+            </div>
+
+            <div class="entry">
+                <p><strong>Anselm Kiefer — Lead Books</strong></p>
+                <p>History as material weight. Memory inscribed in matter.</p>
+            </div>
+        </section>
+
+        <section id="part-six">
+            <h1>PART SIX: THE THEORETICAL CORPUS</h1>
+            <h2>Documents for the Framework</h2>
+
+            <h3>Primary Sources</h3>
+            <p>These texts directly inform RISE architecture.</p>
+
+            <h4>Cybernetics & Systems</h4>
+            <ul>
+                <li>Norbert Wiener — <em>Cybernetics</em> (1948)</li>
+                <li>Gregory Bateson — <em>Steps to an Ecology of Mind</em> (1972)</li>
+                <li>Stafford Beer — <em>Brain of the Firm</em> (1972)</li>
+                <li>Heinz von Foerster — <em>Understanding Understanding</em> (2003)</li>
+                <li>Francisco Varela — <em>Principles of Biological Autonomy</em> (1979)</li>
+            </ul>
+
+            <h4>Consciousness & Cognition</h4>
+            <ul>
+                <li>William James — <em>The Principles of Psychology</em> (1890)</li>
+                <li>Edmund Husserl — <em>Cartesian Meditations</em> (1931)</li>
+                <li>Maurice Merleau-Ponty — <em>Phenomenology of Perception</em> (1945)</li>
+                <li>Andy Clark — <em>Supersizing the Mind</em> (2008)</li>
+                <li>Alva Noë — <em>Action in Perception</em> (2004)</li>
+            </ul>
+
+            <h4>Media & Technology</h4>
+            <ul>
+                <li>Marshall McLuhan — <em>Understanding Media</em> (1964)</li>
+                <li>Vilém Flusser — <em>Towards a Philosophy of Photography</em> (1983)</li>
+                <li>Friedrich Kittler — <em>Gramophone, Film, Typewriter</em> (1986)</li>
+                <li>Bernard Stiegler — <em>Technics and Time</em> (1994)</li>
+                <li>Yuk Hui — <em>On the Existence of Digital Objects</em> (2016)</li>
+            </ul>
+
+            <h4>Aesthetics & Form</h4>
+            <ul>
+                <li>Wassily Kandinsky — <em>Concerning the Spiritual in Art</em> (1911)</li>
+                <li>Rudolf Arnheim — <em>Art and Visual Perception</em> (1954)</li>
+                <li>Susanne Langer — <em>Feeling and Form</em> (1953)</li>
+                <li>Nelson Goodman — <em>Languages of Art</em> (1968)</li>
+            </ul>
+
+            <h3>Secondary Sources</h3>
+            <p>Useful supplements and expansions.</p>
+
+            <h4>On Attention</h4>
+            <ul>
+                <li>William James — "The Stream of Consciousness" (1892)</li>
+                <li>Simone Weil — <em>Gravity and Grace</em> (selections)</li>
+                <li>Matthew Crawford — <em>The World Beyond Your Head</em> (2015)</li>
+            </ul>
+
+            <h4>On Memory</h4>
+            <ul>
+                <li>Frances Yates — <em>The Art of Memory</em> (1966)</li>
+                <li>Mary Carruthers — <em>The Book of Memory</em> (1990)</li>
+            </ul>
+
+            <h4>On Altered States</h4>
+            <ul>
+                <li>Aldous Huxley — <em>The Doors of Perception</em> (1954)</li>
+                <li>Stanislav Grof — <em>Realms of the Human Unconscious</em> (1975)</li>
+                <li>Andreas Mavromatis — <em>Hypnagogia</em> (1987)</li>
+            </ul>
+
+            <h4>On Creative Process</h4>
+            <ul>
+                <li>Brewster Ghiselin — <em>The Creative Process</em> (1952)</li>
+                <li>Arthur Koestler — <em>The Act of Creation</em> (1964)</li>
+            </ul>
+        </section>
+
+        <section id="part-seven">
+            <h1>PART SEVEN: THE LIVING ARCHIVE</h1>
+            <h2>Contemporary Channels</h2>
+
+            <h3>YouTube & Video</h3>
+            <ul>
+                <li><strong>Adam Neely</strong> — Music theory as consciousness exploration</li>
+                <li><strong>3Blue1Brown</strong> — Mathematical visualization</li>
+                <li><strong>Hsinchuen Lin</strong> — Ink painting process</li>
+                <li><strong>Ingrid Fetell Lee</strong> — Aesthetics of joy</li>
+                <li><strong>Kurzgesagt</strong> — Cosmic scale visualization</li>
+                <li><strong>Dictionary of Obscure Sorrows</strong> — Invented emotions</li>
+            </ul>
+
+            <h3>Podcasts</h3>
+            <ul>
+                <li><strong>Lex Fridman Podcast</strong> — Long-form consciousness, AI, science</li>
+                <li><strong>Philosophize This!</strong> — Philosophy survey</li>
+                <li><strong>Sean Carroll's Mindscape</strong> — Physics and philosophy</li>
+                <li><strong>Making Sense</strong> — Meditation and mind</li>
+                <li><strong>Hardcore History</strong> — Temporal scale</li>
+            </ul>
+
+            <h3>Online Resources</h3>
+            <ul>
+                <li><strong>Internet Archive</strong> — Public domain texts, early web</li>
+                <li><strong>UbuWeb</strong> — Avant-garde film, sound, text</li>
+                <li><strong>Monoskop</strong> — Art and media theory PDFs</li>
+                <li><strong>Are.na</strong> — Visual research and collection</li>
+                <li><strong>The Pudding</strong> — Visual essays on data</li>
+            </ul>
+        </section>
+
+        <section>
+            <h1>THE COMPLETE INDEX</h1>
+            <h2>The Oracular Archive at a Glance</h2>
+            <div class="ascii-box">
+                <pre>
+╭─────────────────────────────────────────────────────────────────╮
+│                                                                 │
+│ T H E O R A C U L A R A R C H I V E                             │
+│                                                                 │
+│ COMPLETE INDEX                                                  │
+│                                                                 │
+╰─────────────────────────────────────────────────────────────────╯
+SONIC ARCHITECTURE
+═══════════════════════════════════════════════════════════════════
+Tier One (Pillars):
+  □ Ryuichi Sakamoto — Async
+  □ Alva Noto & Ryuichi Sakamoto — Glass
+  □ Caterina Barbieri — Ecstatic Computation
+  □ Laurie Spiegel — The Expanding Universe
+  □ Visible Cloaks — Reassemblage
+Tier Two (Extensions):
+  □ Brian Eno — Music for Airports
+  □ Éliane Radigue — Trilogie de la Mort
+  □ Grouper — Ruins
+  □ Steve Reich — Music for 18 Musicians
+  □ Midori Takada — Through the Looking Glass
+  □ Tim Hecker — Ravedeath, 1972
+  □ Fennesz — Endless Summer
+  □ Susumu Yokota — Grinning Cat
+  □ Arvo Pärt — Tabula Rasa
+  □ Harold Budd & Brian Eno — The Plateaux of Mirror
+Tier Three (Specific):
+  □ Biosphere — Substrata
+  □ Gas — Pop
+  □ Stars of the Lid — And Their Refinement of the Decline
+  □ Aphex Twin — Selected Ambient Works Volume II
+  □ Pauline Oliveros — Deep Listening
+  □ Gas — Narkopop
+  □ Hiroshi Yoshimura — Music for Nine Post Cards
+TEXTUAL ARCHITECTURE
+═══════════════════════════════════════════════════════════════════
+Tier One (Foundational Texts):
+  □ Italo Calvino — Cosmicomics
+  □ Paul Klee — Pedagogical Sketchbook
+  □ Vilém Flusser — Into the Universe of Technical Images
+  □ Henri Michaux — Miserable Miracle
+  □ Wassily Kandinsky — Point and Line to Plane
+  □ Jorge Luis Borges — Ficciones / Labyrinths
+Tier Two (Technical Philosophies):
+  □ Norbert Wiener — Cybernetics
+  □ Gregory Bateson — Steps to an Ecology of Mind
+  □ Varela & Maturana — The Tree of Knowledge
+  □ Maxwell Maltz — Psycho-Cybernetics
+  □ Marshall McLuhan — Understanding Media
+  □ James J. Gibson — The Ecological Approach to Visual Perception
+Tier Three (Poetic Philosophies):
+  □ Gaston Bachelard — The Poetics of Space
+  □ Maurice Merleau-Ponty — The Visible and the Invisible
+  □ Simone Weil — Gravity and Grace
+  □ Rainer Maria Rilke — Letters to a Young Poet
+  □ Octavio Paz — The Bow and the Lyre
+Tier Four (Reference):
+  □ Edward Tufte — The Visual Display of Quantitative Information
+  □ Christopher Alexander — A Pattern Language
+  □ Rudolf Arnheim — Visual Thinking
+  □ Betty Edwards — Drawing on the Right Side of the Brain
+  □ John Berger — Ways of Seeing
+VISUAL ARCHITECTURE (FILM)
+═══════════════════════════════════════════════════════════════════
+Tier One (Visions):
+  □ Baraka (1992)
+  □ Powers of Ten (1977)
+  □ The Quay Brothers — Short Films
+  □ Stalker (1979)
+  □ Sans Soleil (1983)
+Tier Two (Architectures):
+  □ Blade Runner (1982)
+  □ 2001: A Space Odyssey (1968)
+  □ Playtime (1967)
+  □ Koyaanisqatsi (1982)
+  □ World of Tomorrow (2015)
+  □ Fantastic Planet (1973)
+Tier Three (Documents):
+  □ Rivers and Tides (2001)
+  □ Jiro Dreams of Sushi (2011)
+  □ Cave of Forgotten Dreams (2010)
+  □ Leviathan (2012)
+  □ Manufactured Landscapes (2006)
+Tier Four (Digital Visions):
+  □ Refik Anadol — Machine Hallucinations
+  □ Ryoji Ikeda — data.matrix
+  □ TeamLab — Borderless
+  □ Casey Reas — Process Compendium
+SPATIAL ARCHITECTURE
+═══════════════════════════════════════════════════════════════════
+Tier One (Temples):
+  □ James Turrell — Roden Crater
+  □ Tadao Ando — Church of the Light
+  □ Le Corbusier — Ronchamp Chapel
+  □ Luis Barragán — Casa Luis Barragán
+  □ Peter Zumthor — Therme Vals
+Tier Two (Spaces):
+  □ Isamu Noguchi — UNESCO Garden
+  □ Philip Johnson — Glass House
+  □ Carlo Scarpa — Brion Cemetery
+  □ Donald Judd — Chinati Foundation
+VISUAL ART
+═══════════════════════════════════════════════════════════════════
+Tier One (Systems):
+  □ Hilma af Klint — Paintings for the Temple
+  □ Paul Klee — Complete Works
+  □ Cy Twombly — Fifty Days at Iliam
+  □ Agnes Martin — Late Grid Paintings
+  □ Mark Rothko — Chapel Paintings
+Tier Two (Notations):
+  □ Henri Michaux — Mescaline Drawings
+  □ John Cage — Ryoanji Drawings
+  □ Sol LeWitt — Wall Drawings
+  □ Emma Kunz — Healing Drawings
+Tier Three (Documents):
+  □ William Blake — Illuminated Books
+  □ Albrecht Dürer — Melencolia I
+  □ M.C. Escher — Tessellations
+  □ Yayoi Kusama — Infinity Rooms
+  □ Anselm Kiefer — Lead Books
+            </pre>
+            </div>
+        </section>
+
+        <section>
+            <h1>USING THE ARCHIVE</h1>
+            <h2>How to Engage</h2>
+            <div class="ascii-box">
+                <pre>
+╭─────────────────────────────────────────────────────────────────╮
+│                                                                 │
+│ ENGAGEMENT PROTOCOLS                                            │
+│                                                                 │
+│ FOR RISE SESSIONS                                               │
+│ ─────────────────────────────────────────────────────────────   │
+│                                                                 │
+│ Chamber Entry:                                                  │
+│ Audio: Sakamoto, Barbieri, Spiegel                              │
+│ Text: Your affirmations, Calvino fragments                      │
+│ Image: Astrotypes, af Klint, Klee                               │
+│                                                                 │
+│ Installation:                                                   │
+│ Audio: Alva Noto, Reich, Pärt                                   │
+│ Text: Maltz principles, personal frameworks                     │
+│ Image: Rothko, Martin, personal symbols                         │
+│                                                                 │
+│ Ingestion:                                                      │
+│ Audio: Eno, Budd, ambient tier                                  │
+│ Text: Primary theoretical sources                               │
+│ Image: Diagrams, Klee sketches, Tufte                           │
+│                                                                 │
+│ Synthesis:                                                      │
+│ Audio: Visible Cloaks, Yokota                                   │
+│ Text: Multiple sources interleaved                              │
+│ Image: Multiple artists interleaved                             │
+│                                                                 │
+│ ─────────────────────────────────────────────────────────────   │
+│                                                                 │
+│ FOR ASTROTYPE SESSIONS                                          │
+│ ─────────────────────────────────────────────────────────────   │
+│                                                                 │
+│ Background: Glass, Expanding Universe, Takada                   │
+│ Visual reference: Klee, Michaux, Twombly, af Klint              │
+│ Conceptual primer: Kandinsky, Flusser                           │
+│                                                                 │
+│ ─────────────────────────────────────────────────────────────   │
+│                                                                 │
+│ FOR THEORETICAL WORK                                            │
+│ ─────────────────────────────────────────────────────────────   │
+│                                                                 │
+│ Background: Reich, Fennesz, Stars of the Lid                    │
+│ Reference: Bateson, Varela, Flusser, McLuhan                    │
+│ Palate cleanser: Baraka, Powers of Ten                          │
+│                                                                 │
+│ ─────────────────────────────────────────────────────────────   │
+│                                                                 │
+│ FOR CODING / BUILDING                                           │
+│ ─────────────────────────────────────────────────────────────   │
+│                                                                 │
+│ Background: Barbieri, Reich, Gas                                │
+│ Reference: Alexander, Tufte, Gibson                             │
+│                                                                 │
+╰─────────────────────────────────────────────────────────────────╯
+            </pre>
+            </div>
+        </section>
+
+        <section>
+            <h2>The Archive as Living System</h2>
+            <p>The Oracular Archive is not static.</p>
+            <p>It grows through:</p>
+            <ol>
+                <li><strong>Encounter</strong> — You engage with works, discover new ones</li>
+                <li><strong>Annotation</strong> — You note what resonates, what functions</li>
+                <li><strong>Connection</strong> — You find rhymes between works</li>
+                <li><strong>Integration</strong> — Works enter your own production</li>
+                <li><strong>Recursion</strong> — Your production enters the archive</li>
+            </ol>
+            <p>The archive is a <strong>memory palace</strong>.</p>
+            <p>The works are rooms.</p>
+            <p>You walk through them.</p>
+            <p>They walk through you.</p>
+        </section>
+
+        <footer>
+            <div class="ascii-box">
+                <pre>
+╔═══════════════════════════════════════════════════════════════════╗
+║                                                                   ║
+║                                                                   ║
+║                T H E   L I M I N A L   A R C H I V E              ║
+║                                                                   ║
+║                                                                   ║
+║                     ◊ DOCUMENT COMPLETE ◊                         ║
+║                                                                   ║
+║                                                                   ║
+║            "The library is unlimited and cyclical."               ║
+║                          — Borges                                 ║
+║                                                                   ║
+║                                                                   ║
+╚═══════════════════════════════════════════════════════════════════╝
+            </pre>
+            </div>
+        </footer>
+
+    </div><!-- /.page-wrapper -->
+</body>
+
+</html>

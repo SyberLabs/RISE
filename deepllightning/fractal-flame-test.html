@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fractal Flame Test</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #000;
+      color: #0f0;
+    }
+    canvas {
+      border: 2px solid #0f0;
+      margin: 10px 0;
+    }
+    .test-result {
+      padding: 10px;
+      margin: 5px 0;
+      background: #111;
+      border-left: 4px solid #0f0;
+    }
+    .test-result.fail {
+      border-left-color: #f00;
+      color: #f00;
+    }
+    h1, h2 {
+      color: #0f0;
+      text-shadow: 0 0 10px #0f0;
+    }
+  </style>
+</head>
+<body>
+  <h1>Fractal Flame Generator - Test Suite</h1>
+
+  <h2>Unit Tests</h2>
+  <div id="tests"></div>
+
+  <h2>Visual Tests</h2>
+  <p>If you see fractal images below, rendering is working correctly.</p>
+
+  <h3>Test 1: Sierpinski Triangle (Linear variation only)</h3>
+  <canvas id="test1" width="400" height="400"></canvas>
+
+  <h3>Test 2: Swirl Pattern (Non-linear variations)</h3>
+  <canvas id="test2" width="400" height="400"></canvas>
+
+  <h3>Test 3: Julia Set (Complex variation)</h3>
+  <canvas id="test3" width="400" height="400"></canvas>
+
+  <h3>Test 4: Random Flame</h3>
+  <canvas id="test4" width="400" height="400"></canvas>
+
+  <script src="fractal-flame.js"></script>
+  <script>
+    const testsDiv = document.getElementById('tests');
+
+    function logTest(name, passed, message = '') {
+      const div = document.createElement('div');
+      div.className = 'test-result' + (passed ? '' : ' fail');
+      div.textContent = `${passed ? '✓' : '✗'} ${name}` + (message ? `: ${message}` : '');
+      testsDiv.appendChild(div);
+      return passed;
+    }
+
+    // Unit Tests
+    console.log('Running unit tests...');
+
+    try {
+      // Test 1: Constructor
+      const gen = new FractalFlameGenerator();
+      logTest('Constructor', gen !== null && gen.transforms.length === 0);
+
+      // Test 2: Add Transform
+      gen.addTransform({
+        affine: [1, 0, 0, 0, 1, 0],
+        variations: { linear: 1 },
+        color: 0.5,
+        weight: 1
+      });
+      logTest('Add Transform', gen.transforms.length === 1);
+
+      // Test 3: Camera
+      gen.setCamera(1, 2, 3, Math.PI / 4);
+      logTest('Set Camera',
+        gen.camera.centerX === 1 &&
+        gen.camera.centerY === 2 &&
+        gen.camera.zoom === 3
+      );
+
+      // Test 4: Palette
+      const palette = gen.generateDefaultPalette();
+      logTest('Generate Palette',
+        palette.length === 256 &&
+        Array.isArray(palette[0]) &&
+        palette[0].length === 3
+      );
+
+      // Test 5: Export/Import JSON
+      gen.clearTransforms();
+      gen.addTransform({
+        affine: [0.5, 0, 0, 0, 0.5, 0],
+        variations: { linear: 1 },
+        color: 0,
+        weight: 1
+      });
+      const json = gen.exportJSON();
+      const gen2 = new FractalFlameGenerator();
+      gen2.importJSON(json);
+      logTest('Export/Import JSON',
+        gen2.transforms.length === 1 &&
+        gen2.transforms[0].affine[0] === 0.5
+      );
+
+      // Test 6: Variations exist
+      const variationCount = Object.keys(VARIATIONS).length;
+      logTest('Variations Loaded', variationCount >= 35,
+        `${variationCount} variations available`);
+
+      // Test 7: Random flame generation
+      gen.generateRandomFlame();
+      logTest('Random Flame Generation',
+        gen.transforms.length >= 2 && gen.transforms.length <= 6
+      );
+
+      // Test 8: Variation functions
+      const linearResult = VARIATIONS.linear(1, 2);
+      logTest('Linear Variation',
+        linearResult.x === 1 && linearResult.y === 2
+      );
+
+      const sphericalResult = VARIATIONS.spherical(1, 1);
+      logTest('Spherical Variation',
+        typeof sphericalResult.x === 'number' &&
+        typeof sphericalResult.y === 'number'
+      );
+
+      // Test 9: HSL to RGB conversion
+      const rgb = gen._hslToRgb(0, 1, 0.5);
+      logTest('HSL to RGB',
+        rgb[0] === 255 && rgb[1] === 0 && rgb[2] === 0,
+        'Red = [255, 0, 0]'
+      );
+
+      console.log('Unit tests complete!');
+
+    } catch (error) {
+      logTest('Unit Tests', false, error.message);
+      console.error(error);
+    }
+
+    // Visual Tests
+    async function runVisualTests() {
+      console.log('Running visual tests...');
+
+      try {
+        // Test 1: Sierpinski
+        const gen1 = new FractalFlameGenerator();
+        gen1.addTransform({
+          affine: [0.5, 0, 0, 0, 0.5, 0],
+          variations: { linear: 1 },
+          color: 0,
+          weight: 1
+        });
+        gen1.addTransform({
+          affine: [0.5, 0, 0.5, 0, 0.5, 0],
+          variations: { linear: 1 },
+          color: 0.5,
+          weight: 1
+        });
+        gen1.addTransform({
+          affine: [0.5, 0, 0.25, 0, 0.5, 0.5],
+          variations: { linear: 1 },
+          color: 1,
+          weight: 1
+        });
+
+        const img1 = await gen1.generateImage({
+          iterations: 1000000,
+          width: 400,
+          height: 400,
+          gamma: 3,
+          brightness: 5,
+          oversample: 1
+        });
+        const ctx1 = document.getElementById('test1').getContext('2d');
+        ctx1.putImageData(img1, 0, 0);
+        logTest('Visual Test 1: Sierpinski', true);
+
+        // Test 2: Swirl
+        const gen2 = new FractalFlameGenerator();
+        gen2.addTransform({
+          affine: [0.7, -0.3, 0, 0.3, 0.7, 0],
+          variations: { swirl: 0.7, linear: 0.3 },
+          color: 0.2,
+          weight: 1
+        });
+        gen2.addTransform({
+          affine: [-0.5, 0.5, 0.5, -0.5, -0.5, 0],
+          variations: { swirl: 0.8, spherical: 0.2 },
+          color: 0.8,
+          weight: 1
+        });
+
+        const img2 = await gen2.generateImage({
+          iterations: 2000000,
+          width: 400,
+          height: 400,
+          gamma: 4,
+          brightness: 4,
+          oversample: 1
+        });
+        const ctx2 = document.getElementById('test2').getContext('2d');
+        ctx2.putImageData(img2, 0, 0);
+        logTest('Visual Test 2: Swirl', true);
+
+        // Test 3: Julia
+        const gen3 = new FractalFlameGenerator();
+        gen3.addTransform({
+          affine: [1, 0, 0, 0, 1, 0],
+          variations: { julia: 1 },
+          color: 0.3,
+          weight: 1
+        });
+        gen3.addTransform({
+          affine: [0.8, 0.2, 0, -0.2, 0.8, 0],
+          variations: { julia: 0.8, spherical: 0.2 },
+          color: 0.9,
+          weight: 1
+        });
+
+        const img3 = await gen3.generateImage({
+          iterations: 2000000,
+          width: 400,
+          height: 400,
+          gamma: 4,
+          brightness: 4,
+          oversample: 1
+        });
+        const ctx3 = document.getElementById('test3').getContext('2d');
+        ctx3.putImageData(img3, 0, 0);
+        logTest('Visual Test 3: Julia', true);
+
+        // Test 4: Random
+        const gen4 = new FractalFlameGenerator();
+        gen4.generateRandomFlame();
+
+        const img4 = await gen4.generateImage({
+          iterations: 3000000,
+          width: 400,
+          height: 400,
+          gamma: 4,
+          brightness: 4,
+          oversample: 1
+        });
+        const ctx4 = document.getElementById('test4').getContext('2d');
+        ctx4.putImageData(img4, 0, 0);
+        logTest('Visual Test 4: Random', true);
+
+        console.log('All tests complete!');
+
+      } catch (error) {
+        logTest('Visual Tests', false, error.message);
+        console.error(error);
+      }
+    }
+
+    // Run visual tests after page loads
+    window.addEventListener('load', () => {
+      setTimeout(runVisualTests, 100);
+    });
+  </script>
+</body>
+</html>

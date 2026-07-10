@@ -1,0 +1,526 @@
+/**
+ * BetaGate Styles
+ * Premium, contemplative aesthetic for the beta access screen
+ */
+
+/* ═══════════════════════════════════════════════════════════
+   Background & Container
+   ═══════════════════════════════════════════════════════════ */
+
+.beta-gate {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: var(--space-xl);
+  overflow: hidden;
+
+  /* Deep void with subtle gradient */
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 40%, rgba(25, 25, 30, 0.8) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 80% at 30% 70%, rgba(168, 162, 158, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 50% at 70% 30%, rgba(168, 162, 158, 0.02) 0%, transparent 50%),
+    var(--color-void);
+}
+
+/* Subtle animated grain texture */
+.beta-gate::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.015;
+  pointer-events: none;
+  animation: grain 8s steps(10) infinite;
+}
+
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-2%, -2%); }
+  20% { transform: translate(2%, 2%); }
+  30% { transform: translate(-1%, 1%); }
+  40% { transform: translate(1%, -1%); }
+  50% { transform: translate(-2%, 2%); }
+  60% { transform: translate(2%, -2%); }
+  70% { transform: translate(0, 2%); }
+  80% { transform: translate(-2%, 0); }
+  90% { transform: translate(2%, 1%); }
+}
+
+/* Soft peripheral vignette */
+.beta-gate::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 0%, transparent 50%, rgba(0, 0, 0, 0.4) 100%);
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Content Container
+   ═══════════════════════════════════════════════════════════ */
+
+.beta-gate-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 520px;
+  animation: contentReveal 1.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes contentReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.98);
+    filter: blur(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Sigil
+   ═══════════════════════════════════════════════════════════ */
+
+.beta-sigil {
+  font-size: 3rem;
+  color: var(--color-threshold);
+  margin-bottom: var(--space-lg);
+  position: relative;
+  animation: sigilFloat 6s ease-in-out infinite;
+}
+
+/* Sigil glow */
+.beta-sigil::before {
+  content: '◇';
+  position: absolute;
+  inset: 0;
+  color: var(--color-threshold);
+  filter: blur(20px);
+  opacity: 0.4;
+  animation: sigilGlow 4s ease-in-out infinite;
+}
+
+@keyframes sigilFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes sigilGlow {
+  0%, 100% {
+    opacity: 0.3;
+    filter: blur(20px);
+  }
+  50% {
+    opacity: 0.6;
+    filter: blur(30px);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Typography
+   ═══════════════════════════════════════════════════════════ */
+
+.beta-title {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: var(--font-weight-light);
+  letter-spacing: 0.4em;
+  color: var(--color-light);
+  margin: 0 0 var(--space-sm) 0;
+  text-shadow: 0 0 60px rgba(255, 255, 255, 0.1);
+}
+
+.beta-subtitle {
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-mist);
+  margin: 0 0 var(--space-2xl) 0;
+  opacity: 0.7;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Form Elements
+   ═══════════════════════════════════════════════════════════ */
+
+.beta-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xl);
+  width: 100%;
+}
+
+.beta-prompt {
+  font-size: 0.9rem;
+  color: var(--color-fog);
+  margin: 0;
+  letter-spacing: 0.05em;
+}
+
+.beta-input-group {
+  display: flex;
+  gap: var(--space-md);
+  width: 100%;
+  max-width: 360px;
+}
+
+.beta-input {
+  flex: 1;
+  padding: var(--space-lg) var(--space-xl);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  letter-spacing: 0.15em;
+  text-align: center;
+  color: var(--color-light);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  outline: none;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(10px);
+}
+
+.beta-input::placeholder {
+  color: var(--color-mist);
+  opacity: 0.4;
+  letter-spacing: 0.1em;
+}
+
+.beta-input:focus {
+  border-color: rgba(168, 162, 158, 0.4);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow:
+    0 0 0 1px rgba(168, 162, 158, 0.1),
+    0 8px 40px rgba(0, 0, 0, 0.3),
+    0 0 60px rgba(168, 162, 158, 0.05);
+}
+
+.beta-input.error {
+  border-color: rgba(255, 100, 100, 0.5);
+  animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+.beta-submit {
+  padding: var(--space-lg) var(--space-2xl);
+  font-size: 0.8rem;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-void);
+  background: linear-gradient(135deg, var(--color-light) 0%, var(--color-fog) 100%);
+  border: none;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.beta-submit::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.beta-submit:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 10px 40px rgba(255, 255, 255, 0.15),
+    0 0 60px rgba(255, 255, 255, 0.05);
+}
+
+.beta-submit:hover::before {
+  opacity: 1;
+}
+
+.beta-submit:active {
+  transform: translateY(0);
+  box-shadow: 0 5px 20px rgba(255, 255, 255, 0.1);
+}
+
+.beta-error {
+  font-size: 0.8rem;
+  color: rgba(255, 120, 120, 0.9);
+  margin: 0;
+  animation: errorReveal 0.4s ease-out;
+}
+
+@keyframes errorReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Personalized Welcome
+   ═══════════════════════════════════════════════════════════ */
+
+.beta-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2xl);
+  animation: welcomeReveal 1.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes welcomeReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.beta-welcome-text {
+  text-align: center;
+  max-width: 440px;
+}
+
+.beta-welcome-text p {
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: var(--color-fog);
+  margin: 0 0 var(--space-md) 0;
+  opacity: 0;
+  animation: textLineReveal 0.8s ease-out forwards;
+}
+
+.beta-welcome-text p:nth-child(1) { animation-delay: 0.3s; }
+.beta-welcome-text p:nth-child(2) { animation-delay: 0.5s; }
+.beta-welcome-text p:nth-child(3) { animation-delay: 0.7s; }
+.beta-welcome-text p:nth-child(4) { animation-delay: 0.9s; }
+.beta-welcome-text p:nth-child(5) { animation-delay: 1.1s; }
+
+@keyframes textLineReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(15px);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.beta-welcome-text p:last-child {
+  margin-bottom: 0;
+}
+
+.beta-welcome-text p:first-child {
+  font-size: 1.05rem;
+  color: var(--color-light);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.02em;
+}
+
+.beta-enter-btn {
+  padding: var(--space-lg) var(--space-3xl);
+  font-size: 0.85rem;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-void);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(200, 200, 210, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+  opacity: 0;
+  animation: buttonReveal 0.8s ease-out 1.3s forwards;
+  backdrop-filter: blur(8px);
+}
+
+@keyframes buttonReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.beta-enter-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.6s ease;
+}
+
+.beta-enter-btn:hover {
+  transform: translateY(-2px) scale(1.01);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(220, 220, 230, 0.95) 100%);
+  box-shadow:
+    0 12px 40px rgba(255, 255, 255, 0.15),
+    0 0 60px rgba(255, 255, 255, 0.06);
+}
+
+.beta-enter-btn:hover::before {
+  left: 100%;
+}
+
+.beta-enter-btn:active {
+  transform: translateY(-1px) scale(1);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Footer
+   ═══════════════════════════════════════════════════════════ */
+
+.beta-footer {
+  position: absolute;
+  bottom: var(--space-xl);
+  text-align: center;
+  z-index: 1;
+  opacity: 0;
+  animation: footerReveal 1s ease-out 2s forwards;
+}
+
+@keyframes footerReveal {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.beta-footer p {
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-mist);
+  opacity: 0.3;
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Decorative Elements
+   ═══════════════════════════════════════════════════════════ */
+
+/* Subtle corner accents */
+.beta-gate-content::before,
+.beta-gate-content::after {
+  content: '';
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border: 1px solid rgba(168, 162, 158, 0.08);
+  pointer-events: none;
+}
+
+.beta-gate-content::before {
+  top: -40px;
+  left: -40px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.beta-gate-content::after {
+  bottom: -40px;
+  right: -40px;
+  border-left: none;
+  border-top: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Responsive
+   ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 600px) {
+  .beta-gate {
+    padding: var(--space-lg);
+  }
+
+  .beta-sigil {
+    font-size: 3rem;
+  }
+
+  .beta-title {
+    font-size: 2.2rem;
+    letter-spacing: 0.25em;
+  }
+
+  .beta-subtitle {
+    font-size: 0.7rem;
+  }
+
+  .beta-input-group {
+    flex-direction: column;
+    max-width: 280px;
+  }
+
+  .beta-submit {
+    width: 100%;
+  }
+
+  .beta-welcome-text {
+    max-width: 320px;
+  }
+
+  .beta-welcome-text p {
+    font-size: 0.9rem;
+    line-height: 1.8;
+  }
+
+  .beta-gate-content::before,
+  .beta-gate-content::after {
+    display: none;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .beta-gate::before,
+  .beta-sigil,
+  .beta-sigil::before,
+  .beta-gate-content,
+  .beta-welcome,
+  .beta-welcome-text p,
+  .beta-enter-btn,
+  .beta-footer {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+}

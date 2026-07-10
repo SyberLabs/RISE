@@ -1,0 +1,567 @@
+/*
+ * SOL Component Styles
+ * The diurnal arm — ember gold against the void.
+ *
+ * Built on design-system.css tokens (--color-*, --space-*, --font-*).
+ * Sharp corners per the design language: intention, not softness.
+ */
+
+.sol-view {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: var(--space-xl) var(--space-lg) 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background:
+        radial-gradient(ellipse 80% 40% at 50% 0%, rgba(212, 165, 116, 0.06) 0%, transparent 65%),
+        var(--color-void);
+}
+
+/* ─── Header ─── */
+
+.sol-header {
+    position: relative;
+    text-align: center;
+    margin-bottom: var(--space-xl);
+    flex-shrink: 0;
+}
+
+.sol-back {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--color-mist);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-size: 12px;
+    cursor: pointer;
+    padding: var(--space-xs) var(--space-sm);
+    transition: color var(--transition-normal) var(--ease-default);
+}
+
+.sol-back:hover {
+    color: var(--color-ember);
+}
+
+.sol-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: var(--font-weight-light);
+    letter-spacing: 0.4em;
+    text-indent: 0.4em;
+    color: var(--color-light);
+    margin-bottom: var(--space-xs);
+}
+
+.sol-subtitle {
+    font-family: var(--font-literary);
+    font-style: italic;
+    font-size: 15px;
+    color: var(--color-fog);
+}
+
+/* ─── Content column ─── */
+
+.sol-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xl);
+    max-width: 960px;
+    margin: 0 auto;
+    width: 100%;
+    padding-bottom: var(--space-2xl);
+}
+
+/* ─── Now Panel (recommendation) ─── */
+
+.sol-now-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: var(--space-lg) var(--space-lg) var(--space-xl);
+    background: var(--color-abyss);
+    border: 1px solid var(--color-shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+/* ember glow line across the top */
+.sol-now-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212, 165, 116, 0.7), transparent);
+}
+
+/* ─── Solar dial ─── */
+
+.sol-arc-wrap {
+    width: 260px;
+    max-width: 100%;
+    margin-bottom: var(--space-sm);
+}
+
+.sol-arc {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.sol-arc-horizon {
+    stroke: var(--color-shadow);
+    stroke-width: 1;
+}
+
+.sol-arc-day {
+    stroke: rgba(212, 165, 116, 0.28);
+    stroke-width: 1;
+    stroke-dasharray: 2 5;
+}
+
+.sol-arc-night {
+    stroke: rgba(155, 155, 165, 0.14);
+    stroke-width: 1;
+    stroke-dasharray: 2 5;
+}
+
+.sol-arc-tick {
+    stroke: var(--color-shadow);
+    stroke-width: 1;
+}
+
+.sol-arc-orb {
+    transition: cx 60s linear, cy 60s linear;
+}
+
+.sol-arc.is-day .sol-arc-orb {
+    fill: var(--color-ember);
+}
+
+.sol-arc.is-day .sol-arc-orb-halo {
+    fill: rgba(212, 165, 116, 0.18);
+    animation: sol-orb-breathe 6s ease-in-out infinite alternate;
+}
+
+.sol-arc.is-night .sol-arc-orb {
+    fill: var(--color-fog);
+}
+
+.sol-arc.is-night .sol-arc-orb-halo {
+    fill: rgba(155, 155, 165, 0.12);
+}
+
+@keyframes sol-orb-breathe {
+    0% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* ─── Greeting & context ─── */
+
+.sol-greeting {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--color-light);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: var(--space-xs);
+}
+
+.sol-current-time {
+    color: var(--color-ember);
+}
+
+.sol-context {
+    font-family: var(--font-literary);
+    font-style: italic;
+    font-size: 17px;
+    color: var(--color-fog);
+}
+
+.sol-now-divider {
+    width: 120px;
+    height: 1px;
+    margin: var(--space-md) 0;
+    background: linear-gradient(90deg, transparent, var(--color-shadow), transparent);
+}
+
+/* ─── Suggested sequence ─── */
+
+.sol-suggested-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-mist);
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    text-indent: 0.25em;
+    margin-bottom: var(--space-sm);
+}
+
+.sol-suggested-title {
+    font-family: var(--font-display);
+    font-size: 34px;
+    font-weight: var(--font-weight-light);
+    color: var(--color-light);
+    margin-bottom: 6px;
+}
+
+.sol-suggested-sub {
+    font-family: var(--font-literary);
+    font-style: italic;
+    font-size: 15px;
+    color: rgba(212, 165, 116, 0.85);
+    margin-bottom: var(--space-sm);
+}
+
+.sol-suggested-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-fog);
+    letter-spacing: 0.04em;
+    margin-bottom: var(--space-md);
+}
+
+.sol-meta-sep {
+    color: var(--color-mist);
+    opacity: 0.6;
+}
+
+.sol-meta-visual {
+    color: var(--color-fog);
+}
+
+.sol-btn-begin {
+    padding: 12px 40px;
+    font-family: var(--font-primary);
+    font-size: 13px;
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid var(--color-ember);
+    color: var(--color-ember);
+    cursor: pointer;
+    transition: all var(--transition-normal) var(--ease-default);
+}
+
+.sol-btn-begin:hover {
+    background: var(--color-ember);
+    color: var(--color-void);
+    box-shadow: 0 0 24px rgba(212, 165, 116, 0.25);
+}
+
+.sol-btn-begin:active {
+    transform: scale(0.98);
+}
+
+/* ─── Browser: tabs ─── */
+
+.sol-browser {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.sol-tabs {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-lg);
+    position: relative;
+    padding-bottom: 12px;
+}
+
+.sol-tabs::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 15%;
+    right: 15%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-shadow), transparent);
+}
+
+.sol-tab {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--color-mist);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: var(--space-xs) var(--space-sm);
+    cursor: pointer;
+    transition: color var(--transition-normal) var(--ease-default);
+    position: relative;
+}
+
+.sol-tab:hover {
+    color: var(--color-cloud);
+}
+
+.sol-tab.active {
+    color: var(--color-ember);
+}
+
+.sol-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 32px;
+    height: 1px;
+    background: var(--color-ember);
+    box-shadow: 0 0 8px rgba(212, 165, 116, 0.6);
+}
+
+.sol-tab-numeral {
+    opacity: 0.6;
+}
+
+.sol-tab-count {
+    font-size: 10px;
+    color: var(--color-mist);
+    border: 1px solid var(--color-shadow);
+    padding: 0 5px;
+    line-height: 1.5;
+}
+
+.sol-tab.active .sol-tab-count {
+    color: var(--color-ember);
+    border-color: rgba(212, 165, 116, 0.4);
+}
+
+/* ─── Browser: card grid ─── */
+
+.sol-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: var(--space-md);
+}
+
+.sol-card {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    padding: var(--space-md);
+    background: var(--color-abyss);
+    border: 1px solid var(--color-shadow);
+    border-top: 2px solid var(--color-shadow);
+    cursor: pointer;
+    transition:
+        transform var(--transition-slow) var(--ease-out),
+        border-color var(--transition-normal) var(--ease-default),
+        background var(--transition-normal) var(--ease-default),
+        box-shadow var(--transition-slow) var(--ease-out);
+    min-height: 210px;
+    animation: sol-card-enter 0.5s var(--ease-out) both;
+}
+
+@keyframes sol-card-enter {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.sol-card:hover {
+    transform: translateY(-4px);
+    background: var(--color-depth);
+    border-color: rgba(212, 165, 116, 0.25);
+    border-top-color: rgba(212, 165, 116, 0.6);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), 0 0 30px rgba(212, 165, 116, 0.05);
+}
+
+.sol-card:focus-visible {
+    outline: 2px solid var(--color-ember);
+    outline-offset: 2px;
+}
+
+/* Card aligned with the current hour */
+.sol-card--now {
+    border-color: rgba(212, 165, 116, 0.35);
+    border-top-color: var(--color-ember);
+    background: linear-gradient(180deg, rgba(212, 165, 116, 0.05) 0%, var(--color-abyss) 45%);
+}
+
+.sol-card-now-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    text-indent: 0.2em;
+    color: var(--color-ember);
+    border: 1px solid rgba(212, 165, 116, 0.4);
+    padding: 2px 7px;
+    animation: sol-now-pulse 3s ease-in-out infinite;
+}
+
+@keyframes sol-now-pulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+.sol-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-sm);
+    margin-bottom: 8px;
+}
+
+.sol-card-title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: var(--font-weight-light);
+    color: var(--color-light);
+    letter-spacing: 0.02em;
+}
+
+.sol-card-duration {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-mist);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.sol-card--now .sol-card-duration {
+    margin-right: 48px; /* clear the NOW badge */
+}
+
+.sol-card-subtitle {
+    font-family: var(--font-literary);
+    font-style: italic;
+    font-size: 14px;
+    color: rgba(212, 165, 116, 0.8);
+    line-height: 1.4;
+    margin-bottom: var(--space-sm);
+}
+
+.sol-card-desc {
+    font-family: var(--font-primary);
+    font-size: 13px;
+    color: var(--color-cloud);
+    line-height: 1.7;
+    margin-bottom: var(--space-sm);
+    flex-grow: 1;
+}
+
+.sol-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-mist);
+    letter-spacing: 0.04em;
+    margin-bottom: var(--space-sm);
+}
+
+.sol-card-visual {
+    color: var(--color-fog);
+}
+
+.sol-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-sm);
+    border-top: 1px solid var(--color-shadow);
+    padding-top: var(--space-sm);
+    margin-top: auto;
+}
+
+.sol-card-tone {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-mist);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sol-btn-launch {
+    background: none;
+    border: 1px solid var(--color-shadow);
+    color: var(--color-fog);
+    padding: 6px 16px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all var(--transition-fast) var(--ease-default);
+}
+
+.sol-card:hover .sol-btn-launch {
+    border-color: rgba(212, 165, 116, 0.5);
+    color: var(--color-ember);
+}
+
+.sol-btn-launch:hover {
+    background: var(--color-ember);
+    border-color: var(--color-ember);
+    color: var(--color-void);
+}
+
+/* SOL focus states use ember, not the global violet */
+.sol-view :focus-visible {
+    outline-color: var(--color-ember);
+}
+
+/* ─── Responsive ─── */
+
+@media (max-width: 768px) {
+    .sol-view {
+        padding: var(--space-lg) var(--space-sm) 0;
+    }
+
+    .sol-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sol-tabs {
+        gap: var(--space-xs);
+        flex-wrap: wrap;
+    }
+
+    .sol-header {
+        padding-top: var(--space-lg);
+    }
+
+    .sol-back {
+        top: 0;
+        transform: none;
+    }
+
+    .sol-suggested-title {
+        font-size: 28px;
+    }
+}

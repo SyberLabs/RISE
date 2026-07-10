@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/rise.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>R.I.S.E.</title>
+  <meta name="description"
+    content="Recursive Installation of Symbolic Experience — A consciousness-first content delivery system" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <!-- Starter Sequences Sidebar -->
+  <aside id="starters-sidebar" class="starters-sidebar">
+    <div class="sidebar-header">
+      <h2 class="sidebar-title">Starters</h2>
+      <button id="close-sidebar" class="sidebar-close">×</button>
+    </div>
+    <div class="sidebar-content" id="starters-list">
+      <!-- Populated by JavaScript -->
+  </aside>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+  <!-- Library Modal -->
+  <div id="library-modal" class="library-modal" hidden>
+    <div class="library-modal-content">
+      <div class="library-header">
+        <h2 class="library-title">☯ Sacred Texts Library</h2>
+        <button id="close-library" class="library-close">×</button>
+      </div>
+      <div class="library-categories" id="library-categories">
+        <!-- Category tabs populated by JS -->
+      </div>
+      <div class="library-texts" id="library-texts">
+        <!-- Text cards populated by JS -->
+      </div>
+      <div class="library-verses" id="library-verses" hidden>
+        <!-- Verse picker populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Builder View (Orbital Interface) -->
+  <div id="builder" class="view">
+    <div class="chamber-orbital" role="main">
+
+      <!-- Orbital Interface -->
+      <div class="orbital-stage">
+        <!-- Orbit container -->
+        <div class="orbit-container" id="orbit-container">
+
+          <!-- Temporal Orbit (top) -->
+          <div class="orbit-node orbit-temporal" data-orbit="temporal">
+            <div class="orbit-content">
+              <div class="orbit-label text-fog">Temporal</div>
+              <div class="orbit-status text-light" id="temporal-status">220 WPM</div>
+            </div>
+          </div>
+
+          <!-- Audio Orbit (bottom-left) -->
+          <div class="orbit-node orbit-audio" data-orbit="audio">
+            <div class="orbit-content">
+              <div class="orbit-label text-fog">Audio</div>
+              <div class="orbit-status text-light" id="audio-status">Silent</div>
+            </div>
+          </div>
+
+          <!-- Visual Orbit (bottom-right) -->
+          <div class="orbit-node orbit-visual" data-orbit="visual">
+            <div class="orbit-content">
+              <div class="orbit-label text-fog">Visual</div>
+              <div class="orbit-status text-light" id="visual-status">Focal</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center: TEXT -->
+        <div class="orbit-center" id="orbit-center">
+          <div class="text-source" id="text-source">
+            <div class="text-empty">
+              <button class="text-choose-btn" data-action="library">
+                <span class="choose-sigil">無</span>
+                <span class="choose-label">Choose Text</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Begin Button -->
+      <div class="orbital-actions">
+        <button class="btn-primary btn-large" id="enter-button" disabled>
+          Load Text First
+        </button>
+      </div>
+
+      <!-- Modals (hidden by default) -->
+      <div class="orbital-modals">
+
+        <!-- Temporal Modal -->
+        <div class="orbital-modal" id="modal-temporal" hidden>
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2>Temporal Configuration</h2>
+              <button class="modal-close" data-close="temporal">✕</button>
+            </div>
+            <div class="modal-body">
+              <!-- Pacing -->
+              <div class="config-section">
+                <label class="input-label">
+                  <span>Pacing (WPM)</span>
+                  <span class="input-label-value font-mono" id="wpm-value">220</span>
+                </label>
+                <input type="range" id="wpm-slider" class="slider" min="100" max="500" value="220" step="10">
+              </div>
+
+              <!-- Chunking -->
+              <div class="config-section">
+                <label class="config-label">Chunk Mode</label>
+                <div class="chunk-options">
+                  <button class="chunk-option active" data-mode="word">Word</button>
+                  <button class="chunk-option" data-mode="phrase">Phrase</button>
+                  <button class="chunk-option" data-mode="sentence">Sentence</button>
+                </div>
+              </div>
+
+              <!-- Curve -->
+              <div class="config-section">
+                <label class="config-label">Pacing Curve</label>
+                <div class="curve-options">
+                  <button class="curve-option active" data-curve="flat">
+                    <span class="curve-icon">─</span> Flat
+                  </button>
+                  <button class="curve-option" data-curve="induction">
+                    <span class="curve-icon">╲</span> Induction
+                  </button>
+                  <button class="curve-option" data-curve="arousal">
+                    <span class="curve-icon">╱</span> Arousal
+                  </button>
+                  <button class="curve-option" data-curve="wave">
+                    <span class="curve-icon">∿</span> Wave
+                  </button>
+                  <button class="curve-option" data-curve="climax">
+                    <span class="curve-icon">∧</span> Climax
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Audio Modal -->
+        <div class="orbital-modal" id="modal-audio" hidden>
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2>Audio Configuration</h2>
+              <button class="modal-close" data-close="audio">✕</button>
+            </div>
+            <div class="modal-body">
+              <!-- Audio Preset -->
+              <div class="config-section">
+                <label class="config-label">Audio Preset</label>
+                <div class="audio-preset-options">
+                  <button class="audio-preset-option active" data-preset="silent">
+                    <span class="preset-icon">○</span>
+                    <span class="preset-label">Silent</span>
+                  </button>
+                  <button class="audio-preset-option" data-preset="focus">
+                    <span class="preset-icon">◇</span>
+                    <span class="preset-label">Focus</span>
+                  </button>
+                  <button class="audio-preset-option" data-preset="deep">
+                    <span class="preset-icon">◈</span>
+                    <span class="preset-label">Deep</span>
+                  </button>
+                  <button class="audio-preset-option" data-preset="gateway">
+                    <span class="preset-icon">⬡</span>
+                    <span class="preset-label">Gateway</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Voice -->
+              <div class="config-section">
+                <label class="toggle">
+                  <input type="checkbox" id="voice-toggle">
+                  <span class="toggle-switch"></span>
+                  <span class="toggle-label">Text-to-Speech</span>
+                </label>
+                <select class="voice-select" id="voice-select" disabled>
+                  <option value="">Loading voices...</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visual Modal -->
+        <div class="orbital-modal" id="modal-visual" hidden>
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2>Visual Configuration</h2>
+              <button class="modal-close" data-close="visual">✕</button>
+            </div>
+            <div class="modal-body">
+              <!-- Display Mode -->
+              <div class="config-section">
+                <label class="config-label">Display Mode</label>
+                <div class="mode-options">
+                  <button class="mode-option active" data-mode="focal">
+                    <span class="mode-icon">◎</span> Focal
+                  </button>
+                  <button class="mode-option" data-mode="chamber">
+                    <span class="mode-icon">◈</span> Chamber
+                  </button>
+                  <button class="mode-option" data-mode="orbital">
+                    <span class="mode-icon">◌</span> Orbital
+                  </button>
+                </div>
+              </div>
+
+              <!-- Visual Interlocution -->
+              <div class="config-section">
+                <label class="toggle">
+                  <input type="checkbox" id="visuals-toggle">
+                  <span class="toggle-switch"></span>
+                  <span class="toggle-label">Visual Interlocution</span>
+                </label>
+
+                <div class="interlocution-controls disabled" id="interlocution-controls">
+                  <div class="input-group">
+                    <label class="input-label">
+                      <span>Frequency</span>
+                      <span class="input-label-value font-mono" id="visual-freq-val">30%</span>
+                    </label>
+                    <input type="range" id="visual-freq-slider" class="slider" min="0" max="100" value="30" step="5">
+                  </div>
+
+                  <div class="input-group">
+                    <label class="input-label">
+                      <span>Duration</span>
+                      <span class="input-label-value font-mono" id="visual-dur-val">33ms</span>
+                    </label>
+                    <input type="range" id="visual-dur-slider" class="slider" min="16" max="200" value="33" step="1">
+                  </div>
+
+                  <!-- Pattern Selection -->
+                  <div class="input-group">
+                    <label class="input-label">Active Patterns</label>
+                    <div class="pattern-grid">
+                      <label class="pattern-option">
+                        <input type="checkbox" name="visual-pattern" value="klee" checked>
+                        <span class="pattern-card">
+                          <span class="pattern-icon">╱</span>
+                          <span class="pattern-name">Klee</span>
+                        </span>
+                      </label>
+                      <label class="pattern-option">
+                        <input type="checkbox" name="visual-pattern" value="turrell" checked>
+                        <span class="pattern-card">
+                          <span class="pattern-icon">◐</span>
+                          <span class="pattern-name">Turrell</span>
+                        </span>
+                      </label>
+                      <label class="pattern-option">
+                        <input type="checkbox" name="visual-pattern" value="fractal" checked>
+                        <span class="pattern-card">
+                          <span class="pattern-icon">✦</span>
+                          <span class="pattern-name">Fractal</span>
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Legacy elements for backwards compatibility -->
+    <input type="file" id="file-input" accept=".txt,.md" hidden />
+    <button id="starters-toggle" class="starters-toggle" title="Starter Sequences" style="position: fixed; bottom: 20px; left: 20px;">
+      <span class="toggle-icon">☰</span>
+      <span class="toggle-label">Starters</span>
+    </button>
+    <button id="library-toggle" class="library-toggle" title="Browse Sacred Texts Library" style="position: fixed; bottom: 70px; left: 20px;">
+      <span class="toggle-icon">☯</span>
+      <span class="toggle-label">Library</span>
+    </button>
+    <button id="active-sources-toggle" class="active-sources-toggle" title="Manage Active Sources" style="position: fixed; bottom: 120px; left: 20px;">
+      <span class="toggle-icon">◈</span>
+      <span class="toggle-label">Sources</span>
+    </button>
+  </div>
+
+  <!-- Chamber View -->
+  <div id="chamber" class="view" hidden>
+    <div class="chamber-field">
+      <div class="atom-display" id="atom-display"></div>
+    </div>
+
+    <div class="chamber-controls">
+      <button class="control-btn" id="play-pause-btn" title="Play/Pause (Space)">
+        <span class="icon-play">▶</span>
+        <span class="icon-pause" hidden>❚❚</span>
+      </button>
+      <button class="control-btn" id="stop-btn" title="Exit (Escape)">■</button>
+      <div class="progress-container">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <button class="control-btn volume-btn" id="volume-btn" title="Volume">
+        <span>♪</span>
+        <div class="volume-slider">
+          <div class="volume-slider-fill" id="volume-fill" style="height: 70%"></div>
+        </div>
+      </button>
+      <span class="time-display" id="time-display">0:00 / 0:00</span>
+    </div>
+  </div>
+
+  <!-- Review View -->
+  <div id="review" class="view" hidden>
+    <div class="review-container">
+      <div class="review-header">
+        <h2>Session Complete</h2>
+        <p class="review-session-name" id="review-session-name"></p>
+      </div>
+
+      <div class="review-stats">
+        <div class="stat">
+          <span class="stat-value" id="stat-duration">0:00</span>
+          <span class="stat-label">Duration</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-atoms">0</span>
+          <span class="stat-label">Atoms</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-wpm">0</span>
+          <span class="stat-label">WPM</span>
+        </div>
+      </div>
+
+      <div class="review-actions">
+        <button class="action-btn" id="repeat-btn">Repeat</button>
+        <button class="action-btn primary" id="new-session-btn">New Session</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Layers Modal -->
+  <div id="audio-modal" class="modal-overlay hidden">
+    <div class="modal-content audio-modal-content">
+      <div class="modal-header">
+        <h2>Sonic Architecture</h2>
+        <button id="audio-close" class="close-button">×</button>
+      </div>
+
+      <div class="audio-controls-layout">
+        <!-- The Sundial (Frequency Selector) -->
+        <div class="sundial-container">
+          <div class="sundial-ring">
+            <button class="sundial-node" data-freq="396" data-label="UT" style="--angle: 0deg;">
+              <div class="sundial-node-label">UT</div>
+              <div class="sundial-node-freq">396</div>
+            </button>
+            <button class="sundial-node" data-freq="417" data-label="RE" style="--angle: 60deg;">
+              <div class="sundial-node-label">RE</div>
+              <div class="sundial-node-freq">417</div>
+            </button>
+            <button class="sundial-node" data-freq="528" data-label="MI" style="--angle: 120deg;">
+              <div class="sundial-node-label">MI</div>
+              <div class="sundial-node-freq">528</div>
+            </button>
+            <button class="sundial-node" data-freq="639" data-label="FA" style="--angle: 180deg;">
+              <div class="sundial-node-label">FA</div>
+              <div class="sundial-node-freq">639</div>
+            </button>
+            <button class="sundial-node" data-freq="741" data-label="SOL" style="--angle: 240deg;">
+              <div class="sundial-node-label">SOL</div>
+              <div class="sundial-node-freq">741</div>
+            </button>
+            <button class="sundial-node" data-freq="852" data-label="LA" style="--angle: 300deg;">
+              <div class="sundial-node-label">LA</div>
+              <div class="sundial-node-freq">852</div>
+            </button>
+
+            <button class="sundial-center active" data-freq="432" data-label="ROOT">
+              <div class="sundial-center-label">ROOT</div>
+              <div class="sundial-center-freq">432</div>
+            </button>
+          </div>
+          <div class="sundial-label">Solfeggio Frequencies (Hz)</div>
+        </div>
+      </div>
+
+      <div class="audio-presets border-top">
+        <label>Atmosphere</label>
+        <div class="preset-buttons">
+          <button class="btn-preset active" data-preset="silent">Silent</button>
+          <button class="btn-preset" data-preset="focus">Focus</button>
+          <button class="btn-preset" data-preset="deep">Deep</button>
+          <button class="btn-preset" data-preset="drift">Drift</button>
+          <button class="btn-preset" data-preset="gateway">Gateway</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Photosensitivity Safety Modal -->
+  <div id="photosensitivity-modal" class="modal-overlay hidden">
+    <div class="modal-content safety-modal-content">
+      <div class="modal-header">
+        <div class="safety-icon">⚠</div>
+        <h2>Photosensitivity Warning</h2>
+      </div>
+
+      <div class="modal-body">
+        <p class="safety-notice">
+          Visual Interlocution generates brief, subliminal flashes of light and color patterns
+          during your session. These interrupts are designed to enhance the consciousness
+          experience but may not be suitable for everyone.
+        </p>
+
+        <div class="safety-risks">
+          <p class="risk-title text-light">This feature may cause issues for individuals with:</p>
+          <ul class="risk-list">
+            <li>Photosensitive epilepsy</li>
+            <li>Seizure disorders</li>
+            <li>Migraine sensitivity</li>
+            <li>Motion sickness</li>
+          </ul>
+        </div>
+
+        <div class="safety-protections">
+          <p class="protection-title text-light">Safety protections in place:</p>
+          <ul class="protection-list">
+            <li>Maximum frequency limited to prevent rapid flashing</li>
+            <li>Configurable duration (16-200ms)</li>
+            <li>Can be disabled at any time</li>
+            <li>Respects system photosensitivity preferences</li>
+          </ul>
+        </div>
+
+        <p class="safety-disclaimer text-mist">
+          By enabling this feature, you acknowledge that you have read this warning and
+          accept responsibility for any effects. If you experience discomfort, dizziness,
+          or visual disturbances, disable this feature immediately.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" id="safety-cancel">Cancel</button>
+        <button class="btn-primary" id="safety-accept">I Understand, Enable</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlays -->
+  <div id="visual-cortex" class="visual-cortex" hidden>
+    <canvas id="klee-canvas"></canvas>
+    <div id="turrell-field"></div>
+    <canvas id="fractal-canvas"></canvas>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>

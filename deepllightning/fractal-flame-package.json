@@ -1,0 +1,38 @@
+{
+  "name": "fractal-flame-generator",
+  "version": "1.0.0",
+  "description": "JavaScript implementation of the Fractal Flame algorithm by Scott Draves",
+  "main": "fractal-flame.js",
+  "scripts": {
+    "demo": "open fractal-flame-demo.html",
+    "generate": "node fractal-flame-node-example.js",
+    "batch": "node fractal-flame-node-example.js batch 5"
+  },
+  "keywords": [
+    "fractal",
+    "flame",
+    "apophysis",
+    "ifs",
+    "chaos-game",
+    "generative-art",
+    "procedural",
+    "visualization"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {},
+  "optionalDependencies": {
+    "canvas": "^2.11.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/fractal-flame-generator"
+  },
+  "browser": {
+    "canvas": false
+  }
+}

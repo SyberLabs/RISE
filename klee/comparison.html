@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Klee Engine - Before/After Comparison</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: #2c3e50;
+      color: white;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1800px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      font-size: 1.2em;
+      color: #bdc3c7;
+    }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .version {
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+    }
+
+    .version-header {
+      padding: 15px;
+      font-weight: bold;
+      font-size: 1.2em;
+      text-align: center;
+    }
+
+    .version-header.old {
+      background: #e74c3c;
+      color: white;
+    }
+
+    .version-header.new {
+      background: #2ecc71;
+      color: white;
+    }
+
+    .canvas-wrapper {
+      padding: 20px;
+      background: #f5f1e8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    canvas {
+      max-width: 100%;
+      height: auto;
+      border: 2px solid #ecf0f1;
+      border-radius: 5px;
+    }
+
+    .info {
+      padding: 15px;
+      background: #34495e;
+      color: white;
+    }
+
+    .info-item {
+      margin: 5px 0;
+      font-size: 0.9em;
+    }
+
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+      margin-bottom: 20px;
+    }
+
+    .controls h2 {
+      color: #2c3e50;
+      margin-bottom: 15px;
+    }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .control-group label {
+      color: #2c3e50;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    select, button {
+      padding: 10px;
+      border: 2px solid #ecf0f1;
+      border-radius: 5px;
+      font-family: inherit;
+      font-size: 1em;
+    }
+
+    button {
+      background: #3498db;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+
+    button:hover {
+      background: #2980b9;
+      transform: translateY(-2px);
+    }
+
+    .analysis {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+      color: #2c3e50;
+    }
+
+    .analysis h2 {
+      margin-bottom: 15px;
+    }
+
+    .analysis ul {
+      line-height: 1.8;
+      padding-left: 20px;
+    }
+
+    .highlight {
+      background: #f39c12;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-weight: bold;
+    }
+
+    @media (max-width: 1200px) {
+      .comparison {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔬 Before & After: Form Detection Comparison</h1>
+      <p class="subtitle">Solving the "blocky sleeve" problem with Simplex noise + Marching Squares</p>
+    </header>
+
+    <div class="controls">
+      <h2>Generate Comparison</h2>
+      <div class="control-row">
+        <div class="control-group">
+          <label>Test Case:</label>
+          <select id="testCase">
+            <option value="organic">Organic (shows problem most)</option>
+            <option value="corporeal">Corporeal Forms</option>
+            <option value="flowing">Flowing Lines</option>
+            <option value="mixed">Mixed Variations</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>Complexity:</label>
+          <select id="complexity">
+            <option value="low">Low (fast)</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High (detailed)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>&nbsp;</label>
+          <button onclick="generateComparison()">Generate Both Versions</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="comparison">
+      <div class="version">
+        <div class="version-header old">❌ OLD: Blocky "Sleeve" Forms</div>
+        <div class="canvas-wrapper">
+          <canvas id="canvasOld" width="600" height="600"></canvas>
+        </div>
+        <div class="info">
+          <div class="info-item">🔧 <strong>Noise:</strong> 1D Perlin (simple)</div>
+          <div class="info-item">📐 <strong>Forms:</strong> Density grid rectangles</div>
+          <div class="info-item">⚡ <strong>Generation:</strong> <span id="timeOld">-</span>ms</div>
+          <div class="info-item">📊 <strong>Forms found:</strong> <span id="formsOld">-</span></div>
+        </div>
+      </div>
+
+      <div class="version">
+        <div class="version-header new">✅ NEW: Smooth Organic Contours</div>
+        <div class="canvas-wrapper">
+          <canvas id="canvasNew" width="600" height="600"></canvas>
+        </div>
+        <div class="info">
+          <div class="info-item">🔧 <strong>Noise:</strong> 2D Simplex multi-octave</div>
+          <div class="info-item">📐 <strong>Forms:</strong> Marching squares + Bezier</div>
+          <div class="info-item">⚡ <strong>Generation:</strong> <span id="timeNew">-</span>ms</div>
+          <div class="info-item">📊 <strong>Forms found:</strong> <span id="formsNew">-</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="analysis">
+      <h2>🎨 Aesthetic Analysis</h2>
+      <h3>The Problem (LEFT):</h3>
+      <ul>
+        <li><span class="highlight">Blocky forms "sleeve" organic lines</span> - creates visual tension</li>
+        <li>Grid-aligned rectangles feel mechanical, not natural</li>
+        <li>1D noise creates predictable "wiggly" patterns</li>
+        <li>Forms don't follow the natural flow of lines</li>
+      </ul>
+
+      <h3 style="margin-top: 20px;">The Solution (RIGHT):</h3>
+      <ul>
+        <li><span class="highlight">Smooth contours complement organic lines</span> - visual harmony</li>
+        <li>Marching squares extracts natural boundaries from density field</li>
+        <li>2D multi-octave Simplex noise creates rich, unpredictable textures</li>
+        <li>Bezier curve smoothing produces Klee-like elegant forms</li>
+        <li>Forms emerge naturally from line intersections, not grid artifacts</li>
+      </ul>
+
+      <h3 style="margin-top: 20px;">Technical Improvements:</h3>
+      <ul>
+        <li><strong>2D Simplex Noise:</strong> Uses actual (x,y) position, not just step counter - creates spatial coherence</li>
+        <li><strong>Multi-octave:</strong> Combines 3 frequencies for richer detail (like music harmonics)</li>
+        <li><strong>Marching Squares:</strong> Computer graphics algorithm for extracting iso-contours</li>
+        <li><strong>Contour Smoothing:</strong> Quadratic Bezier curves for elegant boundaries</li>
+        <li><strong>Higher grid resolution:</strong> 100×100 vs 50×50 for finer detail</li>
+      </ul>
+    </div>
+  </div>
+
+  <script src="kleeEngine.js"></script>
+  <script src="kleeEngine-enhanced.js"></script>
+  <script>
+    // Rename the enhanced class to avoid conflict
+    const KleeEngineEnhanced = KleeEngine;
+
+    // Reload the old version
+    const scriptOld = document.createElement('script');
+    scriptOld.src = 'kleeEngine.js?' + Date.now();
+    scriptOld.onload = () => {
+      const KleeEngineOld = KleeEngine;
+      window.KleeEngineOld = KleeEngineOld;
+      window.KleeEngineNew = KleeEngineEnhanced;
+    };
+    document.head.appendChild(scriptOld);
+
+    function generateComparison() {
+      const testCase = document.getElementById('testCase').value;
+      const complexity = document.getElementById('complexity').value;
+
+      const steps = {
+        low: 200,
+        medium: 400,
+        high: 800
+      }[complexity];
+
+      const canvasOld = document.getElementById('canvasOld');
+      const canvasNew = document.getElementById('canvasNew');
+
+      // Generate old version
+      const startOld = performance.now();
+      const engineOld = new window.KleeEngineOld();
+      setupSeeds(engineOld, testCase);
+      engineOld.generateArtwork({ width: 600, height: 600, steps });
+      const timeOld = performance.now() - startOld;
+
+      engineOld.render(canvasOld, {
+        lineWidth: 1.5,
+        lineAlpha: 0.8,
+        showForms: true,
+        texture: 0.03
+      });
+
+      document.getElementById('timeOld').textContent = timeOld.toFixed(1);
+      document.getElementById('formsOld').textContent = engineOld.forms.length;
+
+      // Generate new version with SAME SEED for fair comparison
+      const startNew = performance.now();
+      const engineNew = new window.KleeEngineNew();
+      setupSeeds(engineNew, testCase);
+      engineNew.generateArtwork({ width: 600, height: 600, steps });
+      const timeNew = performance.now() - startNew;
+
+      engineNew.render(canvasNew, {
+        lineWidth: 1.5,
+        lineAlpha: 0.8,
+        showForms: true,
+        texture: 0.03
+      });
+
+      document.getElementById('timeNew').textContent = timeNew.toFixed(1);
+      document.getElementById('formsNew').textContent = engineNew.forms.length;
+    }
+
+    function setupSeeds(engine, testCase) {
+      switch(testCase) {
+        case 'organic':
+          // This shows the problem most clearly
+          engine.addSeed({
+            x: 300,
+            y: 300,
+            variations: { organic: 1.0 },
+            branchProbability: 0.04,
+            params: {
+              noiseScale: 0.01,
+              noiseAmount: 0.6,
+              octaves: 3
+            }
+          });
+          break;
+
+        case 'corporeal':
+          for (let i = 0; i < 3; i++) {
+            engine.addSeed({
+              x: 200 + i * 100,
+              y: 300,
+              variations: { corporeal: 0.6, organic: 0.4 },
+              branchProbability: 0.05,
+              params: { noiseScale: 0.01, octaves: 3 }
+            });
+          }
+          break;
+
+        case 'flowing':
+          for (let i = 0; i < 2; i++) {
+            engine.addSeed({
+              x: 150,
+              y: 150 + i * 200,
+              angle: 0,
+              variations: { flowing: 0.7, organic: 0.3 },
+              params: { noiseScale: 0.01, octaves: 3 }
+            });
+          }
+          break;
+
+        case 'mixed':
+          engine.addSeed({
+            x: 300,
+            y: 200,
+            variations: { organic: 0.5, wavy: 0.3, flowing: 0.2 },
+            symmetry: 2,
+            branchProbability: 0.03,
+            params: { noiseScale: 0.01, octaves: 3 }
+          });
+          break;
+      }
+    }
+
+    // Auto-generate on load
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        generateComparison();
+      }, 500);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/temenos.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TEMENOS</title>
+  <meta name="description"
+    content="A digital sanctuary for consciousness exploration through text, sound, and vision" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <!-- Landing Page -->
+  <div id="landing" class="landing-view">
+    <!-- Hero Section -->
+    <section class="landing-hero">
+      <div class="landing-bg">
+        <div class="void-particles"></div>
+        <div class="sacred-grid"></div>
+      </div>
+
+      <div class="landing-content">
+        <div class="landing-title-group">
+          <h1 class="landing-title">symbol_space</h1>
+          <p class="landing-subtitle"> A Digital Sanctuary</p>
+          <p class="landing-tagline"> Container for Consciousness Exploration</p>
+        </div>
+
+        <button id="landing-enter" class="landing-enter-btn">
+          <span>ENTER THE SANCTUARY</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="landing-scroll-hint">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </div>
+    </section>
+
+    <!-- Philosophy Section -->
+    <section class="landing-philosophy">
+      <div class="landing-container">
+        <div class="landing-grid">
+          <div class="landing-text-block">
+            <h2 class="landing-section-title">
+              Accelerated Absorption,<br/>
+              Sacred Space.
+            </h2>
+            <p class="landing-paragraph">
+              Traditional reading is linear. TEMENOS introduces <span class="landing-highlight">Rapid Serial Visual Presentation</span>—a paradigm where text flows through consciousness at cognitive speed, dissolved into pure meaning.
+            </p>
+            <p class="landing-paragraph">
+              It doesn't just display words; it creates a <span class="landing-highlight">Container for Transformation</span>. Binaural entrainment guides your brainwaves. Procedural visuals open perception. The void at the center holds space for emergence.
+            </p>
+          </div>
+
+          <div class="landing-features-grid">
+            <div class="landing-feature-card">
+              <div class="landing-feature-icon">⚡</div>
+              <h3 class="landing-feature-title">Temporal</h3>
+              <p class="landing-feature-desc">100-800 WPM Adaptive Pacing</p>
+            </div>
+            <div class="landing-feature-card">
+              <div class="landing-feature-icon">🎵</div>
+              <h3 class="landing-feature-title">Sonic</h3>
+              <p class="landing-feature-desc">Binaural Entrainment</p>
+            </div>
+            <div class="landing-feature-card">
+              <div class="landing-feature-icon">👁️</div>
+              <h3 class="landing-feature-title">Visual</h3>
+              <p class="landing-feature-desc">Procedural Interlocution</p>
+            </div>
+            <div class="landing-feature-card">
+              <div class="landing-feature-icon">無</div>
+              <h3 class="landing-feature-title">Void</h3>
+              <p class="landing-feature-desc">Sacred Geometry</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sources Section -->
+    <section class="landing-sources">
+      <div class="landing-container">
+        <h2 class="landing-section-title-center">CONTENT SOURCES</h2>
+
+        <div class="landing-sources-table">
+          <div class="landing-source-row">
+            <div class="landing-source-category">Sacred Texts</div>
+            <div class="landing-source-status">
+              <span class="landing-badge">Available</span>
+            </div>
+            <div class="landing-source-detail">Tao Te Ching, Bhagavad Gita, Dhammapada, Kybalion, Wheel of Time, Emerald Tablet, Hermetic Corpus</div>
+          </div>
+          <div class="landing-source-row">
+            <div class="landing-source-category">Declassified Intel</div>
+            <div class="landing-source-status">
+              <span class="landing-badge">Available</span>
+            </div>
+            <div class="landing-source-detail">CIA Gateway Process, MKULTRA Documents</div>
+          </div>
+          <div class="landing-source-row">
+            <div class="landing-source-category">Research Papers</div>
+            <div class="landing-source-status">
+              <span class="landing-badge">Live</span>
+            </div>
+            <div class="landing-source-detail">ArXiv.org — Quantum Physics, Neuroscience, AI</div>
+          </div>
+          <div class="landing-source-row">
+            <div class="landing-source-category">Custom Texts</div>
+            <div class="landing-source-status">
+              <span class="landing-badge">Available</span>
+            </div>
+            <div class="landing-source-detail">Upload your own .txt or .md files</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+      <p class="landing-footer-org">SyberLabs Consciousness Research</p>
+      <p class="landing-footer-version">TEMENOS v1.0 • 2025</p>
+      <p class="landing-footer-quote">
+        "Enter with intention. Exit transformed."
+      </p>
+    </footer>
+  </div>
+
+  <!-- Starter Sequences Sidebar -->
+  <aside id="starters-sidebar" class="starters-sidebar">
+    <div class="sidebar-header">
+      <h2 class="sidebar-title">Starters</h2>
+      <button id="close-sidebar" class="sidebar-close">×</button>
+    </div>
+    <div class="sidebar-content" id="starters-list">
+      <!-- Populated by JavaScript -->
+  </aside>
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+  <!-- Library Modal -->
+  <div id="library-modal" class="library-modal" hidden>
+    <div class="library-modal-content">
+      <div class="library-header">
+        <h2 class="library-title">☯ Sacred Texts Library</h2>
+        <button id="close-library" class="library-close">×</button>
+      </div>
+      <div class="library-categories" id="library-categories">
+        <!-- Category tabs populated by JS -->
+      </div>
+      <div class="library-texts" id="library-texts">
+        <!-- Text cards populated by JS -->
+      </div>
+      <div class="library-verses" id="library-verses" hidden>
+        <!-- Verse picker populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Builder View -->
+  <div id="builder" class="view">
+    <div class="builder-container">
+      <header class="builder-header">
+        <div>
+          <h1 class="logo">◊</h1>
+          <p class="tagline">A Digital Sanctuary</p>
+        </div>
+        <div class="header-controls">
+          <button id="help-toggle" class="icon-button" title="User Guide">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="drop-zone" id="drop-zone">
+        <div class="drop-zone-content">
+          <div class="drop-icon">無</div>
+          <p class="drop-text">Drop text file here</p>
+          <p class="drop-subtext">or click to select</p>
+        </div>
+        <input type="file" id="file-input" accept=".txt,.md" hidden />
+      </div>
+
+      <button id="starters-toggle" class="starters-toggle" title="Starter Sequences">
+        <span class="toggle-icon">☰</span>
+        <span class="toggle-label">or explore Starters</span>
+      </button>
+
+      <button id="library-toggle" class="library-toggle" title="Browse Sacred Texts Library">
+        <span class="toggle-icon">☯</span>
+        <span class="toggle-label">or browse Library</span>
+      </button>
+
+      <button id="active-sources-toggle" class="active-sources-toggle" title="Manage Active Sources">
+        <span class="toggle-icon">◈</span>
+        <span class="toggle-label">manage Sources</span>
+      </button>
+
+      <div class="source-info" id="source-info" hidden>
+        <span class="source-name" id="source-name"></span>
+        <span class="source-stats" id="source-stats"></span>
+      </div>
+
+      <div class="session-config">
+        <!-- Pacing: Always visible, primary control -->
+        <div class="config-group config-primary">
+          <label class="config-label">Pacing</label>
+          <div class="slider-container">
+            <input type="range" id="wpm-slider" min="100" max="500" value="220" class="slider" />
+            <span class="slider-value" id="wpm-value">220 WPM</span>
+          </div>
+        </div>
+
+        <!-- Chunking: Collapsible -->
+        <details class="config-accordion">
+          <summary class="config-header">
+            <span class="config-label">Chunking</span>
+            <span class="config-preview" id="chunking-preview">Word</span>
+            <span class="config-chevron">›</span>
+          </summary>
+          <div class="config-body chunk-options">
+            <button class="chunk-option active" data-mode="word">Word</button>
+            <button class="chunk-option" data-mode="phrase">Phrase</button>
+            <button class="chunk-option" data-mode="sentence">Sentence</button>
+          </div>
+        </details>
+
+        <!-- Display: Collapsible -->
+        <details class="config-accordion">
+          <summary class="config-header">
+            <span class="config-label">Display</span>
+            <span class="config-preview" id="display-preview">◎ Focal</span>
+            <span class="config-chevron">›</span>
+          </summary>
+          <div class="config-body mode-options">
+            <button class="mode-option active" data-mode="focal">
+              <span class="mode-icon">◎</span>
+              Focal
+            </button>
+            <button class="mode-option" data-mode="chamber">
+              <span class="mode-icon">◈</span>
+              Chamber
+            </button>
+            <button class="mode-option" data-mode="orbital">
+              <span class="mode-icon">◌</span>
+              Orbital
+            </button>
+          </div>
+        </details>
+
+        <!-- Audio: Collapsible -->
+        <details class="config-accordion">
+          <summary class="config-header">
+            <span class="config-label">Audio</span>
+            <span class="config-preview" id="audio-preview">○ Silent</span>
+            <span class="config-chevron">›</span>
+          </summary>
+          <div class="config-body">
+            <div class="audio-preset-options">
+              <button class="audio-preset-option active" data-preset="silent">
+                <span class="preset-icon">○</span>
+                <span class="preset-label">Silent</span>
+              </button>
+              <button class="audio-preset-option" data-preset="focus">
+                <span class="preset-icon">◇</span>
+                <span class="preset-label">Focus</span>
+              </button>
+              <button class="audio-preset-option" data-preset="deep">
+                <span class="preset-icon">◈</span>
+                <span class="preset-label">Deep</span>
+              </button>
+              <button class="audio-preset-option" data-preset="gateway">
+                <span class="preset-icon">⬡</span>
+                <span class="preset-label">Gateway</span>
+              </button>
+            </div>
+            <div class="audio-layers" id="audio-layers">
+              <div class="layer-toggle" data-layer="binaural">
+                <span class="layer-icon">∿</span>
+                <span class="layer-name">Binaural</span>
+                <span class="layer-status" id="binaural-status">off</span>
+              </div>
+              <div class="layer-toggle" data-layer="harmonics">
+                <span class="layer-icon">≋</span>
+                <span class="layer-name">Harmonics</span>
+                <span class="layer-status" id="harmonics-status">off</span>
+              </div>
+              <div class="layer-toggle" data-layer="noise">
+                <span class="layer-icon">▒</span>
+                <span class="layer-name">Pink Noise</span>
+                <span class="layer-status" id="noise-status">off</span>
+              </div>
+              <div class="layer-toggle" data-layer="drone">
+                <span class="layer-icon">◉</span>
+                <span class="layer-name">432Hz Drone</span>
+                <span class="layer-status" id="drone-status">off</span>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <!-- Voice: Collapsible -->
+        <details class="config-accordion">
+          <summary class="config-header">
+            <span class="config-label">Voice</span>
+            <span class="config-preview" id="voice-preview">Off</span>
+            <span class="config-chevron">›</span>
+          </summary>
+          <div class="config-body voice-controls">
+            <div class="voice-toggle" id="voice-toggle">
+              <span class="voice-toggle-icon">🗣</span>
+              <span class="voice-toggle-text">Text-to-Speech</span>
+              <span class="voice-toggle-status" id="voice-status">Off</span>
+            </div>
+            <select class="voice-select" id="voice-select" disabled>
+              <option value="">Loading voices...</option>
+            </select>
+          </div>
+        </details>
+
+        <!-- Curve: Collapsible -->
+        <details class="config-accordion">
+          <summary class="config-header">
+            <span class="config-label">Curve</span>
+            <span class="config-preview" id="curve-preview">─ Flat</span>
+            <span class="config-chevron">›</span>
+          </summary>
+          <div class="config-body curve-options">
+            <button class="curve-option active" data-curve="flat">
+              <span class="curve-icon">─</span>
+              Flat
+            </button>
+            <button class="curve-option" data-curve="induction">
+              <span class="curve-icon">╲</span>
+              Induction
+            </button>
+            <button class="curve-option" data-curve="arousal">
+              <span class="curve-icon">╱</span>
+              Arousal
+            </button>
+            <button class="curve-option" data-curve="wave">
+              <span class="curve-icon">∿</span>
+              Wave
+            </button>
+            <button class="curve-option" data-curve="climax">
+              <span class="curve-icon">∧</span>
+              Climax
+            </button>
+          </div>
+        </details>
+
+        <!-- Visuals: Collapsible -->
+        <details class="config-accordion">
+          <summary class="config-header">
+            <span class="config-label">Interlocution</span>
+            <span class="config-preview" id="visuals-preview">Off</span>
+            <span class="config-chevron">›</span>
+          </summary>
+          <div class="config-body visuals-options">
+
+            <!-- Primary Toggle -->
+            <div class="visuals-primary-control">
+              <label class="toggle">
+                <input type="checkbox" id="visuals-toggle">
+                <span class="toggle-switch"></span>
+                <span class="toggle-label">Enable Visual Interrupts</span>
+              </label>
+            </div>
+
+            <!-- Configuration (visible when enabled) -->
+            <div class="visuals-config" id="visuals-config">
+
+              <!-- Frequency -->
+              <div class="input-group">
+                <label class="input-label">
+                  <span>Frequency</span>
+                  <span class="input-label-value font-mono" id="visual-freq-val">30%</span>
+                </label>
+                <input type="range" id="visual-freq-slider" class="slider" min="0" max="100" value="30" step="5"
+                  aria-label="Visual interrupt frequency">
+                <small class="input-hint text-mist">Probability of flash per atom</small>
+              </div>
+
+              <!-- Duration -->
+              <div class="input-group">
+                <label class="input-label">
+                  <span>Duration</span>
+                  <span class="input-label-value font-mono" id="visual-dur-val">33ms</span>
+                </label>
+                <input type="range" id="visual-dur-slider" class="slider" min="16" max="200" value="33" step="1"
+                  aria-label="Flash duration in milliseconds">
+                <small class="input-hint text-mist">Single-frame exposure (16-200ms)</small>
+              </div>
+
+              <!-- Pattern Selection -->
+              <div class="input-group">
+                <label class="input-label">Active Patterns</label>
+                <div class="pattern-grid">
+                  <label class="pattern-option">
+                    <input type="checkbox" name="visual-pattern" value="klee" checked>
+                    <span class="pattern-card">
+                      <span class="pattern-icon">╱</span>
+                      <span class="pattern-name">Klee</span>
+                      <span class="pattern-desc text-mist">Organic lines</span>
+                      <select class="klee-preset-select" id="klee-preset-select">
+                        <option value="random" selected>Random</option>
+                        <option value="corporeal">Corporeal</option>
+                        <option value="structural">Structural</option>
+                        <option value="mythic">Mythic</option>
+                        <option value="volatile">Volatile</option>
+                        <option value="centered">Centered</option>
+                      </select>
+                    </span>
+                  </label>
+                  <label class="pattern-option">
+                    <input type="checkbox" name="visual-pattern" value="turrell" checked>
+                    <span class="pattern-card">
+                      <span class="pattern-icon">◐</span>
+                      <span class="pattern-name">Turrell</span>
+                      <span class="pattern-desc text-mist">Light fields</span>
+                    </span>
+                  </label>
+                  <label class="pattern-option">
+                    <input type="checkbox" name="visual-pattern" value="fractal" checked>
+                    <span class="pattern-card">
+                      <span class="pattern-icon">✦</span>
+                      <span class="pattern-name">Fractal Flame</span>
+                      <span class="pattern-desc text-mist">DeepLightning</span>
+                    </span>
+                  </label>
+                  <label class="pattern-option">
+                    <input type="checkbox" name="visual-pattern" value="rockgarden">
+                    <span class="pattern-card">
+                      <span class="pattern-icon">◯</span>
+                      <span class="pattern-name">Rock Garden</span>
+                      <span class="pattern-desc text-mist">Zen stones</span>
+                    </span>
+                  </label>
+                  <label class="pattern-option">
+                    <input type="checkbox" name="visual-pattern" value="diagram">
+                    <span class="pattern-card">
+                      <span class="pattern-icon">◎</span>
+                      <span class="pattern-name">Diagrams</span>
+                      <span class="pattern-desc text-mist">Wikimedia</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Safety Notice -->
+              <div class="visuals-warning">
+                <span class="warning-icon">⚠</span>
+                <p class="warning-text text-mist">
+                  Visual interrupts may not be suitable for photosensitive individuals.
+                  Disable if you experience discomfort.
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <button class="enter-button" id="enter-button" disabled>
+        <span class="enter-text">Enter Chamber</span>
+        <span class="enter-arrow">→</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Chamber View -->
+  <div id="chamber" class="view" hidden>
+    <div class="chamber-field">
+      <div class="atom-display" id="atom-display"></div>
+    </div>
+
+    <div class="chamber-controls">
+      <button class="control-btn" id="play-pause-btn" title="Play/Pause (Space)">
+        <span class="icon-play">▶</span>
+        <span class="icon-pause" hidden>❚❚</span>
+      </button>
+      <button class="control-btn" id="stop-btn" title="Exit (Escape)">■</button>
+      <div class="progress-container">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <button class="control-btn volume-btn" id="volume-btn" title="Volume">
+        <span>♪</span>
+        <div class="volume-slider">
+          <div class="volume-slider-fill" id="volume-fill" style="height: 70%"></div>
+        </div>
+      </button>
+      <span class="time-display" id="time-display">0:00 / 0:00</span>
+    </div>
+  </div>
+
+  <!-- Review View -->
+  <div id="review" class="view" hidden>
+    <div class="review-container">
+      <div class="review-header">
+        <h2>Session Complete</h2>
+        <p class="review-session-name" id="review-session-name"></p>
+      </div>
+
+      <div class="review-stats">
+        <div class="stat">
+          <span class="stat-value" id="stat-duration">0:00</span>
+          <span class="stat-label">Duration</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-atoms">0</span>
+          <span class="stat-label">Atoms</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-wpm">0</span>
+          <span class="stat-label">WPM</span>
+        </div>
+      </div>
+
+      <div class="review-actions">
+        <button class="action-btn" id="repeat-btn">Repeat</button>
+        <button class="action-btn primary" id="new-session-btn">New Session</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Layers Modal -->
+  <div id="audio-modal" class="modal-overlay hidden">
+    <div class="modal-content audio-modal-content">
+      <div class="modal-header">
+        <h2>Sonic Architecture</h2>
+        <button id="audio-close" class="close-button">×</button>
+      </div>
+
+      <div class="audio-controls-layout">
+        <!-- The Sundial (Frequency Selector) - Hidden for V1 -->
+        <div class="sundial-container" hidden>
+          <div class="sundial-ring">
+            <button class="sundial-node" data-freq="396" data-label="UT" style="--angle: 0deg;">
+              <div class="sundial-node-label">UT</div>
+              <div class="sundial-node-freq">396</div>
+            </button>
+            <button class="sundial-node" data-freq="417" data-label="RE" style="--angle: 60deg;">
+              <div class="sundial-node-label">RE</div>
+              <div class="sundial-node-freq">417</div>
+            </button>
+            <button class="sundial-node" data-freq="528" data-label="MI" style="--angle: 120deg;">
+              <div class="sundial-node-label">MI</div>
+              <div class="sundial-node-freq">528</div>
+            </button>
+            <button class="sundial-node" data-freq="639" data-label="FA" style="--angle: 180deg;">
+              <div class="sundial-node-label">FA</div>
+              <div class="sundial-node-freq">639</div>
+            </button>
+            <button class="sundial-node" data-freq="741" data-label="SOL" style="--angle: 240deg;">
+              <div class="sundial-node-label">SOL</div>
+              <div class="sundial-node-freq">741</div>
+            </button>
+            <button class="sundial-node" data-freq="852" data-label="LA" style="--angle: 300deg;">
+              <div class="sundial-node-label">LA</div>
+              <div class="sundial-node-freq">852</div>
+            </button>
+
+            <button class="sundial-center active" data-freq="432" data-label="ROOT">
+              <div class="sundial-center-label">ROOT</div>
+              <div class="sundial-center-freq">432</div>
+            </button>
+          </div>
+          <div class="sundial-label">Solfeggio Frequencies (Hz)</div>
+        </div>
+      </div>
+
+      <div class="audio-presets border-top">
+        <label>Atmosphere</label>
+        <div class="preset-buttons">
+          <button class="btn-preset active" data-preset="silent">Silent</button>
+          <button class="btn-preset" data-preset="focus">Focus</button>
+          <button class="btn-preset" data-preset="deep">Deep</button>
+          <button class="btn-preset" data-preset="drift">Drift</button>
+          <button class="btn-preset" data-preset="gateway">Gateway</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Photosensitivity Safety Modal -->
+  <div id="photosensitivity-modal" class="modal-overlay hidden">
+    <div class="modal-content safety-modal-content">
+      <div class="modal-header">
+        <div class="safety-icon">⚠</div>
+        <h2>Photosensitivity Warning</h2>
+      </div>
+
+      <div class="modal-body">
+        <p class="safety-notice">
+          Visual Interlocution generates brief, subliminal flashes of light and color patterns
+          during your session. These interrupts are designed to enhance the consciousness
+          experience but may not be suitable for everyone.
+        </p>
+
+        <div class="safety-risks">
+          <p class="risk-title text-light">This feature may cause issues for individuals with:</p>
+          <ul class="risk-list">
+            <li>Photosensitive epilepsy</li>
+            <li>Seizure disorders</li>
+            <li>Migraine sensitivity</li>
+            <li>Motion sickness</li>
+          </ul>
+        </div>
+
+        <div class="safety-protections">
+          <p class="protection-title text-light">Safety protections in place:</p>
+          <ul class="protection-list">
+            <li>Maximum frequency limited to prevent rapid flashing</li>
+            <li>Configurable duration (16-200ms)</li>
+            <li>Can be disabled at any time</li>
+            <li>Respects system photosensitivity preferences</li>
+          </ul>
+        </div>
+
+        <p class="safety-disclaimer text-mist">
+          By enabling this feature, you acknowledge that you have read this warning and
+          accept responsibility for any effects. If you experience discomfort, dizziness,
+          or visual disturbances, disable this feature immediately.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" id="safety-cancel">Cancel</button>
+        <button class="btn-primary" id="safety-accept">I Understand, Enable</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Guide Modal -->
+  <div id="help-modal" class="modal-overlay hidden">
+    <div class="modal-content help-modal-content">
+      <div class="modal-header">
+        <h2>User Guide</h2>
+        <button id="help-close" class="close-button">×</button>
+      </div>
+
+      <div class="help-content">
+        <section class="help-section">
+          <h3>Welcome to TEMENOS</h3>
+          <p>τέμενος — A sacred precinct, a container for transformation through accelerated text absorption.</p>
+        </section>
+
+        <details class="help-accordion">
+          <summary>🎯 Getting Started</summary>
+          <div class="help-accordion-content">
+            <p><strong>Three ways to begin:</strong></p>
+            <ol>
+              <li><strong>Library</strong> — Browse curated sacred texts, declassified documents, and research papers</li>
+              <li><strong>Starters</strong> — Quick pre-configured sequences for immediate immersion</li>
+              <li><strong>Drop Files</strong> — Click the 無 (void) sigil to upload your own .txt or .md files</li>
+            </ol>
+          </div>
+        </details>
+
+        <details class="help-accordion">
+          <summary>⚡ Temporal Controls</summary>
+          <div class="help-accordion-content">
+            <p><strong>Pacing (WPM)</strong> — Words per minute. Start at 220, increase as you adapt. Range: 100-800.</p>
+            <p><strong>Chunking Modes:</strong></p>
+            <ul>
+              <li><strong>Word</strong> — Single word display (recommended for beginners)</li>
+              <li><strong>Phrase</strong> — 2-4 words grouped by natural phrases</li>
+              <li><strong>Sentence</strong> — Full sentences (advanced, slower pace)</li>
+            </ul>
+            <p><strong>Pacing Curves:</strong></p>
+            <ul>
+              <li><strong>Flat</strong> — Constant speed throughout</li>
+              <li><strong>Exponential</strong> — Gradual acceleration</li>
+              <li><strong>Induction</strong> — Slow start, rapid middle, slow end (Gateway-inspired)</li>
+              <li><strong>Sine</strong> — Rhythmic wave pattern</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="help-accordion">
+          <summary>🎵 Audio Presets</summary>
+          <div class="help-accordion-content">
+            <p><strong>Silent</strong> — No audio (visual-only mode)</p>
+            <p><strong>Focus</strong> — Light binaural beats (12 Hz Alpha waves) for concentration</p>
+            <p><strong>Deep</strong> — Theta waves (6 Hz) with harmonics for deeper states</p>
+            <p><strong>Gateway</strong> — Full entrainment with layered frequencies (inspired by Monroe Institute)</p>
+            <p class="help-note">⚠️ Binaural beats require headphones to be effective.</p>
+          </div>
+        </details>
+
+        <details class="help-accordion">
+          <summary>👁️ Visual Modes</summary>
+          <div class="help-accordion-content">
+            <p><strong>Focal</strong> — Single centered word (default, optimal for speed reading)</p>
+            <p><strong>Chamber</strong> — Expanded field with context words visible</p>
+            <p><strong>Orbital</strong> — Geometric patterns with text (experimental)</p>
+            <p><strong>Interlocution</strong> — Enable procedural visual flashes (Klee-inspired patterns, Turrell light fields)</p>
+            <p class="help-note">⚠️ If you have photosensitivity, disable interlocution or reduce frequency.</p>
+          </div>
+        </details>
+
+        <details class="help-accordion">
+          <summary>⌨️ Keyboard Controls</summary>
+          <div class="help-accordion-content">
+            <table class="help-shortcuts">
+              <tr><td><kbd>Space</kbd></td><td>Play / Pause</td></tr>
+              <tr><td><kbd>←</kbd> / <kbd>→</kbd></td><td>Step backward / forward</td></tr>
+              <tr><td><kbd>↑</kbd> / <kbd>↓</kbd></td><td>Increase / decrease speed (±10 WPM)</td></tr>
+              <tr><td><kbd>ESC</kbd></td><td>Exit chamber</td></tr>
+              <tr><td><kbd>R</kbd></td><td>Restart session</td></tr>
+            </table>
+          </div>
+        </details>
+
+        <details class="help-accordion">
+          <summary>📚 Library Categories</summary>
+          <div class="help-accordion-content">
+            <p><strong>Sacred Texts</strong> — Tao Te Ching, Bhagavad Gita, Dhammapada, Kybalion</p>
+            <p><strong>Declassified</strong> — CIA documents on consciousness research (MKULTRA, Gateway Process)</p>
+            <p><strong>Research</strong> — Live ArXiv papers on quantum physics, neuroscience, AI</p>
+            <p class="help-note">Tip: Click individual verses to practice with short passages before full texts.</p>
+          </div>
+        </details>
+
+        <details class="help-accordion">
+          <summary>🔐 Privacy & Safety</summary>
+          <div class="help-accordion-content">
+            <p><strong>Privacy:</strong> All processing happens in your browser. No data is sent to servers.</p>
+            <p><strong>Safety:</strong></p>
+            <ul>
+              <li>Start at lower speeds (150-220 WPM) and increase gradually</li>
+              <li>Take breaks every 15-20 minutes</li>
+              <li>If you experience discomfort, reduce speed or disable visuals</li>
+              <li>Binaural beats are not suitable for everyone (epilepsy, heart conditions)</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="help-accordion">
+          <summary>💡 Tips for Best Results</summary>
+          <div class="help-accordion-content">
+            <ol>
+              <li><strong>Environment:</strong> Dim lighting, quiet space, comfortable posture</li>
+              <li><strong>Headphones:</strong> Required for binaural audio to work</li>
+              <li><strong>Focus Point:</strong> Keep eyes on center, let peripheral vision catch words</li>
+              <li><strong>Don't Subvocalize:</strong> Trust your visual cortex, resist urge to "sound out" words</li>
+              <li><strong>Progressive Adaptation:</strong> Speed increases feel uncomfortable at first, then natural</li>
+              <li><strong>Intention:</strong> Set a clear purpose before entering (absorption, meditation, exploration)</li>
+            </ol>
+          </div>
+        </details>
+
+        <section class="help-footer">
+          <p class="help-quote">
+            "The temenos is a sacred container where transformation safely occurs."<br>
+            — Enter with intention. Exit transformed.
+          </p>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlays -->
+  <div id="visual-cortex" class="visual-cortex" hidden>
+    <canvas id="klee-canvas"></canvas>
+    <div id="turrell-field"></div>
+    <canvas id="fractal-canvas"></canvas>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
