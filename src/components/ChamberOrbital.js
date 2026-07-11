@@ -53,7 +53,8 @@ export class ChamberOrbital {
           sourced: [],
           frequency: 0.2,
           duration: 80,
-          kleePreset: 'random'
+          kleePreset: 'random',
+          responsive: false
         }
       },
 

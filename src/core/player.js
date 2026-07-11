@@ -4,6 +4,7 @@
  */
 
 import { SessionState } from './models.js';
+import { responsiveFrequency } from './conductor.js';
 
 /**
  * Event types emitted by the player
@@ -207,17 +208,30 @@ export class Player {
 
         if (visualMode === 'interlocution' && this.interlocutionHandler) {
             const interlocution = visualConfig.interlocution || {};
-            if (Math.random() < (interlocution.frequency || 0.3)) {
+
+            // Responsive interlocutions (opt-in): the semantic track scales
+            // flash probability with passage arousal, and the signal is
+            // forwarded so the handler can pick generator/preset/duration.
+            // Without the flag or a track this is the raw platform behavior.
+            let frequency = interlocution.frequency || 0.3;
+            let signal = null;
+            const track = this.sessionState.session.semanticTrack;
+            if (interlocution.responsive && Array.isArray(track)) {
+                signal = track[this.sessionState.currentIndex] || null;
+                frequency = responsiveFrequency(frequency, signal);
+            }
+
+            if (Math.random() < frequency) {
                 // We rolled a flash! Intercept the sequence.
                 this.sessionState.state = 'interlocuting';
                 this.emit('state', { state: 'interlocuting' });
-                
+
                 // Pause the main session clock so progress doesn't artificially advance
                 this.sessionState.pausedAt = Date.now();
                 this.stopProgressAnimation();
-                
+
                 // Wait for visual cortex to fundamentally finish rendering its duration
-                await this.interlocutionHandler(interlocution.duration || 33);
+                await this.interlocutionHandler(interlocution.duration || 33, signal);
                 
                 // If the user exited or stopped during the flash, abort.
                 if (this.sessionState.state !== 'interlocuting') return;

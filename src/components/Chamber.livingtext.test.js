@@ -83,6 +83,36 @@ describe('Chamber Living Text integration', () => {
         container.remove();
     });
 
+    it('stashes a shared semantic track on the session for responsive interlocutions', () => {
+        const session = makeSession(Array(6).fill('war terror fire'), { enabled: false });
+        session.visualConfig.visualMode = 'interlocution';
+        session.visualConfig.interlocution = { frequency: 0.3, duration: 80, responsive: true, procedural: ['klee'] };
+        const { chamber, container } = makeChamber(session);
+
+        // The player reads this off the session at flash-roll time
+        expect(Array.isArray(chamber.session.semanticTrack)).toBe(true);
+        expect(chamber.session.semanticTrack).toHaveLength(6);
+        // Living Text stays off: no local track, no text styling
+        expect(chamber.semanticTrack).toBeNull();
+        chamber.displayAtom(chamber.session.atoms[2], 2);
+        expect(container.querySelector('#atom-display').style.color).toBe('');
+
+        chamber.destroy();
+        container.remove();
+    });
+
+    it('does not stash a track when responsive is off (raw platform)', () => {
+        const session = makeSession(Array(4).fill('war terror'), { enabled: false });
+        session.visualConfig.visualMode = 'interlocution';
+        session.visualConfig.interlocution = { frequency: 0.3, duration: 80, responsive: false, procedural: ['klee'] };
+        const { chamber, container } = makeChamber(session);
+
+        expect(chamber.session.semanticTrack).toBeUndefined();
+
+        chamber.destroy();
+        container.remove();
+    });
+
     it('respects the intensity knob', () => {
         const dark = Array(8).fill('grief death terror sorrow');
         const full = makeChamber(makeSession(dark, { enabled: true, intensity: 1 }));

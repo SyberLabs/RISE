@@ -2,7 +2,7 @@ import { visualCortex } from '../visuals/visual-cortex.js';
 import { MemoryCore } from '../core/memory.js';
 import { AttractorField } from '../visuals/attractor.js';
 import { escapeHtml } from '../core/sanitize.js';
-import { scoreAtoms } from '../core/conductor.js';
+import { scoreAtoms, planInterlocution } from '../core/conductor.js';
 
 /**
  * Chamber Component
@@ -27,15 +27,24 @@ export class Chamber {
     this.controlsVisible = false;
     this.attractorField = null;
 
-    // Living Text: score the whole timeline once at session start when
-    // enabled. Purely additive — null track means the raw platform behavior.
+    // Semantic conductor track — needed by Living Text and by responsive
+    // interlocutions. Scored once per session and stashed on the session
+    // object so the player shares the same track. Purely additive — a null
+    // track means the raw platform behavior everywhere.
     this.semanticTrack = null;
-    if (this.session?.visualConfig?.livingText?.enabled && Array.isArray(this.session?.atoms)) {
+    const wantsLivingText = this.session?.visualConfig?.livingText?.enabled;
+    const wantsResponsive = this.session?.visualConfig?.visualMode === 'interlocution'
+      && this.session?.visualConfig?.interlocution?.responsive;
+    if ((wantsLivingText || wantsResponsive) && Array.isArray(this.session?.atoms)) {
       try {
-        this.semanticTrack = scoreAtoms(this.session.atoms);
-        console.log('[Chamber] Living Text active:', this.semanticTrack.length, 'atoms scored');
+        this.session.semanticTrack = this.session.semanticTrack || scoreAtoms(this.session.atoms);
+        // Living Text reads the track locally; when only responsive
+        // interlocutions want it, the player reads it off the session.
+        if (wantsLivingText) this.semanticTrack = this.session.semanticTrack;
+        console.log('[Chamber] Semantic track active:', this.session.semanticTrack.length, 'atoms scored',
+          `(livingText=${!!wantsLivingText}, responsive=${!!wantsResponsive})`);
       } catch (e) {
-        console.warn('[Chamber] Living Text scoring failed, continuing without:', e);
+        console.warn('[Chamber] Semantic scoring failed, continuing without:', e);
         this.semanticTrack = null;
       }
     }
@@ -323,9 +332,24 @@ export class Chamber {
 
     // Player events
     if (this.player) {
-      // Register native interlocution for perfect synchronicity
-      this.player.setInterlocutionHandler(async (duration) => {
-        await visualCortex.flash(duration);
+      // Register native interlocution for perfect synchronicity.
+      // When the player forwards a semantic signal (responsive mode),
+      // it chooses generator, Klee preset, and flash sharpness; without
+      // a signal this is the raw platform path.
+      this.player.setInterlocutionHandler(async (duration, signal) => {
+        if (signal) {
+          const plan = planInterlocution(signal, {
+            duration,
+            activeTypes: visualCortex.config.activeTypes,
+            kleePreset: this.session?.visualConfig?.interlocution?.kleePreset || 'random'
+          });
+          if (plan.kleePreset) {
+            visualCortex.updateConfig({ kleePreset: plan.kleePreset });
+          }
+          await visualCortex.flash(plan.duration, plan.type || undefined);
+        } else {
+          await visualCortex.flash(duration);
+        }
       });
 
       this.player.on('atom', (data) => this.displayAtom(data.atom, data.index));

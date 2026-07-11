@@ -327,6 +327,85 @@ export function scoreAtoms(atoms, options = {}) {
     return track;
 }
 
+// ─────────────────────────────────────────────────────────────
+// Responsive Interlocutions — map a semantic signal onto the
+// interlocution knobs (frequency, generator choice, Klee preset,
+// flash duration). Pure functions; the player and Chamber subscribe.
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Affinity of each procedural generator for a given signal.
+ * Types the user has not enabled are never considered; external/sourced
+ * categories get a neutral weight so curated imagery still appears.
+ */
+const TYPE_AFFINITY = {
+    fractal: (v, a) => 0.2 + a * 1.6,                          // flames want energy
+    neural: (v, a) => 0.4 + a * 0.8 + (v < 0 ? 0.4 : 0),       // dark intensity
+    klee: () => 1.0,                                            // versatile baseline
+    turrell: (v, a) => 0.4 + Math.max(0, v) * 1.2 + (1 - a) * 0.5, // warm light fields
+    rockgarden: (v, a) => 0.3 + (1 - a) * 1.5                   // stillness
+};
+
+/**
+ * Scale the user's base flash probability by passage arousal.
+ * The configured frequency is a hard ceiling (it is what the user consented
+ * to in the safety flow): peak intensity (a=1) reaches exactly the base,
+ * calm text (a=0) drops to 0.35× base.
+ */
+export function responsiveFrequency(baseFrequency, signal) {
+    if (!signal) return baseFrequency;
+    const scaled = baseFrequency * (0.35 + 0.65 * clamp(signal.arousal, 0, 1));
+    return clamp(scaled, 0, baseFrequency);
+}
+
+/**
+ * Choose flash parameters for one interlocution given the current signal.
+ *
+ * @param {Object} signal - { valence, arousal } for the current atom
+ * @param {Object} options
+ * @param {number}   options.duration   - user's configured flash duration (ms)
+ * @param {string[]} options.activeTypes - types the user enabled (never widened)
+ * @param {string}   options.kleePreset - user's preset; only 'random' is
+ *                                        replaced by a semantic choice
+ * @param {Function} [rng] - random source, injectable for tests
+ * @returns {{ type: string|null, duration: number, kleePreset: string|null }}
+ */
+export function planInterlocution(signal, options = {}, rng = Math.random) {
+    const { valence = 0, arousal = 0.3 } = signal || {};
+    const duration = options.duration ?? 80;
+    const activeTypes = options.activeTypes || [];
+
+    // Weighted choice among the enabled types
+    let type = null;
+    if (activeTypes.length > 0) {
+        const weights = activeTypes.map(t => {
+            const affinity = TYPE_AFFINITY[t];
+            return affinity ? Math.max(0.05, affinity(valence, arousal)) : 1.0;
+        });
+        const total = weights.reduce((s, w) => s + w, 0);
+        let roll = rng() * total;
+        type = activeTypes[activeTypes.length - 1];
+        for (let i = 0; i < activeTypes.length; i++) {
+            roll -= weights[i];
+            if (roll <= 0) { type = activeTypes[i]; break; }
+        }
+    }
+
+    // Klee preset by signal quadrant — only when the user left it on 'random'
+    let kleePreset = null;
+    if ((options.kleePreset || 'random') === 'random') {
+        if (arousal > 0.55) kleePreset = valence >= 0.25 ? 'mythic' : 'volatile';
+        else if (valence >= 0.25) kleePreset = 'corporeal';
+        else if (valence <= -0.25) kleePreset = 'structural';
+        else kleePreset = 'centered';
+    }
+
+    // Sharper flashes for intense passages, softer for calm ones
+    const scaledDuration = clamp(Math.round(duration * (1.25 - 0.5 * clamp(arousal, 0, 1))), 16, 200);
+
+    return { type, duration: scaledDuration, kleePreset };
+}
+
 /**
  * Session-level summary of a track (mean/peak) — useful for choosing
  * presets or logging. Not required by subscribers.

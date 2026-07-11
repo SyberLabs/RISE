@@ -443,6 +443,13 @@
     margin-top: var(--space-xs);
 }
 
+/* Responsive interlocutions toggle (inside the Rhythmic sliders block) */
+.vi-responsive {
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-shadow);
+}
+
 /* ═══════════════════════════════════════════════════════════
    Attractor Mode Styles
    Persistent strange-attractor field around the text stream

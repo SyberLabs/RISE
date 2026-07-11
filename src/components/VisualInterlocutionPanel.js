@@ -53,7 +53,10 @@ export class VisualInterlocutionPanel {
                 sourced: options.sourced || [],
                 frequency: options.frequency ?? 0.2,
                 duration: options.duration ?? 80,
-                kleePreset: options.kleePreset || 'random'
+                kleePreset: options.kleePreset || 'random',
+                // Responsive: the semantic conductor scales flash frequency
+                // with passage arousal and picks generator/preset by mood
+                responsive: options.interlocution?.responsive ?? false
             },
             
             // Session-local visuals
@@ -587,6 +590,19 @@ export class VisualInterlocutionPanel {
                                 value="${this.config.interlocution.duration}" data-slider="duration">
                             <span class="vi-slider-value" data-value="duration">${this.config.interlocution.duration}ms</span>
                         </div>
+
+                        <div class="vi-responsive">
+                            <label class="toggle vi-livingtext-toggle">
+                                <input type="checkbox" data-responsive ${this.config.interlocution.responsive ? 'checked' : ''}>
+                                <span class="toggle-switch"></span>
+                                <span class="vi-livingtext-label">Responsive</span>
+                            </label>
+                            <p class="vi-livingtext-hint text-mist">
+                                Flashes follow the text — passage intensity scales their frequency
+                                and sharpness; its mood selects the pattern. Frequency never exceeds
+                                the level set above.
+                            </p>
+                        </div>
                     </div>
 
                     <!-- Safety Warning (Interlocution only) -->
@@ -741,6 +757,15 @@ export class VisualInterlocutionPanel {
             }
             this.config.interlocution.duration = parseInt(e.target.value);
             this.container.querySelector('[data-value="duration"]').textContent = `${e.target.value}ms`;
+            this.emitChange();
+        });
+
+        // ─── Responsive Interlocutions Handler ───
+        this.container.querySelector('[data-responsive]')?.addEventListener('change', (e) => {
+            if (window.rise?.audioEngine) {
+                window.rise.audioEngine.playHiss();
+            }
+            this.config.interlocution.responsive = e.target.checked;
             this.emitChange();
         });
 

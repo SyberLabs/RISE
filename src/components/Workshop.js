@@ -59,7 +59,8 @@ export class Workshop {
           sourced: [],
           frequency: 0.3,
           duration: 33,
-          kleePreset: 'random'
+          kleePreset: 'random',
+          responsive: false
         }
       },
       customVisuals: [] // Base64 image URIs

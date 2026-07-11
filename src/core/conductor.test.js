@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scoreChunk, scoreAtoms, summarizeTrack } from './conductor.js';
+import { scoreChunk, scoreAtoms, summarizeTrack, responsiveFrequency, planInterlocution } from './conductor.js';
 
 const mkAtoms = (...contents) => contents.map(c => ({ content: c, duration: 300 }));
 
@@ -110,6 +110,85 @@ describe('scoreAtoms', () => {
         const track = scoreAtoms(mkAtoms('love joy', 'xyzzy blorp'));
         expect(track[0].confidence).toBeGreaterThan(0);
         expect(track[1].confidence).toBe(0);
+    });
+});
+
+describe('responsiveFrequency', () => {
+    it('dampens flashes for calm passages, reaching the base only at peak intensity', () => {
+        const calm = responsiveFrequency(0.3, { valence: 0.5, arousal: 0 });
+        const intense = responsiveFrequency(0.3, { valence: -0.5, arousal: 1 });
+        expect(calm).toBeCloseTo(0.105, 5);
+        expect(intense).toBeCloseTo(0.3, 5);
+    });
+
+    it('never exceeds the user-consented base frequency', () => {
+        for (let a = 0; a <= 1; a += 0.1) {
+            expect(responsiveFrequency(0.4, { valence: 0, arousal: a })).toBeLessThanOrEqual(0.4);
+        }
+    });
+
+    it('returns base frequency when no signal is available', () => {
+        expect(responsiveFrequency(0.25, null)).toBe(0.25);
+    });
+});
+
+describe('planInterlocution', () => {
+    it('only ever selects from the enabled types', () => {
+        for (let i = 0; i < 50; i++) {
+            const plan = planInterlocution(
+                { valence: Math.random() * 2 - 1, arousal: Math.random() },
+                { activeTypes: ['klee', 'rockgarden'] }
+            );
+            expect(['klee', 'rockgarden']).toContain(plan.type);
+        }
+    });
+
+    it('returns null type when nothing is enabled', () => {
+        expect(planInterlocution({ valence: 0, arousal: 0.5 }, { activeTypes: [] }).type).toBeNull();
+    });
+
+    it('biases energetic passages toward fractal and calm ones toward rockgarden', () => {
+        const types = ['fractal', 'rockgarden'];
+        const count = (signal) => {
+            let fractal = 0;
+            for (let i = 0; i < 400; i++) {
+                if (planInterlocution(signal, { activeTypes: types }).type === 'fractal') fractal++;
+            }
+            return fractal;
+        };
+        const energetic = count({ valence: 0, arousal: 0.95 });
+        const calm = count({ valence: 0, arousal: 0.05 });
+        expect(energetic).toBeGreaterThan(240); // fractal dominates under energy
+        expect(calm).toBeLessThan(160);         // rockgarden dominates under stillness
+    });
+
+    it('maps signal quadrants onto klee presets when preset is random', () => {
+        const preset = (v, a) => planInterlocution({ valence: v, arousal: a }, { activeTypes: ['klee'] }).kleePreset;
+        expect(preset(0.6, 0.8)).toBe('mythic');
+        expect(preset(-0.6, 0.8)).toBe('volatile');
+        expect(preset(0.6, 0.2)).toBe('corporeal');
+        expect(preset(-0.6, 0.2)).toBe('structural');
+        expect(preset(0, 0.3)).toBe('centered');
+    });
+
+    it('respects an explicit user preset (no override)', () => {
+        const plan = planInterlocution({ valence: 0.9, arousal: 0.9 }, { activeTypes: ['klee'], kleePreset: 'volatile' });
+        expect(plan.kleePreset).toBeNull();
+    });
+
+    it('sharpens flash duration under arousal and clamps to safe bounds', () => {
+        const calm = planInterlocution({ valence: 0, arousal: 0 }, { duration: 80, activeTypes: ['klee'] });
+        const intense = planInterlocution({ valence: 0, arousal: 1 }, { duration: 80, activeTypes: ['klee'] });
+        expect(calm.duration).toBeGreaterThan(intense.duration);
+        expect(intense.duration).toBeGreaterThanOrEqual(16);
+        expect(planInterlocution({ valence: 0, arousal: 0 }, { duration: 200, activeTypes: ['klee'] }).duration).toBeLessThanOrEqual(200);
+    });
+
+    it('is deterministic with an injected rng', () => {
+        const rng = () => 0.5;
+        const a = planInterlocution({ valence: 0.3, arousal: 0.6 }, { activeTypes: ['klee', 'turrell', 'fractal'] }, rng);
+        const b = planInterlocution({ valence: 0.3, arousal: 0.6 }, { activeTypes: ['klee', 'turrell', 'fractal'] }, rng);
+        expect(a).toEqual(b);
     });
 });
 
