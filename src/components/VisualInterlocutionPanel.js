@@ -41,6 +41,13 @@ export class VisualInterlocutionPanel {
                 system: 'aizawa' // 'aizawa' | 'thomas' | 'halvorsen'
             },
 
+            // Living Text (semantic conductor subscriber) — independent of
+            // the visual mode; hue/glow of the text stream follow the
+            // emotional valence of the passage. Off by default.
+            livingText: options.livingText || {
+                enabled: false
+            },
+
             interlocution: {
                 procedural: options.procedural || [],
                 sourced: options.sourced || [],
@@ -193,6 +200,14 @@ export class VisualInterlocutionPanel {
             this.config.attractor = {
                 ...this.config.attractor,
                 ...visualConfig.attractor
+            };
+        }
+
+        // Apply Living Text config
+        if (visualConfig.livingText) {
+            this.config.livingText = {
+                ...this.config.livingText,
+                ...visualConfig.livingText
             };
         }
 
@@ -579,6 +594,19 @@ export class VisualInterlocutionPanel {
                         <span class="vi-warning-icon">⚠</span>
                         <p class="vi-warning-text">Visual interrupts may affect photosensitive individuals.</p>
                     </div>
+
+                    <!-- LIVING TEXT: semantic hue/glow on the text stream (any mode) -->
+                    <div class="vi-livingtext">
+                        <label class="toggle vi-livingtext-toggle">
+                            <input type="checkbox" data-livingtext ${this.config.livingText.enabled ? 'checked' : ''}>
+                            <span class="toggle-switch"></span>
+                            <span class="vi-livingtext-label">Living Text</span>
+                        </label>
+                        <p class="vi-livingtext-hint text-mist">
+                            The hue and glow of the text stream drift with the emotional
+                            valence of the passage. Works alongside any visual mode.
+                        </p>
+                    </div>
                 </div>
             </div>
         `;
@@ -713,6 +741,15 @@ export class VisualInterlocutionPanel {
             }
             this.config.interlocution.duration = parseInt(e.target.value);
             this.container.querySelector('[data-value="duration"]').textContent = `${e.target.value}ms`;
+            this.emitChange();
+        });
+
+        // ─── Living Text Handler ───
+        this.container.querySelector('[data-livingtext]')?.addEventListener('change', (e) => {
+            if (window.rise?.audioEngine) {
+                window.rise.audioEngine.playHiss();
+            }
+            this.config.livingText.enabled = e.target.checked;
             this.emitChange();
         });
 

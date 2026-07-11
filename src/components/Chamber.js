@@ -2,6 +2,7 @@ import { visualCortex } from '../visuals/visual-cortex.js';
 import { MemoryCore } from '../core/memory.js';
 import { AttractorField } from '../visuals/attractor.js';
 import { escapeHtml } from '../core/sanitize.js';
+import { scoreAtoms } from '../core/conductor.js';
 
 /**
  * Chamber Component
@@ -25,6 +26,19 @@ export class Chamber {
     this.controlsTimeout = null;
     this.controlsVisible = false;
     this.attractorField = null;
+
+    // Living Text: score the whole timeline once at session start when
+    // enabled. Purely additive — null track means the raw platform behavior.
+    this.semanticTrack = null;
+    if (this.session?.visualConfig?.livingText?.enabled && Array.isArray(this.session?.atoms)) {
+      try {
+        this.semanticTrack = scoreAtoms(this.session.atoms);
+        console.log('[Chamber] Living Text active:', this.semanticTrack.length, 'atoms scored');
+      } catch (e) {
+        console.warn('[Chamber] Living Text scoring failed, continuing without:', e);
+        this.semanticTrack = null;
+      }
+    }
 
     // Dynamic speed tracking
     this.baseWpm = this.session?.config?.wpm || 300;
@@ -497,6 +511,42 @@ export class Chamber {
     return glyphs[id] || glyphs.breath;
   }
 
+  /**
+   * Living Text: map the semantic signal for this atom onto text hue + glow.
+   * Valence shifts hue (cool blue ← neutral → warm parchment) at near-constant
+   * luminance; arousal drives a soft glow. Styles are static per atom — the
+   * smoothed track makes consecutive atoms perceptually continuous, so there
+   * is no flicker and nothing for photosensitive users to worry about.
+   * No-op when the track is absent (Living Text off).
+   */
+  applyLivingText(atomDisplay, index) {
+    if (!this.semanticTrack) return;
+    const sig = this.semanticTrack[index];
+    if (!sig) return;
+
+    // Optional per-session intensity (0..1); default full strength
+    const intensity = this.session?.visualConfig?.livingText?.intensity ?? 1;
+
+    // Neutral matches --color-light so v=0 is indistinguishable from raw
+    const NEUTRAL = [232, 232, 236];
+    const WARM = [255, 208, 130];   // +1 valence — clear amber
+    const COOL = [140, 172, 255];   // -1 valence — clear blue-violet
+
+    // Smoothing compresses valence into roughly ±0.4, so apply a saturating
+    // gain: tanh(2.6·|v|) puts a typical ±0.25 passage ~57% toward its pole.
+    const pole = sig.valence >= 0 ? WARM : COOL;
+    const t = Math.tanh(Math.abs(sig.valence) * 2.6) * intensity;
+    const r = Math.round(NEUTRAL[0] + (pole[0] - NEUTRAL[0]) * t);
+    const g = Math.round(NEUTRAL[1] + (pole[1] - NEUTRAL[1]) * t);
+    const b = Math.round(NEUTRAL[2] + (pole[2] - NEUTRAL[2]) * t);
+
+    atomDisplay.style.color = `rgb(${r}, ${g}, ${b})`;
+
+    const glowRadius = 8 + sig.arousal * 40 * intensity;
+    const glowAlpha = 0.15 + sig.arousal * 0.45 * intensity;
+    atomDisplay.style.textShadow = `0 0 ${glowRadius.toFixed(0)}px rgba(${r}, ${g}, ${b}, ${glowAlpha.toFixed(3)})`;
+  }
+
   displayAtom(atom, index) {
     console.log('[Chamber] displayAtom called with:', atom);
     const atomDisplay = this.container.querySelector('#atom-display');
@@ -517,6 +567,7 @@ export class Chamber {
       if (atom.content.length > 60) fontSize = '32px';
       atomDisplay.style.fontSize = fontSize;
 
+      this.applyLivingText(atomDisplay, index);
       atomDisplay.style.opacity = '1';
     } else {
       // Force instantaneous opacity wipe 
@@ -532,6 +583,8 @@ export class Chamber {
       if (atom.content.length > 40) fontSize = '40px';
       if (atom.content.length > 60) fontSize = '32px';
       atomDisplay.style.fontSize = fontSize;
+
+      this.applyLivingText(atomDisplay, index);
 
       // Force synchronous DOM layout calculation (reflow)
       void atomDisplay.offsetWidth;

@@ -42,6 +42,11 @@ export class ChamberOrbital {
           system: 'aizawa'
         },
 
+        // Living Text (semantic hue/glow on the text stream)
+        livingText: {
+          enabled: false
+        },
+
         // Interlocution config (probabilistic interrupts)
         interlocution: {
           procedural: ['klee', 'turrell'],
@@ -866,6 +871,7 @@ export class ChamberOrbital {
         visualMode: config.visualConfig.visualMode || 'off',
         focals: config.visualConfig.focals || this.config.visualInterlocution.focals,
         attractor: config.visualConfig.attractor || this.config.visualInterlocution.attractor,
+        livingText: config.visualConfig.livingText || this.config.visualInterlocution.livingText,
         interlocution: {
           ...this.config.visualInterlocution.interlocution,
           ...(config.visualConfig.interlocution || {})
@@ -956,6 +962,7 @@ export class ChamberOrbital {
         visualMode: vi.visualMode || 'off',
         focals: vi.focals || { type: 'standard', standardGlyph: 'breath', personalImage: null },
         attractor: vi.attractor || { system: 'aizawa' },
+        livingText: vi.livingText || { enabled: false },
         interlocution: {
           ...(vi.interlocution || {}),
           procedural: vi.activeTypes || vi.interlocution?.procedural || ['klee', 'turrell'],

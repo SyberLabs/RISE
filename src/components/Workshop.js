@@ -48,6 +48,11 @@ export class Workshop {
           system: 'aizawa' // 'aizawa' | 'thomas' | 'halvorsen'
         },
 
+        // Living Text (semantic hue/glow on the text stream)
+        livingText: {
+          enabled: false
+        },
+
         // Interlocution config (probabilistic interrupts)
         interlocution: {
           procedural: ['klee', 'turrell'],

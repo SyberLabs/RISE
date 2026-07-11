@@ -412,6 +412,38 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
+   Living Text
+   Semantic hue/glow on the text stream (any visual mode)
+   ═══════════════════════════════════════════════════════════ */
+
+.vi-livingtext {
+    margin-top: var(--space-md);
+    padding: var(--space-md);
+    border: 1px solid var(--color-shadow);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.vi-livingtext-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.vi-livingtext-label {
+    font-size: 12px;
+    font-weight: var(--font-weight-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-cloud);
+}
+
+.vi-livingtext-hint {
+    font-size: 11px;
+    line-height: 1.5;
+    margin-top: var(--space-xs);
+}
+
+/* ═══════════════════════════════════════════════════════════
    Attractor Mode Styles
    Persistent strange-attractor field around the text stream
    ═══════════════════════════════════════════════════════════ */
