@@ -401,13 +401,16 @@ export function planInterlocution(signal, options = {}, rng = Math.random) {
     }
 
     // Klee preset by signal quadrant (mood intent) — only when the user
-    // left it on 'random'; an explicit preset is a veto
+    // left it on 'random'; an explicit preset is a veto.
+    // The five curated presets map one-to-one onto the signal quadrants:
+    // bright-intense → twittering, dark-intense → chaotic,
+    // warm-calm → harmonic, dark-calm → architectural, neutral → gravitational
     let kleePreset = null;
     if (mood && (options.kleePreset || 'random') === 'random') {
-        if (arousal > 0.55) kleePreset = valence >= 0.25 ? 'mythic' : 'volatile';
-        else if (valence >= 0.25) kleePreset = 'corporeal';
-        else if (valence <= -0.25) kleePreset = 'structural';
-        else kleePreset = 'centered';
+        if (arousal > 0.55) kleePreset = valence >= 0.25 ? 'twittering' : 'chaotic';
+        else if (valence >= 0.25) kleePreset = 'harmonic';
+        else if (valence <= -0.25) kleePreset = 'architectural';
+        else kleePreset = 'gravitational';
     }
 
     // Sharper flashes for intense passages, softer for calm ones (rhythm intent)

@@ -38,7 +38,7 @@ export class VisualCortex {
             frequency: 0.3, // 30%
             duration: 33,   // ms
             activeTypes: ['klee', 'turrell'],
-            kleePreset: 'random', // 'random' | 'corporeal' | 'structural' | 'mythic' | 'volatile' | 'centered'
+            kleePreset: 'random', // 'random' | 'architectural' | 'chaotic' | 'harmonic' | 'gravitational' | 'twittering'
             customVisuals: []
         };
     }
@@ -482,7 +482,7 @@ export class VisualCortex {
         if (selectedType === 'klee' && this.klee && this._kleeCanvas) {
             // Determine preset: one-shot override (fallback path) wins once,
             // then random selects from all, otherwise use configured
-            const presets = ['corporeal', 'structural', 'mythic', 'volatile', 'centered'];
+            const presets = ['architectural', 'chaotic', 'harmonic', 'gravitational', 'twittering'];
             const preset = this._presetOverride
                 ? this._presetOverride
                 : (this.config.kleePreset === 'random'
@@ -536,7 +536,7 @@ export class VisualCortex {
                 // gravitational preset — for this flash only, never persisted
                 // into config (that would hijack every later Klee flash)
                 if (fallbackType === 'klee') {
-                    this._presetOverride = 'gravitational-pull';
+                    this._presetOverride = 'gravitational';
                 }
 
                 return this.flash(duration, fallbackType);

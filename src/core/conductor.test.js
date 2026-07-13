@@ -164,11 +164,11 @@ describe('planInterlocution', () => {
 
     it('maps signal quadrants onto klee presets when preset is random', () => {
         const preset = (v, a) => planInterlocution({ valence: v, arousal: a }, { activeTypes: ['klee'] }).kleePreset;
-        expect(preset(0.6, 0.8)).toBe('mythic');
-        expect(preset(-0.6, 0.8)).toBe('volatile');
-        expect(preset(0.6, 0.2)).toBe('corporeal');
-        expect(preset(-0.6, 0.2)).toBe('structural');
-        expect(preset(0, 0.3)).toBe('centered');
+        expect(preset(0.6, 0.8)).toBe('twittering');
+        expect(preset(-0.6, 0.8)).toBe('chaotic');
+        expect(preset(0.6, 0.2)).toBe('harmonic');
+        expect(preset(-0.6, 0.2)).toBe('architectural');
+        expect(preset(0, 0.3)).toBe('gravitational');
     });
 
     it('respects an explicit user preset (no override)', () => {
@@ -208,7 +208,7 @@ describe('planInterlocution', () => {
         );
         expect(plan.duration).toBe(80);
         expect(plan.type).toBe('klee');
-        expect(plan.kleePreset).toBe('volatile');
+        expect(plan.kleePreset).toBe('chaotic');
     });
 
     it('both intents off: plan is inert (raw platform equivalent)', () => {

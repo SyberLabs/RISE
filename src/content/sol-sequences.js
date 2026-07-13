@@ -319,7 +319,7 @@ export const SOL_SEQUENCES = [
       audioPreset: "focus",
       visualConfig: {
         visualMode: 'interlocution',
-        interlocution: { frequency: 0.2, duration: 90, sourced: [], procedural: ['klee'], kleePreset: 'structural' }
+        interlocution: { frequency: 0.2, duration: 90, sourced: [], procedural: ['klee'], kleePreset: 'architectural' }
       }
     },
     content: "You are a maker.\nBefore anyone taught you anything,\nyou were already arranging, stacking, drawing, naming.\nNo one assigned this to you.\nIt is not a role. It is a metabolism.\n\nYou are allowed to make.\nNo permission is pending.\nNo credential is missing.\nThe blank page is not a judge.\nIt is raw material, and it is patient.\n\nMaking is how you think.\nYou do not figure it out and then build it.\nYou build it to figure it out.\nThe confusion you feel before starting is not a warning.\nIt is the actual starting condition of all work ever made.\n\nThe work knows more than you do.\nStart it, and it starts answering back.\nThe second sentence is easier than the first.\nThe sketch corrects the idea.\nThe prototype teaches the plan.\nNothing teaches while it is still in your head.\n\nThe doubt will come. Let it come.\nDoubt is a tax on making things that did not exist before.\nEveryone pays it.\nThe ones you admire paid it that same morning.\n\nDo not wait for the feeling of readiness.\nReadiness is a rumor.\nThere is only the material, the hands, and the hour.\n\nLower the stakes until starting is possible.\nOne bad draft. One crooked line. One honest attempt.\nThe standard comes later. The start comes now.\n\nLet the doubt exist, but make anyway.\nMake anyway.\nMake."

@@ -106,7 +106,7 @@ const ARCHETYPES = [
           sourced: [],
           frequency: 0.1,
           duration: 50,
-          kleePreset: 'wireframe'
+          kleePreset: 'architectural'
         }
       }
     },

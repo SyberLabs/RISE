@@ -320,11 +320,11 @@ export class VisualInterlocutionPanel {
 
         const kleePresets = [
             { id: 'random', name: 'Random' },
-            { id: 'corporeal', name: 'Corporeal' },
-            { id: 'structural', name: 'Structural' },
-            { id: 'mythic', name: 'Mythic' },
-            { id: 'volatile', name: 'Volatile' },
-            { id: 'centered', name: 'Centered' }
+            { id: 'architectural', name: 'Architectural' },
+            { id: 'chaotic', name: 'Chaotic' },
+            { id: 'harmonic', name: 'Harmonic' },
+            { id: 'gravitational', name: 'Gravitational' },
+            { id: 'twittering', name: 'Twittering' }
         ];
 
         // Standard focal glyphs for neurosensitive-friendly viewing

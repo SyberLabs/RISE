@@ -1006,64 +1006,68 @@ class KleeEngine {
     this.maxSteps = config.maxSteps || 500;
   }
 
-  generateRandom(theme = 'corporeal') {
+  generateRandom(theme = 'harmonic') {
     this.seeds = [];
 
+    // Curated preset roster. Each theme is LED by its namesake variation
+    // (guaranteed 0.7 weight) with a supporting cast. Spiral/circular walks
+    // under high-order rotational symmetry produced moiré tangles — those
+    // combinations are deliberately absent, and symmetry orders are capped.
     const themes = {
-      corporeal: {
-        variations: ['organic', 'flowing', 'corporeal', 'meandering'],
-        seedCount: [3, 7],
-        symmetry: [0, 2],
-        palette: 'natural'
+      architectural: {
+        variations: ['architectural', 'angular', 'straight', 'crystalline'],
+        seedCount: [4, 7],
+        symmetry: [0, 2, 4]
       },
-      structural: {
-        variations: ['architectural', 'angular', 'mechanical', 'straight'],
-        seedCount: [4, 8],
-        symmetry: [2, 4, 8],
-        palette: 'geometric'
+      chaotic: {
+        variations: ['chaotic', 'explosive', 'zigzag', 'trembling'],
+        seedCount: [5, 10],
+        symmetry: [0]
       },
-      mythic: {
-        variations: ['mythical', 'twittering', 'looping', 'harmonic'],
+      harmonic: {
+        variations: ['harmonic', 'wavy', 'flowing', 'rhythmic'],
         seedCount: [2, 5],
-        symmetry: [2, 3, 5],
-        palette: 'vibrant'
+        symmetry: [0, 2, 3]
       },
-      volatile: {
-        variations: ['chaotic', 'explosive', 'trembling', 'zigzag'],
-        seedCount: [5, 12],
-        symmetry: [0],
-        palette: 'contrast'
-      },
-      centered: {
-        variations: ['circular', 'spiral', 'rhythmic', 'wavy'],
+      gravitational: {
+        variations: ['gravitational', 'looping', 'meandering', 'curved'],
         seedCount: [2, 4],
-        symmetry: [3, 4, 6, 8],
-        palette: 'harmonious'
+        symmetry: [0, 2]
       },
-      'gravitational-pull': {
-        variations: ['gravitational', 'spiral', 'looping', 'rhythmic'],
-        seedCount: [2, 3],
-        symmetry: [4, 8],
-        palette: 'contrast'
+      twittering: {
+        variations: ['twittering', 'dotted', 'looping', 'mythical'],
+        seedCount: [3, 6],
+        symmetry: [0, 2]
       }
     };
 
-    const config = themes[theme] || themes.corporeal;
+    // Retired preset names (and stray historical ids) map onto the
+    // nearest curated theme so saved blueprints keep rendering.
+    const LEGACY_ALIASES = {
+      corporeal: 'harmonic',
+      structural: 'architectural',
+      mythic: 'twittering',
+      volatile: 'chaotic',
+      centered: 'gravitational',
+      'gravitational-pull': 'gravitational',
+      wireframe: 'architectural'
+    };
+
+    const resolved = themes[theme] ? theme : (LEGACY_ALIASES[theme] || 'harmonic');
+    const config = themes[resolved];
     const seedCount = config.seedCount[0] +
       Math.floor(Math.random() * (config.seedCount[1] - config.seedCount[0]));
 
     for (let i = 0; i < seedCount; i++) {
-      const variation = config.variations[
-        Math.floor(Math.random() * config.variations.length)
-      ];
-
+      // The namesake variation always leads, so presets keep their identity;
+      // a random supporting variation colors each seed differently.
       const variations = {};
-      variations[variation] = 0.7;
+      variations[config.variations[0]] = 0.7;
 
       const secondary = config.variations[
-        Math.floor(Math.random() * config.variations.length)
+        1 + Math.floor(Math.random() * (config.variations.length - 1))
       ];
-      variations[secondary] = 0.3;
+      variations[secondary] = (variations[secondary] || 0) + 0.3;
 
       this.addSeed({
         x: this.width * (0.2 + Math.random() * 0.6),
