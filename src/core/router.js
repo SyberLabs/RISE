@@ -47,7 +47,12 @@ export class Router {
      */
     async navigate(viewName, options = {}) {
         console.log(`[Router] Navigate to: ${viewName}, from: ${this.currentView}`, options);
-        if (this.transitioning) return;
+        if (this.transitioning) {
+            // Don't silently eat clicks that land mid-transition — remember
+            // the latest request and honor it once the crossfade completes.
+            this._pendingNav = { viewName, options };
+            return;
+        }
         if (viewName === this.currentView) return;
 
         const newView = this.views.get(viewName);
@@ -110,6 +115,15 @@ export class Router {
 
         // Notify listeners
         this.onViewChange(viewName, options.data);
+
+        // Honor the latest navigation that arrived during the transition
+        if (this._pendingNav) {
+            const pending = this._pendingNav;
+            this._pendingNav = null;
+            if (pending.viewName !== this.currentView) {
+                await this.navigate(pending.viewName, pending.options);
+            }
+        }
     }
 
     /**

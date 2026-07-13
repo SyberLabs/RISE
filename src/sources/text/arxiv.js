@@ -7,7 +7,8 @@
  */
 
 import { SourceProvider } from '../provider.js';
-import CACHED_PAPERS from './data/arxiv_cache.json';
+// The paper cache (~313KB) is loaded lazily on first provider use so it
+// never weighs down the eagerly-loaded sources bundle.
 
 export const ARXIV_CATEGORIES = {
     'quant-ph': { name: 'Quantum Physics', tags: ['quantum', 'physics', 'entanglement'] },
@@ -31,7 +32,29 @@ export class ArxivProvider extends SourceProvider {
 
         // https required: browsers block http fetches from an https page (mixed content)
         this.baseUrl = 'https://export.arxiv.org/api/query';
-        this.cache = CACHED_PAPERS || {};
+        this.cache = null;
+        this._cachePromise = null;
+    }
+
+    /**
+     * Lazily load the bundled paper cache (own chunk, fetched on demand).
+     * Resolves to {} on failure so callers can always index it safely.
+     */
+    async _getCache() {
+        if (this.cache) return this.cache;
+        if (!this._cachePromise) {
+            this._cachePromise = import('./data/arxiv_cache.json')
+                .then(mod => {
+                    this.cache = mod.default || {};
+                    return this.cache;
+                })
+                .catch(err => {
+                    console.warn('[ArxivProvider] Paper cache failed to load:', err);
+                    this.cache = {};
+                    return this.cache;
+                });
+        }
+        return this._cachePromise;
     }
 
     /**
@@ -62,17 +85,18 @@ export class ArxivProvider extends SourceProvider {
         }
 
         // Use cache if available
-        if (this.cache[categoryId] && this.cache[categoryId].length > 0) {
-            console.log(`[ArxivProvider] Serving ${this.cache[categoryId].length} papers from local cache for ${categoryId}`);
+        const cache = await this._getCache();
+        if (cache[categoryId] && cache[categoryId].length > 0) {
+            console.log(`[ArxivProvider] Serving ${cache[categoryId].length} papers from local cache for ${categoryId}`);
             return {
                 id: categoryId,
                 type: 'text',
                 name: ARXIV_CATEGORIES[categoryId].name,
-                data: this.cache[categoryId],
+                data: cache[categoryId],
                 providerId: this.id,
                 metadata: {
                     category: categoryId,
-                    count: this.cache[categoryId].length,
+                    count: cache[categoryId].length,
                     source: 'local-cache'
                 }
             };
@@ -102,7 +126,8 @@ export class ArxivProvider extends SourceProvider {
     async search(query, filter = {}) {
         // Search local cache first
         const q = query.toLowerCase();
-        const localMatches = Object.values(this.cache).flat().filter(p =>
+        const cache = await this._getCache();
+        const localMatches = Object.values(cache).flat().filter(p =>
             p.name.toLowerCase().includes(q) ||
             p.metadata.abstract.toLowerCase().includes(q)
         );
