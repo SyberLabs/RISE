@@ -190,7 +190,7 @@ export class Settings {
             <h2 id="about-heading" class="settings-section-title text-fog">About</h2>
 
             <div class="about-content text-fog">
-              <p class="about-version font-mono">R.I.S.E. v0.1.0</p>
+              <p class="about-version font-mono">R.I.S.E. v2.0</p>
               <p class="about-tagline">An experimental audiovisual reading interface.</p>
               <p class="about-attribution text-mist">SyberLabs · 2026</p>
             </div>
@@ -276,7 +276,7 @@ export class Settings {
             const data = {
                 settings: this.settings,
                 exportedAt: new Date().toISOString(),
-                version: '0.1.0'
+                version: '2.0'
             };
 
             // Export every store that holds user-generated content

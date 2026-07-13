@@ -52,6 +52,19 @@ export class MemoryCore {
   }
 
   /**
+   * Delete a single synthesis entry by id
+   * @param {String} id
+   */
+  static deleteRecursion(id) {
+    const history = this.getRecursions().filter(entry => entry.id !== id);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+    } catch (e) {
+      console.error('[Memory] Fail delete:', e);
+    }
+  }
+
+  /**
    * Clear all memory (Amnesia protocol)
    */
   static clearMemory() {

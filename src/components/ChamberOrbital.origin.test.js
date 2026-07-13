@@ -75,6 +75,20 @@ describe('ChamberOrbital origin chip', () => {
         container.remove();
     });
 
+    it('handleEscape closes an open modal and consumes the key; falls through otherwise', () => {
+        const { orbital, container } = makeOrbital();
+
+        expect(orbital.handleEscape()).toBe(false); // no modal → router may act
+
+        orbital.openModal('visual');
+        expect(orbital.activeModal).toBe('visual');
+        expect(orbital.handleEscape()).toBe(true);  // consumed: modal closed
+        expect(orbital.activeModal).toBeNull();
+
+        orbital.destroy();
+        container.remove();
+    });
+
     it('a subsequent plain load replaces a previous origin', () => {
         const { orbital, container } = makeOrbital();
         orbital.loadText('text', 'SOL: Dawn', { origin: SOL_ORIGIN });

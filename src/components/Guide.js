@@ -64,7 +64,21 @@ export class Guide {
                   <span class="step-num">Ⅳ</span>
                   <div class="step-body">
                     <strong>The Chamber</strong>
-                    <p>The space of installation. Fine-tune the preparation (Orbital) before descending into the session (Immersion).</p>
+                    <p>The space of the session. Fine-tune the preparation (Orbital) before descending into the reading (Immersion). A chip in the corner returns you to wherever you launched from.</p>
+                  </div>
+                </div>
+                <div class="step">
+                  <span class="step-num">Ⅴ</span>
+                  <div class="step-body">
+                    <strong>The Vault &amp; SOL</strong>
+                    <p>Two faster doors. The Vault holds pre-configured archetypes and your saved sequences; SOL suggests sequences aligned with the hour of day, under a live solar dial.</p>
+                  </div>
+                </div>
+                <div class="step">
+                  <span class="step-num">Ⅵ</span>
+                  <div class="step-body">
+                    <strong>Reflections</strong>
+                    <p>After each session, seal a reflection in the Synthesis stage. Everything you write is kept in the Library under Reflections — output becomes input.</p>
                   </div>
                 </div>
               </div>
@@ -75,7 +89,8 @@ export class Guide {
               <ul class="mechanics-list">
                 <li><strong>WPM (Words Per Minute):</strong> Controls the baseline speed of information delivery.</li>
                 <li><strong>Temporal Curves:</strong> Modulates the speed over time (e.g., <em>Induction</em> starts slow, <em>Wave</em> pulses).</li>
-                <li><strong>Visual Interlocution:</strong> Brief procedural interruptions that add visual rhythm and contrast to the reading flow.</li>
+                <li><strong>Visual Modes:</strong> Choose the field around the text — a still <em>Focal</em> glyph, a continuously orbiting strange <em>Attractor</em> (Aizawa, Thomas, Halvorsen), or <em>Rhythmic</em> visual interruptions drawn from procedural patterns and museum collections.</li>
+                <li><strong>Living Response:</strong> Optionally let the text conduct the visuals — its emotional arc tints the text stream (<em>Living Text</em>) and shapes the timing, pattern, and palette of interruptions (<em>Responsive Flashes</em>).</li>
                 <li><strong>Layered Audio:</strong> Configurable tones, drones, and atmosphere layers for session ambience.</li>
               </ul>
             </section>

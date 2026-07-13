@@ -52,19 +52,40 @@ export class Sol {
 
     startClock() {
         this.timeUpdateInterval = setInterval(() => {
-            this.currentTime = new Date();
-            this.updateClockDisplay();
-            this.updateSolarArc();
-
-            // Re-evaluate the temporal window; refresh panel + NOW badge on boundary cross
-            const { sequence } = this.getSuggestedSequence();
-            if (sequence && sequence.id !== this.suggestedId) {
-                this.updateRecommendation();
-                if (this.activeCategory === 'temporal') {
-                    this.renderCategoryGrid('temporal');
-                }
-            }
+            // The router keeps view instances alive when hidden — skip all
+            // work until the view is visible again (refresh() runs on re-entry)
+            if (this.container.offsetParent === null) return;
+            this.refresh();
         }, 1000);
+    }
+
+    /**
+     * Bring the clock, dial, and recommendation up to date.
+     * Called every visible tick and by the router on re-entry (update).
+     */
+    refresh() {
+        this.currentTime = new Date();
+        this.updateClockDisplay();
+        this.updateSolarArc();
+
+        // Re-evaluate the temporal window; refresh panel + NOW badge on boundary cross
+        const { sequence } = this.getSuggestedSequence();
+        if (sequence && sequence.id !== this.suggestedId) {
+            this.updateRecommendation();
+            if (this.activeCategory === 'temporal') {
+                this.renderCategoryGrid('temporal');
+            }
+        }
+    }
+
+    /**
+     * Router re-entry hook — the instance was preserved while hidden,
+     * so the display may be minutes or hours stale.
+     */
+    update() {
+        this._lastMinuteKey = null; // force the solar arc to reposition
+        this.refresh();
+        this.updateRecommendation();
     }
 
     updateClockDisplay() {

@@ -223,8 +223,15 @@ export class AttractorField {
     tick(now) {
         const t = (now - this.t0) / 1000;
         const N = this.N;
-        const yawSpeed = this.reduced ? 0.06 : 0.16;
-        const flickAmp = this.reduced ? 0.04 : 0.12;
+
+        // Respect both the OS media query (cached) and the app's own
+        // accessibility settings (root classes set by Settings) — the
+        // canvas layer is invisible to CSS-based animation kill switches.
+        const rootClasses = document.documentElement.classList;
+        const reduced = this.reduced || rootClasses.contains('reduced-motion');
+        const photosafe = rootClasses.contains('photosensitivity-mode');
+        const yawSpeed = reduced ? 0.06 : 0.16;
+        const flickAmp = photosafe ? 0 : (reduced ? 0.04 : 0.12);
 
         // gentle, never-fully-dark flicker — a living filament, not a strobe
         const flick = 1 - flickAmp * (0.5 + 0.5 * Math.sin(t * 2.3))

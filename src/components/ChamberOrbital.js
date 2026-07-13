@@ -399,8 +399,11 @@ export class ChamberOrbital {
           expanded: true,
           locked: !this.config.text,
           lockedMessage: 'Please load a text source first to configure Visuals.',
-          onChange: (config, activeTypes) => {
-            this.config.visualInterlocution = { ...config, activeTypes };
+          onChange: (config) => {
+            // Store the panel's config verbatim — never mix in activeTypes
+            // (cortex vocabulary); app.js derives those from procedural +
+            // sourced at session start.
+            this.config.visualInterlocution = { ...config };
             this.updateOrbitStatus('visual');
           }
         });
@@ -817,6 +820,19 @@ export class ChamberOrbital {
     });
   }
 
+  /**
+   * Router Escape dispatch — close an open config modal instead of
+   * losing the whole orbital context to a portal reset. Returns false
+   * when no modal is open so the router's default (portal) applies.
+   */
+  handleEscape() {
+    if (this.activeModal) {
+      this.closeModal(this.activeModal);
+      return true;
+    }
+    return false;
+  }
+
   openModal(orbit) {
     const modal = this.container.querySelector(`#modal-${orbit}`);
     if (modal) {
@@ -1008,7 +1024,9 @@ export class ChamberOrbital {
         livingText: vi.livingText || { enabled: false },
         interlocution: {
           ...(vi.interlocution || {}),
-          procedural: vi.activeTypes || vi.interlocution?.procedural || ['klee', 'turrell'],
+          // Panel vocabulary only (klee/turrell/...) — activeTypes is the
+          // cortex's derived vocabulary and must never be persisted here
+          procedural: vi.interlocution?.procedural || ['klee', 'turrell'],
           sourced: vi.interlocution?.sourced || [],
           frequency: vi.interlocution?.frequency ?? 0.2,
           duration: vi.interlocution?.duration ?? 80,

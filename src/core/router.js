@@ -163,11 +163,22 @@ export class Router {
      * Handle keyboard events
      */
     handleKeydown(e) {
-        // Escape returns to Portal (unless already there)
-        if (e.key === 'Escape' && this.currentView !== 'portal') {
+        if (e.key !== 'Escape' || this.currentView === 'portal') return;
+
+        // Views may own Escape (session exit confirmation, open config
+        // modals). If the active view's handleEscape() returns true, it
+        // consumed the key and the router stays out of it. This is what
+        // routes a mid-session Escape through the Chamber's exit flow —
+        // player stop, cortex disable, audio stopSession() and the lobby
+        // drone resume all live on that path.
+        const instance = this.views.get(this.currentView)?.instance;
+        if (instance?.handleEscape && instance.handleEscape()) {
             e.preventDefault();
-            this.reset('portal');
+            return;
         }
+
+        e.preventDefault();
+        this.reset('portal');
     }
 
     /**

@@ -439,6 +439,13 @@ export class VisualCortex {
      *                            lets the flame queue pick its closest match
      */
     async flash(durationOverride, typeOverride, signal) {
+        // Photosensitivity mode is a global safety override: no visual
+        // interrupts, regardless of session config or prior consent.
+        if (typeof document !== 'undefined'
+            && document.documentElement.classList.contains('photosensitivity-mode')) {
+            return;
+        }
+
         if (!this.initialized) this.init();
         if (!this.container) return;
 
@@ -473,11 +480,15 @@ export class VisualCortex {
         if (this.customImageEl) this.customImageEl.hidden = true;
 
         if (selectedType === 'klee' && this.klee && this._kleeCanvas) {
-            // Determine preset: random selects from all, otherwise use configured
+            // Determine preset: one-shot override (fallback path) wins once,
+            // then random selects from all, otherwise use configured
             const presets = ['corporeal', 'structural', 'mythic', 'volatile', 'centered'];
-            const preset = this.config.kleePreset === 'random'
-                ? presets[Math.floor(Math.random() * presets.length)]
-                : this.config.kleePreset;
+            const preset = this._presetOverride
+                ? this._presetOverride
+                : (this.config.kleePreset === 'random'
+                    ? presets[Math.floor(Math.random() * presets.length)]
+                    : this.config.kleePreset);
+            this._presetOverride = null;
 
             this.klee.generateRandom(preset);
             const ctx = this._kleeCanvas.getContext('2d');
@@ -521,11 +532,13 @@ export class VisualCortex {
                     ? procedural[Math.floor(Math.random() * procedural.length)]
                     : 'klee';
                 
-                // If falling back to Klee due to error, use the high-intent gravitational preset
+                // If falling back to Klee due to error, use the high-intent
+                // gravitational preset — for this flash only, never persisted
+                // into config (that would hijack every later Klee flash)
                 if (fallbackType === 'klee') {
-                    this.updateConfig({ kleePreset: 'gravitational-pull' });
+                    this._presetOverride = 'gravitational-pull';
                 }
-                
+
                 return this.flash(duration, fallbackType);
             }
         } else if (selectedType === 'rockgarden' && this.rockgarden && this._kleeCanvas) {

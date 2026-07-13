@@ -113,6 +113,21 @@ describe('Chamber Living Text integration', () => {
         container.remove();
     });
 
+    it('handleEscape always consumes Escape: opens the exit confirmation, second press dismisses', () => {
+        const { chamber, container } = makeChamber(makeSession(['calm text'], { enabled: false }));
+        const overlay = container.querySelector('#exit-confirm-overlay');
+        expect(overlay).not.toBeNull();
+
+        expect(chamber.handleEscape()).toBe(true);
+        expect(overlay.style.display).toBe('flex');
+
+        expect(chamber.handleEscape()).toBe(true);
+        expect(overlay.classList.contains('hidden')).toBe(true);
+
+        chamber.destroy();
+        container.remove();
+    });
+
     it('respects the intensity knob', () => {
         const dark = Array(8).fill('grief death terror sorrow');
         const full = makeChamber(makeSession(dark, { enabled: true, intensity: 1 }));

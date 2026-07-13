@@ -39,7 +39,6 @@ import './components/ChamberOrbital.css';
 import './components/Chamber.css';
 import './components/Library.css';
 import './components/Workshop.css';
-import './components/Voyage.css';
 import './components/Settings.css';
 import './components/Guide.css';
 import './components/Sol.css';
@@ -614,7 +613,11 @@ class App {
     handleTextSelection(text, source) {
         // Navigate back to Chamber with text data
         this.router.navigate('chamber', {
-            data: { text, source }
+            data: {
+                text,
+                source,
+                config: { origin: { view: 'library', icon: '◇', name: 'Library' } }
+            }
         });
     }
 

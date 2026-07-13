@@ -375,10 +375,8 @@ export class Chamber {
       }
     }
 
-    // Escape: exit with confirmation
-    if (e.key === 'Escape') {
-      this.exitSession();
-    }
+    // Escape is owned via handleEscape(), dispatched by the router —
+    // do not handle it here or the exit modal double-fires.
 
     // Speed: Arrow keys (Up/Down) - only when NOT typing
     if (!isTyping) {
@@ -813,6 +811,23 @@ export class Chamber {
         setTimeout(() => synthesisInput.focus(), 100);
       }
     }
+  }
+
+  /**
+   * Router Escape dispatch — the Chamber always owns Escape during a
+   * session. First press opens the exit confirmation (pausing playback);
+   * a second press dismisses it and resumes. Never falls through to the
+   * router's portal reset, which would strand a running player.
+   */
+  handleEscape() {
+    const overlay = this.container.querySelector('#exit-confirm-overlay');
+    const overlayVisible = overlay && overlay.style.display === 'flex' && !overlay.classList.contains('hidden');
+    if (overlayVisible) {
+      this.hideExitConfirmation();
+    } else {
+      this.exitSession();
+    }
+    return true;
   }
 
   exitSession() {

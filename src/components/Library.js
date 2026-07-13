@@ -10,6 +10,7 @@
 
 import { LIBRARY_TEXTS } from '../content/library.js';
 import { escapeHtml } from '../core/sanitize.js';
+import { MemoryCore } from '../core/memory.js';
 
 export class Library {
   constructor(container, options = {}) {
@@ -47,6 +48,7 @@ export class Library {
           <nav class="library-nav nav" aria-label="Library sections">
             <button class="nav-item ${this.currentSection === 'archive' ? 'active' : ''}" data-section="archive">The Archive</button>
             <button class="nav-item ${this.currentSection === 'personal' ? 'active' : ''}" data-section="personal">Local Files</button>
+            <button class="nav-item ${this.currentSection === 'history' ? 'active' : ''}" data-section="history">Reflections</button>
           </nav>
         </header>
 
@@ -66,9 +68,50 @@ export class Library {
         return this.renderArchive();
       case 'personal':
         return this.renderPersonal();
+      case 'history':
+        return this.renderHistory();
       default:
         return '<p class="text-fog">Section not found</p>';
     }
+  }
+
+  /**
+   * Reflections — the post-session journals sealed in the Chamber's
+   * Synthesis stage. This is the read-side of the Recursion loop.
+   */
+  renderHistory() {
+    const entries = MemoryCore.getRecursions();
+
+    const body = entries.length === 0
+      ? `
+        <div class="reflections-empty">
+          <span class="reflections-empty-sigil" aria-hidden="true">◌</span>
+          <p class="text-fog">The archive of reflections is empty.</p>
+          <p class="text-mist">Complete a session and seal a reflection in the Synthesis stage — it will be kept here.</p>
+        </div>
+      `
+      : entries.map(entry => `
+        <article class="card reflection-card">
+          <div class="reflection-meta font-mono">
+            <span class="reflection-date">${new Date(entry.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+            <span class="reflection-title text-fog">${escapeHtml(entry.sequenceTitle)}</span>
+            <button class="btn-ghost-sm reflection-delete" data-action="delete-recursion" data-id="${escapeHtml(entry.id)}" title="Delete this reflection">✕</button>
+          </div>
+          <p class="reflection-text">${escapeHtml(entry.journal)}</p>
+        </article>
+      `).join('');
+
+    return `
+      <div class="library-section">
+        <div class="section-header">
+          <h2 class="text-light">Reflections</h2>
+          <p class="text-fog">What you wrote after each session. Output becomes input; the spiral continues.</p>
+        </div>
+        <div class="reflections-list">
+          ${body}
+        </div>
+      </div>
+    `;
   }
 
   renderArchive() {
@@ -269,6 +312,11 @@ export class Library {
         console.log('Preview sequence:', id);
       } else if (action === 'select-text' && id) {
         this.handleTextSelection(id);
+      } else if (action === 'delete-recursion' && id) {
+        if (window.confirm('Delete this reflection? This cannot be undone.')) {
+          MemoryCore.deleteRecursion(id);
+          this.updateContent();
+        }
       }
     });
 
