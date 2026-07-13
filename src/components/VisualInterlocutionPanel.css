@@ -412,24 +412,79 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   Living Text
-   Semantic hue/glow on the text stream (any visual mode)
+   Living Response
+   The semantic conductor's subscribers — persistent section,
+   independent of the visual mode above
    ═══════════════════════════════════════════════════════════ */
 
-.vi-livingtext {
+.vi-group-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--color-mist);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    text-indent: 0.2em;
+    margin-bottom: var(--space-xs);
+}
+
+.vi-semantic {
     margin-top: var(--space-md);
     padding: var(--space-md);
     border: 1px solid var(--color-shadow);
     background: rgba(255, 255, 255, 0.02);
 }
 
-.vi-livingtext-toggle {
+.vi-semantic-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding-bottom: var(--space-sm);
+    margin-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-shadow);
+}
+
+.vi-semantic-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: var(--font-weight-medium);
+    color: var(--color-cloud);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+}
+
+.vi-semantic-sub {
+    font-family: var(--font-literary);
+    font-style: italic;
+    font-size: 11px;
+}
+
+.vi-semantic-row {
+    padding: var(--space-xs) 0;
+    transition: opacity var(--transition-normal) var(--ease-default);
+}
+
+.vi-semantic-row+.vi-semantic-row {
+    margin-top: var(--space-xs);
+    padding-top: var(--space-sm);
+    border-top: 1px dashed rgba(42, 42, 48, 0.6);
+}
+
+.vi-semantic-row--disabled {
+    opacity: 0.45;
+}
+
+.vi-semantic-row--disabled .toggle {
+    cursor: not-allowed;
+}
+
+.vi-semantic-toggle {
     display: flex;
     align-items: center;
     gap: var(--space-sm);
 }
 
-.vi-livingtext-label {
+.vi-semantic-label {
     font-size: 12px;
     font-weight: var(--font-weight-medium);
     text-transform: uppercase;
@@ -437,17 +492,10 @@
     color: var(--color-cloud);
 }
 
-.vi-livingtext-hint {
+.vi-semantic-hint {
     font-size: 11px;
     line-height: 1.5;
     margin-top: var(--space-xs);
-}
-
-/* Responsive interlocutions toggle (inside the Rhythmic sliders block) */
-.vi-responsive {
-    margin-top: var(--space-md);
-    padding-top: var(--space-md);
-    border-top: 1px solid var(--color-shadow);
 }
 
 /* ═══════════════════════════════════════════════════════════

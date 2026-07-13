@@ -115,6 +115,30 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         container.remove();
     });
 
+    it('Living Response section: Responsive is disabled outside Rhythmic mode but keeps its state', () => {
+        const { panel, container } = makePanel({
+            visualMode: 'attractor',
+            interlocution: { frequency: 0.3, duration: 80, sourced: [], procedural: [], responsive: true }
+        });
+
+        const responsive = container.querySelector('[data-responsive]');
+        expect(responsive.disabled).toBe(true);
+        expect(responsive.checked).toBe(true); // stored preference preserved, visibly
+
+        // Living Text stays operable in any mode
+        expect(container.querySelector('[data-livingtext]').disabled).toBe(false);
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('Living Response section: Responsive is operable in Rhythmic mode', () => {
+        const { panel, container } = makePanel({ ...SOL_DAWN_CONFIG });
+        expect(container.querySelector('[data-responsive]').disabled).toBe(false);
+        panel.destroy();
+        container.remove();
+    });
+
     it('setConfig merges a preset into an already-constructed panel', () => {
         const { panel, container } = makePanel({});
         panel.setConfig(SOL_DAWN_CONFIG);

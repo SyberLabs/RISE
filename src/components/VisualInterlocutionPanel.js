@@ -603,9 +603,9 @@ export class VisualInterlocutionPanel {
                         </div>
                     </div>
                     
-                    <!-- Sliders (only for Visual Interlocution mode) -->
-                    <!-- Interlocution Sliders -->
+                    <!-- Rhythm: temporal parameters of the flashes (interlocution only) -->
                     <div class="vi-sliders" ${mode === 'interlocution' ? '' : 'hidden'}>
+                        <div class="vi-group-label">Rhythm</div>
                         <div class="vi-slider-row">
                             <label class="vi-slider-label">Frequency</label>
                             <input type="range" class="slider" min="0" max="100"
@@ -618,19 +618,6 @@ export class VisualInterlocutionPanel {
                                 value="${this.config.interlocution.duration}" data-slider="duration">
                             <span class="vi-slider-value" data-value="duration">${this.config.interlocution.duration}ms</span>
                         </div>
-
-                        <div class="vi-responsive">
-                            <label class="toggle vi-livingtext-toggle">
-                                <input type="checkbox" data-responsive ${this.config.interlocution.responsive ? 'checked' : ''}>
-                                <span class="toggle-switch"></span>
-                                <span class="vi-livingtext-label">Responsive</span>
-                            </label>
-                            <p class="vi-livingtext-hint text-mist">
-                                Flashes follow the text — passage intensity scales their frequency
-                                and sharpness; its mood selects the pattern. Frequency never exceeds
-                                the level set above.
-                            </p>
-                        </div>
                     </div>
 
                     <!-- Safety Warning (Interlocution only) -->
@@ -639,17 +626,43 @@ export class VisualInterlocutionPanel {
                         <p class="vi-warning-text">Visual interrupts may affect photosensitive individuals.</p>
                     </div>
 
-                    <!-- LIVING TEXT: semantic hue/glow on the text stream (any mode) -->
-                    <div class="vi-livingtext">
-                        <label class="toggle vi-livingtext-toggle">
-                            <input type="checkbox" data-livingtext ${this.config.livingText.enabled ? 'checked' : ''}>
-                            <span class="toggle-switch"></span>
-                            <span class="vi-livingtext-label">Living Text</span>
-                        </label>
-                        <p class="vi-livingtext-hint text-mist">
-                            The hue and glow of the text stream drift with the emotional
-                            valence of the passage. Works alongside any visual mode.
-                        </p>
+                    <!-- LIVING RESPONSE: the semantic conductor's subscribers.
+                         A persistent section, independent of the mode above —
+                         these controls decide whether the text drives the visuals. -->
+                    <div class="vi-semantic">
+                        <div class="vi-semantic-header">
+                            <span class="vi-semantic-title">Living Response</span>
+                            <span class="vi-semantic-sub text-mist">The text conducts the visuals</span>
+                        </div>
+
+                        <div class="vi-semantic-row">
+                            <label class="toggle vi-semantic-toggle">
+                                <input type="checkbox" data-livingtext ${this.config.livingText.enabled ? 'checked' : ''}>
+                                <span class="toggle-switch"></span>
+                                <span class="vi-semantic-label">Living Text</span>
+                            </label>
+                            <p class="vi-semantic-hint text-mist">
+                                Hue and glow of the text stream drift with the emotional
+                                valence of the passage. Works in any visual mode.
+                            </p>
+                        </div>
+
+                        <div class="vi-semantic-row ${mode === 'interlocution' ? '' : 'vi-semantic-row--disabled'}">
+                            <label class="toggle vi-semantic-toggle">
+                                <input type="checkbox" data-responsive
+                                    ${this.config.interlocution.responsive ? 'checked' : ''}
+                                    ${mode === 'interlocution' ? '' : 'disabled'}>
+                                <span class="toggle-switch"></span>
+                                <span class="vi-semantic-label">Responsive Flashes</span>
+                            </label>
+                            <p class="vi-semantic-hint text-mist">
+                                ${mode === 'interlocution'
+                                    ? `Passage intensity scales flash frequency and sharpness; its mood
+                                       selects the pattern and its palette. Frequency never exceeds the
+                                       Rhythm setting above.`
+                                    : 'Available in Rhythmic mode — flashes follow the mood and intensity of the text.'}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
