@@ -370,9 +370,12 @@ class App {
                         if (interlocution.responsive && session.atoms?.length) {
                             const { scoreAtoms, sampleTrackSignals } = await import('./core/conductor.js');
                             session.semanticTrack = session.semanticTrack || scoreAtoms(session.atoms);
-                            semanticSignals = sampleTrackSignals(session.semanticTrack, 10);
+                            // Flame seeding drives palettes/structure — a mood behavior
+                            if (interlocution.responsiveMood ?? true) {
+                                semanticSignals = sampleTrackSignals(session.semanticTrack, 10);
+                            }
                             console.log('[R.I.S.E.] Responsive interlocutions: track scored,',
-                                semanticSignals.length, 'flame seed signals sampled');
+                                semanticSignals ? `${semanticSignals.length} flame seed signals sampled` : 'mood off (no flame seeding)');
                         }
 
                             visualCortex.updateConfig({

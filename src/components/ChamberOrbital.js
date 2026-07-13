@@ -57,7 +57,9 @@ export class ChamberOrbital {
           frequency: 0.2,
           duration: 80,
           kleePreset: 'random',
-          responsive: false
+          responsive: false,
+          responsiveMood: true,
+          responsiveRhythm: true
         }
       },
 

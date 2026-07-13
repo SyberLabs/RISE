@@ -218,7 +218,11 @@ export class Player {
             const track = this.sessionState.session.semanticTrack;
             if (interlocution.responsive && Array.isArray(track)) {
                 signal = track[this.sessionState.currentIndex] || null;
-                frequency = responsiveFrequency(frequency, signal);
+                // Frequency scaling is the rhythm intent — gated independently
+                // of mood so a deliberately tuned pulse can stay fixed
+                if (interlocution.responsiveRhythm ?? true) {
+                    frequency = responsiveFrequency(frequency, signal);
+                }
             }
 
             if (Math.random() < frequency) {

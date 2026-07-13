@@ -338,15 +338,21 @@ export class Chamber {
       // a signal this is the raw platform path.
       this.player.setInterlocutionHandler(async (duration, signal) => {
         if (signal) {
+          const interlocution = this.session?.visualConfig?.interlocution || {};
+          const mood = interlocution.responsiveMood ?? true;
+          const rhythm = interlocution.responsiveRhythm ?? true;
           const plan = planInterlocution(signal, {
             duration,
             activeTypes: visualCortex.config.activeTypes,
-            kleePreset: this.session?.visualConfig?.interlocution?.kleePreset || 'random'
+            kleePreset: interlocution.kleePreset || 'random',
+            mood,
+            rhythm
           });
           if (plan.kleePreset) {
             visualCortex.updateConfig({ kleePreset: plan.kleePreset });
           }
-          await visualCortex.flash(plan.duration, plan.type || undefined, signal);
+          // The flame queue's signal-matching is a mood behavior
+          await visualCortex.flash(plan.duration, plan.type || undefined, mood ? signal : undefined);
         } else {
           await visualCortex.flash(duration);
         }

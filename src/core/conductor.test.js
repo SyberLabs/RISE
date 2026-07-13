@@ -190,6 +190,34 @@ describe('planInterlocution', () => {
         const b = planInterlocution({ valence: 0.3, arousal: 0.6 }, { activeTypes: ['klee', 'turrell', 'fractal'] }, rng);
         expect(a).toEqual(b);
     });
+
+    it('mood off: no type selection, no preset override — timing still responds', () => {
+        const plan = planInterlocution(
+            { valence: -0.8, arousal: 0.9 },
+            { duration: 80, activeTypes: ['klee', 'fractal'], kleePreset: 'random', mood: false, rhythm: true }
+        );
+        expect(plan.type).toBeNull();          // cortex falls back to its raw random pick
+        expect(plan.kleePreset).toBeNull();    // 'random' stays truly random
+        expect(plan.duration).toBeLessThan(80); // rhythm intent still sharpens
+    });
+
+    it('rhythm off: duration untouched — imagery still responds', () => {
+        const plan = planInterlocution(
+            { valence: -0.8, arousal: 0.9 },
+            { duration: 80, activeTypes: ['klee'], kleePreset: 'random', mood: true, rhythm: false }
+        );
+        expect(plan.duration).toBe(80);
+        expect(plan.type).toBe('klee');
+        expect(plan.kleePreset).toBe('volatile');
+    });
+
+    it('both intents off: plan is inert (raw platform equivalent)', () => {
+        const plan = planInterlocution(
+            { valence: 0.9, arousal: 0.9 },
+            { duration: 120, activeTypes: ['klee', 'fractal'], kleePreset: 'random', mood: false, rhythm: false }
+        );
+        expect(plan).toEqual({ type: null, duration: 120, kleePreset: null });
+    });
 });
 
 describe('planFlame', () => {

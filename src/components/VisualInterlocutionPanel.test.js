@@ -139,6 +139,46 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         container.remove();
     });
 
+    it('mood/rhythm sub-toggles appear only when Responsive is on, defaulting enabled', () => {
+        const off = makePanel({ ...SOL_DAWN_CONFIG });
+        expect(off.container.querySelector('[data-responsive-mood]')).toBeNull();
+        off.panel.destroy();
+        off.container.remove();
+
+        const on = makePanel({
+            visualMode: 'interlocution',
+            interlocution: { frequency: 0.2, duration: 80, sourced: [], procedural: ['klee'], responsive: true }
+        });
+        const mood = on.container.querySelector('[data-responsive-mood]');
+        const rhythm = on.container.querySelector('[data-responsive-rhythm]');
+        expect(mood).not.toBeNull();
+        expect(rhythm).not.toBeNull();
+        expect(mood.checked).toBe(true);
+        expect(rhythm.checked).toBe(true);
+        on.panel.destroy();
+        on.container.remove();
+    });
+
+    it('toggling a sub-intent emits the updated config', () => {
+        let emitted = null;
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: { frequency: 0.2, duration: 80, sourced: [], procedural: ['klee'], responsive: true },
+            onChange: (config) => { emitted = config; }
+        });
+
+        const mood = container.querySelector('[data-responsive-mood]');
+        mood.checked = false;
+        mood.dispatchEvent(new Event('change'));
+
+        expect(emitted.interlocution.responsiveMood).toBe(false);
+        expect(emitted.interlocution.responsiveRhythm).toBe(true);
+        expect(emitted.interlocution.responsive).toBe(true);
+
+        panel.destroy();
+        container.remove();
+    });
+
     it('setConfig merges a preset into an already-constructed panel', () => {
         const { panel, container } = makePanel({});
         panel.setConfig(SOL_DAWN_CONFIG);

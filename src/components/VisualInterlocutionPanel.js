@@ -58,9 +58,12 @@ export class VisualInterlocutionPanel {
                 frequency: options.interlocution?.frequency ?? options.frequency ?? 0.2,
                 duration: options.interlocution?.duration ?? options.duration ?? 80,
                 kleePreset: options.interlocution?.kleePreset ?? options.kleePreset ?? 'random',
-                // Responsive: the semantic conductor scales flash frequency
-                // with passage arousal and picks generator/preset by mood
-                responsive: options.interlocution?.responsive ?? false
+                // Responsive: the semantic conductor drives the flashes.
+                // Two independently gated intents beneath the master switch:
+                // mood (imagery character) and rhythm (density/sharpness).
+                responsive: options.interlocution?.responsive ?? false,
+                responsiveMood: options.interlocution?.responsiveMood ?? true,
+                responsiveRhythm: options.interlocution?.responsiveRhythm ?? true
             },
             
             // Session-local visuals
@@ -657,11 +660,38 @@ export class VisualInterlocutionPanel {
                             </label>
                             <p class="vi-semantic-hint text-mist">
                                 ${mode === 'interlocution'
-                                    ? `Passage intensity scales flash frequency and sharpness; its mood
-                                       selects the pattern and its palette. Frequency never exceeds the
-                                       Rhythm setting above.`
+                                    ? 'The text conducts the flashes. Your settings above are the envelope — responsiveness only moves within them.'
                                     : 'Available in Rhythmic mode — flashes follow the mood and intensity of the text.'}
                             </p>
+
+                            ${mode === 'interlocution' && this.config.interlocution.responsive ? `
+                                <div class="vi-semantic-subrows">
+                                    <div class="vi-semantic-subrow">
+                                        <label class="toggle vi-semantic-toggle">
+                                            <input type="checkbox" data-responsive-mood
+                                                ${this.config.interlocution.responsiveMood ? 'checked' : ''}>
+                                            <span class="toggle-switch"></span>
+                                            <span class="vi-semantic-sublabel">Mood → Imagery</span>
+                                        </label>
+                                        <p class="vi-semantic-subhint text-mist">
+                                            Which pattern fires, its preset, and its palette follow the
+                                            feeling of the passage — only among the patterns you've selected.
+                                        </p>
+                                    </div>
+                                    <div class="vi-semantic-subrow">
+                                        <label class="toggle vi-semantic-toggle">
+                                            <input type="checkbox" data-responsive-rhythm
+                                                ${this.config.interlocution.responsiveRhythm ? 'checked' : ''}>
+                                            <span class="toggle-switch"></span>
+                                            <span class="vi-semantic-sublabel">Intensity → Rhythm</span>
+                                        </label>
+                                        <p class="vi-semantic-subhint text-mist">
+                                            Flash density and sharpness follow the passage's energy —
+                                            never exceeding the frequency set above.
+                                        </p>
+                                    </div>
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
@@ -801,12 +831,31 @@ export class VisualInterlocutionPanel {
             this.emitChange();
         });
 
-        // ─── Responsive Interlocutions Handler ───
+        // ─── Responsive Interlocutions Handlers ───
         this.container.querySelector('[data-responsive]')?.addEventListener('change', (e) => {
             if (window.rise?.audioEngine) {
                 window.rise.audioEngine.playHiss();
             }
             this.config.interlocution.responsive = e.target.checked;
+            this.emitChange();
+            // Re-render to reveal/hide the mood/rhythm sub-toggles
+            this.render();
+            this.attachEvents();
+        });
+
+        this.container.querySelector('[data-responsive-mood]')?.addEventListener('change', (e) => {
+            if (window.rise?.audioEngine) {
+                window.rise.audioEngine.playHiss();
+            }
+            this.config.interlocution.responsiveMood = e.target.checked;
+            this.emitChange();
+        });
+
+        this.container.querySelector('[data-responsive-rhythm]')?.addEventListener('change', (e) => {
+            if (window.rise?.audioEngine) {
+                window.rise.audioEngine.playHiss();
+            }
+            this.config.interlocution.responsiveRhythm = e.target.checked;
             this.emitChange();
         });
 

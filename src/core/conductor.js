@@ -361,12 +361,19 @@ export function responsiveFrequency(baseFrequency, signal) {
 /**
  * Choose flash parameters for one interlocution given the current signal.
  *
+ * Two independently gated intents (both default on):
+ * - mood:   what the flash looks like — generator choice + Klee preset
+ * - rhythm: how it lands in time — duration sharpening (frequency is
+ *           gated separately in the player)
+ *
  * @param {Object} signal - { valence, arousal } for the current atom
  * @param {Object} options
  * @param {number}   options.duration   - user's configured flash duration (ms)
  * @param {string[]} options.activeTypes - types the user enabled (never widened)
  * @param {string}   options.kleePreset - user's preset; only 'random' is
  *                                        replaced by a semantic choice
+ * @param {boolean}  [options.mood]     - imagery follows the text (default true)
+ * @param {boolean}  [options.rhythm]   - timing follows the text (default true)
  * @param {Function} [rng] - random source, injectable for tests
  * @returns {{ type: string|null, duration: number, kleePreset: string|null }}
  */
@@ -374,10 +381,12 @@ export function planInterlocution(signal, options = {}, rng = Math.random) {
     const { valence = 0, arousal = 0.3 } = signal || {};
     const duration = options.duration ?? 80;
     const activeTypes = options.activeTypes || [];
+    const mood = options.mood ?? true;
+    const rhythm = options.rhythm ?? true;
 
-    // Weighted choice among the enabled types
+    // Weighted choice among the enabled types (mood intent)
     let type = null;
-    if (activeTypes.length > 0) {
+    if (mood && activeTypes.length > 0) {
         const weights = activeTypes.map(t => {
             const affinity = TYPE_AFFINITY[t];
             return affinity ? Math.max(0.05, affinity(valence, arousal)) : 1.0;
@@ -391,17 +400,20 @@ export function planInterlocution(signal, options = {}, rng = Math.random) {
         }
     }
 
-    // Klee preset by signal quadrant — only when the user left it on 'random'
+    // Klee preset by signal quadrant (mood intent) — only when the user
+    // left it on 'random'; an explicit preset is a veto
     let kleePreset = null;
-    if ((options.kleePreset || 'random') === 'random') {
+    if (mood && (options.kleePreset || 'random') === 'random') {
         if (arousal > 0.55) kleePreset = valence >= 0.25 ? 'mythic' : 'volatile';
         else if (valence >= 0.25) kleePreset = 'corporeal';
         else if (valence <= -0.25) kleePreset = 'structural';
         else kleePreset = 'centered';
     }
 
-    // Sharper flashes for intense passages, softer for calm ones
-    const scaledDuration = clamp(Math.round(duration * (1.25 - 0.5 * clamp(arousal, 0, 1))), 16, 200);
+    // Sharper flashes for intense passages, softer for calm ones (rhythm intent)
+    const scaledDuration = rhythm
+        ? clamp(Math.round(duration * (1.25 - 0.5 * clamp(arousal, 0, 1))), 16, 200)
+        : duration;
 
     return { type, duration: scaledDuration, kleePreset };
 }
