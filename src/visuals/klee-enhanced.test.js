@@ -44,19 +44,44 @@ describe('KleeEngine curated presets', () => {
         });
     });
 
-    it('recreates the canonical Gravitational Pull orbital topology', () => {
+    it('recreates the canonical Gravitational orbital topology (parametric, capture guaranteed)', () => {
         const engine = new KleeEngine({ seed: 'gravity-topology' });
         engine.generateRandom('gravitational', { seed: 'gravity-topology' });
-        expect(engine.seeds.length).toBeGreaterThanOrEqual(3);
+        expect(engine.seeds.length).toBeGreaterThanOrEqual(4);
         expect(engine.seeds.length).toBeLessThanOrEqual(5);
         for (const seed of engine.seeds) {
-            expect(seed.params.gravity).toBeGreaterThanOrEqual(0.055);
-            expect(seed.params.gravity).toBeLessThanOrEqual(0.1);
-            expect(seed.params.stopRadius).toBeGreaterThan(0);
+            // Constructed geometry, not tuned steering feedback
+            expect(seed.params.decay).toBeLessThan(1);
+            expect(seed.params.decay).toBeGreaterThan(0.95);
+            expect(seed.params.angularStep).toBeGreaterThan(0);
+            expect(seed.params.coilRadius).toBeGreaterThan(0);
+            expect(Math.abs(seed.params.direction)).toBe(1);
             expect(seed.branchProbability).toBe(0);
-            expect(seed.variations.gravitational + seed.variations.flowing).toBeCloseTo(1);
+            expect(seed.variations.orbital + seed.variations.flowing).toBeCloseTo(1);
         }
-        expect(engine.lines.length).toBeLessThanOrEqual(20);
+        // All orbits share one attractor
+        const centers = new Set(engine.seeds.map(s => `${s.params.centerX},${s.params.centerY}`));
+        expect(centers.size).toBe(1);
+        expect(engine.lines.length).toBeLessThanOrEqual(8);
+    });
+
+    it('the gravitational protagonist winds into its terminal coil (the mass renders itself)', () => {
+        const engine = new KleeEngine({ seed: 'gravity-coil' });
+        engine.generateRandom('gravitational', { seed: 'gravity-coil', detectForms: false });
+
+        const protagonist = engine.seeds[0];
+        const line = engine.lines[0];
+        expect(line.points.length).toBeGreaterThan(100);
+
+        const { centerX, centerY, coilRadius } = protagonist.params;
+        const endRadii = line.points.slice(-10).map(([x, y]) => Math.hypot(x - centerX, y - centerY));
+        // Capture by construction: the line ends circling at ~coil radius
+        for (const r of endRadii) {
+            expect(r).toBeLessThanOrEqual(coilRadius * 1.6);
+        }
+        // And it decayed monotonically-ish: start radius far exceeds end radius
+        const [sx, sy] = line.points[0];
+        expect(Math.hypot(sx - centerX, sy - centerY)).toBeGreaterThan(coilRadius * 5);
     });
 
     it('recreates the canonical Twittering Machine five-line topology', () => {
@@ -88,11 +113,21 @@ describe('KleeEngine curated presets', () => {
             'gravitational-pull': 'gravitational',
             wireframe: 'architectural'
         };
+        // Each curated preset's lead variation ('gravitational' leads with
+        // the parametric 'orbital' walk)
+        const leadVariation = {
+            harmonic: 'harmonic',
+            architectural: 'architectural',
+            twittering: 'twittering',
+            chaotic: 'chaotic',
+            gravitational: 'orbital'
+        };
         for (const [legacy, target] of Object.entries(aliased)) {
             const engine = new KleeEngine();
             engine.generateRandom(legacy);
             expect(engine.seeds.length).toBeGreaterThan(0);
-            expect(engine.seeds.every(seed => target in seed.variations)).toBe(true);
+            expect(engine.preset).toBe(target);
+            expect(engine.seeds.every(seed => leadVariation[target] in seed.variations)).toBe(true);
         }
     });
 
@@ -115,11 +150,11 @@ describe('KleeEngine curated presets', () => {
     it('gives Gravitational stochastic siblings while retaining its orbital identity', () => {
         const engine = new KleeEngine({ seed: 'sequence' });
         engine.generateRandom('gravitational');
-        const first = engine.seeds.map(({ x, y, params }) => [x, y, params.gravity]);
+        const first = engine.seeds.map(({ x, y, params }) => [x, y, params.angularStep]);
         engine.generateRandom('gravitational');
-        const second = engine.seeds.map(({ x, y, params }) => [x, y, params.gravity]);
+        const second = engine.seeds.map(({ x, y, params }) => [x, y, params.angularStep]);
         expect(second).not.toEqual(first);
-        expect(engine.seeds.length).toBeGreaterThanOrEqual(3);
+        expect(engine.seeds.length).toBeGreaterThanOrEqual(4);
         expect(engine.seeds.length).toBeLessThanOrEqual(5);
     });
 

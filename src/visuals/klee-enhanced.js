@@ -40,7 +40,7 @@ export const KLEE_PRESET_PROFILES = Object.freeze({
     variations: { gravitational: 0.8, flowing: 0.2 },
     palette: kleeStrokePalette('gravitational'),
     style: { lineWidth: 0.92, alpha: 0.57, glow: 4.2, ghostAlpha: 0.18, texture: 0.02 },
-    generation: { steps: 180, minLines: 2, maxLines: 2, maxTotalLines: 20, branchProbability: 0, maxBranches: 0, densityStop: 7 }
+    generation: { steps: 320, minLines: 1, maxLines: 1, maxTotalLines: 8, branchProbability: 0, maxBranches: 0, densityStop: 7 }
   },
   twittering: {
     variations: { twittering: 0.7, trembling: 0.3 },
@@ -582,6 +582,15 @@ class KleeEngine {
     return [x + r * Math.cos(theta), y + r * Math.sin(theta), theta];
   }
 
+  // Shortest signed angular difference — steering across the atan2 ±π
+  // seam without this makes lines swerve the long way around
+  _angleDelta(target, from) {
+    let delta = (target - from) % (Math.PI * 2);
+    if (delta > Math.PI) delta -= Math.PI * 2;
+    if (delta < -Math.PI) delta += Math.PI * 2;
+    return delta;
+  }
+
   _varGravitational(x, y, theta, step, total, params) {
     const r = params.stepLength || this.stepLength;
     const centerX = params.centerX || this.width / 2;
@@ -591,9 +600,43 @@ class KleeEngine {
     const dx = centerX - x;
     const dy = centerY - y;
     const angleToCenter = Math.atan2(dy, dx);
-    const newTheta = theta + (angleToCenter - theta) * gravity;
+    const newTheta = theta + this._angleDelta(angleToCenter, theta) * gravity;
 
     return [x + r * Math.cos(newTheta), y + r * Math.sin(newTheta), newTheta];
+  }
+
+  /**
+   * Parametric orbit: polar stepping with radial decay. Capture is
+   * guaranteed by construction (no steering feedback, no tuned bands),
+   * so it is stable under semantic modulation and any canvas size.
+   * When the orbit reaches its coil radius it holds and keeps circling —
+   * the line winds into a dense knot, rendering the mass itself.
+   */
+  _varOrbital(x, y, theta, step, total, params) {
+    const cx = params.centerX ?? this.width / 2;
+    const cy = params.centerY ?? this.height / 2;
+    const dir = params.direction ?? 1;
+    const angularStep = params.angularStep ?? 0.05;
+    const decay = params.decay ?? 0.988;
+    const coilRadius = params.coilRadius ?? 12;
+    const wobbleAmp = params.wobble ?? 0.04;
+
+    const dx = x - cx;
+    const dy = y - cy;
+    let radius = Math.hypot(dx, dy);
+    let angle = radius > 0.001 ? Math.atan2(dy, dx) : this.random() * Math.PI * 2;
+
+    // Gentle radial breathing so the orbit reads drawn, not plotted
+    const wobble = 1 + this.multiOctaveNoise2D(step * 0.02, radius * 0.01, 2) * wobbleAmp;
+
+    angle += dir * angularStep;
+    radius = Math.max(coilRadius, radius * decay) * (radius > coilRadius * 1.5 ? wobble : 1);
+
+    return [
+      cx + radius * Math.cos(angle),
+      cy + radius * Math.sin(angle),
+      angle + dir * Math.PI / 2 // tangent, for blended variation steps
+    ];
   }
 
   _varRepelling(x, y, theta, step, total, params) {
@@ -605,7 +648,7 @@ class KleeEngine {
     const dx = x - centerX;
     const dy = y - centerY;
     const angleFromCenter = Math.atan2(dy, dx);
-    const newTheta = theta + (angleFromCenter - theta) * repulsion;
+    const newTheta = theta + this._angleDelta(angleFromCenter, theta) * repulsion;
 
     return [x + r * Math.cos(newTheta), y + r * Math.sin(newTheta), newTheta];
   }
@@ -768,6 +811,7 @@ class KleeEngine {
       looping: this._varLooping,
       angular: this._varAngular,
       gravitational: this._varGravitational,
+      orbital: this._varOrbital,
       repelling: this._varRepelling,
       trembling: this._varTrembling,
       branching: this._varBranching,
@@ -1289,28 +1333,53 @@ class KleeEngine {
         symmetry: 6
       });
     } else if (resolved === 'gravitational') {
-      const seedCount = 3 + Math.floor(this.random() * 3);
-      const radius = 190 * scale;
+      // Parametric orbital composition. The old recipe steered lines toward
+      // an attractor with tuned feedback (gravity 0.055–0.1) — a knife-edge
+      // regime that broke under semantic modulation, canvas scale, and an
+      // unwrapped-angle seam. Orbits are now constructed geometry:
+      // - the PROTAGONIST sweeps ~2 turns and winds fully into a tight
+      //   terminal coil, rendering the mass as a dense luminous knot;
+      // - CHORUS arcs decay onto wider hold-radii, layering soft shells
+      //   around the core, with occasional retrograde orbits for tension.
+      const dir0 = this.random() < 0.5 ? -1 : 1;
+      // Attractor sits off-center on a thirds point for composition
+      const attractorX = this.width * (this.random() < 0.5 ? 0.38 : 0.62)
+        + (this.random() - 0.5) * 30 * scale;
+      const attractorY = this.height * (this.random() < 0.5 ? 0.42 : 0.58)
+        + (this.random() - 0.5) * 30 * scale;
+      const coreCoil = (6 + this.random() * 5) * scale;
+      const seedCount = 4 + Math.floor(this.random() * 2);
       const phase = this.random() * Math.PI * 2;
-      const attractorX = centerX + (this.random() - 0.5) * this.width * 0.1;
-      const attractorY = centerY + (this.random() - 0.5) * this.height * 0.1;
+
       for (let i = 0; i < seedCount; i++) {
-        const angle = phase + (i / seedCount) * Math.PI * 2 + (this.random() - 0.5) * 0.55;
-        const seedRadius = radius * (0.72 + this.random() * 0.5);
-        const gravityWeight = 0.72 + this.random() * 0.16;
-        const targetX = attractorX + (this.random() - 0.5) * 28 * scale;
-        const targetY = attractorY + (this.random() - 0.5) * 28 * scale;
+        const isProtagonist = i === 0;
+        const angle = phase + (i / seedCount) * Math.PI * 2 + (this.random() - 0.5) * 0.6;
+        const startRadius = (isProtagonist ? 215 : 120 + this.random() * 130) * scale;
+        const dir = isProtagonist || this.random() > 0.18 ? dir0 : -dir0;
         addPresetSeed({
-          x: centerX + Math.cos(angle) * seedRadius * (0.85 + this.random() * 0.3),
-          y: centerY + Math.sin(angle) * seedRadius * (0.65 + this.random() * 0.45),
-          variations: { gravitational: gravityWeight, flowing: 1 - gravityWeight },
-          colorIndex: i / seedCount,
+          x: attractorX + Math.cos(angle) * startRadius,
+          y: attractorY + Math.sin(angle) * startRadius,
+          angle: angle + dir * Math.PI / 2,
+          variations: isProtagonist
+            ? { orbital: 0.92, flowing: 0.08 }
+            : { orbital: 0.85, flowing: 0.15 },
+          colorIndex: isProtagonist ? 0.9 : i / seedCount,
           params: {
-            gravity: 0.055 + this.random() * 0.045,
-            flow: (this.random() < 0.5 ? -1 : 1) * (0.015 + this.random() * 0.03),
-            centerX: targetX,
-            centerY: targetY,
-            stopRadius: (18 + this.random() * 18) * scale
+            centerX: attractorX,
+            centerY: attractorY,
+            direction: dir,
+            // Decay strong enough that capture completes even at the low
+            // end of the step-count variance (~240 effective decay steps),
+            // leaving the remainder to wind the terminal coil dense.
+            angularStep: isProtagonist ? 0.052 : 0.06 + this.random() * 0.05,
+            decay: isProtagonist ? 0.982 : 0.972 + this.random() * 0.007,
+            coilRadius: isProtagonist ? coreCoil : coreCoil * (2.6 + this.random() * 1.8),
+            wobble: 0.03 + this.random() * 0.03,
+            // The terminal coil deliberately concentrates points in one
+            // cell — exempt orbits from the density brake so the knot
+            // completes (the dense cell also gives marching squares a
+            // soft form-fill at the core: the mass gets a glow for free)
+            densityStop: 0
           }
         });
       }
