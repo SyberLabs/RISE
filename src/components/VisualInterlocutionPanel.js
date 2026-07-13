@@ -48,12 +48,15 @@ export class VisualInterlocutionPanel {
                 enabled: false
             },
 
+            // Callers pass visualConfig spread, so interlocution settings
+            // arrive nested under options.interlocution; flattened keys are
+            // honored as a fallback for legacy call sites.
             interlocution: {
-                procedural: options.procedural || [],
-                sourced: options.sourced || [],
-                frequency: options.frequency ?? 0.2,
-                duration: options.duration ?? 80,
-                kleePreset: options.kleePreset || 'random',
+                procedural: options.interlocution?.procedural ?? options.procedural ?? [],
+                sourced: options.interlocution?.sourced ?? options.sourced ?? [],
+                frequency: options.interlocution?.frequency ?? options.frequency ?? 0.2,
+                duration: options.interlocution?.duration ?? options.duration ?? 80,
+                kleePreset: options.interlocution?.kleePreset ?? options.kleePreset ?? 'random',
                 // Responsive: the semantic conductor scales flash frequency
                 // with passage arousal and picks generator/preset by mood
                 responsive: options.interlocution?.responsive ?? false
@@ -332,18 +335,11 @@ export class VisualInterlocutionPanel {
             { id: 'void', name: 'Void', icon: '●', dynamic: false, description: 'Pure stillness' }
         ];
 
-        // Curated Wikimedia categories (Universal Diagrams) - 3x3 grid
-        const diagramCategories = [
-            { id: 'haeckel', name: 'Haeckel Biology' },
-            { id: 'botany', name: 'Botanical Flora' },
-            { id: 'anatomy', name: 'Historic Anatomy' },
-            { id: 'astronomy', name: 'Celestial Mechanics' },
-            { id: 'geometry', name: 'Geometric Proofs' },
-            { id: 'fractals', name: 'Fractal Patterns' },
-            { id: 'renaissance', name: 'Renaissance Masterpieces' },
-            { id: 'romantic', name: 'Romantic Landscapes' },
-            { id: 'landscapes', name: 'Natural Landscapes' }
-        ];
+        // Universal Diagrams — generated from the Wikimedia provider registry
+        // so the panel always shows exactly the categories that exist
+        // (presets like SOL's 'solar' stay visible and modifiable).
+        const diagramCategories = Object.entries(WIKIMEDIA_CATEGORIES)
+            .map(([id, cat]) => ({ id, name: cat.name }));
 
         // Metropolitan Museum of Art — verified public domain departments
         const metCategories = [
