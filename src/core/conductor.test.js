@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scoreChunk, scoreAtoms, summarizeTrack, responsiveFrequency, planInterlocution } from './conductor.js';
+import { scoreChunk, scoreAtoms, summarizeTrack, responsiveFrequency, planInterlocution, planFlame, sampleTrackSignals } from './conductor.js';
 
 const mkAtoms = (...contents) => contents.map(c => ({ content: c, duration: 300 }));
 
@@ -189,6 +189,74 @@ describe('planInterlocution', () => {
         const a = planInterlocution({ valence: 0.3, arousal: 0.6 }, { activeTypes: ['klee', 'turrell', 'fractal'] }, rng);
         const b = planInterlocution({ valence: 0.3, arousal: 0.6 }, { activeTypes: ['klee', 'turrell', 'fractal'] }, rng);
         expect(a).toEqual(b);
+    });
+});
+
+describe('planFlame', () => {
+    const rng = () => 0.5;
+
+    it('builds a full 256-entry palette with valid channels', () => {
+        const plan = planFlame({ valence: 0.5, arousal: 0.5 }, rng);
+        expect(plan.palette).toHaveLength(256);
+        for (const [r, g, b] of plan.palette) {
+            for (const c of [r, g, b]) {
+                expect(c).toBeGreaterThanOrEqual(0);
+                expect(c).toBeLessThanOrEqual(255);
+            }
+        }
+    });
+
+    it('selects palettes by signal quadrant', () => {
+        expect(planFlame({ valence: 0.6, arousal: 0.2 }, rng).paletteName).toBe('emberDawn');
+        expect(planFlame({ valence: 0.6, arousal: 0.8 }, rng).paletteName).toBe('solarFlare');
+        expect(planFlame({ valence: -0.6, arousal: 0.2 }, rng).paletteName).toBe('midnightWater');
+        expect(planFlame({ valence: -0.6, arousal: 0.8 }, rng).paletteName).toBe('stormViolet');
+        expect(planFlame({ valence: 0, arousal: 0.2 }, rng).paletteName).toBe('jadeVeil');
+        expect(planFlame({ valence: 0, arousal: 0.8 }, rng).paletteName).toBe('whiteHeat');
+    });
+
+    it('warm palettes skew red, cool palettes skew blue', () => {
+        const warm = planFlame({ valence: 0.7, arousal: 0.7 }, rng).palette[200];
+        const cool = planFlame({ valence: -0.7, arousal: 0.7 }, rng).palette[200];
+        expect(warm[0]).toBeGreaterThan(warm[2]); // r > b
+        expect(cool[2]).toBeGreaterThan(cool[0]); // b > r
+    });
+
+    it('scales structure and tone with arousal', () => {
+        const calm = planFlame({ valence: 0, arousal: 0.1 }, rng);
+        const intense = planFlame({ valence: 0, arousal: 0.9 }, rng);
+        expect(intense.numTransforms).toBeGreaterThan(calm.numTransforms);
+        expect(intense.tone.brightness).toBeGreaterThan(calm.tone.brightness);
+        expect(intense.tone.gamma).toBeLessThan(calm.tone.gamma);
+        expect(calm.variationPool).toContain('sinusoidal');
+        expect(intense.variationPool).toContain('julia');
+        expect(intense.symmetryChance).toBe(0);
+    });
+
+    it('mixes valence accents into the variation pool', () => {
+        expect(planFlame({ valence: 0.6, arousal: 0.45 }, rng).variationPool).toContain('heart');
+        expect(planFlame({ valence: -0.6, arousal: 0.45 }, rng).variationPool).toContain('hyperbolic');
+    });
+
+    it('is deterministic with an injected rng', () => {
+        expect(planFlame({ valence: 0.3, arousal: 0.6 }, rng)).toEqual(planFlame({ valence: 0.3, arousal: 0.6 }, rng));
+    });
+});
+
+describe('sampleTrackSignals', () => {
+    it('samples evenly across the track including endpoints', () => {
+        const track = Array.from({ length: 100 }, (_, i) => ({ valence: i / 100, arousal: 0.5 }));
+        const samples = sampleTrackSignals(track, 5);
+        expect(samples).toHaveLength(5);
+        expect(samples[0]).toBe(track[0]);
+        expect(samples[4]).toBe(track[99]);
+    });
+
+    it('handles short tracks and empty input', () => {
+        expect(sampleTrackSignals([], 8)).toEqual([]);
+        expect(sampleTrackSignals(null, 8)).toEqual([]);
+        const tiny = [{ valence: 0, arousal: 0.3 }];
+        expect(sampleTrackSignals(tiny, 8)).toHaveLength(1);
     });
 });
 

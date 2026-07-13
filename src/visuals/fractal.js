@@ -4,6 +4,7 @@
  * Implements a "Preload Queue" strategy to ensure instant availability for flashes.
  */
 import { FractalFlameGenerator } from './lib/fractal-engine.js';
+import { planFlame } from '../core/conductor.js';
 
 export class FractalFlame {
     constructor(canvas) {
@@ -17,6 +18,13 @@ export class FractalFlame {
         this.queue = [];
         this.maxQueueSize = 5;
         this.isGenerating = false;
+
+        // Semantic mode: when a session provides representative signals,
+        // queue fills render plan-driven flames (palette/variations/tone by
+        // signal) and flash-time pops pick the closest match. Null pool =
+        // raw platform behavior.
+        this.signalPool = null;
+        this._poolIndex = 0;
 
         // Configuration
         this.config = {
@@ -47,6 +55,21 @@ export class FractalFlame {
             // Invalidate stale buffers - they won't match new dimensions
             this.queue = [];
             console.log(`[FractalFlame] Resized to ${w}x${h}, queue cleared.`);
+        }
+    }
+
+    /**
+     * Set (or clear) the semantic signal pool used to seed queue fills.
+     * Clearing flushes semantic buffers so raw sessions start clean.
+     */
+    setSignalPool(signals) {
+        const next = Array.isArray(signals) && signals.length > 0 ? signals : null;
+        const modeChanged = !!next !== !!this.signalPool;
+        this.signalPool = next;
+        this._poolIndex = 0;
+        if (modeChanged) {
+            this.queue = [];
+            console.log(`[FractalFlame] Signal pool ${next ? `set (${next.length} signals)` : 'cleared'}, queue flushed.`);
         }
     }
 
@@ -87,7 +110,22 @@ export class FractalFlame {
     }
 
     async generateToQueue() {
-        this.generator.generateRandomFlame();
+        // Semantic mode: cycle through the session's representative signals
+        // so the queue covers the text's emotional range; raw mode is the
+        // original random flame with the default palette.
+        let signal = null;
+        let tone = { gamma: 2.2, brightness: 15.0, vibrancy: 1.2 };
+
+        if (this.signalPool) {
+            signal = this.signalPool[this._poolIndex % this.signalPool.length];
+            this._poolIndex++;
+            const plan = planFlame(signal);
+            this.generator.generateFlameFromPlan(plan);
+            tone = { gamma: plan.tone.gamma, brightness: plan.tone.brightness, vibrancy: plan.tone.vibrancy };
+        } else {
+            this.generator.palette = this.generator.generateDefaultPalette();
+            this.generator.generateRandomFlame();
+        }
 
         // Always generate at the current canvas size to ensure sync putImageData works
         const { width, height } = this.canvas;
@@ -98,24 +136,42 @@ export class FractalFlame {
             iterations: this.config.iterations,
             useWorkers: true,
             oversample: 1,
-            gamma: 2.2,
-            brightness: 15.0,
-            vibrancy: 1.2
+            gamma: tone.gamma,
+            brightness: tone.brightness,
+            vibrancy: tone.vibrancy
         });
 
         // Store with metadata so we can validate dimensions at draw time
-        this.queue.push({ imageData, width, height });
+        // (and the signal the flame was built for, when in semantic mode)
+        this.queue.push({ imageData, width, height, signal });
         // console.log(`[FractalFlame] Generated ${width}x${height} flame. Queue: ${this.queue.length}`);
     }
 
     /**
      * Draw a fractal to the canvas SYNCHRONOUSLY.
+     * When a semantic signal is given and the queue holds tagged flames,
+     * pops the closest match in (valence, arousal) space; otherwise FIFO.
      * Returns true on success, false if queue was empty or buffer was stale.
      */
-    generate() {
+    generate(signal) {
         // console.log('[FractalFlame] generate() called.');
 
-        const item = this.queue.shift();
+        let item;
+        if (signal && this.queue.some(q => q.signal)) {
+            let bestIdx = 0;
+            let bestDist = Infinity;
+            for (let i = 0; i < this.queue.length; i++) {
+                const tag = this.queue[i].signal;
+                if (!tag) continue;
+                const dv = (tag.valence - signal.valence);
+                const da = (tag.arousal - signal.arousal) * 1.5; // arousal reads stronger visually
+                const dist = dv * dv + da * da;
+                if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+            }
+            item = this.queue.splice(bestIdx, 1)[0];
+        } else {
+            item = this.queue.shift();
+        }
 
         if (!item) {
             console.warn('[FractalFlame] Cache miss! Queue empty.');

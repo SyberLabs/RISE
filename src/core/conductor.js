@@ -406,6 +406,125 @@ export function planInterlocution(signal, options = {}, rng = Math.random) {
     return { type, duration: scaledDuration, kleePreset };
 }
 
+// ─────────────────────────────────────────────────────────────
+// Semantic Fractal Flames — map a signal onto the flame generator's
+// full parameter space: color palette, variation vocabulary, structure,
+// and tone. Flames are rendered ahead of time, so plans are consumed at
+// queue-fill time and matched to the live signal at flash time.
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Palette climates: anchor color stops per signal quadrant.
+ * Anchors are interpolated into the engine's 256-entry palette.
+ * Dark first stops keep flame cores moody; later stops carry the identity.
+ */
+const FLAME_PALETTES = {
+    // v+ a− : ember dawn — deep amber to cream
+    emberDawn: [[38, 18, 8], [140, 62, 18], [214, 128, 44], [255, 200, 120], [255, 240, 210]],
+    // v+ a+ : solar flare — crimson through orange to gold
+    solarFlare: [[45, 8, 8], [170, 30, 20], [240, 90, 25], [255, 170, 40], [255, 235, 150]],
+    // v− a− : midnight water — indigo to slate to pale silver
+    midnightWater: [[8, 10, 30], [24, 34, 90], [58, 78, 140], [120, 145, 190], [205, 215, 235]],
+    // v− a+ : storm violet — violet through magenta to electric blue
+    stormViolet: [[20, 6, 36], [78, 20, 120], [160, 40, 160], [90, 90, 230], [180, 200, 255]],
+    // neutral calm : jade veil — muted teal to silver
+    jadeVeil: [[8, 22, 20], [30, 80, 70], [70, 140, 120], [140, 190, 175], [220, 235, 230]],
+    // neutral intense : white heat — charcoal to blue-white
+    whiteHeat: [[16, 16, 20], [70, 75, 95], [150, 155, 180], [220, 225, 240], [255, 255, 255]]
+};
+
+// Variation vocabularies (names from the flame engine's VARIATIONS table)
+const FLAME_VARIATIONS = {
+    calm: ['sinusoidal', 'spherical', 'polar', 'bubble', 'cylinder', 'waves'],
+    mid: ['spiral', 'heart', 'disc', 'fan', 'rings', 'cosine'],
+    intense: ['julia', 'swirl', 'horseshoe', 'ex', 'fisheye', 'popcorn', 'exponential'],
+    // valence accents mixed into the pool
+    warm: ['heart', 'disc', 'rings'],
+    dark: ['hyperbolic', 'bent', 'handkerchief', 'diamond']
+};
+
+function pickPaletteName(valence, arousal) {
+    if (Math.abs(valence) < 0.12) return arousal > 0.55 ? 'whiteHeat' : 'jadeVeil';
+    if (valence >= 0) return arousal > 0.5 ? 'solarFlare' : 'emberDawn';
+    return arousal > 0.5 ? 'stormViolet' : 'midnightWater';
+}
+
+/**
+ * Expand anchor stops into a 256-entry palette, with slight hue jitter
+ * per flame so repeated flashes in one climate are siblings, not clones.
+ */
+function buildPalette(anchors, rng) {
+    const jitter = (rng() - 0.5) * 24; // ± 12 per channel, applied unevenly
+    const palette = [];
+    const segs = anchors.length - 1;
+    for (let i = 0; i < 256; i++) {
+        const pos = (i / 255) * segs;
+        const seg = Math.min(segs - 1, Math.floor(pos));
+        const t = pos - seg;
+        const a = anchors[seg], b = anchors[seg + 1];
+        palette.push([
+            clamp(Math.round(a[0] + (b[0] - a[0]) * t + jitter * 0.5), 0, 255),
+            clamp(Math.round(a[1] + (b[1] - a[1]) * t), 0, 255),
+            clamp(Math.round(a[2] + (b[2] - a[2]) * t - jitter * 0.5), 0, 255)
+        ]);
+    }
+    return palette;
+}
+
+/**
+ * Plan a fractal flame for a semantic signal: palette, variation pool,
+ * structure, and tone mapping. Pure given an injected rng.
+ *
+ * @param {Object} signal - { valence, arousal }
+ * @param {Function} [rng]
+ * @returns {{ paletteName, palette, variationPool, numTransforms,
+ *             variationsPerTransform, symmetryChance, tone }}
+ */
+export function planFlame(signal, rng = Math.random) {
+    const v = clamp(signal?.valence ?? 0, -1, 1);
+    const a = clamp(signal?.arousal ?? 0.3, 0, 1);
+
+    const paletteName = pickPaletteName(v, a);
+    const palette = buildPalette(FLAME_PALETTES[paletteName], rng);
+
+    // Variation vocabulary: energy band + a valence accent
+    const band = a > 0.6 ? 'intense' : a < 0.35 ? 'calm' : 'mid';
+    const accent = v >= 0.2 ? 'warm' : v <= -0.2 ? 'dark' : null;
+    const variationPool = [...FLAME_VARIATIONS[band], ...(accent ? FLAME_VARIATIONS[accent] : [])];
+
+    return {
+        paletteName,
+        palette,
+        variationPool,
+        // Calm flames are sparse and legible; intense ones densely folded
+        numTransforms: 2 + Math.round(a * 3),                 // 2..5
+        variationsPerTransform: a > 0.6 ? [2, 3] : [1, 2],
+        // Mandala-like symmetry suits calm/positive passages; chaos gets none
+        symmetryChance: v > 0.1 && a < 0.5 ? 0.5 : a > 0.6 ? 0 : 0.2,
+        tone: {
+            gamma: +(2.4 - a * 0.5).toFixed(2),               // punchier when intense
+            brightness: +(12 + a * 8).toFixed(1),
+            vibrancy: +(1.0 + a * 0.5 + Math.max(0, v) * 0.2).toFixed(2)
+        }
+    };
+}
+
+/**
+ * Sample a track into N representative signals, evenly spaced through
+ * session time — used to seed the flame preload queue so its climates
+ * match the arc of the text.
+ */
+export function sampleTrackSignals(track, count = 8) {
+    if (!Array.isArray(track) || track.length === 0) return [];
+    const n = Math.max(1, Math.min(count, track.length));
+    const out = [];
+    for (let i = 0; i < n; i++) {
+        const idx = Math.min(track.length - 1, Math.round((i / Math.max(1, n - 1)) * (track.length - 1)));
+        out.push(track[idx]);
+    }
+    return out;
+}
+
 /**
  * Session-level summary of a track (mean/peak) — useful for choosing
  * presets or logging. Not required by subscribers.

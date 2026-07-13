@@ -658,6 +658,58 @@ export class FractalFlameGenerator {
         this.backgroundColor = data.backgroundColor || [0, 0, 0];
     }
 
+    /**
+     * Build a flame from a semantic plan (see conductor.js planFlame):
+     * transform count, variation vocabulary, symmetry chance, and palette
+     * all come from the plan. Same construction as generateRandomFlame,
+     * constrained to the plan's parameter space.
+     */
+    generateFlameFromPlan(plan, rng = Math.random) {
+        this.clearTransforms();
+
+        const pool = (plan.variationPool || []).filter(name => VARIATIONS[name]);
+        const count = plan.numTransforms || 3;
+        const [minVars, maxVars] = plan.variationsPerTransform || [1, 2];
+
+        for (let i = 0; i < count; i++) {
+            const angle = rng() * Math.PI * 2;
+            const scale = 0.3 + rng() * 0.7;
+            const a = Math.cos(angle) * scale;
+            const b = -Math.sin(angle) * scale;
+            const d = Math.sin(angle) * scale;
+            const e = Math.cos(angle) * scale;
+            const c = (rng() - 0.5) * 2;
+            const f = (rng() - 0.5) * 2;
+
+            const numVariations = minVars + Math.floor(rng() * (maxVars - minVars + 1));
+            const variations = {};
+            let totalWeight = 0;
+            for (let j = 0; j < numVariations; j++) {
+                const varName = pool.length > 0
+                    ? pool[Math.floor(rng() * pool.length)]
+                    : 'linear';
+                const weight = 0.2 + rng() * 0.8;
+                variations[varName] = (variations[varName] || 0) + weight;
+                totalWeight += weight;
+            }
+            for (const key in variations) {
+                variations[key] /= totalWeight;
+            }
+
+            this.addTransform({
+                affine: [a, b, c, d, e, f],
+                variations: variations,
+                color: i / count,
+                weight: 1.0,
+                symmetry: rng() < (plan.symmetryChance ?? 0.2) ? Math.floor(rng() * 6) + 2 : 0
+            });
+        }
+
+        if (plan.palette && plan.palette.length === 256) {
+            this.setPalette(plan.palette);
+        }
+    }
+
     generateRandomFlame(numTransforms = null) {
         this.clearTransforms();
 

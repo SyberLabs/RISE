@@ -143,6 +143,13 @@ export class VisualCortex {
         }
 
         this.config = { ...this.config, ...newConfig };
+
+        // Forward the semantic signal pool to the flame queue (responsive
+        // sessions); explicitly passing null clears it for raw sessions.
+        if ('semanticSignals' in newConfig && this.fractal) {
+            this.fractal.setSignalPool(newConfig.semanticSignals);
+        }
+
         console.log('[Visual Cortex] Config updated:', this.config);
     }
 
@@ -421,8 +428,10 @@ export class VisualCortex {
      * Flash a visual interrupt based on current config or overrides.
      * @param {number} [durationOverride] - Optional duration override
      * @param {string} [typeOverride] - Optional type override ('klee', 'turrell', 'fractal', 'diagram')
+     * @param {Object} [signal] - Optional semantic signal ({valence, arousal});
+     *                            lets the flame queue pick its closest match
      */
-    async flash(durationOverride, typeOverride) {
+    async flash(durationOverride, typeOverride, signal) {
         if (!this.initialized) this.init();
         if (!this.container) return;
 
@@ -471,7 +480,7 @@ export class VisualCortex {
             this.turrell.generate();
             if (turrellEl) turrellEl.hidden = false;
         } else if (selectedType === 'fractal' && this.fractal) {
-            const success = this.fractal.generate();
+            const success = this.fractal.generate(signal);
             if (!success) {
                 console.warn('[Visual Cortex] Fractal not ready, skipping flash.');
                 return;

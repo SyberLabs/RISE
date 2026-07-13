@@ -346,7 +346,7 @@ export class Chamber {
           if (plan.kleePreset) {
             visualCortex.updateConfig({ kleePreset: plan.kleePreset });
           }
-          await visualCortex.flash(plan.duration, plan.type || undefined);
+          await visualCortex.flash(plan.duration, plan.type || undefined, signal);
         } else {
           await visualCortex.flash(duration);
         }

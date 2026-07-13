@@ -363,6 +363,19 @@ class App {
                         // Custom visuals from this session are now handled via the 'custom' flag in interlocution.sourced
                         // which is managed by the VisualInterlocutionPanel
 
+                        // Responsive interlocutions: score the session's timeline
+                        // before preload so the flame queue renders plan-driven
+                        // fractals (palette/variations/tone by signal) that cover
+                        // the text's emotional arc. Null when responsive is off.
+                        let semanticSignals = null;
+                        if (interlocution.responsive && session.atoms?.length) {
+                            const { scoreAtoms, sampleTrackSignals } = await import('./core/conductor.js');
+                            session.semanticTrack = session.semanticTrack || scoreAtoms(session.atoms);
+                            semanticSignals = sampleTrackSignals(session.semanticTrack, 10);
+                            console.log('[R.I.S.E.] Responsive interlocutions: track scored,',
+                                semanticSignals.length, 'flame seed signals sampled');
+                        }
+
                             visualCortex.updateConfig({
                                 enabled: true,
                                 frequency: interlocution.frequency || 0.2,
@@ -370,7 +383,8 @@ class App {
                                 activeTypes: activeTypes,
                                 kleePreset: interlocution.kleePreset || 'random',
                                 customVisuals: session.customVisuals || [],
-                                sourced: interlocution.sourced || []
+                                sourced: interlocution.sourced || [],
+                                semanticSignals: semanticSignals
                             });
 
                         // Preload visuals
