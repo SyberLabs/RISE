@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npm run build:*)",
-      "Bash(dir /s D:syberlabsnisesrc)"
+      "Bash(dir /s D:syberlabsnisesrc)",
+      "Bash(wc -l \"C:\\\\Users\\\\MATEO\\\\AppData\\\\Local\\\\Temp\\\\klee-review.diff\" \"D:\\\\syberlabs\\\\nise\\\\public\\\\klee-worker.js\" \"D:\\\\syberlabs\\\\nise\\\\src\\\\visuals\\\\visual-cortex.test.js\")",
+      "Read(//c/Users/MATEO/AppData/Local/Temp/**)"
     ],
     "deny": [],
     "ask": []

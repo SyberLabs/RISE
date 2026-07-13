@@ -1032,7 +1032,7 @@ export class ChamberOrbital {
           sourced: vi.interlocution?.sourced || [],
           frequency: vi.interlocution?.frequency ?? 0.2,
           duration: vi.interlocution?.duration ?? 80,
-          kleePreset: vi.interlocution?.kleePreset || 'random'
+          kleePreset: vi.interlocution?.kleePreset ?? 'random'
         }
       }
     };

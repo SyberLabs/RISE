@@ -515,7 +515,6 @@ class KleeEngine {
       straight: this._varStraight,
       wavy: this._varWavy,
       curved: this._varCurved,
-      spiral: this._varSpiral,
       zigzag: this._varZigzag,
       organic: this._varOrganic,
       rhythmic: this._varRhythmic,
@@ -1035,7 +1034,7 @@ class KleeEngine {
         palette: 'contrast'
       },
       meditative: {
-        variations: ['circular', 'spiral', 'rhythmic', 'wavy'],
+        variations: ['circular', 'flowing', 'rhythmic', 'wavy'],
         seedCount: [2, 4],
         symmetry: [3, 4, 6, 8],
         palette: 'harmonious'

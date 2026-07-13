@@ -187,27 +187,6 @@
         }
       },
       {
-        name: "Symmetrical Spiral",
-        description: "8-way rotational symmetry creates a mesmerizing mandala pattern.",
-        code: `engine.addSeed({
-  x: 256, y: 256,
-  variations: { spiral: 0.7, harmonic: 0.3 },
-  symmetry: 8,
-  params: {
-    spiralFactor: 1.01,
-    spiralRate: 0.09
-  }
-});`,
-        setup: (engine) => {
-          engine.addSeed({
-            x: 256, y: 256,
-            variations: { spiral: 0.7, harmonic: 0.3 },
-            symmetry: 8,
-            params: { spiralFactor: 1.01, spiralRate: 0.09 }
-          });
-        }
-      },
-      {
         name: "Twittering Machine",
         description: "Homage to Klee's famous work with trembling, oscillating lines.",
         code: `for (let i = 0; i < 5; i++) {

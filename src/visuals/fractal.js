@@ -4,7 +4,7 @@
  * Implements a "Preload Queue" strategy to ensure instant availability for flashes.
  */
 import { FractalFlameGenerator } from './lib/fractal-engine.js';
-import { planFlame } from '../core/conductor.js';
+import { planFlame, pickNearestSignalIndex } from '../core/conductor.js';
 
 export class FractalFlame {
     constructor(canvas) {
@@ -158,17 +158,9 @@ export class FractalFlame {
 
         let item;
         if (signal && this.queue.some(q => q.signal)) {
-            let bestIdx = 0;
-            let bestDist = Infinity;
-            for (let i = 0; i < this.queue.length; i++) {
-                const tag = this.queue[i].signal;
-                if (!tag) continue;
-                const dv = (tag.valence - signal.valence);
-                const da = (tag.arousal - signal.arousal) * 1.5; // arousal reads stronger visually
-                const dist = dv * dv + da * da;
-                if (dist < bestDist) { bestDist = dist; bestIdx = i; }
-            }
-            item = this.queue.splice(bestIdx, 1)[0];
+            // Shared perceptual matcher (conductor owns the arousal weighting)
+            const bestIdx = pickNearestSignalIndex(this.queue, signal);
+            item = this.queue.splice(Math.max(0, bestIdx), 1)[0];
         } else {
             item = this.queue.shift();
         }

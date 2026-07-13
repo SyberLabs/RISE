@@ -328,10 +328,6 @@
           <h3>Corporeal Forms</h3>
           <p>Organic body-like shapes</p>
         </div>
-        <div class="example-card" onclick="loadExample('symmetrical')">
-          <h3>Symmetrical</h3>
-          <p>4-way rotational symmetry</p>
-        </div>
         <div class="example-card" onclick="loadExample('twittering')">
           <h3>Twittering Machine</h3>
           <p>Inspired by Klee's work</p>
@@ -344,12 +340,11 @@
     </div>
 
     <div class="info-section">
-      <h2>Available Line Variations (25 Total)</h2>
+      <h2>Available Line Variations (24 Total)</h2>
       <div class="variation-list">
         <div class="variation-item">Straight</div>
         <div class="variation-item">Wavy</div>
         <div class="variation-item">Curved</div>
-        <div class="variation-item">Spiral</div>
         <div class="variation-item">Zigzag</div>
         <div class="variation-item">Organic</div>
         <div class="variation-item">Rhythmic</div>
@@ -485,17 +480,6 @@
             });
             break;
 
-          case 'symmetrical':
-            engine.addSeed({
-              x: size / 2,
-              y: size / 2,
-              variations: { spiral: 0.6, harmonic: 0.4 },
-              colorIndex: 0.5,
-              symmetry: 4,
-              params: { spiralFactor: 1.01, spiralRate: 0.08 }
-            });
-            break;
-
           case 'twittering':
             for (let i = 0; i < 5; i++) {
               engine.addSeed({
@@ -509,7 +493,7 @@
             break;
 
           case 'complex':
-            const variations = ['organic', 'wavy', 'spiral', 'corporeal', 'harmonic'];
+            const variations = ['organic', 'wavy', 'flowing', 'corporeal', 'harmonic'];
             for (let i = 0; i < 6; i++) {
               const mainVar = variations[i % variations.length];
               const secVar = variations[(i + 2) % variations.length];

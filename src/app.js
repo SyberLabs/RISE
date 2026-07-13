@@ -380,10 +380,10 @@ class App {
 
                             visualCortex.updateConfig({
                                 enabled: true,
-                                frequency: interlocution.frequency || 0.2,
-                                duration: interlocution.duration || 80,
+                                frequency: interlocution.frequency ?? 0.2,
+                                duration: interlocution.duration ?? 80,
                                 activeTypes: activeTypes,
-                                kleePreset: interlocution.kleePreset || 'random',
+                                kleePreset: interlocution.kleePreset ?? 'random',
                                 customVisuals: session.customVisuals || [],
                                 sourced: interlocution.sourced || [],
                                 semanticSignals: semanticSignals

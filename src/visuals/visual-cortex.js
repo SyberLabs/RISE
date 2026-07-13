@@ -6,7 +6,8 @@
  */
 
 import './visuals.css';
-import { KleeEngine } from './klee-enhanced.js';
+import { KleeEngine, KLEE_PRESET_NAMES } from './klee-enhanced.js';
+import { KleeFlashes } from './klee-flashes.js';
 import { Turrell } from './turrell.js';
 import { FractalFlame } from './fractal.js';
 import { RockGarden } from './rockgarden.js';
@@ -31,6 +32,12 @@ export class VisualCortex {
         this._diagramQueue = [];
         this._diagramPreloading = false;
         this._configVersion = 0;
+        // Klee queue/episode machinery lives in the KleeFlashes wrapper
+        // (mirroring the FractalFlame pattern) — the cortex stays a dispatcher
+        this.kleeFlashes = null;
+        this._kleeResizeObserver = null;
+        this._boundKleeResize = null;
+        this._kleeResizeTimer = null;
 
         // Configuration state
         this.config = {
@@ -58,6 +65,8 @@ export class VisualCortex {
             this.klee.width = kleeCanvas.width;
             this.klee.height = kleeCanvas.height;
             this._kleeCanvas = kleeCanvas;
+            this.kleeFlashes = new KleeFlashes(this.klee);
+            this._setupKleeResizeObserver();
         }
 
         const turrellField = document.getElementById('turrell-field');
@@ -121,6 +130,52 @@ export class VisualCortex {
         console.log('[Visual Cortex] Online.');
     }
 
+    _setupKleeResizeObserver() {
+        if (!this._kleeCanvas || !this.container) return;
+        // Debounced: interactive window drags fire the observer per layout
+        // frame; artwork snapshots rescale on restore so nothing is lost by
+        // waiting for the size to settle.
+        const requestResize = () => {
+            clearTimeout(this._kleeResizeTimer);
+            this._kleeResizeTimer = setTimeout(() => this._resizeKleeCanvas(), 150);
+        };
+        if (typeof ResizeObserver !== 'undefined') {
+            this._kleeResizeObserver = new ResizeObserver(requestResize);
+            this._kleeResizeObserver.observe(this.container);
+        } else if (typeof window !== 'undefined') {
+            this._boundKleeResize = requestResize;
+            window.addEventListener('resize', requestResize, { passive: true });
+        }
+        this._resizeKleeCanvas();
+    }
+
+    _resizeKleeCanvas() {
+        if (!this._kleeCanvas || !this.klee) return false;
+        const rect = this.container?.getBoundingClientRect?.() || {};
+        const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
+        const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 0;
+        const cssWidth = Math.max(1, Math.round(rect.width || viewportWidth || this._kleeCanvas.clientWidth || 1920));
+        const cssHeight = Math.max(1, Math.round(rect.height || viewportHeight || this._kleeCanvas.clientHeight || 1080));
+        const devicePixelRatio = typeof window !== 'undefined' ? window.devicePixelRatio : 1;
+        const requestedDpr = Math.min(2, Math.max(1, devicePixelRatio || 1));
+        const maxPixels = 4_000_000;
+        const fit = Math.min(1, Math.sqrt(maxPixels / (cssWidth * cssHeight * requestedDpr * requestedDpr)));
+        const pixelRatio = requestedDpr * fit;
+        const width = Math.max(1, Math.round(cssWidth * pixelRatio));
+        const height = Math.max(1, Math.round(cssHeight * pixelRatio));
+        if (this._kleeCanvas.width === width && this._kleeCanvas.height === height) return false;
+
+        this._kleeCanvas.width = width;
+        this._kleeCanvas.height = height;
+        // The queue and preload engine survive: snapshots rescale on restore
+        this.kleeFlashes?.resize(width, height);
+        return true;
+    }
+
+    queueKleePreset(preset) {
+        this.kleeFlashes?.queuePresetOverride(preset);
+    }
+
     /**
      * Update the visual cortex configuration.
      * @param {Object} newConfig - Partial config object
@@ -143,6 +198,16 @@ export class VisualCortex {
         }
 
         this.config = { ...this.config, ...newConfig };
+
+        // Forward klee session config — the wrapper value-compares (preset
+        // string, signal contents) and only flushes on real changes, so
+        // identical arrays arriving under new references keep the queue.
+        if (('kleePreset' in newConfig || 'semanticSignals' in newConfig) && this.kleeFlashes) {
+            this.kleeFlashes.configure({
+                preset: this.config.kleePreset ?? 'random',
+                signals: this.config.semanticSignals
+            });
+        }
 
         // Forward the semantic signal pool to the flame queue (responsive
         // sessions); explicitly passing null clears it for raw sessions.
@@ -421,6 +486,19 @@ export class VisualCortex {
             preloadPromises.push(this.fractal.preload(count));
         }
 
+        // Klee artworks are prepared as complete geometry/style snapshots.
+        // One snapshot supports several static short flashes, so preload by
+        // episode rather than by raw flash count.
+        if (this.kleeFlashes && this.config.activeTypes.includes('klee')) {
+            const kleeShare = 1 / Math.max(1, this.config.activeTypes.length);
+            const estimatedKleeFlashes = Math.ceil(estimatedFlashCount * kleeShare * 1.5);
+            const episodeCount = Math.max(
+                this.config.kleePreset === 'random' ? KLEE_PRESET_NAMES.length : 1,
+                Math.ceil(estimatedKleeFlashes / 4)
+            );
+            preloadPromises.push(this.kleeFlashes.preload(episodeCount));
+        }
+
         // Preload diagrams
         if (this.config.activeTypes.includes('diagram')) {
             const diagramShare = 1 / Math.max(1, this.config.activeTypes.length);
@@ -450,7 +528,7 @@ export class VisualCortex {
         if (!this.container) return;
 
         // Use config or override
-        const duration = durationOverride || this.config.duration;
+        const duration = durationOverride ?? this.config.duration;
         let selectedType = typeOverride;
 
         // If no type specified, pick randomly from active types
@@ -479,20 +557,13 @@ export class VisualCortex {
         if (this.diagramEl) this.diagramEl.hidden = true;
         if (this.customImageEl) this.customImageEl.hidden = true;
 
-        if (selectedType === 'klee' && this.klee && this._kleeCanvas) {
-            // Determine preset: one-shot override (fallback path) wins once,
-            // then random selects from all, otherwise use configured
-            const presets = ['architectural', 'chaotic', 'harmonic', 'gravitational', 'twittering'];
-            const preset = this._presetOverride
-                ? this._presetOverride
-                : (this.config.kleePreset === 'random'
-                    ? presets[Math.floor(Math.random() * presets.length)]
-                    : this.config.kleePreset);
-            this._presetOverride = null;
-
-            this.klee.generateRandom(preset);
-            const ctx = this._kleeCanvas.getContext('2d');
-            this.klee.render(this._kleeCanvas, { background: 'black' });
+        if (selectedType === 'klee' && this.kleeFlashes && this._kleeCanvas) {
+            // Subliminal flashes are still frames — the artwork's episode
+            // evolves between appearances, never during a cut. (In-flash
+            // animation was removed: durations are capped at 200ms, below
+            // any threshold where nested motion reads as anything but flicker.)
+            this._resizeKleeCanvas();
+            await this.kleeFlashes.renderFlash(this._kleeCanvas, duration, signal);
             if (kleeEl) kleeEl.hidden = false;
         } else if (selectedType === 'turrell' && this.turrell) {
             this.turrell.generate();
@@ -536,10 +607,10 @@ export class VisualCortex {
                 // gravitational preset — for this flash only, never persisted
                 // into config (that would hijack every later Klee flash)
                 if (fallbackType === 'klee') {
-                    this._presetOverride = 'gravitational';
+                    this.kleeFlashes?.queuePresetOverride('gravitational');
                 }
 
-                return this.flash(duration, fallbackType);
+                return this.flash(duration, fallbackType, signal);
             }
         } else if (selectedType === 'rockgarden' && this.rockgarden && this._kleeCanvas) {
             // Generate Rock Garden (uses same canvas as Klee)
@@ -601,6 +672,18 @@ export class VisualCortex {
             };
             requestAnimationFrame(checkHide);
         });
+    }
+
+    destroy() {
+        this._kleeResizeObserver?.disconnect();
+        if (this._boundKleeResize && typeof window !== 'undefined') {
+            window.removeEventListener('resize', this._boundKleeResize);
+        }
+        clearTimeout(this._kleeResizeTimer);
+        this.kleeFlashes?.destroy();
+        this.kleeFlashes = null;
+        this.klee?.destroy?.();
+        this.initialized = false;
     }
 }
 

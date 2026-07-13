@@ -213,7 +213,7 @@ export class Player {
             // flash probability with passage arousal, and the signal is
             // forwarded so the handler can pick generator/preset/duration.
             // Without the flag or a track this is the raw platform behavior.
-            let frequency = interlocution.frequency || 0.3;
+            let frequency = interlocution.frequency ?? 0.3;
             let signal = null;
             const track = this.sessionState.session.semanticTrack;
             if (interlocution.responsive && Array.isArray(track)) {
@@ -235,7 +235,7 @@ export class Player {
                 this.stopProgressAnimation();
 
                 // Wait for visual cortex to fundamentally finish rendering its duration
-                await this.interlocutionHandler(interlocution.duration || 33, signal);
+                await this.interlocutionHandler(interlocution.duration ?? 33, signal);
                 
                 // If the user exited or stopped during the flash, abort.
                 if (this.sessionState.state !== 'interlocuting') return;

@@ -525,6 +525,82 @@ export function planFlame(signal, rng = Math.random) {
 }
 
 /**
+ * Semantic modulation plan for the Klee engine — the conductor owns all
+ * signal interpretation; the engine consumes the plan (mirrors the
+ * planFlame → generateFlameFromPlan division). Null signal = neutral
+ * factors, i.e. the raw platform.
+ */
+export function planKleeModulation(signal) {
+    if (!signal) {
+        return {
+            valence: 0, arousal: 0.3, density: 1, branching: 1, motion: 1,
+            gravity: 1, chaos: 1, alpha: 1, glow: 1
+        };
+    }
+    const valence = clamp(signal?.valence ?? 0, -1, 1);
+    const arousal = clamp(signal?.arousal ?? 0.3, 0, 1);
+    return {
+        valence,
+        arousal,
+        density: 0.78 + arousal * 0.44,
+        branching: 0.65 + arousal * 0.7,
+        motion: 0.9 + arousal * 0.2,
+        gravity: 0.86 + arousal * 0.28,
+        chaos: 0.8 + arousal * 0.4,
+        alpha: 0.9 + arousal * 0.12,
+        glow: 0.75 + arousal * 0.5
+    };
+}
+
+/**
+ * Pick the queued item whose seed signal sits nearest the live signal in
+ * (valence, arousal) space. The 1.5 arousal weighting is a perceptual
+ * judgment (arousal reads stronger visually) — it lives here once, shared
+ * by every generator's preload queue.
+ *
+ * @param {Array} items - candidates; signals read via getSignal(item)
+ * @returns {number} index of the nearest item (first item when none carry signals)
+ */
+export function pickNearestSignalIndex(items, signal, getSignal = item => item.signal) {
+    if (!Array.isArray(items) || items.length === 0) return -1;
+    if (!signal) return 0;
+    let bestIndex = 0;
+    let bestDistance = Infinity;
+    for (let i = 0; i < items.length; i++) {
+        const tag = getSignal(items[i]);
+        if (!tag) continue;
+        const dv = tag.valence - signal.valence;
+        const da = (tag.arousal - signal.arousal) * 1.5;
+        const distance = dv * dv + da * da;
+        if (distance < bestDistance) {
+            bestDistance = distance;
+            bestIndex = i;
+        }
+    }
+    return bestIndex;
+}
+
+/**
+ * Stroke palettes for the Klee presets, derived from the same climate
+ * anchors the flames use (FLAME_PALETTES) so a session's flames and Klee
+ * marks inhabit one weather. The near-black ground stop is skipped —
+ * strokes need luminance on the void.
+ * Preset → climate follows the quadrant map in planInterlocution.
+ */
+const KLEE_PRESET_CLIMATES = {
+    architectural: 'midnightWater', // dark-calm
+    chaotic: 'stormViolet',         // dark-intense
+    harmonic: 'emberDawn',          // warm-calm
+    gravitational: 'jadeVeil',      // neutral
+    twittering: 'solarFlare'        // bright-intense
+};
+
+export function kleeStrokePalette(preset) {
+    const climate = FLAME_PALETTES[KLEE_PRESET_CLIMATES[preset]] || FLAME_PALETTES.jadeVeil;
+    return climate.slice(1).map(([r, g, b]) => `rgb(${r},${g},${b})`);
+}
+
+/**
  * Sample a track into N representative signals, evenly spaced through
  * session time — used to seed the flame preload queue so its climates
  * match the arc of the text.

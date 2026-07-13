@@ -324,6 +324,39 @@ describe('Player', () => {
 
       expect(player.interlocutionHandler).toBe(handler);
     });
+
+    it('honors an explicit zero flash frequency', async () => {
+      session.visualConfig = {
+        visualMode: 'interlocution',
+        interlocution: { frequency: 0, responsive: true }
+      };
+      session.semanticTrack = [{ valence: 0.8, arousal: 1 }];
+      const handler = vi.fn();
+      player.setInterlocutionHandler(handler);
+      player.sessionState.state = 'playing';
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+
+      await player.processNextNode();
+
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it('forwards zero duration and the responsive semantic signal', async () => {
+      const signal = { valence: -0.25, arousal: 0.7 };
+      session.visualConfig = {
+        visualMode: 'interlocution',
+        interlocution: { frequency: 1, duration: 0, responsive: true }
+      };
+      session.semanticTrack = [signal];
+      const handler = vi.fn().mockResolvedValue(undefined);
+      player.setInterlocutionHandler(handler);
+      player.sessionState.state = 'playing';
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+
+      await player.processNextNode();
+
+      expect(handler).toHaveBeenCalledWith(0, signal);
+    });
   });
 
   describe('resume from pause', () => {

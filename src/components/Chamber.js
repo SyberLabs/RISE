@@ -344,12 +344,14 @@ export class Chamber {
           const plan = planInterlocution(signal, {
             duration,
             activeTypes: visualCortex.config.activeTypes,
-            kleePreset: interlocution.kleePreset || 'random',
+            kleePreset: interlocution.kleePreset ?? 'random',
             mood,
             rhythm
           });
           if (plan.kleePreset) {
-            visualCortex.updateConfig({ kleePreset: plan.kleePreset });
+            // Semantic choices are one-shot decisions. Persisting them would
+            // overwrite the user's Random envelope after the first flash.
+            visualCortex.queueKleePreset(plan.kleePreset);
           }
           // The flame queue's signal-matching is a mood behavior
           await visualCortex.flash(plan.duration, plan.type || undefined, mood ? signal : undefined);

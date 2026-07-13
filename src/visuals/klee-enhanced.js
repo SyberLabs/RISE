@@ -1,3 +1,88 @@
+import { createSeededRandom, analyzeDensityGrid, buildTextureBytes } from './lib/klee-core.js';
+import { planKleeModulation, kleeStrokePalette } from '../core/conductor.js';
+
+// Shared implementations live in klee-core.js (also used by the module
+// worker) and conductor.js (which owns all signal→parameter semantics).
+export { createSeededRandom } from './lib/klee-core.js';
+export { planKleeModulation } from '../core/conductor.js';
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const lerp = (from, to, amount) => from + (to - from) * amount;
+
+export const KLEE_CHAMBER_BACKGROUND = '#0A0A0C';
+
+export const KLEE_PRESET_NAMES = [
+  'architectural', 'chaotic', 'harmonic', 'gravitational', 'twittering'
+];
+
+export const KLEE_PRESET_PROFILES = Object.freeze({
+  // Palettes derive from the conductor's climate anchors (FLAME_PALETTES),
+  // so Klee marks and fractal flames inhabit the same mood weather.
+  architectural: {
+    variations: { architectural: 0.8, angular: 0.2 },
+    palette: kleeStrokePalette('architectural'),
+    style: { lineWidth: 1.05, alpha: 0.76, glow: 1.2, ghostAlpha: 0.11, texture: 0.016 },
+    generation: { steps: 220, minLines: 2, maxLines: 3, maxTotalLines: 18, branchProbability: 0.002, maxBranches: 1, densityStop: 10 }
+  },
+  chaotic: {
+    variations: { chaotic: 0.5, explosive: 0.3, trembling: 0.2 },
+    palette: kleeStrokePalette('chaotic'),
+    style: { lineWidth: 0.9, alpha: 0.61, glow: 2.3, ghostAlpha: 0.16, texture: 0.024 },
+    generation: { steps: 170, minLines: 2, maxLines: 3, maxTotalLines: 32, branchProbability: 0.005, maxBranches: 2, densityStop: 12 }
+  },
+  harmonic: {
+    variations: { harmonic: 0.7, rhythmic: 0.3 },
+    palette: kleeStrokePalette('harmonic'),
+    style: { lineWidth: 1.15, alpha: 0.74, glow: 3.2, ghostAlpha: 0.13, texture: 0.014 },
+    generation: { steps: 150, minLines: 1, maxLines: 2, maxTotalLines: 12, branchProbability: 0, maxBranches: 0, densityStop: 8 }
+  },
+  gravitational: {
+    variations: { gravitational: 0.8, flowing: 0.2 },
+    palette: kleeStrokePalette('gravitational'),
+    style: { lineWidth: 0.92, alpha: 0.57, glow: 4.2, ghostAlpha: 0.18, texture: 0.02 },
+    generation: { steps: 180, minLines: 2, maxLines: 2, maxTotalLines: 20, branchProbability: 0, maxBranches: 0, densityStop: 7 }
+  },
+  twittering: {
+    variations: { twittering: 0.7, trembling: 0.3 },
+    palette: kleeStrokePalette('twittering'),
+    style: { lineWidth: 0.82, alpha: 0.66, glow: 1.8, ghostAlpha: 0.14, texture: 0.019 },
+    generation: { steps: 180, minLines: 2, maxLines: 3, maxTotalLines: 30, branchProbability: 0.002, maxBranches: 2, densityStop: 9 }
+  }
+});
+
+function colorToRgb(color) {
+  if (color.startsWith('#')) {
+    const value = parseInt(color.replace('#', ''), 16);
+    return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+  }
+  const channels = color.match(/[\d.]+/g)?.slice(0, 3).map(Number);
+  return channels?.length === 3 ? channels : [255, 255, 255];
+}
+
+function mixColor(from, to, amount) {
+  const a = colorToRgb(from);
+  const b = colorToRgb(to);
+  return `rgb(${Math.round(lerp(a[0], b[0], amount))},${Math.round(lerp(a[1], b[1], amount))},${Math.round(lerp(a[2], b[2], amount))})`;
+}
+
+export function interpolatePresetProfiles(fromName, toName, amount) {
+  const from = KLEE_PRESET_PROFILES[fromName] || KLEE_PRESET_PROFILES.harmonic;
+  const to = KLEE_PRESET_PROFILES[toName] || KLEE_PRESET_PROFILES.harmonic;
+  const t = clamp(amount, 0, 1);
+  const variations = {};
+  const names = new Set([...Object.keys(from.variations), ...Object.keys(to.variations)]);
+  for (const name of names) {
+    variations[name] = lerp(from.variations[name] || 0, to.variations[name] || 0, t);
+  }
+  const style = {};
+  for (const key of Object.keys(to.style)) style[key] = lerp(from.style[key], to.style[key], t);
+  return {
+    variations,
+    palette: to.palette.map((color, index) => mixColor(from.palette[index], color, t)),
+    style
+  };
+}
+
 /**
  * KLEE ENGINE - ENHANCED VERSION
  * With multi-octave 2D Simplex noise and marching squares for smooth organic forms
@@ -14,7 +99,7 @@
  */
 
 class KleeEngine {
-  constructor() {
+  constructor(options = {}) {
     // Core state
     this.seeds = [];
     this.lines = [];
@@ -28,12 +113,127 @@ class KleeEngine {
     this.height = 1024;
     this.stepLength = 5;
     this.maxSteps = 500;
+    this.preset = 'harmonic';
+    this.basePalette = [];
+    this.renderStyle = { ...KLEE_PRESET_PROFILES.harmonic.style };
+    this.generationStyle = { ...KLEE_PRESET_PROFILES.harmonic.generation };
+    this.semantic = planKleeModulation(null);
+    this.textureTile = null;
 
-    // Enhanced 2D Simplex noise
-    this.simplexPermutation = this._initializeSimplex();
+    // A seeded stream makes an artwork reproducible while subsequent calls
+    // naturally advance to new stochastic siblings.
+    const autoSeed = `${Date.now()}-${Math.random()}`;
+    this.setSeed(options.seed ?? autoSeed, options.rng);
+
+    this._worker = null;
+    this._workerRequests = new Map();
+    this._workerRequestId = 0;
+    this._generationEpoch = 0;
+    this._enhancementPromise = null;
+    this._generationLineBudget = this.generationStyle.maxTotalLines;
 
     // Initialize default palette
     this._generateDefaultPalette();
+  }
+
+  setSeed(seed, rng) {
+    this.seed = seed;
+    this._rng = rng || createSeededRandom(seed);
+    this.simplexPermutation = this._initializeSimplex();
+    return this;
+  }
+
+  random() {
+    return this._rng();
+  }
+
+  _ensureWorker() {
+    if (this._worker) return this._worker;
+    if (typeof Worker === 'undefined') return null;
+    try {
+      // Module worker bundled from src — shares klee-core.js with the
+      // engine's sync fallbacks, so worker and non-worker output never drift.
+      this._worker = new Worker(
+        new URL('./lib/klee-worker-entry.js', import.meta.url),
+        { type: 'module' }
+      );
+      this._worker.onmessage = ({ data }) => {
+        const request = this._workerRequests.get(data.id);
+        if (!request) return;
+        this._workerRequests.delete(data.id);
+        if (data.error) request.reject(new Error(data.error));
+        else request.resolve(data.result);
+      };
+      this._worker.onerror = () => {
+        for (const request of this._workerRequests.values()) {
+          request.reject(new Error('Klee worker failed'));
+        }
+        this._workerRequests.clear();
+        this._worker?.terminate();
+        this._worker = null;
+      };
+      return this._worker;
+    } catch (_error) {
+      this._worker = null;
+      return null;
+    }
+  }
+
+  _requestWorker(task, payload, transfer = []) {
+    const worker = this._ensureWorker();
+    if (!worker) return Promise.reject(new Error('Klee worker unavailable'));
+    const id = ++this._workerRequestId;
+    return new Promise((resolve, reject) => {
+      this._workerRequests.set(id, { resolve, reject });
+      worker.postMessage({ id, task, ...payload }, transfer);
+    });
+  }
+
+  async _detectFormsAsync(epoch = this._generationEpoch) {
+    if (!this.densityGrid) return;
+    const density = this.densityGrid.slice();
+    try {
+      const result = await this._requestWorker('analyze-density', {
+        density: density.buffer,
+        gridResolution: this.gridResolution,
+        width: this.width,
+        height: this.height,
+        threshold: 3
+      }, [density.buffer]);
+      if (epoch === this._generationEpoch) this.forms = result.forms || [];
+    } catch (_error) {
+      // Contours are decorative. If the worker is unavailable, preserve a
+      // responsive flash rather than running marching squares on the UI thread.
+      if (epoch === this._generationEpoch) this.forms = [];
+    }
+  }
+
+  async _prepareTextureAsync(intensity, epoch = this._generationEpoch) {
+    try {
+      const result = await this._requestWorker('build-texture', {
+        seed: `${this.seed}:${this.preset}:texture`,
+        size: 48,
+        intensity
+      });
+      if (epoch === this._generationEpoch) {
+        this.textureTile = this._textureTileFromBytes(result.size, new Uint8ClampedArray(result.pixels));
+      }
+    } catch (_error) {
+      if (epoch === this._generationEpoch) this.textureTile = this._buildTextureTileSync(48, intensity);
+    }
+  }
+
+  _textureTileFromBytes(size, pixels) {
+    if (typeof document === 'undefined') return null;
+    const tile = document.createElement('canvas');
+    tile.width = size;
+    tile.height = size;
+    const tileCtx = tile.getContext('2d');
+    if (!tileCtx) return null;
+    const image = tileCtx.createImageData(size, size);
+    image.data.set(pixels);
+    tileCtx.putImageData(image, 0, 0);
+    return tile;
   }
 
   /**
@@ -41,9 +241,10 @@ class KleeEngine {
    * Based on Ken Perlin's improved noise
    */
   _initializeSimplex() {
-    const p = [];
-    for (let i = 0; i < 256; i++) {
-      p[i] = Math.floor(Math.random() * 256);
+    const p = Array.from({ length: 256 }, (_, index) => index);
+    for (let i = p.length - 1; i > 0; i--) {
+      const j = Math.floor(this.random() * (i + 1));
+      [p[i], p[j]] = [p[j], p[i]];
     }
 
     // Duplicate for easy wrapping
@@ -175,6 +376,61 @@ class KleeEngine {
     });
   }
 
+  configurePresetStyle(name, options = {}) {
+    const resolved = KLEE_PRESET_PROFILES[name] ? name : 'harmonic';
+    const blendFrom = KLEE_PRESET_PROFILES[options.blendFrom] ? options.blendFrom : resolved;
+    const blend = options.blendFrom ? clamp(options.blend ?? 1, 0, 1) : 1;
+    const profile = interpolatePresetProfiles(blendFrom, resolved, blend);
+    this.preset = resolved;
+    this.basePalette = [...profile.palette];
+    this.renderStyle = { ...profile.style };
+    this.generationStyle = { ...KLEE_PRESET_PROFILES[resolved].generation };
+    this.applySemanticSignal(options.signal, 1);
+    return profile;
+  }
+
+  applySemanticSignal(signal, amount = 1) {
+    const target = planKleeModulation(signal);
+    const t = clamp(amount, 0, 1);
+    const current = this.semantic || target;
+    this.semantic = Object.fromEntries(
+      Object.keys(target).map(key => [key, lerp(current[key], target[key], t)])
+    );
+
+    // Valence gently warms or cools the selected mode palette without
+    // replacing its identity. The 18% ceiling keeps the palette recognizable.
+    const tint = this.semantic.valence >= 0 ? '#ffd19a' : '#86b9e8';
+    const tintAmount = Math.abs(this.semantic.valence) * 0.18;
+    this.palette = (this.basePalette.length ? this.basePalette : KLEE_PRESET_PROFILES.harmonic.palette)
+      .map(color => mixColor(color, tint, tintAmount));
+    return this.semantic;
+  }
+
+  _modulateSeed(seed) {
+    const modulation = this.semantic;
+    seed.branchProbability = clamp(seed.branchProbability * modulation.branching, 0, 0.08);
+    seed.params = {
+      ...seed.params,
+      stepLength: (seed.params.stepLength ?? this.stepLength) * modulation.motion
+    };
+    if (seed.params.gravity !== undefined) seed.params.gravity *= modulation.gravity;
+    if (seed.params.chaos !== undefined) seed.params.chaos *= modulation.chaos;
+    if (seed.params.tremble !== undefined) seed.params.tremble *= modulation.chaos;
+    return seed;
+  }
+
+  _blendSeedVariations(seed, profile, amount) {
+    if (!profile || amount >= 1) return seed;
+    const t = clamp(amount, 0, 1);
+    const blended = {};
+    const names = new Set([...Object.keys(profile.variations), ...Object.keys(seed.variations)]);
+    for (const name of names) {
+      blended[name] = lerp(profile.variations[name] || 0, seed.variations[name] || 0, t);
+    }
+    seed.variations = blended;
+    return seed;
+  }
+
   _hslToRgb(h, s, l) {
     h = h / 360;
     const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
@@ -198,14 +454,14 @@ class KleeEngine {
 
   addSeed(config) {
     const seed = {
-      x: config.x || this.width * Math.random(),
-      y: config.y || this.height * Math.random(),
-      angle: config.angle !== undefined ? config.angle : Math.random() * Math.PI * 2,
+      x: config.x ?? this.width * this.random(),
+      y: config.y ?? this.height * this.random(),
+      angle: config.angle !== undefined ? config.angle : this.random() * Math.PI * 2,
       variations: config.variations || { straight: 1.0 },
-      colorIndex: config.colorIndex !== undefined ? config.colorIndex : Math.random(),
-      branchProbability: config.branchProbability || 0.02,
-      symmetry: config.symmetry || 0,
-      maxBranches: config.maxBranches || 3,
+      colorIndex: config.colorIndex !== undefined ? config.colorIndex : this.random(),
+      branchProbability: config.branchProbability ?? 0.02,
+      symmetry: config.symmetry ?? 0,
+      maxBranches: config.maxBranches ?? 3,
       params: config.params || {}
     };
 
@@ -245,21 +501,10 @@ class KleeEngine {
     return [x + r * Math.cos(newTheta), y + r * Math.sin(newTheta), newTheta];
   }
 
-  _varSpiral(x, y, theta, step, total, params) {
-    let r = params.stepLength || this.stepLength;
-    const spiralFactor = params.spiralFactor || 1.02;
-    const spiralRate = params.spiralRate || 0.1;
-
-    r *= Math.pow(spiralFactor, step / 10);
-    const newTheta = theta + spiralRate;
-
-    return [x + r * Math.cos(newTheta), y + r * Math.sin(newTheta), newTheta];
-  }
-
   _varZigzag(x, y, theta, step, total, params) {
     const r = params.stepLength || this.stepLength;
     const zigzagAngle = params.zigzagAngle || Math.PI / 4;
-    const newTheta = theta + (Math.random() < 0.5 ? zigzagAngle : -zigzagAngle);
+    const newTheta = theta + (this.random() < 0.5 ? zigzagAngle : -zigzagAngle);
 
     return [x + r * Math.cos(newTheta), y + r * Math.sin(newTheta), newTheta];
   }
@@ -331,7 +576,7 @@ class KleeEngine {
 
     if (step % 5 === 0) {
       theta = Math.round(theta / angleIncrement) * angleIncrement;
-      theta += (Math.random() < 0.5 ? angleIncrement : -angleIncrement);
+      theta += (this.random() < 0.5 ? angleIncrement : -angleIncrement);
     }
 
     return [x + r * Math.cos(theta), y + r * Math.sin(theta), theta];
@@ -368,7 +613,7 @@ class KleeEngine {
   _varTrembling(x, y, theta, step, total, params) {
     const r = params.stepLength || this.stepLength;
     const tremble = params.tremble || 0.5;
-    const offset = (Math.random() - 0.5) * tremble;
+    const offset = (this.random() - 0.5) * tremble;
 
     return [
       x + r * Math.cos(theta + offset),
@@ -401,8 +646,8 @@ class KleeEngine {
   _varChaotic(x, y, theta, step, total, params) {
     const r = params.stepLength || this.stepLength;
     const chaos = params.chaos || 0.5;
-    const newTheta = theta + (Math.random() - 0.5) * Math.PI * chaos;
-    const newR = r * (0.5 + Math.random());
+    const newTheta = theta + (this.random() - 0.5) * Math.PI * chaos;
+    const newR = r * (0.5 + this.random());
 
     return [x + newR * Math.cos(newTheta), y + newR * Math.sin(newTheta), newTheta];
   }
@@ -428,7 +673,7 @@ class KleeEngine {
 
     if (step % 3 === 0) {
       const options = [-latticeAngle, 0, latticeAngle];
-      theta += options[Math.floor(Math.random() * options.length)];
+      theta += options[Math.floor(this.random() * options.length)];
     }
 
     return [x + r * Math.cos(theta), y + r * Math.sin(theta), theta];
@@ -437,7 +682,7 @@ class KleeEngine {
   _varTwittering(x, y, theta, step, total, params) {
     const r = params.stepLength || this.stepLength;
     const twitter = Math.sin(step * 0.5) * 0.3 + Math.cos(step * 0.3) * 0.2;
-    const jitter = (Math.random() - 0.5) * 0.2;
+    const jitter = (this.random() - 0.5) * 0.2;
 
     return [
       x + r * Math.cos(theta + twitter + jitter),
@@ -471,8 +716,8 @@ class KleeEngine {
       const cardinal = Math.round(theta / (Math.PI / 2)) * (Math.PI / 2);
       theta = cardinal;
 
-      if (Math.random() < 0.3) {
-        theta += Math.PI / 2 * (Math.random() < 0.5 ? 1 : -1);
+      if (this.random() < 0.3) {
+        theta += Math.PI / 2 * (this.random() < 0.5 ? 1 : -1);
       }
     }
 
@@ -515,7 +760,6 @@ class KleeEngine {
       straight: this._varStraight,
       wavy: this._varWavy,
       curved: this._varCurved,
-      spiral: this._varSpiral,
       zigzag: this._varZigzag,
       organic: this._varOrganic,
       rhythmic: this._varRhythmic,
@@ -545,7 +789,7 @@ class KleeEngine {
 
   _selectVariation(variations) {
     const total = Object.values(variations).reduce((sum, w) => sum + w, 0);
-    let rand = Math.random() * total;
+    let rand = this.random() * total;
 
     for (let [name, weight] of Object.entries(variations)) {
       rand -= weight;
@@ -561,8 +805,10 @@ class KleeEngine {
     let y = seed.y;
     let theta = seed.angle;
 
-    const steps = this.maxSteps + Math.floor(Math.random() * 200 - 100);
+    const variance = Math.max(8, Math.min(60, Math.round(this.maxSteps * 0.2)));
+    const steps = this.maxSteps + Math.floor(this.random() * (variance * 2 + 1) - variance);
     const settleSteps = 5;
+    const densityStop = seed.params.densityStop ?? this.generationStyle.densityStop;
 
     for (let step = 0; step < steps; step++) {
       const varName = this._selectVariation(seed.variations);
@@ -574,8 +820,17 @@ class KleeEngine {
 
       if (step >= settleSteps) {
         if (newX >= 0 && newX < this.width && newY >= 0 && newY < this.height) {
+          const cellX = Math.floor(newX / this.width * this.gridResolution);
+          const cellY = Math.floor(newY / this.height * this.gridResolution);
+          const densityIndex = cellY * this.gridResolution + cellX;
+          if (points.length > 24 && densityStop && this.densityGrid[densityIndex] >= densityStop) break;
           points.push([newX, newY]);
           this._updateDensityGrid(newX, newY);
+          if (seed.params.stopRadius) {
+            const dx = newX - (seed.params.centerX ?? this.width / 2);
+            const dy = newY - (seed.params.centerY ?? this.height / 2);
+            if (points.length > 24 && Math.hypot(dx, dy) <= seed.params.stopRadius) break;
+          }
         } else {
           if (seed.params.bounce) {
             theta += Math.PI;
@@ -590,8 +845,8 @@ class KleeEngine {
       y = newY;
       theta = newTheta;
 
-      if (varName === 'branching' || Math.random() < seed.branchProbability) {
-        if (this.lines.length < totalLines * 3) {
+      if (varName === 'branching' || this.random() < seed.branchProbability) {
+        if (this.lines.length < this._generationLineBudget) {
           this._createBranch(x, y, theta, seed, step / steps);
         }
       }
@@ -601,13 +856,15 @@ class KleeEngine {
       points,
       colorIndex: seed.colorIndex,
       variation: Object.keys(seed.variations)[0],
-      seedIndex: this.lines.length
+      seedIndex: this.lines.length,
+      weight: this.random() < 0.16 ? 1.55 : (this.random() < 0.48 ? 1 : 0.68),
+      alpha: 0.82 + this.random() * 0.18
     };
   }
 
   _createBranch(x, y, theta, parentSeed, progress) {
     const branchAngles = [Math.PI / 4, -Math.PI / 4, Math.PI / 3, -Math.PI / 3];
-    const branchAngle = branchAngles[Math.floor(Math.random() * branchAngles.length)];
+    const branchAngle = branchAngles[Math.floor(this.random() * branchAngles.length)];
 
     const branchSeed = {
       x,
@@ -621,7 +878,7 @@ class KleeEngine {
       params: { ...parentSeed.params, stepLength: this.stepLength * 0.8 }
     };
 
-    if (branchSeed.maxBranches > 0) {
+    if (branchSeed.maxBranches > 0 && this.lines.length < this._generationLineBudget) {
       const branchLine = this._growLine(branchSeed, this.lines.length, this.seeds.length * 10);
       if (branchLine.points.length > 10) {
         this.lines.push(branchLine);
@@ -674,179 +931,39 @@ class KleeEngine {
   }
 
   /**
-   * MARCHING SQUARES ALGORITHM
-   * Extract smooth contours from density field
-   */
-  _marchingSquares(threshold = 3) {
-    const contours = [];
-    const cellSize = 1; // Grid is already discretized
-
-    for (let y = 0; y < this.gridResolution - 1; y++) {
-      for (let x = 0; x < this.gridResolution - 1; x++) {
-        // Get density values at 4 corners
-        const tl = this.densityGrid[y * this.gridResolution + x] >= threshold ? 1 : 0;
-        const tr = this.densityGrid[y * this.gridResolution + (x + 1)] >= threshold ? 1 : 0;
-        const br = this.densityGrid[(y + 1) * this.gridResolution + (x + 1)] >= threshold ? 1 : 0;
-        const bl = this.densityGrid[(y + 1) * this.gridResolution + x] >= threshold ? 1 : 0;
-
-        // Calculate marching squares index (0-15)
-        const squareIndex = tl * 8 + tr * 4 + br * 2 + bl * 1;
-
-        // Skip empty or full squares
-        if (squareIndex === 0 || squareIndex === 15) continue;
-
-        // Get line segments for this square
-        const segments = this._getMarchingSquaresSegments(x, y, squareIndex);
-        if (segments.length > 0) {
-          contours.push(...segments);
-        }
-      }
-    }
-
-    // Connect segments into continuous contours
-    return this._connectContours(contours);
-  }
-
-  /**
-   * Get line segments for a marching squares configuration
-   */
-  _getMarchingSquaresSegments(x, y, index) {
-    const cellSize = this.width / this.gridResolution;
-
-    // Edge midpoints
-    const top = [x + 0.5, y];
-    const right = [x + 1, y + 0.5];
-    const bottom = [x + 0.5, y + 1];
-    const left = [x, y + 0.5];
-
-    // Marching squares lookup table
-    const segments = [
-      [], // 0
-      [[left, bottom]], // 1
-      [[bottom, right]], // 2
-      [[left, right]], // 3
-      [[top, right]], // 4
-      [[top, bottom], [left, bottom]], // 5 (ambiguous)
-      [[top, bottom]], // 6
-      [[top, left]], // 7
-      [[top, left]], // 8
-      [[top, bottom]], // 9
-      [[top, right], [left, bottom]], // 10 (ambiguous)
-      [[top, right]], // 11
-      [[left, right]], // 12
-      [[bottom, right]], // 13
-      [[left, bottom]], // 14
-      [] // 15
-    ];
-
-    const segs = segments[index] || [];
-
-    // Scale to canvas coordinates
-    return segs.map(seg =>
-      seg.map(([px, py]) => [
-        px * cellSize,
-        py * cellSize
-      ])
-    );
-  }
-
-  /**
-   * Connect segments into continuous contour paths
-   */
-  _connectContours(segments) {
-    if (segments.length === 0) return [];
-
-    const contours = [];
-    const used = new Set();
-    const tolerance = 2; // Connection tolerance in pixels
-
-    for (let i = 0; i < segments.length; i++) {
-      if (used.has(i)) continue;
-
-      const contour = [segments[i][0], segments[i][1]];
-      used.add(i);
-
-      let connected = true;
-      while (connected) {
-        connected = false;
-        const lastPoint = contour[contour.length - 1];
-
-        // Find next connecting segment
-        for (let j = 0; j < segments.length; j++) {
-          if (used.has(j)) continue;
-
-          const [p1, p2] = segments[j];
-          const dist1 = this._distance(lastPoint, p1);
-          const dist2 = this._distance(lastPoint, p2);
-
-          if (dist1 < tolerance) {
-            contour.push(p2);
-            used.add(j);
-            connected = true;
-            break;
-          } else if (dist2 < tolerance) {
-            contour.push(p1);
-            used.add(j);
-            connected = true;
-            break;
-          }
-        }
-      }
-
-      if (contour.length > 3) {
-        contours.push(contour);
-      }
-    }
-
-    return contours;
-  }
-
-  _distance(p1, p2) {
-    const dx = p1[0] - p2[0];
-    const dy = p1[1] - p2[1];
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  /**
-   * ENHANCED: Detect forms with smooth boundaries
+   * ENHANCED: Detect forms with smooth boundaries.
+   * Sync fallback — same shared implementation the worker runs.
    */
   _detectForms() {
     if (!this.densityGrid) return;
-
-    // Use marching squares to extract smooth contours
-    const contours = this._marchingSquares(3);
-
-    // Convert contours to forms
-    for (let contour of contours) {
-      if (contour.length < 5) continue;
-
-      // Calculate form properties
-      const avgX = contour.reduce((sum, [x]) => sum + x, 0) / contour.length;
-      const avgY = contour.reduce((sum, [, y]) => sum + y, 0) / contour.length;
-
-      this.forms.push({
-        contour,
-        centerX: avgX,
-        centerY: avgY,
-        type: 'smooth'
-      });
-    }
+    const result = analyzeDensityGrid(
+      this.densityGrid, this.gridResolution, this.width, this.height, 3
+    );
+    this.forms.push(...result.forms);
   }
 
   generateArtwork(options = {}) {
-    this.width = options.width || 1024;
-    this.height = options.height || 1024;
-    this.maxSteps = options.steps || 500;
-    this.stepLength = options.stepLength || 5;
+    this.width = options.width ?? this.width;
+    this.height = options.height ?? this.height;
+    this.maxSteps = options.steps ?? this.maxSteps;
+    this.stepLength = options.stepLength ?? this.stepLength;
 
     this.densityGrid = new Float32Array(this.gridResolution * this.gridResolution);
     this.lines = [];
     this.forms = [];
+    this._generationLineBudget = this.generationStyle.maxTotalLines;
 
-    const totalLines = this.seeds.length * 10;
+    const totalLines = this._generationLineBudget;
 
     for (let seed of this.seeds) {
-      const linesForSeed = Math.floor(Math.random() * 5) + 3;
+      if (this.lines.length >= this._generationLineBudget) break;
+      const span = this.generationStyle.maxLines - this.generationStyle.minLines + 1;
+      const baseCount = this.generationStyle.minLines + Math.floor(this.random() * span);
+      const linesForSeed = clamp(
+        Math.round(baseCount * this.semantic.density),
+        1,
+        this.generationStyle.maxLines + 1
+      );
 
       for (let i = 0; i < linesForSeed; i++) {
         const line = this._growLine(seed, this.lines.length, totalLines);
@@ -859,12 +976,13 @@ class KleeEngine {
             this.height / 2
           );
 
-          this.lines.push(...symmetricLines);
+          const remaining = this._generationLineBudget - this.lines.length;
+          this.lines.push(...symmetricLines.slice(0, remaining));
         }
       }
     }
 
-    this._detectForms();
+    if (options.detectForms !== false) this._detectForms();
 
     return {
       lines: this.lines,
@@ -879,11 +997,12 @@ class KleeEngine {
    */
   render(canvasElement, options = {}) {
     const ctx = canvasElement.getContext('2d');
+    if (!ctx) return;
 
-    canvasElement.width = this.width;
-    canvasElement.height = this.height;
+    if (canvasElement.width !== this.width) canvasElement.width = this.width;
+    if (canvasElement.height !== this.height) canvasElement.height = this.height;
 
-    const bgColor = options.background || '#F5F1E8';
+    const bgColor = options.background || KLEE_CHAMBER_BACKGROUND;
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, this.width, this.height);
 
@@ -902,10 +1021,11 @@ class KleeEngine {
    * Render forms with smooth Bezier curves
    */
   _renderSmoothForms(ctx, options) {
+    const progress = clamp(options.progress ?? 1, 0, 1);
     for (let form of this.forms) {
       if (!form.contour || form.contour.length < 3) continue;
 
-      ctx.globalAlpha = 0.15;
+      ctx.globalAlpha = 0.12 * progress;
 
       const colorIndex = Math.floor(form.centerX / this.width * this.palette.length);
       ctx.fillStyle = this.palette[colorIndex % this.palette.length];
@@ -938,16 +1058,30 @@ class KleeEngine {
   }
 
   _renderLines(ctx, options) {
-    const lineWidth = options.lineWidth || 1.5;
-    const alpha = options.lineAlpha !== undefined ? options.lineAlpha : 0.8;
+    const style = { ...this.renderStyle, ...(options.style || {}) };
+    const displayScale = clamp(Math.min(this.width, this.height) / 720, 0.7, 2.5);
+    const lineWidth = options.lineWidth ?? style.lineWidth * displayScale;
+    const alpha = (options.lineAlpha ?? style.alpha) * this.semantic.alpha;
+    const progress = clamp(options.progress ?? 1, 0, 1);
 
-    for (let line of this.lines) {
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    for (let lineIndex = 0; lineIndex < this.lines.length; lineIndex++) {
+      const line = this.lines[lineIndex];
       if (line.points.length < 2) continue;
+
+      // Stagger the line families slightly so progressive growth reads as a
+      // composition unfolding, rather than every path advancing in lockstep.
+      const delay = (lineIndex / Math.max(1, this.lines.length - 1)) * 0.16;
+      const localProgress = clamp((progress - delay) / (1 - delay), 0, 1);
+      const pointCount = Math.min(line.points.length, Math.max(1, Math.ceil(line.points.length * localProgress)));
+      if (pointCount < 2) continue;
 
       ctx.beginPath();
       ctx.moveTo(line.points[0][0], line.points[0][1]);
 
-      for (let i = 1; i < line.points.length; i++) {
+      for (let i = 1; i < pointCount; i++) {
         const [x, y] = line.points[i];
 
         if (line.variation === 'dotted' && i % 3 === 0) {
@@ -959,8 +1093,25 @@ class KleeEngine {
 
       const colorIndex = Math.floor(line.colorIndex * this.palette.length);
       ctx.strokeStyle = this.palette[colorIndex % this.palette.length];
-      ctx.lineWidth = lineWidth * (0.5 + Math.random() * 0.5);
-      ctx.globalAlpha = alpha;
+
+      // Glow via a wide, faint under-stroke instead of ctx.shadowBlur:
+      // canvas shadows Gaussian-blur every stroke through an intermediate
+      // surface (~32 full-canvas composites per render at 4M px), which is
+      // far too heavy for the flash path. Two plain strokes read the same.
+      const glowWidth = 1 + (style.glow * this.semantic.glow) / 2.4;
+      ctx.globalAlpha = alpha * line.alpha * 0.28;
+      ctx.lineWidth = lineWidth * line.weight * (2.2 + glowWidth);
+      ctx.stroke();
+
+      if (style.ghostAlpha > 0) {
+        ctx.globalAlpha = style.ghostAlpha * localProgress;
+        ctx.lineWidth = lineWidth * line.weight * 2.2;
+        ctx.stroke();
+      }
+
+      // Bright core on top
+      ctx.globalAlpha = alpha * line.alpha;
+      ctx.lineWidth = lineWidth * line.weight;
       ctx.stroke();
     }
 
@@ -968,17 +1119,81 @@ class KleeEngine {
   }
 
   _applyTexture(ctx, intensity = 0.05) {
-    const imageData = ctx.getImageData(0, 0, this.width, this.height);
-    const data = imageData.data;
+    if (!this.textureTile) this.textureTile = this._buildTextureTileSync(48, intensity);
+    if (!this.textureTile || typeof ctx.createPattern !== 'function') return;
+    const pattern = ctx.createPattern(this.textureTile, 'repeat');
+    if (!pattern) return;
+    ctx.save();
+    ctx.globalCompositeOperation = 'soft-light';
+    ctx.globalAlpha = clamp(intensity * 2.2, 0, 0.16);
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, this.width, this.height);
+    ctx.restore();
+  }
 
-    for (let i = 0; i < data.length; i += 4) {
-      const noise = (Math.random() - 0.5) * intensity * 255;
-      data[i] += noise;
-      data[i + 1] += noise;
-      data[i + 2] += noise;
+  _buildTextureTileSync(size, intensity) {
+    // Same seeded stream the worker uses, so sync-built grain is identical
+    const pixels = buildTextureBytes(`${this.seed}:${this.preset}:texture`, size, intensity);
+    return this._textureTileFromBytes(size, pixels);
+  }
+
+  captureArtwork() {
+    return {
+      preset: this.preset,
+      seed: this.seed,
+      width: this.width,
+      height: this.height,
+      stepLength: this.stepLength,
+      maxSteps: this.maxSteps,
+      seeds: this.seeds,
+      lines: this.lines,
+      forms: this.forms,
+      palette: [...this.palette],
+      basePalette: [...this.basePalette],
+      renderStyle: { ...this.renderStyle },
+      generationStyle: { ...this.generationStyle },
+      semantic: { ...this.semantic },
+      textureTile: this.textureTile
+    };
+  }
+
+  restoreArtwork(artwork) {
+    if (!artwork) return false;
+
+    // Geometry is resolution-independent: when the canvas has been resized
+    // since capture, rescale points instead of rejecting the snapshot. This
+    // keeps the preload queue valid across window resizes.
+    let lines = artwork.lines;
+    let forms = artwork.forms;
+    if (artwork.width !== this.width || artwork.height !== this.height) {
+      const sx = this.width / artwork.width;
+      const sy = this.height / artwork.height;
+      lines = artwork.lines.map(line => ({
+        ...line,
+        points: line.points.map(([x, y]) => [x * sx, y * sy])
+      }));
+      forms = (artwork.forms || []).map(form => ({
+        ...form,
+        centerX: form.centerX * sx,
+        centerY: form.centerY * sy,
+        contour: (form.contour || []).map(([x, y]) => [x * sx, y * sy])
+      }));
     }
 
-    ctx.putImageData(imageData, 0, 0);
+    this.preset = artwork.preset;
+    this.seed = artwork.seed;
+    this.stepLength = artwork.stepLength;
+    this.maxSteps = artwork.maxSteps;
+    this.seeds = artwork.seeds;
+    this.lines = lines;
+    this.forms = forms;
+    this.palette = [...artwork.palette];
+    this.basePalette = [...artwork.basePalette];
+    this.renderStyle = { ...artwork.renderStyle };
+    this.generationStyle = { ...artwork.generationStyle };
+    this.semantic = { ...artwork.semantic };
+    this.textureTile = artwork.textureTile;
+    return true;
   }
 
   export(canvasElement, format = 'image/png') {
@@ -1006,43 +1221,16 @@ class KleeEngine {
     this.maxSteps = config.maxSteps || 500;
   }
 
-  generateRandom(theme = 'harmonic') {
+  generateRandom(theme = 'harmonic', options = {}) {
+    this._generationEpoch += 1;
     this.seeds = [];
+    if (options.seed !== undefined) this.setSeed(options.seed, options.rng);
+    this.textureTile = null;
 
-    // Curated preset roster. Each theme is LED by its namesake variation
-    // (guaranteed 0.7 weight) with a supporting cast. Spiral/circular walks
-    // under high-order rotational symmetry produced moiré tangles — those
-    // combinations are deliberately absent, and symmetry orders are capped.
-    const themes = {
-      architectural: {
-        variations: ['architectural', 'angular', 'straight', 'crystalline'],
-        seedCount: [4, 7],
-        symmetry: [0, 2, 4]
-      },
-      chaotic: {
-        variations: ['chaotic', 'explosive', 'zigzag', 'trembling'],
-        seedCount: [5, 10],
-        symmetry: [0]
-      },
-      harmonic: {
-        variations: ['harmonic', 'wavy', 'flowing', 'rhythmic'],
-        seedCount: [2, 5],
-        symmetry: [0, 2, 3]
-      },
-      gravitational: {
-        variations: ['gravitational', 'looping', 'meandering', 'curved'],
-        seedCount: [2, 4],
-        symmetry: [0, 2]
-      },
-      twittering: {
-        variations: ['twittering', 'dotted', 'looping', 'mythical'],
-        seedCount: [3, 6],
-        symmetry: [0, 2]
-      }
-    };
-
-    // Retired preset names (and stray historical ids) map onto the
-    // nearest curated theme so saved blueprints keep rendering.
+    // These five recipes intentionally mirror the canonical compositions in
+    // klee/examples.html. A named preset is a visual contract, not a loose
+    // theme: selecting Harmonic should always produce Harmonic Resonance,
+    // Gravitational should always begin on an orbital ring, and so on.
     const LEGACY_ALIASES = {
       corporeal: 'harmonic',
       structural: 'architectural',
@@ -1053,41 +1241,132 @@ class KleeEngine {
       wireframe: 'architectural'
     };
 
-    const resolved = themes[theme] ? theme : (LEGACY_ALIASES[theme] || 'harmonic');
-    const config = themes[resolved];
-    const seedCount = config.seedCount[0] +
-      Math.floor(Math.random() * (config.seedCount[1] - config.seedCount[0]));
-
-    for (let i = 0; i < seedCount; i++) {
-      // The namesake variation always leads, so presets keep their identity;
-      // a random supporting variation colors each seed differently.
-      const variations = {};
-      variations[config.variations[0]] = 0.7;
-
-      const secondary = config.variations[
-        1 + Math.floor(Math.random() * (config.variations.length - 1))
-      ];
-      variations[secondary] = (variations[secondary] || 0) + 0.3;
-
-      this.addSeed({
-        x: this.width * (0.2 + Math.random() * 0.6),
-        y: this.height * (0.2 + Math.random() * 0.6),
-        angle: Math.random() * Math.PI * 2,
-        variations,
-        colorIndex: i / seedCount,
-        branchProbability: 0.01 + Math.random() * 0.03,
-        symmetry: config.symmetry[Math.floor(Math.random() * config.symmetry.length)],
-        params: {
-          stepLength: this.stepLength * (0.7 + Math.random() * 0.6),
-          amplitude: 0.2 + Math.random() * 0.4,
-          frequency: 0.1 + Math.random() * 0.3,
-          noiseScale: 0.005 + Math.random() * 0.015,
-          octaves: 3
-        }
+    const resolved = KLEE_PRESET_NAMES.includes(theme) ? theme : (LEGACY_ALIASES[theme] || 'harmonic');
+    const blendFrom = KLEE_PRESET_PROFILES[options.blendFrom] ? options.blendFrom : resolved;
+    const blend = options.blendFrom ? clamp(options.blend ?? 0.35, 0, 1) : 1;
+    const sourceProfile = KLEE_PRESET_PROFILES[blendFrom];
+    this.configurePresetStyle(resolved, { ...options, blendFrom, blend });
+    const generation = this.generationStyle;
+    const scale = Math.min(this.width, this.height) / 512;
+    const centerX = this.width / 2;
+    const centerY = this.height / 2;
+    const addPresetSeed = (config) => {
+      const index = this.addSeed({
+        branchProbability: generation.branchProbability,
+        maxBranches: generation.maxBranches,
+        ...config
       });
+      this._blendSeedVariations(this.seeds[index], sourceProfile, blend);
+      this._modulateSeed(this.seeds[index]);
+      return index;
+    };
+
+    if (resolved === 'architectural') {
+      addPresetSeed({
+        x: centerX,
+        y: this.height * (100 / 512),
+        angle: Math.PI / 2,
+        variations: { architectural: 0.8, angular: 0.2 },
+        symmetry: 2,
+        params: { stepLength: 10 * scale }
+      });
+    } else if (resolved === 'chaotic') {
+      for (let i = 0; i < 4; i++) {
+        addPresetSeed({
+          x: centerX + (this.random() - 0.5) * 200 * scale,
+          y: centerY + (this.random() - 0.5) * 200 * scale,
+          variations: { chaotic: 0.5, explosive: 0.3, trembling: 0.2 },
+          colorIndex: i / 4,
+          params: { chaos: 0.42 + this.random() * 0.2, tremble: 0.38 + this.random() * 0.24 }
+        });
+      }
+    } else if (resolved === 'harmonic') {
+      addPresetSeed({
+        x: centerX,
+        y: centerY,
+        variations: { harmonic: 0.7, rhythmic: 0.3 },
+        colorIndex: 0.5,
+        symmetry: 6
+      });
+    } else if (resolved === 'gravitational') {
+      const seedCount = 3 + Math.floor(this.random() * 3);
+      const radius = 190 * scale;
+      const phase = this.random() * Math.PI * 2;
+      const attractorX = centerX + (this.random() - 0.5) * this.width * 0.1;
+      const attractorY = centerY + (this.random() - 0.5) * this.height * 0.1;
+      for (let i = 0; i < seedCount; i++) {
+        const angle = phase + (i / seedCount) * Math.PI * 2 + (this.random() - 0.5) * 0.55;
+        const seedRadius = radius * (0.72 + this.random() * 0.5);
+        const gravityWeight = 0.72 + this.random() * 0.16;
+        const targetX = attractorX + (this.random() - 0.5) * 28 * scale;
+        const targetY = attractorY + (this.random() - 0.5) * 28 * scale;
+        addPresetSeed({
+          x: centerX + Math.cos(angle) * seedRadius * (0.85 + this.random() * 0.3),
+          y: centerY + Math.sin(angle) * seedRadius * (0.65 + this.random() * 0.45),
+          variations: { gravitational: gravityWeight, flowing: 1 - gravityWeight },
+          colorIndex: i / seedCount,
+          params: {
+            gravity: 0.055 + this.random() * 0.045,
+            flow: (this.random() < 0.5 ? -1 : 1) * (0.015 + this.random() * 0.03),
+            centerX: targetX,
+            centerY: targetY,
+            stopRadius: (18 + this.random() * 18) * scale
+          }
+        });
+      }
+    } else {
+      for (let i = 0; i < 5; i++) {
+        addPresetSeed({
+          x: this.width * ((100 + i * 80) / 512) + (this.random() - 0.5) * 12 * scale,
+          y: this.height * (150 / 512) + (this.random() - 0.5) * 14 * scale,
+          variations: { twittering: 0.7, trembling: 0.3 },
+          colorIndex: i / 5,
+          params: { stepLength: 3 * scale }
+        });
+      }
     }
 
-    return this.generateArtwork();
+    // Preserve the active canvas dimensions. The previous no-argument call
+    // silently reset every fullscreen render to 1024×1024, stretching it on
+    // non-square displays and weakening all position-based compositions.
+    return this.generateArtwork({
+      width: this.width,
+      height: this.height,
+      steps: generation.steps,
+      stepLength: this.stepLength,
+      detectForms: options.detectForms
+    });
+  }
+
+  async generateRandomAsync(theme = 'harmonic', options = {}) {
+    this.generateRandom(theme, { ...options, detectForms: false });
+    const epoch = this._generationEpoch;
+    const enhancements = Promise.all([
+      options.detectForms === false ? Promise.resolve() : this._detectFormsAsync(epoch),
+      this._prepareTextureAsync(options.texture ?? this.renderStyle.texture, epoch)
+    ]);
+    this._enhancementPromise = enhancements.catch(() => undefined);
+    if (options.awaitEnhancements !== false) await this._enhancementPromise;
+    return {
+      lines: this.lines,
+      forms: this.forms,
+      width: this.width,
+      height: this.height,
+      seed: this.seed,
+      preset: this.preset
+    };
+  }
+
+  destroy() {
+    this._worker?.terminate();
+    this._worker = null;
+    // terminate() kills the worker silently — no message will ever arrive
+    // for in-flight requests, so reject them or their awaiters hang forever
+    // (which previously deadlocked the preload loop after a mid-flight resize).
+    for (const request of this._workerRequests.values()) {
+      request.reject(new Error('Klee worker destroyed'));
+    }
+    this._workerRequests.clear();
   }
 }
 

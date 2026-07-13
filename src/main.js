@@ -395,7 +395,9 @@ async function enterChamber() {
   if (visualCortex && visualMode === 'interlocution') {
     // Estimate sentence breaks (approx 1 per 10 atoms) * frequency
     const estimatedSentences = session.atoms.length / 10;
-    const freq = visualCortex.config.interlocution?.frequency || visualCortex.config.frequency || 0.2;
+    const freq = visualCortex.config.interlocution?.frequency
+      ?? visualCortex.config.frequency
+      ?? 0.2;
     const estimatedFlashes = estimatedSentences * freq;
     await visualCortex.preload(Math.ceil(estimatedFlashes));
   }
@@ -406,7 +408,9 @@ async function enterChamber() {
     const text = atom.content || atom.text;
     const isInterlocution = visualCortex?.config?.visualMode === 'interlocution';
     if (visualCortex && isInterlocution && text && text.match(/[.!?]$/)) {
-      const freq = visualCortex.config.interlocution?.frequency || visualCortex.config.frequency || 0.2;
+      const freq = visualCortex.config.interlocution?.frequency
+        ?? visualCortex.config.frequency
+        ?? 0.2;
       if (Math.random() < freq) {
         visualCortex.flash(); // Uses config magnitude/type
       }
