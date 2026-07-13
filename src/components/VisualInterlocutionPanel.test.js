@@ -8,6 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { VisualInterlocutionPanel } from './VisualInterlocutionPanel.js';
 import { WIKIMEDIA_CATEGORIES } from '../sources/visual/wikimedia.js';
+import { MUSEUM_CATEGORIES } from '../sources/visual/museum.js';
 
 // SOL Dawn's visual preset, as it arrives via `...visualConfig` spread
 const SOL_DAWN_CONFIG = {
@@ -51,15 +52,42 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         container.remove();
     });
 
-    it('renders exactly the categories the Wikimedia provider defines', () => {
+    it('renders the categories the Wikimedia provider defines (minus AIC-shadowed ids)', () => {
         const { panel, container } = makePanel({ ...SOL_DAWN_CONFIG });
 
         for (const id of Object.keys(WIKIMEDIA_CATEGORIES)) {
+            if (id === 'romantic') continue; // legacy-routed to AIC; lives in the AIC section
             expect(container.querySelector(`[data-sourced="${id}"]`), `missing checkbox for '${id}'`).not.toBeNull();
         }
-        // The previously hardcoded dead categories must be gone
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('renders every Art Institute category under its namespaced aic- id', () => {
+        const { panel, container } = makePanel({ ...SOL_DAWN_CONFIG });
+
+        for (const id of Object.keys(MUSEUM_CATEGORIES)) {
+            expect(container.querySelector(`[data-sourced="aic-${id}"]`), `missing AIC checkbox for '${id}'`).not.toBeNull();
+        }
+        // Bare (un-namespaced) AIC ids must not appear as checkboxes
         expect(container.querySelector('[data-sourced="renaissance"]')).toBeNull();
         expect(container.querySelector('[data-sourced="landscapes"]')).toBeNull();
+        expect(container.querySelector('[data-sourced="romantic"]')).toBeNull();
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('an AIC preset is visible and checked (e.g. archetype with aic-surrealism)', () => {
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: { frequency: 0.3, duration: 80, sourced: ['aic-surrealism'], procedural: [] }
+        });
+
+        const box = container.querySelector('[data-sourced="aic-surrealism"]');
+        expect(box).not.toBeNull();
+        expect(box.checked).toBe(true);
 
         panel.destroy();
         container.remove();

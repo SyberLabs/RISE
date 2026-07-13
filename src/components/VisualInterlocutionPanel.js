@@ -11,6 +11,7 @@
  */
 
 import { WIKIMEDIA_CATEGORIES } from '../sources/visual/wikimedia.js';
+import { MUSEUM_CATEGORIES } from '../sources/visual/museum.js';
 import { MemoryCore } from '../core/memory.js';
 import { ATTRACTOR_SYSTEMS } from '../visuals/attractor.js';
 import { escapeHtml } from '../core/sanitize.js';
@@ -338,8 +339,19 @@ export class VisualInterlocutionPanel {
         // Universal Diagrams — generated from the Wikimedia provider registry
         // so the panel always shows exactly the categories that exist
         // (presets like SOL's 'solar' stay visible and modifiable).
+        // Bare ids that the cortex legacy-routes to the Art Institute are
+        // excluded here (only 'romantic' collides) — they live in the AIC
+        // section below under their namespaced 'aic-' ids.
+        const LEGACY_AIC_IDS = ['renaissance', 'romantic', 'impressionism', 'photography', 'surrealism', 'landscapes'];
         const diagramCategories = Object.entries(WIKIMEDIA_CATEGORIES)
+            .filter(([id]) => !LEGACY_AIC_IDS.includes(id))
             .map(([id, cat]) => ({ id, name: cat.name }));
+
+        // Art Institute of Chicago — generated from the museum provider
+        // registry; ids namespaced 'aic-*' so they never collide with
+        // Wikimedia category names
+        const aicCategories = Object.entries(MUSEUM_CATEGORIES)
+            .map(([id, cat]) => ({ id: `aic-${id}`, name: cat.name }));
 
         // Metropolitan Museum of Art — verified public domain departments
         const metCategories = [
@@ -511,7 +523,27 @@ export class VisualInterlocutionPanel {
                             </div>
                         </div>
 
-                        <!-- 2b. Met Museum Collection -->
+                        <!-- 2b. Art Institute of Chicago -->
+                        <div class="vi-accordion ${this.activeAccordions.includes('aic') ? 'active' : ''}">
+                            <button type="button" class="vi-accordion-header" data-toggle="aic">
+                                <span>Art Institute Collection</span>
+                                <span class="vi-chevron">${this.activeAccordions.includes('aic') ? '▲' : '▼'}</span>
+                            </button>
+                            <div class="vi-accordion-body" ${this.activeAccordions.includes('aic') ? '' : 'hidden'}>
+                                <div class="vi-checkbox-grid vi-checkbox-grid-2">
+                                    ${aicCategories.map(c => `
+                                        <label class="vi-checkbox">
+                                            <input type="checkbox"
+                                                ${this.config.interlocution.sourced.includes(c.id) ? 'checked' : ''}
+                                                data-sourced="${c.id}">
+                                            <span class="vi-checkbox-label">${c.name}</span>
+                                        </label>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2c. Met Museum Collection -->
                         <div class="vi-accordion ${this.activeAccordions.includes('met') ? 'active' : ''}">
                             <button type="button" class="vi-accordion-header" data-toggle="met">
                                 <span>Met Museum Collection</span>

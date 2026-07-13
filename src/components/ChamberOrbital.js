@@ -24,6 +24,9 @@ export class ChamberOrbital {
     this.config = {
       text: null,
       textSource: null, // 'drop', 'paste', 'library', 'starter'
+      // Launch origin (wayfinding): { view, icon, name } set by app.js
+      // launch handlers (SOL / Vault / Library); null for plain sessions
+      origin: null,
 
       // Visual orbit - 4-way mode structure
       visualInterlocution: {
@@ -101,6 +104,9 @@ export class ChamberOrbital {
           <span>Portal</span>
         </button>
 
+        <!-- Launch origin chip (wayfinding back to SOL / Vault / Library) -->
+        <div class="orbital-origin-slot" id="orbital-origin-slot">${this.renderOriginChip()}</div>
+
         <!-- Orbital Interface -->
         <div class="orbital-stage">
           <!-- Orbit container -->
@@ -154,6 +160,28 @@ export class ChamberOrbital {
     `;
 
     this.initVisualPanel();
+  }
+
+  /**
+   * Origin chip — shows where the loaded configuration came from and
+   * returns there on click. Origin metadata is app-authored (not user
+   * data). Empty for plain orbital sessions.
+   */
+  renderOriginChip() {
+    const origin = this.config.origin;
+    if (!origin || !origin.view) return '';
+    return `
+      <button class="orbital-origin-chip" data-action="origin-return" title="Return to ${origin.name}">
+        <span class="origin-chip-icon">${origin.icon || '◇'}</span>
+        <span class="origin-chip-label">${origin.name}</span>
+        <span class="origin-chip-arrow">‹</span>
+      </button>
+    `;
+  }
+
+  updateOriginChip() {
+    const slot = this.container.querySelector('#orbital-origin-slot');
+    if (slot) slot.innerHTML = this.renderOriginChip();
   }
 
   renderTextSource() {
@@ -437,6 +465,14 @@ export class ChamberOrbital {
     this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
       window.rise?.audioEngine?.playClick();
       this.onNavigate('portal');
+    });
+
+    // Origin chip (delegated — the chip re-renders on loadText/clearText)
+    this.container.addEventListener('click', (e) => {
+      if (e.target.closest('[data-action="origin-return"]') && this.config.origin?.view) {
+        window.rise?.audioEngine?.playClick();
+        this.onNavigate(this.config.origin.view);
+      }
     });
 
     // Text source actions
@@ -857,6 +893,10 @@ export class ChamberOrbital {
     this.config.text = text;
     this.config.textSource = source;
 
+    // Launch origin for the wayfinding chip (null when launched plainly)
+    this.config.origin = config.origin || null;
+    this.updateOriginChip();
+
     // Apply optional config parameters from source
     if (config.wpm) this.config.wpm = config.wpm;
     if (config.curve) this.config.curve = config.curve;
@@ -922,6 +962,8 @@ export class ChamberOrbital {
   clearText() {
     this.config.text = null;
     this.config.textSource = null;
+    this.config.origin = null;
+    this.updateOriginChip();
 
     // Lock visual interlocution again
     if (this.viPanel) {

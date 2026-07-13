@@ -547,7 +547,8 @@ class App {
                 config: {
                     wpm: sequence.wpm,
                     curve: sequence.curve,
-                    audioPreset: sequence.audioPreset || 'silent'
+                    audioPreset: sequence.audioPreset || 'silent',
+                    origin: { view: 'library', icon: '◇', name: 'Library' }
                 }
             }
         });
@@ -572,7 +573,8 @@ class App {
                     wpm: config.wpm,
                     curve: config.curve,
                     audioPreset: config.audioPreset || 'silent',
-                    visualConfig: config.visualConfig || { visualMode: 'off' }
+                    visualConfig: config.visualConfig || { visualMode: 'off' },
+                    origin: { view: 'vault', icon: '◈', name: 'Vault' }
                 }
             }
         });
@@ -597,7 +599,8 @@ class App {
                     wpm: config.wpm,
                     curve: config.curve,
                     audioPreset: config.audioPreset || 'silent',
-                    visualConfig: config.visualConfig || { visualMode: 'off' }
+                    visualConfig: config.visualConfig || { visualMode: 'off' },
+                    origin: { view: 'sol', icon: '☀', name: 'SOL' }
                 }
             }
         });

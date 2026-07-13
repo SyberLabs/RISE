@@ -211,6 +211,10 @@ export class VisualCortex {
      * @private
      */
     async _getProviderForCategory(categoryId) {
+        // Art Institute of Chicago — prefixed with 'aic-' (panel-issued ids)
+        if (categoryId.startsWith('aic-')) {
+            return this._getMuseumProvider();
+        }
         // Met Museum — prefixed with 'met-'
         if (categoryId && categoryId.startsWith('met-')) {
             return this._getMetProvider();
@@ -290,7 +294,10 @@ export class VisualCortex {
                     const provider = await this._getProviderForCategory(categoryId);
                     if (!provider) continue;
 
-                    const image = await provider.getRandom({ category: categoryId });
+                    // AIC ids are namespaced in the UI ('aic-renaissance') but the
+                    // provider's category table uses bare keys ('renaissance')
+                    const providerCategory = categoryId.startsWith('aic-') ? categoryId.slice(4) : categoryId;
+                    const image = await provider.getRandom({ category: providerCategory });
                     if (image && image.data && image.data.url) {
                         this._diagramQueue.push(this._loadImage(image.data.url, image.name, categoryId).catch(err => {
                             console.warn('[Visual Cortex] Failed to load external asset, skipping.', err);
