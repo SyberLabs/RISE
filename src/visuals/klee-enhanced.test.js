@@ -47,8 +47,9 @@ describe('KleeEngine curated presets', () => {
     it('recreates the canonical Gravitational orbital topology (parametric, capture guaranteed)', () => {
         const engine = new KleeEngine({ seed: 'gravity-topology' });
         engine.generateRandom('gravitational', { seed: 'gravity-topology' });
-        expect(engine.seeds.length).toBeGreaterThanOrEqual(4);
-        expect(engine.seeds.length).toBeLessThanOrEqual(5);
+        // protagonist + echo + chorus(3-5) + whisper
+        expect(engine.seeds.length).toBeGreaterThanOrEqual(6);
+        expect(engine.seeds.length).toBeLessThanOrEqual(8);
         for (const seed of engine.seeds) {
             // Constructed geometry, not tuned steering feedback
             expect(seed.params.decay).toBeLessThan(1);
@@ -62,7 +63,30 @@ describe('KleeEngine curated presets', () => {
         // All orbits share one attractor
         const centers = new Set(engine.seeds.map(s => `${s.params.centerX},${s.params.centerY}`));
         expect(centers.size).toBe(1);
-        expect(engine.lines.length).toBeLessThanOrEqual(8);
+
+        // Stroke hierarchy: one heavy protagonist, one faint whisper frame
+        expect(engine.seeds[0].params.lineWeight).toBe(1.55);
+        expect(engine.seeds[0].params.lineAlpha).toBe(1);
+        const whisper = engine.seeds[engine.seeds.length - 1];
+        expect(whisper.params.lineAlpha).toBeLessThan(0.5);
+        expect(whisper.params.decay).toBeGreaterThan(0.999); // framing orbit barely falls
+
+        expect(engine.lines.length).toBeLessThanOrEqual(10);
+    });
+
+    it('gravitational responds to the signal compositionally, not dynamically', () => {
+        const calm = new KleeEngine({ seed: 'semantic-orbit' });
+        calm.generateRandom('gravitational', { seed: 'semantic-orbit', signal: { valence: 0.5, arousal: 0 } });
+        const intense = new KleeEngine({ seed: 'semantic-orbit' });
+        intense.generateRandom('gravitational', { seed: 'semantic-orbit', signal: { valence: -0.5, arousal: 1 } });
+
+        // Arousal densifies the system with more chorus orbits (3 vs 5)
+        expect(intense.seeds.length - calm.seeds.length).toBe(2);
+        // But never destabilizes capture: decay stays in the guaranteed band
+        for (const seed of intense.seeds) {
+            expect(seed.params.decay).toBeLessThan(1);
+            expect(seed.params.decay).toBeGreaterThan(0.95);
+        }
     });
 
     it('the gravitational protagonist winds into its terminal coil (the mass renders itself)', () => {
@@ -154,8 +178,8 @@ describe('KleeEngine curated presets', () => {
         engine.generateRandom('gravitational');
         const second = engine.seeds.map(({ x, y, params }) => [x, y, params.angularStep]);
         expect(second).not.toEqual(first);
-        expect(engine.seeds.length).toBeGreaterThanOrEqual(4);
-        expect(engine.seeds.length).toBeLessThanOrEqual(5);
+        expect(engine.seeds.length).toBeGreaterThanOrEqual(6);
+        expect(engine.seeds.length).toBeLessThanOrEqual(8);
     });
 
     it('provides deterministic random streams and smooth profile interpolation', () => {

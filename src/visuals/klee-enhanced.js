@@ -39,8 +39,8 @@ export const KLEE_PRESET_PROFILES = Object.freeze({
   gravitational: {
     variations: { gravitational: 0.8, flowing: 0.2 },
     palette: kleeStrokePalette('gravitational'),
-    style: { lineWidth: 0.92, alpha: 0.57, glow: 4.2, ghostAlpha: 0.18, texture: 0.02 },
-    generation: { steps: 320, minLines: 1, maxLines: 1, maxTotalLines: 8, branchProbability: 0, maxBranches: 0, densityStop: 7 }
+    style: { lineWidth: 0.92, alpha: 0.63, glow: 4.2, ghostAlpha: 0.18, texture: 0.02 },
+    generation: { steps: 320, minLines: 1, maxLines: 1, maxTotalLines: 10, branchProbability: 0, maxBranches: 0, densityStop: 7 }
   },
   twittering: {
     variations: { twittering: 0.7, trembling: 0.3 },
@@ -620,17 +620,35 @@ class KleeEngine {
     const decay = params.decay ?? 0.988;
     const coilRadius = params.coilRadius ?? 12;
     const wobbleAmp = params.wobble ?? 0.04;
+    // Elliptical orbits: radius modulated by angle around a major axis.
+    // Circles read mechanical; a slight eccentricity breathes.
+    const ecc = params.eccentricity ?? 0;
+    const axisAngle = params.axisAngle ?? 0;
 
     const dx = x - cx;
     const dy = y - cy;
     let radius = Math.hypot(dx, dy);
     let angle = radius > 0.001 ? Math.atan2(dy, dx) : this.random() * Math.PI * 2;
 
+    // De-eccentrize exactly (the previous step multiplied by mPrev), so the
+    // ellipse never feeds back into the decay — capture stays guaranteed
+    const mPrev = 1 + ecc * Math.cos(angle - axisAngle);
+    let base = radius / Math.max(0.5, mPrev);
+
     // Gentle radial breathing so the orbit reads drawn, not plotted
-    const wobble = 1 + this.multiOctaveNoise2D(step * 0.02, radius * 0.01, 2) * wobbleAmp;
+    const wobble = 1 + this.multiOctaveNoise2D(step * 0.02, base * 0.01, 2) * wobbleAmp;
 
     angle += dir * angularStep;
-    radius = Math.max(coilRadius, radius * decay) * (radius > coilRadius * 1.5 ? wobble : 1);
+
+    // Two-stage capture: fast infall down to the coil, then a slow inner
+    // tightening toward coilTight — the knot becomes a tight spiral core
+    // rather than an overdrawn circle
+    const coilTight = params.coilTight ?? coilRadius * 0.35;
+    const rate = base > coilRadius ? decay : (params.coilDecay ?? 0.996);
+    base = Math.max(coilTight, base * rate) * (base > coilRadius * 1.5 ? wobble : 1);
+
+    const mNew = 1 + ecc * Math.cos(angle - axisAngle);
+    radius = base * mNew;
 
     return [
       cx + radius * Math.cos(angle),
@@ -901,8 +919,10 @@ class KleeEngine {
       colorIndex: seed.colorIndex,
       variation: Object.keys(seed.variations)[0],
       seedIndex: this.lines.length,
-      weight: this.random() < 0.16 ? 1.55 : (this.random() < 0.48 ? 1 : 0.68),
-      alpha: 0.82 + this.random() * 0.18
+      // Recipes may pin a line's role in the stroke hierarchy
+      // (protagonist / chorus / whisper); otherwise the dice decide
+      weight: seed.params.lineWeight ?? (this.random() < 0.16 ? 1.55 : (this.random() < 0.48 ? 1 : 0.68)),
+      alpha: seed.params.lineAlpha ?? (0.82 + this.random() * 0.18)
     };
   }
 
@@ -1348,41 +1368,107 @@ class KleeEngine {
       const attractorY = this.height * (this.random() < 0.5 ? 0.42 : 0.58)
         + (this.random() - 0.5) * 30 * scale;
       const coreCoil = (6 + this.random() * 5) * scale;
-      const seedCount = 4 + Math.floor(this.random() * 2);
       const phase = this.random() * Math.PI * 2;
 
-      for (let i = 0; i < seedCount; i++) {
-        const isProtagonist = i === 0;
-        const angle = phase + (i / seedCount) * Math.PI * 2 + (this.random() - 0.5) * 0.6;
-        const startRadius = (isProtagonist ? 215 : 120 + this.random() * 130) * scale;
-        const dir = isProtagonist || this.random() > 0.18 ? dir0 : -dir0;
+      // Semantic composition (parametric, so modulation is regime-safe):
+      // arousal densifies the system with more chorus orbits; negative
+      // valence loosens direction coherence — more retrograde tension.
+      const chorusCount = 3 + Math.round(clamp(this.semantic.arousal, 0, 1) * 2);
+      const retrogradeChance = this.semantic.valence >= 0 ? 0.12 : 0.32;
+
+      const shared = {
+        centerX: attractorX,
+        centerY: attractorY,
+        // Coils concentrate points in one cell by design — exempt orbits
+        // from the density brake so the knot completes (the dense cell also
+        // hands marching squares a soft form-fill glow at the core)
+        densityStop: 0
+      };
+
+      // PROTAGONIST — the full fall: ~2.6-turn sweep, slightly elliptical,
+      // heaviest stroke in the lightest climate color, winding into a
+      // tight spiral core (the mass rendering itself).
+      const pAngle = phase;
+      const pEcc = 0.1 + this.random() * 0.06;
+      const pAxis = this.random() * Math.PI * 2;
+      const protagonistParams = {
+        ...shared,
+        direction: dir0,
+        angularStep: 0.052,
+        decay: 0.982,
+        coilRadius: coreCoil,
+        coilDecay: 0.9955,
+        eccentricity: pEcc,
+        axisAngle: pAxis,
+        wobble: 0.03 + this.random() * 0.02
+      };
+      addPresetSeed({
+        x: attractorX + Math.cos(pAngle) * 215 * scale,
+        y: attractorY + Math.sin(pAngle) * 215 * scale,
+        angle: pAngle + dir0 * Math.PI / 2,
+        variations: { orbital: 0.92, flowing: 0.08 },
+        colorIndex: 0.92,
+        params: { ...protagonistParams, lineWeight: 1.55, lineAlpha: 1 }
+      });
+
+      // ECHO — a confident re-stroke: the protagonist's orbit repeated
+      // faintly at a small phase offset, the drawn line's own shadow.
+      addPresetSeed({
+        x: attractorX + Math.cos(pAngle + 0.34) * 224 * scale,
+        y: attractorY + Math.sin(pAngle + 0.34) * 224 * scale,
+        angle: pAngle + 0.34 + dir0 * Math.PI / 2,
+        variations: { orbital: 0.95, flowing: 0.05 },
+        colorIndex: 0.6,
+        params: { ...protagonistParams, lineWeight: 0.6, lineAlpha: 0.5 }
+      });
+
+      // CHORUS — partial arcs decaying onto hold-shells around the core,
+      // elliptical, occasionally retrograde.
+      for (let i = 0; i < chorusCount; i++) {
+        const angle = phase + ((i + 1) / (chorusCount + 1)) * Math.PI * 2 + (this.random() - 0.5) * 0.6;
+        const dir = this.random() > retrogradeChance ? dir0 : -dir0;
         addPresetSeed({
-          x: attractorX + Math.cos(angle) * startRadius,
-          y: attractorY + Math.sin(angle) * startRadius,
+          x: attractorX + Math.cos(angle) * (120 + this.random() * 130) * scale,
+          y: attractorY + Math.sin(angle) * (120 + this.random() * 130) * scale,
           angle: angle + dir * Math.PI / 2,
-          variations: isProtagonist
-            ? { orbital: 0.92, flowing: 0.08 }
-            : { orbital: 0.85, flowing: 0.15 },
-          colorIndex: isProtagonist ? 0.9 : i / seedCount,
+          variations: { orbital: 0.85, flowing: 0.15 },
+          colorIndex: 0.15 + (i / Math.max(1, chorusCount - 1)) * 0.55,
           params: {
-            centerX: attractorX,
-            centerY: attractorY,
+            ...shared,
             direction: dir,
-            // Decay strong enough that capture completes even at the low
-            // end of the step-count variance (~240 effective decay steps),
-            // leaving the remainder to wind the terminal coil dense.
-            angularStep: isProtagonist ? 0.052 : 0.06 + this.random() * 0.05,
-            decay: isProtagonist ? 0.982 : 0.972 + this.random() * 0.007,
-            coilRadius: isProtagonist ? coreCoil : coreCoil * (2.6 + this.random() * 1.8),
+            angularStep: 0.06 + this.random() * 0.05,
+            decay: 0.972 + this.random() * 0.007,
+            coilRadius: coreCoil * (2.6 + this.random() * 1.8),
+            eccentricity: 0.08 + this.random() * 0.16,
+            axisAngle: this.random() * Math.PI * 2,
             wobble: 0.03 + this.random() * 0.03,
-            // The terminal coil deliberately concentrates points in one
-            // cell — exempt orbits from the density brake so the knot
-            // completes (the dense cell also gives marching squares a
-            // soft form-fill at the core: the mass gets a glow for free)
-            densityStop: 0
+            lineWeight: 1,
+            lineAlpha: 0.85
           }
         });
       }
+
+      // WHISPER — one vast, faint framing ellipse: the system's outermost
+      // orbit, barely decaying, holding the composition together.
+      addPresetSeed({
+        x: attractorX + Math.cos(phase + Math.PI) * 265 * scale,
+        y: attractorY + Math.sin(phase + Math.PI) * 265 * scale,
+        angle: phase + Math.PI + dir0 * Math.PI / 2,
+        variations: { orbital: 0.97, flowing: 0.03 },
+        colorIndex: 0.1,
+        params: {
+          ...shared,
+          direction: dir0,
+          angularStep: 0.042,
+          decay: 0.9996,
+          coilRadius: coreCoil * 6,
+          eccentricity: 0.18,
+          axisAngle: pAxis,
+          wobble: 0.02,
+          lineWeight: 0.68,
+          lineAlpha: 0.38
+        }
+      });
     } else {
       for (let i = 0; i < 5; i++) {
         addPresetSeed({
