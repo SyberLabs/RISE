@@ -579,7 +579,7 @@
 }
 
 .sol-myday {
-  max-width: 720px;
+  max-width: 660px;
   margin: 0 auto;
   width: 100%;
 }
@@ -599,16 +599,15 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
-  padding-left: 4px;
+  gap: var(--space-sm);
 }
 
 .sol-myday-timeline::before {
   content: '';
   position: absolute;
-  top: 18px;
-  bottom: 18px;
-  left: 11px;
+  top: 16px;
+  bottom: 16px;
+  left: 27px; /* centered under the 54px time rail */
   width: 1px;
   background: linear-gradient(180deg,
       rgba(212, 165, 116, 0.45) 0%,
@@ -620,7 +619,7 @@
 .sol-myday-row {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-md);
+  gap: var(--space-sm);
 }
 
 /* ─── Time column: node on the spine + hour range ─── */
@@ -629,10 +628,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   flex-shrink: 0;
-  width: 46px;
-  padding-top: 14px;
+  width: 54px;
+  padding-top: 12px;
   position: relative;
   z-index: 1;
 }
@@ -662,7 +661,10 @@
   font-size: 10px;
   color: var(--color-mist);
   letter-spacing: 0.1em;
-  writing-mode: horizontal-tb;
+  /* A void-colored chip: the spine passes behind the numbers instead
+     of striking through them */
+  background: var(--color-void);
+  padding: 2px 7px;
 }
 
 /* ─── Window card ─── */
@@ -673,7 +675,7 @@
   background: var(--color-abyss);
   border: 1px solid var(--color-shadow);
   border-top: 2px solid var(--color-shadow);
-  padding: var(--space-md);
+  padding: 14px var(--space-sm) var(--space-sm);
   transition:
     transform var(--transition-slow) var(--ease-out),
     border-color var(--transition-normal) var(--ease-default),
@@ -705,7 +707,7 @@
 
 .sol-myday-name {
   font-family: var(--font-display);
-  font-size: 19px;
+  font-size: 16px;
   font-weight: var(--font-weight-light);
   color: var(--color-light);
   flex: 1;
@@ -747,14 +749,14 @@
 .sol-myday-current {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  margin-bottom: var(--space-sm);
+  gap: 2px;
+  margin-bottom: 10px;
 }
 
 .sol-myday-current-title {
   font-family: var(--font-literary);
   font-style: italic;
-  font-size: 15px;
+  font-size: 13.5px;
   color: rgba(212, 165, 116, 0.85);
 }
 
@@ -777,13 +779,13 @@
   align-items: center;
   gap: var(--space-xs);
   border-top: 1px solid var(--color-shadow);
-  padding-top: var(--space-sm);
+  padding-top: 10px;
 }
 
 .sol-myday-select {
   flex: 1;
   min-width: 0;
-  padding: 7px 10px;
+  padding: 5px 9px;
   background: var(--color-depth);
   color: var(--color-cloud);
   border: 1px solid var(--color-shadow);

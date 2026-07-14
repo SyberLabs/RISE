@@ -571,8 +571,7 @@ export class Sol {
                     ? { kind: value.split(':')[0], id: value.slice(value.indexOf(':') + 1) }
                     : null;
                 MemoryCore.setSolPlanEntry(select.dataset.window, entry);
-                this.render();
-                this.attachEvents();
+                this.refreshMyDay();
             });
         });
 
@@ -582,10 +581,26 @@ export class Sol {
                     window.rise.audioEngine.playClick();
                 }
                 MemoryCore.setSolPlanEntry(btn.dataset.resetWindow, null);
-                this.render();
-                this.attachEvents();
+                this.refreshMyDay();
             });
         });
+    }
+
+    /**
+     * Targeted refresh after a plan edit: only the grid, the Now panel,
+     * and the tab count update — never a full view rebuild, which would
+     * reset the scroll position and teleport the user to the top.
+     */
+    refreshMyDay() {
+        const scroller = this.container.querySelector('.sol-view');
+        const scrollTop = scroller ? scroller.scrollTop : 0;
+
+        this.updateRecommendation();
+        const countEl = this.container.querySelector('#sol-tab-myday .sol-tab-count');
+        if (countEl) countEl.textContent = Object.keys(MemoryCore.getSolPlan()).length;
+        this.renderCategoryGrid('myday');
+
+        if (scroller) scroller.scrollTop = scrollTop;
     }
 
     attachEvents() {
