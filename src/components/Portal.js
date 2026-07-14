@@ -9,6 +9,8 @@
  * - The interface IS the first session
  */
 
+import { getWindowAt, resolveWindowPlan } from './Sol.js';
+
 export class Portal {
   constructor(container, options = {}) {
     this.container = container;
@@ -18,6 +20,47 @@ export class Portal {
     this.render();
     this.attachEvents();
     this.sequentialReveal();
+    this.startSolStrip();
+  }
+
+  /**
+   * The living SOL strip — the portal's heartbeat. SOL is a *when*, not
+   * a place: instead of a fourth opaque card, it introduces itself with
+   * the hour, the current window, and what that window will play
+   * (following the user's My Day plan when set).
+   */
+  updateSolStrip() {
+    const strip = this.container.querySelector('.portal-sol-strip');
+    if (!strip) return;
+
+    const now = new Date();
+    const window = getWindowAt(now);
+    const suggestion = resolveWindowPlan(window);
+    const hour = now.getHours();
+    const orb = hour >= 6 && hour < 18 ? '☀' : '☾';
+    const time = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+    strip.querySelector('.sol-strip-orb').textContent = orb;
+    strip.querySelector('.sol-strip-time').textContent = time;
+    strip.querySelector('.sol-strip-window').textContent = window.name;
+    strip.querySelector('.sol-strip-detail').textContent = suggestion.isCustom
+      ? `from your plan · ${suggestion.title}`
+      : `“${window.context}”`;
+    strip.setAttribute('aria-label', `Enter SOL — ${window.name}: ${suggestion.title}`);
+  }
+
+  startSolStrip() {
+    this.updateSolStrip();
+    this._solStripInterval = setInterval(() => {
+      // The router keeps hidden instances alive — skip work until visible
+      if (this.container.offsetParent === null) return;
+      this.updateSolStrip();
+    }, 30000);
+  }
+
+  /** Router re-entry hook — refresh the strip when the portal returns */
+  update() {
+    this.updateSolStrip();
   }
 
   render() {
@@ -78,11 +121,19 @@ export class Portal {
             <button class="nav-item" data-nav="workshop" role="link">
               Workshop
             </button>
-            <button class="nav-item" data-nav="sol" role="link">
-              SOL
-            </button>
           </div>
         </nav>
+
+        <!-- SOL: the portal's living strip — the hour introduces itself -->
+        <button class="portal-sol-strip" data-nav="sol" style="opacity: 0;" aria-label="Enter SOL">
+          <span class="sol-strip-orb" aria-hidden="true">☀</span>
+          <span class="sol-strip-time font-mono"></span>
+          <span class="sol-strip-body">
+            <span class="sol-strip-window"></span>
+            <span class="sol-strip-detail"></span>
+          </span>
+          <span class="sol-strip-enter" aria-hidden="true">enter ›</span>
+        </button>
 
         <!-- Portal Footer - Heritage & Onboarding -->
         <div class="portal-footer" style="opacity: 0;">
@@ -196,14 +247,23 @@ export class Portal {
       nav.style.opacity = '1';
     }, 1100);
 
+    const solStrip = this.container.querySelector('.portal-sol-strip');
+    setTimeout(() => {
+      if (solStrip) {
+        solStrip.style.transition = 'opacity 500ms var(--ease-out)';
+        solStrip.style.opacity = '1';
+      }
+    }, 1350);
+
     const footer = this.container.querySelector('.portal-footer');
     setTimeout(() => {
       footer.style.transition = 'opacity 600ms var(--ease-out)';
       footer.style.opacity = '1';
-    }, 1400);
+    }, 1600);
   }
 
   destroy() {
     document.removeEventListener('keydown', this.handleKeyboard.bind(this));
+    clearInterval(this._solStripInterval);
   }
 }

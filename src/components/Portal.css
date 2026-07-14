@@ -438,3 +438,97 @@
     padding: var(--space-sm) var(--space-lg);
   }
 }
+/* ─────────────────────────────────────────────────────────────
+   SOL Strip — the portal's living heartbeat
+   SOL is a *when*, not a place: the hour introduces itself
+   ───────────────────────────────────────────────────────────── */
+
+.portal-sol-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  max-width: 480px;
+  width: calc(100% - 2 * var(--space-lg));
+  margin: var(--space-lg) auto 0;
+  padding: 10px var(--space-md);
+  background: rgba(18, 18, 20, 0.55);
+  border: 1px solid var(--color-shadow);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color var(--transition-normal) var(--ease-default),
+    background var(--transition-normal) var(--ease-default),
+    box-shadow var(--transition-slow) var(--ease-out);
+}
+
+.portal-sol-strip:hover {
+  border-color: rgba(212, 165, 116, 0.4);
+  background: rgba(212, 165, 116, 0.05);
+  box-shadow: 0 0 28px rgba(212, 165, 116, 0.08);
+}
+
+.sol-strip-orb {
+  font-size: 16px;
+  color: var(--color-ember);
+  flex-shrink: 0;
+  animation: sol-strip-breathe 6s ease-in-out infinite alternate;
+}
+
+@keyframes sol-strip-breathe {
+  0% { opacity: 0.55; }
+  100% { opacity: 1; }
+}
+
+.sol-strip-time {
+  font-size: 11px;
+  color: var(--color-mist);
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+.sol-strip-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  overflow: hidden;
+}
+
+.sol-strip-window {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: var(--font-weight-light);
+  color: var(--color-light);
+  flex-shrink: 0;
+}
+
+.sol-strip-detail {
+  font-family: var(--font-literary);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--color-fog);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sol-strip-enter {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--color-mist);
+  flex-shrink: 0;
+  transition: color var(--transition-fast) var(--ease-default);
+}
+
+.portal-sol-strip:hover .sol-strip-enter {
+  color: var(--color-ember);
+}
+
+@media (max-width: 520px) {
+  .sol-strip-detail {
+    display: none;
+  }
+}

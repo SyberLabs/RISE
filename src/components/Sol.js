@@ -33,6 +33,67 @@ const SOL_CATEGORIES = [
     { id: 'myday', numeral: 'IV', name: 'My Day' }
 ];
 
+/**
+ * The temporal window containing a given moment.
+ * Exported for the Portal's living SOL strip.
+ */
+export function getWindowAt(date) {
+    const hour = date.getHours();
+    // Normalize into [2, 26) so the 22:00–02:00 night window is contiguous
+    const h = hour < 2 ? hour + 24 : hour;
+    return SOL_WINDOWS.find(w => h >= w.from && h < w.to) || SOL_WINDOWS[2];
+}
+
+/**
+ * Resolve a window through the user's My Day plan into a normalized
+ * suggestion. A dangling blueprint reference (deleted in the Workshop)
+ * degrades to the canonical default and is reported via `missing`.
+ * Exported for the Portal's living SOL strip.
+ */
+export function resolveWindowPlan(window) {
+    const plan = MemoryCore.getSolPlan();
+    const entry = plan[window.key];
+    const fallback = () => {
+        const sequence = SOL_SEQUENCES.find(s => s.id === window.sequenceId);
+        return {
+            kind: 'sol', payload: sequence, id: sequence.id,
+            title: sequence.title, subtitle: sequence.subtitle,
+            config: sequence.config, isCustom: false, missing: false
+        };
+    };
+
+    if (!entry) return fallback();
+
+    if (entry.kind === 'sol') {
+        const sequence = SOL_SEQUENCES.find(s => s.id === entry.id);
+        if (!sequence) return { ...fallback(), missing: true };
+        return {
+            kind: 'sol', payload: sequence, id: sequence.id,
+            title: sequence.title, subtitle: sequence.subtitle,
+            config: sequence.config, isCustom: true, missing: false
+        };
+    }
+
+    if (entry.kind === 'blueprint') {
+        const blueprint = MemoryCore.getWorkshopBlueprints().find(bp => bp.id === entry.id);
+        if (!blueprint) return { ...fallback(), missing: true };
+        return {
+            kind: 'blueprint', payload: blueprint, id: blueprint.id,
+            title: blueprint.title || 'Untitled Sequence',
+            subtitle: 'From your Workshop',
+            config: {
+                wpm: blueprint.wpm || 220,
+                curve: blueprint.curve || 'flat',
+                audioPreset: blueprint.audioPreset || 'silent',
+                visualConfig: blueprint.visualConfig
+            },
+            isCustom: true, missing: false
+        };
+    }
+
+    return fallback();
+}
+
 export class Sol {
     constructor(container, options = {}) {
         this.container = container;
@@ -104,61 +165,11 @@ export class Sol {
     }
 
     getCurrentWindow() {
-        const hour = this.currentTime.getHours();
-        // Normalize into [2, 26) so the 22:00–02:00 night window is contiguous
-        const h = hour < 2 ? hour + 24 : hour;
-        return SOL_WINDOWS.find(w => h >= w.from && h < w.to) || SOL_WINDOWS[2];
+        return getWindowAt(this.currentTime);
     }
 
-    /**
-     * Resolve a window through the user's My Day plan.
-     * Returns a normalized suggestion the panel and Begin button can use
-     * regardless of kind, plus provenance flags. A dangling blueprint
-     * reference (deleted in the Workshop) degrades to the canonical
-     * default and is reported via `missing` for the My Day view.
-     */
     resolveWindow(window) {
-        const plan = MemoryCore.getSolPlan();
-        const entry = plan[window.key];
-        const fallback = () => {
-            const sequence = SOL_SEQUENCES.find(s => s.id === window.sequenceId);
-            return {
-                kind: 'sol', payload: sequence, id: sequence.id,
-                title: sequence.title, subtitle: sequence.subtitle,
-                config: sequence.config, isCustom: false, missing: false
-            };
-        };
-
-        if (!entry) return fallback();
-
-        if (entry.kind === 'sol') {
-            const sequence = SOL_SEQUENCES.find(s => s.id === entry.id);
-            if (!sequence) return { ...fallback(), missing: true };
-            return {
-                kind: 'sol', payload: sequence, id: sequence.id,
-                title: sequence.title, subtitle: sequence.subtitle,
-                config: sequence.config, isCustom: true, missing: false
-            };
-        }
-
-        if (entry.kind === 'blueprint') {
-            const blueprint = MemoryCore.getWorkshopBlueprints().find(bp => bp.id === entry.id);
-            if (!blueprint) return { ...fallback(), missing: true };
-            return {
-                kind: 'blueprint', payload: blueprint, id: blueprint.id,
-                title: blueprint.title || 'Untitled Sequence',
-                subtitle: 'From your Workshop',
-                config: {
-                    wpm: blueprint.wpm || 220,
-                    curve: blueprint.curve || 'flat',
-                    audioPreset: blueprint.audioPreset || 'silent',
-                    visualConfig: blueprint.visualConfig
-                },
-                isCustom: true, missing: false
-            };
-        }
-
-        return fallback();
+        return resolveWindowPlan(window);
     }
 
     getSuggestedSequence() {
