@@ -329,12 +329,11 @@ class App {
                         const activeTypes = [];
                         const interlocution = session.visualConfig.interlocution || {};
 
-                        // Flatten all procedural types
+                        // Flatten all procedural types. No implicit fallback —
+                        // an empty selection is a valid "stillness" choice, and
+                        // visual packages only arrive through explicit configs.
                         if (interlocution.procedural) {
                             activeTypes.push(...interlocution.procedural);
-                        } else {
-                            // Fallback default
-                            activeTypes.push('klee', 'turrell');
                         }
 
                         // Flatten all sourced types

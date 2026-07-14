@@ -48,7 +48,8 @@ export class VisualInterlocutionPanel {
             // Genesis config ("Motion Klee": a composition grows
             // continuously around the token stream)
             genesis: options.genesis || {
-                preset: 'random' // 'random' | klee preset name
+                preset: 'random', // 'random' | klee preset name
+                glass: true       // glass tile behind the text
             },
 
             // Living Text (semantic conductor subscriber) — independent of
@@ -511,6 +512,18 @@ export class VisualInterlocutionPanel {
                                 </button>
                             `).join('')}
                         </div>
+
+                        <div class="vi-genesis-glass">
+                            <label class="toggle vi-semantic-toggle">
+                                <input type="checkbox" data-genesis-glass ${this.config.genesis.glass !== false ? 'checked' : ''}>
+                                <span class="toggle-switch"></span>
+                                <span class="vi-semantic-label">Glass Tile</span>
+                            </label>
+                            <p class="vi-semantic-hint text-mist">
+                                A soft pane behind the words keeps them legible over the drawing.
+                                Turn off for sparse compositions that never cross the text.
+                            </p>
+                        </div>
                     </div>
 
                     <!-- INTERLOCUTION: Probabilistic interrupts -->
@@ -913,6 +926,14 @@ export class VisualInterlocutionPanel {
         });
 
         // ─── Genesis Handlers ───
+        this.container.querySelector('[data-genesis-glass]')?.addEventListener('change', (e) => {
+            if (window.rise?.audioEngine) {
+                window.rise.audioEngine.playHiss();
+            }
+            this.config.genesis.glass = e.target.checked;
+            this.emitChange();
+        });
+
         this.container.querySelectorAll('[data-genesis-preset]').forEach(chip => {
             chip.addEventListener('click', () => {
                 if (window.rise?.audioEngine) {

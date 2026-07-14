@@ -89,6 +89,35 @@ describe('ChamberOrbital origin chip', () => {
         container.remove();
     });
 
+    it('persists last-used settings at Begin and restores them for the next visit', () => {
+        localStorage.removeItem('rise_orbital_prefs_v1');
+
+        const first = makeOrbital();
+        first.orbital.config.text = 'some text';
+        first.orbital.config.wpm = 333;
+        first.orbital.config.audioPreset = 'deep';
+        first.orbital.config.visualInterlocution.visualMode = 'genesis';
+        first.orbital.config.visualInterlocution.genesis = { preset: 'harmonic', glass: false };
+        first.orbital.beginSession();
+        first.orbital.destroy();
+        first.container.remove();
+
+        // A fresh orbital (the instance is destroyed whenever a session runs)
+        const second = makeOrbital();
+        expect(second.orbital.config.wpm).toBe(333);
+        expect(second.orbital.config.audioPreset).toBe('deep');
+        expect(second.orbital.config.visualInterlocution.visualMode).toBe('genesis');
+        expect(second.orbital.config.visualInterlocution.genesis.preset).toBe('harmonic');
+        expect(second.orbital.config.visualInterlocution.genesis.glass).toBe(false);
+        // Text and origin are never persisted
+        expect(second.orbital.config.text).toBeNull();
+        expect(second.orbital.config.origin).toBeNull();
+
+        second.orbital.destroy();
+        second.container.remove();
+        localStorage.removeItem('rise_orbital_prefs_v1');
+    });
+
     it('a subsequent plain load replaces a previous origin', () => {
         const { orbital, container } = makeOrbital();
         orbital.loadText('text', 'SOL: Dawn', { origin: SOL_ORIGIN });

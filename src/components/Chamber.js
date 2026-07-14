@@ -481,6 +481,11 @@ export class Chamber {
       field.appendChild(host);
     }
 
+    // Glass tile is on by default; sparse compositions may prefer bare text
+    if (atomDisplay && visualConfig.genesis?.glass !== false) {
+      atomDisplay.classList.add('glass-tile');
+    }
+
     const preset = visualConfig.genesis?.preset || 'random';
     this.kleeField = new KleeField(host, { preset });
 
@@ -990,6 +995,13 @@ export class Chamber {
   onStateChange(data) {
     const state = data.state;
     console.log('[Chamber] Player state change:', state);
+
+    // The Genesis field breathes with the session: pausing the text
+    // pauses the pen
+    if (this.kleeField) {
+      if (state === 'paused') this.kleeField.pause();
+      else if (state === 'playing') this.kleeField.resume();
+    }
 
     const playIcon = this.container.querySelector('#play-icon');
     const pauseIcon = this.container.querySelector('#pause-icon');

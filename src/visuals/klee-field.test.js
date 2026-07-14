@@ -94,6 +94,26 @@ describe('KleeField (Genesis)', () => {
         host.remove();
     });
 
+    it('pause freezes growth; resume continues exactly where it stopped', () => {
+        const { field, host } = makeField({ preset: 'harmonic' });
+        field.phaseStart = 0;
+        field.tick(5000);
+        const progressAtPause = field.progress;
+
+        field.pause();
+        field.tick(20000); // time passes while paused
+        expect(field.progress).toBe(progressAtPause);
+
+        field.resume();
+        // phaseStart shifted by the paused span, so effective elapsed resumes
+        expect(field.paused).toBe(false);
+        field.tick(field.phaseStart + 5000); // same effective elapsed as before
+        expect(field.progress).toBeCloseTo(progressAtPause, 5);
+
+        field.destroy();
+        host.remove();
+    });
+
     it('destroy cancels the loop and removes the canvas', () => {
         const { field, engine, host } = makeField({ preset: 'harmonic' });
         const canvas = host.querySelector('.klee-field-canvas');

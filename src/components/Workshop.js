@@ -50,7 +50,8 @@ export class Workshop {
 
         // Genesis config (continuously growing Klee composition)
         genesis: {
-          preset: 'random'
+          preset: 'random',
+          glass: true
         },
 
         // Living Text (semantic hue/glow on the text stream)
@@ -58,9 +59,11 @@ export class Workshop {
           enabled: false
         },
 
-        // Interlocution config (probabilistic interrupts)
+        // Interlocution config (probabilistic interrupts).
+        // Nothing pre-checked: visual packages arrive only through explicit
+        // configs (Vault archetypes, SOL sequences) — never implied by a text.
         interlocution: {
-          procedural: ['klee', 'turrell'],
+          procedural: [],
           sourced: [],
           frequency: 0.3,
           duration: 33,

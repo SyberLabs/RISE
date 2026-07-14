@@ -71,6 +71,21 @@ export class KleeField {
         this.signal = signal || null;
     }
 
+    /** Freeze growth while the session is paused; the pen waits with you. */
+    pause() {
+        if (this.paused) return;
+        this.paused = true;
+        this._pausedAt = performance.now();
+    }
+
+    resume() {
+        if (!this.paused) return;
+        this.paused = false;
+        // Shift phase time forward by the paused span so growth continues
+        // exactly where it stopped
+        this.phaseStart += performance.now() - this._pausedAt;
+    }
+
     _isStill() {
         const rootClasses = document.documentElement.classList;
         return rootClasses.contains('reduced-motion')
@@ -148,6 +163,10 @@ export class KleeField {
     }
 
     tick(now) {
+        if (this.paused) {
+            this.rafId = requestAnimationFrame(this.tick);
+            return;
+        }
         const elapsed = now - this.phaseStart;
 
         if (this.phase === 'growing') {

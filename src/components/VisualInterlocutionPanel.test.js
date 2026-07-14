@@ -179,6 +179,26 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         container.remove();
     });
 
+    it('genesis panel: glass tile toggle defaults on and emits config changes', () => {
+        let emitted = null;
+        const { panel, container } = makePanel({
+            visualMode: 'genesis',
+            onChange: (config) => { emitted = config; }
+        });
+
+        const glass = container.querySelector('[data-genesis-glass]');
+        expect(glass).not.toBeNull();
+        expect(glass.checked).toBe(true);
+
+        glass.checked = false;
+        glass.dispatchEvent(new Event('change'));
+        expect(emitted.genesis.glass).toBe(false);
+        expect(emitted.visualMode).toBe('genesis');
+
+        panel.destroy();
+        container.remove();
+    });
+
     it('setConfig merges a preset into an already-constructed panel', () => {
         const { panel, container } = makePanel({});
         panel.setConfig(SOL_DAWN_CONFIG);

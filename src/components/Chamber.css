@@ -489,16 +489,21 @@
   display: block;
 }
 
-/* Glass panel behind the text: the drawing stays legible as atmosphere,
-   the words stay legible as words. Sharp corners per the design language. */
-.chamber-field-genesis .atom-display {
-  background: rgba(10, 10, 12, 0.42);
-  backdrop-filter: blur(18px) saturate(1.15);
-  -webkit-backdrop-filter: blur(18px) saturate(1.15);
-  border: 1px solid rgba(232, 232, 236, 0.07);
-  border-top-color: rgba(232, 232, 236, 0.12);
-  padding: var(--space-lg) var(--space-xl);
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.38);
+/* Glass tile behind the text (optional, genesis.glass): a gentle rounded
+   pane hugging the token — soft edges so the drawing dissolves into it
+   rather than meeting a hard seam. Toggleable for sparse compositions
+   (e.g. Architectural) where even soft glass can obstruct. */
+.chamber-field-genesis .atom-display.glass-tile {
+  background: rgba(10, 10, 12, 0.36);
+  backdrop-filter: blur(16px) saturate(1.12);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12);
+  border-radius: 14px;
+  border: 1px solid rgba(232, 232, 236, 0.05);
+  padding: var(--space-md) var(--space-lg);
+  box-shadow:
+    0 10px 44px rgba(0, 0, 0, 0.30),
+    0 0 32px rgba(10, 10, 12, 0.45),
+    inset 0 1px 0 rgba(232, 232, 236, 0.045);
 }
 
 /* Ensure atom text appears above focal */

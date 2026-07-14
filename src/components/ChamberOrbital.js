@@ -13,6 +13,10 @@ import { PersonalSwells } from '../core/personal-swells.js';
 import { namingModal } from './NamingModal.js';
 import './VisualInterlocutionPanel.css';
 
+// Last-used session settings survive across chamber visits (the orbital
+// instance itself is destroyed whenever a session runs in the shared view)
+const ORBITAL_PREFS_KEY = 'rise_orbital_prefs_v1';
+
 export class ChamberOrbital {
   constructor(container, options = {}) {
     console.log('[ChamberOrbital] Constructor called', container, options);
@@ -47,7 +51,8 @@ export class ChamberOrbital {
 
         // Genesis config (continuously growing Klee composition)
         genesis: {
-          preset: 'random'
+          preset: 'random',
+          glass: true
         },
 
         // Living Text (semantic hue/glow on the text stream)
@@ -55,9 +60,11 @@ export class ChamberOrbital {
           enabled: false
         },
 
-        // Interlocution config (probabilistic interrupts)
+        // Interlocution config (probabilistic interrupts).
+        // Nothing pre-checked: visual packages arrive only through explicit
+        // configs (Vault archetypes, SOL sequences) — never implied by a text.
         interlocution: {
-          procedural: ['klee', 'turrell'],
+          procedural: [],
           sourced: [],
           frequency: 0.2,
           duration: 80,
@@ -82,6 +89,10 @@ export class ChamberOrbital {
       chunkMode: 'word'
     };
 
+    // Restore the user's last-used settings (persisted at Begin) so
+    // returning from a session never resets the controls to defaults
+    this._applySavedPrefs();
+
     // Active modal
     this.activeModal = null;
 
@@ -90,6 +101,57 @@ export class ChamberOrbital {
 
     this.render();
     this.attachEvents();
+  }
+
+  /**
+   * Hydrate config from the last-used preferences. Text/source/origin are
+   * never persisted — only the dials the user actually set. Nested visual
+   * config merges over defaults so newer fields keep their defaults when
+   * the saved shape predates them.
+   */
+  _applySavedPrefs() {
+    let saved = null;
+    try {
+      saved = JSON.parse(localStorage.getItem(ORBITAL_PREFS_KEY));
+    } catch (e) {
+      console.warn('[ChamberOrbital] Could not read saved prefs:', e);
+    }
+    if (!saved) return;
+
+    const scalarKeys = ['wpm', 'curve', 'chunkMode', 'audioPreset',
+      'entrainmentMode', 'entrainmentWaveform', 'voiceEnabled', 'voiceId', 'selectedSwellId'];
+    for (const key of scalarKeys) {
+      if (saved[key] !== undefined) this.config[key] = saved[key];
+    }
+
+    const vi = saved.visualInterlocution;
+    if (vi) {
+      const defaults = this.config.visualInterlocution;
+      this.config.visualInterlocution = {
+        ...defaults,
+        ...vi,
+        focals: { ...defaults.focals, ...(vi.focals || {}) },
+        attractor: { ...defaults.attractor, ...(vi.attractor || {}) },
+        genesis: { ...defaults.genesis, ...(vi.genesis || {}) },
+        livingText: { ...defaults.livingText, ...(vi.livingText || {}) },
+        interlocution: { ...defaults.interlocution, ...(vi.interlocution || {}) }
+      };
+    }
+  }
+
+  _persistPrefs() {
+    try {
+      const { wpm, curve, chunkMode, audioPreset, entrainmentMode,
+        entrainmentWaveform, voiceEnabled, voiceId, selectedSwellId,
+        visualInterlocution } = this.config;
+      localStorage.setItem(ORBITAL_PREFS_KEY, JSON.stringify({
+        wpm, curve, chunkMode, audioPreset, entrainmentMode,
+        entrainmentWaveform, voiceEnabled, voiceId, selectedSwellId,
+        visualInterlocution
+      }));
+    } catch (e) {
+      console.warn('[ChamberOrbital] Could not persist prefs:', e);
+    }
   }
 
   update(data) {
@@ -1015,6 +1077,9 @@ export class ChamberOrbital {
   }
 
   beginSession() {
+    // The moment settings are used is the moment they become "last known"
+    this._persistPrefs();
+
     // Build session data from config
     const vi = this.config.visualInterlocution;
     const sessionData = {
@@ -1033,13 +1098,13 @@ export class ChamberOrbital {
         visualMode: vi.visualMode || 'off',
         focals: vi.focals || { type: 'standard', standardGlyph: 'breath', personalImage: null },
         attractor: vi.attractor || { system: 'aizawa' },
-        genesis: vi.genesis || { preset: 'random' },
+        genesis: vi.genesis || { preset: 'random', glass: true },
         livingText: vi.livingText || { enabled: false },
         interlocution: {
           ...(vi.interlocution || {}),
           // Panel vocabulary only (klee/turrell/...) — activeTypes is the
           // cortex's derived vocabulary and must never be persisted here
-          procedural: vi.interlocution?.procedural || ['klee', 'turrell'],
+          procedural: vi.interlocution?.procedural || [],
           sourced: vi.interlocution?.sourced || [],
           frequency: vi.interlocution?.frequency ?? 0.2,
           duration: vi.interlocution?.duration ?? 80,
