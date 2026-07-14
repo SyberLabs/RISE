@@ -175,9 +175,11 @@ export class AudioEngine {
                 click: '/audio/click.wav',
                 hiss: '/audio/hiss.wav',
                 drones: [
-                    '/audio/stasis_draken.wav',
-                    '/audio/cosmos_pointpark.wav',
-                    '/audio/nox_drone.wav'
+                    // MP3 at 128k: universal decodeAudioData support (incl.
+                    // Safari), ~92% smaller than the original WAVs
+                    '/audio/stasis_draken.mp3',
+                    '/audio/cosmos_pointpark.mp3',
+                    '/audio/nox_drone.mp3'
                 ],
                 swells: [
                     '/audio/swells/hq_resonate_01.mp3',

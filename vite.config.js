@@ -73,7 +73,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
       include: ['src/core/**/*.js', 'src/audio/**/*.js'],
-      exclude: ['src/legacy/**', 'src/**/*.test.js']
+      exclude: ['src/**/*.test.js']
     }
   }
 });
