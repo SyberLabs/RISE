@@ -506,6 +506,16 @@
     inset 0 1px 0 rgba(232, 232, 236, 0.045);
 }
 
+/* No words, no pane: before the first token and during silences the
+   glass fully dematerializes instead of lingering as an empty slab */
+.chamber-field-genesis .atom-display.glass-tile:empty {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
 /* Ensure atom text appears above focal */
 .chamber-field .atom-display {
   position: relative;

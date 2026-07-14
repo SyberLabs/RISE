@@ -131,6 +131,23 @@ describe('Chamber Living Text integration', () => {
         container.remove();
     });
 
+    it('empty atoms (paragraph breaks) render as invisible silence, never as a residue frame', () => {
+        const { chamber, container } = makeChamber(makeSession(['word'], { enabled: false }));
+        const el = container.querySelector('#atom-display');
+
+        chamber.displayAtom({ content: 'word', duration: 500 }, 0);
+        expect(el.textContent).toBe('word');
+
+        chamber.displayAtom({ content: '', duration: 300 }, 1);
+        expect(el.textContent).toBe('');
+        expect(el.style.opacity).toBe('0');
+        // :empty must match so the genesis glass tile dematerializes
+        expect(el.childNodes.length).toBe(0);
+
+        chamber.destroy();
+        container.remove();
+    });
+
     it('genesis field receives the semantic signal per atom when Living Text has a track', () => {
         const session = makeSession(Array(4).fill('grief sorrow'), { enabled: true });
         session.visualConfig.visualMode = 'genesis';

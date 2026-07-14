@@ -631,6 +631,16 @@ export class Chamber {
       this.kleeField.setSignal(this.semanticTrack[index] || null);
     }
 
+    // Empty atoms (paragraph breaks, pause markers) are silence, not frames:
+    // render nothing and drop opacity so no residue — like the glass tile
+    // collapsing into a caret-like slab — ever pulses between tokens.
+    if (!atom.content || !atom.content.trim()) {
+      atomDisplay.style.transition = 'opacity 150ms var(--ease-out)';
+      atomDisplay.style.opacity = '0';
+      atomDisplay.textContent = '';
+      return;
+    }
+
     // If reading speed is fast (duration < 400ms), use instant transitions to avoid 
     // black frames where the text spends its entire display time fading in/out.
     if (atom.duration && atom.duration < 400) {
