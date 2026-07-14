@@ -48,6 +48,11 @@ export class Workshop {
           system: 'aizawa' // 'aizawa' | 'thomas' | 'halvorsen'
         },
 
+        // Genesis config (continuously growing Klee composition)
+        genesis: {
+          preset: 'random'
+        },
+
         // Living Text (semantic hue/glow on the text stream)
         livingText: {
           enabled: false

@@ -1,6 +1,7 @@
 import { visualCortex } from '../visuals/visual-cortex.js';
 import { MemoryCore } from '../core/memory.js';
 import { AttractorField } from '../visuals/attractor.js';
+import { KleeField } from '../visuals/klee-field.js';
 import { escapeHtml } from '../core/sanitize.js';
 import { scoreAtoms, planInterlocution } from '../core/conductor.js';
 
@@ -26,6 +27,7 @@ export class Chamber {
     this.controlsTimeout = null;
     this.controlsVisible = false;
     this.attractorField = null;
+    this.kleeField = null;
 
     // Semantic conductor track — needed by Living Text and by responsive
     // interlocutions. Scored once per session and stashed on the session
@@ -449,6 +451,40 @@ export class Chamber {
 
     // Initialize persistent attractor field if in attractor mode
     this.initializeAttractor();
+
+    // Initialize the growing Klee field if in genesis mode
+    this.initializeGenesis();
+  }
+
+  /**
+   * Genesis ("Motion Klee"): a Klee composition grows continuously around
+   * the constant token stream — no flashes, no interruption. The text sits
+   * on a glass panel (see Chamber.css) for readability over the drawing.
+   */
+  initializeGenesis() {
+    const visualConfig = this.session?.visualConfig;
+    if (!visualConfig || visualConfig.visualMode !== 'genesis') return;
+
+    const field = this.container.querySelector('#chamber-field');
+    if (!field) return;
+
+    field.classList.add('chamber-field-genesis');
+
+    const host = document.createElement('div');
+    host.className = 'chamber-genesis';
+    host.id = 'chamber-genesis';
+
+    const atomDisplay = field.querySelector('#atom-display');
+    if (atomDisplay) {
+      field.insertBefore(host, atomDisplay);
+    } else {
+      field.appendChild(host);
+    }
+
+    const preset = visualConfig.genesis?.preset || 'random';
+    this.kleeField = new KleeField(host, { preset });
+
+    console.log('[Chamber] Genesis field initialized:', preset);
   }
 
   /**
@@ -583,6 +619,11 @@ export class Chamber {
     if (!atomDisplay) {
       console.error('[Chamber] No atom-display element found!');
       return;
+    }
+
+    // Genesis field follows the passage's mood when Living Text has a track
+    if (this.kleeField && this.semanticTrack) {
+      this.kleeField.setSignal(this.semanticTrack[index] || null);
     }
 
     // If reading speed is fast (duration < 400ms), use instant transitions to avoid 
@@ -989,6 +1030,10 @@ export class Chamber {
     if (this.attractorField) {
       this.attractorField.destroy();
       this.attractorField = null;
+    }
+    if (this.kleeField) {
+      this.kleeField.destroy();
+      this.kleeField = null;
     }
   }
 }

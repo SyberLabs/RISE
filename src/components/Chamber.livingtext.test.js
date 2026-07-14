@@ -113,6 +113,38 @@ describe('Chamber Living Text integration', () => {
         container.remove();
     });
 
+    it('genesis mode mounts a growing Klee field behind glass-backed text; destroy tears it down', () => {
+        const session = makeSession(['calm text', 'more text'], { enabled: false });
+        session.visualConfig.visualMode = 'genesis';
+        session.visualConfig.genesis = { preset: 'harmonic' };
+        const { chamber, container } = makeChamber(session);
+
+        const host = container.querySelector('#chamber-genesis');
+        expect(host).not.toBeNull();
+        expect(container.querySelector('.klee-field-canvas')).not.toBeNull();
+        expect(container.querySelector('#chamber-field').classList.contains('chamber-field-genesis')).toBe(true);
+        expect(chamber.kleeField).not.toBeNull();
+        expect(chamber.kleeField.preset).toBe('harmonic');
+
+        chamber.destroy();
+        expect(chamber.kleeField).toBeNull();
+        container.remove();
+    });
+
+    it('genesis field receives the semantic signal per atom when Living Text has a track', () => {
+        const session = makeSession(Array(4).fill('grief sorrow'), { enabled: true });
+        session.visualConfig.visualMode = 'genesis';
+        session.visualConfig.genesis = { preset: 'random' };
+        const { chamber, container } = makeChamber(session);
+
+        expect(chamber.semanticTrack).not.toBeNull();
+        chamber.displayAtom(chamber.session.atoms[2], 2);
+        expect(chamber.kleeField.signal).toBe(chamber.semanticTrack[2]);
+
+        chamber.destroy();
+        container.remove();
+    });
+
     it('handleEscape always consumes Escape: opens the exit confirmation, second press dismisses', () => {
         const { chamber, container } = makeChamber(makeSession(['calm text'], { enabled: false }));
         const overlay = container.querySelector('#exit-confirm-overlay');

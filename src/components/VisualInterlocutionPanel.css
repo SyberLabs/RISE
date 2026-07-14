@@ -359,6 +359,32 @@
     grid-template-columns: repeat(4, 1fr);
 }
 
+.vi-mode-selector-5 {
+    grid-template-columns: repeat(5, 1fr);
+}
+
+.vi-mode-selector-5 .vi-mode-btn {
+    padding: var(--space-sm) 4px;
+}
+
+.vi-mode-selector-5 .vi-mode-name {
+    font-size: 10px;
+    letter-spacing: 0.05em;
+}
+
+/* Genesis panel */
+.vi-genesis-panel {
+    padding: var(--space-md) 0;
+}
+
+.vi-genesis-panel[hidden] {
+    display: none;
+}
+
+.vi-genesis-presets {
+    margin-top: var(--space-sm);
+}
+
 .vi-mode-btn {
     display: flex;
     flex-direction: column;

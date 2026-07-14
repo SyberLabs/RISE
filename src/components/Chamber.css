@@ -468,6 +468,39 @@
   display: block;
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Genesis Field ("Motion Klee")
+   A Klee composition grows continuously around the token stream
+   ───────────────────────────────────────────────────────────── */
+
+.chamber-genesis {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.chamber-genesis .klee-field-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Glass panel behind the text: the drawing stays legible as atmosphere,
+   the words stay legible as words. Sharp corners per the design language. */
+.chamber-field-genesis .atom-display {
+  background: rgba(10, 10, 12, 0.42);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  border: 1px solid rgba(232, 232, 236, 0.07);
+  border-top-color: rgba(232, 232, 236, 0.12);
+  padding: var(--space-lg) var(--space-xl);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.38);
+}
+
 /* Ensure atom text appears above focal */
 .chamber-field .atom-display {
   position: relative;

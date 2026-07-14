@@ -19,6 +19,9 @@ import { escapeHtml } from '../core/sanitize.js';
 // Session storage key for safety consent
 const SAFETY_CONSENT_KEY = 'rise-visual-interlocution-consent';
 
+// The five curated Klee presets (shared by Rhythmic chips and Genesis chips)
+const KLEE_PRESET_CHIP_IDS = ['architectural', 'chaotic', 'harmonic', 'gravitational', 'twittering'];
+
 export class VisualInterlocutionPanel {
     constructor(container, options = {}) {
         this.container = container;
@@ -40,6 +43,12 @@ export class VisualInterlocutionPanel {
             // Attractor config (persistent strange-attractor field)
             attractor: options.attractor || {
                 system: 'aizawa' // 'aizawa' | 'thomas' | 'halvorsen'
+            },
+
+            // Genesis config ("Motion Klee": a composition grows
+            // continuously around the token stream)
+            genesis: options.genesis || {
+                preset: 'random' // 'random' | klee preset name
             },
 
             // Living Text (semantic conductor subscriber) — independent of
@@ -213,6 +222,14 @@ export class VisualInterlocutionPanel {
             };
         }
 
+        // Apply Genesis config
+        if (visualConfig.genesis) {
+            this.config.genesis = {
+                ...this.config.genesis,
+                ...visualConfig.genesis
+            };
+        }
+
         // Apply Living Text config
         if (visualConfig.livingText) {
             this.config.livingText = {
@@ -377,14 +394,18 @@ export class VisualInterlocutionPanel {
                 <button class="vi-header" type="button" aria-expanded="${this.expanded}">
                     <span class="vi-title">Visual Settings</span>
                     <span class="vi-status ${mode !== 'off' ? 'enabled' : ''}">
-                        ${mode === 'off' ? 'Off' : mode === 'focals' ? 'Focals' : mode === 'attractor' ? 'Attractor' : 'Rhythmic'}
+                        ${mode === 'off' ? 'Off'
+                            : mode === 'focals' ? 'Focals'
+                            : mode === 'attractor' ? 'Attractor'
+                            : mode === 'genesis' ? 'Genesis'
+                            : 'Rhythmic'}
                     </span>
                     <span class="vi-chevron">${this.expanded ? '▲' : '▼'}</span>
                 </button>
 
                 <div class="vi-content" ${this.expanded ? '' : 'hidden'}>
-                    <!-- 4-Way Mode Selection -->
-                    <div class="vi-mode-selector vi-mode-selector-4">
+                    <!-- 5-Way Mode Selection -->
+                    <div class="vi-mode-selector vi-mode-selector-5">
                         <button type="button" class="vi-mode-btn ${mode === 'off' ? 'active' : ''}" data-visual-mode="off">
                             <span class="vi-mode-icon">○</span>
                             <span class="vi-mode-name">Off</span>
@@ -396,6 +417,10 @@ export class VisualInterlocutionPanel {
                         <button type="button" class="vi-mode-btn ${mode === 'attractor' ? 'active' : ''}" data-visual-mode="attractor" title="Persistent strange-attractor field around the text">
                             <span class="vi-mode-icon">∮</span>
                             <span class="vi-mode-name">Attractor</span>
+                        </button>
+                        <button type="button" class="vi-mode-btn ${mode === 'genesis' ? 'active' : ''}" data-visual-mode="genesis" title="A Klee composition grows continuously around the text">
+                            <span class="vi-mode-icon">✎</span>
+                            <span class="vi-mode-name">Genesis</span>
                         </button>
                         <button type="button" class="vi-mode-btn ${mode === 'interlocution' ? 'active' : ''}" data-visual-mode="interlocution" title="Rhythmic visual interrupts">
                             <span class="vi-mode-icon">◈</span>
@@ -464,6 +489,25 @@ export class VisualInterlocutionPanel {
                                     <span class="vi-attractor-icon">${s.icon}</span>
                                     <span class="vi-attractor-name">${s.name}</span>
                                     <span class="vi-attractor-desc text-mist">${s.description.split('—')[0].trim()}</span>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- GENESIS: continuously growing Klee composition -->
+                    <div class="vi-genesis-panel" ${mode === 'genesis' ? '' : 'hidden'}>
+                        <div class="vi-focals-description text-fog">
+                            A Klee composition draws itself continuously around the text stream —
+                            growing, resting, dissolving into the next. The words sit on glass.
+                            No flashes, no interruption. With Living Text on, each new composition
+                            follows the mood of the passage.
+                        </div>
+                        <div class="vi-preset-chips vi-genesis-presets">
+                            ${['random', ...KLEE_PRESET_CHIP_IDS].map(presetId => `
+                                <button type="button"
+                                    class="vi-preset-chip ${this.config.genesis.preset === presetId ? 'active' : ''}"
+                                    data-genesis-preset="${presetId}">
+                                    ${presetId.charAt(0).toUpperCase() + presetId.slice(1)}
                                 </button>
                             `).join('')}
                         </div>
@@ -866,6 +910,19 @@ export class VisualInterlocutionPanel {
             }
             this.config.livingText.enabled = e.target.checked;
             this.emitChange();
+        });
+
+        // ─── Genesis Handlers ───
+        this.container.querySelectorAll('[data-genesis-preset]').forEach(chip => {
+            chip.addEventListener('click', () => {
+                if (window.rise?.audioEngine) {
+                    window.rise.audioEngine.playHiss();
+                }
+                this.config.genesis.preset = chip.dataset.genesisPreset;
+                this.emitChange();
+                this.render();
+                this.attachEvents();
+            });
         });
 
         // ─── Attractor Handlers ───

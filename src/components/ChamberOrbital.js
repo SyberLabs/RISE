@@ -45,6 +45,11 @@ export class ChamberOrbital {
           system: 'aizawa'
         },
 
+        // Genesis config (continuously growing Klee composition)
+        genesis: {
+          preset: 'random'
+        },
+
         // Living Text (semantic hue/glow on the text stream)
         livingText: {
           enabled: false
@@ -429,6 +434,10 @@ export class ChamberOrbital {
 
     if (mode === 'attractor') {
       return `∮ Attractor · ${this.capitalizeFirst(vi.attractor?.system || 'aizawa')}`;
+    }
+
+    if (mode === 'genesis') {
+      return `✎ Genesis · ${this.capitalizeFirst(vi.genesis?.preset || 'random')}`;
     }
 
     if (mode === 'interlocution') {
@@ -930,6 +939,7 @@ export class ChamberOrbital {
         visualMode: config.visualConfig.visualMode || 'off',
         focals: config.visualConfig.focals || this.config.visualInterlocution.focals,
         attractor: config.visualConfig.attractor || this.config.visualInterlocution.attractor,
+        genesis: config.visualConfig.genesis || this.config.visualInterlocution.genesis,
         livingText: config.visualConfig.livingText || this.config.visualInterlocution.livingText,
         interlocution: {
           ...this.config.visualInterlocution.interlocution,
@@ -1023,6 +1033,7 @@ export class ChamberOrbital {
         visualMode: vi.visualMode || 'off',
         focals: vi.focals || { type: 'standard', standardGlyph: 'breath', personalImage: null },
         attractor: vi.attractor || { system: 'aizawa' },
+        genesis: vi.genesis || { preset: 'random' },
         livingText: vi.livingText || { enabled: false },
         interlocution: {
           ...(vi.interlocution || {}),

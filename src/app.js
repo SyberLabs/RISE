@@ -400,6 +400,9 @@ class App {
                         // Attractor mode: persistent strange-attractor field (handled by Chamber renderer)
                         // No visual cortex preloading needed - the field is continuous, not probabilistic
                         console.log('[R.I.S.E.] Attractor mode active:', session.visualConfig.attractor);
+                    } else if (visualMode === 'genesis') {
+                        // Genesis mode: continuously growing Klee field (handled by Chamber renderer)
+                        console.log('[R.I.S.E.] Genesis mode active:', session.visualConfig.genesis);
                     }
 
 

@@ -1142,21 +1142,29 @@ class KleeEngine {
       const pointCount = Math.min(line.points.length, Math.max(1, Math.ceil(line.points.length * localProgress)));
       if (pointCount < 2) continue;
 
-      ctx.beginPath();
-      ctx.moveTo(line.points[0][0], line.points[0][1]);
+      // Endpoint tapering: the final ~12% of the visible path is drawn as a
+      // separate half-width segment, so lines RESOLVE instead of stopping —
+      // and during progressive growth the moving tip stays slender, reading
+      // as a pen still traveling.
+      const tipStart = Math.max(2, Math.floor(pointCount * 0.88));
 
-      for (let i = 1; i < pointCount; i++) {
-        const [x, y] = line.points[i];
-
-        if (line.variation === 'dotted' && i % 3 === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
+      const tracePath = (from, to) => {
+        ctx.beginPath();
+        ctx.moveTo(line.points[from][0], line.points[from][1]);
+        for (let i = from + 1; i < to; i++) {
+          const [x, y] = line.points[i];
+          if (line.variation === 'dotted' && i % 3 === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
         }
-      }
+      };
 
       const colorIndex = Math.floor(line.colorIndex * this.palette.length);
       ctx.strokeStyle = this.palette[colorIndex % this.palette.length];
+
+      tracePath(0, tipStart);
 
       // Glow via a wide, faint under-stroke instead of ctx.shadowBlur:
       // canvas shadows Gaussian-blur every stroke through an intermediate
@@ -1177,6 +1185,14 @@ class KleeEngine {
       ctx.globalAlpha = alpha * line.alpha;
       ctx.lineWidth = lineWidth * line.weight;
       ctx.stroke();
+
+      // The tapered tip
+      if (pointCount - tipStart >= 1) {
+        tracePath(tipStart - 1, pointCount);
+        ctx.globalAlpha = alpha * line.alpha * 0.9;
+        ctx.lineWidth = lineWidth * line.weight * 0.5;
+        ctx.stroke();
+      }
     }
 
     ctx.globalAlpha = 1;

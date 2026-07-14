@@ -375,6 +375,10 @@ export class Vault {
       const system = visualConfig.attractor?.system || 'aizawa';
       return `Attractor · ${this.capitalizeFirst(system)}`;
     }
+    if (visualConfig.visualMode === 'genesis') {
+      const preset = visualConfig.genesis?.preset || 'random';
+      return `Genesis · ${this.capitalizeFirst(preset)}`;
+    }
     if (visualConfig.visualMode === 'interlocution') {
       const proc = visualConfig.interlocution?.procedural || [];
       const types = proc.map(p => this.capitalizeFirst(p)).join(' + ');
