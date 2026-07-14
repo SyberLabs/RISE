@@ -417,6 +417,10 @@ export class Sol {
 
         grid.setAttribute('aria-labelledby', `sol-tab-${categoryId}`);
 
+        // My Day is a single centered timeline, not a card grid — the grid
+        // container must switch layout or the plan sits in the first column
+        grid.classList.toggle('sol-grid--stack', categoryId === 'myday');
+
         if (categoryId === 'myday') {
             this.renderMyDay(grid);
             return;
@@ -492,46 +496,63 @@ export class Sol {
                     Assign any sequence — curated, or compiled in your Workshop — to the
                     hours of your day. The dial's suggestion follows your plan.
                 </p>
-                ${SOL_WINDOWS.map(w => {
-                    const entry = plan[w.key];
-                    const resolved = this.resolveWindow(w);
-                    const defaultSeq = SOL_SEQUENCES.find(s => s.id === w.sequenceId);
-                    const isNow = w.key === currentWindow.key;
-                    return `
-                        <div class="sol-myday-row ${entry ? 'customized' : ''} ${isNow ? 'now' : ''}">
-                            <div class="sol-myday-window">
-                                <span class="sol-myday-name">${w.name}</span>
-                                <span class="sol-myday-range font-mono">${w.range}</span>
-                                ${isNow ? '<span class="sol-myday-nowdot" title="Current window">●</span>' : ''}
+                <div class="sol-myday-timeline">
+                    ${SOL_WINDOWS.map(w => {
+                        const entry = plan[w.key];
+                        const resolved = this.resolveWindow(w);
+                        const defaultSeq = SOL_SEQUENCES.find(s => s.id === w.sequenceId);
+                        const isNow = w.key === currentWindow.key;
+                        const duration = this.getSuggestionDuration(resolved);
+                        const badge = this.getVisualBadge(resolved.config);
+                        const kindLabel = resolved.missing ? 'missing' : (entry ? 'Yours' : 'Default');
+                        return `
+                            <div class="sol-myday-row ${entry ? 'customized' : ''} ${isNow ? 'now' : ''}">
+                                <div class="sol-myday-time">
+                                    <span class="sol-myday-node" aria-hidden="true"></span>
+                                    <span class="sol-myday-range font-mono">${w.range}</span>
+                                </div>
+                                <div class="sol-myday-card">
+                                    <div class="sol-myday-head">
+                                        <span class="sol-myday-name">${w.name}</span>
+                                        ${isNow ? '<span class="sol-myday-nowchip">now</span>' : ''}
+                                        <span class="sol-myday-kind ${entry && !resolved.missing ? 'yours' : ''} ${resolved.missing ? 'missing' : ''}">${kindLabel}</span>
+                                    </div>
+                                    <div class="sol-myday-current">
+                                        <span class="sol-myday-current-title">${escapeHtml(resolved.title)}</span>
+                                        <span class="sol-myday-current-meta font-mono">
+                                            ${duration ? `${duration} · ` : ''}${badge.icon} ${badge.label}
+                                        </span>
+                                    </div>
+                                    ${resolved.missing ? '<p class="sol-myday-missing">The assigned sequence was deleted — the default has been restored.</p>' : ''}
+                                    <div class="sol-myday-assignment">
+                                        <select class="sol-myday-select" data-window="${w.key}" aria-label="Sequence for ${w.name}">
+                                            <option value="" ${!entry ? 'selected' : ''}>Default · ${defaultSeq.title}</option>
+                                            <optgroup label="SOL Sequences">
+                                                ${SOL_SEQUENCES.map(s => `
+                                                    <option value="sol:${s.id}"
+                                                        ${entry?.kind === 'sol' && entry.id === s.id ? 'selected' : ''}>
+                                                        ${s.title}
+                                                    </option>
+                                                `).join('')}
+                                            </optgroup>
+                                            ${blueprints.length ? `
+                                                <optgroup label="My Sequences">
+                                                    ${blueprints.map(bp => `
+                                                        <option value="blueprint:${escapeHtml(bp.id)}"
+                                                            ${entry?.kind === 'blueprint' && entry.id === bp.id ? 'selected' : ''}>
+                                                            ${escapeHtml(bp.title || 'Untitled Sequence')}
+                                                        </option>
+                                                    `).join('')}
+                                                </optgroup>
+                                            ` : ''}
+                                        </select>
+                                        ${entry ? `<button type="button" class="sol-myday-reset" data-reset-window="${w.key}" title="Restore default">↺</button>` : ''}
+                                    </div>
+                                </div>
                             </div>
-                            <div class="sol-myday-assignment">
-                                <select class="sol-myday-select" data-window="${w.key}" aria-label="Sequence for ${w.name}">
-                                    <option value="" ${!entry ? 'selected' : ''}>Default · ${defaultSeq.title}</option>
-                                    <optgroup label="SOL Sequences">
-                                        ${SOL_SEQUENCES.map(s => `
-                                            <option value="sol:${s.id}"
-                                                ${entry?.kind === 'sol' && entry.id === s.id ? 'selected' : ''}>
-                                                ${s.title}
-                                            </option>
-                                        `).join('')}
-                                    </optgroup>
-                                    ${blueprints.length ? `
-                                        <optgroup label="My Sequences">
-                                            ${blueprints.map(bp => `
-                                                <option value="blueprint:${escapeHtml(bp.id)}"
-                                                    ${entry?.kind === 'blueprint' && entry.id === bp.id ? 'selected' : ''}>
-                                                    ${escapeHtml(bp.title || 'Untitled Sequence')}
-                                                </option>
-                                            `).join('')}
-                                        </optgroup>
-                                    ` : ''}
-                                </select>
-                                ${resolved.missing ? '<span class="sol-myday-missing">missing — default restored</span>' : ''}
-                                ${entry ? `<button type="button" class="sol-myday-reset" data-reset-window="${w.key}" title="Restore default">↺</button>` : ''}
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
+                        `;
+                    }).join('')}
+                </div>
                 ${!blueprints.length ? `
                     <p class="sol-myday-hint text-mist">
                         Compile your own sequences in the Workshop to schedule them here.

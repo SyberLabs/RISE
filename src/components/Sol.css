@@ -566,13 +566,20 @@
     }
 }
 
-/* ─── My Day: the user's plan over the canonical windows ─── */
+/* ═══════════════════════════════════════════════════════════
+   My Day — the user's plan as a centered day-timeline
+   An ember spine descends through the seven windows; each card
+   shows what will play and offers the full catalog to reassign.
+   ═══════════════════════════════════════════════════════════ */
+
+/* The grid container must abandon its card grid when My Day renders,
+   or the whole plan sits inside the first grid column */
+.sol-grid.sol-grid--stack {
+  display: block;
+}
 
 .sol-myday {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  max-width: 640px;
+  max-width: 720px;
   margin: 0 auto;
   width: 100%;
 }
@@ -580,72 +587,203 @@
 .sol-myday-intro {
   font-family: var(--font-literary);
   font-style: italic;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.6;
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--space-lg);
   text-align: center;
+}
+
+/* ─── The timeline spine ─── */
+
+.sol-myday-timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding-left: 4px;
+}
+
+.sol-myday-timeline::before {
+  content: '';
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 11px;
+  width: 1px;
+  background: linear-gradient(180deg,
+      rgba(212, 165, 116, 0.45) 0%,
+      var(--color-shadow) 30%,
+      var(--color-shadow) 70%,
+      rgba(212, 165, 116, 0.45) 100%);
 }
 
 .sol-myday-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
   gap: var(--space-md);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--color-abyss);
-  border: 1px solid var(--color-shadow);
-  border-left: 2px solid var(--color-shadow);
-  transition: border-color var(--transition-normal) var(--ease-default);
 }
 
-.sol-myday-row.customized {
-  border-left-color: var(--color-ember);
-  background: linear-gradient(90deg, rgba(212, 165, 116, 0.05) 0%, var(--color-abyss) 40%);
-}
+/* ─── Time column: node on the spine + hour range ─── */
 
-.sol-myday-row.now {
-  border-color: rgba(212, 165, 116, 0.35);
-}
-
-.sol-myday-window {
+.sol-myday-time {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-xs);
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   flex-shrink: 0;
-  min-width: 132px;
+  width: 46px;
+  padding-top: 14px;
+  position: relative;
+  z-index: 1;
 }
 
-.sol-myday-name {
-  font-family: var(--font-display);
-  font-size: 15px;
-  color: var(--color-light);
+.sol-myday-node {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-depth);
+  border: 1px solid var(--color-mist);
+  transition: all var(--transition-normal) var(--ease-default);
+}
+
+.sol-myday-row.customized .sol-myday-node {
+  background: rgba(212, 165, 116, 0.35);
+  border-color: var(--color-ember);
+}
+
+.sol-myday-row.now .sol-myday-node {
+  background: var(--color-ember);
+  border-color: var(--color-ember);
+  box-shadow: 0 0 10px rgba(212, 165, 116, 0.7);
+  animation: sol-now-pulse 3s ease-in-out infinite;
 }
 
 .sol-myday-range {
   font-size: 10px;
   color: var(--color-mist);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
+  writing-mode: horizontal-tb;
 }
 
-.sol-myday-nowdot {
+/* ─── Window card ─── */
+
+.sol-myday-card {
+  flex: 1;
+  min-width: 0;
+  background: var(--color-abyss);
+  border: 1px solid var(--color-shadow);
+  border-top: 2px solid var(--color-shadow);
+  padding: var(--space-md);
+  transition:
+    transform var(--transition-slow) var(--ease-out),
+    border-color var(--transition-normal) var(--ease-default),
+    box-shadow var(--transition-slow) var(--ease-out);
+}
+
+.sol-myday-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(212, 165, 116, 0.25);
+  border-top-color: rgba(212, 165, 116, 0.6);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+
+.sol-myday-row.customized .sol-myday-card {
+  border-top-color: var(--color-ember);
+  background: linear-gradient(180deg, rgba(212, 165, 116, 0.05) 0%, var(--color-abyss) 45%);
+}
+
+.sol-myday-row.now .sol-myday-card {
+  border-color: rgba(212, 165, 116, 0.3);
+}
+
+.sol-myday-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  margin-bottom: 8px;
+}
+
+.sol-myday-name {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: var(--font-weight-light);
+  color: var(--color-light);
+  flex: 1;
+}
+
+.sol-myday-nowchip {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  text-indent: 0.2em;
   color: var(--color-ember);
-  font-size: 8px;
+  border: 1px solid rgba(212, 165, 116, 0.4);
+  padding: 2px 7px;
   animation: sol-now-pulse 3s ease-in-out infinite;
 }
 
+.sol-myday-kind {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-mist);
+  border: 1px solid var(--color-shadow);
+  padding: 2px 8px;
+}
+
+.sol-myday-kind.yours {
+  color: var(--color-ember);
+  border-color: rgba(212, 165, 116, 0.4);
+}
+
+.sol-myday-kind.missing {
+  color: var(--color-rose);
+  border-color: rgba(212, 127, 139, 0.4);
+}
+
+/* What will play */
+.sol-myday-current {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: var(--space-sm);
+}
+
+.sol-myday-current-title {
+  font-family: var(--font-literary);
+  font-style: italic;
+  font-size: 15px;
+  color: rgba(212, 165, 116, 0.85);
+}
+
+.sol-myday-current-meta {
+  font-size: 10px;
+  color: var(--color-mist);
+  letter-spacing: 0.04em;
+}
+
+.sol-myday-missing {
+  font-size: 11px;
+  color: var(--color-rose);
+  margin-bottom: var(--space-sm);
+  line-height: 1.5;
+}
+
+/* Assignment controls */
 .sol-myday-assignment {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  flex: 1;
-  justify-content: flex-end;
-  min-width: 0;
+  border-top: 1px solid var(--color-shadow);
+  padding-top: var(--space-sm);
 }
 
 .sol-myday-select {
-  max-width: 280px;
-  width: 100%;
-  padding: 6px 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
   background: var(--color-depth);
   color: var(--color-cloud);
   border: 1px solid var(--color-shadow);
@@ -665,7 +803,7 @@
   background: none;
   border: 1px solid var(--color-shadow);
   color: var(--color-mist);
-  padding: 4px 9px;
+  padding: 6px 11px;
   font-size: 13px;
   cursor: pointer;
   flex-shrink: 0;
@@ -677,30 +815,26 @@
   border-color: rgba(212, 165, 116, 0.5);
 }
 
-.sol-myday-missing {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  color: var(--color-rose);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  white-space: nowrap;
-}
-
 .sol-myday-hint {
   font-size: 12px;
   text-align: center;
   font-style: italic;
-  margin-top: var(--space-sm);
+  margin-top: var(--space-md);
 }
 
 @media (max-width: 600px) {
+  .sol-myday-timeline::before {
+    display: none;
+  }
+
   .sol-myday-row {
     flex-direction: column;
-    align-items: stretch;
     gap: var(--space-xs);
   }
 
-  .sol-myday-select {
-    max-width: 100%;
+  .sol-myday-time {
+    flex-direction: row;
+    width: auto;
+    padding-top: 0;
   }
 }
