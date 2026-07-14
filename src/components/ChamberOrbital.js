@@ -99,6 +99,12 @@ export class ChamberOrbital {
     // Visual interlocution panel instance
     this.viPanel = null;
 
+    // Persist at every exit point — not only at Begin. Otherwise settings
+    // changed after the last session (e.g. Genesis -> Focals) are lost on
+    // refresh and the stale last-used state resurrects.
+    this._boundPersist = () => this._persistPrefs();
+    window.addEventListener('beforeunload', this._boundPersist);
+
     this.render();
     this.attachEvents();
   }
@@ -474,6 +480,8 @@ export class ChamberOrbital {
             // sourced at session start.
             this.config.visualInterlocution = { ...config };
             this.updateOrbitStatus('visual');
+            // Visual settings are the most-edited dials — durable immediately
+            this._persistPrefs();
           }
         });
         console.log('[ChamberOrbital] InnerHTML after instantiation length:', container.innerHTML.length);
@@ -1117,6 +1125,11 @@ export class ChamberOrbital {
   }
 
   destroy() {
+    // The latest dials are the user's truth — capture them on the way out
+    // (session start destroys this instance; so does navigating away)
+    this._persistPrefs();
+    window.removeEventListener('beforeunload', this._boundPersist);
+
     // Cleanup
     if (this.viPanel) {
       this.viPanel.destroy();

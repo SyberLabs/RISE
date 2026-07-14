@@ -89,6 +89,40 @@ describe('ChamberOrbital origin chip', () => {
         container.remove();
     });
 
+    it('persists settings changed WITHOUT pressing Begin (destroy + panel-change paths)', () => {
+        localStorage.removeItem('rise_orbital_prefs_v1');
+
+        // Simulate: ran a Genesis session earlier...
+        const earlier = makeOrbital();
+        earlier.orbital.config.text = 't';
+        earlier.orbital.config.visualInterlocution.visualMode = 'genesis';
+        earlier.orbital.beginSession();
+        earlier.orbital.destroy();
+        earlier.container.remove();
+
+        // ...then switched to Focals but never pressed Begin
+        const next = makeOrbital();
+        expect(next.orbital.config.visualInterlocution.visualMode).toBe('genesis');
+        next.orbital.config.visualInterlocution.visualMode = 'focals';
+        next.orbital.destroy(); // navigating away / session start destroys the instance
+        next.container.remove();
+
+        const restored = makeOrbital();
+        expect(restored.orbital.config.visualInterlocution.visualMode).toBe('focals');
+
+        // And a hard refresh (beforeunload) also captures un-begun changes
+        restored.orbital.config.visualInterlocution.visualMode = 'attractor';
+        window.dispatchEvent(new Event('beforeunload'));
+        const afterRefresh = makeOrbital();
+        expect(afterRefresh.orbital.config.visualInterlocution.visualMode).toBe('attractor');
+
+        restored.orbital.destroy();
+        restored.container.remove();
+        afterRefresh.orbital.destroy();
+        afterRefresh.container.remove();
+        localStorage.removeItem('rise_orbital_prefs_v1');
+    });
+
     it('persists last-used settings at Begin and restores them for the next visit', () => {
         localStorage.removeItem('rise_orbital_prefs_v1');
 
