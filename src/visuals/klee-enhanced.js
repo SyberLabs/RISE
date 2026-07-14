@@ -1139,8 +1139,23 @@ class KleeEngine {
       // composition unfolding, rather than every path advancing in lockstep.
       const delay = (lineIndex / Math.max(1, this.lines.length - 1)) * 0.16;
       const localProgress = clamp((progress - delay) / (1 - delay), 0, 1);
-      const pointCount = Math.min(line.points.length, Math.max(1, Math.ceil(line.points.length * localProgress)));
+
+      // Continuous pen: the visible length is fractional, not stepwise.
+      // The whole points render as segments; the remainder interpolates a
+      // partial final segment, so the tip travels smoothly between points
+      // instead of popping forward one full step at a time.
+      const exact = line.points.length * localProgress;
+      const pointCount = Math.min(line.points.length, Math.max(1, Math.floor(exact)));
       if (pointCount < 2) continue;
+      let tipPoint = null;
+      if (pointCount < line.points.length && localProgress < 1) {
+        const frac = exact - pointCount;
+        if (frac > 0) {
+          const [ax, ay] = line.points[pointCount - 1];
+          const [bx, by] = line.points[pointCount];
+          tipPoint = [ax + (bx - ax) * frac, ay + (by - ay) * frac];
+        }
+      }
 
       // Endpoint tapering: the final ~12% of the visible path is drawn as a
       // separate half-width segment, so lines RESOLVE instead of stopping —
@@ -1186,9 +1201,11 @@ class KleeEngine {
       ctx.lineWidth = lineWidth * line.weight;
       ctx.stroke();
 
-      // The tapered tip
-      if (pointCount - tipStart >= 1) {
-        tracePath(tipStart - 1, pointCount);
+      // The tapered tip — including the interpolated partial segment, so
+      // the traveling pen point moves continuously
+      if (pointCount - tipStart >= 1 || tipPoint) {
+        tracePath(Math.min(tipStart - 1, pointCount - 1), pointCount);
+        if (tipPoint) ctx.lineTo(tipPoint[0], tipPoint[1]);
         ctx.globalAlpha = alpha * line.alpha * 0.9;
         ctx.lineWidth = lineWidth * line.weight * 0.5;
         ctx.stroke();

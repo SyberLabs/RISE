@@ -230,6 +230,27 @@ describe('KleeEngine curated presets', () => {
         expect(early.ctx.fillStyle).toBe(KLEE_CHAMBER_BACKGROUND);
     });
 
+    it('renders a continuously moving tip: nearby progress values land between points', () => {
+        const engine = new KleeEngine({ seed: 'smooth-tip' });
+        engine.generateRandom('harmonic', { seed: 'smooth-tip', detectForms: false });
+        const renderAt = (progress) => {
+            const ctx = {
+                fillRect: vi.fn(), beginPath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(),
+                stroke: vi.fn(), save: vi.fn(), restore: vi.fn(), createPattern: vi.fn()
+            };
+            engine.render({ width: engine.width, height: engine.height, getContext: () => ctx }, {
+                progress, showForms: false, texture: 0
+            });
+            return ctx.lineTo.mock.calls.at(-1); // final tip coordinate
+        };
+
+        const a = renderAt(0.5);
+        const b = renderAt(0.5005); // sub-point advance
+        // Whole point counts are identical at this delta; only the
+        // interpolated tip moves — proving the pen travels between points
+        expect(a).not.toEqual(b);
+    });
+
     it('keeps spiral outside the Klee variation vocabulary', () => {
         const engine = new KleeEngine();
         expect(engine._getVariationFunction('spiral')).toBe(engine._varStraight);

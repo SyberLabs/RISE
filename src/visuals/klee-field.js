@@ -170,12 +170,12 @@ export class KleeField {
         const elapsed = now - this.phaseStart;
 
         if (this.phase === 'growing') {
-            // Ease-out growth: eager start, patient resolution
+            // Ease-out growth: eager start, patient resolution.
+            // Render every frame — with fractional tip interpolation in the
+            // engine, the pen moves continuously rather than step by step.
             const t = Math.min(1, elapsed / GROW_MS);
             this.progress = 1 - Math.pow(1 - t, 1.8);
-            if (this.progress - this._lastRenderedProgress >= 0.0015 || t >= 1) {
-                this._render();
-            }
+            this._render();
             if (t >= 1) {
                 this.phase = 'holding';
                 this.phaseStart = now;
