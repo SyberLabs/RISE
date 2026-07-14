@@ -405,6 +405,29 @@
 /* ─── Actions ─── */
 .orbital-actions {
   margin-top: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* Reset: quiet counterweight to persistence — restores default dials,
+   keeps the loaded text */
+.orbital-reset {
+  background: none;
+  border: none;
+  color: var(--color-mist);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+  transition: color var(--transition-fast) var(--ease-default);
+}
+
+.orbital-reset:hover {
+  color: var(--color-ember);
 }
 
 .btn-large {

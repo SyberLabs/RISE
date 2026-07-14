@@ -89,6 +89,37 @@ describe('ChamberOrbital origin chip', () => {
         container.remove();
     });
 
+    it('Reset restores factory defaults and clears prefs, but keeps the loaded text', () => {
+        localStorage.removeItem('rise_orbital_prefs_v1');
+
+        const { orbital, container } = makeOrbital();
+        orbital.loadText('the text', 'SOL: Dawn', { origin: { view: 'sol', icon: '☀', name: 'SOL' } });
+        orbital.config.wpm = 400;
+        orbital.config.visualInterlocution.visualMode = 'genesis';
+        orbital._persistPrefs();
+
+        container.querySelector('[data-action="reset-prefs"]').click();
+
+        expect(orbital.config.wpm).toBe(220);
+        expect(orbital.config.visualInterlocution.visualMode).toBe('off');
+        expect(localStorage.getItem('rise_orbital_prefs_v1')).toBeNull();
+        // Session context survives — settings amnesia, not session amnesia
+        expect(orbital.config.text).toBe('the text');
+        expect(orbital.config.origin?.view).toBe('sol');
+        expect(container.querySelector('.orbital-origin-chip')).not.toBeNull();
+
+        // A fresh orbital starts from defaults (destroy persists the
+        // now-default config, which is equivalent)
+        orbital.destroy();
+        container.remove();
+        const fresh = makeOrbital();
+        expect(fresh.orbital.config.wpm).toBe(220);
+        expect(fresh.orbital.config.visualInterlocution.visualMode).toBe('off');
+        fresh.orbital.destroy();
+        fresh.container.remove();
+        localStorage.removeItem('rise_orbital_prefs_v1');
+    });
+
     it('persists settings changed WITHOUT pressing Begin (destroy + panel-change paths)', () => {
         localStorage.removeItem('rise_orbital_prefs_v1');
 

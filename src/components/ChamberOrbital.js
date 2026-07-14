@@ -17,6 +17,76 @@ import './VisualInterlocutionPanel.css';
 // instance itself is destroyed whenever a session runs in the shared view)
 const ORBITAL_PREFS_KEY = 'rise_orbital_prefs_v1';
 
+/**
+ * Factory defaults for the orbital — one source of truth for the
+ * constructor and the Reset button.
+ */
+function createDefaultConfig() {
+  return {
+    text: null,
+    textSource: null, // 'drop', 'paste', 'library', 'starter'
+    // Launch origin (wayfinding): { view, icon, name } set by app.js
+    // launch handlers (SOL / Vault / Library); null for plain sessions
+    origin: null,
+
+    // Visual orbit
+    visualInterlocution: {
+      // Top-level mode: 'off' | 'focals' | 'attractor' | 'genesis' | 'interlocution'
+      visualMode: 'off',
+
+      // Focals config (persistent gentle focal point)
+      focals: {
+        type: 'standard',
+        standardGlyph: 'breath',
+        personalImage: null
+      },
+
+      // Attractor config (persistent strange-attractor field)
+      attractor: {
+        system: 'aizawa'
+      },
+
+      // Genesis config (continuously growing Klee composition)
+      genesis: {
+        preset: 'random',
+        glass: true
+      },
+
+      // Living Text (semantic hue/glow on the text stream)
+      livingText: {
+        enabled: false
+      },
+
+      // Interlocution config (probabilistic interrupts).
+      // Nothing pre-checked: visual packages arrive only through explicit
+      // configs (Vault archetypes, SOL sequences) — never implied by a text.
+      interlocution: {
+        procedural: [],
+        sourced: [],
+        frequency: 0.2,
+        duration: 80,
+        kleePreset: 'random',
+        responsive: false,
+        responsiveMood: true,
+        responsiveRhythm: true
+      }
+    },
+
+    // Audio orbit
+    audioPreset: 'silent',
+    entrainmentMode: 'binaural',
+    entrainmentWaveform: 'sine',
+    voiceEnabled: false,
+    voiceId: null,
+    selectedSwellId: null,
+
+    // Temporal orbit
+    wpm: 220,
+    curve: 'flat',
+    chunkMode: 'word'
+  };
+}
+
 export class ChamberOrbital {
   constructor(container, options = {}) {
     console.log('[ChamberOrbital] Constructor called', container, options);
@@ -24,70 +94,8 @@ export class ChamberOrbital {
     this.onBeginSession = options.onBeginSession || (() => { });
     this.onNavigate = options.onNavigate || (() => { });
 
-    // Session configuration state
-    this.config = {
-      text: null,
-      textSource: null, // 'drop', 'paste', 'library', 'starter'
-      // Launch origin (wayfinding): { view, icon, name } set by app.js
-      // launch handlers (SOL / Vault / Library); null for plain sessions
-      origin: null,
-
-      // Visual orbit - 4-way mode structure
-      visualInterlocution: {
-        // Top-level mode: 'off' | 'focals' | 'attractor' | 'interlocution'
-        visualMode: 'off',
-
-        // Focals config (persistent gentle focal point)
-        focals: {
-          type: 'standard',
-          standardGlyph: 'breath',
-          personalImage: null
-        },
-
-        // Attractor config (persistent strange-attractor field)
-        attractor: {
-          system: 'aizawa'
-        },
-
-        // Genesis config (continuously growing Klee composition)
-        genesis: {
-          preset: 'random',
-          glass: true
-        },
-
-        // Living Text (semantic hue/glow on the text stream)
-        livingText: {
-          enabled: false
-        },
-
-        // Interlocution config (probabilistic interrupts).
-        // Nothing pre-checked: visual packages arrive only through explicit
-        // configs (Vault archetypes, SOL sequences) — never implied by a text.
-        interlocution: {
-          procedural: [],
-          sourced: [],
-          frequency: 0.2,
-          duration: 80,
-          kleePreset: 'random',
-          responsive: false,
-          responsiveMood: true,
-          responsiveRhythm: true
-        }
-      },
-
-      // Audio orbit
-      audioPreset: 'silent',
-      entrainmentMode: 'binaural',
-      entrainmentWaveform: 'sine',
-      voiceEnabled: false,
-      voiceId: null,
-      selectedSwellId: null,
-
-      // Temporal orbit
-      wpm: 220,
-      curve: 'flat',
-      chunkMode: 'word'
-    };
+    // Session configuration state (factory defaults; see createDefaultConfig)
+    this.config = createDefaultConfig();
 
     // Restore the user's last-used settings (persisted at Begin) so
     // returning from a session never resets the controls to defaults
@@ -142,6 +150,38 @@ export class ChamberOrbital {
         livingText: { ...defaults.livingText, ...(vi.livingText || {}) },
         interlocution: { ...defaults.interlocution, ...(vi.interlocution || {}) }
       };
+    }
+  }
+
+  /**
+   * Reset: restore factory-default settings. The loaded text, its source,
+   * and the origin chip survive — this is settings amnesia, not session
+   * amnesia (the text card has its own ✕ for that).
+   */
+  resetPrefs() {
+    try {
+      localStorage.removeItem(ORBITAL_PREFS_KEY);
+    } catch (e) {
+      console.warn('[ChamberOrbital] Could not clear prefs:', e);
+    }
+
+    const { text, textSource, origin } = this.config;
+    this.config = { ...createDefaultConfig(), text, textSource, origin };
+
+    // The visual panel holds its own copy of the config — rebuild it
+    if (this.viPanel) {
+      this.viPanel.destroy();
+      this.viPanel = null;
+    }
+    this.render();
+    this.attachEvents();
+    this.syncUIWithConfig();
+    this.updateOrbitStatus('temporal');
+    this.updateOrbitStatus('audio');
+    this.updateOrbitStatus('visual');
+
+    if (window.rise?.showToast) {
+      window.rise.showToast('Settings restored to defaults');
     }
   }
 
@@ -224,6 +264,9 @@ export class ChamberOrbital {
         <div class="orbital-actions">
           <button class="btn-primary btn-large" id="begin-btn" ${!this.config.text ? 'disabled' : ''}>
             ${this.config.text ? 'Begin Session' : 'Load Text First'}
+          </button>
+          <button type="button" class="orbital-reset" data-action="reset-prefs" title="Restore default settings (keeps the loaded text)">
+            ↺ Reset
           </button>
         </div>
 
@@ -557,6 +600,12 @@ export class ChamberOrbital {
         window.rise?.audioEngine?.playClick();
         this.onNavigate(this.config.origin.view);
       }
+    });
+
+    // Reset settings to factory defaults (keeps the loaded text)
+    this.container.querySelector('[data-action="reset-prefs"]')?.addEventListener('click', () => {
+      window.rise?.audioEngine?.playClick();
+      this.resetPrefs();
     });
 
     // Text source actions
