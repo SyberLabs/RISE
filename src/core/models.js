@@ -150,6 +150,7 @@ export class Session {
    * @param {string} [config.curve='flat'] - Pacing curve
    * @param {string} [config.displayMode='focal'] - Display mode
    * @param {string} [config.audioPreset='silent'] - Audio preset
+   * @param {string} [config.soundscape='none'] - Living soundscape (e.g. 'aurora')
    * @param {Object} [config.visualConfig] - Visual configuration
    * @param {boolean} [config.voiceEnabled=false] - Enable text-to-speech
    * @param {string|null} [config.voiceId=null] - Selected voice name
@@ -165,6 +166,7 @@ export class Session {
     curve = 'flat',
     displayMode = 'focal',
     audioPreset = 'silent',
+    soundscape = 'none',
     entrainmentMode = 'binaural',
     entrainmentWaveform = 'sine',
     visualConfig = { enabled: false },
@@ -184,6 +186,7 @@ export class Session {
     this.curve = curve;
     this.displayMode = displayMode;
     this.audioPreset = audioPreset;
+    this.soundscape = soundscape;
     this.entrainmentMode = entrainmentMode;
     this.entrainmentWaveform = entrainmentWaveform;
     this.visualConfig = visualConfig;

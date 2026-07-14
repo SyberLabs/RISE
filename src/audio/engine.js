@@ -91,6 +91,7 @@ export const LAYER_PRESETS = {
 };
 
 import { PersonalSwells } from '../core/personal-swells.js';
+import { createSoundscape } from './soundscapes.js';
 
 
 /**
@@ -114,7 +115,8 @@ export class AudioEngine {
             ambient: null,
             typing: null,
             ui: null,
-            swell: null
+            swell: null,
+            soundscape: null
         };
 
         // Layer gains
@@ -126,7 +128,8 @@ export class AudioEngine {
             ambient: null,
             typing: null,
             ui: null,
-            swell: null
+            swell: null,
+            soundscape: null
         };
 
         this.buffers = {
@@ -165,7 +168,8 @@ export class AudioEngine {
                 ambient: 0.5,
                 typing: 0.6,
                 ui: 0.5,
-                swell: 0.4
+                swell: 0.4,
+                soundscape: 0.85
             },
 
             // Asset paths
@@ -793,6 +797,45 @@ export class AudioEngine {
                     this.layers.drone = null;
                 }, fadeTime * 1000);
             }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // LAYER: SOUNDSCAPE (Living Compositions)
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Start a soundscape — a composed, self-evolving piece (see
+     * soundscapes.js). Runs alongside the pure-tone layers.
+     * @param {string} id - e.g. 'aurora'
+     */
+    startSoundscape(id) {
+        if (!this.isInitialized) return;
+        this.stopSoundscape(true);
+
+        const handle = createSoundscape(id, this.context, this.layerGains.soundscape);
+        if (!handle) {
+            console.warn('[AudioEngine] Unknown soundscape:', id);
+            return;
+        }
+
+        handle.start();
+        this.layers.soundscape = handle;
+        this.setLayerVolume('soundscape', this.config.layerVolumes.soundscape, true);
+
+        console.log(`[AudioEngine] Soundscape: ${id}`);
+    }
+
+    /**
+     * Stop the active soundscape. The handle ramps its own voices out;
+     * the layer gain fade covers the same window.
+     */
+    stopSoundscape(instant = false) {
+        if (this.layers.soundscape) {
+            const handle = this.layers.soundscape;
+            this.layers.soundscape = null;
+            this.setLayerVolume('soundscape', 0, !instant);
+            handle.stop(instant);
         }
     }
 
@@ -1615,6 +1658,10 @@ export class AudioEngine {
             this.setEntrainmentBand(options.entrainmentBand);
         }
 
+        if (options.soundscape) {
+            this.startSoundscape(options.soundscape);
+        }
+
         if (options.entrainment) {
             const explicitRamp = options.entrainment.ramp;
             const autoRamp = options.entrainment.autoRamp;
@@ -1659,6 +1706,7 @@ export class AudioEngine {
             this.stopNoise(true);
             this.stopDrone(true);
             this.stopSwell(true);
+            this.stopSoundscape(true);
 
             // 2. RESTORE MASTER VOLUME
             // This brings the volume back to config.masterVolume (0.7) for the menu

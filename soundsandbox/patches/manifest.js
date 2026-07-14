@@ -13,6 +13,8 @@ import presets from './app-presets.js';
 import fmTide from './lab-fm-tide.js';
 import aureole from './lab-aureole.js';
 import halo from './lab-halo.js';
+import stillPassage from './lab-still-passage.js';
+import fadedSignal from './lab-faded-signal.js';
 
 export const PATCHES = [
     presets,
@@ -22,5 +24,7 @@ export const PATCHES = [
     drone,
     fmTide,
     aureole,
-    halo
+    halo,
+    stillPassage,
+    fadedSignal
 ];

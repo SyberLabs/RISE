@@ -183,6 +183,47 @@ describe('ChamberOrbital origin chip', () => {
         localStorage.removeItem('rise_orbital_prefs_v1');
     });
 
+    it('soundscape: renders on top of the audio panel, persists, resets', () => {
+        localStorage.removeItem('rise_orbital_prefs_v1');
+
+        const { orbital, container } = makeOrbital();
+
+        // Section renders with None active by default
+        const chips = container.querySelectorAll('[data-soundscape]');
+        expect(chips).toHaveLength(2);
+        expect(container.querySelector('[data-soundscape="none"]').classList.contains('active')).toBe(true);
+
+        // Selecting Aurora updates config and the orbit status
+        container.querySelector('[data-soundscape="aurora"]').click();
+        expect(orbital.config.soundscape).toBe('aurora');
+        expect(orbital.getAudioStatus()).toBe('✧ Aurora');
+
+        // Combined with a pure-tone preset the status reads as a mix
+        orbital.config.audioPreset = 'deep';
+        expect(orbital.getAudioStatus()).toBe('✧ Aurora +');
+
+        // Begin payload carries it
+        orbital.config.text = 't';
+        let payload = null;
+        orbital.onBeginSession = (data) => { payload = data; };
+        orbital.beginSession();
+        expect(payload.soundscape).toBe('aurora');
+
+        // Persists across instances
+        orbital.destroy();
+        container.remove();
+        const restored = makeOrbital();
+        expect(restored.orbital.config.soundscape).toBe('aurora');
+
+        // Reset restores 'none'
+        restored.container.querySelector('[data-action="reset-prefs"]').click();
+        expect(restored.orbital.config.soundscape).toBe('none');
+
+        restored.orbital.destroy();
+        restored.container.remove();
+        localStorage.removeItem('rise_orbital_prefs_v1');
+    });
+
     it('a subsequent plain load replaces a previous origin', () => {
         const { orbital, container } = makeOrbital();
         orbital.loadText('text', 'SOL: Dawn', { origin: SOL_ORIGIN });

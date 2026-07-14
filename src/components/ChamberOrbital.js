@@ -73,6 +73,7 @@ function createDefaultConfig() {
     },
 
     // Audio orbit
+    soundscape: 'none',
     audioPreset: 'silent',
     entrainmentMode: 'binaural',
     entrainmentWaveform: 'sine',
@@ -132,7 +133,7 @@ export class ChamberOrbital {
     }
     if (!saved) return;
 
-    const scalarKeys = ['wpm', 'curve', 'chunkMode', 'audioPreset',
+    const scalarKeys = ['wpm', 'curve', 'chunkMode', 'soundscape', 'audioPreset',
       'entrainmentMode', 'entrainmentWaveform', 'voiceEnabled', 'voiceId', 'selectedSwellId'];
     for (const key of scalarKeys) {
       if (saved[key] !== undefined) this.config[key] = saved[key];
@@ -187,11 +188,11 @@ export class ChamberOrbital {
 
   _persistPrefs() {
     try {
-      const { wpm, curve, chunkMode, audioPreset, entrainmentMode,
+      const { wpm, curve, chunkMode, soundscape, audioPreset, entrainmentMode,
         entrainmentWaveform, voiceEnabled, voiceId, selectedSwellId,
         visualInterlocution } = this.config;
       localStorage.setItem(ORBITAL_PREFS_KEY, JSON.stringify({
-        wpm, curve, chunkMode, audioPreset, entrainmentMode,
+        wpm, curve, chunkMode, soundscape, audioPreset, entrainmentMode,
         entrainmentWaveform, voiceEnabled, voiceId, selectedSwellId,
         visualInterlocution
       }));
@@ -350,10 +351,28 @@ export class ChamberOrbital {
             <button class="modal-close" data-close="audio">✕</button>
           </div>
           <div class="modal-body">
-            <!-- Audio Preset -->
+            <!-- Soundscapes: living compositions, synthesized in real time -->
             <div class="config-section">
               <div class="config-label-row">
-                <label class="config-label">Audio Preset</label>
+                <label class="config-label">Soundscape</label>
+                <span class="config-info" data-tooltip="Living compositions synthesized in real time — slowly evolving, never looping. Aurora: a deep just-intoned pad visited by wandering harmonics. Plays alongside the pure tones below.">?</span>
+              </div>
+              <div class="audio-preset-options soundscape-options">
+                <button class="audio-preset-option ${this.config.soundscape === 'none' ? 'active' : ''}" data-soundscape="none">
+                  <span class="preset-icon">○</span>
+                  <span class="preset-label">None</span>
+                </button>
+                <button class="audio-preset-option ${this.config.soundscape === 'aurora' ? 'active' : ''}" data-soundscape="aurora">
+                  <span class="preset-icon">✧</span>
+                  <span class="preset-label">Aurora</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Pure Tones (brainwave presets) -->
+            <div class="config-section">
+              <div class="config-label-row">
+                <label class="config-label">Pure Tones</label>
                 <span class="config-info" data-tooltip="Presets target specific brainwave frequencies. Focus (Alpha 10Hz) enhances concentration. Deep (Theta 6Hz) promotes meditation. Gateway (Delta 2Hz) yields deep flow states.">?</span>
               </div>
               <div class="audio-preset-options">
@@ -564,7 +583,12 @@ export class ChamberOrbital {
     const preset = this.capitalizeFirst(this.config.audioPreset);
     const hasSwell = !!this.config.selectedSwellId;
     const hasPreset = this.config.audioPreset !== 'silent';
+    const hasSoundscape = this.config.soundscape && this.config.soundscape !== 'none';
 
+    if (hasSoundscape) {
+      const scape = this.capitalizeFirst(this.config.soundscape);
+      return (hasPreset || hasSwell) ? `✧ ${scape} +` : `✧ ${scape}`;
+    }
     if (hasSwell && hasPreset) {
       return `○ Mixed`;
     }
@@ -755,7 +779,19 @@ export class ChamberOrbital {
   }
 
   attachAudioModalEvents() {
-    // Audio preset
+    // Soundscape (living compositions)
+    const soundscapeOptions = this.container.querySelectorAll('[data-soundscape]');
+    soundscapeOptions.forEach(opt => {
+      opt.addEventListener('click', () => {
+        window.rise?.audioEngine?.playHiss();
+        this.config.soundscape = opt.dataset.soundscape;
+        this.updateOrbitStatus('audio');
+        soundscapeOptions.forEach(o => o.classList.remove('active'));
+        opt.classList.add('active');
+      });
+    });
+
+    // Pure-tone preset
     const presetOptions = this.container.querySelectorAll('[data-preset]');
     presetOptions.forEach(opt => {
       opt.addEventListener('click', () => {
@@ -1022,6 +1058,11 @@ export class ChamberOrbital {
     });
 
     // Audio Modal
+    const soundscapeOptions = this.container.querySelectorAll('[data-soundscape]');
+    soundscapeOptions.forEach(opt => {
+      opt.classList.toggle('active', opt.dataset.soundscape === (this.config.soundscape || 'none'));
+    });
+
     const presetOptions = this.container.querySelectorAll('[data-preset]');
     presetOptions.forEach(opt => {
       opt.classList.toggle('active', opt.dataset.preset === this.config.audioPreset);
@@ -1047,6 +1088,7 @@ export class ChamberOrbital {
     if (config.wpm) this.config.wpm = config.wpm;
     if (config.curve) this.config.curve = config.curve;
     if (config.audioPreset) this.config.audioPreset = config.audioPreset;
+    if (config.soundscape) this.config.soundscape = config.soundscape;
     if (config.entrainmentMode) this.config.entrainmentMode = config.entrainmentMode;
     if (config.entrainmentWaveform) this.config.entrainmentWaveform = config.entrainmentWaveform;
 
@@ -1146,6 +1188,7 @@ export class ChamberOrbital {
       curve: this.config.curve,
       chunkMode: this.config.chunkMode,
       audioPreset: this.config.audioPreset,
+      soundscape: this.config.soundscape,
       entrainmentMode: this.config.entrainmentMode,
       entrainmentWaveform: this.config.entrainmentWaveform,
       voiceEnabled: this.config.voiceEnabled,

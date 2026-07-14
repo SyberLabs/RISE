@@ -293,7 +293,8 @@ class App {
                 this.showLoading('Preparing Session');
 
                 // Start audio initialization early to minimize lag on chamber entry
-                const hasAudio = (session.audioPreset && session.audioPreset !== 'silent') || session.selectedSwellId;
+                const hasSoundscape = session.soundscape && session.soundscape !== 'none';
+                const hasAudio = (session.audioPreset && session.audioPreset !== 'silent') || session.selectedSwellId || hasSoundscape;
                 
                 if (session && hasAudio) {
                     this.updateLoadingStatus('Stabilizing carrier frequencies...');
@@ -302,6 +303,7 @@ class App {
                     const durationSec = (session.totalDuration || 0) / 1000;
                     await this.audioEngine.startSession({ 
                         preset: session.audioPreset !== 'silent' ? session.audioPreset : null,
+                        soundscape: hasSoundscape ? session.soundscape : null,
                         swellId: session.selectedSwellId,
                         entrainment: {
                             mode: session.entrainmentMode || 'binaural',
@@ -555,6 +557,7 @@ class App {
                     wpm: sequence.wpm,
                     curve: sequence.curve,
                     audioPreset: sequence.audioPreset || 'silent',
+                    soundscape: sequence.soundscape || 'none',
                     origin: { view: 'library', icon: '◇', name: 'Library' }
                 }
             }
@@ -580,6 +583,7 @@ class App {
                     wpm: config.wpm,
                     curve: config.curve,
                     audioPreset: config.audioPreset || 'silent',
+                    soundscape: config.soundscape || 'none',
                     visualConfig: config.visualConfig || { visualMode: 'off' },
                     origin: { view: 'vault', icon: '◈', name: 'Vault' }
                 }
@@ -606,6 +610,7 @@ class App {
                     wpm: config.wpm,
                     curve: config.curve,
                     audioPreset: config.audioPreset || 'silent',
+                    soundscape: config.soundscape || 'none',
                     visualConfig: config.visualConfig || { visualMode: 'off' },
                     origin: { view: 'sol', icon: '☀', name: 'SOL' }
                 }
@@ -692,6 +697,7 @@ class App {
             wpm: sessionConfig.wpm || 220,
             curve: sessionConfig.curve || 'flat',
             audioPreset: sessionConfig.audioPreset || 'silent',
+            soundscape: sessionConfig.soundscape || 'none',
             entrainmentMode: sessionConfig.entrainmentMode || 'binaural',
             entrainmentWaveform: sessionConfig.entrainmentWaveform || 'sine',
             visualConfig: sessionConfig.visualConfig || { enabled: false },
@@ -759,6 +765,7 @@ class App {
             curve: sessionData.curve || 'flat',
             displayMode: sessionData.displayMode || 'focal',
             audioPreset: sessionData.audioPreset || 'silent',
+            soundscape: sessionData.soundscape || 'none',
             entrainmentMode: sessionData.entrainmentMode || 'binaural',
             entrainmentWaveform: sessionData.entrainmentWaveform || 'sine',
             selectedSwellId: sessionData.selectedSwellId || null,
