@@ -423,6 +423,7 @@ small {
 
   transition: all var(--transition-normal) var(--ease-default);
   cursor: pointer;
+  user-select: none;
 }
 
 .nav-item:hover {
@@ -745,6 +746,14 @@ small {
 *:focus-visible {
   outline: 2px solid var(--color-threshold);
   outline-offset: 2px;
+}
+
+/* A text caret must never blink outside genuine editing surfaces.
+   Browsers' caret-browsing mode (accidental F7) otherwise plants a
+   pulsating cursor in any static text — titles, buttons, the token
+   stream. Real inputs keep their carets. */
+*:not(input):not(textarea):not([contenteditable='true']) {
+  caret-color: transparent;
 }
 
 /* Reduced motion support */
