@@ -11,6 +11,8 @@ import noise from './app-noise.js';
 import drone from './app-drone.js';
 import presets from './app-presets.js';
 import fmTide from './lab-fm-tide.js';
+import aureole from './lab-aureole.js';
+import halo from './lab-halo.js';
 
 export const PATCHES = [
     presets,
@@ -18,5 +20,7 @@ export const PATCHES = [
     harmonics,
     noise,
     drone,
-    fmTide
+    fmTide,
+    aureole,
+    halo
 ];
