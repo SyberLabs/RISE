@@ -511,7 +511,10 @@ class App {
             init: (container) => {
                 return new Sol(container, {
                     onNavigate: this.handleNavigate,
-                    onLaunchSequence: (data) => this.handleSolLaunch(data)
+                    onLaunchSequence: (data) => this.handleSolLaunch(data),
+                    // My Day plan entries may bind Workshop blueprints to
+                    // windows — same compile path the Vault uses
+                    onLaunchBlueprint: (blueprint) => this.handleCreateSession(blueprint)
                 });
             }
         });

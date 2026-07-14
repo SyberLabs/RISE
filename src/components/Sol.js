@@ -11,23 +11,26 @@
 
 import { SOL_SEQUENCES } from '../content/sol-sequences.js';
 import { chunkText } from '../core/chunker.js';
+import { MemoryCore } from '../core/memory.js';
+import { escapeHtml } from '../core/sanitize.js';
 
 // Temporal windows of the day — single source of truth for
-// greeting, context line, and the suggested sequence.
+// greeting, context line, the default sequence, and the My Day plan.
 const SOL_WINDOWS = [
-    { from: 4, to: 8, sequenceId: 'sol-dawn', greeting: 'Good morning', context: 'The world is just waking up.' },
-    { from: 8, to: 11, sequenceId: 'sol-morning', greeting: 'Good morning', context: 'The day begins its demands.' },
-    { from: 11, to: 14, sequenceId: 'sol-midday', greeting: 'Good afternoon', context: 'The pause at the peak.' },
-    { from: 14, to: 18, sequenceId: 'sol-afternoon', greeting: 'Good afternoon', context: 'The long slope of the day.' },
-    { from: 18, to: 22, sequenceId: 'sol-evening', greeting: 'Good evening', context: 'The unwinding.' },
-    { from: 22, to: 26, sequenceId: 'sol-night', greeting: 'Good night', context: 'The descent into rest.' }, // 22:00–02:00
-    { from: 2, to: 4, sequenceId: 'sol-deepnight', greeting: 'Good night', context: 'The world is entirely quiet.' }
+    { key: 'dawn', name: 'Dawn', range: '04–08', from: 4, to: 8, sequenceId: 'sol-dawn', greeting: 'Good morning', context: 'The world is just waking up.' },
+    { key: 'morning', name: 'Morning', range: '08–11', from: 8, to: 11, sequenceId: 'sol-morning', greeting: 'Good morning', context: 'The day begins its demands.' },
+    { key: 'midday', name: 'Midday', range: '11–14', from: 11, to: 14, sequenceId: 'sol-midday', greeting: 'Good afternoon', context: 'The pause at the peak.' },
+    { key: 'afternoon', name: 'Afternoon', range: '14–18', from: 14, to: 18, sequenceId: 'sol-afternoon', greeting: 'Good afternoon', context: 'The long slope of the day.' },
+    { key: 'evening', name: 'Evening', range: '18–22', from: 18, to: 22, sequenceId: 'sol-evening', greeting: 'Good evening', context: 'The unwinding.' },
+    { key: 'night', name: 'Night', range: '22–02', from: 22, to: 26, sequenceId: 'sol-night', greeting: 'Good night', context: 'The descent into rest.' }, // 22:00–02:00
+    { key: 'deepnight', name: 'Deep Night', range: '02–04', from: 2, to: 4, sequenceId: 'sol-deepnight', greeting: 'Good night', context: 'The world is entirely quiet.' }
 ];
 
 const SOL_CATEGORIES = [
     { id: 'temporal', numeral: 'I', name: 'Temporal' },
     { id: 'situational', numeral: 'II', name: 'Situational' },
-    { id: 'archetypal', numeral: 'III', name: 'Archetypal' }
+    { id: 'archetypal', numeral: 'III', name: 'Archetypal' },
+    { id: 'myday', numeral: 'IV', name: 'My Day' }
 ];
 
 export class Sol {
@@ -35,6 +38,7 @@ export class Sol {
         this.container = container;
         this.onNavigate = options.onNavigate || (() => { });
         this.onLaunchSequence = options.onLaunchSequence || (() => { });
+        this.onLaunchBlueprint = options.onLaunchBlueprint || (() => { });
 
         // State
         this.currentTime = new Date();
@@ -69,11 +73,11 @@ export class Sol {
         this.updateSolarArc();
 
         // Re-evaluate the temporal window; refresh panel + NOW badge on boundary cross
-        const { sequence } = this.getSuggestedSequence();
-        if (sequence && sequence.id !== this.suggestedId) {
+        const { suggestion } = this.getSuggestedSequence();
+        if (suggestion && suggestion.id !== this.suggestedId) {
             this.updateRecommendation();
-            if (this.activeCategory === 'temporal') {
-                this.renderCategoryGrid('temporal');
+            if (this.activeCategory === 'temporal' || this.activeCategory === 'myday') {
+                this.renderCategoryGrid(this.activeCategory);
             }
         }
     }
@@ -99,13 +103,86 @@ export class Sol {
         return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
     }
 
-    getSuggestedSequence() {
+    getCurrentWindow() {
         const hour = this.currentTime.getHours();
         // Normalize into [2, 26) so the 22:00–02:00 night window is contiguous
         const h = hour < 2 ? hour + 24 : hour;
-        const window = SOL_WINDOWS.find(w => h >= w.from && h < w.to) || SOL_WINDOWS[2];
-        const sequence = SOL_SEQUENCES.find(s => s.id === window.sequenceId);
-        return { sequence, greeting: window.greeting, context: window.context };
+        return SOL_WINDOWS.find(w => h >= w.from && h < w.to) || SOL_WINDOWS[2];
+    }
+
+    /**
+     * Resolve a window through the user's My Day plan.
+     * Returns a normalized suggestion the panel and Begin button can use
+     * regardless of kind, plus provenance flags. A dangling blueprint
+     * reference (deleted in the Workshop) degrades to the canonical
+     * default and is reported via `missing` for the My Day view.
+     */
+    resolveWindow(window) {
+        const plan = MemoryCore.getSolPlan();
+        const entry = plan[window.key];
+        const fallback = () => {
+            const sequence = SOL_SEQUENCES.find(s => s.id === window.sequenceId);
+            return {
+                kind: 'sol', payload: sequence, id: sequence.id,
+                title: sequence.title, subtitle: sequence.subtitle,
+                config: sequence.config, isCustom: false, missing: false
+            };
+        };
+
+        if (!entry) return fallback();
+
+        if (entry.kind === 'sol') {
+            const sequence = SOL_SEQUENCES.find(s => s.id === entry.id);
+            if (!sequence) return { ...fallback(), missing: true };
+            return {
+                kind: 'sol', payload: sequence, id: sequence.id,
+                title: sequence.title, subtitle: sequence.subtitle,
+                config: sequence.config, isCustom: true, missing: false
+            };
+        }
+
+        if (entry.kind === 'blueprint') {
+            const blueprint = MemoryCore.getWorkshopBlueprints().find(bp => bp.id === entry.id);
+            if (!blueprint) return { ...fallback(), missing: true };
+            return {
+                kind: 'blueprint', payload: blueprint, id: blueprint.id,
+                title: blueprint.title || 'Untitled Sequence',
+                subtitle: 'From your Workshop',
+                config: {
+                    wpm: blueprint.wpm || 220,
+                    curve: blueprint.curve || 'flat',
+                    audioPreset: blueprint.audioPreset || 'silent',
+                    visualConfig: blueprint.visualConfig
+                },
+                isCustom: true, missing: false
+            };
+        }
+
+        return fallback();
+    }
+
+    getSuggestedSequence() {
+        const window = this.getCurrentWindow();
+        const suggestion = this.resolveWindow(window);
+        return {
+            suggestion,
+            window,
+            // Kept for callers that only need the canonical shape
+            sequence: suggestion.kind === 'sol' ? suggestion.payload : null,
+            greeting: window.greeting,
+            context: window.context
+        };
+    }
+
+    launchSuggestion(suggestion) {
+        if (window.rise?.audioEngine) {
+            window.rise.audioEngine.playClick();
+        }
+        if (suggestion.kind === 'blueprint') {
+            this.onLaunchBlueprint(suggestion.payload);
+        } else {
+            this.onLaunchSequence({ sequence: suggestion.payload, config: suggestion.payload.config });
+        }
     }
 
     /**
@@ -241,7 +318,9 @@ export class Sol {
                     <section class="sol-browser" aria-label="Sequence catalog">
                         <div class="sol-tabs" role="tablist" aria-label="Sequence categories">
                             ${SOL_CATEGORIES.map(cat => {
-                                const count = SOL_SEQUENCES.filter(s => s.category === cat.id).length;
+                                const count = cat.id === 'myday'
+                                    ? Object.keys(MemoryCore.getSolPlan()).length
+                                    : SOL_SEQUENCES.filter(s => s.category === cat.id).length;
                                 const active = this.activeCategory === cat.id;
                                 return `
                                     <button class="sol-tab ${active ? 'active' : ''}"
@@ -268,12 +347,40 @@ export class Sol {
         this.renderCategoryGrid(this.activeCategory);
     }
 
+    /**
+     * Duration label for a suggestion of either kind — SOL sequences chunk
+     * their content; blueprints join their sources' text.
+     */
+    getSuggestionDuration(suggestion) {
+        if (suggestion.kind === 'sol') return this.getDurationLabel(suggestion.payload);
+
+        const bp = suggestion.payload;
+        const cacheKey = `bp:${bp.id}:${bp.updatedAt || 0}`;
+        if (this.durationCache.has(cacheKey)) return this.durationCache.get(cacheKey);
+        let label = '';
+        try {
+            const text = (bp.sources || [])
+                .map(s => (typeof s.data === 'string' ? s.data : ''))
+                .join('\n\n');
+            if (text.trim()) {
+                const atoms = chunkText(text, { mode: bp.chunkMode || 'word', wpm: bp.wpm || 220 });
+                const min = atoms.reduce((sum, a) => sum + (a.duration || 0), 0) / 60000;
+                label = min < 0.75 ? '< 1 min' : min < 1.5 ? '≈ 1 min' : `≈ ${Math.round(min)} min`;
+            }
+        } catch (e) {
+            console.warn('[Sol] Blueprint duration estimate failed:', e);
+        }
+        this.durationCache.set(cacheKey, label);
+        return label;
+    }
+
     updateRecommendation() {
-        const { sequence, greeting, context } = this.getSuggestedSequence();
-        this.suggestedId = sequence?.id || null;
+        const { suggestion, greeting, context } = this.getSuggestedSequence();
+        this.suggestedId = suggestion?.id || null;
 
         const greetingEl = this.container.querySelector('#sol-greeting');
         const contextEl = this.container.querySelector('#sol-context');
+        const labelEl = this.container.querySelector('.sol-suggested-label');
         const titleEl = this.container.querySelector('#sol-suggested-title');
         const subEl = this.container.querySelector('#sol-suggested-sub');
         const metaEl = this.container.querySelector('#sol-suggested-meta');
@@ -281,29 +388,25 @@ export class Sol {
 
         if (greetingEl) greetingEl.innerHTML = `${greeting}. It is <span class="sol-current-time">${this.formatTime(this.currentTime)}</span>.`;
         if (contextEl) contextEl.textContent = context;
+        if (labelEl) labelEl.textContent = suggestion?.isCustom ? 'From your plan' : 'Aligned with this hour';
 
-        if (sequence) {
-            if (titleEl) titleEl.textContent = sequence.title;
-            if (subEl) subEl.textContent = sequence.subtitle;
+        if (suggestion) {
+            if (titleEl) titleEl.textContent = suggestion.title;
+            if (subEl) subEl.textContent = suggestion.subtitle;
             if (metaEl) {
-                const badge = this.getVisualBadge(sequence.config);
+                const badge = this.getVisualBadge(suggestion.config);
+                const duration = this.getSuggestionDuration(suggestion);
                 metaEl.innerHTML = `
-                    <span>${this.getDurationLabel(sequence)}</span>
+                    ${duration ? `<span>${duration}</span><span class="sol-meta-sep">·</span>` : ''}
+                    <span>${suggestion.config?.curve || 'flat'} curve</span>
                     <span class="sol-meta-sep">·</span>
-                    <span>${sequence.config?.curve || 'flat'} curve</span>
-                    <span class="sol-meta-sep">·</span>
-                    <span>${sequence.config?.audioPreset || 'silent'} audio</span>
+                    <span>${suggestion.config?.audioPreset || 'silent'} audio</span>
                     <span class="sol-meta-sep">·</span>
                     <span class="sol-meta-visual">${badge.icon} ${badge.label}</span>
                 `;
             }
             if (beginBtn) {
-                beginBtn.onclick = () => {
-                    if (window.rise?.audioEngine) {
-                        window.rise.audioEngine.playClick();
-                    }
-                    this.onLaunchSequence({ sequence, config: sequence.config });
-                };
+                beginBtn.onclick = () => this.launchSuggestion(suggestion);
             }
         }
     }
@@ -313,6 +416,11 @@ export class Sol {
         if (!grid) return;
 
         grid.setAttribute('aria-labelledby', `sol-tab-${categoryId}`);
+
+        if (categoryId === 'myday') {
+            this.renderMyDay(grid);
+            return;
+        }
 
         const sequences = SOL_SEQUENCES.filter(s => s.category === categoryId);
 
@@ -364,6 +472,97 @@ export class Sol {
                     e.preventDefault();
                     launch(card.dataset.id);
                 }
+            });
+        });
+    }
+
+    /**
+     * My Day — the user's plan: each canonical window can hold its default,
+     * any curated SOL sequence, or any Workshop blueprint. The windows
+     * themselves are fixed; only their contents are yours.
+     */
+    renderMyDay(grid) {
+        const plan = MemoryCore.getSolPlan();
+        const blueprints = MemoryCore.getWorkshopBlueprints();
+        const currentWindow = this.getCurrentWindow();
+
+        grid.innerHTML = `
+            <div class="sol-myday">
+                <p class="sol-myday-intro text-fog">
+                    Assign any sequence — curated, or compiled in your Workshop — to the
+                    hours of your day. The dial's suggestion follows your plan.
+                </p>
+                ${SOL_WINDOWS.map(w => {
+                    const entry = plan[w.key];
+                    const resolved = this.resolveWindow(w);
+                    const defaultSeq = SOL_SEQUENCES.find(s => s.id === w.sequenceId);
+                    const isNow = w.key === currentWindow.key;
+                    return `
+                        <div class="sol-myday-row ${entry ? 'customized' : ''} ${isNow ? 'now' : ''}">
+                            <div class="sol-myday-window">
+                                <span class="sol-myday-name">${w.name}</span>
+                                <span class="sol-myday-range font-mono">${w.range}</span>
+                                ${isNow ? '<span class="sol-myday-nowdot" title="Current window">●</span>' : ''}
+                            </div>
+                            <div class="sol-myday-assignment">
+                                <select class="sol-myday-select" data-window="${w.key}" aria-label="Sequence for ${w.name}">
+                                    <option value="" ${!entry ? 'selected' : ''}>Default · ${defaultSeq.title}</option>
+                                    <optgroup label="SOL Sequences">
+                                        ${SOL_SEQUENCES.map(s => `
+                                            <option value="sol:${s.id}"
+                                                ${entry?.kind === 'sol' && entry.id === s.id ? 'selected' : ''}>
+                                                ${s.title}
+                                            </option>
+                                        `).join('')}
+                                    </optgroup>
+                                    ${blueprints.length ? `
+                                        <optgroup label="My Sequences">
+                                            ${blueprints.map(bp => `
+                                                <option value="blueprint:${escapeHtml(bp.id)}"
+                                                    ${entry?.kind === 'blueprint' && entry.id === bp.id ? 'selected' : ''}>
+                                                    ${escapeHtml(bp.title || 'Untitled Sequence')}
+                                                </option>
+                                            `).join('')}
+                                        </optgroup>
+                                    ` : ''}
+                                </select>
+                                ${resolved.missing ? '<span class="sol-myday-missing">missing — default restored</span>' : ''}
+                                ${entry ? `<button type="button" class="sol-myday-reset" data-reset-window="${w.key}" title="Restore default">↺</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+                ${!blueprints.length ? `
+                    <p class="sol-myday-hint text-mist">
+                        Compile your own sequences in the Workshop to schedule them here.
+                    </p>
+                ` : ''}
+            </div>
+        `;
+
+        grid.querySelectorAll('.sol-myday-select').forEach(select => {
+            select.addEventListener('change', () => {
+                if (window.rise?.audioEngine) {
+                    window.rise.audioEngine.playHiss();
+                }
+                const value = select.value;
+                const entry = value
+                    ? { kind: value.split(':')[0], id: value.slice(value.indexOf(':') + 1) }
+                    : null;
+                MemoryCore.setSolPlanEntry(select.dataset.window, entry);
+                this.render();
+                this.attachEvents();
+            });
+        });
+
+        grid.querySelectorAll('[data-reset-window]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (window.rise?.audioEngine) {
+                    window.rise.audioEngine.playClick();
+                }
+                MemoryCore.setSolPlanEntry(btn.dataset.resetWindow, null);
+                this.render();
+                this.attachEvents();
             });
         });
     }

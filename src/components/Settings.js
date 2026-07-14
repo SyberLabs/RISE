@@ -268,7 +268,8 @@ export class Settings {
     static USER_DATA_KEYS = {
         journals: 'rise_recursions_v1',
         blueprints: 'rise_workshop_v1',
-        globalImages: 'rise_global_images_v1'
+        globalImages: 'rise_global_images_v1',
+        solPlan: 'rise_sol_plan_v1'
     };
 
     exportData() {
