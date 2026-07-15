@@ -22,6 +22,47 @@ const SAFETY_CONSENT_KEY = 'rise-visual-interlocution-consent';
 // The five curated Klee presets (shared by Rhythmic chips and Genesis chips)
 const KLEE_PRESET_CHIP_IDS = ['architectural', 'chaotic', 'harmonic', 'gravitational', 'twittering'];
 
+// The personal focal image persists inside the settings payload in
+// localStorage (~5MB quota shared with everything else), so uploads
+// are downscaled to fit comfortably: longest edge 1024px, JPEG 0.85.
+// Small files pass through untouched; any failure falls back to the
+// original so the feature never breaks on an exotic format.
+const FOCAL_MAX_DIM = 1024;
+const FOCAL_PASSTHROUGH_BYTES = 150 * 1024;
+
+function readAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (evt) => resolve(evt.target.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+    });
+}
+
+async function compressFocalImage(file) {
+    const raw = await readAsDataURL(file);
+    if (file.size <= FOCAL_PASSTHROUGH_BYTES) return raw;
+    try {
+        const img = await new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = () => reject(new Error('Image decode failed'));
+            image.src = raw;
+        });
+        const scale = Math.min(1, FOCAL_MAX_DIM / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        const jpeg = canvas.toDataURL('image/jpeg', 0.85);
+        // A blank canvas exports 'data:,'; only keep a real, smaller win
+        return jpeg && jpeg.length > 64 && jpeg.length < raw.length ? jpeg : raw;
+    } catch (e) {
+        console.warn('[VIPanel] Focal image compression failed, using original:', e);
+        return raw;
+    }
+}
+
 export class VisualInterlocutionPanel {
     constructor(container, options = {}) {
         this.container = container;
@@ -993,17 +1034,13 @@ export class VisualInterlocutionPanel {
                 }
                 personalInput.click();
             });
-            personalInput.addEventListener('change', (e) => {
+            personalInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (evt) => {
-                    this.config.focals.personalImage = evt.target.result;
-                    this.emitChange();
-                    this.render();
-                    this.attachEvents();
-                };
-                reader.readAsDataURL(file);
+                this.config.focals.personalImage = await compressFocalImage(file);
+                this.emitChange();
+                this.render();
+                this.attachEvents();
             });
         }
 

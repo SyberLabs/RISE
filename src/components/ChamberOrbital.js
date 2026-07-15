@@ -201,17 +201,34 @@ export class ChamberOrbital {
   }
 
   _persistPrefs() {
+    const { wpm, curve, chunkMode, soundscape, audioPreset, entrainmentMode,
+      entrainmentWaveform, voiceEnabled, voiceId, selectedSwellId,
+      visualInterlocution } = this.config;
+    const payload = {
+      wpm, curve, chunkMode, soundscape, audioPreset, entrainmentMode,
+      entrainmentWaveform, voiceEnabled, voiceId, selectedSwellId,
+      visualInterlocution
+    };
     try {
-      const { wpm, curve, chunkMode, soundscape, audioPreset, entrainmentMode,
-        entrainmentWaveform, voiceEnabled, voiceId, selectedSwellId,
-        visualInterlocution } = this.config;
-      localStorage.setItem(ORBITAL_PREFS_KEY, JSON.stringify({
-        wpm, curve, chunkMode, soundscape, audioPreset, entrainmentMode,
-        entrainmentWaveform, voiceEnabled, voiceId, selectedSwellId,
-        visualInterlocution
-      }));
+      localStorage.setItem(ORBITAL_PREFS_KEY, JSON.stringify(payload));
     } catch (e) {
-      console.warn('[ChamberOrbital] Could not persist prefs:', e);
+      // Quota overflow: the personal focal image is the only unbounded
+      // field — shed it and save the rest, so one oversized image can
+      // never silently kill ALL settings persistence
+      try {
+        const vi = payload.visualInterlocution || {};
+        const slim = {
+          ...payload,
+          visualInterlocution: {
+            ...vi,
+            focals: { ...(vi.focals || {}), personalImage: null }
+          }
+        };
+        localStorage.setItem(ORBITAL_PREFS_KEY, JSON.stringify(slim));
+        console.warn('[ChamberOrbital] Prefs saved without the personal focal image (storage quota)');
+      } catch (e2) {
+        console.warn('[ChamberOrbital] Could not persist prefs:', e2);
+      }
     }
   }
 
@@ -471,7 +488,7 @@ export class ChamberOrbital {
                 <!-- Swells rendered dynamically -->
                 <div class="pool-empty">No personal swells uploaded.</div>
               </div>
-              <p class="config-note">Users can upload high-quality synth swells to be used randomly in the session atmosphere.</p>
+              <p class="config-note">Upload high-quality MP3 swells. The selected swell opens the session; with none selected, one plays at random.</p>
             </div>
           </div>
         </div>
@@ -735,7 +752,15 @@ export class ChamberOrbital {
     if (!listEl) return;
 
     const swells = await PersonalSwells.getAll();
-    
+
+    // The pool can shrink elsewhere (Workshop deletes, cleared data);
+    // a selection pointing at a missing swell would silently degrade
+    // to random playback, so reconcile it where the truth is in hand
+    if (this.config.selectedSwellId && !swells.some(s => s.id === this.config.selectedSwellId)) {
+      this.config.selectedSwellId = null;
+      this.updateOrbitStatus('audio');
+    }
+
     if (swells.length === 0) {
       listEl.innerHTML = '<div class="pool-empty">No personal swells uploaded.</div>';
       return;

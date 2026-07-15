@@ -241,6 +241,26 @@ describe('ChamberOrbital origin chip', () => {
         localStorage.removeItem('rise_orbital_prefs_v1');
     });
 
+    it('prefs survive a focal image too large for storage (quota shed)', () => {
+        localStorage.removeItem('rise_orbital_prefs_v1');
+
+        const { orbital, container } = makeOrbital();
+        orbital.config.wpm = 275;
+        // Larger than the whole localStorage quota — the raw payload
+        // cannot be stored, so persistence must shed the image only
+        orbital.config.visualInterlocution.focals.personalImage = 'x'.repeat(6 * 1024 * 1024);
+        orbital._persistPrefs();
+
+        const saved = JSON.parse(localStorage.getItem('rise_orbital_prefs_v1'));
+        expect(saved).not.toBeNull();
+        expect(saved.wpm).toBe(275);
+        expect(saved.visualInterlocution.focals.personalImage).toBeNull();
+
+        orbital.destroy();
+        container.remove();
+        localStorage.removeItem('rise_orbital_prefs_v1');
+    });
+
     it('a subsequent plain load replaces a previous origin', () => {
         const { orbital, container } = makeOrbital();
         orbital.loadText('text', 'SOL: Dawn', { origin: SOL_ORIGIN });
