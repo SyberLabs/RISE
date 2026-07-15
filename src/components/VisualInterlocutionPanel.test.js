@@ -93,7 +93,7 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         container.remove();
     });
 
-    it('retired category ids (aic-surrealism, met-*) render nothing but never crash', () => {
+    it('retires stale met-* ids while preserving other compatible sources', () => {
         const { panel, container } = makePanel({
             visualMode: 'interlocution',
             interlocution: { frequency: 0.3, duration: 80, sourced: ['aic-surrealism', 'met-egyptian'], procedural: [] }
@@ -101,6 +101,8 @@ describe('VisualInterlocutionPanel preset visibility', () => {
 
         expect(container.querySelector('[data-sourced="aic-surrealism"]')).toBeNull();
         expect(container.querySelector('[data-sourced="met-egyptian"]')).toBeNull();
+        expect(panel.getConfig().interlocution.sourced).toEqual(['aic-surrealism']);
+        expect(panel.getConfig().interlocution.procedural).toEqual([]);
         // The replacement categories are offered
         expect(container.querySelector('[data-sourced="aic-ukiyoe"]')).not.toBeNull();
         expect(container.querySelector('[data-sourced="aic-postimpressionism"]')).not.toBeNull();
@@ -111,23 +113,80 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         container.remove();
     });
 
-    it('does not wipe the preset on first user interaction', () => {
+    it('migrates a saved Met-only preset to procedural Klee', () => {
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: { frequency: 0.3, duration: 80, sourced: ['met-egyptian'], procedural: [] }
+        });
+
+        expect(panel.getConfig().interlocution.sourced).toEqual([]);
+        expect(panel.getConfig().interlocution.procedural).toEqual(['klee']);
+        expect(container.querySelector('[data-procedural="klee"]').checked).toBe(true);
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('switching a collection preset to Procedural clears painting categories', () => {
         let emitted = null;
         const { panel, container } = makePanel({
             ...SOL_DAWN_CONFIG,
             onChange: (config) => { emitted = config; }
         });
 
-        // User toggles an unrelated procedural pattern — the first emit must
-        // still carry the SOL preset, not constructor defaults
+        // The source family is the deliberate boundary. Temporal settings
+        // remain intact while incompatible image categories are discarded.
+        expect(panel.getConfig().interlocution.sourceFamily).toBe('collections');
+        container.querySelector('[data-source-family="procedural"]').click();
+
         const kleeCheckbox = container.querySelector('[data-procedural="klee"]');
         kleeCheckbox.checked = true;
         kleeCheckbox.dispatchEvent(new Event('change'));
 
         expect(emitted).not.toBeNull();
-        expect(emitted.interlocution.sourced).toEqual(['solar']);
+        expect(emitted.interlocution.sourceFamily).toBe('procedural');
+        expect(emitted.interlocution.sourced).toEqual([]);
         expect(emitted.interlocution.duration).toBe(120);
         expect(emitted.interlocution.procedural).toContain('klee');
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('preserves mixed sources only when Blend is explicit', () => {
+        const { panel, container } = makePanel({
+            ...SOL_DAWN_CONFIG,
+            interlocution: {
+                ...SOL_DAWN_CONFIG.interlocution,
+                sourceFamily: 'blend'
+            }
+        });
+
+        const kleeCheckbox = container.querySelector('[data-procedural="klee"]');
+        kleeCheckbox.checked = true;
+        kleeCheckbox.dispatchEvent(new Event('change'));
+
+        expect(panel.getConfig().interlocution).toMatchObject({
+            sourceFamily: 'blend',
+            sourced: ['solar']
+        });
+        expect(panel.getConfig().interlocution.procedural).toContain('klee');
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('treats a partial preset source array as a complete selection replacement', () => {
+        const { panel, container } = makePanel({ ...SOL_DAWN_CONFIG });
+
+        panel.setConfig({ interlocution: { procedural: ['klee'] } });
+
+        expect(panel.getConfig().interlocution).toMatchObject({
+            sourceFamily: 'procedural',
+            procedural: ['klee'],
+            sourced: [],
+            duration: 120
+        });
 
         panel.destroy();
         container.remove();
@@ -225,6 +284,21 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         expect(config.visualMode).toBe('interlocution');
         expect(config.interlocution.sourced).toEqual(['solar']);
         expect(container.querySelector('[data-sourced="solar"]').checked).toBe(true);
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('setConfig also migrates a late Met-only archetype preset', () => {
+        const { panel, container } = makePanel({});
+        panel.setConfig({
+            visualMode: 'interlocution',
+            interlocution: { sourced: ['met-egyptian'], procedural: [] }
+        });
+
+        expect(panel.getConfig().interlocution.sourced).toEqual([]);
+        expect(panel.getConfig().interlocution.procedural).toEqual(['klee']);
+        expect(container.querySelector('[data-procedural="klee"]').checked).toBe(true);
 
         panel.destroy();
         container.remove();

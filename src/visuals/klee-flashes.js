@@ -33,6 +33,8 @@ export class KleeFlashes {
         this._poolIndex = 0;
         this._preloadEngine = null;
         this._preloadPromise = null;
+        this._preloadGeneration = -1;
+        this._generation = 0;
         this._destroyed = false;
     }
 
@@ -51,10 +53,26 @@ export class KleeFlashes {
         this.preset = preset;
         this.signals = Array.isArray(signals) && signals.length ? signals : null;
         if (changed) {
+            this._generation++;
             this.queue = [];
             this.episode = null;
+            this.presetOverride = null;
             this._poolIndex = 0;
         }
+    }
+
+    beginSession({ preset = this.preset, signals = this.signals } = {}) {
+        this.preset = KLEE_PRESET_NAMES.includes(preset) || preset === 'random' ? preset : 'random';
+        this.signals = Array.isArray(signals) && signals.length ? signals : null;
+        this._generation++;
+        this._sessionSeed = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random()}`;
+        this._artworkIndex = 0;
+        this._poolIndex = 0;
+        this.queue = [];
+        this.episode = null;
+        this.presetOverride = null;
     }
 
     /**
@@ -87,13 +105,18 @@ export class KleeFlashes {
 
     preload(count = 5) {
         if (this._destroyed) return Promise.resolve();
+        const generation = this._generation;
         this.queueTarget = Math.min(12, Math.max(1, count));
         if (this.queue.length >= this.queueTarget) return Promise.resolve();
-        if (this._preloadPromise) return this._preloadPromise;
+        if (this._preloadPromise) {
+            if (this._preloadGeneration === generation) return this._preloadPromise;
+            return this._preloadPromise.catch(() => {}).then(() => this.preload(count));
+        }
 
+        this._preloadGeneration = generation;
         this._preloadPromise = (async () => {
             const engine = this._getPreloadEngine();
-            while (!this._destroyed && this.queue.length < this.queueTarget) {
+            while (!this._destroyed && generation === this._generation && this.queue.length < this.queueTarget) {
                 const index = this._poolIndex++;
                 const preset = this.preset === 'random'
                     ? KLEE_PRESET_NAMES[index % KLEE_PRESET_NAMES.length]
@@ -108,11 +131,15 @@ export class KleeFlashes {
                     console.warn('[KleeFlashes] Preload generation aborted:', error.message);
                     break;
                 }
+                if (generation !== this._generation || this._destroyed) break;
                 this.queue.push({ preset, seed, signal, artwork: engine.captureArtwork() });
                 await new Promise(resolve => setTimeout(resolve, 0));
             }
         })().finally(() => {
-            this._preloadPromise = null;
+            if (this._preloadGeneration === generation) {
+                this._preloadPromise = null;
+                this._preloadGeneration = -1;
+            }
         });
         return this._preloadPromise;
     }
@@ -226,6 +253,7 @@ export class KleeFlashes {
 
     destroy() {
         this._destroyed = true;
+        this._generation++;
         this._preloadEngine?.destroy?.();
         this._preloadEngine = null;
         this.queue = [];

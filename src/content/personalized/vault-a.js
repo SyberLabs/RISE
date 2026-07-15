@@ -259,6 +259,7 @@ export const VAULT_A_ARCHETYPE = {
     visualConfig: {
       visualMode: 'interlocution',
       interlocution: {
+        sourceFamily: 'procedural',
         // Fractal Flames + Neural Networks - both procedurally generated
         // Neural networks thematically aligned with the vault content
         procedural: ['fractal', 'neural'],

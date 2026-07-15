@@ -255,6 +255,27 @@ describe('PacingEngine', () => {
       // Arousal: slower at start, faster at end
       expect(paced[0].duration).toBeGreaterThan(paced[1].duration);
     });
+
+    it('preserves authored chunk timing relationships', () => {
+      const atoms = [
+        { modality: Modality.TEXT, content: 'word', duration: 250, complexity: 0, weight: 0 },
+        { modality: Modality.TEXT, content: 'word.', duration: 375, complexity: 0, weight: 0 }
+      ];
+
+      const paced = engine.paceAtoms(atoms);
+
+      expect(paced[1].duration).toBeGreaterThan(paced[0].duration);
+      expect(paced[1].duration / paced[0].duration).toBeCloseTo(1.5, 1);
+    });
+
+    it('does not rewrite timing-locked markers', () => {
+      const paced = engine.paceAtoms([
+        { modality: Modality.TEXT, content: '', duration: 50, timingLocked: true, tags: ['FLASH'] },
+        { modality: Modality.TEXT, content: '', duration: 2000, timingLocked: true, tags: ['PAUSE'] }
+      ]);
+
+      expect(paced.map(atom => atom.duration)).toEqual([50, 2000]);
+    });
   });
 
   describe('setWpm', () => {
@@ -268,6 +289,15 @@ describe('PacingEngine', () => {
       const slowDuration = engine.computeDuration(atom);
 
       expect(fastDuration).toBeLessThan(slowDuration);
+    });
+
+    it('normalizes malformed and out-of-range WPM', () => {
+      engine.setWpm(0);
+      expect(engine.baseWpm).toBe(50);
+      engine.setWpm('not-a-number');
+      expect(engine.baseWpm).toBe(220);
+      engine.setWpm(5000);
+      expect(engine.baseWpm).toBe(1000);
     });
   });
 });

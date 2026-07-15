@@ -521,3 +521,16 @@
   position: relative;
   z-index: 10;
 }
+
+:root.hide-session-progress .chamber-progress {
+  display: none;
+}
+
+:root.hide-session-duration #time-current,
+:root.hide-session-duration #time-total,
+:root.hide-session-duration .time-separator {
+  display: none;
+}
+
+:root[data-font-size="small"] .atom-text { font-size: 0.82em; }
+:root[data-font-size="large"] .atom-text { font-size: 1.18em; }

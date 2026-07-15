@@ -6,6 +6,7 @@
 
 import { SourceRegistry } from '../sources/index.js';
 import { escapeHtml, safeUrl } from '../core/sanitize.js';
+import { isAbortError } from '../sources/visual/request.js';
 
 export class SourceBrowser {
     constructor(options = {}) {
@@ -20,6 +21,12 @@ export class SourceBrowser {
         this.contentItems = [];
         this.searchQuery = '';
         this.isLoading = false;
+        this._requestVersion = 0;
+        this._requestController = null;
+        this._selectionController = null;
+        this._searchTimer = null;
+        this._closeTimer = null;
+        this._destroyed = false;
 
         // Track expanded visual categories for browsing individual images
         this.expandedCategory = null;
@@ -29,6 +36,22 @@ export class SourceBrowser {
         this.viewMode = 'categories';
 
         this.create();
+    }
+
+    _beginRequest() {
+        this._requestController?.abort();
+        this._selectionController?.abort();
+        this._requestController = new AbortController();
+        return {
+            version: ++this._requestVersion,
+            signal: this._requestController.signal
+        };
+    }
+
+    _isCurrentRequest(version, provider) {
+        return !this._destroyed
+            && version === this._requestVersion
+            && provider === this.activeProvider;
     }
 
     create() {
@@ -123,8 +146,10 @@ export class SourceBrowser {
     }
 
     async loadProviderContent(providerId) {
-        this.activeProvider = SourceRegistry.get(providerId);
-        if (!this.activeProvider) return;
+        const provider = SourceRegistry.get(providerId);
+        if (!provider || this._destroyed) return;
+        this.activeProvider = provider;
+        const { version, signal } = this._beginRequest();
 
         // Reset view mode
         this.viewMode = 'categories';
@@ -132,7 +157,7 @@ export class SourceBrowser {
 
         // Update header
         const header = this.element.querySelector('.sb-content-title');
-        header.textContent = this.activeProvider.name;
+        header.textContent = provider.name;
 
         // Hide back button
         const backBtn = this.element.querySelector('.sb-back-btn');
@@ -150,18 +175,21 @@ export class SourceBrowser {
 
         try {
             let items;
-            if (this.searchQuery && this.activeProvider.supportsSearch) {
-                items = await this.activeProvider.search(this.searchQuery);
+            if (this.searchQuery && provider.supportsSearch) {
+                items = await provider.search(this.searchQuery, { signal });
             } else {
-                items = await this.activeProvider.list({ limit: 50 });
+                items = await provider.list({ limit: 50, signal });
             }
 
+            if (!this._isCurrentRequest(version, provider)) return;
             this.contentItems = items;
             this.isLoading = false;
             this.renderContent();
         } catch (error) {
+            if (isAbortError(error) || !this._isCurrentRequest(version, provider)) return;
             this.isLoading = false;
-            contentList.innerHTML = `<div class="sb-error">Failed to load content: ${error.message || 'Unknown error'}</div>`;
+            contentList.textContent = `Failed to load content: ${error.message || 'Unknown error'}`;
+            contentList.className = 'sb-content-list sb-error';
             console.error('[SourceBrowser] Load error:', error);
         }
     }
@@ -170,12 +198,16 @@ export class SourceBrowser {
      * Load individual images from a visual category
      */
     async loadCategoryImages(categoryId) {
+        if (!this.activeProvider || this._destroyed) return;
+        const provider = this.activeProvider;
+        const { version, signal } = this._beginRequest();
         const contentList = this.element.querySelector('.sb-content-list');
         contentList.innerHTML = '<div class="sb-loading"><div class="sb-loading-spinner"></div>Loading images...</div>';
 
         try {
-            const categoryData = await this.activeProvider.get(categoryId);
+            const categoryData = await provider.get(categoryId, { signal });
 
+            if (!this._isCurrentRequest(version, provider)) return;
             if (categoryData?.data?.images) {
                 this.categoryImages = categoryData.data.images;
                 this.expandedCategory = categoryId;
@@ -185,7 +217,9 @@ export class SourceBrowser {
                 contentList.innerHTML = '<div class="sb-empty">No images found in this category</div>';
             }
         } catch (error) {
-            contentList.innerHTML = `<div class="sb-error">Failed to load images: ${error.message || 'Unknown error'}</div>`;
+            if (isAbortError(error) || !this._isCurrentRequest(version, provider)) return;
+            contentList.textContent = `Failed to load images: ${error.message || 'Unknown error'}`;
+            contentList.className = 'sb-content-list sb-error';
             console.error('[SourceBrowser] Category load error:', error);
         }
     }
@@ -415,11 +449,10 @@ export class SourceBrowser {
 
         // Search
         const searchInput = this.element.querySelector('.sb-search-input');
-        let searchTimeout;
         searchInput?.addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
+            clearTimeout(this._searchTimer);
             this.searchQuery = e.target.value;
-            searchTimeout = setTimeout(() => {
+            this._searchTimer = setTimeout(() => {
                 if (this.activeProvider) {
                     this.loadProviderContent(this.activeProvider.id);
                 }
@@ -430,6 +463,11 @@ export class SourceBrowser {
     async selectItem(index) {
         const item = this.contentItems[index];
         if (!item) return;
+        const provider = this.activeProvider;
+        if (!provider) return;
+        this._selectionController?.abort();
+        const selectionController = new AbortController();
+        this._selectionController = selectionController;
 
         // Visual feedback
         const itemEl = this.element.querySelector(`[data-index="${index}"]`);
@@ -441,11 +479,12 @@ export class SourceBrowser {
 
         try {
             // Fetch the full content payload
-            const fullItem = await this.activeProvider.get(item.id);
+            const fullItem = await provider.get(item.id, { signal: selectionController.signal });
+            if (this._destroyed || selectionController.signal.aborted) return;
             if (fullItem) {
-                this.onSelect(fullItem, this.activeProvider);
+                this.onSelect(fullItem, provider);
             } else {
-                this.onSelect(item, this.activeProvider); // Fallback
+                this.onSelect(item, provider); // Fallback
             }
 
             if (itemEl) {
@@ -454,6 +493,7 @@ export class SourceBrowser {
                 setTimeout(() => itemEl.classList.remove('added'), 500);
             }
         } catch (error) {
+            if (isAbortError(error)) return;
             console.error('[SourceBrowser] Failed to fetch full item data:', error);
             if (addBtn) {
                 addBtn.textContent = 'Error';
@@ -468,17 +508,24 @@ export class SourceBrowser {
     async selectVisualItem(index, btn) {
         const item = this.contentItems[index];
         if (!item) return;
+        const provider = this.activeProvider;
+        if (!provider) return;
+        this._selectionController?.abort();
+        const selectionController = new AbortController();
+        this._selectionController = selectionController;
 
         btn.textContent = 'Adding...';
         btn.disabled = true;
 
         try {
-            const fullItem = await this.activeProvider.get(item.id);
-            this.onSelect(fullItem || item, this.activeProvider);
+            const fullItem = await provider.get(item.id, { signal: selectionController.signal });
+            if (this._destroyed || selectionController.signal.aborted) return;
+            this.onSelect(fullItem || item, provider);
 
             btn.textContent = 'Added';
             btn.closest('.sb-visual-card')?.classList.add('added');
         } catch (error) {
+            if (isAbortError(error)) return;
             console.error('[SourceBrowser] Failed to add visual item:', error);
             btn.textContent = 'Error';
             btn.disabled = false;
@@ -491,6 +538,8 @@ export class SourceBrowser {
     async selectCategoryImage(imgIndex, btn) {
         const img = this.categoryImages[imgIndex];
         if (!img) return;
+        const provider = this.activeProvider;
+        if (!provider) return;
 
         btn.textContent = 'Adding...';
         btn.disabled = true;
@@ -506,8 +555,8 @@ export class SourceBrowser {
                     fullUrl: img.fullUrl,
                     isImage: true
                 },
-                providerId: this.activeProvider.id,
-                tier: this.activeProvider.tier,
+                providerId: provider.id,
+                tier: provider.tier,
                 metadata: {
                     url: img.url,
                     artist: img.artist,
@@ -516,7 +565,7 @@ export class SourceBrowser {
                 }
             };
 
-            this.onSelect(visualItem, this.activeProvider);
+            this.onSelect(visualItem, provider);
 
             btn.textContent = 'Added';
             btn.closest('.sb-visual-card')?.classList.add('added');
@@ -528,16 +577,24 @@ export class SourceBrowser {
     }
 
     close() {
+        if (this._destroyed) return;
+        this._destroyed = true;
+        this._requestVersion++;
+        this._requestController?.abort();
+        this._selectionController?.abort();
+        clearTimeout(this._searchTimer);
+        document.removeEventListener('keydown', this.keyHandler);
         this.element.classList.remove('open');
 
-        setTimeout(() => {
-            document.removeEventListener('keydown', this.keyHandler);
+        this._closeTimer = setTimeout(() => {
             this.element.remove();
             this.onClose();
         }, 300);
     }
 
     destroy() {
-        this.close();
+        if (!this._destroyed) this.close();
+        clearTimeout(this._closeTimer);
+        this.element?.remove();
     }
 }

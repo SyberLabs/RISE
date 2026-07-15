@@ -27,12 +27,15 @@ const STORE_NAME = 'content';
 /**
  * Source Cache - persistent storage using IndexedDB
  */
-class SourceCacheClass {
+export class SourceCacheClass {
     constructor() {
         /** @type {IDBDatabase|null} */
         this.db = null;
         this._initPromise = null;
         this._ready = false;
+        this._memory = new Map();
+        this._persistent = false;
+        this.degradedReason = null;
 
         // Cache settings
         this.maxSize = 100 * 1024 * 1024; // 100MB default
@@ -48,9 +51,23 @@ class SourceCacheClass {
         if (this._initPromise) return this._initPromise;
 
         this._initPromise = this._openDatabase();
-        this.db = await this._initPromise;
-        this._ready = true;
-        console.log('[SourceCache] Initialized');
+        try {
+            this.db = await this._initPromise;
+            this._persistent = true;
+            console.log('[SourceCache] Initialized');
+        } catch (error) {
+            this.db = null;
+            this._persistent = false;
+            this.degradedReason = error;
+            if (typeof indexedDB === 'undefined') {
+                console.info('[SourceCache] IndexedDB unavailable; using memory cache');
+            } else {
+                console.warn('[SourceCache] IndexedDB unavailable; using memory cache:', error);
+            }
+        } finally {
+            this._ready = true;
+            this._initPromise = null;
+        }
     }
 
     /**
@@ -60,6 +77,10 @@ class SourceCacheClass {
      */
     _openDatabase() {
         return new Promise((resolve, reject) => {
+            if (typeof indexedDB === 'undefined') {
+                reject(new Error('IndexedDB is not supported in this environment'));
+                return;
+            }
             const request = indexedDB.open(DB_NAME, DB_VERSION);
 
             request.onerror = () => {
@@ -108,7 +129,7 @@ class SourceCacheClass {
         if (typeof data === 'string') return data.length * 2; // UTF-16
         if (data instanceof Blob) return data.size;
         if (data instanceof ArrayBuffer) return data.byteLength;
-        if (data instanceof ImageData) return data.data.byteLength;
+        if (typeof ImageData !== 'undefined' && data instanceof ImageData) return data.data.byteLength;
         // For objects, use JSON approximation
         try {
             return JSON.stringify(data).length * 2;
@@ -134,6 +155,10 @@ class SourceCacheClass {
         const now = Date.now();
 
         /** @type {CacheEntry} */
+        const requestedTTL = Number(ttl ?? this.defaultTTL);
+        const effectiveTTL = Number.isFinite(requestedTTL) && requestedTTL > 0
+            ? requestedTTL
+            : this.defaultTTL;
         const entry = {
             id: key,
             providerId,
@@ -142,18 +167,25 @@ class SourceCacheClass {
             metadata,
             cachedAt: now,
             accessedAt: now,
-            expiresAt: ttl ? now + ttl : null,
+            expiresAt: ttl === Infinity ? null : now + effectiveTTL,
             size: this._estimateSize(data)
         };
 
-        return new Promise((resolve, reject) => {
+        if (!this.db) {
+            this._memory.set(key, entry);
+            await this.evictOldest();
+            return;
+        }
+
+        await new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
-            const request = store.put(entry);
-
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
+            store.put(entry);
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
+            transaction.onabort = () => reject(transaction.error || new Error('Cache transaction aborted'));
         });
+        await this.evictOldest();
     }
 
     /**
@@ -167,16 +199,27 @@ class SourceCacheClass {
 
         const key = this._makeKey(providerId, itemId);
 
+        if (!this.db) {
+            const entry = this._memory.get(key) || null;
+            if (!entry) return null;
+            if (entry.expiresAt && Date.now() > entry.expiresAt) {
+                this._memory.delete(key);
+                return null;
+            }
+            entry.accessedAt = Date.now();
+            return entry;
+        }
+
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
             const request = store.get(key);
+            let result = null;
 
             request.onsuccess = () => {
                 const entry = request.result;
 
                 if (!entry) {
-                    resolve(null);
                     return;
                 }
 
@@ -184,18 +227,18 @@ class SourceCacheClass {
                 if (entry.expiresAt && Date.now() > entry.expiresAt) {
                     // Remove expired entry
                     store.delete(key);
-                    resolve(null);
                     return;
                 }
 
                 // Update access time
                 entry.accessedAt = Date.now();
                 store.put(entry);
-
-                resolve(entry);
+                result = entry;
             };
 
-            request.onerror = () => reject(request.error);
+            transaction.oncomplete = () => resolve(result);
+            transaction.onerror = () => reject(transaction.error || request.error);
+            transaction.onabort = () => reject(transaction.error || new Error('Cache read/update aborted'));
         });
     }
 
@@ -218,16 +261,22 @@ class SourceCacheClass {
      */
     async delete(providerId, itemId) {
         await this.init();
+        return this._deleteKey(this._makeKey(providerId, itemId));
+    }
 
-        const key = this._makeKey(providerId, itemId);
+    async _deleteKey(key) {
+        if (!this.db) {
+            this._memory.delete(key);
+            return;
+        }
 
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
-            const request = store.delete(key);
-
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
+            store.delete(key);
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
+            transaction.onabort = () => reject(transaction.error || new Error('Cache delete aborted'));
         });
     }
 
@@ -238,6 +287,10 @@ class SourceCacheClass {
      */
     async getByProvider(providerId) {
         await this.init();
+
+        if (!this.db) {
+            return [...this._memory.values()].filter(entry => entry.providerId === providerId);
+        }
 
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STORE_NAME], 'readonly');
@@ -257,6 +310,10 @@ class SourceCacheClass {
      */
     async getByType(contentType) {
         await this.init();
+
+        if (!this.db) {
+            return [...this._memory.values()].filter(entry => entry.contentType === contentType);
+        }
 
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STORE_NAME], 'readonly');
@@ -278,7 +335,7 @@ class SourceCacheClass {
         const entries = await this.getByProvider(providerId);
 
         for (const entry of entries) {
-            await this.delete(entry.providerId, entry.id.split(':')[1]);
+            await this._deleteKey(entry.id);
         }
 
         return entries.length;
@@ -291,16 +348,22 @@ class SourceCacheClass {
     async clear() {
         await this.init();
 
+        if (!this.db) {
+            this._memory.clear();
+            return;
+        }
+
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
             const request = store.clear();
 
-            request.onsuccess = () => {
+            transaction.oncomplete = () => {
                 console.log('[SourceCache] Cleared all entries');
                 resolve();
             };
-            request.onerror = () => reject(request.error);
+            transaction.onerror = () => reject(transaction.error || request.error);
+            transaction.onabort = () => reject(transaction.error || new Error('Cache clear aborted'));
         });
     }
 
@@ -311,36 +374,39 @@ class SourceCacheClass {
     async getStats() {
         await this.init();
 
+        if (!this.db) return this._summarize([...this._memory.values()]);
+
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STORE_NAME], 'readonly');
             const store = transaction.objectStore(STORE_NAME);
             const request = store.getAll();
 
             request.onsuccess = () => {
-                const entries = request.result || [];
-                const totalSize = entries.reduce((sum, e) => sum + (e.size || 0), 0);
-
-                const byProvider = {};
-                const byType = {};
-
-                for (const entry of entries) {
-                    byProvider[entry.providerId] = (byProvider[entry.providerId] || 0) + 1;
-                    byType[entry.contentType] = (byType[entry.contentType] || 0) + 1;
-                }
-
-                resolve({
-                    totalEntries: entries.length,
-                    totalSize,
-                    totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
-                    byProvider,
-                    byType,
-                    maxSize: this.maxSize,
-                    usagePercent: ((totalSize / this.maxSize) * 100).toFixed(1)
-                });
+                resolve(this._summarize(request.result || []));
             };
 
             request.onerror = () => reject(request.error);
         });
+    }
+
+    _summarize(entries) {
+        const totalSize = entries.reduce((sum, entry) => sum + (entry.size || 0), 0);
+        const byProvider = {};
+        const byType = {};
+        for (const entry of entries) {
+            byProvider[entry.providerId] = (byProvider[entry.providerId] || 0) + 1;
+            byType[entry.contentType] = (byType[entry.contentType] || 0) + 1;
+        }
+        return {
+            totalEntries: entries.length,
+            totalSize,
+            totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
+            byProvider,
+            byType,
+            maxSize: this.maxSize,
+            usagePercent: ((totalSize / this.maxSize) * 100).toFixed(1),
+            persistent: this._persistent
+        };
     }
 
     /**
@@ -355,6 +421,20 @@ class SourceCacheClass {
         }
 
         await this.init();
+
+        if (!this.db) {
+            const oldest = [...this._memory.values()].sort((a, b) => a.accessedAt - b.accessedAt);
+            const targetSize = this.maxSize * 0.8;
+            let currentSize = stats.totalSize;
+            let evicted = 0;
+            for (const entry of oldest) {
+                if (currentSize <= targetSize) break;
+                this._memory.delete(entry.id);
+                currentSize -= entry.size || 0;
+                evicted++;
+            }
+            return evicted;
+        }
 
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STORE_NAME], 'readwrite');

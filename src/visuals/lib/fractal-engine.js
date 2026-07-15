@@ -261,6 +261,14 @@ export class FractalFlameGenerator {
         }
 
         const workerCount = Math.min(this.maxWorkers, this.workers.length);
+        if (workerCount === 0) {
+            this.useWorkers = false;
+            await this._iterateFlame(
+                density, colorR, colorG, colorB,
+                width, height, iterations, skipIterations
+            );
+            return;
+        }
         const iterationsPerWorker = Math.floor(iterations / workerCount);
 
         // Create serializable variation functions
@@ -275,6 +283,17 @@ export class FractalFlameGenerator {
 
             const promise = new Promise((resolve, reject) => {
                 const worker = this.workers[i];
+                const timeoutId = setTimeout(() => {
+                    reject(new Error(`Fractal worker ${i} timed out`));
+                }, 30000);
+
+                const settle = callback => value => {
+                    clearTimeout(timeoutId);
+                    worker.onerror = null;
+                    callback(value);
+                };
+                const finish = settle(resolve);
+                const fail = settle(reject);
 
                 worker.onmessage = (e) => {
                     if (e.data.type === 'complete') {
@@ -291,11 +310,12 @@ export class FractalFlameGenerator {
                             colorB[j] += workerColorB[j];
                         }
 
-                        resolve();
+                        finish();
                     } else if (e.data.type === 'error') {
-                        reject(new Error(e.data.error));
+                        fail(new Error(e.data.error));
                     }
                 };
+                worker.onerror = event => fail(event.error || new Error(event.message || 'Fractal worker failed'));
 
                 // Send work to worker
                 worker.postMessage({
@@ -336,11 +356,21 @@ export class FractalFlameGenerator {
                 const worker = new Worker('/fractal-flame-worker.js');
 
                 // Initialize worker with variations
-                await new Promise((resolve) => {
+                await new Promise((resolve, reject) => {
+                    const timeoutId = setTimeout(() => {
+                        worker.terminate();
+                        reject(new Error(`Fractal worker ${i} initialization timed out`));
+                    }, 5000);
                     worker.onmessage = (e) => {
                         if (e.data.type === 'ready') {
+                            clearTimeout(timeoutId);
+                            worker.onerror = null;
                             resolve();
                         }
+                    };
+                    worker.onerror = event => {
+                        clearTimeout(timeoutId);
+                        reject(event.error || new Error(event.message || 'Fractal worker initialization failed'));
                     };
 
                     worker.postMessage({

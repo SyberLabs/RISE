@@ -13,8 +13,14 @@ import { SourceBrowser } from './SourceBrowser.js';
 import { MemoryCore } from '../core/memory.js';
 import { PersonalSwells } from '../core/personal-swells.js';
 import { namingModal } from './NamingModal.js';
+import { safeUrl } from '../core/sanitize.js';
+import { normalizeVisualSelection } from '../core/visual-selection.js';
 import './VisualInterlocutionPanel.css';
 import './SourceBrowser.css';
+
+const MAX_TEXT_FILE_BYTES = 4 * 1024 * 1024;
+const MAX_IMAGE_FILE_BYTES = 8 * 1024 * 1024;
+const MAX_CUSTOM_VISUALS = 24;
 
 export class Workshop {
   constructor(container, options = {}) {
@@ -63,6 +69,7 @@ export class Workshop {
         // Nothing pre-checked: visual packages arrive only through explicit
         // configs (Vault archetypes, SOL sequences) — never implied by a text.
         interlocution: {
+          sourceFamily: 'procedural',
           procedural: [],
           sourced: [],
           frequency: 0.3,
@@ -81,6 +88,7 @@ export class Workshop {
 
     // Store bound keyboard handler for proper cleanup
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
+    this._active = false;
 
     // Track drag state
     this.isDragging = false;
@@ -167,7 +175,7 @@ export class Workshop {
                 id="session-title"
                 class="input"
                 placeholder="Untitled Session"
-                value="${this.sessionData.title}"
+                value="${this.escapeHtml(this.sessionData.title)}"
               />
             </div>
 
@@ -294,7 +302,7 @@ export class Workshop {
                     <button
                       type="button"
                       class="audio-btn ${this.sessionData.audioPreset === preset ? 'active' : ''}"
-                      data-preset="${preset}"
+                      data-audio-preset="${preset}"
                     >
                       <span class="audio-icon">${this.getAudioIcon(preset)}</span>
                       <span class="audio-label text-capitalize">${preset}</span>
@@ -303,7 +311,7 @@ export class Workshop {
                   <button
                     type="button"
                     class="audio-btn ${this.sessionData.audioPreset === 'personal' ? 'active' : ''}"
-                    data-preset="personal"
+                    data-audio-preset="personal"
                   >
                     <span class="audio-icon">★</span>
                     <span class="audio-label">Personal</span>
@@ -401,9 +409,22 @@ export class Workshop {
     if (item.metadata?.generative || item.data?.isGenerative) {
       // Add to procedural config instead of customVisuals
       const generatorType = item.data?.generatorType || item.id;
-      if (!this.sessionData.visualConfig.interlocution.procedural.includes(generatorType)) {
-        this.sessionData.visualConfig.interlocution.procedural.push(generatorType);
+      const interlocution = this.sessionData.visualConfig.interlocution;
+      if (!interlocution.procedural.includes(generatorType)) {
+        const sourceFamily = interlocution.sourceFamily === 'blend' ? 'blend' : 'procedural';
+        this.sessionData.visualConfig.interlocution = {
+          ...interlocution,
+          ...normalizeVisualSelection({
+            ...interlocution,
+            sourceFamily,
+            procedural: [...interlocution.procedural, generatorType]
+          })
+        };
         this.sessionData.visualConfig.visualMode = 'interlocution';
+        this.viPanel?.setConfig({
+          visualMode: 'interlocution',
+          interlocution: this.sessionData.visualConfig.interlocution
+        });
         console.log('[Workshop] Added procedural generator:', generatorType);
 
         // Show toast feedback
@@ -609,7 +630,7 @@ export class Workshop {
   renderVisualAssets() {
     return this.sessionData.customVisuals.map((uri, index) => `
       <div class="visual-asset-item" style="position: relative; min-width: 100px; height: 100px; border-radius: 4px; overflow: hidden; background: #111;">
-        <img src="${uri}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;" />
+        <img src="${safeUrl(uri)}" alt="Personal visual" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;" />
         <button type="button" class="btn-icon" data-action="remove-visual" data-index="${index}" style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); width: 24px; height: 24px; border-radius: 4px;">
            <span class="icon text-error" style="font-size: 0.8rem;">✕</span>
         </button>
@@ -626,8 +647,8 @@ export class Workshop {
 
     select.innerHTML = '<option value="">Select custom swell...</option>' + 
       swells.map(s => `
-        <option value="${s.id}" ${s.id === currentId ? 'selected' : ''}>
-          ${s.name}
+        <option value="${this.escapeHtml(s.id)}" ${s.id === currentId ? 'selected' : ''}>
+          ${this.escapeHtml(s.name)}
         </option>
       `).join('');
   }
@@ -644,7 +665,7 @@ export class Workshop {
 
     list.innerHTML = globals.map((uri, index) => `
       <div class="visual-asset-item" style="position: relative; min-width: 100px; height: 100px; border-radius: 4px; overflow: hidden; background: #111;">
-        <img src="${uri}" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;" />
+        <img src="${safeUrl(uri)}" alt="Global visual" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;" />
         <button type="button" class="btn-icon" data-action="remove-global" data-index="${index}" style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); width: 24px; height: 24px; border-radius: 4px;">
            <span class="icon text-error" style="font-size: 0.8rem;">✕</span>
         </button>
@@ -666,7 +687,7 @@ export class Workshop {
       <div class="swell-item" style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.8rem; background: rgba(255,255,255,0.03); border-radius: 4px; border: 1px solid var(--color-shadow);">
         <div style="display: flex; align-items: center; gap: 10px;">
           <span class="icon" style="color: var(--color-threshold); font-size: 0.8rem;">♪</span>
-          <span style="font-size: 13px; color: var(--color-cloud);">${swell.name}</span>
+          <span style="font-size: 13px; color: var(--color-cloud);">${this.escapeHtml(swell.name)}</span>
         </div>
         <div style="display: flex; gap: 5px;">
           <button class="btn-icon" data-action="preview-personal-swell" data-id="${swell.id}" style="color: var(--color-mist); font-size: 10px;">◎</button>
@@ -775,12 +796,12 @@ export class Workshop {
     });
 
     // Audio preset buttons
-    this.container.querySelectorAll('[data-preset]').forEach(btn => {
+    this.container.querySelectorAll('[data-audio-preset]').forEach(btn => {
       btn.addEventListener('click', async () => {
         window.rise?.audioEngine?.playHiss();
-        const preset = btn.dataset.preset;
+        const preset = btn.dataset.audioPreset;
         this.sessionData.audioPreset = preset;
-        this.updateActiveButtons('[data-preset]', btn);
+        this.updateActiveButtons('[data-audio-preset]', btn);
 
         const picker = this.container.querySelector('#personal-swell-picker-container');
         if (preset === 'personal') {
@@ -890,9 +911,6 @@ export class Workshop {
       }
     });
 
-    // Keyboard (using stored bound reference for proper cleanup)
-    document.addEventListener('keydown', this.boundKeyboardHandler);
-
     // Drag and drop for images
     this.attachDragDropEvents();
   }
@@ -951,6 +969,14 @@ export class Workshop {
    * Process a dropped image file
    */
   processDroppedImage(file) {
+    if (file.size > MAX_IMAGE_FILE_BYTES) {
+      this.showToast('Images must be 8 MB or smaller');
+      return;
+    }
+    if (this.sessionData.customVisuals.length >= MAX_CUSTOM_VISUALS) {
+      this.showToast(`A sequence can contain up to ${MAX_CUSTOM_VISUALS} personal visuals`);
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (e) => {
       this.sessionData.customVisuals.push(e.target.result);
@@ -972,6 +998,18 @@ export class Workshop {
     }
   }
 
+  activate() {
+    if (this._active) return;
+    this._active = true;
+    document.addEventListener('keydown', this.boundKeyboardHandler);
+  }
+
+  deactivate() {
+    if (!this._active) return;
+    this._active = false;
+    document.removeEventListener('keydown', this.boundKeyboardHandler);
+  }
+
   handleFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -980,6 +1018,16 @@ export class Workshop {
 
     // Check if the file is an image
     if (file.type.startsWith('image/')) {
+        if (file.size > MAX_IMAGE_FILE_BYTES) {
+            this.showToast('Images must be 8 MB or smaller');
+            event.target.value = '';
+            return;
+        }
+        if (this.sessionData.customVisuals.length >= MAX_CUSTOM_VISUALS) {
+            this.showToast(`A sequence can contain up to ${MAX_CUSTOM_VISUALS} personal visuals`);
+            event.target.value = '';
+            return;
+        }
         reader.onload = (e) => {
             this.sessionData.customVisuals.push(e.target.result);
             this.updateVisualAssetsList();
@@ -988,6 +1036,12 @@ export class Workshop {
         };
         reader.readAsDataURL(file);
         return;
+    }
+
+    if (file.size > MAX_TEXT_FILE_BYTES) {
+      this.showToast('Text files must be 4 MB or smaller');
+      event.target.value = '';
+      return;
     }
 
     // Handle text parsing
@@ -1067,10 +1121,15 @@ export class Workshop {
            </div>`
         : this.renderVisualAssets();
     }
+    // Keep the panel's personal-source selection synchronized in both
+    // directions. Removing the final image must also remove the stale
+    // `custom` source flag before compilation.
+    if (this.viPanel) {
+        this.viPanel.updateCustomVisuals(this.sessionData.customVisuals);
+    }
     // If custom visuals are added, enable interlocution mode if not already set
     if (this.sessionData.customVisuals.length > 0) {
         if (this.viPanel) {
-            this.viPanel.updateCustomVisuals(this.sessionData.customVisuals);
             if (this.sessionData.visualConfig.visualMode === 'off') {
                 this.viPanel.setVisualMode('interlocution');
             }
@@ -1163,7 +1222,6 @@ export class Workshop {
     if (this.viPanel) {
       this.viPanel.destroy();
     }
-    // Remove keyboard listener using the stored bound reference
-    document.removeEventListener('keydown', this.boundKeyboardHandler);
+    this.deactivate();
   }
 }

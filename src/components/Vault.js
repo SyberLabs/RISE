@@ -32,6 +32,7 @@ const ARCHETYPES = [
       visualConfig: {
         visualMode: 'interlocution',
         interlocution: {
+          sourceFamily: 'blend',
           procedural: ['turrell'],
           sourced: ['renaissance', 'romantic'],
           frequency: 0.15,
@@ -56,6 +57,7 @@ const ARCHETYPES = [
       visualConfig: {
         visualMode: 'interlocution',
         interlocution: {
+          sourceFamily: 'blend',
           procedural: ['fractal'],
           sourced: ['geometry', 'fractals'],
           frequency: 0.25,
@@ -79,6 +81,7 @@ const ARCHETYPES = [
       visualConfig: {
         visualMode: 'interlocution',
         interlocution: {
+          sourceFamily: 'blend',
           procedural: ['klee'],
           sourced: ['haeckel', 'botany', 'anatomy'],
           frequency: 0.2,
@@ -102,6 +105,7 @@ const ARCHETYPES = [
       visualConfig: {
         visualMode: 'interlocution',
         interlocution: {
+          sourceFamily: 'procedural',
           procedural: ['klee'],
           sourced: [],
           frequency: 0.1,
@@ -147,6 +151,7 @@ const ARCHETYPES = [
       visualConfig: {
         visualMode: 'interlocution',
         interlocution: {
+          sourceFamily: 'procedural',
           procedural: ['turrell', 'klee'],
           sourced: [],
           frequency: 0.18,
@@ -173,6 +178,8 @@ export class Vault {
     this.currentSection = this.personalizedVault ? 'personalized' : 'archetypes';
     this.blueprints = MemoryCore.getWorkshopBlueprints();
     this.expandedArchetype = null;
+    this._active = false;
+    this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
     this.render();
     this.attachEvents();
@@ -571,7 +578,6 @@ export class Vault {
       }
     });
 
-    document.addEventListener('keydown', this.handleKeyboard.bind(this));
   }
 
   launchWithArchetype(archetype, sequenceId) {
@@ -654,8 +660,20 @@ export class Vault {
     }
   }
 
+  activate() {
+    if (this._active) return;
+    this._active = true;
+    document.addEventListener('keydown', this.boundKeyboardHandler);
+  }
+
+  deactivate() {
+    if (!this._active) return;
+    this._active = false;
+    document.removeEventListener('keydown', this.boundKeyboardHandler);
+  }
+
   destroy() {
-    document.removeEventListener('keydown', this.handleKeyboard.bind(this));
+    this.deactivate();
   }
 }
 

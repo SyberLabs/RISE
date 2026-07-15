@@ -106,7 +106,7 @@ export class Player {
             const consumed = performance.now() - this.atomStartTime;
             if (this.currentAtomRemainingTime === null) {
                 const atom = this.sessionState.currentAtom;
-                this.currentAtomRemainingTime = Math.max(atom.duration, 100);
+                this.currentAtomRemainingTime = Math.max(atom.duration * this.speedFactor, 50);
             }
             this.currentAtomRemainingTime = Math.max(0, this.currentAtomRemainingTime - consumed);
             this.atomStartTime = null;
@@ -178,7 +178,10 @@ export class Player {
      * @param {number} factor - e.g. 0.8 for 20% faster
      */
     setSpeedFactor(factor) {
-        this.speedFactor = Math.max(0.1, Math.min(5.0, factor));
+        const parsed = Number(factor);
+        this.speedFactor = Number.isFinite(parsed)
+            ? Math.max(0.1, Math.min(5.0, parsed))
+            : 1.0;
         console.log(`[Player] Speed factor set to: ${this.speedFactor}`);
     }
 
@@ -234,21 +237,27 @@ export class Player {
                 this.sessionState.pausedAt = Date.now();
                 this.stopProgressAnimation();
 
-                // Wait for visual cortex to fundamentally finish rendering its duration
-                await this.interlocutionHandler(interlocution.duration ?? 33, signal);
-                
-                // If the user exited or stopped during the flash, abort.
-                if (this.sessionState.state !== 'interlocuting') return;
-                
-                // Resume session clock
-                if (this.sessionState.pausedAt) {
-                    this.sessionState.startTime += (Date.now() - this.sessionState.pausedAt);
-                    this.sessionState.pausedAt = null;
+                try {
+                    // Visual failures must never become playback failures.
+                    await this.interlocutionHandler(interlocution.duration ?? 33, signal);
+                } catch (error) {
+                    this.emit('error', { phase: 'interlocution', error });
+                    console.warn('[Player] Interlocution failed; continuing playback:', error);
+                } finally {
+                    // Stop, exit, or a user pause owns the resulting state.
+                    if (this.sessionState.state === 'interlocuting') {
+                        if (this.sessionState.pausedAt) {
+                            this.sessionState.startTime += (Date.now() - this.sessionState.pausedAt);
+                            this.sessionState.pausedAt = null;
+                        }
+                        this.sessionState.state = 'playing';
+                        this.emit('state', { state: 'playing' });
+                        this.startProgressAnimation();
+                    }
                 }
-                
-                this.sessionState.state = 'playing';
-                this.emit('state', { state: 'playing' });
-                this.startProgressAnimation();
+
+                // If the user exited, stopped, or paused during the flash, abort.
+                if (this.sessionState.state !== 'playing') return;
             }
         }
         
@@ -385,15 +394,13 @@ export class Player {
         // Cancel any existing animation
         this.stopProgressAnimation();
 
-        const totalDuration = this.sessionState.session.totalDuration;
-
         const animate = () => {
             if (this.sessionState.state !== 'playing') return;
 
-            // Calculate real-time progress based on elapsed time
             const elapsed = Date.now() - this.sessionState.startTime;
-            const progress = Math.min(elapsed / totalDuration, 1);
-            const remaining = Math.max(0, totalDuration - elapsed);
+            const remaining = this.calculateRemainingTime();
+            const totalDuration = elapsed + remaining;
+            const progress = totalDuration > 0 ? Math.min(elapsed / totalDuration, 1) : 1;
 
             this.emit('progress', {
                 elapsed,
@@ -432,10 +439,15 @@ export class Player {
         let remaining = 0;
 
         for (let i = this.sessionState.currentIndex; i < atoms.length; i++) {
-            remaining += atoms[i].duration;
+            if (i === this.sessionState.currentIndex && this.currentAtomRemainingTime !== null) {
+                const consumed = this.atomStartTime ? performance.now() - this.atomStartTime : 0;
+                remaining += Math.max(0, this.currentAtomRemainingTime - consumed);
+            } else {
+                remaining += atoms[i].duration * this.speedFactor;
+            }
         }
 
-        return remaining;
+        return Math.round(remaining);
     }
 
     /**

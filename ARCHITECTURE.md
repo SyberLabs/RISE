@@ -1,232 +1,228 @@
 # R.I.S.E. Architecture
 
-> **Recursive Installation of Symbolic Experience**
-> Version Control & Migration Roadmap
+> Recursive Installation of Symbolic Experience
+> Runtime architecture and engineering contracts, July 2026
 
----
+## Runtime shape
 
-## Spatial Structure
+R.I.S.E. is a Vite-served browser application. `index.html` provides the shared
+view and overlay containers; `src/app.js` owns application startup and wires the
+router, components, session compiler, audio engine, source registry, and visual
+cortex together.
 
-```
-                          ┌─────────────┐
-                          │   PORTAL    │
-                          │  (launch)   │
-                          └──────┬──────┘
-                                 │
-               ┌─────────────────┼─────────────────┐
-               │                 │                 │
-               ▼                 ▼                 ▼
-        ┌──────────┐      ┌──────────┐      ┌──────────┐
-        │ CHAMBER  │      │ LIBRARY  │      │ WORKSHOP │
-        └──────────┘      └─────┬────┘      └──────────┘
-                                │
-               ┌────────────────┼────────────────┐
-               │                │                │
-               ▼                ▼                ▼
-        ┌──────────┐     ┌──────────┐     ┌──────────┐
-        │ ARCHIVE  │     │SEQUENCES │     │ PERSONAL │
-        └──────────┘     └──────────┘     └──────────┘
-
-                          ┌──────────┐
-                          │ SETTINGS │
-                          └──────────┘
+```text
+index.html
+  -> App / BetaGate
+     -> Router
+        -> Portal, Vault, Library, Workshop, SOL, Settings
+        -> ChamberOrbital (session preparation)
+        -> Chamber + Player (session playback)
+     -> SourceRegistry -> providers -> SourceCache
+     -> SessionCompiler -> Chunker -> Pacing -> Session
+     -> AudioEngine
+     -> VisualCortex -> Klee / Fractal / external image pools
 ```
 
----
+There is one production entry, not a V1/V2 dual-entry system. Route component
+modules are imported on first use, then instances are retained until a shared-container transition or
+explicit destruction disposes them.
 
-## Version Architecture
+## Primary boundaries
 
-### V1: Builder (Current Production)
-The monolithic, single-page experience currently served to users.
+### Application and navigation
 
-| Entry | File | Description |
-|-------|------|-------------|
-| HTML | `index.html` | Single-page with Builder, Chamber, Review views |
-| JS | `src/main.js` | All logic in one ~1400 line file |
-| CSS | `src/style.css` | All styles in one ~2600 line file |
+- `src/app.js` is the composition root. It owns global services and translates
+  component events into navigation or session compilation.
+- `src/core/router.js` owns crossfade transitions, view activation/deactivation,
+  the back stack, failure restoration, and the latest navigation request received
+  during an active transition.
+- Routed components must make document-level listeners lifecycle-aware with
+  `activate()`, `deactivate()`, and `destroy()`.
+- A view initializer may be asynchronous. A rejected initializer must not leave
+  the transition lock held or the previous view hidden.
 
-**Status**: ✅ Production-ready, actively used
+### Session data pipeline
 
----
+All launch surfaces must call `src/core/session-compiler.js`.
 
-### V2: Spatial (Future Architecture)
-Modular component-based architecture with proper routing.
-
-| Entry | File | Description |
-|-------|------|-------------|
-| HTML | `app.html` *(to create)* | Minimal shell for V2 |
-| JS | `src/app.js` | App orchestrator with Router |
-| CSS | `src/design-system.css` | Design tokens + utilities |
-
-**Components** (`src/components/`):
-| Component | File | Status |
-|-----------|------|--------|
-| Portal | `Portal.js` + `.css` | ⚡ Built, not integrated |
-| Chamber | `Chamber.js` + `.css` | ⚡ Built, not integrated |
-| Library | `Library.js` + `.css` | ⚡ Built, not integrated |
-| Workshop | `Workshop.js` + `.css` | ⚡ Built, not integrated |
-| Settings | `Settings.js` + `.css` | ⚡ Built, not integrated |
-| SourceBrowser | `SourceBrowser.js` + `.css` | ⚡ Built |
-| VisualInterlocutionPanel | `VisualInterlocutionPanel.js` + `.css` | ⚡ Built |
-| ActiveSourcesModal | `ActiveSourcesModal.js` + `.css` | ⚡ Built |
-
-**Status**: 🔧 Components exist, needs integration testing
-
----
-
-## Shared Resources
-
-These modules are **version-agnostic** and used by both V1 and V2:
-
-```
-src/
-├── visuals/                  # Visual engines
-│   ├── visual-cortex.js      # Flash orchestrator
-│   ├── klee-enhanced.js      # Klee with R.I.S.E. presets
-│   ├── turrell.js            # Light fields
-│   ├── fractal.js            # DeepLightning flames
-│   └── rockgarden.js         # Zen rock garden
-│
-├── audio/                    # Audio engines
-│   └── audio-engine.js       # Binaural, harmonics, noise
-│
-├── content/                  # Content management
-│   ├── library.js            # Text registry
-│   └── starters.js           # Starter sequences
-│
-├── sources/                  # Source providers
-│   ├── text/                 # Sacred, Gutenberg, Research, Declassified
-│   └── visual/               # Wikimedia categories
-│
-└── core/                     # Core utilities
-    ├── router.js             # View navigation (V2)
-    ├── player.js             # Playback engine
-    ├── chunker.js            # Text tokenization
-    ├── pacing.js             # WPM curves
-    ├── sequencer.js          # Session sequencing
-    └── models.js             # Data models
+```text
+source records
+  -> validate and bound input
+  -> chunk each source independently
+  -> attach source name and source id to every atom
+  -> insert timing-locked source boundaries
+  -> apply the selected pacing curve
+  -> normalize visual settings
+  -> construct Session
 ```
 
----
+This is the canonical contract for both duration estimates and playback. Do not
+recreate chunk/pacing logic in a component. Current hard limits are 50-1000 WPM,
+2,000,000 characters per source, 24 embedded custom images, and 16-200 ms visual
+interrupt duration.
 
-## Migration Roadmap
+`Atom.timingLocked` protects authored pauses and source boundaries from curve
+modulation. `Session.totalDuration` is computed from validated positive atom
+durations and is the source of truth for duration UI and memory records.
 
-### Phase 1: Dual-Entry Setup *(Recommended First)*
-Create `app.html` to enable V2 testing without disrupting V1.
+### Playback
 
-```html
-<!-- app.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <title>R.I.S.E. v2</title>
-</head>
-<body>
-  <div id="app"></div>
-  <script type="module" src="/src/app.js"></script>
-</body>
-</html>
-```
+`src/core/player.js` owns the playback state machine and animation-frame timing.
+The states are `idle`, `playing`, `paused`, `interlocuting`, and `complete`.
 
-- [ ] Create `app.html`
-- [ ] Update Vite config for multiple entry points
-- [ ] Test V2 route: `localhost:5173/app.html`
+- Dynamic speed is included in displayed remaining time.
+- Interlocution pauses the reading clock and is awaited.
+- A rejected visual handler emits an error and resumes playback.
+- Pause, stop, and exit retain ownership if they occur during an interlocution.
 
----
+`src/components/Chamber.js` is the renderer and interaction layer. It does not
+own the authoritative clock.
 
-### Phase 2: Portal Integration
-The landing view - animating sigil, quick access, navigation.
+### Visual interlocution
 
-- [ ] Verify Portal component renders
-- [ ] Connect Portal navigation to Router
-- [ ] Test quick-access functionality
+`src/core/visual-selection.js` is the source-selection contract shared by the
+panel, persistence, compiler, and playback boundary. Its families are
+`procedural`, `collections`, `personal`, and `blend`. The first three discard
+incompatible source IDs; only an explicit `blend` may combine them. Legacy
+configs infer their family from their arrays, preserving deliberately mixed
+archetypes while preventing future partial-config merges from resurrecting a
+previous category.
 
----
+`src/visuals/visual-cortex.js` is the only flash dispatcher. It owns:
 
-### Phase 3: Chamber Integration
-The immersive reading experience.
+- active visual type selection;
+- decoded external-image pools and bounded background hydration;
+- abort/version ownership for configuration changes;
+- the execution-time consent and photosensitivity checks;
+- a burst gate that limits rapid consecutive flashes;
+- Klee and fractal preload lifecycle.
 
-- [ ] Port V1 chamber logic to V2 Chamber component
-- [ ] Connect visual cortex
-- [ ] Connect audio engine
-- [ ] Test full session playback
+The retired Met identifiers are removed from active mixed configurations. A
+legacy Met-only saved configuration degrades once to procedural Klee without
+attempting a retired provider.
 
----
+Responsive flashes modulate bounded frequency, duration, generator choice, and
+visual signal parameters. They do not bypass the user's selected source set,
+consent, photosensitivity mode, or the global flash gate.
 
-### Phase 4: Library Integration
-Browse and select texts.
+### Procedural Klee
 
-- [ ] Connect Library to shared `content/library.js`
-- [ ] Port category tabs (Sacred, Literary, Research, Declassified)
-- [ ] Test text selection → Workshop flow
+`src/visuals/klee-enhanced.js` is the generation engine and
+`src/visuals/klee-flashes.js` owns session queues and temporal episodes.
 
----
+The selectable modes are exactly:
 
-### Phase 5: Workshop Integration
-Session configuration.
+- Architectural
+- Chaotic
+- Harmonic
+- Gravitational
+- Twittering
 
-- [ ] Connect VisualInterlocutionPanel
-- [ ] Connect SourceBrowser
-- [ ] Port pacing/chunking/curve controls
-- [ ] Test session creation → Chamber flow
+There is no spiral preset. Internal curves may coil where a mode calls for it,
+but no symmetrical-spiral variation is exposed as a selectable mode.
 
----
+Every Klee session receives a fresh session seed. Individual artworks derive a
+deterministic child seed from the session seed, artwork index, and preset. This
+makes an artwork reproducible within its episode while ensuring a new
+Gravitational run is not the previous run repeated.
 
-### Phase 6: Settings Integration
-User preferences.
+Artworks grow across appearances rather than regenerating on every flash. Their
+geometry snapshots are prepared before playback, survive resize through scaled
+restoration, and refill in the background. Mode palettes, stroke hierarchy,
+alpha, texture, and restrained glow live in the preset style envelopes.
 
-- [ ] Connect to localStorage persistence
-- [ ] Port accessibility settings
-- [ ] Port audio preferences
+The visible Klee canvas is sized from its observed CSS dimensions and clamped
+device pixel ratio. Density analysis and texture byte generation use the Klee
+worker when available; bounded synchronous fallbacks preserve compatibility.
+The canvas background is `#0A0A0C`, exactly the chamber `--color-void` token.
 
----
+### Fractal generation
 
-### Phase 7: V2 Promotion
-When V2 is stable, promote it to default.
+`src/visuals/fractal.js` owns the prepared frame queue and session generation
+epoch. `src/visuals/lib/fractal-engine.js` owns fractal planning and worker work.
+Session epochs prevent stale work from entering a replacement session. Worker
+startup, render tasks, and teardown are bounded; a no-worker environment uses a
+single-thread compatibility path.
 
-- [ ] Redirect `index.html` → V2
-- [ ] Move V1 to `legacy/`
-- [ ] Update documentation
+### External sources and caching
 
----
+`src/sources/provider.js` defines the provider interface and
+`src/sources/registry.js` owns discovery and initialization.
 
-## File Ownership Quick Reference
+- Provider initialization is retryable after failure.
+- Registry initialization is idempotent and returns a status on every call.
+- Browser requests carry abort signals and timeouts.
+- UI request generations prevent stale provider/category responses from
+  replacing the active selection.
+- A provider failure degrades that provider, not the application startup.
 
-| File | Owner | Notes |
-|------|-------|-------|
-| `index.html` | V1 | Current production entry |
-| `src/main.js` | V1 | Monolithic logic |
-| `src/style.css` | V1 | All-in-one styles |
-| `src/app.js` | V2 | Orchestrator |
-| `src/design-system.css` | V2 | Tokens + utilities |
-| `src/components/*` | V2 | Modular components |
-| `src/core/*` | Shared | Routing, playback, models |
-| `src/visuals/*` | Shared | Visual engines |
-| `src/audio/*` | Shared | Audio engines |
-| `src/content/*` | Shared | Library, starters |
-| `src/sources/*` | Shared | Text/visual providers |
-| `src/legacy/*` | Archive | Historical reference |
+`src/sources/cache.js` uses IndexedDB with transaction-completion semantics,
+TTL, LRU eviction, and direct opaque keys. If IndexedDB is unavailable, it uses
+a bounded in-memory cache and exposes the degraded status in cache statistics.
 
----
+### Audio
 
-## Development Workflow
+`src/audio/engine.js` owns Web Audio nodes, ambient playback, entrainment,
+soundscapes, swells, and speech.
 
-### Working on V1 (Production Fixes)
+Session start/stop operations use generation ownership. A replacement session
+cancels and settles an older delayed teardown, and interrupted fades settle their
+callers. `destroy()` never restarts ambient audio and disposes the audio context.
+Audio initialization errors are surfaced to the application failure boundary.
+
+### Persistence and personal data
+
+Browser persistence is local-only:
+
+- settings, journals, blueprints, SOL plan, orbital preferences/text, and image
+  pools use localStorage;
+- visual-flash consent uses sessionStorage;
+- personal audio and source caches use separate IndexedDB databases.
+
+`src/core/user-data.js` is the inventory for export and clear operations. New
+personal stores must be added there in the same change that introduces them.
+Source caches are cleared but deliberately not exported.
+
+The BetaGate is invitation UX, not an authorization boundary. Invite data and
+codes ship to the browser. Real access control requires a server-side identity
+and authorization service.
+
+## Safety and trust rules
+
+- Treat remote metadata, uploaded filenames, pasted text, and saved browser data
+  as untrusted at every HTML or URL sink.
+- Prefer `textContent`; use `escapeHtml` and `safeUrl` only where templating is
+  unavoidable.
+- Never auto-grant visual consent from a preset or saved configuration.
+- Photosensitivity mode is an execution-time veto, including when enabled during
+  a running session.
+- Network and worker failure must produce bounded stillness or a local fallback,
+  never an unbounded playback stall.
+
+## Verification
+
 ```bash
-npm run dev          # Opens index.html
-# Edit: main.js, style.css, index.html
+npm run test:run
+npm run build
+npm run test:coverage
 ```
 
-### Working on V2 (New Features)
-```bash
-npm run dev          # Then navigate to /app.html
-# Edit: app.js, components/*, design-system.css
-```
+Vitest uses jsdom plus a shared Canvas 2D test double. High-risk contracts have
+focused tests for session compilation, player recovery, router failure
+containment, visual safety, Klee episode/seed ownership, external hydration,
+provider aborts, cache degradation, source-browser races, audio lifecycle, and
+personal-data inventory.
 
-### Shared Resources
-Changes to `visuals/`, `audio/`, `content/`, `sources/`, `core/` affect **both versions**.
-Always test in both V1 and V2 after modifying shared code.
+The supported Node versions are declared in `package.json`. Use Node 20.19+ or
+22.12+ so local builds match Vite's runtime requirement.
 
----
+## Known architectural debt
 
-*Last updated: 2026-01-23*
+- Beta access is client-side only and cannot provide security.
+- `src/app.js` is still a large composition root; future feature work should move
+  session-entry orchestration into a dedicated coordinator rather than growing it.
+- Several large content/visual chunks are intentionally substantial. Bundle
+  warnings should be addressed through true route/provider lazy loading, not by
+  only raising the warning threshold.
+- Browser integration tests should supplement jsdom for Web Audio, worker,
+  IndexedDB, image decode, DPR resize, and real animation-frame behavior.

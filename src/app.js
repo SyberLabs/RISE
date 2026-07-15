@@ -11,26 +11,16 @@
 
 import { Router } from './core/router.js';
 import { AudioEngine } from './audio/engine.js';
-import { Portal } from './components/Portal.js';
-import { ChamberOrbital } from './components/ChamberOrbital.js';
-import { Chamber } from './components/Chamber.js';
-import { Vault } from './components/Vault.js';
-import { Library } from './components/Library.js';
-import { Workshop } from './components/Workshop.js';
-import { Sol } from './components/Sol.js';
 import { Player } from './core/player.js';
-import { chunkText } from './core/chunker.js';
-import { PacingEngine, StateCurve } from './core/pacing.js';
+import { compileSession } from './core/session-compiler.js';
 import { initSourceSystem } from './sources/index.js';
-import { Guide } from './components/Guide.js';
 import { BetaGate } from './components/BetaGate.js';
 import './components/BetaGate.css';
 
-// Instantiate global engine
-const pacingEngine = new PacingEngine();
-import { Session } from './core/models.js';
 import { visualCortex } from './visuals/visual-cortex.js';
 import { errorBoundary, ErrorCategory, ErrorSeverity } from './core/error-boundary.js';
+import { requestVisualInterlocutionConsent } from './core/visual-safety.js';
+import { normalizeVisualSelection } from './core/visual-selection.js';
 
 // Import styles
 import './design-system.css';
@@ -51,6 +41,8 @@ class App {
         this.settings = null;
         this.currentSession = null;
         this.guideInstance = null;
+        this._audioInteractionController = null;
+        this._utilityController = null;
 
         // Bind methods
         this.handleNavigate = this.handleNavigate.bind(this);
@@ -89,22 +81,36 @@ class App {
             let accessHandled = false;
 
             const gate = new BetaGate(gateContainer, {
-                onAccess: (session) => {
+                onAccess: async (session) => {
                     if (accessHandled) return; // Prevent double-handling
                     accessHandled = true;
 
                     console.log('[R.I.S.E.] Beta access granted:', session.name);
                     this.betaSession = session;
 
-                    // Remove the gate
-                    gateContainer.remove();
-
-                    // Continue initialization - pass vault ID to skip portal if personalized
-                    this.initializeApp({
-                        personalizedVault: session.vault || null
-                    });
-
-                    resolve(true);
+                    try {
+                        await this.initializeApp({
+                            personalizedVault: session.vault || null
+                        });
+                        gateContainer.remove();
+                        resolve(true);
+                    } catch (error) {
+                        accessHandled = false;
+                        console.error('[R.I.S.E.] Application initialization failed:', error);
+                        gateContainer.hidden = false;
+                        gateContainer.replaceChildren();
+                        const recovery = document.createElement('div');
+                        recovery.className = 'beta-gate beta-gate-error';
+                        const message = document.createElement('p');
+                        message.textContent = 'R.I.S.E. could not initialize in this browser session.';
+                        const retry = document.createElement('button');
+                        retry.className = 'btn-primary';
+                        retry.textContent = 'Retry';
+                        retry.addEventListener('click', () => window.location.reload(), { once: true });
+                        recovery.append(message, retry);
+                        gateContainer.appendChild(recovery);
+                        this.showToast('Initialization failed. Please retry or reload.', 5000);
+                    }
                 }
             });
 
@@ -131,6 +137,7 @@ class App {
     async initializeApp(options = {}) {
         // Load settings from localStorage
         this.loadSettings();
+        this.audioEngine?.setMasterVolume(this.settings.masterVolume);
 
         // Apply accessibility settings immediately
         this.applyAccessibilitySettings();
@@ -174,23 +181,29 @@ class App {
      * Ensure audio engine initializes on first user interaction
      */
     setupAudioInteraction() {
+        this._audioInteractionController?.abort();
+        this._audioInteractionController = new AbortController();
+        const listenerOptions = { signal: this._audioInteractionController.signal };
         const initAudio = async () => {
-            if (this.audioEngine) {
-                console.log('[R.I.S.E.] First interaction - Initializing audio context');
-                await this.audioEngine.init();
-                await this.audioEngine.resume();
-                
-                // Start menu ambience
-                this.audioEngine.startAmbientPlaylist();
+            try {
+                if (this.audioEngine) {
+                    console.log('[R.I.S.E.] First interaction - Initializing audio context');
+                    await this.audioEngine.init();
+                    await this.audioEngine.resume();
+                    if (this.settings?.enableAmbient) {
+                        this.audioEngine.startAmbientPlaylist();
+                    }
+                }
+            } catch (error) {
+                console.warn('[R.I.S.E.] Audio initialization unavailable:', error);
+            } finally {
+                this._audioInteractionController?.abort();
             }
-            window.removeEventListener('mousedown', initAudio);
-            window.removeEventListener('keydown', initAudio);
-            window.removeEventListener('touchstart', initAudio);
         };
 
-        window.addEventListener('mousedown', initAudio);
-        window.addEventListener('keydown', initAudio);
-        window.addEventListener('touchstart', initAudio);
+        window.addEventListener('mousedown', initAudio, listenerOptions);
+        window.addEventListener('keydown', initAudio, listenerOptions);
+        window.addEventListener('touchstart', initAudio, listenerOptions);
     }
 
     /**
@@ -199,11 +212,11 @@ class App {
     setupErrorRecovery() {
         // Audio errors: disable audio and continue
         errorBoundary.registerRecoveryHandler(ErrorCategory.AUDIO, (report) => {
-            if (this.audioEngine) {
-                this.audioEngine.stop();
+            if (this.settings) {
+                this.settings.enableAmbient = false;
+                this.settings.enableBinaural = false;
             }
-            this.settings.enableAmbient = false;
-            this.settings.enableBinaural = false;
+            return this.audioEngine?.stopSession({ resumeAmbient: false, immediate: true });
         });
 
         // Visual errors: disable visual interlocution
@@ -214,7 +227,7 @@ class App {
         // Navigation errors: return to portal
         errorBoundary.registerRecoveryHandler(ErrorCategory.NAVIGATION, (report) => {
             if (this.router) {
-                this.router.navigate('portal');
+                return this.router.navigate('portal');
             }
         });
 
@@ -224,7 +237,7 @@ class App {
                 this.currentSession = null;
             }
             if (this.router) {
-                this.router.navigate('portal');
+                return this.router.navigate('portal');
             }
         });
     }
@@ -236,7 +249,8 @@ class App {
         // Portal
         this.router.registerView('portal', {
             container: document.getElementById('view-portal'),
-            init: (container) => {
+            init: async (container) => {
+                const { Portal } = await import('./components/Portal.js');
                 return new Portal(container, {
                     onNavigate: this.handleNavigate,
                     onQuickAccess: () => this.quickAccess()
@@ -247,7 +261,8 @@ class App {
         // Vault
         this.router.registerView('vault', {
             container: document.getElementById('view-vault'),
-            init: (container, data) => {
+            init: async (container, data) => {
+                const { Vault } = await import('./components/Vault.js');
                 return new Vault(container, {
                     onNavigate: this.handleNavigate,
                     onSelectSequence: (sequenceId) => this.handleSequenceSelection(sequenceId),
@@ -261,7 +276,8 @@ class App {
         // Chamber (Orbital Interface - Preparation)
         this.router.registerView('chamber', {
             container: document.getElementById('view-chamber'),
-            init: (container, textData) => {
+            init: async (container, textData) => {
+                const { ChamberOrbital } = await import('./components/ChamberOrbital.js');
                 const orbital = new ChamberOrbital(container, {
                     onBeginSession: (sessionConfig) => this.handleBeginSession(sessionConfig),
                     onNavigate: this.handleNavigate
@@ -292,46 +308,65 @@ class App {
                 // Show loading overlay
                 this.showLoading('Preparing Session');
 
-                // Start audio initialization early to minimize lag on chamber entry
-                const hasSoundscape = session.soundscape && session.soundscape !== 'none';
-                const hasAudio = (session.audioPreset && session.audioPreset !== 'silent') || session.selectedSwellId || hasSoundscape;
-                
-                if (session && hasAudio) {
-                    this.updateLoadingStatus('Stabilizing carrier frequencies...');
-                    this.audioEngine.stopAmbient();
-                    this.audioEngine.sessionActive = true;
-                    const durationSec = (session.totalDuration || 0) / 1000;
-                    await this.audioEngine.startSession({ 
-                        // Exclusive beds: a soundscape is a finished mix, so
-                        // it displaces the pure-tone preset if both slipped in
-                        preset: session.audioPreset !== 'silent' && !hasSoundscape ? session.audioPreset : null,
-                        soundscape: hasSoundscape ? session.soundscape : null,
-                        swellId: session.selectedSwellId,
-                        entrainment: {
-                            mode: session.entrainmentMode || 'binaural',
-                            waveform: session.entrainmentWaveform || 'sine',
-                            curve: session.curve || 'flat',
-                            durationSec: durationSec,
-                            autoRamp: !!(session.curve && session.curve !== 'flat')
-                        }
-                    });
-                } else {
-                    this.audioEngine.stopAmbient();
-                    this.audioEngine.sessionActive = true;
-                }
-
                 try {
+                    // Start audio initialization early to minimize lag on chamber entry.
+                    // It belongs inside this failure boundary so blocked Web Audio cannot
+                    // strand the loading overlay or the router transition.
+                    const hasSoundscape = session.soundscape && session.soundscape !== 'none';
+                    const hasAudio = (session.audioPreset && session.audioPreset !== 'silent') || session.selectedSwellId || hasSoundscape;
+
+                    if (hasAudio) {
+                        this.updateLoadingStatus('Stabilizing carrier frequencies...');
+                        this.audioEngine.stopAmbient();
+                        this.audioEngine.sessionActive = true;
+                        const durationSec = (session.totalDuration || 0) / 1000;
+                        await this.audioEngine.startSession({
+                            // Exclusive beds: a soundscape is a finished mix, so
+                            // it displaces the pure-tone preset if both slipped in.
+                            preset: session.audioPreset !== 'silent' && !hasSoundscape ? session.audioPreset : null,
+                            soundscape: hasSoundscape ? session.soundscape : null,
+                            swellId: session.selectedSwellId,
+                            entrainment: {
+                                mode: session.entrainmentMode || 'binaural',
+                                waveform: session.entrainmentWaveform || 'sine',
+                                curve: session.curve || 'flat',
+                                durationSec,
+                                autoRamp: !!(session.curve && session.curve !== 'flat')
+                            }
+                        });
+                    } else {
+                        this.audioEngine.stopAmbient();
+                        this.audioEngine.sessionActive = true;
+                    }
+
                     // Create Player instance
                     this.updateLoadingStatus('Creating player...');
                     const player = new Player(session);
 
                     // Configure visual cortex based on visualMode
-                    const visualMode = session.visualConfig?.visualMode || 'off';
+                    let visualMode = session.visualConfig?.visualMode || 'off';
+
+                    if (visualMode === 'interlocution') {
+                        const consented = await requestVisualInterlocutionConsent();
+                        if (!consented) {
+                            visualMode = 'off';
+                            session.visualConfig = { ...session.visualConfig, visualMode: 'off' };
+                            this.showToast('Visual flashes remain off until the safety notice is accepted.', 4000);
+                        }
+                    }
 
                     if (visualMode === 'interlocution') {
                         this.updateLoadingStatus('Loading visual engine...');
                         const activeTypes = [];
-                        const interlocution = session.visualConfig.interlocution || {};
+                        const rawInterlocution = session.visualConfig.interlocution || {};
+                        const interlocution = {
+                            ...rawInterlocution,
+                            ...normalizeVisualSelection(rawInterlocution)
+                        };
+                        // Keep the runtime session truthful for diagnostics and
+                        // downstream consumers. Procedural means no sourced art;
+                        // mixed sources survive only under an explicit Blend.
+                        session.visualConfig.interlocution = interlocution;
 
                         // Flatten all procedural types. No implicit fallback —
                         // an empty selection is a valid "stillness" choice, and
@@ -343,11 +378,14 @@ class App {
                         // Flatten all sourced types
                         if (interlocution.sourced) {
                             const sourced = interlocution.sourced;
+                            const retiredMetSelected = sourced.some(s =>
+                                typeof s === 'string' && s.startsWith('met-'));
                             // Specifically add all selected Wikimedia categories
                             const wikimediaCategories = sourced.filter(s => 
                                 s !== 'global-pool' && 
                                 s !== 'custom' && 
-                                !s.startsWith('personal:')
+                                !s.startsWith('personal:') &&
+                                !s.startsWith('met-')
                             );
                             activeTypes.push(...wikimediaCategories);
                             // Add active session assets specifically
@@ -360,6 +398,13 @@ class App {
                             }
                             // Add all personal sequences specifically
                             activeTypes.push(...sourced.filter(s => s.startsWith('personal:')));
+
+                            // Met-only saved presets predate the provider's
+                            // retirement. Preserve their documented procedural
+                            // fallback; mixed presets simply discard the stale id.
+                            if (retiredMetSelected && activeTypes.length === 0) {
+                                activeTypes.push('klee');
+                            }
                         }
 
                         // Custom visuals from this session are now handled via the 'custom' flag in interlocution.sourced
@@ -394,7 +439,9 @@ class App {
                             });
 
                         // Preload visuals
-                        const estimatedFlashCount = Math.floor(session.atoms.length * interlocution.frequency);
+                        const estimatedFlashCount = Math.floor(
+                            session.atoms.length * (interlocution.frequency ?? 0.2)
+                        );
                         await visualCortex.preload(estimatedFlashCount);
                     } else if (visualMode === 'focals') {
                         // Focals mode: persistent gentle focal point (handled by Chamber renderer)
@@ -432,6 +479,8 @@ class App {
                     }
 
                     this.updateLoadingStatus('Entering chamber...');
+
+                    const { Chamber } = await import('./components/Chamber.js');
 
                     // Brief delay for smooth transition
                     await new Promise(resolve => setTimeout(resolve, 300));
@@ -474,6 +523,11 @@ class App {
                     });
                 } catch (error) {
                     console.error('[R.I.S.E.] Session initialization failed:', error);
+                    visualCortex.updateConfig({ enabled: false });
+                    await this.audioEngine.stopSession({
+                        resumeAmbient: this.settings?.enableAmbient === true,
+                        immediate: true
+                    }).catch(() => {});
                     this.hideLoading();
                     this.showToast('Failed to initialize session', 3000);
                     this.router.back();
@@ -485,10 +539,11 @@ class App {
         // Library
         this.router.registerView('library', {
             container: document.getElementById('view-library'),
-            init: (container) => {
+            init: async (container) => {
+                const { Library } = await import('./components/Library.js');
                 return new Library(container, {
                     onNavigate: this.handleNavigate,
-                    onSelectText: (text, source) => this.handleTextSelection(text, source)
+                    onSelectText: (text, source, config) => this.handleTextSelection(text, source, config)
                 });
             }
         });
@@ -496,7 +551,8 @@ class App {
         // Workshop
         this.router.registerView('workshop', {
             container: document.getElementById('view-workshop'),
-            init: (container, data) => {
+            init: async (container, data) => {
+                const { Workshop } = await import('./components/Workshop.js');
                 const ws = new Workshop(container, {
                     onNavigate: this.handleNavigate,
                     onCreateSession: this.handleCreateSession
@@ -510,10 +566,27 @@ class App {
             }
         });
 
+        this.router.registerView('settings', {
+            container: document.getElementById('view-settings'),
+            init: async (container) => {
+                const { Settings } = await import('./components/Settings.js');
+                return new Settings(container, {
+                    settings: this.settings,
+                    onNavigate: this.handleNavigate,
+                    onChange: this.handleSettingsChange,
+                    onDataCleared: () => {
+                        this.currentSession = null;
+                        window.setTimeout(() => window.location.reload(), 300);
+                    }
+                });
+            }
+        });
+
         // Sol
         this.router.registerView('sol', {
             container: document.getElementById('view-sol'),
-            init: (container) => {
+            init: async (container) => {
+                const { Sol } = await import('./components/Sol.js');
                 return new Sol(container, {
                     onNavigate: this.handleNavigate,
                     onLaunchSequence: (data) => this.handleSolLaunch(data),
@@ -626,13 +699,16 @@ class App {
      * @param {string} text - The selected text content
      * @param {string} source - Source identifier
      */
-    handleTextSelection(text, source) {
+    handleTextSelection(text, source, config = {}) {
         // Navigate back to Chamber with text data
         this.router.navigate('chamber', {
             data: {
                 text,
                 source,
-                config: { origin: { view: 'library', icon: '◇', name: 'Library' } }
+                config: {
+                    ...config,
+                    origin: { view: 'library', icon: '◇', name: 'Library' }
+                }
             }
         });
     }
@@ -643,18 +719,13 @@ class App {
      * @returns {Session} - Full session with atoms
      */
     async createSessionFromSequence(sequence) {
-        // Chunk the content into atoms
-        const atoms = chunkText(sequence.content, {
-            mode: 'word',
-            wpm: sequence.wpm || 220
-        });
-
-        // Create session object
-        return new Session({
+        return compileSession({
             title: sequence.name,
-            atoms: atoms,
-            wpm: sequence.wpm || 220,
-            curve: sequence.curve || 'flat',
+            text: sequence.content,
+            textSource: sequence.name,
+            wpm: sequence.wpm ?? sequence.config?.wpm,
+            chunkMode: sequence.chunkMode ?? sequence.config?.chunkMode,
+            curve: sequence.curve ?? sequence.config?.curve,
             displayMode: 'focal',
             audioPreset: 'silent',
             visualConfig: {
@@ -669,46 +740,17 @@ class App {
      */
     async handleBeginSession(sessionConfig) {
         console.log('[R.I.S.E.] Beginning session from orbital config:', sessionConfig);
-
-        // Chunk the text into atoms
-        const atoms = chunkText(sessionConfig.text, {
-            mode: sessionConfig.chunkMode || 'word',
-            wpm: sessionConfig.wpm || 220
-        });
-
-        console.log('[R.I.S.E.] Chunked atoms:', atoms.length, 'atoms');
-        console.log('[R.I.S.E.] First atom before pacing:', atoms[0]);
-
-        // Apply pacing curve to atom durations
-        const curveMap = {
-            flat: StateCurve.flat(),
-            induction: StateCurve.induction(),
-            ascent: StateCurve.ascent(),
-            wave: StateCurve.wave(),
-            climax: StateCurve.climax()
-        };
-        const selectedCurve = sessionConfig.curve || 'flat';
-        pacingEngine.setStateCurve(curveMap[selectedCurve] || StateCurve.flat());
-        pacingEngine.setWpm(sessionConfig.wpm || 220);
-        
-        const pacedAtoms = pacingEngine.paceAtoms(atoms);
-
-        // Create full session object
-        const session = new Session({
-            title: sessionConfig.source || sessionConfig.textSource || 'Session',
-            atoms: pacedAtoms,
-            wpm: sessionConfig.wpm || 220,
-            curve: sessionConfig.curve || 'flat',
-            audioPreset: sessionConfig.audioPreset || 'silent',
-            soundscape: sessionConfig.soundscape || 'none',
-            entrainmentMode: sessionConfig.entrainmentMode || 'binaural',
-            entrainmentWaveform: sessionConfig.entrainmentWaveform || 'sine',
-            visualConfig: sessionConfig.visualConfig || { enabled: false },
-            customVisuals: sessionConfig.customVisuals || [],
-            voiceEnabled: sessionConfig.voiceEnabled || false,
-            voiceId: sessionConfig.voiceId || null,
-            selectedSwellId: sessionConfig.selectedSwellId || null
-        });
+        let session;
+        try {
+            session = compileSession({
+                ...sessionConfig,
+                title: sessionConfig.source || sessionConfig.textSource || 'Session'
+            });
+        } catch (error) {
+            console.error('[R.I.S.E.] Session compilation failed:', error);
+            this.showToast(error.message || 'Unable to compile session', 4000);
+            return;
+        }
 
         console.log('[R.I.S.E.] Created session:', session);
         console.log('[R.I.S.E.] Session atoms:', session.atoms);
@@ -730,52 +772,22 @@ class App {
             return;
         }
 
-        // 1. Concatenate all source strings into a single cohesive text flow
-        // Inject a prominent interstitial marker block between disparate sources to allow cognitive breathing
-        const compiledText = sessionData.sources.map(source => {
-            const content = typeof source.data === 'string' ? source.data :
-                (Array.isArray(source.data) ? source.data.join(' ') : String(source.data));
-            return content.trim();
-        }).join('\n\n[— ◈ SYNTHESIS BARRIER ◈ —]\n\n');
+        // The canonical compiler chunks each source independently, retains
+        // provenance, and inserts a timing-locked source boundary.
+        let session;
+        try {
+            session = compileSession({
+                ...sessionData,
+                title: sessionData.title || `Custom Sequence (${sessionData.sources.length} sources)`,
+                isCustom: true
+            });
+        } catch (error) {
+            console.error('[R.I.S.E.] Workshop compilation failed:', error);
+            this.showToast(error.message || 'Unable to compile sequence', 4000);
+            return;
+        }
 
-        // 2. Pass the compiled master string through the standard chunker
-        const atoms = chunkText(compiledText, {
-            mode: sessionData.chunkMode || 'word',
-            wpm: sessionData.wpm || 220
-        });
-
-        console.log(`[R.I.S.E.] Workshop compiler built ${atoms.length} atoms across ${sessionData.sources.length} sources.`);
-
-        // 2.5 Apply pacing curve to atom durations
-        const curveMap = {
-            flat: StateCurve.flat(),
-            induction: StateCurve.induction(),
-            ascent: StateCurve.ascent(),
-            wave: StateCurve.wave(),
-            climax: StateCurve.climax()
-        };
-        const selectedCurve = sessionData.curve || 'flat';
-        pacingEngine.setStateCurve(curveMap[selectedCurve] || StateCurve.flat());
-        pacingEngine.setWpm(sessionData.wpm || 220);
-        
-        const pacedAtoms = pacingEngine.paceAtoms(atoms);
-
-        // 3. Assemble the final Session object
-        const session = new Session({
-            title: sessionData.title || `Custom Sequence (${sessionData.sources.length} sources)`,
-            atoms: pacedAtoms,
-            wpm: sessionData.wpm || 220,
-            curve: sessionData.curve || 'flat',
-            displayMode: sessionData.displayMode || 'focal',
-            audioPreset: sessionData.audioPreset || 'silent',
-            soundscape: sessionData.soundscape || 'none',
-            entrainmentMode: sessionData.entrainmentMode || 'binaural',
-            entrainmentWaveform: sessionData.entrainmentWaveform || 'sine',
-            selectedSwellId: sessionData.selectedSwellId || null,
-            visualConfig: sessionData.visualConfig || { enabled: false },
-            customVisuals: sessionData.customVisuals || [],
-            isCustom: true // Flag indicating this is a workshop-generated sequence
-        });
+        console.log(`[R.I.S.E.] Workshop compiler built ${session.atomCount} atoms across ${session.sources.length} sources.`);
 
         // 4. Route to player phase
         this.currentSession = session;
@@ -828,7 +840,27 @@ class App {
 
         try {
             const stored = localStorage.getItem('rise-settings');
-            this.settings = stored ? { ...defaultSettings, ...JSON.parse(stored) } : defaultSettings;
+            const parsed = stored ? JSON.parse(stored) : {};
+            const candidate = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+            const merged = { ...defaultSettings, ...candidate };
+            const fontSizes = new Set(['small', 'medium', 'large']);
+            const curves = new Set(['flat', 'induction', 'ascent', 'wave', 'climax']);
+            const booleanKeys = ['showProgress', 'showDuration', 'enableAmbient', 'enableBinaural', 'photosensitivityMode', 'reducedMotion'];
+            this.settings = {
+                ...defaultSettings,
+                fontSize: fontSizes.has(merged.fontSize) ? merged.fontSize : defaultSettings.fontSize,
+                masterVolume: Number.isFinite(Number(merged.masterVolume))
+                    ? Math.max(0, Math.min(1, Number(merged.masterVolume)))
+                    : defaultSettings.masterVolume,
+                defaultWpm: Number.isFinite(Number(merged.defaultWpm))
+                    ? Math.max(50, Math.min(1000, Number(merged.defaultWpm)))
+                    : defaultSettings.defaultWpm,
+                defaultCurve: curves.has(merged.defaultCurve) ? merged.defaultCurve : defaultSettings.defaultCurve,
+                defaultAudioPreset: typeof merged.defaultAudioPreset === 'string'
+                    ? merged.defaultAudioPreset.slice(0, 80)
+                    : defaultSettings.defaultAudioPreset
+            };
+            for (const key of booleanKeys) this.settings[key] = merged[key] === true;
         } catch (e) {
             console.warn('[R.I.S.E.] Could not load settings:', e);
             this.settings = defaultSettings;
@@ -854,12 +886,16 @@ class App {
         this.saveSettings();
 
         // Apply certain settings immediately
-        if (key === 'reducedMotion' || key === 'photosensitivityMode') {
+        if (['reducedMotion', 'photosensitivityMode', 'fontSize', 'showProgress', 'showDuration'].includes(key)) {
             this.applyAccessibilitySettings();
         }
 
         if (key === 'masterVolume' && this.audioEngine) {
             this.audioEngine.setMasterVolume(value);
+        }
+        if (key === 'enableAmbient' && this.audioEngine?.isInitialized && !this.audioEngine.sessionActive) {
+            if (value) this.audioEngine.startAmbientPlaylist();
+            else this.audioEngine.stopAmbient(true);
         }
     }
 
@@ -885,6 +921,10 @@ class App {
         } else {
             root.classList.remove('photosensitivity-mode');
         }
+
+        root.dataset.fontSize = this.settings?.fontSize || 'medium';
+        root.classList.toggle('hide-session-progress', this.settings?.showProgress === false);
+        root.classList.toggle('hide-session-duration', this.settings?.showDuration === false);
     }
 
     /**
@@ -952,47 +992,58 @@ class App {
      * Setup listeners for global utility events (Guide, Settings)
      */
     setupUtilityListeners() {
+        this._utilityController?.abort();
+        this._utilityController = new AbortController();
+        const options = { signal: this._utilityController.signal };
         window.addEventListener('rise-open-guide', () => {
             this.showGuide();
-        });
+        }, options);
 
         window.addEventListener('rise-open-settings', () => {
-            // Trigger settings modal if available globally or navigate
-            // For now, let's look for a settings trigger in the current view or navigate
-            // If we're in portal, we might want to navigate to a settings view if it exists
-            // But usually settings is a modal. Let's assume we can trigger it.
-            this.showToast('Interface Settings - Coming Soon', 2000);
-        });
+            this.router?.navigate('settings');
+        }, options);
     }
 
     /**
      * Show the Guide modal
      */
-    showGuide() {
-        if (this.guideInstance) return;
+    async showGuide() {
+        if (this.guideInstance || this._guideLoading) return;
+        this._guideLoading = true;
 
         const container = document.createElement('div');
         container.id = 'guide-container';
         document.body.appendChild(container);
 
-        this.guideInstance = new Guide(container, {
-            onClose: () => {
-                this.guideInstance.destroy();
-                this.guideInstance = null;
-                container.remove();
-            }
-        });
+        try {
+            const { Guide } = await import('./components/Guide.js');
+            this.guideInstance = new Guide(container, {
+                onClose: () => {
+                    this.guideInstance?.destroy();
+                    this.guideInstance = null;
+                    container.remove();
+                }
+            });
+        } catch (error) {
+            container.remove();
+            console.error('[R.I.S.E.] Guide failed to load:', error);
+            this.showToast('Guide unavailable', 3000);
+        } finally {
+            this._guideLoading = false;
+        }
     }
 
     /**
      * Cleanup
      */
     destroy() {
+        this._audioInteractionController?.abort();
+        this._utilityController?.abort();
         if (this.router) {
             this.router.destroy();
         }
         if (this.audioEngine) {
-            this.audioEngine.stop();
+            this.audioEngine.destroy();
         }
     }
 }

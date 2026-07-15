@@ -8,6 +8,7 @@
 
 import { SourceProvider } from '../provider.js';
 import { SourceCache } from '../cache.js';
+import { createAbortError, isAbortError, withAbortTimeout } from './request.js';
 
 // AIC artwork_type_id vocabulary (verified against the live API):
 // 1 = Painting, 18 = Print. Every category pins a type so nothing can
@@ -147,23 +148,34 @@ export class MuseumProvider extends SourceProvider {
         this.thumbSize = 843; // Standard high-quality size
     }
 
-    async _fetch(endpoint, params = {}) {
+    async _fetch(endpoint, params = {}, options = {}) {
+        if (options.signal?.aborted) throw createAbortError();
         const url = new URL(`${this.baseUrl}${endpoint}`);
         for (const [key, value] of Object.entries(params)) {
             url.searchParams.set(key, value);
         }
 
+        const request = withAbortTimeout(options.signal, options.timeoutMs ?? 8000, 'ArtIC request');
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, { signal: request.signal });
             if (!response.ok) throw new Error(`ArtIC HTTP ${response.status}`);
             return await response.json();
         } catch (error) {
+            if (request.didTimeout() && isAbortError(error)) {
+                const timeoutError = new Error(`ArtIC request timed out after ${options.timeoutMs ?? 8000}ms`);
+                timeoutError.name = 'TimeoutError';
+                throw timeoutError;
+            }
+            if (isAbortError(error)) throw error;
             console.error('[MuseumProvider] Fetch error:', error);
             throw error;
+        } finally {
+            request.cleanup();
         }
     }
 
-    async getImagesInCategory(categoryId, limit = 100) {
+    async getImagesInCategory(categoryId, limit = 100, options = {}) {
+        if (options.signal?.aborted) throw createAbortError();
         const resolvedId = MUSEUM_CATEGORIES[categoryId]
             ? categoryId
             : RETIRED_CATEGORIES[categoryId];
@@ -183,7 +195,7 @@ export class MuseumProvider extends SourceProvider {
         cat.clauses.forEach((clause, i) =>
             flattenClause(clause, `query[bool][must][${i + 1}]`, params));
 
-        const data = await this._fetch('/search', params);
+        const data = await this._fetch('/search', params, options);
 
         const results = (data.data || []).filter(item => item.image_id).map(item => ({
             id: item.id.toString(),
@@ -244,7 +256,10 @@ export class MuseumProvider extends SourceProvider {
         const catIds = Object.keys(MUSEUM_CATEGORIES);
         const catId = filter.category || catIds[Math.floor(Math.random() * catIds.length)];
         
-        const images = await this.getImagesInCategory(catId);
+        const images = await this.getImagesInCategory(catId, 100, {
+            signal: filter.signal,
+            timeoutMs: filter.timeoutMs
+        });
         if (images.length === 0) return null;
 
         const img = images[Math.floor(Math.random() * images.length)];

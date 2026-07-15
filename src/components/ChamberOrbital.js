@@ -11,6 +11,11 @@
 import { VisualInterlocutionPanel } from './VisualInterlocutionPanel.js';
 import { PersonalSwells } from '../core/personal-swells.js';
 import { namingModal } from './NamingModal.js';
+import { escapeHtml } from '../core/sanitize.js';
+import {
+  hasVisualSelectionFields,
+  normalizeVisualSelection
+} from '../core/visual-selection.js';
 import './VisualInterlocutionPanel.css';
 
 // Last-used session settings survive across chamber visits (the orbital
@@ -20,6 +25,11 @@ const ORBITAL_PREFS_KEY = 'rise_orbital_prefs_v1';
 // texts can be book-sized, and a quota failure on one must never cost
 // the other. Prefs shed only the focal image; text sheds only itself.
 const ORBITAL_TEXT_KEY = 'rise_orbital_text_v1';
+// `personal` is a Workshop sentinel and `drift` is a legacy engine preset.
+// Keep both valid even though the orbital currently exposes four choices.
+const AUDIO_PRESET_IDS = new Set([
+  'silent', 'focus', 'deep', 'drift', 'gateway', 'personal'
+]);
 
 /**
  * Factory defaults for the orbital — one source of truth for the
@@ -65,6 +75,7 @@ function createDefaultConfig() {
       // Nothing pre-checked: visual packages arrive only through explicit
       // configs (Vault archetypes, SOL sequences) — never implied by a text.
       interlocution: {
+        sourceFamily: 'procedural',
         procedural: [],
         sourced: [],
         frequency: 0.2,
@@ -164,7 +175,11 @@ export class ChamberOrbital {
         attractor: { ...defaults.attractor, ...(vi.attractor || {}) },
         genesis: { ...defaults.genesis, ...(vi.genesis || {}) },
         livingText: { ...defaults.livingText, ...(vi.livingText || {}) },
-        interlocution: { ...defaults.interlocution, ...(vi.interlocution || {}) }
+        interlocution: {
+          ...defaults.interlocution,
+          ...(vi.interlocution || {}),
+          ...normalizeVisualSelection(vi.interlocution || defaults.interlocution)
+        }
       };
     }
   }
@@ -240,6 +255,12 @@ export class ChamberOrbital {
    * soundscape's favor.
    */
   _normalizeAudioExclusivity() {
+    // Older builds allowed Klee chips to leak values such as `harmonic`
+    // into this field. Repair those persisted sessions at the boundary so
+    // the audio engine never receives an unknown preset and falls silent.
+    if (!AUDIO_PRESET_IDS.has(this.config.audioPreset)) {
+      this.config.audioPreset = 'silent';
+    }
     if (this.config.soundscape && this.config.soundscape !== 'none'
       && this.config.audioPreset !== 'silent') {
       this.config.audioPreset = 'silent';
@@ -247,13 +268,21 @@ export class ChamberOrbital {
   }
 
   _persistPrefs() {
+    this._normalizeAudioExclusivity();
     const { wpm, curve, chunkMode, soundscape, audioPreset, entrainmentMode,
       entrainmentWaveform, voiceEnabled, voiceId, selectedSwellId,
       visualInterlocution } = this.config;
+    const normalizedVisuals = {
+      ...visualInterlocution,
+      interlocution: {
+        ...(visualInterlocution.interlocution || {}),
+        ...normalizeVisualSelection(visualInterlocution.interlocution)
+      }
+    };
     const payload = {
       wpm, curve, chunkMode, soundscape, audioPreset, entrainmentMode,
       entrainmentWaveform, voiceEnabled, voiceId, selectedSwellId,
-      visualInterlocution
+      visualInterlocution: normalizedVisuals
     };
     this._persistText();
     try {
@@ -387,7 +416,7 @@ export class ChamberOrbital {
         <div class="text-loaded">
           <div class="text-sigil">文</div>
           <div class="text-info">
-            <div class="text-name text-light">${this.config.textSource || 'Text Loaded'}</div>
+            <div class="text-name text-light">${escapeHtml(this.config.textSource || 'Text Loaded')}</div>
             <div class="text-meta text-fog">${this.getWordCount()} words</div>
           </div>
           <button class="text-clear btn-ghost-sm" data-action="clear-text">✕</button>
@@ -458,19 +487,19 @@ export class ChamberOrbital {
                 <span class="config-info" data-tooltip="Presets target specific brainwave frequencies. Focus (Alpha 10Hz) enhances concentration. Deep (Theta 6Hz) promotes meditation. Gateway (Delta 2Hz) yields deep flow states.">?</span>
               </div>
               <div class="audio-preset-options">
-                <button class="audio-preset-option ${this.config.audioPreset === 'silent' ? 'active' : ''}" data-preset="silent">
+                <button class="audio-preset-option ${this.config.audioPreset === 'silent' ? 'active' : ''}" data-audio-preset="silent">
                   <span class="preset-icon">○</span>
                   <span class="preset-label">Silent</span>
                 </button>
-                <button class="audio-preset-option ${this.config.audioPreset === 'focus' ? 'active' : ''}" data-preset="focus">
+                <button class="audio-preset-option ${this.config.audioPreset === 'focus' ? 'active' : ''}" data-audio-preset="focus">
                   <span class="preset-icon">◇</span>
                   <span class="preset-label">Focus</span>
                 </button>
-                <button class="audio-preset-option ${this.config.audioPreset === 'deep' ? 'active' : ''}" data-preset="deep">
+                <button class="audio-preset-option ${this.config.audioPreset === 'deep' ? 'active' : ''}" data-audio-preset="deep">
                   <span class="preset-icon">◈</span>
                   <span class="preset-label">Deep</span>
                 </button>
-                <button class="audio-preset-option ${this.config.audioPreset === 'gateway' ? 'active' : ''}" data-preset="gateway">
+                <button class="audio-preset-option ${this.config.audioPreset === 'gateway' ? 'active' : ''}" data-audio-preset="gateway">
                   <span class="preset-icon">⬡</span>
                   <span class="preset-label">Gateway</span>
                 </button>
@@ -655,7 +684,8 @@ export class ChamberOrbital {
     }
 
     if (mode === 'interlocution') {
-      return `◈ Rhythmic`;
+      const family = vi.interlocution?.sourceFamily || 'procedural';
+      return `◈ Rhythmic · ${this.capitalizeFirst(family)}`;
     }
 
     return `◎ Off`;
@@ -876,7 +906,7 @@ export class ChamberOrbital {
     // Auto-switch rather than disable — the selection visibly moving
     // teaches the rule, and one tap undoes it.
     const soundscapeOptions = this.container.querySelectorAll('[data-soundscape]');
-    const presetOptions = this.container.querySelectorAll('[data-preset]');
+    const presetOptions = this.container.querySelectorAll('[data-audio-preset]');
 
     soundscapeOptions.forEach(opt => {
       opt.addEventListener('click', () => {
@@ -884,7 +914,7 @@ export class ChamberOrbital {
         this.config.soundscape = opt.dataset.soundscape;
         if (opt.dataset.soundscape !== 'none' && this.config.audioPreset !== 'silent') {
           this.config.audioPreset = 'silent';
-          presetOptions.forEach(o => o.classList.toggle('active', o.dataset.preset === 'silent'));
+          presetOptions.forEach(o => o.classList.toggle('active', o.dataset.audioPreset === 'silent'));
         }
         this.updateOrbitStatus('audio');
         soundscapeOptions.forEach(o => o.classList.remove('active'));
@@ -895,8 +925,8 @@ export class ChamberOrbital {
     presetOptions.forEach(opt => {
       opt.addEventListener('click', () => {
         window.rise?.audioEngine?.playHiss();
-        this.config.audioPreset = opt.dataset.preset;
-        if (opt.dataset.preset !== 'silent' && this.config.soundscape !== 'none') {
+        this.config.audioPreset = opt.dataset.audioPreset;
+        if (opt.dataset.audioPreset !== 'silent' && this.config.soundscape !== 'none') {
           this.config.soundscape = 'none';
           soundscapeOptions.forEach(o => o.classList.toggle('active', o.dataset.soundscape === 'none'));
         }
@@ -1166,9 +1196,9 @@ export class ChamberOrbital {
       opt.classList.toggle('active', opt.dataset.soundscape === (this.config.soundscape || 'none'));
     });
 
-    const presetOptions = this.container.querySelectorAll('[data-preset]');
+    const presetOptions = this.container.querySelectorAll('[data-audio-preset]');
     presetOptions.forEach(opt => {
-      opt.classList.toggle('active', opt.dataset.preset === this.config.audioPreset);
+      opt.classList.toggle('active', opt.dataset.audioPreset === this.config.audioPreset);
     });
 
     // Voice toggle
@@ -1203,6 +1233,23 @@ export class ChamberOrbital {
     // Apply visual configuration from archetype/source
     if (config.visualConfig) {
       console.log('[ChamberOrbital] Applying visualConfig from source:', config.visualConfig);
+      const incomingInterlocution = config.visualConfig.interlocution || null;
+      const currentInterlocution = this.config.visualInterlocution.interlocution;
+      const mergedInterlocution = {
+        ...currentInterlocution,
+        ...(incomingInterlocution || {})
+      };
+      const selectionInput = hasVisualSelectionFields(incomingInterlocution)
+        ? {
+          sourceFamily: incomingInterlocution.sourceFamily,
+          procedural: Object.hasOwn(incomingInterlocution, 'procedural')
+            ? incomingInterlocution.procedural
+            : [],
+          sourced: Object.hasOwn(incomingInterlocution, 'sourced')
+            ? incomingInterlocution.sourced
+            : []
+        }
+        : currentInterlocution;
       this.config.visualInterlocution = {
         ...this.config.visualInterlocution,
         visualMode: config.visualConfig.visualMode || 'off',
@@ -1211,8 +1258,8 @@ export class ChamberOrbital {
         genesis: config.visualConfig.genesis || this.config.visualInterlocution.genesis,
         livingText: config.visualConfig.livingText || this.config.visualInterlocution.livingText,
         interlocution: {
-          ...this.config.visualInterlocution.interlocution,
-          ...(config.visualConfig.interlocution || {})
+          ...mergedInterlocution,
+          ...normalizeVisualSelection(selectionInput)
         }
       };
 
@@ -1290,6 +1337,7 @@ export class ChamberOrbital {
 
     // Build session data from config
     const vi = this.config.visualInterlocution;
+    const visualSelection = normalizeVisualSelection(vi.interlocution);
     const sessionData = {
       text: this.config.text,
       textSource: this.config.textSource,
@@ -1313,8 +1361,9 @@ export class ChamberOrbital {
           ...(vi.interlocution || {}),
           // Panel vocabulary only (klee/turrell/...) — activeTypes is the
           // cortex's derived vocabulary and must never be persisted here
-          procedural: vi.interlocution?.procedural || [],
-          sourced: vi.interlocution?.sourced || [],
+          ...visualSelection,
+          procedural: visualSelection.procedural,
+          sourced: visualSelection.sourced,
           frequency: vi.interlocution?.frequency ?? 0.2,
           duration: vi.interlocution?.duration ?? 80,
           kleePreset: vi.interlocution?.kleePreset ?? 'random'

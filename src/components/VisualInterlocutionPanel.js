@@ -15,9 +15,15 @@ import { MUSEUM_CATEGORIES } from '../sources/visual/museum.js';
 import { MemoryCore } from '../core/memory.js';
 import { ATTRACTOR_SYSTEMS } from '../visuals/attractor.js';
 import { escapeHtml } from '../core/sanitize.js';
-
-// Session storage key for safety consent
-const SAFETY_CONSENT_KEY = 'rise-visual-interlocution-consent';
+import {
+    hasVisualSelectionFields,
+    isPersonalVisualSource,
+    normalizeVisualSelection
+} from '../core/visual-selection.js';
+import {
+    hasVisualInterlocutionConsent,
+    requestVisualInterlocutionConsent
+} from '../core/visual-safety.js';
 
 // The five curated Klee presets (shared by Rhythmic chips and Genesis chips)
 const KLEE_PRESET_CHIP_IDS = ['architectural', 'chaotic', 'harmonic', 'gravitational', 'twittering'];
@@ -29,6 +35,22 @@ const KLEE_PRESET_CHIP_IDS = ['architectural', 'chaotic', 'harmonic', 'gravitati
 // original so the feature never breaks on an exotic format.
 const FOCAL_MAX_DIM = 1024;
 const FOCAL_PASSTHROUGH_BYTES = 150 * 1024;
+
+function migrateRetiredMetSelection(proceduralValue, sourcedValue) {
+    const procedural = Array.isArray(proceduralValue)
+        ? [...new Set(proceduralValue)]
+        : [];
+    const sourcedInput = Array.isArray(sourcedValue) ? sourcedValue : [];
+    const sourced = [...new Set(sourcedInput.filter(id =>
+        typeof id === 'string' && !id.startsWith('met-')))];
+    const hadRetiredMet = sourcedInput.some(id =>
+        typeof id === 'string' && id.startsWith('met-'));
+
+    if (hadRetiredMet && sourced.length === 0 && procedural.length === 0) {
+        procedural.push('klee');
+    }
+    return { procedural, sourced };
+}
 
 function readAsDataURL(file) {
     return new Promise((resolve, reject) => {
@@ -69,6 +91,18 @@ export class VisualInterlocutionPanel {
         this.onChange = options.onChange || (() => { });
         this.onRequestSafetyModal = options.onRequestSafetyModal || null;
 
+        const incomingProcedural = options.interlocution?.procedural ?? options.procedural ?? [];
+        const incomingSourced = options.interlocution?.sourced ?? options.sourced ?? [];
+        const { procedural, sourced } = migrateRetiredMetSelection(
+            incomingProcedural,
+            incomingSourced
+        );
+        const selection = normalizeVisualSelection({
+            sourceFamily: options.interlocution?.sourceFamily ?? options.sourceFamily,
+            procedural,
+            sourced
+        });
+
         // Configuration state
         this.config = {
             // Top-level mode: 'off' | 'focals' | 'attractor' | 'interlocution'
@@ -104,8 +138,7 @@ export class VisualInterlocutionPanel {
             // arrive nested under options.interlocution; flattened keys are
             // honored as a fallback for legacy call sites.
             interlocution: {
-                procedural: options.interlocution?.procedural ?? options.procedural ?? [],
-                sourced: options.interlocution?.sourced ?? options.sourced ?? [],
+                ...selection,
                 frequency: options.interlocution?.frequency ?? options.frequency ?? 0.2,
                 duration: options.interlocution?.duration ?? options.duration ?? 80,
                 kleePreset: options.interlocution?.kleePreset ?? options.kleePreset ?? 'random',
@@ -131,83 +164,36 @@ export class VisualInterlocutionPanel {
         this.expanded = options.expanded ?? false;
 
         // Check if user has already given consent this session
-        this.hasConsent = sessionStorage.getItem(SAFETY_CONSENT_KEY) === 'true';
+        this.hasConsent = hasVisualInterlocutionConsent();
+        this._destroyed = false;
 
         this.render();
         this.attachEvents();
-        this.setupSafetyModal();
     }
 
-    /**
-     * Setup safety modal event listeners
-     */
-    setupSafetyModal() {
-        const modal = document.getElementById('photosensitivity-modal');
-        const cancelBtn = document.getElementById('safety-cancel');
-        const acceptBtn = document.getElementById('safety-accept');
-
-        if (!modal || !cancelBtn || !acceptBtn) return;
-
-        cancelBtn.addEventListener('click', () => {
-            this.hideSafetyModal();
-            this.config.visualMode = 'off';
-            this.render();
-            this.attachEvents();
-        });
-
-        acceptBtn.addEventListener('click', () => {
-            sessionStorage.setItem(SAFETY_CONSENT_KEY, 'true');
-            this.hasConsent = true;
-            this.hideSafetyModal();
-            this.config.visualMode = 'interlocution';
-            this.emitChange();
-            this.render();
-            this.attachEvents();
-        });
-
-        // Close on backdrop click
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                this.hideSafetyModal();
-                this.config.visualMode = 'off';
-                this.render();
-                this.attachEvents();
-            }
-        });
-
-        // Close on Escape
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-                this.hideSafetyModal();
-                this.config.visualMode = 'off';
-                this.render();
-                this.attachEvents();
-            }
-        });
-    }
-
-    showSafetyModal() {
-        const modal = document.getElementById('photosensitivity-modal');
-        if (modal) {
-            modal.classList.remove('hidden');
-            // Focus the cancel button for accessibility
-            const cancelBtn = document.getElementById('safety-cancel');
-            cancelBtn?.focus();
-        }
-    }
-
-    hideSafetyModal() {
-        const modal = document.getElementById('photosensitivity-modal');
-        if (modal) {
-            modal.classList.add('hidden');
-        }
+    async showSafetyModal() {
+        const accepted = await requestVisualInterlocutionConsent();
+        if (this._destroyed) return;
+        this.hasConsent = accepted || hasVisualInterlocutionConsent();
+        this.config.visualMode = accepted ? 'interlocution' : 'off';
+        if (accepted) this.emitChange();
+        this.render();
+        this.attachEvents();
     }
 
     /**
      * Get current configuration
      */
     getConfig() {
-        return { ...this.config };
+        return {
+            ...this.config,
+            interlocution: {
+                ...this.config.interlocution,
+                procedural: [...this.config.interlocution.procedural],
+                sourced: [...this.config.interlocution.sourced]
+            },
+            customVisuals: [...this.config.customVisuals]
+        };
     }
 
     /**
@@ -238,7 +224,7 @@ export class VisualInterlocutionPanel {
 
     /**
      * Programmatically set the full configuration (e.g., from archetype)
-     * This bypasses the safety modal since archetype launch implies consent
+     * Safety consent remains a separate launch-time requirement.
      * Note: Does NOT check locked state - programmatic config should always apply
      */
     setConfig(visualConfig) {
@@ -283,17 +269,36 @@ export class VisualInterlocutionPanel {
 
         // Apply interlocution config
         if (visualConfig.interlocution) {
-            this.config.interlocution = {
+            const incomingInterlocution = visualConfig.interlocution;
+            const mergedInterlocution = {
                 ...this.config.interlocution,
-                ...visualConfig.interlocution
+                ...incomingInterlocution
             };
-        }
-
-        // When setting interlocution mode via archetype, grant consent automatically
-        // (User explicitly chose an archetype with interlocution, implying consent)
-        if (visualConfig.visualMode === 'interlocution') {
-            sessionStorage.setItem(SAFETY_CONSENT_KEY, 'true');
-            this.hasConsent = true;
+            // A preset/import that supplies any source-selection field owns
+            // the complete selection. Missing sibling arrays mean empty,
+            // never "preserve whatever paintings were selected before".
+            const selectionInput = hasVisualSelectionFields(incomingInterlocution)
+                ? {
+                    sourceFamily: incomingInterlocution.sourceFamily,
+                    procedural: Object.hasOwn(incomingInterlocution, 'procedural')
+                        ? incomingInterlocution.procedural
+                        : [],
+                    sourced: Object.hasOwn(incomingInterlocution, 'sourced')
+                        ? incomingInterlocution.sourced
+                        : []
+                }
+                : this.config.interlocution;
+            const migrated = migrateRetiredMetSelection(
+                selectionInput.procedural,
+                selectionInput.sourced
+            );
+            this.config.interlocution = {
+                ...mergedInterlocution,
+                ...normalizeVisualSelection({
+                    ...selectionInput,
+                    ...migrated
+                })
+            };
         }
 
         this.render();
@@ -305,10 +310,26 @@ export class VisualInterlocutionPanel {
      * Update the list of custom visuals from the Workshop
      */
     updateCustomVisuals(visuals) {
-        this.config.customVisuals = visuals || [];
+        this.config.customVisuals = Array.isArray(visuals) ? [...visuals] : [];
         // Auto-enable 'custom' in sourced if this was the first image added
         if (this.config.customVisuals.length > 0 && !this.config.interlocution.sourced.includes('custom')) {
-            this.config.interlocution.sourced.push('custom');
+            const family = this.config.interlocution.sourceFamily === 'blend' ? 'blend' : 'personal';
+            this.config.interlocution = {
+                ...this.config.interlocution,
+                ...normalizeVisualSelection({
+                    ...this.config.interlocution,
+                    sourceFamily: family,
+                    sourced: [...this.config.interlocution.sourced, 'custom']
+                })
+            };
+        } else if (this.config.customVisuals.length === 0 && this.config.interlocution.sourced.includes('custom')) {
+            this.config.interlocution = {
+                ...this.config.interlocution,
+                ...normalizeVisualSelection({
+                    ...this.config.interlocution,
+                    sourced: this.config.interlocution.sourced.filter(id => id !== 'custom')
+                })
+            };
         }
         this.render();
         this.attachEvents();
@@ -321,8 +342,9 @@ export class VisualInterlocutionPanel {
     getActiveTypes() {
         if (this.config.visualMode !== 'interlocution') return [];
 
-        const types = [...this.config.interlocution.procedural];
-        const sourced = this.config.interlocution.sourced;
+        const selection = normalizeVisualSelection(this.config.interlocution);
+        const types = [...selection.procedural];
+        const sourced = selection.sourced;
         
         // If 'custom' (active sequence) or any 'personal:' sequences are selected, add generic flags
         if (sourced.length > 0) {
@@ -408,7 +430,6 @@ export class VisualInterlocutionPanel {
             { id: 'anchor', name: 'Anchor', icon: '⚓', dynamic: false, description: 'Stable grounding point' },
             { id: 'lotus', name: 'Lotus', icon: '❀', dynamic: false, description: 'Centered bloom' },
             { id: 'eye', name: 'Eye', icon: '◉', dynamic: true, description: 'Soft focus ring' },
-            { id: 'spiral', name: 'Spiral', icon: '◌', dynamic: true, description: 'Slow unwinding path' },
             { id: 'star', name: 'Star', icon: '✦', dynamic: false, description: 'Fixed point of light' },
             { id: 'wave', name: 'Wave', icon: '≈', dynamic: true, description: 'Gentle oscillation' },
             { id: 'void', name: 'Void', icon: '●', dynamic: false, description: 'Pure stillness' }
@@ -441,6 +462,7 @@ export class VisualInterlocutionPanel {
         const personalBlueprints = MemoryCore.getWorkshopBlueprints().filter(bp => bp.customVisuals && bp.customVisuals.length > 0);
 
         const mode = this.config.visualMode;
+        const sourceFamily = this.config.interlocution.sourceFamily;
 
         this.container.innerHTML = `
             <div class="vi-panel ${this.expanded ? 'expanded' : ''}" role="region" aria-label="Visual Settings">
@@ -581,8 +603,33 @@ export class VisualInterlocutionPanel {
 
                     <!-- INTERLOCUTION: Probabilistic interrupts -->
                     <div class="vi-accordions" ${mode === 'interlocution' ? '' : 'hidden'}>
+                        <div class="vi-source-family" role="group" aria-label="Rhythmic source family">
+                            <div class="vi-source-family-label">Source</div>
+                            <div class="vi-source-family-options">
+                                ${[
+                                    ['procedural', 'Procedural'],
+                                    ['collections', 'Collections'],
+                                    ['personal', 'Personal'],
+                                    ['blend', 'Blend']
+                                ].map(([id, label]) => `
+                                    <button type="button"
+                                        class="vi-source-family-btn ${sourceFamily === id ? 'active' : ''}"
+                                        data-source-family="${id}"
+                                        aria-pressed="${sourceFamily === id}">
+                                        ${label}
+                                    </button>
+                                `).join('')}
+                            </div>
+                            <p class="vi-source-family-hint text-mist">
+                                ${sourceFamily === 'blend'
+                                    ? 'Blend intentionally combines generated work, collections, and personal imagery.'
+                                    : 'This source is exclusive. Choose Blend only when you want categories to intermingle.'}
+                            </p>
+                        </div>
+
                         <!-- 1. Procedural Patterns -->
-                        <div class="vi-accordion ${this.activeAccordions.includes('procedural') ? 'active' : ''}">
+                        <div class="vi-accordion ${this.activeAccordions.includes('procedural') ? 'active' : ''}"
+                            ${sourceFamily === 'procedural' || sourceFamily === 'blend' ? '' : 'hidden'}>
                             <button type="button" class="vi-accordion-header" data-toggle="procedural">
                                 <span>Procedural Patterns</span>
                                 <span class="vi-chevron">${this.activeAccordions.includes('procedural') ? '▲' : '▼'}</span>
@@ -629,7 +676,8 @@ export class VisualInterlocutionPanel {
                         </div>
 
                         <!-- 2. Universal Diagrams -->
-                        <div class="vi-accordion ${this.activeAccordions.includes('universal') ? 'active' : ''}">
+                        <div class="vi-accordion ${this.activeAccordions.includes('universal') ? 'active' : ''}"
+                            ${sourceFamily === 'collections' || sourceFamily === 'blend' ? '' : 'hidden'}>
                             <button type="button" class="vi-accordion-header" data-toggle="universal">
                                 <span>Universal Diagrams</span>
                                 <span class="vi-chevron">${this.activeAccordions.includes('universal') ? '▲' : '▼'}</span>
@@ -649,7 +697,8 @@ export class VisualInterlocutionPanel {
                         </div>
 
                         <!-- 2b. Art Institute of Chicago -->
-                        <div class="vi-accordion ${this.activeAccordions.includes('aic') ? 'active' : ''}">
+                        <div class="vi-accordion ${this.activeAccordions.includes('aic') ? 'active' : ''}"
+                            ${sourceFamily === 'collections' || sourceFamily === 'blend' ? '' : 'hidden'}>
                             <button type="button" class="vi-accordion-header" data-toggle="aic">
                                 <span>Art Institute Collection</span>
                                 <span class="vi-chevron">${this.activeAccordions.includes('aic') ? '▲' : '▼'}</span>
@@ -669,7 +718,8 @@ export class VisualInterlocutionPanel {
                         </div>
 
                         <!-- 3. Personal Architecture -->
-                        <div class="vi-accordion ${this.activeAccordions.includes('personal') ? 'active' : ''}">
+                        <div class="vi-accordion ${this.activeAccordions.includes('personal') ? 'active' : ''}"
+                            ${sourceFamily === 'personal' || sourceFamily === 'blend' ? '' : 'hidden'}>
                             <button type="button" class="vi-accordion-header" data-toggle="personal">
                                 <span>Personal Architecture</span>
                                 <span class="vi-chevron">${this.activeAccordions.includes('personal') ? '▲' : '▼'}</span>
@@ -839,6 +889,27 @@ export class VisualInterlocutionPanel {
             });
         });
 
+        // Rhythmic source family. Every family is exclusive except Blend;
+        // normalization clears incompatible arrays immediately so the UI and
+        // the persisted config cannot disagree.
+        this.container.querySelectorAll('[data-source-family]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.config.interlocution = {
+                    ...this.config.interlocution,
+                    ...normalizeVisualSelection({
+                        ...this.config.interlocution,
+                        sourceFamily: btn.dataset.sourceFamily
+                    })
+                };
+                if (window.rise?.audioEngine) {
+                    window.rise.audioEngine.playHiss();
+                }
+                this.emitChange();
+                this.render();
+                this.attachEvents();
+            });
+        });
+
         // Accordion toggles
         this.container.querySelectorAll('[data-toggle]').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -860,12 +931,17 @@ export class VisualInterlocutionPanel {
         this.container.querySelectorAll('[data-procedural]').forEach(cb => {
             cb.addEventListener('change', () => {
                 const id = cb.dataset.procedural;
-                const proc = this.config.interlocution.procedural;
-                if (cb.checked) {
-                    if (!proc.includes(id)) proc.push(id);
-                } else {
-                    this.config.interlocution.procedural = proc.filter(p => p !== id);
-                }
+                const current = this.config.interlocution;
+                const procedural = cb.checked
+                    ? [...current.procedural, id]
+                    : current.procedural.filter(p => p !== id);
+                const sourceFamily = cb.checked && current.sourceFamily !== 'blend'
+                    ? 'procedural'
+                    : current.sourceFamily;
+                this.config.interlocution = {
+                    ...current,
+                    ...normalizeVisualSelection({ ...current, sourceFamily, procedural })
+                };
                 
                 if (window.rise?.audioEngine) {
                     window.rise.audioEngine.playHiss();
@@ -904,16 +980,23 @@ export class VisualInterlocutionPanel {
         this.container.querySelectorAll('[data-sourced]').forEach(cb => {
             cb.addEventListener('change', () => {
                 const id = cb.dataset.sourced;
-                const src = this.config.interlocution.sourced;
-                if (cb.checked) {
-                    if (!src.includes(id)) src.push(id);
-                } else {
-                    this.config.interlocution.sourced = src.filter(s => s !== id);
-                }
+                const current = this.config.interlocution;
+                const sourced = cb.checked
+                    ? [...current.sourced, id]
+                    : current.sourced.filter(s => s !== id);
+                const sourceFamily = cb.checked && current.sourceFamily !== 'blend'
+                    ? (isPersonalVisualSource(id) ? 'personal' : 'collections')
+                    : current.sourceFamily;
+                this.config.interlocution = {
+                    ...current,
+                    ...normalizeVisualSelection({ ...current, sourceFamily, sourced })
+                };
                 if (window.rise?.audioEngine) {
                     window.rise.audioEngine.playHiss();
                 }
                 this.emitChange();
+                this.render();
+                this.attachEvents();
             });
         });
 
@@ -1066,6 +1149,7 @@ export class VisualInterlocutionPanel {
     }
 
     destroy() {
+        this._destroyed = true;
         this.container.innerHTML = '';
     }
 }

@@ -7,6 +7,7 @@
  */
 
 import { SourceProvider } from '../provider.js';
+import { isAbortError, withAbortTimeout } from '../visual/request.js';
 // The paper cache (~313KB) is loaded lazily on first provider use so it
 // never weighs down the eagerly-loaded sources bundle.
 
@@ -79,7 +80,7 @@ export class ArxivProvider extends SourceProvider {
      * @override
      * Get recent papers from a category
      */
-    async get(categoryId) {
+    async get(categoryId, options = {}) {
         if (!ARXIV_CATEGORIES[categoryId]) {
             throw new Error(`Unknown category: ${categoryId}`);
         }
@@ -104,7 +105,7 @@ export class ArxivProvider extends SourceProvider {
 
         // Fallback to live fetch
         const query = `cat:${categoryId}`;
-        const results = await this._searchArxiv(query, 10, 'submittedDate');
+        const results = await this._searchArxiv(query, 10, 'submittedDate', options);
 
         return {
             id: categoryId,
@@ -136,25 +137,29 @@ export class ArxivProvider extends SourceProvider {
             return localMatches;
         }
 
-        return this._searchArxiv(query, filter.limit || 10, 'relevance');
+        return this._searchArxiv(query, filter.limit || 10, 'relevance', filter);
     }
 
     /**
      * Fetch and parse from ArXiv API
      * @private
      */
-    async _searchArxiv(searchQuery, maxResults = 10, sortBy = 'relevance') {
+    async _searchArxiv(searchQuery, maxResults = 10, sortBy = 'relevance', options = {}) {
         const url = `${this.baseUrl}?search_query=${encodeURIComponent(searchQuery)}&start=0&max_results=${maxResults}&sortBy=${sortBy}&sortOrder=descending`;
 
+        const request = withAbortTimeout(options.signal, options.timeoutMs ?? 10000, 'ArXiv request');
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, { signal: request.signal });
             if (!response.ok) throw new Error(`ArXiv API Error: ${response.status}`);
             const xmlText = await response.text();
 
             return this._parseAtomResponse(xmlText);
         } catch (error) {
+            if (isAbortError(error)) throw error;
             console.warn('[ArxivProvider] API request failed (likely CORS). Using mock data fallback.', error);
             return this._getMockData(searchQuery);
+        } finally {
+            request.cleanup();
         }
     }
 

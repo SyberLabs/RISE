@@ -357,6 +357,34 @@ describe('Player', () => {
 
       expect(handler).toHaveBeenCalledWith(0, signal);
     });
+
+    it('recovers playback when the interlocution handler rejects', async () => {
+      session.visualConfig = {
+        visualMode: 'interlocution',
+        interlocution: { frequency: 1, duration: 33 }
+      };
+      const errorListener = vi.fn();
+      player.on('error', errorListener);
+      player.setInterlocutionHandler(vi.fn().mockRejectedValue(new Error('worker failed')));
+      player.sessionState.state = 'playing';
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+
+      await player.processNextNode();
+
+      expect(player.state).toBe('playing');
+      expect(player.sessionState.currentIndex).toBe(1);
+      expect(errorListener).toHaveBeenCalledWith(expect.objectContaining({ phase: 'interlocution' }));
+    });
+  });
+
+  describe('dynamic speed', () => {
+    it('includes the speed factor in remaining time', () => {
+      player.setSpeedFactor(2);
+      expect(player.calculateRemainingTime()).toBe(600);
+
+      player.setSpeedFactor(0.5);
+      expect(player.calculateRemainingTime()).toBe(150);
+    });
   });
 
   describe('resume from pause', () => {

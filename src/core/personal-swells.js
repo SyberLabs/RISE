@@ -8,6 +8,7 @@
 const DB_NAME = 'rise-personal-assets';
 const DB_VERSION = 1;
 const STORE_NAME = 'swells';
+const MAX_SWELL_BYTES = 20 * 1024 * 1024;
 
 export class PersonalSwellStore {
     constructor() {
@@ -47,7 +48,13 @@ export class PersonalSwellStore {
             };
         });
 
-        return this._initPromise;
+        try {
+            return await this._initPromise;
+        } catch (error) {
+            this._initPromise = null;
+            this._ready = false;
+            throw error;
+        }
     }
 
     /**
@@ -57,12 +64,18 @@ export class PersonalSwellStore {
      * @returns {Promise<Object>} The saved record
      */
     async addSwell(blob, name) {
+        if (!(blob instanceof Blob) || !blob.type.startsWith('audio/')) {
+            throw new TypeError('Personal swells must be audio files');
+        }
+        if (blob.size <= 0 || blob.size > MAX_SWELL_BYTES) {
+            throw new RangeError('Personal swells must be between 1 byte and 20 MB');
+        }
         await this.init();
         
         const id = `swell_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
         const record = {
             id,
-            name,
+            name: String(name || 'Untitled Swell').trim().slice(0, 120),
             timestamp: Date.now(),
             data: blob,
             type: blob.type
@@ -71,13 +84,14 @@ export class PersonalSwellStore {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
-            const request = store.add(record);
+            store.add(record);
 
-            request.onsuccess = () => {
+            transaction.oncomplete = () => {
                 console.log('[SwellStore] Asset saved:', id);
                 resolve(record);
             };
-            request.onerror = () => reject(request.error);
+            transaction.onerror = () => reject(transaction.error);
+            transaction.onabort = () => reject(transaction.error || new Error('Swell transaction aborted'));
         });
     }
 
@@ -107,10 +121,11 @@ export class PersonalSwellStore {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
-            const request = store.delete(id);
+            store.delete(id);
 
-            request.onsuccess = () => resolve();
-            request.onerror = () => reject(request.error);
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
+            transaction.onabort = () => reject(transaction.error || new Error('Swell transaction aborted'));
         });
     }
 
@@ -119,8 +134,13 @@ export class PersonalSwellStore {
      */
     async clear() {
         await this.init();
-        const transaction = this.db.transaction([STORE_NAME], 'readwrite');
-        transaction.objectStore(STORE_NAME).clear();
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([STORE_NAME], 'readwrite');
+            transaction.objectStore(STORE_NAME).clear();
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
+            transaction.onabort = () => reject(transaction.error || new Error('Swell clear transaction aborted'));
+        });
     }
 }
 

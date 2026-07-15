@@ -91,8 +91,6 @@ class ErrorBoundary {
         action: 'uncaught'
       });
 
-      // Prevent default browser error handling
-      event.preventDefault();
     });
 
     // Handle unhandled promise rejections
@@ -108,8 +106,6 @@ class ErrorBoundary {
         action: 'unhandled-rejection'
       });
 
-      // Prevent default browser handling
-      event.preventDefault();
     });
 
     this.isInitialized = true;
@@ -137,13 +133,16 @@ class ErrorBoundary {
     // Notify listeners
     this.notifyListeners(report);
 
-    // Log in development
+    // Keep production failures observable in the browser console; development
+    // adds the full structured context.
     if (import.meta.env?.DEV) {
       console.group(`[R.I.S.E. Error] ${report.category}/${report.severity}`);
       console.error(error);
       console.log('Context:', context);
       console.log('Report:', report.toJSON());
       console.groupEnd();
+    } else {
+      console.error(`[R.I.S.E.] ${report.category}/${report.severity}:`, error);
     }
 
     // Show user notification for high/critical errors
@@ -203,8 +202,20 @@ class ErrorBoundary {
 
     if (handler) {
       try {
-        handler(report);
-        return true;
+        const result = handler(report);
+        if (result && typeof result.then === 'function') {
+          report.recovered = false;
+          result.then(value => {
+            report.recovered = value !== false;
+            this.notifyListeners(report);
+          }).catch(error => {
+            report.recovered = false;
+            console.error('[R.I.S.E.] Recovery failed:', error);
+            this.notifyListeners(report);
+          });
+          return false;
+        }
+        return result !== false;
       } catch (e) {
         // Recovery failed, but don't throw
         return false;

@@ -10,7 +10,7 @@
  */
 
 import { SOL_SEQUENCES } from '../content/sol-sequences.js';
-import { chunkText } from '../core/chunker.js';
+import { estimateCompiledDuration } from '../core/session-compiler.js';
 import { MemoryCore } from '../core/memory.js';
 import { escapeHtml } from '../core/sanitize.js';
 
@@ -205,8 +205,13 @@ export class Sol {
 
         let label = seq.durationEst || '';
         try {
-            const atoms = chunkText(seq.content, { mode: 'word', wpm: seq.config?.wpm || 220 });
-            const totalMs = atoms.reduce((sum, a) => sum + (a.duration || 0), 0);
+            const totalMs = estimateCompiledDuration({
+                title: seq.title,
+                text: seq.content,
+                wpm: seq.config?.wpm,
+                chunkMode: seq.config?.chunkMode,
+                curve: seq.config?.curve
+            });
             const min = totalMs / 60000;
             if (min < 0.75) label = '< 1 min';
             else if (min < 1.5) label = '≈ 1 min';
@@ -374,8 +379,7 @@ export class Sol {
                 .map(s => (typeof s.data === 'string' ? s.data : ''))
                 .join('\n\n');
             if (text.trim()) {
-                const atoms = chunkText(text, { mode: bp.chunkMode || 'word', wpm: bp.wpm || 220 });
-                const min = atoms.reduce((sum, a) => sum + (a.duration || 0), 0) / 60000;
+                const min = estimateCompiledDuration({ ...bp, text }) / 60000;
                 label = min < 0.75 ? '< 1 min' : min < 1.5 ? '≈ 1 min' : `≈ ${Math.round(min)} min`;
             }
         } catch (e) {

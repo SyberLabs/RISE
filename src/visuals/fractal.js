@@ -18,6 +18,9 @@ export class FractalFlame {
         this.queue = [];
         this.maxQueueSize = 5;
         this.isGenerating = false;
+        this._generation = 0;
+        this._fillPromise = null;
+        this._destroyed = false;
 
         // Semantic mode: when a session provides representative signals,
         // queue fills render plan-driven flames (palette/variations/tone by
@@ -37,7 +40,8 @@ export class FractalFlame {
         this.MAX_DIMENSION = 2048; // Hard cap
 
         this.resize();
-        window.addEventListener('resize', () => this.resize());
+        this._boundResize = () => this.resize();
+        window.addEventListener('resize', this._boundResize);
     }
 
     resize() {
@@ -54,6 +58,7 @@ export class FractalFlame {
 
             // Invalidate stale buffers - they won't match new dimensions
             this.queue = [];
+            this._generation++;
             console.log(`[FractalFlame] Resized to ${w}x${h}, queue cleared.`);
         }
     }
@@ -64,13 +69,24 @@ export class FractalFlame {
      */
     setSignalPool(signals) {
         const next = Array.isArray(signals) && signals.length > 0 ? signals : null;
-        const modeChanged = !!next !== !!this.signalPool;
+        const key = pool => pool
+            ? pool.map(signal => `${Number(signal.valence).toFixed(3)}:${Number(signal.arousal).toFixed(3)}`).join('|')
+            : 'none';
+        const modeChanged = key(next) !== key(this.signalPool);
         this.signalPool = next;
         this._poolIndex = 0;
         if (modeChanged) {
+            this._generation++;
             this.queue = [];
             console.log(`[FractalFlame] Signal pool ${next ? `set (${next.length} signals)` : 'cleared'}, queue flushed.`);
         }
+    }
+
+    beginSession(signals) {
+        this.signalPool = Array.isArray(signals) && signals.length > 0 ? signals : null;
+        this._poolIndex = 0;
+        this._generation++;
+        this.queue = [];
     }
 
     /**
@@ -92,20 +108,33 @@ export class FractalFlame {
     }
 
     async fillQueue(targetCount) {
-        if (this.isGenerating) return;
+        if (this._destroyed) return;
+        const generation = this._generation;
+        if (this._fillPromise) {
+            await this._fillPromise.catch(() => {});
+            if (!this._destroyed && this.queue.length < targetCount) return this.fillQueue(targetCount);
+            return;
+        }
 
-        while (this.queue.length < targetCount) {
-            this.isGenerating = true;
-            try {
-                await this.generateToQueue();
-            } catch (err) {
-                console.error('[FractalFlame] Generation error:', err);
-                break;
-            } finally {
-                this.isGenerating = false;
+        this._fillPromise = (async () => {
+            while (!this._destroyed && generation === this._generation && this.queue.length < targetCount) {
+                this.isGenerating = true;
+                try {
+                    const item = await this.generateToQueue();
+                    if (generation === this._generation && !this._destroyed) this.queue.push(item);
+                } catch (err) {
+                    console.error('[FractalFlame] Generation error:', err);
+                    break;
+                } finally {
+                    this.isGenerating = false;
+                }
+                await new Promise(r => setTimeout(r, 50));
             }
-            // Small breathing room for UI
-            await new Promise(r => setTimeout(r, 50));
+        })();
+        try {
+            await this._fillPromise;
+        } finally {
+            this._fillPromise = null;
         }
     }
 
@@ -143,7 +172,7 @@ export class FractalFlame {
 
         // Store with metadata so we can validate dimensions at draw time
         // (and the signal the flame was built for, when in semantic mode)
-        this.queue.push({ imageData, width, height, signal });
+        return { imageData, width, height, signal };
         // console.log(`[FractalFlame] Generated ${width}x${height} flame. Queue: ${this.queue.length}`);
     }
 
@@ -196,5 +225,13 @@ export class FractalFlame {
         }
 
         return true;
+    }
+
+    destroy() {
+        this._destroyed = true;
+        this._generation++;
+        this.queue = [];
+        window.removeEventListener('resize', this._boundResize);
+        this.generator.dispose?.();
     }
 }

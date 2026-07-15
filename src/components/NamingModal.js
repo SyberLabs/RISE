@@ -185,11 +185,11 @@ export class NamingModal {
     this.container.innerHTML = `
       <div class="naming-modal">
         <div class="naming-modal-header">
-          <span class="naming-modal-subtitle">${subtitle}</span>
-          <h2 class="naming-modal-title">${title}</h2>
+          <span class="naming-modal-subtitle"></span>
+          <h2 class="naming-modal-title"></h2>
         </div>
         <div class="naming-modal-body">
-          <input type="text" class="naming-modal-input" placeholder="Enter identifier..." value="${defaultValue}" spellcheck="false" autocomplete="off">
+          <input type="text" class="naming-modal-input" placeholder="Enter identifier..." spellcheck="false" autocomplete="off">
         </div>
         <div class="naming-modal-actions">
           <button class="naming-btn naming-btn-cancel" data-action="cancel">Discard</button>
@@ -201,6 +201,9 @@ export class NamingModal {
     document.body.appendChild(this.container);
 
     const input = this.container.querySelector('.naming-modal-input');
+    this.container.querySelector('.naming-modal-title').textContent = String(title || '');
+    this.container.querySelector('.naming-modal-subtitle').textContent = String(subtitle || '');
+    input.value = String(defaultValue || '');
     const submitBtn = this.container.querySelector('[data-action="submit"]');
     const cancelBtn = this.container.querySelector('[data-action="cancel"]');
 

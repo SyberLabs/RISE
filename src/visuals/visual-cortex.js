@@ -14,11 +14,20 @@ import { RockGarden } from './rockgarden.js';
 import { NeuralNetwork } from './neural.js';
 import { Harmonograph } from './harmonograph.js';
 import { MemoryCore } from '../core/memory.js';
+import { abortableDelay, createAbortError, isAbortError } from '../sources/visual/request.js';
+import { hasVisualInterlocutionConsent, VisualFlashGate } from '../core/visual-safety.js';
 
-// Retained artworks per external category — enough rotation variety
-// that repeats read as motif rather than loop, small enough that a
-// six-category session holds ~50 compressed images at most
-const POOL_TARGET = 8;
+// External imagery is globally bounded because HTMLImageElements may retain
+// decoded pixels, not merely compressed network bytes. One image per selected
+// category gates session readiness; a slow single-concurrency task grows the
+// rotation afterward without ever entering the flash hot path.
+const INITIAL_POOL_TARGET = 1;
+const BACKGROUND_CATEGORY_TARGET = 3;
+const GLOBAL_ASSET_LIMIT = 18;
+const IMAGE_LOAD_TIMEOUT_MS = 8000;
+const BACKGROUND_RETRY_BASE_MS = 1000;
+const BACKGROUND_RETRY_MAX_MS = 30000;
+const WARM_LOAD_SPACING_MS = 100;
 // Pool key for bare 'diagram' flashes (no concrete category): a
 // Wikimedia grab-bag, one pool like any other
 const ANY_POOL = '__any__';
@@ -34,6 +43,7 @@ export class VisualCortex {
         this.harmonograph = null;
         this.diagramEl = null;
         this.initialized = false;
+        this._destroyed = false;
 
         // External providers (lazy loaded)
         this._wikimediaProvider = null;
@@ -43,14 +53,30 @@ export class VisualCortex {
         // frequency without touching the network (the old consume-once
         // queue starved at high frequency and fell back to procedural)
         this._assetPools = new Map(); // categoryId -> { images, cursor }
-        this._diagramPreloading = false;
+        // One versioned warm task owns all provider I/O. Flash calls only read
+        // retained assets; they never await this task or touch the network.
+        this._poolWarmTask = null; // { version, target, promise }
+        this._assetLoadPromises = new Map();
         this._configVersion = 0;
+        this._assetAbortController = new AbortController();
+        this._backgroundWarmTimer = null;
+        this._backgroundFailureStreak = 0;
+        this._externalStatus = {
+            state: 'idle',
+            version: 0,
+            retained: 0,
+            categories: {},
+            failures: 0,
+            skippedFlashes: 0,
+            lastError: null
+        };
         // Klee queue/episode machinery lives in the KleeFlashes wrapper
         // (mirroring the FractalFlame pattern) — the cortex stays a dispatcher
         this.kleeFlashes = null;
         this._kleeResizeObserver = null;
         this._boundKleeResize = null;
         this._kleeResizeTimer = null;
+        this._flashGate = new VisualFlashGate();
 
         // Configuration state
         this.config = {
@@ -66,6 +92,10 @@ export class VisualCortex {
 
     init() {
         if (this.initialized) return;
+        this._destroyed = false;
+        if (this._assetAbortController.signal.aborted) {
+            this._assetAbortController = new AbortController();
+        }
 
         this.container = document.getElementById('visual-cortex');
         if (!this.container) {
@@ -200,28 +230,41 @@ export class VisualCortex {
      * @param {Object} newConfig - Partial config object
      */
     updateConfig(newConfig) {
+        const nextConfig = { ...newConfig };
+        if ('activeTypes' in nextConfig) {
+            nextConfig.activeTypes = this._normalizeActiveTypes(nextConfig.activeTypes);
+        }
+        let assetGenerationRotated = false;
         // Detect if active external categories changed
-        if (newConfig.activeTypes) {
-            const oldExternal = (this.config.activeTypes || []).filter(t => this._isExternalCategory(t));
-            const newExternal = newConfig.activeTypes.filter(t => this._isExternalCategory(t));
+        if ('activeTypes' in nextConfig) {
+            const oldExternal = this._poolCategoriesForTypes(this.config.activeTypes || []);
+            const newExternal = this._poolCategoriesForTypes(nextConfig.activeTypes);
             
-            // If the set of external categories changed, flush the queue to prevent "bleed"
+            // A category generation owns its own abort signal. Preserve pools
+            // shared by both configurations, release removed categories, and
+            // cancel obsolete provider/image work immediately.
             const changed = oldExternal.length !== newExternal.length || 
                           !oldExternal.every(t => newExternal.includes(t));
             
             if (changed) {
-                console.log('[Visual Cortex] Category change detected, flushing asset pools.');
-                this._assetPools.clear();
-                this._configVersion++; // Force preloads to restart
+                console.log('[Visual Cortex] Category change detected, rotating asset generation.');
+                this._rotateAssetGeneration(nextConfig.activeTypes);
+                assetGenerationRotated = true;
             }
         }
 
-        this.config = { ...this.config, ...newConfig };
+        // Leaving an interlocution session cancels background/provider work
+        // while preserving already-retained pools for a possible return.
+        if (nextConfig.enabled === false && this.config.enabled !== false && !assetGenerationRotated) {
+            this._rotateAssetGeneration(nextConfig.activeTypes || this.config.activeTypes || []);
+        }
+
+        this.config = { ...this.config, ...nextConfig };
 
         // Forward klee session config — the wrapper value-compares (preset
         // string, signal contents) and only flushes on real changes, so
         // identical arrays arriving under new references keep the queue.
-        if (('kleePreset' in newConfig || 'semanticSignals' in newConfig) && this.kleeFlashes) {
+        if (('kleePreset' in nextConfig || 'semanticSignals' in nextConfig) && this.kleeFlashes) {
             this.kleeFlashes.configure({
                 preset: this.config.kleePreset ?? 'random',
                 signals: this.config.semanticSignals
@@ -230,8 +273,8 @@ export class VisualCortex {
 
         // Forward the semantic signal pool to the flame queue (responsive
         // sessions); explicitly passing null clears it for raw sessions.
-        if ('semanticSignals' in newConfig && this.fractal) {
-            this.fractal.setSignalPool(newConfig.semanticSignals);
+        if ('semanticSignals' in nextConfig && this.fractal) {
+            this.fractal.setSignalPool(nextConfig.semanticSignals);
         }
 
         console.log('[Visual Cortex] Config updated:', this.config);
@@ -274,10 +317,6 @@ export class VisualCortex {
     }
 
     /**
-     * Get or initialize the Met Museum provider
-     * @private
-     */
-    /**
      * Route a category to its correct provider
      * @private
      */
@@ -290,9 +329,8 @@ export class VisualCortex {
         if (categoryId.startsWith('aic-')) {
             return this._getMuseumProvider();
         }
-        // Met Museum was retired (shallow pools, ~750px derivatives).
-        // Saved configs may still carry met-* ids: no provider means
-        // the flash skips to procedural rather than mis-routing.
+        // Defense in depth for direct provider calls. Normal configuration
+        // paths migrate retired Met ids before hydration reaches this method.
         if (categoryId.startsWith('met-')) {
             return null;
         }
@@ -308,8 +346,7 @@ export class VisualCortex {
     /**
      * Translate a UI category id into the provider's own key. AIC ids
      * are namespaced in the UI ('aic-renaissance') but the provider's
-     * category table uses bare keys ('renaissance'); Met's table keys
-     * carry their 'met-' prefix natively.
+     * category table uses bare keys ('renaissance').
      * @private
      */
     _providerCategory(categoryId) {
@@ -321,32 +358,74 @@ export class VisualCortex {
      * Helper to load an image into an Image element
      * @private
      */
-    _loadImage(url, name, categoryId) {
+    _loadImage(url, name, categoryId, signal = this._assetAbortController.signal) {
         return new Promise((resolve, reject) => {
+            if (signal?.aborted) {
+                reject(createAbortError());
+                return;
+            }
             const img = new Image();
+            img.decoding = 'async';
+            img.fetchPriority = 'low';
             // Do NOT set crossOrigin = 'anonymous' — that forces CORS mode and will
             // fail for any CDN that doesn't send Access-Control-Allow-Origin headers
             // (Met, and others). Images displayed in <img> elements load fine without it.
 
-            // 10s timeout to prevent hanging the queue
-            const timeout = setTimeout(() => {
-                img.src = ''; // Cancel loading
-                reject(new Error(`Timeout loading image: ${url}`));
-            }, 10000);
-
-            img.onload = () => {
+            let settled = false;
+            const cleanup = () => {
                 clearTimeout(timeout);
-                resolve({
+                signal?.removeEventListener('abort', onAbort);
+                img.onload = null;
+                img.onerror = null;
+            };
+            const fail = (error) => {
+                if (settled) return;
+                settled = true;
+                cleanup();
+                img.src = '';
+                reject(error);
+            };
+            const succeed = (asset) => {
+                if (settled) return;
+                settled = true;
+                cleanup();
+                resolve(asset);
+            };
+            const onAbort = () => fail(createAbortError(`Image load aborted for ${categoryId}`));
+
+            const timeout = setTimeout(() => {
+                const error = new Error(`Image load timed out after ${IMAGE_LOAD_TIMEOUT_MS}ms`);
+                error.name = 'TimeoutError';
+                fail(error);
+            }, IMAGE_LOAD_TIMEOUT_MS);
+
+            img.onload = async () => {
+                try {
+                    // onload means bytes are available; decode() guarantees the
+                    // first 33-200ms exposure never pays a surprise decode cost.
+                    await img.decode?.();
+                } catch {
+                    // Some browsers reject decode() after a successful onload;
+                    // the loaded element remains safe to display.
+                }
+                if (signal?.aborted) {
+                    fail(createAbortError(`Image load aborted for ${categoryId}`));
+                    return;
+                }
+                const now = Date.now();
+                succeed({
                     img,
                     name: name,
                     category: categoryId,
-                    loadedAt: Date.now()
+                    url,
+                    loadedAt: now,
+                    lastUsedAt: now
                 });
             };
-            img.onerror = (err) => {
-                clearTimeout(timeout);
-                reject(err);
+            img.onerror = () => {
+                fail(new Error(`Image request failed for ${categoryId}: ${url}`));
             };
+            signal?.addEventListener('abort', onAbort, { once: true });
             img.src = url;
         });
     }
@@ -358,81 +437,387 @@ export class VisualCortex {
         return this._assetPools.get(categoryId);
     }
 
-    /**
-     * Fetch one artwork into a category's retained pool. Duplicate
-     * URLs are skipped so the pool grows in variety, not repetition.
-     * @private
-     */
-    async _loadIntoPool(categoryId) {
-        const pool = this._poolFor(categoryId);
-        try {
-            const provider = categoryId === ANY_POOL
-                ? await this._getWikimediaProvider()
-                : await this._getProviderForCategory(categoryId);
-            if (!provider) return null;
-
-            const image = await provider.getRandom(
-                categoryId === ANY_POOL ? {} : { category: this._providerCategory(categoryId) });
-            if (!image || !image.data || !image.data.url) return null;
-            if (pool.images.some(a => a.img?.src === image.data.url)) return null;
-
-            const asset = await this._loadImage(image.data.url, image.name, categoryId);
-            pool.images.push(asset);
-            return asset;
-        } catch (e) {
-            console.warn('[Visual Cortex] Pool load failed:', e.message);
-            return null;
-        }
+    _poolCategoriesForTypes(types = []) {
+        const categories = types.filter(t => this._isExternalCategory(t));
+        if (categories.length === 0 && types.includes('diagram')) return [ANY_POOL];
+        return [...new Set(categories)];
     }
 
-    /**
-     * Grow each active category's retained pool toward the target.
-     * @private
-     */
-    async _preloadDiagrams(perCategory = POOL_TARGET) {
-        if (this._diagramPreloading) return;
-        this._diagramPreloading = true;
-        const currentVersion = this._configVersion;
+    _isRetiredExternalType(type) {
+        return typeof type === 'string' && type.startsWith('met-');
+    }
 
-        try {
-            const categories = this.config.activeTypes.filter(t => this._isExternalCategory(t));
-            if (categories.length === 0) return;
+    _normalizeActiveTypes(types) {
+        if (!Array.isArray(types)) return [];
+        const hadRetiredMet = types.some(type => this._isRetiredExternalType(type));
+        const supported = [...new Set(types.filter(type =>
+            typeof type === 'string' && !this._isRetiredExternalType(type)
+        ))];
 
-            const target = Math.max(2, Math.min(POOL_TARGET, perCategory));
-            console.log(`[Visual Cortex] Warming asset pools (${categories.length} categories × ${target})...`);
+        // Preserve the retirement contract for a legacy Met-only preset.
+        // Mixed presets simply drop the invisible stale entry so a currently
+        // selected source such as Old Masters remains the sole visual intent.
+        if (supported.length === 0 && hadRetiredMet) return ['klee'];
+        return supported;
+    }
 
-            // Round-robin so every category gets a first image quickly
-            for (let round = 0; round < target; round++) {
-                for (const categoryId of categories) {
-                    if (this._configVersion !== currentVersion) {
-                        console.log('[Visual Cortex] Pool warming aborted: config changed.');
-                        return;
+    _activePoolCategories() {
+        return this._poolCategoriesForTypes(this.config.activeTypes || []);
+    }
+
+    _rotateAssetGeneration(nextActiveTypes) {
+        this._assetAbortController.abort(createAbortError('External asset configuration changed'));
+        this._assetAbortController = new AbortController();
+        this._configVersion++;
+        clearTimeout(this._backgroundWarmTimer);
+        this._backgroundWarmTimer = null;
+        // Detach obsolete ownership immediately. Its abort-aware work will
+        // unwind independently, while the new generation can begin without
+        // waiting on an old dynamic import or browser image callback.
+        this._poolWarmTask = null;
+        this._assetLoadPromises.clear();
+        this._backgroundFailureStreak = 0;
+
+        const retainedCategories = new Set(this._poolCategoriesForTypes(nextActiveTypes));
+        for (const [categoryId, pool] of this._assetPools) {
+            if (!retainedCategories.has(categoryId)) {
+                pool.images.forEach(asset => this._disposeAsset(asset));
+                this._assetPools.delete(categoryId);
+            }
+        }
+        this._externalStatus.failures = 0;
+        this._externalStatus.skippedFlashes = 0;
+        this._externalStatus.lastError = null;
+        this._refreshExternalStatus(
+            'idle', INITIAL_POOL_TARGET, undefined, [...retainedCategories]);
+    }
+
+    _backgroundTarget() {
+        const categoryCount = Math.max(1, this._activePoolCategories().length);
+        return Math.max(1, Math.min(
+            BACKGROUND_CATEGORY_TARGET,
+            Math.floor(GLOBAL_ASSET_LIMIT / categoryCount)
+        ));
+    }
+
+    _refreshExternalStatus(
+        state,
+        target = INITIAL_POOL_TARGET,
+        lastError = undefined,
+        categories = this._activePoolCategories()
+    ) {
+        const categoryStatus = {};
+        let retained = 0;
+        for (const categoryId of categories) {
+            const count = this._poolFor(categoryId).images.length;
+            retained += count;
+            categoryStatus[categoryId] = { retained: count, target };
+        }
+
+        const minimumReady = categories.length === 0
+            || categories.every(categoryId => this._poolFor(categoryId).images.length >= INITIAL_POOL_TARGET);
+        const targetSatisfied = categories.length === 0
+            || categories.every(categoryId => this._poolFor(categoryId).images.length >= target);
+
+        this._externalStatus = {
+            ...this._externalStatus,
+            state,
+            version: this._configVersion,
+            retained,
+            categories: categoryStatus,
+            minimumReady,
+            targetSatisfied,
+            ...(lastError !== undefined ? { lastError } : {})
+        };
+        return this.getExternalAssetStatus();
+    }
+
+    getExternalAssetStatus() {
+        return {
+            ...this._externalStatus,
+            lastError: this._externalStatus.lastError
+                ? { ...this._externalStatus.lastError }
+                : null,
+            categories: Object.fromEntries(
+                Object.entries(this._externalStatus.categories || {})
+                    .map(([key, value]) => [key, { ...value }])
+            )
+        };
+    }
+
+    _recordExternalFailure(categoryId, phase, error, url = null) {
+        if (isAbortError(error)) return;
+        const detail = {
+            category: categoryId,
+            phase,
+            url,
+            name: error?.name || 'Error',
+            message: error?.message || String(error || 'Unknown external asset error')
+        };
+        this._externalStatus.failures++;
+        this._externalStatus.lastError = detail;
+        console.warn('[Visual Cortex] External asset load failed:', detail);
+    }
+
+    _touchAsset(asset) {
+        asset.lastUsedAt = Date.now();
+        return asset;
+    }
+
+    _disposeAsset(asset) {
+        if (!asset?.img) return;
+        asset.img.onload = null;
+        asset.img.onerror = null;
+        // The visible diagram element owns its own URL. Releasing this
+        // off-DOM preload element lets the browser reclaim decoded pixels.
+        asset.img.src = '';
+    }
+
+    _retainAsset(categoryId, asset) {
+        const pool = this._poolFor(categoryId);
+        this._touchAsset(asset);
+        pool.images.push(asset);
+        this._enforceGlobalAssetLimit();
+        return asset;
+    }
+
+    _enforceGlobalAssetLimit() {
+        let retained = [...this._assetPools.values()]
+            .reduce((total, pool) => total + pool.images.length, 0);
+        while (retained > GLOBAL_ASSET_LIMIT) {
+            let oldest = null;
+            for (const [categoryId, pool] of this._assetPools) {
+                // Preserve the minimum-ready image for every category.
+                if (pool.images.length <= INITIAL_POOL_TARGET) continue;
+                for (let index = 0; index < pool.images.length; index++) {
+                    const asset = pool.images[index];
+                    if (!oldest || (asset.lastUsedAt || asset.loadedAt || 0) < oldest.time) {
+                        oldest = {
+                            categoryId,
+                            index,
+                            time: asset.lastUsedAt || asset.loadedAt || 0
+                        };
                     }
-                    if (this._poolFor(categoryId).images.length > round) continue;
-                    await this._loadIntoPool(categoryId);
-                    // Yield to the main thread between network loads
-                    await new Promise(resolve => setTimeout(resolve, 60));
                 }
             }
-
-            const stocked = [...this._assetPools.values()].reduce((n, p) => n + p.images.length, 0);
-            console.log(`[Visual Cortex] Asset pools warm: ${stocked} artworks retained`);
-        } catch (error) {
-            console.error('[Visual Cortex] Pool warming failed:', error);
-        } finally {
-            this._diagramPreloading = false;
+            // More selected categories than the global cap is an impossible
+            // minimum-ready set; remain globally bounded and report degraded.
+            if (!oldest) {
+                for (const [categoryId, pool] of this._assetPools) {
+                    for (let index = 0; index < pool.images.length; index++) {
+                        const asset = pool.images[index];
+                        if (!oldest || (asset.lastUsedAt || asset.loadedAt || 0) < oldest.time) {
+                            oldest = {
+                                categoryId,
+                                index,
+                                time: asset.lastUsedAt || asset.loadedAt || 0
+                            };
+                        }
+                    }
+                }
+            }
+            if (!oldest) break;
+            const pool = this._poolFor(oldest.categoryId);
+            const [evicted] = pool.images.splice(oldest.index, 1);
+            this._disposeAsset(evicted);
+            if (pool.cursor >= pool.images.length) pool.cursor = pool.images.length - 1;
+            retained--;
         }
     }
 
+    _takeFromPool(pool) {
+        if (!pool || pool.images.length === 0) return null;
+        pool.cursor = (pool.cursor + 1) % pool.images.length;
+        return this._touchAsset(pool.images[pool.cursor]);
+    }
+
     /**
-     * Get next diagram from queue or fetch new
+     * Fetch one artwork into a category's retained pool. A duplicate URL
+     * reuses its already-decoded asset; unique URLs grow the rotation.
      * @private
      */
+    async _loadIntoPool(categoryId, options = {}) {
+        const version = options.version ?? this._configVersion;
+        const signal = options.signal ?? this._assetAbortController.signal;
+        const requestKey = `${version}:${categoryId}`;
+        const existingLoad = this._assetLoadPromises.get(requestKey);
+        if (existingLoad) return existingLoad;
+
+        const pool = this._poolFor(categoryId);
+        const loadPromise = (async () => {
+            let requestedUrl = null;
+            try {
+                if (signal.aborted || version !== this._configVersion) throw createAbortError();
+                const provider = categoryId === ANY_POOL
+                    ? await this._getWikimediaProvider()
+                    : await this._getProviderForCategory(categoryId);
+                if (!provider) throw new Error(`No provider for category ${categoryId}`);
+
+                const image = await provider.getRandom(
+                    categoryId === ANY_POOL
+                        ? { signal, timeoutMs: 8000 }
+                        : {
+                            category: this._providerCategory(categoryId),
+                            signal,
+                            timeoutMs: 8000
+                        });
+                if (!image?.data?.url) throw new Error(`Provider returned no image URL for ${categoryId}`);
+                requestedUrl = image.data.url;
+                if (signal.aborted || version !== this._configVersion) throw createAbortError();
+
+                // Random selection can legitimately return an artwork that is
+                // already retained. It remains usable content, not a failed
+                // hydration attempt.
+                const duplicate = pool.images.find(a => a.img?.src === image.data.url);
+                if (duplicate) return this._touchAsset(duplicate);
+
+                const asset = await this._loadImage(image.data.url, image.name, categoryId, signal);
+                if (signal.aborted || version !== this._configVersion) throw createAbortError();
+                return this._retainAsset(categoryId, asset);
+            } catch (e) {
+                this._recordExternalFailure(categoryId, 'hydrate', e, requestedUrl);
+                return null;
+            }
+        })();
+
+        this._assetLoadPromises.set(requestKey, loadPromise);
+        try {
+            return await loadPromise;
+        } finally {
+            if (this._assetLoadPromises.get(requestKey) === loadPromise) {
+                this._assetLoadPromises.delete(requestKey);
+            }
+        }
+    }
+
+    async _runPoolWarmPass(categories, target, version, signal) {
+        this._refreshExternalStatus('warming', target);
+        const maxAttempts = Math.max(2, target * 2);
+
+        try {
+            for (let round = 0; round < maxAttempts; round++) {
+                let attempted = false;
+                for (const categoryId of categories) {
+                    if (signal.aborted || version !== this._configVersion) throw createAbortError();
+                    if (this._poolFor(categoryId).images.length >= target) continue;
+
+                    attempted = true;
+                    await this._loadIntoPool(categoryId, { version, signal });
+                    await abortableDelay(WARM_LOAD_SPACING_MS, signal);
+                }
+                if (!attempted) break;
+            }
+        } catch (error) {
+            if (!isAbortError(error)) this._recordExternalFailure('pool', 'warm', error);
+        }
+
+        if (signal.aborted || version !== this._configVersion) {
+            return { ...this.getExternalAssetStatus(), aborted: true };
+        }
+
+        const minimumReady = categories.every(
+            categoryId => this._poolFor(categoryId).images.length >= INITIAL_POOL_TARGET);
+        const targetSatisfied = categories.every(
+            categoryId => this._poolFor(categoryId).images.length >= target);
+        const retained = categories.reduce(
+            (total, categoryId) => total + this._poolFor(categoryId).images.length, 0);
+        const state = targetSatisfied ? 'ready'
+            : retained > 0 ? 'degraded'
+                : 'failed';
+        const status = this._refreshExternalStatus(state, target);
+        console.log('[Visual Cortex] External asset readiness:', status);
+        return { ...status, minimumReady, targetSatisfied, aborted: false };
+    }
+
+    /**
+     * Join or start the one versioned pool-warming task. Every joined caller
+     * accepts the same bounded result; none can form a follow-on retry convoy.
+     */
+    async _preloadDiagrams(perCategory = INITIAL_POOL_TARGET) {
+        if (this._destroyed) return this.getExternalAssetStatus();
+        const requestedVersion = this._configVersion;
+        const target = Math.max(
+            INITIAL_POOL_TARGET,
+            Math.min(this._backgroundTarget(), perCategory)
+        );
+
+        while (true) {
+            if (this._destroyed) return this.getExternalAssetStatus();
+            // A caller belongs to the generation it started in. It must never
+            // resurrect itself against a replacement configuration; the new
+            // session/preload call owns that generation.
+            if (requestedVersion !== this._configVersion) {
+                return { ...this.getExternalAssetStatus(), aborted: true };
+            }
+            const version = this._configVersion;
+            const categories = this._activePoolCategories();
+            if (categories.length === 0) return this._refreshExternalStatus('idle', target);
+            if (categories.every(categoryId => this._poolFor(categoryId).images.length >= target)) {
+                return this._refreshExternalStatus('ready', target);
+            }
+
+            const activeTask = this._poolWarmTask;
+            if (activeTask) {
+                const result = await activeTask.promise;
+                if (version !== this._configVersion) continue;
+                // A pass at this target (or higher) made its bounded attempts.
+                // All joiners share that result; retry scheduling has one owner.
+                if (activeTask.version === version && activeTask.target >= target) return result;
+                continue;
+            }
+
+            const signal = this._assetAbortController.signal;
+            const task = { version, target, promise: null };
+            task.promise = this._runPoolWarmPass(categories, target, version, signal);
+            this._poolWarmTask = task;
+            try {
+                const result = await task.promise;
+                if (version !== this._configVersion) continue;
+                return result;
+            } finally {
+                if (this._poolWarmTask === task) this._poolWarmTask = null;
+            }
+        }
+    }
+
+    _scheduleBackgroundWarm(immediate = false) {
+        if (this._destroyed || !this.config.enabled) return;
+        const categories = this._activePoolCategories();
+        if (categories.length === 0 || this._backgroundWarmTimer) return;
+        const target = this._backgroundTarget();
+        if (categories.every(categoryId => this._poolFor(categoryId).images.length >= target)) {
+            this._backgroundFailureStreak = 0;
+            this._refreshExternalStatus('ready', target);
+            return;
+        }
+
+        const delay = immediate ? 0 : Math.min(
+            BACKGROUND_RETRY_MAX_MS,
+            BACKGROUND_RETRY_BASE_MS * (2 ** this._backgroundFailureStreak)
+        );
+        const scheduledVersion = this._configVersion;
+        this._backgroundWarmTimer = setTimeout(async () => {
+            this._backgroundWarmTimer = null;
+            if (scheduledVersion !== this._configVersion) return;
+
+            const status = await this._preloadDiagrams(target);
+            if (scheduledVersion !== this._configVersion || status.aborted) return;
+            if (status.targetSatisfied) {
+                this._backgroundFailureStreak = 0;
+                return;
+            }
+
+            this._backgroundFailureStreak++;
+            this._scheduleBackgroundWarm(false);
+        }, delay);
+    }
+
     /**
      * Check if a type is a known Wikimedia category
      * @private
      */
     _isExternalCategory(type) {
+        if (typeof type !== 'string' || this._isRetiredExternalType(type)) return false;
         // Core types are internal or handled elsewhere
         const coreTypes = ['klee', 'turrell', 'fractal', 'neural', 'global', 'custom', 'rockgarden', 'harmonograph', 'diagram', 'global-pool'];
         if (coreTypes.includes(type) || type.startsWith('personal:')) return false;
@@ -442,51 +827,27 @@ export class VisualCortex {
     }
 
     /**
-     * Serve an artwork for a flash. Warm pools answer instantly with a
-     * rotated sample (assets are retained, never consumed — a session
-     * at any flash frequency cannot starve them). A cold pool fetches
-     * directly, and whatever it fetches joins the pool for next time.
-     * @param {string} [category] - Optional specific category to prefer
-     * @private
+     * Cache-only flash selection. This method deliberately contains no await
+     * and no provider access: a 33-200ms exposure can never stall the reading
+     * clock on network or decode work.
      */
-    async _getNextDiagram(category = null) {
+    _getNextDiagram(category = null) {
         const activeExternal = this.config.activeTypes.filter(t => this._isExternalCategory(t));
-        // No concrete categories (bare 'diagram' vocabulary) → the
-        // Wikimedia grab-bag pool
-        const candidates = category ? [category]
+        const candidates = category
+            ? [category] // explicit category is a veto: never substitute it
             : activeExternal.length > 0 ? activeExternal : [ANY_POOL];
+        const stockedPools = candidates
+            .map(categoryId => this._poolFor(categoryId))
+            .filter(pool => pool.images.length > 0);
 
-        // 1. Serve from a stocked pool — rotation, no consumption
-        const stocked = candidates
-            .map(c => this._poolFor(c))
-            .filter(p => p.images.length > 0);
-        if (stocked.length > 0) {
-            const pool = stocked[Math.floor(Math.random() * stocked.length)];
-            pool.cursor = (pool.cursor + 1) % pool.images.length;
-            const asset = pool.images[pool.cursor];
+        const target = this._backgroundTarget();
+        const needsWarmth = this._activePoolCategories()
+            .some(categoryId => this._poolFor(categoryId).images.length < target);
+        if (needsWarmth) this._scheduleBackgroundWarm(false);
+        if (stockedPools.length === 0) return null;
 
-            // Keep growing variety in the background until the target
-            const needy = candidates.some(c => this._poolFor(c).images.length < POOL_TARGET);
-            if (needy && !this._diagramPreloading) this._preloadDiagrams();
-
-            return asset;
-        }
-
-        // 2. Cold pool: fetch directly — the asset is retained, so this
-        // path runs at most once per category per session
-        const target = category
-            || candidates[Math.floor(Math.random() * candidates.length)]
-            || null;
-        if (!target) return null;
-
-        for (let attempt = 0; attempt < 2; attempt++) {
-            const asset = await this._loadIntoPool(target);
-            if (asset) {
-                if (!this._diagramPreloading) this._preloadDiagrams();
-                return asset;
-            }
-        }
-        return null;
+        const pool = stockedPools[Math.floor(Math.random() * stockedPools.length)];
+        return this._takeFromPool(pool);
     }
 
     /**
@@ -496,13 +857,20 @@ export class VisualCortex {
      */
     async preload(estimatedFlashCount) {
         if (!this.initialized) this.init();
+        this._flashGate.reset();
+
+        const flashCount = Number.isFinite(Number(estimatedFlashCount))
+            ? Math.max(0, Number(estimatedFlashCount))
+            : 0;
 
         const preloadPromises = [];
+        let externalPreload = null;
 
         // Preload fractals
         if (this.fractal && this.config.activeTypes.includes('fractal')) {
+            this.fractal.beginSession(this.config.semanticSignals);
             const fractalShare = 1 / Math.max(1, this.config.activeTypes.length);
-            const count = Math.ceil(estimatedFlashCount * fractalShare * 1.5);
+            const count = Math.ceil(flashCount * fractalShare * 1.5);
             preloadPromises.push(this.fractal.preload(count));
         }
 
@@ -510,8 +878,12 @@ export class VisualCortex {
         // One snapshot supports several static short flashes, so preload by
         // episode rather than by raw flash count.
         if (this.kleeFlashes && this.config.activeTypes.includes('klee')) {
+            this.kleeFlashes.beginSession({
+                preset: this.config.kleePreset ?? 'random',
+                signals: this.config.semanticSignals
+            });
             const kleeShare = 1 / Math.max(1, this.config.activeTypes.length);
-            const estimatedKleeFlashes = Math.ceil(estimatedFlashCount * kleeShare * 1.5);
+            const estimatedKleeFlashes = Math.ceil(flashCount * kleeShare * 1.5);
             const episodeCount = Math.max(
                 this.config.kleePreset === 'random' ? KLEE_PRESET_NAMES.length : 1,
                 Math.ceil(estimatedKleeFlashes / 4)
@@ -519,20 +891,21 @@ export class VisualCortex {
             preloadPromises.push(this.kleeFlashes.preload(episodeCount));
         }
 
-        // Preload external assets. Sessions carry concrete category ids
-        // ('aic-renaissance', 'met-european', wikimedia keys) rather than
-        // the bare 'diagram' flag, so gate on either — otherwise the
-        // queue starts empty and the first museum flash of a session
-        // always missed and fell back to procedural
-        const externalCount = this.config.activeTypes
-            .filter(t => t === 'diagram' || this._isExternalCategory(t)).length;
-        if (externalCount > 0) {
-            const diagramShare = externalCount / Math.max(1, this.config.activeTypes.length);
-            const count = Math.ceil(estimatedFlashCount * diagramShare * 1.5);
-            preloadPromises.push(this._preloadDiagrams(Math.min(Math.max(count, 4), 10)));
+        // Preload external assets. Sessions usually carry concrete category
+        // ids, while legacy configs may still use the bare 'diagram' flag.
+        // Both paths enter with a decoded retained asset when available.
+        const externalCategories = this._activePoolCategories();
+        if (externalCategories.length > 0) {
+            // Session entry gates on one decoded image per selected category.
+            // The rotation grows afterward under one globally capped task.
+            externalPreload = this._preloadDiagrams(INITIAL_POOL_TARGET);
+            preloadPromises.push(externalPreload);
         }
 
         await Promise.all(preloadPromises);
+        const externalStatus = this.getExternalAssetStatus();
+        if (externalPreload) this._scheduleBackgroundWarm(externalStatus.minimumReady);
+        return externalStatus;
     }
 
     /**
@@ -549,6 +922,8 @@ export class VisualCortex {
             && document.documentElement.classList.contains('photosensitivity-mode')) {
             return;
         }
+        if (!hasVisualInterlocutionConsent()) return;
+        if (!this._flashGate.allow()) return;
 
         if (!this.initialized) this.init();
         if (!this.container) return;
@@ -567,6 +942,13 @@ export class VisualCortex {
         // Map global-pool to custom logic
         if (selectedType === 'global-pool') {
             selectedType = 'global';
+        }
+        // A stale plan/type override can bypass updateConfig. Honor the Met
+        // retirement promise without attempting a provider or showing a blank
+        // frame: use procedural Klee when it is available.
+        if (this._isRetiredExternalType(selectedType)) {
+            if (!this.kleeFlashes || !this._kleeCanvas) return;
+            selectedType = 'klee';
         }
 
         // Generate content
@@ -614,29 +996,24 @@ export class VisualCortex {
             }
         } else if (this.diagramEl && (selectedType === 'diagram' || this._isExternalCategory(selectedType))) {
             try {
-                const diagram = await this._getNextDiagram(selectedType !== 'diagram' ? selectedType : null);
+                const requestedCategory = selectedType !== 'diagram' ? selectedType : null;
+                const diagram = this._getNextDiagram(requestedCategory);
                 if (!diagram || !diagram.img) {
-                    throw new Error('No asset content');
+                    // Explicit source choices are a veto. An unavailable frame
+                    // becomes intentional stillness; it never injects Klee or
+                    // blocks the reading clock on a network request.
+                    this._externalStatus.skippedFlashes++;
+                    this._scheduleBackgroundWarm(false);
+                    return;
                 }
                 this.diagramEl.src = diagram.img.src;
                 this.diagramEl.alt = diagram.name || 'External Asset';
                 this.diagramEl.hidden = false;
             } catch (err) {
-                console.warn('[Visual Cortex] External flash failed, falling back to procedural:', err.message);
-                // Fallback: pick a procedural type from the active list if available
-                const procedural = this.config.activeTypes.filter(t => !this._isExternalCategory(t) && t !== 'diagram');
-                const fallbackType = procedural.length > 0 
-                    ? procedural[Math.floor(Math.random() * procedural.length)]
-                    : 'klee';
-                
-                // If falling back to Klee due to error, use the high-intent
-                // gravitational preset — for this flash only, never persisted
-                // into config (that would hijack every later Klee flash)
-                if (fallbackType === 'klee') {
-                    this.kleeFlashes?.queuePresetOverride('gravitational');
-                }
-
-                return this.flash(duration, fallbackType, signal);
+                this._externalStatus.skippedFlashes++;
+                this._recordExternalFailure(selectedType, 'flash-select', err);
+                this._scheduleBackgroundWarm(false);
+                return;
             }
         } else if (selectedType === 'harmonograph' && this.harmonograph && this._kleeCanvas) {
             // The conductor's instrument: the signal picks a musical
@@ -711,6 +1088,26 @@ export class VisualCortex {
     }
 
     destroy() {
+        this._destroyed = true;
+        this._assetAbortController.abort(createAbortError('Visual Cortex destroyed'));
+        this._configVersion++;
+        clearTimeout(this._backgroundWarmTimer);
+        this._backgroundWarmTimer = null;
+        this._poolWarmTask = null;
+        this._assetLoadPromises.clear();
+        for (const pool of this._assetPools.values()) {
+            pool.images.forEach(asset => this._disposeAsset(asset));
+        }
+        this._assetPools.clear();
+        this._externalStatus = {
+            ...this._externalStatus,
+            state: 'destroyed',
+            version: this._configVersion,
+            retained: 0,
+            categories: {},
+            minimumReady: false,
+            targetSatisfied: false
+        };
         this._kleeResizeObserver?.disconnect();
         if (this._boundKleeResize && typeof window !== 'undefined') {
             window.removeEventListener('resize', this._boundKleeResize);
@@ -718,6 +1115,8 @@ export class VisualCortex {
         clearTimeout(this._kleeResizeTimer);
         this.kleeFlashes?.destroy();
         this.kleeFlashes = null;
+        this.fractal?.destroy?.();
+        this.fractal = null;
         this.klee?.destroy?.();
         this.initialized = false;
     }

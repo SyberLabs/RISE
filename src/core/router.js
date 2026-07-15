@@ -62,68 +62,66 @@ export class Router {
         }
 
         this.transitioning = true;
+        const previousViewName = this.currentView;
+        const previousView = previousViewName ? this.views.get(previousViewName) : null;
+        let succeeded = false;
 
-        // Handle view stack
-        if (!options.replace && !options.skipStack && this.currentView) {
-            this.viewStack.push(this.currentView);
-        }
-
-        // Fade out current view
-        if (this.currentView) {
-            const currentViewData = this.views.get(this.currentView);
-            if (currentViewData?.container) {
-                await this.fadeOut(currentViewData.container);
-                currentViewData.container.hidden = true;
-                
-                // Do NOT destroy previous instance immediately. Keep it in memory.
-                // We only destroy views intentionally during a hard reset or cleanup.
+        try {
+            previousView?.instance?.deactivate?.();
+            if (previousView?.container) {
+                await this.fadeOut(previousView.container);
+                previousView.container.hidden = true;
             }
-        }
 
-        // Destroy only views that share the EXACT SAME container to prevent overlapping DOM
-        // (This applies to Chamberlain and other shared #view-chamber views)
-        for (const [viewKey, viewData] of this.views.entries()) {
-            if (viewKey !== viewName && viewData.container === newView.container && viewData.instance) {
-                if (viewData.instance.destroy) {
-                    viewData.instance.destroy();
+            // Views sharing a container cannot coexist. Dispose the old owner
+            // only after it has been deactivated and visually removed.
+            for (const [viewKey, viewData] of this.views.entries()) {
+                if (viewKey !== viewName && viewData.container === newView.container && viewData.instance) {
+                    viewData.instance.destroy?.();
+                    viewData.instance = null;
                 }
-                viewData.instance = null;
             }
+
+            if (!newView.instance) {
+                if (newView.init) {
+                    newView.instance = await newView.init(newView.container, options.data);
+                } else if (newView.component) {
+                    newView.instance = new newView.component(newView.container, options.data);
+                }
+            } else {
+                await newView.instance.update?.(options.data);
+            }
+
+            newView.container.hidden = false;
+            await this.fadeIn(newView.container);
+            newView.instance?.activate?.();
+
+            if (!options.replace && !options.skipStack && previousViewName) {
+                this.viewStack.push(previousViewName);
+            }
+            this.currentView = viewName;
+            succeeded = true;
+            this.onViewChange(viewName, options.data);
+        } catch (error) {
+            console.error(`[Router] Navigation to "${viewName}" failed:`, error);
+            newView.instance?.deactivate?.();
+            if (newView.container !== previousView?.container) newView.container.hidden = true;
+            if (previousView?.container) {
+                previousView.container.hidden = false;
+                await this.fadeIn(previousView.container).catch(() => {});
+                previousView.instance?.activate?.();
+            }
+            this.currentView = previousViewName;
+        } finally {
+            this.transitioning = false;
         }
 
-        // Initialize new view OR update existing
-        if (!newView.instance) {
-            // First time initialization
-            if (newView.init) {
-                newView.instance = await newView.init(newView.container, options.data);
-            } else if (newView.component) {
-                newView.instance = new newView.component(newView.container, options.data);
-            }
-        } else {
-            // Hot update of an existing, preserved instance
-            if (newView.instance.update) {
-                newView.instance.update(options.data);
-            }
+        const pending = this._pendingNav;
+        this._pendingNav = null;
+        if (pending && pending.viewName !== this.currentView) {
+            return this.navigate(pending.viewName, pending.options);
         }
-
-        // Fade in new view
-        newView.container.hidden = false;
-        await this.fadeIn(newView.container);
-
-        this.currentView = viewName;
-        this.transitioning = false;
-
-        // Notify listeners
-        this.onViewChange(viewName, options.data);
-
-        // Honor the latest navigation that arrived during the transition
-        if (this._pendingNav) {
-            const pending = this._pendingNav;
-            this._pendingNav = null;
-            if (pending.viewName !== this.currentView) {
-                await this.navigate(pending.viewName, pending.options);
-            }
-        }
+        return succeeded;
     }
 
     /**

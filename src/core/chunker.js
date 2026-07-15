@@ -45,7 +45,10 @@ const PUNCTUATION_DELAYS = {
  * @returns {number} Duration in milliseconds for one word
  */
 function getBaseDuration(wpm) {
-    return (60 * 1000) / wpm;
+    const safeWpm = Number.isFinite(Number(wpm))
+        ? Math.max(50, Math.min(1000, Number(wpm)))
+        : 220;
+    return (60 * 1000) / safeWpm;
 }
 
 /**
@@ -152,10 +155,12 @@ function splitParagraphs(text) {
  * @param {Object} options
  * @param {'word' | 'phrase' | 'sentence' | 'paragraph'} [options.mode='word'] - Chunking mode
  * @param {number} [options.wpm=220] - Words per minute
- * @param {string} [options.source=''] - Source identifier
+ * @param {string} [options.source=''] - Human-readable source identifier
+ * @param {string} [options.sourceId=''] - Stable source identifier
  * @returns {Atom[]}
  */
-export function chunkText(text, { mode = 'word', wpm = 220, source = '' } = {}) {
+export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceId = '' } = {}) {
+    if (typeof text !== 'string') return [];
     const baseDuration = getBaseDuration(wpm);
     const atoms = [];
 
@@ -178,6 +183,8 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '' } = {}) 
                 weight: 0,
                 tags: [marker.type],
                 source,
+                sourceId,
+                timingLocked: true,
                 position: position++
             }));
             continue;
@@ -213,6 +220,8 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '' } = {}) 
                     weight: 0,
                     tags: [marker.type],
                     source,
+                    sourceId,
+                    timingLocked: true,
                     position: position++
                 }));
                 continue;
@@ -237,6 +246,7 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '' } = {}) 
                             weight: 0.5,
                             tags: ['smart-split'],
                             source,
+                            sourceId,
                             position: position++
                         }));
                     }
@@ -274,6 +284,7 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '' } = {}) 
                 weight: 0.5,
                 tags: [],
                 source,
+                sourceId,
                 position: position++
             }));
         }
@@ -287,6 +298,8 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '' } = {}) 
                 weight: 0,
                 tags: ['paragraph-break'],
                 source,
+                sourceId,
+                timingLocked: true,
                 position: position++
             }));
         }

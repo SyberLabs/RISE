@@ -20,6 +20,8 @@ export class Library {
 
     this.currentSection = 'archive'; // archive, sequences, personal
     this.currentFilter = 'all';
+    this._active = false;
+    this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
     this.render();
     this.attachEvents();
@@ -320,8 +322,6 @@ export class Library {
       }
     });
 
-    // Keyboard
-    document.addEventListener('keydown', this.handleKeyboard.bind(this));
   }
 
   handleKeyboard(e) {
@@ -383,7 +383,10 @@ export class Library {
 
           // Just picking the first recent paper for the chamber
           const paper = result.data[0];
-          this.onSelectText(paper.content, `${paper.name} — Abstract`);
+          this.onSelectText(paper.content, `${paper.name} — Abstract`, {
+            wpm: text.defaultWpm,
+            curve: text.defaultCurve
+          });
         } catch (err) {
           console.error('[Library] Failed to fetch ArXiv category:', err);
           if (btn) btn.textContent = 'Error';
@@ -414,7 +417,10 @@ export class Library {
       console.log(`[Library] Selected full text: ${wordCount} words from ${sequences.length} segments`);
 
       // Call the callback with full text and source
-      this.onSelectText(fullText, text.title);
+      this.onSelectText(fullText, text.title, {
+        wpm: text.defaultWpm,
+        curve: text.defaultCurve
+      });
 
     } catch (error) {
       console.error('[Library] Failure during text selection processing:', error);
@@ -428,7 +434,19 @@ export class Library {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
 
+  activate() {
+    if (this._active) return;
+    this._active = true;
+    document.addEventListener('keydown', this.boundKeyboardHandler);
+  }
+
+  deactivate() {
+    if (!this._active) return;
+    this._active = false;
+    document.removeEventListener('keydown', this.boundKeyboardHandler);
+  }
+
   destroy() {
-    document.removeEventListener('keydown', this.handleKeyboard.bind(this));
+    this.deactivate();
   }
 }

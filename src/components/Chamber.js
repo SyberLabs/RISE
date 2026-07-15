@@ -28,6 +28,8 @@ export class Chamber {
     this.controlsVisible = false;
     this.attractorField = null;
     this.kleeField = null;
+    this._active = false;
+    this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
     // Semantic conductor track — needed by Living Text and by responsive
     // interlocutions. Scored once per session and stashed on the session
@@ -52,7 +54,7 @@ export class Chamber {
     }
 
     // Dynamic speed tracking
-    this.baseWpm = this.session?.config?.wpm || 300;
+    this.baseWpm = Number.isFinite(Number(this.session?.wpm)) ? Number(this.session.wpm) : 220;
     this.currentWpm = this.baseWpm;
     this.speedHudTimeout = null;
 
@@ -328,9 +330,6 @@ export class Chamber {
     // Mouse movement for hidden controls
     const display = this.container.querySelector('#chamber-display');
     display?.addEventListener('mousemove', () => this.showControls());
-
-    // Keyboard
-    document.addEventListener('keydown', this.handleKeyboard.bind(this));
 
     // Player events
     if (this.player) {
@@ -687,7 +686,11 @@ export class Chamber {
     const timeTotal = this.container.querySelector('#time-total');
 
     if (fill) {
-      fill.style.width = `${progress.percent}%`;
+      const fraction = Number(progress.progress);
+      const percent = Number.isFinite(fraction)
+        ? Math.max(0, Math.min(100, fraction <= 1 ? fraction * 100 : fraction))
+        : 0;
+      fill.style.width = `${percent}%`;
     }
 
     if (timeCurrent) {
@@ -802,7 +805,11 @@ export class Chamber {
       window.rise.audioEngine.setVolume(volume);
     }
     if (window.rise?.settings) {
-      window.rise.settings.masterVolume = volume;
+      if (typeof window.rise.handleSettingsChange === 'function') {
+        window.rise.handleSettingsChange('masterVolume', volume);
+      } else {
+        window.rise.settings.masterVolume = volume;
+      }
     }
   }
 
@@ -1044,8 +1051,20 @@ export class Chamber {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
 
+  activate() {
+    if (this._active) return;
+    this._active = true;
+    document.addEventListener('keydown', this.boundKeyboardHandler);
+  }
+
+  deactivate() {
+    if (!this._active) return;
+    this._active = false;
+    document.removeEventListener('keydown', this.boundKeyboardHandler);
+  }
+
   destroy() {
-    document.removeEventListener('keydown', this.handleKeyboard.bind(this));
+    this.deactivate();
     if (this.controlsTimeout) {
       clearTimeout(this.controlsTimeout);
     }

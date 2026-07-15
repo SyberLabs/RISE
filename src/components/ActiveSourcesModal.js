@@ -4,6 +4,7 @@
  */
 
 import { WikimediaProvider, WIKIMEDIA_CATEGORIES } from '../sources/visual/wikimedia.js';
+import { escapeHtml, safeUrl } from '../core/sanitize.js';
 
 export class ActiveSourcesModal {
     constructor(options = {}) {
@@ -111,12 +112,12 @@ export class ActiveSourcesModal {
 
         grid.innerHTML = this.images.map((img, idx) => `
             <div class="asm-image-card ${this.excludedImages.has(img.title) ? 'excluded' : ''}" 
-                 data-index="${idx}" data-title="${img.title}">
+                 data-index="${idx}" data-title="${escapeHtml(img.title)}">
                 <div class="asm-image-thumb">
-                    <img src="${img.url}" alt="${img.name}" loading="lazy">
+                    <img src="${safeUrl(img.url)}" alt="${escapeHtml(img.name)}" loading="lazy">
                 </div>
                 <div class="asm-image-info">
-                    <span class="asm-image-name">${img.name}</span>
+                    <span class="asm-image-name">${escapeHtml(img.name)}</span>
                 </div>
                 <button class="asm-image-toggle" title="${this.excludedImages.has(img.title) ? 'Include' : 'Exclude'}">
                     ${this.excludedImages.has(img.title) ? '✓' : '✕'}

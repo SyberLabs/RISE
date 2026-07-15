@@ -16,6 +16,8 @@ export class Portal {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => { });
     this.onQuickAccess = options.onQuickAccess || (() => { });
+    this._active = false;
+    this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
     this.render();
     this.attachEvents();
@@ -199,8 +201,6 @@ export class Portal {
       });
     });
 
-    // Keyboard navigation
-    document.addEventListener('keydown', this.handleKeyboard.bind(this));
   }
 
   handleKeyboard(e) {
@@ -262,8 +262,20 @@ export class Portal {
     }, 1600);
   }
 
+  activate() {
+    if (this._active) return;
+    this._active = true;
+    document.addEventListener('keydown', this.boundKeyboardHandler);
+  }
+
+  deactivate() {
+    if (!this._active) return;
+    this._active = false;
+    document.removeEventListener('keydown', this.boundKeyboardHandler);
+  }
+
   destroy() {
-    document.removeEventListener('keydown', this.handleKeyboard.bind(this));
+    this.deactivate();
     clearInterval(this._solStripInterval);
   }
 }

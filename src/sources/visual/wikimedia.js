@@ -8,6 +8,7 @@
 
 import { SourceProvider } from '../provider.js';
 import { SourceCache } from '../cache.js';
+import { abortableDelay, createAbortError, isAbortError, withAbortTimeout } from './request.js';
 
 /**
  * Curated categories for R.I.S.E. visual content
@@ -156,7 +157,8 @@ export class WikimediaProvider extends SourceProvider {
      * Fetch from Wikimedia API
      * @private
      */
-    async _fetch(params) {
+    async _fetch(params, options = {}) {
+        if (options.signal?.aborted) throw createAbortError();
         // Check for 429 cooldown
         if (Date.now() < this._cooldownUntil) {
             console.warn('[WikimediaProvider] In 429 cooldown, skipping request.');
@@ -167,14 +169,15 @@ export class WikimediaProvider extends SourceProvider {
         const now = Date.now();
         const wait = Math.max(0, this._minRequestInterval - (now - this._lastRequestTime));
         if (wait > 0) {
-            await new Promise(r => setTimeout(r, wait));
+            await abortableDelay(wait, options.signal);
         }
         this._lastRequestTime = Date.now();
 
         const url = this._buildUrl(params);
 
+        const request = withAbortTimeout(options.signal, options.timeoutMs ?? 8000, 'Wikimedia request');
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, { signal: request.signal });
 
             if (response.status === 429) {
                 console.error('[WikimediaProvider] 429 Too Many Requests detected. Cooling down for 10s.');
@@ -187,8 +190,16 @@ export class WikimediaProvider extends SourceProvider {
             }
             return await response.json();
         } catch (error) {
+            if (request.didTimeout() && isAbortError(error)) {
+                const timeoutError = new Error(`Wikimedia request timed out after ${options.timeoutMs ?? 8000}ms`);
+                timeoutError.name = 'TimeoutError';
+                throw timeoutError;
+            }
+            if (isAbortError(error)) throw error;
             console.error('[WikimediaProvider] Fetch error:', error);
             throw error;
+        } finally {
+            request.cleanup();
         }
     }
 
@@ -198,7 +209,8 @@ export class WikimediaProvider extends SourceProvider {
      * @param {number} [limit=20] - Maximum images to fetch
      * @returns {Promise<Object[]>}
      */
-    async getImagesInCategory(categoryName, limit = 20) {
+    async getImagesInCategory(categoryName, limit = 20, options = {}) {
+        if (options.signal?.aborted) throw createAbortError();
         // Check cache
         const cacheKey = `${categoryName}:${limit}`;
         if (this._categoryCache.has(cacheKey)) {
@@ -212,7 +224,7 @@ export class WikimediaProvider extends SourceProvider {
             cmtype: 'file',
             cmlimit: limit,
             cmprop: 'title|timestamp'
-        });
+        }, options);
 
         const members = data.query?.categorymembers || [];
 
@@ -237,7 +249,8 @@ export class WikimediaProvider extends SourceProvider {
      * @param {string} title - File title (e.g., "File:Example.jpg")
      * @returns {Promise<Object|null>}
      */
-    async getImageInfo(title) {
+    async getImageInfo(title, options = {}) {
+        if (options.signal?.aborted) throw createAbortError();
         // Check persistent cache first
         const cached = await SourceCache.get(this.id, title);
         if (cached) {
@@ -250,7 +263,7 @@ export class WikimediaProvider extends SourceProvider {
             prop: 'imageinfo',
             iiprop: 'url|size|mime|extmetadata',
             iiurlwidth: this.thumbWidth
-        });
+        }, options);
 
         const pages = data.query?.pages || {};
         const page = Object.values(pages)[0];
@@ -414,7 +427,8 @@ export class WikimediaProvider extends SourceProvider {
      * @param {string} [categoryId] - Category ID, or random if not specified
      * @returns {Promise<Object|null>}
      */
-    async getRandomImage(categoryId = null, retryCount = 0) {
+    async getRandomImage(categoryId = null, retryCount = 0, options = {}) {
+        if (options.signal?.aborted) throw createAbortError();
         // Pick random category if not specified
         if (!categoryId) {
             const categoryIds = Object.keys(WIKIMEDIA_CATEGORIES);
@@ -425,20 +439,20 @@ export class WikimediaProvider extends SourceProvider {
         if (!category) return null;
 
         // Get images from category
-        const images = await this.getImagesInCategory(category.category, 100);
+        const images = await this.getImagesInCategory(category.category, 100, options);
         if (images.length === 0) return null;
 
         // Pick random image
         const randomImage = images[Math.floor(Math.random() * images.length)];
 
         // Get full image info
-        const imageInfo = await this.getImageInfo(randomImage.title);
+        const imageInfo = await this.getImageInfo(randomImage.title, options);
 
         if (!imageInfo) {
             // If blacklisted or fetch failed, retry with a different random image
             if (retryCount < 5) {
                 console.log(`[WikimediaProvider] Null result (blacklist?), retrying... (${retryCount + 1}/5)`);
-                return this.getRandomImage(categoryId, retryCount + 1);
+                return this.getRandomImage(categoryId, retryCount + 1, options);
             }
             return null;
         }
@@ -465,7 +479,10 @@ export class WikimediaProvider extends SourceProvider {
      */
     async getRandom(filter = {}) {
         const categoryId = filter.category || null;
-        return this.getRandomImage(categoryId);
+        return this.getRandomImage(categoryId, 0, {
+            signal: filter.signal,
+            timeoutMs: filter.timeoutMs
+        });
     }
 
     /**

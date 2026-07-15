@@ -1,3 +1,5 @@
+import { clearUserData, exportUserData } from '../core/user-data.js';
+
 /**
  * Settings Component
  * Preferences and configuration interface
@@ -15,6 +17,9 @@ export class Settings {
         this.settings = options.settings || {};
         this.onNavigate = options.onNavigate || (() => { });
         this.onChange = options.onChange || (() => { });
+        this.onDataCleared = options.onDataCleared || (() => { });
+        this._active = false;
+        this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
         this.render();
         this.attachEvents();
@@ -109,13 +114,13 @@ export class Settings {
                   class="slider"
                   min="0"
                   max="100"
-                  value="${Math.round((this.settings.masterVolume || 0.75) * 100)}"
-                  aria-valuenow="${Math.round((this.settings.masterVolume || 0.75) * 100)}"
+                  value="${Math.round((this.settings.masterVolume ?? 0.75) * 100)}"
+                  aria-valuenow="${Math.round((this.settings.masterVolume ?? 0.75) * 100)}"
                   aria-valuemin="0"
                   aria-valuemax="100"
                 />
                 <span class="slider-value font-mono" id="volume-value">
-                  ${Math.round((this.settings.masterVolume || 0.75) * 100)}%
+                  ${Math.round((this.settings.masterVolume ?? 0.75) * 100)}%
                 </span>
               </div>
             </div>
@@ -180,7 +185,7 @@ export class Settings {
 
             <div class="settings-row">
               <button class="btn-secondary btn-caution" data-action="clear-history">
-                Clear Session History
+                Clear All Personal Data
               </button>
             </div>
           </section>
@@ -253,8 +258,6 @@ export class Settings {
             this.clearHistory();
         });
 
-        // Keyboard
-        document.addEventListener('keydown', this.handleKeyboard.bind(this));
     }
 
     handleKeyboard(e) {
@@ -263,34 +266,9 @@ export class Settings {
         }
     }
 
-    // All localStorage keys holding user-generated content.
-    // Settings and the beta session are intentionally separate.
-    static USER_DATA_KEYS = {
-        journals: 'rise_recursions_v1',
-        blueprints: 'rise_workshop_v1',
-        globalImages: 'rise_global_images_v1',
-        solPlan: 'rise_sol_plan_v1'
-    };
-
-    exportData() {
+    async exportData() {
         try {
-            const data = {
-                settings: this.settings,
-                exportedAt: new Date().toISOString(),
-                version: '2.0'
-            };
-
-            // Export every store that holds user-generated content
-            for (const [label, key] of Object.entries(Settings.USER_DATA_KEYS)) {
-                const raw = localStorage.getItem(key);
-                if (raw) {
-                    try {
-                        data[label] = JSON.parse(raw);
-                    } catch {
-                        data[label] = raw;
-                    }
-                }
-            }
+            const data = await exportUserData(this.settings);
 
             // Create download
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -299,7 +277,7 @@ export class Settings {
             a.href = url;
             a.download = `rise-export-${new Date().toISOString().split('T')[0]}.json`;
             a.click();
-            URL.revokeObjectURL(url);
+            window.setTimeout(() => URL.revokeObjectURL(url), 0);
 
             this.showToast('Data exported successfully');
         } catch (e) {
@@ -308,17 +286,17 @@ export class Settings {
         }
     }
 
-    clearHistory() {
-        const confirm = window.confirm('Clear all session history? This deletes your journals, saved sequences, and uploaded images. This cannot be undone.');
+    async clearHistory() {
+        const confirm = window.confirm('Clear all personal R.I.S.E. data? This deletes journals, saved sequences, loaded text, uploaded images, personal audio, and cached sources. This cannot be undone.');
         if (!confirm) return;
 
         try {
-            for (const key of Object.values(Settings.USER_DATA_KEYS)) {
-                localStorage.removeItem(key);
-            }
-            this.showToast('Session history cleared');
+            await clearUserData();
+            this.showToast('Personal data cleared. Reloadingâ€¦');
+            this.onDataCleared();
         } catch (e) {
-            console.error('[Settings] Clear history failed:', e);
+            console.error('[Settings] Clear data failed:', e);
+            this.showToast('Some browser data could not be cleared');
         }
     }
 
@@ -331,8 +309,20 @@ export class Settings {
         }
     }
 
+    activate() {
+        if (this._active) return;
+        this._active = true;
+        document.addEventListener('keydown', this.boundKeyboardHandler);
+    }
+
+    deactivate() {
+        if (!this._active) return;
+        this._active = false;
+        document.removeEventListener('keydown', this.boundKeyboardHandler);
+    }
+
     destroy() {
-        document.removeEventListener('keydown', this.handleKeyboard.bind(this));
+        this.deactivate();
     }
 }
 

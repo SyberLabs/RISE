@@ -35,8 +35,8 @@ export class MemoryCore {
       id: `syn_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       timestamp: Date.now(),
       sequenceTitle: session?.title || session?.name || 'Unknown Sequence',
-      duration: session?.duration || 0,
-      wpm: session?.wpm || 300,
+      duration: session?.totalDuration || 0,
+      wpm: session?.wpm || 220,
       journal: journalText
     };
 
@@ -104,6 +104,9 @@ export class MemoryCore {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(WORKSHOP_KEY);
     localStorage.removeItem(SOL_PLAN_KEY);
+    localStorage.removeItem('rise_global_images_v1');
+    localStorage.removeItem('rise_orbital_prefs_v1');
+    localStorage.removeItem('rise_orbital_text_v1');
   }
 
   /**

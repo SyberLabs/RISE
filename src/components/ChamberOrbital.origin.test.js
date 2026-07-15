@@ -159,6 +159,63 @@ describe('ChamberOrbital origin chip', () => {
         localStorage.removeItem('rise_orbital_prefs_v1');
     });
 
+    it('replaces stale painting categories when a procedural preset is loaded', () => {
+        const { orbital, container } = makeOrbital();
+        orbital.config.visualInterlocution.interlocution = {
+            ...orbital.config.visualInterlocution.interlocution,
+            sourceFamily: 'collections',
+            procedural: [],
+            sourced: ['aic-oldmasters']
+        };
+
+        orbital.loadText('procedural text', 'Vault: Procedural', {
+            visualConfig: {
+                visualMode: 'interlocution',
+                interlocution: { procedural: ['klee'] }
+            }
+        });
+
+        expect(orbital.config.visualInterlocution.interlocution).toMatchObject({
+            sourceFamily: 'procedural',
+            procedural: ['klee'],
+            sourced: []
+        });
+
+        let payload = null;
+        orbital.onBeginSession = data => { payload = data; };
+        orbital.beginSession();
+        expect(payload.visualConfig.interlocution).toMatchObject({
+            sourceFamily: 'procedural',
+            procedural: ['klee'],
+            sourced: []
+        });
+
+        orbital.destroy();
+        container.remove();
+    });
+
+    it('infers Blend when restoring an intentional mixed legacy preference', () => {
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
+            visualInterlocution: {
+                visualMode: 'interlocution',
+                interlocution: {
+                    procedural: ['harmonograph'],
+                    sourced: ['solar']
+                }
+            }
+        }));
+
+        const { orbital, container } = makeOrbital();
+        expect(orbital.config.visualInterlocution.interlocution).toMatchObject({
+            sourceFamily: 'blend',
+            procedural: ['harmonograph'],
+            sourced: ['solar']
+        });
+
+        orbital.destroy();
+        container.remove();
+    });
+
     it('persists last-used settings at Begin and restores them for the next visit', () => {
         localStorage.removeItem('rise_orbital_prefs_v1');
 
@@ -204,7 +261,7 @@ describe('ChamberOrbital origin chip', () => {
         expect(orbital.getAudioStatus()).toBe('✧ Aurora');
 
         // Exclusive beds: picking a pure tone rests the soundscape…
-        container.querySelector('[data-preset="deep"]').click();
+        container.querySelector('[data-audio-preset="deep"]').click();
         expect(orbital.config.soundscape).toBe('none');
         expect(orbital.getAudioStatus()).toBe('○ Deep');
         expect(container.querySelector('[data-soundscape="none"]').classList.contains('active')).toBe(true);
@@ -213,7 +270,7 @@ describe('ChamberOrbital origin chip', () => {
         container.querySelector('[data-soundscape="aurora"]').click();
         expect(orbital.config.audioPreset).toBe('silent');
         expect(orbital.getAudioStatus()).toBe('✧ Aurora');
-        expect(container.querySelector('[data-preset="silent"]').classList.contains('active')).toBe(true);
+        expect(container.querySelector('[data-audio-preset="silent"]').classList.contains('active')).toBe(true);
 
         // Begin payload carries it
         orbital.config.text = 't';
@@ -264,6 +321,61 @@ describe('ChamberOrbital origin chip', () => {
         orbital.destroy();
         container.remove();
         localStorage.removeItem('rise_orbital_prefs_v1');
+    });
+
+    it('keeps Klee preset chips from overwriting the selected audio preset after restore', () => {
+        localStorage.setItem('rise_orbital_text_v1', JSON.stringify({
+            text: 'restored session text',
+            textSource: 'Restored',
+            origin: null
+        }));
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
+            audioPreset: 'silent',
+            soundscape: 'none',
+            visualInterlocution: {
+                visualMode: 'interlocution',
+                interlocution: {
+                    sourceFamily: 'procedural',
+                    procedural: ['klee'],
+                    sourced: [],
+                    kleePreset: 'random'
+                }
+            }
+        }));
+
+        const { orbital, container } = makeOrbital();
+        container.querySelector('[data-audio-preset="focus"]').click();
+        expect(orbital.config.audioPreset).toBe('focus');
+
+        // Visual chips deliberately retain their own data-preset contract.
+        // They must never be observed by the audio settings handler.
+        container.querySelector('[data-preset="harmonic"]').click();
+        expect(orbital.config.audioPreset).toBe('focus');
+
+        let payload = null;
+        orbital.onBeginSession = data => { payload = data; };
+        orbital.beginSession();
+        expect(payload.audioPreset).toBe('focus');
+
+        orbital.destroy();
+        container.remove();
+    });
+
+    it('repairs an audio preset previously corrupted by a visual chip', () => {
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
+            audioPreset: 'harmonic',
+            soundscape: 'none'
+        }));
+
+        const { orbital, container } = makeOrbital();
+        expect(orbital.config.audioPreset).toBe('silent');
+        expect(container.querySelector('[data-audio-preset="silent"]')
+            .classList.contains('active')).toBe(true);
+
+        orbital.destroy();
+        container.remove();
+        expect(JSON.parse(localStorage.getItem('rise_orbital_prefs_v1')).audioPreset)
+            .toBe('silent');
     });
 
     it('a subsequent plain load replaces a previous origin', () => {

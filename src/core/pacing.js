@@ -122,7 +122,7 @@ export class StateCurve {
  */
 export class PacingEngine {
     constructor(config = {}) {
-        this.baseWpm = config.baseWpm || 220;
+        this.baseWpm = this.normalizeWpm(config.baseWpm);
         this.stateCurve = config.stateCurve || StateCurve.flat();
 
         // Modifier toggles
@@ -155,13 +155,27 @@ export class PacingEngine {
      * @returns {number} Duration in milliseconds
      */
     computeDuration(atom, position = 0.5) {
+        const authoredDuration = Number(atom?.duration);
+        if (atom?.timingLocked && Number.isFinite(authoredDuration)) {
+            // Structural pauses and authored markers are contracts, not hints.
+            // Keep very short intentional markers (for example [FLASH]=50ms)
+            // while still rejecting zero/negative and runaway values.
+            return Math.round(Math.max(16, Math.min(this.maxDuration, authoredDuration)));
+        }
+
         let baseDuration;
 
         // Base duration from modality
         switch (atom.modality) {
             case Modality.TEXT:
-                const wordCount = (atom.content || '').split(/\s+/).filter(w => w).length || 1;
-                baseDuration = (wordCount / this.baseWpm) * 60 * 1000;
+                if (Number.isFinite(authoredDuration) && authoredDuration > 0) {
+                    // chunkText already accounts for WPM, word length,
+                    // punctuation, phrase size, and paragraph breathing.
+                    baseDuration = authoredDuration;
+                } else {
+                    const wordCount = (atom.content || '').split(/\s+/).filter(w => w).length || 1;
+                    baseDuration = (wordCount / this.baseWpm) * 60 * 1000;
+                }
                 break;
 
             case Modality.IMAGE:
@@ -215,7 +229,12 @@ export class PacingEngine {
      * @param {number} wpm 
      */
     setWpm(wpm) {
-        this.baseWpm = wpm;
+        this.baseWpm = this.normalizeWpm(wpm);
+    }
+
+    normalizeWpm(wpm) {
+        const value = Number(wpm);
+        return Number.isFinite(value) ? Math.max(50, Math.min(1000, value)) : 220;
     }
 
     /**

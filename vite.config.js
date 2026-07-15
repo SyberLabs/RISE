@@ -18,9 +18,10 @@ export default defineConfig({
 
     rollupOptions: {
       output: {
-        // Manual chunk splitting for optimal loading
+        // Stable cache groups for large subsystems. These are not route-lazy
+        // by themselves; true deferment requires dynamic imports at callers.
         manualChunks: {
-          // Visual generation engines (lazy-loadable)
+          // Visual generation engines
           'visuals-klee': [
             './src/visuals/klee.js',
             './src/visuals/klee-enhanced.js'
@@ -34,7 +35,7 @@ export default defineConfig({
             './src/visuals/rockgarden.js'
           ],
 
-          // Content source providers (load on demand)
+          // Content source providers
           'sources-text': [
             './src/sources/text/gutenberg.js',
             './src/sources/text/arxiv.js',
@@ -68,12 +69,13 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    setupFiles: ['./src/test/setup.js'],
     include: ['src/**/*.{test,spec}.js'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
-      include: ['src/core/**/*.js', 'src/audio/**/*.js'],
-      exclude: ['src/**/*.test.js']
+      include: ['src/core/**/*.js', 'src/audio/**/*.js', 'src/components/**/*.js', 'src/sources/**/*.js', 'src/visuals/**/*.js'],
+      exclude: ['src/**/*.test.js', 'src/content/**', 'src/sources/text/data/**']
     }
   }
 });

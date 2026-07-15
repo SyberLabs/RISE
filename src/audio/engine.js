@@ -213,6 +213,11 @@ export class AudioEngine {
         this._spatialInterval = null;
         this._isFading = false;
         this.fadeTimeoutId = null;
+        this._fadeResolve = null;
+        this._sessionStopTimer = null;
+        this._sessionStopResolve = null;
+        this._sessionGeneration = 0;
+        this._destroyed = false;
     }
 
     /**
@@ -248,9 +253,13 @@ export class AudioEngine {
             } catch (error) {
                 console.error('[AudioEngine] Failed to initialize:', error);
                 this.initPromise = null;
+                this.context = null;
+                this.masterGain = null;
+                this.isInitialized = false;
                 if (window.rise && typeof window.rise.showToast === 'function') {
                     window.rise.showToast('Audio initialization blocked. Interact to enable.', 4000);
                 }
+                throw error;
             }
         })();
 
@@ -834,7 +843,12 @@ export class AudioEngine {
         if (this.layers.soundscape) {
             const handle = this.layers.soundscape;
             this.layers.soundscape = null;
+            // Muting a live node is transport state, not a user mix change.
+            // setLayerVolume() also stores its value, so preserve the desired
+            // level or the next soundscape session will start at zero gain.
+            const configuredVolume = this.config.layerVolumes.soundscape;
             this.setLayerVolume('soundscape', 0, !instant);
+            this.config.layerVolumes.soundscape = configuredVolume;
             handle.stop(instant);
         }
     }
@@ -1560,11 +1574,7 @@ export class AudioEngine {
      */
     fadeOutSession(duration = 0.5) {
         if (!this.masterGain) return Promise.resolve();
-
-        if (this.fadeTimeoutId) {
-            clearTimeout(this.fadeTimeoutId);
-            this.fadeTimeoutId = null;
-        }
+        this._cancelFade();
 
         this._isFading = true;
         this.masterGain.gain.cancelScheduledValues(this.context.currentTime);
@@ -1575,8 +1585,10 @@ export class AudioEngine {
             this.fadeTimeoutId = setTimeout(() => {
                 this._isFading = false;
                 this.fadeTimeoutId = null;
+                this._fadeResolve = null;
                 resolve();
             }, duration * 1000);
+            this._fadeResolve = resolve;
         });
     }
 
@@ -1586,11 +1598,7 @@ export class AudioEngine {
      */
     fadeInSession(duration = 0.5) {
         if (!this.masterGain) return Promise.resolve();
-
-        if (this.fadeTimeoutId) {
-            clearTimeout(this.fadeTimeoutId);
-            this.fadeTimeoutId = null;
-        }
+        this._cancelFade();
 
         this._isFading = true;
         const now = this.context.currentTime;
@@ -1604,9 +1612,28 @@ export class AudioEngine {
             this.fadeTimeoutId = setTimeout(() => {
                 this._isFading = false;
                 this.fadeTimeoutId = null;
+                this._fadeResolve = null;
                 resolve();
             }, duration * 1000);
+            this._fadeResolve = resolve;
         });
+    }
+
+    _cancelFade() {
+        if (this.fadeTimeoutId) clearTimeout(this.fadeTimeoutId);
+        this.fadeTimeoutId = null;
+        this._isFading = false;
+        const resolve = this._fadeResolve;
+        this._fadeResolve = null;
+        resolve?.({ cancelled: true });
+    }
+
+    _cancelPendingSessionStop() {
+        if (this._sessionStopTimer) clearTimeout(this._sessionStopTimer);
+        this._sessionStopTimer = null;
+        const resolve = this._sessionStopResolve;
+        this._sessionStopResolve = null;
+        resolve?.({ cancelled: true });
     }
 
     /**
@@ -1624,7 +1651,11 @@ export class AudioEngine {
      * @param {boolean} [options.entrainment.autoRamp] - Use curve-derived ramp when true
      */
     async startSession(options = {}) {
+        if (this._destroyed) throw new Error('AudioEngine has been destroyed');
+        this._cancelPendingSessionStop();
+        const generation = ++this._sessionGeneration;
         await this.init();
+        if (generation !== this._sessionGeneration || this._destroyed) return { cancelled: true };
 
         if (this.masterGain) {
             this.masterGain.gain.cancelScheduledValues(this.context.currentTime);
@@ -1633,9 +1664,11 @@ export class AudioEngine {
         this._isFading = false;
 
         await this.resume();
+        if (generation !== this._sessionGeneration || this._destroyed) return { cancelled: true };
 
         // Engine warm-up: allow clock to stabilize after resume
         await new Promise(resolve => setTimeout(resolve, 50));
+        if (generation !== this._sessionGeneration || this._destroyed) return { cancelled: true };
 
         // Prevent overlap: Stop menu ambience before starting session
         this.stopAmbient(true);
@@ -1680,6 +1713,7 @@ export class AudioEngine {
         this.playSwell(options.swellId);
 
         this.isPlaying = true;
+        return { cancelled: false };
     }
 
     /**
@@ -1688,17 +1722,27 @@ export class AudioEngine {
     /**
      * Stop all audio with a gentle fade-out "echo"
      */
-    stopSession() {
+    stopSession({ resumeAmbient = true, immediate = false } = {}) {
+        this._cancelPendingSessionStop();
+        const generation = ++this._sessionGeneration;
         this.sessionActive = false;
         this.isPlaying = false;
 
         // Transition time for the "soft" exit
-        const transitionTime = 500;
+        const transitionTime = immediate ? 0 : 500;
 
         // Fade out session (already likely done by Chamber, but let's be sure)
         this.fadeOutSession(0.3);
 
-        setTimeout(() => {
+        return new Promise(resolve => {
+          this._sessionStopResolve = resolve;
+          this._sessionStopTimer = setTimeout(() => {
+            this._sessionStopTimer = null;
+            this._sessionStopResolve = null;
+            if (generation !== this._sessionGeneration || this.sessionActive || this._destroyed) {
+                resolve({ cancelled: true });
+                return;
+            }
             // 1. SILENCE and STOP ALL SESSION LAYERS
             // We use instant=true here because we are already silent from fadeOutSession
             this.stopEntrainment(true);
@@ -1710,17 +1754,17 @@ export class AudioEngine {
 
             // 2. RESTORE MASTER VOLUME
             // This brings the volume back to config.masterVolume (0.7) for the menu
-            this.setVolume(this.config.masterVolume);
+            if (this.context) this.setVolume(this.config.masterVolume);
 
             // 3. RE-START MENU AMBIENCE
             // stopAmbient(true) ensures any lingering session ambience is dead
-            this.stopAmbient(true); 
+            this.stopAmbient(true);
+            if (resumeAmbient) this.startAmbientPlaylist();
             
-            // Re-initialize the ambient playlist loop
-            this.startAmbientPlaylist();
-            
-            console.log('[AudioEngine] Session stopped, menu ambience resumed.');
-        }, transitionTime);
+            console.log(`[AudioEngine] Session stopped${resumeAmbient ? ', menu ambience resumed' : ''}.`);
+            resolve({ cancelled: false });
+          }, transitionTime);
+        });
     }
 
     /**
@@ -1742,9 +1786,22 @@ export class AudioEngine {
      * Cleanup
      */
     destroy() {
-        this.stopSession();
+        this._destroyed = true;
+        this._sessionGeneration++;
+        this._cancelPendingSessionStop();
+        this._cancelFade();
+        this.sessionActive = false;
+        this.isPlaying = false;
+        this.stopEntrainment(true);
+        this.stopHarmonics(true);
+        this.stopNoise(true);
+        this.stopDrone(true);
+        this.stopSwell(true);
+        this.stopSoundscape(true);
+        this.stopAmbient(true);
+        this.stopSpeaking();
         if (this.context) {
-            this.context.close();
+            this.context.close().catch(() => {});
             this.context = null;
         }
         this.isInitialized = false;

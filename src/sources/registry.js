@@ -15,6 +15,8 @@ class SourceRegistryClass {
         /** @type {Map<string, SourceProvider>} */
         this.providers = new Map();
         this._initialized = false;
+        this._initPromise = null;
+        this._version = 0;
     }
 
     /**
@@ -31,6 +33,8 @@ class SourceRegistryClass {
         }
 
         this.providers.set(provider.id, provider);
+        this._initialized = false;
+        this._version++;
         console.log(`[SourceRegistry] Registered: ${provider.name} (${provider.contentType})`);
     }
 
@@ -40,6 +44,8 @@ class SourceRegistryClass {
      */
     unregister(providerId) {
         if (this.providers.delete(providerId)) {
+            this._initialized = false;
+            this._version++;
             console.log(`[SourceRegistry] Unregistered: ${providerId}`);
         }
     }
@@ -101,25 +107,49 @@ class SourceRegistryClass {
 
     /**
      * Initialize all registered providers
-     * @returns {Promise<void>}
+     * @returns {Promise<{failures: Array, ready: SourceProvider[]}>}
      */
     async initAll() {
-        if (this._initialized) return;
+        if (this._initialized) return this._status([]);
+        if (this._initPromise) return this._initPromise;
 
-        console.log(`[SourceRegistry] Initializing ${this.providers.size} providers...`);
+        const version = this._version;
+        this._initPromise = (async () => {
+            console.log(`[SourceRegistry] Initializing ${this.providers.size} providers...`);
 
-        const initPromises = this.getAll().map(async (provider) => {
-            try {
-                await provider.init();
-                console.log(`[SourceRegistry] ✓ ${provider.name} ready`);
-            } catch (error) {
-                console.error(`[SourceRegistry] ✗ ${provider.name} failed:`, error);
+            const failures = [];
+            const initPromises = this.getAll().map(async (provider) => {
+                try {
+                    await provider.init();
+                    console.log(`[SourceRegistry] ✓ ${provider.name} ready`);
+                } catch (error) {
+                    failures.push({ provider, error });
+                    console.error(`[SourceRegistry] ✗ ${provider.name} failed:`, error);
+                }
+            });
+
+            await Promise.all(initPromises);
+            this._initialized = failures.length === 0 && version === this._version;
+            if (failures.length === 0 && this._initialized) {
+                console.log('[SourceRegistry] All providers initialized');
+            } else if (failures.length > 0) {
+                console.warn(`[SourceRegistry] Ready with ${failures.length} unavailable provider(s); retry remains enabled.`);
             }
-        });
+            return this._status(failures);
+        })();
 
-        await Promise.all(initPromises);
-        this._initialized = true;
-        console.log('[SourceRegistry] All providers initialized');
+        try {
+            return await this._initPromise;
+        } finally {
+            this._initPromise = null;
+        }
+    }
+
+    _status(failures = []) {
+        return {
+            failures,
+            ready: this.getAll().filter(provider => provider.ready)
+        };
     }
 
     /**

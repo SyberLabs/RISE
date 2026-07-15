@@ -5,7 +5,7 @@
 
 /**
  * Modality types for content atoms
- * @typedef {'text' | 'image' | 'symbol' | 'sound'} Modality
+ * @typedef {'text' | 'image' | 'symbol' | 'audio' | 'composite'} Modality
  */
 
 /**
@@ -36,6 +36,7 @@ export class Atom {
    * @param {number} [config.position=0] - Order in original source
    * @param {string} [config.url=''] - URL for image/media atoms
    * @param {string} [config.phase=''] - Ritual phase assignment
+   * @param {boolean} [config.timingLocked=false] - Preserve authored duration through pacing
    */
   constructor({
     content,
@@ -48,20 +49,25 @@ export class Atom {
     sourceId = '',
     position = 0,
     url = '',
-    phase = ''
+    phase = '',
+    timingLocked = false
   }) {
+    const modalities = new Set(['text', 'image', 'symbol', 'audio', 'composite']);
+    const numericDuration = Number(duration);
+    const clamp01 = value => Math.max(0, Math.min(1, Number.isFinite(Number(value)) ? Number(value) : 0.5));
     this.id = crypto.randomUUID();
-    this.content = content;
-    this.modality = modality;
-    this.duration = duration;
-    this.weight = weight;
-    this.complexity = complexity;
-    this.tags = tags;
-    this.source = source;
-    this.sourceId = sourceId;
-    this.position = position;
-    this.url = url;
-    this.phase = phase;
+    this.content = content ?? '';
+    this.modality = modalities.has(modality) ? modality : 'text';
+    this.duration = Number.isFinite(numericDuration) ? Math.max(16, Math.min(600000, numericDuration)) : 250;
+    this.weight = clamp01(weight);
+    this.complexity = clamp01(complexity);
+    this.tags = Array.isArray(tags) ? tags.filter(tag => typeof tag === 'string').slice(0, 32) : [];
+    this.source = typeof source === 'string' ? source : '';
+    this.sourceId = typeof sourceId === 'string' ? sourceId : '';
+    this.position = Number.isInteger(position) && position >= 0 ? position : 0;
+    this.url = typeof url === 'string' ? url : '';
+    this.phase = typeof phase === 'string' ? phase : '';
+    this.timingLocked = timingLocked === true;
   }
 
   /**
@@ -176,13 +182,15 @@ export class Session {
     voiceId = null,
     selectedSwellId = null
   }) {
+    const safeWpm = Number(wpm);
+    const chunkModes = new Set(['word', 'phrase', 'sentence', 'paragraph']);
     this.id = crypto.randomUUID();
-    this.name = title || name; // Support both title and name
+    this.name = String(title || name || 'Untitled Session').slice(0, 200); // Support both title and name
     this.intent = intent;
-    this.sources = sources;
-    this.atoms = atoms;
-    this.wpm = wpm;
-    this.chunkMode = chunkMode;
+    this.sources = Array.isArray(sources) ? sources : [];
+    this.atoms = Array.isArray(atoms) ? atoms : [];
+    this.wpm = Number.isFinite(safeWpm) ? Math.max(50, Math.min(1000, safeWpm)) : 220;
+    this.chunkMode = chunkModes.has(chunkMode) ? chunkMode : 'word';
     this.curve = curve;
     this.displayMode = displayMode;
     this.audioPreset = audioPreset;
@@ -203,7 +211,10 @@ export class Session {
    * @returns {number} Total duration in milliseconds
    */
   get totalDuration() {
-    return this.atoms.reduce((sum, atom) => sum + atom.duration, 0);
+    return this.atoms.reduce((sum, atom) => {
+      const duration = Number(atom?.duration);
+      return sum + (Number.isFinite(duration) && duration > 0 ? duration : 0);
+    }, 0);
   }
 
   /**

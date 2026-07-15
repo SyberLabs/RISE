@@ -81,8 +81,14 @@ export class SourceProvider {
         if (this._initPromise) return this._initPromise;
 
         this._initPromise = this._doInit();
-        await this._initPromise;
-        this._ready = true;
+        try {
+            await this._initPromise;
+            this._ready = true;
+        } catch (error) {
+            this._ready = false;
+            this._initPromise = null;
+            throw error;
+        }
     }
 
     /**

@@ -33,21 +33,26 @@ export async function initSourceSystem() {
     // Initialize cache
     await SourceCache.init();
 
-    // Register text providers
-    SourceRegistry.register(new LocalTextProvider());
-    SourceRegistry.register(new GutenbergProvider());
-    SourceRegistry.register(new SacredTextProvider());
-    SourceRegistry.register(new ArxivProvider());
-
-    // Register visual providers
-    SourceRegistry.register(new GeneratedVisualProvider());
-    SourceRegistry.register(new WikimediaProvider());
+    // Register defaults once. Repeated bootstrap calls retain provider
+    // identity, cache state, and any in-flight provider initialization.
+    const defaults = [
+        new LocalTextProvider(),
+        new GutenbergProvider(),
+        new SacredTextProvider(),
+        new ArxivProvider(),
+        new GeneratedVisualProvider(),
+        new WikimediaProvider()
+    ];
+    for (const provider of defaults) {
+        if (!SourceRegistry.get(provider.id)) SourceRegistry.register(provider);
+    }
 
     // Initialize all registered providers
-    await SourceRegistry.initAll();
+    const status = await SourceRegistry.initAll();
 
     console.log('[Sources] Source system ready');
     console.log('[Sources] Stats:', SourceRegistry.getStats());
+    return status;
 }
 
 

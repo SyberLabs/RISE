@@ -1,8 +1,8 @@
 /**
- * BetaGate - Password-protected access for closed beta
+ * BetaGate - Client-side invitation and onboarding gate
  *
  * Features:
- * - Password protection for beta access
+ * - Invitation UX (not a server-side authorization boundary)
  * - Invite codes via URL params
  * - Custom welcome messages per invitee
  * - Session persistence (localStorage)
@@ -31,6 +31,7 @@ A personalized vault has been prepared featuring selections on computational cre
 
 // Storage key for session persistence
 const BETA_SESSION_KEY = 'rise-beta-session';
+const BETA_SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 export class BetaGate {
   constructor(container, options = {}) {
@@ -56,7 +57,22 @@ export class BetaGate {
     try {
       const stored = localStorage.getItem(BETA_SESSION_KEY);
       if (stored) {
-        return JSON.parse(stored);
+        const candidate = JSON.parse(stored);
+        const invite = candidate && typeof candidate.code === 'string'
+          ? this.validateCode(candidate.code)
+          : null;
+        const fresh = Number.isFinite(candidate?.timestamp)
+          && Date.now() - candidate.timestamp >= 0
+          && Date.now() - candidate.timestamp <= BETA_SESSION_MAX_AGE_MS;
+        if (invite && fresh) {
+          return {
+            code: candidate.code.toLowerCase().trim(),
+            name: invite.name,
+            vault: invite.vault || null,
+            timestamp: candidate.timestamp
+          };
+        }
+        localStorage.removeItem(BETA_SESSION_KEY);
       }
     } catch (e) {
       console.error('[BetaGate] Failed to load session:', e);

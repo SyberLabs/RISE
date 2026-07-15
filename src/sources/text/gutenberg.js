@@ -7,6 +7,7 @@
 
 import { SourceProvider } from '../provider.js';
 import { SourceCache } from '../cache.js';
+import { isAbortError, withAbortTimeout } from '../visual/request.js';
 
 /**
  * Curated book catalog - philosophical, poetic, contemplative works
@@ -153,7 +154,7 @@ export class GutenbergProvider extends SourceProvider {
      * @param {number} gutenbergId
      * @returns {Promise<string>}
      */
-    async fetchBook(gutenbergId) {
+    async fetchBook(gutenbergId, options = {}) {
         // Check persistent cache first
         const cacheKey = `book-${gutenbergId}`;
         const cached = await SourceCache.get(this.id, cacheKey);
@@ -163,8 +164,9 @@ export class GutenbergProvider extends SourceProvider {
 
         const url = this._getTextUrl(gutenbergId);
 
+        const request = withAbortTimeout(options.signal, options.timeoutMs ?? 10000, 'Gutenberg request');
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, { signal: request.signal });
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
@@ -196,8 +198,11 @@ export class GutenbergProvider extends SourceProvider {
 
             return text;
         } catch (error) {
+            if (isAbortError(error)) throw error;
             console.warn(`[GutenbergProvider] Failed to fetch book ${gutenbergId}, using fallback:`, error);
             return `[Simulated Gutenberg Text for ID ${gutenbergId}]\n\nThe project Gutenberg integration is currently experiencing network limitations. This is a simulated text to demonstrate the RSVP reading interface and allow testing of the Chamber flow without depending on external network availability. It demonstrates the ability to chunk text and display it inside the player.\n\n*** END OF SIMULATION ***`;
+        } finally {
+            request.cleanup();
         }
     }
 
@@ -276,11 +281,11 @@ export class GutenbergProvider extends SourceProvider {
      * @override
      * Get a book with content
      */
-    async get(bookId) {
+    async get(bookId, options = {}) {
         const bookDef = GUTENBERG_CATALOG[bookId];
         if (!bookDef) return null;
 
-        const text = await this.fetchBook(bookDef.gutenbergId);
+        const text = await this.fetchBook(bookDef.gutenbergId, options);
 
         return {
             id: bookId,
