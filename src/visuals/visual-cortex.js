@@ -15,6 +15,14 @@ import { NeuralNetwork } from './neural.js';
 import { Harmonograph } from './harmonograph.js';
 import { MemoryCore } from '../core/memory.js';
 
+// Retained artworks per external category — enough rotation variety
+// that repeats read as motif rather than loop, small enough that a
+// six-category session holds ~50 compressed images at most
+const POOL_TARGET = 8;
+// Pool key for bare 'diagram' flashes (no concrete category): a
+// Wikimedia grab-bag, one pool like any other
+const ANY_POOL = '__any__';
+
 export class VisualCortex {
     constructor() {
         this.container = null;
@@ -29,7 +37,12 @@ export class VisualCortex {
 
         // External providers (lazy loaded)
         this._wikimediaProvider = null;
-        this._museumProvider = null;        this._diagramQueue = [];
+        this._museumProvider = null;
+        // Retained per-category asset pools: images are sampled with
+        // rotation, never consumed, so a warm pool serves any flash
+        // frequency without touching the network (the old consume-once
+        // queue starved at high frequency and fell back to procedural)
+        this._assetPools = new Map(); // categoryId -> { images, cursor }
         this._diagramPreloading = false;
         this._configVersion = 0;
         // Klee queue/episode machinery lives in the KleeFlashes wrapper
@@ -197,8 +210,8 @@ export class VisualCortex {
                           !oldExternal.every(t => newExternal.includes(t));
             
             if (changed) {
-                console.log('[Visual Cortex] Category change detected, flushing image queue.');
-                this._diagramQueue = [];
+                console.log('[Visual Cortex] Category change detected, flushing asset pools.');
+                this._assetPools.clear();
                 this._configVersion++; // Force preloads to restart
             }
         }
@@ -338,57 +351,74 @@ export class VisualCortex {
         });
     }
 
+    _poolFor(categoryId) {
+        if (!this._assetPools.has(categoryId)) {
+            this._assetPools.set(categoryId, { images: [], cursor: -1 });
+        }
+        return this._assetPools.get(categoryId);
+    }
+
     /**
-     * Preload diagrams for the session
+     * Fetch one artwork into a category's retained pool. Duplicate
+     * URLs are skipped so the pool grows in variety, not repetition.
      * @private
      */
-    async _preloadDiagrams(count = 10) {
+    async _loadIntoPool(categoryId) {
+        const pool = this._poolFor(categoryId);
+        try {
+            const provider = categoryId === ANY_POOL
+                ? await this._getWikimediaProvider()
+                : await this._getProviderForCategory(categoryId);
+            if (!provider) return null;
+
+            const image = await provider.getRandom(
+                categoryId === ANY_POOL ? {} : { category: this._providerCategory(categoryId) });
+            if (!image || !image.data || !image.data.url) return null;
+            if (pool.images.some(a => a.img?.src === image.data.url)) return null;
+
+            const asset = await this._loadImage(image.data.url, image.name, categoryId);
+            pool.images.push(asset);
+            return asset;
+        } catch (e) {
+            console.warn('[Visual Cortex] Pool load failed:', e.message);
+            return null;
+        }
+    }
+
+    /**
+     * Grow each active category's retained pool toward the target.
+     * @private
+     */
+    async _preloadDiagrams(perCategory = POOL_TARGET) {
         if (this._diagramPreloading) return;
         this._diagramPreloading = true;
         const currentVersion = this._configVersion;
 
         try {
-            console.log(`[Visual Cortex] Preloading ${count} external assets...`);
-
-            // Filter active external types
             const categories = this.config.activeTypes.filter(t => this._isExternalCategory(t));
             if (categories.length === 0) return;
 
-            let attempts = 0;
-            const maxAttempts = count * 2; // Don't loop forever
+            const target = Math.max(2, Math.min(POOL_TARGET, perCategory));
+            console.log(`[Visual Cortex] Warming asset pools (${categories.length} categories × ${target})...`);
 
-            while (this._diagramQueue.length < count && attempts < maxAttempts) {
-                // Abort if config changed since we started
-                if (this._configVersion !== currentVersion) {
-                    console.log('[Visual Cortex] Preload aborted: config changed.');
-                    break;
-                }
-                attempts++;
-                const categoryId = categories[attempts % categories.length];
-                
-                try {
-                    const provider = await this._getProviderForCategory(categoryId);
-                    if (!provider) continue;
-
-                    const image = await provider.getRandom({ category: this._providerCategory(categoryId) });
-                    if (image && image.data && image.data.url) {
-                        this._diagramQueue.push(this._loadImage(image.data.url, image.name, categoryId).catch(err => {
-                            console.warn('[Visual Cortex] Failed to load external asset, skipping.', err);
-                            return null;
-                        }));
+            // Round-robin so every category gets a first image quickly
+            for (let round = 0; round < target; round++) {
+                for (const categoryId of categories) {
+                    if (this._configVersion !== currentVersion) {
+                        console.log('[Visual Cortex] Pool warming aborted: config changed.');
+                        return;
                     }
-                } catch (e) {
-                    console.warn('[Visual Cortex] Preload attempt failed:', e.message);
-                    if (e.message === '429') break;
+                    if (this._poolFor(categoryId).images.length > round) continue;
+                    await this._loadIntoPool(categoryId);
+                    // Yield to the main thread between network loads
+                    await new Promise(resolve => setTimeout(resolve, 60));
                 }
-
-                // Yield to main thread
-                await new Promise(resolve => setTimeout(resolve, 100)); // Increase yield time
             }
 
-            console.log(`[Visual Cortex] Preloaded ${this._diagramQueue.length} diagrams`);
+            const stocked = [...this._assetPools.values()].reduce((n, p) => n + p.images.length, 0);
+            console.log(`[Visual Cortex] Asset pools warm: ${stocked} artworks retained`);
         } catch (error) {
-            console.error('[Visual Cortex] Diagram preload failed:', error);
+            console.error('[Visual Cortex] Pool warming failed:', error);
         } finally {
             this._diagramPreloading = false;
         }
@@ -412,68 +442,50 @@ export class VisualCortex {
     }
 
     /**
-     * Get next diagram from queue or fetch new
+     * Serve an artwork for a flash. Warm pools answer instantly with a
+     * rotated sample (assets are retained, never consumed — a session
+     * at any flash frequency cannot starve them). A cold pool fetches
+     * directly, and whatever it fetches joins the pool for next time.
      * @param {string} [category] - Optional specific category to prefer
      * @private
      */
     async _getNextDiagram(category = null) {
-        // If queue is low, trigger background preload
-        if (this._diagramQueue.length < 3 && !this._diagramPreloading) {
-            this._preloadDiagrams(5); // Don't await, run in background
+        const activeExternal = this.config.activeTypes.filter(t => this._isExternalCategory(t));
+        // No concrete categories (bare 'diagram' vocabulary) → the
+        // Wikimedia grab-bag pool
+        const candidates = category ? [category]
+            : activeExternal.length > 0 ? activeExternal : [ANY_POOL];
+
+        // 1. Serve from a stocked pool — rotation, no consumption
+        const stocked = candidates
+            .map(c => this._poolFor(c))
+            .filter(p => p.images.length > 0);
+        if (stocked.length > 0) {
+            const pool = stocked[Math.floor(Math.random() * stocked.length)];
+            pool.cursor = (pool.cursor + 1) % pool.images.length;
+            const asset = pool.images[pool.cursor];
+
+            // Keep growing variety in the background until the target
+            const needy = candidates.some(c => this._poolFor(c).images.length < POOL_TARGET);
+            if (needy && !this._diagramPreloading) this._preloadDiagrams();
+
+            return asset;
         }
 
-        // 1. Try to find a valid diagram in the queue iteratively
-        // If category is specified, we MUST match it.
-        if (category) {
-            for (let i = 0; i < this._diagramQueue.length; i++) {
-                try {
-                    const p = this._diagramQueue[i];
-                    const resolved = await Promise.race([
-                        p,
-                        new Promise(resolve => setTimeout(() => resolve('pending'), 10))
-                    ]);
+        // 2. Cold pool: fetch directly — the asset is retained, so this
+        // path runs at most once per category per session
+        const target = category
+            || candidates[Math.floor(Math.random() * candidates.length)]
+            || null;
+        if (!target) return null;
 
-                    if (resolved !== 'pending' && resolved && resolved.category === category) {
-                        return this._diagramQueue.splice(i, 1)[0];
-                    }
-                    
-                    // If definitely loaded but wrong category, leave it for later (or remove if no longer in config?)
-                    // For safety, we just keep looking.
-                } catch (err) {
-                    // Remove failed promises
-                    this._diagramQueue.splice(i, 1);
-                    i--;
-                }
-            }
-            // If we are here, no match found in queue. We DON'T fallback to shifting a random one.
-        } else {
-            // No category specified, just take the first valid one
-            while (this._diagramQueue.length > 0) {
-                try {
-                    const diagram = await this._diagramQueue.shift();
-                    if (diagram && diagram.img) return diagram;
-                } catch (err) { }
+        for (let attempt = 0; attempt < 2; attempt++) {
+            const asset = await this._loadIntoPool(target);
+            if (asset) {
+                if (!this._diagramPreloading) this._preloadDiagrams();
+                return asset;
             }
         }
-
-        // 2. Fetch one directly if queue is empty or exhausted
-        let fetchAttempts = 0;
-        while (fetchAttempts < 2) {
-            fetchAttempts++;
-            try {
-                const provider = await this._getProviderForCategory(category);
-                if (!provider) return null;
-
-                const image = await provider.getRandom({ category: this._providerCategory(category) });
-                if (image && image.data && image.data.url) {
-                    return await this._loadImage(image.data.url, image.name, image.metadata?.categoryId);
-                }
-            } catch (error) {
-                console.error('[Visual Cortex] Direct fetch failed:', error.message);
-                if (error.message === '429') break;
-            }
-        }
-
         return null;
     }
 

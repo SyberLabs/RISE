@@ -10,59 +10,125 @@ import { SourceProvider } from '../provider.js';
 import { SourceCache } from '../cache.js';
 
 // AIC artwork_type_id vocabulary (verified against the live API):
-// 1 = Painting, 18 = Print. Every category pins a type so full-text
-// matches can never smuggle in jewelry, textiles, or sculpture — the
-// recurring necklace and carpet were exactly such strays.
+// 1 = Painting, 18 = Print. Every category pins a type so nothing can
+// smuggle in jewelry, textiles, or sculpture — the recurring necklace
+// and carpet were exactly such strays.
 const TYPE_PAINTING = 1;
 const TYPE_PRINT = 18;
 
+/**
+ * Categories are structured Elasticsearch clauses, not prose queries.
+ * (Full-text `q` only *ranks* — it never filters, so the old prose
+ * categories were all the same 1,946-painting pool sorted differently,
+ * with 36% overlap between "Romantic" and "Natural" landscapes.)
+ *
+ * Each category sits on its most reliable axis, all verified live:
+ * - artist rosters (terms on artist_title.keyword) where attribution
+ *   is clean — Impressionists 74, Post-Impressionists 36, Ukiyo-e 2,945
+ * - a date range for Old Masters (642) — pre-1750 attribution scatters
+ *   across "Master of…" and workshop names, so no roster can hold it
+ * - subject terms for Landscapes (208) and Portraits (262)
+ */
 export const MUSEUM_CATEGORIES = {
-    'renaissance': {
-        name: 'Renaissance Art',
-        query: 'Renaissance paintings',
-        artworkType: TYPE_PAINTING,
+    'oldmasters': {
+        name: 'Old Masters',
+        clauses: [
+            { term: { artwork_type_id: TYPE_PAINTING } },
+            { range: { date_start: { gte: 1400, lte: 1700 } } }
+        ],
         tags: ['classical', 'historical', 'cinematic']
     },
-    'romantic': {
-        name: 'Romantic Landscapes',
-        query: 'Romanticism landscape paintings',
-        artworkType: TYPE_PAINTING,
-        tags: ['sublime', 'historical', 'cinematic']
-    },
     'impressionism': {
-        name: 'Impressionist Fields',
-        query: 'Impressionism',
-        artworkType: TYPE_PAINTING,
+        name: 'Monet & the Impressionists',
+        clauses: [
+            { term: { artwork_type_id: TYPE_PAINTING } },
+            {
+                terms: {
+                    'artist_title.keyword': [
+                        'Claude Monet', 'Pierre-Auguste Renoir', 'Gustave Caillebotte',
+                        'Camille Pissarro', 'Alfred Sisley', 'Berthe Morisot',
+                        'Mary Cassatt', 'Edgar Degas'
+                    ]
+                }
+            }
+        ],
         tags: ['light', 'color', 'cinematic']
     },
     'postimpressionism': {
-        name: 'Post-Impressionist Masters',
-        query: 'Post-Impressionism',
-        artworkType: TYPE_PAINTING,
+        name: 'Van Gogh & Post-Impressionists',
+        clauses: [
+            { term: { artwork_type_id: TYPE_PAINTING } },
+            {
+                terms: {
+                    'artist_title.keyword': [
+                        'Vincent van Gogh', 'Paul Cezanne', 'Georges Seurat',
+                        'Paul Gauguin', 'Henri de Toulouse-Lautrec'
+                    ]
+                }
+            }
+        ],
         tags: ['color', 'structure', 'cinematic']
     },
     'ukiyoe': {
-        name: 'Ukiyo-e Prints',
-        query: 'Japanese woodblock print ukiyo-e',
-        artworkType: TYPE_PRINT,
+        name: 'Masters of Ukiyo-e',
+        clauses: [
+            { term: { artwork_type_id: TYPE_PRINT } },
+            {
+                terms: {
+                    'artist_title.keyword': [
+                        'Utagawa Hiroshige', 'Katsushika Hokusai', 'Kitagawa Utamaro',
+                        'Suzuki Harunobu', 'Torii Kiyonaga', 'Tōshūsai Sharaku'
+                    ]
+                }
+            }
+        ],
         tags: ['japanese', 'contemplative', 'linear']
     },
     'landscapes': {
-        name: 'Natural Landscapes',
-        query: 'landscape nature scenery',
-        artworkType: TYPE_PAINTING,
+        name: 'Landscapes',
+        clauses: [
+            { term: { artwork_type_id: TYPE_PAINTING } },
+            { term: { 'subject_titles.keyword': 'landscapes' } }
+        ],
         tags: ['nature', 'serene', 'cinematic']
+    },
+    'portraits': {
+        name: 'Portraits',
+        clauses: [
+            { term: { artwork_type_id: TYPE_PAINTING } },
+            { term: { 'subject_titles.keyword': 'portraits' } }
+        ],
+        tags: ['human', 'presence', 'cinematic']
     }
 };
 
-// Retired category ids (public-domain surrealism barely exists — the
-// movement is still in copyright, so its query degenerated to noise;
-// PD photography read as drab). Saved configs holding them get the
-// richest neighbor instead of a dead fallback.
+// Retired ids → their richest living neighbor, so saved configs keep
+// receiving art instead of a dead fallback. (Surrealism: the movement
+// is still in copyright, its PD query was noise. Photography read as
+// drab. Romantic/Natural landscapes were the same pool as Landscapes.
+// Renaissance grew into the wider Old Masters range.)
 const RETIRED_CATEGORIES = {
     'surrealism': 'postimpressionism',
-    'photography': 'ukiyoe'
+    'photography': 'ukiyoe',
+    'romantic': 'landscapes',
+    'renaissance': 'oldmasters'
 };
+
+/**
+ * Serialize a nested clause object into the PHP-style bracket params
+ * the AIC API parses, e.g. query[bool][must][1][terms][field][0]=x
+ */
+function flattenClause(value, prefix, params) {
+    if (Array.isArray(value)) {
+        value.forEach((v, i) => flattenClause(v, `${prefix}[${i}]`, params));
+    } else if (value && typeof value === 'object') {
+        for (const [k, v] of Object.entries(value)) {
+            flattenClause(v, `${prefix}[${k}]`, params);
+        }
+    } else {
+        params[prefix] = String(value);
+    }
+}
 
 export class MuseumProvider extends SourceProvider {
     constructor() {
@@ -97,7 +163,7 @@ export class MuseumProvider extends SourceProvider {
         }
     }
 
-    async getImagesInCategory(categoryId, limit = 50) {
+    async getImagesInCategory(categoryId, limit = 100) {
         const resolvedId = MUSEUM_CATEGORIES[categoryId]
             ? categoryId
             : RETIRED_CATEGORIES[categoryId];
@@ -107,16 +173,17 @@ export class MuseumProvider extends SourceProvider {
         const cacheKey = `cat:${resolvedId}:${limit}`;
         if (this._categoryCache?.has(cacheKey)) return this._categoryCache.get(cacheKey);
 
-        // Typed bool query: public domain AND the category's artwork
-        // type — full-text q alone let textiles and jewelry rank into
-        // painting categories
-        const data = await this._fetch('/search', {
-            q: cat.query,
+        // Structured bool query: public domain AND the category's
+        // clauses (artist roster / date range / subject / type)
+        const params = {
             'query[bool][must][0][term][is_public_domain]': 'true',
-            'query[bool][must][1][term][artwork_type_id]': String(cat.artworkType),
             limit: limit,
             fields: 'id,title,image_id,artist_display,date_display'
-        });
+        };
+        cat.clauses.forEach((clause, i) =>
+            flattenClause(clause, `query[bool][must][${i + 1}]`, params));
+
+        const data = await this._fetch('/search', params);
 
         const results = (data.data || []).filter(item => item.image_id).map(item => ({
             id: item.id.toString(),
@@ -177,7 +244,7 @@ export class MuseumProvider extends SourceProvider {
         const catIds = Object.keys(MUSEUM_CATEGORIES);
         const catId = filter.category || catIds[Math.floor(Math.random() * catIds.length)];
         
-        const images = await this.getImagesInCategory(catId, 50);
+        const images = await this.getImagesInCategory(catId);
         if (images.length === 0) return null;
 
         const img = images[Math.floor(Math.random() * images.length)];

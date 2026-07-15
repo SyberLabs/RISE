@@ -79,13 +79,13 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         container.remove();
     });
 
-    it('an AIC preset is visible and checked (e.g. archetype with aic-renaissance)', () => {
+    it('an AIC preset is visible and checked (e.g. archetype with aic-oldmasters)', () => {
         const { panel, container } = makePanel({
             visualMode: 'interlocution',
-            interlocution: { frequency: 0.3, duration: 80, sourced: ['aic-renaissance'], procedural: [] }
+            interlocution: { frequency: 0.3, duration: 80, sourced: ['aic-oldmasters'], procedural: [] }
         });
 
-        const box = container.querySelector('[data-sourced="aic-renaissance"]');
+        const box = container.querySelector('[data-sourced="aic-oldmasters"]');
         expect(box).not.toBeNull();
         expect(box.checked).toBe(true);
 
@@ -104,6 +104,8 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         // The replacement categories are offered
         expect(container.querySelector('[data-sourced="aic-ukiyoe"]')).not.toBeNull();
         expect(container.querySelector('[data-sourced="aic-postimpressionism"]')).not.toBeNull();
+        expect(container.querySelector('[data-sourced="aic-oldmasters"]')).not.toBeNull();
+        expect(container.querySelector('[data-sourced="aic-portraits"]')).not.toBeNull();
 
         panel.destroy();
         container.remove();
