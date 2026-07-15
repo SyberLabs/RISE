@@ -431,15 +431,11 @@ export class VisualInterlocutionPanel {
         const aicCategories = Object.entries(MUSEUM_CATEGORIES)
             .map(([id, cat]) => ({ id: `aic-${id}`, name: cat.name }));
 
-        // Metropolitan Museum of Art — verified public domain departments
-        const metCategories = [
-            { id: 'met-greek-roman',  name: 'Greek & Roman Antiquities' },
-            { id: 'met-egyptian',     name: 'Egyptian Antiquities' },
-            { id: 'met-medieval',     name: 'Medieval Collection' },
-            { id: 'met-japanese',     name: 'Japanese Woodblock Prints' },
-            { id: 'met-islamic',      name: 'Islamic Arts' },
-            { id: 'met-european',     name: 'European Masters' }
-        ];
+        // (The Met section was retired: its public API serves ~750px
+        // primaryImageSmall derivatives from pools too shallow to
+        // sustain themed categories — quality and coherence both fell
+        // below the AIC/Wikimedia floor. Saved met-* ids degrade
+        // gracefully in the cortex.)
 
         // Retrieve saved personal sequences containing explicit visuals
         const personalBlueprints = MemoryCore.getWorkshopBlueprints().filter(bp => bp.customVisuals && bp.customVisuals.length > 0);
@@ -664,26 +660,6 @@ export class VisualInterlocutionPanel {
                                         <label class="vi-checkbox">
                                             <input type="checkbox"
                                                 ${this.config.interlocution.sourced.includes(c.id) ? 'checked' : ''}
-                                                data-sourced="${c.id}">
-                                            <span class="vi-checkbox-label">${c.name}</span>
-                                        </label>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 2c. Met Museum Collection -->
-                        <div class="vi-accordion ${this.activeAccordions.includes('met') ? 'active' : ''}">
-                            <button type="button" class="vi-accordion-header" data-toggle="met">
-                                <span>Met Museum Collection</span>
-                                <span class="vi-chevron">${this.activeAccordions.includes('met') ? '▲' : '▼'}</span>
-                            </button>
-                            <div class="vi-accordion-body" ${this.activeAccordions.includes('met') ? '' : 'hidden'}>
-                                <div class="vi-checkbox-grid vi-checkbox-grid-2">
-                                    ${metCategories.map(c => `
-                                        <label class="vi-checkbox">
-                                            <input type="checkbox" 
-                                                ${this.config.interlocution.sourced.includes(c.id) ? 'checked' : ''} 
                                                 data-sourced="${c.id}">
                                             <span class="vi-checkbox-label">${c.name}</span>
                                         </label>

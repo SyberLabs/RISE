@@ -79,15 +79,31 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         container.remove();
     });
 
-    it('an AIC preset is visible and checked (e.g. archetype with aic-surrealism)', () => {
+    it('an AIC preset is visible and checked (e.g. archetype with aic-renaissance)', () => {
         const { panel, container } = makePanel({
             visualMode: 'interlocution',
-            interlocution: { frequency: 0.3, duration: 80, sourced: ['aic-surrealism'], procedural: [] }
+            interlocution: { frequency: 0.3, duration: 80, sourced: ['aic-renaissance'], procedural: [] }
         });
 
-        const box = container.querySelector('[data-sourced="aic-surrealism"]');
+        const box = container.querySelector('[data-sourced="aic-renaissance"]');
         expect(box).not.toBeNull();
         expect(box.checked).toBe(true);
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('retired category ids (aic-surrealism, met-*) render nothing but never crash', () => {
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: { frequency: 0.3, duration: 80, sourced: ['aic-surrealism', 'met-egyptian'], procedural: [] }
+        });
+
+        expect(container.querySelector('[data-sourced="aic-surrealism"]')).toBeNull();
+        expect(container.querySelector('[data-sourced="met-egyptian"]')).toBeNull();
+        // The replacement categories are offered
+        expect(container.querySelector('[data-sourced="aic-ukiyoe"]')).not.toBeNull();
+        expect(container.querySelector('[data-sourced="aic-postimpressionism"]')).not.toBeNull();
 
         panel.destroy();
         container.remove();

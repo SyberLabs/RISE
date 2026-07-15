@@ -105,7 +105,9 @@ export class WikimediaProvider extends SourceProvider {
         });
 
         this.baseUrl = 'https://commons.wikimedia.org/w/api.php';
-        this.thumbWidth = 800; // Default thumbnail width
+        this.thumbWidth = 1200; // Thumbnail width — raised from 800 so
+        // Wikimedia frames sit closer to the AIC's 843px IIIF quality
+        // when both providers share a session's rotation
 
         // Rate limiting state
         this._lastRequestTime = 0;

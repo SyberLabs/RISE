@@ -15,13 +15,12 @@ export { GUTENBERG_CATALOG, SACRED_TEXTS, ARXIV_CATEGORIES } from './text/index.
 // Visual providers
 export { GeneratedVisualProvider, VISUAL_TYPES } from './visual/index.js';
 export { WikimediaProvider, WIKIMEDIA_CATEGORIES } from './visual/index.js';
-export { MetMuseumProvider, MET_CATEGORIES } from './visual/index.js';
 
 // Initialization helper
 import { SourceRegistry } from './registry.js';
 import { SourceCache } from './cache.js';
 import { LocalTextProvider, GutenbergProvider, SacredTextProvider, ArxivProvider } from './text/index.js';
-import { GeneratedVisualProvider, WikimediaProvider, MetMuseumProvider } from './visual/index.js';
+import { GeneratedVisualProvider, WikimediaProvider } from './visual/index.js';
 
 /**
  * Initialize the source system with default providers
@@ -43,7 +42,6 @@ export async function initSourceSystem() {
     // Register visual providers
     SourceRegistry.register(new GeneratedVisualProvider());
     SourceRegistry.register(new WikimediaProvider());
-    SourceRegistry.register(new MetMuseumProvider());
 
     // Initialize all registered providers
     await SourceRegistry.initAll();

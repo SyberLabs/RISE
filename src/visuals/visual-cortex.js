@@ -29,9 +29,7 @@ export class VisualCortex {
 
         // External providers (lazy loaded)
         this._wikimediaProvider = null;
-        this._museumProvider = null;
-        this._metProvider = null;
-        this._diagramQueue = [];
+        this._museumProvider = null;        this._diagramQueue = [];
         this._diagramPreloading = false;
         this._configVersion = 0;
         // Klee queue/episode machinery lives in the KleeFlashes wrapper
@@ -266,19 +264,6 @@ export class VisualCortex {
      * Get or initialize the Met Museum provider
      * @private
      */
-    async _getMetProvider() {
-        if (this._metProvider) return this._metProvider;
-        try {
-            const { MetMuseumProvider } = await import('../sources/visual/met.js');
-            this._metProvider = new MetMuseumProvider();
-            await this._metProvider.init();
-            return this._metProvider;
-        } catch (error) {
-            console.error('[Visual Cortex] Failed to load MetMuseumProvider:', error);
-            return null;
-        }
-    }
-
     /**
      * Route a category to its correct provider
      * @private
@@ -292,9 +277,11 @@ export class VisualCortex {
         if (categoryId.startsWith('aic-')) {
             return this._getMuseumProvider();
         }
-        // Met Museum — prefixed with 'met-'
+        // Met Museum was retired (shallow pools, ~750px derivatives).
+        // Saved configs may still carry met-* ids: no provider means
+        // the flash skips to procedural rather than mis-routing.
         if (categoryId.startsWith('met-')) {
-            return this._getMetProvider();
+            return null;
         }
         // High-aesthetic Art and Photography categories for AIC Museum
         const museumCategories = ['renaissance', 'romantic', 'impressionism', 'photography', 'surrealism', 'landscapes'];

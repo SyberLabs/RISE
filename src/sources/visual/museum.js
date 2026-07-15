@@ -9,38 +9,59 @@
 import { SourceProvider } from '../provider.js';
 import { SourceCache } from '../cache.js';
 
+// AIC artwork_type_id vocabulary (verified against the live API):
+// 1 = Painting, 18 = Print. Every category pins a type so full-text
+// matches can never smuggle in jewelry, textiles, or sculpture — the
+// recurring necklace and carpet were exactly such strays.
+const TYPE_PAINTING = 1;
+const TYPE_PRINT = 18;
+
 export const MUSEUM_CATEGORIES = {
     'renaissance': {
         name: 'Renaissance Art',
         query: 'Renaissance paintings',
+        artworkType: TYPE_PAINTING,
         tags: ['classical', 'historical', 'cinematic']
     },
     'romantic': {
         name: 'Romantic Landscapes',
         query: 'Romanticism landscape paintings',
+        artworkType: TYPE_PAINTING,
         tags: ['sublime', 'historical', 'cinematic']
     },
     'impressionism': {
         name: 'Impressionist Fields',
         query: 'Impressionism',
+        artworkType: TYPE_PAINTING,
         tags: ['light', 'color', 'cinematic']
     },
-    'photography': {
-        name: 'Cinematic Photography',
-        query: 'Photography',
-        filter: 'is_public_domain=true',
-        tags: ['cinematic', 'composition', 'modern']
+    'postimpressionism': {
+        name: 'Post-Impressionist Masters',
+        query: 'Post-Impressionism',
+        artworkType: TYPE_PAINTING,
+        tags: ['color', 'structure', 'cinematic']
     },
-    'surrealism': {
-        name: 'Surrealist Forms',
-        query: 'Surrealism',
-        tags: ['visionary', 'psychological', 'cinematic']
+    'ukiyoe': {
+        name: 'Ukiyo-e Prints',
+        query: 'Japanese woodblock print ukiyo-e',
+        artworkType: TYPE_PRINT,
+        tags: ['japanese', 'contemplative', 'linear']
     },
     'landscapes': {
         name: 'Natural Landscapes',
         query: 'landscape nature scenery',
+        artworkType: TYPE_PAINTING,
         tags: ['nature', 'serene', 'cinematic']
     }
+};
+
+// Retired category ids (public-domain surrealism barely exists — the
+// movement is still in copyright, so its query degenerated to noise;
+// PD photography read as drab). Saved configs holding them get the
+// richest neighbor instead of a dead fallback.
+const RETIRED_CATEGORIES = {
+    'surrealism': 'postimpressionism',
+    'photography': 'ukiyoe'
 };
 
 export class MuseumProvider extends SourceProvider {
@@ -77,15 +98,22 @@ export class MuseumProvider extends SourceProvider {
     }
 
     async getImagesInCategory(categoryId, limit = 50) {
-        const cat = MUSEUM_CATEGORIES[categoryId];
+        const resolvedId = MUSEUM_CATEGORIES[categoryId]
+            ? categoryId
+            : RETIRED_CATEGORIES[categoryId];
+        const cat = MUSEUM_CATEGORIES[resolvedId];
         if (!cat) return [];
 
-        const cacheKey = `cat:${categoryId}:${limit}`;
+        const cacheKey = `cat:${resolvedId}:${limit}`;
         if (this._categoryCache?.has(cacheKey)) return this._categoryCache.get(cacheKey);
 
+        // Typed bool query: public domain AND the category's artwork
+        // type — full-text q alone let textiles and jewelry rank into
+        // painting categories
         const data = await this._fetch('/search', {
             q: cat.query,
-            'query[term][is_public_domain]': 'true',
+            'query[bool][must][0][term][is_public_domain]': 'true',
+            'query[bool][must][1][term][artwork_type_id]': String(cat.artworkType),
             limit: limit,
             fields: 'id,title,image_id,artist_display,date_display'
         });
@@ -121,13 +149,17 @@ export class MuseumProvider extends SourceProvider {
     }
 
     async get(categoryId) {
-        const images = await this.getImagesInCategory(categoryId, 20);
+        const resolvedId = MUSEUM_CATEGORIES[categoryId]
+            ? categoryId
+            : RETIRED_CATEGORIES[categoryId];
+        if (!resolvedId) return null;
+        const images = await this.getImagesInCategory(resolvedId, 20);
         if (images.length === 0) return null;
 
         return {
-            id: categoryId,
+            id: resolvedId,
             type: 'image',
-            name: MUSEUM_CATEGORIES[categoryId].name,
+            name: MUSEUM_CATEGORIES[resolvedId].name,
             data: {
                 images: images,
                 previewUrl: images[0].url
