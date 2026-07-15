@@ -38,6 +38,7 @@ function makeMockContext() {
             const osc = makeNode({
                 type: 'sine',
                 frequency: makeParam(0),
+                detune: makeParam(0),
                 setPeriodicWave: vi.fn()
             });
             oscillators.push(osc);
