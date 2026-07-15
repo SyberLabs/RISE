@@ -3,7 +3,7 @@
  * (SOL / Vault / Library) show a wayfinding chip in the orbital view
  * that returns to the originating view; plain sessions show nothing.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // jsdom has no indexedDB; PersonalSwells (unrelated to the chip) probes it
 // during orbital init. A never-settling stub keeps the run clean.
@@ -27,6 +27,11 @@ function makeOrbital() {
 const SOL_ORIGIN = { view: 'sol', icon: '☀', name: 'SOL' };
 
 describe('ChamberOrbital origin chip', () => {
+    beforeEach(() => {
+        localStorage.removeItem('rise_orbital_prefs_v1');
+        localStorage.removeItem('rise_orbital_text_v1');
+    });
+
     it('shows no chip for a plain session', () => {
         const { orbital, container } = makeOrbital();
         expect(container.querySelector('.orbital-origin-chip')).toBeNull();
@@ -174,9 +179,9 @@ describe('ChamberOrbital origin chip', () => {
         expect(second.orbital.config.visualInterlocution.visualMode).toBe('genesis');
         expect(second.orbital.config.visualInterlocution.genesis.preset).toBe('harmonic');
         expect(second.orbital.config.visualInterlocution.genesis.glass).toBe(false);
-        // Text and origin are never persisted
-        expect(second.orbital.config.text).toBeNull();
-        expect(second.orbital.config.origin).toBeNull();
+        // The loaded text persists too (its own key) — saved settings
+        // must never be stranded behind an empty text card on refresh
+        expect(second.orbital.config.text).toBe('some text');
 
         second.orbital.destroy();
         second.container.remove();
@@ -269,5 +274,28 @@ describe('ChamberOrbital origin chip', () => {
 
         orbital.destroy();
         container.remove();
+    });
+
+    it('the loaded text survives a refresh, with source and origin chip', () => {
+        const a = makeOrbital();
+        a.orbital.loadText('the persistent text', 'SOL: Dawn', { origin: SOL_ORIGIN });
+        a.orbital.destroy();
+        a.container.remove();
+
+        const b = makeOrbital();
+        expect(b.orbital.config.text).toBe('the persistent text');
+        expect(b.orbital.config.textSource).toBe('SOL: Dawn');
+        expect(b.orbital.config.origin?.view).toBe('sol');
+        expect(b.container.querySelector('.orbital-origin-chip')).not.toBeNull();
+
+        // Clearing the card clears the persistence with it
+        b.orbital.clearText();
+        b.orbital.destroy();
+        b.container.remove();
+        const c = makeOrbital();
+        expect(c.orbital.config.text).toBeNull();
+        expect(localStorage.getItem('rise_orbital_text_v1')).toBeNull();
+        c.orbital.destroy();
+        c.container.remove();
     });
 });

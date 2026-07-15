@@ -284,12 +284,16 @@ export class VisualCortex {
      * @private
      */
     async _getProviderForCategory(categoryId) {
+        // No category (a bare 'diagram' flash) draws from Wikimedia
+        if (!categoryId) {
+            return this._getWikimediaProvider();
+        }
         // Art Institute of Chicago — prefixed with 'aic-' (panel-issued ids)
         if (categoryId.startsWith('aic-')) {
             return this._getMuseumProvider();
         }
         // Met Museum — prefixed with 'met-'
-        if (categoryId && categoryId.startsWith('met-')) {
+        if (categoryId.startsWith('met-')) {
             return this._getMetProvider();
         }
         // High-aesthetic Art and Photography categories for AIC Museum
@@ -299,6 +303,18 @@ export class VisualCortex {
         }
         // Default to Wikimedia for diagrams and others
         return this._getWikimediaProvider();
+    }
+
+    /**
+     * Translate a UI category id into the provider's own key. AIC ids
+     * are namespaced in the UI ('aic-renaissance') but the provider's
+     * category table uses bare keys ('renaissance'); Met's table keys
+     * carry their 'met-' prefix natively.
+     * @private
+     */
+    _providerCategory(categoryId) {
+        if (!categoryId) return categoryId;
+        return categoryId.startsWith('aic-') ? categoryId.slice(4) : categoryId;
     }
 
     /**
@@ -367,10 +383,7 @@ export class VisualCortex {
                     const provider = await this._getProviderForCategory(categoryId);
                     if (!provider) continue;
 
-                    // AIC ids are namespaced in the UI ('aic-renaissance') but the
-                    // provider's category table uses bare keys ('renaissance')
-                    const providerCategory = categoryId.startsWith('aic-') ? categoryId.slice(4) : categoryId;
-                    const image = await provider.getRandom({ category: providerCategory });
+                    const image = await provider.getRandom({ category: this._providerCategory(categoryId) });
                     if (image && image.data && image.data.url) {
                         this._diagramQueue.push(this._loadImage(image.data.url, image.name, categoryId).catch(err => {
                             console.warn('[Visual Cortex] Failed to load external asset, skipping.', err);
@@ -464,7 +477,7 @@ export class VisualCortex {
                 const provider = await this._getProviderForCategory(category);
                 if (!provider) return null;
 
-                const image = await provider.getRandom({ category: category });
+                const image = await provider.getRandom({ category: this._providerCategory(category) });
                 if (image && image.data && image.data.url) {
                     return await this._loadImage(image.data.url, image.name, image.metadata?.categoryId);
                 }
@@ -507,11 +520,17 @@ export class VisualCortex {
             preloadPromises.push(this.kleeFlashes.preload(episodeCount));
         }
 
-        // Preload diagrams
-        if (this.config.activeTypes.includes('diagram')) {
-            const diagramShare = 1 / Math.max(1, this.config.activeTypes.length);
+        // Preload external assets. Sessions carry concrete category ids
+        // ('aic-renaissance', 'met-european', wikimedia keys) rather than
+        // the bare 'diagram' flag, so gate on either — otherwise the
+        // queue starts empty and the first museum flash of a session
+        // always missed and fell back to procedural
+        const externalCount = this.config.activeTypes
+            .filter(t => t === 'diagram' || this._isExternalCategory(t)).length;
+        if (externalCount > 0) {
+            const diagramShare = externalCount / Math.max(1, this.config.activeTypes.length);
             const count = Math.ceil(estimatedFlashCount * diagramShare * 1.5);
-            preloadPromises.push(this._preloadDiagrams(Math.min(count, 10)));
+            preloadPromises.push(this._preloadDiagrams(Math.min(Math.max(count, 4), 10)));
         }
 
         await Promise.all(preloadPromises);

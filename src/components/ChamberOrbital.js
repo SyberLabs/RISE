@@ -16,6 +16,10 @@ import './VisualInterlocutionPanel.css';
 // Last-used session settings survive across chamber visits (the orbital
 // instance itself is destroyed whenever a session runs in the shared view)
 const ORBITAL_PREFS_KEY = 'rise_orbital_prefs_v1';
+// The loaded text lives under its own key, apart from the settings:
+// texts can be book-sized, and a quota failure on one must never cost
+// the other. Prefs shed only the focal image; text sheds only itself.
+const ORBITAL_TEXT_KEY = 'rise_orbital_text_v1';
 
 /**
  * Factory defaults for the orbital — one source of truth for the
@@ -103,6 +107,12 @@ export class ChamberOrbital {
     // returning from a session never resets the controls to defaults
     this._applySavedPrefs();
 
+    // Restore the loaded text too — without it the saved visual and
+    // audio settings are stranded behind an empty text card after a
+    // refresh. A launch that carries fresh text (SOL, Vault, Library)
+    // overwrites this via loadText immediately after construction.
+    this._applySavedText();
+
     // Active modal
     this.activeModal = null;
 
@@ -117,13 +127,16 @@ export class ChamberOrbital {
 
     this.render();
     this.attachEvents();
+    // A restored origin needs its chip painted (loadText does this
+    // itself; the constructor path must match)
+    if (this.config.origin) this.updateOriginChip();
   }
 
   /**
-   * Hydrate config from the last-used preferences. Text/source/origin are
-   * never persisted — only the dials the user actually set. Nested visual
-   * config merges over defaults so newer fields keep their defaults when
-   * the saved shape predates them.
+   * Hydrate config from the last-used preferences — the dials the user
+   * set. The loaded text/source/origin live under their own key (see
+   * _applySavedText). Nested visual config merges over defaults so
+   * newer fields keep their defaults when the saved shape predates them.
    */
   _applySavedPrefs() {
     let saved = null;
@@ -188,6 +201,38 @@ export class ChamberOrbital {
     }
   }
 
+  _applySavedText() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(ORBITAL_TEXT_KEY));
+      if (saved?.text) {
+        this.config.text = saved.text;
+        this.config.textSource = saved.textSource || null;
+        this.config.origin = saved.origin || null;
+      }
+    } catch (e) {
+      console.warn('[ChamberOrbital] Could not read saved text:', e);
+    }
+  }
+
+  _persistText() {
+    try {
+      if (this.config.text) {
+        localStorage.setItem(ORBITAL_TEXT_KEY, JSON.stringify({
+          text: this.config.text,
+          textSource: this.config.textSource,
+          origin: this.config.origin
+        }));
+      } else {
+        localStorage.removeItem(ORBITAL_TEXT_KEY);
+      }
+    } catch (e) {
+      // Oversized text (storage quota): drop the stale entry rather
+      // than let an older text resurrect on the next refresh
+      try { localStorage.removeItem(ORBITAL_TEXT_KEY); } catch (e2) { /* full */ }
+      console.warn('[ChamberOrbital] Text too large to persist across refresh:', e);
+    }
+  }
+
   /**
    * A soundscape is a finished mix — it never shares the bed with the
    * pure-tone stack (steady tones at the same carrier mask it). Saved
@@ -210,6 +255,7 @@ export class ChamberOrbital {
       entrainmentWaveform, voiceEnabled, voiceId, selectedSwellId,
       visualInterlocution
     };
+    this._persistText();
     try {
       localStorage.setItem(ORBITAL_PREFS_KEY, JSON.stringify(payload));
     } catch (e) {
@@ -1141,6 +1187,10 @@ export class ChamberOrbital {
     this.config.origin = config.origin || null;
     this.updateOriginChip();
 
+    // Capture immediately — a refresh right after choosing a text
+    // should bring it back, not wait for an exit event
+    this._persistText();
+
     // Apply optional config parameters from source
     if (config.wpm) this.config.wpm = config.wpm;
     if (config.curve) this.config.curve = config.curve;
@@ -1211,6 +1261,7 @@ export class ChamberOrbital {
     this.config.textSource = null;
     this.config.origin = null;
     this.updateOriginChip();
+    this._persistText(); // clearing the card clears its persistence
 
     // Lock visual interlocution again
     if (this.viPanel) {
