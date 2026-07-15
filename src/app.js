@@ -302,7 +302,9 @@ class App {
                     this.audioEngine.sessionActive = true;
                     const durationSec = (session.totalDuration || 0) / 1000;
                     await this.audioEngine.startSession({ 
-                        preset: session.audioPreset !== 'silent' ? session.audioPreset : null,
+                        // Exclusive beds: a soundscape is a finished mix, so
+                        // it displaces the pure-tone preset if both slipped in
+                        preset: session.audioPreset !== 'silent' && !hasSoundscape ? session.audioPreset : null,
                         soundscape: hasSoundscape ? session.soundscape : null,
                         swellId: session.selectedSwellId,
                         entrainment: {

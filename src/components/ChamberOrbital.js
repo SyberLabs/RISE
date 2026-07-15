@@ -138,6 +138,7 @@ export class ChamberOrbital {
     for (const key of scalarKeys) {
       if (saved[key] !== undefined) this.config[key] = saved[key];
     }
+    this._normalizeAudioExclusivity();
 
     const vi = saved.visualInterlocution;
     if (vi) {
@@ -183,6 +184,19 @@ export class ChamberOrbital {
 
     if (window.rise?.showToast) {
       window.rise.showToast('Settings restored to defaults');
+    }
+  }
+
+  /**
+   * A soundscape is a finished mix — it never shares the bed with the
+   * pure-tone stack (steady tones at the same carrier mask it). Saved
+   * shapes or incoming configs holding both resolve in the
+   * soundscape's favor.
+   */
+  _normalizeAudioExclusivity() {
+    if (this.config.soundscape && this.config.soundscape !== 'none'
+      && this.config.audioPreset !== 'silent') {
+      this.config.audioPreset = 'silent';
     }
   }
 
@@ -779,24 +793,36 @@ export class ChamberOrbital {
   }
 
   attachAudioModalEvents() {
-    // Soundscape (living compositions)
+    // Soundscapes and pure tones are mutually exclusive beds: a
+    // soundscape is a finished mix and never shares the room with the
+    // tone stack (steady tones at the same carrier simply mask it).
+    // Auto-switch rather than disable — the selection visibly moving
+    // teaches the rule, and one tap undoes it.
     const soundscapeOptions = this.container.querySelectorAll('[data-soundscape]');
+    const presetOptions = this.container.querySelectorAll('[data-preset]');
+
     soundscapeOptions.forEach(opt => {
       opt.addEventListener('click', () => {
         window.rise?.audioEngine?.playHiss();
         this.config.soundscape = opt.dataset.soundscape;
+        if (opt.dataset.soundscape !== 'none' && this.config.audioPreset !== 'silent') {
+          this.config.audioPreset = 'silent';
+          presetOptions.forEach(o => o.classList.toggle('active', o.dataset.preset === 'silent'));
+        }
         this.updateOrbitStatus('audio');
         soundscapeOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
       });
     });
 
-    // Pure-tone preset
-    const presetOptions = this.container.querySelectorAll('[data-preset]');
     presetOptions.forEach(opt => {
       opt.addEventListener('click', () => {
         window.rise?.audioEngine?.playHiss();
         this.config.audioPreset = opt.dataset.preset;
+        if (opt.dataset.preset !== 'silent' && this.config.soundscape !== 'none') {
+          this.config.soundscape = 'none';
+          soundscapeOptions.forEach(o => o.classList.toggle('active', o.dataset.soundscape === 'none'));
+        }
         this.updateOrbitStatus('audio');
         presetOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
@@ -1091,6 +1117,7 @@ export class ChamberOrbital {
     if (config.soundscape) this.config.soundscape = config.soundscape;
     if (config.entrainmentMode) this.config.entrainmentMode = config.entrainmentMode;
     if (config.entrainmentWaveform) this.config.entrainmentWaveform = config.entrainmentWaveform;
+    this._normalizeAudioExclusivity();
 
     // Apply visual configuration from archetype/source
     if (config.visualConfig) {

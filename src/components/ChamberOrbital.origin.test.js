@@ -198,9 +198,17 @@ describe('ChamberOrbital origin chip', () => {
         expect(orbital.config.soundscape).toBe('aurora');
         expect(orbital.getAudioStatus()).toBe('✧ Aurora');
 
-        // Combined with a pure-tone preset the status reads as a mix
-        orbital.config.audioPreset = 'deep';
-        expect(orbital.getAudioStatus()).toBe('✧ Aurora +');
+        // Exclusive beds: picking a pure tone rests the soundscape…
+        container.querySelector('[data-preset="deep"]').click();
+        expect(orbital.config.soundscape).toBe('none');
+        expect(orbital.getAudioStatus()).toBe('○ Deep');
+        expect(container.querySelector('[data-soundscape="none"]').classList.contains('active')).toBe(true);
+
+        // …and picking the soundscape back rests the tones
+        container.querySelector('[data-soundscape="aurora"]').click();
+        expect(orbital.config.audioPreset).toBe('silent');
+        expect(orbital.getAudioStatus()).toBe('✧ Aurora');
+        expect(container.querySelector('[data-preset="silent"]').classList.contains('active')).toBe(true);
 
         // Begin payload carries it
         orbital.config.text = 't';
@@ -221,6 +229,15 @@ describe('ChamberOrbital origin chip', () => {
 
         restored.orbital.destroy();
         restored.container.remove();
+
+        // Stale saved shapes holding both beds resolve for the soundscape
+        localStorage.setItem('rise_orbital_prefs_v1',
+            JSON.stringify({ soundscape: 'aurora', audioPreset: 'gateway' }));
+        const norm = makeOrbital();
+        expect(norm.orbital.config.soundscape).toBe('aurora');
+        expect(norm.orbital.config.audioPreset).toBe('silent');
+        norm.orbital.destroy();
+        norm.container.remove();
         localStorage.removeItem('rise_orbital_prefs_v1');
     });
 
