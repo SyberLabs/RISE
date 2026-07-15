@@ -183,33 +183,11 @@ export class Workshop {
               </div>
             </div>
 
-            <!-- Sequence Images (travel with this sequence only) -->
-            <div class="input-group">
-              <div class="input-label-row">
-                <label class="input-label">This Sequence's Images</label>
-                <button type="button" class="btn-secondary btn-compact" data-action="upload-image">
-                  + Add Image
-                </button>
-              </div>
-              <p class="input-note text-fog">Travel with this sequence only — flashed via Personal → Active Sequence in Visuals. For images shared across every session, use the Global Image Pool shelf below.</p>
-              <div class="visual-drop-zone" id="visual-drop-zone">
-                <div class="visual-assets-list" id="visual-assets-list">
-                  ${this.sessionData.customVisuals.length === 0 ? `
-                    <div class="drop-zone-prompt">
-                      <span class="drop-icon">⬆</span>
-                      <span class="drop-text">Drop images here or click + Add Image</span>
-                    </div>
-                  ` : this.renderVisualAssets()}
-                </div>
-              </div>
-            </div>
-            
-            <!-- Visual Interlocution Panel -->
-            <div id="vi-panel-container" class="input-group"></div>
-
-            <!-- Configuration -->
+            <!-- Reading mechanics live beside the sources they modify:
+                 what you read, then how it reads. Accompaniment
+                 (images, visuals, atmosphere) follows as its own layer. -->
             <div class="config-section">
-              <h3 class="config-section-title text-light">Configuration</h3>
+              <h3 class="config-section-title text-light">Reading</h3>
 
               <!-- Pacing -->
               <div class="input-group">
@@ -228,7 +206,7 @@ export class Workshop {
                     step="10"
                   />
                 </div>
-                <div class="config-notice text-fog font-mono" style="font-size: 9px; margin-top: 0.5rem; opacity: 0.7;">
+                <div class="config-notice text-fog font-mono">
                   ◊ Adjustable in-chamber via Arrow Keys
                 </div>
               </div>
@@ -259,9 +237,37 @@ export class Workshop {
                   <button type="button" class="chunk-btn ${this.sessionData.chunkMode === 'sentence' ? 'active' : ''}" data-chunk="sentence">Sentence</button>
                 </div>
               </div>
+            </div>
 
+            <!-- Sequence Images (travel with this sequence only) -->
+            <div class="input-group">
+              <div class="input-label-row">
+                <label class="input-label">This Sequence's Images</label>
+                <button type="button" class="btn-secondary btn-compact" data-action="upload-image">
+                  + Add Image
+                </button>
+              </div>
+              <p class="input-note text-fog">Travel with this sequence only — flashed via Personal → Active Sequence in Visuals. For images shared across every session, use the Global Image Pool shelf below.</p>
+              <div class="visual-drop-zone" id="visual-drop-zone">
+                <div class="visual-assets-list" id="visual-assets-list">
+                  ${this.sessionData.customVisuals.length === 0 ? `
+                    <div class="drop-zone-prompt">
+                      <span class="drop-icon">⬆</span>
+                      <span class="drop-text">Drop images here or click + Add Image</span>
+                    </div>
+                  ` : this.renderVisualAssets()}
+                </div>
+              </div>
+            </div>
 
-              <!-- Atmosphere: Soundscape (living compositions) leads,
+            <!-- Visual Interlocution Panel -->
+            <div id="vi-panel-container" class="input-group"></div>
+
+            <!-- Atmosphere -->
+            <div class="config-section">
+              <h3 class="config-section-title text-light">Atmosphere</h3>
+
+              <!-- Soundscape (living compositions) leads,
                    pure tones follow — the same grammar as the Chamber's
                    audio panel, exclusive beds included -->
               <div class="input-group">

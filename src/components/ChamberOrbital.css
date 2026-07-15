@@ -403,12 +403,17 @@
 }
 
 /* ─── Actions ─── */
+/* Tighter top margin lifts Begin off the fold at 100% zoom, and the
+   bottom padding guarantees the Reset beneath it is never clipped */
 .orbital-actions {
-  margin-top: var(--space-xl);
+  margin-top: var(--space-lg);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-sm);
+  /* Reset sits snug beneath Begin — one gesture group — with real
+     clearance from the bottom edge of the screen */
+  gap: var(--space-xs);
+  padding-bottom: var(--space-2xl);
 }
 
 /* Reset: quiet counterweight to persistence — restores default dials,

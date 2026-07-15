@@ -838,3 +838,9 @@
   background: var(--color-abyss);
   border-radius: var(--radius-sm);
 }
+
+.config-notice {
+  font-size: 9px;
+  margin-top: 0.5rem;
+  opacity: 0.7;
+}
