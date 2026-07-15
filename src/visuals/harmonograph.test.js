@@ -54,6 +54,39 @@ describe('planHarmonograph', () => {
         expect(plan.ratio.length).toBe(2);
         expect(plan.damping).toBeGreaterThan(0);
     });
+
+    it('unresponsive Auto varies the climate instead of settling on one', () => {
+        const rng = createSeededRandom('variety');
+        const seen = new Set();
+        for (let i = 0; i < 24; i++) {
+            seen.add(planHarmonograph(null, rng).paletteName);
+        }
+        expect(seen.size).toBeGreaterThan(2);
+    });
+
+    it('an explicit climate is a veto — palette pinned, energy still the signal\'s', () => {
+        const rng = createSeededRandom('veto');
+        // Warm intense signal would pick solarFlare on auto…
+        const auto = planHarmonograph({ valence: 0.8, arousal: 0.9 }, rng, { climate: 'auto' });
+        expect(auto.paletteName).toBe('solarFlare');
+
+        // …but a pinned midnightWater holds against the same signal
+        const pinned = planHarmonograph({ valence: 0.8, arousal: 0.9 },
+            createSeededRandom('veto2'), { climate: 'midnightWater' });
+        expect(pinned.paletteName).toBe('midnightWater');
+        expect([[8, 9], [5, 6], [5, 8]]).toContainEqual(pinned.ratio);
+
+        // Energy subparameters still answer to arousal within the veto
+        const calm = planHarmonograph({ valence: 0.8, arousal: 0.1 },
+            createSeededRandom('veto2'), { climate: 'midnightWater' });
+        expect(pinned.damping).toBeLessThan(calm.damping);
+        expect(pinned.rotary).toBeGreaterThan(calm.rotary);
+
+        // Unknown climates fall back to auto behavior, never crash
+        const bogus = planHarmonograph({ valence: 0.8, arousal: 0.9 },
+            createSeededRandom('veto3'), { climate: 'neonPlaid' });
+        expect(bogus.paletteName).toBe('solarFlare');
+    });
 });
 
 describe('Harmonograph engine', () => {

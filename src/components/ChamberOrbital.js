@@ -66,6 +66,7 @@ function createDefaultConfig() {
         frequency: 0.2,
         duration: 80,
         kleePreset: 'random',
+        harmonographClimate: 'auto',
         responsive: false,
         responsiveMood: true,
         responsiveRhythm: true

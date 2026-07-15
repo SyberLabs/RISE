@@ -387,6 +387,7 @@ class App {
                                 duration: interlocution.duration ?? 80,
                                 activeTypes: activeTypes,
                                 kleePreset: interlocution.kleePreset ?? 'random',
+                                harmonographClimate: interlocution.harmonographClimate ?? 'auto',
                                 customVisuals: session.customVisuals || [],
                                 sourced: interlocution.sourced || [],
                                 semanticSignals: semanticSignals

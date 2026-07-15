@@ -212,3 +212,45 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         container.remove();
     });
 });
+
+describe('Harmonograph climate chips', () => {
+    it('chips appear only when harmonograph is enabled; Auto is the default', () => {
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: { procedural: [], sourced: [] }
+        });
+        panel.activeAccordions = ['procedural'];
+        panel.render();
+        panel.attachEvents();
+        expect(container.querySelector('[data-preset-group="harmonograph"]')).toBeNull();
+
+        container.querySelector('[data-procedural="harmonograph"]').click();
+        const chips = container.querySelectorAll('[data-for="harmonograph"]');
+        expect(chips.length).toBe(7);
+        expect(container.querySelector('[data-for="harmonograph"][data-preset="auto"]')
+            .classList.contains('active')).toBe(true);
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('selecting a climate pins it in config; klee preset is untouched', () => {
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: { procedural: ['harmonograph', 'klee'], sourced: [], kleePreset: 'harmonic' }
+        });
+        panel.activeAccordions = ['procedural'];
+        panel.render();
+        panel.attachEvents();
+
+        container.querySelector('[data-for="harmonograph"][data-preset="stormViolet"]').click();
+        const config = panel.getConfig();
+        expect(config.interlocution.harmonographClimate).toBe('stormViolet');
+        expect(config.interlocution.kleePreset).toBe('harmonic');
+        expect(container.querySelector('[data-for="harmonograph"][data-preset="stormViolet"]')
+            .classList.contains('active')).toBe(true);
+
+        panel.destroy();
+        container.remove();
+    });
+});

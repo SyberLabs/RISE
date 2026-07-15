@@ -53,11 +53,12 @@ export class Harmonograph {
      * (signal, seed) pair; a fresh random seed per flash otherwise.
      * @param {Object} [signal] - { valence, arousal }
      * @param {string|number} [seed]
+     * @param {Object} [options] - { climate: 'auto' | climate name }
      * @returns {boolean} true when a trace is ready
      */
-    generate(signal, seed) {
+    generate(signal, seed, options = {}) {
         const rng = createSeededRandom(seed ?? `hg-${Math.random()}`);
-        const plan = planHarmonograph(signal, rng);
+        const plan = planHarmonograph(signal, rng, options);
 
         const [p, q] = plan.ratio;
         const fx = p;

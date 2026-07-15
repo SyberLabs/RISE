@@ -48,6 +48,7 @@ export class VisualCortex {
             duration: 33,   // ms
             activeTypes: ['klee', 'turrell'],
             kleePreset: 'random', // 'random' | 'architectural' | 'chaotic' | 'harmonic' | 'gravitational' | 'twittering'
+            harmonographClimate: 'auto', // 'auto' | a climate palette name (explicit = veto)
             customVisuals: []
         };
     }
@@ -624,7 +625,9 @@ export class VisualCortex {
             // interval, the pendulums draw it (still frame, shares the
             // klee canvas like the rock garden)
             this._resizeKleeCanvas();
-            this.harmonograph.generate(signal);
+            this.harmonograph.generate(signal, undefined, {
+                climate: this.config.harmonographClimate
+            });
             this.harmonograph.render(this._kleeCanvas);
             if (kleeEl) kleeEl.hidden = false;
         } else if (selectedType === 'rockgarden' && this.rockgarden && this._kleeCanvas) {

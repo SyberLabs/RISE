@@ -109,6 +109,7 @@ export class VisualInterlocutionPanel {
                 frequency: options.interlocution?.frequency ?? options.frequency ?? 0.2,
                 duration: options.interlocution?.duration ?? options.duration ?? 80,
                 kleePreset: options.interlocution?.kleePreset ?? options.kleePreset ?? 'random',
+                harmonographClimate: options.interlocution?.harmonographClimate ?? 'auto',
                 // Responsive: the semantic conductor drives the flashes.
                 // Two independently gated intents beneath the master switch:
                 // mood (imagery character) and rhythm (density/sharpness).
@@ -387,6 +388,20 @@ export class VisualInterlocutionPanel {
             { id: 'twittering', name: 'Twittering' }
         ];
 
+        // Harmonograph climates — same grammar as the Klee chips: Auto
+        // lets the conductor (or, unresponsive, chance) choose; an
+        // explicit climate pins palette + chord family, while mood keeps
+        // its say over the pendulum's energy
+        const harmonographClimates = [
+            { id: 'auto', name: 'Auto' },
+            { id: 'emberDawn', name: 'Ember' },
+            { id: 'solarFlare', name: 'Solar' },
+            { id: 'midnightWater', name: 'Midnight' },
+            { id: 'stormViolet', name: 'Storm' },
+            { id: 'jadeVeil', name: 'Jade' },
+            { id: 'whiteHeat', name: 'White' }
+        ];
+
         // Standard focal glyphs for neurosensitive-friendly viewing
         const focalGlyphs = [
             { id: 'breath', name: 'Breath', icon: '◯', dynamic: true, description: 'Gentle pulsing circle' },
@@ -590,11 +605,23 @@ export class VisualInterlocutionPanel {
                                             ${p.hasPresets && this.config.interlocution.procedural.includes(p.id) ? `
                                                 <div class="vi-preset-chips" data-preset-group="${p.id}">
                                                     ${kleePresets.map(preset => `
-                                                        <button type="button" 
-                                                            class="vi-preset-chip ${this.config.interlocution.kleePreset === preset.id ? 'active' : ''}" 
-                                                            data-preset="${preset.id}" 
+                                                        <button type="button"
+                                                            class="vi-preset-chip ${this.config.interlocution.kleePreset === preset.id ? 'active' : ''}"
+                                                            data-preset="${preset.id}"
                                                             data-for="${p.id}">
                                                             ${preset.name}
+                                                        </button>
+                                                    `).join('')}
+                                                </div>
+                                            ` : ''}
+                                            ${p.id === 'harmonograph' && this.config.interlocution.procedural.includes(p.id) ? `
+                                                <div class="vi-preset-chips" data-preset-group="harmonograph">
+                                                    ${harmonographClimates.map(climate => `
+                                                        <button type="button"
+                                                            class="vi-preset-chip ${this.config.interlocution.harmonographClimate === climate.id ? 'active' : ''}"
+                                                            data-preset="${climate.id}"
+                                                            data-for="harmonograph">
+                                                            ${climate.name}
                                                         </button>
                                                     `).join('')}
                                                 </div>
@@ -888,6 +915,8 @@ export class VisualInterlocutionPanel {
 
                 if (target === 'klee') {
                     this.config.interlocution.kleePreset = presetId;
+                } else if (target === 'harmonograph') {
+                    this.config.interlocution.harmonographClimate = presetId;
                 }
 
                 this.render();

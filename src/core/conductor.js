@@ -548,23 +548,45 @@ const HARMONOGRAPH_INTERVALS = {
     whiteHeat: [[PHI, 2], [1, PHI]]             // golden against the octave — luminous drift
 };
 
+const HARMONOGRAPH_CLIMATES = Object.keys(HARMONOGRAPH_INTERVALS);
+
 /**
  * Plan a harmonograph trace for a semantic signal. Valence chooses the
  * interval quality (the chord), arousal sets the pendulum's energy:
  * how slowly the pen dies, how far it precesses, how much rotary
  * motion stirs the center. Pure given an injected rng.
  *
- * @param {Object} signal - { valence, arousal }
+ * Climate selection follows the Klee grammar: an explicit
+ * options.climate is a veto — palette and chord family are pinned,
+ * and the signal (when present) keeps its say over energy only. On
+ * 'auto' the conductor chooses from the signal; without a signal
+ * (responsive off) it varies the climate per flash rather than
+ * defaulting to one eternal neutral.
+ *
+ * @param {Object} signal - { valence, arousal } or null
  * @param {Function} [rng]
+ * @param {Object} [options] - { climate: 'auto' | palette name }
  * @returns {{ paletteName, anchors, ratio, detune, damping, rotary,
  *             rotation, amplitude, cycles }}
  */
-export function planHarmonograph(signal, rng = Math.random) {
+export function planHarmonograph(signal, rng = Math.random, options = {}) {
+    const hasSignal = signal != null;
     const v = clamp(signal?.valence ?? 0, -1, 1);
-    const a = clamp(signal?.arousal ?? 0.3, 0, 1);
+    // Unresponsive flashes still deserve varied energy — jitter the
+    // arousal so consecutive figures are siblings, not clones
+    const a = hasSignal
+        ? clamp(signal?.arousal ?? 0.3, 0, 1)
+        : 0.25 + rng() * 0.35;
+
+    const requested = options.climate && options.climate !== 'auto'
+        && HARMONOGRAPH_INTERVALS[options.climate] ? options.climate : null;
 
     // Same climate thresholds as the flames — one weather system
-    const paletteName = pickPaletteName(v, a);
+    const paletteName = requested
+        ? requested
+        : hasSignal
+            ? pickPaletteName(v, a)
+            : HARMONOGRAPH_CLIMATES[Math.floor(rng() * HARMONOGRAPH_CLIMATES.length)];
     const intervals = HARMONOGRAPH_INTERVALS[paletteName];
     const ratio = intervals[Math.floor(rng() * intervals.length)];
 
