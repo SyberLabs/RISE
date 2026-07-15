@@ -12,6 +12,7 @@ import { Turrell } from './turrell.js';
 import { FractalFlame } from './fractal.js';
 import { RockGarden } from './rockgarden.js';
 import { NeuralNetwork } from './neural.js';
+import { Harmonograph } from './harmonograph.js';
 import { MemoryCore } from '../core/memory.js';
 
 export class VisualCortex {
@@ -22,6 +23,7 @@ export class VisualCortex {
         this.fractal = null;
         this.rockgarden = null;
         this.neural = null;
+        this.harmonograph = null;
         this.diagramEl = null;
         this.initialized = false;
 
@@ -101,6 +103,11 @@ export class VisualCortex {
         // Initialize Rock Garden (shares klee canvas)
         if (kleeCanvas) {
             this.rockgarden = new RockGarden();
+        }
+
+        // Initialize Harmonograph (shares klee canvas)
+        if (kleeCanvas) {
+            this.harmonograph = new Harmonograph();
         }
 
         // Create diagram element if it doesn't exist
@@ -396,7 +403,7 @@ export class VisualCortex {
      */
     _isExternalCategory(type) {
         // Core types are internal or handled elsewhere
-        const coreTypes = ['klee', 'turrell', 'fractal', 'neural', 'global', 'custom', 'rockgarden', 'diagram', 'global-pool'];
+        const coreTypes = ['klee', 'turrell', 'fractal', 'neural', 'global', 'custom', 'rockgarden', 'harmonograph', 'diagram', 'global-pool'];
         if (coreTypes.includes(type) || type.startsWith('personal:')) return false;
 
         // Otherwise assume it's a category for one of our external providers
@@ -612,6 +619,14 @@ export class VisualCortex {
 
                 return this.flash(duration, fallbackType, signal);
             }
+        } else if (selectedType === 'harmonograph' && this.harmonograph && this._kleeCanvas) {
+            // The conductor's instrument: the signal picks a musical
+            // interval, the pendulums draw it (still frame, shares the
+            // klee canvas like the rock garden)
+            this._resizeKleeCanvas();
+            this.harmonograph.generate(signal);
+            this.harmonograph.render(this._kleeCanvas);
+            if (kleeEl) kleeEl.hidden = false;
         } else if (selectedType === 'rockgarden' && this.rockgarden && this._kleeCanvas) {
             // Generate Rock Garden (uses same canvas as Klee)
             this.rockgarden.generateRockGarden({

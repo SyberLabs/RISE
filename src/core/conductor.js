@@ -524,6 +524,70 @@ export function planFlame(signal, rng = Math.random) {
     };
 }
 
+// ═══════════════════════════════════════════════════════════
+// HARMONOGRAPH PLANNING
+// ═══════════════════════════════════════════════════════════
+
+const PHI = (1 + Math.sqrt(5)) / 2;
+
+/**
+ * Interval tables for the harmonograph — musical frequency ratios the
+ * pendulums will draw. This is the same just-intonation vocabulary the
+ * audio engine plays (Aurora's voicings are built from these), so the
+ * text's mood picks a *chord* and the trace is what that chord looks
+ * like: consonances close into rosettes, tense seconds and sevenths
+ * weave and slowly beat, and the golden ratio — the most irrational
+ * number — never closes at all.
+ */
+const HARMONOGRAPH_INTERVALS = {
+    emberDawn: [[1, 2], [2, 3], [3, 4]],        // octave, fifth, fourth — serene closure
+    solarFlare: [[3, 5], [4, 5], [3, 4]],       // sixths and thirds — bright, ornate
+    midnightWater: [[8, 9], [5, 6], [5, 8]],    // second, minor third, minor sixth — soft tension
+    stormViolet: [[8, 15], [15, 16], [5, 7]],   // seventh, semitone, tritone — sharp weave
+    jadeVeil: [[1, PHI]],                       // golden — quasi-periodic, never resolves
+    whiteHeat: [[PHI, 2], [1, PHI]]             // golden against the octave — luminous drift
+};
+
+/**
+ * Plan a harmonograph trace for a semantic signal. Valence chooses the
+ * interval quality (the chord), arousal sets the pendulum's energy:
+ * how slowly the pen dies, how far it precesses, how much rotary
+ * motion stirs the center. Pure given an injected rng.
+ *
+ * @param {Object} signal - { valence, arousal }
+ * @param {Function} [rng]
+ * @returns {{ paletteName, anchors, ratio, detune, damping, rotary,
+ *             rotation, amplitude, cycles }}
+ */
+export function planHarmonograph(signal, rng = Math.random) {
+    const v = clamp(signal?.valence ?? 0, -1, 1);
+    const a = clamp(signal?.arousal ?? 0.3, 0, 1);
+
+    // Same climate thresholds as the flames — one weather system
+    const paletteName = pickPaletteName(v, a);
+    const intervals = HARMONOGRAPH_INTERVALS[paletteName];
+    const ratio = intervals[Math.floor(rng() * intervals.length)];
+
+    return {
+        paletteName,
+        anchors: FLAME_PALETTES[paletteName],
+        ratio,
+        // Slight detune makes the figure precess instead of retracing
+        // itself — the drone's 1.002 shimmer, drawn (livelier when intense)
+        detune: +(0.002 + a * 0.006).toFixed(4),
+        // Calm pens die quickly toward the still center; intense ones
+        // keep their energy and fill the field (decay exponent over
+        // the whole trace: e^-1.8 .. e^-3.6)
+        damping: +(3.6 - a * 1.8).toFixed(2),
+        // Rotary pendulum stirs the middle; stronger when aroused
+        rotary: +(0.10 + a * 0.16).toFixed(3),
+        // Whole-figure precession over the trace's life, radians
+        rotation: +((rng() - 0.5) * (0.2 + a * 1.1)).toFixed(3),
+        amplitude: +(0.34 + a * 0.10).toFixed(3),
+        cycles: 36 + Math.round(rng() * 20)
+    };
+}
+
 /**
  * Semantic modulation plan for the Klee engine — the conductor owns all
  * signal interpretation; the engine consumes the plan (mirrors the

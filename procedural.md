@@ -29,7 +29,7 @@
 ```
 ╭─────────────────────────────────────────────────────────────────────╮
 │                                                                     │
-│    CURRENT CATALOG                                                 │
+│    CURRENT CATALOG (implemented)                                   │
 │                                                                     │
 │    ═══════════════════════════════════════════════════════════     │
 │                                                                     │
@@ -48,6 +48,15 @@
 │    4. MINIMALIST ROCK GARDEN                                       │
 │       Zen arrangement. Negative space as presence.                 │
 │       Stone and void. Raked pattern.                               │
+│                                                                     │
+│    5. NEURAL NETWORK                                               │
+│       Nodes and firing edges. Connection as constellation.         │
+│       The architecture of thought, lit.                            │
+│                                                                     │
+│    6. HARMONOGRAPH TRACE                                           │
+│       Damped pendulums tuned to just-intonation intervals.         │
+│       Valence picks the chord, arousal the energy.                 │
+│       The chord you can see.                                       │
 │                                                                     │
 ╰─────────────────────────────────────────────────────────────────────╯
 ```

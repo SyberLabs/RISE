@@ -374,7 +374,8 @@ export class VisualInterlocutionPanel {
             { id: 'turrell', name: 'Turrell Fields', icon: '◈' },
             { id: 'fractal', name: 'Fractal Flames', icon: '✧' },
             { id: 'neural', name: 'Neural Networks', icon: '◉' },
-            { id: 'rockgarden', name: 'Rock Garden', icon: '◯' }
+            { id: 'rockgarden', name: 'Rock Garden', icon: '◯' },
+            { id: 'harmonograph', name: 'Harmonograph', icon: '∿' }
         ];
 
         const kleePresets = [
