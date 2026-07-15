@@ -61,7 +61,7 @@ export class SourceBrowser {
         this.element.innerHTML = `
             <div class="source-browser">
                 <header class="sb-header">
-                    <h2 class="sb-title">Source Browser</h2>
+                    <h2 class="sb-title">Source Library</h2>
                     <button class="sb-close" type="button" aria-label="Close">✕</button>
                 </header>
 

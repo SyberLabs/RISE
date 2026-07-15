@@ -37,6 +37,7 @@ export class Workshop {
       chunkMode: 'word',
       displayMode: 'focal',
       audioPreset: 'silent',
+      soundscape: 'none',
       selectedSwellId: null,
       visualConfig: {
         // Top-level mode: 'off' | 'focals' | 'attractor' | 'interlocution'
@@ -123,48 +124,13 @@ export class Workshop {
           <h1>Workshop</h1>
         </header>
 
-        <!-- Modules -->
+        <!-- Modules: the craft leads; the shared shelves follow -->
         <div class="workshop-content">
-          <!-- 1. Global Image Pool (Persistent Asset Management) -->
-          <section class="workshop-module global-pool-module">
-            <div class="module-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
-              <div>
-                <h2 class="module-title">Global Image Pool</h2>
-                <span class="text-fog" style="font-size: 0.8rem;">Persistent across all sessions</span>
-              </div>
-              <button type="button" class="btn-secondary" data-action="upload-global-image" style="font-size: 11px; padding: 4px 8px;">
-                + Add Image
-              </button>
-            </div>
-            <div class="input-group">
-              <div class="global-pool-list" id="global-pool-list" style="display: flex; gap: 1rem; overflow-x: auto; padding-bottom: 1rem;">
-                <!-- Populated dynamically -->
-              </div>
-            </div>
-          </section>
-
-          <!-- 1.5 Personal Swell Pool (Persistent Audio Management) -->
-          <section class="workshop-module personal-swell-module">
-            <div class="module-header" style="display: flex; justify-content: space-between; align-items: flex-end;">
-              <div>
-                <h2 class="module-title">Personal Swell Pool</h2>
-                <span class="text-fog" style="font-size: 0.8rem;">Persistent MP3 atmosphere samples</span>
-              </div>
-              <button type="button" class="btn-secondary" data-action="upload-personal-swell" style="font-size: 11px; padding: 4px 8px;">
-                + Add Swell
-              </button>
-            </div>
-            <div class="input-group">
-              <div class="personal-swell-list" id="personal-swell-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto; padding: 0.5rem; background: var(--color-abyss); border-radius: var(--radius-sm);">
-                <!-- Populated dynamically -->
-              </div>
-            </div>
-          </section>
-
-          <!-- 2. Sequence Creator (Session Specific) -->
+          <!-- 1. Sequence Creator (the room's purpose) -->
           <form class="workshop-form sequence-creator-module" id="workshop-form">
             <div class="module-header">
               <h2 class="module-title">Sequence Creator</h2>
+              <span class="module-subtitle text-fog">Compose a session: sources, visuals, pacing, atmosphere</span>
             </div>
 
             <!-- Title -->
@@ -217,14 +183,15 @@ export class Workshop {
               </div>
             </div>
 
-            <!-- Visual Assets -->
+            <!-- Sequence Images (travel with this sequence only) -->
             <div class="input-group">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <label class="input-label">Visual Assets</label>
-                <button type="button" class="btn-secondary" data-action="upload-image" style="font-size: 11px; padding: 4px 8px;">
+              <div class="input-label-row">
+                <label class="input-label">This Sequence's Images</label>
+                <button type="button" class="btn-secondary btn-compact" data-action="upload-image">
                   + Add Image
                 </button>
               </div>
+              <p class="input-note text-fog">Travel with this sequence only — flashed via Personal → Active Sequence in Visuals. For images shared across every session, use the Global Image Pool shelf below.</p>
               <div class="visual-drop-zone" id="visual-drop-zone">
                 <div class="visual-assets-list" id="visual-assets-list">
                   ${this.sessionData.customVisuals.length === 0 ? `
@@ -294,9 +261,28 @@ export class Workshop {
               </div>
 
 
-              <!-- Audio Preset -->
+              <!-- Atmosphere: Soundscape (living compositions) leads,
+                   pure tones follow — the same grammar as the Chamber's
+                   audio panel, exclusive beds included -->
               <div class="input-group">
-                <label class="input-label">Audio Atmosphere</label>
+                <label class="input-label">Soundscape</label>
+                <p class="input-note text-fog">Living compositions, synthesized in real time. A soundscape is a finished mix — selecting one rests the pure tones.</p>
+                <div class="audio-options soundscape-options">
+                  ${[['none', '○', 'None'], ['aurora', '✧', 'Aurora'], ['faded-signal', '◌', 'Faded Signal']].map(([id, icon, name]) => `
+                    <button
+                      type="button"
+                      class="audio-btn ${(this.sessionData.soundscape || 'none') === id ? 'active' : ''}"
+                      data-soundscape="${id}"
+                    >
+                      <span class="audio-icon">${icon}</span>
+                      <span class="audio-label">${name}</span>
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div class="input-group">
+                <label class="input-label">Pure Tones</label>
                 <div class="audio-options">
                   ${['silent', 'focus', 'deep', 'gateway'].map(preset => `
                     <button
@@ -317,9 +303,9 @@ export class Workshop {
                     <span class="audio-label">Personal</span>
                   </button>
                 </div>
-                
-                <div id="personal-swell-picker-container" class="input-sub-group ${this.sessionData.audioPreset === 'personal' ? '' : 'hidden'}" style="margin-top: 0.5rem;">
-                   <select id="personal-swell-select" class="input-select" style="width: 100%;">
+
+                <div id="personal-swell-picker-container" class="input-sub-group ${this.sessionData.audioPreset === 'personal' ? '' : 'hidden'}">
+                   <select id="personal-swell-select" class="input-select input-select-full">
                       <option value="">Select custom swell...</option>
                    </select>
                 </div>
@@ -345,6 +331,49 @@ export class Workshop {
             <input type="file" id="global-import-input" accept="image/jpeg,image/png,image/webp,image/gif" style="display: none;" />
             <input type="file" id="personal-swell-input" accept="audio/mpeg,audio/wav" style="display: none;" />
           </form>
+
+          <!-- 2. Studio Shelves: shared libraries, not part of any one
+               sequence. Managed here, selected where they're used. -->
+          <section class="workshop-shelves">
+            <div class="module-header">
+              <h2 class="module-title">Studio Shelves</h2>
+              <span class="module-subtitle text-fog">Shared across every session — manage here, select where you use them</span>
+            </div>
+
+            <section class="workshop-module global-pool-module">
+              <div class="module-header module-header-row">
+                <div>
+                  <h3 class="shelf-title">Global Image Pool</h3>
+                  <span class="shelf-note text-fog">Available to any session via Personal → Global Pool in Visuals</span>
+                </div>
+                <button type="button" class="btn-secondary btn-compact" data-action="upload-global-image">
+                  + Add Image
+                </button>
+              </div>
+              <div class="input-group">
+                <div class="global-pool-list" id="global-pool-list">
+                  <!-- Populated dynamically -->
+                </div>
+              </div>
+            </section>
+
+            <section class="workshop-module personal-swell-module">
+              <div class="module-header module-header-row">
+                <div>
+                  <h3 class="shelf-title">Personal Swell Pool</h3>
+                  <span class="shelf-note text-fog">MP3 swells — the selected one opens a session (choose under Pure Tones → Personal, or in the Chamber's audio panel)</span>
+                </div>
+                <button type="button" class="btn-secondary btn-compact" data-action="upload-personal-swell">
+                  + Add Swell
+                </button>
+              </div>
+              <div class="input-group">
+                <div class="personal-swell-list" id="personal-swell-list">
+                  <!-- Populated dynamically -->
+                </div>
+              </div>
+            </section>
+          </section>
         </div>
       </div>
     `;
@@ -795,6 +824,27 @@ export class Workshop {
       });
     });
 
+    // Atmosphere — soundscapes and pure tones are exclusive beds
+    // (same rule as the Chamber's audio panel: a soundscape is a
+    // finished mix; steady tones at the same carrier would mask it).
+    // 'Personal' is an entry swell — an event, not a bed — so it
+    // coexists with a soundscape.
+    this.container.querySelectorAll('[data-soundscape]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        window.rise?.audioEngine?.playHiss();
+        this.sessionData.soundscape = btn.dataset.soundscape;
+        this.updateActiveButtons('[data-soundscape]', btn);
+
+        if (btn.dataset.soundscape !== 'none'
+          && this.sessionData.audioPreset !== 'silent'
+          && this.sessionData.audioPreset !== 'personal') {
+          this.sessionData.audioPreset = 'silent';
+          this.container.querySelectorAll('[data-audio-preset]').forEach(o =>
+            o.classList.toggle('active', o.dataset.audioPreset === 'silent'));
+        }
+      });
+    });
+
     // Audio preset buttons
     this.container.querySelectorAll('[data-audio-preset]').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -802,6 +852,14 @@ export class Workshop {
         const preset = btn.dataset.audioPreset;
         this.sessionData.audioPreset = preset;
         this.updateActiveButtons('[data-audio-preset]', btn);
+
+        // A tone bed displaces the soundscape (entry swells don't)
+        if (preset !== 'silent' && preset !== 'personal'
+          && this.sessionData.soundscape && this.sessionData.soundscape !== 'none') {
+          this.sessionData.soundscape = 'none';
+          this.container.querySelectorAll('[data-soundscape]').forEach(o =>
+            o.classList.toggle('active', o.dataset.soundscape === 'none'));
+        }
 
         const picker = this.container.querySelector('#personal-swell-picker-container');
         if (preset === 'personal') {

@@ -484,3 +484,18 @@
         grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     }
 }
+/* House-grammar alignment: the browser speaks the Library's visual
+   language — display-font title at Library weight, threshold accent
+   panel intro, familiar hover voice. */
+.sb-title {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: var(--font-weight-light);
+    color: var(--color-light);
+    letter-spacing: 0.02em;
+}
+
+.sb-header {
+    border-left: 2px solid var(--color-threshold);
+    padding-left: var(--space-md);
+}
