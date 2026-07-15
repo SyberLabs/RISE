@@ -28,13 +28,16 @@ const ARCHETYPES = [
     config: {
       wpm: 140,
       curve: 'induction',
-      audioPreset: 'focus', // Alpha entrainment
+      // Aurora: the just-intoned pad with wandering harmonics — a
+      // soundscape is a finished mix, so the tones rest (exclusive beds)
+      audioPreset: 'silent',
+      soundscape: 'aurora',
       visualConfig: {
         visualMode: 'interlocution',
         interlocution: {
           sourceFamily: 'blend',
           procedural: ['turrell'],
-          sourced: ['renaissance', 'romantic'],
+          sourced: ['aic-oldmasters', 'aic-landscapes'],
           frequency: 0.15,
           duration: 120
         }
@@ -58,7 +61,10 @@ const ARCHETYPES = [
         visualMode: 'interlocution',
         interlocution: {
           sourceFamily: 'blend',
-          procedural: ['fractal'],
+          // The harmonograph draws the same just ratios the audio
+          // plays — for the non-dual archetype, sound made visible
+          procedural: ['fractal', 'harmonograph'],
+          harmonographClimate: 'auto',
           sourced: ['geometry', 'fractals'],
           frequency: 0.25,
           duration: 150
@@ -83,7 +89,10 @@ const ARCHETYPES = [
         interlocution: {
           sourceFamily: 'blend',
           procedural: ['klee'],
-          sourced: ['haeckel', 'botany', 'anatomy'],
+          kleePreset: 'harmonic',
+          // Ukiyo-e joins the organic-form study: the master line,
+          // Hokusai beside Haeckel
+          sourced: ['haeckel', 'botany', 'aic-ukiyoe'],
           frequency: 0.2,
           duration: 100
         }
@@ -126,12 +135,17 @@ const ARCHETYPES = [
     config: {
       wpm: 100,
       curve: 'induction',
-      audioPreset: 'gateway', // Deep theta/delta
+      // Faded Signal: analog memory — sun-worn harmony, tape drift,
+      // a quiet feedback afterimage. The hypnagogic bed.
+      audioPreset: 'silent',
+      soundscape: 'faded-signal',
       visualConfig: {
-        visualMode: 'focals',
-        focals: {
-          type: 'standard',
-          standardGlyph: 'spiral'
+        // Genesis: a composition grows unbidden around the stream —
+        // "the hand moves before the mind understands"
+        visualMode: 'genesis',
+        genesis: {
+          preset: 'gravitational',
+          glass: true
         }
       }
     },
