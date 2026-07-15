@@ -50,7 +50,9 @@ function makeMockContext() {
         createBuffer: (channels, length) => ({
             getChannelData: () => new Float32Array(length)
         }),
-        createPeriodicWave: vi.fn(() => ({}))
+        createPeriodicWave: vi.fn(() => ({})),
+        createWaveShaper: () => makeNode({ curve: null, oversample: 'none' }),
+        createBufferSource: () => makeNode({ buffer: null, loop: false })
     };
     return { ctx, oscillators };
 }
@@ -59,11 +61,28 @@ describe('soundscapes', () => {
     beforeEach(() => vi.useFakeTimers());
     afterEach(() => vi.useRealTimers());
 
-    it('registry exposes aurora; unknown ids return null', () => {
+    it('registry exposes aurora and faded-signal; unknown ids return null', () => {
         expect(SOUNDSCAPES.aurora.name).toBe('Aurora');
+        expect(SOUNDSCAPES['faded-signal'].name).toBe('Faded Signal');
         const { ctx } = makeMockContext();
         expect(createSoundscape('nope', ctx, makeNode())).toBeNull();
         expect(createSoundscape('aurora', ctx, makeNode())).not.toBeNull();
+        expect(createSoundscape('faded-signal', ctx, makeNode())).not.toBeNull();
+    });
+
+    it('faded-signal starts its full graph and tears down dead', () => {
+        const { ctx, oscillators } = makeMockContext();
+        const scape = createSoundscape('faded-signal', ctx, makeNode());
+        scape.start();
+
+        // 6 voices × 2 + wow + flutter + chorus LFO + tone breath +
+        // bed breath + undertone = 18 oscillators (haze is a buffer source)
+        expect(oscillators.length).toBe(18);
+        oscillators.forEach(osc => expect(osc.start).toHaveBeenCalled());
+
+        scape.stop(true);
+        vi.advanceTimersByTime(60000);
+        oscillators.forEach(osc => expect(osc.stop).toHaveBeenCalled());
     });
 
     it('aurora starts: pad voices + halo oscillators, all ramped in', () => {

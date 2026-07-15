@@ -852,6 +852,12 @@
   gap: var(--space-md);
 }
 
+/* Soundscapes sit three across — composed names need the width, and
+   the different rhythm marks the section as its own kind of choice */
+.soundscape-options {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .audio-preset-option {
   background: transparent;
   border: 1px solid var(--color-shadow);

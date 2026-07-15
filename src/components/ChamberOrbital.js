@@ -380,6 +380,10 @@ export class ChamberOrbital {
                   <span class="preset-icon">✧</span>
                   <span class="preset-label">Aurora</span>
                 </button>
+                <button class="audio-preset-option ${this.config.soundscape === 'faded-signal' ? 'active' : ''}" data-soundscape="faded-signal">
+                  <span class="preset-icon">◌</span>
+                  <span class="preset-label">Faded Signal</span>
+                </button>
               </div>
             </div>
 
@@ -600,7 +604,8 @@ export class ChamberOrbital {
     const hasSoundscape = this.config.soundscape && this.config.soundscape !== 'none';
 
     if (hasSoundscape) {
-      const scape = this.capitalizeFirst(this.config.soundscape);
+      const labels = { aurora: 'Aurora', 'faded-signal': 'Faded Signal' };
+      const scape = labels[this.config.soundscape] || this.capitalizeFirst(this.config.soundscape);
       return (hasPreset || hasSwell) ? `✧ ${scape} +` : `✧ ${scape}`;
     }
     if (hasSwell && hasPreset) {

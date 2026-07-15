@@ -16,6 +16,14 @@
  *   (gentle tension). Mix approved by ear on the sandbox crossfader:
  *   pad 0.17, halo 0.05, halo presence ~8s average.
  *
+ * FADED SIGNAL (from soundsandbox lab-faded-signal, 2026-07):
+ *   A weathered-analog bed: six paired custom-wave voices in a
+ *   just-ratio suspended harmony, two layers of slow pitch drift (wow
+ *   and flutter on every detune), a soft tape saturator, age-dampened
+ *   bandwidth that breathes, seamless local tape haze, and a tightly
+ *   bounded feedback smear. Nostalgic and imperfect without turning
+ *   degradation into a foreground effect. Bench defaults frozen.
+ *
  * Contract: createSoundscape(id, ctx, destination) → { start, stop }
  * or null for an unknown id. Handles connect only to `destination`
  * (the engine's soundscape layer gain) and ramp every transition.
@@ -289,6 +297,253 @@ function buildHalo(ctx, destination, nodes) {
 }
 
 // ═══════════════════════════════════════════════════════════
+// FADED SIGNAL · weathered-analog bed
+// ═══════════════════════════════════════════════════════════
+
+const FADED = {
+    root: 108,
+    ratios: [1, 9 / 8, 4 / 3, 3 / 2, 2, 9 / 4],   // Faded suspension
+    voiceLevels: [0.25, 0.17, 0.14, 0.105, 0.075, 0.052],
+    panPositions: [-0.24, 0.34, -0.48, 0.58, -0.72, 0.8],
+    driftSigns: [-1, 1, 1, -1, -1, 1],
+    drift: 4.5,                // tape drift, cents
+    motion: 0.035,             // wow rate Hz (flutter rides at 2.1×)
+    age: 0.62,                 // patina: darkens tone, thickens haze
+    width: 0.68,
+    smear: 0.28,               // feedback smear mix
+    dust: 0.018,               // tape haze level
+    level: 0.17
+};
+
+const fadedTone = () => 3600 - FADED.age * 2400;
+
+function makeSoftCurve(amount = 1.35, size = 2048) {
+    const curve = new Float32Array(size);
+    const normal = Math.tanh(amount);
+    for (let i = 0; i < size; i += 1) {
+        const x = i * 2 / (size - 1) - 1;
+        curve[i] = Math.tanh(x * amount) / normal;
+    }
+    return curve;
+}
+
+// Seamless pinkish haze loop with edge fades — locally synthesized,
+// deterministic, no samples.
+function makeHazeBuffer(ctx, seconds = 8) {
+    const length = Math.max(1, Math.floor(ctx.sampleRate * seconds));
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    const edge = Math.max(1, Math.floor(ctx.sampleRate * 0.1));
+    let seed = 0x7f4a7c15;
+    let pinkish = 0;
+
+    for (let i = 0; i < length; i += 1) {
+        seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+        const white = (seed / 0xffffffff) * 2 - 1;
+        pinkish += (white - pinkish) * 0.075;
+        const fadeIn = Math.min(1, i / edge);
+        const fadeOut = Math.min(1, (length - 1 - i) / edge);
+        data[i] = (pinkish * 0.78 + white * 0.12) * Math.max(0, Math.min(fadeIn, fadeOut));
+    }
+    return buffer;
+}
+
+function buildFadedSignal(ctx, destination, nodes) {
+    const F = FADED;
+    const out = ctx.createGain();
+    out.gain.value = 0;
+    out.connect(destination);
+
+    const voiceBus = ctx.createGain();
+    voiceBus.gain.value = 1;
+
+    const chorusDelay = ctx.createDelay(0.04);
+    chorusDelay.delayTime.value = 0.017;
+    const chorusWet = ctx.createGain();
+    chorusWet.gain.value = 0.16;
+
+    const saturator = ctx.createWaveShaper();
+    saturator.curve = makeSoftCurve();
+    saturator.oversample = '2x';
+
+    const protection = ctx.createBiquadFilter();
+    protection.type = 'highpass';
+    protection.frequency.value = 38;
+    protection.Q.value = 0.7;
+
+    const tone = ctx.createBiquadFilter();
+    tone.type = 'lowpass';
+    tone.frequency.value = fadedTone();
+    tone.Q.value = 0.62;
+
+    const dry = ctx.createGain();
+    const smearWet = ctx.createGain();
+    dry.gain.value = 1 - F.smear * 0.12;
+    smearWet.gain.value = F.smear * 0.32;
+
+    const smearDelay = ctx.createDelay(0.8);
+    smearDelay.delayTime.value = 0.29;
+    const smearFilter = ctx.createBiquadFilter();
+    smearFilter.type = 'lowpass';
+    smearFilter.frequency.value = 1750 - F.age * 700;
+    smearFilter.Q.value = 0.56;
+    const feedback = ctx.createGain();
+    feedback.gain.value = 0.115;
+
+    voiceBus.connect(saturator);
+    voiceBus.connect(chorusDelay).connect(chorusWet).connect(saturator);
+    saturator.connect(protection).connect(tone);
+    tone.connect(dry).connect(out);
+    tone.connect(smearDelay).connect(smearFilter).connect(smearWet).connect(out);
+    smearFilter.connect(feedback).connect(smearDelay);
+
+    const real = new Float32Array(9);
+    const imag = new Float32Array([0, 1, 0.38, 0.17, 0.082, 0.041, 0.021, 0.011, 0.006]);
+    const warmWave = ctx.createPeriodicWave(real, imag, { disableNormalization: false });
+
+    const wow = ctx.createOscillator();
+    wow.type = 'sine';
+    wow.frequency.value = F.motion;
+    const wowDepth = ctx.createGain();
+    wowDepth.gain.value = F.drift * 0.82;
+    wow.connect(wowDepth);
+
+    const flutter = ctx.createOscillator();
+    flutter.type = 'triangle';
+    flutter.frequency.value = F.motion * 2.1;
+    const flutterDepth = ctx.createGain();
+    flutterDepth.gain.value = F.drift * 0.16;
+    flutter.connect(flutterDepth);
+
+    const chorusLfo = ctx.createOscillator();
+    chorusLfo.type = 'sine';
+    chorusLfo.frequency.value = 0.073;
+    const chorusDepth = ctx.createGain();
+    chorusDepth.gain.value = 0.0022;
+    chorusLfo.connect(chorusDepth).connect(chorusDelay.delayTime);
+
+    const toneBreath = ctx.createOscillator();
+    toneBreath.type = 'sine';
+    toneBreath.frequency.value = 0.027;
+    const toneBreathDepth = ctx.createGain();
+    toneBreathDepth.gain.value = fadedTone() * 0.1;
+    toneBreath.connect(toneBreathDepth).connect(tone.frequency);
+
+    const bedBreath = ctx.createOscillator();
+    bedBreath.type = 'sine';
+    bedBreath.frequency.value = 0.017;
+    const bedBreathDepth = ctx.createGain();
+    bedBreathDepth.gain.value = 0.024;
+    bedBreath.connect(bedBreathDepth).connect(voiceBus.gain);
+
+    F.ratios.forEach((ratio, index) => {
+        const main = ctx.createOscillator();
+        const shadow = ctx.createOscillator();
+        main.setPeriodicWave(warmWave);
+        shadow.setPeriodicWave(warmWave);
+        main.frequency.value = F.root * ratio;
+        shadow.frequency.value = F.root * ratio;
+
+        const direction = F.driftSigns[index];
+        main.detune.value = -F.drift * direction * 0.28;
+        shadow.detune.value = F.drift * direction;
+        wowDepth.connect(main.detune);
+        wowDepth.connect(shadow.detune);
+        flutterDepth.connect(main.detune);
+        flutterDepth.connect(shadow.detune);
+
+        const mainMix = ctx.createGain();
+        const shadowMix = ctx.createGain();
+        mainMix.gain.value = 0.68;
+        shadowMix.gain.value = 0.32;
+        const level = ctx.createGain();
+        level.gain.value = F.voiceLevels[index];
+        const panner = ctx.createStereoPanner();
+        panner.pan.value = F.panPositions[index] * F.width;
+
+        main.connect(mainMix).connect(level);
+        shadow.connect(shadowMix).connect(level);
+        level.connect(panner).connect(voiceBus);
+        main.start();
+        shadow.start();
+
+        nodes.push(main, shadow, mainMix, shadowMix, level, panner);
+    });
+
+    const undertone = ctx.createOscillator();
+    undertone.type = 'sine';
+    undertone.frequency.value = F.root / 2;
+    const undertoneGain = ctx.createGain();
+    undertoneGain.gain.value = 0.042;
+    wowDepth.connect(undertone.detune);
+    undertone.connect(undertoneGain).connect(voiceBus);
+
+    const haze = ctx.createBufferSource();
+    haze.buffer = makeHazeBuffer(ctx);
+    haze.loop = true;
+    const hazeHighpass = ctx.createBiquadFilter();
+    hazeHighpass.type = 'highpass';
+    hazeHighpass.frequency.value = 190;
+    hazeHighpass.Q.value = 0.5;
+    const hazeLowpass = ctx.createBiquadFilter();
+    hazeLowpass.type = 'lowpass';
+    hazeLowpass.frequency.value = 3800 - F.age * 1400;
+    hazeLowpass.Q.value = 0.5;
+    const hazeGain = ctx.createGain();
+    hazeGain.gain.value = F.dust * (0.4 + F.age * 0.6);
+    haze.connect(hazeHighpass).connect(hazeLowpass).connect(hazeGain).connect(saturator);
+
+    wow.start();
+    flutter.start();
+    chorusLfo.start();
+    toneBreath.start();
+    bedBreath.start();
+    undertone.start();
+    haze.start();
+
+    nodes.push(
+        out, voiceBus, chorusDelay, chorusWet, saturator, protection, tone,
+        dry, smearWet, smearDelay, smearFilter, feedback,
+        wow, wowDepth, flutter, flutterDepth, chorusLfo, chorusDepth,
+        toneBreath, toneBreathDepth, bedBreath, bedBreathDepth,
+        undertone, undertoneGain, haze, hazeHighpass, hazeLowpass, hazeGain
+    );
+
+    return out;
+}
+
+function createFadedSignal(ctx, destination) {
+    let nodes = [];
+    let mainOut = null;
+
+    return {
+        start() {
+            mainOut = buildFadedSignal(ctx, destination, nodes);
+            rampIn(ctx, mainOut.gain, FADED.level, 2.6);
+        },
+        stop(instant = false) {
+            if (mainOut) {
+                if (instant) {
+                    mainOut.gain.cancelScheduledValues(ctx.currentTime);
+                    mainOut.gain.setValueAtTime(0, ctx.currentTime);
+                } else {
+                    rampOut(ctx, mainOut.gain);
+                }
+            }
+            const held = nodes;
+            nodes = [];
+            mainOut = null;
+            setTimeout(() => held.forEach(node => {
+                try {
+                    if (node.stop) node.stop();
+                    node.disconnect();
+                } catch (e) { /* already released */ }
+            }), instant ? 0 : 1400);
+        }
+    };
+}
+
+// ═══════════════════════════════════════════════════════════
 // Registry
 // ═══════════════════════════════════════════════════════════
 
@@ -337,6 +592,11 @@ export const SOUNDSCAPES = {
         name: 'Aurora',
         description: 'A deep just-intoned pad visited by wandering harmonics — slowly evolving, never looping.',
         create: createAurora
+    },
+    'faded-signal': {
+        name: 'Faded Signal',
+        description: 'Sun-worn suspended harmony with slow tape drift, softened bandwidth, and a quiet feedback afterimage.',
+        create: createFadedSignal
     }
 };
 

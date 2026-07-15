@@ -190,7 +190,7 @@ describe('ChamberOrbital origin chip', () => {
 
         // Section renders with None active by default
         const chips = container.querySelectorAll('[data-soundscape]');
-        expect(chips).toHaveLength(2);
+        expect(chips).toHaveLength(3);
         expect(container.querySelector('[data-soundscape="none"]').classList.contains('active')).toBe(true);
 
         // Selecting Aurora updates config and the orbit status
