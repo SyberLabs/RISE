@@ -40,3 +40,7 @@ Thumbs.db
 *.sln
 *.sw?
 nul
+
+# Playwright
+test-results/
+playwright-report/

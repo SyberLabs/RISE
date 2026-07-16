@@ -28,4 +28,24 @@ describe('Router failure containment', () => {
     expect(active.activate).toHaveBeenCalledTimes(2);
     router.destroy();
   });
+
+  it('swallows Escape during a transition — no rightful owner yet', async () => {
+    const reset = vi.spyOn(Router.prototype, 'reset');
+    router.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });
+    await router.navigate('a');
+
+    // Mid-transition: falling through to reset('portal') would strand
+    // a just-started session's audio behind the portal
+    router.transitioning = true;
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(reset).not.toHaveBeenCalled();
+
+    // Settled: the fallback owns Escape again
+    router.transitioning = false;
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    expect(reset).toHaveBeenCalledWith('portal');
+
+    reset.mockRestore();
+    router.destroy();
+  });
 });

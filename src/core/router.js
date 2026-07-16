@@ -177,6 +177,16 @@ export class Router {
     handleKeydown(e) {
         if (e.key !== 'Escape' || this.currentView === 'portal') return;
 
+        // Mid-transition Escape has no rightful owner: the incoming
+        // view's instance isn't mounted yet, so falling through would
+        // reset to the portal while a just-started session keeps its
+        // audio running underneath. Swallow the press — the settled
+        // view owns the next one. (Caught by the E2E smoke harness.)
+        if (this.transitioning) {
+            e.preventDefault();
+            return;
+        }
+
         // Views may own Escape (session exit confirmation, open config
         // modals). If the active view's handleEscape() returns true, it
         // consumed the key and the router stays out of it. This is what

@@ -1,0 +1,180 @@
+/**
+ * The six sacred flows — browser-level contracts that unit tests
+ * cannot see. Each of these encodes a regression that was actually
+ * shipped (or nearly shipped) and was caught only by ear or eye:
+ *
+ *   1. The portal presents its triad and the living SOL strip
+ *   2. Begin with Aurora → the soundscape truly sounds
+ *   3. Leave, Begin again → it sounds the SECOND time (the level-
+ *      overwrite regression)
+ *   4. Exiting a session resumes the lobby drone
+ *   5. Procedural-only selection shows no painting categories
+ *      (the additive-arrays regression)
+ *   6. The loaded text and settings survive a refresh
+ */
+import { test, expect } from '@playwright/test';
+
+const GATE_SESSION = {
+    code: 'rise2025',
+    name: 'Smoke Harness',
+    vault: null,
+    timestamp: Date.now()
+};
+
+const SEED_TEXT = {
+    text: 'The pendulum draws the chord it hears. '.repeat(40).trim(),
+    textSource: 'Smoke Seed',
+    origin: null
+};
+
+/** Seed the gate (and optionally text/prefs) before the app boots. */
+async function boot(page, { text = true, prefs = null } = {}) {
+    await page.addInitScript(({ gate, seedText, seedPrefs }) => {
+        localStorage.setItem('rise-beta-session', JSON.stringify(gate));
+        if (seedText) localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seedText));
+        if (seedPrefs) localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(seedPrefs));
+    }, { gate: GATE_SESSION, seedText: text ? SEED_TEXT : null, seedPrefs: prefs });
+    await page.goto('/');
+    await expect(page.locator('.portal-sol-strip')).toBeVisible({ timeout: 15_000 });
+}
+
+async function enterChamber(page) {
+    await page.locator('[data-nav="chamber"]').first().click();
+    await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 10_000 });
+}
+
+/** Reach into the live engine for ground truth about what sounds. */
+function audioState(page) {
+    return page.evaluate(() => {
+        const engine = window.rise?.audioEngine;
+        return {
+            sessionActive: !!engine?.sessionActive,
+            soundscape: !!engine?.layers?.soundscape,
+            soundscapeVolume: engine?.config?.layerVolumes?.soundscape ?? null,
+            ambient: !!engine?.layers?.ambient,
+            contextState: engine?.context?.state ?? 'none'
+        };
+    });
+}
+
+async function beginSession(page) {
+    await page.locator('#begin-btn').click();
+    // Model a real reader: wait until the session display is actually
+    // streaming before interacting further (also lets the route
+    // transition fully settle so Escape has a rightful owner)
+    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
+    await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+}
+
+async function exitSession(page) {
+    await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+    await page.keyboard.press('Escape');
+    // The chamber asks before terminating — confirm through its modal
+    const confirm = page.locator('#exit-confirm');
+    await expect(confirm).toBeVisible({ timeout: 10_000 });
+    await confirm.click();
+    // Exit returns to the orbital prep (chamber), not the portal — the
+    // text card and Begin button are the settled destination
+    await expect(page.locator('#begin-btn')).toBeVisible({ timeout: 20_000 });
+}
+
+test('1 · portal presents the triad and the living SOL strip', async ({ page }) => {
+    await boot(page, { text: false });
+    const nav = page.locator('.nav-secondary .nav-item');
+    await expect(nav).toHaveCount(3);
+    await expect(page.locator('.sol-strip-window')).not.toBeEmpty();
+});
+
+test('2+3 · Aurora sounds — and sounds again the second time', async ({ page }) => {
+    await boot(page, {
+        prefs: { soundscape: 'aurora', audioPreset: 'silent' }
+    });
+    await enterChamber(page);
+
+    // First session
+    await beginSession(page);
+    await expect.poll(async () => (await audioState(page)).soundscape,
+        { timeout: 15_000 }).toBe(true);
+    let state = await audioState(page);
+    expect(state.sessionActive).toBe(true);
+    expect(state.contextState).toBe('running');
+
+    // Leave — then the regression case: begin a SECOND session. Exit
+    // lands back on the orbital, so Begin is ready without re-navigating.
+    await exitSession(page);
+    await beginSession(page);
+
+    await expect.poll(async () => (await audioState(page)).soundscape,
+        { timeout: 15_000 }).toBe(true);
+    state = await audioState(page);
+    // The exact bug: teardown stored the muted 0 as the configured mix
+    expect(state.soundscapeVolume).toBeGreaterThan(0);
+});
+
+test('4 · exiting a session resumes the lobby drone', async ({ page }) => {
+    await boot(page, { prefs: { soundscape: 'aurora', audioPreset: 'silent' } });
+    await enterChamber(page);
+    await beginSession(page);
+    await expect.poll(async () => (await audioState(page)).soundscape,
+        { timeout: 15_000 }).toBe(true);
+
+    await exitSession(page);
+    const state = await expect.poll(async () => {
+        const s = await audioState(page);
+        return s.sessionActive === false && s.ambient ? 'lobby' : JSON.stringify(s);
+    }, { timeout: 20_000 }).toBe('lobby');
+});
+
+test('5 · procedural-only selection shows no painting categories', async ({ page }) => {
+    // A corrupted legacy shape: procedural family but paintings still
+    // in the sourced array — the additive-arrays regression
+    await boot(page, {
+        prefs: {
+            visualInterlocution: {
+                visualMode: 'interlocution',
+                interlocution: {
+                    sourceFamily: 'procedural',
+                    procedural: ['klee'],
+                    sourced: ['aic-oldmasters', 'aic-portraits'],
+                    frequency: 0.2,
+                    duration: 80
+                }
+            }
+        }
+    });
+    await enterChamber(page);
+
+    const normalized = await page.evaluate(() => {
+        const raw = localStorage.getItem('rise_orbital_prefs_v1');
+        return JSON.parse(raw)?.visualInterlocution?.interlocution ?? null;
+    });
+    // Wait for the orbital to persist its normalized view at least once
+    await page.locator('[data-orbit="visual"]').click();
+    await page.waitForTimeout(300);
+
+    const panelState = await page.evaluate(() => {
+        const checked = [...document.querySelectorAll('[data-sourced]')]
+            .filter(el => el.checked).map(el => el.dataset.sourced);
+        return { checkedSourced: checked };
+    });
+    expect(panelState.checkedSourced).toEqual([]);
+});
+
+test('6 · text and settings survive a refresh', async ({ page }) => {
+    await boot(page, {
+        prefs: { wpm: 340, soundscape: 'faded-signal', audioPreset: 'silent' }
+    });
+    await enterChamber(page);
+    await expect(page.locator('.chamber-orbital')).toContainText('Smoke Seed');
+
+    await page.reload();
+    await expect(page.locator('.portal-sol-strip')).toBeVisible({ timeout: 15_000 });
+    await enterChamber(page);
+
+    await expect(page.locator('.chamber-orbital')).toContainText('Smoke Seed');
+    const restored = await page.evaluate(() =>
+        JSON.parse(localStorage.getItem('rise_orbital_prefs_v1') || '{}'));
+    expect(restored.wpm).toBe(340);
+    expect(restored.soundscape).toBe('faded-signal');
+    await expect(page.locator('#begin-btn')).toBeEnabled();
+});
