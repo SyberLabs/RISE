@@ -100,6 +100,18 @@ export class Turrell {
         const posX = this.rand(30, 70);
         const posY = this.rand(30, 70);
 
+        this.lastPlan = {
+            kind: 'radial',
+            center: [posX / 100, posY / 100],
+            radius: [1.2, 1],
+            stops: [
+                { offset: 0, color: primaryGlow },
+                { offset: 0.25, color: primary },
+                { offset: 0.6, color: secondary },
+                { offset: 1, color: secondaryGlow }
+            ]
+        };
+
         return `radial-gradient(
             ellipse 120% 100% at ${posX}% ${posY}%,
             ${this.hslToString(primaryGlow, 1)} 0%,
@@ -123,6 +135,18 @@ export class Turrell {
         const horizonPos = this.rand(35, 65);
         const glowIntensity = this.rand(0.6, 0.9);
 
+        this.lastPlan = {
+            kind: 'linear',
+            angle: 180,
+            stops: [
+                { offset: 0, color: skyColor },
+                { offset: (horizonPos - 15) / 100, color: skyColor },
+                { offset: horizonPos / 100, color: horizonColor },
+                { offset: (horizonPos + 10) / 100, color: groundColor },
+                { offset: 1, color: groundColor }
+            ]
+        };
+
         // Soft horizon with glow
         return `linear-gradient(
             180deg,
@@ -145,15 +169,30 @@ export class Turrell {
 
         // Inner glow more luminous
         const innerGlow = this.shiftColor(innerColor, 0, 5, 20);
+        const middleColor = this.shiftColor(innerColor, 5, -5, -5);
+        const edgeColor = this.shiftColor(outerColor, 0, -10, -15);
+
+        this.lastPlan = {
+            kind: 'radial',
+            center: [0.5, 0.5],
+            radius: [0.8, 0.7],
+            stops: [
+                { offset: 0, color: innerGlow },
+                { offset: 0.4, color: innerColor },
+                { offset: 0.65, color: middleColor },
+                { offset: 0.85, color: outerColor },
+                { offset: 1, color: edgeColor }
+            ]
+        };
 
         // Create layered radial that simulates aperture
         return `radial-gradient(
             ellipse 80% 70% at 50% 50%,
             ${this.hslToString(innerGlow, 1)} 0%,
             ${this.hslToString(innerColor, 0.98)} 40%,
-            ${this.hslToString(this.shiftColor(innerColor, 5, -5, -5), 0.9)} 65%,
+            ${this.hslToString(middleColor, 0.9)} 65%,
             ${this.hslToString(outerColor, 0.85)} 85%,
-            ${this.hslToString(this.shiftColor(outerColor, 0, -10, -15), 1)} 100%
+            ${this.hslToString(edgeColor, 1)} 100%
         )`;
     }
 
@@ -177,6 +216,17 @@ export class Turrell {
 
         const angle = this.choose([0, 90, 180, 270]);
 
+        this.lastPlan = {
+            kind: 'linear',
+            angle,
+            stops: [
+                { offset: 0, color: colorA },
+                { offset: (splitPos - transitionWidth) / 100, color: colorA },
+                { offset: (splitPos + transitionWidth) / 100, color: colorBShifted },
+                { offset: 1, color: colorBShifted }
+            ]
+        };
+
         return `linear-gradient(
             ${angle}deg,
             ${this.hslToString(colorA, 1)} 0%,
@@ -197,12 +247,25 @@ export class Turrell {
 
         // Very soft radial with luminous center
         const centerGlow = this.shiftColor(centerColor, 0, 10, 25);
+        const middleColor = this.shiftColor(centerColor, 5, -5, -10);
+
+        this.lastPlan = {
+            kind: 'radial',
+            center: [0.5, 0.5],
+            radius: [0.72, 0.72],
+            stops: [
+                { offset: 0, color: centerGlow },
+                { offset: 0.3, color: centerColor },
+                { offset: 0.6, color: middleColor },
+                { offset: 1, color: edgeColor }
+            ]
+        };
 
         return `radial-gradient(
             circle at 50% 50%,
             ${this.hslToString(centerGlow, 1)} 0%,
             ${this.hslToString(centerColor, 0.95)} 30%,
-            ${this.hslToString(this.shiftColor(centerColor, 5, -5, -10), 0.85)} 60%,
+            ${this.hslToString(middleColor, 0.85)} 60%,
             ${this.hslToString(edgeColor, 0.8)} 100%
         )`;
     }
@@ -251,6 +314,7 @@ export class Turrell {
                 primaryGradient = this.createAtmosphericGlow();
                 break;
         }
+        const primaryPlan = this.lastPlan;
 
         // Layer composition
         const layers = [primaryGradient];
@@ -269,5 +333,7 @@ export class Turrell {
         this.el.style.background = layers.join(', ');
         this.el.style.transition = 'none';
         this.el.style.boxShadow = 'none';
+        this.lastPlan = primaryPlan;
+        return primaryPlan;
     }
 }

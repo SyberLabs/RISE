@@ -148,6 +148,19 @@ describe('Chamber Living Text integration', () => {
         container.remove();
     });
 
+    it('renders progress with a compositor transform instead of layout width', () => {
+        const { chamber, container } = makeChamber(makeSession(['word'], { enabled: false }));
+        const fill = container.querySelector('#progress-fill');
+
+        chamber.updateProgress({ progress: 0.375, elapsed: 1500, total: 4000 });
+
+        expect(fill.style.transform).toBe('scaleX(0.375)');
+        expect(fill.style.width).toBe('');
+
+        chamber.destroy();
+        container.remove();
+    });
+
     it('genesis field receives the semantic signal per atom when Living Text has a track', () => {
         const session = makeSession(Array(4).fill('grief sorrow'), { enabled: true });
         session.visualConfig.visualMode = 'genesis';

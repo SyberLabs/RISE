@@ -19,7 +19,11 @@ import './components/BetaGate.css';
 
 import { visualCortex } from './visuals/visual-cortex.js';
 import { errorBoundary, ErrorCategory, ErrorSeverity } from './core/error-boundary.js';
-import { requestVisualInterlocutionConsent } from './core/visual-safety.js';
+import {
+    beginVisualInterlocutionSession,
+    endVisualInterlocutionSession,
+    requestVisualInterlocutionConsent
+} from './core/visual-safety.js';
 import { normalizeVisualSelection } from './core/visual-selection.js';
 
 // Import styles
@@ -221,6 +225,7 @@ class App {
 
         // Visual errors: disable visual interlocution
         errorBoundary.registerRecoveryHandler(ErrorCategory.VISUAL, (report) => {
+            endVisualInterlocutionSession();
             visualCortex.updateConfig({ enabled: false });
         });
 
@@ -233,6 +238,7 @@ class App {
 
         // Playback errors: stop current session
         errorBoundary.registerRecoveryHandler(ErrorCategory.PLAYBACK, (report) => {
+            endVisualInterlocutionSession();
             if (this.currentSession) {
                 this.currentSession = null;
             }
@@ -305,10 +311,28 @@ class App {
                     return { destroy: () => { } };
                 }
 
-                // Show loading overlay
-                this.showLoading('Preparing Session');
-
+                let visualMode = session.visualConfig?.visualMode || 'off';
                 try {
+                    // Consent is an interaction phase, not a loading task. It
+                    // must resolve before the opaque preparation overlay can
+                    // cover the page, and before audio or Player ownership
+                    // begins. Acceptance becomes a one-session capability.
+                    if (visualMode === 'interlocution') {
+                        const consented = await requestVisualInterlocutionConsent();
+                        const activated = consented && beginVisualInterlocutionSession();
+                        if (!activated) {
+                            visualMode = 'off';
+                            session.visualConfig = { ...session.visualConfig, visualMode: 'off' };
+                            this.showToast('Visual flashes remain off until the safety notice is accepted.', 4000);
+                        }
+                    } else {
+                        endVisualInterlocutionSession();
+                    }
+
+                    // Only enter the non-interactive preparation phase after
+                    // the safety decision has completed.
+                    this.showLoading('Preparing Session');
+
                     // Start audio initialization early to minimize lag on chamber entry.
                     // It belongs inside this failure boundary so blocked Web Audio cannot
                     // strand the loading overlay or the router transition.
@@ -343,18 +367,7 @@ class App {
                     this.updateLoadingStatus('Creating player...');
                     const player = new Player(session);
 
-                    // Configure visual cortex based on visualMode
-                    let visualMode = session.visualConfig?.visualMode || 'off';
-
-                    if (visualMode === 'interlocution') {
-                        const consented = await requestVisualInterlocutionConsent();
-                        if (!consented) {
-                            visualMode = 'off';
-                            session.visualConfig = { ...session.visualConfig, visualMode: 'off' };
-                            this.showToast('Visual flashes remain off until the safety notice is accepted.', 4000);
-                        }
-                    }
-
+                    // Configure visual cortex based on the consented mode.
                     if (visualMode === 'interlocution') {
                         this.updateLoadingStatus('Loading visual engine...');
                         const activeTypes = [];
@@ -430,6 +443,7 @@ class App {
                                 enabled: true,
                                 frequency: interlocution.frequency ?? 0.2,
                                 duration: interlocution.duration ?? 80,
+                                renderLanguage: interlocution.renderLanguage === 'ascii' ? 'ascii' : 'native',
                                 activeTypes: activeTypes,
                                 kleePreset: interlocution.kleePreset ?? 'random',
                                 harmonographClimate: interlocution.harmonographClimate ?? 'auto',
@@ -496,6 +510,7 @@ class App {
                         onExit: (reason, data) => {
                             // Cleanup
                             player.stop();
+                            endVisualInterlocutionSession();
                             visualCortex.updateConfig({ enabled: false });
                             this.audioEngine.stopSession();
 
@@ -523,6 +538,7 @@ class App {
                     });
                 } catch (error) {
                     console.error('[R.I.S.E.] Session initialization failed:', error);
+                    endVisualInterlocutionSession();
                     visualCortex.updateConfig({ enabled: false });
                     await this.audioEngine.stopSession({
                         resumeAmbient: this.settings?.enableAmbient === true,

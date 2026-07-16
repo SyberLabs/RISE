@@ -9,6 +9,12 @@
 import { SourceProvider } from '../provider.js';
 import { SourceCache } from '../cache.js';
 import { abortableDelay, createAbortError, isAbortError, withAbortTimeout } from './request.js';
+import { ShuffleBag } from './shuffle-bag.js';
+
+// Category membership is lightweight title metadata. A wider candidate window
+// improves variety without increasing image-info requests or decoded images.
+const RANDOM_CANDIDATE_LIMIT = 250;
+const MIN_DISPLAY_AREA = 360_000;
 
 /**
  * Curated categories for R.I.S.E. visual content
@@ -118,6 +124,7 @@ export class WikimediaProvider extends SourceProvider {
         // In-memory cache for current session
         this._imageCache = new Map();
         this._categoryCache = new Map();
+        this._candidateBag = new ShuffleBag();
     }
 
     /**
@@ -135,6 +142,16 @@ export class WikimediaProvider extends SourceProvider {
     _isBlacklisted(text) {
         if (!text) return false;
         return IMAGE_BLACKLIST.some(pattern => pattern.test(text));
+    }
+
+    _isDisplayQuality(imageInfo) {
+        if (imageInfo?.mime === 'image/svg+xml') return true;
+        const width = Number(imageInfo?.width);
+        const height = Number(imageInfo?.height);
+        // Missing legacy/SVG dimensions remain eligible; only candidates that
+        // are demonstrably too small for the chamber are rejected.
+        if (!Number.isFinite(width) || !Number.isFinite(height)) return true;
+        return width * height >= MIN_DISPLAY_AREA;
     }
 
     /**
@@ -230,7 +247,9 @@ export class WikimediaProvider extends SourceProvider {
 
         // Filter to only images and skip blacklisted titles
         const images = members.filter(m => {
-            const isImage = /\.(jpg|jpeg|png|gif|svg)$/i.test(m.title);
+            // Animated GIFs are intentionally excluded from a flash surface.
+            // They add ungoverned motion and tend to be poor fullscreen frames.
+            const isImage = /\.(jpg|jpeg|png|svg)$/i.test(m.title);
             if (!isImage) return false;
 
             if (this._isBlacklisted(m.title)) {
@@ -254,7 +273,7 @@ export class WikimediaProvider extends SourceProvider {
         // Check persistent cache first
         const cached = await SourceCache.get(this.id, title);
         if (cached) {
-            return cached.data;
+            return this._isDisplayQuality(cached.data) ? cached.data : null;
         }
 
         const data = await this._fetch({
@@ -286,6 +305,10 @@ export class WikimediaProvider extends SourceProvider {
             artist: metadata.Artist?.value || '',
             license: metadata.LicenseShortName?.value || 'Unknown'
         };
+
+        // Reject only clearly undersized raster candidates. Missing dimensions
+        // remain eligible so SVG/legacy metadata cannot starve a category.
+        if (!this._isDisplayQuality(result)) return null;
 
         // Double check description against blacklist
         if (this._isBlacklisted(result.description)) {
@@ -439,11 +462,18 @@ export class WikimediaProvider extends SourceProvider {
         if (!category) return null;
 
         // Get images from category
-        const images = await this.getImagesInCategory(category.category, 100, options);
+        const images = await this.getImagesInCategory(
+            category.category,
+            RANDOM_CANDIDATE_LIMIT,
+            options
+        );
         if (images.length === 0) return null;
 
-        // Pick random image
-        const randomImage = images[Math.floor(Math.random() * images.length)];
+        // Draw without replacement. Blacklisted or undersized candidates are
+        // consumed from this cycle before retrying, rather than being rolled
+        // repeatedly by chance.
+        const randomImage = this._candidateBag.draw(categoryId, images);
+        if (!randomImage) return null;
 
         // Get full image info
         const imageInfo = await this.getImageInfo(randomImage.title, options);

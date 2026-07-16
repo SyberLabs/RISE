@@ -91,6 +91,9 @@
   justify-content: center;
   padding: 2rem;
   overflow-y: auto;
+  /* Consent must remain operable even if a defensive/recovery path opens it
+     while the opaque preparation overlay (9999) is still mounted. */
+  z-index: 10001;
 }
 
 #photosensitivity-modal .safety-modal-content {

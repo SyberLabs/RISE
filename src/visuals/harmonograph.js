@@ -115,7 +115,7 @@ export class Harmonograph {
         // space; 1.7 keeps the hottest trace inside the frame
         const scale = Math.min(w, h) * 0.5 * this.plan.amplitude * 1.7;
 
-        ctx.fillStyle = options.backgroundColor || '#0c0c0e';
+        ctx.fillStyle = options.backgroundColor || '#0A0A0C';
         ctx.fillRect(0, 0, w, h);
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';

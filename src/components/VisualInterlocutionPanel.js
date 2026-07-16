@@ -141,6 +141,9 @@ export class VisualInterlocutionPanel {
                 ...selection,
                 frequency: options.interlocution?.frequency ?? options.frequency ?? 0.2,
                 duration: options.interlocution?.duration ?? options.duration ?? 80,
+                renderLanguage: (options.interlocution?.renderLanguage ?? options.renderLanguage) === 'ascii'
+                    ? 'ascii'
+                    : 'native',
                 kleePreset: options.interlocution?.kleePreset ?? options.kleePreset ?? 'random',
                 harmonographClimate: options.interlocution?.harmonographClimate ?? 'auto',
                 // Responsive: the semantic conductor drives the flashes.
@@ -294,6 +297,7 @@ export class VisualInterlocutionPanel {
             );
             this.config.interlocution = {
                 ...mergedInterlocution,
+                renderLanguage: mergedInterlocution.renderLanguage === 'ascii' ? 'ascii' : 'native',
                 ...normalizeVisualSelection({
                     ...selectionInput,
                     ...migrated
@@ -603,6 +607,28 @@ export class VisualInterlocutionPanel {
 
                     <!-- INTERLOCUTION: Probabilistic interrupts -->
                     <div class="vi-accordions" ${mode === 'interlocution' ? '' : 'hidden'}>
+                        <div class="vi-source-family vi-render-language" role="group" aria-label="Render language">
+                            <div class="vi-source-family-label">Render</div>
+                            <div class="vi-source-family-options">
+                                ${[
+                                    ['native', 'Native'],
+                                    ['ascii', 'ASCII']
+                                ].map(([id, label]) => `
+                                    <button type="button"
+                                        class="vi-source-family-btn ${this.config.interlocution.renderLanguage === id ? 'active' : ''}"
+                                        data-render-language="${id}"
+                                        aria-pressed="${this.config.interlocution.renderLanguage === id}">
+                                        ${label}
+                                    </button>
+                                `).join('')}
+                            </div>
+                            <p class="vi-source-family-hint text-mist">
+                                ${this.config.interlocution.renderLanguage === 'ascii'
+                                    ? 'Pure printable ASCII preserves the selected source, palette, and responsive timing.'
+                                    : 'Original procedural fields, canvases, and collection imagery.'}
+                            </p>
+                        </div>
+
                         <div class="vi-source-family" role="group" aria-label="Rhythmic source family">
                             <div class="vi-source-family-label">Source</div>
                             <div class="vi-source-family-options">
@@ -860,6 +886,18 @@ export class VisualInterlocutionPanel {
         });
 
         if (this.locked) return;
+
+        this.container.querySelectorAll('[data-render-language]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.config.interlocution.renderLanguage = btn.dataset.renderLanguage === 'ascii'
+                    ? 'ascii'
+                    : 'native';
+                if (window.rise?.audioEngine) window.rise.audioEngine.playHiss();
+                this.emitChange();
+                this.render();
+                this.attachEvents();
+            });
+        });
 
         // 3-way mode selector (Off / Focals / Interlocution)
         this.container.querySelectorAll('[data-visual-mode]').forEach(btn => {

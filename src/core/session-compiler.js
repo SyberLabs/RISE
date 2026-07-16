@@ -65,6 +65,7 @@ export function normalizeVisualConfig(value = {}) {
             ...selection,
             frequency: Math.max(0, Math.min(1, finiteNumber(raw.frequency, 0.2))),
             duration: Math.max(16, Math.min(200, finiteNumber(raw.duration, 80))),
+            renderLanguage: raw.renderLanguage === 'ascii' ? 'ascii' : 'native',
             kleePreset: KLEE_PRESETS.has(raw.kleePreset) ? raw.kleePreset : 'random',
             responsive: raw.responsive === true,
             responsiveMood: raw.responsiveMood !== false,

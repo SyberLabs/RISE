@@ -178,3 +178,64 @@ test('6 · text and settings survive a refresh', async ({ page }) => {
     expect(restored.soundscape).toBe('faded-signal');
     await expect(page.locator('#begin-btn')).toBeEnabled();
 });
+
+test('7 · restored flashes present an operable warning before loading, every session', async ({ page }) => {
+    await boot(page, {
+        prefs: {
+            visualInterlocution: {
+                visualMode: 'interlocution',
+                interlocution: {
+                    sourceFamily: 'procedural',
+                    procedural: ['klee'],
+                    sourced: [],
+                    frequency: 0.2,
+                    duration: 80
+                }
+            }
+        }
+    });
+    await enterChamber(page);
+
+    await page.locator('#begin-btn').click();
+    const warning = page.locator('#photosensitivity-modal');
+    await expect(warning).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('#loading-overlay')).toHaveClass(/hidden/);
+    await warning.locator('#safety-accept').click();
+    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
+    await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+
+    await exitSession(page);
+    await page.locator('#begin-btn').click();
+    await expect(warning).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('#loading-overlay')).toHaveClass(/hidden/);
+    await warning.locator('#safety-accept').click();
+    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
+});
+
+test('8 · declining the warning enters the session with flashes disabled', async ({ page }) => {
+    await boot(page, {
+        prefs: {
+            visualInterlocution: {
+                visualMode: 'interlocution',
+                interlocution: {
+                    sourceFamily: 'procedural',
+                    procedural: ['klee'],
+                    sourced: [],
+                    frequency: 0.2,
+                    duration: 80
+                }
+            }
+        }
+    });
+    await enterChamber(page);
+
+    await page.locator('#begin-btn').click();
+    const warning = page.locator('#photosensitivity-modal');
+    await expect(warning).toBeVisible({ timeout: 10_000 });
+    await warning.locator('#safety-cancel').click();
+
+    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
+    await expect.poll(() => page.evaluate(() =>
+        window.rise?.currentSession?.visualConfig?.visualMode
+    )).toBe('off');
+});

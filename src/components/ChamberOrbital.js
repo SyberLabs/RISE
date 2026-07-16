@@ -80,6 +80,7 @@ function createDefaultConfig() {
         sourced: [],
         frequency: 0.2,
         duration: 80,
+        renderLanguage: 'native',
         kleePreset: 'random',
         harmonographClimate: 'auto',
         responsive: false,

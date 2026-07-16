@@ -1464,7 +1464,8 @@ textarea:focus {
 /* Progress bar smooth fill */
 .chamber-progress-fill,
 #progress-fill {
-  transition: width 100ms linear;
+  transform-origin: left center;
+  will-change: transform;
 }
 
 /* Navigation active indicator */

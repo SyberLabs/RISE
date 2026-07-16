@@ -13,8 +13,17 @@ import { FractalFlame } from './fractal.js';
 import { RockGarden } from './rockgarden.js';
 import { NeuralNetwork } from './neural.js';
 import { Harmonograph } from './harmonograph.js';
+import {
+    AsciiCanvasRenderer,
+    AsciiFrameCompiler,
+    ASCII_BACKGROUND,
+    compileFieldPlanToAscii,
+    compilePolylinesToAscii,
+    resolveAsciiGrid
+} from './ascii-engine.js';
 import { MemoryCore } from '../core/memory.js';
 import { abortableDelay, createAbortError, isAbortError } from '../sources/visual/request.js';
+import { ShuffleBag } from '../sources/visual/shuffle-bag.js';
 import { hasVisualInterlocutionConsent, VisualFlashGate } from '../core/visual-safety.js';
 
 // External imagery is globally bounded because HTMLImageElements may retain
@@ -22,8 +31,10 @@ import { hasVisualInterlocutionConsent, VisualFlashGate } from '../core/visual-s
 // category gates session readiness; a slow single-concurrency task grows the
 // rotation afterward without ever entering the flash hot path.
 const INITIAL_POOL_TARGET = 1;
-const BACKGROUND_CATEGORY_TARGET = 3;
+const BACKGROUND_CATEGORY_TARGET = 6;
+const MAX_CATEGORY_TARGET = 12;
 const GLOBAL_ASSET_LIMIT = 18;
+const RECENT_EXTERNAL_WINDOW = 6;
 const IMAGE_LOAD_TIMEOUT_MS = 8000;
 const BACKGROUND_RETRY_BASE_MS = 1000;
 const BACKGROUND_RETRY_MAX_MS = 30000;
@@ -42,6 +53,11 @@ export class VisualCortex {
         this.neural = null;
         this.harmonograph = null;
         this.diagramEl = null;
+        this.asciiRenderer = null;
+        this.asciiCompiler = null;
+        this._asciiCanvas = null;
+        this._asciiScratchCanvas = null;
+        this._localAsciiAssets = new Map();
         this.initialized = false;
         this._destroyed = false;
 
@@ -53,6 +69,9 @@ export class VisualCortex {
         // frequency without touching the network (the old consume-once
         // queue starved at high frequency and fell back to procedural)
         this._assetPools = new Map(); // categoryId -> { images, cursor }
+        this._externalPoolBag = new ShuffleBag();
+        this._recentExternalUrls = [];
+        this._sessionAssetTarget = BACKGROUND_CATEGORY_TARGET;
         // One versioned warm task owns all provider I/O. Flash calls only read
         // retained assets; they never await this task or touch the network.
         this._poolWarmTask = null; // { version, target, promise }
@@ -83,6 +102,7 @@ export class VisualCortex {
             enabled: false,
             frequency: 0.3, // 30%
             duration: 33,   // ms
+            renderLanguage: 'native', // 'native' | 'ascii'
             activeTypes: ['klee', 'turrell'],
             kleePreset: 'random', // 'random' | 'architectural' | 'chaotic' | 'harmonic' | 'gravitational' | 'twittering'
             harmonographClimate: 'auto', // 'auto' | a climate palette name (explicit = veto)
@@ -141,6 +161,24 @@ export class VisualCortex {
         this.neural = new NeuralNetwork(neuralCanvas);
         this._neuralCanvas = neuralCanvas;
         console.log('[Visual Cortex] Neural canvas bound:', neuralCanvas);
+
+        // ASCII is an orthogonal display language. It shares the same
+        // responsive, DPR-aware backing dimensions as every native source,
+        // while its compiler works on a bounded cell grid.
+        let asciiCanvas = document.getElementById('ascii-canvas');
+        if (!asciiCanvas) {
+            asciiCanvas = document.createElement('canvas');
+            asciiCanvas.id = 'ascii-canvas';
+            asciiCanvas.className = 'visual-canvas ascii-canvas';
+            asciiCanvas.hidden = true;
+            asciiCanvas.setAttribute('aria-hidden', 'true');
+            this.container.appendChild(asciiCanvas);
+        }
+        this._asciiCanvas = asciiCanvas;
+        this.asciiRenderer = new AsciiCanvasRenderer(asciiCanvas);
+        this.asciiCompiler = new AsciiFrameCompiler();
+        this._asciiScratchCanvas = document.createElement('canvas');
+        this._resizeKleeCanvas();
 
         // Initialize Rock Garden (shares klee canvas)
         if (kleeCanvas) {
@@ -212,7 +250,9 @@ export class VisualCortex {
         const pixelRatio = requestedDpr * fit;
         const width = Math.max(1, Math.round(cssWidth * pixelRatio));
         const height = Math.max(1, Math.round(cssHeight * pixelRatio));
-        if (this._kleeCanvas.width === width && this._kleeCanvas.height === height) return false;
+        const kleeChanged = this._kleeCanvas.width !== width || this._kleeCanvas.height !== height;
+        const asciiChanged = this.asciiRenderer?.resize(width, height) || false;
+        if (!kleeChanged) return asciiChanged;
 
         this._kleeCanvas.width = width;
         this._kleeCanvas.height = height;
@@ -231,6 +271,9 @@ export class VisualCortex {
      */
     updateConfig(newConfig) {
         const nextConfig = { ...newConfig };
+        if ('renderLanguage' in nextConfig) {
+            nextConfig.renderLanguage = nextConfig.renderLanguage === 'ascii' ? 'ascii' : 'native';
+        }
         if ('activeTypes' in nextConfig) {
             nextConfig.activeTypes = this._normalizeActiveTypes(nextConfig.activeTypes);
         }
@@ -413,14 +456,18 @@ export class VisualCortex {
                     return;
                 }
                 const now = Date.now();
-                succeed({
+                const asset = {
                     img,
                     name: name,
                     category: categoryId,
                     url,
                     loadedAt: now,
                     lastUsedAt: now
-                });
+                };
+                if (this.config.renderLanguage === 'ascii') {
+                    asset.asciiPromise = this._prepareAssetAscii(asset, signal);
+                }
+                succeed(asset);
             };
             img.onerror = () => {
                 fail(new Error(`Image request failed for ${categoryId}: ${url}`));
@@ -428,6 +475,136 @@ export class VisualCortex {
             signal?.addEventListener('abort', onAbort, { once: true });
             img.src = url;
         });
+    }
+
+    _loadReadableImage(url, signal = this._assetAbortController.signal) {
+        return new Promise((resolve, reject) => {
+            if (!url || signal?.aborted) {
+                reject(signal?.aborted ? createAbortError() : new Error('Readable image URL is empty'));
+                return;
+            }
+            const img = new Image();
+            img.decoding = 'async';
+            img.fetchPriority = 'low';
+            // A second, CORS-enabled element protects the native hydration
+            // contract: providers that cannot be sampled may still display in
+            // Native, while ASCII intentionally skips an unreadable frame.
+            if (/^https?:/i.test(url)) img.crossOrigin = 'anonymous';
+
+            let settled = false;
+            const cleanup = () => {
+                clearTimeout(timeout);
+                signal?.removeEventListener('abort', onAbort);
+                img.onload = null;
+                img.onerror = null;
+            };
+            const fail = error => {
+                if (settled) return;
+                settled = true;
+                cleanup();
+                img.src = '';
+                reject(error);
+            };
+            const onAbort = () => fail(createAbortError('ASCII image load aborted'));
+            const timeout = setTimeout(() => {
+                const error = new Error(`ASCII image load timed out after ${IMAGE_LOAD_TIMEOUT_MS}ms`);
+                error.name = 'TimeoutError';
+                fail(error);
+            }, IMAGE_LOAD_TIMEOUT_MS);
+
+            img.onload = async () => {
+                try { await img.decode?.(); } catch { /* onload remains sufficient */ }
+                if (signal?.aborted) {
+                    fail(createAbortError('ASCII image load aborted'));
+                    return;
+                }
+                if (settled) return;
+                settled = true;
+                cleanup();
+                resolve(img);
+            };
+            img.onerror = () => fail(new Error(`Image is not CORS-readable for ASCII: ${url}`));
+            signal?.addEventListener('abort', onAbort, { once: true });
+            img.src = url;
+        });
+    }
+
+    _asciiOptions(signal, metadata = {}, fit = 'contain') {
+        return {
+            displayWidth: this._asciiCanvas?.width || this._kleeCanvas?.width || 1920,
+            displayHeight: this._asciiCanvas?.height || this._kleeCanvas?.height || 1080,
+            scratchCanvas: this._asciiScratchCanvas,
+            signal,
+            fit,
+            metadata
+        };
+    }
+
+    async _prepareAssetAscii(asset, signal = this._assetAbortController.signal) {
+        if (!asset?.url) return null;
+        try {
+            const readable = asset.asciiImg || await this._loadReadableImage(asset.url, signal);
+            asset.asciiImg = readable;
+            asset.asciiFrame = await this.asciiCompiler.compileDrawable(
+                readable,
+                this._asciiOptions(null, { source: 'external', category: asset.category })
+            );
+            return asset.asciiFrame;
+        } catch (error) {
+            // Sampling capability is separate from provider hydration. Do not
+            // count it as an external content failure, log expected CORS
+            // refusal, or trigger a fallback that violates source intent.
+            return null;
+        }
+    }
+
+    async _prepareExternalAsciiAssets(signal = this._assetAbortController.signal) {
+        const tasks = [];
+        for (const pool of this._assetPools.values()) {
+            for (const asset of pool.images) {
+                if (asset.asciiFrame) continue;
+                if (!asset.asciiPromise) asset.asciiPromise = this._prepareAssetAscii(asset, signal);
+                tasks.push(asset.asciiPromise);
+            }
+        }
+        await Promise.all(tasks);
+    }
+
+    _localVisualUris() {
+        const types = this.config.activeTypes || [];
+        const uris = [];
+        if (types.includes('custom')) uris.push(...(this.config.customVisuals || []));
+        if (types.includes('global') || types.includes('global-pool')) {
+            uris.push(...(MemoryCore.getGlobalImages?.() || []));
+        }
+        for (const type of types) {
+            if (!type.startsWith?.('personal:')) continue;
+            const blueprintId = type.slice('personal:'.length);
+            const blueprint = (MemoryCore.getWorkshopBlueprints?.() || [])
+                .find(item => item.id === blueprintId);
+            uris.push(...(blueprint?.customVisuals || []));
+        }
+        return [...new Set(uris.filter(Boolean))].slice(0, 24);
+    }
+
+    async _prepareLocalAsciiAssets(signal = this._assetAbortController.signal) {
+        this._localAsciiAssets.clear();
+        for (const uri of this._localVisualUris()) {
+            if (signal?.aborted) throw createAbortError();
+            let img = null;
+            try {
+                img = await this._loadReadableImage(uri, signal);
+                const frame = await this.asciiCompiler.compileDrawable(
+                    img,
+                    this._asciiOptions(null, { source: 'local' }, 'cover')
+                );
+                if (frame) this._localAsciiAssets.set(uri, frame);
+            } catch (error) {
+                if (isAbortError(error)) throw error;
+            } finally {
+                if (img) img.src = '';
+            }
+        }
     }
 
     _poolFor(categoryId) {
@@ -495,7 +672,7 @@ export class VisualCortex {
     _backgroundTarget() {
         const categoryCount = Math.max(1, this._activePoolCategories().length);
         return Math.max(1, Math.min(
-            BACKGROUND_CATEGORY_TARGET,
+            this._sessionAssetTarget,
             Math.floor(GLOBAL_ASSET_LIMIT / categoryCount)
         ));
     }
@@ -565,12 +742,21 @@ export class VisualCortex {
     }
 
     _disposeAsset(asset) {
-        if (!asset?.img) return;
-        asset.img.onload = null;
-        asset.img.onerror = null;
+        if (!asset) return;
+        if (asset.img) {
+            asset.img.onload = null;
+            asset.img.onerror = null;
+        }
+        if (asset.asciiImg) {
+            asset.asciiImg.onload = null;
+            asset.asciiImg.onerror = null;
+            asset.asciiImg.src = '';
+        }
+        asset.asciiFrame = null;
+        asset.asciiPromise = null;
         // The visible diagram element owns its own URL. Releasing this
         // off-DOM preload element lets the browser reclaim decoded pixels.
-        asset.img.src = '';
+        if (asset.img) asset.img.src = '';
     }
 
     _retainAsset(categoryId, asset) {
@@ -627,8 +813,34 @@ export class VisualCortex {
 
     _takeFromPool(pool) {
         if (!pool || pool.images.length === 0) return null;
-        pool.cursor = (pool.cursor + 1) % pool.images.length;
-        return this._touchAsset(pool.images[pool.cursor]);
+        let asset = null;
+        let recentFallback = null;
+        for (let attempt = 0; attempt < pool.images.length; attempt++) {
+            pool.cursor = (pool.cursor + 1) % pool.images.length;
+            const candidate = pool.images[pool.cursor];
+            if (this.config.renderLanguage === 'ascii' && !candidate?.asciiFrame) continue;
+            const url = candidate?.url || candidate?.img?.src || '';
+            if (!url || !this._recentExternalUrls.includes(url)) {
+                asset = candidate;
+                break;
+            }
+            recentFallback ||= candidate;
+        }
+        asset ||= recentFallback;
+        if (!asset) return null;
+
+        const url = asset.url || asset.img?.src || '';
+        if (url) {
+            this._recentExternalUrls = this._recentExternalUrls.filter(item => item !== url);
+            this._recentExternalUrls.push(url);
+            if (this._recentExternalUrls.length > RECENT_EXTERNAL_WINDOW) {
+                this._recentExternalUrls.splice(
+                    0,
+                    this._recentExternalUrls.length - RECENT_EXTERNAL_WINDOW
+                );
+            }
+        }
+        return this._touchAsset(asset);
     }
 
     /**
@@ -692,7 +904,10 @@ export class VisualCortex {
 
     async _runPoolWarmPass(categories, target, version, signal) {
         this._refreshExternalStatus('warming', target);
-        const maxAttempts = Math.max(2, target * 2);
+        // The provider decks no longer roll duplicates with replacement, so a
+        // small spare budget is sufficient for decode/filter failures. This
+        // bounds offline retry pressure as the diversity target grows.
+        const maxAttempts = Math.max(2, Math.min(target * 2, target + 2));
 
         try {
             for (let round = 0; round < maxAttempts; round++) {
@@ -837,8 +1052,10 @@ export class VisualCortex {
             ? [category] // explicit category is a veto: never substitute it
             : activeExternal.length > 0 ? activeExternal : [ANY_POOL];
         const stockedPools = candidates
-            .map(categoryId => this._poolFor(categoryId))
-            .filter(pool => pool.images.length > 0);
+            .map(categoryId => ({ id: categoryId, pool: this._poolFor(categoryId) }))
+            .filter(entry => entry.pool.images.some(asset =>
+                this.config.renderLanguage !== 'ascii' || asset.asciiFrame
+            ));
 
         const target = this._backgroundTarget();
         const needsWarmth = this._activePoolCategories()
@@ -846,8 +1063,11 @@ export class VisualCortex {
         if (needsWarmth) this._scheduleBackgroundWarm(false);
         if (stockedPools.length === 0) return null;
 
-        const pool = stockedPools[Math.floor(Math.random() * stockedPools.length)];
-        return this._takeFromPool(pool);
+        const selected = this._externalPoolBag.draw(
+            `pools:${candidates.join('|')}`,
+            stockedPools
+        );
+        return this._takeFromPool(selected?.pool);
     }
 
     /**
@@ -896,6 +1116,30 @@ export class VisualCortex {
         // Both paths enter with a decoded retained asset when available.
         const externalCategories = this._activePoolCategories();
         if (externalCategories.length > 0) {
+            // Adapt the background rotation to this session's likely demand.
+            // Entry still gates on one asset. Growth is sequential, capped by
+            // the existing global decoded-image budget, and advances by two
+            // candidates on repeat sessions so a retained pool does not freeze.
+            const fairCapacity = Math.max(
+                1,
+                Math.floor(GLOBAL_ASSET_LIMIT / externalCategories.length)
+            );
+            const retainedFloor = Math.min(...externalCategories.map(
+                categoryId => this._poolFor(categoryId).images.length
+            ));
+            const expectedPerCategory = flashCount > 0
+                ? Math.ceil(flashCount / Math.max(1, this.config.activeTypes.length))
+                : INITIAL_POOL_TARGET;
+            this._sessionAssetTarget = Math.min(
+                fairCapacity,
+                MAX_CATEGORY_TARGET,
+                Math.max(
+                    flashCount > 0 ? BACKGROUND_CATEGORY_TARGET : INITIAL_POOL_TARGET,
+                    Math.ceil(expectedPerCategory * 1.25),
+                    Math.min(fairCapacity, retainedFloor + 2)
+                )
+            );
+
             // Session entry gates on one decoded image per selected category.
             // The rotation grows afterward under one globally capped task.
             externalPreload = this._preloadDiagrams(INITIAL_POOL_TARGET);
@@ -903,9 +1147,125 @@ export class VisualCortex {
         }
 
         await Promise.all(preloadPromises);
+        if (this.config.renderLanguage === 'ascii') {
+            // Precompile raster sources before the reading clock begins. The
+            // flash path only selects and paints a small immutable frame.
+            if (this.fractal && this.config.activeTypes.includes('fractal')) {
+                await Promise.all((this.fractal.queue || []).map(async item => {
+                    if (!item.asciiFrame) {
+                        item.asciiFrame = await this.asciiCompiler.compileImageData(
+                            item.imageData,
+                            this._asciiOptions(item.signal, { source: 'fractal' })
+                        );
+                    }
+                }));
+            }
+            await this._prepareExternalAsciiAssets();
+            await this._prepareLocalAsciiAssets();
+        } else {
+            this._localAsciiAssets.clear();
+        }
         const externalStatus = this.getExternalAssetStatus();
         if (externalPreload) this._scheduleBackgroundWarm(externalStatus.minimumReady);
         return externalStatus;
+    }
+
+    _harmonographAsciiFrame(signal) {
+        const trace = this.harmonograph?.trace;
+        const plan = this.harmonograph?.plan;
+        if (!trace || !plan || !this._asciiCanvas) return null;
+        const width = this._asciiCanvas.width;
+        const height = this._asciiCanvas.height;
+        const scale = Math.min(width, height) * 0.5 * plan.amplitude * 1.7;
+        const points = [];
+        const pointCount = trace.length / 2;
+        const stride = Math.max(1, Math.ceil(pointCount / 1800));
+        for (let index = 0; index < pointCount; index += stride) {
+            points.push([
+                width / 2 + trace[index * 2] * scale,
+                height / 2 + trace[index * 2 + 1] * scale
+            ]);
+        }
+        return compilePolylinesToAscii({
+            width,
+            height,
+            palette: plan.anchors,
+            polylines: [{ points, color: plan.anchors?.[2] || '#e5e3df', delay: 0 }]
+        }, {
+            ...resolveAsciiGrid(this._asciiCanvas.width, this._asciiCanvas.height),
+            signal,
+            background: ASCII_BACKGROUND,
+            metadata: {
+                source: 'harmonograph',
+                ratio: [...plan.ratio],
+                paletteName: plan.paletteName
+            }
+        });
+    }
+
+    _neuralAsciiFrame(signal) {
+        if (!this.neural || !this._asciiCanvas) return null;
+        const palette = this.neural.currentPalette || {};
+        const connections = (this.neural.connections || []).map(connection => {
+            const from = this.neural.nodes?.[connection.from];
+            const to = this.neural.nodes?.[connection.to];
+            return {
+                points: from && to ? [[from.x, from.y], [to.x, to.y]] : [],
+                color: connection.active
+                    ? (palette.activationPulse || [220, 210, 255])
+                    : (palette.connectionBase || [80, 80, 90]),
+                delay: 0
+            };
+        });
+        const nodes = (this.neural.nodes || []).flatMap(node => {
+            const radius = Math.max(3, Number(node.radius) || 4);
+            const color = node.activation > 0.65
+                ? (palette.activationPulse || [255, 255, 255])
+                : (palette.nodeCore || [180, 180, 190]);
+            return [
+                { points: [[node.x - radius, node.y], [node.x + radius, node.y]], color, delay: 0 },
+                { points: [[node.x, node.y - radius], [node.x, node.y + radius]], color, delay: 0 }
+            ];
+        });
+        return compilePolylinesToAscii({
+            width: this._neuralCanvas?.width || this._asciiCanvas.width,
+            height: this._neuralCanvas?.height || this._asciiCanvas.height,
+            palette: [
+                palette.connectionBase || [80, 80, 90],
+                palette.nodeCore || [180, 180, 190],
+                palette.activationPulse || [255, 255, 255]
+            ],
+            polylines: [...connections, ...nodes]
+        }, {
+            ...resolveAsciiGrid(this._asciiCanvas.width, this._asciiCanvas.height),
+            signal,
+            background: ASCII_BACKGROUND,
+            metadata: { source: 'neural' }
+        });
+    }
+
+    _rockGardenAsciiFrame(signal) {
+        if (!this.rockgarden || !this._asciiCanvas) return null;
+        return compilePolylinesToAscii({
+            width: this._asciiCanvas.width,
+            height: this._asciiCanvas.height,
+            palette: ['#e8e8ec', '#a8a8ae'],
+            polylines: (this.rockgarden.shapes || []).map((shape, index) => ({
+                points: shape.points,
+                color: index % 3 === 0 ? '#e8e8ec' : '#a8a8ae',
+                delay: Math.min(0.12, index * 0.018)
+            }))
+        }, {
+            signal,
+            background: ASCII_BACKGROUND,
+            metadata: { source: 'rockgarden' }
+        });
+    }
+
+    _showAsciiFrame(frame) {
+        if (!frame || !this.asciiRenderer?.render(frame)) return false;
+        this._asciiCanvas.hidden = false;
+        return true;
     }
 
     /**
@@ -956,14 +1316,19 @@ export class VisualCortex {
         const turrellEl = document.getElementById('turrell-field');
         const fractalEl = document.getElementById('fractal-canvas');
         const neuralEl = document.getElementById('neural-canvas');
+        const asciiMode = this.config.renderLanguage === 'ascii';
 
         // Reset visibility
         if (kleeEl) kleeEl.hidden = true;
         if (turrellEl) turrellEl.hidden = true;
         if (fractalEl) fractalEl.hidden = true;
         if (neuralEl) neuralEl.hidden = true;
+        if (this._asciiCanvas) this._asciiCanvas.hidden = true;
         if (this.diagramEl) this.diagramEl.hidden = true;
         if (this.customImageEl) this.customImageEl.hidden = true;
+
+        let asciiFrame = null;
+        let rendered = false;
 
         if (selectedType === 'klee' && this.kleeFlashes && this._kleeCanvas) {
             // Subliminal flashes are still frames — the artwork's episode
@@ -971,28 +1336,55 @@ export class VisualCortex {
             // animation was removed: durations are capped at 200ms, below
             // any threshold where nested motion reads as anything but flicker.)
             this._resizeKleeCanvas();
-            await this.kleeFlashes.renderFlash(this._kleeCanvas, duration, signal);
-            if (kleeEl) kleeEl.hidden = false;
+            if (asciiMode) {
+                asciiFrame = await this.kleeFlashes.createAsciiFlash(duration, signal, {
+                    displayWidth: this._asciiCanvas?.width,
+                    displayHeight: this._asciiCanvas?.height
+                });
+            } else {
+                rendered = await this.kleeFlashes.renderFlash(this._kleeCanvas, duration, signal);
+                if (rendered && kleeEl) kleeEl.hidden = false;
+            }
         } else if (selectedType === 'turrell' && this.turrell) {
-            this.turrell.generate();
-            if (turrellEl) turrellEl.hidden = false;
+            const fieldPlan = this.turrell.generate();
+            if (asciiMode) {
+                asciiFrame = compileFieldPlanToAscii(
+                    fieldPlan,
+                    this._asciiOptions(signal, { source: 'turrell' })
+                );
+            } else {
+                rendered = true;
+                if (turrellEl) turrellEl.hidden = false;
+            }
         } else if (selectedType === 'fractal' && this.fractal) {
-            const success = this.fractal.generate(signal);
-            if (!success) {
+            if (asciiMode) {
+                const item = this.fractal.takeFrame(signal);
+                if (item) {
+                    item.asciiFrame ||= await this.asciiCompiler.compileImageData(
+                        item.imageData,
+                        this._asciiOptions(signal, { source: 'fractal' })
+                    );
+                    asciiFrame = item.asciiFrame;
+                }
+            } else {
+                rendered = this.fractal.generate(signal);
+            }
+            if (!asciiFrame && !rendered) {
                 console.warn('[Visual Cortex] Fractal not ready, skipping flash.');
                 return;
             }
-            if (fractalEl) {
-                fractalEl.hidden = false;
-            }
+            if (!asciiMode && fractalEl) fractalEl.hidden = false;
         } else if (selectedType === 'neural' && this.neural) {
             const success = this.neural.generate();
             if (!success) {
                 console.warn('[Visual Cortex] Neural not ready, skipping flash.');
                 return;
             }
-            if (neuralEl) {
-                neuralEl.hidden = false;
+            if (asciiMode) {
+                asciiFrame = this._neuralAsciiFrame(signal);
+            } else {
+                rendered = true;
+                if (neuralEl) neuralEl.hidden = false;
             }
         } else if (this.diagramEl && (selectedType === 'diagram' || this._isExternalCategory(selectedType))) {
             try {
@@ -1006,9 +1398,18 @@ export class VisualCortex {
                     this._scheduleBackgroundWarm(false);
                     return;
                 }
-                this.diagramEl.src = diagram.img.src;
-                this.diagramEl.alt = diagram.name || 'External Asset';
-                this.diagramEl.hidden = false;
+                if (asciiMode) {
+                    asciiFrame = diagram.asciiFrame;
+                    if (!asciiFrame) {
+                        this._externalStatus.skippedFlashes++;
+                        return;
+                    }
+                } else {
+                    this.diagramEl.src = diagram.img.src;
+                    this.diagramEl.alt = diagram.name || 'External Asset';
+                    this.diagramEl.hidden = false;
+                    rendered = true;
+                }
             } catch (err) {
                 this._externalStatus.skippedFlashes++;
                 this._recordExternalFailure(selectedType, 'flash-select', err);
@@ -1023,33 +1424,52 @@ export class VisualCortex {
             this.harmonograph.generate(signal, undefined, {
                 climate: this.config.harmonographClimate
             });
-            this.harmonograph.render(this._kleeCanvas);
-            if (kleeEl) kleeEl.hidden = false;
+            if (asciiMode) {
+                asciiFrame = this._harmonographAsciiFrame(signal);
+            } else {
+                rendered = this.harmonograph.render(this._kleeCanvas);
+                if (rendered && kleeEl) kleeEl.hidden = false;
+            }
         } else if (selectedType === 'rockgarden' && this.rockgarden && this._kleeCanvas) {
             // Generate Rock Garden (uses same canvas as Klee)
             this.rockgarden.generateRockGarden({
                 width: this._kleeCanvas.width,
                 height: this._kleeCanvas.height
             });
-            this.rockgarden.renderRockGarden(this._kleeCanvas, {
-                backgroundColor: '#0c0c0e', // Match void palette
-                strokeColor: 'rgba(232, 232, 236, 0.8)',
-                brushStroke: true
-            });
-            if (kleeEl) kleeEl.hidden = false;
+            if (asciiMode) {
+                asciiFrame = this._rockGardenAsciiFrame(signal);
+            } else {
+                rendered = this.rockgarden.renderRockGarden(this._kleeCanvas, {
+                    backgroundColor: ASCII_BACKGROUND,
+                    strokeColor: 'rgba(232, 232, 236, 0.8)',
+                    brushStroke: true
+                });
+                if (rendered !== false && kleeEl) kleeEl.hidden = false;
+                rendered = rendered !== false;
+            }
         } else if (selectedType === 'custom' && this.customImageEl && this.config.customVisuals.length > 0) {
             const visuals = this.config.customVisuals;
             const customUri = visuals[Math.floor(Math.random() * visuals.length)];
-            this.customImageEl.src = customUri;
-            this.customImageEl.alt = 'Custom Sequence Frame';
-            this.customImageEl.hidden = false;
+            if (asciiMode) {
+                asciiFrame = this._localAsciiAssets.get(customUri) || null;
+            } else {
+                this.customImageEl.src = customUri;
+                this.customImageEl.alt = 'Custom Sequence Frame';
+                this.customImageEl.hidden = false;
+                rendered = true;
+            }
         } else if (selectedType === 'global' && this.customImageEl) {
             const globals = MemoryCore.getGlobalImages();
             if (globals.length > 0) {
                 const globalUri = globals[Math.floor(Math.random() * globals.length)];
-                this.customImageEl.src = globalUri;
-                this.customImageEl.alt = 'Global Pool Frame';
-                this.customImageEl.hidden = false;
+                if (asciiMode) {
+                    asciiFrame = this._localAsciiAssets.get(globalUri) || null;
+                } else {
+                    this.customImageEl.src = globalUri;
+                    this.customImageEl.alt = 'Global Pool Frame';
+                    this.customImageEl.hidden = false;
+                    rendered = true;
+                }
             }
         } else if (selectedType.startsWith('personal:') && this.customImageEl) {
             // Personal Sequence Images mapping
@@ -1059,12 +1479,20 @@ export class VisualCortex {
                 const bp = blueprints.find(b => b.id === blueprintId);
                 if (bp && bp.customVisuals && bp.customVisuals.length > 0) {
                     const personalUri = bp.customVisuals[Math.floor(Math.random() * bp.customVisuals.length)];
-                    this.customImageEl.src = personalUri;
-                    this.customImageEl.alt = 'Personal Sequence Frame';
-                    this.customImageEl.hidden = false;
+                    if (asciiMode) {
+                        asciiFrame = this._localAsciiAssets.get(personalUri) || null;
+                    } else {
+                        this.customImageEl.src = personalUri;
+                        this.customImageEl.alt = 'Personal Sequence Frame';
+                        this.customImageEl.hidden = false;
+                        rendered = true;
+                    }
                 }
             }
         }
+
+        if (asciiMode) rendered = this._showAsciiFrame(asciiFrame);
+        if (!rendered) return;
 
         // Show Cortex
         this.container.hidden = false;
@@ -1099,6 +1527,8 @@ export class VisualCortex {
             pool.images.forEach(asset => this._disposeAsset(asset));
         }
         this._assetPools.clear();
+        this._externalPoolBag.clear();
+        this._recentExternalUrls = [];
         this._externalStatus = {
             ...this._externalStatus,
             state: 'destroyed',
@@ -1117,6 +1547,11 @@ export class VisualCortex {
         this.kleeFlashes = null;
         this.fractal?.destroy?.();
         this.fractal = null;
+        this.asciiCompiler?.destroy?.();
+        this.asciiCompiler = null;
+        this.asciiRenderer = null;
+        this._asciiScratchCanvas = null;
+        this._localAsciiAssets.clear();
         this.klee?.destroy?.();
         this.initialized = false;
     }

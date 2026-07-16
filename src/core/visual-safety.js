@@ -1,22 +1,44 @@
 export const VISUAL_CONSENT_KEY = 'rise-visual-interlocution-consent';
 
 let pendingConsent = null;
+let activeSessionConsent = false;
+let acceptedLaunchConsent = false;
+
+// Retire the former browser-session grant. Consent is now a one-use,
+// in-memory capability and must never be resurrected by a reload.
+try { sessionStorage.removeItem(VISUAL_CONSENT_KEY); } catch { /* unavailable */ }
 
 export function hasVisualInterlocutionConsent() {
-    try {
-        return sessionStorage.getItem(VISUAL_CONSENT_KEY) === 'true';
-    } catch {
-        return false;
-    }
+    return activeSessionConsent || acceptedLaunchConsent;
+}
+
+/**
+ * Convert an accepted warning into a capability owned by one chamber
+ * session. The one-use launch grant is consumed so the next session must
+ * establish consent again, while the cortex can continue checking the active
+ * capability before every flash.
+ */
+export function beginVisualInterlocutionSession() {
+    if (!hasVisualInterlocutionConsent()) return false;
+    activeSessionConsent = true;
+    acceptedLaunchConsent = false;
+    try { sessionStorage.removeItem(VISUAL_CONSENT_KEY); } catch { /* unavailable */ }
+    return true;
+}
+
+/** Revoke the session capability and cancel any orphaned visible prompt. */
+export function endVisualInterlocutionSession() {
+    activeSessionConsent = false;
+    acceptedLaunchConsent = false;
+    try { sessionStorage.removeItem(VISUAL_CONSENT_KEY); } catch { /* unavailable */ }
+    pendingConsent?.cancel?.();
+    document.getElementById('photosensitivity-modal')?.classList.add('hidden');
 }
 
 export function grantVisualInterlocutionConsent() {
-    try {
-        sessionStorage.setItem(VISUAL_CONSENT_KEY, 'true');
-        return true;
-    } catch {
-        return false;
-    }
+    acceptedLaunchConsent = true;
+    try { sessionStorage.removeItem(VISUAL_CONSENT_KEY); } catch { /* unavailable */ }
+    return true;
 }
 
 export function requestVisualInterlocutionConsent() {
@@ -24,24 +46,29 @@ export function requestVisualInterlocutionConsent() {
     if (document.documentElement.classList.contains('photosensitivity-mode')) {
         return Promise.resolve(false);
     }
-    if (pendingConsent) return pendingConsent;
+    if (pendingConsent) return pendingConsent.promise;
 
     const modal = document.getElementById('photosensitivity-modal');
-    const cancel = document.getElementById('safety-cancel');
+    const cancelButton = document.getElementById('safety-cancel');
     const accept = document.getElementById('safety-accept');
-    if (!modal || !cancel || !accept) return Promise.resolve(false);
+    if (!modal || !cancelButton || !accept) return Promise.resolve(false);
 
-    pendingConsent = new Promise(resolve => {
+    let cancelPrompt = null;
+    const promise = new Promise(resolve => {
         const controller = new AbortController();
+        let settled = false;
         const finish = accepted => {
+            if (settled) return;
+            settled = true;
             if (accepted) grantVisualInterlocutionConsent();
             modal.classList.add('hidden');
             controller.abort();
             pendingConsent = null;
             resolve(accepted);
         };
+        cancelPrompt = () => finish(false);
         const options = { signal: controller.signal };
-        cancel.addEventListener('click', () => finish(false), options);
+        cancelButton.addEventListener('click', () => finish(false), options);
         accept.addEventListener('click', () => finish(true), options);
         modal.addEventListener('click', event => {
             if (event.target === modal) finish(false);
@@ -51,10 +78,10 @@ export function requestVisualInterlocutionConsent() {
         }, options);
 
         modal.classList.remove('hidden');
-        cancel.focus();
+        cancelButton.focus();
     });
-
-    return pendingConsent;
+    pendingConsent = { promise, cancel: () => cancelPrompt?.() };
+    return promise;
 }
 
 export class VisualFlashGate {

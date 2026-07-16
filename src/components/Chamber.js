@@ -134,7 +134,7 @@ export class Chamber {
 
           <!-- Progress indicator - bottom, subtle, thin -->
           <div class="chamber-progress">
-            <div class="chamber-progress-fill" id="progress-fill" style="width: 0%"></div>
+            <div class="chamber-progress-fill" id="progress-fill"></div>
           </div>
 
           <!-- Hidden controls - appear on mouse movement -->
@@ -690,7 +690,9 @@ export class Chamber {
       const percent = Number.isFinite(fraction)
         ? Math.max(0, Math.min(100, fraction <= 1 ? fraction * 100 : fraction))
         : 0;
-      fill.style.width = `${percent}%`;
+      // A transform remains on the compositor and can accept a new value each
+      // animation frame without layout or a perpetually restarting transition.
+      fill.style.transform = `scaleX(${percent / 100})`;
     }
 
     if (timeCurrent) {

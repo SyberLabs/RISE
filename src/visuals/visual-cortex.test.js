@@ -153,6 +153,29 @@ describe('KleeFlashes', () => {
         await flashes.renderFlash(canvas, 80, null);
         expect(flashes.episode.progress).toBeGreaterThan(progressAfterFirst);
     });
+
+    it('renders Klee ASCII from the same seeded progressive episode geometry', async () => {
+        const { flashes, engine } = makeFlashes();
+        engine.palette = ['#ffaa66'];
+        engine.lines = [{
+            colorIndex: 0,
+            alpha: 1,
+            weight: 1,
+            points: [[0, 0], [400, 200], [800, 0]]
+        }];
+        engine.forms = [];
+        flashes.configure({ preset: 'harmonic' });
+
+        const first = await flashes.createAsciiFlash(80, null, { columns: 48, rows: 24 });
+        const seed = flashes.episode.seed;
+        const second = await flashes.createAsciiFlash(80, null, { columns: 48, rows: 24 });
+
+        expect(first.metadata.source).toBe('klee');
+        expect(second.metadata.seed).toBe(seed);
+        expect(second.metadata.progress).toBeGreaterThan(first.metadata.progress);
+        expect(second.glyphs).toMatch(/^[\x20-\x7e]+$/);
+        expect(engine.render).not.toHaveBeenCalled();
+    });
 });
 
 describe('VisualCortex Klee delegation', () => {
@@ -184,6 +207,42 @@ describe('VisualCortex Klee delegation', () => {
 
         cortex.updateConfig({ kleePreset: 'chaotic', semanticSignals: null });
         expect(spy).toHaveBeenCalledWith({ preset: 'chaotic', signals: null });
+    });
+
+    it('normalizes render language independently of the active source set', () => {
+        const cortex = new VisualCortex();
+        cortex.updateConfig({ renderLanguage: 'ascii', activeTypes: ['klee'] });
+        expect(cortex.config.renderLanguage).toBe('ascii');
+        expect(cortex.config.activeTypes).toEqual(['klee']);
+
+        cortex.updateConfig({ renderLanguage: 'ansi' });
+        expect(cortex.config.renderLanguage).toBe('native');
+    });
+
+    it('routes a Klee flash through the structural ASCII adapter, not native canvas render', async () => {
+        grantVisualInterlocutionConsent();
+        const cortex = new VisualCortex();
+        const createAsciiFlash = vi.fn().mockResolvedValue({ layers: [['x']], palette: ['white'] });
+        const renderFlash = vi.fn();
+        cortex.initialized = true;
+        cortex.container = { hidden: true, style: {} };
+        cortex._kleeCanvas = {};
+        cortex.kleeFlashes = { createAsciiFlash, renderFlash };
+        cortex._asciiCanvas = { hidden: true, width: 800, height: 400 };
+        cortex.asciiRenderer = { render: vi.fn(() => true) };
+        cortex._flashGate = { allow: () => true };
+        cortex._resizeKleeCanvas = vi.fn();
+        cortex.updateConfig({ renderLanguage: 'ascii', activeTypes: ['klee'] });
+        const raf = vi.spyOn(globalThis, 'requestAnimationFrame')
+            .mockImplementation(callback => callback(performance.now() + 1000));
+
+        await cortex.flash(33, 'klee', { valence: 0.2, arousal: 0.7 });
+
+        expect(createAsciiFlash).toHaveBeenCalledOnce();
+        expect(renderFlash).not.toHaveBeenCalled();
+        expect(cortex.asciiRenderer.render).toHaveBeenCalledOnce();
+        expect(cortex._asciiCanvas.hidden).toBe(false);
+        raf.mockRestore();
     });
 });
 
@@ -356,6 +415,40 @@ describe('VisualCortex external asset hydration', () => {
         expect(cortex._getNextDiagram('aic-oldmasters')).toBeNull();
         expect(cortex._getNextDiagram(null)).toBe(sibling);
         expect(load).not.toHaveBeenCalled();
+    });
+
+    it('balances automatic exposure across stocked categories before repeating one', () => {
+        const cortex = new VisualCortex();
+        cortex.config.activeTypes = ['aic-oldmasters', 'aic-landscapes'];
+        cortex._poolFor('aic-oldmasters').images.push({
+            img: { src: 'master.jpg' }, category: 'aic-oldmasters'
+        });
+        cortex._poolFor('aic-landscapes').images.push({
+            img: { src: 'landscape.jpg' }, category: 'aic-landscapes'
+        });
+        vi.spyOn(cortex, '_scheduleBackgroundWarm').mockImplementation(() => {});
+
+        const first = cortex._getNextDiagram();
+        const second = cortex._getNextDiagram();
+
+        expect(new Set([first.category, second.category])).toEqual(
+            new Set(['aic-oldmasters', 'aic-landscapes'])
+        );
+    });
+
+    it('scales background variety to session demand without changing the one-image launch gate', async () => {
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.config.activeTypes = ['aic-oldmasters'];
+        const preload = vi.spyOn(cortex, '_preloadDiagrams').mockResolvedValue({
+            state: 'ready', minimumReady: true, targetSatisfied: true
+        });
+        vi.spyOn(cortex, '_scheduleBackgroundWarm').mockImplementation(() => {});
+
+        await cortex.preload(12);
+
+        expect(preload).toHaveBeenCalledWith(1);
+        expect(cortex._sessionAssetTarget).toBe(12);
     });
 
     it('shares one bounded offline pass across many joined callers', async () => {

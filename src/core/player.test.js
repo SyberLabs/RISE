@@ -227,6 +227,36 @@ describe('Player', () => {
       player.sessionState.advance();
       expect(player.progress).toBeCloseTo(1 / 3, 2);
     });
+
+    it('keeps the visible timeline time-based at unequal atom boundaries', () => {
+      session = new Session({
+        title: 'Unequal Session',
+        atoms: [
+          new Atom({ content: 'brief', duration: 100 }),
+          new Atom({ content: 'long', duration: 900 })
+        ]
+      });
+      player.destroy();
+      player = new Player(session);
+      const callback = vi.fn();
+      player.on('progress', callback);
+
+      player.sessionState.state = 'playing';
+      player.sessionState.currentIndex = 1;
+      player.sessionState.startTime = Date.now() - 100;
+      player.currentAtomRemainingTime = 900;
+      player.atomStartTime = performance.now();
+      player.startProgressAnimation();
+
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(callback.mock.lastCall[0].progress).toBeCloseTo(0.1, 1);
+
+      // Scheduling the new atom must not overwrite 10% elapsed-time progress
+      // with the coarse index value of 50%.
+      callback.mockClear();
+      player.scheduleNextAtom();
+      expect(callback).not.toHaveBeenCalled();
+    });
   });
 
   describe('session completion', () => {
@@ -255,6 +285,21 @@ describe('Player', () => {
       await vi.runAllTimersAsync();
 
       expect(player.state).toBe('complete');
+    });
+
+    it('commits an exact final progress frame', async () => {
+      const callback = vi.fn();
+      player.on('progress', callback);
+      player.sessionState.currentIndex = session.atoms.length - 1;
+      player.play();
+
+      vi.advanceTimersByTime(200);
+      await vi.runAllTimersAsync();
+
+      expect(callback.mock.lastCall[0]).toMatchObject({
+        progress: 1,
+        remaining: 0
+      });
     });
   });
 

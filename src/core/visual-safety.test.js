@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  beginVisualInterlocutionSession,
+  endVisualInterlocutionSession,
   grantVisualInterlocutionConsent,
   hasVisualInterlocutionConsent,
   requestVisualInterlocutionConsent,
@@ -9,6 +11,7 @@ import {
 
 describe('visual safety boundary', () => {
   beforeEach(() => {
+    endVisualInterlocutionSession();
     sessionStorage.clear();
     document.documentElement.classList.remove('photosensitivity-mode');
     document.body.innerHTML = `
@@ -24,13 +27,35 @@ describe('visual safety boundary', () => {
     document.querySelector('#safety-accept').click();
 
     expect(await pending).toBe(true);
-    expect(sessionStorage.getItem(VISUAL_CONSENT_KEY)).toBe('true');
+    expect(sessionStorage.getItem(VISUAL_CONSENT_KEY)).toBeNull();
+    expect(hasVisualInterlocutionConsent()).toBe(true);
   });
 
   it('refuses consent prompts while photosensitivity mode is active', async () => {
     document.documentElement.classList.add('photosensitivity-mode');
     expect(await requestVisualInterlocutionConsent()).toBe(false);
     expect(hasVisualInterlocutionConsent()).toBe(false);
+  });
+
+  it('consumes acceptance into one active chamber session, then revokes it', async () => {
+    const pending = requestVisualInterlocutionConsent();
+    document.querySelector('#safety-accept').click();
+    expect(await pending).toBe(true);
+
+    expect(beginVisualInterlocutionSession()).toBe(true);
+    expect(sessionStorage.getItem(VISUAL_CONSENT_KEY)).toBeNull();
+    expect(hasVisualInterlocutionConsent()).toBe(true);
+
+    endVisualInterlocutionSession();
+    expect(hasVisualInterlocutionConsent()).toBe(false);
+  });
+
+  it('resolves an orphaned prompt when session ownership is torn down', async () => {
+    const pending = requestVisualInterlocutionConsent();
+    endVisualInterlocutionSession();
+
+    expect(await pending).toBe(false);
+    expect(document.querySelector('#photosensitivity-modal').classList.contains('hidden')).toBe(true);
   });
 
   it('bounds rapid full-frame bursts', () => {

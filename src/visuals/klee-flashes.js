@@ -17,6 +17,7 @@
 
 import { KleeEngine, KLEE_PRESET_NAMES, KLEE_CHAMBER_BACKGROUND } from './klee-enhanced.js';
 import { pickNearestSignalIndex } from '../core/conductor.js';
+import { compilePolylinesToAscii } from './ascii-engine.js';
 
 export class KleeFlashes {
     constructor(engine) {
@@ -236,12 +237,18 @@ export class KleeFlashes {
      * frames; the artwork's progress advances *between* appearances.
      * Returns true when a frame was rendered.
      */
-    async renderFlash(canvas, duration, signal) {
+    async prepareFlash(duration, signal) {
         const preset = this._choosePreset();
         const artwork = await this._prepareArtwork(preset, signal);
 
         const growth = Math.min(0.38, Math.max(0.12, 0.1 + duration / 700));
         artwork.progress = Math.min(1, artwork.progress + growth);
+
+        return artwork;
+    }
+
+    async renderFlash(canvas, duration, signal) {
+        const artwork = await this.prepareFlash(duration, signal);
 
         this.engine.render(canvas, {
             background: KLEE_CHAMBER_BACKGROUND,
@@ -249,6 +256,53 @@ export class KleeFlashes {
             texture: this.engine.renderStyle.texture
         });
         return true;
+    }
+
+    /**
+     * Preserve Klee's native line grammar in ASCII instead of sampling its
+     * finished pixels. The same episode seed and progressive state drive both
+     * render languages, so switching language never changes the artwork.
+     */
+    async createAsciiFlash(duration, signal, options = {}) {
+        const artwork = await this.prepareFlash(duration, signal);
+        const palette = Array.isArray(this.engine.palette) && this.engine.palette.length
+            ? this.engine.palette
+            : ['#e5e3df'];
+        const forms = Array.isArray(this.engine.forms) ? this.engine.forms : [];
+        const lines = Array.isArray(this.engine.lines) ? this.engine.lines : [];
+        const formPolylines = forms
+            .filter(form => Array.isArray(form.contour) && form.contour.length > 2)
+            .map(form => ({
+                points: [...form.contour, form.contour[0]],
+                color: palette[Math.floor((form.centerX / Math.max(1, this.engine.width)) * palette.length) % palette.length],
+                delay: 0
+            }));
+        const linePolylines = lines.map((line, index) => ({
+            points: line.points,
+            color: palette[Math.floor((line.colorIndex ?? 0) * palette.length) % palette.length],
+            alpha: line.alpha,
+            weight: line.weight,
+            variation: line.variation,
+            delay: lines.length > 1 ? (index / (lines.length - 1)) * 0.16 : 0
+        }));
+
+        return compilePolylinesToAscii({
+            width: this.engine.width,
+            height: this.engine.height,
+            palette,
+            polylines: [...formPolylines, ...linePolylines]
+        }, {
+            ...options,
+            signal,
+            progress: artwork.progress,
+            background: KLEE_CHAMBER_BACKGROUND,
+            metadata: {
+                source: 'klee',
+                preset: artwork.preset,
+                seed: artwork.seed,
+                ...(options.metadata || {})
+            }
+        });
     }
 
     destroy() {

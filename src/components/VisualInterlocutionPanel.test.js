@@ -52,6 +52,30 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         container.remove();
     });
 
+    it('treats ASCII as a render language and preserves the selected source', () => {
+        let emitted = null;
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: {
+                renderLanguage: 'native',
+                sourceFamily: 'procedural',
+                procedural: ['klee'],
+                sourced: []
+            },
+            onChange: config => { emitted = config; }
+        });
+
+        container.querySelector('[data-render-language="ascii"]').click();
+
+        expect(emitted.interlocution.renderLanguage).toBe('ascii');
+        expect(emitted.interlocution.procedural).toEqual(['klee']);
+        expect(emitted.interlocution.sourced).toEqual([]);
+        expect(container.querySelector('[data-render-language="ascii"]').classList.contains('active')).toBe(true);
+
+        panel.destroy();
+        container.remove();
+    });
+
     it('renders the categories the Wikimedia provider defines (minus AIC-shadowed ids)', () => {
         const { panel, container } = makePanel({ ...SOL_DAWN_CONFIG });
 

@@ -9,6 +9,7 @@
 import { SourceProvider } from '../provider.js';
 import { SourceCache } from '../cache.js';
 import { createAbortError, isAbortError, withAbortTimeout } from './request.js';
+import { ShuffleBag } from './shuffle-bag.js';
 
 // AIC artwork_type_id vocabulary (verified against the live API):
 // 1 = Painting, 18 = Print. Every category pins a type so nothing can
@@ -146,6 +147,7 @@ export class MuseumProvider extends SourceProvider {
         this.baseUrl = 'https://api.artic.edu/api/v1/artworks';
         this.iiifBase = 'https://www.artic.edu/iiif/2';
         this.thumbSize = 843; // Standard high-quality size
+        this._candidateBag = new ShuffleBag();
     }
 
     async _fetch(endpoint, params = {}, options = {}) {
@@ -254,7 +256,11 @@ export class MuseumProvider extends SourceProvider {
 
     async getRandom(filter = {}) {
         const catIds = Object.keys(MUSEUM_CATEGORIES);
-        const catId = filter.category || catIds[Math.floor(Math.random() * catIds.length)];
+        const requestedId = filter.category || catIds[Math.floor(Math.random() * catIds.length)];
+        const catId = MUSEUM_CATEGORIES[requestedId]
+            ? requestedId
+            : RETIRED_CATEGORIES[requestedId];
+        if (!catId) return null;
         
         const images = await this.getImagesInCategory(catId, 100, {
             signal: filter.signal,
@@ -262,7 +268,8 @@ export class MuseumProvider extends SourceProvider {
         });
         if (images.length === 0) return null;
 
-        const img = images[Math.floor(Math.random() * images.length)];
+        const img = this._candidateBag.draw(catId, images);
+        if (!img) return null;
 
         return {
             id: img.id,

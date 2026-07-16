@@ -46,6 +46,21 @@ describe('session compiler', () => {
     });
   });
 
+  it('normalizes the orthogonal render language without changing source selection', () => {
+    const ascii = normalizeVisualConfig({
+      visualMode: 'interlocution',
+      interlocution: { renderLanguage: 'ascii', procedural: ['klee'], sourced: [] }
+    });
+    const invalid = normalizeVisualConfig({
+      visualMode: 'interlocution',
+      interlocution: { renderLanguage: 'ansi', procedural: ['klee'], sourced: [] }
+    });
+
+    expect(ascii.interlocution.renderLanguage).toBe('ascii');
+    expect(ascii.interlocution.procedural).toEqual(['klee']);
+    expect(invalid.interlocution.renderLanguage).toBe('native');
+  });
+
   it('rejects empty and excessively large sources', () => {
     expect(() => compileSession({ text: '   ' })).toThrow(/non-empty text source/);
     expect(() => compileSession({ text: 'x'.repeat(2_000_001) })).toThrow(RangeError);

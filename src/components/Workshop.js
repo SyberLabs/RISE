@@ -75,6 +75,7 @@ export class Workshop {
           sourced: [],
           frequency: 0.3,
           duration: 33,
+          renderLanguage: 'native',
           kleePreset: 'random',
           responsive: false,
           responsiveMood: true,

@@ -1,6 +1,6 @@
 import { PersonalSwells } from './personal-swells.js';
 import { SourceCache } from '../sources/cache.js';
-import { VISUAL_CONSENT_KEY } from './visual-safety.js';
+import { endVisualInterlocutionSession } from './visual-safety.js';
 
 export const USER_DATA_KEYS = Object.freeze({
     settings: 'rise-settings',
@@ -62,7 +62,7 @@ export async function exportUserData(settings = null) {
 
 export async function clearUserData() {
     for (const key of Object.values(USER_DATA_KEYS)) localStorage.removeItem(key);
-    sessionStorage.removeItem(VISUAL_CONSENT_KEY);
+    endVisualInterlocutionSession();
 
     const results = await Promise.allSettled([
         PersonalSwells.clear(),

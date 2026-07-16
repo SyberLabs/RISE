@@ -141,7 +141,9 @@
 .chamber-progress-fill {
   height: 100%;
   background: var(--color-threshold);
-  transition: width 100ms linear;
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
 }
 
 /* ─── Hidden Controls ─── */

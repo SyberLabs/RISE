@@ -286,6 +286,14 @@ export class Player {
             // Session complete
             this.sessionState.state = 'complete';
             this.sessionState.elapsedTime = Date.now() - this.sessionState.startTime;
+            this.emit('progress', {
+                progress: 1,
+                elapsed: this.sessionState.elapsedTime,
+                total: this.sessionState.elapsedTime,
+                remaining: 0,
+                index: this.sessionState.currentIndex,
+                atomCount: this.sessionState.session.atomCount
+            });
             this.emit('state', { state: 'complete' });
             this.emit('complete', {
                 duration: this.sessionState.elapsedTime,
@@ -304,13 +312,6 @@ export class Player {
             // Initialize remaining time on fresh atom, applying the dynamic speed factor
             this.currentAtomRemainingTime = Math.max(atom.duration * this.speedFactor, 50);
         }
-
-        // Emit progress
-        this.emit('progress', {
-            progress: this.sessionState.progress,
-            elapsed: Date.now() - this.sessionState.startTime,
-            remaining: this.calculateRemainingTime()
-        });
 
         // Track precise micro-timings
         this.atomStartTime = performance.now();
@@ -417,7 +418,10 @@ export class Player {
             }
         };
 
-        this.progressFrameId = requestAnimationFrame(animate);
+        // Paint an accurate initial value immediately, then let one animation
+        // frame loop own every subsequent update. Atom boundaries must not
+        // inject index-based values into this elapsed-time timeline.
+        animate();
     }
 
     /**

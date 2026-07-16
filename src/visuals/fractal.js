@@ -177,14 +177,11 @@ export class FractalFlame {
     }
 
     /**
-     * Draw a fractal to the canvas SYNCHRONOUSLY.
-     * When a semantic signal is given and the queue holds tagged flames,
-     * pops the closest match in (valence, arousal) space; otherwise FIFO.
-     * Returns true on success, false if queue was empty or buffer was stale.
+     * Consume the best queued flame for a live semantic signal. Both native
+     * and ASCII renderers use this single ownership path, so one flash can
+     * never accidentally consume two different artworks.
      */
-    generate(signal) {
-        // console.log('[FractalFlame] generate() called.');
-
+    takeFrame(signal) {
         let item;
         if (signal && this.queue.some(q => q.signal)) {
             // Shared perceptual matcher (conductor owns the arousal weighting)
@@ -198,31 +195,39 @@ export class FractalFlame {
             console.warn('[FractalFlame] Cache miss! Queue empty.');
             // Trigger refill but return failure
             this.fillQueue(this.maxQueueSize);
-            return false;
+            return null;
         }
 
-        const { imageData, width: bufW, height: bufH } = item;
+        const { width: bufW, height: bufH } = item;
         const { width, height } = this.canvas;
-
-        // Clear before drawing
-        this.ctx.clearRect(0, 0, width, height);
-
-        if (bufW === width && bufH === height) {
-            // Dimensions match - synchronous draw guaranteed
-            this.ctx.putImageData(imageData, 0, 0);
-            // console.log('[FractalFlame] putImageData executed.');
-        } else {
+        if (bufW !== width || bufH !== height) {
             // Buffer is stale (resize occurred between generation and display)
             console.warn(`[FractalFlame] Stale buffer discarded: ${bufW}x${bufH} vs ${width}x${height}`);
             this.queue = []; // Clear all stale buffers
             this.fillQueue(this.maxQueueSize);
-            return false;
+            return null;
         }
 
         // Trigger refill if getting low
         if (this.queue.length < 2) {
             this.fillQueue(this.maxQueueSize);
         }
+
+        return item;
+    }
+
+    /**
+     * Draw a fractal to the canvas SYNCHRONOUSLY.
+     * When a semantic signal is given and the queue holds tagged flames,
+     * pops the closest match in (valence, arousal) space; otherwise FIFO.
+     * Returns true on success, false if queue was empty or buffer was stale.
+     */
+    generate(signal) {
+        const item = this.takeFrame(signal);
+        if (!item) return false;
+
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.putImageData(item.imageData, 0, 0);
 
         return true;
     }
