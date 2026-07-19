@@ -163,6 +163,17 @@ describe('Player', () => {
 
       expect(player.sessionState.pausedAt).toBeDefined();
     });
+
+    it('synchronously cancels an active visual presence', () => {
+      const cancel = vi.fn();
+      player.setInterlocutionHandler(vi.fn(), cancel);
+      player.sessionState.state = 'interlocuting';
+
+      player.pause();
+
+      expect(cancel).toHaveBeenCalledWith('paused');
+      expect(player.state).toBe('paused');
+    });
   });
 
   describe('toggle()', () => {
@@ -898,6 +909,25 @@ describe('Player reading clock (temporal contract phase 3)', () => {
     hidden.mockReturnValue(false);
     document.dispatchEvent(new Event('visibilitychange'));
     expect(player.state).toBe('paused');
+
+    player.destroy();
+  });
+
+  it('visibility auto-pause cancels an in-flight visual and resumes its own pause', () => {
+    const player = makePlayer();
+    const hidden = vi.spyOn(document, 'hidden', 'get');
+    const cancel = vi.fn();
+    player.setInterlocutionHandler(vi.fn(), cancel);
+    player.sessionState.state = 'interlocuting';
+
+    hidden.mockReturnValue(true);
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(player.state).toBe('paused');
+    expect(cancel).toHaveBeenCalledWith('paused');
+
+    hidden.mockReturnValue(false);
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(player.state).toBe('playing');
 
     player.destroy();
   });

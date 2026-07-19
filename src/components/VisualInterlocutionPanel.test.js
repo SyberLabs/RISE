@@ -5,11 +5,12 @@
  * panel must render that preset visibly and modifiably — and must not
  * wipe it back to defaults on the first user interaction.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { VisualInterlocutionPanel } from './VisualInterlocutionPanel.js';
 import { WIKIMEDIA_CATEGORIES } from '../sources/visual/wikimedia.js';
 import { MUSEUM_CATEGORIES } from '../sources/visual/museum.js';
 import { MemoryCore } from '../core/memory.js';
+import { endVisualInterlocutionSession } from '../core/visual-safety.js';
 
 // SOL Dawn's visual preset, as it arrives via `...visualConfig` spread
 const SOL_DAWN_CONFIG = {
@@ -25,6 +26,37 @@ function makePanel(options = {}) {
 }
 
 describe('VisualInterlocutionPanel preset visibility', () => {
+    it('emits Off when the safety warning is cancelled', async () => {
+        endVisualInterlocutionSession();
+        document.body.insertAdjacentHTML('beforeend', `
+          <div id="photosensitivity-modal" class="hidden">
+            <button id="safety-cancel">Cancel</button>
+            <button id="safety-accept">Accept</button>
+          </div>
+        `);
+        const onChange = vi.fn();
+        const { panel, container } = makePanel({
+            visualMode: 'off',
+            consentScope: 'panel-draft',
+            onChange
+        });
+
+        container.querySelector('[data-visual-mode="interlocution"]').click();
+        document.querySelector('#safety-cancel').click();
+        await Promise.resolve();
+
+        expect(panel.getConfig().visualMode).toBe('off');
+        expect(onChange).toHaveBeenLastCalledWith(
+            expect.objectContaining({ visualMode: 'off' }),
+            expect.any(Array)
+        );
+
+        panel.destroy();
+        container.remove();
+        document.querySelector('#photosensitivity-modal')?.remove();
+        endVisualInterlocutionSession();
+    });
+
     it('offers an exact thumbnail subset for the shared Global Pool', () => {
         localStorage.removeItem('rise_global_images_v1');
         MemoryCore.saveGlobalImage('data:image/png;base64,AAAA', { name: 'Alpha' });

@@ -15,6 +15,8 @@ export const SESSION_LIMITS = Object.freeze({
     minWpm: 50,
     maxWpm: 1000,
     maxTextCharacters: 2_000_000,
+    maxTotalChars: 2_000_000,
+    maxAtoms: 120_000,
     maxSources: 64,
     maxProvenanceString: 2_000,
     maxProvenanceKeys: 40,
@@ -98,6 +100,9 @@ export function normalizeVisualConfig(value = {}) {
     });
     return {
         ...input,
+        consentScope: typeof input.consentScope === 'string'
+            ? input.consentScope.slice(0, 160)
+            : undefined,
         visualMode,
         interlocution: {
             ...raw,
@@ -136,10 +141,17 @@ function normalizeSources(config) {
             data: config.text ?? config.content ?? ''
         }];
 
+    let totalChars = 0;
     return candidates.map((source, index) => {
         const raw = sourceText(source);
         if (raw.length > SESSION_LIMITS.maxTextCharacters) {
             throw new RangeError(`Source ${index + 1} exceeds the ${SESSION_LIMITS.maxTextCharacters.toLocaleString()} character limit`);
+        }
+        totalChars += raw.length;
+        if (totalChars > SESSION_LIMITS.maxTotalChars) {
+            throw new TypeError(
+                `Session text exceeds the ${SESSION_LIMITS.maxTotalChars.toLocaleString()} combined character limit. Use fewer or shorter sources.`
+            );
         }
         return {
             id: String(source.id || `source-${index + 1}`),
@@ -179,6 +191,12 @@ export function compileSession(input = {}) {
             sourceId: source.id
         });
         if (sourceAtoms.length === 0) continue;
+        const projectedAtomCount = atoms.length + sourceAtoms.length + (atoms.length > 0 ? 1 : 0);
+        if (projectedAtomCount > SESSION_LIMITS.maxAtoms) {
+            throw new TypeError(
+                `Session produces more than ${SESSION_LIMITS.maxAtoms.toLocaleString()} reading atoms. Use shorter text or choose Phrase or Sentence chunking.`
+            );
+        }
         if (atoms.length > 0) atoms.push(createSourceBreak(config.wpm, atoms.length));
         for (const atom of sourceAtoms) {
             atom.position = atoms.length;

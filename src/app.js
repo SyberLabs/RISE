@@ -351,8 +351,9 @@ class App {
                     // cover the page, and before audio or Player ownership
                     // begins. Acceptance becomes a one-session capability.
                     if (visualMode === 'interlocution') {
-                        const consented = await requestVisualInterlocutionConsent();
-                        const activated = consented && beginVisualInterlocutionSession();
+                        const consentScope = session.visualConfig?.consentScope;
+                        const consented = await requestVisualInterlocutionConsent(consentScope);
+                        const activated = consented && beginVisualInterlocutionSession(consentScope);
                         if (!activated) {
                             visualMode = 'off';
                             session.visualConfig = { ...session.visualConfig, visualMode: 'off' };
@@ -976,6 +977,7 @@ class App {
         // Apply photosensitivity mode
         if (this.settings?.photosensitivityMode) {
             root.classList.add('photosensitivity-mode');
+            visualCortex.cancelPresentation('photosensitivity');
         } else {
             root.classList.remove('photosensitivity-mode');
         }

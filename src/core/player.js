@@ -192,7 +192,7 @@ export class Player {
 
     _handleVisibilityChange() {
         if (typeof document === 'undefined') return;
-        if (document.hidden && this.sessionState.state === 'playing') {
+        if (document.hidden && ['playing', 'interlocuting'].includes(this.sessionState.state)) {
             this._autoPausedByVisibility = true;
             this.pause();
         } else if (!document.hidden && this._autoPausedByVisibility
@@ -273,6 +273,14 @@ export class Player {
         const wasInterlocuting = this.sessionState.state === 'interlocuting';
         this.sessionState.state = 'paused';
         this._readingPause();
+
+        if (wasInterlocuting) {
+            try {
+                this.interlocutionCancelHandler?.('paused');
+            } catch (error) {
+                console.warn('[Player] Interlocution pause cancellation failed:', error);
+            }
+        }
 
         if (!wasInterlocuting) {
             this.sessionState.pausedAt = Date.now();

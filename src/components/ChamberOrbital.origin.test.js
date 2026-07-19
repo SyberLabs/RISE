@@ -189,6 +189,7 @@ describe('ChamberOrbital origin chip', () => {
             procedural: ['klee'],
             sourced: []
         });
+        expect(payload.visualConfig.consentScope).toBe(orbital.visualConsentScope);
 
         orbital.destroy();
         container.remove();

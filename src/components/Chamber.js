@@ -30,6 +30,8 @@ export class Chamber {
     this.kleeField = null;
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
+    this.hasRhythmicVisuals = this.session?.visualConfig?.visualMode === 'interlocution';
+    this.rhythmicVisualsEnabled = this.hasRhythmicVisuals;
 
     // Semantic conductor track — needed by Living Text and by responsive
     // interlocutions. Scored once per session and stashed on the session
@@ -147,6 +149,15 @@ export class Chamber {
             <button class="control-btn" id="volume-btn" aria-label="Volume">
               <span class="icon">♪</span>
             </button>
+
+            ${this.hasRhythmicVisuals ? `
+              <button class="control-btn rhythmic-visuals-toggle" id="visuals-toggle-btn"
+                type="button" aria-pressed="true" aria-label="Disable rhythmic visuals"
+                title="Disable rhythmic visuals">
+                <span class="icon" aria-hidden="true">&#9670;</span>
+                <span class="control-label">Visuals</span>
+              </button>
+            ` : ''}
 
             <span class="time-display font-mono text-fog" id="time-display">
               <span id="time-current">0:00</span>
@@ -268,6 +279,7 @@ export class Chamber {
     // In-session controls
     const playPauseBtn = this.container.querySelector('#play-pause-btn');
     const volumeBtn = this.container.querySelector('#volume-btn');
+    const visualsToggleBtn = this.container.querySelector('#visuals-toggle-btn');
     const exitBtn = this.container.querySelector('#exit-btn');
 
     playPauseBtn?.addEventListener('click', () => {
@@ -277,6 +289,10 @@ export class Chamber {
     volumeBtn?.addEventListener('click', () => {
       window.rise?.audioEngine?.playHiss();
       this.toggleVolume();
+    });
+    visualsToggleBtn?.addEventListener('click', () => {
+      window.rise?.audioEngine?.playHiss();
+      this.toggleRhythmicVisuals();
     });
     exitBtn?.addEventListener('click', () => {
       window.rise?.audioEngine?.playHiss();
@@ -338,6 +354,14 @@ export class Chamber {
       // it chooses generator, Klee preset, and flash sharpness; without
       // a signal this is the raw platform path.
       this.player.setInterlocutionHandler(async (duration, signal, lifecycle) => {
+        if (!this.rhythmicVisualsEnabled) {
+          return {
+            presented: false,
+            requestedDurationMs: duration,
+            presentedDurationMs: 0,
+            reason: 'user-disabled'
+          };
+        }
         if (signal) {
           const interlocution = this.session?.visualConfig?.interlocution || {};
           const mood = interlocution.responsiveMood ?? true;
@@ -739,6 +763,38 @@ export class Chamber {
       playIcon?.classList.add('hidden');
       pauseIcon?.classList.remove('hidden');
     }
+  }
+
+  /**
+   * Session-local kill switch for warning-governed rhythmic visuals.
+   * Persistent Genesis, attractor, and focal modes never expose this control.
+   */
+  toggleRhythmicVisuals(forceEnabled) {
+    if (!this.hasRhythmicVisuals || !this.session?.visualConfig) return false;
+
+    const enabled = typeof forceEnabled === 'boolean'
+      ? forceEnabled
+      : !this.rhythmicVisualsEnabled;
+    if (enabled === this.rhythmicVisualsEnabled) return enabled;
+
+    this.rhythmicVisualsEnabled = enabled;
+    // The compiled Session is ephemeral. Switching its execution mode blocks
+    // Player opportunities without changing the user's saved orbital choices.
+    this.session.visualConfig.visualMode = enabled ? 'interlocution' : 'off';
+    if (!enabled) visualCortex.cancelPresentation('user-disabled');
+
+    const button = this.container.querySelector('#visuals-toggle-btn');
+    if (button) {
+      const label = enabled ? 'Disable rhythmic visuals' : 'Enable rhythmic visuals';
+      button.setAttribute('aria-pressed', String(enabled));
+      button.setAttribute('aria-label', label);
+      button.title = label;
+      button.classList.toggle('is-off', !enabled);
+      const icon = button.querySelector('.icon');
+      if (icon) icon.textContent = enabled ? '◆' : '◇';
+    }
+    this.showControls();
+    return enabled;
   }
 
   toggleVolume() {

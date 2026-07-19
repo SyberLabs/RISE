@@ -165,6 +165,7 @@
 
   transition: opacity 200ms var(--ease-out);
   pointer-events: all;
+  /* Safety z-order: cortex (9999) < chamber controls (100000) < exit (200000). */
   z-index: 100000;
 }
 
@@ -522,6 +523,25 @@
 .chamber-field .atom-display {
   position: relative;
   z-index: 10;
+}
+
+.rhythmic-visuals-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 5.75rem;
+}
+
+.rhythmic-visuals-toggle .control-label {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rhythmic-visuals-toggle.is-off {
+  color: var(--color-fog);
+  opacity: 0.72;
 }
 
 :root.hide-session-progress .chamber-progress {

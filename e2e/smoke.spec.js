@@ -240,3 +240,75 @@ test('8 · declining the warning enters the session with flashes disabled', asyn
         window.rise?.currentSession?.visualConfig?.visualMode
     )).toBe('off');
 });
+
+test('9 - in-session Visuals control kills a live presence and keeps safety layers reachable', async ({ page }) => {
+    await boot(page, {
+        prefs: {
+            paceV2: true,
+            visualInterlocution: {
+                visualMode: 'interlocution',
+                interlocution: {
+                    sourceFamily: 'procedural',
+                    procedural: ['turrell'],
+                    sourced: [],
+                    frequency: 1,
+                    duration: 2000,
+                    responsive: false
+                }
+            }
+        }
+    });
+    await enterChamber(page);
+    await page.locator('#begin-btn').click();
+    await expect(page.locator('#photosensitivity-modal')).toBeVisible({ timeout: 10_000 });
+    await page.locator('#safety-accept').click();
+    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
+    await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+
+    const cortex = page.locator('#visual-cortex');
+    const toggle = page.locator('#visuals-toggle-btn');
+    await expect(cortex).toBeVisible({ timeout: 15_000 });
+    await page.locator('#chamber-display').hover();
+    await expect(toggle).toBeVisible();
+
+    const liveLayers = await page.evaluate(() => ({
+        cortex: Number(getComputedStyle(document.querySelector('#visual-cortex')).zIndex),
+        controls: Number(getComputedStyle(document.querySelector('#chamber-controls')).zIndex)
+    }));
+    expect(liveLayers.controls).toBeGreaterThan(liveLayers.cortex);
+
+    await toggle.click();
+    await expect(cortex).toBeHidden();
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await expect.poll(() => page.evaluate(() =>
+        window.rise?.currentSession?.visualConfig?.visualMode
+    )).toBe('off');
+
+    // The off state is session-local and suppresses every later opportunity.
+    await page.waitForTimeout(3000);
+    await expect(cortex).toBeHidden();
+    expect(await page.evaluate(() =>
+        JSON.parse(localStorage.getItem('rise_orbital_prefs_v1') || '{}')
+          ?.visualInterlocution?.visualMode
+    )).toBe('interlocution');
+
+    // The Chamber intentionally lets its controls dematerialize after idle;
+    // ordinary pointer activity must reveal them before the second action.
+    await page.locator('#chamber-display').hover();
+    await expect(toggle).toBeVisible();
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await expect(cortex).toBeVisible({ timeout: 10_000 });
+
+    // Escape opens the exit confirmation, whose Player.pause cascade must
+    // synchronously kill the current presence and remain visually topmost.
+    await page.keyboard.press('Escape');
+    await expect(cortex).toBeHidden();
+    const exitOverlay = page.locator('#exit-confirm-overlay');
+    await expect(exitOverlay).toBeVisible();
+    const exitLayers = await page.evaluate(() => ({
+        controls: Number(getComputedStyle(document.querySelector('#chamber-controls')).zIndex),
+        exit: Number(getComputedStyle(document.querySelector('#exit-confirm-overlay')).zIndex)
+    }));
+    expect(exitLayers.exit).toBeGreaterThan(exitLayers.controls);
+});

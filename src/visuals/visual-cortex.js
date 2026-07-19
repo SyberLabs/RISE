@@ -107,6 +107,11 @@ export class VisualCortex {
         this._pendingKleeResize = false;
         this._flashGate = new VisualFlashGate();
         this._activePresentation = null;
+        // Invalidates work that was already rendering when a stop request
+        // arrived. The public cancellation method remains the single kill
+        // path for both committed and not-yet-committed presentations.
+        this._presentationEpoch = 0;
+        this._lastCancellationReason = 'aborted';
 
         // Configuration state
         this.config = {
@@ -1350,6 +1355,8 @@ export class VisualCortex {
     }
 
     cancelPresentation(reason = 'aborted') {
+        this._presentationEpoch++;
+        this._lastCancellationReason = reason;
         const active = this._activePresentation;
         if (!active) {
             this._hidePresentationOverlay();
@@ -1372,9 +1379,11 @@ export class VisualCortex {
 
     _presentRenderedVisual(duration, lifecycle = {}) {
         const requestedDurationMs = normalizeVisualPresence(duration);
-        const reducedMotion = typeof window !== 'undefined'
-            && typeof window.matchMedia === 'function'
-            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const reducedMotion = (typeof document !== 'undefined'
+            && document.documentElement.classList.contains('reduced-motion'))
+            || (typeof window !== 'undefined'
+                && typeof window.matchMedia === 'function'
+                && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
         const transition = reducedMotion
             ? { enterMs: 0, exitMs: 0 }
             : visualPresenceTransition(requestedDurationMs);
@@ -1543,6 +1552,7 @@ export class VisualCortex {
         if (!this._flashGate.canAllow(performance.now(), duration)) {
             return this._presentationResult(duration, 'cadence');
         }
+        const presentationEpoch = this._presentationEpoch;
 
         if (!this.initialized) this.init();
         if (!this.container) return this._presentationResult(duration, 'render-failed');
@@ -1752,6 +1762,16 @@ export class VisualCortex {
             }
         }
 
+        // Rendering Klee/ASCII can cross an asynchronous boundary. A user
+        // kill, pause, or safety-mode change during that work must not let
+        // the completed render rebound onto the screen afterward.
+        if (presentationEpoch !== this._presentationEpoch) {
+            return this._presentationResult(
+                duration,
+                this._lastCancellationReason || 'aborted'
+            );
+        }
+
         if (asciiMode) rendered = this._showAsciiFrame(asciiFrame);
         if (!rendered) return this._presentationResult(duration, 'render-failed');
         if (!this._flashGate.commit(performance.now(), duration)) {
@@ -1806,4 +1826,3 @@ export class VisualCortex {
 
 // Singleton instance
 export const visualCortex = new VisualCortex();
-

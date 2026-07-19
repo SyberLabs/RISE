@@ -100,6 +100,7 @@ export class VisualInterlocutionPanel {
         this.container = container;
         this.onChange = options.onChange || (() => { });
         this.onRequestSafetyModal = options.onRequestSafetyModal || null;
+        this.consentScope = options.consentScope;
 
         const incomingProcedural = options.interlocution?.procedural ?? options.procedural ?? [];
         const incomingSourced = options.interlocution?.sourced ?? options.sourced ?? [];
@@ -184,7 +185,7 @@ export class VisualInterlocutionPanel {
         this.expanded = options.expanded ?? false;
 
         // Check if user has already given consent this session
-        this.hasConsent = hasVisualInterlocutionConsent();
+        this.hasConsent = hasVisualInterlocutionConsent(this.consentScope);
         this._destroyed = false;
 
         this.render();
@@ -192,11 +193,11 @@ export class VisualInterlocutionPanel {
     }
 
     async showSafetyModal() {
-        const accepted = await requestVisualInterlocutionConsent();
+        const accepted = await requestVisualInterlocutionConsent(this.consentScope);
         if (this._destroyed) return;
-        this.hasConsent = accepted || hasVisualInterlocutionConsent();
+        this.hasConsent = accepted || hasVisualInterlocutionConsent(this.consentScope);
         this.config.visualMode = accepted ? 'interlocution' : 'off';
-        if (accepted) this.emitChange();
+        this.emitChange();
         this.render();
         this.attachEvents();
     }
@@ -229,6 +230,15 @@ export class VisualInterlocutionPanel {
             this.config.visualMode = 'off';
             this.emitChange();
         }
+        this.render();
+        this.attachEvents();
+    }
+
+    /** Bind an accepted warning to the setup draft that requested it. */
+    setConsentScope(scope) {
+        if (this.consentScope === scope) return;
+        this.consentScope = scope;
+        this.hasConsent = hasVisualInterlocutionConsent(this.consentScope);
         this.render();
         this.attachEvents();
     }

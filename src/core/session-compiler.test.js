@@ -4,7 +4,8 @@ import {
   estimateCompiledDuration,
   normalizeProvenance,
   normalizeSessionConfig,
-  normalizeVisualConfig
+  normalizeVisualConfig,
+  SESSION_LIMITS
 } from './session-compiler.js';
 
 describe('session compiler', () => {
@@ -129,6 +130,32 @@ describe('session compiler', () => {
   it('rejects empty and excessively large sources', () => {
     expect(() => compileSession({ text: '   ' })).toThrow(/non-empty text source/);
     expect(() => compileSession({ text: 'x'.repeat(2_000_001) })).toThrow(RangeError);
+  });
+
+  it('rejects aggregate source text above the session budget in playback and estimates', () => {
+    const config = {
+      sources: [
+        { id: 'a', name: 'A', data: 'a'.repeat(1_000_001) },
+        { id: 'b', name: 'B', data: 'b'.repeat(1_000_001) }
+      ]
+    };
+
+    expect(() => compileSession(config)).toThrowError(TypeError);
+    expect(() => compileSession(config)).toThrow(/combined character limit/);
+    expect(() => estimateCompiledDuration(config)).toThrow(/combined character limit/);
+  });
+
+  it('rejects sessions whose post-chunk atom count exceeds the playback budget', () => {
+    const text = Array.from({ length: SESSION_LIMITS.maxAtoms + 1 }, () => 'a').join(' ');
+
+    let error;
+    try {
+      compileSession({ text, chunkMode: 'word' });
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error).toBeInstanceOf(TypeError);
+    expect(error.message).toMatch(/reading atoms/);
   });
 
   it('enforces exclusive visual source families and migrates intentional legacy mixes', () => {

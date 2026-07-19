@@ -2,6 +2,7 @@
 .visual-cortex {
     position: fixed;
     inset: 0;
+    /* Safety z-order: cortex (9999) < chamber controls (100000) < exit (200000). */
     z-index: 9999;
     pointer-events: none;
     display: flex;

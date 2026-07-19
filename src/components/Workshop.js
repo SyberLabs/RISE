@@ -107,6 +107,7 @@ export class Workshop {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => { });
     this.onCreateSession = options.onCreateSession || (() => { });
+    this.visualConsentScope = crypto.randomUUID();
 
     this.sessionData = createDefaultSessionData();
     this.activeBlueprintId = null;
@@ -206,6 +207,7 @@ export class Workshop {
     this.sourceBrowser = null;
     this.viPanel?.destroy();
     this.viPanel = null;
+    this.visualConsentScope = crypto.randomUUID();
 
     this.sessionData = normalizeSessionData(data);
     delete this.sessionData.updatedAt;
@@ -657,6 +659,7 @@ export class Workshop {
     if (viContainer) {
       this.viPanel = new VisualInterlocutionPanel(viContainer, {
         ...this.sessionData.visualConfig,
+        consentScope: this.visualConsentScope,
         customVisuals: this.sessionData.customVisuals,
         expanded: true,
         locked: this.sessionData.sources.length === 0,
@@ -1252,7 +1255,13 @@ export class Workshop {
         this.armOrResetSequence();
       } else if (action === 'preview') {
         window.rise?.audioEngine?.playHiss();
-        this.onCreateSession({ ...this.sessionData, isPreview: true });
+        const preview = cloneSessionData(this.sessionData);
+        preview.isPreview = true;
+        preview.visualConfig = {
+          ...preview.visualConfig,
+          consentScope: this.visualConsentScope
+        };
+        this.onCreateSession(preview);
       }
     };
     this.container.addEventListener('click', this.boundContainerClickHandler);
@@ -1535,7 +1544,11 @@ export class Workshop {
 
   createSession() {
     const saved = this.persistSequenceToVault();
-    const session = saved || cloneSessionData(this.sessionData);
+    const session = cloneSessionData(saved || this.sessionData);
+    session.visualConfig = {
+      ...session.visualConfig,
+      consentScope: this.visualConsentScope
+    };
 
     // Compile and navigate before clearing the retained Workshop instance.
     this.onCreateSession(session);

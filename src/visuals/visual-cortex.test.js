@@ -271,6 +271,7 @@ describe('VisualCortex flash timing', () => {
     afterEach(() => {
         vi.restoreAllMocks();
         delete window.matchMedia;
+        document.documentElement.classList.remove('reduced-motion');
     });
 
     it('keeps a rendered 200ms flash visible for the full configured duration', async () => {
@@ -427,6 +428,33 @@ describe('VisualCortex flash timing', () => {
         expect(cortex.container.hidden).toBe(true);
     });
 
+    it('does not present a render that finishes after a safety cancellation', async () => {
+        grantVisualInterlocutionConsent();
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.container = { hidden: true, style: {} };
+        cortex._kleeCanvas = {};
+        cortex._resizeKleeCanvas = vi.fn();
+        let finishRender;
+        cortex.kleeFlashes = {
+            renderFlash: vi.fn(() => new Promise(resolve => { finishRender = resolve; }))
+        };
+        cortex._flashGate = { canAllow: () => true, commit: vi.fn(() => true) };
+
+        const flashing = cortex.flash(700, 'klee');
+        await Promise.resolve();
+        expect(cortex.cancelPresentation('user-disabled')).toBe(false);
+        finishRender(true);
+
+        await expect(flashing).resolves.toMatchObject({
+            presented: false,
+            presentedDurationMs: 0,
+            reason: 'user-disabled'
+        });
+        expect(cortex._flashGate.commit).not.toHaveBeenCalled();
+        expect(cortex.container.hidden).toBe(true);
+    });
+
     it('cancelling before any frame committed reports zero visible time', async () => {
         const cortex = new VisualCortex();
         cortex.container = { hidden: true, style: {} };
@@ -499,6 +527,34 @@ describe('VisualCortex flash timing', () => {
         now = 1700;
         frames.shift()(now);
 
+        await expect(presenting).resolves.toMatchObject({
+            presented: true,
+            presentedDurationMs: 700
+        });
+    });
+
+    it('honors the app-level reduced-motion class as well as the OS preference', async () => {
+        document.documentElement.classList.add('reduced-motion');
+        Object.defineProperty(window, 'matchMedia', {
+            configurable: true,
+            value: vi.fn(() => ({ matches: false }))
+        });
+        const cortex = new VisualCortex();
+        cortex.container = { hidden: true, style: {} };
+        let now = 1000;
+        const frames = [];
+        vi.spyOn(performance, 'now').mockImplementation(() => now);
+        vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => {
+            frames.push(callback);
+            return frames.length;
+        });
+
+        const presenting = cortex._presentRenderedVisual(700);
+        expect(cortex.container.style.transition).toBe('none');
+        expect(cortex.container.style.opacity).toBe('1');
+
+        now = 1700;
+        frames.shift()(now);
         await expect(presenting).resolves.toMatchObject({
             presented: true,
             presentedDurationMs: 700

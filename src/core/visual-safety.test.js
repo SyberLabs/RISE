@@ -50,6 +50,18 @@ describe('visual safety boundary', () => {
     expect(hasVisualInterlocutionConsent()).toBe(false);
   });
 
+  it('binds a launch grant to the draft that displayed the warning', async () => {
+    const pending = requestVisualInterlocutionConsent('draft-alpha');
+    document.querySelector('#safety-accept').click();
+    expect(await pending).toBe(true);
+
+    expect(hasVisualInterlocutionConsent('draft-alpha')).toBe(true);
+    expect(hasVisualInterlocutionConsent('draft-beta')).toBe(false);
+    expect(beginVisualInterlocutionSession('draft-beta')).toBe(false);
+    expect(beginVisualInterlocutionSession('draft-alpha')).toBe(true);
+    expect(hasVisualInterlocutionConsent()).toBe(true);
+  });
+
   it('resolves an orphaned prompt when session ownership is torn down', async () => {
     const pending = requestVisualInterlocutionConsent();
     endVisualInterlocutionSession();

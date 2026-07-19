@@ -10,13 +10,30 @@ export const VISUAL_CONSENT_KEY = 'rise-visual-interlocution-consent';
 let pendingConsent = null;
 let activeSessionConsent = false;
 let acceptedLaunchConsent = false;
+let activeSessionConsentScope = null;
+let acceptedLaunchConsentScope = null;
+
+const DEFAULT_CONSENT_SCOPE = 'legacy-launch';
+
+function normalizeConsentScope(scope) {
+    return typeof scope === 'string' && scope.trim()
+        ? scope.trim().slice(0, 160)
+        : DEFAULT_CONSENT_SCOPE;
+}
 
 // Retire the former browser-session grant. Consent is now a one-use,
 // in-memory capability and must never be resurrected by a reload.
 try { sessionStorage.removeItem(VISUAL_CONSENT_KEY); } catch { /* unavailable */ }
 
-export function hasVisualInterlocutionConsent() {
-    return activeSessionConsent || acceptedLaunchConsent;
+export function hasVisualInterlocutionConsent(scope) {
+    // Runtime cortex checks intentionally omit a scope: once a launch grant
+    // has been consumed, the active chamber owns the capability. Setup
+    // surfaces pass their explicit draft scope so one draft cannot reuse
+    // another draft's accepted warning.
+    if (scope === undefined) return activeSessionConsent || acceptedLaunchConsent;
+    const normalizedScope = normalizeConsentScope(scope);
+    return (activeSessionConsent && activeSessionConsentScope === normalizedScope)
+        || (acceptedLaunchConsent && acceptedLaunchConsentScope === normalizedScope);
 }
 
 /**
@@ -25,10 +42,13 @@ export function hasVisualInterlocutionConsent() {
  * establish consent again, while the cortex can continue checking the active
  * capability before every flash.
  */
-export function beginVisualInterlocutionSession() {
-    if (!hasVisualInterlocutionConsent()) return false;
+export function beginVisualInterlocutionSession(scope) {
+    const normalizedScope = normalizeConsentScope(scope);
+    if (!acceptedLaunchConsent || acceptedLaunchConsentScope !== normalizedScope) return false;
     activeSessionConsent = true;
+    activeSessionConsentScope = normalizedScope;
     acceptedLaunchConsent = false;
+    acceptedLaunchConsentScope = null;
     try { sessionStorage.removeItem(VISUAL_CONSENT_KEY); } catch { /* unavailable */ }
     return true;
 }
@@ -36,24 +56,33 @@ export function beginVisualInterlocutionSession() {
 /** Revoke the session capability and cancel any orphaned visible prompt. */
 export function endVisualInterlocutionSession() {
     activeSessionConsent = false;
+    activeSessionConsentScope = null;
     acceptedLaunchConsent = false;
+    acceptedLaunchConsentScope = null;
     try { sessionStorage.removeItem(VISUAL_CONSENT_KEY); } catch { /* unavailable */ }
     pendingConsent?.cancel?.();
     document.getElementById('photosensitivity-modal')?.classList.add('hidden');
 }
 
-export function grantVisualInterlocutionConsent() {
+export function grantVisualInterlocutionConsent(scope) {
     acceptedLaunchConsent = true;
+    acceptedLaunchConsentScope = normalizeConsentScope(scope);
     try { sessionStorage.removeItem(VISUAL_CONSENT_KEY); } catch { /* unavailable */ }
     return true;
 }
 
-export function requestVisualInterlocutionConsent() {
-    if (hasVisualInterlocutionConsent()) return Promise.resolve(true);
+export function requestVisualInterlocutionConsent(scope) {
+    const normalizedScope = normalizeConsentScope(scope);
+    if (hasVisualInterlocutionConsent(normalizedScope)) return Promise.resolve(true);
+    if (acceptedLaunchConsent && acceptedLaunchConsentScope !== normalizedScope) {
+        acceptedLaunchConsent = false;
+        acceptedLaunchConsentScope = null;
+    }
     if (document.documentElement.classList.contains('photosensitivity-mode')) {
         return Promise.resolve(false);
     }
-    if (pendingConsent) return pendingConsent.promise;
+    if (pendingConsent?.scope === normalizedScope) return pendingConsent.promise;
+    pendingConsent?.cancel?.();
 
     const modal = document.getElementById('photosensitivity-modal');
     const cancelButton = document.getElementById('safety-cancel');
@@ -67,7 +96,7 @@ export function requestVisualInterlocutionConsent() {
         const finish = accepted => {
             if (settled) return;
             settled = true;
-            if (accepted) grantVisualInterlocutionConsent();
+            if (accepted) grantVisualInterlocutionConsent(normalizedScope);
             modal.classList.add('hidden');
             controller.abort();
             pendingConsent = null;
@@ -87,7 +116,7 @@ export function requestVisualInterlocutionConsent() {
         modal.classList.remove('hidden');
         cancelButton.focus();
     });
-    pendingConsent = { promise, cancel: () => cancelPrompt?.() };
+    pendingConsent = { scope: normalizedScope, promise, cancel: () => cancelPrompt?.() };
     return promise;
 }
 

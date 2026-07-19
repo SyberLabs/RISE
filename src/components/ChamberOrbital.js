@@ -119,6 +119,7 @@ export class ChamberOrbital {
     this.container = container;
     this.onBeginSession = options.onBeginSession || (() => { });
     this.onNavigate = options.onNavigate || (() => { });
+    this.visualConsentScope = crypto.randomUUID();
 
     // Session configuration state (factory defaults; see createDefaultConfig)
     this.config = createDefaultConfig();
@@ -684,6 +685,7 @@ export class ChamberOrbital {
         console.log('[ChamberOrbital] Instantiating VisualInterlocutionPanel...');
         this.viPanel = new VisualInterlocutionPanel(container, {
           ...this.config.visualInterlocution,
+          consentScope: this.visualConsentScope,
           expanded: true,
           locked: !this.config.text,
           lockedMessage: 'Please load a text source first to configure Visuals.',
@@ -1253,6 +1255,8 @@ export class ChamberOrbital {
   }
 
   loadText(text, source, config = {}) {
+    this.visualConsentScope = crypto.randomUUID();
+    this.viPanel?.setConsentScope(this.visualConsentScope);
     console.log('[ChamberOrbital] loadText called', {
       text: text?.substring(0, 50),
       source,
@@ -1413,6 +1417,7 @@ export class ChamberOrbital {
       voiceId: this.config.voiceId,
       selectedSwellId: this.config.selectedSwellId,
       visualConfig: {
+        consentScope: this.visualConsentScope,
         visualMode: vi.visualMode || 'off',
         focals: vi.focals || { type: 'standard', standardGlyph: 'breath', personalImage: null },
         attractor: vi.attractor || { system: 'aizawa' },

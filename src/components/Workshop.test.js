@@ -12,14 +12,14 @@ if (typeof globalThis.indexedDB === 'undefined') {
 
 const { Workshop } = await import('./Workshop.js');
 
-function makeWorkshop() {
+function makeWorkshop(onCreateSession = vi.fn()) {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const workshop = new Workshop(container, {
         onNavigate: vi.fn(),
-        onCreateSession: vi.fn()
+        onCreateSession
     });
-    return { workshop, container };
+    return { workshop, container, onCreateSession };
 }
 
 describe('Workshop craft-first architecture', () => {
@@ -62,6 +62,31 @@ describe('Workshop craft-first architecture', () => {
 });
 
 describe('Workshop draft lifecycle', () => {
+    it('binds visual consent to the launched draft without persisting the scope', () => {
+        localStorage.removeItem('rise_workshop_v1');
+        const { workshop, container, onCreateSession } = makeWorkshop();
+        workshop.sessionData.title = 'Scoped visual session';
+        workshop.addSource({
+            id: 'scope-source',
+            name: 'Scope source',
+            type: 'text/plain',
+            data: 'a bounded draft'
+        }, { id: 'local' });
+        const expectedScope = workshop.visualConsentScope;
+
+        workshop.createSession();
+
+        expect(onCreateSession).toHaveBeenCalledWith(expect.objectContaining({
+            visualConfig: expect.objectContaining({ consentScope: expectedScope })
+        }));
+        const [saved] = JSON.parse(localStorage.getItem('rise_workshop_v1'));
+        expect(saved.visualConfig?.consentScope).toBeUndefined();
+
+        workshop.destroy();
+        container.remove();
+        localStorage.removeItem('rise_workshop_v1');
+    });
+
     it('opens Recursion on a clean canvas and keeps prior unsaved work memory-only', () => {
         localStorage.removeItem('rise_workshop_v1');
         const { workshop, container } = makeWorkshop();
