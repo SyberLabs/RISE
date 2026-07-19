@@ -219,6 +219,17 @@ describe('VisualCortex Klee delegation', () => {
         expect(cortex.config.renderLanguage).toBe('native');
     });
 
+    it('treats a configured Global Pool subset, including empty, as authoritative', () => {
+        const cortex = new VisualCortex();
+        const selected = 'data:image/png;base64,SELECTED';
+
+        cortex.updateConfig({ globalVisuals: [selected, selected, 'https://not-local.test/image.jpg'] });
+        expect(cortex._globalVisualUris()).toEqual([selected]);
+
+        cortex.updateConfig({ globalVisuals: [] });
+        expect(cortex._globalVisualUris()).toEqual([]);
+    });
+
     it('routes a Klee flash through the structural ASCII adapter, not native canvas render', async () => {
         grantVisualInterlocutionConsent();
         const cortex = new VisualCortex();
@@ -230,19 +241,212 @@ describe('VisualCortex Klee delegation', () => {
         cortex.kleeFlashes = { createAsciiFlash, renderFlash };
         cortex._asciiCanvas = { hidden: true, width: 800, height: 400 };
         cortex.asciiRenderer = { render: vi.fn(() => true) };
-        cortex._flashGate = { allow: () => true };
+        cortex._flashGate = { canAllow: () => true, commit: () => true };
         cortex._resizeKleeCanvas = vi.fn();
         cortex.updateConfig({ renderLanguage: 'ascii', activeTypes: ['klee'] });
         const raf = vi.spyOn(globalThis, 'requestAnimationFrame')
             .mockImplementation(callback => callback(performance.now() + 1000));
 
-        await cortex.flash(33, 'klee', { valence: 0.2, arousal: 0.7 });
+        const result = await cortex.flash(33, 'klee', { valence: 0.2, arousal: 0.7 });
 
         expect(createAsciiFlash).toHaveBeenCalledOnce();
         expect(renderFlash).not.toHaveBeenCalled();
         expect(cortex.asciiRenderer.render).toHaveBeenCalledOnce();
         expect(cortex._asciiCanvas.hidden).toBe(false);
+        expect(result).toMatchObject({
+            presented: true,
+            requestedDurationMs: 150,
+            presentedDurationMs: 150,
+            reason: 'presented'
+        });
         raf.mockRestore();
+    });
+});
+
+describe('VisualCortex flash timing', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+        delete window.matchMedia;
+    });
+
+    it('keeps a rendered 200ms flash visible for the full configured duration', async () => {
+        grantVisualInterlocutionConsent();
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.container = { hidden: true, style: {} };
+        cortex._kleeCanvas = {};
+        cortex._resizeKleeCanvas = vi.fn();
+        cortex.kleeFlashes = { renderFlash: vi.fn().mockResolvedValue(true) };
+
+        let now = 1000;
+        const frames = [];
+        vi.spyOn(performance, 'now').mockImplementation(() => now);
+        vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => {
+            frames.push(callback);
+            return frames.length;
+        });
+
+        const onCovered = vi.fn();
+        const flashing = cortex.flash(200, 'klee', undefined, { onCovered });
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(cortex.container.hidden).toBe(false);
+        expect(onCovered).toHaveBeenCalledTimes(1);
+        expect(frames).toHaveLength(1);
+
+        now = 1199;
+        frames.shift()(now);
+        expect(cortex.container.hidden).toBe(false);
+        expect(frames).toHaveLength(1);
+
+        now = 1200;
+        frames.shift()(now);
+        await expect(flashing).resolves.toMatchObject({
+            presented: true,
+            requestedDurationMs: 200,
+            presentedDurationMs: 200,
+            reason: 'presented'
+        });
+        expect(cortex.container.hidden).toBe(true);
+    });
+
+    it('prepares concealed content only after a fading overlay is fully opaque', async () => {
+        const cortex = new VisualCortex();
+        cortex.container = { hidden: true, style: {} };
+        let now = 1000;
+        const frames = [];
+        const onCovered = vi.fn();
+        vi.spyOn(performance, 'now').mockImplementation(() => now);
+        vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => {
+            frames.push(callback);
+            return frames.length;
+        });
+
+        const presenting = cortex._presentRenderedVisual(700, { onCovered });
+
+        now = 1016;
+        frames.shift()(now); // Begin the 64ms opacity transition.
+        expect(onCovered).not.toHaveBeenCalled();
+
+        now = 1070;
+        frames.shift()(now);
+        expect(onCovered).not.toHaveBeenCalled();
+
+        now = 1081;
+        frames.shift()(now);
+        expect(onCovered).toHaveBeenCalledTimes(1);
+
+        now = 1700;
+        while (frames.length > 0) frames.shift()(now);
+        await presenting;
+
+        expect(onCovered).toHaveBeenCalledTimes(1);
+        expect(cortex.container.hidden).toBe(true);
+    });
+
+    it('cancels a long presence synchronously with an aborted result', async () => {
+        grantVisualInterlocutionConsent();
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.container = { hidden: true, style: {} };
+        cortex._kleeCanvas = {};
+        cortex._resizeKleeCanvas = vi.fn();
+        cortex.kleeFlashes = { renderFlash: vi.fn().mockResolvedValue(true) };
+
+        let now = 1000;
+        vi.spyOn(performance, 'now').mockImplementation(() => now);
+        vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(() => 1);
+        vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
+
+        const flashing = cortex.flash(2000, 'klee');
+        await Promise.resolve();
+        await Promise.resolve();
+        now = 1450;
+        expect(cortex.cancelPresentation()).toBe(true);
+
+        await expect(flashing).resolves.toMatchObject({
+            presented: false,
+            requestedDurationMs: 2000,
+            presentedDurationMs: 450,
+            reason: 'aborted'
+        });
+        expect(cortex.container.hidden).toBe(true);
+    });
+
+    it.each([150, 700, 2000])(
+        'includes transitions inside a %dms total presence',
+        async duration => {
+            const cortex = new VisualCortex();
+            cortex.container = { hidden: true, style: {} };
+            let now = 1000;
+            const frames = [];
+            vi.spyOn(performance, 'now').mockImplementation(() => now);
+            vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => {
+                frames.push(callback);
+                return frames.length;
+            });
+
+            const presenting = cortex._presentRenderedVisual(duration);
+            expect(cortex.container.hidden).toBe(false);
+            now += duration;
+            while (frames.length > 0) frames.shift()(now);
+
+            await expect(presenting).resolves.toMatchObject({
+                presented: true,
+                requestedDurationMs: duration,
+                presentedDurationMs: duration,
+                reason: 'presented'
+            });
+            expect(cortex.container.hidden).toBe(true);
+        }
+    );
+
+    it('removes fades under reduced motion without shortening presence', async () => {
+        Object.defineProperty(window, 'matchMedia', {
+            configurable: true,
+            value: vi.fn(() => ({ matches: true }))
+        });
+        const cortex = new VisualCortex();
+        cortex.container = { hidden: true, style: {} };
+        let now = 1000;
+        const frames = [];
+        vi.spyOn(performance, 'now').mockImplementation(() => now);
+        vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => {
+            frames.push(callback);
+            return frames.length;
+        });
+
+        const presenting = cortex._presentRenderedVisual(700);
+        expect(cortex.container.style.transition).toBe('none');
+        expect(cortex.container.style.opacity).toBe('1');
+        now = 1700;
+        frames.shift()(now);
+
+        await expect(presenting).resolves.toMatchObject({
+            presented: true,
+            presentedDurationMs: 700
+        });
+    });
+
+    it('aborts an active presence when the visual configuration changes', async () => {
+        const cortex = new VisualCortex();
+        cortex.container = { hidden: true, style: {} };
+        let now = 1000;
+        vi.spyOn(performance, 'now').mockImplementation(() => now);
+        vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(() => 1);
+        vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
+
+        const presenting = cortex._presentRenderedVisual(2000);
+        now = 1250;
+        cortex.updateConfig({ duration: 700 });
+
+        await expect(presenting).resolves.toMatchObject({
+            presented: false,
+            presentedDurationMs: 250,
+            reason: 'aborted'
+        });
+        expect(cortex.container.hidden).toBe(true);
     });
 });
 
@@ -610,10 +814,17 @@ describe('VisualCortex external asset hydration', () => {
         const queueOverride = vi.fn();
         cortex.kleeFlashes = { queuePresetOverride: queueOverride };
 
-        await cortex.flash(80, 'aic-oldmasters');
+        const rendered = await cortex.flash(80, 'aic-oldmasters');
 
+        expect(rendered).toMatchObject({
+            presented: false,
+            requestedDurationMs: 150,
+            presentedDurationMs: 0,
+            reason: 'source-unavailable'
+        });
         expect(queueOverride).not.toHaveBeenCalled();
         expect(cortex._externalStatus.skippedFlashes).toBe(1);
+        expect(cortex._flashGate.history).toHaveLength(0);
         expect(cortex.container.hidden).toBe(true);
     });
 

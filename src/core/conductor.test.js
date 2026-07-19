@@ -176,12 +176,13 @@ describe('planInterlocution', () => {
         expect(plan.kleePreset).toBeNull();
     });
 
-    it('sharpens flash duration under arousal and clamps to safe bounds', () => {
-        const calm = planInterlocution({ valence: 0, arousal: 0 }, { duration: 80, activeTypes: ['klee'] });
-        const intense = planInterlocution({ valence: 0, arousal: 1 }, { duration: 80, activeTypes: ['klee'] });
+    it('contracts presence by at most 25% under arousal and clamps to safe bounds', () => {
+        const calm = planInterlocution({ valence: 0, arousal: 0 }, { duration: 1000, activeTypes: ['klee'] });
+        const intense = planInterlocution({ valence: 0, arousal: 1 }, { duration: 1000, activeTypes: ['klee'] });
         expect(calm.duration).toBeGreaterThan(intense.duration);
-        expect(intense.duration).toBeGreaterThanOrEqual(16);
-        expect(planInterlocution({ valence: 0, arousal: 0 }, { duration: 200, activeTypes: ['klee'] }).duration).toBeLessThanOrEqual(200);
+        expect(calm.duration).toBe(1000);
+        expect(intense.duration).toBe(750);
+        expect(planInterlocution({ valence: 0, arousal: 1 }, { duration: 150, activeTypes: ['klee'] }).duration).toBe(150);
     });
 
     it('is deterministic with an injected rng', () => {
@@ -194,19 +195,19 @@ describe('planInterlocution', () => {
     it('mood off: no type selection, no preset override — timing still responds', () => {
         const plan = planInterlocution(
             { valence: -0.8, arousal: 0.9 },
-            { duration: 80, activeTypes: ['klee', 'fractal'], kleePreset: 'random', mood: false, rhythm: true }
+            { duration: 1000, activeTypes: ['klee', 'fractal'], kleePreset: 'random', mood: false, rhythm: true }
         );
         expect(plan.type).toBeNull();          // cortex falls back to its raw random pick
         expect(plan.kleePreset).toBeNull();    // 'random' stays truly random
-        expect(plan.duration).toBeLessThan(80); // rhythm intent still sharpens
+        expect(plan.duration).toBe(775);        // rhythm intent still contracts
     });
 
     it('rhythm off: duration untouched — imagery still responds', () => {
         const plan = planInterlocution(
             { valence: -0.8, arousal: 0.9 },
-            { duration: 80, activeTypes: ['klee'], kleePreset: 'random', mood: true, rhythm: false }
+            { duration: 1000, activeTypes: ['klee'], kleePreset: 'random', mood: true, rhythm: false }
         );
-        expect(plan.duration).toBe(80);
+        expect(plan.duration).toBe(1000);
         expect(plan.type).toBe('klee');
         expect(plan.kleePreset).toBe('chaotic');
     });
@@ -214,9 +215,9 @@ describe('planInterlocution', () => {
     it('both intents off: plan is inert (raw platform equivalent)', () => {
         const plan = planInterlocution(
             { valence: 0.9, arousal: 0.9 },
-            { duration: 120, activeTypes: ['klee', 'fractal'], kleePreset: 'random', mood: false, rhythm: false }
+            { duration: 1000, activeTypes: ['klee', 'fractal'], kleePreset: 'random', mood: false, rhythm: false }
         );
-        expect(plan).toEqual({ type: null, duration: 120, kleePreset: null });
+        expect(plan).toEqual({ type: null, duration: 1000, kleePreset: null });
     });
 });
 

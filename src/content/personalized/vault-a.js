@@ -265,7 +265,7 @@ export const VAULT_A_ARCHETYPE = {
         procedural: ['fractal', 'neural'],
         sourced: [],
         frequency: 0.30,
-        duration: 120
+        duration: 150
       }
     }
   },

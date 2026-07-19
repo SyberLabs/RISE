@@ -90,7 +90,7 @@ export class Guide {
                 <li><strong>WPM (Words Per Minute):</strong> Controls the baseline speed of information delivery.</li>
                 <li><strong>Temporal Curves:</strong> Modulates the speed over time (e.g., <em>Induction</em> starts slow, <em>Wave</em> pulses).</li>
                 <li><strong>Visual Modes:</strong> Choose the field around the text — a still <em>Focal</em> glyph, a continuously orbiting strange <em>Attractor</em> (Aizawa, Thomas, Halvorsen), or <em>Rhythmic</em> visual interruptions drawn from procedural patterns and museum collections.</li>
-                <li><strong>Living Response:</strong> Optionally let the text conduct the visuals — its emotional arc tints the text stream (<em>Living Text</em>) and shapes the timing, pattern, and palette of interruptions (<em>Responsive Flashes</em>).</li>
+                <li><strong>Living Response:</strong> Optionally let the text conduct the visuals — its emotional arc tints the text stream (<em>Living Text</em>) and shapes the timing, pattern, and palette of interruptions (<em>Responsive Presence</em>).</li>
                 <li><strong>Layered Audio:</strong> Configurable tones, drones, and atmosphere layers for session ambience.</li>
               </ul>
             </section>

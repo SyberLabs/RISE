@@ -8,12 +8,18 @@
 import { Atom, Session } from './models.js';
 import { chunkText } from './chunker.js';
 import { PacingEngine, StateCurve } from './pacing.js';
-import { normalizeVisualSelection } from './visual-selection.js';
+import { normalizeGlobalPoolSelection, normalizeVisualSelection } from './visual-selection.js';
+import { normalizeVisualPresence } from './visual-presence.js';
 
 export const SESSION_LIMITS = Object.freeze({
     minWpm: 50,
     maxWpm: 1000,
-    maxTextCharacters: 2_000_000
+    maxTextCharacters: 2_000_000,
+    maxSources: 64,
+    maxProvenanceString: 2_000,
+    maxProvenanceKeys: 40,
+    maxProvenanceArray: 64,
+    maxProvenanceDepth: 4
 });
 
 const CHUNK_MODES = new Set(['word', 'phrase', 'sentence', 'paragraph']);
@@ -30,6 +36,39 @@ const KLEE_PRESETS = new Set(['random', 'architectural', 'chaotic', 'harmonic', 
 function finiteNumber(value, fallback) {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+const FORBIDDEN_METADATA_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+/**
+ * Preserve provenance as bounded JSON data. This prevents a content manifest
+ * from smuggling executable objects, huge nested structures, or prototype
+ * keys into durable session state.
+ */
+export function normalizeProvenance(value, depth = 0) {
+    if (value == null) return null;
+    if (typeof value === 'string') return value.slice(0, SESSION_LIMITS.maxProvenanceString);
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    if (depth >= SESSION_LIMITS.maxProvenanceDepth) return null;
+    if (Array.isArray(value)) {
+        return value
+            .slice(0, SESSION_LIMITS.maxProvenanceArray)
+            .map(item => normalizeProvenance(item, depth + 1))
+            .filter(item => item !== null);
+    }
+    if (typeof value !== 'object') return null;
+
+    const normalized = {};
+    Object.entries(value)
+        .filter(([key]) => !FORBIDDEN_METADATA_KEYS.has(key))
+        .slice(0, SESSION_LIMITS.maxProvenanceKeys)
+        .forEach(([key, item]) => {
+            const safeKey = String(key).slice(0, 120);
+            const safeValue = normalizeProvenance(item, depth + 1);
+            if (safeKey && safeValue !== null) normalized[safeKey] = safeValue;
+        });
+    return normalized;
 }
 
 export function normalizeSessionConfig(input = {}) {
@@ -63,8 +102,9 @@ export function normalizeVisualConfig(value = {}) {
         interlocution: {
             ...raw,
             ...selection,
+            globalPool: normalizeGlobalPoolSelection(raw.globalPool),
             frequency: Math.max(0, Math.min(1, finiteNumber(raw.frequency, 0.2))),
-            duration: Math.max(16, Math.min(200, finiteNumber(raw.duration, 80))),
+            duration: normalizeVisualPresence(raw.duration),
             renderLanguage: raw.renderLanguage === 'ascii' ? 'ascii' : 'native',
             kleePreset: KLEE_PRESETS.has(raw.kleePreset) ? raw.kleePreset : 'random',
             responsive: raw.responsive === true,
@@ -84,7 +124,9 @@ function sourceText(source) {
 }
 
 function normalizeSources(config) {
-    const supplied = Array.isArray(config.sources) ? config.sources : [];
+    const supplied = Array.isArray(config.sources)
+        ? config.sources.slice(0, SESSION_LIMITS.maxSources)
+        : [];
     const candidates = supplied.length > 0
         ? supplied
         : [{
@@ -104,6 +146,7 @@ function normalizeSources(config) {
             name: String(source.name || source.title || `Source ${index + 1}`),
             type: String(source.type || 'text'),
             providerId: source.providerId ? String(source.providerId) : '',
+            provenance: normalizeProvenance(source.provenance),
             raw
         };
     }).filter(source => source.raw.trim().length > 0);
@@ -155,6 +198,8 @@ export function compileSession(input = {}) {
         sources: sources.map(({ raw, ...source }) => source),
         atoms: pacedAtoms,
         visualConfig: normalizeVisualConfig(config.visualConfig),
+        origin: normalizeProvenance(config.origin),
+        provenance: normalizeProvenance(config.provenance),
         customVisuals: Array.isArray(config.customVisuals)
             ? config.customVisuals.filter(uri => typeof uri === 'string' && uri.startsWith('data:image/')).slice(0, 24)
             : []

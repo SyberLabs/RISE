@@ -81,7 +81,8 @@ async function exitSession(page) {
 test('1 · portal presents the triad and the living SOL strip', async ({ page }) => {
     await boot(page, { text: false });
     const nav = page.locator('.nav-secondary .nav-item');
-    await expect(nav).toHaveCount(3);
+    await expect(nav).toHaveCount(4); // Atrium joined the secondary destinations
+    await expect(page.locator('[data-nav="atrium"]')).toBeVisible();
     await expect(page.locator('.sol-strip-window')).not.toBeEmpty();
 });
 

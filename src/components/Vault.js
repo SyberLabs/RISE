@@ -2,6 +2,7 @@ import { STARTER_SEQUENCES } from '../content/starters.js';
 import { MemoryCore } from '../core/memory.js';
 import { VAULT_A_SEQUENCES, VAULT_A_ARCHETYPE } from '../content/personalized/vault-a.js';
 import { escapeHtml } from '../core/sanitize.js';
+import { VISUAL_PRESENCE_DEFAULT_MS } from '../core/visual-presence.js';
 
 // Personalized vault configurations
 const PERSONALIZED_VAULTS = {
@@ -39,7 +40,7 @@ const ARCHETYPES = [
           procedural: ['turrell'],
           sourced: ['aic-oldmasters', 'aic-landscapes'],
           frequency: 0.15,
-          duration: 120
+          duration: 150
         }
       }
     },
@@ -94,7 +95,7 @@ const ARCHETYPES = [
           // Hokusai beside Haeckel
           sourced: ['haeckel', 'botany', 'aic-ukiyoe'],
           frequency: 0.2,
-          duration: 100
+          duration: 150
         }
       }
     },
@@ -118,7 +119,7 @@ const ARCHETYPES = [
           procedural: ['klee'],
           sourced: [],
           frequency: 0.1,
-          duration: 50,
+          duration: 150,
           kleePreset: 'architectural'
         }
       }
@@ -169,7 +170,7 @@ const ARCHETYPES = [
           procedural: ['turrell', 'klee'],
           sourced: [],
           frequency: 0.18,
-          duration: 80
+          duration: VISUAL_PRESENCE_DEFAULT_MS
         }
       }
     },
@@ -499,7 +500,10 @@ export class Vault {
             <span style="text-transform: capitalize;">${bp.curve || 'Flat'}</span>
           </div>
           <div class="sequence-actions" style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-            <button class="btn-primary" data-action="begin-custom" data-id="${bp.id}">Launch</button>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <button class="btn-primary" data-action="begin-custom" data-id="${bp.id}">Launch</button>
+              <button class="btn-secondary" data-action="edit-custom" data-id="${bp.id}">Edit</button>
+            </div>
             <button class="btn-icon" data-action="delete-custom" data-id="${bp.id}" aria-label="Delete Blueprint">
                <span class="icon text-error">✕</span>
             </button>
@@ -581,6 +585,9 @@ export class Vault {
          window.rise?.audioEngine?.playClick();
          const bp = this.blueprints.find(b => b.id === target.dataset.id);
          if (bp) this.onSelectBlueprint(bp);
+      } else if (action === 'edit-custom') {
+         window.rise?.audioEngine?.playHiss();
+         this.onNavigate('workshop', { blueprintId: target.dataset.id });
       } else if (action === 'delete-custom') {
          window.rise?.audioEngine?.playHiss();
          MemoryCore.deleteWorkshopBlueprint(target.dataset.id);

@@ -8,6 +8,7 @@
     align-items: center;
     justify-content: center;
     background: var(--color-void, #0A0A0C);
+    opacity: 1;
 }
 
 .visual-cortex[hidden] {
@@ -65,4 +66,10 @@
     object-fit: contain;
     z-index: 110;
     background: var(--color-void, #0A0A0C);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .visual-cortex {
+        transition: none !important;
+    }
 }

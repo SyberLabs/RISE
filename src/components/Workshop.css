@@ -43,6 +43,26 @@
     margin: 0 auto;
 }
 
+.workshop-sequence-manager {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 0.85fr);
+    align-items: center;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
+    padding: var(--space-md) var(--space-lg);
+    background: color-mix(in srgb, var(--color-abyss) 88%, transparent);
+    border: 1px solid var(--color-shadow);
+    border-radius: var(--radius-sm);
+}
+
+.workshop-sequence-manager .input-note {
+    margin-bottom: 0;
+}
+
+.sequence-manager-copy {
+    min-width: 0;
+}
+
 .workshop-form {
     display: flex;
     flex-direction: column;
@@ -360,6 +380,15 @@
     gap: var(--space-md);
     padding-top: var(--space-lg);
     border-top: 1px solid var(--color-shadow);
+}
+
+.workshop-reset-btn {
+    margin-right: auto;
+}
+
+.workshop-reset-btn.reset-armed {
+    color: var(--color-rose);
+    border-color: color-mix(in srgb, var(--color-rose) 55%, transparent);
 }
 
 /* Text Utilities */
@@ -686,6 +715,11 @@
         padding: var(--space-md);
     }
 
+    .workshop-sequence-manager {
+        grid-template-columns: 1fr;
+        gap: var(--space-sm);
+    }
+
     .source-actions {
         grid-template-columns: 1fr;
     }
@@ -728,6 +762,10 @@
 
     .workshop-actions .btn-primary {
         order: -1;
+    }
+
+    .workshop-reset-btn {
+        margin-right: 0;
     }
 }
 
@@ -826,6 +864,23 @@
   gap: 1rem;
   overflow-x: auto;
   padding-bottom: 1rem;
+}
+
+.global-asset-name {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 14px 6px 5px;
+  overflow: hidden;
+  color: var(--color-light);
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.78));
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .personal-swell-list {

@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { Player } from './player.js';
+import { Player, estimateInterlocutionCount } from './player.js';
 import { Session, Atom } from './models.js';
 
 describe('Player', () => {
@@ -301,6 +301,29 @@ describe('Player', () => {
         remaining: 0
       });
     });
+
+    it('distinguishes reading, visible presence, and wall-clock time', () => {
+      const callback = vi.fn();
+      player.on('complete', callback);
+      player.sessionState.state = 'playing';
+      player.sessionState.currentIndex = session.atoms.length;
+      player.sessionState.startTime = Date.now() - 1000;
+      player.sessionWallStartTime = Date.now() - 1800;
+      player.interlocutionStats.presented = 1;
+      player.interlocutionStats.skipped = 2;
+      player.interlocutionStats.visibleDurationMs = 700;
+
+      player.scheduleNextAtom();
+
+      expect(callback).toHaveBeenCalledWith(expect.objectContaining({
+        duration: 1000,
+        readingDurationMs: 1000,
+        presenceDurationMs: 700,
+        wallDurationMs: 1800,
+        presentedCount: 1,
+        skippedCount: 2
+      }));
+    });
   });
 
   describe('calculateRemainingTime()', () => {
@@ -381,12 +404,12 @@ describe('Player', () => {
       player.sessionState.state = 'playing';
       vi.spyOn(Math, 'random').mockReturnValue(0);
 
-      await player.processNextNode();
+      await player.attemptInterlocution();
 
       expect(handler).not.toHaveBeenCalled();
     });
 
-    it('forwards zero duration and the responsive semantic signal', async () => {
+    it('migrates a legacy zero duration and forwards the responsive semantic signal', async () => {
       const signal = { valence: -0.25, arousal: 0.7 };
       session.visualConfig = {
         visualMode: 'interlocution',
@@ -398,9 +421,9 @@ describe('Player', () => {
       player.sessionState.state = 'playing';
       vi.spyOn(Math, 'random').mockReturnValue(0);
 
-      await player.processNextNode();
+      await player.attemptInterlocution();
 
-      expect(handler).toHaveBeenCalledWith(0, signal);
+      expect(handler).toHaveBeenCalledWith(150, signal, expect.any(Object));
     });
 
     it('recovers playback when the interlocution handler rejects', async () => {
@@ -414,11 +437,300 @@ describe('Player', () => {
       player.sessionState.state = 'playing';
       vi.spyOn(Math, 'random').mockReturnValue(0);
 
-      await player.processNextNode();
+      await player.attemptInterlocution();
 
       expect(player.state).toBe('playing');
-      expect(player.sessionState.currentIndex).toBe(1);
+      expect(player.sessionState.currentIndex).toBe(0);
       expect(errorListener).toHaveBeenCalledWith(expect.objectContaining({ phase: 'interlocution' }));
+    });
+
+    it('estimates demand from eligible atom boundaries rather than raw reading time', () => {
+      const wordSession = new Session({
+        wpm: 240,
+        chunkMode: 'word',
+        atoms: Array.from({ length: 4 }, (_, index) => new Atom({
+          content: `word-${index}`,
+          duration: 250
+        }))
+      });
+      const phraseSession = new Session({
+        wpm: 240,
+        chunkMode: 'phrase',
+        atoms: [
+          new Atom({ content: 'First phrase,', duration: 1000 }),
+          new Atom({ content: 'second phrase.', duration: 1000 })
+        ]
+      });
+      const sentenceSession = new Session({
+        wpm: 240,
+        chunkMode: 'sentence',
+        atoms: [new Atom({ content: 'Four words in one sentence.', duration: 1000 })]
+      });
+
+      expect(estimateInterlocutionCount(wordSession, 0.5)).toBe(4);
+      expect(estimateInterlocutionCount(phraseSession, 0.5)).toBe(3);
+      expect(estimateInterlocutionCount(sentenceSession, 0.5)).toBe(0);
+    });
+
+    it('reduces preload demand for long visual presences', () => {
+      const atoms = Array.from({ length: 32 }, (_, index) => new Atom({
+        content: `boundary-${index}`,
+        duration: 250
+      }));
+      const shortPresence = new Session({
+        wpm: 240,
+        atoms,
+        visualConfig: { visualMode: 'interlocution', interlocution: { duration: 200 } }
+      });
+      const longPresence = new Session({
+        wpm: 240,
+        atoms,
+        visualConfig: { visualMode: 'interlocution', interlocution: { duration: 2000 } }
+      });
+
+      expect(estimateInterlocutionCount(shortPresence, 1)).toBe(33);
+      expect(estimateInterlocutionCount(longPresence, 1)).toBe(6);
+    });
+
+    it('accounts for structured presented and skipped outcomes', async () => {
+      session.visualConfig = {
+        visualMode: 'interlocution',
+        interlocution: { frequency: 1, duration: 700 }
+      };
+      player.sessionState.state = 'playing';
+      player.sessionState.startTime = Date.now();
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      player.setInterlocutionHandler(vi.fn()
+        .mockResolvedValueOnce({
+          presented: true,
+          requestedDurationMs: 700,
+          presentedDurationMs: 700,
+          reason: 'presented'
+        })
+        .mockResolvedValueOnce({
+          presented: false,
+          requestedDurationMs: 700,
+          presentedDurationMs: 0,
+          reason: 'cadence'
+        }));
+
+      await player.attemptInterlocution();
+      await player.attemptInterlocution();
+
+      expect(player.interlocutionStats).toMatchObject({
+        opportunities: 2,
+        cadenceRejected: 1,
+        presented: 1,
+        skipped: 1,
+        visibleDurationMs: 700
+      });
+    });
+
+    it('cancels an in-flight presence on stop without accepting a late result', async () => {
+      session.visualConfig = {
+        visualMode: 'interlocution',
+        interlocution: { frequency: 1, duration: 2000 }
+      };
+      player.sessionState.state = 'playing';
+      player.sessionState.startTime = Date.now();
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      let settle;
+      const handler = vi.fn(() => new Promise(resolve => { settle = resolve; }));
+      const cancel = vi.fn(() => settle({
+        presented: false,
+        requestedDurationMs: 2000,
+        presentedDurationMs: 400,
+        reason: 'aborted'
+      }));
+      player.setInterlocutionHandler(handler, cancel);
+
+      const attempt = player.attemptInterlocution();
+      await Promise.resolve();
+      player.stop();
+
+      await expect(attempt).resolves.toBe(false);
+      expect(cancel).toHaveBeenCalledWith('aborted');
+      expect(player.state).toBe('idle');
+      expect(player.interlocutionStats).toMatchObject({
+        opportunities: 0,
+        presented: 0,
+        skipped: 0,
+        visibleDurationMs: 0
+      });
+    });
+
+    it.each(['word', 'phrase', 'sentence'])(
+      'keeps a long %s atom uninterrupted and presents once at its exit boundary',
+      async (chunkMode) => {
+        session = new Session({
+          wpm: 240,
+          chunkMode,
+          atoms: [
+            new Atom({ content: 'The complete first atom.', duration: 1000 }),
+            new Atom({ content: 'The complete second atom.', duration: 1000 })
+          ],
+          visualConfig: {
+            visualMode: 'interlocution',
+            interlocution: { frequency: 1, duration: 200 }
+          }
+        });
+        player.destroy();
+        player = new Player(session);
+        const handler = vi.fn().mockResolvedValue(true);
+        const atomListener = vi.fn();
+        player.setInterlocutionHandler(handler);
+        player.on('atom', atomListener);
+
+        player.play();
+        await vi.advanceTimersByTimeAsync(900);
+
+        expect(handler).not.toHaveBeenCalled();
+        expect(atomListener.mock.calls.map(([event]) => event.atom.content)).toEqual([
+          'The complete first atom.'
+        ]);
+
+        await vi.advanceTimersByTimeAsync(200);
+
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(atomListener.mock.calls.map(([event]) => event.atom.content)).toEqual([
+          'The complete first atom.',
+          'The complete second atom.'
+        ]);
+
+        await vi.advanceTimersByTimeAsync(1200);
+
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(player.state).toBe('complete');
+      }
+    );
+
+    it('prepares the next atom while covered but starts its clock only after reveal', async () => {
+      session = new Session({
+        atoms: [
+          new Atom({ content: 'Completed thought.', duration: 100 }),
+          new Atom({ content: 'New thought.', duration: 100 })
+        ],
+        visualConfig: {
+          visualMode: 'interlocution',
+          interlocution: { frequency: 1, duration: 700 }
+        }
+      });
+      player.destroy();
+      player = new Player(session);
+      let settlePresence;
+      let lifecycle;
+      const handler = vi.fn((_duration, _signal, hooks) => {
+        lifecycle = hooks;
+        return new Promise(resolve => { settlePresence = resolve; });
+      });
+      const atomListener = vi.fn();
+      player.setInterlocutionHandler(handler);
+      player.on('atom', atomListener);
+
+      player.play();
+      await vi.advanceTimersByTimeAsync(150);
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(player.state).toBe('interlocuting');
+      expect(atomListener.mock.calls.map(([event]) => event.atom.content)).toEqual([
+        'Completed thought.'
+      ]);
+
+      lifecycle.onCovered();
+
+      expect(player.sessionState.currentIndex).toBe(1);
+      expect(player.currentAtomRemainingTime).toBe(100);
+      expect(player.atomStartTime).toBeNull();
+      expect(atomListener.mock.calls.map(([event]) => ({
+        content: event.atom.content,
+        concealed: event.concealed === true
+      }))).toEqual([
+        { content: 'Completed thought.', concealed: false },
+        { content: 'New thought.', concealed: true }
+      ]);
+
+      await vi.advanceTimersByTimeAsync(500);
+      expect(player.currentAtomRemainingTime).toBe(100);
+      expect(player.state).toBe('interlocuting');
+
+      settlePresence({
+        presented: true,
+        requestedDurationMs: 700,
+        presentedDurationMs: 700,
+        reason: 'presented'
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(player.state).toBe('playing');
+      expect(player.atomStartTime).not.toBeNull();
+      expect(atomListener).toHaveBeenCalledTimes(2);
+    });
+
+    it('speaks a concealed next atom after reveal without emitting it twice', async () => {
+      session = new Session({
+        atoms: [
+          new Atom({ content: 'Completed thought.', duration: 100 }),
+          new Atom({ content: 'Spoken next thought.', duration: 100 })
+        ],
+        visualConfig: {
+          visualMode: 'interlocution',
+          interlocution: { frequency: 1, duration: 200 }
+        }
+      });
+      player.destroy();
+      player = new Player(session);
+      const speak = vi.fn();
+      const atomListener = vi.fn();
+      player.setVoiceSync(true, speak);
+      player.setInterlocutionHandler(vi.fn((_duration, _signal, lifecycle) => {
+        lifecycle.onCovered();
+        return Promise.resolve({
+          presented: true,
+          requestedDurationMs: 200,
+          presentedDurationMs: 200,
+          reason: 'presented'
+        });
+      }));
+      player.on('atom', atomListener);
+      player.sessionState.state = 'playing';
+
+      await player.processNextNode();
+
+      expect(atomListener).toHaveBeenCalledTimes(1);
+      expect(atomListener.mock.calls[0][0]).toMatchObject({
+        atom: { content: 'Spoken next thought.' },
+        concealed: true
+      });
+      expect(speak).toHaveBeenCalledTimes(1);
+      expect(speak).toHaveBeenCalledWith(
+        'Spoken next thought.',
+        expect.objectContaining({ onEnd: expect.any(Function) })
+      );
+    });
+
+    it('does not create opportunities across authored pause boundaries', async () => {
+      session = new Session({
+        atoms: [
+          new Atom({ content: 'Before.', duration: 100 }),
+          new Atom({ content: '', duration: 100, timingLocked: true, tags: ['PAUSE'] }),
+          new Atom({ content: 'After.', duration: 100 })
+        ],
+        visualConfig: {
+          visualMode: 'interlocution',
+          interlocution: { frequency: 1, duration: 200 }
+        }
+      });
+      player.destroy();
+      player = new Player(session);
+      const handler = vi.fn().mockResolvedValue(true);
+      player.setInterlocutionHandler(handler);
+
+      player.play();
+      await vi.advanceTimersByTimeAsync(500);
+
+      expect(handler).not.toHaveBeenCalled();
+      expect(player.state).toBe('complete');
     });
   });
 

@@ -148,6 +148,23 @@ describe('Chamber Living Text integration', () => {
         container.remove();
     });
 
+    it('lays out a concealed next atom as a stable frame without a reveal-time fade', () => {
+        const { chamber, container } = makeChamber(makeSession(['first', 'second'], { enabled: false }));
+        const el = container.querySelector('#atom-display');
+
+        chamber.displayAtom({ content: 'Prepared next phrase.', duration: 1200 }, 1, {
+            concealed: true
+        });
+
+        expect(el.textContent).toBe('Prepared next phrase.');
+        expect(el.style.transition).toBe('none');
+        expect(el.style.opacity).toBe('1');
+        expect(el.style.fontSize).toBe('56px');
+
+        chamber.destroy();
+        container.remove();
+    });
+
     it('renders progress with a compositor transform instead of layout width', () => {
         const { chamber, container } = makeChamber(makeSession(['word'], { enabled: false }));
         const fill = container.querySelector('#progress-fill');

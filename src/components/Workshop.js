@@ -15,6 +15,7 @@ import { PersonalSwells } from '../core/personal-swells.js';
 import { namingModal } from './NamingModal.js';
 import { safeUrl } from '../core/sanitize.js';
 import { normalizeVisualSelection } from '../core/visual-selection.js';
+import { VISUAL_PRESENCE_DEFAULT_MS } from '../core/visual-presence.js';
 import './VisualInterlocutionPanel.css';
 import './SourceBrowser.css';
 
@@ -22,68 +23,101 @@ const MAX_TEXT_FILE_BYTES = 4 * 1024 * 1024;
 const MAX_IMAGE_FILE_BYTES = 8 * 1024 * 1024;
 const MAX_CUSTOM_VISUALS = 24;
 
+function createDefaultSessionData() {
+  return {
+    title: '',
+    intent: 'custom',
+    sources: [],
+    wpm: 220,
+    curve: 'flat',
+    chunkMode: 'word',
+    displayMode: 'focal',
+    audioPreset: 'silent',
+    soundscape: 'none',
+    selectedSwellId: null,
+    visualConfig: {
+      visualMode: 'off',
+      focals: {
+        type: 'standard',
+        standardGlyph: 'breath',
+        personalImage: null
+      },
+      attractor: {
+        system: 'aizawa'
+      },
+      genesis: {
+        preset: 'random',
+        glass: true
+      },
+      livingText: {
+        enabled: false
+      },
+      interlocution: {
+        sourceFamily: 'procedural',
+        procedural: [],
+        sourced: [],
+        globalPool: {
+          mode: 'all',
+          assetIds: []
+        },
+        frequency: 0.3,
+        duration: VISUAL_PRESENCE_DEFAULT_MS,
+        renderLanguage: 'native',
+        kleePreset: 'random',
+        responsive: false,
+        responsiveMood: true,
+        responsiveRhythm: true
+      }
+    },
+    customVisuals: []
+  };
+}
+
+function cloneSessionData(data) {
+  return JSON.parse(JSON.stringify(data));
+}
+
+function normalizeSessionData(data = {}) {
+  const defaults = createDefaultSessionData();
+  const incoming = cloneSessionData(data);
+  const visualConfig = incoming.visualConfig || {};
+
+  return {
+    ...defaults,
+    ...incoming,
+    sources: Array.isArray(incoming.sources) ? incoming.sources : [],
+    customVisuals: Array.isArray(incoming.customVisuals) ? incoming.customVisuals : [],
+    visualConfig: {
+      ...defaults.visualConfig,
+      ...visualConfig,
+      focals: { ...defaults.visualConfig.focals, ...(visualConfig.focals || {}) },
+      attractor: { ...defaults.visualConfig.attractor, ...(visualConfig.attractor || {}) },
+      genesis: { ...defaults.visualConfig.genesis, ...(visualConfig.genesis || {}) },
+      livingText: { ...defaults.visualConfig.livingText, ...(visualConfig.livingText || {}) },
+      interlocution: {
+        ...defaults.visualConfig.interlocution,
+        ...(visualConfig.interlocution || {})
+      }
+    }
+  };
+}
+
 export class Workshop {
   constructor(container, options = {}) {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => { });
     this.onCreateSession = options.onCreateSession || (() => { });
 
-    this.sessionData = {
-      title: '',
-      intent: 'custom',
-      sources: [],
-      wpm: 220,
-      curve: 'flat',
-      chunkMode: 'word',
-      displayMode: 'focal',
-      audioPreset: 'silent',
-      soundscape: 'none',
-      selectedSwellId: null,
-      visualConfig: {
-        // Top-level mode: 'off' | 'focals' | 'attractor' | 'interlocution'
-        visualMode: 'off',
-
-        // Focals config (persistent gentle focal point)
-        focals: {
-          type: 'standard', // 'standard' | 'personal'
-          standardGlyph: 'breath',
-          personalImage: null
-        },
-
-        // Attractor config (persistent strange-attractor field)
-        attractor: {
-          system: 'aizawa' // 'aizawa' | 'thomas' | 'halvorsen'
-        },
-
-        // Genesis config (continuously growing Klee composition)
-        genesis: {
-          preset: 'random',
-          glass: true
-        },
-
-        // Living Text (semantic hue/glow on the text stream)
-        livingText: {
-          enabled: false
-        },
-
-        // Interlocution config (probabilistic interrupts).
-        // Nothing pre-checked: visual packages arrive only through explicit
-        // configs (Vault archetypes, SOL sequences) — never implied by a text.
-        interlocution: {
-          sourceFamily: 'procedural',
-          procedural: [],
-          sourced: [],
-          frequency: 0.3,
-          duration: 33,
-          renderLanguage: 'native',
-          kleePreset: 'random',
-          responsive: false,
-          responsiveMood: true,
-          responsiveRhythm: true
-        }
-      },
-      customVisuals: [] // Base64 image URIs
-    };
+    this.sessionData = createDefaultSessionData();
+    this.activeBlueprintId = null;
+    this.activeDraftKind = 'new';
+    this.editorDirty = false;
+    this.savedBlueprints = MemoryCore.getWorkshopBlueprints();
+    // Unsaved drafts are intentionally memory-only. They survive navigation
+    // within this app instance, but are never written to browser storage.
+    this.suspendedDrafts = [];
+    this.resetArmed = false;
+    this.resetTimer = null;
 
     this.viPanel = null;
     this.sourceBrowser = null;
@@ -100,7 +134,23 @@ export class Workshop {
   }
 
   update(data) {
-    if (data && data.text) {
+    this.savedBlueprints = MemoryCore.getWorkshopBlueprints();
+    if (!data) {
+      this.updateSequencePicker();
+      return;
+    }
+
+    if (data.blueprintId) {
+      this.openSavedBlueprint(data.blueprintId);
+      return;
+    }
+
+    if (data.text) {
+      const suspended = this.suspendCurrentDraft();
+      const blank = createDefaultSessionData();
+      this.replaceEditorData(blank, {
+        kind: 'recursion'
+      });
       this.addSource({
         id: `synthesis-${Date.now()}`,
         name: 'Chamber Synthesis',
@@ -110,7 +160,203 @@ export class Workshop {
            source: 'chamber-recursion'
         }
       }, { id: 'recursion', name: 'Recursion Memory' });
+      this.updateSequencePicker();
+      if (suspended) {
+        this.showToast('Your unfinished Workshop draft is available above');
+      }
     }
+  }
+
+  isCurrentDraftDirty() {
+    return this.editorDirty;
+  }
+
+  markEditorDirty() {
+    this.editorDirty = true;
+  }
+
+  getDraftLabel(data = this.sessionData) {
+    const title = typeof data.title === 'string' ? data.title.trim() : '';
+    if (title) return title;
+    const firstSource = Array.isArray(data.sources) ? data.sources[0]?.name : '';
+    return firstSource || 'Untitled sequence';
+  }
+
+  suspendCurrentDraft() {
+    if (!this.isCurrentDraftDirty()) return false;
+
+    this.suspendedDrafts.unshift({
+      id: `draft_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      label: this.getDraftLabel(),
+      data: cloneSessionData(this.sessionData),
+      kind: this.activeDraftKind,
+      blueprintId: this.activeBlueprintId,
+      dirty: true
+    });
+    return true;
+  }
+
+  replaceEditorData(data, options = {}) {
+    if (this.resetTimer) {
+      clearTimeout(this.resetTimer);
+      this.resetTimer = null;
+    }
+    this.resetArmed = false;
+    this.sourceBrowser?.destroy?.();
+    this.sourceBrowser = null;
+    this.viPanel?.destroy();
+    this.viPanel = null;
+
+    this.sessionData = normalizeSessionData(data);
+    delete this.sessionData.updatedAt;
+    this.activeBlueprintId = options.blueprintId || null;
+    this.activeDraftKind = options.kind || (this.activeBlueprintId ? 'saved' : 'new');
+    this.editorDirty = options.dirty === true;
+
+    this.render();
+    this.attachEvents();
+  }
+
+  startNewSequence({ preserveCurrent = true, notify = false } = {}) {
+    if (preserveCurrent) this.suspendCurrentDraft();
+    const blank = createDefaultSessionData();
+    this.replaceEditorData(blank, {
+      kind: 'new'
+    });
+    if (notify) this.showToast('Workshop reset');
+  }
+
+  openSavedBlueprint(blueprintId, { preserveCurrent = true } = {}) {
+    this.savedBlueprints = MemoryCore.getWorkshopBlueprints();
+    const blueprint = this.savedBlueprints.find(item => item.id === blueprintId);
+    if (!blueprint) {
+      this.showToast('That sequence is no longer in the Vault');
+      this.updateSequencePicker();
+      return false;
+    }
+
+    if (preserveCurrent) this.suspendCurrentDraft();
+    const editable = normalizeSessionData(blueprint);
+    delete editable.id;
+    delete editable.updatedAt;
+    this.replaceEditorData(editable, {
+      blueprintId,
+      kind: 'saved'
+    });
+    return true;
+  }
+
+  restoreSuspendedDraft(draftId) {
+    const index = this.suspendedDrafts.findIndex(draft => draft.id === draftId);
+    if (index < 0) return false;
+
+    const [draft] = this.suspendedDrafts.splice(index, 1);
+    this.suspendCurrentDraft();
+    this.replaceEditorData(draft.data, {
+      blueprintId: draft.blueprintId,
+      kind: draft.kind,
+      dirty: draft.dirty
+    });
+    return true;
+  }
+
+  renderSequenceOptions() {
+    const blueprints = this.savedBlueprints;
+    const isBlank = !this.activeBlueprintId && !this.isCurrentDraftDirty();
+    const currentLabel = this.getDraftLabel();
+    const options = [
+      `<option value="new" ${isBlank ? 'selected' : ''}>+ New sequence</option>`
+    ];
+
+    if (!this.activeBlueprintId && !isBlank) {
+      options.push(`<option value="current" selected>Current draft — ${this.escapeHtml(currentLabel)}</option>`);
+    }
+
+    if (this.suspendedDrafts.length > 0) {
+      options.push('<optgroup label="Unsaved in this app">');
+      this.suspendedDrafts.forEach(draft => {
+        options.push(`<option value="draft:${this.escapeHtml(draft.id)}">Unsaved — ${this.escapeHtml(draft.label)}</option>`);
+      });
+      options.push('</optgroup>');
+    }
+
+    if (blueprints.length > 0) {
+      options.push('<optgroup label="Saved to Vault">');
+      blueprints.forEach(blueprint => {
+        const selected = blueprint.id === this.activeBlueprintId ? 'selected' : '';
+        options.push(`<option value="saved:${this.escapeHtml(blueprint.id)}" ${selected}>${this.escapeHtml(this.getDraftLabel(blueprint))}</option>`);
+      });
+      options.push('</optgroup>');
+    }
+
+    return options.join('');
+  }
+
+  getEditorStatus() {
+    if (this.activeBlueprintId) {
+      return this.isCurrentDraftDirty()
+        ? 'Editing a saved sequence · changes remain private until saved'
+        : 'Editing a saved sequence from the Vault';
+    }
+    if (this.activeDraftKind === 'recursion') {
+      return 'New from Recursion · not saved';
+    }
+    if (this.isCurrentDraftDirty()) {
+      return 'Unsaved draft · available only while this app remains open';
+    }
+    return 'A clean canvas for a new sequence';
+  }
+
+  updateSequencePicker() {
+    const picker = this.container.querySelector('#workshop-sequence-select');
+    const status = this.container.querySelector('#workshop-sequence-status');
+    if (picker) picker.innerHTML = this.renderSequenceOptions();
+    if (status) status.textContent = this.getEditorStatus();
+  }
+
+  handleSequenceSelection(value) {
+    if (!value || value === 'current') return;
+    if (value === 'new') {
+      this.startNewSequence({ preserveCurrent: true });
+      return;
+    }
+    if (value.startsWith('draft:')) {
+      this.restoreSuspendedDraft(value.slice('draft:'.length));
+      return;
+    }
+    if (value.startsWith('saved:')) {
+      const blueprintId = value.slice('saved:'.length);
+      if (blueprintId !== this.activeBlueprintId) {
+        this.openSavedBlueprint(blueprintId);
+      }
+    }
+  }
+
+  armOrResetSequence() {
+    if (!this.isCurrentDraftDirty() && !this.activeBlueprintId) {
+      this.startNewSequence({ preserveCurrent: false, notify: true });
+      return;
+    }
+
+    const button = this.container.querySelector('#reset-workshop-btn');
+    if (!this.resetArmed) {
+      this.resetArmed = true;
+      if (button) {
+        button.textContent = 'Confirm Reset';
+        button.classList.add('reset-armed');
+      }
+      this.resetTimer = setTimeout(() => {
+        this.resetArmed = false;
+        this.resetTimer = null;
+        if (button?.isConnected) {
+          button.textContent = 'Reset';
+          button.classList.remove('reset-armed');
+        }
+      }, 3500);
+      return;
+    }
+
+    this.startNewSequence({ preserveCurrent: false, notify: true });
   }
 
   render() {
@@ -127,6 +373,16 @@ export class Workshop {
 
         <!-- Modules: the craft leads; the shared shelves follow -->
         <div class="workshop-content">
+          <section class="workshop-sequence-manager" aria-labelledby="workshop-sequences-label">
+            <div class="sequence-manager-copy">
+              <label class="input-label" id="workshop-sequences-label" for="workshop-sequence-select">Workshop Sequences</label>
+              <p class="input-note text-fog" id="workshop-sequence-status">${this.getEditorStatus()}</p>
+            </div>
+            <select class="input-select" id="workshop-sequence-select" aria-describedby="workshop-sequence-status">
+              ${this.renderSequenceOptions()}
+            </select>
+          </section>
+
           <!-- 1. Sequence Creator (the room's purpose) -->
           <form class="workshop-form sequence-creator-module" id="workshop-form">
             <div class="module-header">
@@ -321,6 +577,9 @@ export class Workshop {
 
             <!-- Actions -->
             <div class="workshop-actions">
+              <button type="button" class="btn-ghost workshop-reset-btn" data-action="reset-workshop" id="reset-workshop-btn">
+                Reset
+              </button>
               <button type="button" class="btn-ghost" data-action="save-draft" id="save-draft-btn">
                 Save to Vault
               </button>
@@ -403,6 +662,7 @@ export class Workshop {
         locked: this.sessionData.sources.length === 0,
         onChange: (config, activeTypes) => {
           this.sessionData.visualConfig = config;
+          this.markEditorDirty();
           // Only log if mode is NOT off to reduce noise while building
           if (config.visualMode !== 'off') {
             console.log('[Workshop] Visual config updated:', config.visualMode);
@@ -457,6 +717,7 @@ export class Workshop {
           })
         };
         this.sessionData.visualConfig.visualMode = 'interlocution';
+        this.markEditorDirty();
         this.viPanel?.setConfig({
           visualMode: 'interlocution',
           interlocution: this.sessionData.visualConfig.interlocution
@@ -465,6 +726,7 @@ export class Workshop {
 
         // Show toast feedback
         this.showToast(`Added ${item.name} to visual patterns`);
+        this.updateSequencePicker();
       }
       return;
     }
@@ -558,8 +820,10 @@ export class Workshop {
       metadata: item.metadata
     });
 
+    this.markEditorDirty();
     this.updateSourcesList();
     this.updateCreateButton();
+    this.updateSequencePicker();
     console.log('[Workshop] Added source:', item.name);
   }
 
@@ -693,16 +957,17 @@ export class Workshop {
     const list = this.container.querySelector('#global-pool-list');
     if (!list) return;
     
-    const globals = MemoryCore.getGlobalImages();
-    if (globals.length === 0) {
+    const assets = MemoryCore.getGlobalImageAssets();
+    if (assets.length === 0) {
       list.innerHTML = `<div class="empty-sources text-fog" style="flex:1;">No global images saved</div>`;
       return;
     }
 
-    list.innerHTML = globals.map((uri, index) => `
-      <div class="visual-asset-item" style="position: relative; min-width: 100px; height: 100px; border-radius: 4px; overflow: hidden; background: #111;">
-        <img src="${safeUrl(uri)}" alt="Global visual" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;" />
-        <button type="button" class="btn-icon" data-action="remove-global" data-index="${index}" style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); width: 24px; height: 24px; border-radius: 4px;">
+    list.innerHTML = assets.map(asset => `
+      <div class="visual-asset-item" title="${this.escapeHtml(asset.name)}" style="position: relative; min-width: 100px; height: 100px; border-radius: 4px; overflow: hidden; background: #111;">
+        <img src="${safeUrl(asset.uri)}" alt="${this.escapeHtml(asset.name)}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;" />
+        <span class="global-asset-name">${this.escapeHtml(asset.name)}</span>
+        <button type="button" class="btn-icon" data-action="remove-global" data-global-id="${this.escapeHtml(asset.id)}" style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); width: 24px; height: 24px; border-radius: 4px;">
            <span class="icon text-error" style="font-size: 0.8rem;">✕</span>
         </button>
       </div>
@@ -776,6 +1041,29 @@ export class Workshop {
       e.preventDefault();
       window.rise?.audioEngine?.playClick();
       this.createSession();
+    });
+    const syncSequenceManager = (event) => {
+      const clickChangesEditor = event.type === 'click' && event.target.closest(
+        '[data-curve], [data-chunk], [data-mode], [data-soundscape], [data-audio-preset], '
+        + '[data-action="remove-source"], [data-action="remove-visual"], '
+        + '[data-action="move-up"], [data-action="move-down"]'
+      );
+      if (event.type === 'input' || event.type === 'change' || clickChangesEditor) {
+        this.markEditorDirty();
+      }
+      queueMicrotask(() => {
+      if (this.container.querySelector('#workshop-sequence-select')) {
+        this.updateSequencePicker();
+      }
+      });
+    };
+    form?.addEventListener('input', syncSequenceManager);
+    form?.addEventListener('change', syncSequenceManager);
+    form?.addEventListener('click', syncSequenceManager);
+
+    this.container.querySelector('#workshop-sequence-select')?.addEventListener('change', (event) => {
+      window.rise?.audioEngine?.playHiss();
+      this.handleSequenceSelection(event.target.value);
     });
 
     // Title input
@@ -896,7 +1184,10 @@ export class Workshop {
     const personalSwellInput = this.container.querySelector('#personal-swell-input');
     personalSwellInput?.addEventListener('change', (e) => this.handlePersonalSwellUpload(e));
 
-    this.container.addEventListener('click', (e) => {
+    if (this.boundContainerClickHandler) {
+      this.container.removeEventListener('click', this.boundContainerClickHandler);
+    }
+    this.boundContainerClickHandler = (e) => {
       const target = e.target.closest('[data-action]');
       if (!target) return;
 
@@ -930,9 +1221,9 @@ export class Workshop {
         // Visuals removal does not affect create button lock anymore
       } else if (action === 'remove-global') {
         window.rise?.audioEngine?.playHiss();
-        const index = parseInt(target.dataset.index);
-        MemoryCore.removeGlobalImage(index);
+        MemoryCore.removeGlobalImage(target.dataset.globalId);
         this.updateGlobalPoolList();
+        this.viPanel?.refreshGlobalAssets();
       } else if (action === 'move-up') {
         window.rise?.audioEngine?.playHiss();
         const index = parseInt(target.dataset.index);
@@ -955,26 +1246,16 @@ export class Workshop {
         this.removePersonalSwell(id);
       } else if (action === 'save-draft') {
         window.rise?.audioEngine?.playHiss();
-        const saved = MemoryCore.saveWorkshopBlueprint(this.sessionData);
-        if (saved && saved.id) {
-           this.sessionData.id = saved.id;
-           const btn = this.container.querySelector('#save-draft-btn');
-           if (btn) {
-              const original = btn.textContent;
-              btn.textContent = 'Saved.';
-              setTimeout(() => btn.textContent = original, 2000);
-           }
-           // Notify Vault to refresh its blueprints list
-           const vault = window.rise?.router?.getViewInstance('vault');
-           if (vault?.refreshBlueprints) {
-              vault.refreshBlueprints();
-           }
-        }
+        this.saveSequenceToVault();
+      } else if (action === 'reset-workshop') {
+        window.rise?.audioEngine?.playHiss();
+        this.armOrResetSequence();
       } else if (action === 'preview') {
         window.rise?.audioEngine?.playHiss();
         this.onCreateSession({ ...this.sessionData, isPreview: true });
       }
-    });
+    };
+    this.container.addEventListener('click', this.boundContainerClickHandler);
 
     // Drag and drop for images
     this.attachDragDropEvents();
@@ -1177,6 +1458,7 @@ export class Workshop {
   }
 
   updateVisualAssetsList() {
+    this.markEditorDirty();
     const visualList = this.container.querySelector('#visual-assets-list');
     if (visualList) {
       visualList.innerHTML = this.sessionData.customVisuals.length === 0
@@ -1202,6 +1484,7 @@ export class Workshop {
             this.sessionData.visualConfig.visualMode = 'interlocution';
         }
     }
+    this.updateSequencePicker();
   }
 
   updateCreateButton() {
@@ -1217,15 +1500,48 @@ export class Workshop {
     }
   }
 
-  createSession() {
-    // 1. Auto-save the current configuration to the Vault so the Sequence Visuals and metadata persist
-    const saved = MemoryCore.saveWorkshopBlueprint(this.sessionData);
-    if (saved && saved.id) {
-       this.sessionData.id = saved.id;
+  persistSequenceToVault() {
+    const payload = cloneSessionData(this.sessionData);
+    delete payload.updatedAt;
+    if (this.activeBlueprintId) {
+      payload.id = this.activeBlueprintId;
+    } else {
+      delete payload.id;
     }
-    
-    // 2. Route to Chamber
-    this.onCreateSession(this.sessionData);
+
+    const saved = MemoryCore.saveWorkshopBlueprint(payload);
+    if (!saved?.id) return null;
+    this.savedBlueprints = MemoryCore.getWorkshopBlueprints();
+
+    const vault = window.rise?.router?.getViewInstance('vault');
+    vault?.refreshBlueprints?.();
+    return saved;
+  }
+
+  saveSequenceToVault() {
+    const saved = this.persistSequenceToVault();
+    if (!saved) {
+      this.showToast('Could not save this sequence');
+      return null;
+    }
+
+    // Saving completes this editor transaction. Reopening for modification is
+    // explicit through Workshop Sequences, so later Recursions cannot merge
+    // into a configuration the user already committed to the Vault.
+    this.startNewSequence({ preserveCurrent: false });
+    this.showToast('Saved to Vault · Workshop cleared');
+    return saved;
+  }
+
+  createSession() {
+    const saved = this.persistSequenceToVault();
+    const session = saved || cloneSessionData(this.sessionData);
+
+    // Compile and navigate before clearing the retained Workshop instance.
+    this.onCreateSession(session);
+    if (saved) {
+      this.startNewSequence({ preserveCurrent: false });
+    }
   }
 
   handleGlobalUpload(event) {
@@ -1234,11 +1550,12 @@ export class Workshop {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-        const success = MemoryCore.saveGlobalImage(e.target.result);
+        const success = MemoryCore.saveGlobalImage(e.target.result, { name: file.name });
         if (success) {
             this.updateGlobalPoolList();
+            this.viPanel?.refreshGlobalAssets();
         } else {
-            alert('Failed to save to Global Pool. Image may be too large or storage quota exceeded.');
+            alert('Could not add this image. The Global Pool holds up to 20 images and shares browser storage with your sequences.');
         }
         event.target.value = '';
     };
@@ -1284,8 +1601,18 @@ export class Workshop {
   }
 
   destroy() {
+    if (this.resetTimer) {
+      clearTimeout(this.resetTimer);
+      this.resetTimer = null;
+    }
     if (this.viPanel) {
       this.viPanel.destroy();
+    }
+    this.sourceBrowser?.destroy?.();
+    this.sourceBrowser = null;
+    if (this.boundContainerClickHandler) {
+      this.container.removeEventListener('click', this.boundContainerClickHandler);
+      this.boundContainerClickHandler = null;
     }
     this.deactivate();
   }

@@ -1,3 +1,10 @@
+import {
+    VISUAL_PRESENCE_MAX_DUTY,
+    VISUAL_PRESENCE_WINDOW_MS,
+    minimumVisualPresenceRest,
+    normalizeVisualPresence
+} from './visual-presence.js';
+
 export const VISUAL_CONSENT_KEY = 'rise-visual-interlocution-consent';
 
 let pendingConsent = null;
@@ -85,23 +92,97 @@ export function requestVisualInterlocutionConsent() {
 }
 
 export class VisualFlashGate {
-    constructor({ minIntervalMs = 180, burstWindowMs = 1200, maxBurst = 3 } = {}) {
+    constructor({
+        minIntervalMs = 180,
+        burstWindowMs = 1200,
+        maxBurst = 3,
+        presenceWindowMs = VISUAL_PRESENCE_WINDOW_MS,
+        maxVisibleDuty = VISUAL_PRESENCE_MAX_DUTY
+    } = {}) {
         this.minIntervalMs = minIntervalMs;
         this.burstWindowMs = burstWindowMs;
         this.maxBurst = maxBurst;
+        this.presenceWindowMs = presenceWindowMs;
+        this.maxVisibleDuty = maxVisibleDuty;
         this.history = [];
+        this.lastReason = 'ready';
     }
 
     reset() {
         this.history = [];
+        this.lastReason = 'ready';
     }
 
-    allow(now = performance.now()) {
-        this.history = this.history.filter(timestamp => now - timestamp < this.burstWindowMs);
+    _prune(now) {
+        const retention = Math.max(this.burstWindowMs, this.presenceWindowMs);
+        this.history = this.history.filter(item => {
+            const edge = item.presence ? item.end : item.start;
+            return now - edge < retention;
+        });
+    }
+
+    check(now = performance.now(), durationMs = null) {
+        this._prune(now);
+        const recentStarts = this.history.filter(item => now - item.start < this.burstWindowMs);
         const last = this.history[this.history.length - 1];
-        if (last !== undefined && now - last < this.minIntervalMs) return false;
-        if (this.history.length >= this.maxBurst) return false;
-        this.history.push(now);
+        if (last && now - last.start < this.minIntervalMs) {
+            this.lastReason = 'rapid-start';
+            return { allowed: false, reason: this.lastReason };
+        }
+        if (recentStarts.length >= this.maxBurst) {
+            this.lastReason = 'burst';
+            return { allowed: false, reason: this.lastReason };
+        }
+
+        // Calls without a duration preserve the legacy burst-gate contract.
+        // Production presentation requests always supply a normalized duration.
+        if (durationMs !== null && durationMs !== undefined) {
+            const duration = normalizeVisualPresence(durationMs);
+            const lastPresence = [...this.history].reverse().find(item => item.presence);
+            if (lastPresence) {
+                const rest = minimumVisualPresenceRest(lastPresence.duration);
+                if (now - lastPresence.end < rest) {
+                    this.lastReason = 'rest';
+                    return { allowed: false, reason: this.lastReason };
+                }
+            }
+
+            const windowStart = now - this.presenceWindowMs;
+            const occupied = this.history.reduce((total, item) => {
+                if (!item.presence) return total;
+                const overlapStart = Math.max(windowStart, item.start);
+                const overlapEnd = Math.min(now, item.end);
+                return total + Math.max(0, overlapEnd - overlapStart);
+            }, 0);
+            if (occupied + duration > this.presenceWindowMs * this.maxVisibleDuty) {
+                this.lastReason = 'duty';
+                return { allowed: false, reason: this.lastReason };
+            }
+        }
+
+        this.lastReason = 'ready';
+        return { allowed: true, reason: this.lastReason };
+    }
+
+    canAllow(now = performance.now(), durationMs = null) {
+        return this.check(now, durationMs).allowed;
+    }
+
+    commit(now = performance.now(), durationMs = null) {
+        const status = this.check(now, durationMs);
+        if (!status.allowed) return false;
+        const presence = durationMs !== null && durationMs !== undefined;
+        const duration = presence ? normalizeVisualPresence(durationMs) : 0;
+        this.history.push({
+            start: now,
+            end: now + duration,
+            duration,
+            presence
+        });
         return true;
+    }
+
+    allow(now = performance.now(), durationMs = null) {
+        return this.commit(now, durationMs);
     }
 }

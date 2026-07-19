@@ -16,6 +16,11 @@
  * Signal shape per atom: { valence: -1..1, arousal: 0..1, confidence: 0..1 }
  */
 
+import {
+    normalizeVisualPresence,
+    responsiveVisualPresence
+} from './visual-presence.js';
+
 // ─────────────────────────────────────────────────────────────
 // VAD LEXICON — word: [valence -1..1, arousal 0..1]
 // Curated for the registers RISE actually plays: literary, sacred,
@@ -379,7 +384,7 @@ export function responsiveFrequency(baseFrequency, signal) {
  */
 export function planInterlocution(signal, options = {}, rng = Math.random) {
     const { valence = 0, arousal = 0.3 } = signal || {};
-    const duration = options.duration ?? 80;
+    const duration = normalizeVisualPresence(options.duration);
     const activeTypes = options.activeTypes || [];
     const mood = options.mood ?? true;
     const rhythm = options.rhythm ?? true;
@@ -413,9 +418,11 @@ export function planInterlocution(signal, options = {}, rng = Math.random) {
         else kleePreset = 'gravitational';
     }
 
-    // Sharper flashes for intense passages, softer for calm ones (rhythm intent)
+    // Energetic passages contract toward 75% of the user's selected ceiling.
+    // Calm passages retain the full presence; the global 150ms floor remains
+    // authoritative throughout the 150ms-2s range.
     const scaledDuration = rhythm
-        ? clamp(Math.round(duration * (1.25 - 0.5 * clamp(arousal, 0, 1))), 16, 200)
+        ? responsiveVisualPresence(duration, arousal)
         : duration;
 
     return { type, duration: scaledDuration, kleePreset };

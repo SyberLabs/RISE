@@ -1,5 +1,5 @@
 /**
- * Portal SOL strip tests — the nav returns to the triad and SOL lives
+ * Portal SOL strip tests — the nav exposes the four core destinations and SOL lives
  * as the portal's living strip: hour, current window, and what plays
  * (following the My Day plan when set).
  */
@@ -24,12 +24,12 @@ function makePortal(options = {}) {
 }
 
 describe('Portal SOL strip', () => {
-    it('nav holds the triad; SOL lives as the strip', () => {
+    it('nav holds the core destinations; SOL lives as the strip', () => {
         const { portal, container } = makePortal();
 
         const secondary = container.querySelectorAll('.nav-secondary .nav-item');
-        expect(secondary).toHaveLength(3);
-        expect([...secondary].map(el => el.dataset.nav)).toEqual(['vault', 'library', 'workshop']);
+        expect(secondary).toHaveLength(4);
+        expect([...secondary].map(el => el.dataset.nav)).toEqual(['atrium', 'vault', 'library', 'workshop']);
 
         const strip = container.querySelector('.portal-sol-strip');
         expect(strip).not.toBeNull();

@@ -13,13 +13,13 @@ if (typeof globalThis.indexedDB === 'undefined') {
 
 const { ChamberOrbital } = await import('./ChamberOrbital.js');
 
-function makeOrbital() {
+function makeOrbital(onBeginSession = () => { }) {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const onNavigate = vi.fn();
     const orbital = new ChamberOrbital(container, {
         onNavigate,
-        onBeginSession: () => { }
+        onBeginSession
     });
     return { orbital, container, onNavigate };
 }
@@ -378,6 +378,29 @@ describe('ChamberOrbital origin chip', () => {
             .toBe('silent');
     });
 
+    it('migrates and persists legacy visual presence at the saved-preference boundary', () => {
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
+            visualInterlocution: {
+                visualMode: 'interlocution',
+                interlocution: {
+                    sourceFamily: 'procedural',
+                    procedural: ['klee'],
+                    sourced: [],
+                    duration: 80
+                }
+            }
+        }));
+
+        const { orbital, container } = makeOrbital();
+        expect(orbital.config.visualInterlocution.interlocution.duration).toBe(150);
+        orbital._persistPrefs();
+        expect(JSON.parse(localStorage.getItem('rise_orbital_prefs_v1'))
+            .visualInterlocution.interlocution.duration).toBe(150);
+
+        orbital.destroy();
+        container.remove();
+    });
+
     it('a subsequent plain load replaces a previous origin', () => {
         const { orbital, container } = makeOrbital();
         orbital.loadText('text', 'SOL: Dawn', { origin: SOL_ORIGIN });
@@ -409,5 +432,47 @@ describe('ChamberOrbital origin chip', () => {
         expect(localStorage.getItem('rise_orbital_text_v1')).toBeNull();
         c.orbital.destroy();
         c.container.remove();
+    });
+
+    it('retains Atrium passage boundaries and provenance through refresh and Begin', () => {
+        const sources = [{
+            id: 'pass-fixture',
+            name: 'Test Author, Test Edition — Test passage',
+            type: 'text',
+            data: 'A verified packaged passage.',
+            provenance: { sourceId: 'src-fixture', canonicalLocator: 'section 1' }
+        }];
+        const origin = {
+            view: 'atrium',
+            icon: '⌘',
+            name: 'Atrium',
+            data: { domain: 'philosophy', selectedId: 'ph-fixture' }
+        };
+        const provenance = { kind: 'atrium-journey', journeyId: 'seq-fixture' };
+
+        const a = makeOrbital();
+        a.orbital.loadText(sources[0].data, 'Atrium · The Tested Life', { sources, origin, provenance });
+        const stored = JSON.parse(localStorage.getItem('rise_orbital_text_v1'));
+        expect(stored.text).toBeNull();
+        expect(stored.sources).toHaveLength(1);
+        a.orbital.destroy();
+        a.container.remove();
+
+        const onBeginSession = vi.fn();
+        const b = makeOrbital(onBeginSession);
+        expect(b.orbital.config.text).toBe(sources[0].data);
+        expect(b.orbital.config.sources[0].id).toBe('pass-fixture');
+
+        b.container.querySelector('.orbital-origin-chip').click();
+        expect(b.onNavigate).toHaveBeenCalledWith('atrium', origin.data);
+        b.orbital.beginSession();
+        expect(onBeginSession).toHaveBeenCalledWith(expect.objectContaining({
+            sources: expect.arrayContaining([expect.objectContaining({ id: 'pass-fixture' })]),
+            origin,
+            provenance
+        }));
+
+        b.orbital.destroy();
+        b.container.remove();
     });
 });

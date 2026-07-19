@@ -54,7 +54,7 @@ export const SOL_SEQUENCES = [
       audioPreset: "focus",
       visualConfig: {
         visualMode: 'interlocution',
-        interlocution: { sourceFamily: 'collections', frequency: 0.2, duration: 120, sourced: ['solar'], procedural: [] }
+        interlocution: { sourceFamily: 'collections', frequency: 0.2, duration: 150, sourced: ['solar'], procedural: [] }
       }
     },
     content: "The body wakes before the mind is fully formed.\nDo not rush to fill the vessel with the world.\nLet the breath anchor the shape of your existence.\nYou are here.\n\nThe light outside is still deciding what it will be.\nSo are you.\nThis hour belongs to no one.\nNo message has reached you yet.\nNo demand has found your name.\n\nFeel the weight of the body against whatever holds it.\nFeel the breath arrive without being asked.\nThis is the baseline.\nEverything today will be measured against this stillness.\n\nThis day has not yet been spoken for.\nWhat is the single intention that will guide your hours?\nNot a list.\nOne intention.\nName it now, in the quiet, before the noise can argue.\n\nHold it lightly, like water in cupped hands.\nDo not grip it.\nA gripped intention becomes anxiety.\nA held intention becomes direction.\n\nThe sun does not hurry over the horizon.\nIt arrives at its own pace, and the world adjusts.\nArrive the same way.\n\nArrive into the body.\nArrive into the hour.\nBegin."
@@ -73,7 +73,7 @@ export const SOL_SEQUENCES = [
       audioPreset: "deep",
       visualConfig: {
         visualMode: 'interlocution',
-        interlocution: { sourceFamily: 'collections', frequency: 0.3, duration: 90, sourced: ['solar'], procedural: [] }
+        interlocution: { sourceFamily: 'collections', frequency: 0.3, duration: 150, sourced: ['solar'], procedural: [] }
       }
     },
     content: "The day begins its demands.\nGather your energy not from anxiety, but from purpose.\nAnxiety burns the same fuel and builds nothing.\nPurpose burns clean.\n\nYou are the architect of your own attention.\nEvery hour, something will bid for it.\nMost bids are noise.\nYou already know which work matters.\nYou knew it before you opened anything.\n\nLet distractions fall away like mist.\nThey were never solid.\nThey only looked solid while you were standing still.\nMove, and they part.\n\nName the primary work.\nOne thing that, done today, makes the day count.\nSee it finished.\nSee the state of the world after it exists.\nNow walk backward from that image to this moment.\nThat path is your morning.\n\nThe body wants motion.\nGive it motion.\nThe mind wants order.\nGive it one clear target.\n\nDo not negotiate with the day.\nEnter it.\nMove forward with clarity."
@@ -284,7 +284,7 @@ export const SOL_SEQUENCES = [
       audioPreset: "gateway",
       visualConfig: {
         visualMode: 'interlocution',
-        interlocution: { sourceFamily: 'collections', frequency: 0.25, duration: 100, sourced: ['astronomy'], procedural: [] }
+        interlocution: { sourceFamily: 'collections', frequency: 0.25, duration: 150, sourced: ['astronomy'], procedural: [] }
       }
     },
     content: "The universe is unimaginably vast.\nLight itself, the fastest thing there is,\nneeds a hundred thousand years just to cross this one galaxy.\nThere are two trillion galaxies.\nHold that number for one second.\nNow let it go. No one can hold it.\n\nAlmost all of it is silent.\nRock, ice, radiation, and the long dark between.\nNo witnesses.\nNo one to see any of it happen.\n\nConsciousness is incredibly rare.\nAs far as anyone can verify, it has happened once —\nhere, in a thin film of water and carbon,\non one stone circling one ordinary fire.\nYou are made of that stone and that fire.\nThe iron in your blood was forged in a dying star.\nYou are the universe, arranged briefly into a witness.\n\nAnd it is brief.\nFour thousand weeks, give or take.\nYou have already spent some of them.\nThis is not morbid.\nThis is the price tag, finally read.\n\nWhat will you do with this brief, improbable existence?\nNot in general. Today.\nThe cosmic scale does not make your work small.\nIt makes your work astonishing —\nthat anything gets built at all, by anyone,\nin the flicker between two darknesses.\n\nThe stars are not watching.\nNo one is coming to grade this.\nThe meaning is not out there waiting.\nThe meaning is made — by hands, today, or not at all.\n\nAct with urgency, without panic.\nPanic is for those who think they have no time.\nYou have today.\nThat is exactly enough."
@@ -319,7 +319,7 @@ export const SOL_SEQUENCES = [
       audioPreset: "focus",
       visualConfig: {
         visualMode: 'interlocution',
-        interlocution: { sourceFamily: 'procedural', frequency: 0.2, duration: 90, sourced: [], procedural: ['klee'], kleePreset: 'architectural' }
+        interlocution: { sourceFamily: 'procedural', frequency: 0.2, duration: 150, sourced: [], procedural: ['klee'], kleePreset: 'architectural' }
       }
     },
     content: "You are a maker.\nBefore anyone taught you anything,\nyou were already arranging, stacking, drawing, naming.\nNo one assigned this to you.\nIt is not a role. It is a metabolism.\n\nYou are allowed to make.\nNo permission is pending.\nNo credential is missing.\nThe blank page is not a judge.\nIt is raw material, and it is patient.\n\nMaking is how you think.\nYou do not figure it out and then build it.\nYou build it to figure it out.\nThe confusion you feel before starting is not a warning.\nIt is the actual starting condition of all work ever made.\n\nThe work knows more than you do.\nStart it, and it starts answering back.\nThe second sentence is easier than the first.\nThe sketch corrects the idea.\nThe prototype teaches the plan.\nNothing teaches while it is still in your head.\n\nThe doubt will come. Let it come.\nDoubt is a tax on making things that did not exist before.\nEveryone pays it.\nThe ones you admire paid it that same morning.\n\nDo not wait for the feeling of readiness.\nReadiness is a rumor.\nThere is only the material, the hands, and the hour.\n\nLower the stakes until starting is possible.\nOne bad draft. One crooked line. One honest attempt.\nThe standard comes later. The start comes now.\n\nLet the doubt exist, but make anyway.\nMake anyway.\nMake."

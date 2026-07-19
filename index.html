@@ -15,6 +15,7 @@
 <body>
   <!-- View Containers -->
   <div id="view-portal" class="view-container" hidden></div>
+  <div id="view-atrium" class="view-container" hidden></div>
   <div id="view-vault" class="view-container" hidden></div>
   <div id="view-chamber" class="view-container" hidden></div>
   <div id="view-library" class="view-container" hidden></div>
@@ -45,9 +46,10 @@
 
       <div class="modal-body">
         <p class="safety-notice">
-          Visual Interlocution generates brief, subliminal flashes of light and color patterns
-          during your session. These interrupts are designed to enhance the consciousness
-          experience but may not be suitable for everyone.
+          Rhythmic Visuals introduces brief flashes and visual exposures between moments of
+          reading. Presence can range from 150 milliseconds to 2 seconds. The system limits
+          rapid recurrence, but high-contrast visual changes may still affect photosensitive
+          individuals.
         </p>
 
         <div class="safety-risks">
@@ -63,10 +65,10 @@
         <div class="safety-protections">
           <p class="protection-title">Safety protections in place:</p>
           <ul class="protection-list">
-            <li>Maximum frequency limited to prevent rapid flashing</li>
-            <li>Configurable duration (16-200ms per flash)</li>
-            <li>Can be disabled at any time during session</li>
-            <li>Respects system accessibility preferences</li>
+            <li>Rapid recurrence remains constrained even when Frequency is 100%</li>
+            <li>Presence is configurable from 150 milliseconds to 2 seconds</li>
+            <li>Rhythmic visuals can be disabled at any time during the session</li>
+            <li>The global Photosensitivity setting completely disables these visuals</li>
           </ul>
         </div>
 
@@ -84,7 +86,7 @@
     </div>
   </div>
 
-  <!-- Visual Cortex (shared layer for subliminal flashes) -->
+  <!-- Visual Cortex (shared layer for rhythmic visual presence) -->
   <div id="visual-cortex" class="visual-cortex" hidden>
     <canvas id="klee-canvas" width="1920" height="1080" hidden></canvas>
     <div id="turrell-field" hidden></div>

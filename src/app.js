@@ -11,8 +11,10 @@
 
 import { Router } from './core/router.js';
 import { AudioEngine } from './audio/engine.js';
-import { Player } from './core/player.js';
+import { Player, estimateInterlocutionCount } from './core/player.js';
+import { VISUAL_PRESENCE_DEFAULT_MS } from './core/visual-presence.js';
 import { compileSession } from './core/session-compiler.js';
+import { MemoryCore } from './core/memory.js';
 import { initSourceSystem } from './sources/index.js';
 import { BetaGate } from './components/BetaGate.js';
 import './components/BetaGate.css';
@@ -29,6 +31,7 @@ import { normalizeVisualSelection } from './core/visual-selection.js';
 // Import styles
 import './design-system.css';
 import './components/Portal.css';
+import './components/Atrium.css';
 import './components/ChamberOrbital.css';
 import './components/Chamber.css';
 import './components/Library.css';
@@ -264,6 +267,36 @@ class App {
             }
         });
 
+        // Atrium (interpretive philosophy and history discovery)
+        this.router.registerView('atrium', {
+            container: document.getElementById('view-atrium'),
+            init: async (container, data) => {
+                const { Atrium } = await import('./components/Atrium.js');
+                return new Atrium(container, {
+                    onNavigate: this.handleNavigate,
+                    onConfigureJourney: async (journey) => {
+                        try {
+                            const { createAtriumJourneyHandoff } = await import('./content/atrium/handoff.js');
+                            const chamberData = await createAtriumJourneyHandoff(journey);
+                            await this.router.navigate('chamber', { data: chamberData });
+                        } catch (error) {
+                            console.error('[R.I.S.E.] Atrium handoff failed:', error);
+                            this.showToast(
+                                error?.code === 'ATRIUM_JOURNEY_NOT_READY'
+                                    ? 'This Atrium journey is still under editorial review.'
+                                    : 'Unable to verify this Atrium content pack.',
+                                4000
+                            );
+                        }
+                    },
+                    domain: data?.domain,
+                    viewMode: data?.viewMode,
+                    selectedId: data?.selectedId,
+                    expandedJourneyId: data?.expandedJourneyId
+                });
+            }
+        });
+
         // Vault
         this.router.registerView('vault', {
             container: document.getElementById('view-vault'),
@@ -442,19 +475,26 @@ class App {
                             visualCortex.updateConfig({
                                 enabled: true,
                                 frequency: interlocution.frequency ?? 0.2,
-                                duration: interlocution.duration ?? 80,
+                                duration: interlocution.duration ?? VISUAL_PRESENCE_DEFAULT_MS,
                                 renderLanguage: interlocution.renderLanguage === 'ascii' ? 'ascii' : 'native',
                                 activeTypes: activeTypes,
                                 kleePreset: interlocution.kleePreset ?? 'random',
                                 harmonographClimate: interlocution.harmonographClimate ?? 'auto',
                                 customVisuals: session.customVisuals || [],
+                                // Resolve stable Global Pool IDs once at
+                                // session entry. The flash hot path receives a
+                                // pinned URI set and never rereads shared state.
+                                globalVisuals: interlocution.sourced?.includes('global-pool')
+                                    ? MemoryCore.resolveGlobalImageUris(interlocution.globalPool)
+                                    : [],
                                 sourced: interlocution.sourced || [],
                                 semanticSignals: semanticSignals
                             });
 
                         // Preload visuals
-                        const estimatedFlashCount = Math.floor(
-                            session.atoms.length * (interlocution.frequency ?? 0.2)
+                        const estimatedFlashCount = estimateInterlocutionCount(
+                            session,
+                            interlocution.frequency ?? 0.2
                         );
                         await visualCortex.preload(estimatedFlashCount);
                     } else if (visualMode === 'focals') {
@@ -528,7 +568,9 @@ class App {
                             }
 
                             if (reason === 'workshop' && data && data.text) {
-                                this.router.navigate('workshop', { data: { text: data.text } });
+                                this.router.navigate('workshop', {
+                                    data: { draftIntent: 'new-recursion', text: data.text }
+                                });
                             } else if (session.isPreview && (reason === 'back' || reason === 'exit' || reason === 'close')) {
                                 this.router.navigate('workshop'); // Isolate previews
                             } else if (reason === 'back' || reason === 'exit' || reason === 'close') {
@@ -574,7 +616,7 @@ class App {
                     onCreateSession: this.handleCreateSession
                 });
 
-                if (data && data.text) {
+                if (data) {
                     ws.update(data);
                 }
 

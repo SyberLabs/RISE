@@ -69,4 +69,23 @@ describe('visual safety boundary', () => {
     expect(gate.allow(300)).toBe(false);
     expect(gate.allow(1200)).toBe(true);
   });
+
+  it('enforces rest after a long visual presence', () => {
+    const gate = new VisualFlashGate();
+
+    expect(gate.allow(0, 2000)).toBe(true);
+    expect(gate.canAllow(4499, 2000)).toBe(false);
+    expect(gate.lastReason).toBe('rest');
+    expect(gate.canAllow(4500, 2000)).toBe(true);
+  });
+
+  it('caps projected occupancy within the rolling presence window', () => {
+    const gate = new VisualFlashGate();
+
+    expect(gate.allow(0, 2000)).toBe(true);
+    expect(gate.allow(4500, 2000)).toBe(true);
+    expect(gate.canAllow(9000, 2000)).toBe(false);
+    expect(gate.lastReason).toBe('duty');
+    expect(gate.canAllow(14001, 2000)).toBe(true);
+  });
 });

@@ -58,8 +58,9 @@ source records
 
 This is the canonical contract for both duration estimates and playback. Do not
 recreate chunk/pacing logic in a component. Current hard limits are 50-1000 WPM,
-2,000,000 characters per source, 24 embedded custom images, and 16-200 ms visual
-interrupt duration.
+2,000,000 characters per source, 24 embedded custom images, and 150-2000 ms
+Rhythmic visual Presence. Missing or legacy sub-minimum duration values normalize
+to the 200 ms default or the 150 ms floor at compiler and persistence boundaries.
 
 `Atom.timingLocked` protects authored pauses and source boundaries from curve
 modulation. `Session.totalDuration` is computed from validated positive atom
@@ -71,9 +72,23 @@ durations and is the source of truth for duration UI and memory records.
 The states are `idle`, `playing`, `paused`, `interlocuting`, and `complete`.
 
 - Dynamic speed is included in displayed remaining time.
-- Interlocution pauses the reading clock and is awaited.
-- A rejected visual handler emits an error and resumes playback.
+- Rhythmic opportunities are locked to eligible semantic boundaries. A completed
+  text atom may lead through at most one visual presence into the next text atom;
+  no presence may divide or cause the re-emission of an atom.
+- Once the visual overlay is fully opaque, Player advances and Chamber lays out
+  the next atom in a concealed, transition-free state. Its reading timer starts
+  only after the overlay settles, so reveal always exposes stable text.
+- Frequency is probability per eligible boundary. Word, Phrase, and Sentence
+  therefore intentionally produce staccato, measured, and contemplative visual
+  densities respectively.
+- A presented visual pauses the reading clock and is awaited; a rejected visual
+  resumes playback without entering visible-duration accounting.
+- Presentation handlers return structured outcomes that distinguish probability,
+  cadence, source, render, and cancellation rejections.
+- Completion records reading, visible-presence, and wall-clock duration separately.
 - Pause, stop, and exit retain ownership if they occur during an interlocution.
+- Blank, authored-pause, paragraph-break, and source-boundary atoms break visual
+  eligibility; missed or vetoed opportunities never queue for later release.
 
 `src/components/Chamber.js` is the renderer and interaction layer. It does not
 own the authoritative clock.
@@ -94,16 +109,28 @@ previous category.
 - decoded external-image pools and bounded background hydration;
 - abort/version ownership for configuration changes;
 - the execution-time consent and photosensitivity checks;
-- a burst gate that limits rapid consecutive flashes;
+- the complete visual-presence lifecycle, including bounded transitions,
+  cancellation, and deferred Klee resize while an artwork is visible;
+- a duration-aware cadence gate with rapid-start protection, minimum rest, and a
+  rolling visible-occupancy ceiling;
 - Klee and fractal preload lifecycle.
+
+Presence uses the curated steps `150, 200, 300, 450, 700, 1000, 1400, 2000` ms
+and defaults to 200 ms. `VisualFlashGate` admits a presentation only when its
+projected interval remains within a 45% visible-duty ceiling over 12 seconds and
+the preceding successful presence has rested for at least
+`max(250 ms, 1.25 * presence)`. A gate reservation is committed only after the
+source renders successfully, so unavailable or failed content consumes no
+cadence budget.
 
 The retired Met identifiers are removed from active mixed configurations. A
 legacy Met-only saved configuration degrades once to procedural Klee without
 attempting a retired provider.
 
-Responsive flashes modulate bounded frequency, duration, generator choice, and
-visual signal parameters. They do not bypass the user's selected source set,
-consent, photosensitivity mode, or the global flash gate.
+Responsive Presence modulates bounded frequency, duration, generator choice,
+and visual signal parameters. Duration follows `D * (1 - 0.25 * arousal)` within
+the configured Presence envelope. It does not bypass the user's selected source
+set, consent, photosensitivity mode, or the global cadence gate.
 
 ### Procedural Klee
 

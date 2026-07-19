@@ -5,6 +5,115 @@
 
 import { SessionState } from './models.js';
 import { responsiveFrequency } from './conductor.js';
+import {
+    VISUAL_PRESENCE_DEFAULT_MS,
+    minimumVisualPresenceRest,
+    normalizeVisualPresence
+} from './visual-presence.js';
+
+function isInterlocutionEligibleAtom(atom) {
+    return atom?.modality === 'text'
+        && typeof atom.content === 'string'
+        && atom.content.trim().length > 0;
+}
+
+/**
+ * Rhythmic visuals are interstitial: a completed semantic atom may lead into
+ * another semantic atom through at most one visual presence. Blank, authored
+ * pause, paragraph, and source-boundary atoms deliberately break eligibility.
+ */
+function isInterlocutionEligibleBoundary(atoms, index) {
+    return isInterlocutionEligibleAtom(atoms?.[index])
+        && isInterlocutionEligibleAtom(atoms?.[index + 1]);
+}
+
+function createInterlocutionStats() {
+    return {
+        opportunities: 0,
+        probabilityRejected: 0,
+        cadenceRejected: 0,
+        sourceRejected: 0,
+        renderRejected: 0,
+        aborted: 0,
+        presented: 0,
+        skipped: 0,
+        visibleDurationMs: 0
+    };
+}
+
+function normalizeInterlocutionResult(result, requestedDurationMs) {
+    if (result && typeof result === 'object' && typeof result.presented === 'boolean') {
+        const visibleDuration = Number(result.presentedDurationMs);
+        return {
+            presented: result.presented,
+            requestedDurationMs: normalizeVisualPresence(
+                result.requestedDurationMs ?? requestedDurationMs
+            ),
+            presentedDurationMs: Number.isFinite(visibleDuration)
+                ? Math.max(0, visibleDuration)
+                : (result.presented ? requestedDurationMs : 0),
+            reason: typeof result.reason === 'string'
+                ? result.reason
+                : (result.presented ? 'presented' : 'render-failed')
+        };
+    }
+
+    // Preserve compatibility with extensions written for the former boolean
+    // contract while keeping all built-in accounting explicit.
+    const presented = result !== false && result?.rendered !== false;
+    return {
+        presented,
+        requestedDurationMs,
+        presentedDurationMs: presented ? requestedDurationMs : 0,
+        reason: presented ? 'presented' : 'render-failed'
+    };
+}
+
+function rejectionCounterFor(reason) {
+    if (['cadence', 'rest', 'duty', 'rapid-start', 'burst'].includes(reason)) {
+        return 'cadenceRejected';
+    }
+    if (['source-unavailable', 'not-ready', 'no-content'].includes(reason)) {
+        return 'sourceRejected';
+    }
+    if (reason === 'aborted' || reason === 'config-changed') return 'aborted';
+    return 'renderRejected';
+}
+
+/**
+ * Estimate demand from eligible semantic transitions. Frequency is a
+ * probability per boundary, so chunking mode intentionally shapes visual
+ * density: Word is staccato, Phrase is measured, and Sentence contemplative.
+ */
+export function estimateInterlocutionCount(session, frequency = 0.2) {
+    const probability = Math.max(0, Math.min(1, Number(frequency) || 0));
+    if (!session || probability === 0) return 0;
+
+    const atoms = session.atoms || [];
+    let eligibleBoundaries = 0;
+    let eligibleDuration = 0;
+    for (let index = 0; index < atoms.length - 1; index++) {
+        if (!isInterlocutionEligibleBoundary(atoms, index)) continue;
+        eligibleBoundaries++;
+        const duration = Number(atoms[index].duration);
+        if (Number.isFinite(duration) && duration > 0) eligibleDuration += duration;
+    }
+
+    if (eligibleBoundaries === 0) return 0;
+
+    const presence = normalizeVisualPresence(
+        session.visualConfig?.interlocution?.duration ?? VISUAL_PRESENCE_DEFAULT_MS
+    );
+    const opportunities = eligibleBoundaries * probability;
+    const restLimitedPresentations = eligibleDuration
+        / minimumVisualPresenceRest(presence);
+
+    return Math.ceil(Math.min(
+        eligibleBoundaries,
+        opportunities,
+        restLimitedPresentations
+    )) + 2;
+}
 
 /**
  * Event types emitted by the player
@@ -29,6 +138,9 @@ export class Player {
         this.currentAtomRemainingTime = null;
         this.speedFactor = 1.0; // Dynamic multiplier (1.0 = normal, 0.5 = 2x speed)
         this.speechSyncId = 0; // Guard against late callbacks from old speech requests
+        this.sessionWallStartTime = null;
+        this.interlocutionStats = createInterlocutionStats();
+        this._playbackEpoch = 0;
     }
 
     /**
@@ -76,6 +188,7 @@ export class Player {
 
         if (previousState === 'idle') {
             this.sessionState.startTime = Date.now();
+            this.sessionWallStartTime = this.sessionState.startTime;
         } else if (previousState === 'paused' && this.sessionState.pausedAt) {
             // Adjust start time to account for paused duration
             const pauseDuration = Date.now() - this.sessionState.pausedAt;
@@ -102,7 +215,7 @@ export class Player {
             this.sessionState.pausedAt = Date.now();
         }
 
-        if (this.atomStartTime) {
+        if (this.atomStartTime !== null) {
             const consumed = performance.now() - this.atomStartTime;
             if (this.currentAtomRemainingTime === null) {
                 const atom = this.sessionState.currentAtom;
@@ -142,6 +255,12 @@ export class Player {
      * Stop playback and reset
      */
     stop() {
+        this._playbackEpoch++;
+        try {
+            this.interlocutionCancelHandler?.('aborted');
+        } catch (error) {
+            console.warn('[Player] Interlocution cancellation failed:', error);
+        }
         if (this.timerId) {
             cancelAnimationFrame(this.timerId);
             this.timerId = null;
@@ -150,6 +269,8 @@ export class Player {
         this.stopProgressAnimation();
         this.atomStartTime = null;
         this.currentAtomRemainingTime = null;
+        this.sessionWallStartTime = null;
+        this.interlocutionStats = createInterlocutionStats();
         this.sessionState.reset();
         this.emit('state', { state: 'idle' });
     }
@@ -167,10 +288,13 @@ export class Player {
 
     /**
      * Register a callback to handle visual interlocutions natively within the Engine
-     * @param {Function} handlerFn - Async function that resolves when a flash completes
+     * @param {Function} handlerFn - Async function receiving duration, signal,
+     *   and lifecycle hooks; resolves when a presence completes
+     * @param {Function|null} cancelFn - Synchronously cancels an active presentation
      */
-    setInterlocutionHandler(handlerFn) {
+    setInterlocutionHandler(handlerFn, cancelFn = null) {
         this.interlocutionHandler = handlerFn;
+        this.interlocutionCancelHandler = typeof cancelFn === 'function' ? cancelFn : null;
     }
 
     /**
@@ -201,16 +325,21 @@ export class Player {
     }
 
     /**
-     * Coordinate advancing to the next atom, rolling natively for interlocution.
+     * Attempt one boundary-locked interlocution opportunity without advancing
+     * the text. The caller owns the completed-atom -> presence -> next-atom
+     * sequence.
      */
-    async processNextNode() {
+    async attemptInterlocution(lifecycle = {}) {
         if (this.sessionState.state !== 'playing') return;
+        const playbackEpoch = this._playbackEpoch;
+        let rendered = false;
         
         const visualConfig = this.sessionState.session.visualConfig;
         const visualMode = visualConfig?.visualMode || 'off';
 
         if (visualMode === 'interlocution' && this.interlocutionHandler) {
             const interlocution = visualConfig.interlocution || {};
+            this.interlocutionStats.opportunities++;
 
             // Responsive interlocutions (opt-in): the semantic track scales
             // flash probability with passage arousal, and the signal is
@@ -228,6 +357,7 @@ export class Player {
                 }
             }
 
+            frequency = Math.max(0, Math.min(1, Number(frequency) || 0));
             if (Math.random() < frequency) {
                 // We rolled a flash! Intercept the sequence.
                 this.sessionState.state = 'interlocuting';
@@ -239,8 +369,29 @@ export class Player {
 
                 try {
                     // Visual failures must never become playback failures.
-                    await this.interlocutionHandler(interlocution.duration ?? 33, signal);
+                    const requestedDurationMs = normalizeVisualPresence(
+                        interlocution.duration ?? VISUAL_PRESENCE_DEFAULT_MS
+                    );
+                    const result = await this.interlocutionHandler(
+                        requestedDurationMs,
+                        signal,
+                        lifecycle
+                    );
+                    if (playbackEpoch !== this._playbackEpoch) return false;
+                    const presentation = normalizeInterlocutionResult(result, requestedDurationMs);
+                    rendered = presentation.presented;
+                    this.interlocutionStats.visibleDurationMs += presentation.presentedDurationMs;
+                    if (presentation.presented) {
+                        this.interlocutionStats.presented++;
+                    } else {
+                        this.interlocutionStats.skipped++;
+                        const counter = rejectionCounterFor(presentation.reason);
+                        this.interlocutionStats[counter]++;
+                    }
                 } catch (error) {
+                    if (playbackEpoch !== this._playbackEpoch) return false;
+                    this.interlocutionStats.skipped++;
+                    this.interlocutionStats.renderRejected++;
                     this.emit('error', { phase: 'interlocution', error });
                     console.warn('[Player] Interlocution failed; continuing playback:', error);
                 } finally {
@@ -258,19 +409,70 @@ export class Player {
 
                 // If the user exited, stopped, or paused during the flash, abort.
                 if (this.sessionState.state !== 'playing') return;
+            } else {
+                this.interlocutionStats.probabilityRejected++;
+                this.interlocutionStats.skipped++;
             }
         }
         
-        // Mathematically pure continuation
+        return rendered;
+    }
+
+    /**
+     * Complete the current atom, optionally occupy its semantic boundary with
+     * one visual presence, then advance exactly once. Timer and voice playback
+     * intentionally share this path.
+     */
+    async processNextNode() {
+        if (this.sessionState.state !== 'playing') return;
+
+        const atoms = this.sessionState.session.atoms;
+        if (isInterlocutionEligibleBoundary(atoms, this.sessionState.currentIndex)) {
+            const playbackEpoch = this._playbackEpoch;
+            let preparedNextAtom = false;
+            await this.attemptInterlocution({
+                onCovered: () => {
+                    if (preparedNextAtom || playbackEpoch !== this._playbackEpoch) return;
+                    if (!['interlocuting', 'paused'].includes(this.sessionState.state)) return;
+                    this.sessionState.advance();
+                    preparedNextAtom = true;
+                    this._prepareCurrentAtom({ concealed: true });
+                }
+            });
+            if (this.sessionState.state !== 'playing') return;
+            if (preparedNextAtom) {
+                // The next atom is already stable behind the fully opaque
+                // visual. Start its full reading duration only after reveal.
+                this.scheduleNextAtom(false, { alreadyPrepared: true });
+                return;
+            }
+        }
+
         this.sessionState.advance();
         this.scheduleNextAtom();
+    }
+
+    _prepareCurrentAtom({ concealed = false } = {}) {
+        const atom = this.sessionState.currentAtom;
+        if (!atom) return false;
+        this.emit('atom', {
+            atom,
+            index: this.sessionState.currentIndex,
+            total: this.sessionState.session.atomCount,
+            concealed
+        });
+        this.currentAtomRemainingTime = Math.max(atom.duration * this.speedFactor, 50);
+        return true;
     }
 
     /**
      * Schedule the next atom to display
      * @param {boolean} isResuming - true if resuming from pause, guarantees no re-emit blink
+     * @param {Object} [options]
+     * @param {boolean} [options.alreadyPrepared] - the atom was emitted while
+     *   concealed and should begin normally without being emitted a second time
      */
-    scheduleNextAtom(isResuming = false) {
+    scheduleNextAtom(isResuming = false, { alreadyPrepared = false } = {}) {
         // Guard: only schedule if actually playing
         if (this.sessionState.state !== 'playing') return;
 
@@ -286,6 +488,9 @@ export class Player {
             // Session complete
             this.sessionState.state = 'complete';
             this.sessionState.elapsedTime = Date.now() - this.sessionState.startTime;
+            const wallDurationMs = this.sessionWallStartTime === null
+                ? this.sessionState.elapsedTime
+                : Date.now() - this.sessionWallStartTime;
             this.emit('progress', {
                 progress: 1,
                 elapsed: this.sessionState.elapsedTime,
@@ -297,27 +502,25 @@ export class Player {
             this.emit('state', { state: 'complete' });
             this.emit('complete', {
                 duration: this.sessionState.elapsedTime,
+                readingDurationMs: this.sessionState.elapsedTime,
+                presenceDurationMs: this.interlocutionStats.visibleDurationMs,
+                wallDurationMs,
+                presentedCount: this.interlocutionStats.presented,
+                skippedCount: this.interlocutionStats.skipped,
+                interlocution: { ...this.interlocutionStats },
                 atomCount: this.sessionState.session.atomCount
             });
             return;
         }
 
         // Emit current atom only if we're not just safely resuming
-        if (!isResuming) {
-            this.emit('atom', {
-                atom,
-                index: this.sessionState.currentIndex,
-                total: this.sessionState.session.atomCount
-            });
-            // Initialize remaining time on fresh atom, applying the dynamic speed factor
-            this.currentAtomRemainingTime = Math.max(atom.duration * this.speedFactor, 50);
+        if (!isResuming && !alreadyPrepared) {
+            this._prepareCurrentAtom();
         }
-
-        // Track precise micro-timings
-        this.atomStartTime = performance.now();
 
         // Voice sync mode: let speech control timing
         if (this.voiceSyncEnabled && this.speakFn) {
+            this.atomStartTime = performance.now();
             // Increment sync ID to orphan any callbacks from previous atoms
             const currentSyncId = ++this.speechSyncId;
 
@@ -370,16 +573,21 @@ export class Player {
             }
             return;
         }
-        // Timer mode: use requestAnimationFrame for deterministic timing
+        // Timer mode: preserve the atom as one uninterrupted perceptual unit.
+        // Any visual opportunity is evaluated only after this timer completes,
+        // inside processNextNode, before the next atom is emitted.
         const displayTime = this.currentAtomRemainingTime;
+        this.atomStartTime = performance.now();
         const targetTime = this.atomStartTime + displayTime;
 
         const checkTime = (timestamp) => {
             if (this.sessionState.state !== 'playing') return;
             
             if (timestamp >= targetTime) {
+                this.timerId = null;
+                this.atomStartTime = null;
                 this.currentAtomRemainingTime = null;
-                this.processNextNode();
+                void this.processNextNode();
             } else {
                 this.timerId = requestAnimationFrame(checkTime);
             }
@@ -444,7 +652,9 @@ export class Player {
 
         for (let i = this.sessionState.currentIndex; i < atoms.length; i++) {
             if (i === this.sessionState.currentIndex && this.currentAtomRemainingTime !== null) {
-                const consumed = this.atomStartTime ? performance.now() - this.atomStartTime : 0;
+                const consumed = this.atomStartTime !== null
+                    ? performance.now() - this.atomStartTime
+                    : 0;
                 remaining += Math.max(0, this.currentAtomRemainingTime - consumed);
             } else {
                 remaining += atoms[i].duration * this.speedFactor;

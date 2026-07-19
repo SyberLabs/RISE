@@ -25,6 +25,11 @@ import { MemoryCore } from '../core/memory.js';
 import { abortableDelay, createAbortError, isAbortError } from '../sources/visual/request.js';
 import { ShuffleBag } from '../sources/visual/shuffle-bag.js';
 import { hasVisualInterlocutionConsent, VisualFlashGate } from '../core/visual-safety.js';
+import {
+    VISUAL_PRESENCE_DEFAULT_MS,
+    normalizeVisualPresence,
+    visualPresenceTransition
+} from '../core/visual-presence.js';
 
 // External imagery is globally bounded because HTMLImageElements may retain
 // decoded pixels, not merely compressed network bytes. One image per selected
@@ -39,6 +44,10 @@ const IMAGE_LOAD_TIMEOUT_MS = 8000;
 const BACKGROUND_RETRY_BASE_MS = 1000;
 const BACKGROUND_RETRY_MAX_MS = 30000;
 const WARM_LOAD_SPACING_MS = 100;
+// CSS opacity starts on the next animation frame. Waiting one additional frame
+// after enterMs ensures the overlay is truly opaque before concealed text is
+// replaced behind it.
+const COVER_SETTLE_FRAME_MS = 17;
 // Pool key for bare 'diagram' flashes (no concrete category): a
 // Wikimedia grab-bag, one pool like any other
 const ANY_POOL = '__any__';
@@ -95,18 +104,23 @@ export class VisualCortex {
         this._kleeResizeObserver = null;
         this._boundKleeResize = null;
         this._kleeResizeTimer = null;
+        this._pendingKleeResize = false;
         this._flashGate = new VisualFlashGate();
+        this._activePresentation = null;
 
         // Configuration state
         this.config = {
             enabled: false,
             frequency: 0.3, // 30%
-            duration: 33,   // ms
+            duration: VISUAL_PRESENCE_DEFAULT_MS,
             renderLanguage: 'native', // 'native' | 'ascii'
             activeTypes: ['klee', 'turrell'],
             kleePreset: 'random', // 'random' | 'architectural' | 'chaotic' | 'harmonic' | 'gravitational' | 'twittering'
             harmonographClimate: 'auto', // 'auto' | a climate palette name (explicit = veto)
-            customVisuals: []
+            customVisuals: [],
+            // null preserves legacy direct callers; App session entry always
+            // supplies an exact resolved array (including an intentional []).
+            globalVisuals: null
         };
     }
 
@@ -238,6 +252,10 @@ export class VisualCortex {
 
     _resizeKleeCanvas() {
         if (!this._kleeCanvas || !this.klee) return false;
+        if (this._activePresentation) {
+            this._pendingKleeResize = true;
+            return false;
+        }
         const rect = this.container?.getBoundingClientRect?.() || {};
         const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
         const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 0;
@@ -271,11 +289,23 @@ export class VisualCortex {
      */
     updateConfig(newConfig) {
         const nextConfig = { ...newConfig };
+        if (this._activePresentation && Object.keys(nextConfig).length > 0) {
+            this.cancelPresentation('aborted');
+        }
+        if ('duration' in nextConfig) {
+            nextConfig.duration = normalizeVisualPresence(nextConfig.duration);
+        }
         if ('renderLanguage' in nextConfig) {
             nextConfig.renderLanguage = nextConfig.renderLanguage === 'ascii' ? 'ascii' : 'native';
         }
         if ('activeTypes' in nextConfig) {
             nextConfig.activeTypes = this._normalizeActiveTypes(nextConfig.activeTypes);
+        }
+        if ('globalVisuals' in nextConfig) {
+            nextConfig.globalVisuals = Array.isArray(nextConfig.globalVisuals)
+                ? [...new Set(nextConfig.globalVisuals.filter(uri =>
+                    typeof uri === 'string' && uri.startsWith('data:image/')))].slice(0, 20)
+                : [];
         }
         let assetGenerationRotated = false;
         // Detect if active external categories changed
@@ -299,6 +329,7 @@ export class VisualCortex {
         // Leaving an interlocution session cancels background/provider work
         // while preserving already-retained pools for a possible return.
         if (nextConfig.enabled === false && this.config.enabled !== false && !assetGenerationRotated) {
+            this.cancelPresentation('aborted');
             this._rotateAssetGeneration(nextConfig.activeTypes || this.config.activeTypes || []);
         }
 
@@ -320,7 +351,13 @@ export class VisualCortex {
             this.fractal.setSignalPool(nextConfig.semanticSignals);
         }
 
-        console.log('[Visual Cortex] Config updated:', this.config);
+        console.log('[Visual Cortex] Config updated:', {
+            ...this.config,
+            customVisuals: `${this.config.customVisuals?.length || 0} local assets`,
+            globalVisuals: Array.isArray(this.config.globalVisuals)
+                ? `${this.config.globalVisuals.length} resolved global assets`
+                : 'legacy resolution'
+        });
     }
 
     /**
@@ -570,12 +607,19 @@ export class VisualCortex {
         await Promise.all(tasks);
     }
 
+    _globalVisualUris() {
+        const visuals = Array.isArray(this.config.globalVisuals)
+            ? this.config.globalVisuals
+            : (MemoryCore.getGlobalImages?.() || []);
+        return [...new Set(visuals.filter(Boolean))].slice(0, 20);
+    }
+
     _localVisualUris() {
         const types = this.config.activeTypes || [];
         const uris = [];
         if (types.includes('custom')) uris.push(...(this.config.customVisuals || []));
         if (types.includes('global') || types.includes('global-pool')) {
-            uris.push(...(MemoryCore.getGlobalImages?.() || []));
+            uris.push(...this._globalVisualUris());
         }
         for (const type of types) {
             if (!type.startsWith?.('personal:')) continue;
@@ -1077,6 +1121,7 @@ export class VisualCortex {
      */
     async preload(estimatedFlashCount) {
         if (!this.initialized) this.init();
+        this.cancelPresentation('aborted');
         this._flashGate.reset();
 
         const flashCount = Number.isFinite(Number(estimatedFlashCount))
@@ -1268,34 +1313,195 @@ export class VisualCortex {
         return true;
     }
 
+    _presentationResult(requestedDurationMs, reason, {
+        presented = false,
+        presentedDurationMs = 0
+    } = {}) {
+        return {
+            presented,
+            requestedDurationMs: normalizeVisualPresence(requestedDurationMs),
+            presentedDurationMs: Math.max(0, Math.round(presentedDurationMs)),
+            reason
+        };
+    }
+
+    _hidePresentationOverlay() {
+        if (!this.container) return;
+        this.container.hidden = true;
+        this.container.style.display = '';
+        this.container.style.opacity = '';
+        this.container.style.transition = '';
+    }
+
+    _settlePresentation(active, result) {
+        if (!active || active.settled) return;
+        active.settled = true;
+        active.frameIds.forEach(frameId => cancelAnimationFrame(frameId));
+        active.frameIds.clear();
+        if (this._activePresentation === active) this._activePresentation = null;
+        this._hidePresentationOverlay();
+        active.resolve(result);
+        if (this._pendingKleeResize) {
+            this._pendingKleeResize = false;
+            this._resizeKleeCanvas();
+        }
+    }
+
+    cancelPresentation(reason = 'aborted') {
+        const active = this._activePresentation;
+        if (!active) {
+            this._hidePresentationOverlay();
+            return false;
+        }
+        const visibleDuration = Math.max(0, performance.now() - active.startedAt);
+        this._settlePresentation(
+            active,
+            this._presentationResult(active.requestedDurationMs, reason, {
+                presented: false,
+                presentedDurationMs: visibleDuration
+            })
+        );
+        return true;
+    }
+
+    _presentRenderedVisual(duration, lifecycle = {}) {
+        const requestedDurationMs = normalizeVisualPresence(duration);
+        const reducedMotion = typeof window !== 'undefined'
+            && typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const transition = reducedMotion
+            ? { enterMs: 0, exitMs: 0 }
+            : visualPresenceTransition(requestedDurationMs);
+
+        this.cancelPresentation('aborted');
+        this.container.hidden = false;
+        this.container.style.display = 'flex';
+        this.container.style.zIndex = '9999';
+        this.container.style.transition = transition.enterMs > 0
+            ? `opacity ${transition.enterMs}ms ease-out`
+            : 'none';
+        this.container.style.opacity = transition.enterMs > 0 ? '0' : '1';
+
+        return new Promise(resolve => {
+            const startedAt = performance.now();
+            const active = {
+                requestedDurationMs,
+                startedAt,
+                targetAt: startedAt + requestedDurationMs,
+                exitAt: startedAt + requestedDurationMs - transition.exitMs,
+                coveredAt: startedAt + (transition.enterMs > 0
+                    ? transition.enterMs + COVER_SETTLE_FRAME_MS
+                    : 0),
+                transition,
+                onCovered: typeof lifecycle.onCovered === 'function'
+                    ? lifecycle.onCovered
+                    : null,
+                covered: false,
+                exiting: false,
+                frameIds: new Set(),
+                resolve,
+                settled: false
+            };
+            this._activePresentation = active;
+
+            const schedule = callback => {
+                let frameId;
+                let firedSynchronously = false;
+                frameId = requestAnimationFrame(timestamp => {
+                    firedSynchronously = true;
+                    if (frameId !== undefined) active.frameIds.delete(frameId);
+                    callback(timestamp);
+                });
+                // Some test and embedded runtimes execute RAF callbacks inline.
+                // Do not retain an already-fired id in the cancellation set.
+                if (!firedSynchronously) active.frameIds.add(frameId);
+            };
+
+            const notifyCovered = () => {
+                if (active.covered || active.settled) return;
+                active.covered = true;
+                try {
+                    active.onCovered?.();
+                } catch (error) {
+                    console.warn('[Visual Cortex] Covered-phase hook failed:', error);
+                }
+            };
+
+            if (transition.enterMs > 0) {
+                schedule(() => {
+                    if (active.settled || this._activePresentation !== active) return;
+                    this.container.style.opacity = '1';
+                });
+            } else {
+                // The overlay is already opaque; concealed text can be prepared
+                // in the same task before the browser paints either layer.
+                notifyCovered();
+            }
+
+            const check = timestamp => {
+                if (active.settled || this._activePresentation !== active) return;
+                if (!active.covered && timestamp >= active.coveredAt) {
+                    notifyCovered();
+                }
+                if (!active.exiting && transition.exitMs > 0 && timestamp >= active.exitAt) {
+                    active.exiting = true;
+                    this.container.style.transition = `opacity ${transition.exitMs}ms ease-in`;
+                    this.container.style.opacity = '0';
+                }
+                if (timestamp >= active.targetAt) {
+                    this._settlePresentation(
+                        active,
+                        this._presentationResult(requestedDurationMs, 'presented', {
+                            presented: true,
+                            presentedDurationMs: requestedDurationMs
+                        })
+                    );
+                    return;
+                }
+                schedule(check);
+            };
+            schedule(check);
+        });
+    }
+
     /**
      * Flash a visual interrupt based on current config or overrides.
      * @param {number} [durationOverride] - Optional duration override
      * @param {string} [typeOverride] - Optional type override ('klee', 'turrell', 'fractal', 'diagram')
      * @param {Object} [signal] - Optional semantic signal ({valence, arousal});
      *                            lets the flame queue pick its closest match
-     */
-    async flash(durationOverride, typeOverride, signal) {
+     * @param {Object} [lifecycle] - Presentation lifecycle hooks
+     * @param {Function} [lifecycle.onCovered] - Runs once the overlay is fully
+     *   opaque so the next text atom can be prepared behind it
+    */
+    async flash(durationOverride, typeOverride, signal, lifecycle = {}) {
+        const duration = normalizeVisualPresence(durationOverride ?? this.config.duration);
         // Photosensitivity mode is a global safety override: no visual
         // interrupts, regardless of session config or prior consent.
         if (typeof document !== 'undefined'
             && document.documentElement.classList.contains('photosensitivity-mode')) {
-            return;
+            return this._presentationResult(duration, 'photosensitivity');
         }
-        if (!hasVisualInterlocutionConsent()) return;
-        if (!this._flashGate.allow()) return;
+        if (!hasVisualInterlocutionConsent()) {
+            return this._presentationResult(duration, 'consent');
+        }
+        // Preflight the safety envelope without spending a slot. A missing or
+        // unrenderable asset must not suppress the next valid visual frame.
+        if (!this._flashGate.canAllow(performance.now(), duration)) {
+            return this._presentationResult(duration, 'cadence');
+        }
 
         if (!this.initialized) this.init();
-        if (!this.container) return;
+        if (!this.container) return this._presentationResult(duration, 'render-failed');
 
-        // Use config or override
-        const duration = durationOverride ?? this.config.duration;
         let selectedType = typeOverride;
 
         // If no type specified, pick randomly from active types
         if (!selectedType) {
             const types = this.config.activeTypes;
-            if (types.length === 0) return; // No types enabled
+            if (types.length === 0) {
+                return this._presentationResult(duration, 'source-unavailable');
+            }
             selectedType = types[Math.floor(Math.random() * types.length)];
         }
         
@@ -1307,7 +1513,9 @@ export class VisualCortex {
         // retirement promise without attempting a provider or showing a blank
         // frame: use procedural Klee when it is available.
         if (this._isRetiredExternalType(selectedType)) {
-            if (!this.kleeFlashes || !this._kleeCanvas) return;
+            if (!this.kleeFlashes || !this._kleeCanvas) {
+                return this._presentationResult(duration, 'source-unavailable');
+            }
             selectedType = 'klee';
         }
 
@@ -1371,14 +1579,14 @@ export class VisualCortex {
             }
             if (!asciiFrame && !rendered) {
                 console.warn('[Visual Cortex] Fractal not ready, skipping flash.');
-                return;
+                return this._presentationResult(duration, 'render-failed');
             }
             if (!asciiMode && fractalEl) fractalEl.hidden = false;
         } else if (selectedType === 'neural' && this.neural) {
             const success = this.neural.generate();
             if (!success) {
                 console.warn('[Visual Cortex] Neural not ready, skipping flash.');
-                return;
+                return this._presentationResult(duration, 'render-failed');
             }
             if (asciiMode) {
                 asciiFrame = this._neuralAsciiFrame(signal);
@@ -1396,13 +1604,13 @@ export class VisualCortex {
                     // blocks the reading clock on a network request.
                     this._externalStatus.skippedFlashes++;
                     this._scheduleBackgroundWarm(false);
-                    return;
+                    return this._presentationResult(duration, 'source-unavailable');
                 }
                 if (asciiMode) {
                     asciiFrame = diagram.asciiFrame;
                     if (!asciiFrame) {
                         this._externalStatus.skippedFlashes++;
-                        return;
+                        return this._presentationResult(duration, 'source-unavailable');
                     }
                 } else {
                     this.diagramEl.src = diagram.img.src;
@@ -1414,7 +1622,7 @@ export class VisualCortex {
                 this._externalStatus.skippedFlashes++;
                 this._recordExternalFailure(selectedType, 'flash-select', err);
                 this._scheduleBackgroundWarm(false);
-                return;
+                return this._presentationResult(duration, 'render-failed');
             }
         } else if (selectedType === 'harmonograph' && this.harmonograph && this._kleeCanvas) {
             // The conductor's instrument: the signal picks a musical
@@ -1459,7 +1667,7 @@ export class VisualCortex {
                 rendered = true;
             }
         } else if (selectedType === 'global' && this.customImageEl) {
-            const globals = MemoryCore.getGlobalImages();
+            const globals = this._globalVisualUris();
             if (globals.length > 0) {
                 const globalUri = globals[Math.floor(Math.random() * globals.length)];
                 if (asciiMode) {
@@ -1492,30 +1700,16 @@ export class VisualCortex {
         }
 
         if (asciiMode) rendered = this._showAsciiFrame(asciiFrame);
-        if (!rendered) return;
+        if (!rendered) return this._presentationResult(duration, 'render-failed');
+        if (!this._flashGate.commit(performance.now(), duration)) {
+            return this._presentationResult(duration, 'cadence');
+        }
 
-        // Show Cortex
-        this.container.hidden = false;
-        this.container.style.display = 'flex';
-        this.container.style.zIndex = '9999';
-
-        // Schedule hide using deterministic timing
-        return new Promise((resolve) => {
-            const targetTime = performance.now() + duration;
-            const checkHide = (timestamp) => {
-                if (timestamp >= targetTime) {
-                    this.container.hidden = true;
-                    this.container.style.display = ''; // Reset
-                    resolve();
-                } else {
-                    requestAnimationFrame(checkHide);
-                }
-            };
-            requestAnimationFrame(checkHide);
-        });
+        return this._presentRenderedVisual(duration, lifecycle);
     }
 
     destroy() {
+        this.cancelPresentation('aborted');
         this._destroyed = true;
         this._assetAbortController.abort(createAbortError('Visual Cortex destroyed'));
         this._configVersion++;

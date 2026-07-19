@@ -14,6 +14,7 @@ export const VISUAL_SOURCE_FAMILIES = Object.freeze([
 ]);
 
 const SOURCE_FAMILY_SET = new Set(VISUAL_SOURCE_FAMILIES);
+const GLOBAL_POOL_MODE_SET = new Set(['all', 'selected']);
 
 function uniqueStringIds(value) {
     return Array.isArray(value)
@@ -59,6 +60,20 @@ export function normalizeVisualSelection(value = {}) {
     }
 
     return { sourceFamily, procedural, sourced };
+}
+
+/**
+ * A global-pool source is either dynamic (`all`) or pinned to stable asset
+ * IDs (`selected`). An empty pinned set is intentional stillness, never an
+ * instruction to fall back to every image in the shared pool.
+ */
+export function normalizeGlobalPoolSelection(value = {}) {
+    const input = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const mode = GLOBAL_POOL_MODE_SET.has(input.mode) ? input.mode : 'all';
+    const assetIds = uniqueStringIds(input.assetIds)
+        .map(id => id.slice(0, 120))
+        .slice(0, 20);
+    return { mode, assetIds };
 }
 
 export function hasVisualSelectionFields(value) {

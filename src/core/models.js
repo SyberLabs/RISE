@@ -158,6 +158,8 @@ export class Session {
    * @param {string} [config.audioPreset='silent'] - Audio preset
    * @param {string} [config.soundscape='none'] - Living soundscape (e.g. 'aurora')
    * @param {Object} [config.visualConfig] - Visual configuration
+   * @param {Object|null} [config.origin=null] - Launch-surface return descriptor
+   * @param {Object|null} [config.provenance=null] - Bounded session provenance
    * @param {boolean} [config.voiceEnabled=false] - Enable text-to-speech
    * @param {string|null} [config.voiceId=null] - Selected voice name
    */
@@ -176,6 +178,8 @@ export class Session {
     entrainmentMode = 'binaural',
     entrainmentWaveform = 'sine',
     visualConfig = { enabled: false },
+    origin = null,
+    provenance = null,
     customVisuals = [],
     isCustom = false,
     voiceEnabled = false,
@@ -198,6 +202,8 @@ export class Session {
     this.entrainmentMode = entrainmentMode;
     this.entrainmentWaveform = entrainmentWaveform;
     this.visualConfig = visualConfig;
+    this.origin = origin;
+    this.provenance = provenance;
     this.customVisuals = customVisuals;
     this.isCustom = isCustom;
     this.voiceEnabled = voiceEnabled;

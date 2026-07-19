@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import { VisualInterlocutionPanel } from './VisualInterlocutionPanel.js';
 import { WIKIMEDIA_CATEGORIES } from '../sources/visual/wikimedia.js';
 import { MUSEUM_CATEGORIES } from '../sources/visual/museum.js';
+import { MemoryCore } from '../core/memory.js';
 
 // SOL Dawn's visual preset, as it arrives via `...visualConfig` spread
 const SOL_DAWN_CONFIG = {
@@ -24,13 +25,47 @@ function makePanel(options = {}) {
 }
 
 describe('VisualInterlocutionPanel preset visibility', () => {
+    it('offers an exact thumbnail subset for the shared Global Pool', () => {
+        localStorage.removeItem('rise_global_images_v1');
+        MemoryCore.saveGlobalImage('data:image/png;base64,AAAA', { name: 'Alpha' });
+        MemoryCore.saveGlobalImage('data:image/png;base64,BBBB', { name: 'Beta' });
+        let emitted = null;
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: {
+                sourceFamily: 'personal',
+                procedural: [],
+                sourced: ['global-pool'],
+                globalPool: { mode: 'all', assetIds: [] }
+            },
+            onChange: config => { emitted = config; }
+        });
+
+        expect(container.querySelectorAll('[data-global-pool-mode]')).toHaveLength(2);
+        expect(container.querySelector('[data-global-pool-mode="all"]').classList.contains('active')).toBe(true);
+
+        container.querySelector('[data-global-pool-mode="selected"]').click();
+        const thumbnails = container.querySelectorAll('[data-global-asset-id]');
+        expect(thumbnails).toHaveLength(2);
+        expect(panel.getConfig().interlocution.globalPool).toEqual({ mode: 'selected', assetIds: [] });
+
+        const selectedId = thumbnails[0].dataset.globalAssetId;
+        thumbnails[0].click();
+        expect(emitted.interlocution.globalPool).toEqual({ mode: 'selected', assetIds: [selectedId] });
+        expect(container.querySelector(`[data-global-asset-id="${selectedId}"]`).getAttribute('aria-pressed')).toBe('true');
+
+        panel.destroy();
+        container.remove();
+        localStorage.removeItem('rise_global_images_v1');
+    });
+
     it('honors a nested interlocution preset passed at construction (SOL launch path)', () => {
         const { panel, container } = makePanel({ ...SOL_DAWN_CONFIG });
 
         const config = panel.getConfig();
         expect(config.visualMode).toBe('interlocution');
         expect(config.interlocution.frequency).toBe(0.2);
-        expect(config.interlocution.duration).toBe(120);
+        expect(config.interlocution.duration).toBe(150);
         expect(config.interlocution.sourced).toEqual(['solar']);
 
         // The preset is visible: the solar checkbox exists and is checked
@@ -170,7 +205,7 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         expect(emitted).not.toBeNull();
         expect(emitted.interlocution.sourceFamily).toBe('procedural');
         expect(emitted.interlocution.sourced).toEqual([]);
-        expect(emitted.interlocution.duration).toBe(120);
+        expect(emitted.interlocution.duration).toBe(150);
         expect(emitted.interlocution.procedural).toContain('klee');
 
         panel.destroy();
@@ -209,8 +244,48 @@ describe('VisualInterlocutionPanel preset visibility', () => {
             sourceFamily: 'procedural',
             procedural: ['klee'],
             sourced: [],
-            duration: 120
+            duration: 150
         });
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('exposes stepped Presence values with meaningful assistive text', () => {
+        let emitted = null;
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: { duration: 200, procedural: ['klee'], sourced: [] },
+            onChange: config => { emitted = config; }
+        });
+        const slider = container.querySelector('[data-slider="duration"]');
+
+        expect(slider.min).toBe('0');
+        expect(slider.max).toBe('7');
+        expect(slider.value).toBe('1');
+        expect(slider.getAttribute('aria-valuetext')).toBe('200 milliseconds, punctuation');
+
+        slider.value = '7';
+        slider.dispatchEvent(new Event('input'));
+        expect(emitted.interlocution.duration).toBe(2000);
+        expect(slider.getAttribute('aria-valuetext')).toBe('2.0 seconds, tableau');
+        expect(container.querySelector('[data-value="duration"]').textContent).toBe('2.0 s');
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('displays a saved non-step presence at the nearest step without rewriting it', () => {
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: { duration: 333, procedural: ['klee'], sourced: [] }
+        });
+        const slider = container.querySelector('[data-slider="duration"]');
+
+        expect(panel.getConfig().interlocution.duration).toBe(333);
+        expect(slider.value).toBe('2');
+        expect(slider.getAttribute('aria-valuetext')).toBe('300 milliseconds, interruption');
+        expect(container.querySelector('[data-value="duration"]').textContent).toBe('300 ms');
 
         panel.destroy();
         container.remove();

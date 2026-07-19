@@ -16,6 +16,10 @@ import {
   hasVisualSelectionFields,
   normalizeVisualSelection
 } from '../core/visual-selection.js';
+import {
+  VISUAL_PRESENCE_DEFAULT_MS,
+  normalizeVisualPresence
+} from '../core/visual-presence.js';
 import './VisualInterlocutionPanel.css';
 
 // Last-used session settings survive across chamber visits (the orbital
@@ -42,6 +46,10 @@ function createDefaultConfig() {
     // Launch origin (wayfinding): { view, icon, name } set by app.js
     // launch handlers (SOL / Vault / Library); null for plain sessions
     origin: null,
+    // Optional canonical multi-source payload and bounded provenance. Atrium
+    // uses these to keep passage boundaries intact through configuration.
+    sources: null,
+    provenance: null,
 
     // Visual orbit
     visualInterlocution: {
@@ -79,7 +87,7 @@ function createDefaultConfig() {
         procedural: [],
         sourced: [],
         frequency: 0.2,
-        duration: 80,
+        duration: VISUAL_PRESENCE_DEFAULT_MS,
         renderLanguage: 'native',
         kleePreset: 'random',
         harmonographClimate: 'auto',
@@ -179,6 +187,9 @@ export class ChamberOrbital {
         interlocution: {
           ...defaults.interlocution,
           ...(vi.interlocution || {}),
+          duration: normalizeVisualPresence(
+            vi.interlocution?.duration ?? defaults.interlocution.duration
+          ),
           ...normalizeVisualSelection(vi.interlocution || defaults.interlocution)
         }
       };
@@ -197,8 +208,8 @@ export class ChamberOrbital {
       console.warn('[ChamberOrbital] Could not clear prefs:', e);
     }
 
-    const { text, textSource, origin } = this.config;
-    this.config = { ...createDefaultConfig(), text, textSource, origin };
+    const { text, textSource, origin, sources, provenance } = this.config;
+    this.config = { ...createDefaultConfig(), text, textSource, origin, sources, provenance };
 
     // The visual panel holds its own copy of the config — rebuild it
     if (this.viPanel) {
@@ -220,10 +231,16 @@ export class ChamberOrbital {
   _applySavedText() {
     try {
       const saved = JSON.parse(localStorage.getItem(ORBITAL_TEXT_KEY));
-      if (saved?.text) {
-        this.config.text = saved.text;
+      const savedSources = Array.isArray(saved?.sources) ? saved.sources.slice(0, 64) : null;
+      if (saved?.text || savedSources?.length) {
+        this.config.sources = savedSources;
+        this.config.text = saved.text || savedSources
+          .map(source => typeof source?.data === 'string' ? source.data : '')
+          .filter(Boolean)
+          .join('\n\n');
         this.config.textSource = saved.textSource || null;
         this.config.origin = saved.origin || null;
+        this.config.provenance = saved.provenance || null;
       }
     } catch (e) {
       console.warn('[ChamberOrbital] Could not read saved text:', e);
@@ -233,10 +250,17 @@ export class ChamberOrbital {
   _persistText() {
     try {
       if (this.config.text) {
+        const sources = Array.isArray(this.config.sources) && this.config.sources.length
+          ? this.config.sources
+          : null;
         localStorage.setItem(ORBITAL_TEXT_KEY, JSON.stringify({
-          text: this.config.text,
+          // Avoid storing the combined preview twice when canonical source
+          // segments already contain the same payload.
+          text: sources ? null : this.config.text,
           textSource: this.config.textSource,
-          origin: this.config.origin
+          origin: this.config.origin,
+          sources,
+          provenance: this.config.provenance
         }));
       } else {
         localStorage.removeItem(ORBITAL_TEXT_KEY);
@@ -277,6 +301,10 @@ export class ChamberOrbital {
       ...visualInterlocution,
       interlocution: {
         ...(visualInterlocution.interlocution || {}),
+        duration: normalizeVisualPresence(
+          visualInterlocution.interlocution?.duration
+          ?? VISUAL_PRESENCE_DEFAULT_MS
+        ),
         ...normalizeVisualSelection(visualInterlocution.interlocution)
       }
     };
@@ -736,7 +764,11 @@ export class ChamberOrbital {
     this.container.addEventListener('click', (e) => {
       if (e.target.closest('[data-action="origin-return"]') && this.config.origin?.view) {
         window.rise?.audioEngine?.playClick();
-        this.onNavigate(this.config.origin.view);
+        if (this.config.origin.data) {
+          this.onNavigate(this.config.origin.view, this.config.origin.data);
+        } else {
+          this.onNavigate(this.config.origin.view);
+        }
       }
     });
 
@@ -1210,9 +1242,18 @@ export class ChamberOrbital {
   }
 
   loadText(text, source, config = {}) {
-    console.log('[ChamberOrbital] loadText called', { text: text?.substring(0, 50), source, config });
+    console.log('[ChamberOrbital] loadText called', {
+      text: text?.substring(0, 50),
+      source,
+      sourceCount: Array.isArray(config.sources) ? config.sources.length : 0,
+      hasProvenance: Boolean(config.provenance)
+    });
     this.config.text = text;
     this.config.textSource = source;
+    this.config.sources = Array.isArray(config.sources) && config.sources.length
+      ? config.sources.slice(0, 64)
+      : null;
+    this.config.provenance = config.provenance || null;
 
     // Launch origin for the wayfinding chip (null when launched plainly)
     this.config.origin = config.origin || null;
@@ -1260,6 +1301,7 @@ export class ChamberOrbital {
         livingText: config.visualConfig.livingText || this.config.visualInterlocution.livingText,
         interlocution: {
           ...mergedInterlocution,
+          duration: normalizeVisualPresence(mergedInterlocution.duration),
           ...normalizeVisualSelection(selectionInput)
         }
       };
@@ -1308,6 +1350,8 @@ export class ChamberOrbital {
     this.config.text = null;
     this.config.textSource = null;
     this.config.origin = null;
+    this.config.sources = null;
+    this.config.provenance = null;
     this.updateOriginChip();
     this._persistText(); // clearing the card clears its persistence
 
@@ -1342,6 +1386,11 @@ export class ChamberOrbital {
     const sessionData = {
       text: this.config.text,
       textSource: this.config.textSource,
+      ...(Array.isArray(this.config.sources) && this.config.sources.length
+        ? { sources: this.config.sources }
+        : {}),
+      origin: this.config.origin,
+      provenance: this.config.provenance,
       wpm: this.config.wpm,
       curve: this.config.curve,
       chunkMode: this.config.chunkMode,
@@ -1366,7 +1415,9 @@ export class ChamberOrbital {
           procedural: visualSelection.procedural,
           sourced: visualSelection.sourced,
           frequency: vi.interlocution?.frequency ?? 0.2,
-          duration: vi.interlocution?.duration ?? 80,
+          duration: normalizeVisualPresence(
+            vi.interlocution?.duration ?? VISUAL_PRESENCE_DEFAULT_MS
+          ),
           kleePreset: vi.interlocution?.kleePreset ?? 'random'
         }
       }

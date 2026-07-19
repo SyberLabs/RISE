@@ -337,7 +337,7 @@ export class Chamber {
       // When the player forwards a semantic signal (responsive mode),
       // it chooses generator, Klee preset, and flash sharpness; without
       // a signal this is the raw platform path.
-      this.player.setInterlocutionHandler(async (duration, signal) => {
+      this.player.setInterlocutionHandler(async (duration, signal, lifecycle) => {
         if (signal) {
           const interlocution = this.session?.visualConfig?.interlocution || {};
           const mood = interlocution.responsiveMood ?? true;
@@ -355,13 +355,20 @@ export class Chamber {
             visualCortex.queueKleePreset(plan.kleePreset);
           }
           // The flame queue's signal-matching is a mood behavior
-          await visualCortex.flash(plan.duration, plan.type || undefined, mood ? signal : undefined);
+          return visualCortex.flash(
+            plan.duration,
+            plan.type || undefined,
+            mood ? signal : undefined,
+            lifecycle
+          );
         } else {
-          await visualCortex.flash(duration);
+          return visualCortex.flash(duration, undefined, undefined, lifecycle);
         }
-      });
+      }, reason => visualCortex.cancelPresentation(reason));
 
-      this.player.on('atom', (data) => this.displayAtom(data.atom, data.index));
+      this.player.on('atom', (data) => this.displayAtom(data.atom, data.index, {
+        concealed: data.concealed === true
+      }));
       this.player.on('progress', (progress) => this.updateProgress(progress));
       this.player.on('complete', () => this.onSessionComplete());
       this.player.on('state', (state) => this.onStateChange(state));
@@ -617,7 +624,7 @@ export class Chamber {
     atomDisplay.style.textShadow = `0 0 ${glowRadius.toFixed(0)}px rgba(${r}, ${g}, ${b}, ${glowAlpha.toFixed(3)})`;
   }
 
-  displayAtom(atom, index) {
+  displayAtom(atom, index, { concealed = false } = {}) {
     console.log('[Chamber] displayAtom called with:', atom);
     const atomDisplay = this.container.querySelector('#atom-display');
     if (!atomDisplay) {
@@ -640,9 +647,11 @@ export class Chamber {
       return;
     }
 
-    // If reading speed is fast (duration < 400ms), use instant transitions to avoid 
-    // black frames where the text spends its entire display time fading in/out.
-    if (atom.duration && atom.duration < 400) {
+    // A boundary presence prepares the next atom while the overlay is fully
+    // opaque. Make that hidden update instantaneous so the reveal exposes one
+    // stable, already-laid-out text frame instead of a post-flash text fade.
+    // Fast atoms use the same path to avoid spending their lifespan fading.
+    if (concealed || (atom.duration && atom.duration < 400)) {
       atomDisplay.style.transition = 'none';
       atomDisplay.textContent = atom.content;
 

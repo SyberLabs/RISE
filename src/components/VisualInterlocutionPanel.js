@@ -14,16 +14,26 @@ import { WIKIMEDIA_CATEGORIES } from '../sources/visual/wikimedia.js';
 import { MUSEUM_CATEGORIES } from '../sources/visual/museum.js';
 import { MemoryCore } from '../core/memory.js';
 import { ATTRACTOR_SYSTEMS } from '../visuals/attractor.js';
-import { escapeHtml } from '../core/sanitize.js';
+import { escapeHtml, safeUrl } from '../core/sanitize.js';
 import {
     hasVisualSelectionFields,
     isPersonalVisualSource,
+    normalizeGlobalPoolSelection,
     normalizeVisualSelection
 } from '../core/visual-selection.js';
 import {
     hasVisualInterlocutionConsent,
     requestVisualInterlocutionConsent
 } from '../core/visual-safety.js';
+import {
+    VISUAL_PRESENCE_DEFAULT_MS,
+    VISUAL_PRESENCE_STEPS_MS,
+    formatVisualPresence,
+    nearestVisualPresenceStep,
+    normalizeVisualPresence,
+    visualPresenceStepIndex,
+    visualPresenceValueText
+} from '../core/visual-presence.js';
 
 // The five curated Klee presets (shared by Rhythmic chips and Genesis chips)
 const KLEE_PRESET_CHIP_IDS = ['architectural', 'chaotic', 'harmonic', 'gravitational', 'twittering'];
@@ -139,8 +149,15 @@ export class VisualInterlocutionPanel {
             // honored as a fallback for legacy call sites.
             interlocution: {
                 ...selection,
+                globalPool: normalizeGlobalPoolSelection(
+                    options.interlocution?.globalPool ?? options.globalPool
+                ),
                 frequency: options.interlocution?.frequency ?? options.frequency ?? 0.2,
-                duration: options.interlocution?.duration ?? options.duration ?? 80,
+                duration: normalizeVisualPresence(
+                    options.interlocution?.duration
+                    ?? options.duration
+                    ?? VISUAL_PRESENCE_DEFAULT_MS
+                ),
                 renderLanguage: (options.interlocution?.renderLanguage ?? options.renderLanguage) === 'ascii'
                     ? 'ascii'
                     : 'native',
@@ -193,7 +210,11 @@ export class VisualInterlocutionPanel {
             interlocution: {
                 ...this.config.interlocution,
                 procedural: [...this.config.interlocution.procedural],
-                sourced: [...this.config.interlocution.sourced]
+                sourced: [...this.config.interlocution.sourced],
+                globalPool: {
+                    ...this.config.interlocution.globalPool,
+                    assetIds: [...this.config.interlocution.globalPool.assetIds]
+                }
             },
             customVisuals: [...this.config.customVisuals]
         };
@@ -297,7 +318,9 @@ export class VisualInterlocutionPanel {
             );
             this.config.interlocution = {
                 ...mergedInterlocution,
+                duration: normalizeVisualPresence(mergedInterlocution.duration),
                 renderLanguage: mergedInterlocution.renderLanguage === 'ascii' ? 'ascii' : 'native',
+                globalPool: normalizeGlobalPoolSelection(mergedInterlocution.globalPool),
                 ...normalizeVisualSelection({
                     ...selectionInput,
                     ...migrated
@@ -308,6 +331,22 @@ export class VisualInterlocutionPanel {
         this.render();
         this.attachEvents();
         this.emitChange();
+    }
+
+    /**
+     * Refresh shared-pool thumbnails after Workshop import/delete actions.
+     * Deleted IDs are removed from the active draft, while saved blueprints
+     * remain independently diagnosable until the user opens them for editing.
+     */
+    refreshGlobalAssets() {
+        const availableIds = new Set(MemoryCore.getGlobalImageAssets().map(asset => asset.id));
+        const current = this.config.interlocution.globalPool;
+        const assetIds = current.assetIds.filter(id => availableIds.has(id));
+        const changed = assetIds.length !== current.assetIds.length;
+        this.config.interlocution.globalPool = { ...current, assetIds };
+        this.render();
+        this.attachEvents();
+        if (changed) this.emitChange();
     }
 
     /**
@@ -464,9 +503,20 @@ export class VisualInterlocutionPanel {
 
         // Retrieve saved personal sequences containing explicit visuals
         const personalBlueprints = MemoryCore.getWorkshopBlueprints().filter(bp => bp.customVisuals && bp.customVisuals.length > 0);
+        const globalAssets = MemoryCore.getGlobalImageAssets();
+        const globalPool = normalizeGlobalPoolSelection(this.config.interlocution.globalPool);
+        const availableGlobalIds = new Set(globalAssets.map(asset => asset.id));
+        const selectedGlobalCount = globalPool.assetIds.filter(id => availableGlobalIds.has(id)).length;
+        const unavailableGlobalCount = globalPool.assetIds.length - selectedGlobalCount;
 
         const mode = this.config.visualMode;
         const sourceFamily = this.config.interlocution.sourceFamily;
+        // A valid persisted non-step value remains authoritative until the
+        // user moves the curated control; presentation snaps to the nearest
+        // visible step without silently rewriting storage.
+        const displayedPresence = nearestVisualPresenceStep(
+            this.config.interlocution.duration
+        );
 
         this.container.innerHTML = `
             <div class="vi-panel ${this.expanded ? 'expanded' : ''}" role="region" aria-label="Visual Settings">
@@ -759,6 +809,58 @@ export class VisualInterlocutionPanel {
                                         <span class="vi-checkbox-label text-threshold">Global Custom Pool</span>
                                     </label>
 
+                                    ${this.config.interlocution.sourced.includes('global-pool') ? `
+                                        <div class="vi-global-picker">
+                                            <div class="vi-global-picker-header">
+                                                <span class="vi-global-picker-title">Global Pool</span>
+                                                <span class="vi-global-picker-count text-mist">
+                                                    ${globalPool.mode === 'all'
+                                                        ? `${globalAssets.length} available`
+                                                        : `${selectedGlobalCount} of ${globalAssets.length} selected`}
+                                                </span>
+                                            </div>
+                                            ${globalAssets.length > 0 ? `
+                                                <div class="vi-global-mode" role="group" aria-label="Global Pool selection mode">
+                                                    <button type="button"
+                                                        class="vi-global-mode-btn ${globalPool.mode === 'all' ? 'active' : ''}"
+                                                        data-global-pool-mode="all"
+                                                        aria-pressed="${globalPool.mode === 'all'}">All Images</button>
+                                                    <button type="button"
+                                                        class="vi-global-mode-btn ${globalPool.mode === 'selected' ? 'active' : ''}"
+                                                        data-global-pool-mode="selected"
+                                                        aria-pressed="${globalPool.mode === 'selected'}">Selected Images</button>
+                                                </div>
+                                                ${globalPool.mode === 'selected' ? `
+                                                    <div class="vi-global-thumbnails" role="group" aria-label="Choose images from the Global Pool">
+                                                        ${globalAssets.map(asset => {
+                                                            const selected = globalPool.assetIds.includes(asset.id);
+                                                            return `
+                                                                <button type="button"
+                                                                    class="vi-global-thumbnail ${selected ? 'selected' : ''}"
+                                                                    data-global-asset-id="${escapeHtml(asset.id)}"
+                                                                    aria-pressed="${selected}"
+                                                                    title="${escapeHtml(asset.name)}">
+                                                                    <img src="${safeUrl(asset.uri)}" alt="${escapeHtml(asset.name)}" loading="lazy" />
+                                                                    <span class="vi-global-thumbnail-mark" aria-hidden="true">✓</span>
+                                                                </button>
+                                                            `;
+                                                        }).join('')}
+                                                    </div>
+                                                    ${selectedGlobalCount === 0 ? `
+                                                        <p class="vi-global-picker-note text-mist">No images selected. Global Pool flashes will remain still.</p>
+                                                    ` : ''}
+                                                    ${unavailableGlobalCount > 0 ? `
+                                                        <p class="vi-global-picker-note vi-global-picker-note--warning">${unavailableGlobalCount} saved ${unavailableGlobalCount === 1 ? 'image is' : 'images are'} no longer available.</p>
+                                                    ` : ''}
+                                                ` : `
+                                                    <p class="vi-global-picker-note text-mist">New images added to the shared pool will join this sequence automatically.</p>
+                                                `}
+                                            ` : `
+                                                <p class="vi-global-picker-note text-mist">The shared pool is empty. Add images from the Workshop’s Studio Shelf.</p>
+                                            `}
+                                        </div>
+                                    ` : ''}
+
                                     <!-- Active Workshop Sequence Bundle -->
                                     ${this.config.customVisuals.length > 0 ? `
                                         <label class="vi-checkbox">
@@ -794,11 +896,18 @@ export class VisualInterlocutionPanel {
                             <span class="vi-slider-value" data-value="frequency">${Math.round(this.config.interlocution.frequency * 100)}%</span>
                         </div>
                         <div class="vi-slider-row">
-                            <label class="vi-slider-label">Duration</label>
-                            <input type="range" class="slider" min="16" max="200"
-                                value="${this.config.interlocution.duration}" data-slider="duration">
-                            <span class="vi-slider-value" data-value="duration">${this.config.interlocution.duration}ms</span>
+                            <label class="vi-slider-label" for="vi-presence-slider">Presence</label>
+                            <input id="vi-presence-slider" type="range" class="slider" min="0"
+                                max="${VISUAL_PRESENCE_STEPS_MS.length - 1}" step="1"
+                                value="${visualPresenceStepIndex(displayedPresence)}"
+                                data-slider="duration"
+                                aria-valuetext="${visualPresenceValueText(displayedPresence)}">
+                            <span class="vi-slider-value vi-slider-value--presence" data-value="duration">${formatVisualPresence(displayedPresence)}</span>
                         </div>
+                        <p class="vi-rhythm-hint text-mist">
+                            Frequency sets how often a visual may appear between text units.
+                            Longer presences automatically create more space between appearances.
+                        </p>
                     </div>
 
                     <!-- Safety Warning (Interlocution only) -->
@@ -834,12 +943,12 @@ export class VisualInterlocutionPanel {
                                     ${this.config.interlocution.responsive ? 'checked' : ''}
                                     ${mode === 'interlocution' ? '' : 'disabled'}>
                                 <span class="toggle-switch"></span>
-                                <span class="vi-semantic-label">Responsive Flashes</span>
+                                <span class="vi-semantic-label">Responsive Presence</span>
                             </label>
                             <p class="vi-semantic-hint text-mist">
                                 ${mode === 'interlocution'
-                                    ? 'The text conducts the flashes. Your settings above are the envelope — responsiveness only moves within them.'
-                                    : 'Available in Rhythmic mode — flashes follow the mood and intensity of the text.'}
+                                    ? 'The text conducts each presence. Your settings above are the envelope — responsiveness only moves within them.'
+                                    : 'Available in Rhythmic mode — visuals follow the mood and intensity of the text.'}
                             </p>
 
                             ${mode === 'interlocution' && this.config.interlocution.responsive ? `
@@ -864,7 +973,7 @@ export class VisualInterlocutionPanel {
                                             <span class="vi-semantic-sublabel">Intensity → Rhythm</span>
                                         </label>
                                         <p class="vi-semantic-subhint text-mist">
-                                            Flash density and sharpness follow the passage's energy —
+                                            Visual density and sharpness follow the passage's energy —
                                             never exceeding the frequency set above.
                                         </p>
                                     </div>
@@ -1038,6 +1147,37 @@ export class VisualInterlocutionPanel {
             });
         });
 
+        this.container.querySelectorAll('[data-global-pool-mode]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.config.interlocution.globalPool = normalizeGlobalPoolSelection({
+                    ...this.config.interlocution.globalPool,
+                    mode: btn.dataset.globalPoolMode
+                });
+                if (window.rise?.audioEngine) window.rise.audioEngine.playHiss();
+                this.emitChange();
+                this.render();
+                this.attachEvents();
+            });
+        });
+
+        this.container.querySelectorAll('[data-global-asset-id]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.globalAssetId;
+                const current = this.config.interlocution.globalPool;
+                const assetIds = current.assetIds.includes(id)
+                    ? current.assetIds.filter(assetId => assetId !== id)
+                    : [...current.assetIds, id];
+                this.config.interlocution.globalPool = normalizeGlobalPoolSelection({
+                    mode: 'selected',
+                    assetIds
+                });
+                if (window.rise?.audioEngine) window.rise.audioEngine.playHiss();
+                this.emitChange();
+                this.render();
+                this.attachEvents();
+            });
+        });
+
         this.container.querySelector('[data-slider="frequency"]')?.addEventListener('input', (e) => {
             if (window.rise?.audioEngine) {
                 window.rise.audioEngine.playHiss();
@@ -1051,8 +1191,14 @@ export class VisualInterlocutionPanel {
             if (window.rise?.audioEngine) {
                 window.rise.audioEngine.playHiss();
             }
-            this.config.interlocution.duration = parseInt(e.target.value);
-            this.container.querySelector('[data-value="duration"]').textContent = `${e.target.value}ms`;
+            const stepIndex = Math.max(
+                0,
+                Math.min(VISUAL_PRESENCE_STEPS_MS.length - 1, parseInt(e.target.value, 10) || 0)
+            );
+            const duration = VISUAL_PRESENCE_STEPS_MS[stepIndex];
+            this.config.interlocution.duration = duration;
+            e.target.setAttribute('aria-valuetext', visualPresenceValueText(duration));
+            this.container.querySelector('[data-value="duration"]').textContent = formatVisualPresence(duration);
             this.emitChange();
         });
 

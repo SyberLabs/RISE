@@ -1,0 +1,9 @@
+import { HISTORY_PILOT_PAYLOADS } from './history.js';
+import { PHILOSOPHY_PILOT_PAYLOADS } from './philosophy.js';
+
+export const ATRIUM_PILOT_PAYLOADS = Object.freeze({
+  ...PHILOSOPHY_PILOT_PAYLOADS,
+  ...HISTORY_PILOT_PAYLOADS
+});
+
+export { HISTORY_PILOT_PAYLOADS, PHILOSOPHY_PILOT_PAYLOADS };

@@ -114,6 +114,9 @@ export class Portal {
           </div>
 
           <div class="nav-secondary">
+            <button class="nav-item" data-nav="atrium" role="link">
+              Atrium
+            </button>
             <button class="nav-item" data-nav="vault" role="link">
               Vault
             </button>
