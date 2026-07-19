@@ -1336,6 +1336,8 @@ export class VisualCortex {
     _settlePresentation(active, result) {
         if (!active || active.settled) return;
         active.settled = true;
+        active.cleanupCover?.();
+        active.cleanupCover = null;
         active.frameIds.forEach(frameId => cancelAnimationFrame(frameId));
         active.frameIds.clear();
         if (this._activePresentation === active) this._activePresentation = null;
@@ -1353,7 +1355,11 @@ export class VisualCortex {
             this._hidePresentationOverlay();
             return false;
         }
-        const visibleDuration = Math.max(0, performance.now() - active.startedAt);
+        // startedAt is null when cancelled before the commit frame —
+        // nothing was ever visible
+        const visibleDuration = active.startedAt === null
+            ? 0
+            : Math.max(0, performance.now() - active.startedAt);
         this._settlePresentation(
             active,
             this._presentationResult(active.requestedDurationMs, reason, {
@@ -1383,15 +1389,18 @@ export class VisualCortex {
         this.container.style.opacity = transition.enterMs > 0 ? '0' : '1';
 
         return new Promise(resolve => {
-            const startedAt = performance.now();
+            // PRESENTATION CLOCK CONTRACT: every timing anchor is set on
+            // the COMMIT frame — the animation frame that actually starts
+            // the enter transition — never at Promise construction. A
+            // delayed first frame therefore delays the whole schedule
+            // instead of letting "covered" lap the fade and expose the
+            // concealed text swap this machinery exists to hide.
             const active = {
                 requestedDurationMs,
-                startedAt,
-                targetAt: startedAt + requestedDurationMs,
-                exitAt: startedAt + requestedDurationMs - transition.exitMs,
-                coveredAt: startedAt + (transition.enterMs > 0
-                    ? transition.enterMs + COVER_SETTLE_FRAME_MS
-                    : 0),
+                startedAt: null,
+                targetAt: Infinity,
+                exitAt: Infinity,
+                coveredAt: Infinity,
                 transition,
                 onCovered: typeof lifecycle.onCovered === 'function'
                     ? lifecycle.onCovered
@@ -1399,10 +1408,20 @@ export class VisualCortex {
                 covered: false,
                 exiting: false,
                 frameIds: new Set(),
+                cleanupCover: null,
                 resolve,
                 settled: false
             };
             this._activePresentation = active;
+
+            const anchor = timestamp => {
+                active.startedAt = timestamp;
+                active.targetAt = timestamp + requestedDurationMs;
+                active.exitAt = timestamp + requestedDurationMs - transition.exitMs;
+                active.coveredAt = timestamp + (transition.enterMs > 0
+                    ? transition.enterMs + COVER_SETTLE_FRAME_MS
+                    : 0);
+            };
 
             const schedule = callback => {
                 let frameId;
@@ -1427,20 +1446,25 @@ export class VisualCortex {
                 }
             };
 
-            if (transition.enterMs > 0) {
-                schedule(() => {
-                    if (active.settled || this._activePresentation !== active) return;
-                    this.container.style.opacity = '1';
-                });
-            } else {
-                // The overlay is already opaque; concealed text can be prepared
-                // in the same task before the browser paints either layer.
-                notifyCovered();
-            }
+            // The overlay is only trustably opaque when the browser says
+            // so: computed opacity is the ground truth the fallback path
+            // must consult before declaring cover.
+            const overlayOpaque = () => {
+                try {
+                    const opacity = parseFloat(
+                        getComputedStyle(this.container).opacity);
+                    return !Number.isFinite(opacity) || opacity >= 0.99;
+                } catch (e) {
+                    return true; // headless environments have no cascade
+                }
+            };
 
             const check = timestamp => {
                 if (active.settled || this._activePresentation !== active) return;
-                if (!active.covered && timestamp >= active.coveredAt) {
+                // Fallback cover (transitionend can be lost to a hidden
+                // tab or an interrupted transition): time elapsed AND the
+                // overlay is verifiably opaque.
+                if (!active.covered && timestamp >= active.coveredAt && overlayOpaque()) {
                     notifyCovered();
                 }
                 if (!active.exiting && transition.exitMs > 0 && timestamp >= active.exitAt) {
@@ -1460,7 +1484,36 @@ export class VisualCortex {
                 }
                 schedule(check);
             };
-            schedule(check);
+
+            if (transition.enterMs > 0) {
+                // Primary cover signal: the enter transition finishing.
+                // (Optional-chained: headless containers have no events.)
+                const onTransitionEnd = event => {
+                    if (event.target === this.container
+                        && event.propertyName === 'opacity'
+                        && !active.exiting) {
+                        notifyCovered();
+                    }
+                };
+                this.container.addEventListener?.('transitionend', onTransitionEnd);
+                active.cleanupCover = () => this.container.removeEventListener?.(
+                    'transitionend', onTransitionEnd);
+
+                schedule(timestamp => {
+                    if (active.settled || this._activePresentation !== active) return;
+                    // The commit frame: the transition begins here, and so
+                    // does the presentation clock.
+                    anchor(timestamp);
+                    this.container.style.opacity = '1';
+                    schedule(check);
+                });
+            } else {
+                // The overlay is already opaque; concealed text can be prepared
+                // in the same task before the browser paints either layer.
+                anchor(performance.now());
+                notifyCovered();
+                schedule(check);
+            }
         });
     }
 

@@ -244,8 +244,12 @@ describe('VisualCortex Klee delegation', () => {
         cortex._flashGate = { canAllow: () => true, commit: () => true };
         cortex._resizeKleeCanvas = vi.fn();
         cortex.updateConfig({ renderLanguage: 'ascii', activeTypes: ['klee'] });
+        // Inline RAF whose clock keeps advancing: under commit-frame
+        // anchoring the presentation clock starts at the first frame,
+        // so each subsequent frame must move time forward to settle.
+        let inlineFrameClock = performance.now();
         const raf = vi.spyOn(globalThis, 'requestAnimationFrame')
-            .mockImplementation(callback => callback(performance.now() + 1000));
+            .mockImplementation(callback => callback(inlineFrameClock += 1000));
 
         const result = await cortex.flash(33, 'klee', { valence: 0.2, arousal: 0.7 });
 
@@ -326,23 +330,65 @@ describe('VisualCortex flash timing', () => {
         const presenting = cortex._presentRenderedVisual(700, { onCovered });
 
         now = 1016;
-        frames.shift()(now); // Begin the 64ms opacity transition.
+        frames.shift()(now); // Commit frame: the 64ms transition AND the clock begin here.
         expect(onCovered).not.toHaveBeenCalled();
 
         now = 1070;
         frames.shift()(now);
         expect(onCovered).not.toHaveBeenCalled();
 
-        now = 1081;
+        // Old absolute anchoring would have declared cover at 1080
+        // (call time + enter + settle); the commit-frame contract says
+        // 1016 + 64 + settle = 1096
+        now = 1090;
+        frames.shift()(now);
+        expect(onCovered).not.toHaveBeenCalled();
+
+        now = 1100;
         frames.shift()(now);
         expect(onCovered).toHaveBeenCalledTimes(1);
 
-        now = 1700;
+        now = 1800;
         while (frames.length > 0) frames.shift()(now);
         await presenting;
 
         expect(onCovered).toHaveBeenCalledTimes(1);
         expect(cortex.container.hidden).toBe(true);
+    });
+
+    it('a delayed first frame delays cover — never lapping the fade (P1-3)', async () => {
+        const cortex = new VisualCortex();
+        cortex.container = { hidden: true, style: {} };
+        let now = 1000;
+        const frames = [];
+        const onCovered = vi.fn();
+        vi.spyOn(performance, 'now').mockImplementation(() => now);
+        vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => {
+            frames.push(callback);
+            return frames.length;
+        });
+
+        const presenting = cortex._presentRenderedVisual(700, { onCovered });
+
+        // The audit's race: the main thread stalls and the FIRST frame
+        // arrives long after call-time + enterMs. Under absolute
+        // anchoring, this frame both began the fade and declared cover.
+        now = 1500;
+        frames.shift()(now); // commit frame, transition starts NOW
+        expect(onCovered).not.toHaveBeenCalled();
+
+        now = 1519; // past the old absolute coveredAt — still fading
+        frames.shift()(now);
+        expect(onCovered).not.toHaveBeenCalled();
+
+        now = 1600; // 1500 + 64 + settle < 1600 — genuinely opaque
+        frames.shift()(now);
+        expect(onCovered).toHaveBeenCalledTimes(1);
+
+        now = 2400;
+        while (frames.length > 0) frames.shift()(now);
+        await presenting;
+        expect(onCovered).toHaveBeenCalledTimes(1);
     });
 
     it('cancels a long presence synchronously with an aborted result', async () => {
@@ -355,13 +401,20 @@ describe('VisualCortex flash timing', () => {
         cortex.kleeFlashes = { renderFlash: vi.fn().mockResolvedValue(true) };
 
         let now = 1000;
+        const frames = [];
         vi.spyOn(performance, 'now').mockImplementation(() => now);
-        vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(() => 1);
+        vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => {
+            frames.push(callback);
+            return frames.length;
+        });
         vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
 
         const flashing = cortex.flash(2000, 'klee');
         await Promise.resolve();
         await Promise.resolve();
+        // Commit frame fires — the presentation clock (and visible
+        // time) begins here, not at call time
+        frames.shift()(1000);
         now = 1450;
         expect(cortex.cancelPresentation()).toBe(true);
 
@@ -372,6 +425,25 @@ describe('VisualCortex flash timing', () => {
             reason: 'aborted'
         });
         expect(cortex.container.hidden).toBe(true);
+    });
+
+    it('cancelling before any frame committed reports zero visible time', async () => {
+        const cortex = new VisualCortex();
+        cortex.container = { hidden: true, style: {} };
+        let now = 1000;
+        vi.spyOn(performance, 'now').mockImplementation(() => now);
+        vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(() => 1);
+        vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
+
+        const presenting = cortex._presentRenderedVisual(2000);
+        now = 1450; // wall time passed, but no frame ever painted
+        expect(cortex.cancelPresentation()).toBe(true);
+
+        await expect(presenting).resolves.toMatchObject({
+            presented: false,
+            presentedDurationMs: 0,
+            reason: 'aborted'
+        });
     });
 
     it.each([150, 700, 2000])(
@@ -389,8 +461,12 @@ describe('VisualCortex flash timing', () => {
 
             const presenting = cortex._presentRenderedVisual(duration);
             expect(cortex.container.hidden).toBe(false);
-            now += duration;
-            while (frames.length > 0) frames.shift()(now);
+            // The commit frame starts the presentation clock; each
+            // subsequent frame advances beyond the full presence
+            while (frames.length > 0) {
+                frames.shift()(now);
+                now += duration;
+            }
 
             await expect(presenting).resolves.toMatchObject({
                 presented: true,
@@ -433,11 +509,16 @@ describe('VisualCortex flash timing', () => {
         const cortex = new VisualCortex();
         cortex.container = { hidden: true, style: {} };
         let now = 1000;
+        const frames = [];
         vi.spyOn(performance, 'now').mockImplementation(() => now);
-        vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(() => 1);
+        vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(callback => {
+            frames.push(callback);
+            return frames.length;
+        });
         vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
 
         const presenting = cortex._presentRenderedVisual(2000);
+        frames.shift()(1000); // commit frame — visible time begins
         now = 1250;
         cortex.updateConfig({ duration: 700 });
 

@@ -12,7 +12,12 @@ describe('Player', () => {
   let player;
 
   beforeEach(() => {
-    vi.useFakeTimers();
+    // The reading clock lives on performance.now — fake it alongside
+    // Date so advanceTimersByTime moves both in step
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
+        'Date', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame']
+    });
 
     const atoms = [
       new Atom({ content: 'one', duration: 100 }),
@@ -243,7 +248,8 @@ describe('Player', () => {
 
       player.sessionState.state = 'playing';
       player.sessionState.currentIndex = 1;
-      player.sessionState.startTime = Date.now() - 100;
+      // 100ms already read, on the monotonic reading clock
+      player._reading.accumulatedMs = 100;
       player.currentAtomRemainingTime = 900;
       player.atomStartTime = performance.now();
       player.startProgressAnimation();
@@ -307,7 +313,8 @@ describe('Player', () => {
       player.on('complete', callback);
       player.sessionState.state = 'playing';
       player.sessionState.currentIndex = session.atoms.length;
-      player.sessionState.startTime = Date.now() - 1000;
+      // 1000ms of reading on the monotonic clock; 1800ms of wall time
+      player._reading.accumulatedMs = 1000;
       player.sessionWallStartTime = Date.now() - 1800;
       player.interlocutionStats.presented = 1;
       player.interlocutionStats.skipped = 2;
@@ -791,5 +798,107 @@ describe('Player', () => {
 
       expect(player.elapsed).toBe(pausedElapsed);
     });
+  });
+});
+
+describe('Player reading clock (temporal contract phase 3)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  function makePlayer(durations = [100, 200, 300, 400]) {
+    const atoms = durations.map((duration, i) =>
+      new Atom({ content: `atom-${i}`, duration }));
+    return new Player(new Session({ atoms, title: 'Clock Session' }));
+  }
+
+  it('remaining time is O(1) prefix math and matches the atom sum', () => {
+    const player = makePlayer([100, 200, 300, 400]);
+    // Idle at index 0, nothing consumed: full total remains
+    expect(player.calculateRemainingTime()).toBe(1000);
+
+    player.sessionState.currentIndex = 2;
+    expect(player.calculateRemainingTime()).toBe(700); // 300 + 400
+
+    player.speedFactor = 0.5; // 2x speed
+    expect(player.calculateRemainingTime()).toBe(350);
+
+    player.sessionState.currentIndex = 4; // past the end
+    expect(player.calculateRemainingTime()).toBe(0);
+    player.destroy();
+  });
+
+  it('mid-atom remainder uses the live clock, later atoms use prefix sums', () => {
+    let now = 5000;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+    const player = makePlayer([100, 200, 300, 400]);
+
+    player.sessionState.currentIndex = 1;
+    player.currentAtomRemainingTime = 200;
+    player.atomStartTime = 5000;
+    now = 5080; // 80ms consumed of the current atom
+
+    expect(player.calculateRemainingTime()).toBe(120 + 700);
+    player.destroy();
+  });
+
+  it('wall-clock jumps never inflate elapsed reading time', () => {
+    let perfNow = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => perfNow);
+    const player = makePlayer();
+
+    player.play();
+    perfNow = 3000; // 2s of genuine playing
+    player.pause();
+
+    // The machine sleeps for an hour — wall time races, reading stops
+    vi.spyOn(Date, 'now').mockImplementation(() => Date.now.getMockImplementation ? 9_999_999_999 : 0);
+    perfNow = 3_600_000;
+
+    expect(player.elapsed).toBe(2000);
+    player.destroy();
+  });
+
+  it('interlocution and pause suspend the reading clock; resume continues it', () => {
+    let perfNow = 1000;
+    vi.spyOn(performance, 'now').mockImplementation(() => perfNow);
+    const player = makePlayer();
+
+    player.play();
+    perfNow = 2000; // 1s playing
+    player.pause();
+    perfNow = 10_000; // 8s paused — must not count
+    player.play();
+    perfNow = 10_500; // 0.5s playing
+
+    expect(player.elapsed).toBe(1500);
+    player.destroy();
+  });
+
+  it('auto-pauses when the tab hides and resumes only its own pause', () => {
+    const player = makePlayer();
+    const hidden = vi.spyOn(document, 'hidden', 'get');
+
+    player.play();
+    expect(player.state).toBe('playing');
+
+    hidden.mockReturnValue(true);
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(player.state).toBe('paused');
+
+    hidden.mockReturnValue(false);
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(player.state).toBe('playing');
+
+    // A USER pause is never overridden by tab visibility
+    player.pause();
+    hidden.mockReturnValue(true);
+    document.dispatchEvent(new Event('visibilitychange'));
+    hidden.mockReturnValue(false);
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(player.state).toBe('paused');
+
+    player.destroy();
   });
 });

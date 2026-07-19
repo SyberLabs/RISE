@@ -141,6 +141,65 @@ export class Player {
         this.sessionWallStartTime = null;
         this.interlocutionStats = createInterlocutionStats();
         this._playbackEpoch = 0;
+
+        // READING CLOCK: one monotonic accumulator that advances only
+        // while the state is 'playing'. Progress and elapsed derive from
+        // it — never from wall time, which jumps across tab suspension,
+        // system sleep, and clock adjustments. Wall time remains a
+        // separate, honest metric (sessionWallStartTime).
+        this._reading = { accumulatedMs: 0, tickAnchor: null };
+
+        // Prefix duration sums make remaining-time O(1) per progress
+        // frame instead of a per-frame scan of every remaining atom.
+        const atoms = session?.atoms || [];
+        this._prefixDurations = new Float64Array(atoms.length + 1);
+        for (let i = 0; i < atoms.length; i++) {
+            const duration = Number(atoms[i]?.duration);
+            this._prefixDurations[i + 1] = this._prefixDurations[i]
+                + (Number.isFinite(duration) ? Math.max(0, duration) : 0);
+        }
+        this._totalAuthoredMs = this._prefixDurations[atoms.length];
+
+        // Hidden tabs suspend RAF while wall time races ahead. Policy:
+        // auto-pause when hidden, auto-resume only if WE paused it.
+        this._autoPausedByVisibility = false;
+        this._boundVisibility = () => this._handleVisibilityChange();
+        if (typeof document !== 'undefined' && document.addEventListener) {
+            document.addEventListener('visibilitychange', this._boundVisibility);
+        }
+    }
+
+    // ─── Reading clock ───
+
+    _readingNow() {
+        return this._reading.accumulatedMs + (this._reading.tickAnchor !== null
+            ? performance.now() - this._reading.tickAnchor
+            : 0);
+    }
+
+    _readingResume() {
+        if (this._reading.tickAnchor === null) {
+            this._reading.tickAnchor = performance.now();
+        }
+    }
+
+    _readingPause() {
+        if (this._reading.tickAnchor !== null) {
+            this._reading.accumulatedMs += performance.now() - this._reading.tickAnchor;
+            this._reading.tickAnchor = null;
+        }
+    }
+
+    _handleVisibilityChange() {
+        if (typeof document === 'undefined') return;
+        if (document.hidden && this.sessionState.state === 'playing') {
+            this._autoPausedByVisibility = true;
+            this.pause();
+        } else if (!document.hidden && this._autoPausedByVisibility
+            && this.sessionState.state === 'paused') {
+            this._autoPausedByVisibility = false;
+            this.play();
+        }
     }
 
     /**
@@ -185,6 +244,9 @@ export class Player {
 
         const previousState = this.sessionState.state;
         this.sessionState.state = 'playing';
+        this._readingResume();
+        // A deliberate play is never a visibility resume
+        if (previousState === 'paused') this._autoPausedByVisibility = false;
 
         if (previousState === 'idle') {
             this.sessionState.startTime = Date.now();
@@ -210,7 +272,8 @@ export class Player {
 
         const wasInterlocuting = this.sessionState.state === 'interlocuting';
         this.sessionState.state = 'paused';
-        
+        this._readingPause();
+
         if (!wasInterlocuting) {
             this.sessionState.pausedAt = Date.now();
         }
@@ -270,6 +333,8 @@ export class Player {
         this.atomStartTime = null;
         this.currentAtomRemainingTime = null;
         this.sessionWallStartTime = null;
+        this._reading = { accumulatedMs: 0, tickAnchor: null };
+        this._autoPausedByVisibility = false;
         this.interlocutionStats = createInterlocutionStats();
         this.sessionState.reset();
         this.emit('state', { state: 'idle' });
@@ -363,7 +428,8 @@ export class Player {
                 this.sessionState.state = 'interlocuting';
                 this.emit('state', { state: 'interlocuting' });
 
-                // Pause the main session clock so progress doesn't artificially advance
+                // Pause the reading clock — presence time is not reading time
+                this._readingPause();
                 this.sessionState.pausedAt = Date.now();
                 this.stopProgressAnimation();
 
@@ -402,6 +468,7 @@ export class Player {
                             this.sessionState.pausedAt = null;
                         }
                         this.sessionState.state = 'playing';
+                        this._readingResume();
                         this.emit('state', { state: 'playing' });
                         this.startProgressAnimation();
                     }
@@ -485,9 +552,11 @@ export class Player {
         const atom = this.sessionState.currentAtom;
 
         if (!atom) {
-            // Session complete
+            // Session complete — reading time from the monotonic clock,
+            // wall time honestly separate
             this.sessionState.state = 'complete';
-            this.sessionState.elapsedTime = Date.now() - this.sessionState.startTime;
+            this._readingPause();
+            this.sessionState.elapsedTime = Math.round(this._readingNow());
             const wallDurationMs = this.sessionWallStartTime === null
                 ? this.sessionState.elapsedTime
                 : Date.now() - this.sessionWallStartTime;
@@ -606,7 +675,7 @@ export class Player {
         const animate = () => {
             if (this.sessionState.state !== 'playing') return;
 
-            const elapsed = Date.now() - this.sessionState.startTime;
+            const elapsed = this._readingNow();
             const remaining = this.calculateRemainingTime();
             const totalDuration = elapsed + remaining;
             const progress = totalDuration > 0 ? Math.min(elapsed / totalDuration, 1) : 1;
@@ -647,18 +716,25 @@ export class Player {
      * @returns {number}
      */
     calculateRemainingTime() {
-        const atoms = this.sessionState.session.atoms;
-        let remaining = 0;
+        // O(1) via prefix sums — the old per-frame scan of every
+        // remaining atom made the progress bar itself a jank source on
+        // long Word-mode sessions.
+        const prefix = this._prefixDurations;
+        const index = this.sessionState.currentIndex;
+        const lastIndex = prefix.length - 1;
+        if (index >= lastIndex) return 0;
 
-        for (let i = this.sessionState.currentIndex; i < atoms.length; i++) {
-            if (i === this.sessionState.currentIndex && this.currentAtomRemainingTime !== null) {
-                const consumed = this.atomStartTime !== null
-                    ? performance.now() - this.atomStartTime
-                    : 0;
-                remaining += Math.max(0, this.currentAtomRemainingTime - consumed);
-            } else {
-                remaining += atoms[i].duration * this.speedFactor;
-            }
+        // Atoms after the current one, at the current speed
+        let remaining = (this._totalAuthoredMs - prefix[index + 1]) * this.speedFactor;
+
+        // The current atom: live remainder when mid-flight, else full
+        if (this.currentAtomRemainingTime !== null) {
+            const consumed = this.atomStartTime !== null
+                ? performance.now() - this.atomStartTime
+                : 0;
+            remaining += Math.max(0, this.currentAtomRemainingTime - consumed);
+        } else {
+            remaining += (prefix[index + 1] - prefix[index]) * this.speedFactor;
         }
 
         return Math.round(remaining);
@@ -685,14 +761,12 @@ export class Player {
      * @returns {number}
      */
     get elapsed() {
-        if (!this.sessionState.startTime) return 0;
-        if (this.sessionState.state === 'paused') {
-            return this.sessionState.pausedAt - this.sessionState.startTime;
-        }
+        // The monotonic reading clock: pause, interlocution, hidden
+        // tabs, and wall-clock jumps never inflate it
         if (this.sessionState.state === 'complete') {
             return this.sessionState.elapsedTime;
         }
-        return Date.now() - this.sessionState.startTime;
+        return Math.round(this._readingNow());
     }
 
     /**
@@ -700,6 +774,9 @@ export class Player {
      */
     destroy() {
         this.stop();
+        if (typeof document !== 'undefined' && document.removeEventListener) {
+            document.removeEventListener('visibilitychange', this._boundVisibility);
+        }
         this.listeners.clear();
     }
 }
