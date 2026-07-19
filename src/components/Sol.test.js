@@ -14,6 +14,7 @@ const BLUEPRINT = {
     id: 'bp-evening',
     title: 'Evening Ritual',
     wpm: 200,
+    paceV2: true, // authored under the honest temporal contract
     curve: 'induction',
     audioPreset: 'deep',
     chunkMode: 'word',

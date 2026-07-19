@@ -49,7 +49,7 @@ export const SOL_SEQUENCES = [
     durationEst: "3-5 min",
     category: "temporal",
     config: {
-      wpm: 160,
+      wpm: 230,
       curve: "induction",
       audioPreset: "focus",
       visualConfig: {
@@ -68,7 +68,7 @@ export const SOL_SEQUENCES = [
     durationEst: "5-8 min",
     category: "temporal",
     config: {
-      wpm: 240,
+      wpm: 350,
       curve: "ascent",
       audioPreset: "deep",
       visualConfig: {
@@ -87,7 +87,7 @@ export const SOL_SEQUENCES = [
     durationEst: "2-3 min",
     category: "temporal",
     config: {
-      wpm: 200,
+      wpm: 290,
       curve: "flat",
       audioPreset: "focus",
       visualConfig: {
@@ -106,7 +106,7 @@ export const SOL_SEQUENCES = [
     durationEst: "4-6 min",
     category: "temporal",
     config: {
-      wpm: 220,
+      wpm: 320,
       curve: "wave",
       audioPreset: "gateway",
       visualConfig: {
@@ -125,7 +125,7 @@ export const SOL_SEQUENCES = [
     durationEst: "5-8 min",
     category: "temporal",
     config: {
-      wpm: 180,
+      wpm: 260,
       curve: "flat",
       audioPreset: "silent",
       visualConfig: {
@@ -144,7 +144,7 @@ export const SOL_SEQUENCES = [
     durationEst: "8-12 min",
     category: "temporal",
     config: {
-      wpm: 150,
+      wpm: 220,
       curve: "induction",
       audioPreset: "deep",
       visualConfig: {
@@ -163,7 +163,7 @@ export const SOL_SEQUENCES = [
     durationEst: "15-45 min",
     category: "temporal",
     config: {
-      wpm: 120,
+      wpm: 170,
       curve: "wave",
       audioPreset: "gateway",
       visualConfig: {
@@ -186,7 +186,7 @@ export const SOL_SEQUENCES = [
     durationEst: "3-5 min",
     category: "situational",
     config: {
-      wpm: 240,
+      wpm: 350,
       curve: "ascent",
       audioPreset: "focus",
       visualConfig: { visualMode: 'off' }
@@ -202,7 +202,7 @@ export const SOL_SEQUENCES = [
     durationEst: "4-6 min",
     category: "situational",
     config: {
-      wpm: 160,
+      wpm: 230,
       curve: "flat",
       audioPreset: "silent",
       visualConfig: {
@@ -221,7 +221,7 @@ export const SOL_SEQUENCES = [
     durationEst: "8-12 min",
     category: "situational",
     config: {
-      wpm: 180,
+      wpm: 260,
       curve: "flat",
       audioPreset: "deep",
       visualConfig: {
@@ -240,7 +240,7 @@ export const SOL_SEQUENCES = [
     durationEst: "6-10 min",
     category: "situational",
     config: {
-      wpm: 200,
+      wpm: 290,
       curve: "flat",
       audioPreset: "focus",
       visualConfig: {
@@ -259,7 +259,7 @@ export const SOL_SEQUENCES = [
     durationEst: "10-15 min",
     category: "situational",
     config: {
-      wpm: 140,
+      wpm: 200,
       curve: "flat",
       audioPreset: "silent",
       visualConfig: { visualMode: 'off' }
@@ -279,7 +279,7 @@ export const SOL_SEQUENCES = [
     durationEst: "8-12 min",
     category: "archetypal",
     config: {
-      wpm: 260,
+      wpm: 370,
       curve: "climax",
       audioPreset: "gateway",
       visualConfig: {
@@ -298,7 +298,7 @@ export const SOL_SEQUENCES = [
     durationEst: "6-10 min",
     category: "archetypal",
     config: {
-      wpm: 240,
+      wpm: 350,
       curve: "ascent",
       audioPreset: "deep",
       visualConfig: { visualMode: 'off' }
@@ -314,7 +314,7 @@ export const SOL_SEQUENCES = [
     durationEst: "5-8 min",
     category: "archetypal",
     config: {
-      wpm: 220,
+      wpm: 320,
       curve: "wave",
       audioPreset: "focus",
       visualConfig: {
@@ -333,7 +333,7 @@ export const SOL_SEQUENCES = [
     durationEst: "8-15 min",
     category: "archetypal",
     config: {
-      wpm: 160,
+      wpm: 230,
       curve: "induction",
       audioPreset: "gateway",
       visualConfig: {

@@ -160,3 +160,92 @@ describe('session compiler', () => {
     });
   });
 });
+
+describe('Temporal contract: effective WPM invariants', () => {
+    // The red-team audit measured 139-153 delivered WPM at a requested
+    // 220 (a hidden 1.4375x slowdown plus multiplicative punctuation).
+    // These invariants pin the honest contract: nominal WPM is the
+    // delivered WPM, within texture tolerance.
+
+    const words = (n, word = 'lumen') => Array.from({ length: n }, () => word).join(' ');
+
+    function effectiveWpm(text, options) {
+        const session = compileSession({
+            title: 'invariant',
+            sources: [{ id: 's', name: 'S', raw: text }],
+            ...options
+        });
+        const totalWords = text.split(/\s+/).filter(Boolean).length;
+        const totalMs = session.atoms.reduce((sum, atom) => sum + atom.duration, 0);
+        return (totalWords / totalMs) * 60_000;
+    }
+
+    it('word mode delivers nominal WPM on unpunctuated text (±8%)', () => {
+        const wpm = effectiveWpm(words(300), { wpm: 220, chunkMode: 'word', curve: 'flat' });
+        expect(wpm).toBeGreaterThan(220 * 0.92);
+        expect(wpm).toBeLessThan(220 * 1.08);
+    });
+
+    it('sentence mode delivers nominal WPM on unpunctuated text (±8%)', () => {
+        const wpm = effectiveWpm(words(96), { wpm: 240, chunkMode: 'sentence', curve: 'flat' });
+        expect(wpm).toBeGreaterThan(240 * 0.92);
+        expect(wpm).toBeLessThan(240 * 1.08);
+    });
+
+    it('punctuation adds bounded TERMINAL time, never multiplies the chunk', () => {
+        const base = 60_000 / 220;
+        const plain = compileSession({
+            title: 't', wpm: 220, chunkMode: 'sentence', curve: 'flat',
+            sources: [{ id: 's', name: 'S', raw: words(12) }]
+        }).atoms[0].duration;
+        const period = compileSession({
+            title: 't', wpm: 220, chunkMode: 'sentence', curve: 'flat',
+            sources: [{ id: 's', name: 'S', raw: words(12) + '.' }]
+        }).atoms[0].duration;
+
+        // A period adds one half-beat — not 50% of the whole sentence
+        expect(period - plain).toBeGreaterThan(base * 0.4);
+        expect(period - plain).toBeLessThan(base * 0.6);
+    });
+
+    it('long chunks are subdivided into readable atoms, never ceiling-compressed', () => {
+        const session = compileSession({
+            title: 't', wpm: 220, chunkMode: 'sentence', curve: 'flat',
+            sources: [{ id: 's', name: 'S', raw: words(220) }]
+        });
+        const textAtoms = session.atoms.filter(a => a.content);
+        expect(textAtoms.length).toBeGreaterThan(10);
+        for (const atom of textAtoms) {
+            expect(atom.content.split(/\s+/).length).toBeLessThanOrEqual(16);
+            expect(atom.duration).toBeLessThan(10_000);
+        }
+        // And the whole passage still reads at nominal speed
+        const wpm = effectiveWpm(words(220), { wpm: 220, chunkMode: 'sentence', curve: 'flat' });
+        expect(wpm).toBeGreaterThan(220 * 0.92);
+        expect(wpm).toBeLessThan(220 * 1.08);
+    });
+
+    it('token conservation: the smart split never duplicates connectives', () => {
+        const source = 'one two three four five six and seven eight nine ten eleven twelve';
+        const session = compileSession({
+            title: 't', wpm: 220, chunkMode: 'phrase', curve: 'flat',
+            sources: [{ id: 's', name: 'S', raw: source }]
+        });
+        const emitted = session.atoms
+            .filter(a => a.content)
+            .map(a => a.content)
+            .join(' ')
+            .split(/\s+/);
+        expect(emitted).toEqual(source.split(/\s+/));
+    });
+
+    it('authored markers keep their contract ([PAUSE] = 2000ms)', () => {
+        const session = compileSession({
+            title: 't', wpm: 220, chunkMode: 'word', curve: 'flat',
+            sources: [{ id: 's', name: 'S', raw: 'alpha\n\n[PAUSE]\n\nbeta' }]
+        });
+        const pause = session.atoms.find(a => a.tags.includes('PAUSE'));
+        expect(pause).toBeDefined();
+        expect(pause.duration).toBe(2000);
+    });
+});

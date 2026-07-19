@@ -151,7 +151,7 @@ export class Session {
    * @param {string} [config.intent=''] - Session purpose/intent
    * @param {Source[]} [config.sources=[]] - Content sources
    * @param {Atom[]} [config.atoms=[]] - Compiled atoms
-   * @param {number} [config.wpm=220] - Words per minute
+   * @param {number} [config.wpm=320] - Words per minute
    * @param {ChunkMode} [config.chunkMode='word'] - Chunking strategy
    * @param {string} [config.curve='flat'] - Pacing curve
    * @param {string} [config.displayMode='focal'] - Display mode
@@ -169,7 +169,7 @@ export class Session {
     intent = '',
     sources = [],
     atoms = [],
-    wpm = 220,
+    wpm = 320,
     chunkMode = 'word',
     curve = 'flat',
     displayMode = 'focal',
@@ -193,7 +193,7 @@ export class Session {
     this.intent = intent;
     this.sources = Array.isArray(sources) ? sources : [];
     this.atoms = Array.isArray(atoms) ? atoms : [];
-    this.wpm = Number.isFinite(safeWpm) ? Math.max(50, Math.min(1000, safeWpm)) : 220;
+    this.wpm = Number.isFinite(safeWpm) ? Math.max(50, Math.min(1000, safeWpm)) : 320;
     this.chunkMode = chunkModes.has(chunkMode) ? chunkMode : 'word';
     this.curve = curve;
     this.displayMode = displayMode;

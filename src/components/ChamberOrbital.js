@@ -107,7 +107,7 @@ function createDefaultConfig() {
     selectedSwellId: null,
 
     // Temporal orbit
-    wpm: 220,
+    wpm: 320,
     curve: 'flat',
     chunkMode: 'word'
   };
@@ -171,6 +171,14 @@ export class ChamberOrbital {
       'entrainmentMode', 'entrainmentWaveform', 'voiceEnabled', 'voiceId', 'selectedSwellId'];
     for (const key of scalarKeys) {
       if (saved[key] !== undefined) this.config[key] = saved[key];
+    }
+
+    // TEMPORAL CONTRACT MIGRATION: WPM saved before the honest-pacing
+    // contract was calibrated under a hidden 1.4375× slowdown. Scale
+    // once so the delivered feel is unchanged — only the label moves.
+    if (!saved.paceV2 && Number.isFinite(this.config.wpm)) {
+      this.config.wpm = Math.max(100, Math.min(500,
+        Math.round((this.config.wpm * 1.4375) / 10) * 10));
     }
     this._normalizeAudioExclusivity();
 
@@ -309,6 +317,9 @@ export class ChamberOrbital {
       }
     };
     const payload = {
+      // paceV2: this WPM was chosen under the honest temporal contract
+      // (post-1.4375× repair) — never migrate it again
+      paceV2: true,
       wpm, curve, chunkMode, soundscape, audioPreset, entrainmentMode,
       entrainmentWaveform, voiceEnabled, voiceId, selectedSwellId,
       visualInterlocution: normalizedVisuals

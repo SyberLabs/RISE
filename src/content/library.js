@@ -63,7 +63,7 @@ function registerStarterTexts() {
             name: `Segment ${idx + 1}`,
             description: verseText.substring(0, 60) + (verseText.length > 60 ? '...' : ''),
             content: verseText,
-            wpm: seq.wpm || 220,
+            wpm: seq.wpm || 320,
             curve: seq.curve || 'flat'
         }));
 
@@ -76,7 +76,7 @@ function registerStarterTexts() {
             description: seq.description,
             chapterCount: verses.length,
             defaultCurve: seq.curve || 'flat',
-            defaultWpm: seq.wpm || 220,
+            defaultWpm: seq.wpm || 320,
             tags: ['starter', seq.category],
             verses: structuredVerses,
             provider: 'starters',
@@ -125,7 +125,7 @@ function registerSimplifiedSacredTexts() {
             name: `Verse ${idx + 1}`,
             description: verseText.substring(0, 60) + (verseText.length > 60 ? '...' : ''),
             content: verseText,
-            wpm: 150,
+            wpm: 220,
             curve: 'induction'
         }));
 
@@ -138,7 +138,7 @@ function registerSimplifiedSacredTexts() {
             description: `${text.verses.length} verses from ${text.tradition} tradition`,
             chapterCount: text.verses.length,
             defaultCurve: 'induction',
-            defaultWpm: 150,
+            defaultWpm: 220,
             tags: text.tags,
             verses: structuredVerses,
             provider: 'sacred-texts',
@@ -161,7 +161,7 @@ function registerLiteraryTexts() {
             description: text.description,
             chapterCount: text.sequences.length,
             defaultCurve: 'induction',
-            defaultWpm: 130,
+            defaultWpm: 190,
             tags: ['literary', 'curated'],
             verses: text.sequences,
             provider: 'literary-local',
@@ -178,7 +178,7 @@ function registerDeclassifiedDocs() {
         const verseObj = {
             name: 'Full Document',
             content: doc.content,
-            wpm: 180,
+            wpm: 260,
             curve: 'induction',
             description: 'Declassified Text'
         };
@@ -192,7 +192,7 @@ function registerDeclassifiedDocs() {
             description: doc.summary,
             chapterCount: 1,
             defaultCurve: 'induction',
-            defaultWpm: 180,
+            defaultWpm: 260,
             tags: doc.tags,
             provider: 'cia-declassified',
             verses: [verseObj],
@@ -215,7 +215,7 @@ function registerResearchPapers() {
             description: `Live research abstracts on ${cat.name}`,
             chapterCount: 0, // Dynamic
             defaultCurve: 'flat',
-            defaultWpm: 250,
+            defaultWpm: 360,
             tags: cat.tags,
             provider: 'arxiv-research',
             isCollection: true,
@@ -245,7 +245,7 @@ function registerExtendedSacredTexts() {
             name: `Part ${idx + 1}`,
             description: chapter.substring(0, 80) + '...',
             content: chapter,
-            wpm: 150,
+            wpm: 220,
             curve: 'induction'
         }));
 
@@ -258,7 +258,7 @@ function registerExtendedSacredTexts() {
             description: text.description,
             chapterCount: text.chapters.length,
             defaultCurve: 'induction',
-            defaultWpm: 150,
+            defaultWpm: 220,
             tags: text.tags,
             verses: structuredVerses,
             provider: 'extended-sacred',

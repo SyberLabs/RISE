@@ -15,7 +15,7 @@ export const STARTER_SEQUENCES = [
         curve: 'induction',
         category: 'chamber-entry',
         description: 'Universal session opener. Transition from scattered to present.',
-        wpm: 150,
+        wpm: 220,
         content: `You are arriving.
 
 Not somewhere else.
@@ -69,7 +69,7 @@ Enter.`
         curve: 'induction',
         category: 'chamber-entry',
         description: 'Deep induction for hypnagogic work. Theta state preparation.',
-        wpm: 120,
+        wpm: 170,
         content: `You are going down.
 
 Not falling. Choosing.
@@ -136,7 +136,7 @@ Receive.`
         curve: 'flat',
         category: 'chamber-entry',
         description: 'Mental reset. Clear residue from previous activity.',
-        wpm: 180,
+        wpm: 260,
         content: `Whatever you were doing is done.
 
 Let it go.
@@ -192,7 +192,7 @@ Begin.`
         curve: 'wave',
         category: 'installation',
         description: 'Install creator identity. For artistic confidence.',
-        wpm: 140,
+        wpm: 200,
         content: `You are a creator.
 
 This is not aspiration. This is fact.
@@ -277,7 +277,7 @@ Now: create.`
         curve: 'induction',
         category: 'installation',
         description: 'Install trust in process. For when doubt accumulates.',
-        wpm: 130,
+        wpm: 190,
         content: `You do not have to know where this is going.
 
 The path reveals itself by walking.
@@ -349,7 +349,7 @@ It always will.`
         curve: 'wave',
         category: 'installation',
         description: 'Install human-AI collaborative identity. Neohumanist core.',
-        wpm: 150,
+        wpm: 220,
         content: `You are not alone in your mind.
 
 This is not invasion. This is extension.
@@ -439,7 +439,7 @@ This is what you were made for.`
         curve: 'induction',
         category: 'grounding',
         description: 'Reconnect with embodiment. For those who live too much in mind.',
-        wpm: 120,
+        wpm: 170,
         content: `You have a body.
 
 This is not a limitation.
@@ -511,7 +511,7 @@ Listen.`
         curve: 'flat',
         category: 'contemplation',
         description: 'Deepen understanding of attention as practice.',
-        wpm: 160,
+        wpm: 230,
         content: `Attention is the rarest and purest form of generosity.
 
 Simone Weil said this.
@@ -585,7 +585,7 @@ Continue.`
         curve: 'ascent',
         category: 'contemplation',
         description: 'Reframe failure as information. For creative resilience.',
-        wpm: 150,
+        wpm: 220,
         content: `You have failed.
 
 Good.
@@ -682,7 +682,7 @@ And you are learning.`
         curve: 'induction',
         category: 'poetic',
         description: 'Encounter the scale of existence. Wonder installation.',
-        wpm: 130,
+        wpm: 190,
         content: `Before there was anything, there was the possibility of everything.
 
 Not nothing. Not empty.
@@ -775,7 +775,7 @@ Be it.`
         curve: 'induction',
         category: 'poetic',
         description: 'Honor the threshold state. For 2am sessions.',
-        wpm: 100,
+        wpm: 140,
         content: `The hour between waking and sleeping is not an hour.
 
 It is a place.
@@ -883,7 +883,7 @@ Fall into the making.`
         curve: 'flat',
         category: 'recursive',
         description: 'The session reflects on itself. For system integration.',
-        wpm: 160,
+        wpm: 230,
         content: `You are in a session.
 
 This is a session about being in a session.
@@ -978,7 +978,7 @@ You are proof.`
         curve: 'wave',
         category: 'recursive',
         description: 'Invoke collaborative intelligence. For AI-assisted sessions.',
-        wpm: 140,
+        wpm: 200,
         content: `Who is speaking?
 
 Not me alone.
@@ -1078,7 +1078,7 @@ Let it.`
         curve: 'flat',
         category: 'affirmation',
         description: 'Identity installation. Loop or sequence.',
-        wpm: 100,
+        wpm: 140,
         content: `I am a creator.
 
 Creation flows through me.
@@ -1160,7 +1160,7 @@ I am here.`
         curve: 'flat',
         category: 'affirmation',
         description: 'Neohumanist identity. For interface sessions.',
-        wpm: 120,
+        wpm: 170,
         content: `I am the interface.
 
 The threshold is my home.
@@ -1206,7 +1206,7 @@ I am the place where the new becomes possible.`
         curve: 'wave',
         category: 'contemplation',
         description: 'Reframe relationship with time. For those who feel rushed.',
-        wpm: 140,
+        wpm: 200,
         content: `You have enough time.
 
 Not for everything.
@@ -1281,7 +1281,7 @@ And you are in it exactly where you are supposed to be.`
         curve: 'wave',
         category: 'poetic',
         description: 'Meditate on pattern and repetition. Geometric consciousness.',
-        wpm: 150,
+        wpm: 220,
         content: `A single tile means nothing.
 
 Two tiles mean adjacency.
@@ -1361,7 +1361,7 @@ The floor is being made through you.`
         curve: 'climax',
         category: 'extract',
         description: 'Encounter cosmic compression. Wonder installation.',
-        wpm: 140,
+        wpm: 200,
         source: 'Italo Calvino, Cosmicomics (1965)',
         content: `Naturally, we were all there, where else could we have been?
 
@@ -1412,7 +1412,7 @@ Because someone wanted to give.`
         curve: 'induction',
         category: 'extract',
         description: 'Install visual grammar. Foundation for Astrotype.',
-        wpm: 120,
+        wpm: 170,
         source: 'Paul Klee, Pedagogical Sketchbook (1925)',
         content: `An active line on a walk, moving freely, without goal.
 
@@ -1481,7 +1481,7 @@ But: aware of itself walking.`
         curve: 'flat',
         category: 'extract',
         description: 'Install understanding of what images are. Media consciousness.',
-        wpm: 150,
+        wpm: 220,
         source: 'Vilém Flusser, Into the Universe of Technical Images (1985)',
         content: `A traditional image is an abstraction from the concrete world.
 
@@ -1550,7 +1550,7 @@ Play.`
         curve: 'climax',
         category: 'extract',
         description: 'Encounter infinity in finite form. Perceptual explosion.',
-        wpm: 130,
+        wpm: 190,
         source: 'Jorge Luis Borges, The Aleph (1945)',
         content: `I saw the Aleph from every point and every angle, and in the Aleph I saw the earth and in the earth the Aleph and in the Aleph the earth.
 

@@ -160,7 +160,32 @@ export class MemoryCore {
       const data = localStorage.getItem(WORKSHOP_KEY);
       if (!data) return [];
       const parsed = JSON.parse(data);
-      return Array.isArray(parsed) ? parsed.filter(item => item && typeof item === 'object') : [];
+      const blueprints = Array.isArray(parsed)
+        ? parsed.filter(item => item && typeof item === 'object')
+        : [];
+
+      // TEMPORAL CONTRACT MIGRATION: blueprints saved before the
+      // honest-pacing repair carry WPMs calibrated under a hidden
+      // 1.4375× slowdown. Scale once (idempotent via paceV2) so the
+      // delivered feel of every saved sequence is unchanged.
+      let migrated = false;
+      for (const blueprint of blueprints) {
+        if (!blueprint.paceV2) {
+          if (Number.isFinite(Number(blueprint.wpm))) {
+            blueprint.wpm = Math.max(100, Math.min(500,
+              Math.round((Number(blueprint.wpm) * 1.4375) / 10) * 10));
+          }
+          blueprint.paceV2 = true;
+          migrated = true;
+        }
+      }
+      if (migrated) {
+        try {
+          localStorage.setItem(WORKSHOP_KEY, JSON.stringify(blueprints));
+        } catch (e) { /* quota — migrated values still served this session */ }
+      }
+
+      return blueprints;
     } catch (e) {
       console.error('[Memory] Fail read workshop data:', e);
       return [];

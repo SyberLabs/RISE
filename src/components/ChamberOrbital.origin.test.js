@@ -105,7 +105,7 @@ describe('ChamberOrbital origin chip', () => {
 
         container.querySelector('[data-action="reset-prefs"]').click();
 
-        expect(orbital.config.wpm).toBe(220);
+        expect(orbital.config.wpm).toBe(320);
         expect(orbital.config.visualInterlocution.visualMode).toBe('off');
         expect(localStorage.getItem('rise_orbital_prefs_v1')).toBeNull();
         // Session context survives — settings amnesia, not session amnesia
@@ -118,7 +118,7 @@ describe('ChamberOrbital origin chip', () => {
         orbital.destroy();
         container.remove();
         const fresh = makeOrbital();
-        expect(fresh.orbital.config.wpm).toBe(220);
+        expect(fresh.orbital.config.wpm).toBe(320);
         expect(fresh.orbital.config.visualInterlocution.visualMode).toBe('off');
         fresh.orbital.destroy();
         fresh.container.remove();

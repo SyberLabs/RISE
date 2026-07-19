@@ -74,7 +74,7 @@ export function normalizeProvenance(value, depth = 0) {
 export function normalizeSessionConfig(input = {}) {
     const wpm = Math.max(
         SESSION_LIMITS.minWpm,
-        Math.min(SESSION_LIMITS.maxWpm, finiteNumber(input.wpm, 220))
+        Math.min(SESSION_LIMITS.maxWpm, finiteNumber(input.wpm, 320))
     );
     const chunkMode = CHUNK_MODES.has(input.chunkMode) ? input.chunkMode : 'word';
     const curve = Object.hasOwn(CURVES, input.curve) ? input.curve : 'flat';

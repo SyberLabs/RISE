@@ -24,20 +24,31 @@ const PAUSE_DURATIONS = {
 };
 
 /**
- * Punctuation that adds pause time
+ * TEMPORAL CONTRACT — punctuation adds bounded TERMINAL time, it never
+ * multiplies a whole chunk. The weights are the old multipliers minus
+ * one, so single-word (word-mode) feel is mathematically unchanged
+ * (word × 1.5 ≡ word + word × 0.5) while a period at the end of a
+ * twelve-word sentence now adds one breath instead of half the
+ * sentence again.
  */
-const PUNCTUATION_DELAYS = {
-    '.': 1.5,
-    ',': 1.2,
-    ';': 1.3,
-    ':': 1.2,
-    '!': 1.6,
-    '?': 1.6,
-    '—': 1.3,
-    '–': 1.2,
-    '"': 1.1,
-    "'": 1.0
+const PUNCTUATION_PAUSE_WEIGHTS = {
+    '.': 0.5,
+    ',': 0.2,
+    ';': 0.3,
+    ':': 0.2,
+    '!': 0.6,
+    '?': 0.6,
+    '—': 0.3,
+    '–': 0.2,
+    '"': 0.1,
+    "'": 0
 };
+
+/**
+ * Chunks longer than this are subdivided before pacing — long atoms
+ * must be split into readable pieces, never compressed by a ceiling.
+ */
+const MAX_CHUNK_WORDS = 16;
 
 /**
  * Calculate base duration for a word at given WPM
@@ -47,33 +58,73 @@ const PUNCTUATION_DELAYS = {
 function getBaseDuration(wpm) {
     const safeWpm = Number.isFinite(Number(wpm))
         ? Math.max(50, Math.min(1000, Number(wpm)))
-        : 220;
+        : 320;
     return (60 * 1000) / safeWpm;
 }
 
 /**
- * Calculate duration modifier based on word length
- * Longer words get more time
- * @param {string} word 
- * @returns {number} Multiplier (1.0 - 2.0)
+ * Word-length texture, rescaled to be approximately zero-mean over
+ * typical English (short words move, long words linger) so word-mode
+ * delivered WPM tracks the nominal request instead of silently
+ * running ~15% slow.
+ * @param {string} word
+ * @returns {number} Multiplier (0.85 - 1.4)
  */
 function getLengthModifier(word) {
     const len = word.length;
-    if (len <= 3) return 1.0;
-    if (len <= 6) return 1.1;
-    if (len <= 9) return 1.3;
-    if (len <= 12) return 1.5;
-    return 1.7;
+    if (len <= 3) return 0.85;
+    if (len <= 6) return 0.95;
+    if (len <= 9) return 1.1;
+    if (len <= 12) return 1.25;
+    return 1.4;
 }
 
 /**
- * Calculate duration modifier based on trailing punctuation
- * @param {string} text 
- * @returns {number} Multiplier
+ * Terminal punctuation pause in ms — additive, once per chunk.
+ * @param {string} text
+ * @param {number} baseDuration - one word's duration at session WPM
+ * @returns {number} Milliseconds of added terminal time
  */
-function getPunctuationModifier(text) {
+function getPunctuationPause(text, baseDuration) {
     const lastChar = text.trim().slice(-1);
-    return PUNCTUATION_DELAYS[lastChar] || 1.0;
+    return (PUNCTUATION_PAUSE_WEIGHTS[lastChar] || 0) * baseDuration;
+}
+
+/**
+ * Lossless subdivision of an over-long chunk: first at connective
+ * boundaries (noncapturing — the connective stays exactly once at the
+ * end of its segment), then any still-long piece is windowed into
+ * near-equal word runs. Every source token appears exactly once.
+ * @param {string} chunk
+ * @param {number} maxWords
+ * @returns {string[]}
+ */
+function splitLongChunk(chunk, maxWords = MAX_CHUNK_WORDS) {
+    const words = chunk.split(/\s+/).filter(Boolean);
+    if (words.length <= maxWords) return [chunk];
+
+    // Stage 1: connective boundaries (noncapturing group — a capturing
+    // group here once duplicated the connective into its own atom)
+    const stage1 = chunk
+        .split(/(?<=\s(?:and|but|or|that|with|which))\s+/i)
+        .map(piece => piece.trim())
+        .filter(Boolean);
+
+    // Stage 2: window anything still over budget into equal-ish runs
+    const result = [];
+    for (const piece of stage1) {
+        const pieceWords = piece.split(/\s+/).filter(Boolean);
+        if (pieceWords.length <= maxWords) {
+            result.push(piece);
+            continue;
+        }
+        const windows = Math.ceil(pieceWords.length / maxWords);
+        const per = Math.ceil(pieceWords.length / windows);
+        for (let i = 0; i < pieceWords.length; i += per) {
+            result.push(pieceWords.slice(i, i + per).join(' '));
+        }
+    }
+    return result;
 }
 
 /**
@@ -154,7 +205,7 @@ function splitParagraphs(text) {
  * @param {string} text - Raw text content
  * @param {Object} options
  * @param {'word' | 'phrase' | 'sentence' | 'paragraph'} [options.mode='word'] - Chunking mode
- * @param {number} [options.wpm=220] - Words per minute
+ * @param {number} [options.wpm=320] - Words per minute
  * @param {string} [options.source=''] - Human-readable source identifier
  * @param {string} [options.sourceId=''] - Stable source identifier
  * @returns {Atom[]}
@@ -227,66 +278,50 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
                 continue;
             }
 
-            // SMART CHUNKING: If a phrase is too long, split it by common grammar tokens
-            if (mode === 'phrase' && chunk.split(/\s+/).length > 10) {
-                // Split on "and", "but", "or", "that", "with", "which" if preceded and followed by space
-                const subChunks = chunk.split(/(?<=\s(and|but|or|that|with|which))\s+/i);
-                if (subChunks.length > 1) {
-                    for (const subChunk of subChunks) {
-                        const cleanSub = subChunk.trim();
-                        if (!cleanSub) continue;
-                        
-                        const wordCount = cleanSub.split(/\s+/).length;
-                        const duration = baseDuration * wordCount * getPunctuationModifier(cleanSub);
-                        
-                        atoms.push(new Atom({
-                            content: cleanSub.replace(/\|/g, '').replace(/\s+/g, ' ').trim(),
-                            modality: 'text',
-                            duration: Math.round(duration),
-                            weight: 0.5,
-                            tags: ['smart-split'],
-                            source,
-                            sourceId,
-                            position: position++
-                        }));
-                    }
-                    continue;
+            // Over-long chunks are SUBDIVIDED into readable pieces (all
+            // multi-word modes), never left for a ceiling to compress
+            // into transient unreadable text
+            const pieces = mode === 'word' ? [chunk] : splitLongChunk(chunk);
+            const wasSplit = pieces.length > 1;
+
+            for (const piece of pieces) {
+                // CLEAN CONTENT FOR DISPLAY:
+                // Strip markers like |, [PAUSE], [FLASH], etc. so the user never sees them.
+                // Also normalize whitespace.
+                const cleanContent = piece
+                    .replace(/\|/g, ' ')
+                    .replace(/\[PAUSE\]/gi, '')
+                    .replace(/\[FLASH\]/gi, '')
+                    .replace(/\[HOLD\]/gi, '')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+
+                // Skip empty chunks that might result from stripping markers
+                if (!cleanContent && piece.length > 0) continue;
+
+                // TEMPORAL CONTRACT: duration = words at nominal WPM,
+                // plus one bounded terminal pause for punctuation
+                let duration;
+                if (mode === 'word') {
+                    duration = baseDuration * getLengthModifier(piece)
+                        + getPunctuationPause(piece, baseDuration);
+                } else {
+                    const wordCount = cleanContent.split(/\s+/).length;
+                    duration = baseDuration * wordCount
+                        + getPunctuationPause(piece, baseDuration);
                 }
+
+                atoms.push(new Atom({
+                    content: cleanContent,
+                    modality: 'text',
+                    duration: Math.round(duration),
+                    weight: 0.5,
+                    tags: wasSplit ? ['smart-split'] : [],
+                    source,
+                    sourceId,
+                    position: position++
+                }));
             }
-
-            // CLEAN CONTENT FOR DISPLAY:
-            // Strip markers like |, [PAUSE], [FLASH], etc. so the user never sees them.
-            // Also normalize whitespace.
-            const cleanContent = chunk
-                .replace(/\|/g, ' ')
-                .replace(/\[PAUSE\]/gi, '')
-                .replace(/\[FLASH\]/gi, '')
-                .replace(/\[HOLD\]/gi, '')
-                .replace(/\s+/g, ' ')
-                .trim();
-
-            // Skip empty chunks that might result from stripping markers
-            if (!cleanContent && chunk.length > 0) continue;
-
-            // For modes other than word, calculate duration based on word count
-            let duration;
-            if (mode === 'word') {
-                duration = baseDuration * getLengthModifier(chunk) * getPunctuationModifier(chunk);
-            } else {
-                const wordCount = chunk.split(/\s+/).length;
-                duration = baseDuration * wordCount * getPunctuationModifier(chunk);
-            }
-
-            atoms.push(new Atom({
-                content: cleanContent,
-                modality: 'text',
-                duration: Math.round(duration),
-                weight: 0.5,
-                tags: [],
-                source,
-                sourceId,
-                position: position++
-            }));
         }
 
         // Add a small pause between paragraphs

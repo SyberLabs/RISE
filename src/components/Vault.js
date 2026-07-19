@@ -27,7 +27,7 @@ const ARCHETYPES = [
     description: 'Focuses on the depths of human experience, emotional resonance, and inner contemplation. Draws from the Romantic and existential traditions.',
     textSeed: 'Rilke / Contemplative Poetry',
     config: {
-      wpm: 140,
+      wpm: 200,
       curve: 'induction',
       // Aurora: the just-intoned pad with wandering harmonics — a
       // soundscape is a finished mix, so the tones rest (exclusive beds)
@@ -55,7 +55,7 @@ const ARCHETYPES = [
     description: 'Dissolves the boundary between observer and observed. Eastern philosophy meets consciousness technology. Designed for unified field awareness.',
     textSeed: 'The Upanishads / Mystic Texts',
     config: {
-      wpm: 120,
+      wpm: 170,
       curve: 'wave',
       audioPreset: 'deep', // Theta entrainment
       visualConfig: {
@@ -82,7 +82,7 @@ const ARCHETYPES = [
     description: 'Transmutation of base experience into golden insight. Hermetic principles encoded in biological symmetries and sacred geometries.',
     textSeed: 'The Hermetica / Esoteric Texts',
     config: {
-      wpm: 150,
+      wpm: 220,
       curve: 'ascent',
       audioPreset: 'focus',
       visualConfig: {
@@ -109,7 +109,7 @@ const ARCHETYPES = [
     description: 'Information without sentiment. Data streams parsed at machine rhythm. For those who seek the clarity of pure signal.',
     textSeed: 'Declassified Documents / Technical Manuals',
     config: {
-      wpm: 300,
+      wpm: 430,
       curve: 'flat',
       audioPreset: 'silent',
       visualConfig: {
@@ -134,7 +134,7 @@ const ARCHETYPES = [
     description: 'The liminal channel between waking and sleep. Images emerge unbidden. The hand moves before the mind understands.',
     textSeed: 'Poetic / Stream of Consciousness',
     config: {
-      wpm: 100,
+      wpm: 140,
       curve: 'induction',
       // Faded Signal: analog memory — sun-worn harmony, tape drift,
       // a quiet feedback afterimage. The hypnagogic bed.
@@ -160,7 +160,7 @@ const ARCHETYPES = [
     description: 'The Third Mind emerges at the interface. Neither human nor machine alone, but the collaborative intelligence that arises between.',
     textSeed: 'Neohumanist / Interface Philosophy',
     config: {
-      wpm: 160,
+      wpm: 230,
       curve: 'wave',
       audioPreset: 'focus',
       visualConfig: {
@@ -289,7 +289,7 @@ export class Vault {
 
   renderPersonalizedSequenceCard(seq, archetype) {
     const wordCount = seq.content.split(/\s+/).length;
-    const wpm = archetype?.config?.wpm || seq.wpm || 140;
+    const wpm = archetype?.config?.wpm || seq.wpm || 200;
     const duration = Math.floor((wordCount / wpm) * 60 * 1000);
 
     return `
@@ -483,7 +483,7 @@ export class Vault {
           words = bp.sources.reduce((acc, src) => acc + (src.words || 0), 0);
        }
 
-       const duration = Math.floor((words / (bp.wpm || 220)) * 60 * 1000);
+       const duration = Math.floor((words / (bp.wpm || 320)) * 60 * 1000);
 
        return `
         <div class="sequence-card card card-interactive" data-id="${bp.id}" style="position: relative;">
@@ -495,7 +495,7 @@ export class Vault {
           <div class="sequence-meta text-fog font-mono" style="margin-top: 1rem; align-items: center; display: flex; gap: 0.5rem;">
             <span>${this.formatDuration(duration)}</span>
             <span class="meta-separator">·</span>
-            <span>${bp.wpm || 220} WPM</span>
+            <span>${bp.wpm || 320} WPM</span>
             <span class="meta-separator">·</span>
             <span style="text-transform: capitalize;">${bp.curve || 'Flat'}</span>
           </div>

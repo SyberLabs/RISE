@@ -124,7 +124,7 @@ describe('Session', () => {
     const session = new Session({ atoms });
 
     expect(session.name).toBe('Untitled Session');
-    expect(session.wpm).toBe(220);
+    expect(session.wpm).toBe(320);
     expect(session.chunkMode).toBe('word');
     expect(session.curve).toBe('flat');
     expect(session.displayMode).toBe('focal');

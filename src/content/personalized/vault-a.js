@@ -12,7 +12,7 @@ export const VAULT_A_SEQUENCES = [
     curve: 'induction',
     category: 'research',
     description: 'The foundational vision of algorithmic songwriting as human-AI partnership.',
-    wpm: 140,
+    wpm: 200,
     audioPreset: 'gateway',
     content: `ALYSIA: | Automated Lyrical Songwriting Application.
 
@@ -66,7 +66,7 @@ AI that elevates | human creativity | rather than replaces it.`
     curve: 'wave',
     category: 'philosophy',
     description: 'Defining the field that asks: can machines be creative?',
-    wpm: 130,
+    wpm: 190,
     audioPreset: 'gateway',
     content: `Computational Creativity | is an emerging subfield | of Artificial Intelligence.
 
@@ -117,7 +117,7 @@ This is where the new forms emerge.`
     curve: 'induction',
     category: 'philosophy',
     description: 'On the true capabilities and limitations of generative AI.',
-    wpm: 120,
+    wpm: 170,
     audioPreset: 'gateway',
     content: `We must cut through the hype.
 
@@ -182,7 +182,7 @@ The creative machine | is creative with us.`
     curve: 'ascent',
     category: 'vision',
     description: 'A vision of human-AI creative partnership.',
-    wpm: 150,
+    wpm: 220,
     audioPreset: 'gateway',
     content: `Imagine a future | where millions of creators | express themselves—
 
@@ -253,7 +253,7 @@ export const VAULT_A_ARCHETYPE = {
   description: 'Optimized for absorbing academic and philosophical content. Balanced pacing allows for both comprehension and reflection.',
   textSeed: 'Computational Creativity Research',
   config: {
-    wpm: 270,
+    wpm: 390,
     curve: 'wave',
     audioPreset: 'focus',
     visualConfig: {

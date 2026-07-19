@@ -125,10 +125,14 @@ export class PacingEngine {
         this.baseWpm = this.normalizeWpm(config.baseWpm);
         this.stateCurve = config.stateCurve || StateCurve.flat();
 
-        // Modifier toggles
+        // Modifier toggles.
+        // TEMPORAL CONTRACT: Atom.duration as authored by the chunker
+        // IS the reading contract. Semantic texture is opt-in and
+        // zero-mean — it varies pace around the authored duration with
+        // no net WPM drift (the old always-on complexity/weight
+        // defaults compounded to a universal 1.4375× slowdown).
         this.modifiers = {
-            complexity: config.useComplexity !== false,
-            weight: config.useWeight !== false,
+            semanticTexture: config.semanticTexture === true,
             position: config.usePosition !== false
         };
 
@@ -196,14 +200,13 @@ export class PacingEngine {
 
         let duration = baseDuration;
 
-        // Apply complexity modifier
-        if (this.modifiers.complexity && atom.complexity !== undefined) {
-            duration *= (1.0 + atom.complexity * 0.5);
-        }
-
-        // Apply weight modifier
-        if (this.modifiers.weight && atom.weight !== undefined) {
-            duration *= (1.0 + atom.weight * 0.3);
+        // Semantic texture: zero-mean around the authored duration.
+        // Neutral atoms (0.5/0.5 defaults) map to exactly 1.0; the
+        // full range is bounded to [0.8, 1.2].
+        if (this.modifiers.semanticTexture) {
+            const complexity = Number.isFinite(atom.complexity) ? atom.complexity : 0.5;
+            const weight = Number.isFinite(atom.weight) ? atom.weight : 0.5;
+            duration *= 1 + (complexity - 0.5) * 0.24 + (weight - 0.5) * 0.16;
         }
 
         // Apply state curve based on position
@@ -234,7 +237,7 @@ export class PacingEngine {
 
     normalizeWpm(wpm) {
         const value = Number(wpm);
-        return Number.isFinite(value) ? Math.max(50, Math.min(1000, value)) : 220;
+        return Number.isFinite(value) ? Math.max(50, Math.min(1000, value)) : 320;
     }
 
     /**

@@ -185,18 +185,24 @@ describe('PacingEngine', () => {
       expect(duration).toBe(500);
     });
 
-    it('applies complexity modifier', () => {
-      const simple = { modality: Modality.TEXT, content: 'word', complexity: 0 };
-      const complex = { modality: Modality.TEXT, content: 'word', complexity: 1 };
+    it('semantic texture is OFF by default — authored duration is the contract', () => {
+      const simple = { modality: Modality.TEXT, content: 'word', duration: 300, complexity: 0 };
+      const complex = { modality: Modality.TEXT, content: 'word', duration: 300, complexity: 1 };
 
-      expect(engine.computeDuration(complex)).toBeGreaterThan(engine.computeDuration(simple));
+      expect(engine.computeDuration(simple)).toBe(engine.computeDuration(complex));
     });
 
-    it('applies weight modifier', () => {
-      const light = { modality: Modality.TEXT, content: 'word', weight: 0 };
-      const heavy = { modality: Modality.TEXT, content: 'word', weight: 1 };
+    it('opt-in texture is zero-mean: neutral atoms are untouched, range is bounded', () => {
+      const textured = new PacingEngine({ baseWpm: 320, semanticTexture: true });
+      textured.setStateCurve(StateCurve.flat());
 
-      expect(engine.computeDuration(heavy)).toBeGreaterThan(engine.computeDuration(light));
+      const neutral = { modality: Modality.TEXT, content: 'word', duration: 300, complexity: 0.5, weight: 0.5 };
+      expect(textured.computeDuration(neutral, 0.5)).toBe(300);
+
+      const dense = { modality: Modality.TEXT, content: 'word', duration: 300, complexity: 1, weight: 1 };
+      const light = { modality: Modality.TEXT, content: 'word', duration: 300, complexity: 0, weight: 0 };
+      expect(textured.computeDuration(dense, 0.5)).toBe(360);  // ×1.2 ceiling
+      expect(textured.computeDuration(light, 0.5)).toBe(240);  // ×0.8 floor
     });
 
     it('applies state curve at position', () => {
@@ -295,7 +301,7 @@ describe('PacingEngine', () => {
       engine.setWpm(0);
       expect(engine.baseWpm).toBe(50);
       engine.setWpm('not-a-number');
-      expect(engine.baseWpm).toBe(220);
+      expect(engine.baseWpm).toBe(320);
       engine.setWpm(5000);
       expect(engine.baseWpm).toBe(1000);
     });
