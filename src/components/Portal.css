@@ -439,6 +439,106 @@
   }
 }
 /* ─────────────────────────────────────────────────────────────
+   ATRIUM Door — the curated doorway
+   The nav row is tools you own; this is an invitation. Same width
+   rhythm as the SOL strip, its own register: serif name, threshold
+   violet, a set-stone glyph instead of a heartbeat orb.
+   ───────────────────────────────────────────────────────────── */
+
+.portal-atrium-door {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  max-width: 480px;
+  width: calc(100% - 2 * var(--space-lg));
+  margin: var(--space-lg) auto 0;
+  padding: var(--space-md);
+  background:
+    linear-gradient(135deg,
+      rgba(139, 127, 212, 0.06) 0%,
+      rgba(18, 18, 20, 0.55) 45%);
+  border: 1px solid var(--color-shadow);
+  border-left: 2px solid rgba(139, 127, 212, 0.35);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color var(--transition-normal) var(--ease-default),
+    background var(--transition-normal) var(--ease-default),
+    box-shadow var(--transition-slow) var(--ease-out);
+}
+
+.portal-atrium-door:hover {
+  border-color: rgba(139, 127, 212, 0.4);
+  border-left-color: var(--color-threshold);
+  background:
+    linear-gradient(135deg,
+      rgba(139, 127, 212, 0.1) 0%,
+      rgba(139, 127, 212, 0.03) 45%);
+  box-shadow: 0 0 28px rgba(139, 127, 212, 0.08);
+}
+
+.atrium-door-glyph {
+  font-size: 18px;
+  color: var(--color-threshold);
+  opacity: 0.8;
+  flex-shrink: 0;
+  transition: opacity var(--transition-normal) var(--ease-default);
+}
+
+.portal-atrium-door:hover .atrium-door-glyph {
+  opacity: 1;
+}
+
+.atrium-door-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  overflow: hidden;
+}
+
+.atrium-door-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: var(--font-weight-light);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-light);
+  flex-shrink: 0;
+}
+
+.atrium-door-detail {
+  font-family: var(--font-literary);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--color-fog);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.atrium-door-enter {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--color-mist);
+  flex-shrink: 0;
+  transition: color var(--transition-fast) var(--ease-default);
+}
+
+.portal-atrium-door:hover .atrium-door-enter {
+  color: var(--color-threshold);
+}
+
+@media (max-width: 520px) {
+  .atrium-door-detail {
+    display: none;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
    SOL Strip — the portal's living heartbeat
    SOL is a *when*, not a place: the hour introduces itself
    ───────────────────────────────────────────────────────────── */

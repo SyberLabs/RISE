@@ -7,7 +7,10 @@ const ROOTS = [
   resolve('src/content/atrium/coverage.js'),
   resolve('src/content/atrium/catalog.js'),
   resolve('src/content/atrium/philosophy.js'),
-  resolve('src/content/atrium/history.js')
+  resolve('src/content/atrium/history.js'),
+  // The portal's Atrium door reaches this lazily — it must stay
+  // metadata-only just like the browse surfaces
+  resolve('src/content/atrium/featured.js')
 ];
 const STATIC_EDGE = /(?:import|export)\s+(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g;
 const PAYLOAD_MODULE = /[\\/](?:expanded-[^\\/]+|payloads|philosophy-(?:classical|aristotle|transmission)|history-(?:baseline|expansion[^\\/]*))\.js$/;

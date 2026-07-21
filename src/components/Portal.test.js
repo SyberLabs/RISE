@@ -24,16 +24,49 @@ function makePortal(options = {}) {
 }
 
 describe('Portal SOL strip', () => {
-    it('nav holds the core destinations; SOL lives as the strip', () => {
+    it('nav holds the four core tools; Atrium and SOL live as specialized entries', () => {
         const { portal, container } = makePortal();
 
+        // The nav row is tools operating on the reader's own material;
+        // curated experiences get their own doorways below it
         const secondary = container.querySelectorAll('.nav-secondary .nav-item');
-        expect(secondary).toHaveLength(4);
-        expect([...secondary].map(el => el.dataset.nav)).toEqual(['atrium', 'vault', 'library', 'workshop']);
+        expect(secondary).toHaveLength(3);
+        expect([...secondary].map(el => el.dataset.nav)).toEqual(['vault', 'library', 'workshop']);
+
+        const door = container.querySelector('.portal-atrium-door');
+        expect(door).not.toBeNull();
+        expect(door.dataset.nav).toBe('atrium');
+        expect(door.querySelector('.atrium-door-name').textContent).toBe('Atrium');
+        // The door renders complete before any lazy detail arrives
+        expect(door.querySelector('.atrium-door-detail').textContent.length).toBeGreaterThan(0);
 
         const strip = container.querySelector('.portal-sol-strip');
         expect(strip).not.toBeNull();
         expect(strip.dataset.nav).toBe('sol');
+
+        portal.destroy();
+        container.remove();
+    });
+
+    it('clicking the Atrium door navigates to the Atrium', () => {
+        const { portal, container, onNavigate } = makePortal();
+        container.querySelector('.portal-atrium-door').click();
+        expect(onNavigate).toHaveBeenCalledWith('atrium');
+        portal.destroy();
+        container.remove();
+    });
+
+    it('deepens the Atrium door with today\'s featured sequence at idle', async () => {
+        const { portal, container } = makePortal();
+
+        // The populate hook is what idle scheduling invokes; call it
+        // directly so the test does not depend on rIC timing
+        await portal._populateAtriumDoor();
+
+        const detail = container.querySelector('.atrium-door-detail').textContent;
+        expect(detail).toMatch(/^today · .+/);
+        expect(container.querySelector('.portal-atrium-door').getAttribute('aria-label'))
+            .toContain("today's sequence");
 
         portal.destroy();
         container.remove();

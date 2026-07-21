@@ -78,12 +78,16 @@ async function exitSession(page) {
     await expect(page.locator('#begin-btn')).toBeVisible({ timeout: 20_000 });
 }
 
-test('1 · portal presents the triad and the living SOL strip', async ({ page }) => {
+test('1 · portal presents the four tools and the living entries', async ({ page }) => {
     await boot(page, { text: false });
+    // The nav row is tools you own; Atrium and SOL are specialized entries
     const nav = page.locator('.nav-secondary .nav-item');
-    await expect(nav).toHaveCount(4); // Atrium joined the secondary destinations
-    await expect(page.locator('[data-nav="atrium"]')).toBeVisible();
+    await expect(nav).toHaveCount(3);
+    await expect(page.locator('.portal-atrium-door[data-nav="atrium"]')).toBeVisible();
     await expect(page.locator('.sol-strip-window')).not.toBeEmpty();
+    // The door deepens with today's featured sequence once the lazy
+    // corpus metadata arrives at idle
+    await expect(page.locator('.atrium-door-detail')).toContainText('today ·', { timeout: 10_000 });
 });
 
 test('2+3 · Aurora sounds — and sounds again the second time', async ({ page }) => {

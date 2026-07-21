@@ -23,6 +23,39 @@ export class Portal {
     this.attachEvents();
     this.sequentialReveal();
     this.startSolStrip();
+    this.startAtriumDoor();
+  }
+
+  /**
+   * The Atrium doorway's living detail — today's featured sequence.
+   * The corpus metadata is a separate lazy chunk (shared with the
+   * Atrium view, so this also warms it); the door renders immediately
+   * with static copy and deepens when the chunk arrives at idle.
+   * Only launchable sequences are ever featured.
+   */
+  startAtriumDoor() {
+    const populate = async () => {
+      try {
+        const { featuredAtriumPoint } = await import('../content/atrium/featured.js');
+        const featured = featuredAtriumPoint();
+        const door = this.container.querySelector('.portal-atrium-door');
+        if (!featured || !door || !this.container.isConnected) return;
+        door.querySelector('.atrium-door-detail').textContent = `today · ${featured.title}`;
+        door.setAttribute('aria-label',
+          `Enter the Atrium — today's sequence: ${featured.title}`);
+      } catch (error) {
+        // The static copy remains a complete doorway
+        console.warn('[Portal] Atrium door detail unavailable:', error);
+      }
+    };
+    this._populateAtriumDoor = populate;
+
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(() => populate(), { timeout: 2000 });
+    } else {
+      this._revealTimers = this._revealTimers || [];
+      this._revealTimers.push(setTimeout(populate, 1200));
+    }
   }
 
   /**
@@ -60,9 +93,11 @@ export class Portal {
     }, 30000);
   }
 
-  /** Router re-entry hook — refresh the strip when the portal returns */
+  /** Router re-entry hook — refresh the living entries on return */
   update() {
     this.updateSolStrip();
+    // The featured sequence rolls at midnight; module is cached by now
+    this._populateAtriumDoor?.();
   }
 
   render() {
@@ -114,9 +149,6 @@ export class Portal {
           </div>
 
           <div class="nav-secondary">
-            <button class="nav-item" data-nav="atrium" role="link">
-              Atrium
-            </button>
             <button class="nav-item" data-nav="vault" role="link">
               Vault
             </button>
@@ -128,6 +160,18 @@ export class Portal {
             </button>
           </div>
         </nav>
+
+        <!-- ATRIUM: the curated doorway — the nav row is tools you own;
+             this is an invitation into prepared worlds. A featured
+             sequence arrives lazily so the door itself is alive. -->
+        <button class="portal-atrium-door" data-nav="atrium" style="opacity: 0;" aria-label="Enter the Atrium">
+          <span class="atrium-door-glyph" aria-hidden="true">◈</span>
+          <span class="atrium-door-body">
+            <span class="atrium-door-name">Atrium</span>
+            <span class="atrium-door-detail">philosophy &amp; history, prepared for reading</span>
+          </span>
+          <span class="atrium-door-enter" aria-hidden="true">enter ›</span>
+        </button>
 
         <!-- SOL: the portal's living strip — the hour introduces itself -->
         <button class="portal-sol-strip" data-nav="sol" style="opacity: 0;" aria-label="Enter SOL">
@@ -252,19 +296,27 @@ export class Portal {
       nav.style.opacity = '1';
     }, 1100);
 
+    const atriumDoor = this.container.querySelector('.portal-atrium-door');
+    revealTimeout(() => {
+      if (atriumDoor) {
+        atriumDoor.style.transition = 'opacity 500ms var(--ease-out)';
+        atriumDoor.style.opacity = '1';
+      }
+    }, 1300);
+
     const solStrip = this.container.querySelector('.portal-sol-strip');
     revealTimeout(() => {
       if (solStrip) {
         solStrip.style.transition = 'opacity 500ms var(--ease-out)';
         solStrip.style.opacity = '1';
       }
-    }, 1350);
+    }, 1500);
 
     const footer = this.container.querySelector('.portal-footer');
     revealTimeout(() => {
       footer.style.transition = 'opacity 600ms var(--ease-out)';
       footer.style.opacity = '1';
-    }, 1600);
+    }, 1750);
   }
 
   activate() {
