@@ -1438,7 +1438,13 @@ export class VisualCortex {
                 exitAt: Infinity,
                 coveredAt: Infinity,
                 transition,
-                onCovered: typeof lifecycle.onCovered === 'function'
+                // Behind-stream never covers the text, so the caller's
+                // covered hook must never fire: it exists to swap text
+                // behind an opaque overlay, and firing it here would
+                // perform that swap in full view mid-presence. The
+                // completed atom holds on screen; the player commits
+                // the next atom when the presence resolves.
+                onCovered: !behindStream && typeof lifecycle.onCovered === 'function'
                     ? lifecycle.onCovered
                     : null,
                 covered: false,
@@ -1522,12 +1528,12 @@ export class VisualCortex {
             };
 
             if (behindStream) {
-                // Nothing is concealed, so "covered" fires immediately:
-                // the next atom may be prepared without waiting for an
-                // opacity transition that would never hide anything.
-                // The full-frame cover machinery is deliberately skipped,
-                // but the clock still starts on the commit frame so the
-                // presence duration stays honest.
+                // Nothing is ever concealed, so there is no covered
+                // phase at all (onCovered was nulled above): the reader
+                // keeps the completed atom while the visual plays
+                // beneath it. The full-frame cover machinery is
+                // deliberately skipped, but the clock still starts on
+                // the commit frame so the presence duration stays honest.
                 schedule(timestamp => {
                     if (active.settled || this._activePresentation !== active) return;
                     anchor(timestamp);

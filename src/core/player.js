@@ -148,6 +148,12 @@ export class Player {
         this.interlocutionStats = createInterlocutionStats();
         this._playbackEpoch = 0;
 
+        // BOUNDARY TRANSACTION: a flash only ever intercepts a COMPLETED
+        // atom. If a pause interrupts the flash before the next atom was
+        // prepared, resuming must advance past the completed atom — never
+        // replay it. Open when a roll wins, closed on normal completion.
+        this._boundaryFlash = null;
+
         // READING CLOCK: one monotonic accumulator that advances only
         // while the state is 'playing'. Progress and elapsed derive from
         // it — never from wall time, which jumps across tab suspension,
@@ -265,7 +271,22 @@ export class Player {
 
         this.emit('state', { state: 'playing' });
         this.startProgressAnimation();
-        
+
+        // Close an interrupted boundary transaction: the pause landed
+        // mid-flash, before the next atom was prepared. The atom at the
+        // transaction index already completed its full display — resume
+        // by advancing past it, never by replaying it. (If the covered
+        // hook already advanced, the index no longer matches and the
+        // remaining-time resume below handles it.)
+        const boundaryFlash = this._boundaryFlash;
+        this._boundaryFlash = null;
+        if (previousState === 'paused'
+            && boundaryFlash
+            && boundaryFlash.index === this.sessionState.currentIndex
+            && this.currentAtomRemainingTime === null) {
+            this.sessionState.advance();
+        }
+
         const isResuming = (previousState === 'paused' && this.currentAtomRemainingTime !== null);
         this.scheduleNextAtom(isResuming);
     }
@@ -349,6 +370,7 @@ export class Player {
         this.sessionWallStartTime = null;
         this._reading = { accumulatedMs: 0, tickAnchor: null };
         this._autoPausedByVisibility = false;
+        this._boundaryFlash = null;
         this.interlocutionStats = createInterlocutionStats();
         this.sessionState.reset();
         this.emit('state', { state: 'idle' });
@@ -438,7 +460,11 @@ export class Player {
 
             frequency = Math.max(0, Math.min(1, Number(frequency) || 0));
             if (Math.random() < frequency) {
-                // We rolled a flash! Intercept the sequence.
+                // We rolled a flash! Intercept the sequence. The atom at
+                // currentIndex has fully completed its display; open the
+                // boundary transaction so an interrupting pause resumes
+                // PAST it instead of replaying it.
+                this._boundaryFlash = { index: this.sessionState.currentIndex };
                 this.sessionState.state = 'interlocuting';
                 this.emit('state', { state: 'interlocuting' });
 
@@ -477,6 +503,10 @@ export class Player {
                 } finally {
                     // Stop, exit, or a user pause owns the resulting state.
                     if (this.sessionState.state === 'interlocuting') {
+                        // Normal completion: playback continues through
+                        // processNextNode, which advances the boundary
+                        // itself — the transaction is complete.
+                        this._boundaryFlash = null;
                         if (this.sessionState.pausedAt) {
                             this.sessionState.startTime += (Date.now() - this.sessionState.pausedAt);
                             this.sessionState.pausedAt = null;

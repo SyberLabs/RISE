@@ -577,6 +577,56 @@ describe('Player', () => {
       });
     });
 
+    it('resumes past the completed atom when a pause interrupts the flash entry', async () => {
+      // BOUNDARY TRANSACTION: a flash only intercepts an atom that has
+      // fully completed its display. A pause landing during flash entry
+      // (before the next atom is prepared) must resume by advancing —
+      // replaying the completed atom would double its reading time.
+      session.visualConfig = {
+        visualMode: 'interlocution',
+        interlocution: { frequency: 1, duration: 2000 }
+      };
+      player.sessionState.state = 'playing';
+      player.sessionState.startTime = Date.now();
+      vi.spyOn(Math, 'random').mockReturnValue(0);
+      let settle;
+      const handler = vi.fn(() => new Promise(resolve => { settle = resolve; }));
+      const cancel = vi.fn(() => settle({
+        presented: false,
+        requestedDurationMs: 2000,
+        presentedDurationMs: 100,
+        reason: 'aborted'
+      }));
+      player.setInterlocutionHandler(handler, cancel);
+
+      const attempt = player.attemptInterlocution();
+      await Promise.resolve();
+      expect(player.state).toBe('interlocuting');
+
+      player.pause(); // lands before any covered hook — no atom prepared
+      await attempt;
+      expect(player.state).toBe('paused');
+      expect(player.sessionState.currentIndex).toBe(0);
+
+      const atomListener = vi.fn();
+      player.on('atom', atomListener);
+      player.play();
+
+      expect(player.sessionState.currentIndex).toBe(1);
+      expect(atomListener).toHaveBeenCalledWith(expect.objectContaining({ index: 1 }));
+      expect(atomListener).not.toHaveBeenCalledWith(expect.objectContaining({ index: 0 }));
+    });
+
+    it('an ordinary pause without a flash still replays nothing and advances nothing', async () => {
+      // Control case: the transaction must not leak into normal pauses.
+      player.play();
+      await vi.advanceTimersByTimeAsync(40); // mid-atom
+      player.pause();
+      const indexBefore = player.sessionState.currentIndex;
+      player.play();
+      expect(player.sessionState.currentIndex).toBe(indexBefore);
+    });
+
     it.each(['word', 'phrase', 'sentence'])(
       'keeps a long %s atom uninterrupted and presents once at its exit boundary',
       async (chunkMode) => {

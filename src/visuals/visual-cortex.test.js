@@ -1036,7 +1036,11 @@ describe('VisualCortex behind-stream presentation', () => {
         expect(classes.has('presentation-behind-stream')).toBe(false);
     });
 
-    it('covers immediately — there is no concealed swap to protect', async () => {
+    it('never fires the covered hook — the text is never concealed', async () => {
+        // The covered hook exists to swap text behind an opaque overlay.
+        // Behind-stream has no overlay over the text: firing the hook
+        // would perform that swap in full view, mid-presence. The
+        // completed atom must hold until the presence resolves.
         const onCovered = vi.fn();
         const cortex = new VisualCortex();
         cortex.container = { hidden: true, style: {} };
@@ -1051,13 +1055,11 @@ describe('VisualCortex behind-stream presentation', () => {
         });
 
         const presenting = cortex._presentRenderedVisual(700, { onCovered });
-        expect(onCovered).not.toHaveBeenCalled();
 
-        // The commit frame both starts the clock and declares cover:
-        // the text was never hidden, so nothing must be waited for.
+        // Commit frame starts the clock but declares no cover
         now = 1016;
         frames.shift()(now);
-        expect(onCovered).toHaveBeenCalledTimes(1);
+        expect(onCovered).not.toHaveBeenCalled();
 
         now = 1800;
         while (frames.length > 0) frames.shift()(now);
@@ -1065,5 +1067,8 @@ describe('VisualCortex behind-stream presentation', () => {
             presented: true,
             requestedDurationMs: 700
         });
+        // Through the entire presence — including the fallback cover
+        // check — the hook never fired
+        expect(onCovered).not.toHaveBeenCalled();
     });
 });
