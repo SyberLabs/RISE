@@ -143,8 +143,80 @@
     border-bottom: 1px solid var(--color-shadow);
 }
 
-.vi-render-language .vi-source-family-options {
+/* Two-option families (Presentation, Render) fill the bar with two
+   equal chips instead of sitting in the four-column Source grid */
+.vi-render-language .vi-source-family-options,
+.vi-presentation-surface .vi-source-family-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Glass-tile toggle: the panel's pill-switch idiom at chip scale */
+.vi-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+    padding: 8px 10px;
+    background: var(--color-abyss);
+    border: 1px solid var(--color-shadow);
+    color: var(--color-mist);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: color var(--transition-fast) var(--ease-default),
+        border-color var(--transition-fast) var(--ease-default);
+}
+
+.vi-toggle-row:hover {
+    color: var(--color-cloud);
+}
+
+.vi-toggle-row:has(input:checked) {
+    color: var(--color-light);
+    border-color: var(--color-threshold);
+}
+
+.vi-toggle-row input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    flex-shrink: 0;
+    width: 32px;
+    height: 18px;
+    margin: 0;
+    background: var(--color-shadow);
+    border-radius: 9px;
+    position: relative;
+    cursor: pointer;
+    transition: background var(--transition-fast) var(--ease-default);
+}
+
+.vi-toggle-row input[type="checkbox"]::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: var(--color-fog);
+    border-radius: 50%;
+    transition: transform var(--transition-fast) var(--ease-default),
+        background var(--transition-fast) var(--ease-default);
+}
+
+.vi-toggle-row input[type="checkbox"]:checked {
+    background: var(--color-threshold);
+}
+
+.vi-toggle-row input[type="checkbox"]:checked::before {
+    transform: translateX(14px);
+    background: var(--color-light);
+}
+
+.vi-toggle-row input[type="checkbox"]:focus-visible {
+    outline: 1px solid var(--color-threshold);
+    outline-offset: 2px;
 }
 
 .vi-source-family-label {

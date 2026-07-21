@@ -10,7 +10,10 @@ import { chunkText } from './chunker.js';
 import { prepareChunkText } from './chunk-profiles.js';
 import { PacingEngine, StateCurve } from './pacing.js';
 import { normalizeGlobalPoolSelection, normalizeVisualSelection } from './visual-selection.js';
-import { normalizeVisualPresence } from './visual-presence.js';
+import {
+    normalizeVisualPresence,
+    VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS
+} from './visual-presence.js';
 
 export const SESSION_LIMITS = Object.freeze({
     minWpm: 50,
@@ -110,7 +113,14 @@ export function normalizeVisualConfig(value = {}) {
             ...selection,
             globalPool: normalizeGlobalPoolSelection(raw.globalPool),
             frequency: Math.max(0, Math.min(1, finiteNumber(raw.frequency, 0.2))),
-            duration: normalizeVisualPresence(raw.duration),
+            // Behind-stream presences default to a full beat: imagery
+            // beneath the text needs dwell time a full-frame cut does not
+            duration: normalizeVisualPresence(
+                raw.duration,
+                raw.presentation === 'behind-stream'
+                    ? VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS
+                    : undefined
+            ),
             renderLanguage: raw.renderLanguage === 'ascii' ? 'ascii' : 'native',
             presentation: raw.presentation === 'behind-stream' ? 'behind-stream' : 'full-frame',
             streamGlass: raw.streamGlass !== false,

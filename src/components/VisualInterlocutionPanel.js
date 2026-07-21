@@ -28,6 +28,7 @@ import {
 } from '../core/visual-safety.js';
 import {
     VISUAL_PRESENCE_DEFAULT_MS,
+    VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS,
     VISUAL_PRESENCE_STEPS_MS,
     formatVisualPresence,
     nearestVisualPresenceStep,
@@ -1090,9 +1091,24 @@ export class VisualInterlocutionPanel {
 
         this.container.querySelectorAll('[data-presentation]').forEach(btn => {
             btn.addEventListener('click', () => {
-                this.config.interlocution.presentation = btn.dataset.presentation === 'behind-stream'
+                const next = btn.dataset.presentation === 'behind-stream'
                     ? 'behind-stream'
                     : 'full-frame';
+                const previous = this.config.interlocution.presentation;
+                if (next !== previous) {
+                    // Each surface has its own sensible presence default:
+                    // a full-frame cut reads at 200ms, imagery beneath the
+                    // text needs a full beat. Follow the surface only while
+                    // the duration is still an untouched default — an
+                    // explicit choice is never rewritten.
+                    const duration = this.config.interlocution.duration;
+                    if (next === 'behind-stream' && duration === VISUAL_PRESENCE_DEFAULT_MS) {
+                        this.config.interlocution.duration = VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS;
+                    } else if (next === 'full-frame' && duration === VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS) {
+                        this.config.interlocution.duration = VISUAL_PRESENCE_DEFAULT_MS;
+                    }
+                }
+                this.config.interlocution.presentation = next;
                 if (window.rise?.audioEngine) window.rise.audioEngine.playHiss();
                 this.emitChange();
                 this.render();

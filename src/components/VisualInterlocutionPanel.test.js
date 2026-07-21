@@ -520,6 +520,38 @@ describe('Stream-maintaining Rhythmic and Atrium collections', () => {
         container.remove();
     });
 
+    it('seeds the surface-appropriate presence default, never an explicit choice', () => {
+        // Behind-stream imagery is peripheral: it defaults to a full
+        // 1s beat where a full-frame cut defaults to 200ms. The slider
+        // follows the surface only while it sits on an untouched
+        // default; a value the user chose is never rewritten.
+        const untouched = makePanel({
+            visualMode: 'interlocution',
+            interlocution: { sourceFamily: 'procedural', procedural: ['klee'], sourced: [] }
+        });
+        expect(untouched.panel.getConfig().interlocution.duration).toBe(200);
+
+        untouched.container.querySelector('[data-presentation="behind-stream"]').click();
+        expect(untouched.panel.getConfig().interlocution.duration).toBe(1000);
+
+        untouched.container.querySelector('[data-presentation="full-frame"]').click();
+        expect(untouched.panel.getConfig().interlocution.duration).toBe(200);
+        untouched.panel.destroy();
+        untouched.container.remove();
+
+        const explicit = makePanel({
+            visualMode: 'interlocution',
+            interlocution: {
+                sourceFamily: 'procedural', procedural: ['klee'], sourced: [],
+                duration: 700
+            }
+        });
+        explicit.container.querySelector('[data-presentation="behind-stream"]').click();
+        expect(explicit.panel.getConfig().interlocution.duration).toBe(700);
+        explicit.panel.destroy();
+        explicit.container.remove();
+    });
+
     it('shows curated collections only for an Atrium launch that carries them', () => {
         const plain = makePanel({
             visualMode: 'interlocution',

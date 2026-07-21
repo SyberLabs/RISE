@@ -94,6 +94,23 @@ describe('session compiler', () => {
     }).interlocution.duration).toBe(150);
   });
 
+  it('defaults behind-stream presence to a full beat, explicit values untouched', () => {
+    expect(normalizeVisualConfig({
+      visualMode: 'interlocution',
+      interlocution: { presentation: 'behind-stream' }
+    }).interlocution.duration).toBe(1000);
+
+    expect(normalizeVisualConfig({
+      visualMode: 'interlocution',
+      interlocution: { presentation: 'behind-stream', duration: 450 }
+    }).interlocution.duration).toBe(450);
+
+    expect(normalizeVisualConfig({
+      visualMode: 'interlocution',
+      interlocution: {}
+    }).interlocution.duration).toBe(200);
+  });
+
   it('normalizes the orthogonal render language without changing source selection', () => {
     const ascii = normalizeVisualConfig({
       visualMode: 'interlocution',
