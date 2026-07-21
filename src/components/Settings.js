@@ -94,7 +94,14 @@ export class Settings {
             <h2 id="audio-heading" class="settings-section-title text-fog">Audio</h2>
 
             <div class="settings-row">
-              <label class="settings-label">Enable Ambient</label>
+              <div class="settings-label-group">
+                <label class="settings-label">Lobby Drone</label>
+                <p class="settings-hint text-mist">
+                  A low drone between sessions, in the Portal and the
+                  other rooms. Off by default — nothing plays until you
+                  ask for it.
+                </p>
+              </div>
               <label class="toggle">
                 <input
                   type="checkbox"

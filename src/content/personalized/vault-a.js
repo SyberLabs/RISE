@@ -37,7 +37,7 @@
  *   2. Attractor                — the space of possibility
  *   3. Fractal, behind-stream   — the words stay, the flames breathe beneath
  *   4. Neural, behind-stream    — the model as living substrate
- *   5. Turrell, behind-stream   — light fields under Monet's sonified art
+ *   5. Impressionist collections — Monet's own canvases, behind-stream
  *   6. Klee + collections blend — full-frame, the co-creative finale
  */
 
@@ -215,7 +215,7 @@ giving users the freedom | to focus on aspects | of the creative process | in wh
         sourceFamily: 'procedural',
         procedural: ['fractal'],
         sourced: [],
-        frequency: 0.22,
+        frequency: 0.42,
         duration: 1000,
         presentation: 'behind-stream',
         streamGlass: true
@@ -309,7 +309,7 @@ The autonomous | and mentorship roles | need not be conflicting.`
         sourceFamily: 'procedural',
         procedural: ['neural'],
         sourced: [],
-        frequency: 0.22,
+        frequency: 0.42,
         duration: 1000,
         presentation: 'behind-stream',
         streamGlass: true
@@ -401,11 +401,14 @@ and fostering independence— | that is, | helping the user | to develop creativ
     },
     visualConfig: {
       visualMode: 'interlocution',
+      // Pure collections: the passage is about Monet's own canvases, so
+      // the imagery is Monet and his neighbours rather than a procedural
+      // field standing beside them.
       interlocution: {
-        sourceFamily: 'blend',
-        procedural: ['turrell'],
+        sourceFamily: 'collections',
+        procedural: [],
         sourced: ['aic-impressionism', 'aic-landscapes'],
-        frequency: 0.24,
+        frequency: 0.42,
         duration: 1400,
         presentation: 'behind-stream',
         streamGlass: true
@@ -501,7 +504,7 @@ We hope that the process | proposed here | will inspire more research | into how
         procedural: ['harmonograph'],
         harmonographClimate: 'solarFlare',
         sourced: [],
-        frequency: 0.26,
+        frequency: 0.45,
         duration: 200,
         presentation: 'full-frame'
       }
@@ -598,7 +601,7 @@ export const VAULT_A_ARCHETYPE = {
         sourceFamily: 'procedural',
         procedural: ['fractal', 'neural'],
         sourced: [],
-        frequency: 0.22,
+        frequency: 0.42,
         duration: 1000,
         presentation: 'behind-stream',
         streamGlass: true
