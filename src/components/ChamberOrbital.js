@@ -95,6 +95,7 @@ function createDefaultConfig() {
         streamGlass: true,
         kleePreset: 'random',
         harmonographClimate: 'auto',
+        blueprintClimate: 'auto',
         responsive: false,
         responsiveMood: true,
         responsiveRhythm: true

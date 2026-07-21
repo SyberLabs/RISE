@@ -13,6 +13,7 @@ import { FractalFlame } from './fractal.js';
 import { RockGarden } from './rockgarden.js';
 import { NeuralNetwork } from './neural.js';
 import { Harmonograph } from './harmonograph.js';
+import { Blueprint } from './blueprint.js';
 import {
     AsciiCanvasRenderer,
     AsciiFrameCompiler,
@@ -61,6 +62,7 @@ export class VisualCortex {
         this.rockgarden = null;
         this.neural = null;
         this.harmonograph = null;
+        this.blueprint = null;
         this.diagramEl = null;
         this.asciiRenderer = null;
         this.asciiCompiler = null;
@@ -122,6 +124,7 @@ export class VisualCortex {
             activeTypes: ['klee', 'turrell'],
             kleePreset: 'random', // 'random' | 'architectural' | 'chaotic' | 'harmonic' | 'gravitational' | 'twittering'
             harmonographClimate: 'auto', // 'auto' | a climate palette name (explicit = veto)
+            blueprintClimate: 'auto',    // 'auto' | cyanotype | graphite | sepia | verdigris
             // Presentation surface: 'full-frame' cuts to an opaque overlay;
             // 'behind-stream' keeps the reading text visible and presents the
             // imagery beneath it. Behind-stream never conceals text, so it
@@ -212,6 +215,7 @@ export class VisualCortex {
         // Initialize Harmonograph (shares klee canvas)
         if (kleeCanvas) {
             this.harmonograph = new Harmonograph();
+            this.blueprint = new Blueprint();
         }
 
         // Create diagram element if it doesn't exist
@@ -1101,7 +1105,7 @@ export class VisualCortex {
     _isExternalCategory(type) {
         if (typeof type !== 'string' || this._isRetiredExternalType(type)) return false;
         // Core types are internal or handled elsewhere
-        const coreTypes = ['klee', 'turrell', 'fractal', 'neural', 'global', 'custom', 'rockgarden', 'harmonograph', 'diagram', 'global-pool'];
+        const coreTypes = ['klee', 'turrell', 'fractal', 'neural', 'global', 'custom', 'rockgarden', 'harmonograph', 'blueprint', 'diagram', 'global-pool'];
         if (coreTypes.includes(type) || type.startsWith('personal:')) return false;
 
         // Otherwise assume it's a category for one of our external providers
@@ -1327,6 +1331,26 @@ export class VisualCortex {
             signal,
             background: ASCII_BACKGROUND,
             metadata: { source: 'rockgarden' }
+        });
+    }
+
+    _blueprintAsciiFrame(signal) {
+        if (!this.blueprint || !this._asciiCanvas) return null;
+        const w = this._asciiCanvas.width;
+        const h = this._asciiCanvas.height;
+        return compilePolylinesToAscii({
+            width: w,
+            height: h,
+            palette: ['#e8e8ec', '#a8a8ae'],
+            polylines: this.blueprint.asciiPolylines(w, h).map((line, index) => ({
+                points: line.points,
+                color: index === 0 ? '#a8a8ae' : '#e8e8ec',
+                delay: Math.min(0.12, index * 0.02)
+            }))
+        }, {
+            signal,
+            background: ASCII_BACKGROUND,
+            metadata: { source: 'blueprint' }
         });
     }
 
@@ -1758,6 +1782,21 @@ export class VisualCortex {
                 asciiFrame = this._harmonographAsciiFrame(signal);
             } else {
                 rendered = this.harmonograph.render(this._kleeCanvas);
+                if (rendered && kleeEl) kleeEl.hidden = false;
+            }
+        } else if (selectedType === 'blueprint' && this.blueprint && this._kleeCanvas) {
+            // The drafting plate: for passages about mechanism, where a
+            // museum holds portraits of inventors rather than pictures
+            // of inventions (see ATRIUM-IMAGERY-CLASSIFICATION.md).
+            // Still frame, shares the klee canvas like the harmonograph.
+            this._resizeKleeCanvas();
+            this.blueprint.generate(signal, undefined, {
+                climate: this.config.blueprintClimate
+            });
+            if (asciiMode) {
+                asciiFrame = this._blueprintAsciiFrame(signal);
+            } else {
+                rendered = this.blueprint.render(this._kleeCanvas);
                 if (rendered && kleeEl) kleeEl.hidden = false;
             }
         } else if (selectedType === 'rockgarden' && this.rockgarden && this._kleeCanvas) {

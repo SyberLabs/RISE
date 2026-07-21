@@ -181,6 +181,7 @@ export class VisualInterlocutionPanel {
                     : null,
                 kleePreset: options.interlocution?.kleePreset ?? options.kleePreset ?? 'random',
                 harmonographClimate: options.interlocution?.harmonographClimate ?? 'auto',
+                blueprintClimate: options.interlocution?.blueprintClimate ?? 'auto',
                 // Responsive: the semantic conductor drives the flashes.
                 // Two independently gated intents beneath the master switch:
                 // mood (imagery character) and rhythm (density/sharpness).
@@ -472,7 +473,8 @@ export class VisualInterlocutionPanel {
             { id: 'fractal', name: 'Fractal Flames', icon: '✧' },
             { id: 'neural', name: 'Neural Networks', icon: '◉' },
             { id: 'rockgarden', name: 'Rock Garden', icon: '◯' },
-            { id: 'harmonograph', name: 'Harmonograph', icon: '∿' }
+            { id: 'harmonograph', name: 'Harmonograph', icon: '∿' },
+            { id: 'blueprint', name: 'Blueprint', icon: '⊞' }
         ];
 
         const kleePresets = [
@@ -496,6 +498,18 @@ export class VisualInterlocutionPanel {
             { id: 'stormViolet', name: 'Storm' },
             { id: 'jadeVeil', name: 'Jade' },
             { id: 'whiteHeat', name: 'White' }
+        ];
+
+        // Drafting climates for the Blueprint plate. Cyanotype is the
+        // historical blueprint (iron-blue ground, white lines, because
+        // the process printed the negative); the rest are drawing-office
+        // variants. Auto follows the passage's valence.
+        const blueprintClimates = [
+            { id: 'auto', name: 'Auto' },
+            { id: 'cyanotype', name: 'Cyanotype' },
+            { id: 'graphite', name: 'Graphite' },
+            { id: 'sepia', name: 'Sepia' },
+            { id: 'verdigris', name: 'Verdigris' }
         ];
 
         // Standard focal glyphs for neurosensitive-friendly viewing
@@ -846,6 +860,18 @@ export class VisualInterlocutionPanel {
                                                             data-preset="${preset.id}"
                                                             data-for="${p.id}">
                                                             ${preset.name}
+                                                        </button>
+                                                    `).join('')}
+                                                </div>
+                                            ` : ''}
+                                            ${p.id === 'blueprint' && this.config.interlocution.procedural.includes(p.id) ? `
+                                                <div class="vi-preset-chips" data-preset-group="blueprint">
+                                                    ${blueprintClimates.map(climate => `
+                                                        <button type="button"
+                                                            class="vi-preset-chip ${this.config.interlocution.blueprintClimate === climate.id ? 'active' : ''}"
+                                                            data-preset="${climate.id}"
+                                                            data-for="blueprint">
+                                                            ${climate.name}
                                                         </button>
                                                     `).join('')}
                                                 </div>
@@ -1266,6 +1292,8 @@ export class VisualInterlocutionPanel {
                     this.config.interlocution.kleePreset = presetId;
                 } else if (target === 'harmonograph') {
                     this.config.interlocution.harmonographClimate = presetId;
+                } else if (target === 'blueprint') {
+                    this.config.interlocution.blueprintClimate = presetId;
                 }
 
                 this.render();
