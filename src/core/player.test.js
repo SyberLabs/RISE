@@ -462,7 +462,10 @@ describe('Player', () => {
       expect(errorListener).toHaveBeenCalledWith(expect.objectContaining({ phase: 'interlocution' }));
     });
 
-    it('estimates demand from eligible atom boundaries rather than raw reading time', () => {
+    it('estimates demand from eligible reading time, equal across chunk modes', () => {
+      // Time-based hazard: the same frequency implies the same visual
+      // density per authored second, so a Word session no longer
+      // out-demands a Phrase session of the same reading length.
       const wordSession = new Session({
         wpm: 240,
         chunkMode: 'word',
@@ -485,8 +488,11 @@ describe('Player', () => {
         atoms: [new Atom({ content: 'Four words in one sentence.', duration: 1000 })]
       });
 
-      expect(estimateInterlocutionCount(wordSession, 0.5)).toBe(4);
+      // word: 0.75s of eligible-boundary reading → ceil(0.375) + 2
+      expect(estimateInterlocutionCount(wordSession, 0.5)).toBe(3);
+      // phrase: 1s eligible → ceil(0.5) + 2
       expect(estimateInterlocutionCount(phraseSession, 0.5)).toBe(3);
+      // a single sentence has no eligible boundary at all
       expect(estimateInterlocutionCount(sentenceSession, 0.5)).toBe(0);
     });
 
@@ -506,7 +512,8 @@ describe('Player', () => {
         visualConfig: { visualMode: 'interlocution', interlocution: { duration: 2000 } }
       });
 
-      expect(estimateInterlocutionCount(shortPresence, 1)).toBe(33);
+      // 7.75s of eligible reading at max frequency → ceil(7.75) + 2
+      expect(estimateInterlocutionCount(shortPresence, 1)).toBe(10);
       expect(estimateInterlocutionCount(longPresence, 1)).toBe(6);
     });
 
@@ -575,6 +582,43 @@ describe('Player', () => {
         skipped: 0,
         visibleDurationMs: 0
       });
+    });
+
+    it('scales flash chance with the authored time an atom occupied', async () => {
+      // HAZARD CONTRACT: the same frequency must produce the same
+      // flashes-per-minute in every chunk mode. A 2s sentence carries
+      // ten times the hazard of a 200ms word, so a roll that fails
+      // after the word succeeds after the sentence.
+      const buildPlayer = (duration) => {
+        const s = new Session({
+          atoms: [
+            new Atom({ content: 'first', duration }),
+            new Atom({ content: 'second', duration })
+          ],
+          visualConfig: {
+            visualMode: 'interlocution',
+            interlocution: { frequency: 0.5, duration: 150 }
+          }
+        });
+        const p = new Player(s);
+        p.setInterlocutionHandler(vi.fn().mockResolvedValue(true));
+        p.sessionState.state = 'playing';
+        p.sessionState.startTime = Date.now();
+        return p;
+      };
+
+      // word 200ms: p = 1-exp(-0.5*0.2) ≈ 0.095; sentence 2000ms: ≈ 0.63
+      vi.spyOn(Math, 'random').mockReturnValue(0.3);
+
+      const wordPlayer = buildPlayer(200);
+      await wordPlayer.attemptInterlocution();
+      expect(wordPlayer.interlocutionHandler).not.toHaveBeenCalled();
+      wordPlayer.destroy();
+
+      const sentencePlayer = buildPlayer(2000);
+      await sentencePlayer.attemptInterlocution();
+      expect(sentencePlayer.interlocutionHandler).toHaveBeenCalledTimes(1);
+      sentencePlayer.destroy();
     });
 
     it('resumes past the completed atom when a pause interrupts the flash entry', async () => {

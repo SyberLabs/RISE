@@ -111,6 +111,29 @@ describe('scoreAtoms', () => {
         expect(track[0].confidence).toBeGreaterThan(0);
         expect(track[1].confidence).toBe(0);
     });
+
+    it('smooths over reading time, not atom count', () => {
+        // TIME-BASED SMOOTHING: the same text at sentence durations must
+        // adapt faster PER ATOM than at word durations — each sentence
+        // atom carries more reading time, hence more smoothing weight.
+        const contents = [
+            ...Array(10).fill('calm peace gentle'),
+            ...Array(10).fill('terror death horror')
+        ];
+        const withDuration = ms => contents.map(c => ({ content: c, duration: ms }));
+
+        const wordTrack = scoreAtoms(withDuration(200));
+        const sentenceTrack = scoreAtoms(withDuration(2000));
+
+        // Two atoms into the dark passage, the sentence-paced track has
+        // travelled much further toward it
+        expect(sentenceTrack[11].valence).toBeLessThan(wordTrack[11].valence);
+
+        // A fixed alpha override still bypasses durations entirely
+        const fixedShort = scoreAtoms(withDuration(200), { alpha: 0.12 });
+        const fixedLong = scoreAtoms(withDuration(2000), { alpha: 0.12 });
+        expect(fixedShort).toEqual(fixedLong);
+    });
 });
 
 describe('responsiveFrequency', () => {

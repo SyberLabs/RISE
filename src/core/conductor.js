@@ -270,14 +270,34 @@ export function scoreChunk(text) {
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
-function ema(values, alpha) {
+function ema(values, alphas) {
     const out = new Array(values.length);
     let acc = values[0];
     for (let i = 0; i < values.length; i++) {
-        acc = acc + alpha * (values[i] - acc);
+        acc = acc + alphas[i] * (values[i] - acc);
         out[i] = acc;
     }
     return out;
+}
+
+// TIME-BASED SMOOTHING: the mood track must evolve over READING TIME,
+// not atom count. A fixed per-atom alpha smoothed over ~8 atoms whether
+// those atoms were 190ms words or 4s sentences — Word mode jittered,
+// Sentence mode lagged by half a minute. Each atom now contributes
+// alpha = 1 - exp(-duration/tau), the exact discretization of a
+// continuous exponential filter, so every chunk mode converges on the
+// same temporal feel. Tau is anchored to the historical Phrase-mode
+// behavior: a ~1s phrase at the old alpha 0.12 implies tau ≈ 8s.
+const SMOOTHING_TAU_MS = 8000;
+const FALLBACK_ATOM_MS = 300;
+
+function smoothingAlphas(atoms, fixedAlpha) {
+    return atoms.map(atom => {
+        if (typeof fixedAlpha === 'number') return fixedAlpha;
+        const duration = Number(atom?.duration);
+        const ms = Number.isFinite(duration) && duration > 0 ? duration : FALLBACK_ATOM_MS;
+        return 1 - Math.exp(-ms / SMOOTHING_TAU_MS);
+    });
 }
 
 /**
@@ -286,12 +306,13 @@ function ema(values, alpha) {
  * @param {Array} atoms - session atoms ({ content, duration, ... }); markers
  *                        and empty atoms are fine, they inherit via smoothing
  * @param {Object} options
- * @param {number} options.alpha - EMA smoothing factor per atom (default 0.12)
+ * @param {number} [options.alpha] - fixed per-atom EMA factor override;
+ *                        omitted (the default) selects duration-derived
+ *                        time-based smoothing
  * @returns {Array<{valence:number, arousal:number, confidence:number}>}
  */
 export function scoreAtoms(atoms, options = {}) {
     if (!Array.isArray(atoms) || atoms.length === 0) return [];
-    const alpha = options.alpha ?? 0.12;
     const n = atoms.length;
 
     // 1. Raw per-atom scores
@@ -316,10 +337,12 @@ export function scoreAtoms(atoms, options = {}) {
 
     // 3. Forward-backward EMA — zero-lag smoothing with anticipation:
     //    the backward pass lets the signal start turning before a passage does.
-    const fwdV = ema(rawV, alpha);
-    const bwdV = ema([...rawV].reverse(), alpha).reverse();
-    const fwdA = ema(rawA, alpha);
-    const bwdA = ema([...rawA].reverse(), alpha).reverse();
+    const alphas = smoothingAlphas(atoms, options.alpha);
+    const reversedAlphas = [...alphas].reverse();
+    const fwdV = ema(rawV, alphas);
+    const bwdV = ema([...rawV].reverse(), reversedAlphas).reverse();
+    const fwdA = ema(rawA, alphas);
+    const bwdA = ema([...rawA].reverse(), reversedAlphas).reverse();
 
     const track = new Array(n);
     for (let i = 0; i < n; i++) {

@@ -282,6 +282,38 @@ describe('PacingEngine', () => {
 
       expect(paced.map(atom => atom.duration)).toEqual([50, 2000]);
     });
+
+    it('evaluates the curve at cumulative authored time, not atom index', () => {
+      // A curve's climax must land at the reading's temporal midpoint:
+      // one long atom followed by two short ones puts the short atoms
+      // near the END of the reading, not at indices 0.5 and 1.0.
+      const positions = [];
+      engine.setStateCurve({ at: position => { positions.push(position); return 1; } });
+
+      engine.paceAtoms([
+        { modality: Modality.TEXT, content: 'long', duration: 8000 },
+        { modality: Modality.TEXT, content: 'short', duration: 100 },
+        { modality: Modality.TEXT, content: 'short', duration: 100 }
+      ]);
+
+      // Temporal midpoints over 8200ms total
+      expect(positions[0]).toBeCloseTo(4000 / 8200, 5);
+      expect(positions[1]).toBeCloseTo(8050 / 8200, 5);
+      expect(positions[2]).toBeCloseTo(8150 / 8200, 5);
+    });
+
+    it('falls back to index spacing when atoms carry no durations', () => {
+      const positions = [];
+      engine.setStateCurve({ at: position => { positions.push(position); return 1; } });
+
+      engine.paceAtoms([
+        { modality: Modality.TEXT, content: 'a' },
+        { modality: Modality.TEXT, content: 'b' },
+        { modality: Modality.TEXT, content: 'c' }
+      ]);
+
+      expect(positions).toEqual([0, 0.5, 1]);
+    });
   });
 
   describe('setWpm', () => {

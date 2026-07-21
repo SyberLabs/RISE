@@ -996,7 +996,8 @@ export class VisualInterlocutionPanel {
                             <span class="vi-slider-value vi-slider-value--presence" data-value="duration">${formatVisualPresence(displayedPresence)}</span>
                         </div>
                         <p class="vi-rhythm-hint text-mist">
-                            Frequency sets how often a visual may appear between text units.
+                            Frequency sets how often a visual may appear per stretch of reading,
+                            the same in every chunking mode.
                             Longer presences automatically create more space between appearances.
                         </p>
                     </div>

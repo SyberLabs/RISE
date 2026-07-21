@@ -241,14 +241,33 @@ export class PacingEngine {
     }
 
     /**
-     * Apply pacing to a list of atoms
-     * @param {Array} atoms 
+     * Apply pacing to a list of atoms.
+     *
+     * Curve position advances with cumulative AUTHORED time, not atom
+     * count: a curve's climax must land at the reading's temporal
+     * midpoint regardless of chunk mode, marker density, or how
+     * unevenly durations are distributed. Each atom is evaluated at
+     * its temporal midpoint.
+     * @param {Array} atoms
      * @returns {Array} Atoms with computed durations
      */
     paceAtoms(atoms) {
         const total = atoms.length;
+        let totalMs = 0;
+        for (const atom of atoms) {
+            const duration = Number(atom?.duration);
+            if (Number.isFinite(duration) && duration > 0) totalMs += duration;
+        }
+        let cursorMs = 0;
         return atoms.map((atom, index) => {
-            const position = total > 1 ? index / (total - 1) : 0.5;
+            const duration = Number(atom?.duration);
+            const authoredMs = Number.isFinite(duration) && duration > 0 ? duration : 0;
+            // Atoms without authored durations (legacy direct callers)
+            // fall back to index spacing
+            const position = totalMs > 0
+                ? (cursorMs + authoredMs / 2) / totalMs
+                : (total > 1 ? index / (total - 1) : 0.5);
+            cursorMs += authoredMs;
             return {
                 ...atom,
                 duration: this.computeDuration(atom, position)

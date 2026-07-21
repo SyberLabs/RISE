@@ -81,9 +81,19 @@ function rejectionCounterFor(reason) {
 }
 
 /**
- * Estimate demand from eligible semantic transitions. Frequency is a
- * probability per boundary, so chunking mode intentionally shapes visual
- * density: Word is staccato, Phrase is measured, and Sentence contemplative.
+ * HAZARD ANCHOR: the frequency knob means "probability per ~1s phrase".
+ * Flash chance accrues over authored READING time between eligible
+ * boundaries (p = 1 - exp(-frequency * Δt / anchor)), so the same
+ * setting yields the same flashes-per-minute in every chunk mode —
+ * Word no longer strobes five times as often as Phrase. Rolls still
+ * happen only at eligible semantic boundaries.
+ */
+export const HAZARD_ANCHOR_MS = 1000;
+
+/**
+ * Estimate demand from eligible semantic transitions. Expected flashes
+ * follow the time-based hazard: frequency × eligible authored seconds
+ * (per the anchor), bounded by boundary count and presence-rest limits.
  */
 export function estimateInterlocutionCount(session, frequency = 0.2) {
     const probability = Math.max(0, Math.min(1, Number(frequency) || 0));
@@ -110,7 +120,7 @@ export function estimateInterlocutionCount(session, frequency = 0.2) {
     if (session.visualConfig?.interlocution?.responsive) {
         presence = normalizeVisualPresence(presence * 0.85);
     }
-    const opportunities = eligibleBoundaries * probability;
+    const opportunities = probability * (eligibleDuration / HAZARD_ANCHOR_MS);
     const restLimitedPresentations = eligibleDuration
         / minimumVisualPresenceRest(presence);
 
@@ -153,6 +163,11 @@ export class Player {
         // prepared, resuming must advance past the completed atom — never
         // replay it. Open when a roll wins, closed on normal completion.
         this._boundaryFlash = null;
+
+        // Authored reading position (prefix ms) at the last hazard roll:
+        // flash chance accrues over the reading time since then, so the
+        // frequency knob means the same thing in every chunk mode.
+        this._hazardRolledMs = 0;
 
         // READING CLOCK: one monotonic accumulator that advances only
         // while the state is 'playing'. Progress and elapsed derive from
@@ -371,6 +386,7 @@ export class Player {
         this._reading = { accumulatedMs: 0, tickAnchor: null };
         this._autoPausedByVisibility = false;
         this._boundaryFlash = null;
+        this._hazardRolledMs = 0;
         this.interlocutionStats = createInterlocutionStats();
         this.sessionState.reset();
         this.emit('state', { state: 'idle' });
@@ -459,7 +475,26 @@ export class Player {
             }
 
             frequency = Math.max(0, Math.min(1, Number(frequency) || 0));
-            if (Math.random() < frequency) {
+
+            // TIME-BASED HAZARD: chance accrues over the authored reading
+            // time since the last roll (which absorbs ineligible stretches
+            // — markers, breaks — into the next opportunity), so density
+            // follows the reading clock rather than the boundary count.
+            const elapsedAuthoredMs = this._prefixDurations[this.sessionState.currentIndex + 1] ?? 0;
+            let hazardMs = elapsedAuthoredMs - this._hazardRolledMs;
+            if (hazardMs > 0) {
+                this._hazardRolledMs = elapsedAuthoredMs;
+            } else {
+                // Degenerate re-roll at an unmoved position (direct calls,
+                // replays): fall back to the completed atom's own span.
+                const atomDuration = Number(this.sessionState.currentAtom?.duration);
+                hazardMs = Number.isFinite(atomDuration) && atomDuration > 0 ? atomDuration : 0;
+            }
+            const flashChance = frequency > 0 && hazardMs > 0
+                ? 1 - Math.exp(-frequency * (hazardMs / HAZARD_ANCHOR_MS))
+                : 0;
+
+            if (Math.random() < flashChance) {
                 // We rolled a flash! Intercept the sequence. The atom at
                 // currentIndex has fully completed its display; open the
                 // boundary transaction so an interrupting pause resumes
