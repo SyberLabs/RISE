@@ -17,6 +17,18 @@ const PERSONALIZED_VAULTS = {
 
 /**
  * Sequence Archetypes - Pre-configured cognitive state inducing profiles
+ *
+ * TEMPORAL CONTRACT: paceV2. These WPMs were authored under the old
+ * hidden 1.4375× slowdown and have been scaled once by that factor, so
+ * the delivered reading speed is unchanged — only the label moved.
+ * Saved user preferences were migrated when the honest-pacing contract
+ * landed; these hardcoded presets were missed and had been running
+ * ~44% slower than authored. The Cipher's 430 would have become 618
+ * and is clamped to the app's 500 ceiling, which is still the fastest
+ * setting available and keeps its "machine rhythm" identity.
+ *
+ * Anything added here is authored under the honest contract: write the
+ * speed you actually want.
  */
 const ARCHETYPES = [
   {
@@ -27,7 +39,7 @@ const ARCHETYPES = [
     description: 'Focuses on the depths of human experience, emotional resonance, and inner contemplation. Draws from the Romantic and existential traditions.',
     textSeed: 'Rilke / Contemplative Poetry',
     config: {
-      wpm: 200,
+      wpm: 290,
       curve: 'induction',
       // Aurora: the just-intoned pad with wandering harmonics — a
       // soundscape is a finished mix, so the tones rest (exclusive beds)
@@ -40,7 +52,7 @@ const ARCHETYPES = [
           procedural: ['turrell'],
           sourced: ['aic-oldmasters', 'aic-landscapes'],
           frequency: 0.15,
-          duration: 150
+          duration: VISUAL_PRESENCE_DEFAULT_MS
         }
       }
     },
@@ -55,7 +67,7 @@ const ARCHETYPES = [
     description: 'Dissolves the boundary between observer and observed. Eastern philosophy meets consciousness technology. Designed for unified field awareness.',
     textSeed: 'The Upanishads / Mystic Texts',
     config: {
-      wpm: 170,
+      wpm: 240,
       curve: 'wave',
       audioPreset: 'deep', // Theta entrainment
       visualConfig: {
@@ -68,7 +80,7 @@ const ARCHETYPES = [
           harmonographClimate: 'auto',
           sourced: ['geometry', 'fractals'],
           frequency: 0.25,
-          duration: 150
+          duration: VISUAL_PRESENCE_DEFAULT_MS
         }
       }
     },
@@ -82,7 +94,7 @@ const ARCHETYPES = [
     description: 'Transmutation of base experience into golden insight. Hermetic principles encoded in biological symmetries and sacred geometries.',
     textSeed: 'The Hermetica / Esoteric Texts',
     config: {
-      wpm: 220,
+      wpm: 320,
       curve: 'ascent',
       audioPreset: 'focus',
       visualConfig: {
@@ -95,7 +107,7 @@ const ARCHETYPES = [
           // Hokusai beside Haeckel
           sourced: ['haeckel', 'botany', 'aic-ukiyoe'],
           frequency: 0.2,
-          duration: 150
+          duration: VISUAL_PRESENCE_DEFAULT_MS
         }
       }
     },
@@ -109,7 +121,7 @@ const ARCHETYPES = [
     description: 'Information without sentiment. Data streams parsed at machine rhythm. For those who seek the clarity of pure signal.',
     textSeed: 'Declassified Documents / Technical Manuals',
     config: {
-      wpm: 430,
+      wpm: 500,
       curve: 'flat',
       audioPreset: 'silent',
       visualConfig: {
@@ -119,7 +131,7 @@ const ARCHETYPES = [
           procedural: ['klee'],
           sourced: [],
           frequency: 0.1,
-          duration: 150,
+          duration: VISUAL_PRESENCE_DEFAULT_MS,
           kleePreset: 'architectural'
         }
       }
@@ -134,7 +146,7 @@ const ARCHETYPES = [
     description: 'The liminal channel between waking and sleep. Images emerge unbidden. The hand moves before the mind understands.',
     textSeed: 'Poetic / Stream of Consciousness',
     config: {
-      wpm: 140,
+      wpm: 200,
       curve: 'induction',
       // Faded Signal: analog memory — sun-worn harmony, tape drift,
       // a quiet feedback afterimage. The hypnagogic bed.
@@ -160,7 +172,7 @@ const ARCHETYPES = [
     description: 'The Third Mind emerges at the interface. Neither human nor machine alone, but the collaborative intelligence that arises between.',
     textSeed: 'Neohumanist / Interface Philosophy',
     config: {
-      wpm: 230,
+      wpm: 330,
       curve: 'wave',
       audioPreset: 'focus',
       visualConfig: {
