@@ -12,6 +12,7 @@ import {
 } from './collections.js';
 import { WIKIMEDIA_CATEGORIES } from '../../sources/visual/wikimedia.js';
 import { MUSEUM_CATEGORIES } from '../../sources/visual/museum.js';
+import { ATRIUM_CATEGORIES } from './atrium-categories.js';
 import { PHILOSOPHY_CORPUS } from './philosophy.js';
 import { HISTORY_CORPUS } from './history.js';
 
@@ -33,7 +34,9 @@ describe('Atrium record collections', () => {
   it('every curated id resolves to a real provider category', () => {
     const valid = new Set([
       ...Object.keys(WIKIMEDIA_CATEGORIES),
-      ...Object.keys(MUSEUM_CATEGORIES).map(id => `aic-${id}`)
+      ...Object.keys(MUSEUM_CATEGORIES).map(id => `aic-${id}`),
+      // Atrium-scoped subject categories (atr-*) are corpus content
+      ...Object.keys(ATRIUM_CATEGORIES)
     ]);
 
     for (const [recordId, ids] of Object.entries(ATRIUM_RECORD_COLLECTIONS)) {
@@ -58,9 +61,9 @@ describe('Atrium record collections', () => {
   it('replaces the domain default and marks the launch as curated', () => {
     const applied = applyRecordCollections(DOMAIN_CONFIG, 'ph-thinker-aristotle');
     expect(applied.visualConfig.interlocution.sourced)
-      .toEqual(['aic-oldmasters', 'anatomy', 'botany']);
+      .toEqual(['atr-aristotle-art', 'atr-aristotle', 'anatomy', 'botany']);
     expect(applied.visualConfig.interlocution.atriumCollections)
-      .toEqual(['aic-oldmasters', 'anatomy', 'botany']);
+      .toEqual(['atr-aristotle-art', 'atr-aristotle', 'anatomy', 'botany']);
     expect(applied.visualConfig.interlocution.sourceFamily).toBe('blend');
     // The domain's procedural signature and audio survive
     expect(applied.visualConfig.interlocution.procedural).toEqual(['harmonograph']);

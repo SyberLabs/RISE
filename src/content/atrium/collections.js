@@ -25,28 +25,28 @@ export const ATRIUM_RECORD_COLLECTIONS = freezeManifest({
   // Cosmological and mathematical traditions read against the
   // diagrammatic and astronomical record.
   'ph-school-milesian': ['astronomy', 'geometry'],
-  'ph-tradition-pythagorean': ['geometry', 'fractals'],
+  'ph-tradition-pythagorean': ['atr-pythagoras', 'geometry', 'fractals'],
   'ph-tradition-neopythagorean': ['geometry', 'sacred'],
   'ph-school-eleatic': ['geometry'],
   'ph-school-atomism': ['microscopy', 'geometry'],
-  'ph-tradition-pluralists': ['botany', 'microscopy'],
-  'ph-thinker-heraclitus': ['solar', 'astronomy'],
+  'ph-tradition-pluralists': ['atr-empedocles', 'botany', 'microscopy'],
+  'ph-thinker-heraclitus': ['atr-heraclitus', 'solar', 'astronomy'],
 
   // Classical Athens and its successors: the human figure and the
   // Old Master tradition that carried these texts forward.
-  'ph-tradition-socratic': ['aic-oldmasters', 'aic-portraits'],
-  'ph-thinker-plato': ['aic-oldmasters', 'geometry'],
-  'ph-thinker-aristotle': ['aic-oldmasters', 'anatomy', 'botany'],
+  'ph-tradition-socratic': ['atr-socrates-art', 'aic-oldmasters'],
+  'ph-thinker-plato': ['atr-plato-art', 'aic-oldmasters', 'geometry'],
+  'ph-thinker-aristotle': ['atr-aristotle-art', 'atr-aristotle', 'anatomy', 'botany'],
   'ph-school-peripatetic': ['anatomy', 'botany'],
   'ph-movement-sophistic': ['aic-portraits'],
 
   // Hellenistic ethics: the cosmos as the Stoic proving ground.
-  'ph-tradition-early-stoa': ['astronomy', 'aic-landscapes'],
-  'ph-tradition-roman-stoa': ['aic-portraits', 'astronomy'],
+  'ph-tradition-early-stoa': ['atr-stoicism', 'astronomy', 'aic-landscapes'],
+  'ph-tradition-roman-stoa': ['atr-marcus-aurelius', 'atr-stoicism', 'aic-portraits'],
   'ph-school-epicurean': ['botany', 'aic-landscapes'],
 
   // Late antiquity: light, emanation, and the sacred image.
-  'ph-thinker-plotinus': ['sacred', 'solar'],
+  'ph-thinker-plotinus': ['atr-plotinus', 'sacred', 'solar'],
   'ph-school-athenian-neoplatonism': ['sacred', 'geometry'],
   'ph-school-alexandrian-neoplatonism': ['sacred', 'astronomy'],
   'ph-tradition-iamblichean': ['sacred'],
@@ -61,18 +61,18 @@ export const ATRIUM_RECORD_COLLECTIONS = freezeManifest({
   // period produced and was mythologized by.
   //
   // Founding documents: the portrait tradition that framed their authors.
-  'hist-us-declaration': ['aic-portraits', 'aic-oldmasters'],
-  'hist-rights-man': ['aic-portraits', 'aic-oldmasters'],
+  'hist-us-declaration': ['atr-us-declaration', 'aic-portraits'],
+  'hist-rights-man': ['atr-rights-of-man', 'atr-french-revolution'],
   'hist-rights-woman': ['aic-portraits'],
   'hist-us-bill-rights': ['aic-portraits'],
-  'hist-social-contract': ['aic-portraits', 'aic-oldmasters'],
-  'hist-common-sense': ['aic-portraits'],
+  'hist-social-contract': ['atr-rousseau', 'aic-portraits'],
+  'hist-common-sense': ['atr-thomas-paine', 'aic-portraits'],
 
   // Insurrection and its ground.
-  'hist-bastille': ['romantic', 'aic-portraits'],
-  'hist-haitian-uprising': ['romantic', 'aic-landscapes'],
-  'hist-haiti-independence': ['aic-landscapes', 'aic-portraits'],
-  'hist-haiti-constitution-1801': ['aic-portraits'],
+  'hist-bastille': ['atr-bastille', 'atr-french-revolution', 'romantic'],
+  'hist-haitian-uprising': ['atr-haitian-revolution', 'atr-louverture'],
+  'hist-haiti-independence': ['atr-haitian-revolution', 'aic-landscapes'],
+  'hist-haiti-constitution-1801': ['atr-louverture', 'atr-haitian-revolution'],
   'hist-lexington-concord': ['romantic', 'aic-landscapes'],
   'hist-boston-massacre': ['aic-portraits'],
 
@@ -85,7 +85,7 @@ export const ATRIUM_RECORD_COLLECTIONS = freezeManifest({
   'hist-brazil-independence': ['aic-landscapes', 'aic-portraits'],
 
   // Industry and empire: the machines and treaties that framed the era.
-  'hist-watt-patent': ['microscopy', 'geometry'],
+  'hist-watt-patent': ['atr-james-watt', 'geometry'],
   'hist-water-frame': ['geometry'],
   'hist-seven-years-war': ['romantic', 'aic-landscapes'],
   'hist-treaty-paris-1763': ['aic-oldmasters']

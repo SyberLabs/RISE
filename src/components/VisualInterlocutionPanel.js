@@ -12,6 +12,7 @@
 
 import { WIKIMEDIA_CATEGORIES } from '../sources/visual/wikimedia.js';
 import { MUSEUM_CATEGORIES } from '../sources/visual/museum.js';
+import { ATRIUM_CATEGORIES } from '../content/atrium/atrium-categories.js';
 import { MemoryCore } from '../core/memory.js';
 import { ATTRACTOR_SYSTEMS } from '../visuals/attractor.js';
 import { escapeHtml, safeUrl } from '../core/sanitize.js';
@@ -691,6 +692,12 @@ export class VisualInterlocutionPanel {
                             const curated = this.config.interlocution.atriumCollections;
                             if (!Array.isArray(curated) || curated.length === 0) return '';
                             const labelFor = id => {
+                                if (id.startsWith('atr-')) {
+                                    // Atrium-scoped subject categories carry
+                                    // their own names; they are corpus content
+                                    // and never appear in the browsable list
+                                    return ATRIUM_CATEGORIES[id]?.name || id;
+                                }
                                 if (id.startsWith('aic-')) {
                                     return MUSEUM_CATEGORIES[id.slice(4)]?.name || id;
                                 }

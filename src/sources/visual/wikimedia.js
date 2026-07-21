@@ -7,6 +7,7 @@
  */
 
 import { SourceProvider } from '../provider.js';
+import { atriumCategoryDefinition } from '../../content/atrium/atrium-categories.js';
 import { SourceCache } from '../cache.js';
 import { abortableDelay, createAbortError, isAbortError, withAbortTimeout } from './request.js';
 import { ShuffleBag } from './shuffle-bag.js';
@@ -99,6 +100,16 @@ const IMAGE_BLACKLIST = [
 /**
  * Provider for Wikimedia Commons images
  */
+
+/**
+ * Resolve a category id to its Commons definition. Atrium-scoped ids
+ * (atr-*) are corpus content: they resolve for launches that curated
+ * them but never appear in the browsable registry.
+ */
+function resolveCategory(categoryId) {
+    return WIKIMEDIA_CATEGORIES[categoryId] || atriumCategoryDefinition(categoryId);
+}
+
 export class WikimediaProvider extends SourceProvider {
     constructor() {
         super({
@@ -391,7 +402,7 @@ export class WikimediaProvider extends SourceProvider {
      * Get images from a curated category with full URLs
      */
     async get(categoryId) {
-        const category = WIKIMEDIA_CATEGORIES[categoryId];
+        const category = resolveCategory(categoryId);
         if (!category) {
             console.warn(`[WikimediaProvider] Unknown category: ${categoryId}`);
             return null;
@@ -458,7 +469,7 @@ export class WikimediaProvider extends SourceProvider {
             categoryId = categoryIds[Math.floor(Math.random() * categoryIds.length)];
         }
 
-        const category = WIKIMEDIA_CATEGORIES[categoryId];
+        const category = resolveCategory(categoryId);
         if (!category) return null;
 
         // Get images from category
@@ -561,7 +572,7 @@ export class WikimediaProvider extends SourceProvider {
         const preloadPromises = [];
 
         for (const categoryId of categoryIds) {
-            const category = WIKIMEDIA_CATEGORIES[categoryId];
+            const category = resolveCategory(categoryId);
             if (!category) continue;
 
             const images = await this.getImagesInCategory(category.category, count);
