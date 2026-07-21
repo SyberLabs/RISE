@@ -7,7 +7,6 @@
  */
 
 import { SourceProvider } from '../provider.js';
-import { atriumCategoryDefinition } from '../../content/atrium/atrium-categories.js';
 import { SourceCache } from '../cache.js';
 import { abortableDelay, createAbortError, isAbortError, withAbortTimeout } from './request.js';
 import { ShuffleBag } from './shuffle-bag.js';
@@ -102,12 +101,30 @@ const IMAGE_BLACKLIST = [
  */
 
 /**
- * Resolve a category id to its Commons definition. Atrium-scoped ids
- * (atr-*) are corpus content: they resolve for launches that curated
- * them but never appear in the browsable registry.
+ * Extension point: content modules (e.g. the Atrium) may register
+ * additional category resolvers WITHOUT this provider depending on
+ * them — sources must never import content. Registered resolvers are
+ * consulted only for ids absent from the public registry, and their
+ * categories never enter random rotation.
  */
+const EXTERNAL_CATEGORY_RESOLVERS = [];
+
+export function registerWikimediaCategoryResolver(resolver) {
+    if (typeof resolver === 'function' && !EXTERNAL_CATEGORY_RESOLVERS.includes(resolver)) {
+        EXTERNAL_CATEGORY_RESOLVERS.push(resolver);
+    }
+}
+
 function resolveCategory(categoryId) {
-    return WIKIMEDIA_CATEGORIES[categoryId] || atriumCategoryDefinition(categoryId);
+    const registered = WIKIMEDIA_CATEGORIES[categoryId];
+    if (registered) return registered;
+    for (const resolver of EXTERNAL_CATEGORY_RESOLVERS) {
+        try {
+            const definition = resolver(categoryId);
+            if (definition) return definition;
+        } catch (e) { /* a broken resolver must not break the provider */ }
+    }
+    return null;
 }
 
 export class WikimediaProvider extends SourceProvider {

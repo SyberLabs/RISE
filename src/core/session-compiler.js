@@ -115,6 +115,13 @@ export function normalizeVisualConfig(value = {}) {
             presentation: raw.presentation === 'behind-stream' ? 'behind-stream' : 'full-frame',
             streamGlass: raw.streamGlass !== false,
             kleePreset: KLEE_PRESETS.has(raw.kleePreset) ? raw.kleePreset : 'random',
+            // Atrium-curated collections travel as an informational string
+            // list; malformed saved/imported values must not reach UI code
+            atriumCollections: Array.isArray(raw.atriumCollections)
+                ? raw.atriumCollections
+                    .filter(id => typeof id === 'string' && id.length > 0)
+                    .slice(0, 12)
+                : undefined,
             responsive: raw.responsive === true,
             responsiveMood: raw.responsiveMood !== false,
             responsiveRhythm: raw.responsiveRhythm !== false

@@ -101,9 +101,15 @@ export function estimateInterlocutionCount(session, frequency = 0.2) {
 
     if (eligibleBoundaries === 0) return 0;
 
-    const presence = normalizeVisualPresence(
+    let presence = normalizeVisualPresence(
         session.visualConfig?.interlocution?.duration ?? VISUAL_PRESENCE_DEFAULT_MS
     );
+    // Responsive sessions contract duration to 75–100% of the selected
+    // value; estimating with the midpoint keeps variety from depleting
+    // late in highly active sessions.
+    if (session.visualConfig?.interlocution?.responsive) {
+        presence = normalizeVisualPresence(presence * 0.85);
+    }
     const opportunities = eligibleBoundaries * probability;
     const restLimitedPresentations = eligibleDuration
         / minimumVisualPresenceRest(presence);

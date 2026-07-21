@@ -415,6 +415,19 @@ export class VisualCortex {
         if (!categoryId) {
             return this._getWikimediaProvider();
         }
+        // Atrium-scoped subject categories (atr-*) resolve through the
+        // Wikimedia provider once the Atrium content module has
+        // registered its resolver. A restored session can carry atr-
+        // ids without the Atrium ever loading this visit — import
+        // lazily so registration precedes resolution.
+        if (categoryId.startsWith('atr-')) {
+            try {
+                await import('../content/atrium/atrium-categories.js');
+            } catch (e) {
+                console.warn('[Visual Cortex] Atrium categories unavailable:', e);
+            }
+            return this._getWikimediaProvider();
+        }
         // Art Institute of Chicago — prefixed with 'aic-' (panel-issued ids)
         if (categoryId.startsWith('aic-')) {
             return this._getMuseumProvider();
@@ -1593,7 +1606,19 @@ export class VisualCortex {
             if (types.length === 0) {
                 return this._presentationResult(duration, 'source-unavailable');
             }
-            selectedType = types[Math.floor(Math.random() * types.length)];
+            // Two-stage Blend selection: first choose the FAMILY
+            // (procedural vs sourced) at a fixed ratio, then uniformly
+            // within it. A flat pick over the combined list let richer
+            // curation silently suppress the procedural signature (one
+            // procedural + four categories = 80% imagery).
+            const procedural = types.filter(t => !this._isExternalCategory(t) && t !== 'diagram');
+            const sourced = types.filter(t => this._isExternalCategory(t) || t === 'diagram');
+            if (procedural.length > 0 && sourced.length > 0) {
+                const family = Math.random() < 0.5 ? procedural : sourced;
+                selectedType = family[Math.floor(Math.random() * family.length)];
+            } else {
+                selectedType = types[Math.floor(Math.random() * types.length)];
+            }
         }
         
         // Map global-pool to custom logic

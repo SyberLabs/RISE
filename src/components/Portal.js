@@ -214,13 +214,15 @@ export class Portal {
   }
 
   sequentialReveal() {
+    this._revealTimers = this._revealTimers || [];
+    const revealTimeout = (fn, ms) => this._revealTimers.push(setTimeout(fn, ms));
     // Sequential fade-in: sigil → title → navigation (~1.5s total)
     const sigilContainer = this.container.querySelector('.portal-sigil-container');
     const title = this.container.querySelector('.portal-title-container');
     const nav = this.container.querySelector('.portal-nav');
     const video = this.container.querySelector('.vessel-video');
 
-    setTimeout(() => {
+    revealTimeout(() => {
       sigilContainer.style.transition = 'opacity 400ms var(--ease-out)';
       sigilContainer.style.opacity = '1';
       
@@ -235,23 +237,23 @@ export class Portal {
         if ('requestIdleCallback' in window) {
             window.requestIdleCallback(startVideo, { timeout: 1000 });
         } else {
-            setTimeout(startVideo, 200);
+            revealTimeout(startVideo, 200);
         }
       }
     }, 100);
 
-    setTimeout(() => {
+    revealTimeout(() => {
       title.style.transition = 'opacity 400ms var(--ease-out)';
       title.style.opacity = '1';
     }, 600);
 
-    setTimeout(() => {
+    revealTimeout(() => {
       nav.style.transition = 'opacity 400ms var(--ease-out)';
       nav.style.opacity = '1';
     }, 1100);
 
     const solStrip = this.container.querySelector('.portal-sol-strip');
-    setTimeout(() => {
+    revealTimeout(() => {
       if (solStrip) {
         solStrip.style.transition = 'opacity 500ms var(--ease-out)';
         solStrip.style.opacity = '1';
@@ -259,7 +261,7 @@ export class Portal {
     }, 1350);
 
     const footer = this.container.querySelector('.portal-footer');
-    setTimeout(() => {
+    revealTimeout(() => {
       footer.style.transition = 'opacity 600ms var(--ease-out)';
       footer.style.opacity = '1';
     }, 1600);
@@ -280,5 +282,10 @@ export class Portal {
   destroy() {
     this.deactivate();
     clearInterval(this._solStripInterval);
+    // Reveal choreography must die with the view — surviving timers
+    // fired after teardown (post-suite "window is not defined") and
+    // could start media work after navigation
+    (this._revealTimers || []).forEach(id => clearTimeout(id));
+    this._revealTimers = [];
   }
 }

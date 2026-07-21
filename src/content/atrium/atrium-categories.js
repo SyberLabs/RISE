@@ -1,4 +1,5 @@
 import { freezeManifest } from './constants.js';
+import { registerWikimediaCategoryResolver } from '../../sources/visual/wikimedia.js';
 
 /**
  * Atrium-scoped Wikimedia categories.
@@ -170,3 +171,9 @@ export function atriumCategoryDefinition(id) {
   if (!entry) return null;
   return { name: entry.name, category: entry.category, tags: entry.tags };
 }
+
+// Content registers itself with the provider — the dependency arrow
+// points content → source, never source → content. Any code path that
+// can launch an atr- category (handoff, panel labels) imports this
+// module first, so registration precedes resolution.
+registerWikimediaCategoryResolver(atriumCategoryDefinition);
