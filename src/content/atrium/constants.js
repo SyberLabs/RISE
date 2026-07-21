@@ -1,5 +1,5 @@
-export const ATRIUM_SCHEMA_VERSION = '1.0.0';
-export const ATRIUM_CORPUS_VERSION = '0.3.1';
+export const ATRIUM_SCHEMA_VERSION = '1.1.0';
+export const ATRIUM_CORPUS_VERSION = '0.4.9';
 export const ATRIUM_PACK_JURISDICTION = 'US';
 
 export function freezeManifest(value) {
@@ -48,6 +48,18 @@ export const RELATIONSHIP_TYPES = Object.freeze([
 export const RELATIONSHIP_CONFIDENCE = Object.freeze(['high', 'medium', 'contested']);
 export const EVIDENCE_LEVELS = Object.freeze(['E1', 'E2', 'E3']);
 export const LAUNCH_STATUSES = Object.freeze(['source-review', 'ready']);
+export const COMPLETION_DISPOSITIONS = Object.freeze([
+  'launch-required',
+  'alignment-repair',
+  'evidence-bound',
+  'context-only'
+]);
+export const COMPLETION_STATES = Object.freeze([
+  'satisfied',
+  'open-required',
+  'open-alignment',
+  'accepted-nonlaunch'
+]);
 export const RIGHTS_STATUSES = Object.freeze([
   'public-domain-confirmed',
   'open-license-confirmed',

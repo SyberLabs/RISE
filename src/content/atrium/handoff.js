@@ -11,6 +11,7 @@ import {
 } from './packs/pilot-v1/manifest.js';
 import { ATRIUM_PILOT_PAYLOADS } from './packs/pilot-v1/payloads.js';
 import { evaluateJourneyReadiness } from './readiness.js';
+import { ATRIUM_POINT_LAUNCHES, findAtriumPoint, sensoryConfigFor } from './launches.js';
 
 export const ATRIUM_PAYLOADS = ATRIUM_PILOT_PAYLOADS;
 
@@ -65,6 +66,10 @@ export function findAtriumJourney(journeyId, journeys = allJourneys()) {
   return (Array.isArray(journeys) ? journeys : []).find(journey => journey.id === journeyId) || null;
 }
 
+export function findAtriumLaunch(launchId, launches = [...allJourneys(), ...ATRIUM_POINT_LAUNCHES]) {
+  return (Array.isArray(launches) ? launches : []).find(launch => launch.id === launchId) || null;
+}
+
 /**
  * Build the only supported Atrium -> Chamber boundary.
  *
@@ -76,14 +81,18 @@ export async function createAtriumJourneyHandoff(journeyOrId, options = {}) {
   const passages = Array.isArray(options.passages) ? options.passages : ATRIUM_PASSAGES;
   const sources = Array.isArray(options.sources) ? options.sources : ATRIUM_SOURCES;
   const payloads = options.payloads || ATRIUM_PAYLOADS;
-  const journeys = Array.isArray(options.journeys) ? options.journeys : allJourneys();
+  const journeys = Array.isArray(options.journeys)
+    ? options.journeys
+    : [...allJourneys(), ...ATRIUM_POINT_LAUNCHES];
   const journey = typeof journeyOrId === 'string'
-    ? findAtriumJourney(journeyOrId, journeys)
+    ? findAtriumLaunch(journeyOrId, journeys)
     : journeyOrId;
 
   if (!journey) {
     throw new AtriumHandoffError('ATRIUM_JOURNEY_NOT_FOUND', 'Atrium journey does not exist.');
   }
+
+  const launchKind = journey.kind === 'point' ? 'point' : 'journey';
 
   const readiness = evaluateJourneyReadiness(journey, passages, sources);
   if (!readiness.ready) {
@@ -137,8 +146,9 @@ export async function createAtriumJourneyHandoff(journeyOrId, options = {}) {
         contentPackVersion: ATRIUM_PILOT_PACK.version,
         rightsJurisdiction: ATRIUM_PACK_JURISDICTION,
         domain: journey.domain,
-        journeyId: journey.id,
-        journeyTitle: journey.title,
+        ...(launchKind === 'journey'
+          ? { journeyId: journey.id, journeyTitle: journey.title }
+          : { pointId: journey.id, pointTitle: journey.title, anchorId: journey.anchorIds[0] || null }),
         segmentRole: segment.role,
         sourceId: source.id,
         passageId: passage.id,
@@ -166,28 +176,41 @@ export async function createAtriumJourneyHandoff(journeyOrId, options = {}) {
     text: chamberSources.map(source => source.data).join('\n\n'),
     source: `Atrium · ${journey.title}`,
     config: {
+      ...sensoryConfigFor(journey.domain),
       sources: chamberSources,
       origin: {
         view: 'atrium',
         icon: '⌘',
         name: 'Atrium',
         data: {
+          ...(options.origin && typeof options.origin === 'object' ? options.origin : {}),
           domain: journey.domain,
           selectedId: journey.anchorIds[0] || null,
-          expandedJourneyId: journey.id
+          expandedJourneyId: launchKind === 'journey' ? journey.id : null
         }
       },
       provenance: {
-        kind: 'atrium-journey',
+        kind: `atrium-${launchKind}`,
         corpusVersion: ATRIUM_CORPUS_VERSION,
         contentPackId: ATRIUM_PILOT_PACK.id,
         contentPackVersion: ATRIUM_PILOT_PACK.version,
         rightsJurisdiction: ATRIUM_PACK_JURISDICTION,
         domain: journey.domain,
-        journeyId: journey.id,
-        journeyTitle: journey.title,
+        ...(launchKind === 'journey'
+          ? { journeyId: journey.id, journeyTitle: journey.title }
+          : { pointId: journey.id, pointTitle: journey.title, anchorId: journey.anchorIds[0] || null }),
         passageIds: chamberSources.map(source => source.id)
       }
     }
   };
+}
+
+export async function createAtriumPointHandoff(pointOrAnchorId, options = {}) {
+  const point = typeof pointOrAnchorId === 'string'
+    ? findAtriumPoint(pointOrAnchorId) || findAtriumLaunch(pointOrAnchorId, ATRIUM_POINT_LAUNCHES)
+    : pointOrAnchorId;
+  if (!point || point.kind !== 'point') {
+    throw new AtriumHandoffError('ATRIUM_POINT_NOT_FOUND', 'Atrium point does not exist.');
+  }
+  return createAtriumJourneyHandoff(point, { ...options, journeys: [point] });
 }

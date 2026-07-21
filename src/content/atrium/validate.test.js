@@ -3,8 +3,10 @@ import { HISTORY_CORPUS } from './history.js';
 import { PHILOSOPHY_CORPUS } from './philosophy.js';
 import {
   PHILOSOPHY_SPECIALIST_REVIEW_CASES,
+  PHILOSOPHY_SPECIALIST_TRANCHE_2_DRAFTS,
   summarizeSpecialistReview
 } from './specialist-review.js';
+import { ATRIUM_CORPUS_VERSION } from './constants.js';
 import {
   validateAtriumCorpus,
   validateHistoryCorpus,
@@ -22,7 +24,9 @@ describe('Atrium corpus validation', () => {
     expect(HISTORY_CORPUS.events.length).toBeGreaterThanOrEqual(50);
     expect(Object.isFrozen(PHILOSOPHY_CORPUS.nodes[0])).toBe(true);
     expect(Object.isFrozen(PHILOSOPHY_CORPUS.nodes[0].dates)).toBe(true);
+    expect(Object.isFrozen(PHILOSOPHY_CORPUS.nodes[0].completion)).toBe(true);
     expect(Object.isFrozen(HISTORY_CORPUS.events[0].lanes)).toBe(true);
+    expect(Object.isFrozen(HISTORY_CORPUS.events[0].completion)).toBe(true);
   });
 
   it('meets the Gate C editorial-preparation floor without claiming specialist sign-off', () => {
@@ -127,6 +131,19 @@ describe('Atrium corpus validation', () => {
       recommendations: { retain: 2, revise: 5, remove: 1 }
     });
     expect(validateSpecialistReviewCases().valid).toBe(true);
+  });
+
+  it('records corpus 0.4.9 launch expansion without promoting tranche-two drafts', () => {
+    expect(ATRIUM_CORPUS_VERSION).toBe('0.4.9');
+    const heraclitus = PHILOSOPHY_SPECIALIST_REVIEW_CASES.find(item => item.recordId === 'edge-heraclitus-stoa');
+    expect(heraclitus.recommendation.proposedClaim.note).toContain('on the Stoic reading, cosmic recurrence');
+    const plotinus = PHILOSOPHY_SPECIALIST_REVIEW_CASES.find(item => item.recordId === 'edge-stoa-plotinus');
+    expect(plotinus.evidenceAnchors).toContainEqual(expect.objectContaining({ sourceRef: 'VP-14' }));
+    const alexandria = PHILOSOPHY_SPECIALIST_REVIEW_CASES.find(item => item.recordId === 'edge-iamblichean-alexandria');
+    expect(alexandria.recommendation.proposedClaim.note).toContain('Athenian school');
+    expect(PHILOSOPHY_SPECIALIST_TRANCHE_2_DRAFTS).toHaveLength(2);
+    expect(PHILOSOPHY_SPECIALIST_TRANCHE_2_DRAFTS.every(item => item.status === 'draft' && item.decision === null)).toBe(true);
+    expect(PHILOSOPHY_CORPUS.nodes.some(node => node.id === 'ph-thinker-pyrrho')).toBe(false);
   });
 
   it('fails specialist review packets closed when their record snapshot drifts', () => {
@@ -270,5 +287,29 @@ describe('Atrium corpus validation', () => {
     const report = validateHistoryCorpus(unsafe);
     expect(report.errors).toContainEqual(expect.objectContaining({ code: 'unsafe-ready-launch' }));
     expect(report.errors).toContainEqual(expect.objectContaining({ code: 'invalid-collection' }));
+  });
+
+  it('fails closed when a record omits or weakens its completion disposition', () => {
+    const missing = {
+      ...PHILOSOPHY_CORPUS,
+      nodes: [{ ...PHILOSOPHY_CORPUS.nodes[0], completion: null }]
+    };
+    expect(validatePhilosophyCorpus(missing).errors).toContainEqual(
+      expect.objectContaining({ code: 'missing-completion-disposition' })
+    );
+
+    const acceptedWithoutTrigger = {
+      ...HISTORY_CORPUS,
+      events: [{
+        ...HISTORY_CORPUS.events.find(event => event.id === 'hist-mexican-insurgency'),
+        completion: {
+          ...HISTORY_CORPUS.events.find(event => event.id === 'hist-mexican-insurgency').completion,
+          revisitTrigger: ''
+        }
+      }]
+    };
+    expect(validateHistoryCorpus(acceptedWithoutTrigger).errors).toContainEqual(
+      expect.objectContaining({ code: 'missing-completion-revisit-trigger' })
+    );
   });
 });

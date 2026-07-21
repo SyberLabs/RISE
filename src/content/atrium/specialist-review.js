@@ -52,7 +52,7 @@ export const PHILOSOPHY_SPECIALIST_REVIEW_CASES = freezeManifest([
         confidence: 'contested',
         evidence: 'E3',
         citationRefs: ['SEP-PAR', 'SEP-PRE'],
-        note: 'Some influential readings reconstruct Parmenides\' arguments against generation and change as a challenge to Milesian cosmology. This is a historiographic relation, not evidence of a documented controversy between two unified schools.'
+        note: 'Some influential readings reconstruct Parmenides\' arguments against generation and change as a challenge to Milesian cosmology, while constructive readings treat his cosmology as philosophically substantive in its own right. This is a historiographic relation, not evidence of a documented controversy between two unified schools.'
       }
     },
     evidenceAnchors: [
@@ -126,7 +126,7 @@ export const PHILOSOPHY_SPECIALIST_REVIEW_CASES = freezeManifest([
         confidence: 'medium',
         evidence: 'E2',
         citationRefs: ['SEP-HER', 'SEP-STOICISM'],
-        note: 'Stoic authors appropriated Heraclitean language and physics, including fire and cosmic recurrence, while reconstructing those materials inside a distinct systematic theology and cosmology.'
+        note: 'Stoic authors appropriated Heraclitean language and physics, including fire and, on the Stoic reading, cosmic recurrence, while reconstructing those materials inside a distinct systematic theology and cosmology.'
       }
     },
     evidenceAnchors: [
@@ -193,7 +193,7 @@ export const PHILOSOPHY_SPECIALIST_REVIEW_CASES = freezeManifest([
         type: 'influence',
         confidence: 'medium',
         evidence: 'E2',
-        citationRefs: ['SEP-PLOTINUS', 'SEP-NEOPLATONISM'],
+        citationRefs: ['SEP-PLOTINUS', 'SEP-NEOPLATONISM', 'VP-14'],
         note: 'Plotinus selectively reworks Stoic ethical and psychological materials while criticizing Stoic corporealism; the relationship is one of appropriation within sustained disagreement, not a general synthesis.'
       }
     },
@@ -209,6 +209,12 @@ export const PHILOSOPHY_SPECIALIST_REVIEW_CASES = freezeManifest([
         locator: 'Engagement with Hellenistic predecessors',
         stance: 'qualifies',
         relevance: 'Frames Plotinus as an argumentative Platonist who appropriates and rejects earlier positions.'
+      },
+      {
+        sourceRef: 'VP-14',
+        locator: 'Porphyry, Life of Plotinus 14',
+        stance: 'supports',
+        relevance: 'Direct ancient testimony reports Stoic and Peripatetic doctrines embedded, sometimes concealed, in Plotinus\' writings.'
       }
     ],
     riskTags: ['relationship-type-overreach', 'appropriation-versus-synthesis']
@@ -262,7 +268,7 @@ export const PHILOSOPHY_SPECIALIST_REVIEW_CASES = freezeManifest([
         confidence: 'medium',
         evidence: 'E2',
         citationRefs: ['SEP-IAMBLICHUS', 'SEP-AMMONIUS'],
-        note: 'Iamblichean exegetical and metaphysical structures reached Alexandrian teaching through mediated routes including Syrianus, Proclus, Hermeias, and Ammonius, where they were selectively adapted rather than reproduced intact.'
+        note: 'Iamblichean exegetical and metaphysical structures reached Alexandrian teaching through the Athenian school (Syrianus, Proclus) and its Alexandrian heirs (Hermeias, Ammonius), where they were selectively adapted rather than reproduced intact.'
       }
     },
     evidenceAnchors: [
@@ -321,6 +327,56 @@ export const PHILOSOPHY_SPECIALIST_REVIEW_CASES = freezeManifest([
 ]);
 
 export const ATRIUM_SPECIALIST_REVIEW_CASES = PHILOSOPHY_SPECIALIST_REVIEW_CASES;
+
+/**
+ * Tranche-two candidates are research briefs only. They are deliberately not
+ * inserted into the runtime graph and cannot inherit tranche-one approval.
+ */
+export const PHILOSOPHY_SPECIALIST_TRANCHE_2_DRAFTS = freezeManifest([
+  {
+    id: 'specialist-draft-academic-to-pyrrhonism',
+    schemaVersion: ATRIUM_SPECIALIST_REVIEW_SCHEMA_VERSION,
+    domain: 'philosophy',
+    recordType: 'relationship-candidate',
+    status: 'draft',
+    proposedClaim: {
+      from: 'ph-school-academic-skepticism',
+      to: 'ph-school-pyrrhonism',
+      type: 'influence',
+      claimKind: 'origin-reaction',
+      confidence: 'high',
+      evidence: 'E1',
+      citationRefs: ['PHOTIUS-BIBL-212', 'SEP-SKEPTICISM'],
+      note: 'Aenesidemus emerged from Academic Skepticism and broke with it in reviving a Pyrrhonian program; this proposed edge records institutional origin and reaction, not doctrinal identity.'
+    },
+    decision: null
+  },
+  {
+    id: 'specialist-draft-pyrrho-to-arcesilaus',
+    schemaVersion: ATRIUM_SPECIALIST_REVIEW_SCHEMA_VERSION,
+    domain: 'philosophy',
+    recordType: 'node-and-relationship-candidate',
+    status: 'draft',
+    proposedNode: {
+      id: 'ph-thinker-pyrrho',
+      kind: 'thinker',
+      label: 'Pyrrho',
+      era: 'hellenistic',
+      dates: { display: 'c. 360–270 BCE', start: -359, end: -269, precision: 'approximate' }
+    },
+    proposedClaim: {
+      from: 'ph-thinker-pyrrho',
+      to: 'ph-school-academic-skepticism',
+      targetPerson: 'Arcesilaus',
+      type: 'influence',
+      confidence: 'contested',
+      evidence: 'E3',
+      citationRefs: ['SEP-PYRRHO', 'SEP-SKEPTICISM'],
+      note: 'Ancient testimony and modern scholarship leave possible Pyrrhonian influence on Arcesilaus contested; the claim concerns Pyrrho the person, not the later Pyrrhonian movement.'
+    },
+    decision: null
+  }
+]);
 
 export function findSpecialistReviewCase(recordId, cases = ATRIUM_SPECIALIST_REVIEW_CASES) {
   return cases.find(item => item.recordId === recordId) || null;

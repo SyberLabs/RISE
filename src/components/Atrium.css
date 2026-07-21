@@ -698,6 +698,17 @@
   cursor: not-allowed;
 }
 
+.atrium-launch-pending {
+  padding: 9px 12px;
+  border: 1px solid rgba(155, 155, 165, 0.14);
+  color: var(--color-mist);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .atrium-launch-gate p {
   margin-top: 8px;
   color: var(--color-mist);
@@ -891,6 +902,250 @@
   font-size: 26px;
 }
 
+.atrium-constellation-scroll {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid rgba(155, 155, 165, 0.12);
+  background: var(--color-void);
+  scrollbar-width: thin;
+}
+
+.atrium-constellation {
+  display: block;
+  overflow: visible;
+}
+
+.atrium-constellation-eras line {
+  stroke: rgba(155, 155, 165, 0.12);
+  stroke-width: 1;
+}
+
+.atrium-constellation-eras text {
+  fill: var(--color-mist);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.atrium-constellation-edge {
+  transition: opacity var(--transition-normal);
+}
+
+.atrium-constellation-edge.dimmed {
+  opacity: 0.15;
+}
+
+.atrium-constellation-line {
+  fill: none;
+  stroke: var(--color-threshold);
+  stroke-width: 1.5;
+  opacity: 0.58;
+  vector-effect: non-scaling-stroke;
+}
+
+.atrium-constellation-line.confidence-medium {
+  stroke: var(--color-ember);
+  stroke-width: 1;
+  opacity: 0.36;
+}
+
+.atrium-constellation-line.confidence-contested {
+  stroke: var(--color-caution);
+  stroke-dasharray: 4 6;
+  stroke-width: 1;
+  opacity: 0.3;
+}
+
+.atrium-constellation-line.type-critique {
+  stroke: var(--color-ember);
+}
+
+.atrium-constellation-line.type-transmission {
+  stroke: var(--color-growth);
+}
+
+.atrium-constellation-line.type-synthesis {
+  stroke: var(--color-caution);
+}
+
+.atrium-edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.atrium-edge-hit:focus-visible {
+  stroke: var(--color-light);
+  stroke-width: 3;
+  opacity: 0.45;
+  outline: none;
+}
+
+.atrium-constellation-node {
+  width: 100%;
+  height: 56px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border: 1px solid rgba(155, 155, 165, 0.22);
+  background: var(--atrium-panel);
+  color: var(--color-light);
+  text-align: left;
+  cursor: pointer;
+}
+
+.atrium-constellation-node span {
+  overflow: hidden;
+  font-family: var(--font-literary);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.atrium-constellation-node small {
+  margin-top: 3px;
+  color: var(--color-mist);
+  font-family: var(--font-mono);
+  font-size: 7px;
+}
+
+.atrium-constellation-node:hover,
+.atrium-constellation-node:focus-visible,
+.atrium-constellation-node.selected {
+  border-color: var(--color-threshold);
+  background: var(--color-depth);
+}
+
+.atrium-edge-detail {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--atrium-line);
+  background: var(--atrium-panel);
+}
+
+.atrium-edge-detail > span,
+.atrium-edge-detail > strong,
+.atrium-edge-detail > small {
+  display: block;
+}
+
+.atrium-edge-detail > span,
+.atrium-edge-detail > small {
+  color: var(--color-mist);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.atrium-edge-detail > strong {
+  margin-top: 5px;
+  color: var(--color-light);
+  font-family: var(--font-literary);
+  font-weight: 400;
+}
+
+.atrium-edge-detail p {
+  margin: 7px 0;
+  color: var(--color-fog);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+@keyframes atrium-incoming-pulse {
+  0% { stroke-dashoffset: 48; opacity: 0.45; }
+  55% { opacity: 0.95; }
+  100% { stroke-dashoffset: 0; opacity: 0.58; }
+}
+
+.atrium-constellation-edge.incoming-pulse .atrium-constellation-line {
+  stroke-dasharray: 14 10;
+  animation: atrium-incoming-pulse 1.5s ease-out 1;
+}
+
+.atrium-constellation-legend {
+  position: sticky;
+  bottom: 16px;
+  left: 16px;
+  width: 380px;
+  margin: -58px 0 16px 16px;
+  padding: 9px 11px;
+  border: 1px solid var(--atrium-line);
+  background: var(--atrium-panel);
+  color: var(--color-mist);
+  font-family: var(--font-mono);
+  font-size: 7px;
+  text-transform: uppercase;
+}
+
+.atrium-constellation-legend span + span {
+  margin-left: 10px;
+}
+
+.atrium-constellation-legend .type-influence { color: var(--color-threshold); }
+.atrium-constellation-legend .type-critique { color: var(--color-ember); }
+.atrium-constellation-legend .type-transmission { color: var(--color-growth); }
+.atrium-constellation-legend .type-synthesis { color: var(--color-caution); }
+
+.atrium-constellation-legend small {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-mist);
+}
+
+.atrium-echoes button {
+  width: 100%;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid rgba(155, 155, 165, 0.1);
+  background: transparent;
+  color: var(--color-fog);
+  text-align: left;
+  cursor: pointer;
+}
+
+.atrium-echoes button span,
+.atrium-echoes button strong,
+.atrium-echoes button small {
+  display: block;
+}
+
+.atrium-echoes button span {
+  color: var(--color-mist);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.atrium-echoes button strong {
+  margin-top: 3px;
+  color: var(--color-cloud);
+  font-family: var(--font-literary);
+  font-weight: 400;
+}
+
+.atrium-echoes button small {
+  margin-top: 4px;
+  line-height: 1.45;
+}
+
+.atrium-echoes button:hover strong,
+.atrium-echoes button:focus-visible strong {
+  color: var(--color-light);
+}
+
+.atrium-journey-enter {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.reduced-motion .atrium-constellation-edge.incoming-pulse .atrium-constellation-line {
+  animation: none;
+}
+
 @media (max-width: 980px) {
   .atrium-header {
     padding: 18px 18px 12px;
@@ -968,5 +1223,11 @@
   .atrium-node:hover,
   .atrium-node:focus-visible {
     transform: none;
+  }
+
+  .atrium-constellation-edge,
+  .atrium-constellation-edge.incoming-pulse .atrium-constellation-line {
+    transition: none;
+    animation: none;
   }
 }

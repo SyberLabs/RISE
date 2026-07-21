@@ -58,7 +58,17 @@ async function readyFixture(text = 'Know thyself and examine the life before you
 
 describe('Atrium Chamber handoff', () => {
   it('rejects an unaudited journey before consulting payload content', async () => {
-    await expect(createAtriumJourneyHandoff('seq-ph-archai-being')).rejects.toMatchObject({
+    const fixture = await readyFixture();
+    const blockedJourney = {
+      ...fixture.journey,
+      status: 'blocked',
+      openRequirements: ['External editorial review required.']
+    };
+    await expect(createAtriumJourneyHandoff(blockedJourney, {
+      passages: [fixture.passage],
+      sources: [fixture.source],
+      payloads: {}
+    })).rejects.toMatchObject({
       name: 'AtriumHandoffError',
       code: 'ATRIUM_JOURNEY_NOT_READY'
     });

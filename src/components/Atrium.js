@@ -5,8 +5,14 @@ import {
   HISTORY_RANGE,
   PHILOSOPHY_CORPUS,
   PHILOSOPHY_ERAS,
+  ATRIUM_EDITORIAL_ECHOES,
+  compileAtriumItinerary,
+  echoDestination,
+  echoesFor,
   evaluateAnchorReadiness,
-  evaluateJourneyReadiness
+  evaluateJourneyReadiness,
+  findAtriumPoint,
+  launchCoverageFor
 } from '../content/atrium/index.js';
 import { assertAtriumCorpus } from '../content/atrium/validate.js';
 
@@ -26,6 +32,35 @@ const RELATIONSHIP_LABELS = Object.freeze({
   'contemporaneous-dialogue': { outgoing: 'is in dialogue with', incoming: 'is in dialogue with' }
 });
 
+export function layoutPhilosophyConstellation(nodes, edges) {
+  const byEra = new Map(PHILOSOPHY_ERAS.map(era => [era.id, []]));
+  nodes.forEach(node => byEra.get(node.era)?.push(node));
+  byEra.forEach(items => items.sort((a, b) => a.label.localeCompare(b.label)));
+  const positions = new Map();
+  PHILOSOPHY_ERAS.forEach((era, eraIndex) => {
+    const items = byEra.get(era.id) || [];
+    if (eraIndex > 0) {
+      items.sort((a, b) => {
+        const barycenter = node => {
+          const neighbors = edges
+            .filter(edge => edge.to === node.id || edge.from === node.id)
+            .map(edge => positions.get(edge.to === node.id ? edge.from : edge.to)?.row)
+            .filter(Number.isFinite);
+          return neighbors.length ? neighbors.reduce((sum, row) => sum + row, 0) / neighbors.length : Number.MAX_SAFE_INTEGER;
+        };
+        return barycenter(a) - barycenter(b) || a.label.localeCompare(b.label);
+      });
+    }
+    items.forEach((node, row) => positions.set(node.id, {
+      x: 42 + eraIndex * 250,
+      y: 72 + row * 92,
+      row,
+      eraIndex
+    }));
+  });
+  return positions;
+}
+
 function formatKind(kind) {
   return String(kind || '').replaceAll('-', ' ');
 }
@@ -38,12 +73,14 @@ export class Atrium {
   constructor(container, options = {}) {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => {});
-    this.onConfigureJourney = options.onConfigureJourney || null;
+    this.onConfigureLaunch = options.onConfigureLaunch || options.onConfigureJourney || null;
     this.domain = options.domain === 'history' ? 'history' : 'philosophy';
     const narrowScreen = typeof window !== 'undefined'
       && typeof window.matchMedia === 'function'
       && window.matchMedia('(max-width: 680px)').matches;
-    this.viewMode = options.viewMode === 'list' || (options.viewMode == null && narrowScreen)
+    this.viewMode = ['map', 'list', 'graph'].includes(options.viewMode)
+      ? options.viewMode
+      : (options.viewMode == null && narrowScreen)
       ? 'list'
       : 'map';
     this.query = '';
@@ -56,6 +93,8 @@ export class Atrium {
     this.expandedJourneyId = typeof options.expandedJourneyId === 'string'
       ? options.expandedJourneyId
       : null;
+    this.selectedEdgeId = null;
+    this.pulseNodeId = null;
     this._abortController = new AbortController();
     this._resizeObserver = null;
     this._drawFrame = null;
@@ -103,6 +142,7 @@ export class Atrium {
             <div class="atrium-view-switch" role="group" aria-label="View style">
               <button data-view-mode="map" aria-pressed="true">Map</button>
               <button data-view-mode="list" aria-pressed="false">List</button>
+              <button data-view-mode="graph" aria-pressed="false">Graph</button>
             </div>
           </div>
 
@@ -119,9 +159,29 @@ export class Atrium {
     this.container.addEventListener('click', event => this.handleClick(event), { signal });
     this.container.addEventListener('input', event => this.handleInput(event), { signal });
     this.container.addEventListener('keydown', event => this.handleKeydown(event), { signal });
+    this.container.addEventListener('pointerover', event => this.handleConstellationHover(event), { signal });
+    this.container.addEventListener('pointerout', event => this.handleConstellationHover(event), { signal });
+  }
+
+  handleConstellationHover(event) {
+    const node = event.target.closest('[data-constellation-node]');
+    const graph = event.target.closest('.atrium-constellation');
+    if (!graph) return;
+    const nodeId = event.type === 'pointerover' ? node?.dataset.constellationNode : null;
+    graph.querySelectorAll('.atrium-constellation-edge').forEach(group => {
+      group.classList.toggle('dimmed', Boolean(nodeId)
+        && group.dataset.edgeFrom !== nodeId
+        && group.dataset.edgeTo !== nodeId);
+    });
   }
 
   handleClick(event) {
+    const edge = event.target.closest('[data-edge-id]');
+    if (edge && this.container.contains(edge)) {
+      this.selectedEdgeId = edge.dataset.edgeId;
+      this.renderBody({ preserveScroll: true });
+      return;
+    }
     const button = event.target.closest('button');
     if (!button || !this.container.contains(button)) return;
 
@@ -130,12 +190,37 @@ export class Atrium {
       return;
     }
 
-    if (button.dataset.action === 'configure-journey') {
-      const journeys = this.domain === 'philosophy' ? PHILOSOPHY_CORPUS.journeys : HISTORY_CORPUS.journeys;
-      const journey = journeys.find(item => item.id === button.dataset.journeyId);
-      if (journey && evaluateJourneyReadiness(journey).ready && this.onConfigureJourney) {
-        this.onConfigureJourney(journey, { domain: this.domain });
+    if (button.dataset.action === 'configure-launch') {
+      const launches = [
+        ...(this.domain === 'philosophy' ? PHILOSOPHY_CORPUS.journeys : HISTORY_CORPUS.journeys),
+        findAtriumPoint(this.selectedByDomain[this.domain])
+      ].filter(Boolean);
+      const launch = launches.find(item => item.id === button.dataset.launchId);
+      if (launch && evaluateJourneyReadiness(launch).ready && this.onConfigureLaunch) {
+        this.onConfigureLaunch(launch, {
+          domain: this.domain,
+          viewMode: this.viewMode,
+          selectedId: this.selectedByDomain[this.domain],
+          expandedJourneyId: launch.kind === 'point' ? null : launch.id
+        });
       }
+      return;
+    }
+
+    if (button.dataset.echoId) {
+      const echo = ATRIUM_EDITORIAL_ECHOES.find(item => item.id === button.dataset.echoId && item.status === 'reviewed');
+      if (!echo) return;
+      const destination = echoDestination(echo, this.domain);
+      this.domain = destination.domain;
+      this.selectedByDomain[this.domain] = destination.id;
+      this.query = '';
+      this.activeLane = 'all';
+      this.expandedJourneyId = null;
+      this.selectedEdgeId = null;
+      if (this.domain === 'history' && this.viewMode === 'graph') this.viewMode = 'map';
+      const input = this.container.querySelector('.atrium-search input');
+      if (input) input.value = '';
+      this.renderBody();
       return;
     }
 
@@ -144,6 +229,8 @@ export class Atrium {
       this.activeLane = 'all';
       this.query = '';
       this.expandedJourneyId = null;
+      this.selectedEdgeId = null;
+      if (this.domain === 'history' && this.viewMode === 'graph') this.viewMode = 'map';
       const input = this.container.querySelector('.atrium-search input');
       if (input) input.value = '';
       this.renderBody();
@@ -151,7 +238,9 @@ export class Atrium {
     }
 
     if (button.dataset.viewMode) {
+      if (button.dataset.viewMode === 'graph' && this.domain !== 'philosophy') return;
       this.viewMode = button.dataset.viewMode;
+      this.selectedEdgeId = null;
       this.renderBody();
       return;
     }
@@ -174,12 +263,18 @@ export class Atrium {
 
     if (button.dataset.lane) {
       this.activeLane = button.dataset.lane;
+      const visibleEvents = this.getFilteredHistoryEvents();
+      if (!visibleEvents.some(item => item.id === this.selectedByDomain.history) && visibleEvents[0]) {
+        this.selectedByDomain.history = visibleEvents[0].id;
+      }
       this.renderBody({ preserveScroll: true });
       return;
     }
 
     if (button.dataset.selectId) {
       this.selectedByDomain[this.domain] = button.dataset.selectId;
+      this.pulseNodeId = button.dataset.selectId;
+      this.selectedEdgeId = null;
       this.expandedJourneyId = null;
       this.renderBody({ preserveScroll: true });
     }
@@ -188,10 +283,17 @@ export class Atrium {
   handleInput(event) {
     if (!event.target.matches('.atrium-search input')) return;
     this.query = event.target.value.trim().toLocaleLowerCase();
-    this.renderBody({ preserveScroll: true, preserveFocus: true });
+    this.renderStageRegion({ preserveScroll: true, preserveFocus: true });
   }
 
   handleKeydown(event) {
+    const edge = event.target.closest('[data-edge-id]');
+    if (edge && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault();
+      this.selectedEdgeId = edge.dataset.edgeId;
+      this.renderBody({ preserveScroll: true });
+      return;
+    }
     const item = event.target.closest('[data-select-id]');
     if (!item || !['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft'].includes(event.key)) return;
     const items = [...this.container.querySelectorAll('[data-select-id]:not([hidden])')];
@@ -220,6 +322,19 @@ export class Atrium {
     if (previousFocus?.matches?.('.atrium-search input')) previousFocus.focus();
   }
 
+  renderStageRegion(options = {}) {
+    const stage = this.container.querySelector('.atrium-stage');
+    if (!stage) return this.renderBody(options);
+    const scroll = options.preserveScroll ? this.captureScroll(stage) : null;
+    const search = this.container.querySelector('.atrium-search input');
+    stage.innerHTML = this.domain === 'philosophy'
+      ? this.renderPhilosophyStage()
+      : this.renderHistoryStage();
+    this.observeActiveMap();
+    if (scroll) this.restoreScroll(stage, scroll);
+    if (options.preserveFocus) search?.focus();
+  }
+
   syncControls() {
     this.container.querySelectorAll('[data-domain]').forEach(button => {
       const active = button.dataset.domain === this.domain;
@@ -230,6 +345,7 @@ export class Atrium {
       const active = button.dataset.viewMode === this.viewMode;
       button.setAttribute('aria-pressed', String(active));
       button.classList.toggle('active', active);
+      button.hidden = button.dataset.viewMode === 'graph' && this.domain !== 'philosophy';
     });
     const search = this.container.querySelector('.atrium-search input');
     if (search) {
@@ -286,28 +402,136 @@ export class Atrium {
   }
 
   renderPhilosophy() {
-    const nodes = this.getFilteredPhilosophyNodes();
-    const selected = nodes.find(node => node.id === this.selectedByDomain.philosophy)
-      || nodes[0]
+    const selected = PHILOSOPHY_CORPUS.nodes.find(node => node.id === this.selectedByDomain.philosophy)
       || PHILOSOPHY_CORPUS.nodes[0];
-    const map = this.viewMode === 'map'
-      ? this.renderPhilosophyMap(nodes, selected)
-      : this.renderPhilosophyList(nodes, selected);
+    const selectedEdge = PHILOSOPHY_CORPUS.edges.find(edge => edge.id === this.selectedEdgeId) || null;
 
     return `
       <section class="atrium-explorer" aria-label="Ancient Foundations philosophy corpus">
         <div class="atrium-stage">
-          <div class="atrium-stage-heading">
-            <div>
-              <p class="atrium-section-kicker font-mono">WESTERN PHILOSOPHY · PILOT I</p>
-              <h2>Ancient Foundations</h2>
-            </div>
-            <p>${nodes.length} of ${PHILOSOPHY_CORPUS.nodes.length} nodes · ${PHILOSOPHY_CORPUS.edges.filter(edge => edge.status === 'reviewed').length} reviewed relationships</p>
-          </div>
-          ${map}
+          ${this.renderPhilosophyStage()}
         </div>
-        ${this.renderPhilosophyDetail(selected)}
+        ${selectedEdge ? this.renderPhilosophyEdgeAside(selectedEdge) : this.renderPhilosophyDetail(selected)}
       </section>
+    `;
+  }
+
+  renderPhilosophyStage() {
+    const nodes = this.getFilteredPhilosophyNodes();
+    const selected = PHILOSOPHY_CORPUS.nodes.find(node => node.id === this.selectedByDomain.philosophy)
+      || PHILOSOPHY_CORPUS.nodes[0];
+    const representation = this.viewMode === 'graph'
+      ? this.renderPhilosophyConstellation(nodes, selected)
+      : this.viewMode === 'list'
+        ? this.renderPhilosophyList(nodes, selected)
+        : this.renderPhilosophyMap(nodes, selected);
+    return `
+      <div class="atrium-stage-heading">
+        <div>
+          <p class="atrium-section-kicker font-mono">WESTERN PHILOSOPHY · PILOT I</p>
+          <h2>Ancient Foundations</h2>
+        </div>
+        <p>${nodes.length} of ${PHILOSOPHY_CORPUS.nodes.length} nodes · ${PHILOSOPHY_CORPUS.edges.filter(edge => edge.status === 'reviewed').length} reviewed relationships</p>
+      </div>
+      ${representation}
+    `;
+  }
+
+  renderPhilosophyConstellation(nodes, selected) {
+    if (nodes.length === 0) return this.renderEmpty('No philosophy nodes match this search.');
+    const ids = new Set(nodes.map(node => node.id));
+    const edges = PHILOSOPHY_CORPUS.edges.filter(edge => ids.has(edge.from)
+      && ids.has(edge.to)
+      && this.confidence.has(edge.confidence));
+    const positions = layoutPhilosophyConstellation(nodes, edges);
+    const maxRows = Math.max(...PHILOSOPHY_ERAS.map(era => nodes.filter(node => node.era === era.id).length), 1);
+    const width = 1540;
+    const height = Math.max(620, 130 + maxRows * 92);
+    const nodeMap = new Map(PHILOSOPHY_CORPUS.nodes.map(node => [node.id, node]));
+    const selectedEdge = PHILOSOPHY_CORPUS.edges.find(edge => edge.id === this.selectedEdgeId) || null;
+    const pathFor = edge => {
+      const from = positions.get(edge.from);
+      const to = positions.get(edge.to);
+      if (!from || !to) return '';
+      const x1 = from.x + 190;
+      const y1 = from.y + 28;
+      const x2 = to.x;
+      const y2 = to.y + 28;
+      const direction = x2 >= x1 ? 1 : -1;
+      const bend = Math.max(34, Math.abs(x2 - x1) * 0.42);
+      return `M ${x1} ${y1} C ${x1 + bend * direction} ${y1}, ${x2 - bend * direction} ${y2}, ${x2} ${y2}`;
+    };
+    return `
+      <div class="atrium-constellation-scroll atrium-scroll" tabindex="0" aria-label="Philosophy Constellation graph">
+        <svg class="atrium-constellation" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}"
+          role="group" aria-label="Layered directed graph of reviewed philosophy relationships">
+          <g class="atrium-constellation-eras" aria-hidden="true">
+            ${PHILOSOPHY_ERAS.map((era, index) => `<g>
+              <line x1="${35 + index * 250}" y1="45" x2="${35 + index * 250}" y2="${height - 30}" />
+              <text x="${42 + index * 250}" y="28">${escapeHtml(era.label)}</text>
+            </g>`).join('')}
+          </g>
+          <g class="atrium-constellation-edges">
+            ${edges.map(edge => {
+              const incomingPulse = edge.to === this.pulseNodeId;
+              const label = `${formatKind(edge.type)}: ${nodeMap.get(edge.from)?.label || edge.from} → ${nodeMap.get(edge.to)?.label || edge.to}, ${edge.confidence} confidence`;
+              return `<g class="atrium-constellation-edge ${incomingPulse ? 'incoming-pulse' : ''}"
+                data-edge-from="${escapeHtml(edge.from)}" data-edge-to="${escapeHtml(edge.to)}">
+                <path class="atrium-constellation-line confidence-${edge.confidence} type-${edge.type}" d="${pathFor(edge)}" />
+                <path class="atrium-edge-hit" d="${pathFor(edge)}" data-edge-id="${escapeHtml(edge.id)}"
+                  role="button" tabindex="0" aria-label="${escapeHtml(label)}" aria-pressed="${selectedEdge?.id === edge.id}" />
+              </g>`;
+            }).join('')}
+          </g>
+          <g class="atrium-constellation-nodes">
+            ${nodes.map(node => {
+              const position = positions.get(node.id);
+              return `<foreignObject x="${position.x}" y="${position.y}" width="190" height="62">
+                <button xmlns="http://www.w3.org/1999/xhtml" class="atrium-constellation-node ${selected.id === node.id ? 'selected' : ''}"
+                  data-select-id="${escapeHtml(node.id)}" data-constellation-node="${escapeHtml(node.id)}"
+                  aria-pressed="${selected.id === node.id}">
+                  <span>${escapeHtml(node.label)}</span><small>${escapeHtml(node.dates.display)}</small>
+                </button>
+              </foreignObject>`;
+            }).join('')}
+          </g>
+        </svg>
+        <div class="atrium-constellation-legend" aria-label="Relationship legend">
+          <span class="type-influence">Influence</span><span class="type-critique">Critique</span>
+          <span class="type-transmission">Transmission</span><span class="type-synthesis">Synthesis</span>
+          <small>Solid high · fine medium · dashed contested</small>
+        </div>
+      </div>
+    `;
+  }
+
+  renderPhilosophyEdgeAside(edge) {
+    const nodeMap = new Map(PHILOSOPHY_CORPUS.nodes.map(node => [node.id, node]));
+    const citations = edge.editorialReview?.citationRefs || edge.citationRefs || [];
+    const stage = edge.editorialReview?.stage || 'pending';
+    return `
+      <aside class="atrium-detail" aria-live="polite" aria-label="Selected relationship detail">
+        <div class="atrium-detail-scroll">
+          <p class="atrium-detail-kind font-mono">RELATIONSHIP · ${escapeHtml(edge.evidence)}</p>
+          <h2>${escapeHtml(nodeMap.get(edge.from)?.label || edge.from)} → ${escapeHtml(nodeMap.get(edge.to)?.label || edge.to)}</h2>
+          <section class="atrium-edge-detail">
+            <span class="font-mono">${escapeHtml(formatKind(edge.type))} · ${escapeHtml(edge.confidence)}</span>
+            <p>${escapeHtml(edge.note || 'Claim-level editorial note pending.')}</p>
+            <small>${escapeHtml(stage)} review · ${escapeHtml(citations.join(' · ') || 'citations pending')}</small>
+          </section>
+          <section class="atrium-detail-section">
+            <h3>Citations</h3>
+            <div class="atrium-source-list">
+              ${citations.map(ref => {
+                const source = PHILOSOPHY_CORPUS.researchSources[ref];
+                return source
+                  ? `<a href="${escapeHtml(source.href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(source.label)} ↗</a>`
+                  : `<span class="atrium-muted">${escapeHtml(ref)}</span>`;
+              }).join('')}
+            </div>
+          </section>
+        </div>
+      </aside>
     `;
   }
 
@@ -425,37 +649,45 @@ export class Atrium {
             ` : '<p class="atrium-muted">No relationships in the current pilot.</p>'}
           </section>
 
+          ${this.renderEchoSection('philosophy', node.id)}
           ${this.renderJourneySection(journeys)}
           ${this.renderSourceSection(sources)}
         </div>
-        ${this.renderLaunchGate(journeys)}
+        ${this.renderLaunchGate(node.id, journeys)}
       </aside>
     `;
   }
 
   renderHistory() {
-    const events = this.getFilteredHistoryEvents();
-    const selected = events.find(event => event.id === this.selectedByDomain.history)
-      || events[0]
+    const selected = HISTORY_CORPUS.events.find(event => event.id === this.selectedByDomain.history)
       || HISTORY_CORPUS.events[0];
-    const timeline = this.viewMode === 'map'
-      ? this.renderHistoryTimeline(events, selected)
-      : this.renderHistoryList(events, selected);
 
     return `
       <section class="atrium-explorer" aria-label="Atlantic Revolutions history corpus">
         <div class="atrium-stage">
-          <div class="atrium-stage-heading">
-            <div>
-              <p class="atrium-section-kicker font-mono">ATLANTIC WORLD · PILOT II</p>
-              <h2>Revolutions, 1750–1850</h2>
-            </div>
-            <p>${events.length} of ${HISTORY_CORPUS.events.length} events · ${HISTORY_CORPUS.events.filter(event => event.status === 'reviewed').length} editorially reviewed</p>
-          </div>
-          ${timeline}
+          ${this.renderHistoryStage()}
         </div>
         ${this.renderHistoryDetail(selected)}
       </section>
+    `;
+  }
+
+  renderHistoryStage() {
+    const events = this.getFilteredHistoryEvents();
+    const selected = HISTORY_CORPUS.events.find(event => event.id === this.selectedByDomain.history)
+      || HISTORY_CORPUS.events[0];
+    const representation = this.viewMode === 'list'
+      ? this.renderHistoryList(events, selected)
+      : this.renderHistoryTimeline(events, selected);
+    return `
+      <div class="atrium-stage-heading">
+        <div>
+          <p class="atrium-section-kicker font-mono">ATLANTIC WORLD · PILOT II</p>
+          <h2>Revolutions, 1750–1850</h2>
+        </div>
+        <p>${events.length} of ${HISTORY_CORPUS.events.length} events · ${HISTORY_CORPUS.events.filter(event => event.status === 'reviewed').length} editorially reviewed</p>
+      </div>
+      ${representation}
     `;
   }
 
@@ -553,10 +785,11 @@ export class Atrium {
 
           ${this.renderEditorialReview(event.editorialReview, { showDateBasis: true })}
 
+          ${this.renderEchoSection('history', event.id)}
           ${this.renderJourneySection(journeys)}
           ${this.renderSourceSection(sources)}
         </div>
-        ${this.renderLaunchGate(journeys)}
+        ${this.renderLaunchGate(event.id, journeys)}
       </aside>
     `;
   }
@@ -583,6 +816,26 @@ export class Atrium {
         ${showDateBasis && review.dateBasis
           ? `<p><strong>Date basis.</strong> ${escapeHtml(review.dateBasis)}</p>`
           : ''}
+      </section>
+    `;
+  }
+
+  renderEchoSection(domain, recordId) {
+    const echoes = echoesFor(domain, recordId);
+    if (!echoes.length) return '';
+    return `
+      <section class="atrium-detail-section atrium-echoes">
+        <h3>Echoes · editorial</h3>
+        ${echoes.map(echo => {
+          const destination = echoDestination(echo, domain);
+          const records = destination.domain === 'philosophy' ? PHILOSOPHY_CORPUS.nodes : HISTORY_CORPUS.events;
+          const target = records.find(record => record.id === destination.id);
+          return `<button data-echo-id="${escapeHtml(echo.id)}">
+            <span>${escapeHtml(echo.label)}</span>
+            <strong>${escapeHtml(target?.label || destination.id)} →</strong>
+            <small>${escapeHtml(echo.note)}</small>
+          </button>`;
+        }).join('')}
       </section>
     `;
   }
@@ -618,6 +871,7 @@ export class Atrium {
 
   renderJourneyInspection(report) {
     const { journey } = report;
+    const itinerary = report.ready ? compileAtriumItinerary(journey) : null;
     const readinessNote = report.ready
       ? 'Verified excerpts are packaged offline. Source text remains concealed here until the Chamber session begins.'
       : 'Candidate locations only. No source text is packaged or substituted while review is incomplete.';
@@ -625,7 +879,7 @@ export class Atrium {
       <div class="atrium-journey-inspection" aria-label="Source plan for ${escapeHtml(journey.title)}">
         <div class="atrium-journey-inspection-header">
           <span class="font-mono">SOURCE PLAN</span>
-          <span>${escapeHtml(String(journey.estimatedMinutes))} min target</span>
+          <span>${itinerary?.ready ? `${escapeHtml(itinerary.totalLabel)} compiler total` : 'Duration pending clearance'}</span>
         </div>
         <ol class="atrium-source-plan">
           ${report.segments.map((segment, index) => `
@@ -635,10 +889,12 @@ export class Atrium {
                 <span class="atrium-segment-role font-mono">${escapeHtml(segment.role)}</span>
                 <strong>${escapeHtml(segment.passage?.label || segment.passageId)}</strong>
                 <small>${escapeHtml(segment.passage?.canonicalLocator || segment.passage?.locator || 'Passage locator unresolved')}</small>
-                <small class="atrium-edition-candidate">${escapeHtml(segment.source?.workTitle || 'Edition unresolved')} · ${escapeHtml(formatProvider(segment.source?.provider) || 'Source pending')}</small>
+                <small class="atrium-edition-candidate">${escapeHtml(segment.source?.author || 'Author unresolved')}, ${escapeHtml(segment.source?.workTitle || 'Edition unresolved')} · ${escapeHtml(formatProvider(segment.source?.provider) || 'Source pending')}</small>
               </span>
               <span class="atrium-readiness-state ${segment.ready ? 'ready' : 'blocked'} font-mono">
-                ${segment.ready ? 'READY' : 'REVIEW'}
+                ${segment.ready
+                  ? escapeHtml(itinerary?.segments[index]?.durationLabel || 'READY')
+                  : 'REVIEW'}
               </span>
             </li>
           `).join('')}
@@ -650,6 +906,10 @@ export class Atrium {
           </div>
         ` : ''}
         <p class="atrium-readiness-note">${escapeHtml(readinessNote)}</p>
+        ${report.ready ? `<button class="btn-secondary atrium-journey-enter" data-action="configure-launch"
+          data-launch-id="${escapeHtml(journey.id)}" ${this.onConfigureLaunch ? '' : 'disabled'}>
+          Enter journey · ${escapeHtml(itinerary.totalLabel)}
+        </button>` : ''}
       </div>
     `;
   }
@@ -669,18 +929,34 @@ export class Atrium {
     `;
   }
 
-  renderLaunchGate(journeys) {
+  renderLaunchGate(recordId, journeys) {
+    const point = findAtriumPoint(recordId);
+    const pointReady = point ? evaluateJourneyReadiness(point).ready : false;
+    const itinerary = pointReady ? compileAtriumItinerary(point) : null;
     const readiness = evaluateAnchorReadiness(journeys);
-    const readyJourney = readiness.journeys.find(report => report.ready)?.journey || null;
-    const canConfigure = Boolean(readyJourney && this.onConfigureJourney);
-    const progress = readiness.totalJourneys
-      ? `${readiness.readyPassages} of ${readiness.totalPassages} distinct passages cleared · ${readiness.readyJourneys} of ${readiness.totalJourneys} journeys ready.`
-      : 'No curated point launch is attached to this record yet.';
+    const coverage = launchCoverageFor(recordId);
+    const canConfigure = Boolean(pointReady && this.onConfigureLaunch);
+    const progress = pointReady
+      ? `${point.segments.length} cleared ${point.segments.length === 1 ? 'passage' : 'passages'} · ${readiness.readyJourneys} curated ${readiness.readyJourneys === 1 ? 'journey' : 'journeys'} ready.`
+      : coverage?.launchable === 'journey'
+        ? `${readiness.readyJourneys} curated ${readiness.readyJourneys === 1 ? 'journey is' : 'journeys are'} ready. Open the source plan above to enter.`
+        : coverage?.reason || 'No passage or journey has cleared the current source, rights, and text gates.';
+    const pendingLabel = coverage?.launchable === 'journey'
+      ? 'Journey available'
+      : coverage?.completionDisposition === 'context-only'
+        ? 'Context node'
+        : coverage?.completionDisposition === 'evidence-bound'
+          ? 'Evidence-bound'
+          : coverage?.completionDisposition === 'alignment-repair'
+            ? 'Coverage alignment pending'
+            : 'Corpus passage pending';
     return `
       <div class="atrium-launch-gate">
-        <button class="btn-primary" data-action="configure-journey"
-          ${readyJourney ? `data-journey-id="${escapeHtml(readyJourney.id)}"` : ''}
-          ${canConfigure ? '' : 'disabled'} aria-describedby="atrium-launch-note">Configure in Chamber</button>
+        ${pointReady ? `<button class="btn-primary" data-action="configure-launch"
+          data-launch-id="${escapeHtml(point.id)}"
+          ${canConfigure ? '' : 'disabled'} aria-describedby="atrium-launch-note">
+          Enter · ${escapeHtml(itinerary.totalLabel)}
+        </button>` : `<div class="atrium-launch-pending" role="status">${escapeHtml(pendingLabel)}</div>`}
         <p id="atrium-launch-note">${escapeHtml(progress)}</p>
       </div>
     `;
@@ -776,6 +1052,8 @@ export class Atrium {
 
   update(data = {}) {
     if (data.domain === 'philosophy' || data.domain === 'history') this.domain = data.domain;
+    if (['map', 'list', 'graph'].includes(data.viewMode)
+      && !(data.viewMode === 'graph' && this.domain === 'history')) this.viewMode = data.viewMode;
     if (data.selectedId) this.selectedByDomain[this.domain] = data.selectedId;
     this.expandedJourneyId = typeof data.expandedJourneyId === 'string'
       ? data.expandedJourneyId

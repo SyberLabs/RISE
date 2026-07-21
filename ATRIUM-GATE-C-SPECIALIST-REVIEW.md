@@ -2,7 +2,7 @@
 
 **Packet:** Ancient Philosophy Relationships — Tranche 1  
 **Packet schema:** `gate-c.specialist.1`  
-**Corpus version:** `0.3.1`  
+**Corpus version:** `0.3.2`
 **Status:** Ready for external specialist review; no specialist decisions recorded
 
 ## Purpose
@@ -46,7 +46,7 @@ An authorized editor records the specialist's decision inside the corresponding 
 {
   "outcome": "approved",
   "decidedOn": "YYYY-MM-DD",
-  "corpusVersion": "0.3.1",
+  "corpusVersion": "0.3.2",
   "reviewer": {
     "id": "stable-reviewer-id",
     "displayName": "Reviewer name",

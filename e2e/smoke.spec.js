@@ -312,3 +312,48 @@ test('9 - in-session Visuals control kills a live presence and keeps safety laye
     }));
     expect(exitLayers.exit).toBeGreaterThan(exitLayers.controls);
 });
+
+test('10 · Atrium point preserves origin, curated config, Begin, exit, and return state', async ({ page }) => {
+    await boot(page, { text: false });
+    await page.locator('[data-nav="atrium"]').click();
+    await expect(page.locator('.atrium')).toBeVisible({ timeout: 15_000 });
+
+    await page.locator('[data-view-mode="graph"]').click();
+    await page.locator('[data-select-id="ph-thinker-aristotle"]').last().click();
+    await expect(page.locator('.atrium-detail h2')).toHaveText('Aristotle');
+    await page.locator('.atrium-launch-gate [data-action="configure-launch"]').click();
+
+    await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
+    const configured = await page.evaluate(() => {
+        const instance = window.rise?.router?.views?.get('chamber')?.instance;
+        return {
+            soundscape: instance?.config?.soundscape,
+            curve: instance?.config?.curve,
+            origin: instance?.config?.origin,
+            visuals: instance?.config?.visualInterlocution?.interlocution
+        };
+    });
+    expect(configured.soundscape).toBe('aurora');
+    expect(configured.curve).toBe('flat');
+    expect(configured.origin.data).toMatchObject({
+        domain: 'philosophy',
+        selectedId: 'ph-thinker-aristotle',
+        viewMode: 'graph'
+    });
+    expect(configured.visuals.frequency).toBeLessThanOrEqual(0.15);
+    expect(configured.visuals.procedural).toEqual(['harmonograph']);
+    expect(configured.visuals.sourced).toEqual(['aic-oldmasters']);
+
+    await page.locator('#begin-btn').click();
+    const warning = page.locator('#photosensitivity-modal');
+    await expect(warning).toBeVisible({ timeout: 10_000 });
+    await warning.locator('#safety-accept').click();
+    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
+    await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+
+    await exitSession(page);
+    await page.locator('[data-action="origin-return"]').click();
+    await expect(page.locator('.atrium')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('[data-view-mode="graph"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('.atrium-detail h2')).toHaveText('Aristotle');
+});

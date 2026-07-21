@@ -14,9 +14,9 @@ describe('Atrium source-readiness pipeline', () => {
     const report = validateAtriumCatalog();
     expect(report.valid).toBe(true);
     expect(ATRIUM_CATALOG.sources.length).toBeGreaterThanOrEqual(45);
-    expect(ATRIUM_CATALOG.passages).toHaveLength(57);
-    expect(ATRIUM_CATALOG.sources.filter(source => source.status === 'publishable')).toHaveLength(26);
-    expect(ATRIUM_CATALOG.passages.filter(passage => passage.status === 'publishable')).toHaveLength(27);
+    expect(ATRIUM_CATALOG.passages).toHaveLength(104);
+    expect(ATRIUM_CATALOG.sources.filter(source => source.status === 'publishable')).toHaveLength(94);
+    expect(ATRIUM_CATALOG.passages.filter(passage => passage.status === 'publishable')).toHaveLength(101);
     expect(ATRIUM_CATALOG.passages.filter(passage => passage.status !== 'publishable').every(passage => (
       passage.payloadPath === null
       && passage.textVerified === false
@@ -24,7 +24,7 @@ describe('Atrium source-readiness pipeline', () => {
   });
 
   it('keeps a passage blocked until edition, rights, locator, payload, and text checks pass', () => {
-    const passage = ATRIUM_CATALOG.passages.find(item => item.id === 'pass-plato-cosmos');
+    const passage = ATRIUM_CATALOG.passages.find(item => item.id === 'pass-porphyry-life-14');
     const report = evaluatePassageReadiness(passage);
     expect(report.ready).toBe(false);
     expect(report.reasons.map(reason => reason.code)).toEqual(expect.arrayContaining([
@@ -35,20 +35,75 @@ describe('Atrium source-readiness pipeline', () => {
     ]));
   });
 
-  it('derives journey readiness from its passage graph and open editorial requirements', () => {
+  it('derives Haitian journey readiness from its cleared five-passage graph', () => {
     const journey = HISTORY_CORPUS.journeys.find(item => item.id === 'seq-hist-haiti-freedom-state');
     const report = evaluateJourneyReadiness(journey);
-    expect(report.ready).toBe(false);
-    expect(report.totalPassages).toBe(2);
-    expect(report.reasons).toContainEqual(expect.objectContaining({ code: 'open-editorial-requirement' }));
+    expect(report.ready).toBe(true);
+    expect(report.totalPassages).toBe(5);
+    expect(report.readyPassages).toBe(5);
+    expect(report.reasons).toEqual([]);
+  });
+
+  it('derives fiscal-state journey readiness from five independently audited documents', () => {
+    const journey = HISTORY_CORPUS.journeys.find(item => item.id === 'seq-hist-empire-debt-resistance');
+    const report = evaluateJourneyReadiness(journey);
+    expect(report.ready).toBe(true);
+    expect(report.totalPassages).toBe(5);
+    expect(report.readyPassages).toBe(5);
+    expect(report.reasons).toEqual([]);
+  });
+
+  it('derives revolutionary-settlement readiness from five independently audited documents', () => {
+    const journey = HISTORY_CORPUS.journeys.find(item => item.id === 'seq-hist-revolution-settlement-1789-1815');
+    const report = evaluateJourneyReadiness(journey);
+    expect(report.ready).toBe(true);
+    expect(report.totalPassages).toBe(5);
+    expect(report.readyPassages).toBe(5);
+    expect(report.reasons).toEqual([]);
+  });
+
+  it('derives Atlantic-order readiness from five independently audited document positions', () => {
+    const journey = HISTORY_CORPUS.journeys.find(item => item.id === 'seq-hist-treaties-atlantic-order');
+    const report = evaluateJourneyReadiness(journey);
+    expect(report.ready).toBe(true);
+    expect(report.totalPassages).toBe(5);
+    expect(report.readyPassages).toBe(5);
+    expect(report.reasons).toEqual([]);
+  });
+
+  it('derives industrial-system readiness from four independently audited technical positions', () => {
+    const journey = HISTORY_CORPUS.journeys.find(item => item.id === 'seq-hist-machines-patents-production');
+    const report = evaluateJourneyReadiness(journey);
+    expect(report.ready).toBe(true);
+    expect(report.totalPassages).toBe(4);
+    expect(report.readyPassages).toBe(4);
+    expect(report.reasons).toEqual([]);
+  });
+
+  it('derives war-for-independence readiness from six distinct evidentiary positions', () => {
+    const journey = HISTORY_CORPUS.journeys.find(item => item.id === 'seq-hist-war-independence');
+    const report = evaluateJourneyReadiness(journey);
+    expect(report.ready).toBe(true);
+    expect(report.totalPassages).toBe(6);
+    expect(report.readyPassages).toBe(6);
+    expect(report.reasons).toEqual([]);
+  });
+
+  it('derives association-confederation-amendment readiness from four distinct constitutional positions', () => {
+    const journey = HISTORY_CORPUS.journeys.find(item => item.id === 'seq-hist-association-confederation-amendment');
+    const report = evaluateJourneyReadiness(journey);
+    expect(report.ready).toBe(true);
+    expect(report.totalPassages).toBe(4);
+    expect(report.readyPassages).toBe(4);
+    expect(report.reasons).toEqual([]);
   });
 
   it('summarizes point-launch readiness without double-counting shared passages', () => {
     const journeys = PHILOSOPHY_CORPUS.journeys.filter(journey => journey.anchorIds.includes('ph-thinker-plato'));
     const report = evaluateAnchorReadiness(journeys);
     expect(report.totalJourneys).toBe(3);
-    expect(report.totalPassages).toBe(8);
-    expect(report.readyPassages).toBe(8);
+    expect(report.totalPassages).toBe(9);
+    expect(report.readyPassages).toBe(9);
     expect(report.readyJourneys).toBe(3);
     expect(report.ready).toBe(true);
   });

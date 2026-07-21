@@ -274,10 +274,10 @@ class App {
                 const { Atrium } = await import('./components/Atrium.js');
                 return new Atrium(container, {
                     onNavigate: this.handleNavigate,
-                    onConfigureJourney: async (journey) => {
+                    onConfigureLaunch: async (launch, origin) => {
                         try {
                             const { createAtriumJourneyHandoff } = await import('./content/atrium/handoff.js');
-                            const chamberData = await createAtriumJourneyHandoff(journey);
+                            const chamberData = await createAtriumJourneyHandoff(launch, { origin });
                             await this.router.navigate('chamber', { data: chamberData });
                         } catch (error) {
                             console.error('[R.I.S.E.] Atrium handoff failed:', error);

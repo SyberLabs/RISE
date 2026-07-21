@@ -1,10 +1,12 @@
 # Atrium Corpus Specification
 
 **Document status:** Implemented pilot and living expansion specification
-**Specification version:** 0.3.1
-**Target corpus schema:** 1.0.0
-**Prepared:** 2026-07-17
-**Implementation status:** Pilot v1 source audit and offline content pack implemented: 27 passages, 26 edition records, and eight launchable journeys. Gate C editorial preparation covers all 35 philosophy nodes, 47 of 55 relationships, and all 56 history events. Specialist-review tranche one now packages the eight unresolved philosophy relationships as auditable cases with proposed dispositions; no external specialist decisions have been recorded. Unselected catalogue candidates remain blocked.
+**Specification version:** 0.4.9
+**Target corpus schema:** 1.1.0
+**Prepared:** 2026-07-20
+**Implementation status:** Pilot pack 1.16.0 implements 101 passages, 94 edition records, twenty-seven launchable journeys, and 81 point launches. Every point compiles to a genuine 3–7-minute session from bounded rights-cleared excerpts, and every journey remains inside the 8–18-minute compiler gate. Schema 1.1 gives every philosophy node and history event a reviewed completion disposition independent of runtime launchability. The repaired Early Greek Inquiry and Patristic Platonisms anchors and the completed Association, Confederation, Amendment; Crowd, Testimony, Publicity; Independence without a Single Model; and Abolition's Deferred Freedom tranches reduce raw `none` coverage from 24 to 10. The live ledger now reports 86 satisfied records, seven open required launches, zero open alignment repairs, and three accepted non-launch records. All required history launches are satisfied. Gate C editorial preparation still covers all 35 philosophy nodes, 47 of 55 relationships, and all 61 history events. Specialist-review tranche one packages the eight unresolved philosophy relationships as auditable cases; no external specialist decisions have been recorded. Unselected catalogue candidates remain blocked.
+
+**University research program:** The enacted research, prioritization, and acquisition policy is maintained in `ATRIUM-UNIVERSITY-HISTORY-RESEARCH-PROGRAM.md`. University curricula inform question selection and historiographic research only; they do not authorize runtime text, settle claims, or bypass the source, rights, specialist, and compiler gates in this specification.
 
 ## 1. Purpose
 
@@ -118,7 +120,7 @@ The examples below are normative field definitions, not implementation code.
 ```json
 {
   "id": "ph-tradition-stoicism",
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "domain": "philosophy",
   "kind": "tradition",
   "label": "Stoicism",
@@ -137,11 +139,26 @@ The examples below are normative field definitions, not implementation code.
   "sourceRefs": ["src-sep-stoicism"],
   "passageRefs": ["pass-epictetus-enchiridion-1"],
   "sequenceRefs": ["seq-ph-stoic-practice"],
-  "status": "draft"
+  "status": "draft",
+  "completion": {
+    "disposition": "launch-required",
+    "rationale": "This record belongs to the current corpus and requires cleared launch coverage.",
+    "reviewedOn": "2026-07-20",
+    "revisitTrigger": null
+  }
 }
 ```
 
 Years use astronomical numbering internally (`0` = 1 BCE, `-1` = 2 BCE). The interface always renders conventional BCE/CE labels.
+
+`completion.disposition` is independent of the runtime `point` / `journey` /
+`both` / `none` coverage state. It must be one of `launch-required`,
+`alignment-repair`, `evidence-bound`, or `context-only`. Every disposition needs a
+reviewed rationale and ISO review date. `evidence-bound` and `context-only` records
+also require a concrete nonempty `revisitTrigger`. Release completion means zero
+`open-required` and zero `open-alignment` records; accepted non-launch records remain
+visible and explained rather than receiving a fabricated or semantically unrelated
+launch.
 
 `kind` is one of:
 
@@ -389,32 +406,32 @@ This registry identifies candidate passage locations without reproducing them.
 | `pass-heraclitus-logos` | Heraclitus, selected Logos fragments using both DK and current concordance | Logos and common order | OGL/testimonia; translation audit | `review-required` |
 | `pass-parmenides-being` | Parmenides, fragment B8, selected lines | Being and the limits of coming-to-be | OGL Greek; translation audit | `review-required` |
 | `pass-empedocles-roots` | Empedocles, selected fragments on roots, Love, and Strife | Pluralist response | OGL Greek; translation audit | `review-required` |
-| `pass-democritus-atoms` | Democritus, selected physical fragments/testimonia | Atoms, void, perception | OGL/testimonia; translation audit | `review-required` |
+| `pass-democritus-atoms` | Leucippus and Democritus, Burnet §§173–175, selected testimonia | Atoms, void, and the Eleatic problem of motion | Burnet, *Early Greek Philosophy* (1908) | `publishable — pilot 1.3` |
 | `pass-protagoras-measure` | Plato, *Theaetetus* 151e–160e, selected | Relativism through a critical witness | Scaife Plato edition | `review-required` |
 | `pass-socrates-apology` | Plato, *Apology* 20c–23b and 28e–30b | Wisdom and examined life | Scaife | `review-required` |
 | `pass-plato-recollection` | Plato, *Meno* 80d–86c, selected | Inquiry and recollection | Scaife | `review-required` |
 | `pass-plato-divided-line` | Plato, *Republic* VI 507b–511e | Knowledge and intelligibility | Scaife | `review-required` |
 | `pass-plato-cave` | Plato, *Republic* VII 514a–521b, selected | Education and return | Scaife | `review-required` |
 | `pass-plato-forms` | Plato, *Phaedo* 74a–76e | Equality, recollection, Forms | Scaife | `review-required` |
-| `pass-plato-cosmos` | Plato, *Timaeus* 27d–29d | Model, becoming, and likely account | Scaife | `review-required` |
+| `pass-plato-cosmos` | Plato, *Timaeus* 27d–29d | Model, becoming, and likely account | Jowett; Project Gutenberg 1572 | `publishable — pilot 1.3` |
 | `pass-aristotle-first-causes` | Aristotle, *Metaphysics* I.3, 983a24–984b22, selected | Aristotle's genealogy of predecessors | Scaife | `review-required` |
 | `pass-aristotle-substance` | Aristotle, *Metaphysics* VII.1–3, selected | Being and substance | Scaife | `review-required` |
-| `pass-aristotle-human-good` | Aristotle, *Nicomachean Ethics* I.7, 1097b22–1098a20 | Function and flourishing | Scaife | `review-required` |
+| `pass-aristotle-human-good` | Aristotle, *Nicomachean Ethics* I.7, 1097b22–1098a20 | Function and flourishing | Chase; Project Gutenberg 8438 | `publishable — pilot 1.3` |
 | `pass-aristotle-soul` | Aristotle, *De Anima* II.1, 412a3–413a10 | Soul as actuality | Scaife | `review-required` |
 | `pass-epicurus-gods-death` | Epicurus, *Letter to Menoeceus* 122–135, selected | Gods, death, desire, pleasure | Diogenes Laertius X; cleared edition | `review-required` |
 | `pass-epicurus-doctrines` | Epicurus, *Principal Doctrines* 1–5 and 27–28 | Freedom from fear and friendship | Diogenes Laertius X; cleared edition | `review-required` |
 | `pass-epictetus-control` | Epictetus, *Enchiridion* 1 | What is and is not up to us | Standard Ebooks or cleared public-domain edition | `review-required` |
-| `pass-seneca-inner-spirit` | Seneca, *Moral Letters* 41 | Divinity, reason, inward dignity | cleared public-domain edition | `review-required` |
-| `pass-marcus-morning` | Marcus Aurelius, *Meditations* II.1 | Social nature and difficult encounters | Standard Ebooks or cleared public-domain edition | `review-required` |
+| `pass-seneca-inner-spirit` | Seneca, *Moral Letters* 41.1–5 | Divinity, reason, inward dignity | Gummere; scan-backed Wikisource | `publishable — pilot 1.4` |
+| `pass-marcus-morning` | Marcus Aurelius, *Meditations* II.1–5 | Social nature, difficult encounters, deliberate action | Long; Project Gutenberg 15877 | `publishable — pilot 1.4` |
 | `pass-sextus-skeptical-way` | Sextus Empiricus, *Outlines of Pyrrhonism* I.1–12 | Inquiry and suspension | original Greek plus cleared translation | `review-required` |
 | `pass-cicero-academic` | Cicero, *Academica* II, selected | Academic arguments about apprehension | Perseus/cleared Latin edition | `review-required` |
-| `pass-philo-creation` | Philo, *On the Creation*, selected | Intelligible model and scriptural exegesis | OGL/Perseus; translation audit | `review-required` |
-| `pass-plotinus-beauty` | Plotinus, *Ennead* I.6, selected | Beauty and ascent | Greek source plus cleared translation | `review-required` |
-| `pass-plotinus-hypostases` | Plotinus, *Ennead* V.1, selected | The three primary hypostases | Greek source plus cleared translation | `review-required` |
+| `pass-philo-creation` | Philo, *On the Creation* 16–22 | Intelligible model and scriptural exegesis | Yonge (1854); OGL/Perseus collation | `publishable — pilot 1.3` |
+| `pass-plotinus-beauty` | Plotinus, *Ennead* I.6.5, selected | Beauty and ascent | Guthrie (1918); Project Gutenberg 42930 | `publishable — pilot 1.3` |
+| `pass-plotinus-hypostases` | Plotinus, *Ennead* V.1.10–11 | The three primary hypostases | Guthrie (1918); Project Gutenberg 42930 | `publishable — pilot 1.3` |
 | `pass-porphyry-life-14` | Porphyry, *Life of Plotinus* 14 | Plotinus' sources and teaching | OGL/Scaife; translation audit | `review-required` |
-| `pass-porphyry-isagoge` | Porphyry, *Isagoge*, opening on genera and species | Logical transmission | Greek/Latin source plus cleared translation | `review-required` |
-| `pass-iamblichus-theurgy` | Iamblichus, *Reply to Porphyry / On the Mysteries* I, selected | Reason, ritual, and divine action | original plus rights-cleared translation | `review-required` |
-| `pass-proclus-propositions` | Proclus, *Elements of Theology*, propositions 1–13, selected | Unity, multiplicity, procession | original plus cleared historical translation | `review-required` |
+| `pass-porphyry-isagoge` | Porphyry, *Isagoge* I and II, opening definition of genus, selected | Logical transmission | Owen (1853); historical transcription | `publishable — pilot 1.4` |
+| `pass-iamblichus-theurgy` | Iamblichus, *On the Mysteries* I.11 opening and I.12 | Reason, ritual, and divine action | Taylor; Project Gutenberg 72815 | `publishable — pilot 1.4` |
+| `pass-proclus-propositions` | Proclus, *Elements of Theology*, propositions 1–4 | Unity, multiplicity, procession | Taylor (1816); Internet Archive scan | `publishable — pilot 1.4` |
 | `pass-augustine-platonic-books` | Augustine, *Confessions* VII.9–21, selected | Encounter with the “books of the Platonists” | Cleared edition; Standard Ebooks edition is currently unfinished | `review-required` |
 | `pass-augustine-time` | Augustine, *Confessions* XI.14–28, selected | Time, memory, and attention | Cleared edition; Standard Ebooks edition is currently unfinished | `review-required` |
 | `pass-dionysius-mystical` | Pseudo-Dionysius, *Mystical Theology* I | Apophatic ascent | cleared historical translation | `review-required` |
@@ -429,10 +446,10 @@ This registry identifies candidate passage locations without reproducing them.
 | `seq-ph-plato-ascent` | Line, Cave, Return | point/journey | Plato | Divided Line → Cave, ending with the return to the cave | 8–11 min |
 | `seq-ph-plato-aristotle` | Forms and Substance | journey | Plato, Aristotle | *Phaedo* → *Metaphysics* VII → *De Anima* II | 11–14 min |
 | `seq-ph-three-therapies` | Three Therapies of Judgment | journey | Epicureanism, Stoicism, Skepticism | Epicurus → Epictetus → Sextus | 10–13 min |
-| `seq-ph-stoic-practice` | The Work of Assent | journey | Roman Stoicism | Epictetus → Seneca → Marcus Aurelius | 9–12 min |
+| `seq-ph-stoic-practice` | The Work of Assent | journey | Roman Stoicism | Epictetus → Seneca → Marcus Aurelius | 12–15 min |
 | `seq-ph-suspension` | Continue to Search | point/journey | Pyrrhonism, Academic Skepticism | Sextus → Cicero, with editorial distinction between traditions | 8–11 min |
-| `seq-ph-platonism-one` | Toward the One | journey | Middle Platonism, Plotinus | Plato *Timaeus* → Philo → Plotinus I.6 and V.1 | 12–16 min |
-| `seq-ph-theurgy-system` | Reason, Rite, Hierarchy | journey | Porphyry, Iamblichus, Proclus | Porphyry → Iamblichus → Proclus | 10–14 min |
+| `seq-ph-platonism-one` | Toward the One | journey | Middle Platonism, Plotinus | Plato *Timaeus* → Philo → Plotinus I.6 and V.1 | 15–18 min |
+| `seq-ph-theurgy-system` | Reason, Rite, Hierarchy | journey | Porphyry, Iamblichus, Proclus | Porphyry → Iamblichus → Proclus | 14–17 min |
 | `seq-ph-latin-transmission` | The Inward and the Eternal | journey | Augustine, Dionysius, Boethius | Augustine VII → Dionysius → Boethius V | 12–16 min |
 
 Point launches should be derived only after these passages pass rights and text review. They must not silently substitute a different translation because a preferred passage is unavailable.
@@ -459,33 +476,35 @@ Events may occupy more than one lane. Geography filters begin with Britain/Irela
 | ID | Date | Event | Lanes | Geography | Source posture |
 |---|---|---|---|---|---|
 | `hist-seven-years-war` | 1756–1763 | Seven Years' War | war-empire | transatlantic/global | Context event; institutional histories |
-| `hist-social-contract` | 1762 | Rousseau publishes *The Social Contract* | ideas-publication | Geneva/France | Packable only from cleared edition |
+| `hist-social-contract` | 1762 | Rousseau publishes *The Social Contract* | ideas-publication | Geneva/France | Cole 1920 Book I.6; `publishable — pilot 1.13` |
 | `hist-treaty-paris-1763` | 1763-02-10 | Treaty of Paris reshapes imperial possessions | war-empire, politics-constitution | transatlantic | Treaty text; archive source |
 | `hist-stamp-act` | 1765-03-22 | British Parliament enacts the Stamp Act | politics-constitution, war-empire | British Atlantic | Statute and colonial responses |
-| `hist-watt-patent` | 1769 | Watt's separate-condenser patent | economic-technology | Britain | Science Museum context; patent record review before publication |
-| `hist-water-frame` | 1769 | Arkwright's water frame patented | economic-technology | Britain | Science Museum context; patent record review before publication |
-| `hist-boston-massacre` | 1770-03-05 | Boston Massacre | war-empire, social-movement | Massachusetts | Competing testimony required |
+| `hist-watt-patent` | 1769 | Watt's steam-engine patent | economic-technology | Britain | British Patent No. 913 official reprint; `publishable — pilot 1.11` |
+| `hist-water-frame` | 1769 | Arkwright's spinning-frame patent | economic-technology | Britain | Baines scan and embedded specification, collated to patent and museum records; `publishable — pilot 1.11` |
+| `hist-boston-massacre` | 1770-03-05 | Boston Massacre | war-empire, social-movement | Massachusetts | Paired Crown and defense trial testimony; `publishable — pilot 1.14` |
 | `hist-somerset` | 1772-06-22 | Somerset judgment | slavery-emancipation, politics-constitution | Britain | Judgment/report edition review |
-| `hist-boston-tea-party` | 1773-12-16 | Destruction of East India Company tea | social-movement, war-empire | Massachusetts/Britain | Multiple contemporary accounts |
+| `hist-boston-tea-party` | 1773-12-16 | Destruction of East India Company tea | social-movement, war-empire | Massachusetts/Britain | Colonial newspaper and next-day British military report; `publishable — pilot 1.14` |
 | `hist-first-continental-congress` | 1774-09-05/1774-10-26 | First Continental Congress | politics-constitution | British North America | LOC Journals/records |
-| `hist-lexington-concord` | 1775-04-19 | War begins at Lexington and Concord | war-empire | Massachusetts | Context plus eyewitness records |
+| `hist-lexington-concord` | 1775-04-19 | War begins at Lexington and Concord | war-empire | Massachusetts | Provincial depositions paired with Gage's official report; `publishable — pilot 1.12` |
+| `hist-continental-army` | 1775-06-14/1775-07-04 | Congress creates an army and Washington assumes command | war-empire, politics-constitution | British North America | Washington's General Orders; `publishable — pilot 1.12` |
 | `hist-common-sense` | 1776-01-10 | Publication of *Common Sense* | ideas-publication, politics-constitution | British North America | Public-domain edition |
 | `hist-us-declaration` | 1776-07-04 | Declaration of Independence | politics-constitution, ideas-publication | United States | LOC/NARA/Founders witness |
-| `hist-vermont-constitution` | 1777-07-08 | Vermont Constitution prohibits adult slavery with qualifications | slavery-emancipation, politics-constitution | Vermont | Exact clause and limitations required |
-| `hist-articles-confederation` | 1781-03-01 | Articles of Confederation take effect | politics-constitution | United States | LOC/NARA |
-| `hist-yorktown` | 1781-10-19 | British surrender at Yorktown | war-empire | Virginia/transatlantic | Context event |
+| `hist-vermont-constitution` | 1777-07-08 | Vermont Constitution prohibits adult slavery with qualifications | slavery-emancipation, politics-constitution | Vermont | Rights and freemanship qualifications retained; `publishable — pilot 1.13` |
+| `hist-franco-american-alliance` | 1778-02-06 | France and the United States conclude a military alliance | war-empire, politics-constitution | transatlantic | Signed bilingual treaty, historical English text; `publishable — pilot 1.12` |
+| `hist-articles-confederation` | 1781-03-01 | Articles of Confederation take effect | politics-constitution | United States | NARA engrossed original and transcript; `publishable — pilot 1.13` |
+| `hist-yorktown` | 1781-10-19 | British surrender at Yorktown | war-empire | Virginia/transatlantic | Articles of capitulation and Washington's refusal to grant loyalists immunity; `publishable — pilot 1.12` |
 | `hist-treaty-paris-1783` | 1783-09-03 | Treaty recognizes U.S. independence | war-empire, politics-constitution | transatlantic | Treaty text |
-| `hist-power-loom` | 1785 | Cartwright's power loom patented | economic-technology | Britain | Science Museum context; patent record review before publication |
+| `hist-power-loom` | 1785 | Cartwright's first power-loom patent | economic-technology | Britain | Marsden technical history and embedded specification; `publishable — pilot 1.11` |
 | `hist-us-constitution` | 1787-09-17 | U.S. Constitution signed | politics-constitution | United States | NARA/LOC |
 | `hist-federalist` | 1787-10-27/1788-05-28 | *The Federalist* published | ideas-publication, politics-constitution | United States | Founders Online; rights review for annotations |
 | `hist-estates-general` | 1789-05-05 | Estates-General convenes | politics-constitution, social-movement | France | FRDA/Archives parlementaires |
 | `hist-bastille` | 1789-07-14 | Storming of the Bastille | social-movement, politics-constitution | France | Context and contemporary accounts |
 | `hist-rights-man` | 1789-08-26 | Declaration of the Rights of Man and of the Citizen | politics-constitution, ideas-publication | France | French institutional source; translation review |
-| `hist-womens-march` | 1789-10-05/1789-10-06 | Women's March on Versailles | social-movement | France | FRDA; multiple voices required |
+| `hist-womens-march` | 1789-10-05/1789-10-06 | Women's March on Versailles | social-movement | France | Maillard deposition and Assembly incident, mediation disclosed; `publishable — pilot 1.14` |
 | `hist-equiano-narrative` | 1789 | Equiano publishes his *Interesting Narrative* | slavery-emancipation, ideas-publication | Britain/Atlantic | Standard Ebooks/public-domain edition |
 | `hist-haitian-uprising` | 1791-08 | General uprising in northern Saint-Domingue | slavery-emancipation, social-movement, war-empire | Saint-Domingue | Date precision and Bois Caïman claims require care |
 | `hist-rights-woman` | 1791-09 | Olympe de Gouges publishes *Declaration of the Rights of Woman* | politics-constitution, social-movement | France | French original; translation rights review |
-| `hist-us-bill-rights` | 1791-12-15 | U.S. Bill of Rights ratified | politics-constitution | United States | NARA/LOC |
+| `hist-us-bill-rights` | 1791-12-15 | U.S. Bill of Rights ratified | politics-constitution | United States | NARA 1789 enrolled proposal, all twelve articles; `publishable — pilot 1.13` |
 | `hist-french-republic` | 1792-09-21 | First French Republic declared | politics-constitution | France | Archives parlementaires |
 | `hist-sonthonax-emancipation` | 1793-08-29 | Sonthonax proclaims emancipation in northern Saint-Domingue | slavery-emancipation, war-empire | Saint-Domingue | French/Haitian archival text |
 | `hist-french-abolition-1794` | 1794-02-04 | National Convention abolishes slavery in French colonies | slavery-emancipation, politics-constitution | French Atlantic | Archives parlementaires |
@@ -494,22 +513,24 @@ Events may occupy more than one lane. Geography filters begin with Britain/Irela
 | `hist-haiti-constitution-1801` | 1801-07-08 | Constitution of Saint-Domingue promulgated | politics-constitution, slavery-emancipation | Saint-Domingue | LOC public-domain constitution collection |
 | `hist-haiti-independence` | 1804-01-01 | Haitian independence declared | politics-constitution, slavery-emancipation, war-empire | Haiti | Original French; translation review |
 | `hist-code-civil` | 1804-03-21 | French Civil Code promulgated | politics-constitution | France/Empire | Official code; contextual limits |
+| `hist-napoleonic-wars` | 1803–1815 | Napoleonic Wars and imperial collapse | war-empire, politics-constitution | Europe/Atlantic | Broad interval anchor; 1814 Senate decree is a partisan endpoint witness, not a neutral campaign synopsis |
 | `hist-uk-slave-trade-act` | 1807-03-25 | British Slave Trade Act receives assent | slavery-emancipation, politics-constitution | British Empire | legislation text/Parliamentary archive |
 | `hist-us-import-ban` | 1808-01-01 | U.S. prohibition on importing enslaved people takes effect | slavery-emancipation, politics-constitution | United States/Atlantic | U.S. statute; distinguish trade ban from abolition |
 | `hist-mexican-insurgency` | 1810-09-16 | Hidalgo's insurgency begins | war-empire, social-movement | New Spain/Mexico | Do not present a verbatim “Grito” speech; no authoritative transcript survives |
 | `hist-venezuela-declaration` | 1811-07-05 | Venezuelan Declaration of Independence | politics-constitution, war-empire | Venezuela | Original Spanish; institutional edition needed |
 | `hist-cadiz-constitution` | 1812-03-19 | Constitution of Cádiz promulgated | politics-constitution | Spain/Spanish Atlantic | Official Spanish text; translation review |
+| `hist-congress-vienna` | 1815-06-09 | Final Act of the Congress of Vienna | war-empire, politics-constitution | Europe | 1815 official edition; Wienbibliothek public-domain scan |
 | `hist-jamaica-letter` | 1815-09-06 | Bolívar writes the Jamaica Letter | ideas-publication, politics-constitution | Caribbean/Spanish America | Original Spanish preferred; common 1951 English translation is not presumed packable |
-| `hist-argentina-independence` | 1816-07-09 | Congress of Tucumán declares independence | politics-constitution, war-empire | Río de la Plata | Institutional Spanish source needed |
+| `hist-argentina-independence` | 1816-07-09 | Congress of Tucumán declares independence | politics-constitution, war-empire | Río de la Plata | Tucumán act, Belgrano letter, and congressional order decree; `publishable — pilot 1.15` |
 | `hist-angostura` | 1819-02-15 | Bolívar addresses Congress of Angostura | politics-constitution, ideas-publication | Venezuela/Gran Colombia | Original Spanish; translation audit |
-| `hist-mexico-independence` | 1821-09-27 | Army of the Three Guarantees enters Mexico City | war-empire, politics-constitution | Mexico | Context plus Plan of Iguala/Treaty documents |
-| `hist-peru-independence` | 1821-07-28 | Peruvian independence proclaimed | politics-constitution, war-empire | Peru | Institutional Spanish source needed |
-| `hist-brazil-independence` | 1822-09-07 | Brazilian declaration of independence | politics-constitution, war-empire | Brazil/Portugal | Portuguese institutional source needed |
+| `hist-mexico-independence` | 1821-09-27 | Army of the Three Guarantees enters Mexico City | war-empire, politics-constitution | Mexico | Plan of Iguala plus 28 September act; `publishable — pilot 1.15` |
+| `hist-peru-independence` | 1821-07-28 | Peruvian independence proclaimed | politics-constitution, war-empire | Peru | Lima act plus Protector decree; `publishable — pilot 1.15` |
+| `hist-brazil-independence` | 1822-09-07 | Brazilian declaration of independence | politics-constitution, war-empire | Brazil/Portugal | Manifesto, council minute, and Cachoeira adhesion letter; `publishable — pilot 1.15` |
 | `hist-monroe-doctrine` | 1823-12-02 | Monroe's annual message articulates hemispheric policy | politics-constitution, war-empire | United States/Americas | Official U.S./Library of Congress source |
 | `hist-ayacucho` | 1824-12-09 | Battle of Ayacucho | war-empire | Peru/Spanish America | Context event |
-| `hist-stockton-darlington` | 1825-09-27 | Stockton and Darlington Railway opens | economic-technology | Britain | Science Museum context; infrastructure history review |
+| `hist-stockton-darlington` | 1825-09-27 | Stockton and Darlington Railway opens | economic-technology | Britain | Identified company notice and contemporary opening report; `publishable — pilot 1.11` |
 | `hist-slavery-abolition-act` | 1833-08-28 | British Slavery Abolition Act receives assent | slavery-emancipation, politics-constitution | British Empire | Legislation text; foreground apprenticeship and compensation |
-| `hist-british-emancipation` | 1838-08-01 | Apprenticeship ends in most British colonies | slavery-emancipation, social-movement | British Empire | Colonial variation required |
+| `hist-british-emancipation` | 1838-08-01 | Apprenticeship ends in most British colonies | slavery-emancipation, social-movement | British Empire | Contested Commons debate plus Barbados local termination abstract; `publishable — pilot 1.16` |
 | `hist-revolutions-1848` | 1848 | Revolutions across Europe | social-movement, politics-constitution | Europe | Cluster event decomposed at closer zoom |
 | `hist-french-abolition-1848` | 1848-04-27 | Second French Republic abolishes colonial slavery | slavery-emancipation, politics-constitution | French Empire | Official decree; distinguish from 1794 and 1802 reversal |
 | `hist-communist-manifesto` | 1848-02 | *Manifesto of the Communist Party* published | ideas-publication, social-movement | Europe/transatlantic | Cleared public-domain translation only |
@@ -528,18 +549,61 @@ Events may occupy more than one lane. Geography filters begin with Britain/Irela
 
 | Passage ID | Document and locator | Role | Preferred source | Initial status |
 |---|---|---|---|---|
-| `pass-rousseau-association` | Rousseau, *Social Contract* I.6 and II.1, selected | Popular sovereignty | Standard Ebooks/cleared edition | `review-required` |
+| `pass-rousseau-association` | Rousseau, *Social Contract* I.6, selected | Legitimate association and the general will | Cole 1920; Project Gutenberg 46333, scan-backed and independently collated | `publishable — pilot 1.13` |
+| `pass-vermont-constitution-1777` | Vermont Constitution, Chapter I Articles I, III, VI, VIII; Chapter II §VI | Rights, qualified servitude, religion, and freemanship | Yale Avalon institutional transcript | `publishable — pilot 1.13` |
+| `pass-articles-confederation-1777` | Articles of Confederation, Articles I–V | State sovereignty, common defense, privileges, and equal state voting | National Archives original and transcript | `publishable — pilot 1.13` |
+| `pass-us-bill-rights-proposal-1789` | Enrolled Bill of Rights, preamble and proposed Articles I–XII | Amendment, rights, and the difference between proposal and ratification | National Archives original and transcript | `publishable — pilot 1.13` |
+| `pass-boston-massacre-crown-evidence` | *The King v. Preston*, Hinkley and Cunningham, 24–25 October 1770 | Crown-side testimony on crowd conduct, loading, and command | Founders Online historical trial text; LOC Kidder collation | `publishable — pilot 1.14` |
+| `pass-boston-massacre-defense-evidence` | *The King v. Preston*, Newton Prince and James Woodall, 25–27 October 1770 | Defense-side counterevidence on crowd conduct and command | Founders Online historical trial text; LOC Kidder collation | `publishable — pilot 1.14` |
+| `pass-boston-tea-colonial-newspaper-1773` | *Massachusetts and Boston Weekly*, 23 December 1773, complete surviving extract | Disciplined collective action, spectatorship, property, and public celebration | UK National Archives, CO 5/91 | `publishable — pilot 1.14` |
+| `pass-boston-tea-leslie-letter-1773` | Alexander Leslie to Viscount Barrington, 17 December 1773 | Military readiness and a British judgment on crowd power | UK National Archives, WO 40/1 | `publishable — pilot 1.14` |
+| `pass-maillard-womens-march-deposition` | Maillard deposition, *Mémoires de Bailly* III, pp. 407–408, selected | Women's collective action disclosed through a self-exculpatory male mediator | 1822 Internet Archive scan; Google Books collation | `publishable — pilot 1.14` |
+| `pass-assembly-womens-march-1789` | *Archives parlementaires* IX, night session of 5 October, p. 348 | Bread demand and institutional evacuation of the hall | Persée/ARCPA scan-backed record | `publishable — pilot 1.14` |
+| `pass-tucuman-independence-act-1816` | Congress of Tucumán, 9 July act with the 19 July amendment | Independence claimed for represented provinces | Argentine government transcript; Educ.ar collation | `publishable — pilot 1.15` |
+| `pass-belgrano-government-unsettled-1816` | Belgrano to Pueyrredón, 12 July 1816, selected | Political form, finance, and command remain unsettled | Archivo General de la Nación facsimile and transcript | `publishable — pilot 1.15` |
+| `pass-tucuman-order-decree-1816` | Congress of Tucumán, decree of 1 August 1816 | Union, obedience, petition, and coercive consolidation | Museo Histórico Nacional object; historical-text collation | `publishable — pilot 1.15` |
+| `pass-plan-iguala-1821` | Plan of Iguala, preamble and selected numbered bases | Independence joined to monarchy and the Three Guarantees | Mexican Chamber of Deputies/INEHRM transcript | `publishable — pilot 1.15` |
+| `pass-mexico-independence-act-1821` | Mexican Imperial Act of Independence, 28 September 1821 | Sovereignty declared through the Iguala settlement | INEHRM institutional transcript | `publishable — pilot 1.15` |
+| `pass-peru-lima-independence-act-1821` | Cabildo of Lima act, 15 July 1821 | A capital assembly certifies a general will | Proyecto Especial Bicentenario transcript; Ministry of Culture collation | `publishable — pilot 1.15` |
+| `pass-peru-protector-decree-1821` | San Martín, Protector decree, 3 August 1821, selected | Proclamation followed by provisional war government | Congress of Peru transcript | `publishable — pilot 1.15` |
+| `pass-brazil-manifesto-peoples-1822` | Manifesto to the Peoples of Brazil, 1 August 1822, selected | Provincial union and a projected constitutional order | Biblioteca Nacional newspaper scan; USP collation | `publishable — pilot 1.15` |
+| `pass-brazil-council-session-1822` | Council of State session 13, 2 September 1822 | Collective decision, reprisal, and planning for war | Chamber of Deputies archival exhibition transcript | `publishable — pilot 1.15` |
+| `pass-cachoeira-adhesion-letter-1822` | Municipal chamber of Cachoeira to Pedro, 28 June 1822, selected | Provincial adhesion made under bombardment | Historical documentary edition quoted in a UFBA repository scan | `publishable — pilot 1.15` |
+| `pass-franklin-war-finance-1766` | Franklin, Commons examination, questions 2–4, 14–16, and 27–28 | Colonial wartime taxation, debt, specie, and contribution claims | Founders Online historical examination text | `publishable — pilot 1.8` |
+| `pass-watt-steam-principles-1769` | Watt, British Patent No. 913, selected Principles I–IV and VI–VII | Heat economy, condensation, expansion, and patent scope | 1855 official reprint of the 1769 specification | `publishable — pilot 1.11` |
+| `pass-arkwright-water-frame-system-1769` | Baines, Chapter IX, print pp. 147 and 151–154, selected | Rollers, drive, scale, and factory organization | 1835 Internet Archive scan, collated to surviving patent and museum records | `publishable — pilot 1.11` |
+| `pass-cartwright-power-loom-iteration-1785` | Marsden, Chapter III, print pp. 61–63, selected | First specification, operational failure, and second design | 1895 University of Arizona scan | `publishable — pilot 1.11` |
+| `pass-stockton-darlington-opening-1825` | Company notice of 24 September and opening report of 15 October 1825 | Mixed railway motive power, freight, passengers, and infrastructure | Guardian archive historical-text republication, institutionally collated | `publishable — pilot 1.11` |
+| `pass-treaty-paris-1763` | Treaty of Paris (1763), Articles IV, X, and XI, selected | Global territorial and commercial settlement | Yale Avalon institutional transcript | `publishable — pilot 1.8` |
 | `pass-stamp-act` | Stamp Act 1765, selected operative clauses | Imperial taxation | UK Parliamentary/legislation source | `review-required` |
+| `pass-first-continental-resolves-1774` | First Continental Congress, Declaration and Resolves, opening and Resolves 1 and 4 | Coordinated constitutional resistance to revenue and authority | LOC *Journals of the Continental Congress*, vol. I, scan-backed | `publishable — pilot 1.8` |
+| `pass-lexington-provincial-evidence-1775` | Provincial Congress letter and selected sworn depositions, April 1775 | Provincial evidentiary claim and its planned transatlantic circulation | LOC *Journals of the Continental Congress*, vol. II, scan-backed | `publishable — pilot 1.12` |
+| `pass-gage-lexington-report-1775` | Gage to Dartmouth, 22 April 1775, selected | British command account of the expedition and return | Digital History institutional transcript, collated to the published report | `publishable — pilot 1.12` |
+| `pass-washington-continental-orders-1775` | Washington, General Orders, 4 July 1775, selected | Continental service, discipline, health, stores, and intelligence | Founders Online historical text collated to LOC manuscript/transcript | `publishable — pilot 1.12` |
+| `pass-franco-american-alliance-1778` | Treaty of Alliance with France, preamble and Articles I–III, VIII, and XI | Reciprocal military commitment, war aims, and guarantee | Founders Online historical text collated to official treaty scan | `publishable — pilot 1.12` |
+| `pass-yorktown-capitulation-1781` | Yorktown Articles of Capitulation, preamble and selected articles | Combined command, prisoners, property, loyalists, shipping, and interpretation | Founders Online historical text collated to LOC manuscript | `publishable — pilot 1.12` |
 | `pass-somerset` | Somerset v Stewart, selected judgment/report | Law, slavery, jurisdiction | verified legal edition | `review-required` |
 | `pass-common-sense` | Paine, *Common Sense*, introduction and selected monarchy/republic sections | Independence argument | Standard Ebooks/cleared edition | `review-required` |
 | `pass-us-declaration` | Declaration of Independence, grievances and conclusion | Independence and universal claim | NARA/LOC | `review-required` |
 | `pass-us-constitution` | Constitution, Preamble and selected structural clauses | Federal design | NARA/LOC | `review-required` |
 | `pass-federalist-10` | *Federalist* 10, selected | Faction and extended republic | Founders Online for collation; PD base text | `review-required` |
+| `pass-sieyes-third-estate` | Sieyès, *Qu’est-ce que le tiers état ?*, opening and Chapter I, selected | Political nation and representation | 1888 scan-backed Wikisource edition | `publishable — pilot 1.6` |
+| `pass-desmoulins-lanterne` | Desmoulins, *Le Discours de la Lanterne*, selected | Bastille memory, popular justice, and conspiracy | 1880 scan-backed Wikisource edition | `publishable — pilot 1.6` |
 | `pass-rights-man` | Declaration of Rights of Man and Citizen, selected articles | Rights and sovereignty | French institutional original; cleared translation | `review-required` |
+| `pass-constitution-year-viii` | Constitution of 22 frimaire an VIII, Articles 25, 28, 34, 41–42 and proclamation, selected | Representative forms and consular executive power | Légifrance open data; Élysée/Archives nationales collation | `publishable — pilot 1.9` |
+| `pass-code-civil-1804` | *Code civil des Français* (1804), selected articles | Civil rights, household hierarchy, property, and contract | Original official edition; scan-backed Wikisource collation | `publishable — pilot 1.9` |
+| `pass-senate-deposition-napoleon-1814` | Conservative Senate deposition decree, selected | Partisan institutional indictment at imperial collapse | Anderson 1904 English document collection; LOC scan | `publishable — pilot 1.9` |
+| `pass-congress-vienna-final-act-1815` | Congress of Vienna Final Act, preamble and Articles I, CVIII–CIX | Territory, representation, navigation, and commerce | 1815 official edition; Wienbibliothek scan | `publishable — pilot 1.9` |
+| `pass-republic-constitution-1793` | Founding decrees of September 1792 and Constitution of 24 June 1793, selected | Republic, popular sovereignty, and insurrection | Élysée institutional transcript collated to Archives nationales | `publishable — pilot 1.6` |
+| `pass-robespierre-virtue-terror` | Robespierre, report of 18 pluviôse an II, selected | Revolutionary government, virtue, and terror | Vellay 1910 edition; Project Gutenberg 29887 | `publishable — pilot 1.6` |
+| `pass-thermidor-convention` | Convention proceedings, 9 Thermidor an II, *Moniteur* volume XXI, pp. 335–336, selected | Accusation, arrest, and institutional rupture | 1842 public-domain scan; Archives parlementaires/Persée collation | `publishable — pilot 1.6` |
 | `pass-rights-woman` | de Gouges, *Declaration of the Rights of Woman*, selected | Counterclaim and exclusion | institutional French original; cleared translation | `review-required` |
 | `pass-equiano` | Equiano, *Interesting Narrative*, selected authenticated episode | Enslavement, commerce, testimony | Standard Ebooks | `review-required` |
-| `pass-haiti-constitution-1801` | Constitution of 1801, selected articles on freedom, territory, labor, authority | Emancipation and constitutional power | LOC public-domain collection | `review-required` |
-| `pass-haiti-independence-1804` | Haitian Declaration of Independence, selected | Independence after slavery and war | verified original; cleared translation | `review-required` |
+| `pass-haiti-insurgent-letter-1792` | Jean-François, Biassou, and Bélair, July 1792 letter, selected | Natural equality, general liberty, peace, and paid labor | *Le Créole Patriote* text in Persée scan-backed transcription, pp. 133–135 | `publishable — pilot 1.7` |
+| `pass-sonthonax-emancipation-1793` | Sonthonax proclamation, preamble and Articles II, IX, XI, XII, XXVII, XXXIII | Emancipation, citizenship, wages, plantation discipline | John Carter Brown Library contemporary broadside | `publishable — pilot 1.7` |
+| `pass-convention-abolition-1794` | Convention proceedings and decree, 16 pluviôse an II, selected | Metropolitan abolition and implementation | public-domain *Moniteur* reprint; *Archives parlementaires*/Persée collation | `publishable — pilot 1.7` |
+| `pass-haiti-constitution-1801` | Constitution of 1801, selected articles on freedom, territory, labor, authority | Emancipation and constitutional power | LOC public-domain collection | `publishable — pilot 1.2` |
+| `pass-haiti-independence-1804` | Haitian Declaration of Independence, selected | Independence after slavery and war | surviving print, The National Archives (UK) | `publishable — pilot 1.2` |
 | `pass-uk-slave-trade-act` | Slave Trade Act 1807, selected operative clauses | Trade prohibition and enforcement | legislation/Parliamentary source | `review-required` |
 | `pass-us-importation-act` | Act Prohibiting Importation of Slaves, selected | Trade prohibition without abolition | U.S. statute source | `review-required` |
 | `pass-cadiz` | Constitution of Cádiz, selected articles on nation, sovereignty, citizenship | Imperial constitutionalism | Spanish institutional source | `review-required` |
@@ -548,6 +612,8 @@ Events may occupy more than one lane. Geography filters begin with Britain/Irela
 | `pass-angostura` | Bolívar, Angostura Address, selected original Spanish | Republican design and executive power | authenticated Spanish edition | `review-required` |
 | `pass-monroe-message` | Monroe annual message, relevant paragraphs | Hemispheric policy | U.S. government/LOC source | `review-required` |
 | `pass-slavery-abolition-1833` | Slavery Abolition Act 1833, selected clauses | Emancipation, apprenticeship, compensation | legislation source | `review-required` |
+| `pass-commons-apprenticeship-debate-1838` | Commons debate, 29 March 1838, Strickland and Grey selected | Immediate termination, material failure, modified coercion, and the compensation compact | UK Parliament Historic Hansard; Open Parliament Licence | `publishable — pilot 1.16` |
+| `pass-barbados-apprenticeship-termination-1838` | Barbados termination-act abstract, title and Clauses 1–3 selected | Local termination, temporary housing protection, and limited support obligations | Colonial Office CO 28/125 transcript via UNB; CC0 | `publishable — pilot 1.16` |
 | `pass-french-abolition-1848` | Decree of 27 April 1848, selected articles | Re-abolition | French official source; translation review | `review-required` |
 | `pass-communist-manifesto` | *Communist Manifesto* I, selected cleared translation | Class and industrial transformation | Standard Ebooks/PD translation | `review-required` |
 | `pass-seneca-declaration` | Declaration of Sentiments, selected | Rights claim and inherited declaration form | LOC/NPS/institutional source | `review-required` |
@@ -558,15 +624,21 @@ Before final passage selection, the history corpus must add at least four authen
 
 | Sequence ID | Title | Type | Anchor events | Passage plan | Target duration |
 |---|---|---|---|---|---|
-| `seq-hist-empire-debt-resistance` | Empire, Debt, Resistance | journey | Seven Years' War, Stamp Act, Continental Congress | Treaty context → Stamp Act → colonial resolutions → *Common Sense* | 12–15 min |
+| `seq-hist-empire-debt-resistance` | War, Debt, and the Fiscal State | journey | Seven Years' War, Paris 1763, Stamp Act, Continental Congress, *Common Sense* | Franklin testimony → Treaty of Paris → Stamp Act → Continental resolves → *Common Sense* | 17.94 min |
 | `seq-hist-declaration-claim` | Declaring the People | journey | U.S. Declaration, Rights of Man, Haiti, Seneca Falls | U.S. Declaration → Rights of Man → Haitian constitutional claim → Seneca Falls | 13–17 min |
 | `seq-hist-faction-constitution` | Designing a Republic | journey | U.S. Constitution, Federalist, Cádiz, Angostura | Constitution → Federalist 10 → Cádiz → Angostura | 13–17 min |
 | `seq-hist-rights-exclusions` | Rights and Their Boundaries | journey | Rights of Man, Rights of Woman, Equiano, Haiti | Rights of Man → de Gouges → Equiano → Haiti 1801 | 14–18 min |
-| `seq-hist-france-1789-1794` | Assembly, Republic, Terror | journey | Estates-General through Thermidor | Parliamentary voices and decrees with short authored context; no synthetic source substitution | 14–18 min |
-| `seq-hist-haiti-freedom-state` | Freedom, Labor, Sovereignty | journey | 1791 uprising, 1793/1794 emancipation, 1801 constitution, 1804 independence | Counter-archive testimony → emancipation decree → 1801 Constitution → independence declaration | 14–18 min |
-| `seq-hist-abolition-law-limit` | Abolition and Its Limits | journey | Somerset, Equiano, 1807, 1833, 1838, 1848 | Judgment → testimony → trade act → abolition act → French decree | 14–18 min |
+| `seq-hist-france-1789-1794` | Assembly, Republic, Terror | journey | Estates-General through Thermidor | Sieyès → Desmoulins → 1792/1793 settlement → Robespierre → Convention at Thermidor | 17.36 min |
+| `seq-hist-revolution-settlement-1789-1815` | Revolution and Settlement, 1789–1815 | journey | Rights of Man, Brumaire, Civil Code, Napoleonic wars, Vienna | Rights declaration → Year VIII Constitution → Civil Code → Senate deposition decree → Vienna Final Act | 17.33 min |
+| `seq-hist-haiti-freedom-state` | Freedom, Labor, Sovereignty | journey | 1791 uprising, 1793/1794 emancipation, 1801 constitution, 1804 independence | 1792 insurgent letter → Sonthonax proclamation → Convention decree → 1801 Constitution → 1804 independence declaration | 17.98 min |
+| `seq-hist-abolition-law-limit` | Abolition and Its Limits | journey | Somerset, Equiano, 1807, 1833, 1838, 1848 | Testimony → trade prohibition → compensated apprenticeship → contested termination → Barbados implementation | 17.80 min |
 | `seq-hist-spanish-america` | A Continent Imagined | journey | Cádiz, Venezuela, Jamaica Letter, Angostura, Ayacucho | Cádiz → Venezuelan declaration → Jamaica Letter → Angostura → aftermath | 14–18 min |
 | `seq-hist-hemisphere-doctrine` | Independence and Hemisphere | journey | Haiti, Spanish America, Monroe Doctrine | Haiti → Jamaica Letter → Monroe message, with conflict between perspectives made explicit | 11–15 min |
+| `seq-hist-machines-patents-production` | Machines, Patents, and Production | journey | Watt, Arkwright, Cartwright, Stockton–Darlington | Steam principles → coordinated spinning → failed loom and redesign → mixed railway system | 15.39 min |
+| `seq-hist-war-independence` | War for Independence | journey | Lexington, Continental Army, French alliance, Yorktown, Paris 1783 | Paired opening accounts → army organization → allied commitment → capitulation → peace | 17.86 min |
+| `seq-hist-association-confederation-amendment` | Association, Confederation, Amendment | journey | Rousseau, Vermont, Articles of Confederation, Bill of Rights | Association → qualified state rights → confederation → twelve proposed amendments | 17.87 min |
+| `seq-hist-crowd-testimony-publicity` | Crowd, Testimony, Publicity | journey | Boston Massacre, Boston Tea Party, Women's March | Crown evidence → defense evidence → colonial newspaper → military report → mediated deposition → Assembly record | 15.86 min |
+| `seq-hist-independence-many-models` | Independence without a Single Model | journey | Argentina, Mexico, Peru, Brazil | Tucumán act → Iguala compact → Mexican act → Lima act → Protector decree → Brazilian council → Cachoeira adhesion | 17.51 min |
 | `seq-hist-1848-unfinished` | The Unfinished Revolution | journey | 1848 revolutions, abolition, Communist Manifesto, Seneca Falls | Manifesto → French abolition → Seneca Falls → editorial aftermath | 12–16 min |
 
 ## 7. Source research scorecard
@@ -807,9 +879,9 @@ The full pilot release target is the larger catalog described in this document: 
 
 ### Gate B — Source audit
 
-**Pilot v1 status:** Complete for the selected 27-passage runtime pack. The remaining discovery candidates stay blocked and retain the requirements below.
+**Pilot v1 status:** Complete for the current selected 101-passage runtime pack. The remaining discovery candidates stay blocked and retain the requirements below.
 
-- Complete edition-level rights review for the 34 philosophy and 23 history passage candidates.
+- Complete edition-level rights review for every remaining philosophy and history passage candidate selected for acquisition.
 - Select one canonical locator scheme per work.
 - Record excluded editions and the reason for exclusion.
 - Test Scaife/OGL, Standard Ebooks, LOC, and FRDA extraction on representative samples.
@@ -834,7 +906,7 @@ The full pilot release target is the larger catalog described in this document: 
 
 ### Gate D — Minimum viable content pack
 
-**Pilot v1 status:** Complete. The checked-in pack contains 13 philosophy and 14 history passages, four journeys per domain, offline payloads, exact locators, exclusions, and recomputed provenance/integrity tests.
+**Pilot v1 status:** Complete and expanding. The checked-in pack contains 31 philosophy and 70 history passages, ten philosophy journeys, seventeen history journeys, 81 point launches, offline payloads, exact locators, exclusions, and recomputed provenance/integrity tests.
 
 - Package 12 philosophy and 14 history passages.
 - Build four journeys per domain.

@@ -1,6 +1,6 @@
 import { ATRIUM_PILOT_INTEGRITY } from './integrity.js';
 
-const REVIEWED_AT = '2026-07-17';
+const REVIEWED_AT = '2026-07-19';
 const usPublicDomain = (attribution, evidenceUrl) => ({
   status: 'public-domain-confirmed',
   jurisdictions: ['US'],
@@ -24,7 +24,13 @@ const pgRights = (author, title, ebook) => usPublicDomain(
 );
 
 export const PHILOSOPHY_SOURCE_AUDITS = Object.freeze({
-  'src-ogl-presocratic-fragments': audited(['pass-anaximander-fragment'], {
+  'src-ogl-presocratic-fragments': audited([
+    'pass-anaximander-fragment',
+    'pass-heraclitus-logos',
+    'pass-parmenides-being',
+    'pass-empedocles-roots',
+    'pass-democritus-atoms'
+  ], {
     workTitle: 'Early Greek Philosophy, second edition',
     author: 'John Burnet',
     translator: 'John Burnet',
@@ -35,6 +41,7 @@ export const PHILOSOPHY_SOURCE_AUDITS = Object.freeze({
     canonicalUrl: 'https://www.gutenberg.org/ebooks/67097',
     canonicalId: 'gutenberg:67097',
     locatorScheme: 'chapter / section / source citation',
+    checksum: 'sha256:cfbfad0360fd01213acedd27d04371d116b945a4bf2f969e4493c33ee67d6bb1',
     rights: pgRights('John Burnet', 'Early Greek Philosophy, second edition', '67097')
   }),
   'src-scaife-plato-theaetetus': audited(['pass-protagoras-measure'], {
@@ -83,17 +90,37 @@ export const PHILOSOPHY_SOURCE_AUDITS = Object.freeze({
     locatorScheme: 'Stephanus',
     rights: pgRights('Plato, translated by Benjamin Jowett', 'Phaedo', '1658')
   }),
-  'src-scaife-aristotle-metaphysics': audited(['pass-aristotle-substance'], {
+  'src-scaife-plato-timaeus': audited(['pass-plato-cosmos'], {
+    translator: 'Benjamin Jowett',
+    editionDate: 'Project Gutenberg eBook 1572, updated 2021-04-25',
+    provider: 'project-gutenberg',
+    canonicalUrl: 'https://www.gutenberg.org/ebooks/1572',
+    canonicalId: 'gutenberg:1572',
+    locatorScheme: 'Stephanus',
+    rights: pgRights('Plato, translated by Benjamin Jowett', 'Timaeus', '1572')
+  }),
+  'src-scaife-aristotle-metaphysics': audited(['pass-aristotle-first-causes', 'pass-aristotle-substance'], {
     translator: 'W. D. Ross',
     editionDate: '1908',
     provider: 'wikisource-scan-backed',
     canonicalUrl: 'https://en.wikisource.org/wiki/Metaphysics_(Aristotle)',
     canonicalId: 'wikisource:Metaphysics_(Aristotle):Ross-1908',
     locatorScheme: 'book / chapter / Bekker',
+    checksum: 'sha256:17cd9eaae627c24362943ee04111414f06f2b28cd228d25b6eaca66f7528fb27',
     rights: usPublicDomain(
       'Aristotle, Metaphysics, translated by W. D. Ross (1908); scan-backed clean excerpt.',
       'https://en.wikisource.org/wiki/Metaphysics_(Aristotle)'
     )
+  }),
+  'src-scaife-aristotle-ethics': audited(['pass-aristotle-human-good'], {
+    workTitle: 'The Nicomachean Ethics of Aristotle',
+    translator: 'D. P. Chase',
+    editionDate: '1847 edition; Project Gutenberg eBook 8438 updated 2021-03-27',
+    provider: 'project-gutenberg-scan-collated',
+    canonicalUrl: 'https://www.gutenberg.org/ebooks/8438',
+    canonicalId: 'gutenberg:8438:chase-1847',
+    locatorScheme: 'book / chapter / Bekker',
+    rights: pgRights('Aristotle, translated by D. P. Chase', 'The Nicomachean Ethics of Aristotle', '8438')
   }),
   'src-scaife-aristotle-de-anima': audited(['pass-aristotle-soul'], {
     workTitle: 'Aristotle’s Psychology: A Treatise on the Principle of Life',
@@ -117,6 +144,119 @@ export const PHILOSOPHY_SOURCE_AUDITS = Object.freeze({
     canonicalId: 'gutenberg:10661',
     locatorScheme: 'Encheiridion section',
     rights: pgRights('Epictetus, translated by George Long', 'Encheiridion', '10661')
+  }),
+  'src-candidate-seneca-letters': audited(['pass-seneca-inner-spirit'], {
+    workTitle: 'Moral Letters to Lucilius, Volume I',
+    translator: 'Richard Mott Gummere',
+    editionDate: 'Loeb Classical Library volume I, 1917; first printed 1918',
+    provider: 'wikisource-scan-backed',
+    canonicalUrl: 'https://en.wikisource.org/wiki/Moral_letters_to_Lucilius/Letter_41',
+    canonicalId: 'wikisource:Moral_letters_to_Lucilius/Letter_41:Gummere',
+    locatorScheme: 'letter / numbered section',
+    rights: usPublicDomain(
+      'Seneca, Moral Letters to Lucilius, translated by Richard Mott Gummere; Letter 41.1–5 from the scan-backed public-domain edition.',
+      'https://en.wikisource.org/wiki/Moral_letters_to_Lucilius'
+    )
+  }),
+  'src-candidate-marcus-meditations': audited(['pass-marcus-morning'], {
+    workTitle: 'Thoughts of Marcus Aurelius Antoninus',
+    translator: 'George Long',
+    editionDate: 'George Long translation first published 1862; Project Gutenberg eBook 15877 updated 2020-12-14',
+    provider: 'project-gutenberg-scan-backed',
+    canonicalUrl: 'https://www.gutenberg.org/ebooks/15877',
+    canonicalId: 'gutenberg:15877:long',
+    locatorScheme: 'book / numbered section',
+    rights: pgRights('Marcus Aurelius, translated by George Long', 'Thoughts of Marcus Aurelius Antoninus', '15877')
+  }),
+  'src-candidate-diogenes-laertius-x': audited(['pass-epicurus-gods-death'], {
+    workTitle: 'The Lives and Opinions of Eminent Philosophers',
+    translator: 'Charles Duke Yonge',
+    editionDate: '1915 Bell reprint; Project Gutenberg eBook 57342, updated 2023-10-04',
+    provider: 'project-gutenberg-scan-backed',
+    canonicalUrl: 'https://www.gutenberg.org/ebooks/57342',
+    canonicalId: 'gutenberg:57342',
+    locatorScheme: 'book / numbered section',
+    rights: pgRights('Diogenes Laertius, translated by Charles Duke Yonge', 'The Lives and Opinions of Eminent Philosophers', '57342')
+  }),
+  'src-ogl-sextus-outlines': audited(['pass-sextus-skeptical-way'], {
+    workTitle: 'Sextus Empiricus and Greek Scepticism: First Book of the Pyrrhonic Sketches',
+    translator: 'Mary Mills Patrick',
+    editionDate: '1899; Project Gutenberg eBook 17556',
+    provider: 'project-gutenberg-scan-backed',
+    canonicalUrl: 'https://www.gutenberg.org/ebooks/17556',
+    canonicalId: 'gutenberg:17556',
+    locatorScheme: 'book / chapter / section',
+    rights: pgRights('Sextus Empiricus, translated by Mary Mills Patrick', 'First Book of the Pyrrhonic Sketches', '17556')
+  }),
+  'src-perseus-cicero-academica': audited(['pass-cicero-academic'], {
+    workTitle: 'The Academic Questions',
+    translator: 'Charles Duke Yonge',
+    editionDate: '1875 George Bell edition; Project Gutenberg eBook 29247, updated 2020-06-20',
+    provider: 'project-gutenberg-scan-backed',
+    canonicalUrl: 'https://www.gutenberg.org/ebooks/29247',
+    canonicalId: 'gutenberg:29247',
+    locatorScheme: 'book / numbered section',
+    rights: pgRights('Cicero, translated by Charles Duke Yonge', 'The Academic Questions', '29247')
+  }),
+  'src-ogl-philo-creation': audited(['pass-philo-creation'], {
+    workTitle: 'On the Creation of the World',
+    translator: 'Charles Duke Yonge',
+    editionDate: '1854 translation; Open Greek and Latin public-domain edition',
+    provider: 'open-greek-and-latin-collated',
+    canonicalUrl: 'https://atlas.perseus.tufts.edu/library/urn:cts:greekLit:tlg0018.tlg001.1st1K-eng1/',
+    canonicalId: 'cts:greekLit:tlg0018.tlg001.1st1K-eng1',
+    locatorScheme: 'section',
+    rights: usPublicDomain(
+      'Philo of Alexandria, On the Creation of the World, translated by Charles Duke Yonge (1854); selected excerpt collated to the public-domain edition.',
+      'https://opengreekandlatin.github.io/philo-dev/'
+    )
+  }),
+  'src-ogl-plotinus-enneads': audited(['pass-plotinus-beauty', 'pass-plotinus-hypostases'], {
+    workTitle: 'Plotinos: Complete Works, Volume I',
+    translator: 'Kenneth Sylvan Guthrie',
+    editionDate: '1918; Project Gutenberg eBook 42930 updated 2024-10-23',
+    provider: 'project-gutenberg-scan-backed',
+    canonicalUrl: 'https://www.gutenberg.org/ebooks/42930',
+    canonicalId: 'gutenberg:42930:guthrie-1918',
+    locatorScheme: 'Ennead / treatise / section',
+    checksum: 'sha256:903c9917f4aac886efaf2f2af7d2248c123355e02ea2b0e98859ffc4c873bc02',
+    rights: pgRights('Plotinus, translated by Kenneth Sylvan Guthrie', 'Plotinos: Complete Works, Volume I', '42930')
+  }),
+  'src-ogl-porphyry-isagoge': audited(['pass-porphyry-isagoge'], {
+    workTitle: 'Introduction, or Isagoge, to the Logical Categories of Aristotle',
+    translator: 'Octavius Freire Owen',
+    editionDate: '1853, Volume II, pages 609–633',
+    provider: 'tertullian-historical-transcription',
+    canonicalUrl: 'https://www.tertullian.org/fathers/porphyry_isagogue_02_translation.htm',
+    canonicalId: 'tertullian:porphyry-isagoge:owen-1853',
+    locatorScheme: 'chapter / print page',
+    rights: usPublicDomain(
+      'Porphyry, Isagoge, translated by Octavius Freire Owen (1853); historical text only, with transcription apparatus excluded.',
+      'https://www.tertullian.org/fathers/porphyry_isagogue_02_translation.htm'
+    )
+  }),
+  'src-ogl-iamblichus-mysteries': audited(['pass-iamblichus-theurgy'], {
+    workTitle: 'Iamblichus on the Mysteries of the Egyptians, Chaldeans, and Assyrians',
+    translator: 'Thomas Taylor',
+    editionDate: '1895 London edition; Project Gutenberg eBook 72815 released 2024-01-29',
+    provider: 'project-gutenberg-scan-backed',
+    canonicalUrl: 'https://www.gutenberg.org/ebooks/72815',
+    canonicalId: 'gutenberg:72815:taylor-1895',
+    locatorScheme: 'book / chapter',
+    rights: pgRights('Iamblichus, translated by Thomas Taylor', 'On the Mysteries of the Egyptians, Chaldeans, and Assyrians', '72815')
+  }),
+  'src-ogl-proclus-elements': audited(['pass-proclus-propositions'], {
+    workTitle: 'Elements of Theology',
+    translator: 'Thomas Taylor',
+    editionDate: '1816 London edition',
+    provider: 'internet-archive-scan-backed',
+    canonicalUrl: 'https://archive.org/details/thomastaylor/page/n805',
+    canonicalId: 'internet-archive:thomastaylor:elements-of-theology',
+    locatorScheme: 'proposition / print page',
+    rights: usPublicDomain(
+      'Proclus, Elements of Theology, translated by Thomas Taylor (1816); excerpt collated to the public-domain scan.',
+      'https://archive.org/details/thomastaylor/page/n805'
+    )
   }),
   'src-candidate-augustine-confessions': audited(['pass-augustine-platonic-books'], {
     translator: 'Edward Bouverie Pusey',

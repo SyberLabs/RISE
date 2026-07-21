@@ -1,5 +1,6 @@
 import {
   ATRIUM_SCHEMA_VERSION,
+  COMPLETION_DISPOSITIONS,
   EVIDENCE_LEVELS,
   HISTORY_LANES,
   HISTORY_RANGE,
@@ -120,6 +121,31 @@ function validateDates(record, report) {
   }
   if (!hasText(dates.display)) {
     add(report, 'errors', 'missing-date-display', 'Date range needs a human-readable display value.', record.id);
+  }
+}
+
+function validateCompletion(record, report) {
+  const completion = record?.completion;
+  if (!isRecord(completion)) {
+    add(report, 'errors', 'missing-completion-disposition', 'Corpus records need a reviewed completion disposition.', record?.id || null);
+    return;
+  }
+  if (!COMPLETION_DISPOSITIONS.includes(completion.disposition)) {
+    add(report, 'errors', 'invalid-completion-disposition', `Unknown completion disposition: ${completion.disposition}.`, record.id);
+  }
+  if (!hasText(completion.rationale)) {
+    add(report, 'errors', 'missing-completion-rationale', 'Completion disposition needs an editorial rationale.', record.id);
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(completion.reviewedOn || '')) {
+    add(report, 'errors', 'invalid-completion-review-date', 'Completion disposition needs an ISO review date.', record.id);
+  }
+  if (['context-only', 'evidence-bound'].includes(completion.disposition)
+    && !hasText(completion.revisitTrigger)) {
+    add(report, 'errors', 'missing-completion-revisit-trigger', 'Accepted non-launch records need a concrete revisit trigger.', record.id);
+  }
+  if (!['context-only', 'evidence-bound'].includes(completion.disposition)
+    && completion.revisitTrigger !== null) {
+    add(report, 'errors', 'unexpected-completion-revisit-trigger', 'Launch and alignment dispositions must use a null revisit trigger.', record.id);
   }
 }
 
@@ -258,6 +284,7 @@ export function validatePhilosophyCorpus(corpus = PHILOSOPHY_CORPUS, passages = 
       return;
     }
     validateStatus(item, report);
+    validateCompletion(item, report);
     validateDates(item, report);
     validateSourceRefs(item, sources, report);
     if (!hasText(item.id) || !item.id.startsWith('ph-')) {
@@ -357,6 +384,7 @@ export function validateHistoryCorpus(corpus = HISTORY_CORPUS, passages = ATRIUM
       return;
     }
     validateStatus(item, report);
+    validateCompletion(item, report);
     validateDates(item, report);
     validateSourceRefs(item, sources, report);
     if (!hasText(item.id) || !item.id.startsWith('hist-')) {

@@ -1,4 +1,5 @@
 import { ATRIUM_CORPUS_VERSION, ATRIUM_SCHEMA_VERSION, freezeManifest } from './constants.js';
+import { createCompletionPolicy } from './completion-policy.js';
 import { PHILOSOPHY_PILOT_JOURNEY_IDS } from './packs/pilot-v1/manifest.js';
 import {
   createPhilosophyNodeReview,
@@ -21,7 +22,8 @@ const node = (id, label, kind, era, dates, start, end, summary, sourceRefs, them
     themes,
     editorialReview,
     status: 'reviewed',
-    launchStatus: 'source-review'
+    launchStatus: 'source-review',
+    completion: createCompletionPolicy(id)
   };
 };
 
@@ -162,16 +164,16 @@ const journey = (id, title, anchorIds, description, segments, estimatedMinutes) 
 };
 
 export const PHILOSOPHY_JOURNEYS = Object.freeze([
-  journey('seq-ph-archai-being', 'From Origin to Being', ['ph-school-milesian', 'ph-thinker-heraclitus', 'ph-school-eleatic', 'ph-tradition-pluralists'], 'Early accounts of nature encounter the Eleatic demand to think being.', [['pass-anaximander-fragment', 'proposition'], ['pass-heraclitus-logos', 'response'], ['pass-parmenides-being', 'critique'], ['pass-empedocles-roots', 'response'], ['pass-aristotle-first-causes', 'aftermath']], 15),
+  journey('seq-ph-archai-being', 'From Origin to Being', ['ph-period-early-greek', 'ph-school-milesian', 'ph-thinker-heraclitus', 'ph-school-eleatic', 'ph-tradition-pluralists'], 'Early accounts of nature encounter the Eleatic demand to think being.', [['pass-anaximander-fragment', 'proposition'], ['pass-heraclitus-logos', 'response'], ['pass-parmenides-being', 'critique'], ['pass-empedocles-roots', 'response'], ['pass-aristotle-first-causes', 'aftermath']], 15),
   journey('seq-ph-socratic-turn', 'The Examined Life', ['ph-movement-sophistic', 'ph-tradition-socratic', 'ph-thinker-plato'], 'Rhetoric, examination, and the possibility of learning.', [['pass-protagoras-measure', 'context'], ['pass-socrates-apology', 'proposition'], ['pass-plato-recollection', 'response']], 12),
-  journey('seq-ph-plato-ascent', 'Line, Cave, Return', ['ph-thinker-plato'], 'Knowledge, education, and the obligation to return.', [['pass-plato-divided-line', 'proposition'], ['pass-plato-cave', 'aftermath']], 10),
-  journey('seq-ph-plato-aristotle', 'Forms and Substance', ['ph-thinker-plato', 'ph-thinker-aristotle'], 'Two architectures of intelligibility.', [['pass-plato-forms', 'proposition'], ['pass-aristotle-substance', 'response'], ['pass-aristotle-soul', 'aftermath']], 13),
+  journey('seq-ph-plato-ascent', 'Line, Cave, Return', ['ph-thinker-plato'], 'Knowledge, education, and the obligation to return.', [['pass-socrates-apology', 'context'], ['pass-plato-recollection', 'proposition'], ['pass-plato-forms', 'response'], ['pass-plato-divided-line', 'critique'], ['pass-plato-cave', 'aftermath']], 10),
+  journey('seq-ph-plato-aristotle', 'Forms and Substance', ['ph-thinker-plato', 'ph-thinker-aristotle'], 'Two architectures of intelligibility.', [['pass-aristotle-first-causes', 'context'], ['pass-plato-forms', 'proposition'], ['pass-aristotle-substance', 'response'], ['pass-aristotle-soul', 'aftermath']], 13),
   journey('seq-ph-three-therapies', 'Three Therapies of Judgment', ['ph-school-epicurean', 'ph-tradition-early-stoa', 'ph-school-pyrrhonism'], 'Epicurean, Stoic, and skeptical practices placed in deliberate tension.', [['pass-epicurus-gods-death', 'proposition'], ['pass-epictetus-control', 'response'], ['pass-sextus-skeptical-way', 'critique']], 12),
-  journey('seq-ph-stoic-practice', 'The Work of Assent', ['ph-tradition-roman-stoa'], 'Judgment and practice in Roman Stoicism.', [['pass-epictetus-control', 'proposition'], ['pass-seneca-inner-spirit', 'response'], ['pass-marcus-morning', 'aftermath']], 11),
+  journey('seq-ph-stoic-practice', 'The Work of Assent', ['ph-tradition-roman-stoa'], 'Judgment and practice in Roman Stoicism.', [['pass-epictetus-control', 'proposition'], ['pass-seneca-inner-spirit', 'response'], ['pass-marcus-morning', 'aftermath']], 13),
   journey('seq-ph-suspension', 'Continue to Search', ['ph-school-pyrrhonism', 'ph-school-academic-skepticism'], 'The distinct projects grouped under ancient skepticism.', [['pass-sextus-skeptical-way', 'proposition'], ['pass-cicero-academic', 'response']], 10),
   journey('seq-ph-platonism-one', 'Toward the One', ['ph-tradition-middle-platonism', 'ph-thinker-philo', 'ph-thinker-plotinus'], 'Imperial transformations of Platonist metaphysics.', [['pass-plato-cosmos', 'context'], ['pass-philo-creation', 'transmission'], ['pass-plotinus-beauty', 'proposition'], ['pass-plotinus-hypostases', 'aftermath']], 14),
-  journey('seq-ph-theurgy-system', 'Reason, Rite, Hierarchy', ['ph-thinker-porphyry', 'ph-tradition-iamblichean', 'ph-school-athenian-neoplatonism'], 'The debate over intellect, ritual, and ascent.', [['pass-porphyry-isagoge', 'context'], ['pass-iamblichus-theurgy', 'response'], ['pass-proclus-propositions', 'aftermath']], 12),
-  journey('seq-ph-latin-transmission', 'The Inward and the Eternal', ['ph-thinker-augustine', 'ph-thinker-pseudo-dionysius', 'ph-thinker-boethius'], 'Three channels through which Platonist inheritances enter Latin thought.', [['pass-augustine-platonic-books', 'transmission'], ['pass-dionysius-mystical', 'response'], ['pass-boethius-eternity', 'aftermath']], 14)
+  journey('seq-ph-theurgy-system', 'Reason, Rite, Hierarchy', ['ph-thinker-porphyry', 'ph-tradition-iamblichean', 'ph-school-athenian-neoplatonism'], 'The debate over intellect, ritual, and ascent.', [['pass-porphyry-isagoge', 'context'], ['pass-iamblichus-theurgy', 'response'], ['pass-proclus-propositions', 'aftermath']], 16),
+  journey('seq-ph-latin-transmission', 'The Inward and the Eternal', ['ph-tradition-patristic-platonism', 'ph-thinker-augustine', 'ph-thinker-pseudo-dionysius', 'ph-thinker-boethius'], 'Three channels through which Platonist inheritances enter Latin thought.', [['pass-augustine-platonic-books', 'transmission'], ['pass-dionysius-mystical', 'response'], ['pass-boethius-eternity', 'aftermath']], 14)
 ]);
 
 export const PHILOSOPHY_RESEARCH_SOURCES = Object.freeze({
@@ -195,6 +197,8 @@ export const PHILOSOPHY_RESEARCH_SOURCES = Object.freeze({
   'SEP-MIDDLE-PLATONISM': { label: 'SEP: Plutarch', href: 'https://plato.stanford.edu/archives/fall2025/entries/plutarch/' },
   'SEP-PHILO': { label: 'SEP: Philo of Alexandria', href: 'https://plato.stanford.edu/entries/philo/' },
   'SEP-PLOTINUS': { label: 'SEP: Plotinus', href: 'https://plato.stanford.edu/entries/plotinus/' },
+  'VP-14': { label: 'Porphyry, Life of Plotinus 14 (evidence guide)', href: 'https://plato.stanford.edu/entries/plotinus/' },
+  'PHOTIUS-BIBL-212': { label: 'Photius, Bibliotheca 212 (French research text)', href: 'https://remacle.org/bloodwolf/erudits/photius/enesimede.htm' },
   'SEP-IAMBLICHUS': { label: 'SEP: Iamblichus', href: 'https://plato.stanford.edu/entries/iamblichus/' },
   'SEP-AMMONIUS': { label: 'SEP: Ammonius', href: 'https://plato.stanford.edu/entries/ammonius/' },
   'SEP-PROCLUS': { label: 'SEP: Proclus', href: 'https://plato.stanford.edu/entries/proclus/' },
