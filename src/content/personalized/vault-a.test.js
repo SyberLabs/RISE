@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { VAULT_A_SEQUENCES, VAULT_A_ARCHETYPE } from './vault-a.js';
 import { compileSession } from '../../core/session-compiler.js';
 import { MUSEUM_CATEGORIES } from '../../sources/visual/museum.js';
+import { Vault } from '../../components/Vault.js';
 
 /**
  * A vault presented to an author as a reading of HER OWN WORK carries a
@@ -40,14 +41,26 @@ describe('Vault A provenance', () => {
 });
 
 describe('Vault A sensory design', () => {
-  it('runs Faded Signal throughout, with pure tones resting', () => {
+  it('alternates two soundscapes evenly, with pure tones resting', () => {
     // A soundscape is a finished mix — exclusive beds
+    const counts = { 'faded-signal': 0, aurora: 0 };
     for (const seq of VAULT_A_SEQUENCES) {
-      expect(seq.soundscape, seq.id).toBe('faded-signal');
+      expect(counts, `${seq.id} uses an unexpected soundscape`)
+        .toHaveProperty(seq.soundscape);
+      counts[seq.soundscape]++;
       expect(seq.audioPreset, seq.id).toBe('silent');
     }
-    expect(VAULT_A_ARCHETYPE.config.soundscape).toBe('faded-signal');
+    // Half and half — the suite breathes between two rooms
+    expect(counts['faded-signal']).toBe(VAULT_A_SEQUENCES.length / 2);
+    expect(counts.aurora).toBe(VAULT_A_SEQUENCES.length / 2);
     expect(VAULT_A_ARCHETYPE.config.audioPreset).toBe('silent');
+  });
+
+  it('reads in Phrase chunking throughout — her stated preference', () => {
+    for (const seq of VAULT_A_SEQUENCES) {
+      expect(seq.chunkMode, seq.id).toBe('phrase');
+    }
+    expect(VAULT_A_ARCHETYPE.config.chunkMode).toBe('phrase');
   });
 
   it('gives every sequence a distinct visual identity', () => {
@@ -94,6 +107,83 @@ describe('Vault A sensory design', () => {
   });
 });
 
+describe('Vault A launch path', () => {
+  it('forwards each sequence its own pace, chunking, soundscape, and visuals', () => {
+    // The archetype is the house style; the sequence is the specific
+    // room. A merge that drops the sequence's own fields would silently
+    // give every reading the same identity.
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const onLaunchArchetype = vi.fn();
+    const vault = new Vault(container, {
+      personalizedVault: 'vault-a',
+      onLaunchArchetype
+    });
+
+    for (const seq of VAULT_A_SEQUENCES) {
+      onLaunchArchetype.mockClear();
+      vault.launchPersonalizedSequence(seq.id);
+
+      expect(onLaunchArchetype, seq.id).toHaveBeenCalledTimes(1);
+      const { config } = onLaunchArchetype.mock.calls[0][0];
+      expect(config.wpm, seq.id).toBe(seq.wpm);
+      expect(config.curve, seq.id).toBe(seq.curve);
+      expect(config.chunkMode, seq.id).toBe('phrase');
+      expect(config.soundscape, seq.id).toBe(seq.soundscape);
+      expect(config.audioPreset, seq.id).toBe('silent');
+      expect(config.visualConfig, seq.id).toEqual(seq.visualConfig);
+    }
+
+    vault.destroy?.();
+    container.remove();
+  });
+
+  it('lets a sequence override the archetype rather than inherit it', () => {
+    // Guards the merge itself: with identical archetype and sequence
+    // values, the assertions above would pass even if the sequence's
+    // fields were dropped entirely. Here they deliberately differ.
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const onLaunchArchetype = vi.fn();
+    const vault = new Vault(container, {
+      personalizedVault: 'vault-a',
+      onLaunchArchetype
+    });
+
+    const [first] = VAULT_A_SEQUENCES;
+    vault.personalizedVault = {
+      ...vault.personalizedVault,
+      archetype: {
+        ...VAULT_A_ARCHETYPE,
+        config: {
+          ...VAULT_A_ARCHETYPE.config,
+          wpm: 111,
+          chunkMode: 'word',
+          soundscape: 'none',
+          visualConfig: { visualMode: 'off' }
+        }
+      },
+      sequences: [{
+        ...first,
+        chunkMode: 'phrase',
+        soundscape: 'aurora',
+        wpm: 275,
+        visualConfig: { visualMode: 'genesis', genesis: { preset: 'random' } }
+      }]
+    };
+
+    vault.launchPersonalizedSequence(first.id);
+    const { config } = onLaunchArchetype.mock.calls[0][0];
+    expect(config.chunkMode).toBe('phrase');
+    expect(config.soundscape).toBe('aurora');
+    expect(config.wpm).toBe(275);
+    expect(config.visualConfig.visualMode).toBe('genesis');
+
+    vault.destroy?.();
+    container.remove();
+  });
+});
+
 describe('Vault A compiles to playable sessions', () => {
   it('every sequence compiles, with its own pace and visuals preserved', () => {
     for (const seq of VAULT_A_SEQUENCES) {
@@ -111,6 +201,33 @@ describe('Vault A compiles to playable sessions', () => {
       expect(session.atoms.length, seq.id).toBeGreaterThan(50);
       expect(session.totalDuration, seq.id).toBeGreaterThan(30_000);
       expect(session.visualConfig.visualMode).toBe(seq.visualConfig.visualMode);
+    }
+  });
+
+  it('builds phrase atoms from the authored | boundaries', () => {
+    // Phrase mode is only worth choosing if the atoms are the breaths
+    // the text authored. A phrase atom should never be a single word
+    // (word mode) nor swallow a whole paragraph (sentence mode).
+    for (const seq of VAULT_A_SEQUENCES) {
+      const session = compileSession({
+        ...VAULT_A_ARCHETYPE.config,
+        wpm: seq.wpm,
+        curve: seq.curve,
+        chunkMode: seq.chunkMode,
+        text: seq.content,
+        title: seq.name
+      });
+
+      const textAtoms = session.atoms.filter(a => a.content.trim().length > 0);
+      const words = textAtoms.map(a => a.content.trim().split(/\s+/).length);
+      const mean = words.reduce((a, b) => a + b, 0) / words.length;
+
+      expect(mean, `${seq.id} mean phrase length`).toBeGreaterThan(2.5);
+      expect(mean, `${seq.id} mean phrase length`).toBeLessThan(12);
+
+      // Every atom stays inside a comfortable reading beat
+      const longest = Math.max(...textAtoms.map(a => a.duration));
+      expect(longest, `${seq.id} longest atom`).toBeLessThan(4000);
     }
   });
 

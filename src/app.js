@@ -728,6 +728,10 @@ class App {
                 config: {
                     wpm: config.wpm,
                     curve: config.curve,
+                    // A curated sequence may author its own chunking —
+                    // the reading unit is part of the curation, not a
+                    // leftover of the reader's last session
+                    ...(config.chunkMode ? { chunkMode: config.chunkMode } : {}),
                     audioPreset: config.audioPreset || 'silent',
                     soundscape: config.soundscape || 'none',
                     visualConfig: config.visualConfig || { visualMode: 'off' },

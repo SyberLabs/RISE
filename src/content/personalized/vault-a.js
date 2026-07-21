@@ -22,10 +22,17 @@
  *
  * SENSORY DESIGN
  * ──────────────
- * Every sequence runs the Faded Signal soundscape (audioPreset rests:
- * a soundscape is a finished mix, so pure tones stay silent). Each
- * sequence carries a DISTINCT visual identity so the vault reads as a
- * suite rather than a repetition:
+ * Phrase chunking throughout — Dr. Ackerman's stated preference from
+ * the demo. The `|` markers author the phrase boundaries directly, so
+ * every atom is a breath she can read rather than a mechanical split.
+ *
+ * The soundscapes alternate, half Faded Signal and half Aurora, so the
+ * suite breathes between two rooms rather than sitting in one. In both
+ * cases audioPreset rests at 'silent': a soundscape is a finished mix,
+ * so the pure tones stay out of its way (exclusive beds).
+ *
+ * Each sequence carries a DISTINCT visual identity so the vault reads
+ * as a suite rather than a repetition:
  *   1. Genesis                  — the origin of a system
  *   2. Attractor                — the space of possibility
  *   3. Fractal, behind-stream   — the words stay, the flames breathe beneath
@@ -42,6 +49,7 @@ export const VAULT_A_SEQUENCES = [
     category: 'ALYSIA · 2017',
     description: 'On songwriting with ALYSIA: how a machine offers melodies, and a human chooses.',
     wpm: 300,
+    chunkMode: 'phrase',
     audioPreset: 'silent',
     soundscape: 'faded-signal',
     source: {
@@ -111,8 +119,9 @@ Having multiple options | allows the artist | to create several variations | for
     category: 'ALYSIA · 2017',
     description: 'Why an autonomous songwriter would never eliminate the need for a co-creative one.',
     wpm: 290,
+    chunkMode: 'phrase',
     audioPreset: 'silent',
-    soundscape: 'faded-signal',
+    soundscape: 'aurora',
     source: {
       title: 'Algorithmic Songwriting with ALYSIA',
       authors: 'Margareta Ackerman, David Loker',
@@ -186,6 +195,7 @@ giving users the freedom | to focus on aspects | of the creative process | in wh
     category: 'ICCC · 2021',
     description: 'A machine less concerned with proving its own independence than with cultivating yours.',
     wpm: 280,
+    chunkMode: 'phrase',
     audioPreset: 'silent',
     soundscape: 'faded-signal',
     source: {
@@ -279,8 +289,9 @@ The autonomous | and mentorship roles | need not be conflicting.`
     category: 'ICCC · 2021',
     description: 'The criteria: a machine that meets you at your level, then steps back as you grow.',
     wpm: 290,
+    chunkMode: 'phrase',
     audioPreset: 'silent',
-    soundscape: 'faded-signal',
+    soundscape: 'aurora',
     source: {
       title: 'The Humble Creative Machine',
       authors: 'Christopher Cassion, Margareta Ackerman, Anna Jordanous',
@@ -374,6 +385,7 @@ and fostering independence— | that is, | helping the user | to develop creativ
     category: 'SOVIA · Monet',
     description: 'SOVIA gives Monet\'s landscapes a voice: chimes for flowers, herding bells for hills.',
     wpm: 280,
+    chunkMode: 'phrase',
     audioPreset: 'silent',
     soundscape: 'faded-signal',
     source: {
@@ -461,8 +473,9 @@ We hope that the process | proposed here | will inspire more research | into how
     category: 'ViFlow · Dance',
     description: 'Augmented reality that follows the dancer, instead of making the dancer follow the video.',
     wpm: 310,
+    chunkMode: 'phrase',
     audioPreset: 'silent',
-    soundscape: 'faded-signal',
+    soundscape: 'aurora',
     source: {
       title: 'Interactive Augmented Reality for Dance',
       authors: 'Taylor Brockhoeft, Jennifer Petuch, James Bach, Emil Djerekarov, Margareta Ackerman, Gary Tyson',
@@ -561,8 +574,11 @@ export const VAULT_A_ARCHETYPE = {
   config: {
     wpm: 290,
     curve: 'wave',
-    // Faded Signal throughout: a soundscape is a finished mix, so the
-    // pure-tone preset rests (exclusive beds)
+    // Phrase chunking is the vault's reading unit — the authored `|`
+    // boundaries are what each atom is built from
+    chunkMode: 'phrase',
+    // A soundscape is a finished mix, so the pure-tone preset rests
+    // (exclusive beds). Sequences alternate Faded Signal and Aurora.
     audioPreset: 'silent',
     soundscape: 'faded-signal',
     visualConfig: {
