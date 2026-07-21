@@ -45,6 +45,7 @@ export const PHILOSOPHY_SOURCE_AUDITS = Object.freeze({
     rights: pgRights('John Burnet', 'Early Greek Philosophy, second edition', '67097')
   }),
   'src-scaife-plato-theaetetus': audited(['pass-protagoras-measure'], {
+    chunkProfile: 'dialogue',
     translator: 'Benjamin Jowett',
     editionDate: 'Project Gutenberg eBook 1726, updated 2017-01-28',
     provider: 'project-gutenberg',
@@ -63,6 +64,7 @@ export const PHILOSOPHY_SOURCE_AUDITS = Object.freeze({
     rights: pgRights('Plato, translated by Benjamin Jowett', 'Apology', '1656')
   }),
   'src-scaife-plato-meno': audited(['pass-plato-recollection'], {
+    chunkProfile: 'dialogue',
     translator: 'Benjamin Jowett',
     editionDate: 'Project Gutenberg eBook 1643, updated 2013-01-16',
     provider: 'project-gutenberg',
@@ -91,6 +93,7 @@ export const PHILOSOPHY_SOURCE_AUDITS = Object.freeze({
     rights: pgRights('Plato, translated by Benjamin Jowett', 'Phaedo', '1658')
   }),
   'src-scaife-plato-timaeus': audited(['pass-plato-cosmos'], {
+    chunkProfile: 'dialogue',
     translator: 'Benjamin Jowett',
     editionDate: 'Project Gutenberg eBook 1572, updated 2021-04-25',
     provider: 'project-gutenberg',

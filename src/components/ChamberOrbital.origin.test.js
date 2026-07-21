@@ -43,6 +43,17 @@ describe('ChamberOrbital origin chip', () => {
         container.remove();
     });
 
+    it('applies an editorial chunk mode carried by a launch', () => {
+        const { orbital, container } = makeOrbital();
+        orbital.loadText('SOCRATES: Begin.', 'Atrium', { chunkMode: 'phrase' });
+
+        expect(orbital.config.chunkMode).toBe('phrase');
+        expect(container.querySelector('[data-chunk="phrase"]').classList.contains('active')).toBe(true);
+
+        orbital.destroy();
+        container.remove();
+    });
+
     it('renders the chip when a launch carries origin metadata', () => {
         const { orbital, container } = makeOrbital();
         orbital.loadText('The body wakes...', 'SOL: Dawn', { origin: SOL_ORIGIN });

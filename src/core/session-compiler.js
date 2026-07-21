@@ -7,6 +7,7 @@
 
 import { Atom, Session } from './models.js';
 import { chunkText } from './chunker.js';
+import { prepareChunkText } from './chunk-profiles.js';
 import { PacingEngine, StateCurve } from './pacing.js';
 import { normalizeGlobalPoolSelection, normalizeVisualSelection } from './visual-selection.js';
 import { normalizeVisualPresence } from './visual-presence.js';
@@ -159,6 +160,9 @@ function normalizeSources(config) {
             type: String(source.type || 'text'),
             providerId: source.providerId ? String(source.providerId) : '',
             provenance: normalizeProvenance(source.provenance),
+            ...((source.chunkProfile ?? config.chunkProfile ?? null) == null
+                ? {}
+                : { chunkProfile: String(source.chunkProfile ?? config.chunkProfile) }),
             raw
         };
     }).filter(source => source.raw.trim().length > 0);
@@ -184,11 +188,13 @@ export function compileSession(input = {}) {
 
     const atoms = [];
     for (const source of sources) {
-        const sourceAtoms = chunkText(source.raw, {
+        const prepared = prepareChunkText(source.raw, source.chunkProfile ?? null);
+        const sourceAtoms = chunkText(prepared.text, {
             mode: config.chunkMode,
             wpm: config.wpm,
             source: source.name,
-            sourceId: source.id
+            sourceId: source.id,
+            hints: prepared.hints || null
         });
         if (sourceAtoms.length === 0) continue;
         const projectedAtomCount = atoms.length + sourceAtoms.length + (atoms.length > 0 ? 1 : 0);

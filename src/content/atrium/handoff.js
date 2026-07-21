@@ -138,6 +138,7 @@ export async function createAtriumJourneyHandoff(journeyOrId, options = {}) {
       name: sourceName(source, passage),
       type: 'text',
       providerId: source.provider,
+      ...(source.chunkProfile ? { chunkProfile: source.chunkProfile } : {}),
       data: text,
       provenance: {
         kind: 'atrium-passage',

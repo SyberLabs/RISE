@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { compileSession } from '../../core/session-compiler.js';
+import { ATRIUM_PASSAGES, ATRIUM_SOURCES } from './catalog.js';
 import {
   ATRIUM_LAUNCH_COVERAGE,
   launchCoverageFor,
@@ -13,6 +14,14 @@ import { ATRIUM_POINT_LAUNCHES, ATRIUM_SENSORY_CONFIGS, findAtriumPoint } from '
 import { evaluateJourneyReadiness } from './readiness.js';
 import { validateAtriumEchoes } from './echoes.js';
 import { AUDITED_COMPLETION_POLICIES } from './completion-policy.js';
+
+const passageById = new Map(ATRIUM_PASSAGES.map(passage => [passage.id, passage]));
+const sourceById = new Map(ATRIUM_SOURCES.map(source => [source.id, source]));
+
+function chunkProfileForPassage(passageId) {
+  const source = sourceById.get(passageById.get(passageId)?.sourceId);
+  return source?.chunkProfile ? { chunkProfile: source.chunkProfile } : {};
+}
 
 describe('Atrium point launch coverage', () => {
   it('accounts for every node and event with an explicit coverage state', () => {
@@ -267,6 +276,7 @@ describe('Atrium point launch coverage', () => {
       ...ATRIUM_SENSORY_CONFIGS.philosophy,
       title: point.title,
       sources: point.segments.map(segment => ({
+        ...chunkProfileForPassage(segment.passageId),
         id: segment.passageId,
         name: segment.passageId,
         type: 'text',

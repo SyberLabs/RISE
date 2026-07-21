@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { ATRIUM_PASSAGES, ATRIUM_SOURCES } from '../../catalog.js';
 import { createAtriumJourneyHandoff, calculateAtriumPayloadChecksum } from '../../handoff.js';
 import { compileAtriumItinerary } from '../../itinerary.js';
+import { estimateCompiledDuration } from '../../../../core/session-compiler.js';
+import { ATRIUM_PILOT_PASSAGE_DURATIONS } from './durations.js';
 import { HISTORY_CORPUS } from '../../history.js';
 import { PHILOSOPHY_CORPUS } from '../../philosophy.js';
+import { ATRIUM_SENSORY_CONFIGS } from '../../launches.js';
 import { evaluateJourneyReadiness, evaluateSourceReadiness } from '../../readiness.js';
 import {
   ATRIUM_PASSAGE_AUDITS,
@@ -45,6 +48,28 @@ describe('Atrium pilot content pack', () => {
         .map(passageId => ATRIUM_PILOT_PAYLOADS[passageId])
         .join('\n\n');
       expect(await calculateAtriumPayloadChecksum(acquisitionUnit), sourceId).toBe(audit.checksum);
+    }
+  });
+
+  it('keeps browse-safe duration metadata pinned to the canonical compiler', () => {
+    const sourceById = new Map(ATRIUM_SOURCES.map(source => [source.id, source]));
+    expect(Object.keys(ATRIUM_PILOT_PASSAGE_DURATIONS).sort())
+      .toEqual(Object.keys(ATRIUM_PILOT_PAYLOADS).sort());
+
+    for (const passage of ATRIUM_PASSAGES) {
+      const text = ATRIUM_PILOT_PAYLOADS[passage.id];
+      if (typeof text !== 'string') continue;
+      const source = sourceById.get(passage.sourceId);
+      const duration = estimateCompiledDuration({
+        ...ATRIUM_SENSORY_CONFIGS[passage.domain],
+        sources: [{
+          id: passage.id,
+          name: passage.label,
+          data: text,
+          ...(source?.chunkProfile ? { chunkProfile: source.chunkProfile } : {})
+        }]
+      });
+      expect(ATRIUM_PILOT_PASSAGE_DURATIONS[passage.id], passage.id).toBe(duration);
     }
   });
 

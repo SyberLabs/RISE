@@ -49,6 +49,7 @@ const PUNCTUATION_PAUSE_WEIGHTS = {
  * must be split into readable pieces, never compressed by a ceiling.
  */
 const MAX_CHUNK_WORDS = 16;
+const LEADING_SPEAKER_LABEL = /^([A-Z][A-Z '.-]{1,30}):\s+/;
 
 /**
  * Calculate base duration for a word at given WPM
@@ -173,8 +174,22 @@ function splitWords(text) {
  * @param {string} text 
  * @returns {string[]}
  */
-function splitPhrases(text) {
-    // Split on phrase-level punctuation, pipes (|), or newlines
+function splitPhrases(text, preserveSpeakerHead = false) {
+    // Split on phrase-level punctuation, pipes (|), or newlines.
+    // Dialogue profiles may protect a label only when it begins this unit.
+    if (preserveSpeakerHead) {
+        const speakerMatch = text.match(LEADING_SPEAKER_LABEL);
+        if (speakerMatch) {
+            const utterance = text.slice(speakerMatch[0].length);
+            const phrases = utterance
+                .split(/(?<=[,;:—–|])\s+|(?<=\.)\s+(?=[A-Z])|\n\s*/)
+                .map(p => p.trim())
+                .filter(p => p.length > 0);
+            if (phrases.length === 0) return [`${speakerMatch[1]}:`];
+            phrases[0] = `${speakerMatch[1]}: ${phrases[0]}`;
+            return phrases;
+        }
+    }
     const phrases = text.split(/(?<=[,;:—–|])\s+|(?<=\.)\s+(?=[A-Z])|\n\s*/);
     return phrases.map(p => p.trim()).filter(p => p.length > 0);
 }
@@ -208,19 +223,38 @@ function splitParagraphs(text) {
  * @param {number} [options.wpm=320] - Words per minute
  * @param {string} [options.source=''] - Human-readable source identifier
  * @param {string} [options.sourceId=''] - Stable source identifier
+ * @param {Object|null} [options.hints=null] - Default-off, profile-authored structural hints
  * @returns {Atom[]}
  */
-export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceId = '' } = {}) {
+export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceId = '', hints = null } = {}) {
     if (typeof text !== 'string') return [];
     const baseDuration = getBaseDuration(wpm);
     const atoms = [];
+    const dialogueHints = hints?.dialogue?.preserveSpeakerHead === true
+        ? hints.dialogue
+        : null;
+    const syntheticSpeakerBoundaries = new Set(
+        Array.isArray(dialogueHints?.syntheticSpeakerBoundaries)
+            ? dialogueHints.syntheticSpeakerBoundaries
+            : []
+    );
 
     // First, split by paragraphs to handle [PAUSE] markers and line breaks
     const paragraphs = text.split(/\n\s*\n/);
+    const speakerOrdinalByParagraph = new Map();
+    if (dialogueHints) {
+        let speakerOrdinal = 0;
+        paragraphs.forEach((paragraph, index) => {
+            if (LEADING_SPEAKER_LABEL.test(paragraph.trim())) {
+                speakerOrdinalByParagraph.set(index, speakerOrdinal++);
+            }
+        });
+    }
 
     let position = 0;
 
-    for (const paragraph of paragraphs) {
+    for (let paragraphIndex = 0; paragraphIndex < paragraphs.length; paragraphIndex += 1) {
+        const paragraph = paragraphs[paragraphIndex];
         const trimmed = paragraph.trim();
         if (!trimmed) continue;
 
@@ -251,7 +285,7 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
                 chunks = splitSentences(trimmed);
                 break;
             case 'phrase':
-                chunks = splitPhrases(trimmed);
+                chunks = splitPhrases(trimmed, dialogueHints?.preserveSpeakerHead === true);
                 break;
             case 'word':
             default:
@@ -309,6 +343,16 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
                     const wordCount = cleanContent.split(/\s+/).length;
                     duration = baseDuration * wordCount
                         + getPunctuationPause(piece, baseDuration);
+                    // Phrase mode formerly emitted SPEAKER: as its own atom,
+                    // including the colon breath. Reattaching the label keeps
+                    // that aggregate temporal contract intact.
+                    if (
+                        mode === 'phrase'
+                        && dialogueHints?.preserveSpeakerHead === true
+                        && LEADING_SPEAKER_LABEL.test(`${cleanContent} `)
+                    ) {
+                        duration += PUNCTUATION_PAUSE_WEIGHTS[':'] * baseDuration;
+                    }
                 }
 
                 atoms.push(new Atom({
@@ -325,7 +369,10 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
         }
 
         // Add a small pause between paragraphs
-        if (mode !== 'paragraph') {
+        const nextSpeakerOrdinal = speakerOrdinalByParagraph.get(paragraphIndex + 1);
+        const isSyntheticDialogueBoundary = nextSpeakerOrdinal !== undefined
+            && syntheticSpeakerBoundaries.has(nextSpeakerOrdinal);
+        if (mode !== 'paragraph' && !isSyntheticDialogueBoundary) {
             atoms.push(new Atom({
                 content: '',
                 modality: 'text',

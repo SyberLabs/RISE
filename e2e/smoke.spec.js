@@ -357,3 +357,40 @@ test('10 · Atrium point preserves origin, curated config, Begin, exit, and retu
     await expect(page.locator('[data-view-mode="graph"]')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('.atrium-detail h2')).toHaveText('Aristotle');
 });
+
+test('11 · Atrium dialogue keeps speaker labels at the head of Phrase atoms', async ({ page }) => {
+    await boot(page, { text: false });
+    await page.locator('[data-nav="atrium"]').click();
+    await expect(page.locator('.atrium')).toBeVisible({ timeout: 15_000 });
+
+    await page.locator('[data-view-mode="graph"]').click();
+    await page.locator('[data-select-id="ph-movement-sophistic"]').last().click();
+    await expect(page.locator('.atrium-detail h2')).toHaveText('Sophistic Movement');
+    await page.locator('.atrium-launch-gate [data-action="configure-launch"]').click();
+    await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
+
+    const chunkMode = await page.evaluate(() => (
+        window.rise?.router?.views?.get('chamber')?.instance?.config?.chunkMode
+    ));
+    expect(chunkMode).toBe('phrase');
+
+    await page.locator('#begin-btn').click();
+    const warning = page.locator('#photosensitivity-modal');
+    await expect(warning).toBeVisible({ timeout: 10_000 });
+
+    const dialogueAtoms = await page.evaluate(() => (
+        (window.rise?.currentSession?.atoms || [])
+            .filter(atom => atom.sourceId === 'pass-protagoras-measure' && atom.content)
+            .map(atom => atom.content)
+    ));
+    const speakerTurns = dialogueAtoms.filter(content => /(?:THEAETETUS|SOCRATES):/.test(content));
+    expect(speakerTurns.length).toBeGreaterThan(10);
+    expect(speakerTurns.every(content => /^(?:THEAETETUS|SOCRATES):\s+\S/.test(content))).toBe(true);
+    expect(dialogueAtoms).toContain('THEAETETUS: O yes,');
+    expect(dialogueAtoms.some(content => /\s(?:THEAETETUS|SOCRATES):$/.test(content))).toBe(false);
+
+    // The chunking assertion is independent of external-art hydration. Enter
+    // with flashes declined so this test remains a deterministic text-flow E2E.
+    await warning.locator('#safety-cancel').click();
+    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
+});

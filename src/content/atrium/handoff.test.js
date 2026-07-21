@@ -95,6 +95,24 @@ describe('Atrium Chamber handoff', () => {
     });
   });
 
+  it('verifies raw payload bytes before applying display-only chunk profiles', async () => {
+    const raw = 'Question? SOCRATES: The verified answer.';
+    const fixture = await readyFixture(raw);
+    fixture.source.chunkProfile = 'dialogue';
+    const handoff = await createAtriumJourneyHandoff(fixture.journey, {
+      passages: [fixture.passage],
+      sources: [fixture.source],
+      payloads: { [fixture.passage.id]: raw }
+    });
+
+    expect(handoff.config.sources[0].data).toBe(raw);
+    expect(handoff.config.sources[0].chunkProfile).toBe('dialogue');
+    expect(handoff.config.sources[0].provenance.checksum).toBe(fixture.passage.payloadChecksum);
+
+    const session = compileSession({ ...handoff.config, chunkMode: 'phrase' });
+    expect(session.atoms.some(atom => atom.content === 'SOCRATES: The verified answer.')).toBe(true);
+  });
+
   it('fails closed when packaged bytes or word counts drift from the manifest', async () => {
     const fixture = await readyFixture();
     await expect(createAtriumJourneyHandoff(fixture.journey, {

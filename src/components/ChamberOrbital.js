@@ -1281,6 +1281,7 @@ export class ChamberOrbital {
     // Apply optional config parameters from source
     if (config.wpm) this.config.wpm = config.wpm;
     if (config.curve) this.config.curve = config.curve;
+    if (config.chunkMode) this.config.chunkMode = config.chunkMode;
     if (config.audioPreset) this.config.audioPreset = config.audioPreset;
     if (config.soundscape) this.config.soundscape = config.soundscape;
     if (config.entrainmentMode) this.config.entrainmentMode = config.entrainmentMode;

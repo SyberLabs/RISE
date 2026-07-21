@@ -1,15 +1,12 @@
-import { estimateCompiledDuration } from '../../core/session-compiler.js';
 import { ATRIUM_PASSAGES } from './catalog.js';
-import { ATRIUM_PAYLOADS } from './handoff.js';
 import { sensoryConfigFor } from './launches.js';
 import { evaluateJourneyReadiness } from './readiness.js';
+import {
+  ATRIUM_PILOT_DURATION_PROFILE,
+  ATRIUM_PILOT_PASSAGE_DURATIONS
+} from './packs/pilot-v1/durations.js';
 
 const passageById = new Map(ATRIUM_PASSAGES.map(passage => [passage.id, passage]));
-
-function payloadText(entry) {
-  if (typeof entry === 'string') return entry;
-  return typeof entry?.text === 'string' ? entry.text : '';
-}
 
 function seconds(ms) {
   return Math.max(1, Math.round(ms / 1000));
@@ -27,16 +24,17 @@ export function compileAtriumItinerary(launch, options = {}) {
   const readiness = evaluateJourneyReadiness(launch, options.passages, options.sources);
   if (!readiness.ready) return { ready: false, totalDuration: 0, segments: [], reasons: readiness.reasons };
   const config = options.config || sensoryConfigFor(launch.domain);
-  const payloads = options.payloads || ATRIUM_PAYLOADS;
+  const profileMatches = Object.entries(ATRIUM_PILOT_DURATION_PROFILE)
+    .every(([key, value]) => config[key] === value);
+  if (!profileMatches) {
+    throw new TypeError('Atrium itinerary duration metadata requires the Phrase/140 WPM/flat compiler profile.');
+  }
   const segments = launch.segments.map(segment => {
     const passage = passageById.get(segment.passageId);
-    const text = payloadText(payloads[segment.passageId]);
-    const duration = estimateCompiledDuration({
-      ...config,
-      title: passage?.label || launch.title,
-      text,
-      sources: [{ id: segment.passageId, name: passage?.label || segment.passageId, type: 'text', data: text }]
-    });
+    const duration = ATRIUM_PILOT_PASSAGE_DURATIONS[segment.passageId];
+    if (!Number.isFinite(duration)) {
+      throw new TypeError(`No compiler-derived Atrium duration for ${segment.passageId}.`);
+    }
     return {
       ...segment,
       label: passage?.label || segment.passageId,
@@ -44,13 +42,9 @@ export function compileAtriumItinerary(launch, options = {}) {
       durationLabel: formatAtriumDuration(duration)
     };
   });
-  const allSources = segments.map(segment => ({
-    id: segment.passageId,
-    name: segment.label,
-    type: 'text',
-    data: payloadText(payloads[segment.passageId])
-  }));
-  const totalDuration = estimateCompiledDuration({ ...config, title: launch.title, sources: allSources });
+  const sourceBreakDuration = Math.round((60_000 / config.wpm) * 3);
+  const totalDuration = segments.reduce((sum, segment) => sum + segment.duration, 0)
+    + Math.max(0, segments.length - 1) * sourceBreakDuration;
   return {
     ready: true,
     config,
