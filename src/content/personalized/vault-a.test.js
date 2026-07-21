@@ -253,3 +253,18 @@ describe('Vault A compiles to playable sessions', () => {
     }
   });
 });
+
+describe('Vault A living text', () => {
+  it('lets every reading carry the passage\'s own temperature', async () => {
+    // Her prose swings 0.50–0.99 in valence across each piece, so the
+    // hue shift reads as movement through an argument rather than a
+    // constant tint. Intensity is held below full for academic prose:
+    // the text should breathe, not glow.
+    for (const seq of VAULT_A_SEQUENCES) {
+      expect(seq.visualConfig.livingText, seq.id).toBeDefined();
+      expect(seq.visualConfig.livingText.enabled, seq.id).toBe(true);
+      expect(seq.visualConfig.livingText.intensity).toBeGreaterThan(0);
+      expect(seq.visualConfig.livingText.intensity).toBeLessThanOrEqual(0.8);
+    }
+  });
+});

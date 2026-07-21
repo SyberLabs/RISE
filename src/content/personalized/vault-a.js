@@ -61,6 +61,10 @@ export const VAULT_A_SEQUENCES = [
     },
     visualConfig: {
       visualMode: 'genesis',
+      // Living Text: hue follows the passage's valence, glow its
+      // arousal. Her prose swings 0.5–1.0 in valence, so this reads as
+      // movement across an argument rather than a constant tint.
+      livingText: { enabled: true, intensity: 0.7 },
       genesis: { preset: 'random' }
     },
     content: `This is a new approach | to writing songs | that requires minimal | to no musical training.
@@ -131,6 +135,10 @@ Having multiple options | allows the artist | to create several variations | for
     },
     visualConfig: {
       visualMode: 'attractor',
+      // Living Text: hue follows the passage's valence, glow its
+      // arousal. Her prose swings 0.5–1.0 in valence, so this reads as
+      // movement across an argument rather than a constant tint.
+      livingText: { enabled: true, intensity: 0.7 },
       // The strange attractor IS the space of possible melodies ALYSIA
       // offers; the reader selects from it exactly as the passage
       // describes. Left unfolded so the kaleidoscope stays a discovery
@@ -211,6 +219,10 @@ giving users the freedom | to focus on aspects | of the creative process | in wh
     },
     visualConfig: {
       visualMode: 'interlocution',
+      // Living Text: hue follows the passage's valence, glow its
+      // arousal. Her prose swings 0.5–1.0 in valence, so this reads as
+      // movement across an argument rather than a constant tint.
+      livingText: { enabled: true, intensity: 0.7 },
       interlocution: {
         sourceFamily: 'procedural',
         procedural: ['fractal'],
@@ -305,6 +317,10 @@ The autonomous | and mentorship roles | need not be conflicting.`
     },
     visualConfig: {
       visualMode: 'interlocution',
+      // Living Text: hue follows the passage's valence, glow its
+      // arousal. Her prose swings 0.5–1.0 in valence, so this reads as
+      // movement across an argument rather than a constant tint.
+      livingText: { enabled: true, intensity: 0.7 },
       interlocution: {
         sourceFamily: 'procedural',
         procedural: ['neural'],
@@ -401,6 +417,10 @@ and fostering independence— | that is, | helping the user | to develop creativ
     },
     visualConfig: {
       visualMode: 'interlocution',
+      // Living Text: hue follows the passage's valence, glow its
+      // arousal. Her prose swings 0.5–1.0 in valence, so this reads as
+      // movement across an argument rather than a constant tint.
+      livingText: { enabled: true, intensity: 0.7 },
       // Pure collections: the passage is about Monet's own canvases, so
       // the imagery is Monet and his neighbours rather than a procedural
       // field standing beside them.
@@ -499,6 +519,10 @@ We hope that the process | proposed here | will inspire more research | into how
     // conductor independently chose.
     visualConfig: {
       visualMode: 'interlocution',
+      // Living Text: hue follows the passage's valence, glow its
+      // arousal. Her prose swings 0.5–1.0 in valence, so this reads as
+      // movement across an argument rather than a constant tint.
+      livingText: { enabled: true, intensity: 0.7 },
       interlocution: {
         sourceFamily: 'procedural',
         procedural: ['harmonograph'],
@@ -597,6 +621,10 @@ export const VAULT_A_ARCHETYPE = {
     soundscape: 'faded-signal',
     visualConfig: {
       visualMode: 'interlocution',
+      // Living Text: hue follows the passage's valence, glow its
+      // arousal. Her prose swings 0.5–1.0 in valence, so this reads as
+      // movement across an argument rather than a constant tint.
+      livingText: { enabled: true, intensity: 0.7 },
       interlocution: {
         sourceFamily: 'procedural',
         procedural: ['fractal', 'neural'],

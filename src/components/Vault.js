@@ -215,19 +215,19 @@ export class Vault {
             <h1>${isPersonalized ? 'Your Vault' : 'The Vault'}</h1>
           </div>
 
-          <!-- Apothecary Description -->
-          <div class="vault-intro">
-            ${isPersonalized ? `
-              <p class="vault-intro-title">Welcome, ${this.personalizedVault.name}</p>
-              <p class="vault-intro-text">${this.personalizedVault.greeting}</p>
-            ` : `
+          <!-- Apothecary Description. A personalized vault opens straight
+               from the invitation, which has already welcomed the reader
+               by name — repeating it here only pushes the sequences below
+               the fold. -->
+          ${isPersonalized ? '' : `
+            <div class="vault-intro">
               <p class="vault-intro-title">Sequence Archetypes</p>
               <p class="vault-intro-text">
                 An apothecary of pre-configured cognitive states. Each Archetype aligns specific textual seeds
                 with precise audio-visual parameters to ensure optimal induction.
               </p>
-            `}
-          </div>
+            </div>
+          `}
 
           <!-- Section Navigation -->
           <nav class="library-nav nav" aria-label="Vault sections">
@@ -275,12 +275,13 @@ export class Vault {
           ${this.renderArchetypeCard(archetype, sequences)}
         </div>
 
-        <!-- Individual Sequences -->
-        <div class="section-header" style="margin-top: 2rem;">
+        <!-- Individual Sequences. The heading alone carries this: the
+             invitation and the section title have already said the
+             readings were chosen for this reader. -->
+        <div class="section-header" style="margin-top: 1.5rem;">
           <h2 class="text-light">Curated Sequences</h2>
-          <p class="text-fog">Content selected specifically for your exploration</p>
         </div>
-        <div class="sequences-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-top: 1.5rem;">
+        <div class="sequences-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-top: 1rem;">
           ${sequences.map(seq => this.renderPersonalizedSequenceCard(seq, archetype)).join('')}
         </div>
       </div>
