@@ -238,3 +238,76 @@ describe('Pinned collections', () => {
     }
   });
 });
+
+describe('Imagery assignments (three-way routing)', () => {
+  it('routes every assigned record to a real corpus id', async () => {
+    // The guard that caught four invented ids on the first pass.
+    const { MECHANISM_RECORDS, LIBERATION_RECORDS, PINNED_RECORDS } =
+      await import('./assignments.js');
+    const { HISTORY_CORPUS } = await import('../history.js');
+    const { PHILOSOPHY_CORPUS } = await import('../philosophy.js');
+    const ids = new Set([
+      ...HISTORY_CORPUS.events.map(e => e.id),
+      ...PHILOSOPHY_CORPUS.nodes.map(n => n.id)
+    ]);
+    for (const table of [MECHANISM_RECORDS, LIBERATION_RECORDS, PINNED_RECORDS]) {
+      for (const id of Object.keys(table)) {
+        expect(ids.has(id), `unknown record: ${id}`).toBe(true);
+      }
+    }
+  });
+
+  it('names only mechanisms and relations the engines actually draw', async () => {
+    const { MECHANISM_RECORDS, LIBERATION_RECORDS } = await import('./assignments.js');
+    const { BLUEPRINT_MECHANISMS } = await import('../../../visuals/blueprint.js');
+    const { FREEDOM_RELATIONS } = await import('../../../visuals/freedom.js');
+    for (const { mechanism } of Object.values(MECHANISM_RECORDS)) {
+      expect(BLUEPRINT_MECHANISMS, mechanism).toContain(mechanism);
+    }
+    for (const relation of Object.values(LIBERATION_RECORDS)) {
+      expect(FREEDOM_RELATIONS, relation).toContain(relation);
+    }
+  });
+
+  it('points pinned records at collections that exist', async () => {
+    const { PINNED_RECORDS } = await import('./assignments.js');
+    const { ATRIUM_PINNED_COLLECTIONS } = await import('./collections.js');
+    for (const [record, ids] of Object.entries(PINNED_RECORDS)) {
+      for (const id of ids) {
+        expect(ATRIUM_PINNED_COLLECTIONS, `${record} -> ${id}`).toHaveProperty(id);
+      }
+    }
+  });
+
+  it('gives each class its own surface, and leaves the rest procedural', async () => {
+    const { applyRecordCollections } = await import('../collections.js');
+    const base = {
+      visualConfig: {
+        visualMode: 'interlocution',
+        interlocution: { sourceFamily: 'procedural', procedural: ['klee'], sourced: [] }
+      }
+    };
+    const at = id => applyRecordCollections(base, id).visualConfig.interlocution;
+
+    // MECHANISM: a drafting plate, no sourced imagery at all
+    const watt = at('hist-watt-patent');
+    expect(watt.procedural).toEqual(['blueprint']);
+    expect(watt.sourced).toEqual([]);
+    expect(watt.blueprintMechanism).toBe('beam-engine');
+
+    // LIBERATION: the Freedom field, carrying its colonial relation
+    const haiti = at('hist-haiti-independence');
+    expect(haiti.procedural).toEqual(['freedom']);
+    expect(haiti.freedomRelation).toBe('haiti-france');
+    expect(haiti.sourced).toEqual([]);
+
+    // DEPICTED: pinned works replace the keyword categories
+    expect(at('ph-thinker-plato').sourced).toEqual(['atr-plato']);
+
+    // CONCEPTUAL: untouched — procedural is the honest answer
+    const unassigned = at('ph-tradition-milesian');
+    expect(unassigned.procedural).toEqual(['klee']);
+    expect(unassigned.freedomRelation).toBeUndefined();
+    expect(unassigned.blueprintMechanism).toBeUndefined();
+  });
+});

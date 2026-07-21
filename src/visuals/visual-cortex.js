@@ -14,6 +14,7 @@ import { RockGarden } from './rockgarden.js';
 import { NeuralNetwork } from './neural.js';
 import { Harmonograph } from './harmonograph.js';
 import { Blueprint } from './blueprint.js';
+import { Freedom } from './freedom.js';
 import {
     AsciiCanvasRenderer,
     AsciiFrameCompiler,
@@ -63,6 +64,7 @@ export class VisualCortex {
         this.neural = null;
         this.harmonograph = null;
         this.blueprint = null;
+        this.freedom = null;
         this.diagramEl = null;
         this.asciiRenderer = null;
         this.asciiCompiler = null;
@@ -125,6 +127,8 @@ export class VisualCortex {
             kleePreset: 'random', // 'random' | 'architectural' | 'chaotic' | 'harmonic' | 'gravitational' | 'twittering'
             harmonographClimate: 'auto', // 'auto' | a climate palette name (explicit = veto)
             blueprintClimate: 'auto',    // 'auto' | cyanotype | graphite | sepia | verdigris
+            blueprintMechanism: null,    // pinned by an Atrium mechanism sequence
+            freedomRelation: null,       // colonial pairing, set by an Atrium launch
             // Presentation surface: 'full-frame' cuts to an opaque overlay;
             // 'behind-stream' keeps the reading text visible and presents the
             // imagery beneath it. Behind-stream never conceals text, so it
@@ -216,6 +220,7 @@ export class VisualCortex {
         if (kleeCanvas) {
             this.harmonograph = new Harmonograph();
             this.blueprint = new Blueprint();
+            this.freedom = new Freedom();
         }
 
         // Create diagram element if it doesn't exist
@@ -425,6 +430,16 @@ export class VisualCortex {
         // ids without the Atrium ever loading this visit — import
         // lazily so registration precedes resolution.
         if (categoryId.startsWith('atr-')) {
+            // A pinned collection wins: specific museum works, chosen and
+            // reviewed, rather than whatever a keyword returned today.
+            try {
+                const pinned = await import('../content/atrium/imagery/provider.js');
+                if (pinned.hasPinnedCollection(categoryId)) {
+                    return pinned.getPinnedWorksProvider();
+                }
+            } catch (e) {
+                console.warn('[Visual Cortex] Pinned works unavailable:', e);
+            }
             try {
                 await import('../content/atrium/atrium-categories.js');
             } catch (e) {
@@ -1105,7 +1120,7 @@ export class VisualCortex {
     _isExternalCategory(type) {
         if (typeof type !== 'string' || this._isRetiredExternalType(type)) return false;
         // Core types are internal or handled elsewhere
-        const coreTypes = ['klee', 'turrell', 'fractal', 'neural', 'global', 'custom', 'rockgarden', 'harmonograph', 'blueprint', 'diagram', 'global-pool'];
+        const coreTypes = ['klee', 'turrell', 'fractal', 'neural', 'global', 'custom', 'rockgarden', 'harmonograph', 'blueprint', 'freedom', 'diagram', 'global-pool'];
         if (coreTypes.includes(type) || type.startsWith('personal:')) return false;
 
         // Otherwise assume it's a category for one of our external providers
@@ -1351,6 +1366,25 @@ export class VisualCortex {
             signal,
             background: ASCII_BACKGROUND,
             metadata: { source: 'blueprint' }
+        });
+    }
+
+    _freedomAsciiFrame(signal) {
+        if (!this.freedom || !this._asciiCanvas) return null;
+        const w = this._asciiCanvas.width;
+        const h = this._asciiCanvas.height;
+        return compilePolylinesToAscii({
+            width: w, height: h,
+            palette: ['#e8e8ec', '#a8a8ae'],
+            polylines: this.freedom.asciiPolylines(w, h).map((line, index) => ({
+                points: line.points,
+                color: index % 2 === 0 ? '#e8e8ec' : '#a8a8ae',
+                delay: Math.min(0.12, index * 0.02)
+            }))
+        }, {
+            signal,
+            background: ASCII_BACKGROUND,
+            metadata: { source: 'freedom' }
         });
     }
 
@@ -1791,12 +1825,27 @@ export class VisualCortex {
             // Still frame, shares the klee canvas like the harmonograph.
             this._resizeKleeCanvas();
             this.blueprint.generate(signal, undefined, {
-                climate: this.config.blueprintClimate
+                climate: this.config.blueprintClimate,
+                mechanism: this.config.blueprintMechanism
             });
             if (asciiMode) {
                 asciiFrame = this._blueprintAsciiFrame(signal);
             } else {
                 rendered = this.blueprint.render(this._kleeCanvas);
+                if (rendered && kleeEl) kleeEl.hidden = false;
+            }
+        } else if (selectedType === 'freedom' && this.freedom && this._kleeCanvas) {
+            // The liberation field: the imperial wash stripped back to
+            // the freed flag beneath. The relation comes from the Atrium
+            // launch that curated it (see freedom.js).
+            this._resizeKleeCanvas();
+            this.freedom.generate(signal, undefined, {
+                relation: this.config.freedomRelation
+            });
+            if (asciiMode) {
+                asciiFrame = this._freedomAsciiFrame(signal);
+            } else {
+                rendered = this.freedom.render(this._kleeCanvas);
                 if (rendered && kleeEl) kleeEl.hidden = false;
             }
         } else if (selectedType === 'rockgarden' && this.rockgarden && this._kleeCanvas) {

@@ -308,8 +308,9 @@ describe('Atrium point launch coverage', () => {
           // Plato carries subject-specific curation: Plato as depicted
           // in art, the Old Master tradition that transmitted him, and
           // geometry for the Divided Line and the Forms.
-          sourced: ['atr-plato-art', 'aic-oldmasters', 'geometry'],
-          atriumCollections: ['atr-plato-art', 'aic-oldmasters', 'geometry'],
+          // Plato is pinned: reviewed museum works, not keyword pools
+          sourced: ['atr-plato'],
+          atriumCollections: ['atr-plato'],
           harmonographClimate: 'auto'
         }
       }

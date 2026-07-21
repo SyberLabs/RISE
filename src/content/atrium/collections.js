@@ -1,4 +1,5 @@
 import { freezeManifest } from './constants.js';
+import { imageryPlanFor } from './imagery/assignments.js';
 
 /**
  * Atrium-coupled collections.
@@ -101,17 +102,65 @@ export function collectionsForRecord(recordId) {
  * Returns the config unchanged when the record has no curation.
  */
 export function applyRecordCollections(sensoryConfig, recordId) {
-  const collections = collectionsForRecord(recordId);
-  if (!collections || !sensoryConfig?.visualConfig?.interlocution) {
-    return sensoryConfig;
+  const interlocution = sensoryConfig?.visualConfig?.interlocution;
+  if (!interlocution) return sensoryConfig;
+
+  // The classification pass established that these readings are three
+  // different problems (ATRIUM-IMAGERY-CLASSIFICATION.md). A mechanism
+  // wants a drafting plate, a liberation wants the Freedom field, and
+  // only a genuinely depicted subject wants pinned museum works.
+  const plan = imageryPlanFor(recordId);
+
+  if (plan?.kind === 'mechanism') {
+    // Blueprint is Atrium-exclusive and self-sufficient: it needs no
+    // sourced imagery at all, so the keyword categories drop entirely.
+    return {
+      ...sensoryConfig,
+      visualConfig: {
+        ...sensoryConfig.visualConfig,
+        interlocution: {
+          ...interlocution,
+          sourceFamily: 'procedural',
+          procedural: ['blueprint'],
+          sourced: [],
+          atriumCollections: undefined,
+          blueprintClimate: plan.climate,
+          blueprintMechanism: plan.mechanism
+        }
+      }
+    };
   }
+
+  if (plan?.kind === 'liberation') {
+    return {
+      ...sensoryConfig,
+      visualConfig: {
+        ...sensoryConfig.visualConfig,
+        interlocution: {
+          ...interlocution,
+          sourceFamily: 'procedural',
+          procedural: ['freedom'],
+          sourced: [],
+          atriumCollections: undefined,
+          freedomRelation: plan.relation
+        }
+      }
+    };
+  }
+
+  // Pinned museum works take precedence over the keyword categories
+  // they replace; the categories remain only where nothing is curated.
+  const collections = plan?.kind === 'pinned'
+    ? plan.collections
+    : collectionsForRecord(recordId);
+  if (!collections) return sensoryConfig;
 
   return {
     ...sensoryConfig,
     visualConfig: {
       ...sensoryConfig.visualConfig,
       interlocution: {
-        ...sensoryConfig.visualConfig.interlocution,
+        ...interlocution,
         sourced: collections,
         // Curated imagery accompanies the procedural signature of the
         // domain, so the family stays a deliberate blend.

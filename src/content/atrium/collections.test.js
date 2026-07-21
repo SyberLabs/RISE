@@ -59,11 +59,14 @@ describe('Atrium record collections', () => {
   });
 
   it('replaces the domain default and marks the launch as curated', () => {
+    // Aristotle is a DEPICTED subject with a pinned collection, so the
+    // reviewed museum works replace the keyword categories entirely
+    // (Rembrandt's Aristotle with a Bust of Homer, not four tag pools).
     const applied = applyRecordCollections(DOMAIN_CONFIG, 'ph-thinker-aristotle');
     expect(applied.visualConfig.interlocution.sourced)
-      .toEqual(['atr-aristotle-art', 'atr-aristotle', 'anatomy', 'botany']);
+      .toEqual(['atr-aristotle']);
     expect(applied.visualConfig.interlocution.atriumCollections)
-      .toEqual(['atr-aristotle-art', 'atr-aristotle', 'anatomy', 'botany']);
+      .toEqual(['atr-aristotle']);
     expect(applied.visualConfig.interlocution.sourceFamily).toBe('blend');
     // The domain's procedural signature and audio survive
     expect(applied.visualConfig.interlocution.procedural).toEqual(['harmonograph']);

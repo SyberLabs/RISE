@@ -346,23 +346,23 @@ test('10 · Atrium point preserves origin, curated config, Begin, exit, and retu
     });
     expect(configured.visuals.frequency).toBeLessThanOrEqual(0.15);
     expect(configured.visuals.procedural).toEqual(['harmonograph']);
-    // Atrium-coupled collections: Aristotle carries SUBJECT-specific
-    // imagery — Aristotle as depicted in art and the Aristotle corpus
-    // itself — alongside the anatomy and botany of his biological works.
-    // Atrium-scoped `atr-` categories are corpus content, never
-    // offered in the general Collections browser.
+    // Aristotle is a DEPICTED subject, so it resolves to its pinned
+    // collection — reviewed museum works (Rembrandt's Aristotle with a
+    // Bust of Homer) rather than four keyword pools. Atrium-scoped
+    // `atr-` ids are corpus content, never offered in the general
+    // Collections browser.
     expect(configured.visuals.sourced)
-        .toEqual(['atr-aristotle-art', 'atr-aristotle', 'anatomy', 'botany']);
+        .toEqual(['atr-aristotle']);
     expect(configured.visuals.atriumCollections)
-        .toEqual(['atr-aristotle-art', 'atr-aristotle', 'anatomy', 'botany']);
+        .toEqual(['atr-aristotle']);
 
     // The panel names them for this reading, in human terms
     await page.locator('[data-orbit="visual"]').click();
     await expect(page.locator('.vi-atrium-collections')).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('.vi-atrium-collection-chip')).toHaveCount(4);
-    await expect(page.locator('.vi-atrium-collections')).toContainText('Aristotle in Art');
+    await expect(page.locator('.vi-atrium-collection-chip')).toHaveCount(1);
+    await expect(page.locator('.vi-atrium-collections')).toContainText('Aristotle');
     // …and the subject category is NOT browsable as a generic option
-    await expect(page.locator('[data-sourced="atr-aristotle-art"]')).toHaveCount(0);
+    await expect(page.locator('[data-sourced="atr-aristotle"]')).toHaveCount(0);
     await page.locator('[data-close="visual"]').click();
 
     await page.locator('#begin-btn').click();
