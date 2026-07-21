@@ -19,6 +19,7 @@
  */
 
 import { normalizeWork, RIGHTS } from '../works.js';
+import { withAbortTimeout } from '../../../../sources/visual/request.js';
 
 const OBJECT_ENDPOINT = 'https://openaccess-api.clevelandart.org/api/artworks';
 
@@ -46,15 +47,19 @@ export async function resolveClevelandWork(id, options = {}) {
     if (!/^\d+$/.test(objectId)) return null;
 
     const doFetch = options.fetchImpl || fetch;
+    const request = withAbortTimeout(
+        options.signal, options.timeoutMs ?? 8000, 'Cleveland request');
     let payload;
     try {
         const response = await doFetch(`${OBJECT_ENDPOINT}/${objectId}`, {
-            signal: options.signal
+            signal: request.signal
         });
         if (!response.ok) return null;
         payload = await response.json();
     } catch (error) {
         return null;
+    } finally {
+        request.cleanup();
     }
 
     const record = payload?.data;

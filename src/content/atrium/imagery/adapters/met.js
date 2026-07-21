@@ -16,6 +16,7 @@
  */
 
 import { normalizeWork, RIGHTS } from '../works.js';
+import { withAbortTimeout } from '../../../../sources/visual/request.js';
 
 const OBJECT_ENDPOINT = 'https://collectionapi.metmuseum.org/public/collection/v1/objects';
 
@@ -34,6 +35,7 @@ function mapRights(record) {
  * @param {number|string} id - Met object ID
  * @param {Object} [options]
  * @param {AbortSignal} [options.signal]
+ * @param {number} [options.timeoutMs] - bounds a stalled museum API
  * @param {Function} [options.fetchImpl] - injectable for tests
  * @returns {Promise<Object|null>} normalized work, or null if unusable
  */
@@ -42,10 +44,15 @@ export async function resolveMetWork(id, options = {}) {
     if (!/^\d+$/.test(objectId)) return null;
 
     const doFetch = options.fetchImpl || fetch;
+    // The cortex waits on external preload before the reading begins, so
+    // an API that STALLS (rather than failing) would hold the
+    // preparation screen open indefinitely. Bound every request.
+    const request = withAbortTimeout(
+        options.signal, options.timeoutMs ?? 8000, 'Met request');
     let record;
     try {
         const response = await doFetch(`${OBJECT_ENDPOINT}/${objectId}`, {
-            signal: options.signal
+            signal: request.signal
         });
         if (!response.ok) return null;
         record = await response.json();
@@ -53,6 +60,8 @@ export async function resolveMetWork(id, options = {}) {
         // A source that cannot be reached yields no work. The collection
         // simply carries one fewer image; it never carries a wrong one.
         return null;
+    } finally {
+        request.cleanup();
     }
 
     if (!record || record.message) return null;

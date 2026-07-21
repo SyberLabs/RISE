@@ -416,3 +416,69 @@ describe('App forwards the Atrium-exclusive fields to the cortex', () => {
     }
   });
 });
+
+describe('Deployment policy allows what the adapters call', () => {
+  it('lists every museum API host in the CSP connect-src', async () => {
+    // A host missing from connect-src is blocked by the browser, the
+    // adapter catches the fetch error and returns null, and the imagery
+    // silently never appears — the same invisible failure mode as the
+    // missing getRandom. The policy and the adapters must be checked
+    // against each other, not maintained in parallel by memory.
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const toml = readFileSync(resolve('netlify.toml'), 'utf8');
+    const connectSrc = /connect-src([^;]*)/.exec(toml)?.[1] ?? '';
+
+    const adapters = [
+      'src/content/atrium/imagery/adapters/met.js',
+      'src/content/atrium/imagery/adapters/cleveland.js'
+    ];
+    for (const path of adapters) {
+      const source = readFileSync(resolve(path), 'utf8');
+      for (const [, host] of source.matchAll(/https:\/\/([a-z0-9.-]+)/gi)) {
+        // Documentation links in comments are not fetch targets
+        if (!/api|collection/i.test(host)) continue;
+        expect(connectSrc, `${path} calls ${host}, absent from connect-src`)
+          .toContain(host);
+      }
+    }
+  });
+});
+
+describe('Museum requests are bounded', () => {
+  it('abandons a stalled museum API instead of holding the reading', async () => {
+    // The cortex waits on external preload before a reading begins, so
+    // an API that STALLS rather than failing would hold the preparation
+    // screen open. A stall is not an error, so nothing else catches it.
+    vi.useFakeTimers();
+    const { resolveMetWork } = await import('./adapters/met.js');
+
+    let rejectedWith = null;
+    const fetchImpl = (url, init) => new Promise((_, reject) => {
+      init.signal.addEventListener('abort', () => {
+        rejectedWith = init.signal.reason;
+        reject(init.signal.reason);
+      });
+    });
+
+    const pending = resolveMetWork(436105, { fetchImpl, timeoutMs: 8000 });
+    await vi.advanceTimersByTimeAsync(8100);
+    expect(await pending).toBeNull();
+    expect(String(rejectedWith?.message || '')).toMatch(/timed out/i);
+    vi.useRealTimers();
+  });
+
+  it('forwards the caller\'s budget from provider to adapter', async () => {
+    const { getPinnedWorksProvider } = await import('./provider.js');
+    const provider = getPinnedWorksProvider();
+    const seen = [];
+    const original = provider.getImagesInCategory.bind(provider);
+    provider.getImagesInCategory = async (id, limit, options) => {
+      seen.push(options?.timeoutMs);
+      return [];
+    };
+    await provider.getRandom({ category: 'atr-plato', timeoutMs: 1234 });
+    provider.getImagesInCategory = original;
+    expect(seen[0]).toBe(1234);
+  });
+});

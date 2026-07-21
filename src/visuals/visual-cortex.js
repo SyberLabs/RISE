@@ -322,6 +322,12 @@ export class VisualCortex {
         }
         if ('activeTypes' in nextConfig) {
             nextConfig.activeTypes = this._normalizeActiveTypes(nextConfig.activeTypes);
+            // The Blend ledger belongs to ONE reading, not to the tab.
+            // The cortex is a singleton, so without this a pure
+            // procedural session would drive the debt to its ceiling and
+            // the next Blend reading would open biased toward sourced
+            // imagery it had no reason to owe.
+            this._blendDebt = 0;
         }
         if ('globalVisuals' in nextConfig) {
             nextConfig.globalVisuals = Array.isArray(nextConfig.globalVisuals)

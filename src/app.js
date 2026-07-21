@@ -172,15 +172,23 @@ class App {
         // the reader was trying to reach, so recovery is invisible to
         // them rather than dumping them back at the start.
         let staleTarget = null;
+        let staleData;
         try {
-            staleTarget = sessionStorage.getItem('rise_stale_reload');
-            if (staleTarget) sessionStorage.removeItem('rise_stale_reload');
-        } catch (e) { /* private mode */ }
+            const raw = sessionStorage.getItem('rise_stale_reload');
+            if (raw) {
+                sessionStorage.removeItem('rise_stale_reload');
+                // Written as bounded JSON; tolerate the older bare-name
+                // form so a reload mid-upgrade still recovers.
+                const parsed = raw.startsWith('{') ? JSON.parse(raw) : { viewName: raw };
+                staleTarget = parsed?.viewName ?? null;
+                staleData = parsed?.data;
+            }
+        } catch (e) { /* private mode, or unreadable state */ }
 
         // Navigate to the recovered destination, personalized vault, or portal
         if (staleTarget && this.router.views.has(staleTarget)) {
             console.log('[R.I.S.E.] Recovering navigation after stale build:', staleTarget);
-            await this.router.navigate(staleTarget);
+            await this.router.navigate(staleTarget, { data: staleData });
         } else if (options.personalizedVault) {
             console.log('[R.I.S.E.] Navigating directly to personalized vault:', options.personalizedVault);
             await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });

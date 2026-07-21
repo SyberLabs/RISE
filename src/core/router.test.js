@@ -83,7 +83,7 @@ describe('Router stale-build recovery', () => {
 
     expect(reload).toHaveBeenCalledTimes(1);
     // …and it remembers where the reader was going
-    expect(sessionStorage.getItem('rise_stale_reload')).toBe('b');
+    expect(JSON.parse(sessionStorage.getItem('rise_stale_reload')).viewName).toBe('b');
     router.destroy();
   });
 
@@ -147,6 +147,76 @@ describe('Router stale-build recovery', () => {
       expect(reload, message).toHaveBeenCalledTimes(1);
       r.destroy();
     }
+    router.destroy();
+  });
+});
+
+describe('Stale-build recovery preserves the destination, not just the view', () => {
+  let reload;
+
+  beforeEach(() => {
+    document.body.innerHTML = '<main id="a"></main><main id="b"></main>';
+    sessionStorage.clear();
+    reload = vi.fn();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...window.location, reload }
+    });
+  });
+
+  const staleInit = () => {
+    throw new TypeError('Failed to fetch dynamically imported module: /assets/x.js');
+  };
+
+  it('carries the route data across the reload', async () => {
+    // Recovering "Atrium" but losing the selected node drops the reader
+    // at a general view instead of the passage they opened.
+    const router = new Router();
+    router.transitionDuration = 0;
+    router.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });
+    router.registerView('b', { container: document.querySelector('#b'), init: staleInit });
+
+    await router.navigate('a');
+    await router.navigate('b', { data: { selectedId: 'hist-bastille', viewMode: 'graph' } });
+
+    const saved = JSON.parse(sessionStorage.getItem('rise_stale_reload'));
+    expect(saved.viewName).toBe('b');
+    expect(saved.data).toEqual({ selectedId: 'hist-bastille', viewMode: 'graph' });
+    router.destroy();
+  });
+
+  it('degrades to a plain view recovery rather than losing it', async () => {
+    // Unserializable route data must not cost the reader the recovery.
+    const router = new Router();
+    router.transitionDuration = 0;
+    router.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });
+    router.registerView('b', { container: document.querySelector('#b'), init: staleInit });
+
+    const circular = { name: 'loop' };
+    circular.self = circular;
+
+    await router.navigate('a');
+    await router.navigate('b', { data: circular });
+
+    const saved = JSON.parse(sessionStorage.getItem('rise_stale_reload'));
+    expect(saved.viewName).toBe('b');
+    expect(saved.data).toBeUndefined();
+    expect(reload).toHaveBeenCalledTimes(1);
+    router.destroy();
+  });
+
+  it('bounds what a reload may carry', async () => {
+    const router = new Router();
+    router.transitionDuration = 0;
+    router.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });
+    router.registerView('b', { container: document.querySelector('#b'), init: staleInit });
+
+    await router.navigate('a');
+    await router.navigate('b', { data: { text: 'x'.repeat(20_000) } });
+
+    const raw = sessionStorage.getItem('rise_stale_reload');
+    expect(raw.length).toBeLessThan(4100);
+    expect(JSON.parse(raw).viewName).toBe('b');
     router.destroy();
   });
 });

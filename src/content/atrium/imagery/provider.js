@@ -52,7 +52,10 @@ export class PinnedWorksProvider {
     async getRandom(filter = {}) {
         const categoryId = filter.category;
         const images = await this.getImagesInCategory(categoryId, 40, {
-            signal: filter.signal
+            signal: filter.signal,
+            // The cortex bounds its own hydration; pass the same budget
+            // down so a stalled museum API cannot outlive it.
+            timeoutMs: filter.timeoutMs
         });
         if (images.length === 0) return null;
 

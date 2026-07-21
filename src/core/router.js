@@ -129,7 +129,19 @@ export class Router {
             if (isStaleChunkError(error) && !this._reloadedForStaleChunk) {
                 this._reloadedForStaleChunk = true;
                 try {
-                    sessionStorage.setItem('rise_stale_reload', viewName);
+                    // Carry the route DATA too, not just the view name:
+                    // the Atrium's selected node, a vault identifier, a
+                    // Library selection. Bounded and JSON-only, on the
+                    // same principle as provenance — recovery state must
+                    // never be able to smuggle live objects across a
+                    // reload. Oversized or circular data degrades to a
+                    // plain view recovery rather than losing it entirely.
+                    let payload = JSON.stringify({ viewName });
+                    try {
+                        const withData = JSON.stringify({ viewName, data: options.data });
+                        if (withData.length <= 4000) payload = withData;
+                    } catch (e) { /* unserializable data — view only */ }
+                    sessionStorage.setItem('rise_stale_reload', payload);
                 } catch (e) { /* private mode — reload anyway */ }
                 console.warn('[Router] Stale build detected; reloading to recover.');
                 window.location.reload();

@@ -1190,3 +1190,34 @@ describe('Blend selection is wired into the flash path', () => {
         cortex.destroy?.();
     });
 });
+
+describe('Blend ledger is per-reading', () => {
+    it('resets when a new visual configuration is installed', () => {
+        // The cortex is a singleton for the tab's lifetime. Without a
+        // reset, a pure procedural sequence drives the debt to its
+        // ceiling and the NEXT reading opens biased toward sourced
+        // imagery it never owed — a balance inherited from a different
+        // text entirely.
+        const cortex = new VisualCortex();
+        for (let i = 0; i < 20; i++) cortex._recordBlendOutcome('klee', true);
+        expect(cortex._blendDebt).toBeGreaterThan(0);
+
+        cortex.updateConfig({ activeTypes: ['klee', 'aic-oldmasters'] });
+        expect(cortex._blendDebt).toBe(0);
+        cortex.destroy?.();
+    });
+
+    it('survives ordinary mid-session config changes', () => {
+        // Changing presentation or duration is not a new reading; the
+        // ledger should keep its memory across those.
+        const cortex = new VisualCortex();
+        cortex.updateConfig({ activeTypes: ['klee', 'aic-oldmasters'] });
+        for (let i = 0; i < 5; i++) cortex._recordBlendOutcome('klee', true);
+        const carried = cortex._blendDebt;
+        expect(carried).toBeGreaterThan(0);
+
+        cortex.updateConfig({ duration: 400 });
+        expect(cortex._blendDebt).toBe(carried);
+        cortex.destroy?.();
+    });
+});
