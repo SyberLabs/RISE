@@ -168,8 +168,20 @@ class App {
         // Register views
         this.registerViews();
 
-        // Navigate to personalized vault or portal
-        if (options.personalizedVault) {
+        // A reload triggered by a stale build carries the destination
+        // the reader was trying to reach, so recovery is invisible to
+        // them rather than dumping them back at the start.
+        let staleTarget = null;
+        try {
+            staleTarget = sessionStorage.getItem('rise_stale_reload');
+            if (staleTarget) sessionStorage.removeItem('rise_stale_reload');
+        } catch (e) { /* private mode */ }
+
+        // Navigate to the recovered destination, personalized vault, or portal
+        if (staleTarget && this.router.views.has(staleTarget)) {
+            console.log('[R.I.S.E.] Recovering navigation after stale build:', staleTarget);
+            await this.router.navigate(staleTarget);
+        } else if (options.personalizedVault) {
             console.log('[R.I.S.E.] Navigating directly to personalized vault:', options.personalizedVault);
             await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });
         } else {

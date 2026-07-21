@@ -8,6 +8,22 @@
  * - View stack enables contextual back navigation
  */
 
+/**
+ * A view's code chunk is missing from the server.
+ *
+ * This is what a stale tab looks like after a deploy: the running shell
+ * asks for a hashed chunk that the new build replaced, and the fetch
+ * 404s. It is NOT transient — every retry fails identically — so a tab
+ * left open across a release becomes permanently unable to reach any
+ * view it has not already loaded. A reader in the Vault could not get
+ * back to the Portal at all.
+ */
+function isStaleChunkError(error) {
+    const message = String(error?.message || error || '');
+    return /dynamically imported module|Importing a module script failed|error loading dynamically imported module/i
+        .test(message);
+}
+
 export class Router {
     constructor(options = {}) {
         this.views = new Map();
@@ -104,6 +120,22 @@ export class Router {
             this.onViewChange(viewName, options.data);
         } catch (error) {
             console.error(`[Router] Navigation to "${viewName}" failed:`, error);
+
+            // A missing chunk cannot be recovered from in this session:
+            // the shell itself is out of date. Reload once to pick up
+            // the current build, preserving the destination so the
+            // reader lands where they were going. The guard prevents a
+            // reload loop if something else produces the same error.
+            if (isStaleChunkError(error) && !this._reloadedForStaleChunk) {
+                this._reloadedForStaleChunk = true;
+                try {
+                    sessionStorage.setItem('rise_stale_reload', viewName);
+                } catch (e) { /* private mode — reload anyway */ }
+                console.warn('[Router] Stale build detected; reloading to recover.');
+                window.location.reload();
+                return false;
+            }
+
             newView.instance?.deactivate?.();
             if (newView.container !== previousView?.container) newView.container.hidden = true;
             if (previousView?.container) {

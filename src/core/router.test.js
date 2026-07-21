@@ -49,3 +49,104 @@ describe('Router failure containment', () => {
     router.destroy();
   });
 });
+
+describe('Router stale-build recovery', () => {
+  let reload;
+
+  beforeEach(() => {
+    document.body.innerHTML = '<main id="a"></main><main id="b"></main>';
+    sessionStorage.clear();
+    reload = vi.fn();
+    // jsdom's location.reload is not configurable by assignment
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { ...window.location, reload }
+    });
+  });
+
+  const staleError = () => {
+    throw new TypeError(
+      'Failed to fetch dynamically imported module: https://x/assets/Portal-abc.js');
+  };
+
+  it('reloads once to recover a tab left open across a deploy', async () => {
+    // The trap: a hashed chunk the new build replaced 404s forever, so
+    // every retry fails identically and the reader can never leave the
+    // view they are in. A reader in the Vault could not reach the Portal.
+    const router = new Router();
+    router.transitionDuration = 0;
+    router.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });
+    router.registerView('b', { container: document.querySelector('#b'), init: staleError });
+
+    await router.navigate('a');
+    expect(await router.navigate('b')).toBe(false);
+
+    expect(reload).toHaveBeenCalledTimes(1);
+    // …and it remembers where the reader was going
+    expect(sessionStorage.getItem('rise_stale_reload')).toBe('b');
+    router.destroy();
+  });
+
+  it('never reloads more than once, whatever keeps failing', async () => {
+    const router = new Router();
+    router.transitionDuration = 0;
+    router.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });
+    router.registerView('b', { container: document.querySelector('#b'), init: staleError });
+
+    await router.navigate('a');
+    await router.navigate('b');
+    await router.navigate('b');
+    await router.navigate('b');
+
+    expect(reload).toHaveBeenCalledTimes(1);
+    router.destroy();
+  });
+
+  it('leaves ordinary failures to the existing containment path', async () => {
+    // An init that throws for its own reasons is recoverable in-session;
+    // reloading would be a violent response to a contained error.
+    const router = new Router();
+    router.transitionDuration = 0;
+    const active = { activate: vi.fn(), deactivate: vi.fn() };
+    router.registerView('a', { container: document.querySelector('#a'), init: () => active });
+    router.registerView('b', {
+      container: document.querySelector('#b'),
+      init: () => { throw new Error('initialization failed'); }
+    });
+
+    await router.navigate('a');
+    expect(await router.navigate('b')).toBe(false);
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(router.currentView).toBe('a');
+    expect(document.querySelector('#a').hidden).toBe(false);
+    router.destroy();
+  });
+
+  it('recognizes the browser-specific wordings of a missing chunk', async () => {
+    const router = new Router();
+    router.transitionDuration = 0;
+    router.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });
+
+    for (const message of [
+      'Failed to fetch dynamically imported module: /assets/Vault-x.js',
+      'error loading dynamically imported module',
+      'Importing a module script failed.'
+    ]) {
+      sessionStorage.clear();
+      reload.mockClear();
+      const r = new Router();
+      r.transitionDuration = 0;
+      r.registerView('a', { container: document.querySelector('#a'), init: () => ({}) });
+      r.registerView('b', {
+        container: document.querySelector('#b'),
+        init: () => { throw new TypeError(message); }
+      });
+      await r.navigate('a');
+      await r.navigate('b');
+      expect(reload, message).toHaveBeenCalledTimes(1);
+      r.destroy();
+    }
+    router.destroy();
+  });
+});

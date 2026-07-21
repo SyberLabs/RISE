@@ -27,7 +27,18 @@
     # img-src allows any https CDN because museum APIs return varied image hosts.
     Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://www.gutenberg.org https://corsproxy.io https://export.arxiv.org https://commons.wikimedia.org https://api.artic.edu https://www.artic.edu; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
 
-# Cache static assets aggressively
+# The shell must never be cached: it names the hashed chunks, so a
+# stale index.html sends a browser after files the current deploy has
+# replaced. That is what strands a tab left open across a release — it
+# asks for Portal-<old hash>.js, gets a 404, and can no longer reach
+# any view it had not already loaded. (The router now detects this and
+# reloads once to recover; this header keeps the recovery from looping.)
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Cache static assets aggressively — safe because they are content-hashed
 [[headers]]
   for = "/assets/*"
   [headers.values]

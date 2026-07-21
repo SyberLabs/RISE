@@ -185,10 +185,14 @@ export class AudioEngine {
                     '/audio/cosmos_pointpark.mp3',
                     '/audio/nox_drone.mp3'
                 ],
-                swells: [
-                    '/audio/swells/hq_resonate_01.mp3',
-                    '/audio/swells/hq_transcend_01.mp3'
-                ]
+                // No built-in swells ship today. The two HQ files these
+                // paths named were never added to public/, so every boot
+                // fetched them, hit the SPA catch-all, and got index.html
+                // back with a 200 — logging a decode warning on a healthy
+                // launch. Personal swells still load via
+                // reloadPersonalSwells(); restore entries here only when
+                // the audio actually exists.
+                swells: []
             }
         };
 
