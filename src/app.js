@@ -478,6 +478,7 @@ class App {
                                 frequency: interlocution.frequency ?? 0.2,
                                 duration: interlocution.duration ?? VISUAL_PRESENCE_DEFAULT_MS,
                                 renderLanguage: interlocution.renderLanguage === 'ascii' ? 'ascii' : 'native',
+                                presentation: interlocution.presentation === 'behind-stream' ? 'behind-stream' : 'full-frame',
                                 activeTypes: activeTypes,
                                 kleePreset: interlocution.kleePreset ?? 'random',
                                 harmonographClimate: interlocution.harmonographClimate ?? 'auto',

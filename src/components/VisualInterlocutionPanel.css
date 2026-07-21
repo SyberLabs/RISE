@@ -1208,3 +1208,22 @@
     opacity: 0.7;
     max-width: 200px;
 }
+
+/* Atrium-curated collections: quiet, informational chips that name the
+   imagery a journey or point launch brought with it. */
+.vi-atrium-collection-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 4px;
+}
+
+.vi-atrium-collection-chip {
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  padding: 3px 10px;
+  border-radius: 12px;
+  color: var(--color-cloud);
+  background: rgba(139, 127, 212, 0.12);
+  border: 1px solid rgba(139, 127, 212, 0.28);
+}

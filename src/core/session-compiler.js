@@ -112,6 +112,8 @@ export function normalizeVisualConfig(value = {}) {
             frequency: Math.max(0, Math.min(1, finiteNumber(raw.frequency, 0.2))),
             duration: normalizeVisualPresence(raw.duration),
             renderLanguage: raw.renderLanguage === 'ascii' ? 'ascii' : 'native',
+            presentation: raw.presentation === 'behind-stream' ? 'behind-stream' : 'full-frame',
+            streamGlass: raw.streamGlass !== false,
             kleePreset: KLEE_PRESETS.has(raw.kleePreset) ? raw.kleePreset : 'random',
             responsive: raw.responsive === true,
             responsiveMood: raw.responsiveMood !== false,

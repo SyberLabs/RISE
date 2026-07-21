@@ -74,3 +74,18 @@
         transition: none !important;
     }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   Behind-stream presentation: the imagery presents BENEATH the
+   reading text instead of cutting over it. The text never hides,
+   so this surface has no covered phase and no concealed swap —
+   structurally it cannot produce the post-flash text flurry the
+   full-frame handoff machinery exists to prevent.
+   Sits below the atom stream (z-index 10) but above the field.
+   ═══════════════════════════════════════════════════════════ */
+.visual-cortex.presentation-behind-stream {
+    z-index: 2;
+    /* No opaque wash: the void background would hide the text's
+       own field. The imagery itself carries the frame. */
+    background: transparent;
+}

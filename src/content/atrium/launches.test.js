@@ -305,7 +305,11 @@ describe('Atrium point launch coverage', () => {
         interlocution: {
           frequency: 0.15,
           procedural: ['harmonograph'],
-          sourced: ['aic-oldmasters'],
+          // Plato carries curated collections that replace the domain
+          // default: Old Masters for the tradition that transmitted him,
+          // geometry for the Divided Line and the Forms.
+          sourced: ['aic-oldmasters', 'geometry'],
+          atriumCollections: ['aic-oldmasters', 'geometry'],
           harmonographClimate: 'auto'
         }
       }

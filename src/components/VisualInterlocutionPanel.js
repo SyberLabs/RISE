@@ -162,6 +162,18 @@ export class VisualInterlocutionPanel {
                 renderLanguage: (options.interlocution?.renderLanguage ?? options.renderLanguage) === 'ascii'
                     ? 'ascii'
                     : 'native',
+                // Presentation surface: behind-stream keeps the reading
+                // text visible beneath the imagery (no concealed swap)
+                presentation: (options.interlocution?.presentation ?? options.presentation) === 'behind-stream'
+                    ? 'behind-stream'
+                    : 'full-frame',
+                streamGlass: (options.interlocution?.streamGlass ?? options.streamGlass) !== false,
+                // Curated collections carried by an Atrium launch. Present
+                // only on Atrium-origin sessions; purely informational —
+                // the authoritative selection remains `sourced`.
+                atriumCollections: Array.isArray(options.interlocution?.atriumCollections)
+                    ? [...options.interlocution.atriumCollections]
+                    : null,
                 kleePreset: options.interlocution?.kleePreset ?? options.kleePreset ?? 'random',
                 harmonographClimate: options.interlocution?.harmonographClimate ?? 'auto',
                 // Responsive: the semantic conductor drives the flashes.
@@ -330,6 +342,10 @@ export class VisualInterlocutionPanel {
                 ...mergedInterlocution,
                 duration: normalizeVisualPresence(mergedInterlocution.duration),
                 renderLanguage: mergedInterlocution.renderLanguage === 'ascii' ? 'ascii' : 'native',
+                presentation: mergedInterlocution.presentation === 'behind-stream'
+                    ? 'behind-stream'
+                    : 'full-frame',
+                streamGlass: mergedInterlocution.streamGlass !== false,
                 globalPool: normalizeGlobalPoolSelection(mergedInterlocution.globalPool),
                 ...normalizeVisualSelection({
                     ...selectionInput,
@@ -667,6 +683,64 @@ export class VisualInterlocutionPanel {
 
                     <!-- INTERLOCUTION: Probabilistic interrupts -->
                     <div class="vi-accordions" ${mode === 'interlocution' ? '' : 'hidden'}>
+                        ${(() => {
+                            // "From this reading": collections curated for the
+                            // launched Atrium record. Appears only on Atrium
+                            // launches; informational, since `sourced` already
+                            // carries them and remains fully editable below.
+                            const curated = this.config.interlocution.atriumCollections;
+                            if (!Array.isArray(curated) || curated.length === 0) return '';
+                            const labelFor = id => {
+                                if (id.startsWith('aic-')) {
+                                    return MUSEUM_CATEGORIES[id.slice(4)]?.name || id;
+                                }
+                                return WIKIMEDIA_CATEGORIES[id]?.name || id;
+                            };
+                            return `
+                                <div class="vi-source-family vi-atrium-collections" role="group"
+                                    aria-label="Collections curated for this reading">
+                                    <div class="vi-source-family-label">From this reading</div>
+                                    <div class="vi-atrium-collection-chips">
+                                        ${curated.map(id => `
+                                            <span class="vi-atrium-collection-chip">${escapeHtml(labelFor(id))}</span>
+                                        `).join('')}
+                                    </div>
+                                    <p class="vi-source-family-hint text-mist">
+                                        Imagery curated to accompany this passage. Adjust or replace it in Collections below.
+                                    </p>
+                                </div>
+                            `;
+                        })()}
+
+                        <div class="vi-source-family vi-presentation-surface" role="group" aria-label="Presentation surface">
+                            <div class="vi-source-family-label">Presentation</div>
+                            <div class="vi-source-family-options">
+                                ${[
+                                    ['full-frame', 'Full frame'],
+                                    ['behind-stream', 'Behind stream']
+                                ].map(([id, label]) => `
+                                    <button type="button"
+                                        class="vi-source-family-btn ${this.config.interlocution.presentation === id ? 'active' : ''}"
+                                        data-presentation="${id}"
+                                        aria-pressed="${this.config.interlocution.presentation === id}">
+                                        ${label}
+                                    </button>
+                                `).join('')}
+                            </div>
+                            <p class="vi-source-family-hint text-mist">
+                                ${this.config.interlocution.presentation === 'behind-stream'
+                                    ? 'Imagery presents beneath the reading stream — the words never leave the screen.'
+                                    : 'Imagery cuts to full frame, briefly replacing the reading stream.'}
+                            </p>
+                            ${this.config.interlocution.presentation === 'behind-stream' ? `
+                                <label class="vi-toggle-row">
+                                    <input type="checkbox" data-presentation-glass
+                                        ${this.config.interlocution.streamGlass !== false ? 'checked' : ''}>
+                                    <span>Glass tile behind the text</span>
+                                </label>
+                            ` : ''}
+                        </div>
+
                         <div class="vi-source-family vi-render-language" role="group" aria-label="Render language">
                             <div class="vi-source-family-label">Render</div>
                             <div class="vi-source-family-options">
@@ -1005,6 +1079,23 @@ export class VisualInterlocutionPanel {
         });
 
         if (this.locked) return;
+
+        this.container.querySelectorAll('[data-presentation]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.config.interlocution.presentation = btn.dataset.presentation === 'behind-stream'
+                    ? 'behind-stream'
+                    : 'full-frame';
+                if (window.rise?.audioEngine) window.rise.audioEngine.playHiss();
+                this.emitChange();
+                this.render();
+                this.attachEvents();
+            });
+        });
+
+        this.container.querySelector('[data-presentation-glass]')?.addEventListener('change', event => {
+            this.config.interlocution.streamGlass = event.target.checked;
+            this.emitChange();
+        });
 
         this.container.querySelectorAll('[data-render-language]').forEach(btn => {
             btn.addEventListener('click', () => {

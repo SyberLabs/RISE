@@ -122,6 +122,11 @@ export class VisualCortex {
             activeTypes: ['klee', 'turrell'],
             kleePreset: 'random', // 'random' | 'architectural' | 'chaotic' | 'harmonic' | 'gravitational' | 'twittering'
             harmonographClimate: 'auto', // 'auto' | a climate palette name (explicit = veto)
+            // Presentation surface: 'full-frame' cuts to an opaque overlay;
+            // 'behind-stream' keeps the reading text visible and presents the
+            // imagery beneath it. Behind-stream never conceals text, so it
+            // has no covered phase and no concealed-swap handoff at all.
+            presentation: 'full-frame',
             customVisuals: [],
             // null preserves legacy direct callers; App session entry always
             // supplies an exact resolved array (including an intentional []).
@@ -1333,9 +1338,11 @@ export class VisualCortex {
     _hidePresentationOverlay() {
         if (!this.container) return;
         this.container.hidden = true;
+        this.container.classList?.remove('presentation-behind-stream');
         this.container.style.display = '';
         this.container.style.opacity = '';
         this.container.style.transition = '';
+        this.container.style.zIndex = '';
     }
 
     _settlePresentation(active, result) {
@@ -1388,10 +1395,17 @@ export class VisualCortex {
             ? { enterMs: 0, exitMs: 0 }
             : visualPresenceTransition(requestedDurationMs);
 
+        // Behind-stream presents beneath the reading text: the text is
+        // never concealed, so there is no covered phase to await and no
+        // concealed swap to protect. The overlay drops below the atom
+        // stream and the opaque wash is removed by the surface class.
+        const behindStream = this.config.presentation === 'behind-stream';
+
         this.cancelPresentation('aborted');
         this.container.hidden = false;
+        this.container.classList?.toggle('presentation-behind-stream', behindStream);
         this.container.style.display = 'flex';
-        this.container.style.zIndex = '9999';
+        this.container.style.zIndex = behindStream ? '' : '9999';
         this.container.style.transition = transition.enterMs > 0
             ? `opacity ${transition.enterMs}ms ease-out`
             : 'none';
@@ -1494,7 +1508,21 @@ export class VisualCortex {
                 schedule(check);
             };
 
-            if (transition.enterMs > 0) {
+            if (behindStream) {
+                // Nothing is concealed, so "covered" fires immediately:
+                // the next atom may be prepared without waiting for an
+                // opacity transition that would never hide anything.
+                // The full-frame cover machinery is deliberately skipped,
+                // but the clock still starts on the commit frame so the
+                // presence duration stays honest.
+                schedule(timestamp => {
+                    if (active.settled || this._activePresentation !== active) return;
+                    anchor(timestamp);
+                    this.container.style.opacity = '1';
+                    notifyCovered();
+                    schedule(check);
+                });
+            } else if (transition.enterMs > 0) {
                 // Primary cover signal: the enter transition finishing.
                 // (Optional-chained: headless containers have no events.)
                 const onTransitionEnd = event => {

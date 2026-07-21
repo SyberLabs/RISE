@@ -477,3 +477,75 @@ describe('Harmonograph climate chips', () => {
         container.remove();
     });
 });
+
+describe('Stream-maintaining Rhythmic and Atrium collections', () => {
+    it('offers the presentation surface with Full frame as the default', () => {
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: { sourceFamily: 'procedural', procedural: ['klee'], sourced: [] }
+        });
+
+        expect(container.querySelectorAll('[data-presentation]')).toHaveLength(2);
+        expect(container.querySelector('[data-presentation="full-frame"]').classList.contains('active')).toBe(true);
+        expect(panel.getConfig().interlocution.presentation).toBe('full-frame');
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('behind-stream reveals the glass toggle and emits both fields', () => {
+        let emitted = null;
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: { sourceFamily: 'procedural', procedural: ['klee'], sourced: [] },
+            onChange: config => { emitted = config; }
+        });
+
+        expect(container.querySelector('[data-presentation-glass]')).toBeNull();
+
+        container.querySelector('[data-presentation="behind-stream"]').click();
+        expect(emitted.interlocution.presentation).toBe('behind-stream');
+        // Glass tile is on by default and only offered for this surface
+        const glass = container.querySelector('[data-presentation-glass]');
+        expect(glass).not.toBeNull();
+        expect(glass.checked).toBe(true);
+
+        glass.checked = false;
+        glass.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(emitted.interlocution.streamGlass).toBe(false);
+        // Source selection is untouched by a presentation change
+        expect(emitted.interlocution.procedural).toEqual(['klee']);
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('shows curated collections only for an Atrium launch that carries them', () => {
+        const plain = makePanel({
+            visualMode: 'interlocution',
+            interlocution: { sourceFamily: 'blend', procedural: ['klee'], sourced: ['geometry'] }
+        });
+        expect(plain.container.querySelector('.vi-atrium-collections')).toBeNull();
+        plain.panel.destroy();
+        plain.container.remove();
+
+        const atrium = makePanel({
+            visualMode: 'interlocution',
+            interlocution: {
+                sourceFamily: 'blend',
+                procedural: ['harmonograph'],
+                sourced: ['aic-oldmasters', 'geometry'],
+                atriumCollections: ['aic-oldmasters', 'geometry']
+            }
+        });
+        const section = atrium.container.querySelector('.vi-atrium-collections');
+        expect(section).not.toBeNull();
+        // Human-readable provider names, not raw ids
+        expect(section.textContent).toContain('Old Masters');
+        expect(section.textContent).not.toContain('aic-oldmasters');
+        expect(atrium.container.querySelectorAll('.vi-atrium-collection-chip')).toHaveLength(2);
+
+        atrium.panel.destroy();
+        atrium.container.remove();
+    });
+});

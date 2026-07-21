@@ -12,6 +12,7 @@ import {
 import { ATRIUM_PILOT_PAYLOADS } from './packs/pilot-v1/payloads.js';
 import { evaluateJourneyReadiness } from './readiness.js';
 import { ATRIUM_POINT_LAUNCHES, findAtriumPoint, sensoryConfigFor } from './launches.js';
+import { applyRecordCollections } from './collections.js';
 
 export const ATRIUM_PAYLOADS = ATRIUM_PILOT_PAYLOADS;
 
@@ -177,7 +178,14 @@ export async function createAtriumJourneyHandoff(journeyOrId, options = {}) {
     text: chamberSources.map(source => source.data).join('\n\n'),
     source: `Atrium · ${journey.title}`,
     config: {
-      ...sensoryConfigFor(journey.domain),
+      // Domain sensory identity, then the record's own curated
+      // collections when it has them (imagery that belongs to THIS
+      // reading rather than a generic rotation). Everything remains
+      // overridable in the orbital.
+      ...applyRecordCollections(
+        sensoryConfigFor(journey.domain),
+        journey.anchorIds?.[0] || journey.id
+      ),
       sources: chamberSources,
       origin: {
         view: 'atrium',

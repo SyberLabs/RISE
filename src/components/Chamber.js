@@ -484,6 +484,31 @@ export class Chamber {
 
     // Initialize the growing Klee field if in genesis mode
     this.initializeGenesis();
+
+    // Behind-stream rhythmic: imagery presents beneath the reading text,
+    // so the text keeps a glass tile for legibility over the imagery
+    // (the same pane Genesis uses — one grammar, one implementation).
+    this.initializeStreamPresentation();
+  }
+
+  /**
+   * Stream-maintaining Rhythmic: the reading stream never leaves the
+   * screen while imagery presents beneath it. Because nothing is
+   * concealed there is no covered phase and no concealed text swap —
+   * this surface is structurally free of the full-frame handoff race.
+   */
+  initializeStreamPresentation() {
+    const visualConfig = this.session?.visualConfig;
+    if (!visualConfig || visualConfig.visualMode !== 'interlocution') return;
+    if (visualConfig.interlocution?.presentation !== 'behind-stream') return;
+
+    const field = this.container.querySelector('#chamber-field');
+    field?.classList.add('chamber-field-stream');
+
+    const atomDisplay = this.container.querySelector('#atom-display');
+    if (atomDisplay && visualConfig.interlocution?.streamGlass !== false) {
+      atomDisplay.classList.add('glass-tile');
+    }
   }
 
   /**

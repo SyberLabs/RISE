@@ -342,7 +342,17 @@ test('10 · Atrium point preserves origin, curated config, Begin, exit, and retu
     });
     expect(configured.visuals.frequency).toBeLessThanOrEqual(0.15);
     expect(configured.visuals.procedural).toEqual(['harmonograph']);
-    expect(configured.visuals.sourced).toEqual(['aic-oldmasters']);
+    // Atrium-coupled collections: Aristotle carries curated imagery
+    // (Old Masters for his transmission, anatomy and botany for the
+    // biological works) rather than the bare domain default.
+    expect(configured.visuals.sourced).toEqual(['aic-oldmasters', 'anatomy', 'botany']);
+    expect(configured.visuals.atriumCollections).toEqual(['aic-oldmasters', 'anatomy', 'botany']);
+
+    // And the panel names them as belonging to this reading
+    await page.locator('[data-orbit="visual"]').click();
+    await expect(page.locator('.vi-atrium-collections')).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('.vi-atrium-collection-chip')).toHaveCount(3);
+    await page.locator('[data-close="visual"]').click();
 
     await page.locator('#begin-btn').click();
     const warning = page.locator('#photosensitivity-modal');

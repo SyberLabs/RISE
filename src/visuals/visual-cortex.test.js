@@ -995,3 +995,75 @@ describe('VisualCortex external asset hydration', () => {
         });
     });
 });
+
+describe('VisualCortex behind-stream presentation', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it('keeps the reading text visible: no opaque wash, below the stream', async () => {
+        const classes = new Set();
+        const cortex = new VisualCortex();
+        cortex.container = {
+            hidden: true,
+            style: {},
+            classList: {
+                toggle: (name, on) => on ? classes.add(name) : classes.delete(name),
+                remove: name => classes.delete(name)
+            }
+        };
+        cortex.updateConfig({ presentation: 'behind-stream' });
+
+        let now = 1000;
+        const frames = [];
+        vi.spyOn(performance, 'now').mockImplementation(() => now);
+        vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(cb => {
+            frames.push(cb);
+            return frames.length;
+        });
+
+        const presenting = cortex._presentRenderedVisual(700);
+        expect(classes.has('presentation-behind-stream')).toBe(true);
+        // The full-frame overlay sits at 9999; behind-stream defers to CSS
+        expect(cortex.container.style.zIndex).toBe('');
+
+        now = 1016;
+        while (frames.length > 0) {
+            frames.shift()(now);
+            now += 700;
+        }
+        await presenting;
+        // Surface class is cleared on hide so a later full-frame flash
+        // cannot inherit the behind-stream stacking
+        expect(classes.has('presentation-behind-stream')).toBe(false);
+    });
+
+    it('covers immediately — there is no concealed swap to protect', async () => {
+        const onCovered = vi.fn();
+        const cortex = new VisualCortex();
+        cortex.container = { hidden: true, style: {} };
+        cortex.updateConfig({ presentation: 'behind-stream' });
+
+        let now = 1000;
+        const frames = [];
+        vi.spyOn(performance, 'now').mockImplementation(() => now);
+        vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(cb => {
+            frames.push(cb);
+            return frames.length;
+        });
+
+        const presenting = cortex._presentRenderedVisual(700, { onCovered });
+        expect(onCovered).not.toHaveBeenCalled();
+
+        // The commit frame both starts the clock and declares cover:
+        // the text was never hidden, so nothing must be waited for.
+        now = 1016;
+        frames.shift()(now);
+        expect(onCovered).toHaveBeenCalledTimes(1);
+
+        now = 1800;
+        while (frames.length > 0) frames.shift()(now);
+        await expect(presenting).resolves.toMatchObject({
+            presented: true,
+            requestedDurationMs: 700
+        });
+    });
+});

@@ -89,6 +89,8 @@ function createDefaultConfig() {
         frequency: 0.2,
         duration: VISUAL_PRESENCE_DEFAULT_MS,
         renderLanguage: 'native',
+        presentation: 'full-frame',
+        streamGlass: true,
         kleePreset: 'random',
         harmonographClimate: 'auto',
         responsive: false,
