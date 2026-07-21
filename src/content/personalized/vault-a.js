@@ -1,250 +1,556 @@
 /**
- * Personalized Vault A
+ * Personalized Vault A — Dr. Margareta (Maya) Ackerman
  *
- * Curated selections on computational creativity,
- * generative music systems, and human-AI co-creation.
+ * PROVENANCE CONTRACT
+ * ───────────────────
+ * Every sequence in this vault is drawn from text Dr. Ackerman actually
+ * wrote, in papers she actually authored. Each carries a `source` block
+ * naming the paper, venue, year, and co-authors, and each passage is a
+ * faithful excerpt — condensed and phrase-marked for reading rhythm, but
+ * never reworded, never invented, never paraphrased into her mouth.
+ *
+ * The `|` markers are the chunker's phrase boundaries: they set breath,
+ * not meaning. Sentences may be selected and joined across a paragraph,
+ * but the words within them are hers.
+ *
+ * VERIFIED against OpenAlex author A5035014734 and the open-access
+ * copies of record:
+ *   - Algorithmic Songwriting with ALYSIA — arXiv:1612.01058 (EvoMUSART 2017)
+ *   - The Humble Creative Machine — ICCC 2021, kar.kent.ac.uk/90259
+ *   - SOVIA: Sonification of Visual Interactive Art — Gayhardt & Ackerman, SCU
+ *   - Interactive Augmented Reality for Dance — Brockhoeft et al., FSU (ICCC 2016)
+ *
+ * SENSORY DESIGN
+ * ──────────────
+ * Every sequence runs the Faded Signal soundscape (audioPreset rests:
+ * a soundscape is a finished mix, so pure tones stay silent). Each
+ * sequence carries a DISTINCT visual identity so the vault reads as a
+ * suite rather than a repetition:
+ *   1. Genesis                  — the origin of a system
+ *   2. Attractor                — the space of possibility
+ *   3. Fractal, behind-stream   — the words stay, the flames breathe beneath
+ *   4. Neural, behind-stream    — the model as living substrate
+ *   5. Turrell, behind-stream   — light fields under Monet's sonified art
+ *   6. Klee + collections blend — full-frame, the co-creative finale
  */
 
 export const VAULT_A_SEQUENCES = [
   {
-    id: 'alysia-origins',
-    name: 'The ALYSIA Vision',
+    id: 'alysia-co-creative-process',
+    name: 'The Co-Creative Process',
     curve: 'induction',
-    category: 'research',
-    description: 'The foundational vision of algorithmic songwriting as human-AI partnership.',
-    wpm: 200,
-    audioPreset: 'gateway',
-    content: `ALYSIA: | Automated Lyrical Songwriting Application.
+    category: 'ALYSIA · 2017',
+    description: 'On songwriting with ALYSIA: how a machine offers melodies, and a human chooses.',
+    wpm: 300,
+    audioPreset: 'silent',
+    soundscape: 'faded-signal',
+    source: {
+      title: 'Algorithmic Songwriting with ALYSIA',
+      authors: 'Margareta Ackerman, David Loker',
+      venue: 'EvoMUSART / arXiv:1612.01058',
+      year: 2017,
+      section: '§4 The Co-Creative Process of Songwriting with ALYSIA'
+    },
+    visualConfig: {
+      visualMode: 'genesis',
+      genesis: { preset: 'random' }
+    },
+    content: `This is a new approach | to writing songs | that requires minimal | to no musical training.
 
-A new approach | to writing songs | that requires minimal | to no musical training.
+ALYSIA makes it easy | to explore melodic lines, | reducing songwriting | to the ability | to select melodies | based on one's musical taste.
 
-The system makes it easy | to explore melodic lines, | reducing songwriting | to the ability | to select melodies | based on one's musical taste.
+[PAUSE]
 
-This is not replacement.
-This is amplification.
+The user provides ALYSIA | with the lyrics | broken down into separate lines.
 
-The creativity comes | from both parties— | human intuition | meeting machine possibility.
+Then, the system gives | the specified number of melodies | to which the given lyrics | can be sang.
 
-We trained Random Forests | to predict pitch and rhythm.
+We typically ask for | between fifteen to thirty | melodic variations | per line of text.
 
-Not to compose in isolation.
+Among these, | we select between three | and ten melodic lines.
 
-But to offer.
+It should be noted | that nearly all | of ALYSIA's suggestions | are reasonable.
 
-The human chooses.
+[PAUSE]
 
-The human always chooses.
+One may ask | why we choose to look | at fifteen to thirty options | if all are reasonable.
 
-The machine expands the space | of what can be chosen.
+Having a variety of options | can lead to better quality songs | while also enabling artists | to incorporate | their own musical preferences,
 
-ALYSIA was the first | songwriting system | whose songs were recorded | and produced.
+without possessing | the composition | and text-melody juxtaposition skills | traditionally required | to engage in this art form.
 
-Not as novelty.
+[HOLD]
 
-As music.
+When making our selections, | we look for melodies | that are independently interesting, | and have intriguing relationships | with the underlying text.
 
-Real songs, | born from the collaboration | between human intention | and algorithmic suggestion.
+We search for lines | that match the emotional meaning | of the text— | happy or sad— | as well as interesting word emphasis.
 
-The future of automated songwriting | lies not in autonomous systems | that create without us—
+For example, | if the word "sunshine" | appears in the text, | we may select a melody | that rises with this word.
 
-But in co-creative systems | that create with us.
+[PAUSE]
 
-The tool becomes a partner.
+ALYSIA often suggests | melodic variations | for which we find | interesting explanations.
 
-The partner becomes a mirror.
+In the original song | Why Do I Still Miss You, | ALYSIA suggested a melody | where the phrase "went wrong" | is on the lower end of scale,
 
-In the mirror, | we see our own creativity | reflected, | refracted, | expanded.
+giving these words | an appropriately dark interpretation.
 
-This is the vision:
+[HOLD]
 
-AI that elevates | human creativity | rather than replaces it.`
+The next step involves | combining the melodic lines | to form the complete song.
+
+This takes some trial and error, | and several interesting variations | can typically be attained.
+
+Having multiple options | allows the artist | to create several variations | for verses and chorus repetitions, | as often found in songs.`
   },
 
   {
-    id: 'computational-creativity-defined',
-    name: 'What Is Computational Creativity?',
+    id: 'alysia-eating-and-cooking',
+    name: 'Eating and Cooking',
     curve: 'wave',
-    category: 'philosophy',
-    description: 'Defining the field that asks: can machines be creative?',
-    wpm: 190,
-    audioPreset: 'gateway',
-    content: `Computational Creativity | is an emerging subfield | of Artificial Intelligence.
+    category: 'ALYSIA · 2017',
+    description: 'Why an autonomous songwriter would never eliminate the need for a co-creative one.',
+    wpm: 290,
+    audioPreset: 'silent',
+    soundscape: 'faded-signal',
+    source: {
+      title: 'Algorithmic Songwriting with ALYSIA',
+      authors: 'Margareta Ackerman, David Loker',
+      venue: 'EvoMUSART / arXiv:1612.01058',
+      year: 2017,
+      section: '§6 Discussion: Co-Creative and Autonomous Songwriting'
+    },
+    visualConfig: {
+      visualMode: 'attractor',
+      attractor: { system: 'aizawa' }
+    },
+    content: `Songwriting is the art | of combining melodies and lyrics.
 
-It studies the potential | for computers to be | more than feature-rich tools.
+It is not enough | to have beautiful melodies | and poetic lyrics—
 
-Instead: | to act as autonomous creators | and co-creators | in their own right.
+the music and words | must fit together | into a coherent whole.
 
-Consider the distinction carefully:
+[PAUSE]
 
-In a traditional tool, | creativity comes from the user.
+This makes Algorithmic Songwriting | a distinct sub-field | of Algorithmic Composition.
 
-In a Computational Creativity system, | the creativity comes | from the machine.
+Algorithmic songwriting | offers intriguing challenges | as both an autonomous | and a co-creative system.
 
-Or—in a hybrid system— | a joint impetus may come | from both parties.
+An autonomous songwriting system | producing works on par | with those of expert human songwriters | would mark | a significant achievement.
 
-This is the question | that animates the field:
+Yet, | we can go beyond the score.
 
-Can a machine be creative?
+[HOLD]
 
-Not: | can a machine produce outputs | that appear creative?
+What if, | in addition to writing the song, | an automated system | could also perform | and record | its own compositions?
 
-But: | can the machine itself | participate in the creative act?
+A truly independent system | would not only create a score, | but incorporate the full spectrum | of expertise required | for the creation of a complete song—
 
-Computational Creativity | can also be defined | as the computational analysis | or synthesis of works of art, | in a partially | or fully automated way.
+including the vocal performance, | expressive rendition, | and automated music production.
 
-Analysis. | Synthesis. | Partial. | Full.
+[PAUSE]
 
-The spectrum is wide.
+As we aspire | to create autonomous songwriters, | artists and hobbyists alike | are thirsty for our help.
 
-At one end: | tools that assist.
+Even if we had access | to a fully autonomous songwriter, | it would not replace the need | for a corresponding | co-creative system.
 
-At the other: | systems that originate.
+[HOLD]
 
-In the middle: | the most interesting space.
+Whereas an autonomous songwriter | could be used | when complete works are desired,
 
-The space | where human and machine meet.
+a co-creative variation | would satisfy the human need | for music making—
 
-Where intention meets generation.
+much like the difference | between the joys | of eating | and cooking.
 
-Where taste meets possibility.
+[PAUSE]
 
-This is where the new forms emerge.`
+A co-creative algorithmic songwriter | would expand | our creative repertoire,
+
+making songwriting accessible | to those who cannot otherwise | enjoy this art-form.
+
+[HOLD]
+
+In the development | of a co-creative songwriting system, | it is desired | that the users | retain creative control,
+
+allowing them to claim ownership | of the resulting works, | or at least experience the process | as an expression of creativity.
+
+The goal is to relieve the burden | of having to master | all of the diverse skills | needed for the creation of a song,
+
+giving users the freedom | to focus on aspects | of the creative process | in which they either specialize | or find most enjoyable.`
   },
 
   {
-    id: 'creative-machines-reflection',
-    name: 'Creative Machines: A Reflection',
+    id: 'humble-machine-thesis',
+    name: 'The Humble Creative Machine',
     curve: 'induction',
-    category: 'philosophy',
-    description: 'On the true capabilities and limitations of generative AI.',
-    wpm: 170,
-    audioPreset: 'gateway',
-    content: `We must cut through the hype.
+    category: 'ICCC · 2021',
+    description: 'A machine less concerned with proving its own independence than with cultivating yours.',
+    wpm: 280,
+    audioPreset: 'silent',
+    soundscape: 'faded-signal',
+    source: {
+      title: 'The Humble Creative Machine',
+      authors: 'Christopher Cassion, Margareta Ackerman, Anna Jordanous',
+      venue: 'ICCC 2021',
+      year: 2021,
+      section: 'Abstract & Introduction'
+    },
+    visualConfig: {
+      visualMode: 'interlocution',
+      interlocution: {
+        sourceFamily: 'procedural',
+        procedural: ['fractal'],
+        sourced: [],
+        frequency: 0.22,
+        duration: 1000,
+        presentation: 'behind-stream',
+        streamGlass: true
+      }
+    },
+    content: `In this paper, | we present a fresh perspective | at co-creativity.
 
-Generative AI | has true capabilities.
+Using human development | as a blueprint, | we argue that fostering | human creativity | is a natural evolution | of creative machines.
 
-It also has true limitations.
+[PAUSE]
 
-The hype obscures both.
+We introduce the notion | of a "humble" creative machine—
 
-Let us be clear | about what these systems can do:
+one that is less concerned | with demonstrating | its own independence,
 
-They can traverse | vast spaces of possibility.
+and instead uses | its potentially advanced | creative abilities | to cultivate | human creativity.
 
-They can suggest combinations | no human would stumble upon.
+[HOLD]
 
-They can iterate tirelessly.
+The Association of Computational Creativity | website states:
 
-They can learn patterns | from the accumulated | creative output of humanity.
+the goal of computational creativity | is to model, | simulate | or replicate creativity | using a computer,
 
-Let us also be clear | about what they cannot do:
+to design programs | that can enhance | human creativity.
 
-They do not understand meaning.
+[PAUSE]
 
-They do not feel the weight | of a word.
+In practice, however, | the quoted aim | appears to have been de-emphasized | over the past decade or two.
 
-They do not know | why one melody moves us | and another does not.
+[HOLD]
 
-They do not have taste.
+This stage in the development | of Computational Creativity | mirrors an analogous stage | in human development,
 
-But here is the insight | that changes everything:
+where a child | begins to differentiate | from their parents | and form their own identity.
 
-They do not need to.
+[PAUSE]
 
-Because you do.
+Individuation is of course | not the final stage | of human development.
 
-You have meaning. | You feel weight. | You know what moves you. | You have taste.
+When a person reaches individuation, | they soon begin to move | towards taking care of others—
 
-The machine offers. | You choose.
+often in the form of parenting.
 
-The machine generates. | You curate.
+Analogously, | we would like to propose | that Autonomous Creativity | is not the final aim | of Computational Creativity.
 
-The machine expands. | You direct.
+[HOLD]
 
-This is not a diminishment of AI.
+Another apt analogy | comes from academia.
 
-This is an accurate understanding | of its role.
+A PhD student | will often initiate her studies | by learning from her advisor, | relying on the supervisor's vision | and ideas.
 
-And in that understanding, | its potential to amplify | human creativity | becomes clear.
+As the student progresses | in her studies, | she gradually develops | more of her own ideas,
 
-Not replacement.
+and eventually becomes | an independent researcher, | often ending up with different views | and research interests | from their advisor.
 
-Amplification.
+[PAUSE]
 
-The creative machine | is not creative alone.
+If the student stays in academia, | before long, | she will take on students | of her own,
 
-The creative machine | is creative with us.`
+and generously share | her own vision | in order to help | the development of her students.
+
+Confident in her own | research abilities, | she lets her students | take the spotlight.
+
+[HOLD]
+
+In this paper, | we propose | that Computational Creativity | is now sufficiently advanced | to take on | the mentorship role.
+
+The autonomous | and mentorship roles | need not be conflicting.`
   },
 
   {
-    id: 'the-co-creative-future',
-    name: 'The Co-Creative Future',
+    id: 'humble-machine-characteristics',
+    name: 'Flexibility, Learning, Independence',
+    curve: 'wave',
+    category: 'ICCC · 2021',
+    description: 'The criteria: a machine that meets you at your level, then steps back as you grow.',
+    wpm: 290,
+    audioPreset: 'silent',
+    soundscape: 'faded-signal',
+    source: {
+      title: 'The Humble Creative Machine',
+      authors: 'Christopher Cassion, Margareta Ackerman, Anna Jordanous',
+      venue: 'ICCC 2021',
+      year: 2021,
+      section: '§Humble Creative Machines — Flexibility, Learning & Independence, Creative'
+    },
+    visualConfig: {
+      visualMode: 'interlocution',
+      interlocution: {
+        sourceFamily: 'procedural',
+        procedural: ['neural'],
+        sourced: [],
+        frequency: 0.22,
+        duration: 1000,
+        presentation: 'behind-stream',
+        streamGlass: true
+      }
+    },
+    content: `These criteria, | at their core, | allow the system | and its interactions | to focus on the user | and the user's capabilities
+
+rather than the machine | and what it can | independently.
+
+[HOLD]
+
+FLEXIBILITY
+
+We propose that humble creative machines | should be flexible | in a couple of ways.
+
+The first is flexibility | in its range of interaction.
+
+Ideally, the system should be able | to either do all of the work— | autonomous— | or none of the work— | support tool— | and everything in between.
+
+[PAUSE]
+
+For the novice | who requires | a more guided approach, | the system can offer | heavy support.
+
+Meanwhile, for the expert | who only needs | occasional inspiration, | the system may take | a more passive role,
+
+and be available for the user | as much and when needed.
+
+[PAUSE]
+
+The second type of flexibility | is in the quality | of the output.
+
+Being capable | of sophisticated creative artefacts, | the humble creative machine | is able to consistently provide | expert level engagement | to a user.
+
+However, | the machine should be able | to reduce its own level of expertise | to better meet the user | at their current level | of creative development.
+
+[HOLD]
+
+LEARNING AND INDEPENDENCE
+
+With flexibility, | the system is able | to gradually adjust | its level of interaction | and quality of outputs | to meet the user | at their level of expertise.
+
+This offers | a gradual learning apparatus | tailored to the user.
+
+Similar to teaching | or coaching scenarios, | the system can bridge the gap | in knowledge and expertise.
+
+[PAUSE]
+
+This can gradually change over time | as the user becomes | more of an expert | and needs the system | less and less.
+
+As such, | it is crucial | that the system is able | to step back
+
+and allow the user | to engage more deeply | in the creative process | as they gain | the ability to do so.
+
+[HOLD]
+
+CREATIVE
+
+Being a creative system, | a humble creative machine | should be capable | of making creative contributions | in its co-creative interactions.
+
+At minimum, | it should satisfy P-creativity, | having the ability | to come up with surprising, | valuable ideas | that are new to itself.
+
+We further suggest | that a humble creative machine | should be able to produce output | that is surprising, | valuable, | and new | to their human partner.
+
+[PAUSE]
+
+The "humbleness" of the machine | stems from its willingness | to step aside | and reduce | their own creative contribution
+
+when this would better serve | to cultivate the creative abilities | of their human partner,
+
+and fostering independence— | that is, | helping the user | to develop creative abilities | to the point | that the machine | becomes unnecessary.`
+  },
+
+  {
+    id: 'sovia-into-the-painting',
+    name: 'Into the Painting',
+    curve: 'induction',
+    category: 'SOVIA · Monet',
+    description: 'SOVIA gives Monet\'s landscapes a voice: chimes for flowers, herding bells for hills.',
+    wpm: 280,
+    audioPreset: 'silent',
+    soundscape: 'faded-signal',
+    source: {
+      title: 'SOVIA: Sonification of Visual Interactive Art',
+      authors: 'Lauryn Gayhardt, Margareta Ackerman',
+      venue: 'Santa Clara University',
+      year: 2022,
+      section: 'Abstract & Introduction'
+    },
+    visualConfig: {
+      visualMode: 'interlocution',
+      interlocution: {
+        sourceFamily: 'blend',
+        procedural: ['turrell'],
+        sourced: ['aic-impressionism', 'aic-landscapes'],
+        frequency: 0.24,
+        duration: 1400,
+        presentation: 'behind-stream',
+        streamGlass: true
+      }
+    },
+    content: `This paper presents SOVIA, | an interactive system | that endows Claude Monet's art | with responsive | auditory experiences.
+
+SOVIA uses computer vision | trained on Monet's artwork | to take the user | "into the painting."
+
+[PAUSE]
+
+When the user interacts | with a digital version | of Monet's landscapes,
+
+their mouse positions | are mapped to sounds | that artistically represent | the objects | that the user | is currently exploring in the art.
+
+These interactive musical journeys | have the potential | to make classical art | more captivating | for modern audiences.
+
+[HOLD]
+
+Visual art uses color, | light, | texture, | and stroke techniques | to convey the mood, | tone, | and meaning | of the artwork.
+
+Every layer of information | aids in expressing | the artist's intent.
+
+Adding music and sound | to a painting | can assist in creating | more depth, | strengthen existing themes,
+
+and convert | a consumption-based experience | to an interactive one.
+
+[PAUSE]
+
+Monet was a French impressionist artist | and the first | to paint outside the studio.
+
+He aimed to capture | "what is seen | rather than what is known."
+
+[HOLD]
+
+Instead of trying | to accurately reproduce | the scene before him | in detail,
+
+Monet aimed to record | on the spot | the impression | that relaxed, | momentary vision | might receive—
+
+what is seen | rather than what is known, | with all its vitality | and movement.
+
+[PAUSE]
+
+To reflect this balance | of the literal | and metaphorical, | SOVIA adds | an auditory dimension | that intermixes real sounds | with musical elements.
+
+[HOLD]
+
+When the user glides their mouse | over a hill | they will hear sounds | of herding bells | through the background music.
+
+If the user's mouse wanders | over flowers, | chimes will play,
+
+similar to what one may hear | in a garden | as a soft wind | floats by.
+
+[PAUSE]
+
+This mixture of music | with realistic | and associated sounds | creates an experience | that mimics realistic elements | in the art,
+
+while reflecting | the gentle artistic reinterpretation | of those objects | through sound.
+
+[HOLD]
+
+We hope that the process | proposed here | will inspire more research | into how creative machine agents | can be used | to enliven | classical art forms.`
+  },
+
+  {
+    id: 'viflow-freedom-of-movement',
+    name: 'Freedom of Movement',
     curve: 'ascent',
-    category: 'vision',
-    description: 'A vision of human-AI creative partnership.',
-    wpm: 220,
-    audioPreset: 'gateway',
-    content: `Imagine a future | where millions of creators | express themselves—
+    category: 'ViFlow · Dance',
+    description: 'Augmented reality that follows the dancer, instead of making the dancer follow the video.',
+    wpm: 310,
+    audioPreset: 'silent',
+    soundscape: 'faded-signal',
+    source: {
+      title: 'Interactive Augmented Reality for Dance',
+      authors: 'Taylor Brockhoeft, Jennifer Petuch, James Bach, Emil Djerekarov, Margareta Ackerman, Gary Tyson',
+      venue: 'ICCC 2016 · Florida State University',
+      year: 2016,
+      section: 'Abstract, Introduction & Conclusions'
+    },
+    visualConfig: {
+      visualMode: 'interlocution',
+      interlocution: {
+        sourceFamily: 'blend',
+        procedural: ['klee', 'harmonograph'],
+        harmonographClimate: 'auto',
+        sourced: ['aic-postimpressionism'],
+        frequency: 0.26,
+        duration: 200,
+        presentation: 'full-frame'
+      }
+    },
+    content: `Like the overlap | in a Venn diagram, | shared kinesthetic | and intellectual constructs
 
-Not despite AI, | but through it.
+from the field of dance | and the field of technology | will reinforce | and enhance one another,
 
-With it.
+resulting in | an ultimately deepened experience | for both viewer | and performer.
 
-Alongside it.
+[HOLD]
 
-The songwriter | who never learned music theory | finds melodies flowing | through algorithmic suggestion.
+With the rise of the digital age, | dancers and choreographers | started looking for new ways | to connect with younger audiences.
 
-The poet | who struggles with form | discovers structures | that carry their meaning further.
+This led to the growing popularity | of multimedia performances | where digitally projected spaces | appear to be influenced | by dancers' movements.
 
-The artist | who sees images | they cannot render | finds a system | that can translate vision | into visible.
+[PAUSE]
 
-This is not the death | of human creativity.
+Unfortunately | current approaches, | such as reliance | on pre-rendered videos, | merely create | the illusion of interaction
 
-This is its democratization.
+when in fact the dancers | are actually closely synchronized | with the multimedia display | to create the illusion.
 
-The tools of creation, | once gated | by years of technical training, | become accessible to anyone | with something to say.
+[PAUSE]
 
-And everyone | has something to say.
+This calls for | unprecedented accuracy | of movement and timing | on the part of the dancers,
 
-The question was never | whether AI could be creative.
+which increases cost | and rehearsal time, | as well as greatly limits | the dancers' creative expression.
 
-The question was always: | what happens | when AI creativity | and human creativity meet?
+[HOLD]
 
-The answer is emerging now.
+The dancers must rehearse extensively | to stay in sync | with the video.
 
-In studios | and bedrooms | and classrooms | around the world.
+This approach restricts | the range of motion | available to dancers | as they must align | with a precise location | and timing.
 
-In the hands of professionals | and amateurs alike.
+This not only sets limits | on improvisation, | but restricts the development | of creative expression | and movement invention.
 
-In the space between | intention and generation.
+If a dancer | even slightly misses a cue, | the illusion is ineffective | and distracting | for the viewer.
 
-The co-creative future | is not coming.
+[PAUSE]
 
-It is here.
+We propose | the first truly interactive solution | for integrating digital spaces | into dance performance: | ViFlow.
 
-You are living in it.
+Our approach is simple, | cost effective, | and fully interactive | in real-time,
 
-You are shaping it.
+allowing the dancers | to retain full freedom | of movement | and creative expression.
 
-Every choice you make— | to use these tools, | to direct them, | to curate their outputs—
+[HOLD]
 
-Is a choice that defines | what human-AI creativity becomes.
+A movement-based language | enables choreographers | to directly interact with ViFlow,
 
-The machine learns from us.
+empowering them | to independently create | fully interactive, | live augmented reality productions.
 
-We learn from the machine.
+[PAUSE]
 
-Together, | we become something | neither could be alone.
+This is achieved | by moving the creation | of visual projection effects | from the computer keyboard | to the performance stage,
 
-This is the promise.
+in a manner | more closely matching | the dance choreographic construction.
 
-This is the work.
+[HOLD]
 
-This is the future | we are building.`
+The use of ViFlow | empowers dancers | to explore visualization techniques | dynamically,
+
+at the same time | and in the same manner | as they explore dance technique | and movement invention | in the construction | of a new performance.
+
+[PAUSE]
+
+Through digital technology, | dance thrives.`
   }
 ];
 
-// Archetype tuned for research-oriented reading
+// Archetype tuned for research-oriented reading. Individual sequences
+// carry their own visual identity; this is the house style they inherit
+// from when they do not state one.
 export const VAULT_A_ARCHETYPE = {
   id: 'researcher',
   name: 'The Researcher',
@@ -253,21 +559,31 @@ export const VAULT_A_ARCHETYPE = {
   description: 'Optimized for absorbing academic and philosophical content. Balanced pacing allows for both comprehension and reflection.',
   textSeed: 'Computational Creativity Research',
   config: {
-    wpm: 390,
+    wpm: 290,
     curve: 'wave',
-    audioPreset: 'focus',
+    // Faded Signal throughout: a soundscape is a finished mix, so the
+    // pure-tone preset rests (exclusive beds)
+    audioPreset: 'silent',
+    soundscape: 'faded-signal',
     visualConfig: {
       visualMode: 'interlocution',
       interlocution: {
         sourceFamily: 'procedural',
-        // Fractal Flames + Neural Networks - both procedurally generated
-        // Neural networks thematically aligned with the vault content
         procedural: ['fractal', 'neural'],
         sourced: [],
-        frequency: 0.30,
-        duration: 150
+        frequency: 0.22,
+        duration: 1000,
+        presentation: 'behind-stream',
+        streamGlass: true
       }
     }
   },
-  sequences: ['alysia-origins', 'computational-creativity-defined', 'creative-machines-reflection', 'the-co-creative-future']
+  sequences: [
+    'alysia-co-creative-process',
+    'alysia-eating-and-cooking',
+    'humble-machine-thesis',
+    'humble-machine-characteristics',
+    'sovia-into-the-painting',
+    'viflow-freedom-of-movement'
+  ]
 };

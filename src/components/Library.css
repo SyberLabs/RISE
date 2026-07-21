@@ -260,6 +260,32 @@
   letter-spacing: 0.02em;
 }
 
+/* Provenance line on a personalized sequence: the paper this passage
+   was drawn from. Quiet by default, legible on hover — it is a
+   citation, not a headline. */
+.sequence-source {
+  margin: calc(-1 * var(--space-xs)) 0 0;
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em;
+  align-items: baseline;
+  padding-left: var(--space-sm);
+  border-left: 1px solid var(--color-shadow);
+  transition: border-color var(--transition-fast) var(--ease-default);
+}
+
+.sequence-card:hover .sequence-source {
+  border-left-color: var(--color-threshold);
+}
+
+.sequence-source-title {
+  color: var(--color-fog);
+  font-style: italic;
+}
+
 .sequence-actions {
   display: flex;
   gap: var(--space-sm);

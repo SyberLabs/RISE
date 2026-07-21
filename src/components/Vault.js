@@ -289,22 +289,36 @@ export class Vault {
 
   renderPersonalizedSequenceCard(seq, archetype) {
     const wordCount = seq.content.split(/\s+/).length;
-    const wpm = archetype?.config?.wpm || seq.wpm || 200;
+    // The sequence's own pace wins — it is what actually launches
+    const wpm = seq.wpm || archetype?.config?.wpm || 200;
     const duration = Math.floor((wordCount / wpm) * 60 * 1000);
+
+    // Provenance is part of the reading, not a footnote: a vault of
+    // someone's own work must say which paper each passage came from.
+    const source = seq.source
+      ? `
+        <p class="sequence-source text-mist font-mono">
+          <span class="sequence-source-title">${escapeHtml(seq.source.title)}</span>
+          <span class="meta-separator">·</span>
+          <span>${escapeHtml(String(seq.source.venue || ''))}</span>
+          ${seq.source.year ? `<span class="meta-separator">·</span><span>${escapeHtml(String(seq.source.year))}</span>` : ''}
+        </p>`
+      : '';
 
     return `
       <div class="sequence-card card card-interactive" data-personalized-seq="${seq.id}">
         <div class="sequence-header">
-          <h3 class="sequence-title text-light">${seq.name}</h3>
-          <span class="sequence-intent text-threshold text-uppercase">${seq.category || 'curated'}</span>
+          <h3 class="sequence-title text-light">${escapeHtml(seq.name)}</h3>
+          <span class="sequence-intent text-threshold text-uppercase">${escapeHtml(seq.category || 'curated')}</span>
         </div>
-        <p class="sequence-description text-fog">${seq.description}</p>
+        <p class="sequence-description text-fog">${escapeHtml(seq.description)}</p>
+        ${source}
         <div class="sequence-meta text-fog font-mono" style="margin-top: 1rem; align-items: center; display: flex; gap: 0.5rem;">
           <span>${this.formatDuration(duration)}</span>
           <span class="meta-separator">·</span>
           <span>${wpm} WPM</span>
           <span class="meta-separator">·</span>
-          <span>${seq.curve || archetype?.config?.curve || 'wave'}</span>
+          <span>${escapeHtml(seq.curve || archetype?.config?.curve || 'wave')}</span>
         </div>
         <div class="sequence-actions" style="margin-top: 1.5rem;">
           <button class="btn-primary" data-action="launch-personalized" data-seq-id="${seq.id}">Experience</button>
@@ -630,12 +644,18 @@ export class Vault {
 
     const archetype = vault.archetype;
 
-    // Merge archetype config with sequence
+    // Merge archetype config with sequence. A personalized sequence may
+    // carry its own sensory identity — the archetype is the house style,
+    // the sequence is the specific room. Anything the sequence states
+    // explicitly wins; anything it omits inherits.
     const mergedConfig = {
       ...archetype.config,
-      wpm: archetype.config.wpm || sequence.wpm,
-      curve: archetype.config.curve || sequence.curve,
+      wpm: sequence.wpm || archetype.config.wpm,
+      curve: sequence.curve || archetype.config.curve,
       audioPreset: sequence.audioPreset || archetype.config.audioPreset,
+      ...(sequence.soundscape ? { soundscape: sequence.soundscape } : {}),
+      ...(sequence.chunkMode ? { chunkMode: sequence.chunkMode } : {}),
+      ...(sequence.visualConfig ? { visualConfig: sequence.visualConfig } : {})
     };
 
     // Emit combined launch
