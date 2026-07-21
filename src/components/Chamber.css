@@ -544,6 +544,54 @@
   opacity: 0.72;
 }
 
+/* Kaleidoscope: the first control that applies and un-applies mid-read.
+   Dim until engaged, then lit — the button reports the field's state. */
+.kaleidoscope-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 7.5rem;
+  color: var(--color-fog);
+  opacity: 0.72;
+  transition: color var(--transition-fast) var(--ease-default),
+    opacity var(--transition-fast) var(--ease-default),
+    text-shadow var(--transition-normal) var(--ease-default);
+}
+
+.kaleidoscope-toggle .control-label {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.kaleidoscope-toggle:hover {
+  color: var(--color-cloud);
+  opacity: 1;
+}
+
+.kaleidoscope-toggle.is-engaged {
+  color: var(--color-light);
+  opacity: 1;
+  text-shadow: 0 0 12px rgba(199, 210, 255, 0.45);
+}
+
+.kaleidoscope-toggle.is-engaged .icon {
+  /* A slow turn, never a spin: it echoes the rosette without
+     competing with the reading for attention. */
+  display: inline-block;
+  animation: kaleidoscope-turn 24s linear infinite;
+}
+
+@keyframes kaleidoscope-turn {
+  to { transform: rotate(360deg); }
+}
+
+:root.reduced-motion .kaleidoscope-toggle.is-engaged .icon,
+:root.photosensitivity-mode .kaleidoscope-toggle.is-engaged .icon {
+  animation: none;
+}
+
 :root.hide-session-progress .chamber-progress {
   display: none;
 }

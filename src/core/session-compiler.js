@@ -37,6 +37,9 @@ const CURVES = Object.freeze({
     climax: () => StateCurve.climax()
 });
 const VISUAL_MODES = new Set(['off', 'focals', 'attractor', 'genesis', 'interlocution']);
+const ATTRACTOR_SYSTEM_IDS = new Set(['aizawa', 'thomas', 'halvorsen']);
+const ATTRACTOR_PALETTE_SET = new Set(['white', 'red', 'blue', 'gold', 'purple']);
+const ATTRACTOR_FORM_SET = new Set(['mirror', 'kaleido', 'bilateral']);
 const KLEE_PRESETS = new Set(['random', 'architectural', 'chaotic', 'harmonic', 'gravitational', 'twittering']);
 
 function finiteNumber(value, fallback) {
@@ -102,12 +105,25 @@ export function normalizeVisualConfig(value = {}) {
         procedural: uniqueIds(raw.procedural),
         sourced: uniqueIds(raw.sourced)
     });
+    // Attractor is a persistent field, not a rhythmic interrupt: its
+    // settings travel in their own block. Saved or imported values must
+    // be validated here or an unknown id silently degrades the field.
+    const rawAttractor = input.attractor && typeof input.attractor === 'object'
+        ? input.attractor
+        : {};
+
     return {
         ...input,
         consentScope: typeof input.consentScope === 'string'
             ? input.consentScope.slice(0, 160)
             : undefined,
         visualMode,
+        attractor: {
+            ...rawAttractor,
+            system: ATTRACTOR_SYSTEM_IDS.has(rawAttractor.system) ? rawAttractor.system : 'aizawa',
+            palette: ATTRACTOR_PALETTE_SET.has(rawAttractor.palette) ? rawAttractor.palette : 'white',
+            form: ATTRACTOR_FORM_SET.has(rawAttractor.form) ? rawAttractor.form : 'mirror'
+        },
         interlocution: {
             ...raw,
             ...selection,

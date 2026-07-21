@@ -66,9 +66,64 @@ const HEADS = [
     { speed: 0.071, phase: 0.73, peak: 0.62 }
 ];
 
-// white filament + a cooler twin for the mirror form
-const CORE_PASSES = [{ w: 2.6, mul: 0.5, col: '200,222,255' }, { w: 0.7, mul: 1.0, col: '255,255,255' }];
-const TWIN_PASSES = [{ w: 2.6, mul: 0.5, col: '120,150,205' }, { w: 0.7, mul: 1.0, col: '182,206,245' }];
+/**
+ * Filament palettes.
+ *
+ * Each is a two-pass structure: a WIDE, dim halo underneath and a NARROW,
+ * bright core on top. That pairing is what makes a 1px line read as
+ * luminous rather than merely thin — the halo is the light in the air
+ * around the filament.
+ *
+ * `twin` is the cooler mirror form, `head` the travelling pulse. Colored
+ * palettes keep their cores near-white at the very center so the pulse
+ * still reads as light rather than as paint; the hue lives in the halo.
+ */
+const PALETTES = {
+    white: {
+        name: 'White',
+        core: [{ w: 2.6, mul: 0.5, col: '200,222,255' }, { w: 0.7, mul: 1.0, col: '255,255,255' }],
+        twin: [{ w: 2.6, mul: 0.5, col: '120,150,205' }, { w: 0.7, mul: 1.0, col: '182,206,245' }],
+        head: ['255,255,255', '210,230,255', '120,170,255']
+    },
+    red: {
+        name: 'Red',
+        core: [{ w: 2.8, mul: 0.5, col: '196,44,40' }, { w: 0.7, mul: 1.0, col: '255,196,170' }],
+        twin: [{ w: 2.8, mul: 0.5, col: '120,26,30' }, { w: 0.7, mul: 1.0, col: '226,130,110' }],
+        head: ['255,236,222', '255,138,96', '190,30,30']
+    },
+    blue: {
+        name: 'Blue',
+        core: [{ w: 2.8, mul: 0.5, col: '44,110,220' }, { w: 0.7, mul: 1.0, col: '198,226,255' }],
+        twin: [{ w: 2.8, mul: 0.5, col: '26,62,140' }, { w: 0.7, mul: 1.0, col: '130,170,226' }],
+        head: ['244,250,255', '120,186,255', '20,70,200']
+    },
+    gold: {
+        name: 'Gold',
+        core: [{ w: 2.8, mul: 0.5, col: '196,132,26' }, { w: 0.7, mul: 1.0, col: '255,232,176' }],
+        twin: [{ w: 2.8, mul: 0.5, col: '120,78,20' }, { w: 0.7, mul: 1.0, col: '224,180,110' }],
+        head: ['255,248,226', '255,200,90', '190,120,20']
+    },
+    purple: {
+        name: 'Purple',
+        core: [{ w: 2.8, mul: 0.5, col: '128,72,214' }, { w: 0.7, mul: 1.0, col: '224,204,255' }],
+        twin: [{ w: 2.8, mul: 0.5, col: '74,40,130' }, { w: 0.7, mul: 1.0, col: '166,140,220' }],
+        head: ['248,242,255', '178,132,255', '90,40,190']
+    }
+};
+
+const DEFAULT_PALETTE = 'white';
+
+/**
+ * Forms the filament can take. `mirror` is the original 3D twin; the
+ * others are symmetry operations applied to the same projected points,
+ * so switching between them costs nothing but a different draw pass.
+ */
+const FORMS = ['mirror', 'kaleido', 'bilateral'];
+
+// Kaleidoscope: dihedral rosette. Each of M sectors is drawn twice,
+// reflected, which is what closes the rosette into a seamless mandala.
+const KALEIDO_SECTORS = 6;
+const KALEIDO_MUL = 0.52;
 
 const wrap01 = v => v - Math.floor(v);
 
@@ -77,11 +132,15 @@ export class AttractorField {
      * @param {HTMLElement} host - positioned container the canvas fills
      * @param {Object} options
      * @param {string} options.system - 'aizawa' | 'thomas' | 'halvorsen'
+     * @param {string} options.palette - 'white' | 'red' | 'blue' | 'gold' | 'purple'
+     * @param {string} options.form - 'mirror' | 'kaleido' | 'bilateral'
      * @param {number} options.intensity - master brightness multiplier (default 0.65, keeps text legible)
      */
     constructor(host, options = {}) {
         this.host = host;
         this.system = SYSTEMS[options.system] ? options.system : 'aizawa';
+        this.palette = PALETTES[options.palette] ? options.palette : DEFAULT_PALETTE;
+        this.form = FORMS.includes(options.form) ? options.form : 'mirror';
         this.intensity = options.intensity ?? 0.65;
         this.reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -193,15 +252,16 @@ export class AttractorField {
 
     drawHeads(X, Y, hp, mul, flick) {
         const ctx = this.ctx;
+        const [hot, mid, cold] = PALETTES[this.palette].head;
         for (let k = 0; k < HEADS.length; k++) {
             const idx = Math.min(this.N - 1, (hp[k] * this.N) | 0);
             const hx = X[idx], hy = Y[idx];
             const rad = (2.0 + HEADS[k].peak * 2.2) * 4;
             const ha = HEADS[k].peak * flick * mul * this.intensity;
             const g = ctx.createRadialGradient(hx, hy, 0, hx, hy, rad);
-            g.addColorStop(0, `rgba(255,255,255,${0.9 * ha})`);
-            g.addColorStop(0.3, `rgba(210,230,255,${0.35 * ha})`);
-            g.addColorStop(1, 'rgba(120,170,255,0)');
+            g.addColorStop(0, `rgba(${hot},${0.9 * ha})`);
+            g.addColorStop(0.3, `rgba(${mid},${0.35 * ha})`);
+            g.addColorStop(1, `rgba(${cold},0)`);
             ctx.fillStyle = g;
             ctx.beginPath();
             ctx.arc(hx, hy, rad, 0, Math.PI * 2);
@@ -248,6 +308,7 @@ export class AttractorField {
         const CX = this.W / 2, CY = this.H / 2;
 
         const hp = HEADS.map(h => wrap01(t * h.speed + h.phase));
+        const needTwin = this.form === 'mirror';
 
         // project + brightness for base form and mirror twin
         for (let i = 0; i < N; i++) {
@@ -270,35 +331,66 @@ export class AttractorField {
             }
             this.briB[i] = 0.06 + flow + 0.05 * (persp - 0.85);
 
-            const mx = -ax;
-            const X1 = mx * cyA + az * syA, Z1 = -mx * syA + az * cyA;
-            const Y2 = y1 * cxA - Z1 * sxA, Z2 = y1 * sxA + Z1 * cxA;
-            const persp2 = this.focal / (this.focal + Z2);
-            this.sx2[i] = X1 * scale * persp2;
-            this.sy2[i] = Y2 * scale * persp2;
-            this.briT[i] = 0.045 + 0.9 * flow + 0.05 * (persp2 - 0.85);
+            // Only the mirror form needs the reflected twin projection;
+            // kaleido and bilateral are symmetry operations on the base
+            // points, so skipping this halves their per-frame math.
+            if (needTwin) {
+                const mx = -ax;
+                const X1 = mx * cyA + az * syA, Z1 = -mx * syA + az * cyA;
+                const Y2 = y1 * cxA - Z1 * sxA, Z2 = y1 * sxA + Z1 * cxA;
+                const persp2 = this.focal / (this.focal + Z2);
+                this.sx2[i] = X1 * scale * persp2;
+                this.sy2[i] = Y2 * scale * persp2;
+                this.briT[i] = 0.045 + 0.9 * flow + 0.05 * (persp2 - 0.85);
+            }
         }
 
         this.bucketize(this.briB, this.bktsB);
-        this.bucketize(this.briT, this.bktsT);
+        if (needTwin) this.bucketize(this.briT, this.bktsT);
 
+        const palette = PALETTES[this.palette];
         const ctx = this.ctx;
         ctx.setTransform(this.DPR, 0, 0, this.DPR, 0, 0);
         ctx.globalCompositeOperation = 'source-over';
         ctx.clearRect(0, 0, this.W, this.H);
         ctx.globalCompositeOperation = 'lighter';
 
-        ctx.save();
-        ctx.translate(CX, CY);
-        this.strokeForm(this.sx, this.sy, this.bktsB, CORE_PASSES, 1.0, flick);
-        this.drawHeads(this.sx, this.sy, hp, 1.0, flick);
-        ctx.restore();
+        if (this.form === 'kaleido') {
+            // Dihedral rosette: every sector drawn twice, once reflected,
+            // which closes the figure into a seamless mandala.
+            for (let k = 0; k < KALEIDO_SECTORS; k++) {
+                for (let r = 1; r >= -1; r -= 2) {
+                    ctx.save();
+                    ctx.translate(CX, CY);
+                    ctx.rotate((k * 2 * Math.PI) / KALEIDO_SECTORS);
+                    ctx.scale(1, r);
+                    this.strokeForm(this.sx, this.sy, this.bktsB, palette.core, KALEIDO_MUL, flick);
+                    this.drawHeads(this.sx, this.sy, hp, KALEIDO_MUL * 0.9, flick);
+                    ctx.restore();
+                }
+            }
+        } else if (this.form === 'bilateral') {
+            for (let s = 1; s >= -1; s -= 2) {
+                ctx.save();
+                ctx.translate(CX, CY);
+                ctx.scale(s, 1);
+                this.strokeForm(this.sx, this.sy, this.bktsB, palette.core, 1.0, flick);
+                this.drawHeads(this.sx, this.sy, hp, 1.0, flick);
+                ctx.restore();
+            }
+        } else {
+            ctx.save();
+            ctx.translate(CX, CY);
+            this.strokeForm(this.sx, this.sy, this.bktsB, palette.core, 1.0, flick);
+            this.drawHeads(this.sx, this.sy, hp, 1.0, flick);
+            ctx.restore();
 
-        ctx.save();
-        ctx.translate(CX, CY);
-        this.strokeForm(this.sx2, this.sy2, this.bktsT, TWIN_PASSES, 0.6, flick);
-        this.drawHeads(this.sx2, this.sy2, hp, 0.5, flick);
-        ctx.restore();
+            ctx.save();
+            ctx.translate(CX, CY);
+            this.strokeForm(this.sx2, this.sy2, this.bktsT, palette.twin, 0.6, flick);
+            this.drawHeads(this.sx2, this.sy2, hp, 0.5, flick);
+            ctx.restore();
+        }
 
         ctx.globalCompositeOperation = 'source-over';
         this.rafId = requestAnimationFrame(this.tick);
@@ -311,6 +403,46 @@ export class AttractorField {
         if (!SYSTEMS[system] || system === this.system) return;
         this.system = system;
         this.integrate();
+    }
+
+    /**
+     * Recolor the filament in place. Costs nothing but the next frame:
+     * the geometry is untouched, only the stroke colors change.
+     * @returns {boolean} whether the palette changed
+     */
+    setPalette(palette) {
+        if (!PALETTES[palette] || palette === this.palette) return false;
+        this.palette = palette;
+        return true;
+    }
+
+    /**
+     * Change the symmetry form in place — this is the mid-session
+     * control. Nothing is re-integrated and no frame is dropped; the
+     * next tick simply draws the same points through a different
+     * symmetry, so the filament appears to fold or unfold.
+     * @returns {boolean} whether the form changed
+     */
+    setForm(form) {
+        if (!FORMS.includes(form) || form === this.form) return false;
+        this.form = form;
+        return true;
+    }
+
+    /**
+     * Toggle the kaleidoscope, restoring whichever form was showing
+     * before it was engaged (so the reader gets their session back,
+     * not a hardcoded default).
+     * @returns {boolean} whether the kaleidoscope is now engaged
+     */
+    toggleKaleidoscope() {
+        if (this.form === 'kaleido') {
+            this.setForm(this._formBeforeKaleido || 'mirror');
+            return false;
+        }
+        this._formBeforeKaleido = this.form;
+        this.setForm('kaleido');
+        return true;
     }
 
     destroy() {
@@ -330,3 +462,19 @@ export const ATTRACTOR_SYSTEMS = [
     { id: 'thomas', name: 'Thomas', icon: '∿', description: 'Cyclically symmetric weave — slow, looping lattice' },
     { id: 'halvorsen', name: 'Halvorsen', icon: '❋', description: 'Threefold sweep — spiral arms in rotational symmetry' }
 ];
+
+/**
+ * Selectable filament colors, for settings UI. `swatch` is the color the
+ * chip shows — the bright core, since that is what the eye reads as the
+ * filament's identity.
+ */
+export const ATTRACTOR_PALETTES = [
+    { id: 'white', name: 'White', swatch: '#ffffff' },
+    { id: 'red', name: 'Red', swatch: '#ffc4aa' },
+    { id: 'blue', name: 'Blue', swatch: '#c6e2ff' },
+    { id: 'gold', name: 'Gold', swatch: '#ffe8b0' },
+    { id: 'purple', name: 'Purple', swatch: '#e0ccff' }
+];
+
+export const ATTRACTOR_PALETTE_IDS = ATTRACTOR_PALETTES.map(p => p.id);
+export const ATTRACTOR_FORMS = FORMS;

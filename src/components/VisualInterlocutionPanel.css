@@ -865,6 +865,76 @@
     gap: var(--space-sm);
 }
 
+/* Filament color — the swatch IS the choice, so the dot carries the
+   color at full strength and the label stays quiet beneath it. */
+.vi-attractor-palette {
+    margin-top: var(--space-md);
+}
+
+.vi-attractor-swatches {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 1px;
+    padding: 1px;
+    background: var(--color-shadow);
+}
+
+.vi-attractor-swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    padding: 10px 4px;
+    border: 0;
+    background: var(--color-abyss);
+    color: var(--color-mist);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: color var(--transition-fast) var(--ease-default),
+        background var(--transition-fast) var(--ease-default);
+}
+
+.vi-attractor-swatch-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--swatch);
+    /* The glow is the point: these are luminous filaments, not paint */
+    box-shadow: 0 0 10px -1px var(--swatch);
+    opacity: 0.72;
+    transition: opacity var(--transition-fast) var(--ease-default),
+        box-shadow var(--transition-fast) var(--ease-default);
+}
+
+.vi-attractor-swatch:hover {
+    color: var(--color-cloud);
+    background: var(--color-depth);
+}
+
+.vi-attractor-swatch:hover .vi-attractor-swatch-dot {
+    opacity: 0.9;
+}
+
+.vi-attractor-swatch.active {
+    color: var(--color-light);
+    background: var(--color-void);
+    box-shadow: inset 0 -2px var(--color-threshold);
+}
+
+.vi-attractor-swatch.active .vi-attractor-swatch-dot {
+    opacity: 1;
+    box-shadow: 0 0 16px -1px var(--swatch), 0 0 3px var(--swatch);
+}
+
+.vi-attractor-swatch:focus-visible {
+    outline: 1px solid var(--color-threshold);
+    outline-offset: -2px;
+}
+
 .vi-attractor-btn {
     display: flex;
     flex-direction: column;

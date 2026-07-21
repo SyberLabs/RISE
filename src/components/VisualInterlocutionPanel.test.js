@@ -581,3 +581,35 @@ describe('Stream-maintaining Rhythmic and Atrium collections', () => {
         atrium.container.remove();
     });
 });
+
+describe('Attractor filament color', () => {
+    it('offers the five colors and reports the selection', () => {
+        const { panel, container } = makePanel({ visualMode: 'attractor' });
+
+        const swatches = container.querySelectorAll('[data-attractor-palette]');
+        expect([...swatches].map(s => s.dataset.attractorPalette))
+            .toEqual(['white', 'red', 'blue', 'gold', 'purple']);
+        // White is the default and reads as pressed
+        expect(container.querySelector('[data-attractor-palette="white"]')
+            .getAttribute('aria-pressed')).toBe('true');
+
+        container.querySelector('[data-attractor-palette="purple"]').click();
+        expect(panel.getConfig().attractor.palette).toBe('purple');
+        expect(container.querySelector('[data-attractor-palette="purple"]')
+            .classList.contains('active')).toBe(true);
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('preserves a saved palette and form through construction', () => {
+        const { panel, container } = makePanel({
+            visualMode: 'attractor',
+            attractor: { system: 'halvorsen', palette: 'blue', form: 'kaleido' }
+        });
+        expect(panel.getConfig().attractor)
+            .toMatchObject({ system: 'halvorsen', palette: 'blue', form: 'kaleido' });
+        panel.destroy();
+        container.remove();
+    });
+});

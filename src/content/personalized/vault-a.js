@@ -483,13 +483,20 @@ We hope that the process | proposed here | will inspire more research | into how
       year: 2016,
       section: 'Abstract, Introduction & Conclusions'
     },
+    // Pure harmonograph: a pendulum tracing its own path is ViFlow's
+    // mechanism rendered as image. Klee flashes and static paintings
+    // would contradict the passage arguing that pre-rendered video
+    // destroys the dancer's freedom of movement. The text's semantic
+    // signal (valence 0.55 / arousal 0.51) is the only one in the vault
+    // that reaches solarFlare, so the climate is pinned to what the
+    // conductor independently chose.
     visualConfig: {
       visualMode: 'interlocution',
       interlocution: {
-        sourceFamily: 'blend',
-        procedural: ['klee', 'harmonograph'],
-        harmonographClimate: 'auto',
-        sourced: ['aic-postimpressionism'],
+        sourceFamily: 'procedural',
+        procedural: ['harmonograph'],
+        harmonographClimate: 'solarFlare',
+        sourced: [],
         frequency: 0.26,
         duration: 200,
         presentation: 'full-frame'

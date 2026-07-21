@@ -65,7 +65,9 @@ function createDefaultConfig() {
 
       // Attractor config (persistent strange-attractor field)
       attractor: {
-        system: 'aizawa'
+        system: 'aizawa',
+        palette: 'white',
+        form: 'mirror'
       },
 
       // Genesis config (continuously growing Klee composition)
@@ -1423,7 +1425,7 @@ export class ChamberOrbital {
         consentScope: this.visualConsentScope,
         visualMode: vi.visualMode || 'off',
         focals: vi.focals || { type: 'standard', standardGlyph: 'breath', personalImage: null },
-        attractor: vi.attractor || { system: 'aizawa' },
+        attractor: vi.attractor || { system: 'aizawa', palette: 'white', form: 'mirror' },
         genesis: vi.genesis || { preset: 'random', glass: true },
         livingText: vi.livingText || { enabled: false },
         interlocution: {

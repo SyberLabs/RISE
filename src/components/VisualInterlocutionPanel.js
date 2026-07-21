@@ -14,7 +14,7 @@ import { WIKIMEDIA_CATEGORIES } from '../sources/visual/wikimedia.js';
 import { MUSEUM_CATEGORIES } from '../sources/visual/museum.js';
 import { ATRIUM_CATEGORIES } from '../content/atrium/atrium-categories.js';
 import { MemoryCore } from '../core/memory.js';
-import { ATTRACTOR_SYSTEMS } from '../visuals/attractor.js';
+import { ATTRACTOR_SYSTEMS, ATTRACTOR_PALETTES } from '../visuals/attractor.js';
 import { escapeHtml, safeUrl } from '../core/sanitize.js';
 import {
     hasVisualSelectionFields,
@@ -129,8 +129,11 @@ export class VisualInterlocutionPanel {
             },
 
             // Attractor config (persistent strange-attractor field)
-            attractor: options.attractor || {
-                system: 'aizawa' // 'aizawa' | 'thomas' | 'halvorsen'
+            attractor: {
+                system: 'aizawa',  // 'aizawa' | 'thomas' | 'halvorsen'
+                palette: 'white',  // white | red | blue | gold | purple
+                form: 'mirror',    // mirror | kaleido | bilateral
+                ...(options.attractor || {})
             },
 
             // Genesis config ("Motion Klee": a composition grows
@@ -649,6 +652,28 @@ export class VisualInterlocutionPanel {
                                     <span class="vi-attractor-desc text-mist">${s.description.split('—')[0].trim()}</span>
                                 </button>
                             `).join('')}
+                        </div>
+
+                        <div class="vi-source-family vi-attractor-palette" role="group"
+                            aria-label="Filament color">
+                            <div class="vi-source-family-label">Filament</div>
+                            <div class="vi-attractor-swatches">
+                                ${ATTRACTOR_PALETTES.map(p => `
+                                    <button type="button"
+                                        class="vi-attractor-swatch ${this.config.attractor.palette === p.id ? 'active' : ''}"
+                                        data-attractor-palette="${p.id}"
+                                        aria-pressed="${this.config.attractor.palette === p.id}"
+                                        title="${escapeHtml(p.name)} filament">
+                                        <span class="vi-attractor-swatch-dot" aria-hidden="true"
+                                            style="--swatch: ${p.swatch}"></span>
+                                        <span class="vi-attractor-swatch-name">${escapeHtml(p.name)}</span>
+                                    </button>
+                                `).join('')}
+                            </div>
+                            <p class="vi-source-family-hint text-mist">
+                                The filament's color. Inside the Chamber, press K to fold the
+                                field into a kaleidoscope and again to unfold it.
+                            </p>
                         </div>
                     </div>
 
@@ -1392,6 +1417,18 @@ export class VisualInterlocutionPanel {
                     window.rise.audioEngine.playHiss();
                 }
                 this.config.attractor.system = btn.dataset.attractorSystem;
+                this.emitChange();
+                this.render();
+                this.attachEvents();
+            });
+        });
+
+        this.container.querySelectorAll('[data-attractor-palette]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (window.rise?.audioEngine) {
+                    window.rise.audioEngine.playHiss();
+                }
+                this.config.attractor.palette = btn.dataset.attractorPalette;
                 this.emitChange();
                 this.render();
                 this.attachEvents();

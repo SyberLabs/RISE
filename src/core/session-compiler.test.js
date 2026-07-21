@@ -94,6 +94,24 @@ describe('session compiler', () => {
     }).interlocution.duration).toBe(150);
   });
 
+  it('validates the attractor block so an unknown id cannot reach the field', () => {
+    const good = normalizeVisualConfig({
+      visualMode: 'attractor',
+      attractor: { system: 'thomas', palette: 'gold', form: 'kaleido' }
+    }).attractor;
+    expect(good).toMatchObject({ system: 'thomas', palette: 'gold', form: 'kaleido' });
+
+    // Saved or imported garbage degrades to the documented defaults
+    const bad = normalizeVisualConfig({
+      visualMode: 'attractor',
+      attractor: { system: 'lorenz', palette: 'chartreuse', form: 'spiral' }
+    }).attractor;
+    expect(bad).toMatchObject({ system: 'aizawa', palette: 'white', form: 'mirror' });
+
+    const missing = normalizeVisualConfig({ visualMode: 'attractor' }).attractor;
+    expect(missing).toMatchObject({ system: 'aizawa', palette: 'white', form: 'mirror' });
+  });
+
   it('defaults behind-stream presence to a full beat, explicit values untouched', () => {
     expect(normalizeVisualConfig({
       visualMode: 'interlocution',

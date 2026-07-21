@@ -32,6 +32,11 @@ export class Chamber {
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
     this.hasRhythmicVisuals = this.session?.visualConfig?.visualMode === 'interlocution';
     this.rhythmicVisualsEnabled = this.hasRhythmicVisuals;
+    // The attractor is a persistent field, so its symmetry can be
+    // changed mid-reading — the first in-chamber visual control.
+    this.hasAttractorField = this.session?.visualConfig?.visualMode === 'attractor';
+    this.kaleidoscopeEngaged =
+      this.session?.visualConfig?.attractor?.form === 'kaleido';
 
     // Semantic conductor track — needed by Living Text and by responsive
     // interlocutions. Scored once per session and stashed on the session
@@ -156,6 +161,15 @@ export class Chamber {
                 title="Disable rhythmic visuals">
                 <span class="icon" aria-hidden="true">&#9670;</span>
                 <span class="control-label">Visuals</span>
+              </button>
+            ` : ''}
+
+            ${this.hasAttractorField ? `
+              <button class="control-btn kaleidoscope-toggle" id="kaleidoscope-btn"
+                type="button" aria-pressed="false" aria-label="Fold the field into a kaleidoscope"
+                title="Kaleidoscope (K)">
+                <span class="icon" aria-hidden="true">&#10052;</span>
+                <span class="control-label">Kaleidoscope</span>
               </button>
             ` : ''}
 
@@ -289,6 +303,11 @@ export class Chamber {
     volumeBtn?.addEventListener('click', () => {
       window.rise?.audioEngine?.playHiss();
       this.toggleVolume();
+    });
+    const kaleidoscopeBtn = this.container.querySelector('#kaleidoscope-btn');
+    kaleidoscopeBtn?.addEventListener('click', () => {
+      window.rise?.audioEngine?.playHiss();
+      this.toggleKaleidoscope();
     });
     visualsToggleBtn?.addEventListener('click', () => {
       window.rise?.audioEngine?.playHiss();
@@ -426,6 +445,10 @@ export class Chamber {
         } else if (e.key === 'ArrowDown') {
             e.preventDefault();
             this.updateWpm(-10);
+        } else if ((e.key === 'k' || e.key === 'K') && this.hasAttractorField) {
+            e.preventDefault();
+            window.rise?.audioEngine?.playHiss();
+            this.toggleKaleidoscope();
         }
     }
   }
@@ -570,10 +593,15 @@ export class Chamber {
       field.appendChild(host);
     }
 
-    const system = visualConfig.attractor?.system || 'aizawa';
-    this.attractorField = new AttractorField(host, { system });
+    const attractor = visualConfig.attractor || {};
+    const system = attractor.system || 'aizawa';
+    this.attractorField = new AttractorField(host, {
+      system,
+      palette: attractor.palette,
+      form: attractor.form
+    });
 
-    console.log('[Chamber] Attractor initialized:', system);
+    console.log('[Chamber] Attractor initialized:', system, attractor.palette || 'white');
   }
 
   /**
@@ -820,6 +848,46 @@ export class Chamber {
     }
     this.showControls();
     return enabled;
+  }
+
+  /**
+   * Fold the attractor field into a six-fold rosette, or unfold it.
+   *
+   * The first visual control that applies and un-applies mid-session:
+   * the attractor is a persistent field, so its symmetry can change
+   * without re-integrating the system or interrupting the reading. No
+   * frame is dropped — the next tick simply draws the same filament
+   * through a different symmetry, so the form appears to fold.
+   */
+  toggleKaleidoscope(forceEngaged) {
+    if (!this.hasAttractorField || !this.attractorField) return false;
+
+    const engaged = typeof forceEngaged === 'boolean'
+      ? forceEngaged
+      : !this.kaleidoscopeEngaged;
+    if (engaged === this.kaleidoscopeEngaged) return engaged;
+
+    // The field owns which form to restore, so unfolding returns the
+    // reader to the form they were reading in, not a fixed default.
+    this.kaleidoscopeEngaged = this.attractorField.toggleKaleidoscope();
+
+    // Keep the ephemeral session honest for anything that inspects it
+    if (this.session?.visualConfig?.attractor) {
+      this.session.visualConfig.attractor.form = this.attractorField.form;
+    }
+
+    const button = this.container.querySelector('#kaleidoscope-btn');
+    if (button) {
+      const label = this.kaleidoscopeEngaged
+        ? 'Unfold the kaleidoscope'
+        : 'Fold the field into a kaleidoscope';
+      button.setAttribute('aria-pressed', String(this.kaleidoscopeEngaged));
+      button.setAttribute('aria-label', label);
+      button.title = `${label} (K)`;
+      button.classList.toggle('is-engaged', this.kaleidoscopeEngaged);
+    }
+    this.showControls();
+    return this.kaleidoscopeEngaged;
   }
 
   toggleVolume() {
