@@ -401,6 +401,16 @@ class App {
                     this.updateLoadingStatus('Creating player...');
                     const player = new Player(session);
 
+                    // The player is the sole clock: entrainment ramps
+                    // follow canonical reading progress, so pauses,
+                    // visual presences, and hidden tabs hold the beat
+                    // instead of letting wall time drift it forward.
+                    if (hasAudio) {
+                        player.on('progress', ({ progress }) => {
+                            this.audioEngine.setEntrainmentPosition(progress);
+                        });
+                    }
+
                     // Configure visual cortex based on the consented mode.
                     if (visualMode === 'interlocution') {
                         this.updateLoadingStatus('Loading visual engine...');

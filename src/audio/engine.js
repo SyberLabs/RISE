@@ -218,6 +218,11 @@ export class AudioEngine {
         this._sessionStopResolve = null;
         this._sessionGeneration = 0;
         this._destroyed = false;
+
+        // Reading-clock entrainment: the active session's curve ramp,
+        // steered by the player's canonical progress (never wall time)
+        this._positionRamp = null;
+        this._positionRampSteeredAt = null;
     }
 
     /**
@@ -1435,6 +1440,67 @@ export class AudioEngine {
     }
 
     /**
+     * Beat frequency at a moment of READING time along a ramp,
+     * interpolating piecewise between points (geometric for the
+     * exponential curve, matching exponentialRampToValueAtTime).
+     * @param {Object} ramp - { points: [{time, beat}], curve }
+     * @param {number} timeSec - reading time in seconds
+     */
+    beatAtRampTime(ramp, timeSec) {
+        const points = ramp?.points;
+        if (!Array.isArray(points) || points.length < 2) return null;
+        if (timeSec <= points[0].time) return points[0].beat;
+        const last = points[points.length - 1];
+        if (timeSec >= last.time) return last.beat;
+        for (let i = 1; i < points.length; i++) {
+            const p0 = points[i - 1];
+            const p1 = points[i];
+            if (timeSec > p1.time) continue;
+            const span = p1.time - p0.time;
+            const u = span > 0 ? (timeSec - p0.time) / span : 1;
+            if (ramp.curve === 'exponential' && p0.beat > 0 && p1.beat > 0) {
+                return p0.beat * Math.pow(p1.beat / p0.beat, u);
+            }
+            return p0.beat + (p1.beat - p0.beat) * u;
+        }
+        return last.beat;
+    }
+
+    /**
+     * READING-CLOCK ENTRAINMENT: the player is the sole clock. Instead
+     * of scheduling the whole ramp on AudioContext wall time at session
+     * start — which keeps running through pauses, visual presences, and
+     * hidden tabs, drifting the beat away from the text — the session
+     * stores its curve ramp and the player steers the beat here from
+     * its progress events. No progress events (paused, interlocuting,
+     * hidden) means the beat simply holds where the reading stopped.
+     * @param {number} progress - canonical reading progress, 0..1
+     */
+    setEntrainmentPosition(progress) {
+        const ramp = this._positionRamp;
+        if (!ramp || !this.isInitialized || !this.sessionActive) return;
+        const target = this._getEntrainmentBeatParam();
+        if (!target) return;
+
+        const now = this.context.currentTime;
+        // Steering every animation frame is wasteful; the glide constant
+        // below smooths over a coarser cadence anyway.
+        if (now - (this._positionRampSteeredAt || -Infinity) < 0.2) return;
+
+        const clamped = Math.max(0, Math.min(1, Number(progress) || 0));
+        const durationSec = ramp.points[ramp.points.length - 1].time;
+        const beat = this.beatAtRampTime(ramp, clamped * durationSec);
+        if (typeof beat !== 'number' || !Number.isFinite(beat)) return;
+
+        const value = target.type === 'dual' ? target.base + beat : beat;
+        // A short exponential glide toward the position-derived target:
+        // smooth like a scheduled ramp, but it follows the reading.
+        target.param.setTargetAtTime(value, now, 0.5);
+        this._positionRampSteeredAt = now;
+        this.config.binauralBeatFreq = beat;
+    }
+
+    /**
      * Build a ramp curve from the session pacing curve
      * @param {string} curve
      * @param {number} durationSec
@@ -1695,13 +1761,30 @@ export class AudioEngine {
             this.startSoundscape(options.soundscape);
         }
 
+        this._positionRamp = null;
+        this._positionRampSteeredAt = null;
         if (options.entrainment) {
             const explicitRamp = options.entrainment.ramp;
             const autoRamp = options.entrainment.autoRamp;
             const curveRamp = autoRamp ? this.buildCurveRamp(options.entrainment.curve, options.entrainment.durationSec) : null;
-            const ramp = explicitRamp || curveRamp;
-            if (ramp) {
-                this.applyEntrainmentRamp(ramp);
+            if (explicitRamp) {
+                // Explicit ramps keep their documented wall-clock contract
+                this.applyEntrainmentRamp(explicitRamp);
+            } else if (curveRamp) {
+                // Curve-derived ramps follow the READING clock: store the
+                // curve, start at its first point, and let the player
+                // steer via setEntrainmentPosition (progress events).
+                this._positionRamp = curveRamp;
+                const target = this._getEntrainmentBeatParam();
+                if (target) {
+                    const startBeat = curveRamp.points[0].beat;
+                    const startValue = target.type === 'dual' ? target.base + startBeat : startBeat;
+                    target.param.cancelScheduledValues(this.context.currentTime);
+                    target.param.setValueAtTime(startValue, this.context.currentTime);
+                    this.config.binauralBeatFreq = startBeat;
+                    console.log('[AudioEngine] Entrainment ramp (reading-clock): '
+                        + startBeat + 'Hz -> ' + curveRamp.points[curveRamp.points.length - 1].beat + 'Hz');
+                }
             }
         }
 
@@ -1727,6 +1810,7 @@ export class AudioEngine {
         const generation = ++this._sessionGeneration;
         this.sessionActive = false;
         this.isPlaying = false;
+        this._positionRamp = null;
 
         // Transition time for the "soft" exit
         const transitionTime = immediate ? 0 : 500;
