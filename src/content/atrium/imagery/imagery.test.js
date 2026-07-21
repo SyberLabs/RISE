@@ -201,3 +201,40 @@ describe('Chamber isolation (spec §5)', () => {
     expect(resolved == null || resolved === false).toBe(true);
   });
 });
+
+describe('Pinned collections', () => {
+  it('every work names a known source and a numeric id', async () => {
+    const { ATRIUM_PINNED_COLLECTIONS } = await import('./collections.js');
+    for (const [id, collection] of Object.entries(ATRIUM_PINNED_COLLECTIONS)) {
+      expect(id.startsWith('atr-'), `${id} not namespaced`).toBe(true);
+      expect(collection.name, `${id} has no name`).toBeTruthy();
+      expect(collection.works.length, `${id} is empty`).toBeGreaterThan(0);
+      for (const work of collection.works) {
+        expect(isKnownImagerySource(work.source), `${id}: ${work.source}`).toBe(true);
+        expect(String(work.id)).toMatch(/^\d+$/);
+      }
+    }
+  });
+
+  it('gives each collection enough works to rotate without repeating', async () => {
+    const { ATRIUM_PINNED_COLLECTIONS } = await import('./collections.js');
+    for (const [id, collection] of Object.entries(ATRIUM_PINNED_COLLECTIONS)) {
+      expect(collection.works.length, `${id} too thin to rotate`).toBeGreaterThanOrEqual(2);
+      // A duplicate pin inside one collection wastes a rotation slot
+      const ids = collection.works.map(w => `${w.source}:${w.id}`);
+      expect(new Set(ids).size, `${id} has duplicate pins`).toBe(ids.length);
+    }
+  });
+
+  it('does not leak into the Chamber\'s browsable collections', async () => {
+    // Same contract the atr- categories hold: curated imagery arrives
+    // only with the launch that chose it, never as a generic option.
+    const { ATRIUM_PINNED_COLLECTIONS } = await import('./collections.js');
+    const { WIKIMEDIA_CATEGORIES } = await import('../../../sources/visual/wikimedia.js');
+    const { MUSEUM_CATEGORIES } = await import('../../../sources/visual/museum.js');
+    for (const id of Object.keys(ATRIUM_PINNED_COLLECTIONS)) {
+      expect(WIKIMEDIA_CATEGORIES[id]).toBeUndefined();
+      expect(MUSEUM_CATEGORIES[id.replace(/^atr-/, '')]).toBeUndefined();
+    }
+  });
+});

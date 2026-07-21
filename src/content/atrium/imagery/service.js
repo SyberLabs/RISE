@@ -14,6 +14,7 @@
 import { SourceCache } from '../../../sources/cache.js';
 import { isDisplayable } from './works.js';
 import { MET_SOURCE, resolveMetWork } from './adapters/met.js';
+import { CLEVELAND_SOURCE, resolveClevelandWork } from './adapters/cleveland.js';
 
 /** Cache namespace — deliberately distinct from every Chamber provider. */
 export const IMAGERY_PROVIDER_ID = 'atrium-imagery';
@@ -22,7 +23,8 @@ export const IMAGERY_PROVIDER_ID = 'atrium-imagery';
 const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 const ADAPTERS = {
-    [MET_SOURCE]: resolveMetWork
+    [MET_SOURCE]: resolveMetWork,
+    [CLEVELAND_SOURCE]: resolveClevelandWork
 };
 
 /** Bound so one malformed collection cannot issue unbounded requests. */

@@ -40,6 +40,26 @@ const RESOLVERS = {
             image: o.primaryImageSmall || o.primaryImage || '',
             page: o.objectURL || ''
         };
+    },
+
+    async cleveland(id) {
+        const r = await fetch(`https://openaccess-api.clevelandart.org/api/artworks/${id}`,
+            { headers: { 'User-Agent': UA } });
+        if (!r.ok) return null;
+        const { data } = await r.json();
+        if (!data) return null;
+        const creator = data.creators?.[0]?.description || '';
+        return {
+            id: `cleveland:${id}`,
+            title: data.title,
+            artist: creator,
+            date: data.creation_date || '',
+            medium: data.technique || data.type || '',
+            dept: data.department || '',
+            rights: data.share_license_status === 'CC0' ? 'CC0' : 'UNKNOWN',
+            image: data.images?.web?.url || '',
+            page: data.url || ''
+        };
     }
 };
 
