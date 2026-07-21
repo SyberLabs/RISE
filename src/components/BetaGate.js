@@ -17,7 +17,7 @@ const BETA_INVITES = {
   },
 
   // Personalized invites
-  'maya': {
+  'ackerman': {
     name: 'Dr. Ackerman',
     welcome: `Welcome, Dr. Ackerman.
 
