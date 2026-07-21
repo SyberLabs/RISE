@@ -228,6 +228,16 @@ function splitParagraphs(text) {
  */
 export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceId = '', hints = null } = {}) {
     if (typeof text !== 'string') return [];
+
+    // STRUCTURAL TOKENIZATION: authored markers are choreography, not
+    // prose — they must survive every chunking mode. Promote each
+    // inline marker to its own paragraph BEFORE any linguistic
+    // splitting, so Phrase/Sentence/Paragraph logic only ever operates
+    // on the text spans between structural tokens. (Previously an
+    // inline [PAUSE] survived Word mode by luck of tokenization and
+    // was silently destroyed in every other mode.)
+    text = text.replace(/[ \t]*\|?[ \t]*(\[(?:PAUSE|FLASH|HOLD)\])[ \t]*\|?[ \t]*/gi, '\n\n$1\n\n');
+
     const baseDuration = getBaseDuration(wpm);
     const atoms = [];
     const dialogueHints = hints?.dialogue?.preserveSpeakerHead === true
@@ -372,7 +382,12 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
         const nextSpeakerOrdinal = speakerOrdinalByParagraph.get(paragraphIndex + 1);
         const isSyntheticDialogueBoundary = nextSpeakerOrdinal !== undefined
             && syntheticSpeakerBoundaries.has(nextSpeakerOrdinal);
-        if (mode !== 'paragraph' && !isSyntheticDialogueBoundary) {
+        // A promoted inline marker IS the authored pause — adding a
+        // paragraph break beside it would double-count the silence
+        // (and change Word mode's historical timing for inline markers)
+        const nextIsMarker = paragraphIndex + 1 < paragraphs.length
+            && checkMarker(paragraphs[paragraphIndex + 1].trim()).isMarker;
+        if (mode !== 'paragraph' && !isSyntheticDialogueBoundary && !nextIsMarker) {
             atoms.push(new Atom({
                 content: '',
                 modality: 'text',

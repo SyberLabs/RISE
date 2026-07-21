@@ -148,6 +148,49 @@ describe('chunkText', () => {
       const pauseAtom = atoms.find(a => a.tags.includes('PAUSE'));
       expect(pauseAtom).toBeDefined();
     });
+
+    // Markers are authored choreography: they are structural tokens,
+    // not prose, and must survive EVERY chunking mode identically.
+    // (Regression: inline markers used to survive Word by tokenization
+    // luck and were silently destroyed in Phrase/Sentence/Paragraph.)
+    it.each(['word', 'phrase', 'sentence', 'paragraph'])(
+      'preserves inline markers in %s mode',
+      (mode) => {
+        const atoms = chunkText('Alpha | [PAUSE] | omega.', { mode });
+
+        const pauseAtom = atoms.find(a => a.tags.includes('PAUSE'));
+        expect(pauseAtom).toBeDefined();
+        expect(pauseAtom.duration).toBe(2000);
+
+        const textAtoms = atoms.filter(a => a.content.length > 0);
+        expect(textAtoms.map(a => a.content)).toEqual(['Alpha', 'omega.']);
+
+        // Text before and after the marker stays in order around it
+        const pauseIndex = atoms.indexOf(pauseAtom);
+        expect(atoms.indexOf(textAtoms[0])).toBeLessThan(pauseIndex);
+        expect(atoms.indexOf(textAtoms[1])).toBeGreaterThan(pauseIndex);
+      }
+    );
+
+    it.each(['word', 'phrase', 'sentence', 'paragraph'])(
+      'preserves multiple mixed inline markers in %s mode',
+      (mode) => {
+        const atoms = chunkText('one [FLASH] two three. Four [HOLD] five.', { mode });
+
+        expect(atoms.some(a => a.tags.includes('FLASH'))).toBe(true);
+        expect(atoms.some(a => a.tags.includes('HOLD'))).toBe(true);
+        // Token conservation: every word of prose still arrives
+        const prose = atoms.map(a => a.content).join(' ').split(/\s+/).filter(Boolean);
+        expect(prose.join(' ')).toBe('one two three. Four five.');
+      }
+    );
+
+    it('inline marker replaces (not stacks with) the paragraph pause', () => {
+      // Word mode historically emitted no paragraph-break around an
+      // inline marker; promotion to paragraph must not add one.
+      const atoms = chunkText('Alpha [PAUSE] omega.', { mode: 'word' });
+      expect(atoms.some(a => a.tags.includes('paragraph-break'))).toBe(false);
+    });
   });
 
   describe('paragraph breaks', () => {
