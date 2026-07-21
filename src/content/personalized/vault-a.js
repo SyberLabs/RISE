@@ -131,7 +131,11 @@ Having multiple options | allows the artist | to create several variations | for
     },
     visualConfig: {
       visualMode: 'attractor',
-      attractor: { system: 'aizawa' }
+      // The strange attractor IS the space of possible melodies ALYSIA
+      // offers; the reader selects from it exactly as the passage
+      // describes. Left unfolded so the kaleidoscope stays a discovery
+      // (press K) rather than a preset — a humble machine steps back.
+      attractor: { system: 'aizawa', palette: 'purple', form: 'mirror' }
     },
     content: `Songwriting is the art | of combining melodies and lyrics.
 

@@ -125,6 +125,27 @@ const FORMS = ['mirror', 'kaleido', 'bilateral'];
 const KALEIDO_SECTORS = 6;
 const KALEIDO_MUL = 0.52;
 
+/**
+ * ADAPTIVE QUALITY.
+ *
+ * The rosette draws the filament 12 times per frame (6 sectors, each
+ * mirrored), so it costs roughly 2.6x the plain mirror form. On capable
+ * hardware that is still far inside a 60fps budget; on older machines it
+ * is not, and a stuttering mandala is worse than a simpler smooth one.
+ *
+ * Rather than ask the reader to classify their own computer, the field
+ * measures its own frame cost and steps quality down only when it is
+ * actually missing frames — and steps back up if conditions improve.
+ * Quality is reduced by drawing a coarser filament (skipping brightness
+ * buckets, which removes the dimmest strands first) before ever reducing
+ * the symmetry, because the SHAPE is the thing worth preserving.
+ */
+const FRAME_BUDGET_MS = 1000 / 60;
+// Sustained cost above this fraction of the budget triggers a step down
+const DEGRADE_AT = 0.62;
+const RESTORE_AT = 0.34;
+const QUALITY_SAMPLE_FRAMES = 45;
+
 const wrap01 = v => v - Math.floor(v);
 
 export class AttractorField {
@@ -163,6 +184,15 @@ export class AttractorField {
         this.resizeObserver.observe(this.host);
         window.addEventListener('resize', this.resize);
         this.resize();
+
+        // Adaptive quality state. `quality` 0 is full detail; each step
+        // up skips one more brightness bucket from the bottom, thinning
+        // the faintest strands first so the figure survives.
+        this.quality = 0;
+        this.maxQuality = 3;
+        this.adaptive = options.adaptive !== false;
+        this._frameCostMs = 0;
+        this._sampleCount = 0;
 
         this.tick = this.tick.bind(this);
         this.rafId = requestAnimationFrame(this.tick);
@@ -229,10 +259,14 @@ export class AttractorField {
         const ctx = this.ctx;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
+        // Under load, drop the dimmest brightness buckets first: they
+        // contribute the least light for the most segments, so the form
+        // stays legible while the cost falls.
+        const lowestBucket = 1 + this.quality;
         for (let pi = 0; pi < passes.length; pi++) {
             const pass = passes[pi];
             ctx.lineWidth = pass.w;
-            for (let b = 1; b < NB; b++) {
+            for (let b = lowestBucket; b < NB; b++) {
                 const list = bkts[b];
                 if (!list.length) continue;
                 let alpha = BUCKET_ALPHA[b] * pass.mul * mul * flick * this.intensity;
@@ -281,6 +315,7 @@ export class AttractorField {
     }
 
     tick(now) {
+        const frameStart = performance.now();
         const t = (now - this.t0) / 1000;
         const N = this.N;
 
@@ -393,7 +428,33 @@ export class AttractorField {
         }
 
         ctx.globalCompositeOperation = 'source-over';
+        this.measureQuality(performance.now() - frameStart);
         this.rafId = requestAnimationFrame(this.tick);
+    }
+
+    /**
+     * Watch this field's own drawing cost and step quality to match the
+     * hardware it is actually running on.
+     *
+     * Averaged over a window so a single slow frame (a GC pause, a tab
+     * regaining focus) never degrades the field, and recovery is allowed
+     * so a machine that was briefly busy gets its detail back.
+     * @param {number} costMs - milliseconds this frame spent drawing
+     */
+    measureQuality(costMs) {
+        if (!this.adaptive) return;
+        this._frameCostMs += costMs;
+        if (++this._sampleCount < QUALITY_SAMPLE_FRAMES) return;
+
+        const mean = this._frameCostMs / this._sampleCount;
+        this._frameCostMs = 0;
+        this._sampleCount = 0;
+
+        if (mean > FRAME_BUDGET_MS * DEGRADE_AT && this.quality < this.maxQuality) {
+            this.quality++;
+        } else if (mean < FRAME_BUDGET_MS * RESTORE_AT && this.quality > 0) {
+            this.quality--;
+        }
     }
 
     /**

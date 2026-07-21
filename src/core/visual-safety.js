@@ -114,7 +114,16 @@ export function requestVisualInterlocutionConsent(scope) {
         }, options);
 
         modal.classList.remove('hidden');
-        cancelButton.focus();
+        // Focus must land in the dialog for keyboard and screen-reader
+        // users, but the buttons sit below the fold on shorter screens:
+        // a plain focus() scrolls them into view and drags the warning
+        // title and icon off the top. Suppress that scroll, then pin the
+        // panel to its start so the reader always sees what they are
+        // being warned about first.
+        cancelButton.focus({ preventScroll: true });
+        const panel = modal.querySelector('.safety-modal-content');
+        if (panel) panel.scrollTop = 0;
+        modal.scrollTop = 0;
     });
     pendingConsent = { scope: normalizedScope, promise, cancel: () => cancelPrompt?.() };
     return promise;

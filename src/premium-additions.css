@@ -99,8 +99,27 @@
 #photosensitivity-modal .safety-modal-content {
   max-width: 480px;
   max-height: 85vh;
-  overflow-y: auto;
   padding: 0;
+  /* A safety warning must never hide its own title or its buttons.
+     The panel is a column: header and footer are pinned, and ONLY the
+     body scrolls. Previously the whole panel scrolled, so focusing the
+     footer button on open pushed the warning icon and title off-screen. */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#photosensitivity-modal .modal-header,
+#photosensitivity-modal .modal-footer {
+  flex: 0 0 auto;
+}
+
+#photosensitivity-modal .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  /* The body is the scroll region now; say so to assistive tech */
+  overscroll-behavior: contain;
 }
 
 #photosensitivity-modal .modal-header {

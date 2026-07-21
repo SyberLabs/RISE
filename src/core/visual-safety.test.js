@@ -21,6 +21,38 @@ describe('visual safety boundary', () => {
       </div>`;
   });
 
+  it('focuses the dialog without scrolling its warning out of view', async () => {
+    // A safety warning that opens scrolled past its own title and icon
+    // is not a warning. Focus must still land in the dialog for keyboard
+    // and screen-reader users, so the scroll is suppressed instead.
+    document.body.innerHTML = `
+      <div id="photosensitivity-modal" class="hidden">
+        <div class="safety-modal-content">
+          <div class="modal-header"><h2 id="safety-title">Photosensitivity Warning</h2></div>
+          <div class="modal-body"></div>
+          <div class="modal-footer">
+            <button id="safety-cancel">Cancel</button>
+            <button id="safety-accept">Accept</button>
+          </div>
+        </div>
+      </div>`;
+
+    const panel = document.querySelector('.safety-modal-content');
+    // Simulate a panel the browser has already scrolled toward the footer
+    panel.scrollTop = 240;
+    let scrolledByFocus = false;
+    document.getElementById('safety-cancel').focus = options => {
+      if (!options || options.preventScroll !== true) scrolledByFocus = true;
+    };
+
+    const pending = requestVisualInterlocutionConsent();
+    expect(scrolledByFocus, 'focus() must pass preventScroll').toBe(false);
+    expect(panel.scrollTop).toBe(0);
+
+    document.querySelector('#safety-cancel').click();
+    await pending;
+  });
+
   it('requires an explicit acceptance before recording consent', async () => {
     const pending = requestVisualInterlocutionConsent();
     expect(hasVisualInterlocutionConsent()).toBe(false);

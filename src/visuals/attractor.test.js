@@ -7,6 +7,10 @@ import {
   ATTRACTOR_SYSTEMS
 } from './attractor.js';
 
+// Brightness buckets in the renderer; quality steps consume these from
+// the dim end, so the ceiling must leave real strands to draw.
+const NB_BUCKETS = 7;
+
 // The field drives a canvas on a RAF loop; stub just enough that the
 // constructor and one tick can run in jsdom.
 function makeHost() {
@@ -131,6 +135,42 @@ describe('Attractor forms', () => {
       }
     }
     field.destroy();
+  });
+
+  it('adapts quality to the hardware instead of asking the reader', () => {
+    // The rosette draws the filament 12x per frame. Rather than make
+    // readers classify their own computer, the field measures its own
+    // cost and steps down only when it is actually missing frames.
+    const field = new AttractorField(makeHost(), { form: 'kaleido' });
+    expect(field.quality).toBe(0);
+
+    // One slow frame must never degrade anything — averaged over a window
+    field.measureQuality(30);
+    expect(field.quality).toBe(0);
+
+    // Sustained slowness steps down, once per window
+    for (let i = 0; i < 45; i++) field.measureQuality(14);
+    expect(field.quality).toBe(1);
+
+    // And recovery restores detail when the machine frees up
+    for (let i = 0; i < 45; i++) field.measureQuality(2);
+    expect(field.quality).toBe(0);
+
+    field.destroy();
+  });
+
+  it('never degrades below a legible figure, and can be opted out', () => {
+    const field = new AttractorField(makeHost(), { form: 'kaleido' });
+    for (let i = 0; i < 45 * 12; i++) field.measureQuality(30);
+    // Bounded: the shape must always survive
+    expect(field.quality).toBe(field.maxQuality);
+    expect(field.maxQuality).toBeLessThan(NB_BUCKETS - 1);
+    field.destroy();
+
+    const fixed = new AttractorField(makeHost(), { form: 'kaleido', adaptive: false });
+    for (let i = 0; i < 45 * 4; i++) fixed.measureQuality(40);
+    expect(fixed.quality).toBe(0);
+    fixed.destroy();
   });
 
   it('skips the mirror-twin projection for forms that do not use it', () => {
