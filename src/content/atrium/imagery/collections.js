@@ -22,6 +22,11 @@
  *     fullscreen reading surface
  *   - Four near-identical states of one Pietro Testa etching — the
  *     rotation needs variety, not the same plate four times
+ *   - "The Reds of the Midi" — a 1896 book poster, wrong register
+ *   - "The Fall of the Bastille" — printed cotton furnishing fabric
+ *   - Wyon's James Watt — a gold medal, same vitrine problem as coins
+ *   - "J. B. Rousseau" — Jean-Baptiste, a different man entirely
+ *   - Watt cigarette cards and an unrelated New York ironworks
  */
 
 import { freezeManifest } from '../constants.js';
@@ -118,8 +123,66 @@ export const ATRIUM_PINNED_COLLECTIONS = freezeManifest({
             { source: 'met', id: 370833 },  // Janinet, The Last Moments of Demosthenes, 1791
             { source: 'met', id: 356270 }   // Classical Frieze with Head of Demosthenes, 18th c.
         ]
-    }
+    },
+
+    // ── History ──
+    // Drawn across both institutions: the Met holds the portrait prints
+    // and Cleveland the revolutionary scenes, so these collections are
+    // the first that could not be built from one museum alone.
+
+    'atr-french-revolution': {
+        name: 'The French Revolution',
+        works: [
+            { source: 'cleveland', id: 172514 }, // Thévenin, The Storming of the Bastille, 1790
+            { source: 'met', id: 384288 },       // Thévenin, Storming of the Bastille (Met impression), 1790
+            { source: 'cleveland', id: 166682 }, // Jean-François Millet, Liberty, 1848–49
+            { source: 'cleveland', id: 165398 }  // Lepère, The Festival of 14 July, 1880
+        ]
+    },
+
+    'atr-bastille': {
+        name: 'The Bastille',
+        works: [
+            { source: 'cleveland', id: 172514 }, // Thévenin, The Storming of the Bastille, 1790
+            { source: 'met', id: 384288 },       // Thévenin, Storming of the Bastille, 1790
+            { source: 'cleveland', id: 165398 }  // Lepère, The Festival of 14 July, 1880
+        ]
+    },
+
+    'atr-rousseau': {
+        name: 'Jean-Jacques Rousseau',
+        works: [
+            { source: 'met', id: 190711 },  // Houdon, Jean Jacques Rousseau (bust), late 18th c.
+            { source: 'met', id: 639443 },  // Pierre Michel Alix, Jean-Jacques Rousseau, 1791
+            { source: 'met', id: 423063 },  // Saint-Aubin, Portrait of Rousseau, 1777
+            { source: 'met', id: 422905 },  // Saint-Aubin, Portrait of Rousseau, 1801
+            { source: 'met', id: 424594 }   // Simonet, vignette from the 1774 Émile, 1778
+        ]
+    },
+
 });
+
+/**
+ * NOT PINNED: James Watt / the industrial subjects.
+ *
+ * Deliberately absent, and the reason is worth recording because it
+ * marks the boundary of this whole approach.
+ *
+ * Watt's passage is about MECHANISM — the separate condenser, the
+ * governor, the linkage that converts reciprocating motion to rotary.
+ * Open collections hold portraits OF HIM: a Turner mezzotint of a
+ * seated gentleman, a gold medal, cigarette cards. That is a picture of
+ * a man who invented something, not the thing he invented. No amount of
+ * better searching closes that gap, because the imagery a reader wants
+ * here was never collected as art.
+ *
+ * This is a generation problem wearing a curation problem's clothes.
+ * The right surface is a procedural engine drawing blueprint plates —
+ * gears, sectional cutaways, pressure curves — which would sit far
+ * closer to the text than any museum portrait. Tracked as future work;
+ * until it exists, the Watt sequence falls back to the general pool,
+ * which is honest, rather than to a portrait that only looks relevant.
+ */
 
 /** Pinned collection ids stay `atr-` namespaced, like their predecessors. */
 export function findPinnedCollection(id) {
