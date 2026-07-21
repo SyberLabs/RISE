@@ -82,6 +82,9 @@ export class VisualCortex {
         // frequency without touching the network (the old consume-once
         // queue starved at high frequency and fell back to procedural)
         this._assetPools = new Map(); // categoryId -> { images, cursor }
+        // Blend ledger: positive means procedural is ahead of sourced in
+        // flashes the reader actually SAW (see _selectBlendType).
+        this._blendDebt = 0;
         this._externalPoolBag = new ShuffleBag();
         this._recentExternalUrls = [];
         this._sessionAssetTarget = BACKGROUND_CATEGORY_TARGET;
@@ -1388,6 +1391,76 @@ export class VisualCortex {
         });
     }
 
+    /**
+     * Choose a Blend family, keeping the ratio the reader actually SEES
+     * near even.
+     *
+     * A fair coin is not enough, because the two families fail
+     * differently. A procedural type always renders — the generator
+     * draws on demand. A sourced type whose image has not loaded yet
+     * becomes intentional stillness (`source-unavailable`), which is
+     * correct as a policy but invisible as an outcome. So a fair 50/50
+     * SELECTION produces a lopsided EXPERIENCE: at 60% pool readiness
+     * the reader sees roughly 63% procedural, and early in a session,
+     * before the museum pool has warmed, worse.
+     *
+     * Two corrections, both bounded:
+     *   1. Prefer a family whose pool can actually deliver. A sourced
+     *      pick is only offered when at least one of its categories has
+     *      a retained asset.
+     *   2. Carry the debt. Every silent skip and every shown flash
+     *      moves a counter, and the counter biases the next draw toward
+     *      whichever family is behind. Randomness is preserved (the
+     *      bias is a nudge, never a rule), so the field never becomes
+     *      a metronome of alternating families.
+     */
+    _selectBlendType(procedural, sourced) {
+        const ready = sourced.filter(type => this._categoryHasAsset(type));
+        const pool = ready.length > 0 ? ready : null;
+
+        // Nothing sourced can render yet: procedural carries the reading
+        // rather than the reader watching nothing happen.
+        if (!pool) return procedural[Math.floor(Math.random() * procedural.length)];
+
+        // Debt in favour of whichever family is behind on SHOWN flashes.
+        // Clamped so a long outage cannot mortgage the whole session.
+        const debt = Math.max(-3, Math.min(3, this._blendDebt || 0));
+        const proceduralChance = 0.5 - debt * 0.12;
+
+        const useProcedural = Math.random() < proceduralChance;
+        const family = useProcedural ? procedural : pool;
+        return family[Math.floor(Math.random() * family.length)];
+    }
+
+    /** Has this sourced category got at least one asset ready to show? */
+    _categoryHasAsset(type) {
+        if (type === 'diagram') {
+            // The unfiltered pool: ready if any external asset is retained
+            return [...(this._assetPools?.values?.() || [])]
+                .some(pool => pool?.images?.length > 0);
+        }
+        const pool = this._assetPools?.get?.(type);
+        return !!pool && pool.images.length > 0;
+    }
+
+    /**
+     * Record what the reader actually saw, so the next Blend draw can
+     * repay whichever family is behind. Positive debt means procedural
+     * is ahead.
+     */
+    _recordBlendOutcome(type, shown) {
+        if (!type) return;
+        const isSourced = this._isExternalCategory(type) || type === 'diagram';
+        if (shown) {
+            this._blendDebt = (this._blendDebt || 0) + (isSourced ? -1 : 1);
+        } else if (isSourced) {
+            // A skipped sourced flash is exactly the invisible loss this
+            // mechanism exists to repay.
+            this._blendDebt = (this._blendDebt || 0) + 1;
+        }
+        this._blendDebt = Math.max(-4, Math.min(4, this._blendDebt));
+    }
+
     _showAsciiFrame(frame) {
         if (!frame || !this.asciiRenderer?.render(frame)) return false;
         this._asciiCanvas.hidden = false;
@@ -1671,15 +1744,14 @@ export class VisualCortex {
                 return this._presentationResult(duration, 'source-unavailable');
             }
             // Two-stage Blend selection: first choose the FAMILY
-            // (procedural vs sourced) at a fixed ratio, then uniformly
-            // within it. A flat pick over the combined list let richer
-            // curation silently suppress the procedural signature (one
-            // procedural + four categories = 80% imagery).
+            // (procedural vs sourced), then uniformly within it. A flat
+            // pick over the combined list let richer curation silently
+            // suppress the procedural signature (one procedural + four
+            // categories = 80% imagery).
             const procedural = types.filter(t => !this._isExternalCategory(t) && t !== 'diagram');
             const sourced = types.filter(t => this._isExternalCategory(t) || t === 'diagram');
             if (procedural.length > 0 && sourced.length > 0) {
-                const family = Math.random() < 0.5 ? procedural : sourced;
-                selectedType = family[Math.floor(Math.random() * family.length)];
+                selectedType = this._selectBlendType(procedural, sourced);
             } else {
                 selectedType = types[Math.floor(Math.random() * types.length)];
             }
@@ -1782,6 +1854,9 @@ export class VisualCortex {
                     // Explicit source choices are a veto. An unavailable frame
                     // becomes intentional stillness; it never injects Klee or
                     // blocks the reading clock on a network request.
+                    // The Blend ledger records the silent loss so the next
+                    // draw can repay it (see _selectBlendType).
+                    this._recordBlendOutcome(selectedType, false);
                     this._externalStatus.skippedFlashes++;
                     this._scheduleBackgroundWarm(false);
                     return this._presentationResult(duration, 'source-unavailable');
@@ -1924,6 +1999,10 @@ export class VisualCortex {
         if (!this._flashGate.commit(performance.now(), duration)) {
             return this._presentationResult(duration, 'cadence');
         }
+
+        // Past the gate the flash genuinely reaches the reader, so this
+        // is the only honest place to record what they saw.
+        this._recordBlendOutcome(selectedType, true);
 
         return this._presentRenderedVisual(duration, lifecycle);
     }

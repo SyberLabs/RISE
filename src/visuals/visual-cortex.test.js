@@ -1072,3 +1072,121 @@ describe('VisualCortex behind-stream presentation', () => {
         expect(onCovered).not.toHaveBeenCalled();
     });
 });
+
+describe('Blend family balance', () => {
+    // A fair coin is not enough: a procedural type always renders, while a
+    // sourced type whose image has not loaded becomes intentional
+    // stillness. So a fair SELECTION produced a lopsided EXPERIENCE —
+    // measured at 60% pool readiness, the reader saw ~63% procedural.
+
+    const cortexWithPools = (readyCategories = []) => {
+        const cortex = new VisualCortex();
+        cortex._assetPools = new Map();
+        for (const id of readyCategories) {
+            cortex._assetPools.set(id, { images: [{ img: { src: 'x' } }], cursor: -1 });
+        }
+        return cortex;
+    };
+
+    it('never offers a sourced category whose pool is empty', () => {
+        // Picking an unloaded category spends the opportunity on silence
+        const cortex = cortexWithPools([]);
+        for (let i = 0; i < 200; i++) {
+            const pick = cortex._selectBlendType(['klee', 'turrell'], ['aic-oldmasters']);
+            expect(pick).not.toBe('aic-oldmasters');
+        }
+        cortex.destroy?.();
+    });
+
+    it('offers sourced categories once their pool has an asset', () => {
+        const cortex = cortexWithPools(['aic-oldmasters']);
+        const seen = new Set();
+        for (let i = 0; i < 300; i++) {
+            seen.add(cortex._selectBlendType(['klee'], ['aic-oldmasters']));
+            // Feed the ledger as the real path would, alternating outcomes
+            cortex._recordBlendOutcome('klee', true);
+        }
+        expect(seen.has('aic-oldmasters')).toBe(true);
+        expect(seen.has('klee')).toBe(true);
+        cortex.destroy?.();
+    });
+
+    it('repays the family that is behind on flashes actually SEEN', () => {
+        const cortex = cortexWithPools(['aic-oldmasters']);
+        // Procedural runs far ahead — the ledger should lean sourced
+        for (let i = 0; i < 10; i++) cortex._recordBlendOutcome('klee', true);
+        expect(cortex._blendDebt).toBeGreaterThan(0);
+
+        let sourcedPicks = 0;
+        for (let i = 0; i < 400; i++) {
+            if (cortex._selectBlendType(['klee'], ['aic-oldmasters']) === 'aic-oldmasters') {
+                sourcedPicks++;
+            }
+        }
+        // Biased toward the debtor, but still random — never a metronome
+        expect(sourcedPicks).toBeGreaterThan(200);
+        expect(sourcedPicks).toBeLessThan(400);
+        cortex.destroy?.();
+    });
+
+    it('counts a skipped sourced flash as a debt, not as nothing', () => {
+        // The invisible loss this whole mechanism exists to repay
+        const cortex = cortexWithPools(['aic-oldmasters']);
+        const before = cortex._blendDebt;
+        cortex._recordBlendOutcome('aic-oldmasters', false);
+        expect(cortex._blendDebt).toBeGreaterThan(before);
+        cortex.destroy?.();
+    });
+
+    it('bounds the ledger so one outage cannot mortgage the session', () => {
+        const cortex = cortexWithPools(['aic-oldmasters']);
+        for (let i = 0; i < 100; i++) cortex._recordBlendOutcome('klee', true);
+        expect(cortex._blendDebt).toBeLessThanOrEqual(4);
+        for (let i = 0; i < 200; i++) cortex._recordBlendOutcome('aic-oldmasters', true);
+        expect(cortex._blendDebt).toBeGreaterThanOrEqual(-4);
+        cortex.destroy?.();
+    });
+
+    it('keeps the reader near an even split at partial pool readiness', () => {
+        // The regression this fixes, measured end to end.
+        const cortex = cortexWithPools(['aic-oldmasters']);
+        let procedural = 0;
+        let sourced = 0;
+        for (let i = 0; i < 3000; i++) {
+            const pick = cortex._selectBlendType(['klee'], ['aic-oldmasters']);
+            const isSourced = pick === 'aic-oldmasters';
+            // Model a 60%-ready pool: a sourced pick sometimes shows nothing
+            const shown = !isSourced || Math.random() < 0.6;
+            cortex._recordBlendOutcome(pick, shown);
+            if (shown) isSourced ? sourced++ : procedural++;
+        }
+        const share = sourced / (sourced + procedural);
+        expect(share).toBeGreaterThan(0.33);
+        cortex.destroy?.();
+    });
+});
+
+describe('Blend selection is wired into the flash path', () => {
+    it('routes Blend picks through the balancing selector, not a raw coin', async () => {
+        // The unit tests above call _selectBlendType directly, so they
+        // pass even if flash() never uses it. This asserts the wiring.
+        grantVisualInterlocutionConsent();
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.container = { hidden: true, style: {}, classList: { toggle() {}, remove() {} } };
+        cortex.config.activeTypes = ['klee', 'aic-oldmasters'];
+        cortex._assetPools = new Map([
+            ['aic-oldmasters', { images: [{ img: { src: 'x' } }], cursor: -1 }]
+        ]);
+
+        const spy = vi.spyOn(cortex, '_selectBlendType');
+        // The render will fail for want of canvases; selection happens first.
+        await cortex.flash(80).catch(() => {});
+
+        expect(spy, 'flash() must use the balancing selector').toHaveBeenCalled();
+        const [procedural, sourced] = spy.mock.calls[0];
+        expect(procedural).toContain('klee');
+        expect(sourced).toContain('aic-oldmasters');
+        cortex.destroy?.();
+    });
+});
