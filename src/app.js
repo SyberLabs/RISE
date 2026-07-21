@@ -492,6 +492,15 @@ class App {
                                 activeTypes: activeTypes,
                                 kleePreset: interlocution.kleePreset ?? 'random',
                                 harmonographClimate: interlocution.harmonographClimate ?? 'auto',
+                                // Atrium-exclusive patterns carry the reading's
+                                // own subject: WHICH mechanism, WHICH colonial
+                                // relation. Without these the cortex falls back
+                                // to its defaults and every liberation sequence
+                                // draws Britain — the authored relation is lost
+                                // between the compiler and the renderer.
+                                blueprintClimate: interlocution.blueprintClimate ?? 'auto',
+                                blueprintMechanism: interlocution.blueprintMechanism ?? null,
+                                freedomRelation: interlocution.freedomRelation ?? null,
                                 customVisuals: session.customVisuals || [],
                                 // Resolve stable Global Pool IDs once at
                                 // session entry. The flash hot path receives a

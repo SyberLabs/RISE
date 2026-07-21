@@ -77,6 +77,70 @@ export const PINNED_RECORDS = Object.freeze({
     'hist-social-contract': ['atr-rousseau']
 });
 
+/**
+ * CONCEPTUAL — no canonical imagery exists, so none is requested.
+ *
+ * These readings previously asked for keyword pools ("geometry" for the
+ * Eleatics, "sacred" for Iamblichus) which is the same fabrication the
+ * audit removed: a pool of loosely-tagged files standing in for a
+ * subject that was never depicted. The authored procedural engine is
+ * the honest accompaniment, so these records clear their sourced
+ * imagery rather than inheriting the legacy table.
+ *
+ * This list is explicit rather than implicit — "no assignment" must
+ * never silently mean "use the old system", because that hides an
+ * incomplete migration behind a working screen.
+ */
+export const CONCEPTUAL_RECORDS = Object.freeze(new Set([
+    'ph-school-milesian',
+    'ph-tradition-pythagorean',
+    'ph-tradition-neopythagorean',
+    'ph-school-eleatic',
+    'ph-school-atomism',
+    'ph-tradition-pluralists',
+    'ph-thinker-heraclitus',
+    'ph-school-peripatetic',
+    'ph-movement-sophistic',
+    'ph-school-epicurean',
+    'ph-thinker-plotinus',
+    'ph-school-athenian-neoplatonism',
+    'ph-school-alexandrian-neoplatonism',
+    'ph-tradition-iamblichean',
+    'ph-thinker-porphyry',
+    'ph-thinker-augustine',
+    'ph-tradition-middle-platonism',
+    'ph-thinker-philo'
+]));
+
+/**
+ * DEPICTED but NOT YET CURATED. Real depictions exist — Revere's
+ * engraving of the Boston Massacre, the Seneca Falls portraits — they
+ * simply are not pinned yet, and neither the Met nor Cleveland covers
+ * them well (see ATRIUM-IMAGERY-CLASSIFICATION.md).
+ *
+ * These keep their legacy categories deliberately, as a marked bridge
+ * rather than an oversight. Removing the entry is what promotes a
+ * record to pinned works.
+ */
+export const AWAITING_CURATION = Object.freeze(new Set([
+    'hist-rights-woman',
+    'hist-us-bill-rights',
+    'hist-common-sense',
+    'hist-lexington-concord',
+    'hist-boston-massacre',
+    'hist-mexico-independence',
+    'hist-seven-years-war',
+    'hist-treaty-paris-1763'
+]));
+
+export function isConceptual(recordId) {
+    return CONCEPTUAL_RECORDS.has(recordId);
+}
+
+export function awaitsCuration(recordId) {
+    return AWAITING_CURATION.has(recordId);
+}
+
 export function mechanismFor(recordId) {
     return MECHANISM_RECORDS[recordId] || null;
 }
@@ -103,6 +167,9 @@ export function imageryPlanFor(recordId) {
 
     const collections = pinnedFor(recordId);
     if (collections) return { kind: 'pinned', collections };
+
+    if (isConceptual(recordId)) return { kind: 'conceptual' };
+    if (awaitsCuration(recordId)) return { kind: 'legacy' };
 
     return null;
 }

@@ -311,3 +311,108 @@ describe('Imagery assignments (three-way routing)', () => {
     expect(unassigned.blueprintMechanism).toBeUndefined();
   });
 });
+
+describe('Seam contracts (assignment -> compiler -> cortex config)', () => {
+  // The two blockers found in review both lived BETWEEN modules, where
+  // per-module tests could not see them: the config fields were dropped
+  // on the way to the cortex, and the pinned provider lacked the one
+  // method the hydration path calls. These test the chain itself.
+
+  const cortexConfigFor = async recordId => {
+    const { applyRecordCollections } = await import('../collections.js');
+    const { normalizeVisualConfig } = await import('../../../core/session-compiler.js');
+    const base = {
+      visualConfig: {
+        visualMode: 'interlocution',
+        interlocution: { sourceFamily: 'procedural', procedural: ['klee'], sourced: [] }
+      }
+    };
+    // What the handoff produces, through the compiler, as app.js reads it
+    const applied = applyRecordCollections(base, recordId);
+    const compiled = normalizeVisualConfig(applied.visualConfig);
+    const il = compiled.interlocution;
+    return {
+      blueprintClimate: il.blueprintClimate ?? 'auto',
+      blueprintMechanism: il.blueprintMechanism ?? null,
+      freedomRelation: il.freedomRelation ?? null,
+      procedural: il.procedural,
+      sourced: il.sourced
+    };
+  };
+
+  it('carries the authored mechanism all the way to the cortex config', async () => {
+    const watt = await cortexConfigFor('hist-watt-patent');
+    expect(watt.procedural).toEqual(['blueprint']);
+    expect(watt.blueprintMechanism).toBe('beam-engine');
+    expect(watt.blueprintClimate).toBe('cyanotype');
+  });
+
+  it('carries the authored colonial relation all the way to the cortex config', async () => {
+    // The bug this catches was visible as Haiti drawing a Union Jack:
+    // the relation was lost after the compiler, so Freedom fell back to
+    // its britain/emancipation default.
+    const haiti = await cortexConfigFor('hist-haiti-independence');
+    expect(haiti.procedural).toEqual(['freedom']);
+    expect(haiti.freedomRelation).toBe('haiti-france');
+
+    const brazil = await cortexConfigFor('hist-brazil-independence');
+    expect(brazil.freedomRelation).toBe('brazil-portugal');
+  });
+
+  it('exposes the provider method the hydration path actually calls', async () => {
+    // getImagesInCategory alone is not enough: the cortex calls
+    // getRandom, and its absence fails silently inside the hydration
+    // guard — the museum work simply never enters the pool.
+    const { getPinnedWorksProvider } = await import('./provider.js');
+    const provider = getPinnedWorksProvider();
+    expect(typeof provider.getRandom).toBe('function');
+    expect(typeof provider.getImagesInCategory).toBe('function');
+
+    const item = await provider.getRandom({ category: 'atr-plato' });
+    // Offline in CI: null is acceptable, a malformed item is not
+    if (item) {
+      expect(item.data?.url, 'cortex requires image.data.url').toBeTruthy();
+      expect(item.providerId).toBe('atrium-pinned');
+      expect(item.metadata.sourceUrl).toBeTruthy();
+    }
+  });
+
+  it('accounts for every curated record explicitly', async () => {
+    // "No assignment" must never silently mean "use the old keyword
+    // table" — that hides an incomplete migration behind a screen that
+    // looks like it works.
+    const { ATRIUM_RECORD_COLLECTIONS } = await import('../collections.js');
+    const { imageryPlanFor } = await import('./assignments.js');
+    const unplanned = Object.keys(ATRIUM_RECORD_COLLECTIONS)
+      .filter(id => !imageryPlanFor(id));
+    expect(unplanned, `unplanned records: ${unplanned.join(', ')}`).toEqual([]);
+  });
+
+  it('leaves conceptual readings with no sourced imagery at all', async () => {
+    const eleatic = await cortexConfigFor('ph-school-eleatic');
+    expect(eleatic.sourced).toEqual([]);
+    const iamblichus = await cortexConfigFor('ph-tradition-iamblichean');
+    expect(iamblichus.sourced).toEqual([]);
+  });
+});
+
+describe('App forwards the Atrium-exclusive fields to the cortex', () => {
+  it('passes blueprint and freedom config in updateConfig', async () => {
+    // The compiler preserves these fields, but app.js builds the cortex
+    // config by naming keys explicitly — so a field can survive the
+    // whole pipeline and still be dropped on the last hop. That is the
+    // bug that made Haiti draw a Union Jack, and no amount of module
+    // testing sees it. Assert on the wiring itself.
+    const { readFileSync } = await import('node:fs');
+    const { resolve } = await import('node:path');
+    const source = readFileSync(resolve('src/app.js'), 'utf8');
+    // Anchor on the interlocution config block, not the first
+    // updateConfig call (several disable the cortex outright).
+    const anchor = source.indexOf('harmonographClimate: interlocution');
+    expect(anchor, 'interlocution cortex config not found').toBeGreaterThan(0);
+    const block = source.slice(anchor - 2000, anchor + 2000);
+    for (const field of ['blueprintClimate', 'blueprintMechanism', 'freedomRelation']) {
+      expect(block, `app.js must forward ${field} to the cortex`).toContain(field);
+    }
+  });
+});

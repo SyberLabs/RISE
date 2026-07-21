@@ -15,6 +15,7 @@
 import { ATRIUM_PINNED_COLLECTIONS } from './collections.js';
 import { resolveCollection } from './service.js';
 import { attributionLine } from './works.js';
+import { ShuffleBag } from '../../../sources/visual/shuffle-bag.js';
 
 export function hasPinnedCollection(id) {
     return Object.hasOwn(ATRIUM_PINNED_COLLECTIONS, id);
@@ -30,6 +31,50 @@ export class PinnedWorksProvider {
         this.id = 'atrium-pinned';
         this.name = 'Atrium curated works';
         this.contentType = 'image';
+        // A curated collection is small — a dozen works at most — so raw
+        // random selection would repeat a painting before the reader has
+        // seen the rest. The bag exhausts the collection first.
+        this._bag = new ShuffleBag();
+    }
+
+    /**
+     * The contract the cortex's hydration path actually calls.
+     *
+     * Every other visual provider exposes getRandom; without it a pinned
+     * collection resolves to the right provider and then fails on the
+     * very next line. The failure is swallowed by the hydration guard,
+     * so the museum work silently never enters the pool — which is
+     * exactly how it escaped review.
+     *
+     * @param {Object} [filter] - { category, signal, timeoutMs }
+     * @returns {Promise<Object|null>} a provider item, or null
+     */
+    async getRandom(filter = {}) {
+        const categoryId = filter.category;
+        const images = await this.getImagesInCategory(categoryId, 40, {
+            signal: filter.signal
+        });
+        if (images.length === 0) return null;
+
+        const image = this._bag.draw(categoryId, images);
+        if (!image) return null;
+
+        return {
+            id: image.id,
+            type: 'image',
+            name: image.title,
+            data: image,
+            providerId: this.id,
+            metadata: {
+                artist: image.artist,
+                date: image.date,
+                license: image.license,
+                attribution: image.attribution,
+                sourceUrl: image.sourceUrl,
+                sourceName: image.sourceName,
+                categoryId
+            }
+        };
     }
 
     /**

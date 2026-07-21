@@ -123,7 +123,10 @@ export function applyRecordCollections(sensoryConfig, recordId) {
           sourceFamily: 'procedural',
           procedural: ['blueprint'],
           sourced: [],
-          atriumCollections: undefined,
+          // The plate carries no sourced imagery, but it IS curation —
+          // the reader should still see that these visuals were chosen
+          // for this passage rather than left to chance.
+          atriumCollections: [`blueprint:${plan.mechanism}`],
           blueprintClimate: plan.climate,
           blueprintMechanism: plan.mechanism
         }
@@ -141,18 +144,41 @@ export function applyRecordCollections(sensoryConfig, recordId) {
           sourceFamily: 'procedural',
           procedural: ['freedom'],
           sourced: [],
-          atriumCollections: undefined,
+          atriumCollections: [`freedom:${plan.relation}`],
           freedomRelation: plan.relation
         }
       }
     };
   }
 
+  if (plan?.kind === 'conceptual') {
+    // No canonical imagery exists for this subject, so none is asked
+    // for. The authored procedural engine stands alone — which is the
+    // honest answer, not a degraded one.
+    return {
+      ...sensoryConfig,
+      visualConfig: {
+        ...sensoryConfig.visualConfig,
+        interlocution: {
+          ...interlocution,
+          sourceFamily: 'procedural',
+          sourced: [],
+          atriumCollections: undefined
+        }
+      }
+    };
+  }
+
   // Pinned museum works take precedence over the keyword categories
-  // they replace; the categories remain only where nothing is curated.
+  // they replace. Legacy categories survive ONLY for records explicitly
+  // marked as awaiting curation (assignments.js AWAITING_CURATION), so
+  // an unmigrated record is visible as such rather than hidden behind a
+  // working screen.
   const collections = plan?.kind === 'pinned'
     ? plan.collections
-    : collectionsForRecord(recordId);
+    : plan?.kind === 'legacy'
+      ? collectionsForRecord(recordId)
+      : null;
   if (!collections) return sensoryConfig;
 
   return {
