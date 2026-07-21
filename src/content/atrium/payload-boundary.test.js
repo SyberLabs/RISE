@@ -10,7 +10,9 @@ const ROOTS = [
   resolve('src/content/atrium/history.js'),
   // The portal's Atrium door reaches this lazily — it must stay
   // metadata-only just like the browse surfaces
-  resolve('src/content/atrium/featured.js')
+  resolve('src/content/atrium/featured.js'),
+  // Curated imagery resolves museum records, never payload text
+  resolve('src/content/atrium/imagery/service.js')
 ];
 const STATIC_EDGE = /(?:import|export)\s+(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g;
 const PAYLOAD_MODULE = /[\\/](?:expanded-[^\\/]+|payloads|philosophy-(?:classical|aristotle|transmission)|history-(?:baseline|expansion[^\\/]*))\.js$/;

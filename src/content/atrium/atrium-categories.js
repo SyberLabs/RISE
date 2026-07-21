@@ -16,11 +16,27 @@ import { registerWikimediaCategoryResolver } from '../../sources/visual/wikimedi
  * "Toussaint Louverture" as a generic option. They arrive only with
  * the launch that curated them.
  *
- * EVERY category below was probed live against the Commons API and
- * returned real files; the recorded `verifiedFiles` count is the
- * number seen at curation time (capped at the 50-item probe limit).
- * A category that later empties degrades exactly like any other
- * source: the cortex falls back to the rest of the pool.
+ * ⚠ DEPRECATED — being replaced by the pinned-works imagery service.
+ * See ATRIUM-IMAGERY-SPEC.md and src/content/atrium/imagery/.
+ *
+ * A live audit (2026-07-21) established that this approach is
+ * structurally unsound, not merely miscounted. Commons categories are
+ * FILING, not curation: "Category:Thomas Paine" correctly includes his
+ * death mask, a modern pub sign bearing his name, and a NASA Apollo 13
+ * staff photo tagged for a Rights of Man quotation. Measured
+ * on-subject rates ran as low as 6 usable images of 11 (Stoicism,
+ * whose pool includes a Balinese toddler and children's picture
+ * books) and 18 of 44 (US Declaration, including archive-sleepover
+ * event photos).
+ *
+ * Worse, the failure is not reliably measurable: `atr-james-watt`
+ * scores clean on every automated metric available and is still poor
+ * on sight. Filename plausibility is not image quality.
+ *
+ * The `probedFiles` counts below recorded files RETURNED, never
+ * files SUITABLE, and Commons is mutable so they drift regardless.
+ * They are retained only as a historical record of the probe and must
+ * not be read as a quality claim.
  *
  * Note the Commons convention this exploits: depicted historical
  * figures live under "<Name> in art", while events and objects use
@@ -32,67 +48,67 @@ export const ATRIUM_CATEGORIES = freezeManifest({
   'atr-plato-art': {
     name: 'Plato in Art',
     category: 'Category:Plato in art',
-    verifiedFiles: 50,
+    probedFiles: 50, // files returned at probe time, NOT a quality claim
     tags: ['philosophy', 'portrait', 'reception']
   },
   'atr-socrates-art': {
     name: 'Socrates in Art',
     category: 'Category:Socrates in art',
-    verifiedFiles: 50,
+    probedFiles: 50, // files returned at probe time, NOT a quality claim
     tags: ['philosophy', 'portrait', 'reception']
   },
   'atr-aristotle-art': {
     name: 'Aristotle in Art',
     category: 'Category:Aristotle in art',
-    verifiedFiles: 23,
+    probedFiles: 23, // files returned at probe time, NOT a quality claim
     tags: ['philosophy', 'portrait', 'reception']
   },
   'atr-aristotle': {
     name: 'Aristotle',
     category: 'Category:Aristotle',
-    verifiedFiles: 50,
+    probedFiles: 50, // files returned at probe time, NOT a quality claim
     tags: ['philosophy', 'manuscript', 'reception']
   },
   'atr-cicero-art': {
     name: 'Cicero in Art',
     category: 'Category:Cicero in art',
-    verifiedFiles: 48,
+    probedFiles: 48, // files returned at probe time, NOT a quality claim
     tags: ['philosophy', 'portrait', 'rome']
   },
   'atr-heraclitus': {
     name: 'Heraclitus',
     category: 'Category:Heraclitus',
-    verifiedFiles: 50,
+    probedFiles: 50, // files returned at probe time, NOT a quality claim
     tags: ['philosophy', 'portrait', 'presocratic']
   },
   'atr-pythagoras': {
     name: 'Pythagoras',
     category: 'Category:Pythagoras',
-    verifiedFiles: 50,
+    probedFiles: 50, // files returned at probe time, NOT a quality claim
     tags: ['philosophy', 'mathematics', 'presocratic']
   },
   'atr-empedocles': {
     name: 'Empedocles',
     category: 'Category:Empedocles',
-    verifiedFiles: 21,
+    probedFiles: 21, // files returned at probe time, NOT a quality claim
     tags: ['philosophy', 'presocratic']
   },
   'atr-stoicism': {
     name: 'Stoicism',
     category: 'Category:Stoicism',
-    verifiedFiles: 37,
+    probedFiles: 37, // files returned at probe time, NOT a quality claim
     tags: ['philosophy', 'hellenistic']
   },
   'atr-marcus-aurelius': {
     name: 'Marcus Aurelius',
     category: 'Category:Marcus Aurelius',
-    verifiedFiles: 50,
+    probedFiles: 50, // files returned at probe time, NOT a quality claim
     tags: ['philosophy', 'portrait', 'rome']
   },
   'atr-plotinus': {
     name: 'Plotinus',
     category: 'Category:Plotinus',
-    verifiedFiles: 24,
+    probedFiles: 24, // files returned at probe time, NOT a quality claim
     tags: ['philosophy', 'late-antiquity']
   },
 
@@ -100,55 +116,55 @@ export const ATRIUM_CATEGORIES = freezeManifest({
   'atr-french-revolution': {
     name: 'French Revolution',
     category: 'Category:French Revolution',
-    verifiedFiles: 50,
+    probedFiles: 50, // files returned at probe time, NOT a quality claim
     tags: ['history', 'revolution', 'print']
   },
   'atr-bastille': {
     name: 'The Bastille',
     category: 'Category:Bastille',
-    verifiedFiles: 46,
+    probedFiles: 46, // files returned at probe time, NOT a quality claim
     tags: ['history', 'revolution', 'architecture']
   },
   'atr-rights-of-man': {
     name: 'Declaration of the Rights of Man',
     category: 'Category:Declaration of the Rights of Man and of the Citizen',
-    verifiedFiles: 30,
+    probedFiles: 30, // files returned at probe time, NOT a quality claim
     tags: ['history', 'document', 'revolution']
   },
   'atr-haitian-revolution': {
     name: 'Haitian Revolution',
     category: 'Category:Haitian Revolution',
-    verifiedFiles: 50,
+    probedFiles: 50, // files returned at probe time, NOT a quality claim
     tags: ['history', 'revolution', 'emancipation']
   },
   'atr-louverture': {
     name: 'Toussaint Louverture',
     category: 'Category:Toussaint Louverture',
-    verifiedFiles: 50,
+    probedFiles: 50, // files returned at probe time, NOT a quality claim
     tags: ['history', 'portrait', 'emancipation']
   },
   'atr-us-declaration': {
     name: 'US Declaration of Independence',
     category: 'Category:United States Declaration of Independence',
-    verifiedFiles: 50,
+    probedFiles: 50, // files returned at probe time, NOT a quality claim
     tags: ['history', 'document', 'revolution']
   },
   'atr-thomas-paine': {
     name: 'Thomas Paine',
     category: 'Category:Thomas Paine',
-    verifiedFiles: 49,
+    probedFiles: 49, // files returned at probe time, NOT a quality claim
     tags: ['history', 'portrait', 'pamphlet']
   },
   'atr-rousseau': {
     name: 'Jean-Jacques Rousseau',
     category: 'Category:Jean-Jacques Rousseau',
-    verifiedFiles: 50,
+    probedFiles: 50, // files returned at probe time, NOT a quality claim
     tags: ['history', 'portrait', 'enlightenment']
   },
   'atr-james-watt': {
     name: 'James Watt',
     category: 'Category:James Watt',
-    verifiedFiles: 50,
+    probedFiles: 50, // files returned at probe time, NOT a quality claim
     tags: ['history', 'portrait', 'industry']
   }
 });

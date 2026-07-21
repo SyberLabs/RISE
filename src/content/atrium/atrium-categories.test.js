@@ -18,8 +18,10 @@ describe('Atrium-scoped categories', () => {
       expect(isAtriumCategoryId(id), `${id} is not atr-namespaced`).toBe(true);
       expect(entry.name, `${id} has no display name`).toBeTruthy();
       expect(entry.category.startsWith('Category:'), `${id} malformed`).toBe(true);
-      // Every category was probed live; thin pools make poor rotation
-      expect(entry.verifiedFiles, `${id} unverified`).toBeGreaterThanOrEqual(8);
+      // Files RETURNED at probe time — deliberately not a quality claim.
+      // The 2026-07-21 audit found this metric cannot express suitability
+      // (see ATRIUM-IMAGERY-SPEC.md); the pinned-works service replaces it.
+      expect(entry.probedFiles, `${id} unprobed`).toBeGreaterThanOrEqual(8);
     }
   });
 
