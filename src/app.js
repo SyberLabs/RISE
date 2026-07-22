@@ -707,6 +707,17 @@ class App {
                     onNavigate: this.handleNavigate,
                     bookId: data?.bookId,
                     chapter: data?.chapter,
+                    onLaunchRosary: async (setId, extras) => {
+                        try {
+                            const { createRosaryHandoff } = await import('./content/chapel/liturgy/rosary-handoff.js');
+                            const { session } = createRosaryHandoff(setId, extras || {});
+                            this.currentSession = session;
+                            await this.router.navigate('chamber-session', { data: session });
+                        } catch (error) {
+                            console.error('[R.I.S.E.] Rosary launch failed:', error);
+                            this.showToast('The Rosary is unavailable right now.', 4000);
+                        }
+                    },
                     onLaunchReading: async (bookId, chapter, extras) => {
                         try {
                             const { createChapelHandoff } = await import('./content/chapel/handoff.js');

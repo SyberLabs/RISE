@@ -25,6 +25,7 @@ import {
   findChapelBook
 } from '../content/chapel/corpus/manifest.js';
 import { CHAPEL_ICONS } from '../content/chapel/imagery/icons.js';
+import { MYSTERY_SETS, mysterySetForDate } from '../content/chapel/liturgy/rosary.js';
 
 /** The reader's chosen icon focal, kept across visits. */
 export const CHAPEL_ICON_PREF_KEY = 'rise_chapel_icon_v1';
@@ -62,6 +63,14 @@ export class Chapel {
     this.lastChapter = Number.isInteger(options.chapter) ? options.chapter : null;
     // The chosen icon focal, persisted across visits
     this.iconId = loadChapelIconPref();
+    // Rosary imagery mode, persisted; Plain is the quiet default
+    this.rosaryMode = (() => {
+      try {
+        const stored = localStorage.getItem('rise_chapel_rosary_mode_v1');
+        return stored === 'imagistic' ? 'imagistic' : 'plain';
+      } catch { return 'plain'; }
+    })();
+    this.onLaunchRosary = options.onLaunchRosary || (() => {});
     this.openBookId = this.lastBookId && (findChapelBook(this.lastBookId)?.chapters || 0) > 1
       ? this.lastBookId
       : null;
@@ -105,6 +114,8 @@ export class Chapel {
             </header>
 
             ${this.renderIconSection()}
+
+            ${this.renderRosarium()}
 
             <div class="chapel-body">
               ${testaments}
@@ -188,6 +199,49 @@ export class Chapel {
   }
 
   /**
+   * The Rosarium — the Rosary's own launcher. The four mystery sets
+   * as quiet cards; the calendar's set glows gently (the Church's
+   * traditional day assignment — SOL's date-sensing raised to the
+   * liturgical week), every set one click. Below: the Plain /
+   * Imagistic mode choice.
+   */
+  renderRosarium() {
+    const todaySetId = mysterySetForDate();
+    const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+    const cards = Object.values(MYSTERY_SETS).map(set => `
+      <button
+        class="chapel-mystery-card${set.id === todaySetId ? ' chapel-mystery-today' : ''}"
+        data-mystery-set="${escapeHtml(set.id)}"
+        aria-label="Pray ${escapeHtml(set.name)}${set.id === todaySetId ? ' — the mysteries of today' : ''}"
+      >
+        <span class="chapel-mystery-name">${escapeHtml(set.name.replace('The ', '').replace(' Mysteries', ''))}</span>
+        <span class="chapel-mystery-days font-mono">${escapeHtml(set.daysLabel)}</span>
+        ${set.id === todaySetId ? '<span class="chapel-mystery-flame" aria-hidden="true">✦</span>' : ''}
+      </button>
+    `).join('');
+
+    return `
+      <section class="chapel-rosarium" aria-label="The Rosary">
+        <h3 class="chapel-grouping-title font-mono">The Rosary</h3>
+        <p class="chapel-icon-hint">${escapeHtml(dayName)} keeps ${escapeHtml(MYSTERY_SETS[todaySetId].name.toLowerCase())}. Pray any set; the day's own glows.</p>
+        <div class="chapel-mystery-row">${cards}</div>
+        <div class="chapel-rosary-modes" role="radiogroup" aria-label="Rosary imagery mode">
+          <button class="chapel-rosary-mode${this.rosaryMode === 'plain' ? ' chapel-rosary-mode-selected' : ''}"
+            data-rosary-mode="plain" role="radio" aria-checked="${this.rosaryMode === 'plain'}">
+            <span class="chapel-rosary-mode-name">Plain</span>
+            <span class="chapel-rosary-mode-desc">The icon holds the center</span>
+          </button>
+          <button class="chapel-rosary-mode${this.rosaryMode === 'imagistic' ? ' chapel-rosary-mode-selected' : ''}"
+            data-rosary-mode="imagistic" role="radio" aria-checked="${this.rosaryMode === 'imagistic'}">
+            <span class="chapel-rosary-mode-name">Imagistic</span>
+            <span class="chapel-rosary-mode-desc">Each mystery brings its painting</span>
+          </button>
+        </div>
+      </section>
+    `;
+  }
+
+  /**
    * The chapter panel spans the full grouping width directly below its
    * book's row, so the list never reflows around a column-wide insert.
    */
@@ -254,6 +308,33 @@ export class Chapel {
     if (button.dataset.action === 'back') {
       window.rise?.audioEngine?.playClick();
       this.onNavigate('portal');
+      return;
+    }
+
+    if (button.dataset.rosaryMode) {
+      window.rise?.audioEngine?.playClick();
+      this.rosaryMode = button.dataset.rosaryMode === 'imagistic' ? 'imagistic' : 'plain';
+      try { localStorage.setItem('rise_chapel_rosary_mode_v1', this.rosaryMode); } catch { /* this visit only */ }
+      this.container.querySelectorAll('[data-rosary-mode]').forEach(option => {
+        const selected = option.dataset.rosaryMode === this.rosaryMode;
+        option.classList.toggle('chapel-rosary-mode-selected', selected);
+        option.setAttribute('aria-checked', selected ? 'true' : 'false');
+      });
+      return;
+    }
+
+    if (button.dataset.mysterySet) {
+      if (this._launching) return;
+      this._launching = true;
+      window.rise?.audioEngine?.playClick();
+      button.classList.add('chapel-book-loading');
+      Promise.resolve(this.onLaunchRosary(button.dataset.mysterySet, {
+        mode: this.rosaryMode,
+        iconId: this.iconId
+      })).finally(() => {
+        this._launching = false;
+        button.classList.remove('chapel-book-loading');
+      });
       return;
     }
 
