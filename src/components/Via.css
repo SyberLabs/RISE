@@ -1,0 +1,223 @@
+/**
+ * The Via — the painting is the room. Tiepolo's canvas held large,
+ * the phases passing beneath, the nave strip marking the walk.
+ */
+
+.via {
+  height: 100vh;
+  overflow: hidden;
+  background: var(--color-void);
+  position: relative;
+}
+
+.via-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: via-fade 1.1s var(--ease-default);
+}
+
+@keyframes via-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .via-stage { animation: none; } }
+
+/* ── Choosing ── */
+
+.via-back {
+  position: absolute;
+  top: var(--space-lg);
+  left: var(--space-lg);
+  color: var(--color-fog);
+}
+
+.via-heading { text-align: center; margin-bottom: var(--space-lg); }
+
+.via-kicker {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--color-ember);
+  opacity: 0.85;
+  margin: 0 0 6px;
+}
+
+.via-deck { color: var(--color-fog); font-size: 13.5px; margin: 0; }
+
+/* The nave preview: fourteen small frames in a row */
+.via-nave {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-sm);
+  width: min(920px, calc(100vw - 2 * var(--space-xl)));
+  margin-bottom: var(--space-lg);
+}
+
+.via-nave-frame {
+  aspect-ratio: 5 / 6;
+  overflow: hidden;
+  border: 1px solid rgba(212, 165, 116, 0.2);
+  padding: 2px;
+  background: rgba(212, 165, 116, 0.03);
+}
+
+.via-nave-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.8;
+}
+
+.via-panel {
+  width: min(680px, calc(100vw - 2 * var(--space-lg)));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.via-row { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+
+.via-row-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-mist);
+}
+
+.via-pill {
+  background: transparent;
+  border: 1px solid var(--color-shadow);
+  border-radius: 12px;
+  color: var(--color-cloud);
+  font-size: 12px;
+  padding: 3px 12px;
+  cursor: pointer;
+  transition: border-color 250ms var(--ease-out), background 250ms var(--ease-out);
+}
+
+.via-pill:hover { border-color: rgba(212, 165, 116, 0.45); }
+
+.via-pill-selected {
+  border-color: var(--color-ember);
+  background: rgba(212, 165, 116, 0.08);
+  color: var(--color-light);
+}
+
+.via-start {
+  background: rgba(212, 165, 116, 0.10);
+  border: 1px solid var(--color-ember);
+  border-radius: 4px;
+  color: var(--color-light);
+  font-size: 14.5px;
+  letter-spacing: 0.03em;
+  padding: var(--space-md);
+  cursor: pointer;
+  transition: background 300ms var(--ease-out), box-shadow 300ms var(--ease-out);
+}
+
+.via-start:hover {
+  background: rgba(212, 165, 116, 0.16);
+  box-shadow: 0 0 30px rgba(212, 165, 116, 0.12);
+}
+
+.via-attribution {
+  color: var(--color-mist);
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* ── Walking ── */
+
+.via-quiet-exit {
+  position: absolute;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  z-index: 5;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-mist);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  opacity: 0.55;
+  transition: opacity 300ms var(--ease-out), color 300ms var(--ease-out);
+}
+
+.via-quiet-exit:hover, .via-quiet-exit:focus-visible { opacity: 1; color: var(--color-ember); }
+
+/* The nave strip: where you are on the way */
+.via-strip {
+  position: absolute;
+  top: var(--space-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.via-strip-mark { color: rgba(190, 198, 214, 0.25); transition: color 600ms var(--ease-default); }
+.via-strip-walked { color: rgba(212, 165, 116, 0.4); }
+.via-strip-here { color: var(--color-ember); }
+
+.via-station {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  max-width: min(880px, calc(100vw - 2 * var(--space-xl)));
+  text-align: center;
+  padding-top: var(--space-lg);
+}
+
+.via-station-byhand { cursor: pointer; }
+
+.via-art img {
+  max-height: 52vh;
+  max-width: min(560px, 74vw);
+  object-fit: contain;
+  border: 1px solid rgba(212, 165, 116, 0.28);
+  padding: 3px;
+  background: rgba(212, 165, 116, 0.03);
+  transition: opacity 1.4s var(--ease-default);
+}
+
+.via-art-dimmed img { opacity: 0.35; }
+
+.via-text {
+  font-family: var(--font-literary);
+  color: var(--color-light);
+  font-size: clamp(16px, 1.9vw, 22px);
+  line-height: 1.8;
+  margin: 0;
+  max-width: 62ch;
+}
+
+.via-text-announce { font-size: clamp(19px, 2.3vw, 26px); }
+.via-text-versicle { color: var(--color-ember); }
+.via-text-silence { color: var(--color-mist); font-size: 28px; }
+
+.via-hint {
+  color: var(--color-mist);
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+}
+
+/* ── Complete ── */
+
+.via-complete {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+@media (max-width: 760px) {
+  .via-nave { grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .via-art img { max-height: 40vh; }
+}

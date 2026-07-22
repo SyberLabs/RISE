@@ -200,13 +200,22 @@ export class Chapel {
     const todaySetId = mysterySetForDate();
     const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
     return `
-      <section class="chapel-rosarium" aria-label="The Rosary">
+      <section class="chapel-rosarium" aria-label="Devotions">
         <button class="chapel-rosarium-door" data-mystery-set="${escapeHtml(todaySetId)}"
           aria-label="Enter the Rosarium — ${escapeHtml(dayName)} keeps ${escapeHtml(MYSTERY_SETS[todaySetId].name.toLowerCase())}">
           <span class="chapel-rosarium-glyph" aria-hidden="true">📿</span>
           <span class="chapel-rosarium-body">
             <span class="chapel-rosarium-name">The Rosarium</span>
             <span class="chapel-rosarium-detail">${escapeHtml(dayName)} keeps ${escapeHtml(MYSTERY_SETS[todaySetId].name.toLowerCase())}</span>
+          </span>
+          <span class="chapel-rosarium-enter" aria-hidden="true">enter ›</span>
+        </button>
+        <button class="chapel-rosarium-door" data-via-door="true"
+          aria-label="Enter the Stations of the Cross">
+          <span class="chapel-rosarium-glyph" aria-hidden="true">✝</span>
+          <span class="chapel-rosarium-body">
+            <span class="chapel-rosarium-name">The Stations of the Cross</span>
+            <span class="chapel-rosarium-detail">fourteen stations, walked as a nave is walked — Tiepolo's Via Crucis</span>
           </span>
           <span class="chapel-rosarium-enter" aria-hidden="true">enter ›</span>
         </button>
@@ -288,6 +297,12 @@ export class Chapel {
       // The door to the Rosarium; all choosing happens in the room
       window.rise?.audioEngine?.playClick();
       this.onLaunchRosary(button.dataset.mysterySet, { iconId: this.iconId });
+      return;
+    }
+
+    if (button.dataset.viaDoor) {
+      window.rise?.audioEngine?.playClick();
+      this.onNavigate('via');
       return;
     }
 

@@ -41,6 +41,7 @@ import './components/Guide.css';
 import './components/Sol.css';
 import './components/Chapel.css';
 import './components/Rosarium.css';
+import './components/Via.css';
 import './premium-additions.css';
 
 class App {
@@ -708,6 +709,15 @@ class App {
                     setId: data?.setId,
                     iconId: data?.iconId
                 });
+            }
+        });
+
+        // The Via — the Stations of the Cross, entered from the Chapel
+        this.router.registerView('via', {
+            container: document.getElementById('view-via'),
+            init: async (container) => {
+                const { Via } = await import('./components/Via.js');
+                return new Via(container, { onNavigate: this.handleNavigate });
             }
         });
 

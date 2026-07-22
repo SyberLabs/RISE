@@ -61,6 +61,11 @@ export function compileLiturgy(definition, options = {}) {
         text: step.text,
         durationMs: Math.round(step.durationMs / pace),
         state: {
+          // A GENERAL runner: every liturgy's own state fields pass
+          // through (the Rosary's decade/mystery, the Stations'
+          // station) — the first draft whitelisted rosary fields and
+          // silently dropped the Stations' `station`.
+          ...(step.state && typeof step.state === 'object' ? step.state : {}),
           phase: step.state?.phase ?? 'prayer',
           decade: step.state?.decade ?? null,
           mystery: step.state?.mystery ?? null,
