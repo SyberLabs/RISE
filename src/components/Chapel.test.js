@@ -38,34 +38,98 @@ describe('Chapel view', () => {
     expect(container.querySelector('[data-domain]')).toBeNull();
   });
 
-  it('launches a book once per click and refuses to race a second launch', async () => {
+  it('opens a multi-chapter book into its chapters instead of launching it', () => {
+    const onLaunchReading = vi.fn();
+    const { container } = mount({ onLaunchReading });
+
+    const john = container.querySelector('.chapel-book[data-book-id="john"]');
+    john.click();
+
+    expect(onLaunchReading).not.toHaveBeenCalled();
+    expect(john.getAttribute('aria-expanded')).toBe('true');
+    const panel = container.querySelector('[data-chapter-panel="john"]');
+    expect(panel).not.toBeNull();
+    expect(panel.querySelectorAll('.chapel-chapter')).toHaveLength(21);
+
+    // Clicking the open book again closes it
+    john.click();
+    expect(container.querySelector('.chapel-chapter-panel')).toBeNull();
+    expect(john.getAttribute('aria-expanded')).toBe('false');
+
+    // Opening another book replaces the panel — only one open at a time
+    john.click();
+    container.querySelector('.chapel-book[data-book-id="mark"]').click();
+    expect(container.querySelectorAll('.chapel-chapter-panel')).toHaveLength(1);
+    expect(container.querySelector('[data-chapter-panel="mark"]')).not.toBeNull();
+  });
+
+  it('launches a chapter with its number, the whole book with null', () => {
+    const onLaunchReading = vi.fn();
+    const { container } = mount({ onLaunchReading });
+
+    container.querySelector('.chapel-book[data-book-id="john"]').click();
+    container.querySelector('[data-chapter-panel="john"] [data-chapter="3"]').click();
+    expect(onLaunchReading).toHaveBeenCalledWith('john', 3);
+
+    onLaunchReading.mockClear();
+    const { container: second } = mount({ onLaunchReading });
+    second.querySelector('.chapel-book[data-book-id="john"]').click();
+    second.querySelector('[data-chapter-panel="john"] [data-whole-book]').click();
+    expect(onLaunchReading).toHaveBeenCalledWith('john', null);
+  });
+
+  it('launches a single-chapter book directly, no panel', () => {
+    const onLaunchReading = vi.fn();
+    const { container } = mount({ onLaunchReading });
+
+    container.querySelector('.chapel-book[data-book-id="jude"]').click();
+    expect(onLaunchReading).toHaveBeenCalledWith('jude', null);
+    expect(container.querySelector('.chapel-chapter-panel')).toBeNull();
+  });
+
+  it('says Psalm, not Chapter, inside the Psalter', () => {
+    const { container } = mount();
+    container.querySelector('.chapel-book[data-book-id="psalms"]').click();
+    const panel = container.querySelector('[data-chapter-panel="psalms"]');
+    expect(panel.querySelector('.chapel-chapter-title').textContent).toContain('150 psalms');
+    expect(panel.querySelectorAll('.chapel-chapter')).toHaveLength(150);
+  });
+
+  it('launches once per click and refuses to race a second launch', async () => {
     let release;
     const gate = new Promise(fulfil => { release = fulfil; });
-    const onLaunchBook = vi.fn(() => gate);
-    const { container } = mount({ onLaunchBook });
+    const onLaunchReading = vi.fn(() => gate);
+    const { container } = mount({ onLaunchReading });
 
-    const psalms = container.querySelector('[data-book-id="psalms"]');
-    psalms.click();
-    psalms.click();
-    container.querySelector('[data-book-id="jude"]').click();
+    container.querySelector('.chapel-book[data-book-id="psalms"]').click();
+    const psalm1 = container.querySelector('[data-chapter-panel="psalms"] [data-chapter="1"]');
+    psalm1.click();
+    psalm1.click();
+    container.querySelector('.chapel-book[data-book-id="jude"]').click();
 
-    expect(onLaunchBook).toHaveBeenCalledTimes(1);
-    expect(onLaunchBook).toHaveBeenCalledWith('psalms');
-    expect(psalms.classList.contains('chapel-book-loading')).toBe(true);
+    expect(onLaunchReading).toHaveBeenCalledTimes(1);
+    expect(onLaunchReading).toHaveBeenCalledWith('psalms', 1);
+    expect(psalm1.classList.contains('chapel-book-loading')).toBe(true);
 
     release();
     await gate;
     await Promise.resolve();
-    expect(psalms.classList.contains('chapel-book-loading')).toBe(false);
+    expect(psalm1.classList.contains('chapel-book-loading')).toBe(false);
   });
 
-  it('marks the last-read book on return from the Chamber', () => {
-    const { container, chapel } = mount({ bookId: 'john' });
-    expect(container.querySelector('[data-book-id="john"]').classList.contains('chapel-book-last')).toBe(true);
+  it('returns from the Chamber with the book open and its chapter marked', () => {
+    const { container } = mount({ bookId: 'john', chapter: 3 });
+    // Arrives already open at its chapters
+    const panel = container.querySelector('[data-chapter-panel="john"]');
+    expect(panel).not.toBeNull();
+    expect(panel.querySelector('[data-chapter="3"]').classList.contains('chapel-chapter-last')).toBe(true);
+    expect(container.querySelector('.chapel-book[data-book-id="john"]').classList.contains('chapel-book-last')).toBe(true);
 
-    chapel.update({ bookId: 'psalms' });
-    expect(container.querySelector('[data-book-id="john"]').classList.contains('chapel-book-last')).toBe(false);
-    expect(container.querySelector('[data-book-id="psalms"]').classList.contains('chapel-book-last')).toBe(true);
+    // And updates in place on a later return
+    const { container: again, chapel } = mount({ bookId: 'john' });
+    chapel.update({ bookId: 'psalms', chapter: 23 });
+    expect(again.querySelector('[data-chapter-panel="psalms"] [data-chapter="23"]')
+      .classList.contains('chapel-chapter-last')).toBe(true);
   });
 });
 

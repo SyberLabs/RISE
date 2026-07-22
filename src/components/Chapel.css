@@ -143,6 +143,93 @@
   border-left-color: rgba(212, 165, 116, 0.45);
 }
 
+/* The open book holds its ember edge while its chapters are shown */
+.chapel-book-open {
+  border-left-color: var(--color-ember);
+  background: rgba(212, 165, 116, 0.06);
+}
+
+.chapel-book-open .chapel-book-name {
+  color: var(--color-light);
+}
+
+/* ─── Chapter panel ─── */
+
+.chapel-chapter-panel {
+  margin: var(--space-sm) 0 var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid rgba(212, 165, 116, 0.18);
+  border-radius: 4px;
+  background: rgba(212, 165, 116, 0.03);
+}
+
+.chapel-chapter-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.chapel-chapter-title {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-ember);
+  opacity: 0.85;
+}
+
+.chapel-read-all {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-fog);
+  font-size: 12px;
+  padding: 2px var(--space-xs);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(155, 155, 165, 0.4);
+  transition: color 300ms var(--ease-out);
+  white-space: nowrap;
+}
+
+.chapel-read-all:hover,
+.chapel-read-all:focus-visible {
+  color: var(--color-light);
+}
+
+.chapel-chapter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 6px;
+}
+
+.chapel-chapter {
+  background: transparent;
+  border: 1px solid var(--color-shadow);
+  border-radius: 3px;
+  color: var(--color-cloud);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 7px 0;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 250ms var(--ease-out), background 250ms var(--ease-out), color 250ms var(--ease-out);
+}
+
+.chapel-chapter:hover,
+.chapel-chapter:focus-visible {
+  border-color: var(--color-ember);
+  background: rgba(212, 165, 116, 0.08);
+  color: var(--color-light);
+}
+
+/* The last chapter read — the ember mark carried down a level */
+.chapel-chapter-last {
+  border-color: rgba(212, 165, 116, 0.55);
+  color: var(--color-ember);
+}
+
 .chapel-book-loading {
   opacity: 0.55;
   pointer-events: none;

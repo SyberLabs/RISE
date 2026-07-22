@@ -706,10 +706,11 @@ class App {
                 return new Chapel(container, {
                     onNavigate: this.handleNavigate,
                     bookId: data?.bookId,
-                    onLaunchBook: async (bookId) => {
+                    chapter: data?.chapter,
+                    onLaunchReading: async (bookId, chapter) => {
                         try {
                             const { createChapelHandoff } = await import('./content/chapel/handoff.js');
-                            const chamberData = await createChapelHandoff(bookId);
+                            const chamberData = await createChapelHandoff(bookId, chapter == null ? {} : { chapter });
                             await this.router.navigate('chamber', { data: chamberData });
                         } catch (error) {
                             console.error('[R.I.S.E.] Chapel handoff failed:', error);
