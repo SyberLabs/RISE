@@ -1397,7 +1397,6 @@
 }
 
 .vi-chapel-add-wrap {
-  position: relative;
   display: inline-flex;
 }
 
@@ -1421,35 +1420,46 @@
   border-color: var(--color-ember);
 }
 
+/* The pool tray sits under the WHOLE pill row rather than hanging off
+   the drifting + orb — pills grow leftward of a stable anchor, and
+   adding three never crowds the panel edge. Options render as chips
+   in the same visual language as the pills they will become. */
 .vi-chapel-add-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  z-index: 20;
   display: flex;
-  flex-direction: column;
-  min-width: 150px;
-  background: var(--color-abyss);
-  border: 1px solid rgba(212, 165, 116, 0.3);
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px;
+  background: rgba(212, 165, 116, 0.04);
+  border: 1px solid rgba(212, 165, 116, 0.18);
   border-radius: 4px;
-  padding: 4px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* [hidden] must actually hide: the display:flex above would win the
+   cascade over the UA's [hidden] rule otherwise — this was the bug
+   that left the tray permanently open. */
+.vi-chapel-add-menu[hidden] {
+  display: none;
 }
 
 .vi-chapel-add-option {
   background: transparent;
-  border: none;
-  color: var(--color-cloud);
-  font-size: 12px;
-  text-align: left;
-  padding: 6px 8px;
-  border-radius: 3px;
+  border: 1px dashed rgba(212, 165, 116, 0.35);
+  border-radius: 12px;
+  color: var(--color-fog);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  padding: 3px 10px;
   cursor: pointer;
+  transition: color 200ms var(--ease-out), border-color 200ms var(--ease-out), background 200ms var(--ease-out);
 }
 
 .vi-chapel-add-option:hover,
 .vi-chapel-add-option:focus-visible {
   background: rgba(212, 165, 116, 0.10);
+  border-color: var(--color-ember);
+  border-style: solid;
   color: var(--color-light);
 }
 

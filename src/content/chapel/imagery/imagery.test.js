@@ -37,6 +37,18 @@ describe('Chapel pinned collections', () => {
     // Balthasar / Caspar king panels (Rijksmuseum)
     expect(allIds).not.toContain('rijks:200109034');
     expect(allIds).not.toContain('rijks:200109035');
+    // Nativity re-review (2026-07-22): vitrine objects and wrong
+    // subjects — limestone fragments of a dismembered Adoration group,
+    // a tabernacle house altar, a rock-crystal intaglio, an in-situ
+    // apse fresco, an enamel plaque, a grey bronze relief, and the
+    // family of Zebedee (not an Annunciation)
+    for (const cut of [
+      'met:471050', 'met:471051', 'met:471052', 'met:471053',
+      'met:459249', 'met:461346', 'met:472381', 'met:192738',
+      'aic:44741', 'rijks:20025804'
+    ]) {
+      expect(allIds).not.toContain(cut);
+    }
   });
 
   it('stays within the service request bound', async () => {
@@ -52,7 +64,7 @@ describe('Chapel pinned collections', () => {
 describe('Chapel icons', () => {
   it('pins the three approved icons with stated rights bases and attribution', () => {
     expect(Object.keys(CHAPEL_ICONS)).toEqual([
-      'icon-pantocrator-sinai', 'icon-pantocrator-russian', 'icon-salus-populi-romani'
+      'icon-pantocrator-sinai', 'icon-pantocrator-russian', 'icon-good-shepherd', 'icon-salus-populi-romani'
     ]);
     for (const [id, icon] of Object.entries(CHAPEL_ICONS)) {
       expect(icon.rights, id).toBe('PUBLIC_DOMAIN');

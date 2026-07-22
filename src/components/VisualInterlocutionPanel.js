@@ -52,6 +52,7 @@ const CHAPEL_COLLECTION_LABELS = Object.freeze({
 const CHAPEL_ICON_LABELS = Object.freeze({
     'icon-pantocrator-sinai': 'Christ Pantocrator · Sinai, 6th c.',
     'icon-pantocrator-russian': 'Christ Pantocrator · Russian, 19th c.',
+    'icon-good-shepherd': 'The Good Shepherd · Plockhorst',
     'icon-salus-populi-romani': 'Salus Populi Romani'
 });
 
@@ -216,6 +217,9 @@ export class VisualInterlocutionPanel {
         this.lockedMessage = options.lockedMessage || 'Load text to configure visuals.';
 
         this.expanded = options.expanded ?? false;
+        // Chapel collection tray: closed until the + orb opens it;
+        // survives the re-render an add/remove triggers
+        this._chapelTrayOpen = false;
 
         // Check if user has already given consent this session
         this.hasConsent = hasVisualInterlocutionConsent(this.consentScope);
@@ -820,20 +824,20 @@ export class VisualInterlocutionPanel {
                                                 </span>
                                             `).join('')}
                                             ${available.length ? `
-                                                <span class="vi-chapel-add-wrap">
-                                                    <button type="button" class="vi-chapel-add-orb"
-                                                        data-action="chapel-add-toggle"
-                                                        aria-label="Add a Chapel collection"
-                                                        aria-expanded="false">+</button>
-                                                    <span class="vi-chapel-add-menu" hidden>
-                                                        ${available.map(id => `
-                                                            <button type="button" class="vi-chapel-add-option"
-                                                                data-chapel-add="${escapeHtml(id)}">${escapeHtml(labelFor(id))}</button>
-                                                        `).join('')}
-                                                    </span>
-                                                </span>
+                                                <button type="button" class="vi-chapel-add-orb"
+                                                    data-action="chapel-add-toggle"
+                                                    aria-label="Add a Chapel collection"
+                                                    aria-expanded="${this._chapelTrayOpen ? 'true' : 'false'}">+</button>
                                             ` : ''}
                                         </div>
+                                        ${available.length ? `
+                                            <div class="vi-chapel-add-menu" ${this._chapelTrayOpen ? '' : 'hidden'}>
+                                                ${available.map(id => `
+                                                    <button type="button" class="vi-chapel-add-option"
+                                                        data-chapel-add="${escapeHtml(id)}">+ ${escapeHtml(labelFor(id))}</button>
+                                                `).join('')}
+                                            </div>
+                                        ` : ''}
                                         <p class="vi-source-family-hint text-mist">
                                             Sacred collections for this reading. ✕ returns one to the pool; + draws another in.
                                         </p>
@@ -1571,19 +1575,22 @@ export class VisualInterlocutionPanel {
         this.container.querySelectorAll('[data-chapel-add]').forEach(btn => {
             btn.addEventListener('click', () => {
                 window.rise?.audioEngine?.playHiss();
+                const id = btn.dataset.chapelAdd;
+                // Adding the LAST available collection empties the tray;
+                // close it rather than leaving an empty box open.
+                const remaining = this.container.querySelectorAll('[data-chapel-add]').length;
+                if (remaining <= 1) this._chapelTrayOpen = false;
                 editChapelCollections(current =>
-                    current.includes(btn.dataset.chapelAdd)
-                        ? current
-                        : [...current, btn.dataset.chapelAdd]);
+                    current.includes(id) ? current : [...current, id]);
             });
         });
         const chapelAddToggle = this.container.querySelector('[data-action="chapel-add-toggle"]');
         if (chapelAddToggle) {
             chapelAddToggle.addEventListener('click', () => {
+                this._chapelTrayOpen = !this._chapelTrayOpen;
                 const menu = this.container.querySelector('.vi-chapel-add-menu');
-                if (!menu) return;
-                menu.hidden = !menu.hidden;
-                chapelAddToggle.setAttribute('aria-expanded', menu.hidden ? 'false' : 'true');
+                if (menu) menu.hidden = !this._chapelTrayOpen;
+                chapelAddToggle.setAttribute('aria-expanded', this._chapelTrayOpen ? 'true' : 'false');
             });
         }
 

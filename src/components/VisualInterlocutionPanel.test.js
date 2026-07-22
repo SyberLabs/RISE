@@ -72,6 +72,28 @@ describe('Chapel collection editing in the panel', () => {
         expect(onChange).toHaveBeenCalled();
     });
 
+    it('the collection tray is closed until + opens it, and [hidden] genuinely hides it', async () => {
+        const { container } = makePanel({ ...CHAPEL_LAUNCH, consentScope: 'chapel-test' });
+        const menu = container.querySelector('.vi-chapel-add-menu');
+        // Closed by default
+        expect(menu.hidden).toBe(true);
+        // The CSS must carry an explicit [hidden] rule: the tray's own
+        // display:flex would otherwise win the cascade over the UA's
+        // [hidden] style — the bug that left the tray permanently open.
+        const { readFileSync } = await import('node:fs');
+        const { resolve } = await import('node:path');
+        const css = readFileSync(resolve('src/components/VisualInterlocutionPanel.css'), 'utf8');
+        expect(css).toMatch(/\.vi-chapel-add-menu\[hidden\]\s*\{[^}]*display:\s*none/);
+
+        // + opens; adding keeps it open for the next add; the orb closes it
+        container.querySelector('[data-action="chapel-add-toggle"]').click();
+        expect(menu.hidden).toBe(false);
+        container.querySelector('[data-chapel-add="chapel-nativity"]').click();
+        expect(container.querySelector('.vi-chapel-add-menu').hidden).toBe(false);
+        container.querySelector('[data-action="chapel-add-toggle"]').click();
+        expect(container.querySelector('.vi-chapel-add-menu').hidden).toBe(true);
+    });
+
     it('non-chapel curated chips stay informational — no ✕, no orb', () => {
         const { container } = makePanel({
             visualMode: 'interlocution',

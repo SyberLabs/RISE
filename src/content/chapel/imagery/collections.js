@@ -3,7 +3,7 @@
  * reading, the Rosary's mysteries, and (stage 6) the Stations.
  *
  * CURATION: every work below was rendered on a contact sheet and
- * reviewed by a human (2026-07-22) before being pinned. All rights
+ * reviewed by a human (2026-07-22, nativity re-reviewed same day) before being pinned. All rights
  * verified at pin time with STATED declarations: Met isPublicDomain,
  * Cleveland/AIC CC0, Rijksmuseum Public Domain Mark/CC0 on the
  * VisualItem. The comment beside each id names the work so a silent
@@ -17,6 +17,11 @@
  *   - Balthasar and Caspar single-king fragments of a dismembered
  *     Adoration altarpiece — halves of a subject, not the subject
  *   - A Pisan portrait medal filed under "Resurrection" (its reverse)
+ *   - Nativity re-review: five limestone fragments of a dismembered
+ *     Adoration group, a tabernacle house altar, a rock-crystal
+ *     intaglio, an in-situ apse fresco, an enamel plaque, a bronze
+ *     relief, and the family of Zebedee wearing an Annunciation
+ *     search result
  *
  * SCOPING (spec §5): these collections are Chapel-exclusive. They
  * never appear in the browsable Collections panel, and the cortex
@@ -133,16 +138,9 @@ export const CHAPEL_PINNED_COLLECTIONS = freezeManifest({
             { source: 'met', id: 436803 },  // The Adoration of the Magi — Joos van Wassenhove — 1472–74
             { source: 'met', id: 436504 },  // The Adoration of the Magi — Giotto di Bondone — possibly ca. 1320
             { source: 'met', id: 458956 },  // The Adoration of the Magi — Bartolo di Fredi — ca. 1390
-            { source: 'met', id: 459249 },  // Tabernacle House Altar with the Adoration of the Shepherds — Reinhold Vasters — second half 16th century (pa
-            { source: 'met', id: 471053 },  // Joseph (from a group with the Adoration of the Magi) — unknown — ca. 1175–1200
             { source: 'met', id: 459208 },  // Adoration of the Shepherds — Francesco di Marco Marmitta da Par — ca. 1500
             { source: 'met', id: 472155 },  // Adoration of the Magi from Seven Scenes from the Life of C — unknown — ca. 1390
             { source: 'met', id: 469959 },  // Adoration of the Magi from Seven Scenes from the Life of C — unknown — ca. 1390
-            { source: 'met', id: 471052 },  // Virgin and Child (from an group with the Adoration of the  — unknown — ca. 1175–1200
-            { source: 'met', id: 471051 },  // Wise Man (from a group with the Adoration of the Magi) — unknown — ca. 1175–1200
-            { source: 'met', id: 471050 },  // Sculpture of a Wise Man (from a Group with the Adoration o — unknown — ca. 1175–1200
-            { source: 'met', id: 472381 },  // The Virgin and Child in Majesty and the Adoration of the M — Master of Pedret — ca. 1100
-            { source: 'met', id: 192738 },  // The Adoration of the Shepherds — Workshop of the Master of the High — probably early 16th century
             { source: 'met', id: 437789 },  // The Adoration of the Magi — Giovanni Battista Tiepolo — late 1750s
             { source: 'met', id: 437231 },  // The Adoration of the Shepherds — L'Ortolano (Giovanni Battista Benv — late 1520s
             { source: 'met', id: 436104 },  // The Adoration of the Magi — Gerard David — ca. 1520
@@ -151,9 +149,7 @@ export const CHAPEL_PINNED_COLLECTIONS = freezeManifest({
             { source: 'met', id: 435724 },  // The Adoration of the Magi — Hieronymus Bosch — ca. 1475
             { source: 'met', id: 436571 },  // The Adoration of the Shepherds — El Greco (Domenikos Theotokopoulos — ca. 1612–14
             { source: 'met', id: 459133 },  // The Adoration of the Magi — Italian, Neapolitan Follower of Gi — ca. 1340–43
-            { source: 'met', id: 461346 },  // Adoration of the Shepherds — unknown — late 16th century
             { source: 'aic', id: 16327 },  // The Annunciation — Jean Hey (Master of Moulins; Nethe — 1490–95
-            { source: 'aic', id: 44741 },  // The Annunciation — Alessandro Vittoria (Italian, 1525 — c. 1583
             { source: 'aic', id: 80530 },  // Virgin and Child with an Angel — Sandro Botticelli (Italian, 1444/4 — 1475–85
             { source: 'aic', id: 184371 },  // The Nativity — Fra Bartolommeo (Baccio della Port — 1504–7
             { source: 'rijks', id: 200106080 },  // The Adoration of the Magi — unknown — [SK-A-5082]
@@ -166,7 +162,6 @@ export const CHAPEL_PINNED_COLLECTIONS = freezeManifest({
             { source: 'rijks', id: 200109730 },  // Triptych with Virgin and Child with Saints (center), male  — unknown — [SK-A-3141]
             { source: 'rijks', id: 20025780 },  // The Annunciation — unknown — [SK-A-4704]
             { source: 'rijks', id: 20025782 },  // Annunciation to the Virgin — unknown — [SK-A-282]
-            { source: 'rijks', id: 20025804 },  // The Family of Zebedee / Angel Gabriel from an Annunciation — unknown — [SK-A-2799]
             { source: 'rijks', id: 20025868 },  // The Annunciation — unknown — [SK-A-2592]
             { source: 'rijks', id: 20026246 },  // The Annunciation to the Shepherds — unknown — [SK-A-801]
             { source: 'rijks', id: 20026408 },  // Angel from the Annunciation to the Virgin — unknown — [SK-A-3986]

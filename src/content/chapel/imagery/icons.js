@@ -52,6 +52,22 @@ export const CHAPEL_ICONS = freezeManifest({
     attribution: 'Russian, Christ Pantocrator, 19th century. Gift of Dr. Fred B. Rogers, Class of 1947 (y1960-34) — Princeton University Art Museum, public domain'
   },
 
+  'icon-good-shepherd': {
+    name: 'The Good Shepherd',
+    role: 'christ',
+    origin: 'Bernhard Plockhorst',
+    date: '19th century',
+    medium: 'Oil on canvas',
+    source: 'commons',
+    sourceId: 'File:Bernhard_Plockhorst_-_Good_Shephard.jpg',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/a/a7/Bernhard_Plockhorst_-_Good_Shephard.jpg',
+    sourceUrl: 'https://commons.wikimedia.org/wiki/File:Bernhard_Plockhorst_-_Good_Shephard.jpg',
+    rights: 'PUBLIC_DOMAIN',
+    rightsBasis: 'Commons extmetadata: License Public domain, Copyrighted False; Plockhorst d. 1907 (verified 2026-07-22)',
+    fileSha1: '95a8b2416d9ee9771968d062d88b0071f7b3e924',
+    attribution: 'Bernhard Plockhorst, The Good Shepherd, 19th century — Wikimedia Commons, public domain'
+  },
+
   'icon-salus-populi-romani': {
     name: 'Salus Populi Romani',
     role: 'marian',
