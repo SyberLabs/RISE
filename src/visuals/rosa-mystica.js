@@ -72,12 +72,16 @@ float sdVesica(vec2 p, float w, float h){
     : length(p - vec2(-d, 0.0)) - r;
 }
 
+/* jewel glass — deeper saturation so the panes sing at focal size:
+   sapphire, garnet, emerald, amber-gold, amethyst, and a breath of
+   rose */
 vec3 pal(float k){
-  if (k < 0.40) return vec3(0.10, 0.21, 0.62);
-  if (k < 0.68) return vec3(0.63, 0.06, 0.13);
-  if (k < 0.80) return vec3(0.06, 0.38, 0.22);
-  if (k < 0.91) return vec3(0.86, 0.60, 0.16);
-  return vec3(0.36, 0.15, 0.50);
+  if (k < 0.34) return vec3(0.08, 0.24, 0.78);   /* sapphire  */
+  if (k < 0.58) return vec3(0.74, 0.05, 0.16);   /* garnet    */
+  if (k < 0.72) return vec3(0.04, 0.48, 0.28);   /* emerald   */
+  if (k < 0.86) return vec3(0.95, 0.66, 0.14);   /* amber     */
+  if (k < 0.95) return vec3(0.46, 0.16, 0.66);   /* amethyst  */
+  return vec3(0.85, 0.35, 0.45);                 /* rose      */
 }
 
 /* hue rotation about the luma axis — each pane keeps its identity
@@ -171,10 +175,15 @@ void main(){
   vec3 glassCol = gc * (0.55 + 0.50 * mottle) * glow * lead;
   glassCol += gc * 0.14;
 
-  vec3 stone = vec3(0.145, 0.135, 0.120);
+  /* Night masonry: deep charcoal with a cool cast — shadow between
+     the panes rather than daylight stone, so the GLASS carries the
+     window at the Chamber's focal size */
+  vec3 stone = vec3(0.052, 0.052, 0.062);
   stone *= 0.80 + 0.30 * vnoise(p * 34.0 + 7.0);
-  stone *= mix(0.50, 1.0, smoothstep(0.0, 0.028, d));
+  stone *= mix(0.45, 1.0, smoothstep(0.0, 0.028, d));
   stone *= 0.85 + 0.25 * smoothstep(1.0, 0.2, r);
+  /* the panes lend the stone their nearest glow, as lit glass does */
+  stone += gc * 0.030 * smoothstep(0.05, 0.0, d);
 
   /* Outside the window the canvas is TRANSPARENT: the room's own
      void shows through, so the rose sits in the Chamber's darkness
