@@ -426,19 +426,18 @@
 }
 
 /* ─── ROSA MYSTICA — the procedural rose window ───
-   The rose fills the field as the whole ground of the reading; the
-   text passes across the backlit glass. */
+   The rose hangs ABOVE the reading as a window, exactly as the icon
+   does — the text reads on dark ground beneath it, never across the
+   glass. */
 .chamber-focal:has(.focal-rose) {
-  top: 50%;
-  left: 50%;
-  width: 100%;
-  height: 100%;
-  opacity: 0.55;
+  top: 24%;
+  opacity: 0.9;
 }
 
 .focal-rose {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  width: min(340px, 36vh);
+  height: min(340px, 36vh);
 }
 
 .focal-rose .rosa-canvas {

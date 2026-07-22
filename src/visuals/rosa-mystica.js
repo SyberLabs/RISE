@@ -38,6 +38,8 @@ uniform float uPet;
 uniform float uSeedF;
 uniform float uFlat;
 uniform float uGrain;
+uniform float uHue;   /* slow palette rotation, radians — the light
+                         through the window turning, not the window */
 
 float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 
@@ -78,14 +80,33 @@ vec3 pal(float k){
   return vec3(0.36, 0.15, 0.50);
 }
 
+/* hue rotation about the luma axis — each pane keeps its identity
+   while the light through it slowly turns */
+vec3 hueTurn(vec3 c, float a){
+  const vec3 lum = vec3(0.299, 0.587, 0.114);
+  float cosA = cos(a), sinA = sin(a);
+  mat3 m = mat3(
+    lum.x + cosA * (1.0 - lum.x) + sinA * (-lum.x),
+    lum.x + cosA * (-lum.x)      + sinA * (0.143),
+    lum.x + cosA * (-lum.x)      + sinA * (-(1.0 - lum.x)),
+    lum.y + cosA * (-lum.y)      + sinA * (-lum.y),
+    lum.y + cosA * (1.0 - lum.y) + sinA * (0.140),
+    lum.y + cosA * (-lum.y)      + sinA * (lum.y),
+    lum.z + cosA * (-lum.z)      + sinA * (1.0 - lum.z),
+    lum.z + cosA * (-lum.z)      + sinA * (-0.283),
+    lum.z + cosA * (1.0 - lum.z) + sinA * (lum.z)
+  );
+  return clamp(m * c, 0.0, 1.0);
+}
+
 vec3 paneColor(float ringId, float sectId){
-  if (ringId < 0.5) return vec3(0.93, 0.74, 0.32);
+  if (ringId < 0.5) return vec3(0.93, 0.74, 0.32);   /* the oculus holds its gold */
   float per = 1.0 + floor(hash(vec2(ringId * 3.1, uSeedF * 91.7)) * 3.0);
   float slot = mod(sectId, per);
   float k = hash(vec2(ringId * 13.7 + uSeedF * 57.0, slot * 7.1 + ringId));
   vec3 c = pal(k);
   c *= 0.90 + 0.22 * hash(vec2(sectId * 1.9 + ringId * 8.8, uSeedF * 33.0));
-  return c;
+  return hueTurn(c, uHue);
 }
 
 vec3 tracery(vec2 p){
@@ -242,7 +263,7 @@ export class RosaMystica {
     gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
     this.U = {};
-    for (const name of ['uRes', 'uTime', 'uPet', 'uSeedF', 'uFlat', 'uGrain']) {
+    for (const name of ['uRes', 'uTime', 'uPet', 'uSeedF', 'uFlat', 'uGrain', 'uHue']) {
       this.U[name] = gl.getUniformLocation(program, name);
     }
   }
@@ -286,9 +307,22 @@ export class RosaMystica {
     }
   }
 
-  _setCommon() {
+  /**
+   * The light through the window turns — a full palette rotation
+   * every ~6 minutes, continuous and imperceptibly slow, so the glass
+   * lives across a whole reading without a single sudden change.
+   * Frozen under reduced-motion (the window is then simply a window).
+   */
+  _hueAt(t) {
+    if (this.reduceMotion) return 0;
+    const CYCLE_S = 360;
+    return ((t % CYCLE_S) / CYCLE_S) * Math.PI * 2;
+  }
+
+  _setCommon(t = 0) {
     this.gl.uniform1f(this.U.uPet, this.petala);
     this.gl.uniform1f(this.U.uSeedF, this.seedF);
+    this.gl.uniform1f(this.U.uHue, this._hueAt(t));
   }
 
   _drawVitrum(t) {
@@ -297,7 +331,7 @@ export class RosaMystica {
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.uniform2f(this.U.uRes, this.canvas.width, this.canvas.height);
     gl.uniform1f(this.U.uTime, t);
-    this._setCommon();
+    this._setCommon(t);
     gl.uniform1f(this.U.uFlat, 0);
     gl.uniform1f(this.U.uGrain, this.reduceMotion ? 0.0 : 0.045);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -313,7 +347,7 @@ export class RosaMystica {
 
     gl.viewport(0, 0, cols, rows);
     gl.uniform2f(this.U.uRes, cols, rows);
-    this._setCommon();
+    this._setCommon(0);
     gl.uniform1f(this.U.uFlat, 1);
     gl.uniform1f(this.U.uGrain, 0);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
