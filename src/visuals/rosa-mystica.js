@@ -176,15 +176,24 @@ void main(){
   stone *= mix(0.50, 1.0, smoothstep(0.0, 0.028, d));
   stone *= 0.85 + 0.25 * smoothstep(1.0, 0.2, r);
 
-  vec3 wall = vec3(0.030, 0.027, 0.024);
-  wall += vec3(0.016, 0.013, 0.008) * exp(-pow((r - 1.07) / 0.020, 2.0));
-  wall *= 1.0 - 0.45 * smoothstep(0.9, 2.0, r);
-  wall += gc * 0.010 * smoothstep(1.6, 1.0, r);
+  /* Outside the window the canvas is TRANSPARENT: the room's own
+     void shows through, so the rose sits in the Chamber's darkness
+     rather than on its own square of wall. A faint halo of cast
+     light and the rim glow keep their alpha. */
+  vec3 rim = vec3(0.016, 0.013, 0.008) * exp(-pow((r - 1.07) / 0.020, 2.0));
+  vec3 castLight = gc * 0.010 * smoothstep(1.6, 1.0, r);
+  vec3 outside = rim + castLight;
+  float outsideA = clamp((rim.r + rim.g + rim.b) * 14.0
+                       + (castLight.r + castLight.g + castLight.b) * 6.0, 0.0, 1.0);
 
-  vec3 col = mix(wall, mix(stone, glassCol, glass), inWin);
-  col += (hash(gl_FragCoord.xy + fract(uTime) * 61.7) - 0.5) * uGrain;
+  vec3 inside = mix(stone, glassCol, glass);
+  float grain = (hash(gl_FragCoord.xy + fract(uTime) * 61.7) - 0.5) * uGrain;
 
-  gl_FragColor = vec4(col, 1.0);
+  vec3 col = mix(outside, inside, inWin) + grain * inWin;
+  float alpha = mix(outsideA, 1.0, inWin);
+
+  /* premultiply so the blend over the room's void is clean */
+  gl_FragColor = vec4(col * alpha, alpha);
 }
 `;
 
@@ -231,7 +240,14 @@ export class RosaMystica {
     host.appendChild(this.canvas);
     host.appendChild(this.pre);
 
-    this.gl = this.canvas.getContext('webgl', { preserveDrawingBuffer: true, antialias: true });
+    this.gl = this.canvas.getContext('webgl', {
+      preserveDrawingBuffer: true,
+      antialias: true,
+      // Transparent outside the window: the Chamber's void shows
+      // through, so the rose hangs in the room's own darkness
+      alpha: true,
+      premultipliedAlpha: true
+    });
     if (!this.gl) return; // null-context guard: the reading proceeds without the rose
 
     this._buildProgram();
@@ -329,6 +345,8 @@ export class RosaMystica {
     const gl = this.gl;
     this._sizeCanvas();
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform2f(this.U.uRes, this.canvas.width, this.canvas.height);
     gl.uniform1f(this.U.uTime, t);
     this._setCommon(t);
