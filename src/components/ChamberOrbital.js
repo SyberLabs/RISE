@@ -531,6 +531,16 @@ export class ChamberOrbital {
                   <span class="preset-icon">◌</span>
                   <span class="preset-label">Faded Signal</span>
                 </button>
+                <button class="audio-preset-option ${this.config.soundscape === 'chant-gregorian' ? 'active' : ''}" data-soundscape="chant-gregorian"
+                  title="Recorded Gregorian chant with long breaths of silence between pieces">
+                  <span class="preset-icon">✛</span>
+                  <span class="preset-label">Gregorian</span>
+                </button>
+                <button class="audio-preset-option ${this.config.soundscape === 'chant-znamenny' ? 'active' : ''}" data-soundscape="chant-znamenny"
+                  title="Znamenny chant of the Moscow Patriarchate choir — long breaths of silence between pieces">
+                  <span class="preset-icon">☦</span>
+                  <span class="preset-label">Znamenny</span>
+                </button>
               </div>
             </div>
 
@@ -757,7 +767,10 @@ export class ChamberOrbital {
     const hasSoundscape = this.config.soundscape && this.config.soundscape !== 'none';
 
     if (hasSoundscape) {
-      const labels = { aurora: 'Aurora', 'faded-signal': 'Faded Signal' };
+      const labels = {
+        aurora: 'Aurora', 'faded-signal': 'Faded Signal',
+        'chant-gregorian': 'Gregorian', 'chant-znamenny': 'Znamenny'
+      };
       const scape = labels[this.config.soundscape] || this.capitalizeFirst(this.config.soundscape);
       return (hasPreset || hasSwell) ? `✧ ${scape} +` : `✧ ${scape}`;
     }

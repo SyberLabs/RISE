@@ -50,7 +50,8 @@ describe('Chapel handoff', () => {
     // Contemplative defaults: stillness until the Chapel's own imagery exists
     expect(handoff.config.wpm).toBe(240);
     expect(handoff.config.chunkMode).toBe('phrase');
-    expect(handoff.config.soundscape).toBe('aurora');
+    // The room opens in its own voice now that rights-cleared chant exists
+    expect(handoff.config.soundscape).toBe('chant-gregorian');
     expect(handoff.config.visualConfig.visualMode).toBe('off');
 
     // Wayfinding: the origin chip returns to the Chapel with the book marked

@@ -92,6 +92,7 @@ export const LAYER_PRESETS = {
 
 import { PersonalSwells } from '../core/personal-swells.js';
 import { createSoundscape } from './soundscapes.js';
+import { createChantBed, isChantBedId, CHANT_BED_IDS } from './chant.js';
 
 
 /**
@@ -831,7 +832,11 @@ export class AudioEngine {
         if (!this.isInitialized) return;
         this.stopSoundscape(true);
 
-        const handle = createSoundscape(id, this.context, this.layerGains.soundscape);
+        // Chant beds are soundscapes whose voices are recorded sacred
+        // music (src/audio/chant.js) — same contract, same layer.
+        const handle = isChantBedId(id)
+            ? createChantBed(CHANT_BED_IDS[id].family, this.context, this.layerGains.soundscape)
+            : createSoundscape(id, this.context, this.layerGains.soundscape);
         if (!handle) {
             console.warn('[AudioEngine] Unknown soundscape:', id);
             return;

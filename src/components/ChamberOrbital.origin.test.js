@@ -264,7 +264,8 @@ describe('ChamberOrbital origin chip', () => {
 
         // Section renders with None active by default
         const chips = container.querySelectorAll('[data-soundscape]');
-        expect(chips).toHaveLength(3);
+        // None, Aurora, Faded Signal + the two chant beds
+        expect(chips).toHaveLength(5);
         expect(container.querySelector('[data-soundscape="none"]').classList.contains('active')).toBe(true);
 
         // Selecting Aurora updates config and the orbit status

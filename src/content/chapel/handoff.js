@@ -201,7 +201,11 @@ export function chapelSensoryConfig(bookId = null, iconId = null, chapter = null
     wpm: 240,
     chunkMode: 'phrase',
     curve: 'flat',
-    soundscape: 'aurora',
+    // Rights-cleared chant exists (chants.js), so the room opens in
+    // its own voice. Chant is offered, never imposed — the orbital
+    // changes it in one click, and the fixed devotions (Rosary,
+    // Stations) will still default to silence per the spec.
+    soundscape: 'chant-gregorian',
     visualConfig
   };
 }
