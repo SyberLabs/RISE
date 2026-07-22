@@ -167,6 +167,39 @@
   padding: var(--space-md);
 }
 
+.chapel-rosarium-door {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-xs);
+  text-align: left;
+  transition: transform 300ms var(--ease-out);
+}
+
+.chapel-rosarium-door:hover { transform: translateX(3px); }
+
+.chapel-rosarium-glyph { font-size: 22px; }
+
+.chapel-rosarium-body { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+
+.chapel-rosarium-name { color: var(--color-light); font-size: 15px; }
+
+.chapel-rosarium-detail { color: var(--color-fog); font-size: 12px; }
+
+.chapel-rosarium-enter {
+  color: var(--color-ember);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+  transition: opacity 300ms var(--ease-out);
+}
+
+.chapel-rosarium-door:hover .chapel-rosarium-enter { opacity: 1; }
+
 .chapel-mystery-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

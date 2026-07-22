@@ -1,0 +1,338 @@
+/**
+ * The Rosarium — one room, three states.
+ * The strand is THE object; prayers are total screens; transitions
+ * are slow crossfades (lowering and raising the eyes).
+ */
+
+.rosarium {
+  height: 100vh;
+  overflow: hidden;
+  background: var(--color-void);
+  position: relative;
+}
+
+.rosarium-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The glass rosary — full size at center in choosing/strand states,
+   withdrawn entirely during prayer */
+.rosarium-strand {
+  max-height: 86vh;
+  width: auto;
+  transition: opacity 1.1s var(--ease-default);
+  opacity: 0.95;
+}
+
+.rosarium-stage[data-phase="choosing"] .rosarium-strand {
+  opacity: 0.35; /* present behind the panel, quiet */
+}
+
+.rosarium-stage[data-phase="prayer"] .rosarium-strand {
+  opacity: 0; /* eyes lowered to the prayer */
+}
+
+.rosarium-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: rosarium-fade 1.1s var(--ease-default);
+}
+
+@keyframes rosarium-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rosarium-overlay { animation: none; }
+  .rosarium-strand { transition: none; }
+}
+
+/* ── Choosing ── */
+
+.rosarium-back {
+  position: absolute;
+  top: var(--space-lg);
+  left: var(--space-lg);
+  color: var(--color-fog);
+}
+
+.rosarium-heading {
+  text-align: center;
+  margin-bottom: var(--space-lg);
+}
+
+.rosarium-kicker {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--color-ember);
+  opacity: 0.85;
+  margin: 0 0 6px;
+}
+
+.rosarium-deck {
+  color: var(--color-fog);
+  font-size: 13.5px;
+  margin: 0;
+}
+
+.rosarium-panel {
+  width: min(640px, calc(100vw - 2 * var(--space-lg)));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  background: rgba(10, 10, 12, 0.72);
+  border: 1px solid rgba(212, 165, 116, 0.18);
+  border-radius: 6px;
+  padding: var(--space-lg);
+}
+
+.rosarium-sets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--space-sm);
+}
+
+.rosarium-set {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: transparent;
+  border: 1px solid var(--color-shadow);
+  border-radius: 4px;
+  padding: var(--space-sm);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 300ms var(--ease-out), background 300ms var(--ease-out);
+}
+
+.rosarium-set:hover { border-color: rgba(212, 165, 116, 0.45); }
+
+.rosarium-set-selected {
+  border-color: var(--color-ember);
+  background: rgba(212, 165, 116, 0.08);
+}
+
+.rosarium-set-today:not(.rosarium-set-selected) {
+  border-color: rgba(212, 165, 116, 0.35);
+}
+
+.rosarium-set-name { color: var(--color-light); font-size: 13.5px; }
+.rosarium-set-days { color: var(--color-mist); font-size: 9px; letter-spacing: 0.06em; }
+.rosarium-set-flame {
+  position: absolute; top: 4px; right: 7px;
+  color: var(--color-ember); font-size: 9px; opacity: 0.85;
+}
+
+.rosarium-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.rosarium-row-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-mist);
+  min-width: 56px;
+}
+
+.rosarium-pill {
+  background: transparent;
+  border: 1px solid var(--color-shadow);
+  border-radius: 12px;
+  color: var(--color-cloud);
+  font-size: 12px;
+  padding: 3px 12px;
+  cursor: pointer;
+  transition: border-color 250ms var(--ease-out), background 250ms var(--ease-out);
+}
+
+.rosarium-pill:hover { border-color: rgba(212, 165, 116, 0.45); }
+
+.rosarium-pill-selected {
+  border-color: var(--color-ember);
+  background: rgba(212, 165, 116, 0.08);
+  color: var(--color-light);
+}
+
+.rosarium-gallery-link {
+  background: transparent;
+  border: none;
+  color: var(--color-fog);
+  font-size: 11.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.rosarium-gallery-link:hover { color: var(--color-light); }
+
+.rosarium-pace { flex: 1; max-width: 160px; accent-color: var(--color-ember); }
+.rosarium-pace-value { color: var(--color-fog); font-size: 11px; }
+
+.rosarium-start {
+  margin-top: var(--space-sm);
+  background: rgba(212, 165, 116, 0.10);
+  border: 1px solid var(--color-ember);
+  border-radius: 4px;
+  color: var(--color-light);
+  font-size: 14.5px;
+  letter-spacing: 0.03em;
+  padding: var(--space-md);
+  cursor: pointer;
+  transition: background 300ms var(--ease-out), box-shadow 300ms var(--ease-out);
+}
+
+.rosarium-start:hover {
+  background: rgba(212, 165, 116, 0.16);
+  box-shadow: 0 0 30px rgba(212, 165, 116, 0.12);
+}
+
+/* ── The mystery gallery ── */
+
+.rosarium-gallery {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 10, 12, 0.94);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+}
+
+.rosarium-gallery-close {
+  position: absolute;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  color: var(--color-fog);
+}
+
+.rosarium-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-md);
+  width: min(1180px, calc(100vw - 2 * var(--space-xl)));
+}
+
+.rosarium-gallery-frame {
+  aspect-ratio: 3 / 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(212, 165, 116, 0.22);
+  background: rgba(212, 165, 116, 0.03);
+  padding: 3px;
+  overflow: hidden;
+}
+
+.rosarium-gallery-frame img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.rosarium-gallery-loading, .rosarium-gallery-absent {
+  color: var(--color-mist);
+  font-size: 11px;
+}
+
+.rosarium-gallery-card { display: flex; flex-direction: column; gap: 6px; }
+.rosarium-gallery-title { color: var(--color-fog); font-size: 11.5px; text-align: center; }
+
+@media (max-width: 900px) {
+  .rosarium-gallery-grid { grid-template-columns: repeat(2, 1fr); overflow-y: auto; max-height: 86vh; }
+}
+
+/* ── The strand between-space ── */
+
+.rosarium-advance-surface {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 7vh;
+  gap: var(--space-sm);
+}
+
+.rosarium-where {
+  color: var(--color-cloud);
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
+.rosarium-advance-hint {
+  color: var(--color-ember);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  opacity: 0.8;
+}
+
+.rosarium-advance-surface:hover .rosarium-advance-hint { opacity: 1; }
+
+/* ── The prayer ── */
+
+.rosarium-prayer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xl);
+  max-width: min(760px, calc(100vw - 2 * var(--space-xl)));
+  text-align: center;
+}
+
+.rosarium-prayer-unhurried { cursor: pointer; }
+
+.rosarium-art img {
+  max-height: 38vh;
+  max-width: min(420px, 60vw);
+  object-fit: contain;
+  border: 1px solid rgba(212, 165, 116, 0.28);
+  padding: 3px;
+  background: rgba(212, 165, 116, 0.03);
+}
+
+.rosarium-prayer-text {
+  font-family: var(--font-literary);
+  color: var(--color-light);
+  font-size: clamp(18px, 2.2vw, 25px);
+  line-height: 1.8;
+  margin: 0;
+}
+
+.rosarium-where {
+  font-family: var(--font-literary);
+}
+
+.rosarium-prayer-hint {
+  color: var(--color-mist);
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+}
+
+/* ── Complete ── */
+
+.rosarium-complete {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-lg);
+}

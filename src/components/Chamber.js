@@ -502,8 +502,6 @@ export class Chamber {
     // Initialize focal point if in focals mode
     this.initializeFocal();
 
-    // The Rosary's bead strand + decade stills (chapel liturgies only)
-    this.initializeLiturgy();
 
     // Initialize persistent attractor field if in attractor mode
     this.initializeAttractor();
@@ -687,107 +685,6 @@ export class Chamber {
       img.src = icon.image;
     } catch (e) {
       console.warn('[Chamber] Icon focal unavailable:', e);
-    }
-  }
-
-  /**
-   * The Rosary in the Chamber: mount the glass bead strand and (in
-   * Imagistic mode) the per-decade still. Fixed forms are fixed — this
-   * only FOLLOWS the liturgy atoms' choreography state; it decides
-   * nothing (non-negotiable #3).
-   */
-  async initializeLiturgy() {
-    const liturgy = this.session?.visualConfig?.liturgy;
-    if (liturgy?.kind !== 'rosary') return;
-    const field = this.container.querySelector('#chamber-field');
-    if (!field) return;
-
-    try {
-      const [{ RosaryStrand }, { compileLiturgy, liturgyStepIdFromAtom, liturgyStepState },
-        { buildRosaryDefinition }] = await Promise.all([
-        import('../visuals/rosary-strand.js'),
-        import('../core/liturgy-runner.js'),
-        import('../content/chapel/liturgy/rosary-liturgy.js')
-      ]);
-
-      // Recompile the liturgy for state lookup — deterministic, so
-      // this is byte-identical to what built the session's atoms.
-      const compiled = compileLiturgy(buildRosaryDefinition(liturgy.mysterySet));
-
-      const canvas = document.createElement('canvas');
-      canvas.className = 'chamber-rosary-strand';
-      canvas.width = 460;
-      canvas.height = 560;
-      field.appendChild(canvas);
-      const strand = new RosaryStrand(canvas);
-      strand.render();
-      this._rosary = { strand, compiled, liturgy, decadeShown: null };
-
-      // Follow the playing atoms: bead position + decade stills
-      this.player?.on('atom', (data) => {
-        const stepId = liturgyStepIdFromAtom(data.atom);
-        if (!stepId || !this._rosary) return;
-        const state = liturgyStepState(this._rosary.compiled, stepId);
-        if (!state) return;
-        this._rosary.strand.setBead(state.bead);
-        if (this._rosary.liturgy.mode === 'imagistic') {
-          this.updateDecadeStill(state.decade, liturgy.mysterySet);
-        }
-      });
-    } catch (e) {
-      // Reverent degradation: the prayers proceed without the strand
-      console.warn('[Chamber] Rosary strand unavailable:', e);
-    }
-  }
-
-  /**
-   * Imagistic mode: hold ONE pinned work behind glass for the
-   * decade's duration; between decades (and where no work is pinned)
-   * the still withdraws and the icon holds alone. Absence is a
-   * register, never an error (non-negotiable #5).
-   */
-  async updateDecadeStill(decade, mysterySet) {
-    if (!this._rosary || this._rosary.decadeShown === decade) return;
-    this._rosary.decadeShown = decade;
-
-    const holder = this._decadeStillHolder ?? (() => {
-      const el = document.createElement('div');
-      el.className = 'chamber-decade-still';
-      this.container.querySelector('#chamber-field')?.appendChild(el);
-      this._decadeStillHolder = el;
-      return el;
-    })();
-
-    holder.classList.remove('decade-still-visible');
-    if (decade == null) return;
-
-    try {
-      const [{ mysteryWork }, { resolveCollection }] = await Promise.all([
-        import('../content/chapel/liturgy/rosary-imagery.js'),
-        import('../content/atrium/imagery/service.js')
-      ]);
-      const pin = mysteryWork(mysterySet, decade);
-      if (!pin) return; // the focal holds alone — honest absence
-
-      const works = await resolveCollection({ works: [pin] });
-      const work = works[0];
-      // The decade may have advanced while we resolved
-      if (!work || !this._rosary || this._rosary.decadeShown !== decade) return;
-
-      holder.innerHTML = '';
-      const img = document.createElement('img');
-      img.alt = work.title;
-      img.title = `${work.title} — ${work.artist}`;
-      img.decoding = 'async';
-      img.onload = () => {
-        if (this._rosary?.decadeShown === decade) {
-          holder.classList.add('decade-still-visible');
-        }
-      };
-      img.src = work.imageUrl;
-      holder.appendChild(img);
-    } catch (e) {
-      console.warn('[Chamber] Decade still unavailable:', e);
     }
   }
 

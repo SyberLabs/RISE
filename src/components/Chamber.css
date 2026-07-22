@@ -463,58 +463,6 @@
   opacity: 0.82;
 }
 
-/* ─── The Rosary in the Chamber ─── */
-
-.chamber-rosary-strand {
-  position: absolute;
-  right: 5%;
-  top: 50%;
-  transform: translateY(-50%);
-  width: min(260px, 22vw);
-  height: auto;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0.85;
-}
-
-/* Long prayers need the reading line's full width: in a liturgy the
-   icon focal rises and shrinks so the Creed never runs beneath it */
-.chamber-field:has(.chamber-rosary-strand) .chamber-focal:has(.focal-icon-frame) {
-  top: 15%;
-}
-
-.chamber-field:has(.chamber-rosary-strand) .focal-icon-image {
-  max-width: min(180px, 20vw);
-  max-height: min(220px, 26vh);
-}
-
-/* The decade's still: one painting held behind glass, left of center,
-   beneath the text — museum stillness, not display */
-.chamber-decade-still {
-  position: absolute;
-  left: 4%;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 0;
-  max-width: min(340px, 28vw);
-  opacity: 0;
-  transition: opacity 2.4s var(--ease-default);
-  pointer-events: none;
-}
-
-.chamber-decade-still.decade-still-visible {
-  opacity: 0.5;
-}
-
-.chamber-decade-still img {
-  display: block;
-  max-width: 100%;
-  max-height: 56vh;
-  border: 1px solid rgba(212, 165, 116, 0.25);
-  padding: 2px;
-  background: rgba(212, 165, 116, 0.03);
-}
-
 @keyframes focal-icon-breath {
   0%, 100% { box-shadow: 0 0 46px rgba(212, 165, 116, 0.10); }
   50% { box-shadow: 0 0 78px rgba(212, 165, 116, 0.20); }

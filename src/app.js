@@ -40,6 +40,7 @@ import './components/Settings.css';
 import './components/Guide.css';
 import './components/Sol.css';
 import './components/Chapel.css';
+import './components/Rosarium.css';
 import './premium-additions.css';
 
 class App {
@@ -697,6 +698,19 @@ class App {
             }
         });
 
+        // The Rosarium — the Rosary's own room, entered from the Chapel
+        this.router.registerView('rosarium', {
+            container: document.getElementById('view-rosarium'),
+            init: async (container, data) => {
+                const { Rosarium } = await import('./components/Rosarium.js');
+                return new Rosarium(container, {
+                    onNavigate: this.handleNavigate,
+                    setId: data?.setId,
+                    iconId: data?.iconId
+                });
+            }
+        });
+
         // The Chapel (Scripture — entered only through the portal's
         // sanctuary lamp; never in the nav row)
         this.router.registerView('chapel', {
@@ -707,16 +721,12 @@ class App {
                     onNavigate: this.handleNavigate,
                     bookId: data?.bookId,
                     chapter: data?.chapter,
-                    onLaunchRosary: async (setId, extras) => {
-                        try {
-                            const { createRosaryHandoff } = await import('./content/chapel/liturgy/rosary-handoff.js');
-                            const { session } = createRosaryHandoff(setId, extras || {});
-                            this.currentSession = session;
-                            await this.router.navigate('chamber-session', { data: session });
-                        } catch (error) {
-                            console.error('[R.I.S.E.] Rosary launch failed:', error);
-                            this.showToast('The Rosary is unavailable right now.', 4000);
-                        }
+                    onLaunchRosary: (setId, extras) => {
+                        // The Rosary has its own room — the Rosarium —
+                        // rather than borrowing the Chamber
+                        this.router.navigate('rosarium', {
+                            data: { setId, iconId: extras?.iconId ?? null }
+                        });
                     },
                     onLaunchReading: async (bookId, chapter, extras) => {
                         try {
