@@ -196,15 +196,12 @@
    breath, disabled under reduced-motion. */
 
 .portal-chapel-lamp {
-  /* In content flow, centered below the SOL strip — never colliding
-     with the strips at any viewport height. Kept compact so the
-     portal column still fits without scrolling on short screens. */
-  position: relative;
-  display: block;
-  /* The negative bottom margin lets the flame hang into the portal's
-     bottom padding instead of growing the column — the lamp costs the
-     layout ~8px, so short viewports keep the whole portal in view. */
-  margin: var(--space-sm) auto -22px;
+  /* Top-right corner, just under the fixed 38px header bar — out of
+     the ceremonial column entirely. For the initiated: it costs the
+     layout nothing and competes with nothing. */
+  position: absolute;
+  top: calc(38px + var(--space-md));
+  right: var(--space-lg);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -232,11 +229,11 @@
   opacity: 0.34;
 }
 
-/* Hover reveals a single name: "The Chapel." — beside the flame, on
-   its own baseline, clear of the SOL strip above */
+/* Hover reveals a single name: "The Chapel." — to the left of the
+   flame, inward from the screen edge */
 .portal-chapel-lamp .chapel-lamp-name {
   position: absolute;
-  left: calc(100% + 2px);
+  right: calc(100% + 2px);
   top: 50%;
   transform: translateY(-50%);
   font-family: var(--font-mono);
@@ -267,23 +264,3 @@
   }
 }
 
-/* Short viewports: the portal column ran ~885px before the lamp
-   existed, so laptops at ≤920px already clipped the SOL strip's
-   margin. Compress the ceremonial gaps just enough that the whole
-   column — lamp included — stays in view without scrolling. */
-@media (max-height: 920px) {
-  .portal-sigil-container,
-  .portal-title-container,
-  .portal .portal-nav {
-    margin-bottom: var(--space-md);
-  }
-
-  .portal-atrium-door,
-  .portal-sol-strip {
-    margin-top: var(--space-sm);
-  }
-
-  .portal-chapel-lamp {
-    margin-top: 4px;
-  }
-}

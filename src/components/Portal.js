@@ -115,6 +115,14 @@ export class Portal {
           </div>
         </header>
 
+        <!-- The sanctuary lamp — a small constant light in the top-right
+             corner, the only entrance to the Chapel. It does not
+             advertise; it burns. Hover reveals a single name. -->
+        <button class="portal-chapel-lamp" data-nav="chapel" style="opacity: 0;" title="The Chapel" aria-label="The Chapel">
+          <span aria-hidden="true">✛</span>
+          <span class="chapel-lamp-name" aria-hidden="true">The Chapel</span>
+        </button>
+
         <!-- The Sigil - Center of attention -->
         <div class="portal-sigil-container" style="opacity: 0;">
           <button
@@ -182,16 +190,6 @@ export class Portal {
             <span class="sol-strip-detail"></span>
           </span>
           <span class="sol-strip-enter" aria-hidden="true">enter ›</span>
-        </button>
-
-        <!-- The sanctuary lamp — a small constant light, the only
-             entrance to the Chapel. It does not advertise; it burns.
-             No copy, no live detail; hover reveals a single name.
-             In content flow below the strips so it never collides
-             with them at any viewport height. -->
-        <button class="portal-chapel-lamp" data-nav="chapel" style="opacity: 0;" title="The Chapel" aria-label="The Chapel">
-          <span aria-hidden="true">✛</span>
-          <span class="chapel-lamp-name" aria-hidden="true">The Chapel</span>
         </button>
 
         <!-- Portal Footer - Heritage & Onboarding -->
