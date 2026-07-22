@@ -249,6 +249,35 @@
   font-size: 11px;
 }
 
+.rosarium-gallery-absent {
+  text-align: center;
+  line-height: 1.9;
+  color: rgba(212, 165, 116, 0.55);
+}
+
+/* The quiet exit — present, never loud */
+.rosarium-quiet-exit {
+  position: absolute;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  z-index: 5;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-mist);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  opacity: 0.55;
+  transition: opacity 300ms var(--ease-out), color 300ms var(--ease-out);
+}
+
+.rosarium-quiet-exit:hover,
+.rosarium-quiet-exit:focus-visible {
+  opacity: 1;
+  color: var(--color-ember);
+}
+
 .rosarium-gallery-card { display: flex; flex-direction: column; gap: 6px; }
 .rosarium-gallery-title { color: var(--color-fog); font-size: 11.5px; text-align: center; }
 

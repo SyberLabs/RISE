@@ -167,7 +167,9 @@ export class Rosarium {
       return `
         <div class="rosarium-gallery-card">
           <div class="rosarium-gallery-frame" data-gallery-slot="${index}">
-            ${pin ? '<span class="rosarium-gallery-loading">…</span>' : '<span class="rosarium-gallery-absent">the icon holds</span>'}
+            ${pin
+              ? '<span class="rosarium-gallery-loading">…</span>'
+              : `<span class="rosarium-gallery-absent" title="No rights-cleared painting has been found for this mystery; during its decade the icon holds the center alone.">✛<br/>the icon holds<br/>this mystery</span>`}
           </div>
           <span class="rosarium-gallery-title">${escapeHtml(mystery.title)}</span>
         </div>
@@ -206,10 +208,20 @@ export class Rosarium {
     const step = this.compiled.steps[this.stepIndex + 1] || null;
     const where = this._whereLine();
     return `
+      ${this._renderQuietExit()}
       <button class="rosarium-advance-surface" data-action="advance" aria-label="Advance to the next prayer">
         <span class="rosarium-where">${escapeHtml(where)}</span>
         <span class="rosarium-advance-hint">${step ? 'advance ›' : ''}</span>
       </button>
+    `;
+  }
+
+  /** A small constant way out — top right, present, never loud. */
+  _renderQuietExit() {
+    return `
+      <button class="rosarium-quiet-exit" data-action="exit-chapel"
+        title="Leave the Rosary and return to the Chapel"
+        aria-label="Return to the Chapel">✛ Chapel</button>
     `;
   }
 
@@ -218,6 +230,7 @@ export class Rosarium {
     const decade = step.state.decade;
     const artSlot = `<div class="rosarium-art" data-art-slot></div>`;
     return `
+      ${this._renderQuietExit()}
       <div class="rosarium-prayer${this.autoAdvance ? '' : ' rosarium-prayer-unhurried'}" data-action="${this.autoAdvance ? '' : 'prayer-done'}">
         ${artSlot}
         <p class="rosarium-prayer-text">${escapeHtml(step.text)}</p>
@@ -272,7 +285,29 @@ export class Rosarium {
     this.phase = 'strand';
     this.renderOverlay();
     this._startSound();
+    // Imagistic: warm every mystery painting now, so no decade waits
+    // on a museum API mid-prayer
+    if (this.mode === 'imagistic') this._prewarmMysteryWorks();
     if (this.autoAdvance) this._queueAutoAdvance();
+  }
+
+  async _prewarmMysteryWorks() {
+    try {
+      const { resolveCollection } = await import('../content/atrium/imagery/service.js');
+      for (let decade = 1; decade <= 5; decade += 1) {
+        const pin = mysteryWork(this.setId, decade);
+        const key = `${this.setId}:${decade}`;
+        if (!pin) { this._decadeWorkCache.set(key, null); continue; }
+        if (this._decadeWorkCache.has(key)) continue;
+        const resolved = await resolveCollection({ works: [pin] });
+        const work = resolved[0] || null;
+        this._decadeWorkCache.set(key, work);
+        // Also warm the browser's image cache
+        if (work?.imageUrl) { const img = new Image(); img.src = work.imageUrl; }
+      }
+    } catch (e) {
+      console.warn('[Rosarium] Prewarm unavailable:', e);
+    }
   }
 
   advance() {
@@ -345,10 +380,14 @@ export class Rosarium {
           } catch { work = null; }
           this._decadeWorkCache.set(key, work);
         }
-        if (work && this.phase === 'prayer') {
-          slot.innerHTML = `<img src="${escapeHtml(work.imageUrl)}" alt="${escapeHtml(work.title)}" title="${escapeHtml(`${work.title} — ${work.artist}`)}" />`;
+        // Re-query: the overlay may have re-rendered during the await
+        const liveSlot = this.container.querySelector('[data-art-slot]');
+        if (work && liveSlot && this.phase === 'prayer'
+          && this.compiled.steps[this.stepIndex]?.state.decade === decade) {
+          liveSlot.innerHTML = `<img src="${escapeHtml(work.imageUrl)}" alt="${escapeHtml(work.title)}" title="${escapeHtml(`${work.title} — ${work.artist}`)}" />`;
           return;
         }
+        if (work) return; // painting exists but the moment passed — show nothing stale
       }
     }
     const icon = findChapelIcon(this.iconId) || CHAPEL_ICONS[CHAPEL_ICON_DEFAULTS.marian];
@@ -409,6 +448,7 @@ export class Rosarium {
 
     switch (target.dataset.action) {
       case 'back': this._exitToChapel(); break;
+      case 'exit-chapel': this._exitToChapel(); break;
       case 'start': this.start(); break;
       case 'advance': this.advance(); break;
       case 'prayer-done': this.prayerDone(); break;
