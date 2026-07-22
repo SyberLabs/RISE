@@ -857,6 +857,13 @@
   gap: var(--space-md);
 }
 
+/* Chapel-exclusive chant chips: [hidden] must actually hide — the
+   option's own display:flex would win the cascade otherwise (the
+   add-tray bug, not repeated). */
+.audio-preset-option[hidden] {
+  display: none;
+}
+
 /* Soundscapes sit three across — composed names need the width, and
    the different rhythm marks the section as its own kind of choice */
 .soundscape-options {

@@ -257,6 +257,40 @@ describe('ChamberOrbital origin chip', () => {
         localStorage.removeItem('rise_orbital_prefs_v1');
     });
 
+    it('chant beds are Chapel-exclusive: revealed by chapel provenance, sanitized without it', () => {
+        localStorage.removeItem('rise_orbital_prefs_v1');
+        localStorage.removeItem('rise_orbital_text_v1');
+
+        // A plain session: chant chips hidden
+        const { orbital, container } = makeOrbital();
+        expect(container.querySelector('[data-soundscape="chant-gregorian"]').hidden).toBe(true);
+
+        // A Chapel launch reveals them and keeps its chant default
+        orbital.loadText('[v 1:1] In the beginning…', 'The Chapel · Genesis', {
+            soundscape: 'chant-gregorian',
+            provenance: { kind: 'chapel-book', bookId: 'genesis' }
+        });
+        expect(container.querySelector('[data-soundscape="chant-gregorian"]').hidden).toBe(false);
+        expect(orbital.config.soundscape).toBe('chant-gregorian');
+
+        // A refresh mid-Chapel restores the chapel session — chant
+        // rightly stays available (the restored session IS a Chapel one)
+        const { orbital: restored, container: restoredC } = makeOrbital();
+        expect(restored.isChapelSession()).toBe(true);
+        expect(restoredC.querySelector('[data-soundscape="chant-gregorian"]').hidden).toBe(false);
+
+        // But a NEW plain session (chapel text gone) with a stale chant
+        // preference falls back to silence rather than chanting over
+        // arbitrary text
+        localStorage.removeItem('rise_orbital_text_v1');
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
+            paceV2: true, soundscape: 'chant-znamenny'
+        }));
+        const { orbital: plain, container: plainC } = makeOrbital();
+        expect(plain.config.soundscape).toBe('none');
+        expect(plainC.querySelector('[data-soundscape="chant-znamenny"]').hidden).toBe(true);
+    });
+
     it('soundscape: renders on top of the audio panel, persists, resets', () => {
         localStorage.removeItem('rise_orbital_prefs_v1');
 

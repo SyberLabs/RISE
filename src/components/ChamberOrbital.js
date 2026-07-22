@@ -186,6 +186,7 @@ export class ChamberOrbital {
       this.config.wpm = Math.max(100, Math.min(500,
         Math.round((this.config.wpm * 1.4375) / 10) * 10));
     }
+    this._sanitizeChapelExclusives();
     this._normalizeAudioExclusivity();
 
     const vi = saved.visualInterlocution;
@@ -207,6 +208,23 @@ export class ChamberOrbital {
           ...normalizeVisualSelection(vi.interlocution || defaults.interlocution)
         }
       };
+    }
+  }
+
+  /** A Chapel launch, known by its provenance. */
+  isChapelSession() {
+    return this.config.provenance?.kind === 'chapel-book';
+  }
+
+  /**
+   * Chapel-exclusive settings must not leak into plain sessions: a
+   * chant bed persisted from a Chapel reading falls back to silence
+   * when the next session is not a Chapel launch — the same scoping
+   * contract as chapel-* imagery.
+   */
+  _sanitizeChapelExclusives() {
+    if (!this.isChapelSession() && String(this.config.soundscape || '').startsWith('chant-')) {
+      this.config.soundscape = 'none';
     }
   }
 
@@ -531,12 +549,21 @@ export class ChamberOrbital {
                   <span class="preset-icon">◌</span>
                   <span class="preset-label">Faded Signal</span>
                 </button>
-                <button class="audio-preset-option ${this.config.soundscape === 'chant-gregorian' ? 'active' : ''}" data-soundscape="chant-gregorian"
+                <!-- Chant is Chapel-exclusive: recorded sacred music
+                     belongs to the room built for it, not to ambient
+                     texture under arbitrary text — the same scoping
+                     contract as chapel-* imagery. Rendered always,
+                     shown only for Chapel launches (loadText sets
+                     provenance after the first render; syncUIWithConfig
+                     keeps the hidden state honest). -->
+                <button class="audio-preset-option chant-only ${this.config.soundscape === 'chant-gregorian' ? 'active' : ''}" data-soundscape="chant-gregorian"
+                  ${this.isChapelSession() ? '' : 'hidden'}
                   title="Recorded Gregorian chant with long breaths of silence between pieces">
                   <span class="preset-icon">✛</span>
                   <span class="preset-label">Gregorian</span>
                 </button>
-                <button class="audio-preset-option ${this.config.soundscape === 'chant-znamenny' ? 'active' : ''}" data-soundscape="chant-znamenny"
+                <button class="audio-preset-option chant-only ${this.config.soundscape === 'chant-znamenny' ? 'active' : ''}" data-soundscape="chant-znamenny"
+                  ${this.isChapelSession() ? '' : 'hidden'}
                   title="Znamenny chant of the Moscow Patriarchate choir — long breaths of silence between pieces">
                   <span class="preset-icon">☦</span>
                   <span class="preset-label">Znamenny</span>
@@ -1316,7 +1343,15 @@ export class ChamberOrbital {
     if (config.soundscape) this.config.soundscape = config.soundscape;
     if (config.entrainmentMode) this.config.entrainmentMode = config.entrainmentMode;
     if (config.entrainmentWaveform) this.config.entrainmentWaveform = config.entrainmentWaveform;
+    // Provenance is set above, so this correctly KEEPS chant for a
+    // Chapel launch and clears it for anything else
+    this._sanitizeChapelExclusives();
     this._normalizeAudioExclusivity();
+    // Reveal or hide the Chapel-exclusive chant chips now that the
+    // session's nature is known
+    this.container.querySelectorAll('.chant-only').forEach(chip => {
+      chip.hidden = !this.isChapelSession();
+    });
 
     // Apply visual configuration from archetype/source
     if (config.visualConfig) {
