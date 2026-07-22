@@ -24,6 +24,19 @@ import {
   chapelBooksInGrouping,
   findChapelBook
 } from '../content/chapel/corpus/manifest.js';
+import { CHAPEL_ICONS } from '../content/chapel/imagery/icons.js';
+
+/** The reader's chosen icon focal, kept across visits. */
+export const CHAPEL_ICON_PREF_KEY = 'rise_chapel_icon_v1';
+
+export function loadChapelIconPref() {
+  try {
+    const stored = localStorage.getItem(CHAPEL_ICON_PREF_KEY);
+    return stored && Object.hasOwn(CHAPEL_ICONS, stored) ? stored : null;
+  } catch {
+    return null;
+  }
+}
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -47,6 +60,8 @@ export class Chapel {
     // its book arrives already open at its chapters
     this.lastBookId = typeof options.bookId === 'string' ? options.bookId : null;
     this.lastChapter = Number.isInteger(options.chapter) ? options.chapter : null;
+    // The chosen icon focal, persisted across visits
+    this.iconId = loadChapelIconPref();
     this.openBookId = this.lastBookId && (findChapelBook(this.lastBookId)?.chapters || 0) > 1
       ? this.lastBookId
       : null;
@@ -73,34 +88,80 @@ export class Chapel {
 
     this.container.innerHTML = `
       <main class="chapel" aria-labelledby="chapel-title">
-        <header class="chapel-header">
-          <div class="chapel-heading-row">
-            <button class="btn-ghost chapel-back" data-action="back">
-              <span aria-hidden="true">←</span>
-              <span>Portal</span>
-            </button>
-            <div class="chapel-heading">
-              <p class="chapel-kicker font-mono">SCRIPTURE · ${escapeHtml(CHAPEL_TRANSLATION.name.toUpperCase())} · ${escapeHtml(CHAPEL_TRANSLATION.edition.toUpperCase())}</p>
-              <h1 id="chapel-title">The Chapel</h1>
-              <p class="chapel-deck">${CHAPEL_BOOKS.length} books, read slowly. Choose one; a chapter becomes the session.</p>
+        <div class="chapel-scroll">
+          <div class="chapel-inner">
+            <header class="chapel-header">
+              <div class="chapel-heading-row">
+                <button class="btn-ghost chapel-back" data-action="back">
+                  <span aria-hidden="true">←</span>
+                  <span>Portal</span>
+                </button>
+                <div class="chapel-heading">
+                  <p class="chapel-kicker font-mono">SCRIPTURE · ${escapeHtml(CHAPEL_TRANSLATION.name.toUpperCase())} · ${escapeHtml(CHAPEL_TRANSLATION.edition.toUpperCase())}</p>
+                  <h1 id="chapel-title">The Chapel</h1>
+                  <p class="chapel-deck">${CHAPEL_BOOKS.length} books, read slowly. Choose one; a chapter becomes the session.</p>
+                </div>
+              </div>
+            </header>
+
+            ${this.renderIconSection()}
+
+            <div class="chapel-body">
+              ${testaments}
             </div>
+
+            <footer class="chapel-footer">
+              <p class="chapel-provenance font-mono">
+                ${escapeHtml(CHAPEL_TRANSLATION.name)} · ${escapeHtml(CHAPEL_TRANSLATION.edition)} —
+                public domain · <a href="${escapeHtml(CHAPEL_TRANSLATION.sourceUrl)}" target="_blank" rel="noopener">${escapeHtml(CHAPEL_TRANSLATION.source)}</a>
+              </p>
+            </footer>
           </div>
-        </header>
-
-        <div class="chapel-body">
-          ${testaments}
         </div>
-
-        <footer class="chapel-footer">
-          <p class="chapel-provenance font-mono">
-            ${escapeHtml(CHAPEL_TRANSLATION.name)} · ${escapeHtml(CHAPEL_TRANSLATION.edition)} —
-            public domain · <a href="${escapeHtml(CHAPEL_TRANSLATION.sourceUrl)}" target="_blank" rel="noopener">${escapeHtml(CHAPEL_TRANSLATION.source)}</a>
-          </p>
-        </footer>
       </main>
     `;
 
     if (this.openBookId) this.mountChapterPanel(this.openBookId);
+  }
+
+  /**
+   * The Icon focal choice — the three pinned icons, or none. A chosen
+   * icon holds the Chamber's focal through every Chapel reading until
+   * released; "None" returns each book to its own imagery (the
+   * Gospels' Passion collections, stillness elsewhere).
+   */
+  renderIconSection() {
+    const options = Object.entries(CHAPEL_ICONS).map(([id, icon]) => `
+      <button
+        class="chapel-icon-option${this.iconId === id ? ' chapel-icon-selected' : ''}"
+        data-icon-id="${escapeHtml(id)}"
+        aria-pressed="${this.iconId === id ? 'true' : 'false'}"
+        title="${escapeHtml(icon.attribution)}"
+      >
+        <img class="chapel-icon-thumb" src="${escapeHtml(icon.image)}" alt="" loading="lazy" decoding="async" />
+        <span class="chapel-icon-name">${escapeHtml(icon.name)}</span>
+        <span class="chapel-icon-origin font-mono">${escapeHtml(icon.origin)} · ${escapeHtml(icon.date.split(',')[0])}</span>
+      </button>
+    `).join('');
+
+    return `
+      <section class="chapel-icon-section" aria-label="Icon focal">
+        <h3 class="chapel-grouping-title font-mono">The Icon</h3>
+        <p class="chapel-icon-hint">A written image held at the center of the reading. Choose one, or read with each book’s own imagery.</p>
+        <div class="chapel-icon-row">
+          <button
+            class="chapel-icon-option chapel-icon-none${this.iconId === null ? ' chapel-icon-selected' : ''}"
+            data-icon-id=""
+            aria-pressed="${this.iconId === null ? 'true' : 'false'}"
+          >
+            <span class="chapel-icon-none-mark" aria-hidden="true">—</span>
+            <span class="chapel-icon-name">None</span>
+            <span class="chapel-icon-origin font-mono">each book’s own imagery</span>
+          </button>
+          ${options}
+        </div>
+      </section>
+    `;
   }
 
   renderGrouping(grouping) {
@@ -196,6 +257,21 @@ export class Chapel {
       return;
     }
 
+    if (button.dataset.iconId !== undefined) {
+      window.rise?.audioEngine?.playClick();
+      this.iconId = button.dataset.iconId || null;
+      try {
+        if (this.iconId) localStorage.setItem(CHAPEL_ICON_PREF_KEY, this.iconId);
+        else localStorage.removeItem(CHAPEL_ICON_PREF_KEY);
+      } catch { /* private mode — the choice still applies this visit */ }
+      this.container.querySelectorAll('[data-icon-id]').forEach(option => {
+        const selected = (option.dataset.iconId || null) === this.iconId;
+        option.classList.toggle('chapel-icon-selected', selected);
+        option.setAttribute('aria-pressed', selected ? 'true' : 'false');
+      });
+      return;
+    }
+
     const bookId = button.dataset.bookId;
     if (!bookId) return;
 
@@ -230,7 +306,7 @@ export class Chapel {
     this._launching = true;
     window.rise?.audioEngine?.playClick();
     button.classList.add('chapel-book-loading');
-    Promise.resolve(this.onLaunchReading(bookId, chapter)).finally(() => {
+    Promise.resolve(this.onLaunchReading(bookId, chapter, { iconId: this.iconId })).finally(() => {
       this._launching = false;
       button.classList.remove('chapel-book-loading');
     });

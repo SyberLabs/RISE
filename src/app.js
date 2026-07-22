@@ -707,10 +707,13 @@ class App {
                     onNavigate: this.handleNavigate,
                     bookId: data?.bookId,
                     chapter: data?.chapter,
-                    onLaunchReading: async (bookId, chapter) => {
+                    onLaunchReading: async (bookId, chapter, extras) => {
                         try {
                             const { createChapelHandoff } = await import('./content/chapel/handoff.js');
-                            const chamberData = await createChapelHandoff(bookId, chapter == null ? {} : { chapter });
+                            const chamberData = await createChapelHandoff(bookId, {
+                                ...(chapter == null ? {} : { chapter }),
+                                ...(extras?.iconId ? { iconId: extras.iconId } : {})
+                            });
                             await this.router.navigate('chamber', { data: chamberData });
                         } catch (error) {
                             console.error('[R.I.S.E.] Chapel handoff failed:', error);

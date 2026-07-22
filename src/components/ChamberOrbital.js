@@ -726,7 +726,11 @@ export class ChamberOrbital {
     const mode = vi?.visualMode || 'off';
 
     if (mode === 'focals') {
-      const glyph = vi.focals?.type === 'personal' ? 'Personal' : this.capitalizeFirst(vi.focals?.standardGlyph || 'breath');
+      const glyph = vi.focals?.type === 'personal'
+        ? 'Personal'
+        : vi.focals?.type === 'icon'
+          ? 'Icon'
+          : this.capitalizeFirst(vi.focals?.standardGlyph || 'breath');
       return `◯ Focals · ${glyph}`;
     }
 

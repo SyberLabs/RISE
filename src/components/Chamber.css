@@ -428,6 +428,14 @@
 /* ─── Chapel icon focal — candlelight, not spotlight ───
    The image itself never moves (an icon is written, not animated);
    the slow breath lives on the frame's vignette glow only. */
+
+/* The container's glyph-level dimming (0.4) is right for a background
+   breath mark, wrong for a written image: an icon is the center of
+   the reading, not an underlay. Presence without glare. */
+.chamber-focal:has(.focal-icon-frame) {
+  opacity: 0.85;
+}
+
 .focal-icon-frame {
   position: relative;
   display: flex;

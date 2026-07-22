@@ -228,6 +228,26 @@ describe('Chapel handoff imagery (seam)', () => {
     const handoff = await createChapelHandoff('john', { chapter: 19 });
     expect(handoff.config.visualConfig.interlocution.sourced)
       .toEqual(['chapel-passion', 'chapel-crucifixion']);
+    // The "From this reading" pills are driven by atriumCollections,
+    // exactly as Atrium launches drive them
+    expect(handoff.config.visualConfig.interlocution.atriumCollections)
+      .toEqual(['chapel-passion', 'chapel-crucifixion']);
+  });
+
+  it('a chosen icon becomes the focal MODE, winning over the book collections', async () => {
+    const withIcon = await createChapelHandoff('john', { chapter: 3, iconId: 'icon-pantocrator-sinai' });
+    expect(withIcon.config.visualConfig).toEqual({
+      visualMode: 'focals',
+      focals: { type: 'icon', iconId: 'icon-pantocrator-sinai' }
+    });
+
+    // An unpinned icon id is ignored — pinned, never improvised
+    const bogus = await createChapelHandoff('john', { chapter: 3, iconId: 'icon-of-nowhere' });
+    expect(bogus.config.visualConfig.visualMode).toBe('interlocution');
+
+    // Psalms with the Marian icon: focal mode there too
+    const marian = await createChapelHandoff('psalms', { chapter: 23, iconId: 'icon-salus-populi-romani' });
+    expect(marian.config.visualConfig.focals.iconId).toBe('icon-salus-populi-romani');
   });
 
   it('icon focal renders without motion on the image: breath lives on the frame only', () => {

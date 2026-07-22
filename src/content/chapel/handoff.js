@@ -12,6 +12,7 @@
  */
 
 import { CHAPEL_TRANSLATION, findChapelBook } from './corpus/manifest.js';
+import { findChapelIcon } from './imagery/icons.js';
 
 export class ChapelHandoffError extends Error {
   constructor(code, message, details = {}) {
@@ -102,14 +103,21 @@ const BOOK_COLLECTIONS = Object.freeze({
  * routing has no fallback. Everything remains overridable in the
  * orbital.
  */
-export function chapelSensoryConfig(bookId = null) {
+export function chapelSensoryConfig(bookId = null, iconId = null) {
   const collections = BOOK_COLLECTIONS[bookId] || null;
-  return {
-    wpm: 240,
-    chunkMode: 'phrase',
-    curve: 'flat',
-    soundscape: 'aurora',
-    visualConfig: collections
+
+  // The Icon mode is a MODE: a chosen icon holds the Chamber's focal
+  // and the reading proceeds around it — it wins over the book's
+  // collections. "None" returns each book to its own imagery.
+  // Everything remains overridable in the orbital. An icon id that
+  // is not pinned is ignored — pinned, never improvised.
+  if (iconId && !findChapelIcon(iconId)) iconId = null;
+  const visualConfig = iconId
+    ? {
+      visualMode: 'focals',
+      focals: { type: 'icon', iconId }
+    }
+    : collections
       ? {
         visualMode: 'interlocution',
         interlocution: {
@@ -118,12 +126,23 @@ export function chapelSensoryConfig(bookId = null) {
           duration: 1600,
           procedural: [],
           sourced: collections,
+          // Drives the "From this reading" pills in the visual panel,
+          // exactly as Atrium launches do — informational; `sourced`
+          // already carries the collections and stays editable.
+          atriumCollections: collections,
           responsive: false
         }
       }
       : {
         visualMode: 'off'
-      }
+      };
+
+  return {
+    wpm: 240,
+    chunkMode: 'phrase',
+    curve: 'flat',
+    soundscape: 'aurora',
+    visualConfig
   };
 }
 
@@ -194,7 +213,7 @@ export async function createChapelHandoff(bookId, options = {}) {
     text: sessionText,
     source: `The Chapel · ${readingName}`,
     config: {
-      ...chapelSensoryConfig(book.id),
+      ...chapelSensoryConfig(book.id, options.iconId ?? null),
       sources: [{
         id: chapter == null ? `chapel-${book.id}` : `chapel-${book.id}-${chapter}`,
         name: `${readingName} — ${translationLabel}`,

@@ -14,6 +14,7 @@ function mount(options = {}) {
 
 afterEach(() => {
   document.body.innerHTML = '';
+  localStorage.clear();
 });
 
 describe('Chapel view', () => {
@@ -22,7 +23,7 @@ describe('Chapel view', () => {
     const buttons = [...container.querySelectorAll('.chapel-book')];
     expect(buttons).toHaveLength(CHAPEL_BOOKS.length);
 
-    const groupingTitles = [...container.querySelectorAll('.chapel-grouping-title')]
+    const groupingTitles = [...container.querySelectorAll('.chapel-body .chapel-grouping-title')]
       .map(node => node.textContent.trim());
     expect(groupingTitles).toEqual(CHAPEL_GROUPINGS.map(grouping => grouping.name));
 
@@ -36,6 +37,46 @@ describe('Chapel view', () => {
     expect(container.querySelector('input[type="search"]')).toBeNull();
     expect(container.querySelector('[data-view-mode]')).toBeNull();
     expect(container.querySelector('[data-domain]')).toBeNull();
+  });
+
+  it('scrolls inside the view: fixed shell, scrolling interior (the app body is overflow hidden)', () => {
+    const { container } = mount();
+    expect(container.querySelector('.chapel-scroll .chapel-inner .chapel-body')).not.toBeNull();
+    const css = readFileSync(resolve('src/components/Chapel.css'), 'utf8');
+    const shell = css.slice(css.indexOf('.chapel {'), css.indexOf('.chapel-scroll'));
+    expect(shell).toContain('overflow: hidden');
+    expect(shell).not.toContain('min-height');
+    const scroll = css.slice(css.indexOf('.chapel-scroll'), css.indexOf('.chapel-inner'));
+    expect(scroll).toContain('overflow-y: auto');
+  });
+
+  it('offers the three pinned icons plus None, persists the choice, and passes it to launches', () => {
+    const onLaunchReading = vi.fn();
+    const { container } = mount({ onLaunchReading });
+
+    const options = [...container.querySelectorAll('[data-icon-id]')];
+    expect(options.map(option => option.dataset.iconId)).toEqual([
+      '', 'icon-pantocrator-sinai', 'icon-pantocrator-russian', 'icon-salus-populi-romani'
+    ]);
+    // None is the default
+    expect(container.querySelector('.chapel-icon-none').classList.contains('chapel-icon-selected')).toBe(true);
+
+    // Choose the Sinai Pantocrator
+    container.querySelector('[data-icon-id="icon-pantocrator-sinai"]').click();
+    expect(localStorage.getItem('rise_chapel_icon_v1')).toBe('icon-pantocrator-sinai');
+    expect(container.querySelector('[data-icon-id="icon-pantocrator-sinai"]')
+      .classList.contains('chapel-icon-selected')).toBe(true);
+
+    // The choice rides every launch
+    container.querySelector('.chapel-book[data-book-id="jude"]').click();
+    expect(onLaunchReading).toHaveBeenCalledWith('jude', null, { iconId: 'icon-pantocrator-sinai' });
+
+    // A fresh mount restores it; None clears it
+    const { container: again } = mount({ onLaunchReading });
+    expect(again.querySelector('[data-icon-id="icon-pantocrator-sinai"]')
+      .classList.contains('chapel-icon-selected')).toBe(true);
+    again.querySelector('.chapel-icon-none').click();
+    expect(localStorage.getItem('rise_chapel_icon_v1')).toBeNull();
   });
 
   it('opens a multi-chapter book into its chapters instead of launching it', () => {
@@ -69,13 +110,13 @@ describe('Chapel view', () => {
 
     container.querySelector('.chapel-book[data-book-id="john"]').click();
     container.querySelector('[data-chapter-panel="john"] [data-chapter="3"]').click();
-    expect(onLaunchReading).toHaveBeenCalledWith('john', 3);
+    expect(onLaunchReading).toHaveBeenCalledWith('john', 3, { iconId: null });
 
     onLaunchReading.mockClear();
     const { container: second } = mount({ onLaunchReading });
     second.querySelector('.chapel-book[data-book-id="john"]').click();
     second.querySelector('[data-chapter-panel="john"] [data-whole-book]').click();
-    expect(onLaunchReading).toHaveBeenCalledWith('john', null);
+    expect(onLaunchReading).toHaveBeenCalledWith('john', null, { iconId: null });
   });
 
   it('launches a single-chapter book directly, no panel', () => {
@@ -83,7 +124,7 @@ describe('Chapel view', () => {
     const { container } = mount({ onLaunchReading });
 
     container.querySelector('.chapel-book[data-book-id="jude"]').click();
-    expect(onLaunchReading).toHaveBeenCalledWith('jude', null);
+    expect(onLaunchReading).toHaveBeenCalledWith('jude', null, { iconId: null });
     expect(container.querySelector('.chapel-chapter-panel')).toBeNull();
   });
 
@@ -108,7 +149,7 @@ describe('Chapel view', () => {
     container.querySelector('.chapel-book[data-book-id="jude"]').click();
 
     expect(onLaunchReading).toHaveBeenCalledTimes(1);
-    expect(onLaunchReading).toHaveBeenCalledWith('psalms', 1);
+    expect(onLaunchReading).toHaveBeenCalledWith('psalms', 1, { iconId: null });
     expect(psalm1.classList.contains('chapel-book-loading')).toBe(true);
 
     release();

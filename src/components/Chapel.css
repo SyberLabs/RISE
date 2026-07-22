@@ -6,9 +6,26 @@
  */
 
 .chapel {
-  min-height: 100vh;
+  /* The app body is overflow:hidden (the Chamber's design); scrolling
+     lives inside the view, same pattern as the Atrium: fixed-height
+     shell, scrolling interior. */
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chapel-scroll {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-shadow) transparent;
+}
+
+.chapel-inner {
   max-width: 880px;
   margin: 0 auto;
+  min-height: 100%;
   padding: var(--space-xl) var(--space-lg) var(--space-2xl);
   display: flex;
   flex-direction: column;
@@ -60,6 +77,85 @@
   color: var(--color-fog);
   font-size: 14px;
   margin: 0;
+}
+
+/* ─── The Icon — focal choice ─── */
+
+.chapel-icon-section {
+  border: 1px solid rgba(212, 165, 116, 0.16);
+  border-radius: 4px;
+  background: rgba(212, 165, 116, 0.025);
+  padding: var(--space-md);
+}
+
+.chapel-icon-hint {
+  color: var(--color-fog);
+  font-size: 12.5px;
+  margin: 0 0 var(--space-md);
+}
+
+.chapel-icon-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--space-sm);
+}
+
+.chapel-icon-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid var(--color-shadow);
+  border-radius: 4px;
+  padding: var(--space-sm);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 300ms var(--ease-out), background 300ms var(--ease-out);
+}
+
+.chapel-icon-option:hover,
+.chapel-icon-option:focus-visible {
+  border-color: rgba(212, 165, 116, 0.5);
+  background: rgba(212, 165, 116, 0.05);
+}
+
+.chapel-icon-selected {
+  border-color: var(--color-ember);
+  background: rgba(212, 165, 116, 0.08);
+  box-shadow: 0 0 24px rgba(212, 165, 116, 0.10);
+}
+
+.chapel-icon-thumb {
+  width: 72px;
+  height: 96px;
+  object-fit: cover;
+  object-position: top center;
+  border-radius: 2px;
+  opacity: 0.9;
+}
+
+.chapel-icon-none-mark {
+  width: 72px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-mist);
+  font-size: 20px;
+  border: 1px dashed var(--color-shadow);
+  border-radius: 2px;
+}
+
+.chapel-icon-name {
+  color: var(--color-cloud);
+  font-size: 13px;
+}
+
+.chapel-icon-origin {
+  color: var(--color-mist);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
 }
 
 /* ─── Body ─── */
@@ -263,7 +359,7 @@
 /* ─── Responsive ─── */
 
 @media (max-width: 680px) {
-  .chapel {
+  .chapel-inner {
     padding: var(--space-lg) var(--space-md) var(--space-xl);
   }
 
