@@ -133,8 +133,12 @@ describe('The Imagistic mapping (one pinned work per mystery, or honest absence)
     const pentecost = mysteryWork('glorious', 3);
     expect(pentecost.source).toBe('commons');
     expect(pentecost.attribution).toContain('Хомелка');
-    // The one remaining honest absence
-    expect(mysteryWork('luminous', 3)).toBeNull();   // the Proclamation — the focal holds
+    // The Proclamation carries Bloch's Sermon on the Mount — the last
+    // absence, closed. All twenty mysteries now have their image.
+    const proclamation = mysteryWork('luminous', 3);
+    expect(proclamation.source).toBe('commons');
+    expect(proclamation.artist).toBe('Carl Bloch');
+    expect(proclamation.license).toBe('PUBLIC_DOMAIN');
     expect(mysteryWork('joyful', 1)).toEqual({ source: 'aic', id: 16327 });
     expect(mysteryWork('sorrowful', 5)).toEqual({ source: 'cleveland', id: 112856 });
     expect(mysteryWork('nowhere', 1)).toBeNull();
