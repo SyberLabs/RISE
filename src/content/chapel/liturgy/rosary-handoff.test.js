@@ -117,11 +117,23 @@ describe('The Imagistic mapping (one pinned work per mystery, or honest absence)
       expect(works, setId).toHaveLength(5);
       for (const work of works) {
         if (work === null) continue;
-        expect(['met', 'cleveland', 'aic', 'rijks']).toContain(work.source);
+        expect(['met', 'cleveland', 'aic', 'rijks', 'commons']).toContain(work.source);
         expect(work.id).toBeTruthy();
+        if (work.source === 'commons') {
+          // Baked pins carry everything the prayer screen needs, with
+          // the license verified and its attribution condition honored
+          expect(work.imageUrl, work.id).toMatch(/^https:\/\/upload\.wikimedia\.org\//);
+          expect(work.licenseBasis, work.id).toMatch(/verified 2026/);
+          expect(work.attribution, work.id).toBeTruthy();
+          expect(work.fileSha1, work.id).toMatch(/^[a-f0-9]{40}$/);
+        }
       }
     }
-    expect(mysteryWork('glorious', 3)).toBeNull();   // Pentecost — the focal holds
+    // Pentecost carries the user's found icon (CC BY-SA, Хомелка credited)
+    const pentecost = mysteryWork('glorious', 3);
+    expect(pentecost.source).toBe('commons');
+    expect(pentecost.attribution).toContain('Хомелка');
+    // The one remaining honest absence
     expect(mysteryWork('luminous', 3)).toBeNull();   // the Proclamation — the focal holds
     expect(mysteryWork('joyful', 1)).toEqual({ source: 'aic', id: 16327 });
     expect(mysteryWork('sorrowful', 5)).toEqual({ source: 'cleveland', id: 112856 });

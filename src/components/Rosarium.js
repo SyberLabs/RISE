@@ -187,17 +187,15 @@ export class Rosarium {
 
   async _hydrateGallery() {
     try {
-      const { resolveCollection } = await import('../content/atrium/imagery/service.js');
       const works = ROSARY_MYSTERY_WORKS[this.setId] || [];
       for (let index = 0; index < works.length; index += 1) {
         const pin = works[index];
         if (!pin) continue;
         const slot = this.container.querySelector(`[data-gallery-slot="${index}"]`);
         if (!slot) continue;
-        const resolved = await resolveCollection({ works: [pin] });
-        const work = resolved[0];
+        const work = await this._resolvePin(pin);
         if (!work || !this.container.isConnected) continue;
-        slot.innerHTML = `<img src="${escapeHtml(work.imageUrl)}" alt="${escapeHtml(work.title)}" title="${escapeHtml(`${work.title} — ${work.artist}`)}" />`;
+        slot.innerHTML = `<img src="${escapeHtml(work.imageUrl)}" alt="${escapeHtml(work.title)}" title="${escapeHtml(work.attribution || `${work.title} — ${work.artist}`)}" />`;
       }
     } catch (e) {
       console.warn('[Rosarium] Gallery unavailable:', e);
@@ -291,16 +289,35 @@ export class Rosarium {
     if (this.autoAdvance) this._queueAutoAdvance();
   }
 
+  /**
+   * Resolve one mystery pin to a displayable work. Museum pins go
+   * through the imagery service; `source: 'commons'` pins carry their
+   * verified data baked (no per-object API to call at prayer time).
+   */
+  async _resolvePin(pin) {
+    if (!pin) return null;
+    if (pin.source === 'commons') {
+      return {
+        title: pin.title,
+        artist: pin.artist,
+        imageUrl: pin.imageUrl,
+        attribution: pin.attribution,
+        sourceUrl: pin.sourceUrl
+      };
+    }
+    const { resolveCollection } = await import('../content/atrium/imagery/service.js');
+    const resolved = await resolveCollection({ works: [pin] });
+    return resolved[0] || null;
+  }
+
   async _prewarmMysteryWorks() {
     try {
-      const { resolveCollection } = await import('../content/atrium/imagery/service.js');
       for (let decade = 1; decade <= 5; decade += 1) {
         const pin = mysteryWork(this.setId, decade);
         const key = `${this.setId}:${decade}`;
         if (!pin) { this._decadeWorkCache.set(key, null); continue; }
         if (this._decadeWorkCache.has(key)) continue;
-        const resolved = await resolveCollection({ works: [pin] });
-        const work = resolved[0] || null;
+        const work = await this._resolvePin(pin);
         this._decadeWorkCache.set(key, work);
         // Also warm the browser's image cache
         if (work?.imageUrl) { const img = new Image(); img.src = work.imageUrl; }
@@ -374,9 +391,7 @@ export class Rosarium {
         let work = this._decadeWorkCache.get(key);
         if (work === undefined) {
           try {
-            const { resolveCollection } = await import('../content/atrium/imagery/service.js');
-            const resolved = await resolveCollection({ works: [pin] });
-            work = resolved[0] || null;
+            work = await this._resolvePin(pin);
           } catch { work = null; }
           this._decadeWorkCache.set(key, work);
         }
