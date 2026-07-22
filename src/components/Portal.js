@@ -184,6 +184,16 @@ export class Portal {
           <span class="sol-strip-enter" aria-hidden="true">enter ›</span>
         </button>
 
+        <!-- The sanctuary lamp — a small constant light, the only
+             entrance to the Chapel. It does not advertise; it burns.
+             No copy, no live detail; hover reveals a single name.
+             In content flow below the strips so it never collides
+             with them at any viewport height. -->
+        <button class="portal-chapel-lamp" data-nav="chapel" style="opacity: 0;" title="The Chapel" aria-label="The Chapel">
+          <span aria-hidden="true">✛</span>
+          <span class="chapel-lamp-name" aria-hidden="true">The Chapel</span>
+        </button>
+
         <!-- Portal Footer - Heritage & Onboarding -->
         <div class="portal-footer" style="opacity: 0;">
           <div class="footer-left">
@@ -311,6 +321,22 @@ export class Portal {
         solStrip.style.opacity = '1';
       }
     }, 1500);
+
+    // The sanctuary lamp is lit last and quietly: the class hands
+    // opacity over to CSS (the 8s breath, or stillness under
+    // reduced-motion) once the inline reveal value is cleared.
+    const chapelLamp = this.container.querySelector('.portal-chapel-lamp');
+    revealTimeout(() => {
+      if (chapelLamp) {
+        chapelLamp.style.transition = 'opacity 900ms var(--ease-out)';
+        chapelLamp.style.opacity = '0.34';
+        this._revealTimers.push(setTimeout(() => {
+          chapelLamp.style.removeProperty('opacity');
+          chapelLamp.style.removeProperty('transition');
+          chapelLamp.classList.add('lamp-lit');
+        }, 950));
+      }
+    }, 1900);
 
     const footer = this.container.querySelector('.portal-footer');
     revealTimeout(() => {

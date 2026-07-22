@@ -13,9 +13,12 @@ const ROOTS = [
   resolve('src/content/atrium/featured.js'),
   // Curated imagery resolves museum records, never payload text
   resolve('src/content/atrium/imagery/service.js'),
-  // The Chapel's browse surface: metadata for 73 books of Scripture.
-  // Book payloads (~5M chars total) load lazily, one at a time.
-  resolve('src/content/chapel/corpus/manifest.js')
+  // The Chapel's browse surfaces: metadata for 73 books of Scripture.
+  // Book payloads (~5M chars total) load lazily, one at a time,
+  // through the chapel handoff (which, like the Atrium handoff, must
+  // never enter this graph).
+  resolve('src/content/chapel/corpus/manifest.js'),
+  resolve('src/components/Chapel.js')
 ];
 const STATIC_EDGE = /(?:import|export)\s+(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g;
 const PAYLOAD_MODULE = /[\\/](?:expanded-[^\\/]+|payloads|philosophy-(?:classical|aristotle|transmission)|history-(?:baseline|expansion[^\\/]*))\.js$|[\\/]chapel[\\/]corpus[\\/]books[\\/][^\\/]+\.js$/;
@@ -46,6 +49,8 @@ describe('Atrium payload boundary', () => {
   it('keeps expanded text and payload aggregators outside the browse import graph', () => {
     const graph = walkStaticImports(ROOTS);
     expect(graph.filter(file => PAYLOAD_MODULE.test(file))).toEqual([]);
+    // Both handoffs (Atrium and Chapel) hash payload bytes — they are
+    // launch-time modules, never part of any browse surface's graph
     expect(graph.some(file => /[\\/]handoff\.js$/.test(file))).toBe(false);
   });
 });

@@ -1,0 +1,289 @@
+/**
+ * The Chapel — quiet, candlelit register.
+ * The accent is ember gold (a sanctuary lamp, not a spotlight); the
+ * layout is a single reading column. No cards competing for attention:
+ * groupings are typographic, books are a soft list.
+ */
+
+.chapel {
+  min-height: 100vh;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-lg) var(--space-2xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+/* ─── Header ─── */
+
+.chapel-header {
+  padding-top: var(--space-lg);
+}
+
+.chapel-heading-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-lg);
+}
+
+.chapel-back {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--color-fog);
+  margin-top: 4px;
+}
+
+.chapel-back:hover {
+  color: var(--color-light);
+}
+
+.chapel-kicker {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--color-ember);
+  opacity: 0.85;
+  margin: 0 0 var(--space-xs);
+}
+
+.chapel-heading h1 {
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  color: var(--color-light);
+  margin: 0 0 var(--space-xs);
+}
+
+.chapel-deck {
+  color: var(--color-fog);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ─── Body ─── */
+
+.chapel-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+}
+
+.chapel-testament-title {
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-cloud);
+  margin: 0 0 var(--space-lg);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-shadow);
+}
+
+.chapel-grouping {
+  margin-bottom: var(--space-xl);
+}
+
+.chapel-grouping-title {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-mist);
+  margin: 0 0 var(--space-sm);
+}
+
+.chapel-grouping-books {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: var(--space-xs) var(--space-md);
+}
+
+.chapel-book {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  background: transparent;
+  border: none;
+  border-left: 2px solid transparent;
+  border-radius: 2px;
+  padding: var(--space-xs) var(--space-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 300ms var(--ease-out), background 300ms var(--ease-out);
+}
+
+.chapel-book:hover,
+.chapel-book:focus-visible {
+  border-left-color: var(--color-ember);
+  background: rgba(212, 165, 116, 0.06);
+}
+
+.chapel-book-name {
+  color: var(--color-cloud);
+  font-size: 14px;
+  transition: color 300ms var(--ease-out);
+}
+
+.chapel-book:hover .chapel-book-name,
+.chapel-book:focus-visible .chapel-book-name {
+  color: var(--color-light);
+}
+
+.chapel-book-meta {
+  color: var(--color-mist);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* The last book read — a quiet warm mark, not a badge */
+.chapel-book-last {
+  border-left-color: rgba(212, 165, 116, 0.45);
+}
+
+.chapel-book-loading {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+/* ─── Footer provenance ─── */
+
+.chapel-footer {
+  margin-top: auto;
+  padding-top: var(--space-xl);
+  border-top: 1px solid var(--color-depth);
+}
+
+.chapel-provenance {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--color-mist);
+  margin: 0;
+}
+
+.chapel-provenance a {
+  color: var(--color-mist);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.chapel-provenance a:hover {
+  color: var(--color-fog);
+}
+
+/* ─── Responsive ─── */
+
+@media (max-width: 680px) {
+  .chapel {
+    padding: var(--space-lg) var(--space-md) var(--space-xl);
+  }
+
+  .chapel-heading-row {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .chapel-grouping-books {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ═══ The sanctuary lamp — the Portal doorway ═══
+   Lives here with the Chapel's other styles; the Portal only carries
+   the markup. A small constant light: low opacity, slow 8s luminous
+   breath, disabled under reduced-motion. */
+
+.portal-chapel-lamp {
+  /* In content flow, centered below the SOL strip — never colliding
+     with the strips at any viewport height. Kept compact so the
+     portal column still fits without scrolling on short screens. */
+  position: relative;
+  display: block;
+  /* The negative bottom margin lets the flame hang into the portal's
+     bottom padding instead of growing the column — the lamp costs the
+     layout ~8px, so short viewports keep the whole portal in view. */
+  margin: var(--space-sm) auto -22px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-ember);
+  font-size: 17px;
+  line-height: 1;
+  padding: 6px var(--space-sm);
+  transition: opacity 600ms var(--ease-out);
+}
+
+/* The breath begins only once the portal's reveal has lit the lamp —
+   the keyframes own opacity from that point on */
+.portal-chapel-lamp.lamp-lit {
+  animation: chapel-lamp-breath 8s ease-in-out infinite;
+}
+
+/* On attention the flame steadies and brightens */
+.portal-chapel-lamp.lamp-lit:hover,
+.portal-chapel-lamp.lamp-lit:focus-visible {
+  animation: none;
+  opacity: 0.9;
+}
+
+.portal-chapel-lamp.lamp-lit {
+  opacity: 0.34;
+}
+
+/* Hover reveals a single name: "The Chapel." — beside the flame, on
+   its own baseline, clear of the SOL strip above */
+.portal-chapel-lamp .chapel-lamp-name {
+  position: absolute;
+  left: calc(100% + 2px);
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--color-ember);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 400ms var(--ease-out);
+  pointer-events: none;
+}
+
+.portal-chapel-lamp:hover .chapel-lamp-name,
+.portal-chapel-lamp:focus-visible .chapel-lamp-name {
+  opacity: 0.85;
+}
+
+@keyframes chapel-lamp-breath {
+  0%, 100% { opacity: 0.22; }
+  50% { opacity: 0.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-chapel-lamp,
+  .portal-chapel-lamp.lamp-lit {
+    animation: none;
+    opacity: 0.34;
+  }
+}
+
+/* Short viewports: the portal column ran ~885px before the lamp
+   existed, so laptops at ≤920px already clipped the SOL strip's
+   margin. Compress the ceremonial gaps just enough that the whole
+   column — lamp included — stays in view without scrolling. */
+@media (max-height: 920px) {
+  .portal-sigil-container,
+  .portal-title-container,
+  .portal .portal-nav {
+    margin-bottom: var(--space-md);
+  }
+
+  .portal-atrium-door,
+  .portal-sol-strip {
+    margin-top: var(--space-sm);
+  }
+
+  .portal-chapel-lamp {
+    margin-top: 4px;
+  }
+}

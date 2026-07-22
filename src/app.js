@@ -39,6 +39,7 @@ import './components/Workshop.css';
 import './components/Settings.css';
 import './components/Guide.css';
 import './components/Sol.css';
+import './components/Chapel.css';
 import './premium-additions.css';
 
 class App {
@@ -692,6 +693,36 @@ class App {
                     // My Day plan entries may bind Workshop blueprints to
                     // windows — same compile path the Vault uses
                     onLaunchBlueprint: (blueprint) => this.handleCreateSession(blueprint)
+                });
+            }
+        });
+
+        // The Chapel (Scripture — entered only through the portal's
+        // sanctuary lamp; never in the nav row)
+        this.router.registerView('chapel', {
+            container: document.getElementById('view-chapel'),
+            init: async (container, data) => {
+                const { Chapel } = await import('./components/Chapel.js');
+                return new Chapel(container, {
+                    onNavigate: this.handleNavigate,
+                    bookId: data?.bookId,
+                    onLaunchBook: async (bookId) => {
+                        try {
+                            const { createChapelHandoff } = await import('./content/chapel/handoff.js');
+                            const chamberData = await createChapelHandoff(bookId);
+                            await this.router.navigate('chamber', { data: chamberData });
+                        } catch (error) {
+                            console.error('[R.I.S.E.] Chapel handoff failed:', error);
+                            // Reverent degradation: a quiet message, never a
+                            // substituted text and never an error surface
+                            this.showToast(
+                                error?.code === 'CHAPEL_PAYLOAD_INTEGRITY'
+                                    ? 'This book did not verify and will not be read.'
+                                    : 'This book is unavailable right now.',
+                                4000
+                            );
+                        }
+                    }
                 });
             }
         });
