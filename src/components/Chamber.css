@@ -425,6 +425,44 @@
   justify-content: center;
 }
 
+/* ─── Chapel icon focal — candlelight, not spotlight ───
+   The image itself never moves (an icon is written, not animated);
+   the slow breath lives on the frame's vignette glow only. */
+.focal-icon-frame {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Faint gold-leaf edge */
+  border: 1px solid rgba(212, 165, 116, 0.35);
+  padding: 3px;
+  background: rgba(212, 165, 116, 0.04);
+  box-shadow: 0 0 60px rgba(212, 165, 116, 0.14);
+  animation: focal-icon-breath 9s ease-in-out infinite;
+}
+
+.focal-icon-image {
+  display: block;
+  max-width: min(280px, 30vw);
+  max-height: min(400px, 44vh);
+  width: auto;
+  height: auto;
+  /* Panels are rectangular; icons are never cropped to circles */
+  object-fit: contain;
+  opacity: 0.82;
+}
+
+@keyframes focal-icon-breath {
+  0%, 100% { box-shadow: 0 0 46px rgba(212, 165, 116, 0.10); }
+  50% { box-shadow: 0 0 78px rgba(212, 165, 116, 0.20); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .focal-icon-frame {
+    animation: none;
+  }
+}
+
 .focal-image {
   width: 200px;
   height: 200px;

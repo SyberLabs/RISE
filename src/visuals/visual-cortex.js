@@ -433,6 +433,23 @@ export class VisualCortex {
         if (!categoryId) {
             return this._getWikimediaProvider();
         }
+        // Chapel-scoped collections (chapel-*): pinned sacred works,
+        // with NO fallback of any kind. Spec non-negotiable #5 —
+        // reverent degradation: a collection that cannot resolve
+        // yields stillness (null provider → no image), never a
+        // keyword-matched substitute. Sacred imagery is pinned, never
+        // searched.
+        if (categoryId.startsWith('chapel-')) {
+            try {
+                const chapel = await import('../content/chapel/imagery/provider.js');
+                if (chapel.hasChapelCollection(categoryId)) {
+                    return chapel.getChapelWorksProvider();
+                }
+            } catch (e) {
+                console.warn('[Visual Cortex] Chapel works unavailable:', e);
+            }
+            return null;
+        }
         // Atrium-scoped subject categories (atr-*) resolve through the
         // Wikimedia provider once the Atrium content module has
         // registered its resolver. A restored session can carry atr-

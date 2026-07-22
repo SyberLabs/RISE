@@ -162,7 +162,10 @@ describe('Imagery service', () => {
     }));
     const works = Array.from({ length: 200 }, (_, i) => ({ source: 'met', id: i + 1 }));
     await resolveCollection({ works }, { fetchImpl });
-    expect(fetchImpl.mock.calls.length).toBeLessThanOrEqual(40);
+    // 80: sized above the largest curated collection (chapel-nativity,
+    // 55) so review-approved pins never silently truncate, while a
+    // malformed 200-work collection still cannot issue 200 requests.
+    expect(fetchImpl.mock.calls.length).toBeLessThanOrEqual(80);
   });
 
   it('caches under its own namespace, never a Chamber provider id', () => {
@@ -424,21 +427,26 @@ describe('Deployment policy allows what the adapters call', () => {
     // silently never appears — the same invisible failure mode as the
     // missing getRandom. The policy and the adapters must be checked
     // against each other, not maintained in parallel by memory.
-    const { readFileSync } = await import('node:fs');
+    const { readFileSync, readdirSync } = await import('node:fs');
     const { resolve } = await import('node:path');
     const toml = readFileSync(resolve('netlify.toml'), 'utf8');
     const connectSrc = /connect-src([^;]*)/.exec(toml)?.[1] ?? '';
 
-    const adapters = [
-      'src/content/atrium/imagery/adapters/met.js',
-      'src/content/atrium/imagery/adapters/cleveland.js'
-    ];
-    for (const path of adapters) {
-      const source = readFileSync(resolve(path), 'utf8');
-      for (const [, host] of source.matchAll(/https:\/\/([a-z0-9.-]+)/gi)) {
-        // Documentation links in comments are not fetch targets
-        if (!/api|collection/i.test(host)) continue;
-        expect(connectSrc, `${path} calls ${host}, absent from connect-src`)
+    // EVERY adapter in the directory, so a newly added adapter is
+    // covered the moment it exists rather than when someone remembers
+    // to list it here.
+    const dir = resolve('src/content/atrium/imagery/adapters');
+    const adapters = readdirSync(dir).filter(name => name.endsWith('.js') && !name.endsWith('.test.js'));
+    expect(adapters.length).toBeGreaterThanOrEqual(4);
+    for (const name of adapters) {
+      const source = readFileSync(resolve(dir, name), 'utf8');
+      // Fetch targets are the const endpoint/base declarations, not
+      // documentation links in comments
+      for (const [, host] of source.matchAll(/^const [A-Z_]+ = 'https:\/\/([a-z0-9.-]+)/gim)) {
+        // Image hosts are covered by img-src https:; only JSON APIs
+        // need connect-src. IIIF *image* bases are excluded.
+        if (/^www\.artic\.edu$|^iiif\./.test(host)) continue;
+        expect(connectSrc, `${name} calls ${host}, absent from connect-src`)
           .toContain(host);
       }
     }

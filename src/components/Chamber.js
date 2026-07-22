@@ -620,7 +620,15 @@ export class Chamber {
     focalContainer.className = 'chamber-focal';
     focalContainer.id = 'chamber-focal';
 
-    if (focals.type === 'personal' && focals.personalImage) {
+    if (focals.type === 'icon' && focals.iconId) {
+      // Chapel icon focal — a pinned, attributed sacred image rendered
+      // as an icon is displayed: centered, unhurried, warm low
+      // vignette. No semantic response, no motion on the image itself
+      // (an icon is written, not animated). If the image fails to
+      // load, the focal falls back to stillness — the container stays
+      // empty rather than showing anything else.
+      this.initializeIconFocal(focalContainer, focals.iconId);
+    } else if (focals.type === 'personal' && focals.personalImage) {
       // Personal image focal
       focalContainer.innerHTML = `
         <div class="focal-personal">
@@ -646,6 +654,37 @@ export class Chamber {
     }
 
     console.log('[Chamber] Focal initialized:', focals);
+  }
+
+  /**
+   * Resolve and mount a Chapel icon focal. Lazy import keeps chapel
+   * content out of every non-Chapel session's graph; a failed load
+   * yields an empty focal (reverent degradation — stillness, never a
+   * wrong image, never an error surface mid-devotion).
+   */
+  async initializeIconFocal(focalContainer, iconId) {
+    try {
+      const { findChapelIcon } = await import('../content/chapel/imagery/icons.js');
+      const icon = findChapelIcon(iconId);
+      if (!icon || !this.container.contains(focalContainer)) return;
+
+      const img = document.createElement('img');
+      img.className = 'focal-icon-image';
+      img.alt = icon.name;
+      img.decoding = 'async';
+      img.onload = () => {
+        if (!this.container.contains(focalContainer)) return;
+        const frame = document.createElement('div');
+        frame.className = 'focal-icon-frame';
+        frame.title = icon.attribution;
+        frame.appendChild(img);
+        focalContainer.appendChild(frame);
+      };
+      // onerror: nothing mounts — the focal stays still and empty
+      img.src = icon.image;
+    } catch (e) {
+      console.warn('[Chamber] Icon focal unavailable:', e);
+    }
   }
 
   /**

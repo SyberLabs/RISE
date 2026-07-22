@@ -27,10 +27,17 @@ export function hasPinnedCollection(id) {
  * make it discoverable, and it must not be).
  */
 export class PinnedWorksProvider {
-    constructor() {
-        this.id = 'atrium-pinned';
-        this.name = 'Atrium curated works';
+    /**
+     * @param {Object} [options]
+     *   - collections: id → { works } registry (defaults to the Atrium
+     *     pinned collections; the Chapel passes its own)
+     *   - id / name: provider identity for provenance display
+     */
+    constructor(options = {}) {
+        this.id = options.id || 'atrium-pinned';
+        this.name = options.name || 'Atrium curated works';
         this.contentType = 'image';
+        this._collections = options.collections || ATRIUM_PINNED_COLLECTIONS;
         // A curated collection is small — a dozen works at most — so raw
         // random selection would repeat a painting before the reader has
         // seen the rest. The bag exhausts the collection first.
@@ -87,7 +94,9 @@ export class PinnedWorksProvider {
      * @returns {Promise<Object[]>} display-ready image records
      */
     async getImagesInCategory(categoryId, limit = 20, options = {}) {
-        const collection = ATRIUM_PINNED_COLLECTIONS[categoryId];
+        const collection = Object.hasOwn(this._collections, categoryId)
+            ? this._collections[categoryId]
+            : null;
         if (!collection) return [];
 
         const works = await resolveCollection(collection, options);

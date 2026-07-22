@@ -756,6 +756,17 @@ export class VisualInterlocutionPanel {
                                     // and never appear in the browsable list
                                     return ATRIUM_CATEGORIES[id]?.name || id;
                                 }
+                                if (id.startsWith('chapel-')) {
+                                    // Chapel-scoped sacred collections: named
+                                    // here for the "From this reading" chip,
+                                    // never in the browsable list
+                                    return ({
+                                        'chapel-crucifixion': 'The Crucifixion',
+                                        'chapel-passion': 'The Passion',
+                                        'chapel-nativity': 'The Nativity',
+                                        'chapel-resurrection': 'The Resurrection'
+                                    })[id] || id;
+                                }
                                 if (id.startsWith('aic-')) {
                                     return MUSEUM_CATEGORIES[id.slice(4)]?.name || id;
                                 }

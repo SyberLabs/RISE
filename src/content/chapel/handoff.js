@@ -76,22 +76,54 @@ export function sliceChapter(text, chapter, bookId) {
 }
 
 /**
+ * Which pinned collections accompany a book's reading (spec §5):
+ * the Gospels carry the Passion; the Apocalypse carries the
+ * Resurrection. Every other book reads in stillness — no collection
+ * is ever a default, and nativity/resurrection also serve the Rosary's
+ * mysteries in stage 5. Seasonal assignments (Advent readings with
+ * chapel-nativity) are a later, deliberate decision.
+ */
+const BOOK_COLLECTIONS = Object.freeze({
+  matthew: ['chapel-passion', 'chapel-crucifixion'],
+  mark: ['chapel-passion', 'chapel-crucifixion'],
+  luke: ['chapel-passion', 'chapel-crucifixion'],
+  john: ['chapel-passion', 'chapel-crucifixion'],
+  apocalypse: ['chapel-resurrection']
+});
+
+/**
  * Contemplative defaults, authored under the honest temporal contract:
  * ~240 wpm label, which Phrase mode + verse-paragraph structure
- * delivers in the 140-180 range that suits Scripture. Visuals stay
- * OFF until the Chapel's pinned imagery exists (stage 3) — stillness
- * is the correct default for this room, not a borrowed rotation.
- * Everything remains overridable in the orbital.
+ * delivers in the 140-180 range that suits Scripture. Books without an
+ * assigned collection read in stillness (visualMode off) — stillness
+ * is this room's default, never a borrowed rotation. Books WITH one
+ * show museum works behind-stream at long presence (≥1400ms per spec:
+ * museum stillness, not rhythmic flashing), sourced only — chapel-*
+ * routing has no fallback. Everything remains overridable in the
+ * orbital.
  */
-export function chapelSensoryConfig() {
+export function chapelSensoryConfig(bookId = null) {
+  const collections = BOOK_COLLECTIONS[bookId] || null;
   return {
     wpm: 240,
     chunkMode: 'phrase',
     curve: 'flat',
     soundscape: 'aurora',
-    visualConfig: {
-      visualMode: 'off'
-    }
+    visualConfig: collections
+      ? {
+        visualMode: 'interlocution',
+        interlocution: {
+          sourceFamily: 'collections',
+          frequency: 0.12,
+          duration: 1600,
+          procedural: [],
+          sourced: collections,
+          responsive: false
+        }
+      }
+      : {
+        visualMode: 'off'
+      }
   };
 }
 
@@ -162,7 +194,7 @@ export async function createChapelHandoff(bookId, options = {}) {
     text: sessionText,
     source: `The Chapel · ${readingName}`,
     config: {
-      ...chapelSensoryConfig(),
+      ...chapelSensoryConfig(book.id),
       sources: [{
         id: chapter == null ? `chapel-${book.id}` : `chapel-${book.id}-${chapter}`,
         name: `${readingName} — ${translationLabel}`,

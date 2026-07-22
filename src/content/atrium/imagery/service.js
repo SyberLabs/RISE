@@ -15,6 +15,8 @@ import { SourceCache } from '../../../sources/cache.js';
 import { isDisplayable } from './works.js';
 import { MET_SOURCE, resolveMetWork } from './adapters/met.js';
 import { CLEVELAND_SOURCE, resolveClevelandWork } from './adapters/cleveland.js';
+import { AIC_SOURCE, resolveAicWork } from './adapters/aic.js';
+import { RIJKS_SOURCE, resolveRijksWork } from './adapters/rijks.js';
 
 /** Cache namespace — deliberately distinct from every Chamber provider. */
 export const IMAGERY_PROVIDER_ID = 'atrium-imagery';
@@ -24,11 +26,18 @@ const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 const ADAPTERS = {
     [MET_SOURCE]: resolveMetWork,
-    [CLEVELAND_SOURCE]: resolveClevelandWork
+    [CLEVELAND_SOURCE]: resolveClevelandWork,
+    [AIC_SOURCE]: resolveAicWork,
+    [RIJKS_SOURCE]: resolveRijksWork
 };
 
-/** Bound so one malformed collection cannot issue unbounded requests. */
-const MAX_WORKS_PER_COLLECTION = 40;
+/**
+ * Bound so one malformed collection cannot issue unbounded requests.
+ * Sized above the largest CURATED collection (chapel-nativity, 55
+ * works) — the bound is a safety rail against malformed data, and it
+ * must never silently truncate a deliberately reviewed collection.
+ */
+const MAX_WORKS_PER_COLLECTION = 80;
 
 export function isKnownImagerySource(source) {
     return Object.hasOwn(ADAPTERS, source);
