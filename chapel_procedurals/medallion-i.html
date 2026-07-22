@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGILLA · I · CRISTO REX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#0a0908;
+    --gold-hi:#f2d28b;
+    --gold:#c9a24b;
+    --gold-deep:#6b5220;
+    --dim:#8a7b5e;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:var(--ground);overflow:hidden}
+  body{
+    font-family:'Space Mono',monospace;
+    color:var(--dim);
+    display:flex;flex-direction:column;
+  }
+  header{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:14px 18px 0;
+    font-size:10px;letter-spacing:.35em;text-transform:uppercase;
+    user-select:none;flex:none;
+  }
+  header .series{color:var(--gold)}
+  main{flex:1;position:relative;min-height:0}
+  canvas#gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+  pre#ascii{
+    position:absolute;inset:0;display:none;
+    font-family:'Space Mono',monospace;
+    font-size:11px;line-height:11px;letter-spacing:0;
+    color:var(--gold-deep);
+    overflow:hidden;
+  }
+  pre#ascii.on{display:grid;place-items:center}
+  pre#ascii .hi{color:var(--gold-hi)}
+  pre#ascii .md{color:var(--gold)}
+  footer{
+    flex:none;display:flex;flex-wrap:wrap;gap:10px 22px;
+    align-items:center;justify-content:center;
+    padding:10px 16px 14px;
+    font-size:10px;letter-spacing:.22em;
+  }
+  .grp{display:flex;gap:2px;align-items:center}
+  .grp .lbl{margin-right:8px;color:#55503f;letter-spacing:.3em}
+  button{
+    font:inherit;letter-spacing:.22em;
+    background:none;border:1px solid transparent;
+    color:var(--dim);padding:4px 9px;cursor:pointer;
+  }
+  button:hover{color:var(--gold)}
+  button:focus-visible{outline:1px solid var(--gold);outline-offset:2px}
+  button.active{color:var(--gold-hi);border-color:#3a3021}
+  #seed{color:#55503f;letter-spacing:.15em}
+  @media (max-width:520px){
+    header{letter-spacing:.22em}
+    footer{gap:8px 14px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <span class="series">SIGILLA</span>
+  <span>I · CRISTO REX</span>
+</header>
+<main>
+  <canvas id="gl"></canvas>
+  <pre id="ascii" aria-label="textual rendering of the medallion"></pre>
+</main>
+<footer>
+  <div class="grp" role="group" aria-label="mode">
+    <span class="lbl">MODVS</span>
+    <button id="mAurum" class="active">AURUM</button>
+    <button id="mVerbum">VERBUM</button>
+  </div>
+  <div class="grp" role="group" aria-label="symmetry">
+    <span class="lbl">SYMMETRIA</span>
+    <button data-sym="4">IV</button>
+    <button data-sym="6" class="active">VI</button>
+    <button data-sym="8">VIII</button>
+    <button data-sym="12">XII</button>
+  </div>
+  <div class="grp">
+    <button id="strike">✠ RECUDE</button>
+    <span id="seed"></span>
+  </div>
+</footer>
+
+<script>
+'use strict';
+/* ============================================================
+   SIGILLA · Medallion I · CRISTO REX
+   One symbolic core (an SDF height field), two renderers:
+   AURUM  - lit gold relief, WebGL
+   VERBUM - the same field sampled at character-cell resolution,
+            bright contours spelled with the letters of the legend
+   ============================================================ */
+
+const canvas = document.getElementById('gl');
+const pre    = document.getElementById('ascii');
+const gl = canvas.getContext('webgl', {preserveDrawingBuffer:true, antialias:true});
+
+const VSRC = `
+attribute vec2 aPos;
+void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }
+`;
+
+const FSRC = `
+precision highp float;
+uniform vec2  uRes;
+uniform float uTime;
+uniform float uSym;      // symmetry order: 4,6,8,12
+uniform float uPhase;    // seed-driven angular phase
+uniform float uLightA;   // seed-driven light angle
+uniform float uFlat;     // 1.0 = output raw height (VERBUM sampling pass)
+uniform float uGrain;    // grain amplitude (0 when reduced motion)
+uniform sampler2D uText; // legend + alpha/omega, white on transparent
+
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+mat2 rot(float a){ float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
+
+float sdBox(vec2 p, vec2 b){
+  vec2 d = abs(p) - b;
+  return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
+}
+
+/* Chi-Rho locus: stem + loop + two chi bars */
+float sdChiRho(vec2 p){
+  float stem = sdBox(p - vec2(0.0, -0.015), vec2(0.032, 0.365)) - 0.012;
+  float loop = abs(length(p - vec2(0.092, 0.235)) - 0.093) - 0.030;
+  float c1 = sdBox(rot( 0.66) * p, vec2(0.300, 0.030)) - 0.010;
+  float c2 = sdBox(rot(-0.66) * p, vec2(0.300, 0.030)) - 0.010;
+  return min(min(stem, loop), min(c1, c2));
+}
+
+float ring(float r, float r0, float w){
+  float d = (r - r0) / w;
+  return exp(-d * d);
+}
+
+float beads(float r, float a, float rb, float n, float ph){
+  float arc = (fract(a / 6.2831853 * n + ph) - 0.5) * 6.2831853 * rb / n;
+  vec2 q = vec2(r - rb, arc);
+  return exp(-dot(q, q) * 9000.0);
+}
+
+float medalHeight(vec2 p){
+  float r = length(p);
+  float a = atan(p.y, p.x);
+  float h = 0.0;
+
+  /* struck-medal dome */
+  h += 0.26 * sqrt(max(1.0 - r * r * 0.82, 0.0));
+
+  /* rim */
+  h += 0.30 * ring(r, 0.966, 0.013);
+  h += 0.10 * ring(r, 0.928, 0.008);
+
+  /* legend annulus, slightly recessed so raised letters read */
+  h -= 0.055 * smoothstep(0.905, 0.885, r) * smoothstep(0.720, 0.745, r);
+
+  /* punchwork bead rings */
+  h += 0.32 * beads(r, a, 0.885, uSym * 16.0, uPhase);
+  h += 0.26 * beads(r, a, 0.700, uSym * 12.0, uPhase * 1.7);
+
+  /* radial rays in the inner field */
+  float nr = uSym * 6.0;
+  float win = smoothstep(0.16, 0.24, r) * smoothstep(0.66, 0.52, r);
+  h += 0.085 * pow(max(cos(a * nr + uPhase * 6.2831853), 0.0), 10.0) * win;
+
+  /* Chi-Rho relief */
+  float d = sdChiRho(p * 1.05);
+  h += 0.42 * smoothstep(0.030, -0.004, d);
+
+  /* embossed lettering from the text texture */
+  if (r < 1.0){
+    vec2 uv = p * 0.5 + 0.5;
+    h += 0.40 * texture2D(uText, uv).a;
+  }
+
+  /* clip at the rim */
+  h *= smoothstep(1.0, 0.992, r);
+  return h;
+}
+
+void main(){
+  float scale = 0.455 * min(uRes.x, uRes.y);
+  vec2 p = (gl_FragCoord.xy - 0.5 * uRes) / scale;
+  float r = length(p);
+
+  float h = medalHeight(p);
+
+  if (uFlat > 0.5){
+    gl_FragColor = vec4(vec3(clamp(h * 1.35, 0.0, 1.0)), 1.0);
+    return;
+  }
+
+  /* normals from the height gradient */
+  float e = 1.6 / scale;
+  float hx = medalHeight(p + vec2(e, 0.0));
+  float hy = medalHeight(p + vec2(0.0, e));
+  vec3 N = normalize(vec3(-(hx - h), -(hy - h), e * 2.6));
+
+  vec3 L = normalize(vec3(cos(uLightA), sin(uLightA), 0.80));
+  vec3 V = vec3(0.0, 0.0, 1.0);
+  float diff = max(dot(N, L), 0.0);
+  float spec = pow(max(dot(reflect(-L, N), V), 0.0), 42.0);
+
+  vec3 goldHi  = vec3(0.985, 0.860, 0.560);
+  vec3 gold    = vec3(0.760, 0.585, 0.270);
+  vec3 bronze  = vec3(0.205, 0.140, 0.068);
+
+  vec3 metal = mix(bronze, gold, clamp(h * 1.7, 0.0, 1.0));
+  vec3 col = metal * (0.30 + 0.80 * diff);
+  col += spec * vec3(1.0, 0.92, 0.68) * 0.85;
+  col = mix(col, goldHi, spec * 0.35);
+
+  /* ground: near-black, faint ghost annulus, vignette */
+  vec3 bg = vec3(0.030, 0.027, 0.024);
+  bg += vec3(0.020, 0.016, 0.009) * ring(r, 1.16, 0.05);
+  bg *= 1.0 - 0.45 * smoothstep(0.8, 1.9, r);
+
+  float mask = smoothstep(1.004, 0.996, r);
+  vec3 outc = mix(bg, col, mask);
+
+  /* film grain */
+  outc += (hash(gl_FragCoord.xy + fract(uTime) * 61.7) - 0.5) * uGrain;
+
+  gl_FragColor = vec4(outc, 1.0);
+}
+`;
+
+function compile(type, src){
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
+    console.error(gl.getShaderInfoLog(s));
+  }
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, VSRC));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FSRC));
+gl.linkProgram(prog);
+gl.useProgram(prog);
+
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+const aPos = gl.getAttribLocation(prog, 'aPos');
+gl.enableVertexAttribArray(aPos);
+gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+const U = {};
+for (const n of ['uRes','uTime','uSym','uPhase','uLightA','uFlat','uGrain','uText'])
+  U[n] = gl.getUniformLocation(prog, n);
+
+/* ---------------- state ---------------- */
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const S = {
+  mode: 'aurum',
+  sym: 6,
+  seed: 0,
+  phase: 0,
+  lightA: 2.35,
+  legendRot: 0
+};
+
+function reseed(){
+  S.seed = (Math.random() * 0xffffff) | 0;
+  const rnd = mulberry(S.seed);
+  S.phase = rnd();
+  S.lightA = 1.85 + rnd() * 1.15;       /* upper-left arc */
+  S.legendRot = (rnd() - 0.5) * 0.35;
+  document.getElementById('seed').textContent =
+    'CVSVS ' + S.seed.toString(16).toUpperCase().padStart(6, '0');
+}
+function mulberry(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+/* ---------------- legend texture ---------------- */
+const tex = gl.createTexture();
+gl.activeTexture(gl.TEXTURE0);
+gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.uniform1i(U.uText, 0);
+
+function buildLegendTexture(){
+  const TS = 1024;
+  const c = document.createElement('canvas');
+  c.width = c.height = TS;
+  const x = c.getContext('2d');
+  x.clearRect(0, 0, TS, TS);
+  x.fillStyle = '#fff';
+  const cx = TS / 2, cy = TS / 2;
+  /* texture uv spans p in [-1,1]; medal radius 1 = TS/2 px */
+
+  /* circumferential legend: CRISTO REX ✠ repeated */
+  const legend = 'CRISTO REX ✠ CRISTO REX ✠ CRISTO REX ✠ ';
+  const rad = 0.815 * TS / 2;
+  const step = (Math.PI * 2) / legend.length;
+  x.font = '600 ' + Math.round(TS * 0.052) + 'px "Cormorant Garamond", Georgia, serif';
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  for (let i = 0; i < legend.length; i++){
+    const ang = -Math.PI / 2 + S.legendRot + i * step; /* start at top */
+    x.save();
+    x.translate(cx + Math.cos(ang) * rad, cy + Math.sin(ang) * rad);
+    x.rotate(ang + Math.PI / 2);
+    x.fillText(legend[i], 0, 0);
+    x.restore();
+  }
+
+  /* Alpha and Omega flanking the Chi-Rho */
+  x.font = '500 ' + Math.round(TS * 0.075) + 'px "Cormorant Garamond", Georgia, serif';
+  x.fillText('Α', cx - 0.335 * TS / 2, cy + 0.16 * TS / 2);
+  x.fillText('Ω', cx + 0.335 * TS / 2, cy + 0.16 * TS / 2);
+
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+}
+
+/* ---------------- rendering ---------------- */
+function sizeCanvas(){
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (canvas.width !== w * dpr || canvas.height !== h * dpr){
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+  }
+}
+
+function drawAurum(t){
+  sizeCanvas();
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.uniform2f(U.uRes, canvas.width, canvas.height);
+  gl.uniform1f(U.uTime, t);
+  gl.uniform1f(U.uSym, S.sym);
+  gl.uniform1f(U.uPhase, S.phase);
+  gl.uniform1f(U.uLightA, S.lightA);
+  gl.uniform1f(U.uFlat, 0);
+  gl.uniform1f(U.uGrain, reduceMotion ? 0.0 : 0.055);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+/* VERBUM: sample the same field at character-cell resolution */
+const PHRASE = 'CRISTOREX✠';
+function drawVerbum(){
+  const box = pre.getBoundingClientRect();
+  const fs = 11, cw = fs * 0.60, lh = fs;
+  const side = Math.min(box.width, box.height) * 0.97;
+  const rows = Math.max(24, Math.floor(side / lh));
+  const cols = Math.max(24, Math.floor(side / cw));
+
+  gl.viewport(0, 0, cols, rows);
+  gl.uniform2f(U.uRes, cols, rows);
+  gl.uniform1f(U.uSym, S.sym);
+  gl.uniform1f(U.uPhase, S.phase);
+  gl.uniform1f(U.uLightA, S.lightA);
+  gl.uniform1f(U.uFlat, 1);
+  gl.uniform1f(U.uGrain, 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  const px = new Uint8Array(cols * rows * 4);
+  gl.readPixels(0, 0, cols, rows, gl.RGBA, gl.UNSIGNED_BYTE, px);
+
+  let out = '', k = 0;
+  for (let y = rows - 1; y >= 0; y--){          /* GL origin is bottom-left */
+    let line = '';
+    for (let xx = 0; xx < cols; xx++){
+      const v = px[(y * cols + xx) * 4] / 255;
+      if (v > 0.66){
+        line += '<span class="hi">' + PHRASE[k++ % PHRASE.length] + '</span>';
+      } else if (v > 0.45){
+        line += '<span class="md">+</span>';
+      } else if (v > 0.26){
+        line += '·';
+      } else if (v > 0.13){
+        line += '.';
+      } else {
+        line += ' ';
+      }
+    }
+    out += line + '\n';
+  }
+  pre.innerHTML = '<span>' + out + '</span>';
+  pre.style.fontSize = fs + 'px';
+  pre.style.lineHeight = lh + 'px';
+}
+
+function render(t){
+  if (S.mode === 'aurum') drawAurum(t || 0);
+  else drawVerbum();
+}
+
+/* grain shimmer loop, AURUM only */
+let raf = null;
+function loop(t){
+  drawAurum(t * 0.001);
+  raf = requestAnimationFrame(loop);
+}
+function setLoop(){
+  if (raf){ cancelAnimationFrame(raf); raf = null; }
+  if (S.mode === 'aurum' && !reduceMotion) raf = requestAnimationFrame(loop);
+  else render(0);
+}
+
+/* ---------------- controls ---------------- */
+const bAurum = document.getElementById('mAurum');
+const bVerbum = document.getElementById('mVerbum');
+bAurum.onclick = () => {
+  S.mode = 'aurum';
+  bAurum.classList.add('active'); bVerbum.classList.remove('active');
+  pre.classList.remove('on'); canvas.style.display = 'block';
+  setLoop();
+};
+bVerbum.onclick = () => {
+  S.mode = 'verbum';
+  bVerbum.classList.add('active'); bAurum.classList.remove('active');
+  canvas.style.display = 'none'; pre.classList.add('on');
+  setLoop();
+};
+document.querySelectorAll('[data-sym]').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('[data-sym]').forEach(o => o.classList.remove('active'));
+    b.classList.add('active');
+    S.sym = +b.dataset.sym;
+    render(0);
+  };
+});
+document.getElementById('strike').onclick = () => {
+  reseed();
+  buildLegendTexture();
+  render(0);
+};
+
+addEventListener('resize', () => render(0));
+
+/* ---------------- first strike ---------------- */
+reseed();
+buildLegendTexture();
+render(0);
+setLoop();
+document.fonts && document.fonts.ready.then(() => {
+  buildLegendTexture();
+  render(0);
+});
+</script>
+</body>
+</html>

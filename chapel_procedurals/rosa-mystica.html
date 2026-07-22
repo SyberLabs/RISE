@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGILLA · II · ROSA MYSTICA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#0a0908;
+    --gold-hi:#f2d28b;
+    --gold:#c9a24b;
+    --dim:#8a7b5e;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:var(--ground);overflow:hidden}
+  body{
+    font-family:'Space Mono',monospace;
+    color:var(--dim);
+    display:flex;flex-direction:column;
+  }
+  header{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:14px 18px 0;
+    font-size:10px;letter-spacing:.35em;text-transform:uppercase;
+    user-select:none;flex:none;
+  }
+  header .series{color:var(--gold)}
+  main{flex:1;position:relative;min-height:0}
+  canvas#gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+  pre#ascii{
+    position:absolute;inset:0;display:none;
+    font-family:'Space Mono',monospace;
+    font-size:11px;line-height:11px;
+    color:#3a352c;
+    overflow:hidden;
+  }
+  pre#ascii.on{display:grid;place-items:center}
+  footer{
+    flex:none;display:flex;flex-wrap:wrap;gap:10px 22px;
+    align-items:center;justify-content:center;
+    padding:10px 16px 14px;
+    font-size:10px;letter-spacing:.22em;
+  }
+  .grp{display:flex;gap:2px;align-items:center}
+  .grp .lbl{margin-right:8px;color:#55503f;letter-spacing:.3em}
+  button{
+    font:inherit;letter-spacing:.22em;
+    background:none;border:1px solid transparent;
+    color:var(--dim);padding:4px 9px;cursor:pointer;
+  }
+  button:hover{color:var(--gold)}
+  button:focus-visible{outline:1px solid var(--gold);outline-offset:2px}
+  button.active{color:var(--gold-hi);border-color:#3a3021}
+  #seed{color:#55503f;letter-spacing:.15em}
+  @media (max-width:520px){
+    header{letter-spacing:.22em}
+    footer{gap:8px 14px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <span class="series">SIGILLA</span>
+  <span>II · ROSA MYSTICA</span>
+</header>
+<main>
+  <canvas id="gl"></canvas>
+  <pre id="ascii" aria-label="textual rendering of the rose window"></pre>
+</main>
+<footer>
+  <div class="grp" role="group" aria-label="mode">
+    <button id="mVitrum" class="active">VITRUM</button>
+    <button id="mVerbum">VERBUM</button>
+  </div>
+  <div class="grp" role="group" aria-label="petal count">
+    <span class="lbl">PETALA</span>
+    <button data-pet="8">VIII</button>
+    <button data-pet="12" class="active">XII</button>
+    <button data-pet="16">XVI</button>
+    <button data-pet="24">XXIV</button>
+  </div>
+  <div class="grp">
+    <button id="strike">✠ REFICE</button>
+    <span id="seed"></span>
+  </div>
+</footer>
+
+<script>
+'use strict';
+/* ============================================================
+   SIGILLA · II · ROSA MYSTICA
+   Procedural Gothic rose window. One tracery field, two renderers:
+   VITRUM - backlit stained glass and stone mullions, WebGL
+   VERBUM - the same field sampled at character-cell resolution,
+            each pane spelled from Psalm 26: DOMINVS ILLVMINATIO MEA,
+            letters carrying the color of their glass
+   Structure, center outward: golden oculus, ring of eyelets,
+   lancet petals (vesica piscis), roundels, staggered quatrefoils,
+   rim portholes. Petal count is the symmetry parameter.
+   ============================================================ */
+
+const canvas = document.getElementById('gl');
+const pre    = document.getElementById('ascii');
+const gl = canvas.getContext('webgl', {preserveDrawingBuffer:true, antialias:true});
+
+const VSRC = `
+attribute vec2 aPos;
+void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }
+`;
+
+const FSRC = `
+precision highp float;
+uniform vec2  uRes;
+uniform float uTime;
+uniform float uPet;    // petal count: 8,12,16,24
+uniform float uSeedF;  // seed in [0,1)
+uniform float uFlat;   // 1.0 = classification pass for VERBUM
+uniform float uGrain;
+
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+float vnoise(vec2 p){
+  vec2 i = floor(p), f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  float a = hash(i);
+  float b = hash(i + vec2(1.0, 0.0));
+  float c = hash(i + vec2(0.0, 1.0));
+  float d = hash(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+/* fold the plane into an n-sector wedge; returns (tangential, radial, index) */
+vec3 fold(vec2 p, float n, float phase){
+  float sec = 6.2831853 / n;
+  float a = atan(p.y, p.x) - phase * sec;
+  float idx = floor(a / sec);
+  float af = a - (idx + 0.5) * sec;
+  float r = length(p);
+  return vec3(r * sin(af), r * cos(af), idx);
+}
+
+/* vesica piscis, pointed along y; half-width w, half-height h */
+float sdVesica(vec2 p, float w, float h){
+  float r = 0.5 * (w + h * h / w);
+  float d = 0.5 * (h * h / w - w);
+  p = abs(p);
+  float b = sqrt(max(r * r - d * d, 0.0));
+  return ((p.y - b) * d > p.x * b)
+    ? length(p - vec2(0.0, b))
+    : length(p - vec2(-d, 0.0)) - r;
+}
+
+/* medieval palette */
+vec3 pal(float k){
+  if (k < 0.40) return vec3(0.10, 0.21, 0.62);   /* cobalt   */
+  if (k < 0.68) return vec3(0.63, 0.06, 0.13);   /* ruby     */
+  if (k < 0.80) return vec3(0.06, 0.38, 0.22);   /* emerald  */
+  if (k < 0.91) return vec3(0.86, 0.60, 0.16);   /* amber    */
+  return vec3(0.36, 0.15, 0.50);                 /* violet   */
+}
+
+vec3 paneColor(float ringId, float sectId){
+  if (ringId < 0.5) return vec3(0.93, 0.74, 0.32);      /* golden oculus */
+  /* rotationally rhythmic coloring: pattern period per ring, seeded */
+  float per = 1.0 + floor(hash(vec2(ringId * 3.1, uSeedF * 91.7)) * 3.0);
+  float slot = mod(sectId, per);
+  float k = hash(vec2(ringId * 13.7 + uSeedF * 57.0, slot * 7.1 + ringId));
+  vec3 c = pal(k);
+  /* hand-blown irregularity, kept subtle */
+  c *= 0.90 + 0.22 * hash(vec2(sectId * 1.9 + ringId * 8.8, uSeedF * 33.0));
+  return c;
+}
+
+/* returns pane distance, ring id, sector id */
+vec3 tracery(vec2 p){
+  float dBest = 1e3, ringId = -1.0, sectId = 0.0;
+  float N = uPet;
+  vec3 f;
+  float d;
+
+  /* 0: oculus */
+  d = length(p) - 0.135;
+  if (d < dBest){ dBest = d; ringId = 0.0; sectId = 0.0; }
+
+  /* 1: inner eyelets */
+  f = fold(p, N, 0.0);
+  d = length(f.xy - vec2(0.0, 0.205)) - min(0.036, 0.541 / N);
+  if (d < dBest){ dBest = d; ringId = 1.0; sectId = f.z; }
+
+  /* 2: lancet petals */
+  d = sdVesica(f.xy - vec2(0.0, 0.395), min(0.072, 0.968 / N), 0.150);
+  if (d < dBest){ dBest = d; ringId = 2.0; sectId = f.z; }
+
+  /* 3: roundels, doubled count */
+  f = fold(p, 2.0 * N, 0.5);
+  d = length(f.xy - vec2(0.0, 0.615)) - min(0.042, 0.811 / N);
+  if (d < dBest){ dBest = d; ringId = 3.0; sectId = f.z; }
+
+  /* 4: quatrefoils, staggered between petal axes */
+  f = fold(p, N, 0.5);
+  vec2 q = f.xy - vec2(0.0, 0.790);
+  float lobes = min(
+    min(length(q - vec2(0.0,  0.041)), length(q - vec2(0.0, -0.041))),
+    min(length(q - vec2( 0.041, 0.0)), length(q - vec2(-0.041, 0.0)))
+  ) - 0.048;
+  if (lobes < dBest){ dBest = lobes; ringId = 4.0; sectId = f.z; }
+
+  /* 5: rim portholes */
+  f = fold(p, 4.0 * N, 0.0);
+  d = length(f.xy - vec2(0.0, 0.945)) - 0.013;
+  if (d < dBest){ dBest = d; ringId = 5.0; sectId = f.z; }
+
+  return vec3(dBest, ringId, sectId);
+}
+
+void main(){
+  float scale = 0.455 * min(uRes.x, uRes.y);
+  vec2 p = (gl_FragCoord.xy - 0.5 * uRes) / scale;
+  float r = length(p);
+  float aa = 1.6 / scale;
+
+  vec3 tr = tracery(p);
+  float d = tr.x + 0.011;               /* lead / stone margin */
+  float inWin = smoothstep(aa, -aa, r - 1.0);
+  float glass = smoothstep(aa, -aa, d) * inWin;
+
+  vec3 gc = paneColor(tr.y, tr.z);
+
+  if (uFlat > 0.5){
+    /* classification pass: rgb = glass color, a = 1 glass, .5 stone, 0 wall */
+    float cls = glass > 0.5 ? 1.0 : (inWin > 0.5 ? 0.5 : 0.0);
+    gl_FragColor = vec4(gc, cls);
+    return;
+  }
+
+  /* --- stained glass, backlit --- */
+  float drift = uGrain > 0.0 ? uTime * 0.03 : 0.0;
+  float mottle = 0.6 * vnoise(p * 18.0 + uSeedF * 40.0 + drift)
+               + 0.4 * vnoise(p * 47.0 - uSeedF * 21.0);
+  float glow = 0.85 + 0.55 * exp(-r * r * 1.8);
+  float lead = mix(0.30, 1.0, smoothstep(0.0, 1.0, clamp(-d / 0.014, 0.0, 1.0)));
+  vec3 glassCol = gc * (0.55 + 0.50 * mottle) * glow * lead;
+  glassCol += gc * 0.14;                 /* bloom floor */
+
+  /* --- stone mullions --- */
+  vec3 stone = vec3(0.145, 0.135, 0.120);
+  stone *= 0.80 + 0.30 * vnoise(p * 34.0 + 7.0);
+  stone *= mix(0.50, 1.0, smoothstep(0.0, 0.028, d));   /* shadow at openings */
+  stone *= 0.85 + 0.25 * smoothstep(1.0, 0.2, r);
+
+  /* --- wall --- */
+  vec3 wall = vec3(0.030, 0.027, 0.024);
+  wall += vec3(0.016, 0.013, 0.008) * exp(-pow((r - 1.07) / 0.020, 2.0));
+  wall *= 1.0 - 0.45 * smoothstep(0.9, 2.0, r);
+  /* faint cast light from the window */
+  wall += gc * 0.010 * smoothstep(1.6, 1.0, r);
+
+  vec3 col = mix(wall, mix(stone, glassCol, glass), inWin);
+  col += (hash(gl_FragCoord.xy + fract(uTime) * 61.7) - 0.5) * uGrain;
+
+  gl_FragColor = vec4(col, 1.0);
+}
+`;
+
+function compile(type, src){
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
+    console.error(gl.getShaderInfoLog(s));
+  }
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compile(gl.VERTEX_SHADER, VSRC));
+gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FSRC));
+gl.linkProgram(prog);
+gl.useProgram(prog);
+
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+const aPos = gl.getAttribLocation(prog, 'aPos');
+gl.enableVertexAttribArray(aPos);
+gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+const U = {};
+for (const n of ['uRes','uTime','uPet','uSeedF','uFlat','uGrain'])
+  U[n] = gl.getUniformLocation(prog, n);
+
+/* ---------------- state ---------------- */
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const S = { mode:'vitrum', pet:12, seed:0, seedF:0 };
+
+function mulberry(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function reseed(){
+  S.seed = (Math.random() * 0xffffff) | 0;
+  S.seedF = mulberry(S.seed)();
+  document.getElementById('seed').textContent =
+    'OPVS ' + S.seed.toString(16).toUpperCase().padStart(6, '0');
+}
+
+/* ---------------- rendering ---------------- */
+function sizeCanvas(){
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (canvas.width !== w * dpr || canvas.height !== h * dpr){
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+  }
+}
+function setCommon(){
+  gl.uniform1f(U.uPet, S.pet);
+  gl.uniform1f(U.uSeedF, S.seedF);
+}
+function drawVitrum(t){
+  sizeCanvas();
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.uniform2f(U.uRes, canvas.width, canvas.height);
+  gl.uniform1f(U.uTime, t);
+  setCommon();
+  gl.uniform1f(U.uFlat, 0);
+  gl.uniform1f(U.uGrain, reduceMotion ? 0.0 : 0.045);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+/* VERBUM: Psalm 26 — Dominus illuminatio mea */
+const PSALM = 'DOMINVSILLVMINATIOMEA✠ETSALVSMEA✠QVEMTIMEBO✠';
+function drawVerbum(){
+  const box = pre.getBoundingClientRect();
+  const fs = 11, cw = fs * 0.60, lh = fs;
+  const side = Math.min(box.width, box.height) * 0.97;
+  const rows = Math.max(24, Math.floor(side / lh));
+  const cols = Math.max(24, Math.floor(side / cw));
+
+  gl.viewport(0, 0, cols, rows);
+  gl.uniform2f(U.uRes, cols, rows);
+  setCommon();
+  gl.uniform1f(U.uFlat, 1);
+  gl.uniform1f(U.uGrain, 0);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  const px = new Uint8Array(cols * rows * 4);
+  gl.readPixels(0, 0, cols, rows, gl.RGBA, gl.UNSIGNED_BYTE, px);
+
+  let out = '', k = 0;
+  for (let y = rows - 1; y >= 0; y--){
+    for (let xx = 0; xx < cols; xx++){
+      const i = (y * cols + xx) * 4;
+      const cls = px[i + 3];
+      if (cls > 200){                       /* glass: psalm letter in pane color */
+        const R = Math.min(255, Math.round(px[i] * 1.45 + 30));
+        const G = Math.min(255, Math.round(px[i + 1] * 1.45 + 30));
+        const B = Math.min(255, Math.round(px[i + 2] * 1.45 + 30));
+        out += '<span style="color:rgb(' + R + ',' + G + ',' + B + ')">'
+             + PSALM[k++ % PSALM.length] + '</span>';
+      } else if (cls > 80){                 /* stone */
+        out += '+';
+      } else {
+        out += ' ';
+      }
+    }
+    out += '\n';
+  }
+  pre.innerHTML = '<span>' + out + '</span>';
+  pre.style.fontSize = fs + 'px';
+  pre.style.lineHeight = lh + 'px';
+}
+
+function render(t){
+  if (S.mode === 'vitrum') drawVitrum(t || 0);
+  else drawVerbum();
+}
+
+/* glass shimmer loop, VITRUM only */
+let raf = null;
+function loop(t){
+  drawVitrum(t * 0.001);
+  raf = requestAnimationFrame(loop);
+}
+function setLoop(){
+  if (raf){ cancelAnimationFrame(raf); raf = null; }
+  if (S.mode === 'vitrum' && !reduceMotion) raf = requestAnimationFrame(loop);
+  else render(0);
+}
+
+/* ---------------- controls ---------------- */
+const bVitrum = document.getElementById('mVitrum');
+const bVerbum = document.getElementById('mVerbum');
+bVitrum.onclick = () => {
+  S.mode = 'vitrum';
+  bVitrum.classList.add('active'); bVerbum.classList.remove('active');
+  pre.classList.remove('on'); canvas.style.display = 'block';
+  setLoop();
+};
+bVerbum.onclick = () => {
+  S.mode = 'verbum';
+  bVerbum.classList.add('active'); bVitrum.classList.remove('active');
+  canvas.style.display = 'none'; pre.classList.add('on');
+  setLoop();
+};
+document.querySelectorAll('[data-pet]').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('[data-pet]').forEach(o => o.classList.remove('active'));
+    b.classList.add('active');
+    S.pet = +b.dataset.pet;
+    render(0);
+  };
+});
+document.getElementById('strike').onclick = () => {
+  reseed();
+  render(0);
+};
+
+addEventListener('resize', () => render(0));
+
+/* ---------------- first light ---------------- */
+reseed();
+render(0);
+setLoop();
+</script>
+</body>
+</html>

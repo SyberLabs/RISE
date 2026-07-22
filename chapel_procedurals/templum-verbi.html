@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGILLA · III · TEMPLVM VERBI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#0a0908;
+    --gold-hi:#f2d28b;
+    --gold:#c9a24b;
+    --dim:#8a7b5e;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:var(--ground);overflow:hidden}
+  body{
+    font-family:'Space Mono',monospace;
+    color:var(--dim);
+    display:flex;flex-direction:column;
+  }
+  header{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:14px 18px 0;
+    font-size:10px;letter-spacing:.35em;text-transform:uppercase;
+    user-select:none;flex:none;
+  }
+  header .series{color:var(--gold)}
+  main{flex:1;position:relative;min-height:0}
+  pre#f{
+    position:absolute;inset:0;
+    display:grid;place-items:center;
+    font-family:'Space Mono',monospace;
+    overflow:hidden;
+  }
+  /* fixed-width wrapper for non-ASCII glyphs so the grid never drifts */
+  .w{display:inline-block;width:1ch;text-align:center}
+
+  .s {color:#f2d28b}   /* SANCTVS bands            */
+  .m {color:#443e2e}   /* masonry                  */
+  .a {color:#6b6147}   /* AMEN bricks              */
+  .e {color:#d8cbaa}   /* HOSANNA / EXCELSIS       */
+  .p {color:#d99a4e}   /* Pater Noster             */
+  .o {color:#e8b96a}   /* EGO SVM OSTIVM arch      */
+  .g {color:#c9a24b}   /* GLORIA ring              */
+  .l {color:#7c9bff}   /* LVX petals               */
+  .c {color:#3fae6a}   /* cypress                  */
+  .d {color:#b8b2a4}   /* magic square             */
+  .gb{color:#8a7b5e}   /* gable                    */
+  .k {color:#5a5348}   /* crane                    */
+  .gr{color:#55503f}   /* ground                   */
+  .st{color:#5d6580}   /* stars                    */
+  .s2{color:#c9d2f0}   /* bright stars             */
+  .t1{color:#c33b52}.t2{color:#4f74e3}.t3{color:#3fae6a}.t4{color:#e0a53f} /* trencadis */
+  .lt{color:#4a1f1c}.lt.on{color:#e8483c} /* crane beacon */
+
+  footer{
+    flex:none;display:flex;flex-wrap:wrap;gap:10px 22px;
+    align-items:center;justify-content:center;
+    padding:10px 16px 14px;
+    font-size:10px;letter-spacing:.22em;
+  }
+  .grp{display:flex;gap:2px;align-items:center}
+  .grp .lbl{margin-right:8px;color:#55503f;letter-spacing:.3em}
+  button{
+    font:inherit;letter-spacing:.22em;
+    background:none;border:1px solid transparent;
+    color:var(--dim);padding:4px 9px;cursor:pointer;
+  }
+  button:hover{color:var(--gold)}
+  button:focus-visible{outline:1px solid var(--gold);outline-offset:2px}
+  button.active{color:var(--gold-hi);border-color:#3a3021}
+  #seed{color:#55503f;letter-spacing:.15em}
+  @media (max-width:520px){
+    header{letter-spacing:.22em}
+    footer{gap:8px 14px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <span class="series">SIGILLA</span>
+  <span>III · TEMPLVM VERBI</span>
+</header>
+<main>
+  <pre id="f" aria-label="a cathedral built of text"></pre>
+</main>
+<footer>
+  <div class="grp" role="group" aria-label="tower count">
+    <span class="lbl">TVRRES</span>
+    <button data-n="3">III</button>
+    <button data-n="5" class="active">V</button>
+    <button data-n="7">VII</button>
+  </div>
+  <div class="grp">
+    <button id="build">✠ AEDIFICA</button>
+    <span id="seed"></span>
+  </div>
+</footer>
+
+<script>
+'use strict';
+/* ============================================================
+   SIGILLA · III · TEMPLVM VERBI
+   A cathedral whose only material is language, after Gaudi,
+   who wound words into stone. Everything here is a letter:
+   - SANCTVS spirals up the spires, as on the bell towers
+   - HOSANNA and EXCELSIS climb the tower edges
+   - the portal is filled with the Pater Noster, and its arch
+     is spelled from EGO SVM OSTIVM (I am the door, Jn 10:9)
+   - the rose is rung with GLORIA, its petals with LVX
+   - the Passion facade magic square (every line sums to 33)
+     is set into both nave walls
+   - trencadis mosaic caps every spire in colored shards
+   - a lone crane keeps watch: semper aedificanda,
+     under construction since 1882, and it builds itself
+     from the ground up each time you press AEDIFICA
+   ============================================================ */
+
+const pre = document.getElementById('f');
+const seedEl = document.getElementById('seed');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const SANCTVS = 'SANCTVS✠';
+const OSTIVM  = 'EGO·SVM·OSTIVM✠';
+const GLORIA  = 'GLORIA✠';
+const LVX     = 'LVX·';
+const AMEN    = 'AMEN';
+const PATER   = 'PATER·NOSTER·QVI·ES·IN·CAELIS·SANCTIFICETVR·NOMEN·TVVM·' +
+                'ADVENIAT·REGNVM·TVVM·FIAT·VOLVNTAS·TVA·SICVT·IN·CAELO·ET·IN·TERRA·' +
+                'PANEM·NOSTRVM·QVOTIDIANVM·DA·NOBIS·HODIE·';
+const MSQ = ['01 14 14 04', '11 07 06 09', '08 10 10 05', '13 02 03 15'];
+const TRENC = ['t1','t2','t3','t4'];
+
+const S = { n:5, seed:0 };
+
+function mulberry(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function hash2(x, y, s){
+  let h = Math.sin(x * 127.1 + y * 311.7 + s * 74.3) * 43758.5453;
+  return h - Math.floor(h);
+}
+
+/* ---------------- generate the facade as a grid ---------------- */
+function generate(){
+  const box = pre.getBoundingClientRect();
+  const fs = Math.min(box.width, box.height) < 520 ? 9 : 11;
+  const cw = fs * 0.60, lh = fs;
+  const C = Math.max(40, Math.floor((box.width  * 0.98) / cw));
+  const R = Math.max(34, Math.floor((box.height * 0.98) / lh));
+  const rnd = mulberry(S.seed);
+  const sd = rnd() * 100;
+
+  /* ---- layout ---- */
+  const maxH = R - 8;
+  const span = C * 0.90, half = span / 2;
+  const bw   = Math.max(7, span * 0.13);      /* central tower half-width */
+  const hb   = maxH;                          /* central tower height     */
+  const tb   = hb * 0.55;                     /* taper start              */
+  const hn   = maxH * 0.26;                   /* nave height              */
+  const nv   = half;                          /* nave half-width          */
+  const pw   = Math.max(4, Math.min(8, bw - 2));
+  const ph   = maxH * 0.18;
+  const gw   = pw * 1.6, gy0 = hn * 0.92, gTop = hn + 4;
+  const ct   = 4.5;                           /* cypress height           */
+  const rr   = Math.min((bw - 1) * 0.55, 4.5);
+  const yc   = gTop + ct + rr + 2;            /* rose center              */
+  const msx  = pw + 3, msy = 2;               /* magic square anchor      */
+
+  /* flanking towers */
+  const m = (S.n - 1) / 2;
+  const avail = half - bw - 2;
+  const gap = avail / m;
+  const towers = [];
+  for (let k = 1; k <= m; k++){
+    const dx = bw + 2 + gap * (k - 0.5);
+    const h  = maxH * (0.80 - 0.13 * (k - 1) / Math.max(1, m - 1)) * (0.97 + 0.06 * rnd());
+    const w  = Math.max(2, Math.min(6, (gap - 1.5) / 2));
+    towers.push({ x: -dx, h, w, dir:  1, word: 'HOSANNA'  });
+    towers.push({ x:  dx, h, w, dir: -1, word: 'EXCELSIS' });
+  }
+  const bodyW = gy => gy <= tb ? bw : bw * Math.sqrt(Math.max(0, 1 - (gy - tb) / (hb - tb)));
+  const twW   = (t, gy) => t.w * Math.sqrt(Math.max(0, 1 - gy / t.h));
+
+  const grid = [];
+  let patK = 0;
+
+  for (let row = 0; row < R; row++){
+    const line = [];
+    const gy = (R - 1) - row;
+    for (let col = 0; col < C; col++){
+      const x = col - C / 2 + 0.5;
+      let ch = ' ', cl = '';
+
+      /* ground course */
+      if (gy === 0){
+        if (Math.abs(x) <= half + 2){ ch = '='; cl = 'gr'; }
+        line.push({ch, cl}); continue;
+      }
+
+      const inBody = Math.abs(x) <= bodyW(gy) && gy <= hb;
+      let tw = null;
+      for (const t of towers){
+        if (gy <= t.h && Math.abs(x - t.x) <= twW(t, gy)){ tw = t; break; }
+      }
+      const inNave = Math.abs(x) <= nv && gy <= hn;
+
+      if (!inBody && !tw && !inNave){
+        /* sky */
+        const h = hash2(col, row, sd);
+        if (h < 0.005){ ch = '✶'; cl = 's2'; }
+        else if (h < 0.02){ ch = '·'; cl = 'st'; }
+        line.push({ch, cl}); continue;
+      }
+
+      /* default masonry */
+      const hm = hash2(col, row, sd + 5.0);
+      ch = hm < 0.5 ? '·' : (hm < 0.8 ? ':' : '.');
+      cl = 'm';
+
+      /* trencadis spire caps */
+      const capH = inBody ? hb : (tw ? tw.h : -1);
+      if (capH > 0 && gy >= capH - 2 && (inBody ? gy > tb : true)){
+        ch = '*'; cl = TRENC[Math.floor(hash2(col, row, sd + 9.0) * 4)];
+      }
+      /* rose window */
+      else if (inBody && Math.hypot(x * 0.6, gy - yc) < rr + 0.55){
+        const rd = Math.hypot(x * 0.6, gy - yc);
+        const ang = Math.atan2(gy - yc, x * 0.6);
+        if (Math.abs(rd - rr) < 0.62){
+          const idx = Math.floor(((ang + Math.PI) / (2 * Math.PI)) * 28);
+          ch = GLORIA[idx % GLORIA.length]; cl = 'g';
+        } else if (Math.cos(ang * 6 + sd) > 0.1){
+          const idx = Math.floor(((ang + Math.PI) / (2 * Math.PI)) * 40) + Math.floor(rd * 2);
+          ch = LVX[idx % LVX.length]; cl = 'l';
+        } else { ch = '.'; cl = 'm'; }
+      }
+      /* portal: arch of OSTIVM, filled with the Pater Noster */
+      else if (inNave && Math.abs(x) <= pw && gy <= ph * (1 - Math.pow(Math.abs(x) / pw, 1.7))){
+        const f = ph * (1 - Math.pow(Math.abs(x) / pw, 1.7));
+        if (f - gy < 1.4 || Math.abs(x) > pw - 1.6){
+          ch = OSTIVM[Math.floor(x + pw) % OSTIVM.length]; cl = 'o';
+        } else {
+          ch = PATER[patK++ % PATER.length]; cl = 'p';
+        }
+      }
+      /* magic square, both nave walls, reading left to right on each */
+      else if (inNave && gy >= msy && gy <= msy + 3 &&
+               (Math.abs(x) >= msx - 0.5 && Math.abs(x) <= msx + 10.5)){
+        const rowStr = MSQ[msy + 3 - gy];
+        const center = C / 2 - 0.5;
+        const start = x > 0 ? Math.round(center + msx) : Math.round(center - msx - 10);
+        const ci = col - start;
+        if (ci >= 0 && ci < rowStr.length){
+          if (rowStr[ci] !== ' '){ ch = rowStr[ci]; cl = 'd'; }
+          else { ch = ' '; cl = ''; }
+        }
+      }
+      /* cypress above the gable, with two doves */
+      else if (gy > gTop && gy <= gTop + ct && Math.abs(x) <= (gTop + ct - gy) * 0.7 + 0.4){
+        ch = '*'; cl = 'c';
+      }
+      else if (Math.round(gy) === Math.round(gTop + ct - 1) && Math.abs(Math.abs(x) - 3) < 0.5){
+        ch = "'"; cl = 'e';
+      }
+      /* gable line */
+      else if (Math.abs(x) <= gw && gy > gy0 - 1 &&
+               Math.abs(gy - (gTop - Math.abs(x) * (gTop - gy0) / gw)) < 0.6){
+        ch = x < 0 ? '/' : '\\'; cl = 'gb';
+      }
+      /* HOSANNA / EXCELSIS climbing the tower edges */
+      else if (tw && Math.abs(x - tw.x) >= twW(tw, gy) - 1.3 && gy >= 2 && gy <= tw.h - 3){
+        ch = tw.word[(gy - 2) % tw.word.length]; cl = 'e';
+      }
+      /* SANCTVS spiral bands */
+      else if ((tw && gy > 1) || (inBody && gy > yc + rr + 1)){
+        const xs = tw ? tw.x : 0;
+        const dir = tw ? tw.dir : 1;
+        const t = gy * 0.55 + (x - xs) * dir * 0.9;
+        const mm = ((t % 5) + 5) % 5;
+        if (mm < 1.7){
+          ch = SANCTVS[(col + Math.floor(t / 5) * 3) % SANCTVS.length]; cl = 's';
+        }
+      }
+      /* AMEN set quietly into the masonry */
+      if (cl === 'm' && (col % 6) < 4 && hash2(Math.floor(col / 6), row, sd + 3.0) < 0.05){
+        ch = AMEN[col % 6]; cl = 'a';
+      }
+
+      line.push({ch, cl});
+    }
+    grid.push(line);
+  }
+
+  /* crosses atop every spire */
+  const putCross = (x, gy) => {
+    const row = (R - 1) - Math.round(gy), col = Math.round(x + C / 2 - 0.5);
+    if (row >= 0 && row < R && col >= 0 && col < C) grid[row][col] = {ch:'✠', cl:'s'};
+  };
+  putCross(0, hb + 1);
+  for (const t of towers) putCross(t.x, t.h + 1);
+
+  /* the crane: semper aedificanda */
+  const put = (x, gy, ch, cl) => {
+    const row = (R - 1) - Math.round(gy), col = Math.round(x + C / 2 - 0.5);
+    if (row >= 0 && row < R && col >= 0 && col < C) grid[row][col] = {ch, cl};
+  };
+  const cm = bw * 0.6 + 5;                    /* mast column */
+  for (let g = Math.round(hb - 1); g <= hb + 4; g++) put(cm, g, '|', 'k');
+  for (let xx = 2; xx < cm; xx++) put(xx, hb + 4, '-', 'k');
+  put(cm, hb + 4, '+', 'k');
+  put(cm + 1, hb + 4, '-', 'k');
+  put(2, hb + 3, '.', 'k');
+  put(2, hb + 2, '.', 'k');
+  put(2, hb + 1, '#', 'k');
+  put(cm, hb + 5, '*', 'lt on');             /* beacon */
+
+  /* ---- grid to HTML lines, merging spans ---- */
+  const esc = c => c === '&' ? '&amp;' : c === '<' ? '&lt;' : c === '>' ? '&gt;' : c;
+  const lines = grid.map(cells => {
+    let html = '', run = '', runCl = null;
+    const flush = () => {
+      if (!run) return;
+      html += runCl ? '<span class="' + runCl + '">' + run + '</span>' : run;
+      run = ''; runCl = null;
+    };
+    for (const {ch, cl} of cells){
+      const risky = ch.charCodeAt(0) > 126;
+      const cls = risky ? (cl ? 'w ' + cl : 'w') : cl;
+      const isBeacon = cl.indexOf('lt') === 0;
+      if (risky || isBeacon){
+        flush();
+        html += '<span class="' + cls + '"' + (isBeacon ? ' id="cl"' : '') + '>' + esc(ch) + '</span>';
+      } else if (cls === runCl){
+        run += esc(ch);
+      } else {
+        flush(); run = esc(ch); runCl = cls || null;
+      }
+    }
+    flush();
+    return html;
+  });
+
+  return { lines, R, fs, lh };
+}
+
+/* ---------------- construction ---------------- */
+let world = null, rafId = null, blinkId = null, t0 = 0;
+
+function show(revealed){
+  const { lines, R, fs, lh } = world;
+  pre.style.fontSize = fs + 'px';
+  pre.style.lineHeight = lh + 'px';
+  const html = lines.map((l, i) => i >= R - revealed ? l : '').join('\n');
+  pre.innerHTML = '<span>' + html + '</span>';
+}
+
+function beginBlink(){
+  if (blinkId){ clearInterval(blinkId); blinkId = null; }
+  if (reduceMotion) return;
+  blinkId = setInterval(() => {
+    const el = document.getElementById('cl');
+    if (el) el.classList.toggle('on');
+  }, 900);
+}
+
+function construct(instant){
+  if (rafId){ cancelAnimationFrame(rafId); rafId = null; }
+  world = generate();
+  const R = world.R;
+  if (instant || reduceMotion){
+    show(R);
+    seedEl.textContent = 'OPVS ' + S.seed.toString(16).toUpperCase().padStart(6,'0') + ' · SEMPER AEDIFICANDA';
+    beginBlink();
+    return;
+  }
+  seedEl.textContent = 'AEDIFICATVR…';
+  t0 = performance.now();
+  let last = -1;
+  const step = now => {
+    const revealed = Math.min(R, 1 + Math.floor((now - t0) / 95));
+    if (revealed !== last){ show(revealed); last = revealed; }
+    if (revealed < R){ rafId = requestAnimationFrame(step); }
+    else {
+      seedEl.textContent = 'OPVS ' + S.seed.toString(16).toUpperCase().padStart(6,'0') + ' · SEMPER AEDIFICANDA';
+      beginBlink();
+    }
+  };
+  rafId = requestAnimationFrame(step);
+}
+
+/* ---------------- controls ---------------- */
+document.querySelectorAll('[data-n]').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('[data-n]').forEach(o => o.classList.remove('active'));
+    b.classList.add('active');
+    S.n = +b.dataset.n;
+    construct(false);
+  };
+});
+document.getElementById('build').onclick = () => {
+  S.seed = (Math.random() * 0xffffff) | 0;
+  construct(false);
+};
+addEventListener('resize', () => construct(true));
+
+/* ---------------- first stone, 1882 ---------------- */
+S.seed = (Math.random() * 0xffffff) | 0;
+document.fonts && document.fonts.ready
+  ? document.fonts.ready.then(() => construct(false))
+  : construct(false);
+</script>
+</body>
+</html>

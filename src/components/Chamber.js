@@ -502,7 +502,6 @@ export class Chamber {
     // Initialize focal point if in focals mode
     this.initializeFocal();
 
-
     // Initialize persistent attractor field if in attractor mode
     this.initializeAttractor();
 
