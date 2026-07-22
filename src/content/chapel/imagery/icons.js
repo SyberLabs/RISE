@@ -211,6 +211,22 @@ export const CHAPEL_ICONS = freezeManifest({
     attribution: 'Archangel Gabriel, Russian, early 19th century (R2019.4.2) — Icon Museum and Study Center, Clinton MA'
   },
 
+  'icon-archangel-michael': {
+    name: 'The Archangel Michael',
+    role: 'angel',
+    origin: 'Pyotr Zabolotsky',
+    date: '1857',
+    medium: 'Oil',
+    source: 'commons',
+    sourceId: 'File:Arhistratig Mihail (Zabolotsky).jpg',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/e/e1/Arhistratig_Mihail_%28Zabolotsky%29.jpg',
+    sourceUrl: 'https://commons.wikimedia.org/wiki/File:Arhistratig_Mihail_(Zabolotsky).jpg',
+    rights: 'PUBLIC_DOMAIN',
+    rightsBasis: 'Commons extmetadata: Public domain, Copyrighted False; Zabolotsky d. 1866 (verified 2026-07-22)',
+    fileSha1: '6bebfbf6beba0781bdb9889a2b7a2f4cefed1d63',
+    attribution: 'Pyotr Zabolotsky, The Archangel Michael, 1857 — Wikimedia Commons, public domain'
+  },
+
   'icon-salus-populi-romani': {
     name: 'Salus Populi Romani',
     role: 'marian',

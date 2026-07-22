@@ -60,7 +60,7 @@ describe('Chapel view', () => {
       'icon-pantocrator-iconmuseum',
       'icon-christ-in-majesty', 'icon-christ-enthroned', 'icon-christ-enthroned-gold',
       'icon-transfiguration', 'icon-transfiguration-basma', 'icon-ascension',
-      'icon-mother-of-god-nursing', 'icon-archangel-gabriel',
+      'icon-mother-of-god-nursing', 'icon-archangel-gabriel', 'icon-archangel-michael',
       'icon-salus-populi-romani'
     ]);
     // None is the default

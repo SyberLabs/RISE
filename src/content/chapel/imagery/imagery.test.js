@@ -84,7 +84,7 @@ describe('Chapel icons', () => {
       'icon-pantocrator-iconmuseum',
       'icon-christ-in-majesty', 'icon-christ-enthroned', 'icon-christ-enthroned-gold',
       'icon-transfiguration', 'icon-transfiguration-basma', 'icon-ascension',
-      'icon-mother-of-god-nursing', 'icon-archangel-gabriel',
+      'icon-mother-of-god-nursing', 'icon-archangel-gabriel', 'icon-archangel-michael',
       'icon-salus-populi-romani'
     ]);
     // The loaned Lambardos Michael (L2025.01.5) is deliberately NOT

@@ -64,6 +64,7 @@ const CHAPEL_ICON_LABELS = Object.freeze({
     'icon-ascension': 'The Ascension · Icon Museum',
     'icon-mother-of-god-nursing': 'Mother of God Nursing · Icon Museum',
     'icon-archangel-gabriel': 'Archangel Gabriel · Icon Museum',
+    'icon-archangel-michael': 'Archangel Michael · Zabolotsky, 1857',
     'icon-salus-populi-romani': 'Salus Populi Romani'
 });
 
