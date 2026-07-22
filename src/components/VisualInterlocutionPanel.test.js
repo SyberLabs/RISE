@@ -25,6 +25,84 @@ function makePanel(options = {}) {
     return { panel, container };
 }
 
+describe('Chapel collection editing in the panel', () => {
+    const CHAPEL_LAUNCH = {
+        visualMode: 'interlocution',
+        interlocution: {
+            sourceFamily: 'collections',
+            frequency: 0.12,
+            duration: 1600,
+            procedural: [],
+            sourced: ['chapel-passion', 'chapel-crucifixion'],
+            atriumCollections: ['chapel-passion', 'chapel-crucifixion']
+        }
+    };
+
+    it('renders chapel pills with ✕ and a + orb offering the remaining collections', () => {
+        const { container } = makePanel({ ...CHAPEL_LAUNCH, consentScope: 'chapel-test' });
+        const chips = [...container.querySelectorAll('.vi-chapel-chip')];
+        expect(chips.map(chip => chip.textContent.replace(/✕/g, '').trim()))
+            .toEqual(['The Passion', 'The Crucifixion']);
+        expect(container.querySelectorAll('[data-chapel-remove]')).toHaveLength(2);
+
+        // The + orb reveals exactly the collections NOT in play
+        container.querySelector('[data-action="chapel-add-toggle"]').click();
+        const options = [...container.querySelectorAll('[data-chapel-add]')];
+        expect(options.map(option => option.dataset.chapelAdd).sort())
+            .toEqual(['chapel-nativity', 'chapel-resurrection']);
+    });
+
+    it('✕ returns a collection to the pool; + draws one in — sourced and pills stay one truth', () => {
+        const onChange = vi.fn();
+        const { panel, container } = makePanel({ ...CHAPEL_LAUNCH, consentScope: 'chapel-test', onChange });
+
+        container.querySelector('[data-chapel-remove="chapel-crucifixion"]').click();
+        let config = panel.getConfig();
+        expect(config.interlocution.sourced).toEqual(['chapel-passion']);
+        expect(config.interlocution.atriumCollections).toEqual(['chapel-passion']);
+        // The removed collection re-enters the + pool
+        container.querySelector('[data-action="chapel-add-toggle"]').click();
+        expect([...container.querySelectorAll('[data-chapel-add]')].map(option => option.dataset.chapelAdd))
+            .toContain('chapel-crucifixion');
+
+        // Add Nativity
+        container.querySelector('[data-chapel-add="chapel-nativity"]').click();
+        config = panel.getConfig();
+        expect(config.interlocution.sourced).toEqual(['chapel-passion', 'chapel-nativity']);
+        expect(onChange).toHaveBeenCalled();
+    });
+
+    it('non-chapel curated chips stay informational — no ✕, no orb', () => {
+        const { container } = makePanel({
+            visualMode: 'interlocution',
+            consentScope: 'chapel-test',
+            interlocution: {
+                sourced: ['atr-plato'],
+                procedural: [],
+                atriumCollections: ['atr-plato']
+            }
+        });
+        expect(container.querySelector('[data-chapel-remove]')).toBeNull();
+        expect(container.querySelector('[data-action="chapel-add-toggle"]')).toBeNull();
+    });
+
+    it('names the active Chapel icon in the Focals panel instead of appearing unset', () => {
+        const { container } = makePanel({
+            visualMode: 'focals',
+            focals: { type: 'icon', iconId: 'icon-pantocrator-sinai' }
+        });
+        const active = container.querySelector('.vi-focals-icon-active');
+        expect(active).not.toBeNull();
+        expect(active.textContent).toContain('Christ Pantocrator · Sinai, 6th c.');
+        // A glyph focal shows no icon banner
+        const { container: plain } = makePanel({
+            visualMode: 'focals',
+            focals: { type: 'standard', standardGlyph: 'breath' }
+        });
+        expect(plain.querySelector('.vi-focals-icon-active')).toBeNull();
+    });
+});
+
 describe('VisualInterlocutionPanel preset visibility', () => {
     it('emits Off when the safety warning is cancelled', async () => {
         endVisualInterlocutionSession();

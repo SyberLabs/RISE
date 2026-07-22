@@ -40,6 +40,21 @@ import {
 // The five curated Klee presets (shared by Rhythmic chips and Genesis chips)
 const KLEE_PRESET_CHIP_IDS = ['architectural', 'chaotic', 'harmonic', 'gravitational', 'twittering'];
 
+// Chapel vocabulary the panel can NAME without importing chapel content:
+// display labels only. The collections themselves stay Chapel-scoped
+// and never enter the browsable pool.
+const CHAPEL_COLLECTION_LABELS = Object.freeze({
+    'chapel-crucifixion': 'The Crucifixion',
+    'chapel-passion': 'The Passion',
+    'chapel-nativity': 'The Nativity',
+    'chapel-resurrection': 'The Resurrection'
+});
+const CHAPEL_ICON_LABELS = Object.freeze({
+    'icon-pantocrator-sinai': 'Christ Pantocrator · Sinai, 6th c.',
+    'icon-pantocrator-russian': 'Christ Pantocrator · Russian, 19th c.',
+    'icon-salus-populi-romani': 'Salus Populi Romani'
+});
+
 // The personal focal image persists inside the settings payload in
 // localStorage (~5MB quota shared with everything else), so uploads
 // are downscaled to fit comfortably: longest edge 1024px, JPEG 0.85.
@@ -602,6 +617,20 @@ export class VisualInterlocutionPanel {
                             A persistent, gentle focal point displayed throughout your session. Designed for stillness and neurosensitive users.
                         </div>
 
+                        ${this.config.focals.type === 'icon' ? `
+                            <!-- The Chapel's Icon focal: named here so an active
+                                 icon never looks like "no focal selected".
+                                 Chosen in the Chapel; switching to a glyph or
+                                 personal image below releases it. -->
+                            <div class="vi-focals-icon-active">
+                                <span class="vi-icon-active-mark" aria-hidden="true">✛</span>
+                                <span class="vi-icon-active-body">
+                                    <span class="vi-icon-active-name">${escapeHtml(CHAPEL_ICON_LABELS[this.config.focals.iconId] || 'Chapel icon')}</span>
+                                    <span class="vi-icon-active-hint text-mist">Held from the Chapel · choose a glyph below to release it</span>
+                                </span>
+                            </div>
+                        ` : ''}
+
                         <div class="vi-focals-modes">
                             <label class="vi-radio ${this.config.focals.type === 'standard' ? 'selected' : ''}">
                                 <input type="radio" name="focals-type" value="standard" ${this.config.focals.type === 'standard' ? 'checked' : ''} data-focals-type="standard">
@@ -760,18 +789,57 @@ export class VisualInterlocutionPanel {
                                     // Chapel-scoped sacred collections: named
                                     // here for the "From this reading" chip,
                                     // never in the browsable list
-                                    return ({
-                                        'chapel-crucifixion': 'The Crucifixion',
-                                        'chapel-passion': 'The Passion',
-                                        'chapel-nativity': 'The Nativity',
-                                        'chapel-resurrection': 'The Resurrection'
-                                    })[id] || id;
+                                    return CHAPEL_COLLECTION_LABELS[id] || id;
                                 }
                                 if (id.startsWith('aic-')) {
                                     return MUSEUM_CATEGORIES[id.slice(4)]?.name || id;
                                 }
                                 return WIKIMEDIA_CATEGORIES[id]?.name || id;
                             };
+
+                            // A Chapel launch: the pills are EDITABLE within the
+                            // Chapel's own vocabulary — ✕ returns a collection to
+                            // the pool, + offers the rest of the four. The pool
+                            // is closed: only chapel collections, only here.
+                            const isChapelReading = curated.every(id => id.startsWith('chapel-'));
+                            if (isChapelReading) {
+                                const active = curated.filter(id => Object.hasOwn(CHAPEL_COLLECTION_LABELS, id));
+                                const available = Object.keys(CHAPEL_COLLECTION_LABELS)
+                                    .filter(id => !active.includes(id));
+                                return `
+                                    <div class="vi-source-family vi-atrium-collections vi-chapel-collections" role="group"
+                                        aria-label="Chapel collections for this reading">
+                                        <div class="vi-source-family-label">From this reading</div>
+                                        <div class="vi-atrium-collection-chips">
+                                            ${active.map(id => `
+                                                <span class="vi-atrium-collection-chip vi-chapel-chip">
+                                                    ${escapeHtml(labelFor(id))}
+                                                    <button type="button" class="vi-chapel-chip-remove"
+                                                        data-chapel-remove="${escapeHtml(id)}"
+                                                        aria-label="Remove ${escapeHtml(labelFor(id))}">✕</button>
+                                                </span>
+                                            `).join('')}
+                                            ${available.length ? `
+                                                <span class="vi-chapel-add-wrap">
+                                                    <button type="button" class="vi-chapel-add-orb"
+                                                        data-action="chapel-add-toggle"
+                                                        aria-label="Add a Chapel collection"
+                                                        aria-expanded="false">+</button>
+                                                    <span class="vi-chapel-add-menu" hidden>
+                                                        ${available.map(id => `
+                                                            <button type="button" class="vi-chapel-add-option"
+                                                                data-chapel-add="${escapeHtml(id)}">${escapeHtml(labelFor(id))}</button>
+                                                        `).join('')}
+                                                    </span>
+                                                </span>
+                                            ` : ''}
+                                        </div>
+                                        <p class="vi-source-family-hint text-mist">
+                                            Sacred collections for this reading. ✕ returns one to the pool; + draws another in.
+                                        </p>
+                                    </div>
+                                `;
+                            }
                             return `
                                 <div class="vi-source-family vi-atrium-collections" role="group"
                                     aria-label="Collections curated for this reading">
@@ -1479,6 +1547,46 @@ export class VisualInterlocutionPanel {
         });
 
         // ─── Focals Handlers ───
+        // Chapel collection editing (chapel launches only): ✕ returns a
+        // collection to the pool, + draws one in. Both lists edit
+        // `sourced` (what the cortex hydrates) and `atriumCollections`
+        // (what the pills show) together — one truth, two views.
+        const editChapelCollections = mutate => {
+            const inter = this.config.interlocution;
+            const current = (inter.atriumCollections || []).filter(id => id.startsWith('chapel-'));
+            const next = mutate(current);
+            inter.atriumCollections = next;
+            inter.sourced = next;
+            this.emitChange();
+            this.render();
+            this.attachEvents();
+        };
+        this.container.querySelectorAll('[data-chapel-remove]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                window.rise?.audioEngine?.playHiss();
+                editChapelCollections(current =>
+                    current.filter(id => id !== btn.dataset.chapelRemove));
+            });
+        });
+        this.container.querySelectorAll('[data-chapel-add]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                window.rise?.audioEngine?.playHiss();
+                editChapelCollections(current =>
+                    current.includes(btn.dataset.chapelAdd)
+                        ? current
+                        : [...current, btn.dataset.chapelAdd]);
+            });
+        });
+        const chapelAddToggle = this.container.querySelector('[data-action="chapel-add-toggle"]');
+        if (chapelAddToggle) {
+            chapelAddToggle.addEventListener('click', () => {
+                const menu = this.container.querySelector('.vi-chapel-add-menu');
+                if (!menu) return;
+                menu.hidden = !menu.hidden;
+                chapelAddToggle.setAttribute('aria-expanded', menu.hidden ? 'false' : 'true');
+            });
+        }
+
         this.container.querySelectorAll('[data-focals-type]').forEach(radio => {
             radio.addEventListener('change', () => {
                 if (window.rise?.audioEngine) {

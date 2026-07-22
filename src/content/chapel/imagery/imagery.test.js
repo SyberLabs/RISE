@@ -234,6 +234,27 @@ describe('Chapel handoff imagery (seam)', () => {
       .toEqual(['chapel-passion', 'chapel-crucifixion']);
   });
 
+  it('the infancy and Baptism chapters carry the Nativity; Resurrection chapters the Resurrection', async () => {
+    // Luke 1 — the Annunciation
+    expect(chapelSensoryConfig('luke', null, 1).visualConfig.interlocution.sourced)
+      .toEqual(['chapel-nativity']);
+    // Matthew 3 — the Baptism of Christ
+    expect(chapelSensoryConfig('matthew', null, 3).visualConfig.interlocution.sourced)
+      .toEqual(['chapel-nativity']);
+    // John 20 — the empty tomb
+    expect(chapelSensoryConfig('john', null, 20).visualConfig.interlocution.sourced)
+      .toEqual(['chapel-resurrection']);
+    // A mid-Gospel chapter keeps the book default
+    expect(chapelSensoryConfig('luke', null, 15).visualConfig.interlocution.sourced)
+      .toEqual(['chapel-passion', 'chapel-crucifixion']);
+    // Whole-book launches keep the book default too
+    expect(chapelSensoryConfig('luke', null, null).visualConfig.interlocution.sourced)
+      .toEqual(['chapel-passion', 'chapel-crucifixion']);
+    // and it flows through the real handoff
+    const luke1 = await createChapelHandoff('luke', { chapter: 1 });
+    expect(luke1.config.visualConfig.interlocution.atriumCollections).toEqual(['chapel-nativity']);
+  });
+
   it('a chosen icon becomes the focal MODE, winning over the book collections', async () => {
     const withIcon = await createChapelHandoff('john', { chapter: 3, iconId: 'icon-pantocrator-sinai' });
     expect(withIcon.config.visualConfig).toEqual({

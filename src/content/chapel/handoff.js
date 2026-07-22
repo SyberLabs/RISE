@@ -93,6 +93,29 @@ const BOOK_COLLECTIONS = Object.freeze({
 });
 
 /**
+ * Chapter-level overrides where the narrative is not the Passion:
+ * the infancy narratives and the Baptism carry the Nativity; the
+ * Resurrection chapters carry the Resurrection. Assignments follow
+ * the text itself:
+ *   Matthew 1–2 infancy, 3 Baptism · 28 Resurrection
+ *   Mark 1 Baptism · 16 Resurrection
+ *   Luke 1–2 Annunciation/Nativity, 3 Baptism · 24 Resurrection
+ *   John 20–21 Resurrection (John has no infancy narrative;
+ *     the Baptist's testimony in 1 stays with the book default)
+ */
+const CHAPTER_COLLECTIONS = Object.freeze({
+  matthew: { 1: ['chapel-nativity'], 2: ['chapel-nativity'], 3: ['chapel-nativity'], 28: ['chapel-resurrection'] },
+  mark: { 1: ['chapel-nativity'], 16: ['chapel-resurrection'] },
+  luke: { 1: ['chapel-nativity'], 2: ['chapel-nativity'], 3: ['chapel-nativity'], 24: ['chapel-resurrection'] },
+  john: { 20: ['chapel-resurrection'], 21: ['chapel-resurrection'] }
+});
+
+function collectionsForReading(bookId, chapter) {
+  const perChapter = chapter != null ? CHAPTER_COLLECTIONS[bookId]?.[chapter] : null;
+  return perChapter || BOOK_COLLECTIONS[bookId] || null;
+}
+
+/**
  * Contemplative defaults, authored under the honest temporal contract:
  * ~240 wpm label, which Phrase mode + verse-paragraph structure
  * delivers in the 140-180 range that suits Scripture. Books without an
@@ -103,8 +126,8 @@ const BOOK_COLLECTIONS = Object.freeze({
  * routing has no fallback. Everything remains overridable in the
  * orbital.
  */
-export function chapelSensoryConfig(bookId = null, iconId = null) {
-  const collections = BOOK_COLLECTIONS[bookId] || null;
+export function chapelSensoryConfig(bookId = null, iconId = null, chapter = null) {
+  const collections = collectionsForReading(bookId, chapter);
 
   // The Icon mode is a MODE: a chosen icon holds the Chamber's focal
   // and the reading proceeds around it — it wins over the book's
@@ -213,7 +236,7 @@ export async function createChapelHandoff(bookId, options = {}) {
     text: sessionText,
     source: `The Chapel · ${readingName}`,
     config: {
-      ...chapelSensoryConfig(book.id, options.iconId ?? null),
+      ...chapelSensoryConfig(book.id, options.iconId ?? null, chapter),
       sources: [{
         id: chapter == null ? `chapel-${book.id}` : `chapel-${book.id}-${chapter}`,
         name: `${readingName} — ${translationLabel}`,

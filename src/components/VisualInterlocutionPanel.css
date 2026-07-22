@@ -1369,3 +1369,119 @@
   background: rgba(139, 127, 212, 0.12);
   border: 1px solid rgba(139, 127, 212, 0.28);
 }
+
+/* ─── Chapel-scoped collection editing — ember register ─── */
+
+.vi-chapel-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(212, 165, 116, 0.10);
+  border-color: rgba(212, 165, 116, 0.32);
+}
+
+.vi-chapel-chip-remove {
+  background: transparent;
+  border: none;
+  color: var(--color-mist);
+  font-size: 10px;
+  line-height: 1;
+  padding: 1px 2px;
+  cursor: pointer;
+  transition: color 200ms var(--ease-out);
+}
+
+.vi-chapel-chip-remove:hover,
+.vi-chapel-chip-remove:focus-visible {
+  color: var(--color-light);
+}
+
+.vi-chapel-add-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.vi-chapel-add-orb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 165, 116, 0.4);
+  background: rgba(212, 165, 116, 0.06);
+  color: var(--color-ember);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 200ms var(--ease-out), border-color 200ms var(--ease-out);
+}
+
+.vi-chapel-add-orb:hover,
+.vi-chapel-add-orb:focus-visible,
+.vi-chapel-add-orb[aria-expanded="true"] {
+  background: rgba(212, 165, 116, 0.14);
+  border-color: var(--color-ember);
+}
+
+.vi-chapel-add-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+  background: var(--color-abyss);
+  border: 1px solid rgba(212, 165, 116, 0.3);
+  border-radius: 4px;
+  padding: 4px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+
+.vi-chapel-add-option {
+  background: transparent;
+  border: none;
+  color: var(--color-cloud);
+  font-size: 12px;
+  text-align: left;
+  padding: 6px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.vi-chapel-add-option:hover,
+.vi-chapel-add-option:focus-visible {
+  background: rgba(212, 165, 116, 0.10);
+  color: var(--color-light);
+}
+
+/* ─── Active Chapel icon in the Focals panel ─── */
+
+.vi-focals-icon-active {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(212, 165, 116, 0.28);
+  border-radius: 4px;
+  background: rgba(212, 165, 116, 0.05);
+}
+
+.vi-icon-active-mark {
+  color: var(--color-ember);
+  font-size: 16px;
+}
+
+.vi-icon-active-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vi-icon-active-name {
+  color: var(--color-light);
+  font-size: 13px;
+}
+
+.vi-icon-active-hint {
+  font-size: 11px;
+}
