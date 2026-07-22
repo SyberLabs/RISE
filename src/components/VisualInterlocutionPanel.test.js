@@ -49,7 +49,7 @@ describe('Chapel collection editing in the panel', () => {
         container.querySelector('[data-action="chapel-add-toggle"]').click();
         const options = [...container.querySelectorAll('[data-chapel-add]')];
         expect(options.map(option => option.dataset.chapelAdd).sort())
-            .toEqual(['chapel-nativity', 'chapel-resurrection']);
+            .toEqual(['chapel-nativity', 'chapel-patriarchs', 'chapel-prophets', 'chapel-resurrection']);
     });
 
     it('✕ returns a collection to the pool; + draws one in — sourced and pills stay one truth', () => {

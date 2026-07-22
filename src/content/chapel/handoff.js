@@ -91,34 +91,38 @@ const BOOK_COLLECTIONS = Object.freeze({
   john: ['chapel-passion', 'chapel-crucifixion'],
   apocalypse: ['chapel-resurrection'],
 
-  // The Doré cycle (SCRIPTURE-IMAGERY-CLASSIFICATION.md, CYCLE class):
-  // one engraved voice for the books where painted collections are
-  // thin. Each book shows ONLY its own plates. When a painted
-  // collection lands for a book (chapel-prophets, chapel-patriarchs),
-  // that book's entry here changes deliberately — never both at once.
-  genesis: ['dore:genesis'],
-  exodus: ['dore:exodus'],
+  // Painted collections (SCRIPTURE-IMAGERY-CLASSIFICATION.md,
+  // DEPICTED class): where masterpieces are rich, they carry the
+  // book — Rembrandt's Jeremiah for Jeremias, The Jewish Bride for
+  // Genesis. Per the classification rule, a book carries paintings
+  // OR the Doré cycle, never both at once.
+  genesis: ['chapel-patriarchs'],
+  exodus: ['chapel-patriarchs'],
+  'kings-3': ['chapel-prophets'],
+  'kings-4': ['chapel-prophets'],
+  job: ['chapel-prophets'],
+  isaias: ['chapel-prophets'],
+  jeremias: ['chapel-prophets'],
+  lamentations: ['chapel-prophets'],
+  daniel: ['chapel-prophets'],
+  jonas: ['chapel-prophets'],
+
+  // The Doré cycle (CYCLE class): one engraved voice for the books
+  // where painted collections are thin. Each book shows ONLY its own
+  // plates.
   numbers: ['dore:numbers'],
   josue: ['dore:josue'],
   judges: ['dore:judges'],
   ruth: ['dore:ruth'],
   'kings-1': ['dore:kings-1'],
   'kings-2': ['dore:kings-1'],   // the Samuel/David plates span both
-  'kings-3': ['dore:kings-3'],
-  'kings-4': ['dore:kings-4'],
   'esdras-1': ['dore:esdras-1'],
   nehemias: ['dore:esdras-1'],   // the return-and-rebuilding plates serve both
   tobias: ['dore:tobias'],
   judith: ['dore:judith'],
   esther: ['dore:esther'],
-  job: ['dore:job'],
-  isaias: ['dore:isaias'],
-  jeremias: ['dore:jeremias'],
-  lamentations: ['dore:jeremias'],
   ezechiel: ['dore:ezechiel'],
-  daniel: ['dore:daniel'],
   amos: ['dore:amos'],
-  jonas: ['dore:jonas'],
   micheas: ['dore:micheas'],
   zacharias: ['dore:zacharias'],
   'machabees-1': ['dore:machabees-1'],

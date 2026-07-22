@@ -218,7 +218,139 @@ export const CHAPEL_PINNED_COLLECTIONS = freezeManifest({
             { source: 'rijks', id: 20027684 },  // Fragment with the Transfiguration of Christ (Resurrection) — unknown — [SK-A-2596]
             { source: 'rijks', id: 20028298 },  // Panel of an Altarpiece with Circumcision of Christ, on ver — unknown — [SK-A-1308]
         ]
-    }
+    },
+
+    'chapel-prophets': {
+        name: 'The Prophets',
+        works: [
+            { source: 'met', id: 374030 },  // Belshazzar's Feast — Jan Muller — ca. 1598
+            { source: 'cleveland', id: 155978 },  // Elijah in the Wilderness Fed by Ravens — Jan Saenredam (Dutch, 1565–1607) — 1604
+            { source: 'cleveland', id: 128378 },  // Elijah and the Widow of Zarephath — unknown — c. 1525
+            { source: 'cleveland', id: 155979 },  // Elisha and Elijah's Chariot of Fire — Jan Saenredam (Dutch, 1565–1607) — 1604
+            { source: 'cleveland', id: 163656 },  // A raven brings food to Elijah (folio 72 recto), from a Mir — unknown — 1602–4
+            { source: 'cleveland', id: 150444 },  // Elijah Ascends to Heaven — Augustin Hirschvogel (German, 1503 — 1547
+            { source: 'cleveland', id: 108967 },  // Chapel of Elijah on Mount Horeb — David Roberts (Scottish, 1796–1864 — 1839
+            { source: 'cleveland', id: 108185 },  // Der Schatzbehalter: The Return of Tobias to Tobit; The Arr — Michael Wolgemut (German, 1434–151 — 1491
+            { source: 'cleveland', id: 103861 },  // Six large upright landscapes with scenes from the Old Test — Anthonie Waterloo (Dutch, 1609/10– — 1640–90
+            { source: 'cleveland', id: 124000 },  // Six large upright landscapes with scenes from the Old Test — Anthonie Waterloo (Dutch, 1609/10– — 1640–90
+            { source: 'cleveland', id: 674083 },  // Jonah Cast Out by the Whale onto the Shore of Nineveh — Maarten van Heemskerck (Dutch, 149 — 1566
+            { source: 'cleveland', id: 151455 },  // Plate Depicting Jonah — unknown — late 1500s
+            { source: 'rijks', id: 20026270 },  // Elijah fed by the ravens — unknown — [SK-A-1297]
+            { source: 'rijks', id: 20027715 },  // De hemelvaart van Elia — unknown — [SK-A-1617]
+            { source: 'rijks', id: 20028755 },  // The Prophet Elijah Awakened in the Desert by an Angel — unknown — [SK-A-4129]
+            { source: 'rijks', id: 200107946 },  // Jeremiah Lamenting the Destruction of Jerusalem — unknown — [SK-A-3276]
+            { source: 'rijks', id: 20026737 },  // Pashur Smiting Jeremiah in the Temple — unknown — [SK-A-845]
+            { source: 'rijks', id: 200109660 },  // The Old Prophet meets the Man of God — unknown — [SK-A-2814]
+            { source: 'aic', id: 97438 },  // The Prophet Elijah Arriving at the House of the Widow of S — Jan Saenredam (Dutch, 1565-1607) — 1604
+            { source: 'aic', id: 268710 },  // Prophet Elijah with the Widow Zarephath — Jan Saenredam (Dutch, 1565–1607) — 1604
+            { source: 'aic', id: 268632 },  // Prophet Elijah with the Widow of Zarephath — Jan Saenredam (Dutch, 1565–1607) — 1604
+            { source: 'aic', id: 44 },  // The Prophet Amos — Attributed to Baccio Baldini — c. 1470
+            { source: 'aic', id: 18472 },  // The Ascent of the Prophet to Heaven, Page from the Khamsa  — Iran — Safavid dynasty (1501–1722), c
+            { source: 'aic', id: 4217 },  // Prophet Haggai — Attributed to Baccio Baldini — c. 1470
+            { source: 'aic', id: 4214 },  // The Prophet Moses — Attributed to Baccio Baldini — c. 1470
+            { source: 'aic', id: 40725 },  // The Prophet Jeremiah — Nicolas Beatrizet (French, 1515-af — 1547
+            { source: 'aic', id: 95603 },  // The Prophet Jeremiah — Giorgio Ghisi (Italian, 1520-1582) — early 1570s
+            { source: 'aic', id: 71543 },  // Prophet in a Historiated Initial "O" from a Gradual — Don Silvestro dei Gherarducci — 1392/99
+            { source: 'aic', id: 135441 },  // The Prophet Joel — Giorgio Ghisi (Italian, 1520-1582) — c. 1570
+            { source: 'aic', id: 82386 },  // Seated Prophet or Evangelist Writing — Giuseppe Porta, called Giuseppe Sa — n.d.
+            { source: 'aic', id: 111858 },  // The Prophet Amos — Attributed to Francesco Rosselli — 1480/90
+            { source: 'aic', id: 54880 },  // Standing Prophet or Apostle — After Pellegrino Tibaldi (Italian, — 1545/50
+            { source: 'aic', id: 85758 },  // Standing Prophet with a Book and Scroll — Taddeo Zuccaro — 1562/66
+            { source: 'aic', id: 82451 },  // Jonah Cast Up by the Whale — After Jacopo Robusti, called Tinto — 17th century
+            { source: 'aic', id: 26709 },  // Jonah Outside Ninevah (recto); Habakkuk Carrying Bread to  — Hans Holbein, the younger — n.d.
+            { source: 'aic', id: 268121 },  // The Prophet Jonah, from Landscapes with Biblical Subjects  — Johannes van Doetecum (Netherlandi — c. 1562
+            { source: 'aic', id: 229142 },  // Daniel in the Lion's Den, from Landscapes with Old and New — Adriaen Collaert (Flemish, c. 1560 — 1584
+        ]
+    },
+
+    'chapel-patriarchs': {
+        name: 'The Patriarchs',
+        works: [
+            { source: 'met', id: 437180 },  // The Rebuke of Adam and Eve — Charles Joseph Natoire — 1740
+            { source: 'met', id: 435823 },  // Adam; Eve — Giuliano di Piero di Simone Bugiar — ca. 1520
+            { source: 'cleveland', id: 117032 },  // The Sacrifice of Isaac — Andrea del Sarto (Italian, 1486–15 — c. 1527
+            { source: 'cleveland', id: 124129 },  // Footed Dish Depicting Abraham and Isaac — Ludovico and Angelo Picchi — c. 1545–63
+            { source: 'cleveland', id: 129802 },  // The Sacrifice of Isaac — Francesco Guardi (Italian, 1712–17 — 1750s
+            { source: 'cleveland', id: 144592 },  // Abraham Going to Sacrifice Isaac — Lucas van Leyden (Netherlandish, 1 — 1517–19
+            { source: 'cleveland', id: 129801 },  // The Sacrifice of Isaac, Tobias and the Angel, The Angels A — Francesco Guardi (Italian, 1712–17 — 1750s
+            { source: 'cleveland', id: 144255 },  // The Oath of Abraham’s Servant — Giovanni Benedetto Castiglione (It — c. 1650–59
+            { source: 'cleveland', id: 120295 },  // Abraham and Isaac — Rembrandt van Rijn (Dutch, 1606–16 — 1645
+            { source: 'cleveland', id: 146416 },  // Noah: The Eve of the Deluge — John Linnell (British, 1792–1882) — 1848
+            { source: 'cleveland', id: 157088 },  // Noah and the Animals Entering the Ark — Giovanni Benedetto Castiglione (It — 1650–55
+            { source: 'cleveland', id: 150046 },  // Expulsion of Adam and Eve — John Faed (Scottish, 1820–1902) — 1880s
+            { source: 'cleveland', id: 329314 },  // Abraham Casting Out Hagar and Ishmael — Pieter de Grebber (Dutch, 1590–166 — c. 1630s–50s
+            { source: 'cleveland', id: 108794 },  // Abraham Casting out Hagar and Ishmael — Rembrandt van Rijn (Dutch, 1606–16 — 1637
+            { source: 'cleveland', id: 133161 },  // Tile Plaque: Abraham Expelling Hagar — De Bloempot Factory (Dutch) — c. 1770
+            { source: 'cleveland', id: 169928 },  // Egypt and Nubia, Volume II: Hagar Setsilis — Louis Haghe (British, 1806–1885) — 1847
+            { source: 'cleveland', id: 123995 },  // Six large upright landscapes with scenes from the Old Test — Anthonie Waterloo (Dutch, 1609/10– — 1640–90
+            { source: 'cleveland', id: 123996 },  // Six large upright landscapes with scenes from the Old Test — Anthonie Waterloo (Dutch, 1609/10– — 1640–90
+            { source: 'cleveland', id: 168972 },  // Liber Veritatis: No. 133, A Landscape, with Cattle, and th — Richard Earlom (British, 1743–1822 — 1776
+            { source: 'cleveland', id: 103865 },  // Six large upright landscapes with scenes from the Old Test — Anthonie Waterloo (Dutch, 1609/10– — 1640–90
+            { source: 'cleveland', id: 103867 },  // Six large upright landscapes with scenes from the Old Test — Anthonie Waterloo (Dutch, 1609/10– — 1640–90
+            { source: 'rijks', id: 200108023 },  // Pharaoh's Daughter Discovers Moses in the Rush Basket — unknown — [SK-A-4673]
+            { source: 'rijks', id: 200108253 },  // Farao's dochter vindt Mozes in het biezen mandje — unknown — [SK-A-1575]
+            { source: 'rijks', id: 20026686 },  // Pharaoh's Daughter Discovers Moses in the Rush Basket — unknown — [SK-A-852]
+            { source: 'rijks', id: 20027019 },  // Farao's dochter vindt Mozes in het biezen mandje — unknown — [SK-A-4184]
+            { source: 'rijks', id: 20027417 },  // Moses Choosing the seventy Elders — unknown — [SK-A-1783]
+            { source: 'rijks', id: 20027826 },  // Farao's dochter vindt Mozes in het biezen mandje — unknown — [SK-A-1572]
+            { source: 'rijks', id: 20027895 },  // Mozes met de tafelen der wet — unknown — [SK-A-4828]
+            { source: 'rijks', id: 20028290 },  // Moses and the Tablets of the Law, the Curse of the Withere — unknown — [SK-A-3409]
+            { source: 'rijks', id: 20028972 },  // Moses showing the Tables of the Law with the Ten Commandme — unknown — [SK-A-4487]
+            { source: 'rijks', id: 200384576 },  // Finding of Moses — unknown — [BK-NM-1010-241]
+            { source: 'rijks', id: 200108748 },  // Het offer van Abraham — unknown — [SK-A-1359]
+            { source: 'rijks', id: 20026562 },  // The Exodus from Egypt — unknown — [SK-A-3377]
+            { source: 'rijks', id: 200107761 },  // De ontmoeting van Jacob en Rachel — unknown — [SK-A-1485]
+            { source: 'rijks', id: 200108228 },  // Jacob van Ruisdael, een watermolen schetsend — unknown — [SK-A-4865]
+            { source: 'rijks', id: 200108301 },  // Jacob Wrestling with the Angel — unknown — [SK-A-1724]
+            { source: 'rijks', id: 200108381 },  // Jozef legt de bakker en de schenker hun dromen uit — unknown — [SK-A-451]
+            { source: 'rijks', id: 20026162 },  // Jozef vertelt zijn dromen — unknown — [SK-A-3477]
+            { source: 'rijks', id: 20026405 },  // De ontmoeting van Maria en Elisabeth in aanwezigheid van d — unknown — [SK-A-3955]
+            { source: 'rijks', id: 20027740 },  // Joseph Interpreting the Dreams of the Baker and the Butler — unknown — [SK-A-773]
+            { source: 'rijks', id: 20027874 },  // Het huwelijk van Maria met Jozef — unknown — [SK-A-109]
+            { source: 'rijks', id: 20025861 },  // Noah's Ark — unknown — [SK-A-2624]
+            { source: 'rijks', id: 200318048 },  // God roept Adam en Eva ter verantwoording — unknown — [SK-A-4918]
+            { source: 'rijks', id: 20027726 },  // Hagar and Ishmael in the Wilderness — unknown — [SK-A-4035]
+            { source: 'aic', id: 55033 },  // Moses — after Michelangelo Buonarroti — 1700s
+            { source: 'aic', id: 85032 },  // Finding of Moses — After Giovanni Francesco Penni (It — 1518/19
+            { source: 'aic', id: 95634 },  // Left Hand of Moses — After Michelangelo Buonarroti — 1725/30
+            { source: 'aic', id: 96746 },  // Moses — Franco-Flemish — 1460-1470
+            { source: 'aic', id: 77426 },  // Moses and Aaron — Sebald Beham — 1526
+            { source: 'aic', id: 48706 },  // Moses — Circle of Bernardino Gatti, called — n.d.
+            { source: 'aic', id: 11782 },  // Praying Saint (Moses?) with Christ in a Historiated Initia — Italian (probably Rimini) — c. 1300
+            { source: 'aic', id: 96149 },  // Moses Striking the Rock — Attributed to Luca Giordano (Itali — n.d.
+            { source: 'aic', id: 118022 },  // Moses and the Burning Bush, from Illustrations of the Bibl — John Martin — 1833
+            { source: 'aic', id: 25311 },  // Tazza with Moses Striking Water from the Rock — Jean de Court (French, active c. 1 — 1570–75
+            { source: 'aic', id: 25407 },  // Plate with Moses Striking the Rock — Italian; Urbino — c. 1545
+            { source: 'aic', id: 31238 },  // Dressing Box Depicting the Finding of Moses and Scenes fro — England — Third quarter of the 17th cent
+            { source: 'aic', id: 7572 },  // Jacob Wrestling with the Angel — Francesco Merano — n.d.
+            { source: 'aic', id: 74 },  // Three Oriental Figures (Jacob and Laban?) — Rembrandt van Rijn — 1641
+            { source: 'aic', id: 218914 },  // Jacob and Esau — Jacob Jordaens — c. 1655
+            { source: 'aic', id: 87633 },  // Jacob's Farewell to Benjamin — Follower of Rembrandt van Rijn (Du — c. 1655
+            { source: 'aic', id: 51498 },  // Adam and Eve — Albrecht Dürer — 1504
+            { source: 'aic', id: 70019 },  // Adam and Eve — Rembrandt van Rijn — 1638
+            { source: 'aic', id: 101077 },  // Adam and Eve in Paradise — Francesco Solimena (Italian, 1657– — c. 1700
+            { source: 'aic', id: 80764 },  // Adam and Eve — Sebald Beham (German, 1500-1550) — 1543
+            { source: 'aic', id: 19956 },  // The "Adam and Eve," Old Chelsea — James McNeill Whistler — 1878
+            { source: 'aic', id: 17308 },  // Adam and Eve — Edvard Munch — 1915
+            { source: 'aic', id: 4385 },  // Marriage of Adam and Eve — Jean Duvet — 1540/55
+            { source: 'aic', id: 95600 },  // Adam and Eve at Work, from The Story of Adam and Eve — Heinrich Aldegrever — 1540
+            { source: 'aic', id: 102227 },  // The Expulsion of Adam and Eve from Paradise — Benjamin West (American, active En — 1791, retouched 1803
+            { source: 'aic', id: 31321 },  // Picture Depicting Adam and Eve (Needlework) — England — 17th century
+            { source: 'aic', id: 4355 },  // Adam and Eve with Infants Cain and Abel — Cristofano Robetta — c. 1500
+            { source: 'aic', id: 155943 },  // Adam and Eve (The Fall of Man) — Lucas van Leyden — c. 1514
+            { source: 'aic', id: 4358 },  // Adam and Eve with the Infants Cain and Abel — Cristofano Robetta — c. 1500
+            { source: 'aic', id: 180722 },  // Adam and Eve in Paradise — figures by Francesco Bartolozzi (I — n.d.
+            { source: 'aic', id: 74832 },  // Jug with Adam and Eve — Attributed to Paul Preuning, (Germ — c. 1550
+            { source: 'aic', id: 99526 },  // Adam and Eve and the Expulsion from Paradise — Cornelis Cort — 1564
+            { source: 'aic', id: 22220 },  // Adam and Eve Driven out of Paradise — Hans Holbein, the younger — n.d.
+            { source: 'aic', id: 119972 },  // Pendant with Adam and Eve — Austrian, Vienna — 18th/19th century
+            { source: 'aic', id: 85274 },  // Saint Matthew with Adam and Eve and the Tree of Jesse — Marten de Vos — c. 1590/1600
+            { source: 'aic', id: 108921 },  // The Creation of Eve, plate one from Adam and Eve — Heinrich Aldegrever — 1540
+            { source: 'rijks', id: 200107934 },  // Isaac and Rebecca, Known as ‘The Jewish Bride’ — unknown — [SK-C-216]
+            { source: 'rijks', id: 200108254 },  // Abraham Entertaining the Three Angels — unknown — [SK-A-1577]
+            { source: 'rijks', id: 20027011 },  // Abraham with the three Angels — unknown — [SK-A-3436]
+        ]
+    },
 });
 
 export function findChapelCollection(id) {

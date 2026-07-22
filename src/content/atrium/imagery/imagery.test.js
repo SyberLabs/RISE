@@ -165,7 +165,7 @@ describe('Imagery service', () => {
     // 80: sized above the largest curated collection (chapel-nativity,
     // 55) so review-approved pins never silently truncate, while a
     // malformed 200-work collection still cannot issue 200 requests.
-    expect(fetchImpl.mock.calls.length).toBeLessThanOrEqual(80);
+    expect(fetchImpl.mock.calls.length).toBeLessThanOrEqual(100);
   });
 
   it('caches under its own namespace, never a Chamber provider id', () => {

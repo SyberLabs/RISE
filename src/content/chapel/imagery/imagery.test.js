@@ -14,7 +14,8 @@ describe('Chapel pinned collections', () => {
   it('holds the four collections, every pin with a known source and a curation comment', () => {
     const ids = Object.keys(CHAPEL_PINNED_COLLECTIONS);
     expect(ids).toEqual([
-      'chapel-crucifixion', 'chapel-passion', 'chapel-nativity', 'chapel-resurrection'
+      'chapel-crucifixion', 'chapel-passion', 'chapel-nativity', 'chapel-resurrection',
+      'chapel-prophets', 'chapel-patriarchs'
     ]);
     const source = readFileSync(resolve('src/content/chapel/imagery/collections.js'), 'utf8');
     for (const [collectionId, collection] of Object.entries(CHAPEL_PINNED_COLLECTIONS)) {
@@ -49,6 +50,21 @@ describe('Chapel pinned collections', () => {
     ]) {
       expect(allIds).not.toContain(cut);
     }
+    // OT review (2026-07-22): name-trap portraits (van Gogh's
+    // L'Arlésienne under "Joseph", Emperor Joseph II, Moses Seymour
+    // Jr.), a Persian manuscript page, and the three Potiphar bedroom
+    // scenes — biblically on-theme, cut on REGISTER: the room is
+    // candlelight and museum stillness, not seduction paintings.
+    for (const cut of [
+      'met:436638', 'met:436529', 'met:436067',
+      'cleveland:162745', 'cleveland:170821',
+      'rijks:20026621', 'rijks:20027034', 'rijks:20028867'
+    ]) {
+      expect(allIds).not.toContain(cut);
+    }
+    // And what the review RESCUED from the portrait filter: The
+    // Jewish Bride is Isaac and Rebecca, and it stays.
+    expect(allIds).toContain('rijks:200107934');
   });
 
   it('stays within the service request bound', async () => {
@@ -290,9 +306,12 @@ describe('Chapel handoff imagery (seam)', () => {
     expect(john.visualConfig.interlocution.duration).toBeGreaterThanOrEqual(1400);
 
     expect(chapelSensoryConfig('psalms').visualConfig.visualMode).toBe('off');
-    // Genesis carries the Doré cycle until chapel-patriarchs lands
+    // Genesis carries The Patriarchs now that the painted collection
+    // exists (a book carries paintings OR the cycle, never both)
     expect(chapelSensoryConfig('genesis').visualConfig.interlocution.sourced)
-      .toEqual(['dore:genesis']);
+      .toEqual(['chapel-patriarchs']);
+    expect(chapelSensoryConfig('jeremias').visualConfig.interlocution.sourced)
+      .toEqual(['chapel-prophets']);
     expect(chapelSensoryConfig('apocalypse').visualConfig.interlocution.sourced)
       .toEqual(['chapel-resurrection']);
   });

@@ -47,7 +47,9 @@ const CHAPEL_COLLECTION_LABELS = Object.freeze({
     'chapel-crucifixion': 'The Crucifixion',
     'chapel-passion': 'The Passion',
     'chapel-nativity': 'The Nativity',
-    'chapel-resurrection': 'The Resurrection'
+    'chapel-resurrection': 'The Resurrection',
+    'chapel-prophets': 'The Prophets',
+    'chapel-patriarchs': 'The Patriarchs'
 });
 const CHAPEL_ICON_LABELS = Object.freeze({
     'icon-pantocrator-sinai': 'Christ Pantocrator · Sinai, 6th c.',

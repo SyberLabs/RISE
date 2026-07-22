@@ -33,11 +33,11 @@ const ADAPTERS = {
 
 /**
  * Bound so one malformed collection cannot issue unbounded requests.
- * Sized above the largest CURATED collection (chapel-nativity, 55
- * works) — the bound is a safety rail against malformed data, and it
+ * Sized above the largest CURATED collection (chapel-patriarchs,
+ * 83 works) — the bound is a safety rail against malformed data, and it
  * must never silently truncate a deliberately reviewed collection.
  */
-const MAX_WORKS_PER_COLLECTION = 80;
+const MAX_WORKS_PER_COLLECTION = 100;
 
 export function isKnownImagerySource(source) {
     return Object.hasOwn(ADAPTERS, source);
