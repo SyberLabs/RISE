@@ -725,6 +725,31 @@ export class VisualInterlocutionPanel {
                             const curated = this.config.interlocution.atriumCollections;
                             if (!Array.isArray(curated) || curated.length === 0) return '';
                             const labelFor = id => {
+                                // Atrium-exclusive procedural patterns: the
+                                // reading's own mechanism or colonial
+                                // relation, named in human terms.
+                                if (id.startsWith('blueprint:')) {
+                                    const mech = id.slice('blueprint:'.length);
+                                    return {
+                                        'beam-engine': 'Beam Engine — Plate',
+                                        'governor': 'Centrifugal Governor — Plate',
+                                        'gear-train': 'Gear Train — Plate',
+                                        'linkage': 'Linkage — Plate'
+                                    }[mech] || 'Drafting Plate';
+                                }
+                                if (id.startsWith('freedom:')) {
+                                    const [freed, empire] = id
+                                        .slice('freedom:'.length).split('-');
+                                    const name = key => ({
+                                        haiti: 'Haiti', france: 'France',
+                                        britain: 'Britain', spain: 'Spain',
+                                        portugal: 'Portugal', venezuela: 'Venezuela',
+                                        peru: 'Peru', argentina: 'Argentina',
+                                        brazil: 'Brazil', usa: 'United States',
+                                        abolition: 'Emancipation'
+                                    }[key] || key);
+                                    return `${name(freed)} · ${name(empire)}`;
+                                }
                                 if (id.startsWith('atr-')) {
                                     // Atrium-scoped subject categories carry
                                     // their own names; they are corpus content

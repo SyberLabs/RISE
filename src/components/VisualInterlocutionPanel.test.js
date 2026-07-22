@@ -613,3 +613,48 @@ describe('Attractor filament color', () => {
         container.remove();
     });
 });
+
+describe('Atrium-exclusive pattern pills', () => {
+    it('names a blueprint plate and a liberation field in human terms', () => {
+        // These sequences carry no sourced imagery, but they ARE curated —
+        // the reader should see that the visuals were chosen for the
+        // passage rather than left to chance.
+        const plate = makePanel({
+            visualMode: 'interlocution',
+            interlocution: {
+                sourceFamily: 'procedural', procedural: ['blueprint'], sourced: [],
+                atriumCollections: ['blueprint:beam-engine']
+            }
+        });
+        expect(plate.container.querySelector('.vi-atrium-collections')).not.toBeNull();
+        expect(plate.container.querySelector('.vi-atrium-collection-chip').textContent)
+            .toBe('Beam Engine — Plate');
+        plate.panel.destroy();
+        plate.container.remove();
+
+        const field = makePanel({
+            visualMode: 'interlocution',
+            interlocution: {
+                sourceFamily: 'procedural', procedural: ['freedom'], sourced: [],
+                atriumCollections: ['freedom:haiti-france']
+            }
+        });
+        expect(field.container.querySelector('.vi-atrium-collection-chip').textContent)
+            .toBe('Haiti · France');
+        field.panel.destroy();
+        field.container.remove();
+    });
+
+    it('keeps blueprint and freedom out of the browsable procedural list', () => {
+        // Both are Atrium-exclusive: they arrive only with the sequence
+        // that curated them, never as a generic option.
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: { sourceFamily: 'procedural', procedural: ['klee'], sourced: [] }
+        });
+        expect(container.querySelector('[data-procedural="blueprint"]')).toBeNull();
+        expect(container.querySelector('[data-procedural="freedom"]')).toBeNull();
+        panel.destroy();
+        container.remove();
+    });
+});

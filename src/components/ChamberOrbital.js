@@ -238,7 +238,14 @@ export class ChamberOrbital {
     this.updateOrbitStatus('visual');
 
     if (window.rise?.showToast) {
-      window.rise.showToast('Settings restored to defaults');
+      // Name what SURVIVED, not only what changed. Reset clearing every
+      // dial while the text stays put reads as a half-finished reset
+      // unless the boundary is stated at the moment it is crossed.
+      window.rise.showToast(
+        this.config.text
+          ? 'Settings restored — the loaded text stays'
+          : 'Settings restored to defaults'
+      );
     }
   }
 
@@ -419,8 +426,8 @@ export class ChamberOrbital {
           <button class="btn-primary btn-large" id="begin-btn" ${!this.config.text ? 'disabled' : ''}>
             ${this.config.text ? 'Begin Session' : 'Load Text First'}
           </button>
-          <button type="button" class="orbital-reset" data-action="reset-prefs" title="Restore default settings (keeps the loaded text)">
-            ↺ Reset
+          <button type="button" class="orbital-reset" data-action="reset-prefs" title="Restore default settings (keeps loaded text)">
+            ↺ Reset Settings
           </button>
         </div>
 
@@ -465,7 +472,8 @@ export class ChamberOrbital {
             <div class="text-name text-light">${escapeHtml(this.config.textSource || 'Text Loaded')}</div>
             <div class="text-meta text-fog">${this.getWordCount()} words</div>
           </div>
-          <button class="text-clear btn-ghost-sm" data-action="clear-text">✕</button>
+          <button class="text-clear btn-ghost-sm" data-action="clear-text"
+            title="Remove this text" aria-label="Remove this text">✕</button>
         </div>
       `;
     }
