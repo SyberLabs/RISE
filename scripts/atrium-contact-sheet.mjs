@@ -60,7 +60,7 @@ const RESOLVERS = {
             dept: o.department_title || '',
             rights: o.is_public_domain ? 'CC0' : 'UNKNOWN',
             image: o.image_id
-                ? `https://www.artic.edu/iiif/2/${o.image_id}/full/400,/0/default.jpg`
+                ? `https://www.artic.edu/iiif/2/${o.image_id}/full/843,/0/default.jpg`
                 : '',
             page: `https://www.artic.edu/artworks/${o.id}`
         };
@@ -222,7 +222,18 @@ async function main() {
             } catch (error) {
                 work = null;
             }
-            await sleep(400);
+            // A miss may be rate limiting rather than a bad pin — one
+            // retry after a long backoff before declaring it unresolved
+            // (a burst of Commons requests taught this the hard way).
+            if (!work) {
+                await sleep(4000);
+                try {
+                    work = await resolve(pin.id);
+                } catch (error) {
+                    work = null;
+                }
+            }
+            await sleep(900);
 
             if (!work) {
                 cards.push({ error: 'did not resolve', pin });

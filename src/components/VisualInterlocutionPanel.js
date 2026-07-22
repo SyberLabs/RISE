@@ -795,6 +795,12 @@ export class VisualInterlocutionPanel {
                                     // never in the browsable list
                                     return CHAPEL_COLLECTION_LABELS[id] || id;
                                 }
+                                if (id.startsWith('dore:')) {
+                                    // The Doré cycle: this book's own plates
+                                    const book = id.slice('dore:'.length)
+                                        .replace(/-(\d)/, ' $1').replace(/^./, c => c.toUpperCase());
+                                    return `Doré · ${book}`;
+                                }
                                 if (id.startsWith('aic-')) {
                                     return MUSEUM_CATEGORIES[id.slice(4)]?.name || id;
                                 }

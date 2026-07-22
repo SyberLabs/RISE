@@ -221,6 +221,65 @@ describe('Rijksmuseum adapter', () => {
   });
 });
 
+describe('The Doré cycle', () => {
+  it('pins 158 plates, every one with a book, a stated-PD Commons file, and a SHA-1', async () => {
+    const { DORE_PLATES, DORE_BOOKS } = await import('./dore.js');
+    expect(DORE_PLATES.length).toBe(158);
+    expect(DORE_BOOKS.length).toBeGreaterThanOrEqual(20);
+    for (const plate of DORE_PLATES) {
+      expect(plate.book, plate.plate).toBeTruthy();
+      expect(plate.image).toMatch(/^https:\/\/upload\.wikimedia\.org\//);
+      expect(plate.sha1).toMatch(/^[a-f0-9]{40}$/);
+      expect(plate.file).toMatch(/^File:/);
+    }
+    // The cycle walks the canon in order: Genesis opens it, the
+    // Machabees close it
+    expect(DORE_PLATES[0]).toMatchObject({ plate: '001', book: 'genesis' });
+    expect(DORE_PLATES[DORE_PLATES.length - 1].book).toBe('machabees-1');
+  });
+
+  it('a Doré book serves ONLY its own plates', async () => {
+    const { dorePlatesForBook } = await import('./dore.js');
+    const judges = dorePlatesForBook('judges');
+    expect(judges.length).toBe(15);
+    expect(judges.every(plate => plate.book === 'judges')).toBe(true);
+    expect(judges.some(plate => /samson/i.test(plate.title))).toBe(true);
+    expect(dorePlatesForBook('matthew')).toEqual([]);
+  });
+
+  it('the provider serves dore: categories instantly, isolated, no fallback', async () => {
+    const { getDoreCycleProvider, hasDoreBook } = await import('./dore-provider.js');
+    expect(hasDoreBook('dore:josue')).toBe(true);
+    expect(hasDoreBook('dore:matthew')).toBe(false);
+
+    const provider = getDoreCycleProvider();
+    const item = await provider.getRandom({ category: 'dore:jonas' });
+    expect(item).not.toBeNull();
+    expect(item.data.attribution).toContain('Gustave Doré');
+    expect(item.metadata.license).toBe('PUBLIC_DOMAIN');
+    expect(await provider.getRandom({ category: 'dore:romans' })).toBeNull();
+
+    // cortex routes dore: with the same reverent no-fallback contract
+    const cortex = readFileSync(resolve('src/visuals/visual-cortex.js'), 'utf8');
+    const branch = cortex.slice(
+      cortex.indexOf("categoryId.startsWith('dore:')"),
+      cortex.indexOf("categoryId.startsWith('atr-')")
+    );
+    expect(branch).toContain('getDoreCycleProvider');
+    expect(branch).toMatch(/return null;/);
+    expect(branch).not.toContain('_getWikimediaProvider');
+  });
+
+  it('CYCLE-classified books launch with their own Doré category', () => {
+    expect(chapelSensoryConfig('josue').visualConfig.interlocution.sourced).toEqual(['dore:josue']);
+    expect(chapelSensoryConfig('judges').visualConfig.interlocution.sourced).toEqual(['dore:judges']);
+    expect(chapelSensoryConfig('machabees-2').visualConfig.interlocution.sourced).toEqual(['dore:machabees-1']);
+    // Wisdom stays in stillness — CONCEPTUAL, not cycle
+    expect(chapelSensoryConfig('proverbs').visualConfig.visualMode).toBe('off');
+    expect(chapelSensoryConfig('psalms').visualConfig.visualMode).toBe('off');
+  });
+});
+
 describe('Chapel handoff imagery (seam)', () => {
   it('Gospels carry the Passion behind-stream at museum presence; other books stay still', async () => {
     const john = chapelSensoryConfig('john');
@@ -231,7 +290,9 @@ describe('Chapel handoff imagery (seam)', () => {
     expect(john.visualConfig.interlocution.duration).toBeGreaterThanOrEqual(1400);
 
     expect(chapelSensoryConfig('psalms').visualConfig.visualMode).toBe('off');
-    expect(chapelSensoryConfig('genesis').visualConfig.visualMode).toBe('off');
+    // Genesis carries the Doré cycle until chapel-patriarchs lands
+    expect(chapelSensoryConfig('genesis').visualConfig.interlocution.sourced)
+      .toEqual(['dore:genesis']);
     expect(chapelSensoryConfig('apocalypse').visualConfig.interlocution.sourced)
       .toEqual(['chapel-resurrection']);
   });

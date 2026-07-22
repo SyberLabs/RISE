@@ -450,6 +450,19 @@ export class VisualCortex {
             }
             return null;
         }
+        // The Doré cycle (dore:<bookId>) — Chapel-exclusive like
+        // chapel-*, same reverent no-fallback contract.
+        if (categoryId.startsWith('dore:')) {
+            try {
+                const dore = await import('../content/chapel/imagery/dore-provider.js');
+                if (dore.hasDoreBook(categoryId)) {
+                    return dore.getDoreCycleProvider();
+                }
+            } catch (e) {
+                console.warn('[Visual Cortex] Doré cycle unavailable:', e);
+            }
+            return null;
+        }
         // Atrium-scoped subject categories (atr-*) resolve through the
         // Wikimedia provider once the Atrium content module has
         // registered its resolver. A restored session can carry atr-
