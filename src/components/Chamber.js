@@ -620,7 +620,13 @@ export class Chamber {
     focalContainer.className = 'chamber-focal';
     focalContainer.id = 'chamber-focal';
 
-    if (focals.type === 'icon' && focals.iconId) {
+    if (focals.type === 'rose') {
+      // ROSA MYSTICA — the Chapel's procedural rose window, held as a
+      // persistent field behind the reading (the attractor's
+      // precedent). Deterministic under its seed; shimmer stills
+      // under reduced-motion; a lost GL context yields stillness.
+      this.initializeRoseFocal(focalContainer, focals);
+    } else if (focals.type === 'icon' && focals.iconId) {
       // Chapel icon focal — a pinned, attributed sacred image rendered
       // as an icon is displayed: centered, unhurried, warm low
       // vignette. No semantic response, no motion on the image itself
@@ -654,6 +660,30 @@ export class Chamber {
     }
 
     console.log('[Chamber] Focal initialized:', focals);
+  }
+
+  /**
+   * Mount the ROSA MYSTICA rose window as a persistent focal field.
+   * Lazy import keeps the engine out of non-Chapel graphs; any
+   * failure yields stillness.
+   */
+  async initializeRoseFocal(focalContainer, focals) {
+    try {
+      const { RosaMystica } = await import('../visuals/rosa-mystica.js');
+      if (!this.container.contains(focalContainer)) return;
+      const host = document.createElement('div');
+      host.className = 'focal-rose';
+      focalContainer.appendChild(host);
+      this.rosaField = new RosaMystica(host, {
+        petala: focals.petala,
+        seed: focals.seed,
+        mode: focals.roseMode
+      });
+      console.log('[Chamber] Rosa Mystica initialized:', this.rosaField.petala, 'petala,',
+        this.rosaField.mode, '· OPVS', this.rosaField.seed.toString(16).toUpperCase());
+    } catch (e) {
+      console.warn('[Chamber] Rosa Mystica unavailable:', e);
+    }
   }
 
   /**
@@ -1274,6 +1304,10 @@ export class Chamber {
     if (this.kleeField) {
       this.kleeField.destroy();
       this.kleeField = null;
+    }
+    if (this.rosaField) {
+      this.rosaField.destroy();
+      this.rosaField = null;
     }
   }
 }

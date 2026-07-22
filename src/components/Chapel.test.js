@@ -56,7 +56,7 @@ describe('Chapel view', () => {
 
     const options = [...container.querySelectorAll('[data-icon-id]')];
     expect(options.map(option => option.dataset.iconId)).toEqual([
-      '', 'icon-pantocrator-sinai', 'icon-pantocrator-russian', 'icon-good-shepherd',
+      '', 'rosa-mystica', 'icon-pantocrator-sinai', 'icon-pantocrator-russian', 'icon-good-shepherd',
       'icon-pantocrator-iconmuseum',
       'icon-christ-in-majesty', 'icon-christ-enthroned', 'icon-christ-enthroned-gold',
       'icon-transfiguration', 'icon-transfiguration-basma', 'icon-ascension',

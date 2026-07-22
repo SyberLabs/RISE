@@ -33,7 +33,11 @@ export const CHAPEL_ICON_PREF_KEY = 'rise_chapel_icon_v1';
 export function loadChapelIconPref() {
   try {
     const stored = localStorage.getItem(CHAPEL_ICON_PREF_KEY);
-    return stored && Object.hasOwn(CHAPEL_ICONS, stored) ? stored : null;
+    // 'rosa-mystica' is the procedural rose window — a valid focal
+    // choice alongside the pinned icons
+    return stored && (stored === 'rosa-mystica' || Object.hasOwn(CHAPEL_ICONS, stored))
+      ? stored
+      : null;
   } catch {
     return null;
   }
@@ -161,6 +165,16 @@ export class Chapel {
             <span class="chapel-icon-none-mark" aria-hidden="true">—</span>
             <span class="chapel-icon-name">None</span>
             <span class="chapel-icon-origin font-mono">each book’s own imagery</span>
+          </button>
+          <button
+            class="chapel-icon-option chapel-icon-rose${this.iconId === 'rosa-mystica' ? ' chapel-icon-selected' : ''}"
+            data-icon-id="rosa-mystica"
+            aria-pressed="${this.iconId === 'rosa-mystica' ? 'true' : 'false'}"
+            title="A procedural Gothic rose window — backlit glass held behind the reading. The wisdom books and epistles read under it by default."
+          >
+            <span class="chapel-icon-none-mark chapel-rose-mark" aria-hidden="true">✾</span>
+            <span class="chapel-icon-name">Rosa Mystica</span>
+            <span class="chapel-icon-origin font-mono">procedural rose window</span>
           </button>
           ${options}
         </div>

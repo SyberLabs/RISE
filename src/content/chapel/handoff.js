@@ -43,6 +43,19 @@ export function chapterNoun(bookId) {
 }
 
 /**
+ * A stable seed from the book id — the same book always receives the
+ * same rose window (fixed forms are fixed, even procedural ones).
+ */
+export function seedFromBook(bookId) {
+  let hash = 0x811c9dc5;
+  for (const ch of String(bookId || 'chapel')) {
+    hash ^= ch.charCodeAt(0);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 8) & 0xffffff;
+}
+
+/**
  * Slice one chapter's verses out of a VERIFIED whole-book payload.
  *
  * The integrity contract is untouched: the checksum always covers the
@@ -163,6 +176,22 @@ function collectionsForReading(bookId, chapter) {
  * routing has no fallback. Everything remains overridable in the
  * orbital.
  */
+/**
+ * The CONCEPTUAL books (SCRIPTURE-IMAGERY-CLASSIFICATION.md): law,
+ * wisdom, and epistle — not depicted subjects. They read under ROSA
+ * MYSTICA, the Chapel's procedural rose window (spec §6: procedural
+ * forms accompany, never depict). Psalms keeps its DELIBERATE
+ * stillness — the Psalter is prayed, not accompanied.
+ */
+const ROSE_BOOKS = new Set([
+  'leviticus', 'deuteronomy', 'paralipomenon-1', 'paralipomenon-2', 'baruch',
+  'proverbs', 'ecclesiastes', 'canticles', 'wisdom', 'ecclesiasticus',
+  'romans', 'corinthians-1', 'corinthians-2', 'galatians', 'ephesians',
+  'philippians', 'colossians', 'thessalonians-1', 'thessalonians-2',
+  'timothy-1', 'timothy-2', 'titus', 'philemon', 'hebrews',
+  'james', 'peter-1', 'peter-2', 'john-1', 'john-2', 'john-3', 'jude'
+]);
+
 export function chapelSensoryConfig(bookId = null, iconId = null, chapter = null) {
   const collections = collectionsForReading(bookId, chapter);
 
@@ -170,9 +199,19 @@ export function chapelSensoryConfig(bookId = null, iconId = null, chapter = null
   // and the reading proceeds around it — it wins over the book's
   // collections. "None" returns each book to its own imagery.
   // Everything remains overridable in the orbital. An icon id that
-  // is not pinned is ignored — pinned, never improvised.
-  if (iconId && !findChapelIcon(iconId)) iconId = null;
-  const visualConfig = iconId
+  // is not pinned is ignored — pinned, never improvised. The special
+  // id 'rosa-mystica' chooses the rose window instead of an icon.
+  const wantsRose = iconId === 'rosa-mystica'
+    || (!iconId && !collections && ROSE_BOOKS.has(bookId));
+  if (iconId && iconId !== 'rosa-mystica' && !findChapelIcon(iconId)) iconId = null;
+  const visualConfig = wantsRose
+    ? {
+      visualMode: 'focals',
+      // Seeded from the book so each epistle keeps its own window,
+      // deterministically — the same book, the same glass, forever
+      focals: { type: 'rose', petala: 12, seed: seedFromBook(bookId) }
+    }
+    : iconId
     ? {
       visualMode: 'focals',
       focals: { type: 'icon', iconId }

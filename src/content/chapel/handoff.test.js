@@ -47,12 +47,16 @@ describe('Chapel handoff', () => {
       checksum: `sha256:${book.checksum}`
     });
 
-    // Contemplative defaults: stillness until the Chapel's own imagery exists
+    // Contemplative defaults
     expect(handoff.config.wpm).toBe(240);
     expect(handoff.config.chunkMode).toBe('phrase');
     // The room opens in its own voice now that rights-cleared chant exists
     expect(handoff.config.soundscape).toBe('chant-gregorian');
-    expect(handoff.config.visualConfig.visualMode).toBe('off');
+    // Jude is an epistle — a CONCEPTUAL book — and reads under the rose
+    expect(handoff.config.visualConfig).toEqual({
+      visualMode: 'focals',
+      focals: { type: 'rose', petala: 12, seed: expect.any(Number) }
+    });
 
     // Wayfinding: the origin chip returns to the Chapel with the book marked
     expect(handoff.config.origin).toMatchObject({

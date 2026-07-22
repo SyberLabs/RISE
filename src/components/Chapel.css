@@ -147,6 +147,13 @@
   border-radius: 2px;
 }
 
+.chapel-rose-mark {
+  color: var(--color-ember);
+  font-size: 30px;
+  border-style: solid;
+  border-color: rgba(212, 165, 116, 0.35);
+}
+
 .chapel-icon-name {
   color: var(--color-cloud);
   font-size: 13px;

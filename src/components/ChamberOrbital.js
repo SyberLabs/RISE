@@ -767,7 +767,9 @@ export class ChamberOrbital {
         ? 'Personal'
         : vi.focals?.type === 'icon'
           ? 'Icon'
-          : this.capitalizeFirst(vi.focals?.standardGlyph || 'breath');
+          : vi.focals?.type === 'rose'
+            ? 'Rosa Mystica'
+            : this.capitalizeFirst(vi.focals?.standardGlyph || 'breath');
       return `◯ Focals · ${glyph}`;
     }
 

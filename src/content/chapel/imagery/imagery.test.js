@@ -315,8 +315,9 @@ describe('The Doré cycle', () => {
     expect(chapelSensoryConfig('josue').visualConfig.interlocution.sourced).toEqual(['dore:josue']);
     expect(chapelSensoryConfig('judges').visualConfig.interlocution.sourced).toEqual(['dore:judges']);
     expect(chapelSensoryConfig('machabees-2').visualConfig.interlocution.sourced).toEqual(['dore:machabees-1']);
-    // Wisdom stays in stillness — CONCEPTUAL, not cycle
-    expect(chapelSensoryConfig('proverbs').visualConfig.visualMode).toBe('off');
+    // Wisdom reads under ROSA MYSTICA now (stage 7); Psalms keeps its
+    // deliberate stillness
+    expect(chapelSensoryConfig('proverbs').visualConfig.focals?.type).toBe('rose');
     expect(chapelSensoryConfig('psalms').visualConfig.visualMode).toBe('off');
   });
 });
