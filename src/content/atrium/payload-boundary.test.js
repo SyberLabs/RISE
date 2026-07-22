@@ -12,10 +12,13 @@ const ROOTS = [
   // metadata-only just like the browse surfaces
   resolve('src/content/atrium/featured.js'),
   // Curated imagery resolves museum records, never payload text
-  resolve('src/content/atrium/imagery/service.js')
+  resolve('src/content/atrium/imagery/service.js'),
+  // The Chapel's browse surface: metadata for 73 books of Scripture.
+  // Book payloads (~5M chars total) load lazily, one at a time.
+  resolve('src/content/chapel/corpus/manifest.js')
 ];
 const STATIC_EDGE = /(?:import|export)\s+(?:[^'";]*?\s+from\s+)?['"]([^'"]+)['"]/g;
-const PAYLOAD_MODULE = /[\\/](?:expanded-[^\\/]+|payloads|philosophy-(?:classical|aristotle|transmission)|history-(?:baseline|expansion[^\\/]*))\.js$/;
+const PAYLOAD_MODULE = /[\\/](?:expanded-[^\\/]+|payloads|philosophy-(?:classical|aristotle|transmission)|history-(?:baseline|expansion[^\\/]*))\.js$|[\\/]chapel[\\/]corpus[\\/]books[\\/][^\\/]+\.js$/;
 
 function resolveModule(fromFile, specifier) {
   if (!specifier.startsWith('.')) return null;

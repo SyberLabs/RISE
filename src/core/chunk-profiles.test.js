@@ -89,3 +89,63 @@ describe('chunk profiles', () => {
         expect(() => compileSession({ text: raw, chunkProfile: 'unknown-profile' })).toThrow(/Unknown chunk profile/);
     });
 });
+
+describe('scripture profile', () => {
+    const verses = '[v 1:1] In the beginning God created heaven, and earth.\n\n'
+        + '[v 1:2] And the earth was void and empty.\n\n'
+        + '[v 2:1] So the heavens and the earth were finished.';
+
+    it('strips verse sentinels from display and preserves them as anchors', () => {
+        const prepared = prepareChunkText(verses, 'scripture');
+
+        expect(prepared.text).toBe(
+            'In the beginning God created heaven, and earth.\n\n'
+            + 'And the earth was void and empty.\n\n'
+            + 'So the heavens and the earth were finished.'
+        );
+        expect(prepared.text).not.toContain('[v ');
+        expect(prepared.hints.scripture.verseAnchors).toEqual([
+            { paragraph: 0, chapter: 1, verse: 1 },
+            { paragraph: 1, chapter: 1, verse: 2 },
+            { paragraph: 2, chapter: 2, verse: 1 }
+        ]);
+        expect(prepared.hints.scripture.chapterStarts).toEqual([
+            { paragraph: 0, chapter: 1 },
+            { paragraph: 2, chapter: 2 }
+        ]);
+    });
+
+    it('conserves every Scripture token exactly once, sentinels excepted', () => {
+        const prepared = prepareChunkText(verses, 'scripture');
+        const sentinelFree = verses.replace(/\[v \d+:\d+\] /g, '');
+        expect(tokens(prepared.text)).toEqual(tokens(sentinelFree));
+    });
+
+    it('never speaks a verse number: no compiled atom contains a sentinel', () => {
+        const session = compileSession({
+            sources: [{ id: 'chapel-genesis', name: 'Genesis', data: verses, chunkProfile: 'scripture' }],
+            chunkMode: 'phrase',
+            curve: 'flat',
+            wpm: 140
+        });
+        const content = session.atoms.filter(atom => atom.content).map(atom => atom.content);
+        expect(content.length).toBeGreaterThan(0);
+        expect(content.some(value => /\[v \d+:\d+\]/.test(value))).toBe(false);
+        expect(content.join(' ')).toContain('In the beginning God created');
+    });
+
+    it('is inert on text without sentinels: byte-identical, no hints', () => {
+        const raw = 'A plain paragraph.\n\nAnother, with 1:1 odds mentioned inline.';
+        const prepared = prepareChunkText(raw, 'scripture');
+        expect(prepared.text).toBe(raw);
+        expect(prepared.hints).toBeUndefined();
+    });
+
+    it('is display-side only: the raw payload string is never mutated', () => {
+        const raw = '[v 1:1] Immutable input.';
+        prepareChunkText(raw, 'scripture');
+        expect(raw).toBe('[v 1:1] Immutable input.');
+        // and it is pure
+        expect(prepareChunkText(raw, 'scripture')).toEqual(prepareChunkText(raw, 'scripture'));
+    });
+});
