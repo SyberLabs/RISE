@@ -201,6 +201,7 @@ export class Chapel {
     const dayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
     return `
       <section class="chapel-rosarium" aria-label="Devotions">
+        <h3 class="chapel-grouping-title font-mono">Devotions</h3>
         <button class="chapel-rosarium-door" data-mystery-set="${escapeHtml(todaySetId)}"
           aria-label="Enter the Rosarium — ${escapeHtml(dayName)} keeps ${escapeHtml(MYSTERY_SETS[todaySetId].name.toLowerCase())}">
           <span class="chapel-rosarium-glyph" aria-hidden="true">📿</span>
