@@ -81,8 +81,16 @@ describe('Chapel icons', () => {
   it('pins the three approved icons with stated rights bases and attribution', () => {
     expect(Object.keys(CHAPEL_ICONS)).toEqual([
       'icon-pantocrator-sinai', 'icon-pantocrator-russian', 'icon-good-shepherd',
-      'icon-pantocrator-iconmuseum', 'icon-salus-populi-romani'
+      'icon-pantocrator-iconmuseum',
+      'icon-christ-in-majesty', 'icon-christ-enthroned', 'icon-christ-enthroned-gold',
+      'icon-transfiguration', 'icon-transfiguration-basma', 'icon-ascension',
+      'icon-mother-of-god-nursing', 'icon-archangel-gabriel',
+      'icon-salus-populi-romani'
     ]);
+    // The loaned Lambardos Michael (L2025.01.5) is deliberately NOT
+    // pinned: an L accession is a loan, and a lender's rights are not
+    // the museum's to grant
+    expect(Object.values(CHAPEL_ICONS).some(icon => icon.sourceId === 'L2025.01.5')).toBe(false);
     for (const [id, icon] of Object.entries(CHAPEL_ICONS)) {
       // Two valid bases: a stated public-domain declaration, or
       // written permission with its citation honored

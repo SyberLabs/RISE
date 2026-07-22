@@ -83,6 +83,134 @@ export const CHAPEL_ICONS = freezeManifest({
     attribution: 'Christ Pantocrator, Russian, late 19th century (R2017.4) — Icon Museum and Study Center, Clinton MA'
   },
 
+  // ── The Icon Museum and Study Center, Clinton MA ──
+  // Eight further works under the Registrar's written grant of
+  // 2026-07-22 (docs/icon-museum-permission.txt), the required
+  // citation honored in every attribution line. NOT pinned:
+  // Lambardos' Archangel Michael (L2025.01.5) — the L accession
+  // marks a LOAN, and a lender's rights are not the museum's to
+  // grant; held pending explicit confirmation from the Registrar.
+
+  'icon-christ-in-majesty': {
+    name: 'Christ in Majesty',
+    role: 'christ',
+    origin: 'Russian',
+    date: 'Late 16th century',
+    medium: 'Egg tempera on wood',
+    source: 'iconmuseum',
+    sourceId: 'R2009.8',
+    image: 'https://www.iconmuseum.org/wp-content/uploads/2023/12/R2009_8--scaled.webp',
+    sourceUrl: 'https://www.iconmuseum.org/collection/christ-in-majesty/',
+    rights: 'PERMISSION',
+    rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt',
+    attribution: 'Christ in Majesty, Russian, late 16th century (R2009.8) — Icon Museum and Study Center, Clinton MA'
+  },
+
+  'icon-christ-enthroned': {
+    name: 'Christ Enthroned',
+    role: 'christ',
+    origin: 'Russian',
+    date: 'Mid-19th century',
+    medium: 'Egg tempera on wood',
+    source: 'iconmuseum',
+    sourceId: 'R2000.16',
+    image: 'https://www.iconmuseum.org/wp-content/uploads/2023/09/R2000_16-scaled.webp',
+    sourceUrl: 'https://www.iconmuseum.org/collection/christ-enthroned/',
+    rights: 'PERMISSION',
+    rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt',
+    attribution: 'Christ Enthroned, Russian, mid-19th century (R2000.16) — Icon Museum and Study Center, Clinton MA'
+  },
+
+  'icon-christ-enthroned-gold': {
+    name: 'Christ Enthroned',
+    role: 'christ',
+    origin: 'Russian',
+    date: '19th century',
+    medium: 'Egg tempera on wood, gold leaf',
+    source: 'iconmuseum',
+    sourceId: 'R2017.6.092',
+    image: 'https://www.iconmuseum.org/wp-content/uploads/2026/03/R2017_6_092-Christ-Enthroned-main.jpg',
+    sourceUrl: 'https://www.iconmuseum.org/collection/christ-enthroned-3/',
+    rights: 'PERMISSION',
+    rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt',
+    attribution: 'Christ Enthroned, Russian, 19th century (R2017.6.092) — Icon Museum and Study Center, Clinton MA'
+  },
+
+  'icon-transfiguration': {
+    name: 'The Transfiguration of Christ',
+    role: 'christ',
+    origin: 'Russian',
+    date: 'Late 19th century',
+    medium: 'Egg tempera on wood',
+    source: 'iconmuseum',
+    sourceId: 'R2005.29',
+    image: 'https://www.iconmuseum.org/wp-content/uploads/2025/03/R2005_29-Transfiguration-scaled.jpg',
+    sourceUrl: 'https://www.iconmuseum.org/collection/the-transfiguration-of-christ-4/',
+    rights: 'PERMISSION',
+    rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt',
+    attribution: 'The Transfiguration of Christ, Russian, late 19th century (R2005.29) — Icon Museum and Study Center, Clinton MA'
+  },
+
+  'icon-transfiguration-basma': {
+    name: 'The Transfiguration of Christ',
+    role: 'christ',
+    origin: 'Russian',
+    date: '17th century',
+    medium: 'Egg tempera on wood, gold leaf, metal basma',
+    source: 'iconmuseum',
+    sourceId: 'R2014.3.9',
+    image: 'https://www.iconmuseum.org/wp-content/uploads/2026/02/R2014_3_9-Transfiguration-scaled.jpg',
+    sourceUrl: 'https://www.iconmuseum.org/collection/the-transfiguration-of-christ-6/',
+    rights: 'PERMISSION',
+    rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt',
+    attribution: 'The Transfiguration of Christ, Russian, 17th century (R2014.3.9) — Icon Museum and Study Center, Clinton MA'
+  },
+
+  'icon-ascension': {
+    name: 'The Ascension of Christ',
+    role: 'christ',
+    origin: 'Russian',
+    date: 'Early 17th century',
+    medium: 'Egg tempera on wood',
+    source: 'iconmuseum',
+    sourceId: 'R2007.38',
+    image: 'https://www.iconmuseum.org/wp-content/uploads/2025/01/R2007_38-scaled.jpg',
+    sourceUrl: 'https://www.iconmuseum.org/collection/the-ascension-of-christ/',
+    rights: 'PERMISSION',
+    rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt',
+    attribution: 'The Ascension of Christ, Russian, early 17th century (R2007.38) — Icon Museum and Study Center, Clinton MA'
+  },
+
+  'icon-mother-of-god-nursing': {
+    name: 'The Mother of God Nursing the Christ Child',
+    role: 'marian',
+    origin: 'Russian',
+    date: 'Mid-18th century',
+    medium: 'Egg tempera on wood',
+    source: 'iconmuseum',
+    sourceId: 'R1998.25',
+    image: 'https://www.iconmuseum.org/wp-content/uploads/2025/02/R1998_25--scaled.jpg',
+    sourceUrl: 'https://www.iconmuseum.org/collection/the-mother-of-god-nursing-the-christ-child-2/',
+    rights: 'PERMISSION',
+    rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt',
+    attribution: 'The Mother of God Nursing the Christ Child, Russian, mid-18th century (R1998.25) — Icon Museum and Study Center, Clinton MA'
+  },
+
+  'icon-archangel-gabriel': {
+    name: 'Archangel Gabriel',
+    role: 'angel',
+    origin: 'Russian',
+    date: 'Early 19th century',
+    medium: 'Egg tempera on wood, gold leaf',
+    source: 'iconmuseum',
+    sourceId: 'R2019.4.2',
+    image: 'https://www.iconmuseum.org/wp-content/uploads/2026/03/R2019_4_2-main.jpg',
+    sourceUrl: 'https://www.iconmuseum.org/collection/archangel-gabriel-2/',
+    rights: 'PERMISSION',
+    rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt',
+    attribution: 'Archangel Gabriel, Russian, early 19th century (R2019.4.2) — Icon Museum and Study Center, Clinton MA'
+  },
+
   'icon-salus-populi-romani': {
     name: 'Salus Populi Romani',
     role: 'marian',

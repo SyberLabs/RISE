@@ -56,6 +56,14 @@ const CHAPEL_ICON_LABELS = Object.freeze({
     'icon-pantocrator-russian': 'Christ Pantocrator · Russian, 19th c.',
     'icon-good-shepherd': 'The Good Shepherd · Plockhorst',
     'icon-pantocrator-iconmuseum': 'Christ Pantocrator · Icon Museum',
+    'icon-christ-in-majesty': 'Christ in Majesty · Icon Museum',
+    'icon-christ-enthroned': 'Christ Enthroned · Icon Museum',
+    'icon-christ-enthroned-gold': 'Christ Enthroned (gold) · Icon Museum',
+    'icon-transfiguration': 'The Transfiguration · Icon Museum',
+    'icon-transfiguration-basma': 'The Transfiguration (basma) · Icon Museum',
+    'icon-ascension': 'The Ascension · Icon Museum',
+    'icon-mother-of-god-nursing': 'Mother of God Nursing · Icon Museum',
+    'icon-archangel-gabriel': 'Archangel Gabriel · Icon Museum',
     'icon-salus-populi-romani': 'Salus Populi Romani'
 });
 

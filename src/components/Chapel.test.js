@@ -56,7 +56,12 @@ describe('Chapel view', () => {
 
     const options = [...container.querySelectorAll('[data-icon-id]')];
     expect(options.map(option => option.dataset.iconId)).toEqual([
-      '', 'icon-pantocrator-sinai', 'icon-pantocrator-russian', 'icon-good-shepherd', 'icon-pantocrator-iconmuseum', 'icon-salus-populi-romani'
+      '', 'icon-pantocrator-sinai', 'icon-pantocrator-russian', 'icon-good-shepherd',
+      'icon-pantocrator-iconmuseum',
+      'icon-christ-in-majesty', 'icon-christ-enthroned', 'icon-christ-enthroned-gold',
+      'icon-transfiguration', 'icon-transfiguration-basma', 'icon-ascension',
+      'icon-mother-of-god-nursing', 'icon-archangel-gabriel',
+      'icon-salus-populi-romani'
     ]);
     // None is the default
     expect(container.querySelector('.chapel-icon-none').classList.contains('chapel-icon-selected')).toBe(true);
