@@ -19,8 +19,10 @@
 
 import { chantProgram, findChant } from '../content/chapel/chants.js';
 
-/** Silence between tracks — a breath, not a gap in service. */
-const INTER_TRACK_SILENCE_S = 20;
+/** Silence between tracks — a breath, not a gap in service.
+ *  (Opened at 20s; eased to 12s on listening — still a real pause,
+ *  less of an absence.) */
+const INTER_TRACK_SILENCE_S = 12;
 /** Fade edges so entries and exits are candle-soft. */
 const FADE_S = 3;
 

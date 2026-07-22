@@ -9,11 +9,13 @@
  * without established rights — silence is acceptable; infringement
  * is not.
  *
- * DELIBERATELY HELD (AWAITING, not pinned): two long Byzantine hymn
+ * INVESTIGATED AND LET GO (2026-07-22): two long Byzantine hymn
  * recordings on Commons tagged CC0 but credited "Unknown author" from
- * an archive.org rip — an uploader's license tag on a recording they
- * may not own is the silence-is-not-permission shape, whatever the
- * tag says. They enter if provenance firms up.
+ * an archive.org rip. The user ran provenance forensics on the
+ * archive.org source and found no performer, date, or release trail —
+ * an uploader's license tag on a recording they may not own is the
+ * silence-is-not-permission shape, whatever the tag says. Released,
+ * not merely deferred; they would re-enter only with new provenance.
  *
  * CC-BY / CC-BY-SA notes: we PLAY recordings with attribution
  * displayed (the registry's attribution line is surfaced wherever the
