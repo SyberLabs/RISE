@@ -68,6 +68,21 @@ export const CHAPEL_ICONS = freezeManifest({
     attribution: 'Bernhard Plockhorst, The Good Shepherd, 19th century — Wikimedia Commons, public domain'
   },
 
+  'icon-pantocrator-iconmuseum': {
+    name: 'Christ Pantocrator',
+    role: 'pantocrator',
+    origin: 'Russian',
+    date: 'Late 19th century',
+    medium: 'Oil on wood',
+    source: 'iconmuseum',
+    sourceId: 'R2017.4',
+    image: 'https://www.iconmuseum.org/wp-content/uploads/2026/03/R2017_4-Lord-Almighty-main-scaled.jpg',
+    sourceUrl: 'https://www.iconmuseum.org/collection/christ-pantocrator-12/',
+    rights: 'PERMISSION',
+    rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt; required citation honored in the attribution line',
+    attribution: 'Christ Pantocrator, Russian, late 19th century (R2017.4) — Icon Museum and Study Center, Clinton MA'
+  },
+
   'icon-salus-populi-romani': {
     name: 'Salus Populi Romani',
     role: 'marian',

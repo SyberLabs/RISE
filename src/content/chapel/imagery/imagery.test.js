@@ -80,15 +80,21 @@ describe('Chapel pinned collections', () => {
 describe('Chapel icons', () => {
   it('pins the three approved icons with stated rights bases and attribution', () => {
     expect(Object.keys(CHAPEL_ICONS)).toEqual([
-      'icon-pantocrator-sinai', 'icon-pantocrator-russian', 'icon-good-shepherd', 'icon-salus-populi-romani'
+      'icon-pantocrator-sinai', 'icon-pantocrator-russian', 'icon-good-shepherd',
+      'icon-pantocrator-iconmuseum', 'icon-salus-populi-romani'
     ]);
     for (const [id, icon] of Object.entries(CHAPEL_ICONS)) {
-      expect(icon.rights, id).toBe('PUBLIC_DOMAIN');
-      expect(icon.rightsBasis, id).toMatch(/verified 2026/);
+      // Two valid bases: a stated public-domain declaration, or
+      // written permission with its citation honored
+      expect(['PUBLIC_DOMAIN', 'PERMISSION'], id).toContain(icon.rights);
+      expect(icon.rightsBasis, id).toMatch(/verified 2026|permission from the Registrar/);
       expect(icon.attribution, id).toBeTruthy();
       expect(icon.image, id).toMatch(/^https:\/\//);
       expect(icon.sourceUrl, id).toMatch(/^https:\/\//);
     }
+    // The Icon Museum grant's stated condition, honored verbatim
+    expect(CHAPEL_ICONS['icon-pantocrator-iconmuseum'].attribution)
+      .toContain('Icon Museum and Study Center, Clinton MA');
     expect(CHAPEL_ICON_DEFAULTS.pantocrator).toBe('icon-pantocrator-sinai');
     expect(CHAPEL_ICON_DEFAULTS.marian).toBe('icon-salus-populi-romani');
     expect(findChapelIcon('icon-of-nowhere')).toBeNull();
@@ -261,6 +267,17 @@ describe('The Doré cycle', () => {
     expect(judges.every(plate => plate.book === 'judges')).toBe(true);
     expect(judges.some(plate => /samson/i.test(plate.title))).toBe(true);
     expect(dorePlatesForBook('matthew')).toEqual([]);
+  });
+
+  it('dore:all aggregates the whole cycle for trading onto any reading', async () => {
+    const { getDoreCycleProvider, hasDoreBook } = await import('./dore-provider.js');
+    expect(hasDoreBook('dore:all')).toBe(true);
+    const provider = getDoreCycleProvider();
+    const all = await provider.getImagesInCategory('dore:all', 200);
+    expect(all.length).toBe(158);
+    // and getRandom draws from the full pool, not a 40-plate slice
+    const item = await provider.getRandom({ category: 'dore:all' });
+    expect(item).not.toBeNull();
   });
 
   it('the provider serves dore: categories instantly, isolated, no fallback', async () => {

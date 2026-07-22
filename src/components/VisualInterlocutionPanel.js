@@ -55,6 +55,7 @@ const CHAPEL_ICON_LABELS = Object.freeze({
     'icon-pantocrator-sinai': 'Christ Pantocrator · Sinai, 6th c.',
     'icon-pantocrator-russian': 'Christ Pantocrator · Russian, 19th c.',
     'icon-good-shepherd': 'The Good Shepherd · Plockhorst',
+    'icon-pantocrator-iconmuseum': 'Christ Pantocrator · Icon Museum',
     'icon-salus-populi-romani': 'Salus Populi Romani'
 });
 
@@ -757,8 +758,15 @@ export class VisualInterlocutionPanel {
                             // launched Atrium record. Appears only on Atrium
                             // launches; informational, since `sourced` already
                             // carries them and remains fully editable below.
-                            const curated = this.config.interlocution.atriumCollections;
-                            if (!Array.isArray(curated) || curated.length === 0) return '';
+                            const curated = this.config.interlocution.atriumCollections || [];
+                            // Remember that this session is a Chapel launch the
+                            // first time chapel/dore pills appear — an emptied
+                            // pill row must keep its + orb, or removing the last
+                            // pill would strand the reader with no way back.
+                            if (curated.some(id => id.startsWith('chapel-') || id.startsWith('dore:'))) {
+                                this._chapelLaunch = true;
+                            }
+                            if (!Array.isArray(curated) || (curated.length === 0 && !this._chapelLaunch)) return '';
                             const labelFor = id => {
                                 // Atrium-exclusive procedural patterns: the
                                 // reading's own mechanism or colonial
@@ -797,6 +805,9 @@ export class VisualInterlocutionPanel {
                                     // never in the browsable list
                                     return CHAPEL_COLLECTION_LABELS[id] || id;
                                 }
+                                if (id === 'dore:all') {
+                                    return 'Doré · The Old Testament';
+                                }
                                 if (id.startsWith('dore:')) {
                                     // The Doré cycle: this book's own plates
                                     const book = id.slice('dore:'.length)
@@ -811,13 +822,26 @@ export class VisualInterlocutionPanel {
 
                             // A Chapel launch: the pills are EDITABLE within the
                             // Chapel's own vocabulary — ✕ returns a collection to
-                            // the pool, + offers the rest of the four. The pool
-                            // is closed: only chapel collections, only here.
-                            const isChapelReading = curated.every(id => id.startsWith('chapel-'));
+                            // the pool, + offers the rest. The pool is closed:
+                            // the painted collections plus the Doré aggregate
+                            // (the whole 1866 cycle as one voice), only here.
+                            // A book's OWN Doré plates (dore:<book>) are also
+                            // removable, but only the aggregate is re-addable —
+                            // per-book plates belong to their book.
+                            const isChapelReading = this._chapelLaunch
+                                || curated.every(id => id.startsWith('chapel-') || id.startsWith('dore:'));
                             if (isChapelReading) {
-                                const active = curated.filter(id => Object.hasOwn(CHAPEL_COLLECTION_LABELS, id));
-                                const available = Object.keys(CHAPEL_COLLECTION_LABELS)
-                                    .filter(id => !active.includes(id));
+                                const TRADEABLE = {
+                                    ...CHAPEL_COLLECTION_LABELS,
+                                    'dore:all': 'Doré · The Old Testament'
+                                };
+                                const active = curated.filter(id =>
+                                    Object.hasOwn(TRADEABLE, id) || id.startsWith('dore:'));
+                                const available = Object.keys(TRADEABLE)
+                                    .filter(id => !active.includes(id)
+                                        // the aggregate is redundant while any
+                                        // per-book Doré plates are in play
+                                        && !(id === 'dore:all' && active.some(a => a.startsWith('dore:'))));
                                 return `
                                     <div class="vi-source-family vi-atrium-collections vi-chapel-collections" role="group"
                                         aria-label="Chapel collections for this reading">
@@ -1565,7 +1589,8 @@ export class VisualInterlocutionPanel {
         // (what the pills show) together — one truth, two views.
         const editChapelCollections = mutate => {
             const inter = this.config.interlocution;
-            const current = (inter.atriumCollections || []).filter(id => id.startsWith('chapel-'));
+            const current = (inter.atriumCollections || [])
+                .filter(id => id.startsWith('chapel-') || id.startsWith('dore:'));
             const next = mutate(current);
             inter.atriumCollections = next;
             inter.sourced = next;

@@ -16,6 +16,10 @@ import { ShuffleBag } from '../../../sources/visual/shuffle-bag.js';
 
 export function hasDoreBook(categoryId) {
   const bookId = String(categoryId || '').replace(/^dore:/, '');
+  // `dore:all` is the aggregate: the whole 1866 cycle as one voice,
+  // tradeable onto any Chapel reading (e.g. the Apocalypse with the
+  // full Old Testament sweep behind it).
+  if (bookId === 'all') return true;
   return DORE_PLATES.some(plate => plate.book === bookId);
 }
 
@@ -31,7 +35,9 @@ class DoreCycleProvider {
 
   async getRandom(filter = {}) {
     const categoryId = filter.category || '';
-    const images = await this.getImagesInCategory(categoryId, 40);
+    // The aggregate draws from ALL plates; plates are static records,
+    // so a large pool costs nothing at session time.
+    const images = await this.getImagesInCategory(categoryId, 200);
     if (images.length === 0) return null;
     const image = this._bag.draw(categoryId, images);
     if (!image) return null;
@@ -55,7 +61,8 @@ class DoreCycleProvider {
 
   async getImagesInCategory(categoryId, limit = 40) {
     const bookId = String(categoryId || '').replace(/^dore:/, '');
-    return dorePlatesForBook(bookId).slice(0, limit).map(plate => ({
+    const plates = bookId === 'all' ? DORE_PLATES : dorePlatesForBook(bookId);
+    return plates.slice(0, limit).map(plate => ({
       id: `dore:${plate.plate}`,
       title: plate.title,
       url: plate.image,

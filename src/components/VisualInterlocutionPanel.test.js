@@ -49,7 +49,7 @@ describe('Chapel collection editing in the panel', () => {
         container.querySelector('[data-action="chapel-add-toggle"]').click();
         const options = [...container.querySelectorAll('[data-chapel-add]')];
         expect(options.map(option => option.dataset.chapelAdd).sort())
-            .toEqual(['chapel-nativity', 'chapel-patriarchs', 'chapel-prophets', 'chapel-resurrection']);
+            .toEqual(['chapel-nativity', 'chapel-patriarchs', 'chapel-prophets', 'chapel-resurrection', 'dore:all']);
     });
 
     it('✕ returns a collection to the pool; + draws one in — sourced and pills stay one truth', () => {
@@ -92,6 +92,37 @@ describe('Chapel collection editing in the panel', () => {
         expect(container.querySelector('.vi-chapel-add-menu').hidden).toBe(false);
         container.querySelector('[data-action="chapel-add-toggle"]').click();
         expect(container.querySelector('.vi-chapel-add-menu').hidden).toBe(true);
+    });
+
+    it('the Doré aggregate is tradeable; per-book Doré plates are removable but book-bound', () => {
+        // A Gospel launch can draw the whole Doré cycle in
+        const { panel, container } = makePanel({ ...CHAPEL_LAUNCH, consentScope: 'chapel-test' });
+        container.querySelector('[data-action="chapel-add-toggle"]').click();
+        const pool = [...container.querySelectorAll('[data-chapel-add]')].map(o => o.dataset.chapelAdd);
+        expect(pool).toContain('dore:all');
+        container.querySelector('[data-chapel-add="dore:all"]').click();
+        expect(panel.getConfig().interlocution.sourced).toContain('dore:all');
+
+        // A Doré-native book (Judges): its plates pill is removable…
+        const { panel: dore, container: doreC } = makePanel({
+            visualMode: 'interlocution',
+            consentScope: 'chapel-test',
+            interlocution: {
+                sourced: ['dore:judges'], procedural: [],
+                atriumCollections: ['dore:judges']
+            }
+        });
+        expect(doreC.querySelector('[data-chapel-remove="dore:judges"]')).not.toBeNull();
+        // …and while its plates are in play, the aggregate is not offered
+        doreC.querySelector('[data-action="chapel-add-toggle"]').click();
+        const dorePool = [...doreC.querySelectorAll('[data-chapel-add]')].map(o => o.dataset.chapelAdd);
+        expect(dorePool).not.toContain('dore:all');
+        // remove the book plates → the aggregate returns to the pool
+        doreC.querySelector('[data-chapel-remove="dore:judges"]').click();
+        expect(dore.getConfig().interlocution.sourced).toEqual([]);
+        doreC.querySelector('[data-action="chapel-add-toggle"]').click();
+        expect([...doreC.querySelectorAll('[data-chapel-add]')].map(o => o.dataset.chapelAdd))
+            .toContain('dore:all');
     });
 
     it('non-chapel curated chips stay informational — no ✕, no orb', () => {
