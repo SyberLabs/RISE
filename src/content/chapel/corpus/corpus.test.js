@@ -123,6 +123,24 @@ describe('Chapel corpus payload integrity', () => {
     }
   }, 60_000);
 
+  it('every INTERMEDIATE chapter boundary is present — a missing sentinel would silently widen its predecessor', async () => {
+    // The slicer refuses an unbounded slice, but refusal at read time
+    // is a degraded Chapel; the corpus itself must prove every
+    // boundary here, at build time (2026-07 review, finding 8: the
+    // prior span test checked only the first and last chapters).
+    // A chapter's first sentinel may open at any verse — the Vulgate
+    // carries Hebrew verse numbers through the split psalms, so
+    // Psalm 115 rightly opens at [v 115:10]. What must exist is SOME
+    // sentinel for every canonical chapter.
+    for (const book of CHAPEL_BOOKS) {
+      const text = await loadBookText(book.id);
+      for (let chapter = 1; chapter <= book.chapters; chapter++) {
+        expect(new RegExp(`\\[v ${chapter}:\\d+\\] `).test(text),
+          `${book.id} chapter ${chapter} sentinel`).toBe(true);
+      }
+    }
+  }, 120_000);
+
   it('preserves exact Douay-Rheims wording at known anchors', async () => {
     const genesis = await loadBookText('genesis');
     expect(genesis).toContain('[v 1:1] In the beginning God created heaven, and earth.');

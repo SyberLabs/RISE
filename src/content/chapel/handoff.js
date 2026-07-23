@@ -66,17 +66,30 @@ export function seedFromBook(bookId) {
  * of the book). A chapter that cannot be found in verified bytes is a
  * refusal, never an approximation.
  */
-export function sliceChapter(text, chapter, bookId) {
-  const start = text.indexOf(`[v ${chapter}:1] `);
+export function sliceChapter(text, chapter, bookId, totalChapters = null) {
+  // The chapter's FIRST sentinel, whatever its verse number: the
+  // Vulgate carries Hebrew verse numbers through the split psalms,
+  // so Psalm 115 opens at [v 115:10] ("I have believed…") — an
+  // anchor hard-wired to :1 refused it for as long as the Chapel
+  // stood (found by the every-chapter corpus test, 2026-07).
+  const firstSentinel = text.match(new RegExp(`\\[v ${chapter}:\\d+\\] `));
+  const start = firstSentinel ? firstSentinel.index : -1;
   if (start < 0) {
     throw new ChapelHandoffError('CHAPEL_CHAPTER_NOT_FOUND', `${chapterNoun(bookId)} ${chapter} not found in ${bookId}.`, {
       bookId, chapter
     });
   }
-  // End at the FIRST sentinel of any later chapter (not just C+1 verse 1)
-  // so an unexpected verse numbering can never silently widen the slice.
   const nextChapter = new RegExp(`\\[v ${chapter + 1}:\\d+\\] `);
   const nextMatch = text.slice(start).match(nextChapter);
+  // INTEGRITY: a non-final chapter whose successor sentinel is absent
+  // would silently absorb the rest of the book. Refusal is the
+  // Chapel's policy — a boundary that cannot be verified is not
+  // approximated (2026-07 review, finding 8).
+  if (!nextMatch && totalChapters != null && chapter < totalChapters) {
+    throw new ChapelHandoffError('CHAPEL_CHAPTER_BOUNDARY_MISSING',
+      `${chapterNoun(bookId)} ${chapter + 1} sentinel is missing in ${bookId}; refusing an unbounded slice of ${chapterNoun(bookId)} ${chapter}.`,
+      { bookId, chapter });
+  }
   const slice = (nextMatch
     ? text.slice(start, start + nextMatch.index)
     : text.slice(start)
@@ -332,7 +345,7 @@ export async function createChapelHandoff(bookId, options = {}) {
   }
 
   // The chapter is sliced ONLY from bytes that just verified.
-  const sessionText = chapter == null ? text : sliceChapter(text, chapter, book.id);
+  const sessionText = chapter == null ? text : sliceChapter(text, chapter, book.id, book.chapters);
   // "John 3", but "Psalm 23" — a Psalm is named by its own noun,
   // never "Psalms 23".
   const readingName = chapter == null

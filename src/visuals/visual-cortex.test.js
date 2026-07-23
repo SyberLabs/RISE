@@ -867,6 +867,22 @@ describe('VisualCortex external asset hydration', () => {
         expect(assets.filter(asset => asset.img.src === '')).toHaveLength(10);
     });
 
+    it('the GLOBAL evictor also spares the unseen: flashed veterans die first under pressure', () => {
+        const cortex = new VisualCortex();
+        cortex.config.activeTypes = ['aic-oldmasters'];
+        const pool = cortex._poolFor('aic-oldmasters');
+        // fill to the limit with flashed veterans, then retain unseen
+        // newcomers past it — the veterans must be the ones evicted
+        for (let i = 0; i < 30; i++) {
+            pool.images.push({ img: { src: `vet-${i}.jpg` }, loadedAt: i, lastUsedAt: i, flashedAt: i + 1 });
+        }
+        const unseen = { img: { src: 'unseen.jpg' }, loadedAt: 100, lastUsedAt: 100 };
+        cortex._retainAsset('aic-oldmasters', unseen);
+        expect(pool.images).toContain(unseen);           // the unseen survived
+        expect(pool.images.find(a => a.img.src === 'vet-0.jpg')).toBeUndefined(); // earliest-flashed died
+        expect(pool.images.length).toBe(30);             // limit holds
+    });
+
     it('rolling refresh slides the window: evicts the earliest-FLASHED veteran, never the unseen', async () => {
         const cortex = new VisualCortex();
         cortex.config.activeTypes = ['aic-oldmasters'];

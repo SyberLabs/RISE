@@ -250,7 +250,10 @@ export class RosaMystica {
     host.appendChild(this.pre);
 
     this.gl = this.canvas.getContext('webgl', {
-      preserveDrawingBuffer: true,
+      // The VERBUM readPixels path re-renders before reading, so the
+      // buffer need not persist — and discarding it saves memory
+      // bandwidth every frame (2026-07 review, finding 10)
+      preserveDrawingBuffer: false,
       antialias: true,
       // Transparent outside the window: the Chamber's void shows
       // through, so the rose hangs in the room's own darkness
@@ -259,18 +262,35 @@ export class RosaMystica {
     });
     if (!this.gl) return; // null-context guard: the reading proceeds without the rose
 
-    this._buildProgram();
+    if (!this._buildProgram()) {
+      // A shader that fails to compile or link is a field that must
+      // not render garbage: release the context, the reading
+      // proceeds without the rose
+      this.gl = null;
+      return;
+    }
+    // Resize: VITRUM's loop re-sizes per frame, but VERBUM and the
+    // reduced-motion still render once — a resized host needs a
+    // fresh render or the field stays at the old raster
+    if (typeof ResizeObserver === 'function') {
+      this._resizeObserver = new ResizeObserver(() => {
+        if (this.mode === 'verbum' || this.reduceMotion) this.renderOnce(0);
+      });
+      this._resizeObserver.observe(host);
+    }
     this._applyMode();
   }
 
   _buildProgram() {
     const gl = this.gl;
+    let failed = false;
     const compile = (type, src) => {
       const shader = gl.createShader(type);
       gl.shaderSource(shader, src);
       gl.compileShader(shader);
       if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
         console.warn('[RosaMystica] shader:', gl.getShaderInfoLog(shader));
+        failed = true;
       }
       return shader;
     };
@@ -278,6 +298,10 @@ export class RosaMystica {
     gl.attachShader(program, compile(gl.VERTEX_SHADER, VSRC));
     gl.attachShader(program, compile(gl.FRAGMENT_SHADER, FSRC));
     gl.linkProgram(program);
+    if (failed || !gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      console.warn('[RosaMystica] program link failed:', gl.getProgramInfoLog(program));
+      return false;
+    }
     gl.useProgram(program);
 
     const buffer = gl.createBuffer();
@@ -291,6 +315,7 @@ export class RosaMystica {
     for (const name of ['uRes', 'uTime', 'uPet', 'uSeedF', 'uFlat', 'uGrain', 'uHue']) {
       this.U[name] = gl.getUniformLocation(program, name);
     }
+    return true;
   }
 
   setPetala(petala) {
@@ -416,8 +441,18 @@ export class RosaMystica {
     if (this._raf) { cancelAnimationFrame(this._raf); this._raf = null; }
     if (!this.gl) return;
     if (this.mode === 'vitrum' && !this.reduceMotion) {
+      // ~10fps, not 60: the only motion is a hue rotation completing
+      // in six minutes — imperceptible frame to frame. Drawing every
+      // vsync was continuous GPU work for a nearly still field
+      // (2026-07 review, finding 10). rAF still paces us (so a hidden
+      // tab draws nothing); we simply skip frames inside it.
+      const FRAME_MS = 100;
+      let lastDraw = 0;
       const loop = (t) => {
-        this._drawVitrum(t * 0.001);
+        if (t - lastDraw >= FRAME_MS) {
+          lastDraw = t;
+          this._drawVitrum(t * 0.001);
+        }
         this._raf = requestAnimationFrame(loop);
       };
       this._raf = requestAnimationFrame(loop);
@@ -427,6 +462,7 @@ export class RosaMystica {
   }
 
   destroy() {
+    if (this._resizeObserver) { this._resizeObserver.disconnect(); this._resizeObserver = null; }
     if (this._raf) { cancelAnimationFrame(this._raf); this._raf = null; }
     try { this.gl?.getExtension('WEBGL_lose_context')?.loseContext(); } catch { /* released */ }
     this.gl = null;

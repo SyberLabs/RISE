@@ -913,37 +913,33 @@ export class VisualCortex {
         let retained = [...this._assetPools.values()]
             .reduce((total, pool) => total + pool.images.length, 0);
         while (retained > GLOBAL_ASSET_LIMIT) {
-            let oldest = null;
-            for (const [categoryId, pool] of this._assetPools) {
-                // Preserve the minimum-ready image for every category.
-                if (pool.images.length <= INITIAL_POOL_TARGET) continue;
-                for (let index = 0; index < pool.images.length; index++) {
-                    const asset = pool.images[index];
-                    if (!oldest || (asset.lastUsedAt || asset.loadedAt || 0) < oldest.time) {
-                        oldest = {
-                            categoryId,
-                            index,
-                            time: asset.lastUsedAt || asset.loadedAt || 0
-                        };
-                    }
-                }
-            }
-            // More selected categories than the global cap is an impossible
-            // minimum-ready set; remain globally bounded and report degraded.
-            if (!oldest) {
+            // "Nothing dies unseen" is SYSTEM-WIDE: like the rolling
+            // refresh, the global evictor prefers FLASHED veterans
+            // (earliest flashedAt first). Unseen assets are spared in
+            // the first pass and sacrificed only when the limit cannot
+            // otherwise hold (2026-07 review, finding 9: the two
+            // eviction policies contradicted — global pressure from a
+            // neighboring category could kill a newcomer the window
+            // was protecting).
+            const findOldest = (requireFlashed, respectMinimum) => {
+                let oldest = null;
                 for (const [categoryId, pool] of this._assetPools) {
+                    if (respectMinimum && pool.images.length <= INITIAL_POOL_TARGET) continue;
                     for (let index = 0; index < pool.images.length; index++) {
                         const asset = pool.images[index];
-                        if (!oldest || (asset.lastUsedAt || asset.loadedAt || 0) < oldest.time) {
-                            oldest = {
-                                categoryId,
-                                index,
-                                time: asset.lastUsedAt || asset.loadedAt || 0
-                            };
+                        if (requireFlashed && !asset.flashedAt) continue;
+                        const time = asset.flashedAt
+                            || asset.lastUsedAt || asset.loadedAt || 0;
+                        if (!oldest || time < oldest.time) {
+                            oldest = { categoryId, index, time };
                         }
                     }
                 }
-            }
+                return oldest;
+            };
+            let oldest = findOldest(true, true)   // flashed veterans first
+                || findOldest(false, true)         // then unseen, minimum kept
+                || findOldest(false, false);       // last resort: anything
             if (!oldest) break;
             const pool = this._poolFor(oldest.categoryId);
             const [evicted] = pool.images.splice(oldest.index, 1);
