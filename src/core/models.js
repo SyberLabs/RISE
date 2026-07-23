@@ -184,7 +184,9 @@ export class Session {
     isCustom = false,
     voiceEnabled = false,
     voiceId = null,
-    selectedSwellId = null
+    selectedSwellId = null,
+    // Liturgical sessions refuse traversal (LATERAL-TRAVERSAL-SPEC §8)
+    shuttleExempt = false
   }) {
     const safeWpm = Number(wpm);
     const chunkModes = new Set(['word', 'phrase', 'sentence', 'paragraph']);
@@ -209,6 +211,7 @@ export class Session {
     this.voiceEnabled = voiceEnabled;
     this.voiceId = voiceId;
     this.selectedSwellId = selectedSwellId;
+    this.shuttleExempt = shuttleExempt === true;
     this.createdAt = new Date();
   }
 
@@ -281,6 +284,19 @@ export class SessionState {
     if (!this.isComplete) {
       this.currentIndex++;
     }
+  }
+
+  /**
+   * Step backward one atom (the Shuttle's rewind). Clamps at 0 —
+   * the DVD hits the leader (LATERAL-TRAVERSAL-SPEC §3).
+   * @returns {boolean} true when a step was taken, false at the clamp
+   */
+  retreat() {
+    if (this.currentIndex > 0) {
+      this.currentIndex--;
+      return true;
+    }
+    return false;
   }
 
   /**

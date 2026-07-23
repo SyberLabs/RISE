@@ -598,6 +598,33 @@ export class AudioEngine {
     }
 
     /**
+     * SHUTTLE SUSPENSION (LATERAL-TRAVERSAL-SPEC §5): entrainment is
+     * frequency-locked to a therapeutic target — at any velocity but
+     * 1× it must fall silent, not scale (a scaled waveform is noise).
+     * Ducks the binaural layer with a soft ramp; restoring returns
+     * the layer's prior gain. Soundscapes and chant beds are ambient
+     * and clock-independent — they persist untouched.
+     */
+    setShuttleSuspension(suspended) {
+        const gain = this.layerGains?.binaural?.gain;
+        if (!gain || !this.context) return;
+        const now = this.context.currentTime;
+        if (suspended) {
+            if (this._shuttleSuspendedGain == null) {
+                this._shuttleSuspendedGain = gain.value;
+            }
+            gain.cancelScheduledValues(now);
+            gain.setValueAtTime(gain.value, now);
+            gain.linearRampToValueAtTime(0, now + 0.4);
+        } else if (this._shuttleSuspendedGain != null) {
+            gain.cancelScheduledValues(now);
+            gain.setValueAtTime(gain.value, now);
+            gain.linearRampToValueAtTime(this._shuttleSuspendedGain, now + 0.8);
+            this._shuttleSuspendedGain = null;
+        }
+    }
+
+    /**
      * Stop binaural beat generator
      */
     stopBinaural(instant = false) {

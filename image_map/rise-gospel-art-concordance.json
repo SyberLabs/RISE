@@ -1,0 +1,2549 @@
+{
+  "title": "RISE Gospel Art Concordance",
+  "version": "research-draft-1",
+  "generated": "2026-07-23",
+  "scope": {
+    "institutions": [
+      "Art Institute of Chicago",
+      "Cleveland Museum of Art",
+      "Rijksmuseum"
+    ],
+    "principle": "Pericope-first mapping. Direct depiction outranks thematic resemblance; stillness outranks substitution.",
+    "not_exhaustive_objects": "Comprehensive at the major Gospel-pericope level for this research pass; not an enumeration of every duplicate impression in each museum."
+  },
+  "relation_definitions": {
+    "DIRECT": "The institutional title, description, or subject record identifies the same Gospel episode.",
+    "COMPOSITE": "The episode appears within a multi-scene or multi-pericope composition.",
+    "RELATED": "The work is iconographically adjacent but is not an exact depiction.",
+    "GAP": "No sufficiently direct candidate retained in this pass."
+  },
+  "status_definitions": {
+    "existing_pin": "Already present in RISE and previously contact-sheet reviewed.",
+    "pin_ready": "Uses an adapter-compatible institutional identifier.",
+    "needs_contact_sheet": "Rights/identity look viable, but human visual review is still required.",
+    "needs_athena_id": "Cleveland accession discovered; resolve numeric Athena ID or expand the adapter.",
+    "needs_persistent_id": "Resolve the Rijks Linked Art persistent numeric ID before pinning.",
+    "hold": "Do not put into an exact pericope pool without explicit composite/related treatment."
+  },
+  "atlas_amendments": [
+    {
+      "institution": "Rijksmuseum",
+      "change": "The current RijksData Search documentation exposes title, description, aboutActor, creator and other axes; English and Dutch search terms are supported, with Dutch coverage more complete. creationDate also supports wildcard patterns such as 16??. The Museum Atlas should no longer state that exact-year creationDate is the only useful route."
+    },
+    {
+      "institution": "Cleveland Museum of Art",
+      "change": "The official API accepts either an Athena ID or accession number for a specific object, but RISE's current adapter rejects dotted accession numbers with /^\\d+$/. New discoveries listed by accession therefore need numeric ID resolution or a deliberate adapter amendment."
+    }
+  ],
+  "passages": [
+    {
+      "id": "annunciation",
+      "title": "The Annunciation",
+      "passages": [
+        "Luke 1:26-38"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Annunciation",
+          "Gabriel and Mary"
+        ],
+        "nl": [
+          "Annunciatie",
+          "Aankondiging aan Maria"
+        ]
+      },
+      "works": [
+        {
+          "source": "aic",
+          "id": 16327,
+          "title": "The Annunciation",
+          "artist": "Jean Hey",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.artic.edu/artworks/16327",
+          "note": "Already contact-sheet reviewed in RISE."
+        },
+        {
+          "source": "rijks",
+          "id": 20025868,
+          "title": "The Annunciation",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://id.rijksmuseum.nl/20025868",
+          "note": "Already in chapel-nativity."
+        },
+        {
+          "source": "rijks",
+          "id": 20025780,
+          "title": "The Annunciation",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://id.rijksmuseum.nl/20025780",
+          "note": "Already in chapel-nativity."
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "visitation",
+      "title": "The Visitation",
+      "passages": [
+        "Luke 1:39-56"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Visitation",
+          "Mary visits Elizabeth"
+        ],
+        "nl": [
+          "Visitatie",
+          "Maria bezoekt Elisabet"
+        ]
+      },
+      "works": [
+        {
+          "source": "cleveland",
+          "id": 136192,
+          "title": "The Visitation",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/136192",
+          "note": "Current Rosarium Joyful Mystery work."
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "nativity",
+      "title": "The Nativity / Birth of Christ",
+      "passages": [
+        "Luke 2:1-7"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Nativity",
+          "Birth of Christ"
+        ],
+        "nl": [
+          "Geboorte van Christus",
+          "Kerstnacht"
+        ]
+      },
+      "works": [
+        {
+          "source": "cleveland",
+          "id": 135311,
+          "title": "The Nativity",
+          "artist": "Gerard David",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/135311",
+          "note": ""
+        },
+        {
+          "source": "aic",
+          "id": 184371,
+          "title": "The Nativity",
+          "artist": "Fra Bartolommeo",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.artic.edu/artworks/184371",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200107955,
+          "title": "The Adoration of the Christ Child",
+          "artist": "",
+          "medium": "",
+          "relation": "RELATED",
+          "status": "existing_pin",
+          "source_url": "https://id.rijksmuseum.nl/200107955",
+          "note": "Devotional adoration rather than a strict narrative birth scene."
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "annunciation-to-shepherds",
+      "title": "The Annunciation to the Shepherds",
+      "passages": [
+        "Luke 2:8-14"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Annunciation to the Shepherds",
+          "Angel appears to shepherds"
+        ],
+        "nl": [
+          "Verkondiging aan de herders",
+          "Engel verschijnt aan de herders"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 20026246,
+          "title": "The Annunciation to the Shepherds",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://id.rijksmuseum.nl/20026246",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200108947,
+          "title": "Annunciation to the Shepherds",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://id.rijksmuseum.nl/200108947",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "adoration-shepherds",
+      "title": "The Adoration of the Shepherds",
+      "passages": [
+        "Luke 2:15-20"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Adoration of the Shepherds"
+        ],
+        "nl": [
+          "Aanbidding door de herders"
+        ]
+      },
+      "works": [
+        {
+          "source": "cleveland",
+          "id": 97171,
+          "title": "Adoration of the Shepherds",
+          "artist": "Hans Leonhard Schäufelein",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/97171",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200108423,
+          "title": "The Adoration of the Shepherds",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://id.rijksmuseum.nl/200108423",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200109187,
+          "title": "The Adoration of the Shepherds",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://id.rijksmuseum.nl/200109187",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "circumcision",
+      "title": "The Circumcision and Naming of Jesus",
+      "passages": [
+        "Luke 2:21"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Circumcision of Christ"
+        ],
+        "nl": [
+          "Besnijdenis van Christus"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200122440,
+          "title": "Circumcision of Christ",
+          "artist": "Albrecht Dürer",
+          "medium": "woodcut",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200122440",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200124519,
+          "title": "Circumcision of Christ",
+          "artist": "",
+          "medium": "woodcut",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200124519",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "presentation",
+      "title": "The Presentation in the Temple",
+      "passages": [
+        "Luke 2:22-38"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Presentation in the Temple",
+          "Simeon"
+        ],
+        "nl": [
+          "Presentatie in de tempel",
+          "Simeon"
+        ]
+      },
+      "works": [
+        {
+          "source": "cleveland",
+          "id": 136177,
+          "title": "The Presentation in the Temple",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/136177",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200122446,
+          "title": "Presentation of Christ in the Temple",
+          "artist": "Albrecht Dürer",
+          "medium": "woodcut",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200122446",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200122444,
+          "title": "Presentation of Christ in the Temple",
+          "artist": "Albrecht Dürer",
+          "medium": "woodcut",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200122444",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "magi",
+      "title": "The Adoration of the Magi",
+      "passages": [
+        "Matthew 2:1-12"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Adoration of the Magi",
+          "Three Kings"
+        ],
+        "nl": [
+          "Aanbidding der koningen",
+          "Drie koningen"
+        ]
+      },
+      "works": [
+        {
+          "source": "cleveland",
+          "id": 122223,
+          "title": "The Adoration of the Magi",
+          "artist": "Giovanni di Paolo",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/122223",
+          "note": ""
+        },
+        {
+          "source": "cleveland",
+          "id": 128389,
+          "title": "The Adoration of the Magi",
+          "artist": "Geertgen tot Sint Jans",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/128389",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200106080,
+          "title": "The Adoration of the Magi",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://id.rijksmuseum.nl/200106080",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200107773,
+          "title": "The Adoration of the Magi",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://id.rijksmuseum.nl/200107773",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "flight-into-egypt",
+      "title": "The Flight into Egypt",
+      "passages": [
+        "Matthew 2:13-15"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Flight into Egypt"
+        ],
+        "nl": [
+          "Vlucht naar Egypte"
+        ]
+      },
+      "works": [
+        {
+          "source": "aic",
+          "id": 16134,
+          "title": "The Flight into Egypt",
+          "artist": "Bernardino Butinone",
+          "medium": "painting",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://www.artic.edu/artworks/16134",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200383792,
+          "title": "The Flight into Egypt",
+          "artist": "",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200383792",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200147235,
+          "title": "Massacre of the Innocents and Flight into Egypt",
+          "artist": "",
+          "medium": "",
+          "relation": "COMPOSITE",
+          "status": "hold",
+          "source_url": "https://id.rijksmuseum.nl/200147235",
+          "note": "Two episodes share one surface; do not present as an exact single-scene work."
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "massacre-innocents",
+      "title": "The Massacre of the Innocents",
+      "passages": [
+        "Matthew 2:16-18"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Massacre of the Innocents"
+        ],
+        "nl": [
+          "Kindermoord te Bethlehem",
+          "Moord op de onschuldige kinderen"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 20028291,
+          "title": "The Massacre of the Innocents",
+          "artist": "Lodovico Mazzolino",
+          "medium": "painting",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/20028291",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200147235,
+          "title": "Massacre of the Innocents and Flight into Egypt",
+          "artist": "",
+          "medium": "",
+          "relation": "COMPOSITE",
+          "status": "hold",
+          "source_url": "https://id.rijksmuseum.nl/200147235",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "return-egypt",
+      "title": "The Return from Egypt / Settlement at Nazareth",
+      "passages": [
+        "Matthew 2:19-23"
+      ],
+      "coverage": "GAP",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Return from Egypt",
+          "Holy Family returns"
+        ],
+        "nl": [
+          "Terugkeer uit Egypte"
+        ]
+      },
+      "works": [],
+      "curatorial_note": "No high-confidence direct candidate retained in this pass."
+    },
+    {
+      "id": "christ-among-doctors",
+      "title": "The Twelve-Year-Old Jesus among the Doctors",
+      "passages": [
+        "Luke 2:41-52"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Christ among the Doctors",
+          "Jesus in the Temple"
+        ],
+        "nl": [
+          "Twaalfjarige Christus in de tempel"
+        ]
+      },
+      "works": [
+        {
+          "source": "cleveland",
+          "id": 104139,
+          "title": "Christ among the Doctors",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/104139",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "baptism",
+      "title": "The Baptism of Christ",
+      "passages": [
+        "Matthew 3:13-17",
+        "Mark 1:9-11",
+        "Luke 3:21-22",
+        "John 1:29-34"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Baptism of Christ"
+        ],
+        "nl": [
+          "Doop van Christus",
+          "Doop in de Jordaan"
+        ]
+      },
+      "works": [
+        {
+          "source": "cleveland",
+          "id": "1953.143",
+          "title": "The Baptism of Christ",
+          "artist": "Lucas Cranach",
+          "medium": "painting",
+          "relation": "DIRECT",
+          "status": "needs_athena_id",
+          "source_url": "https://www.clevelandart.org/art/1953.143",
+          "note": "Official CMA record is CC0; current RISE adapter rejects dotted accession numbers."
+        },
+        {
+          "source": "cleveland",
+          "id": "1950.400",
+          "title": "Baptism of Christ",
+          "artist": "Workshop of Jacopo Tintoretto",
+          "medium": "painting",
+          "relation": "DIRECT",
+          "status": "needs_athena_id",
+          "source_url": "https://www.clevelandart.org/art/1950.400",
+          "note": ""
+        },
+        {
+          "source": "aic",
+          "id": 3827,
+          "title": "The Baptism of Christ",
+          "artist": "Martin Schongauer",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://www.artic.edu/artworks/3827",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "temptation",
+      "title": "The Temptation of Christ",
+      "passages": [
+        "Matthew 4:1-11",
+        "Mark 1:12-13",
+        "Luke 4:1-13"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Temptation of Christ"
+        ],
+        "nl": [
+          "Verzoeking van Christus"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200144296,
+          "title": "Temptation of Christ",
+          "artist": "Cornelis Saftleven",
+          "medium": "drawing",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200144296",
+          "note": "Directly depicts the command to turn stones into bread."
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "calling-disciples",
+      "title": "The Calling of the First Disciples / Miraculous Catch",
+      "passages": [
+        "Matthew 4:18-22",
+        "Mark 1:16-20",
+        "Luke 5:1-11",
+        "John 1:35-51"
+      ],
+      "coverage": "GAP",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Calling of the apostles",
+          "Miraculous catch of fish"
+        ],
+        "nl": [
+          "Roeping van de apostelen",
+          "Wonderbare visvangst"
+        ]
+      },
+      "works": [],
+      "curatorial_note": "Gap: conduct a dedicated subject-node search; do not substitute generic fishing scenes."
+    },
+    {
+      "id": "wedding-cana",
+      "title": "The Wedding at Cana",
+      "passages": [
+        "John 2:1-11"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Wedding at Cana",
+          "Marriage at Cana"
+        ],
+        "nl": [
+          "Bruiloft te Kana"
+        ]
+      },
+      "works": [
+        {
+          "source": "aic",
+          "id": 2166,
+          "title": "The Wedding at Cana",
+          "artist": "Giuseppe Maria Crespi",
+          "medium": "painting",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://www.artic.edu/artworks/2166",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200230363,
+          "title": "Marriage at Cana",
+          "artist": "Jacob Matham",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200230363",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200428834,
+          "title": "Marriage at Cana",
+          "artist": "Jacob Matham",
+          "medium": "two-plate engraving",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200428834",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "cleansing-temple",
+      "title": "Christ Cleanses the Temple",
+      "passages": [
+        "John 2:13-22",
+        "Matthew 21:12-17",
+        "Mark 11:15-19",
+        "Luke 19:45-48"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Cleansing of the Temple",
+          "Money changers"
+        ],
+        "nl": [
+          "Tempelreiniging",
+          "Geldwisselaars uit de tempel"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200124928,
+          "title": "Christ Driving the Money Changers from the Temple",
+          "artist": "Rembrandt van Rijn",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200124928",
+          "note": "The image is exact, but the same iconography can be assigned to either Johannine or Synoptic placement."
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "nicodemus",
+      "title": "Jesus and Nicodemus",
+      "passages": [
+        "John 3:1-21"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Jesus and Nicodemus"
+        ],
+        "nl": [
+          "Christus en Nicodemus",
+          "Christus bij Nikodemus"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200148161,
+          "title": "Christ with Nicodemus",
+          "artist": "Pieter de Jode II",
+          "medium": "drawing",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200148161",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "samaritan-woman",
+      "title": "Jesus and the Samaritan Woman",
+      "passages": [
+        "John 4:4-42"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Christ and the Woman of Samaria",
+          "Samaritan woman at the well"
+        ],
+        "nl": [
+          "Christus en de Samaritaanse vrouw",
+          "Samaritaanse vrouw bij de bron"
+        ]
+      },
+      "works": [
+        {
+          "source": "aic",
+          "id": 16200,
+          "title": "Christ and the Woman of Samaria",
+          "artist": "Pietro Perugino",
+          "medium": "painting",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://www.artic.edu/artworks/16200",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200124940,
+          "title": "Christ and the Woman of Samaria",
+          "artist": "Rembrandt van Rijn",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200124940",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "bethesda",
+      "title": "The Healing at the Pool of Bethesda",
+      "passages": [
+        "John 5:1-9"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Pool of Bethesda",
+          "Healing at Bethesda"
+        ],
+        "nl": [
+          "Bad van Bethesda",
+          "Genezing te Bethesda"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200267740,
+          "title": "Christ Healing the Sick at Bethesda",
+          "artist": "",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200267740",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "sermon-mount",
+      "title": "The Sermon on the Mount",
+      "passages": [
+        "Matthew 5:1-7:29"
+      ],
+      "coverage": "RELATED",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Sermon on the Mount"
+        ],
+        "nl": [
+          "Bergrede"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200124917,
+          "title": "Christ Preaching ('La petite tombe')",
+          "artist": "Rembrandt van Rijn",
+          "medium": "print",
+          "relation": "RELATED",
+          "status": "hold",
+          "source_url": "https://id.rijksmuseum.nl/200124917",
+          "note": "A teaching scene, not securely the Sermon on the Mount."
+        }
+      ],
+      "curatorial_note": "No exact retained work from these three providers; RISE's current Bloch Commons work remains the stronger exact image."
+    },
+    {
+      "id": "christ-children",
+      "title": "Jesus Blesses the Children",
+      "passages": [
+        "Matthew 19:13-15",
+        "Mark 10:13-16",
+        "Luke 18:15-17"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Christ receiving the children"
+        ],
+        "nl": [
+          "Christus zegent de kinderen",
+          "Laat de kinderen tot mij komen"
+        ]
+      },
+      "works": [
+        {
+          "source": "aic",
+          "id": 9672,
+          "title": "Christ Receiving the Children",
+          "artist": "Sébastien Bourdon",
+          "medium": "painting",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://www.artic.edu/artworks/9672",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200126043,
+          "title": "Christ Preaching / The Hundred Guilder Print",
+          "artist": "Rembrandt van Rijn",
+          "medium": "print",
+          "relation": "COMPOSITE",
+          "status": "hold",
+          "source_url": "https://id.rijksmuseum.nl/200126043",
+          "note": "Includes children and healings within a broader Matthew 19 synthesis."
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "healing-crowd",
+      "title": "Christ Heals and Teaches the Multitude",
+      "passages": [
+        "Matthew 8-9",
+        "Matthew 19:1-15"
+      ],
+      "coverage": "COMPOSITE",
+      "runtime_policy": "chapter_pool",
+      "search_lexicon": {
+        "en": [
+          "Christ healing the sick",
+          "Hundred Guilder Print"
+        ],
+        "nl": [
+          "Christus geneest de zieken",
+          "Honderdguldenprent"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200126043,
+          "title": "Christ Preaching / The Hundred Guilder Print",
+          "artist": "Rembrandt van Rijn",
+          "medium": "print",
+          "relation": "COMPOSITE",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200126043",
+          "note": "Best used for a multi-episode ministry interval, not a single miracle."
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "calming-storm",
+      "title": "Christ Calms the Storm",
+      "passages": [
+        "Matthew 8:23-27",
+        "Mark 4:35-41",
+        "Luke 8:22-25"
+      ],
+      "coverage": "GAP",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Christ calming the storm",
+          "Storm on the Sea of Galilee"
+        ],
+        "nl": [
+          "Christus stilt de storm",
+          "Storm op het Meer van Galilea"
+        ]
+      },
+      "works": [],
+      "curatorial_note": "Gap in the retained pass. Keep stillness rather than use a generic seascape."
+    },
+    {
+      "id": "feeding-multitude",
+      "title": "The Multiplication of Loaves and Fishes",
+      "passages": [
+        "Matthew 14:13-21",
+        "Matthew 15:32-39",
+        "Mark 6:32-44",
+        "Mark 8:1-10",
+        "Luke 9:10-17",
+        "John 6:1-14"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Multiplication of loaves and fishes",
+          "Feeding of the five thousand"
+        ],
+        "nl": [
+          "Wonderbare spijziging",
+          "Vermenigvuldiging van broden en vissen"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200626632,
+          "title": "The Miraculous Feeding",
+          "artist": "Pieter van der Borcht I",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200626632",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200485086,
+          "title": "The Miraculous Feeding",
+          "artist": "Jacques de Gheyn II",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200485086",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "walking-water",
+      "title": "Jesus and Peter Walk on the Water",
+      "passages": [
+        "Matthew 14:22-33",
+        "Mark 6:45-52",
+        "John 6:16-21"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Christ walking on water",
+          "Peter sinking"
+        ],
+        "nl": [
+          "Christus loopt over het water",
+          "Petrus zinkt"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200179614,
+          "title": "Christ Walks on the Water",
+          "artist": "Christoffel van Sichem II",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200179614",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200401646,
+          "title": "Christ Walks on the Water",
+          "artist": "Monogrammist AB",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200401646",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "transfiguration",
+      "title": "The Transfiguration",
+      "passages": [
+        "Matthew 17:1-8",
+        "Mark 9:2-8",
+        "Luke 9:28-36"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Transfiguration of Christ"
+        ],
+        "nl": [
+          "Gedaanteverandering van Christus",
+          "Transfiguratie"
+        ]
+      },
+      "works": [
+        {
+          "source": "cleveland",
+          "id": 146788,
+          "title": "The Transfiguration",
+          "artist": "Camillo Procaccini",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/146788",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "good-samaritan",
+      "title": "The Parable of the Good Samaritan",
+      "passages": [
+        "Luke 10:25-37"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Good Samaritan"
+        ],
+        "nl": [
+          "Barmhartige Samaritaan"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200107987,
+          "title": "The Good Samaritan",
+          "artist": "",
+          "medium": "painting",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200107987",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200125033,
+          "title": "The Good Samaritan",
+          "artist": "Rembrandt van Rijn",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200125033",
+          "note": ""
+        },
+        {
+          "source": "cleveland",
+          "id": "2024.32",
+          "title": "The Good Samaritan",
+          "artist": "Gustave Moreau",
+          "medium": "watercolor",
+          "relation": "DIRECT",
+          "status": "needs_athena_id",
+          "source_url": "https://www.clevelandart.org/art/2024.32",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "mary-martha",
+      "title": "Jesus with Mary and Martha",
+      "passages": [
+        "Luke 10:38-42"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Christ with Mary and Martha"
+        ],
+        "nl": [
+          "Christus bij Martha en Maria"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200255893,
+          "title": "Christ with Martha and Mary",
+          "artist": "Pieter Sluyter",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200255893",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "prodigal-son",
+      "title": "The Parable of the Prodigal Son",
+      "passages": [
+        "Luke 15:11-32"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Prodigal Son",
+          "Return of the Prodigal Son"
+        ],
+        "nl": [
+          "Verloren zoon",
+          "Terugkeer van de verloren zoon"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200125040,
+          "title": "The Return of the Prodigal Son",
+          "artist": "Rembrandt van Rijn",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200125040",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "raising-lazarus",
+      "title": "The Raising of Lazarus",
+      "passages": [
+        "John 11:1-44"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Raising of Lazarus"
+        ],
+        "nl": [
+          "Opwekking van Lazarus"
+        ]
+      },
+      "works": [
+        {
+          "source": "aic",
+          "id": 49000,
+          "title": "The Raising of Lazarus: The Larger Plate",
+          "artist": "Rembrandt van Rijn",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://www.artic.edu/artworks/49000",
+          "note": ""
+        },
+        {
+          "source": "aic",
+          "id": 111467,
+          "title": "The Raising of Lazarus",
+          "artist": "Follower of Rembrandt",
+          "medium": "painting",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://www.artic.edu/artworks/111467",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200124949,
+          "title": "The Raising of Lazarus",
+          "artist": "Rembrandt van Rijn",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200124949",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "woman-adultery",
+      "title": "Jesus and the Woman Taken in Adultery",
+      "passages": [
+        "John 8:2-11"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Woman taken in adultery"
+        ],
+        "nl": [
+          "Christus en de overspelige vrouw"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200110644,
+          "title": "Christ and the Woman in Adultery",
+          "artist": "Gerbrand van den Eeckhout",
+          "medium": "painting",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200110644",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200168676,
+          "title": "Christ and the Woman in Adultery",
+          "artist": "Giuseppe Camerata II",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200168676",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "zacchaeus",
+      "title": "Jesus Calls Zacchaeus",
+      "passages": [
+        "Luke 19:1-10"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Zacchaeus in the fig tree"
+        ],
+        "nl": [
+          "Zacheüs in de vijgenboom",
+          "Roeping van Zacheüs"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 2009076,
+          "title": "Christ and Zacchaeus",
+          "artist": "Erasmus Quellinus II",
+          "medium": "drawing",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/2009076",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200396204,
+          "title": "Zacchaeus in the Fig Tree",
+          "artist": "Jan Luyken",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200396204",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "tribute-money",
+      "title": "The Tribute Money / Coin in the Fish",
+      "passages": [
+        "Matthew 17:24-27"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Tribute money",
+          "Coin in the fish"
+        ],
+        "nl": [
+          "Cijnspenning",
+          "Petrus vindt munt in de vis"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200124921,
+          "title": "The Tribute Money",
+          "artist": "Rembrandt van Rijn",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200124921",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "anointing-bethany",
+      "title": "The Anointing at Bethany",
+      "passages": [
+        "Matthew 26:6-13",
+        "Mark 14:3-9",
+        "John 12:1-8"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Anointing at Bethany"
+        ],
+        "nl": [
+          "Zalving te Betanië"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200247822,
+          "title": "Anointing at Bethany",
+          "artist": "Johann Sadeler I",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200247822",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "entry-jerusalem",
+      "title": "The Entry into Jerusalem",
+      "passages": [
+        "Matthew 21:1-11",
+        "Mark 11:1-11",
+        "Luke 19:28-40",
+        "John 12:12-19"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Entry into Jerusalem",
+          "Palm Sunday"
+        ],
+        "nl": [
+          "Intocht in Jeruzalem",
+          "Palmzondag"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200395198,
+          "title": "The Entry into Jerusalem",
+          "artist": "Schelte Adamsz. Bolswert",
+          "medium": "engraving",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200395198",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "washing-feet",
+      "title": "Christ Washes the Disciples' Feet",
+      "passages": [
+        "John 13:1-20"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Christ washing the disciples' feet"
+        ],
+        "nl": [
+          "Voetwassing",
+          "Christus wast de voeten"
+        ]
+      },
+      "works": [
+        {
+          "source": "aic",
+          "id": 58052,
+          "title": "Christ Washing the Feet of His Disciples",
+          "artist": "Nicolas Bertin",
+          "medium": "painting",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://www.artic.edu/artworks/58052",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "last-supper",
+      "title": "The Last Supper",
+      "passages": [
+        "Matthew 26:17-30",
+        "Mark 14:12-26",
+        "Luke 22:7-23",
+        "John 13:21-30"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Last Supper"
+        ],
+        "nl": [
+          "Laatste Avondmaal"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200536193,
+          "title": "The Last Supper",
+          "artist": "Jan Harmensz. Muller",
+          "medium": "triptych print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200536193",
+          "note": ""
+        },
+        {
+          "source": "cleveland",
+          "id": "1926.112",
+          "title": "The Last Supper",
+          "artist": "Albrecht Dürer",
+          "medium": "woodcut",
+          "relation": "DIRECT",
+          "status": "needs_athena_id",
+          "source_url": "https://www.clevelandart.org/art/1926.112",
+          "note": ""
+        },
+        {
+          "source": "cleveland",
+          "id": "1923.55.1",
+          "title": "The Last Supper",
+          "artist": "Lucas van Leyden",
+          "medium": "engraving",
+          "relation": "DIRECT",
+          "status": "needs_athena_id",
+          "source_url": "https://www.clevelandart.org/art/1923.55.1",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "gethsemane",
+      "title": "The Agony in the Garden",
+      "passages": [
+        "Matthew 26:36-46",
+        "Mark 14:32-42",
+        "Luke 22:39-46"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Agony in the Garden",
+          "Gethsemane"
+        ],
+        "nl": [
+          "Christus in Getsemane",
+          "Gebed op de Olijfberg"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200124962,
+          "title": "The Agony in the Garden",
+          "artist": "Rembrandt van Rijn",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200124962",
+          "note": ""
+        },
+        {
+          "source": "cleveland",
+          "id": 102535,
+          "title": "Ecce Homo",
+          "artist": "Albrecht Dürer",
+          "medium": "",
+          "relation": "RELATED",
+          "status": "hold",
+          "source_url": "https://www.clevelandart.org/art/102535",
+          "note": "Not Gethsemane; retained here only as a false-friend warning."
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "betrayal-arrest",
+      "title": "The Betrayal and Arrest of Jesus",
+      "passages": [
+        "Matthew 26:47-56",
+        "Mark 14:43-52",
+        "Luke 22:47-53",
+        "John 18:1-12"
+      ],
+      "coverage": "COMPOSITE",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Betrayal of Christ",
+          "Arrest of Christ",
+          "Kiss of Judas"
+        ],
+        "nl": [
+          "Verraad van Judas",
+          "Gevangenneming van Christus",
+          "Judaskus"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200254865,
+          "title": "The Agony in the Garden and the Approaching Betrayal",
+          "artist": "",
+          "medium": "print",
+          "relation": "COMPOSITE",
+          "status": "hold",
+          "source_url": "https://id.rijksmuseum.nl/200254865",
+          "note": "Judas and the arrest party appear as a secondary scene; not an exact arrest-only image."
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "annas-caiaphas",
+      "title": "Jesus before Annas and Caiaphas",
+      "passages": [
+        "Matthew 26:57-68",
+        "Mark 14:53-65",
+        "Luke 22:54-71",
+        "John 18:12-24"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Christ before Caiaphas",
+          "Christ before Annas"
+        ],
+        "nl": [
+          "Christus voor Kajafas",
+          "Christus voor Annas"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200403431,
+          "title": "Christ before Caiaphas",
+          "artist": "",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200403431",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200403430,
+          "title": "Christ before Caiaphas",
+          "artist": "",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200403430",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "denial-peter",
+      "title": "The Denial of Saint Peter",
+      "passages": [
+        "Matthew 26:69-75",
+        "Mark 14:66-72",
+        "Luke 22:54-62",
+        "John 18:15-18,25-27"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Denial of Peter"
+        ],
+        "nl": [
+          "Verloochening van Petrus",
+          "Petrus weent"
+        ]
+      },
+      "works": [
+        {
+          "source": "aic",
+          "id": 30901,
+          "title": "The Denial of Saint Peter",
+          "artist": "Hendrick ter Brugghen",
+          "medium": "painting",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://www.artic.edu/artworks/30901",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200137068,
+          "title": "Christ before Annas with the Denial of Peter",
+          "artist": "",
+          "medium": "print",
+          "relation": "COMPOSITE",
+          "status": "hold",
+          "source_url": "https://id.rijksmuseum.nl/200137068",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200225335,
+          "title": "Peter Weeping after the Denial",
+          "artist": "",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200225335",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "before-pilate",
+      "title": "Jesus before Pilate",
+      "passages": [
+        "Matthew 27:1-26",
+        "Mark 15:1-15",
+        "Luke 23:1-25",
+        "John 18:28-19:16"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Christ before Pilate"
+        ],
+        "nl": [
+          "Christus voor Pilatus"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200124976,
+          "title": "Christ before Pilate",
+          "artist": "Rembrandt van Rijn",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200124976",
+          "note": ""
+        },
+        {
+          "source": "aic",
+          "id": 49009,
+          "title": "Christ Before Pilate: Large Plate",
+          "artist": "Rembrandt van Rijn",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://www.artic.edu/artworks/49009",
+          "note": ""
+        },
+        {
+          "source": "aic",
+          "id": 109500,
+          "title": "Christ before Pilate",
+          "artist": "Pontormo",
+          "medium": "drawing",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://www.artic.edu/artworks/109500",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "flagellation",
+      "title": "The Flagellation of Christ",
+      "passages": [
+        "Matthew 27:26",
+        "Mark 15:15",
+        "John 19:1"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Flagellation of Christ"
+        ],
+        "nl": [
+          "Geseling van Christus"
+        ]
+      },
+      "works": [
+        {
+          "source": "cleveland",
+          "id": "current-rosarium-flagellation",
+          "title": "The Flagellation of Christ",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "",
+          "note": "Current Rosarium pin is Met 438466; no exact AIC/CMA/Rijks replacement selected in this pass."
+        }
+      ],
+      "curatorial_note": "Provider gap among the three requested institutions in the retained set; keep the existing Met work."
+    },
+    {
+      "id": "crowning-ecce-homo",
+      "title": "The Crowning with Thorns / Ecce Homo",
+      "passages": [
+        "Matthew 27:27-31",
+        "Mark 15:16-20",
+        "John 19:2-5"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Ecce Homo",
+          "Crowning with thorns"
+        ],
+        "nl": [
+          "Ecce Homo",
+          "Doornenkroning"
+        ]
+      },
+      "works": [
+        {
+          "source": "cleveland",
+          "id": 102535,
+          "title": "Ecce Homo",
+          "artist": "Albrecht Dürer",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/102535",
+          "note": ""
+        },
+        {
+          "source": "cleveland",
+          "id": 164752,
+          "title": "Ecce Homo: Christ Presented to the People",
+          "artist": "Rembrandt van Rijn",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/164752",
+          "note": ""
+        },
+        {
+          "source": "cleveland",
+          "id": 104612,
+          "title": "The Passion: Ecce Homo",
+          "artist": "Martin Schongauer",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/104612",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "carrying-cross",
+      "title": "Christ Carrying the Cross",
+      "passages": [
+        "Matthew 27:31-34",
+        "Mark 15:20-23",
+        "Luke 23:26-32",
+        "John 19:16-17"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Christ carrying the cross"
+        ],
+        "nl": [
+          "Kruisdraging",
+          "Christus draagt het kruis"
+        ]
+      },
+      "works": [
+        {
+          "source": "aic",
+          "id": 234781,
+          "title": "Christ Carrying the Cross",
+          "artist": "Sebastiano del Piombo",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.artic.edu/artworks/234781",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "crucifixion",
+      "title": "The Crucifixion",
+      "passages": [
+        "Matthew 27:35-56",
+        "Mark 15:24-41",
+        "Luke 23:33-49",
+        "John 19:18-37"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Crucifixion of Christ"
+        ],
+        "nl": [
+          "Kruisiging van Christus",
+          "Christus aan het kruis"
+        ]
+      },
+      "works": [
+        {
+          "source": "cleveland",
+          "id": 112856,
+          "title": "The Crucifixion with a Carthusian Monk",
+          "artist": "Rogier van der Weyden",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/112856",
+          "note": ""
+        },
+        {
+          "source": "aic",
+          "id": 80084,
+          "title": "The Crucifixion",
+          "artist": "Francisco de Zurbarán",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.artic.edu/artworks/80084",
+          "note": ""
+        },
+        {
+          "source": "aic",
+          "id": 111622,
+          "title": "The Crucifixion",
+          "artist": "Carlo Crivelli",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.artic.edu/artworks/111622",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200109302,
+          "title": "The Crucifixion with Mary, John, Mary Magdalene and Longinus",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://id.rijksmuseum.nl/200109302",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "descent-lamentation",
+      "title": "The Descent from the Cross and Lamentation",
+      "passages": [
+        "Matthew 27:57-58",
+        "Mark 15:42-45",
+        "Luke 23:50-53",
+        "John 19:38"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Descent from the Cross",
+          "Lamentation",
+          "Pietà"
+        ],
+        "nl": [
+          "Kruisafneming",
+          "Bewening van Christus",
+          "Pietà"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 20027041,
+          "title": "The Descent from the Cross",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://id.rijksmuseum.nl/20027041",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 2004499,
+          "title": "The Descent from the Cross",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://id.rijksmuseum.nl/2004499",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200109204,
+          "title": "Lamentation of Christ",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://id.rijksmuseum.nl/200109204",
+          "note": ""
+        },
+        {
+          "source": "cleveland",
+          "id": 94846,
+          "title": "Pietà",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/94846",
+          "note": ""
+        }
+      ],
+      "curatorial_note": "These are distinct post-crucifixion iconographies. Keep separate sub-pools even if they share a brief passage interval."
+    },
+    {
+      "id": "entombment",
+      "title": "The Entombment of Christ",
+      "passages": [
+        "Matthew 27:57-61",
+        "Mark 15:42-47",
+        "Luke 23:50-56",
+        "John 19:38-42"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Entombment of Christ"
+        ],
+        "nl": [
+          "Graflegging van Christus"
+        ]
+      },
+      "works": [
+        {
+          "source": "aic",
+          "id": 86323,
+          "title": "The Entombment",
+          "artist": "Guercino",
+          "medium": "painting",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://www.artic.edu/artworks/86323",
+          "note": ""
+        },
+        {
+          "source": "aic",
+          "id": 29120,
+          "title": "The Entombment",
+          "artist": "Rembrandt van Rijn",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://www.artic.edu/artworks/29120",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 20027024,
+          "title": "Entombment of Christ with Joseph of Arimathea and Nicodemus",
+          "artist": "",
+          "medium": "painting",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/20027024",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 20013267,
+          "title": "Entombment of Christ",
+          "artist": "Federico Barocci",
+          "medium": "drawing",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/20013267",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "resurrection",
+      "title": "The Resurrection / Empty Tomb",
+      "passages": [
+        "Matthew 28:1-10",
+        "Mark 16:1-8",
+        "Luke 24:1-12",
+        "John 20:1-18"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Resurrection of Christ",
+          "Three Marys at the tomb"
+        ],
+        "nl": [
+          "Opstanding van Christus",
+          "Drie Maria's bij het graf"
+        ]
+      },
+      "works": [
+        {
+          "source": "cleveland",
+          "id": 78982,
+          "title": "The Resurrection of Christ",
+          "artist": "Johann König",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/78982",
+          "note": ""
+        },
+        {
+          "source": "cleveland",
+          "id": 159717,
+          "title": "The Resurrection of Christ",
+          "artist": "Philip Galle",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/159717",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200109462,
+          "title": "The Resurrection of Christ",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://id.rijksmuseum.nl/200109462",
+          "note": ""
+        },
+        {
+          "source": "cleveland",
+          "id": 133419,
+          "title": "The Three Marys at the Tomb",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/133419",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "noli-me-tangere",
+      "title": "Christ Appears to Mary Magdalene / Noli me tangere",
+      "passages": [
+        "John 20:11-18"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Noli me tangere",
+          "Christ appears to Mary Magdalene"
+        ],
+        "nl": [
+          "Noli me tangere",
+          "Christus verschijnt aan Maria Magdalena"
+        ]
+      },
+      "works": [
+        {
+          "source": "aic",
+          "id": 16207,
+          "title": "Noli Me Tangere",
+          "artist": "Pietro Perugino",
+          "medium": "painting",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://www.artic.edu/artworks/16207",
+          "note": ""
+        },
+        {
+          "source": "cleveland",
+          "id": 134264,
+          "title": "Christ Appearing to the Magdalen",
+          "artist": "Martin Schongauer",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/134264",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "emmaus",
+      "title": "The Road to and Supper at Emmaus",
+      "passages": [
+        "Luke 24:13-35"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Supper at Emmaus",
+          "Road to Emmaus"
+        ],
+        "nl": [
+          "Maaltijd te Emmaüs",
+          "Emmaüsgangers"
+        ]
+      },
+      "works": [
+        {
+          "source": "cleveland",
+          "id": 106440,
+          "title": "Supper at Emmaus",
+          "artist": "Israhel van Meckenem",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/106440",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 20026350,
+          "title": "Supper at Emmaus",
+          "artist": "Jan Steen",
+          "medium": "painting",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/20026350",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200125018,
+          "title": "The Supper at Emmaus",
+          "artist": "Rembrandt van Rijn",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200125018",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "appearance-apostles",
+      "title": "Christ Appears to the Apostles behind Locked Doors",
+      "passages": [
+        "Luke 24:36-49",
+        "John 20:19-23"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Christ appears to the apostles"
+        ],
+        "nl": [
+          "Christus verschijnt aan de apostelen"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200125028,
+          "title": "Christ Appearing to the Apostles",
+          "artist": "Rembrandt van Rijn",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200125028",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200392481,
+          "title": "Christ Appears to the Apostles",
+          "artist": "Antonie Wierix II",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200392481",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "doubting-thomas",
+      "title": "The Incredulity of Thomas",
+      "passages": [
+        "John 20:24-29"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Doubting Thomas",
+          "Incredulity of Thomas"
+        ],
+        "nl": [
+          "Ongelovige Thomas",
+          "Ongeloof van Tomas"
+        ]
+      },
+      "works": [
+        {
+          "source": "rijks",
+          "id": 200178954,
+          "title": "Doubting Thomas",
+          "artist": "Reinier Vinkeles I",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200178954",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": "RP-P-OB-1353",
+          "title": "The Incredulity of Thomas",
+          "artist": "Albrecht Dürer",
+          "medium": "woodcut",
+          "relation": "DIRECT",
+          "status": "needs_persistent_id",
+          "source_url": "",
+          "note": "Object page found; resolve the Linked Art persistent numeric ID before pinning."
+        }
+      ],
+      "curatorial_note": ""
+    },
+    {
+      "id": "sea-tiberias",
+      "title": "The Appearance at the Sea of Tiberias / Miraculous Catch",
+      "passages": [
+        "John 21:1-14"
+      ],
+      "coverage": "GAP",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Appearance at the Sea of Tiberias",
+          "Miraculous catch after Resurrection"
+        ],
+        "nl": [
+          "Verschijning aan het Meer van Tiberias",
+          "Wonderbare visvangst na de opstanding"
+        ]
+      },
+      "works": [],
+      "curatorial_note": "Gap: do not reuse the pre-Resurrection calling-of-disciples imagery without explicit composite labeling."
+    },
+    {
+      "id": "ascension",
+      "title": "The Ascension",
+      "passages": [
+        "Mark 16:19-20",
+        "Luke 24:50-53",
+        "Acts 1:6-11"
+      ],
+      "coverage": "DIRECT",
+      "runtime_policy": "exact_range",
+      "search_lexicon": {
+        "en": [
+          "Ascension of Christ"
+        ],
+        "nl": [
+          "Hemelvaart van Christus"
+        ]
+      },
+      "works": [
+        {
+          "source": "cleveland",
+          "id": 130151,
+          "title": "Ascension of Christ",
+          "artist": "Albrecht Dürer",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.clevelandart.org/art/130151",
+          "note": ""
+        },
+        {
+          "source": "aic",
+          "id": 16313,
+          "title": "The Ascension",
+          "artist": "",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://www.artic.edu/artworks/16313",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200397609,
+          "title": "Ascension of Christ",
+          "artist": "Nicolaes de Bruyn",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200397609",
+          "note": ""
+        },
+        {
+          "source": "rijks",
+          "id": 200194093,
+          "title": "Ascension of Christ",
+          "artist": "Cornelis Galle II",
+          "medium": "print",
+          "relation": "DIRECT",
+          "status": "needs_contact_sheet",
+          "source_url": "https://id.rijksmuseum.nl/200194093",
+          "note": ""
+        }
+      ],
+      "curatorial_note": ""
+    }
+  ],
+  "summary": {
+    "pericopes": 56,
+    "coverage": {
+      "DIRECT": 49,
+      "GAP": 4,
+      "RELATED": 1,
+      "COMPOSITE": 2
+    },
+    "work_candidates_by_source": {
+      "aic": 20,
+      "rijks": 66,
+      "cleveland": 26
+    },
+    "work_candidates_by_status": {
+      "existing_pin": 39,
+      "needs_contact_sheet": 60,
+      "hold": 7,
+      "needs_athena_id": 5,
+      "needs_persistent_id": 1
+    }
+  }
+}

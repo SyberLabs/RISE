@@ -4,6 +4,7 @@
  */
 
 import { SessionState } from './models.js';
+import { Shuttle } from './shuttle.js';
 import { responsiveFrequency } from './conductor.js';
 import {
     VISUAL_PRESENCE_DEFAULT_MS,
@@ -153,6 +154,13 @@ export class Player {
         this.atomStartTime = null;
         this.currentAtomRemainingTime = null;
         this.speedFactor = 1.0; // Dynamic multiplier (1.0 = normal, 0.5 = 2x speed)
+
+        // THE SHUTTLE (LATERAL-TRAVERSAL-SPEC): signed traversal
+        // velocity on a discrete ladder, orthogonal to pace
+        // (speedFactor is the ↑↓ axis; the shuttle is ←→). Sessions
+        // may opt out entirely (liturgical rooms are traversal-exempt,
+        // spec §8) via session.shuttleExempt.
+        this.shuttle = new Shuttle();
         this.speechSyncId = 0; // Guard against late callbacks from old speech requests
         this.sessionWallStartTime = null;
         this.interlocutionStats = createInterlocutionStats();
@@ -194,6 +202,19 @@ export class Player {
         if (typeof document !== 'undefined' && document.addEventListener) {
             document.addEventListener('visibilitychange', this._boundVisibility);
         }
+    }
+
+    /**
+     * One atom's display time under the current pace AND shuttle
+     * velocity: authored duration × speedFactor (the ↑↓ pace axis)
+     * ÷ |velocity| (the ←→ shuttle axis). Floored so a chunk is
+     * always perceptible even at 8×.
+     */
+    _atomDisplayMs(atom) {
+        return Math.max(
+            (atom.duration * this.speedFactor) / this.shuttle.durationDivisor,
+            50
+        );
     }
 
     // ─── Reading clock ───
@@ -316,6 +337,13 @@ export class Player {
         this.sessionState.state = 'paused';
         this._readingPause();
 
+        // Pausing while shuttling drops to home (spec §3): resume is
+        // always normal reading, never a surprise 8× re-entry
+        if (!this.shuttle.atHome) {
+            this.shuttle.reset();
+            this.emit('shuttle', { velocity: 1, reason: 'paused' });
+        }
+
         if (wasInterlocuting) {
             try {
                 this.interlocutionCancelHandler?.('paused');
@@ -332,7 +360,7 @@ export class Player {
             const consumed = performance.now() - this.atomStartTime;
             if (this.currentAtomRemainingTime === null) {
                 const atom = this.sessionState.currentAtom;
-                this.currentAtomRemainingTime = Math.max(atom.duration * this.speedFactor, 50);
+                this.currentAtomRemainingTime = this._atomDisplayMs(atom);
             }
             this.currentAtomRemainingTime = Math.max(0, this.currentAtomRemainingTime - consumed);
             this.atomStartTime = null;
@@ -424,6 +452,54 @@ export class Player {
             ? Math.max(0.1, Math.min(5.0, parsed))
             : 1.0;
         console.log(`[Player] Speed factor set to: ${this.speedFactor}`);
+    }
+
+    // ─── The Shuttle (LATERAL-TRAVERSAL-SPEC) ───
+
+    /** Liturgical rooms are traversal-exempt (spec §8). */
+    get shuttleAvailable() {
+        return this.sessionState.session?.shuttleExempt !== true;
+    }
+
+    /**
+     * → : one rung toward forward speed (or toward home from rewind).
+     * @returns {number|null} the new velocity, or null when unavailable
+     */
+    shuttleForward() {
+        return this._shuttleStep('stepForward');
+    }
+
+    /**
+     * ← : one rung toward rewind (or toward home from forward speed).
+     * @returns {number|null} the new velocity, or null when unavailable
+     */
+    shuttleBackward() {
+        return this._shuttleStep('stepBackward');
+    }
+
+    _shuttleStep(step) {
+        if (!this.shuttleAvailable) return null;
+        if (!['playing', 'interlocuting'].includes(this.sessionState.state)) return null;
+        const before = this.shuttle.velocity;
+        const velocity = this.shuttle[step]();
+        if (velocity === before) return velocity; // clamped at a ladder end
+
+        // The CURRENT atom re-times under the new velocity immediately:
+        // cancel its timer and reschedule with a fresh display budget.
+        // (An in-flight interlocution simply completes; the boundary
+        // transaction already owns that path, and the next tick reads
+        // the new velocity.)
+        if (this.sessionState.state === 'playing') {
+            if (this.timerId) {
+                cancelAnimationFrame(this.timerId);
+                this.timerId = null;
+            }
+            this.atomStartTime = null;
+            this.currentAtomRemainingTime = null;
+            this.scheduleNextAtom(false, { alreadyPrepared: true });
+        }
+        this.emit('shuttle', { velocity, reason: 'step' });
+        return velocity;
     }
 
     /**
@@ -572,8 +648,27 @@ export class Player {
     async processNextNode() {
         if (this.sessionState.state !== 'playing') return;
 
+        // REWIND (spec §5): retreat one atom per tick — chunks replay
+        // in reverse SEQUENCE, never reversed within. No interlocution
+        // rolls in either shuttle direction (rhythmic suspends off
+        // home velocity); at atom 0 the shuttle clamps home and
+        // reading resumes forward (the DVD hits the leader).
+        if (this.shuttle.rewinding) {
+            if (!this.sessionState.retreat()) {
+                this.shuttle.reset();
+                this.emit('shuttle', { velocity: 1, reason: 'start-of-text' });
+            }
+            this._prepareCurrentAtom();
+            this.scheduleNextAtom(false, { alreadyPrepared: true });
+            return;
+        }
+
         const atoms = this.sessionState.session.atoms;
-        if (isInterlocutionEligibleBoundary(atoms, this.sessionState.currentIndex)) {
+        // Rhythmic interlocution belongs to home velocity only
+        // (spec §4: the safety ceiling approached from another
+        // direction). Fast-forward advances without rolling.
+        if (this.shuttle.atHome
+            && isInterlocutionEligibleBoundary(atoms, this.sessionState.currentIndex)) {
             const playbackEpoch = this._playbackEpoch;
             let preparedNextAtom = false;
             await this.attemptInterlocution({
@@ -601,13 +696,16 @@ export class Player {
     _prepareCurrentAtom({ concealed = false } = {}) {
         const atom = this.sessionState.currentAtom;
         if (!atom) return false;
+        // The high-water mark rises with every atom shown (spec §6):
+        // rewound positions are below it; it never falls.
+        this.shuttle.markPosition(this.sessionState.currentIndex);
         this.emit('atom', {
             atom,
             index: this.sessionState.currentIndex,
             total: this.sessionState.session.atomCount,
             concealed
         });
-        this.currentAtomRemainingTime = Math.max(atom.duration * this.speedFactor, 50);
+        this.currentAtomRemainingTime = this._atomDisplayMs(atom);
         return true;
     }
 
@@ -666,8 +764,11 @@ export class Player {
             this._prepareCurrentAtom();
         }
 
-        // Voice sync mode: let speech control timing
-        if (this.voiceSyncEnabled && this.speakFn) {
+        // Voice sync mode: let speech control timing. Voice belongs
+        // to home velocity only (spec §5 — speech cannot render at
+        // 4×): off home, the timer path below carries the atoms and
+        // speech resumes with the next home-velocity atom.
+        if (this.voiceSyncEnabled && this.speakFn && this.shuttle.atHome) {
             this.atomStartTime = performance.now();
             // Increment sync ID to orphan any callbacks from previous atoms
             const currentSyncId = ++this.speechSyncId;
@@ -803,7 +904,11 @@ export class Player {
         const lastIndex = prefix.length - 1;
         if (index >= lastIndex) return 0;
 
-        // Atoms after the current one, at the current speed
+        // Atoms after the current one, at the current PACE — the
+        // shuttle's transient velocity is deliberately excluded:
+        // "remaining" answers at reading pace, since home is the only
+        // steady state (during rewind the figure honestly grows as
+        // the index falls).
         let remaining = (this._totalAuthoredMs - prefix[index + 1]) * this.speedFactor;
 
         // The current atom: live remainder when mid-flight, else full

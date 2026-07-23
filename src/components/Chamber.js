@@ -415,6 +415,13 @@ export class Chamber {
       this.player.on('progress', (progress) => this.updateProgress(progress));
       this.player.on('complete', () => this.onSessionComplete());
       this.player.on('state', (state) => this.onStateChange(state));
+      // Shuttle transitions the Player makes on its own (pause drops
+      // home; rewind clamps home at atom 0) carry the same subsystem
+      // contract and HUD as key-initiated steps
+      this.player.on('shuttle', ({ velocity }) => {
+        this._applyShuttleState(velocity);
+        this.showShuttleHud(velocity);
+      });
     }
   }
 
@@ -437,7 +444,9 @@ export class Chamber {
     // Escape is owned via handleEscape(), dispatched by the router —
     // do not handle it here or the exit modal double-fires.
 
-    // Speed: Arrow keys (Up/Down) - only when NOT typing
+    // Two orthogonal axes (LATERAL-TRAVERSAL-SPEC §2): ↑↓ is PACE
+    // (how fast you read), ←→ is the SHUTTLE (which way and how hard
+    // you are moving). Only when NOT typing.
     if (!isTyping) {
         if (e.key === 'ArrowUp') {
             e.preventDefault();
@@ -445,12 +454,71 @@ export class Chamber {
         } else if (e.key === 'ArrowDown') {
             e.preventDefault();
             this.updateWpm(-10);
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            this.shuttleStep(1);
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            this.shuttleStep(-1);
         } else if ((e.key === 'k' || e.key === 'K') && this.hasAttractorField) {
             e.preventDefault();
             window.rise?.audioEngine?.playHiss();
             this.toggleKaleidoscope();
         }
     }
+  }
+
+  /**
+   * One shuttle keypress (direction +1 = →, -1 = ←). Liturgical
+   * sessions are traversal-exempt; outside a playing session the
+   * keys are inert.
+   */
+  shuttleStep(direction) {
+    if (!this.player?.shuttleAvailable) return;
+    const velocity = direction > 0
+      ? this.player.shuttleForward()
+      : this.player.shuttleBackward();
+    if (velocity === null) return;
+    this._applyShuttleState(velocity);
+    this.showShuttleHud(velocity);
+  }
+
+  /**
+   * The subsystem contract at velocity changes (spec §5): entrainment
+   * suspends off home and returns at home; focals, soundscapes, and
+   * chant beds persist untouched; rhythmic interlocution is already
+   * structural (the Player rolls only at home).
+   */
+  _applyShuttleState(velocity) {
+    const suspended = velocity !== 1;
+    try { window.rise?.audioEngine?.setShuttleSuspension?.(suspended); }
+    catch (e) { /* audio is optional */ }
+  }
+
+  /** Transient HUD: ‹‹4× · 2×› · the same surface as the pace HUD. */
+  showShuttleHud(velocity) {
+    const hud = this.container.querySelector('#chamber-speed-hud');
+    const value = this.container.querySelector('#speed-hud-value');
+    const label = hud?.querySelector('.speed-hud-label');
+    const unit = hud?.querySelector('.speed-hud-unit');
+    if (!hud || !value) return;
+    if (velocity === 1) {
+      if (label) label.textContent = 'PACE';
+      value.textContent = String(this.currentWpm);
+      if (unit) unit.textContent = 'WPM';
+    } else {
+      if (label) label.textContent = velocity < 0 ? '‹‹ REWIND' : 'FORWARD ››';
+      value.textContent = `${Math.abs(velocity)}×`;
+      if (unit) unit.textContent = '';
+    }
+    hud.classList.remove('hidden');
+    clearTimeout(this.speedHudTimeout);
+    this.speedHudTimeout = setTimeout(() => {
+      // The HUD lingers while shuttling (the reader should always
+      // know their velocity); it fades only at home
+      if (this.player?.shuttle?.atHome) hud.classList.add('hidden');
+      else this.showShuttleHud(this.player?.shuttle?.velocity ?? 1);
+    }, 1600);
   }
 
   beginSession() {

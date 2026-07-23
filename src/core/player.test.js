@@ -1026,3 +1026,114 @@ describe('Player reading clock (temporal contract phase 3)', () => {
     player.destroy();
   });
 });
+
+describe('Player + Shuttle (LATERAL-TRAVERSAL-SPEC)', () => {
+  let session;
+  let player;
+
+  beforeEach(() => {
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
+        'Date', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame']
+    });
+    const atoms = Array.from({ length: 6 }, (_, i) =>
+      new Atom({ content: `atom-${i}`, duration: 100 }));
+    session = new Session({ atoms, title: 'Shuttle Session' });
+    player = new Player(session);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    player.destroy();
+  });
+
+  it('velocity divides the display time of the current atom', () => {
+    player.play();
+    expect(player._atomDisplayMs(session.atoms[0])).toBe(100);
+    player.shuttleForward(); // 2×
+    expect(player._atomDisplayMs(session.atoms[0])).toBe(50);
+    player.shuttleForward(); // 4×
+    expect(player._atomDisplayMs(session.atoms[0])).toBe(50); // 25 floors to 50
+  });
+
+  it('fast-forward advances without interlocution rolls; home restores them', async () => {
+    const handler = vi.fn(async () => ({ presented: false, reason: 'test' }));
+    player.setInterlocutionHandler(handler);
+    player.play();
+    player.shuttleForward(); // 2× — rolls must not happen
+    await vi.advanceTimersByTimeAsync(400);
+    expect(handler).not.toHaveBeenCalled();
+    expect(player.sessionState.currentIndex).toBeGreaterThan(1);
+  });
+
+  it('rewind retreats through completed atoms in reverse sequence', async () => {
+    player.play();
+    await vi.advanceTimersByTimeAsync(320); // reach ~atom 3
+    const reached = player.sessionState.currentIndex;
+    expect(reached).toBeGreaterThanOrEqual(2);
+    player.shuttleBackward(); // toward home… (from 1× enters -2×)
+    expect(player.shuttle.velocity).toBe(-2);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(player.sessionState.currentIndex).toBeLessThan(reached);
+  });
+
+  it('rewind clamps at atom 0, comes home, and reading resumes forward', async () => {
+    const shuttleEvents = [];
+    player.on('shuttle', e => shuttleEvents.push(e));
+    player.play();
+    player.shuttleBackward();
+    player.shuttleBackward(); // -4× from the very start
+    // one rewind tick hits the leader: the clamp fires, home returns
+    await vi.advanceTimersByTimeAsync(60);
+    expect(player.shuttle.atHome).toBe(true);
+    expect(shuttleEvents.some(e => e.reason === 'start-of-text')).toBe(true);
+    // …and normal FORWARD reading has resumed
+    await vi.advanceTimersByTimeAsync(250);
+    expect(player.sessionState.currentIndex).toBeGreaterThan(0);
+  });
+
+  it('the high-water mark survives rewind and re-reading', async () => {
+    player.play();
+    await vi.advanceTimersByTimeAsync(320);
+    const hwm = player.shuttle.highWaterMark;
+    expect(hwm).toBeGreaterThanOrEqual(2);
+    player.shuttleBackward();
+    await vi.advanceTimersByTimeAsync(150);
+    expect(player.shuttle.highWaterMark).toBe(hwm); // never falls
+  });
+
+  it('pausing while shuttling drops to home; resume is normal reading', async () => {
+    player.play();
+    player.shuttleForward();
+    player.shuttleForward(); // 4×
+    player.pause();
+    expect(player.shuttle.atHome).toBe(true);
+    player.play();
+    expect(player.shuttle.velocity).toBe(1);
+  });
+
+  it('a shuttle-exempt session refuses the keys (the liturgy rule)', () => {
+    const exempt = new Session({
+      atoms: [new Atom({ content: 'fixed', duration: 100 })],
+      title: 'Liturgy', shuttleExempt: true
+    });
+    const liturgical = new Player(exempt);
+    liturgical.play();
+    expect(liturgical.shuttleAvailable).toBe(false);
+    expect(liturgical.shuttleForward()).toBeNull();
+    expect(liturgical.shuttleBackward()).toBeNull();
+    expect(liturgical.shuttle.atHome).toBe(true);
+    liturgical.destroy();
+  });
+
+  it('completion is met regardless of velocity (spec §7)', async () => {
+    const complete = vi.fn();
+    player.on('complete', complete);
+    player.play();
+    player.shuttleForward();
+    player.shuttleForward();
+    player.shuttleForward(); // 8×
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(complete).toHaveBeenCalled();
+  });
+});
