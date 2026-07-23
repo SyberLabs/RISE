@@ -35,6 +35,15 @@
  *   (Mary Praying / Praying Monk — sacred imagery stays pinned in
  *   the Chapel, never in default pools). 8 true portraits by the
  *   roster painters transferred to the portraits pool instead.
+ * - Rijksmuseum quartet (2026-07-23): four NEW categories — Flowers
+ *   (52: Bosschaert, Van Huysum, Rachel Ruysch + bloemstilleven
+ *   sheets), Ships (69: the Van de Veldes, zeeslagen, VOC tiles, the
+ *   Ship of State allegory), Animals (37: natural-history sheets
+ *   incl. the Meerkats, Hondecoeter's birds), Knights (71: heraldic
+ *   sheets incl. Brandes/Hirschman, armor, tournaments). First
+ *   categories to embrace works on paper and ceramic alongside
+ *   paintings. Reviewed on the interactive cull sheet (105 cuts by
+ *   the creator's hand); 4 works added by direct request.
  *
  * Future museums (Met pins) enter by appending to these arrays —
  * no new UI, ever.
@@ -511,5 +520,242 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "cleveland", id: 135173 },  // Paul Cezanne — The Brook
         { source: "cleveland", id: 135185 },  // Paul Cezanne — Mount Sainte-Victoire
         { source: "cleveland", id: 135512 },  // Georges Seurat — Study for "Bathers at Asnières"
+    ],
+    "flowers": [
+        { source: "rijks", id: 200148925 },  // Floral Still Life
+        { source: "rijks", id: 200152947 },  // Bloemstilleven
+        { source: "rijks", id: 200178277 },  // Vruchten- en bloemstilleven
+        { source: "rijks", id: 200185616 },  // Bloemstilleven
+        { source: "rijks", id: 200185617 },  // Bloemstilleven met insect
+        { source: "rijks", id: 200187866 },  // Bloemstilleven in landschap
+        { source: "rijks", id: 200256404 },  // Bloemstilleven in een vaas
+        { source: "rijks", id: 200256405 },  // Bloemstilleven in een vaas
+        { source: "rijks", id: 200276416 },  // Bloemstilleven op een marmeren blad
+        { source: "rijks", id: 200283814 },  // Bloemstilleven met rozen en anemonen
+        { source: "rijks", id: 200283816 },  // Bloemstilleven met klaprozen en anemonen
+        { source: "rijks", id: 200293287 },  // Bloemstilleven met aronskelken
+        { source: "rijks", id: 200352366 },  // Bloemstilleven met taxus, roos, anjer en fuchsia
+        { source: "rijks", id: 200352367 },  // Bloemstilleven van veldbloemen
+        { source: "rijks", id: 200352368 },  // Bloemstilleven
+        { source: "rijks", id: 200352519 },  // Bloemstilleven met chrysanten
+        { source: "rijks", id: 20038690 },  // Tegeltableau met bloemstilleven
+        { source: "rijks", id: 200407900 },  // Bloemstilleven met pioenrozen
+        { source: "rijks", id: 200407902 },  // Bloemstilleven met irissen
+        { source: "rijks", id: 200408214 },  // Bloemstilleven
+        { source: "rijks", id: 200408416 },  // Bloemstilleven
+        { source: "rijks", id: 200416192 },  // Bloemstilleven met stokroos
+        { source: "rijks", id: 200467650 },  // Floral Still Life
+        { source: "rijks", id: 200470979 },  // Bloemstilleven met campanula
+        { source: "rijks", id: 200470981 },  // Bloemstilleven met fuchsia
+        { source: "rijks", id: 200105307 },  // Stilleven met een schaal vruchten en een vaas met bl
+        { source: "rijks", id: 200108147 },  // Still Life with Fruits and Flowers
+        { source: "rijks", id: 200108148 },  // Still Life with Flowers
+        { source: "rijks", id: 200108224 },  // Still Life with Flowers
+        { source: "rijks", id: 200108261 },  // Still Life with Flowers
+        { source: "rijks", id: 200108291 },  // Still Life with Flowers in a Wan-Li Vase
+        { source: "rijks", id: 200108444 },  // Still Life with Flowers
+        { source: "rijks", id: 200108485 },  // Still Life with Flowers in a Glass Vase
+        { source: "rijks", id: 200108670 },  // Still Life with Flowers, Fruit and Birds
+        { source: "rijks", id: 200108674 },  // Still Life with Flowers in a Greek Vase: Allegory of
+        { source: "rijks", id: 200108741 },  // Still Life with Flowers
+        { source: "rijks", id: 200109397 },  // Still Life with Flowers and Fruit
+        { source: "rijks", id: 200109798 },  // Still Life with Flowers
+        { source: "rijks", id: 200109818 },  // Still Life with Flowers
+        { source: "rijks", id: 200110737 },  // Still Life with Flowers
+        { source: "rijks", id: 20013287 },  // Still Life with Flowers in a Glass
+        { source: "rijks", id: 20025767 },  // Still Life with Flowers and Fruit
+        { source: "rijks", id: 20025946 },  // Still Life with Flowers
+        { source: "rijks", id: 20026022 },  // Still Life with Fish, Sea Food and Flowers
+        { source: "rijks", id: 20026235 },  // Still Life with Flowers
+        { source: "rijks", id: 20026435 },  // Still Life with Flowers
+        { source: "rijks", id: 20027070 },  // Still Life with Flowers and a Watch
+        { source: "rijks", id: 20027080 },  // Still Life with Flowers
+        { source: "rijks", id: 20027188 },  // Still Life with Flowers and Fruit
+        { source: "rijks", id: 20027055 },  // Still Life with Fruit
+        { source: "rijks", id: 20029078 },  // Still Life with Flowers and Fruit
+        { source: "rijks", id: 20027537 },  // Still Life with Flowers on a Marble Tabletop
+    ],
+    "ships": [
+        { source: "rijks", id: 200108354 },  // The Battle of the Downs against the Spanish Armada, 
+        { source: "rijks", id: 200108355 },  // The Battle of Terheide
+        { source: "rijks", id: 200108357 },  // "Sea Battle between Cornelis Tromp on the ""Gouden L
+        { source: "rijks", id: 200108514 },  // Captured English Ships after the Four Days’ Battle
+        { source: "rijks", id: 200108619 },  // Episode from the Four Days' Battle, 11-14 June 1666,
+        { source: "rijks", id: 200108749 },  // The Battle of Dunkirk
+        { source: "rijks", id: 200108750 },  // The Battle of Livorno (Leghorn)
+        { source: "rijks", id: 200110522 },  // "Council of War aboard ""The Seven Provinces"", the 
+        { source: "rijks", id: 200116984 },  // Zeeslag tussen een Nederlandse en een Engelse vloot
+        { source: "rijks", id: 200117122 },  // Zeeslag
+        { source: "rijks", id: 200121125 },  // Bewoners van Sunda eilanden en zeeslag
+        { source: "rijks", id: 200121528 },  // Zeeslag
+        { source: "rijks", id: 200121541 },  // Navium Variae Figurae
+        { source: "rijks", id: 200122201 },  // Zeeslagen tijdens de Tweede Engelse Oorlog
+        { source: "rijks", id: 200122202 },  // Zeeslag
+        { source: "rijks", id: 200128642 },  // de Roemrijke Overwinning van den franschen Admiraal 
+        { source: "rijks", id: 200128823 },  // Nieuwe Scheeps Batalien
+        { source: "rijks", id: 200128824 },  // Nieuwe Scheeps Batalien
+        { source: "rijks", id: 200128825 },  // Nieuwe Scheeps Batalien
+        { source: "rijks", id: 200128826 },  // Nieuwe Scheeps Batalien
+        { source: "rijks", id: 200128827 },  // Nieuwe Scheeps Batalien
+        { source: "rijks", id: 200128828 },  // Nieuwe Scheeps Batalien
+        { source: "rijks", id: 200128829 },  // Zeeslag
+        { source: "rijks", id: 200128830 },  // Nieuwe Scheeps Batalien
+        { source: "rijks", id: 200128831 },  // Nieuwe Scheeps Batalien
+        { source: "rijks", id: 200128832 },  // Nieuwe Scheeps Batalien
+        { source: "rijks", id: 200128833 },  // Zeeslag
+        { source: "rijks", id: 200128834 },  // Zeeslag met een zinkend schip
+        { source: "rijks", id: 200128835 },  // Na de zeeslag
+        { source: "rijks", id: 200101455 },  // Dit is het schip de Goude Leeuw / Een kiel / die in 
+        { source: "rijks", id: 20010368 },  // Gezicht op het schip "Jupiter" liggende voor de werf
+        { source: "rijks", id: 200105977 },  // Schouwburg van den Oorlog, Beginnende van Koning Kar
+        { source: "rijks", id: 200108356 },  // Episode from the Battle between the Dutch and Swedis
+        { source: "rijks", id: 200108358 },  // The Capture of the Royal Prince
+        { source: "rijks", id: 200108359 },  // A Ship on the High Seas Caught by a Squall, Known as
+        { source: "rijks", id: 200108360 },  // The Cannon Shot
+        { source: "rijks", id: 200144900 },  // Zeeslag voor een kust
+        { source: "rijks", id: 200144903 },  // Twee roeiboten bij een zeilschip voor anker in een b
+        { source: "rijks", id: 200144910 },  // Zeegezicht met enkele schepen
+        { source: "rijks", id: 200144911 },  // Zeegezicht met enkele schepen in kalm water bij de k
+        { source: "rijks", id: 200144913 },  // Zeegezicht met enkele schepen op de rede liggend
+        { source: "rijks", id: 200144915 },  // Enkele schepen in stil water
+        { source: "rijks", id: 200144916 },  // het overseyllen vande oorlog schepen van 't vlie (..
+        { source: "rijks", id: 200144917 },  // Het opbrengen van veroverde Engelse schepen
+        { source: "rijks", id: 200144918 },  // Twee roeiboten varen in de richting van een koopvaar
+        { source: "rijks", id: 200144919 },  // Vissershaven
+        { source: "rijks", id: 200144920 },  // Zeegezicht met een roeiboot bij een fregat
+        { source: "rijks", id: 200144922 },  // Een naar rechts zeilend schip
+        { source: "rijks", id: 200144923 },  // Voor anker liggende schepen
+        { source: "rijks", id: 200144924 },  // Portret van de voorsteven van een Engels schip (de E
+        { source: "rijks", id: 200144925 },  // Groot zeilschip van opzij gezien
+        { source: "rijks", id: 200144929 },  // Twee kleine vaartuigen
+        { source: "rijks", id: 200144931 },  // Zeeslag
+        { source: "rijks", id: 200117136 },  // Driemaster van de Amsterdamse Admiraliteit
+        { source: "rijks", id: 200117960 },  // Driemaster met volle zeilen
+        { source: "rijks", id: 200139519 },  // Gezicht op het IJ met een driemaster en zeilschepen
+        { source: "rijks", id: 200142950 },  // Driemaster op de rede van een rotsachtige kust
+        { source: "rijks", id: 200163899 },  // Driemaster
+        { source: "rijks", id: 200187176 },  // Driemaster wordt gelost
+        { source: "rijks", id: 200194404 },  // Driemaster
+        { source: "rijks", id: 200198926 },  // Diverse schepen op het water
+        { source: "rijks", id: 200198963 },  // Driemaster met vlag
+        { source: "rijks", id: 200198964 },  // Driemaster met vlag en een roeiboot
+        { source: "rijks", id: 200198965 },  // Verschillende schepen serie C
+        { source: "rijks", id: 200198966 },  // Driemaster met de wind in de zeilen
+        { source: "rijks", id: 200198968 },  // Driemaster met sloep
+        { source: "rijks", id: 200198970 },  // Verschillende schepen serie C
+        { source: "rijks", id: 200198978 },  // Verschillende schepen serie E
+        { source: "rijks", id: 200413509 },  // Het Schip van Staat, 1620
+    ],
+    "animals": [
+        { source: "rijks", id: 200105196 },  // Vogel bij een nest jongen
+        { source: "rijks", id: 200105207 },  // Grauwe Klovenier bij haar nest met jongen
+        { source: "rijks", id: 200105221 },  // Vogel
+        { source: "rijks", id: 200105222 },  // Vogel op nest
+        { source: "rijks", id: 200105223 },  // Vogel op boomstam
+        { source: "rijks", id: 200105440 },  // Vogel in veld
+        { source: "rijks", id: 200105441 },  // Vogel op heide
+        { source: "rijks", id: 200105443 },  // Vogel bij nest met kuikens in boom
+        { source: "rijks", id: 200106300 },  // Landschap met vogel op boomstronk
+        { source: "rijks", id: 200109517 },  // Muzikanten op de rug van een grote vogel
+        { source: "rijks", id: 200110578 },  // Drie schetsen van een vogel
+        { source: "rijks", id: 200101046 },  // Studies van vogels
+        { source: "rijks", id: 200105183 },  // Twee jonge vogels op een nest (vogels)
+        { source: "rijks", id: 200105185 },  // Twee vinken (boekvinken, botvinken of charlottes) op
+        { source: "rijks", id: 200105186 },  // Löffelente mit kaum ausgefallenen Jungen auf der Ins
+        { source: "rijks", id: 200105187 },  // Junge Rothschenkel im Nest
+        { source: "rijks", id: 200105219 },  // Vink bij nest met jongen (vogels)
+        { source: "rijks", id: 200105220 },  // Tortelduif op het nest bij hare jongen
+        { source: "rijks", id: 200105229 },  // Wielewaal bij een nest met jongen (vogels, nesten)
+        { source: "rijks", id: 200101316 },  // Alfabet met dieren
+        { source: "rijks", id: 200101317 },  // Dieren A.B.C. / histoire naturelle alphabetique
+        { source: "rijks", id: 200101318 },  // Dieren A.B.C. / histoire naturelle alphabetique
+        { source: "rijks", id: 200101338 },  // Kluchtige gestalten en dieren / Scènes grotesques
+        { source: "rijks", id: 200101339 },  // Kluchtige gesteltenissen en dieren / Postures comiqu
+        { source: "rijks", id: 200101340 },  // Kluchtige gestalten en dieren / Scènes grotesques
+        { source: "rijks", id: 200101494 },  // Dieren en planten
+        { source: "rijks", id: 200101495 },  // Dieren en planten
+        { source: "rijks", id: 200101496 },  // Dieren en planten
+        { source: "rijks", id: 200101574 },  // Dieren en planten
+        { source: "rijks", id: 200101575 },  // Dieren en planten
+        { source: "rijks", id: 200101576 },  // Dieren en planten
+        { source: "rijks", id: 200101577 },  // Dieren en planten
+        { source: "rijks", id: 200101591 },  // Dieren
+        { source: "rijks", id: 200101763 },  // Vier wetenschappelijke voorstellingen van dieren
+        { source: "rijks", id: 200105161 },  // Kinder Gänse und Enten bij eenen Bauernhof
+        { source: "rijks", id: 200475259 },  // Suricata suricatta (Meerkats)
+        { source: "rijks", id: 200475260 },  // Suricata suricatta (Meerkats)
+    ],
+    "knights": [
+        { source: "rijks", id: 200105288 },  // De ridder en de hond
+        { source: "rijks", id: 200105409 },  // Zittende middeleeuwse ridder in harnas
+        { source: "rijks", id: 200109501 },  // Dode ridder (Orlando?) wordt door vrouw en geniï weg
+        { source: "rijks", id: 200110301 },  // Christelijke Ridder
+        { source: "rijks", id: 200110633 },  // Shield of Edward IV (1442-83), King of England, in h
+        { source: "rijks", id: 200110634 },  // Shield of Jacob of Luxemburg (after 1441-88), Lord o
+        { source: "rijks", id: 200118103 },  // De roeping van een Christelijke Ridder
+        { source: "rijks", id: 200119905 },  // Ridder met wijn en brood
+        { source: "rijks", id: 200120848 },  // Dodendans
+        { source: "rijks", id: 200121187 },  // De ridder en de Dood
+        { source: "rijks", id: 200121217 },  // De ridder en de Dood
+        { source: "rijks", id: 200122330 },  // Knight, Death, and the Devil
+        { source: "rijks", id: 200122331 },  // Ridder, Dood en Duivel
+        { source: "rijks", id: 200124421 },  // Vrouw met ridder te paard
+        { source: "rijks", id: 200124430 },  // Ridder te paard
+        { source: "rijks", id: 200126573 },  // "De vier excellensten der older regenten"
+        { source: "rijks", id: 200131671 },  // Stierenvechten
+        { source: "rijks", id: 20013525 },  // König-Ludwigs Album
+        { source: "rijks", id: 200137156 },  // Kopieën naar Holbeins Dodendans
+        { source: "rijks", id: 200138229 },  // Ridder naast een wapenschild
+        { source: "rijks", id: 200138230 },  // Ridder naast een wapenschild
+        { source: "rijks", id: 200141666 },  // Ridder van de Orde van de Kousenband
+        { source: "rijks", id: 200142028 },  // Ontwerpen voor het vijfde deel van Histoire de l'adm
+        { source: "rijks", id: 20010793 },  // Ridders en ruiters
+        { source: "rijks", id: 200113855 },  // Gevecht tussen ridders en reuzen
+        { source: "rijks", id: 20011689 },  // Costumes zu Festaufzügen und Bällen
+        { source: "rijks", id: 200119515 },  // Portret van Jean Parisot de La Valette, Grootmeester
+        { source: "rijks", id: 200120806 },  // Duits toernooi met twee edelmannen als ridders te pa
+        { source: "rijks", id: 200120807 },  // Duits toernooi met twee edelmannen als ridders te pa
+        { source: "rijks", id: 200122523 },  // Freydal
+        { source: "rijks", id: 200124222 },  // Rinaldo en Armida als liefdespaar aangetroffen bij e
+        { source: "rijks", id: 200124423 },  // Gevecht tussen twee ridders te paard
+        { source: "rijks", id: 200124424 },  // Gevecht tussen twee ridders te paard
+        { source: "rijks", id: 200124432 },  // Vrouw en ridders te paard
+        { source: "rijks", id: 200126535 },  // Filips de Goede, Karel de Stoute en twee ridders
+        { source: "rijks", id: 200138184 },  // Drie ridders te paard
+        { source: "rijks", id: 200149737 },  // Zes voorstellingen van edellieden, ridders en ruiter
+        { source: "rijks", id: 200156032 },  // Twee vechtende ridders te paard
+        { source: "rijks", id: 200164486 },  // Optocht van ridders van de Orde van de Saint-Esprit 
+        { source: "rijks", id: 200169392 },  // Vignet met een vergadering van ridders van de Saint-
+        { source: "rijks", id: 200177768 },  // Ridders vechten in de grafkelder van een kerk
+        { source: "rijks", id: 200191651 },  // Ridders in gevecht
+        { source: "rijks", id: 200191655 },  // Ridders in gevecht
+        { source: "rijks", id: 200114438 },  // Op de rug liggende krijgsman in harnas, met gevouwen
+        { source: "rijks", id: 200119412 },  // Ornament met harnas
+        { source: "rijks", id: 200126337 },  // Portret van Hendrik II van Frankrijk in harnas te pa
+        { source: "rijks", id: 200133090 },  // Ruiterportret van Frederick Schomberg in harnas
+        { source: "rijks", id: 200135526 },  // Buste van een soldaat in een harnas
+        { source: "rijks", id: 200136963 },  // Twee rechters van Israël in harnas
+        { source: "rijks", id: 200158047 },  // Portret van Karel II, koning van Spanje, staande in 
+        { source: "rijks", id: 200164544 },  // Piekdrager in harnas, gekleed volgens de mode van ca
+        { source: "rijks", id: 200164657 },  // Diverse ontwerpen
+        { source: "rijks", id: 200167102 },  // Duitse ruiter in zwart harnas
+        { source: "rijks", id: 200167103 },  // Duitse ruiter in harnas
+        { source: "rijks", id: 200175964 },  // Portret van Jan I van Brabant in harnas
+        { source: "rijks", id: 200179825 },  // Man in harnas met wapenschild
+        { source: "rijks", id: 200188715 },  // Astolfe d'Angleterre chez Atlas de Carène
+        { source: "rijks", id: 200201367 },  // Ferdinand IV van Oostenrijk
+        { source: "rijks", id: 200119197 },  // Het toernooi
+        { source: "rijks", id: 200121029 },  // Toernooi van het keurvorstelijk hof van Saksen met w
+        { source: "rijks", id: 200121030 },  // Toernooi in Wittenberg van het keurvorstelijk hof va
+        { source: "rijks", id: 200121031 },  // Toernooi in Wittenberg van het keurvorstelijk hof va
+        { source: "rijks", id: 200121032 },  // Toernooi op het marktplein in Wittenberg
+        { source: "rijks", id: 200129381 },  // Het toernooi in de feestzaal
+        { source: "rijks", id: 200171650 },  // Don Quichot na afloop van een toernooi
+        { source: "rijks", id: 200258464 },  // Zwarte Ridder schiet Wilfred van Ivanhoe te hulp tij
+        { source: "rijks", id: 200263925 },  // Febraro
+        { source: "rijks", id: 200263938 },  // De twaalf maanden (deel 1)
+        { source: "rijks", id: 200302793 },  // Graaf Floris IV tijdens het toernooi in Corbie
+        { source: "rijks", id: 200302797 },  // Graaf Floris IV tijdens het toernooi in Corbie
+        { source: "rijks", id: 200309419 },  // Ridders met de familiewapens van Brandes en Hirschma
     ]
 });

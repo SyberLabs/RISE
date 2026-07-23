@@ -105,6 +105,43 @@ export const MUSEUM_CATEGORIES = {
             { terms: { 'subject_titles.keyword': ['portrait', 'portraits'] } }
         ],
         tags: ['human', 'presence', 'cinematic']
+    },
+    // The 2026-07-23 quartet: reader intents anchored by Rijksmuseum
+    // pin harvests (museum-pins.js), with AIC contributing through its
+    // strongest verified facets. These pools embrace works on paper —
+    // prints, drawings, natural-history sheets, tile tableaux — so the
+    // type clause admits Painting AND Print rather than pinning one.
+    'flowers': {
+        name: 'Flowers',
+        clauses: [
+            { terms: { artwork_type_id: [TYPE_PAINTING, TYPE_PRINT] } },
+            { terms: { 'subject_titles.keyword': ['flower', 'flowers'] } }
+        ],
+        tags: ['nature', 'still-life', 'contemplative']
+    },
+    'ships': {
+        name: 'Ships',
+        clauses: [
+            { terms: { artwork_type_id: [TYPE_PAINTING, TYPE_PRINT] } },
+            { terms: { 'subject_titles.keyword': ['boat', 'boats', 'ship', 'ships', 'sailboats'] } }
+        ],
+        tags: ['sea', 'voyage', 'cinematic']
+    },
+    'animals': {
+        name: 'Animals',
+        clauses: [
+            { terms: { artwork_type_id: [TYPE_PAINTING, TYPE_PRINT] } },
+            { terms: { 'subject_titles.keyword': ['animal', 'animals', 'bird', 'birds'] } }
+        ],
+        tags: ['nature', 'creatures', 'contemplative']
+    },
+    'knights': {
+        name: 'Knights',
+        clauses: [
+            { terms: { artwork_type_id: [TYPE_PAINTING, TYPE_PRINT] } },
+            { terms: { 'subject_titles.keyword': ['armor', 'knights', 'soldiers'] } }
+        ],
+        tags: ['heraldic', 'historical', 'cinematic']
     }
 };
 
