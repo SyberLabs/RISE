@@ -323,13 +323,19 @@ describe('The Doré cycle', () => {
 });
 
 describe('Chapel handoff imagery (seam)', () => {
-  it('Gospels carry the Passion behind-stream at museum presence; other books stay still', async () => {
+  it('Passion imagery belongs to the Passion chapters; a whole Gospel reads under the rose', async () => {
+    // The 2026-07 review: a whole-book Passion default draped
+    // Crucifixion paintings over the Beatitudes and parables —
+    // editorial, not accompaniment. Whole-Gospel launches now read
+    // under Rosa Mystica; the Passion chapters carry the Passion.
     const john = chapelSensoryConfig('john');
-    expect(john.visualConfig.visualMode).toBe('interlocution');
-    expect(john.visualConfig.interlocution.sourced).toEqual(['chapel-passion', 'chapel-crucifixion']);
-    expect(john.visualConfig.interlocution.procedural).toEqual([]);
+    expect(john.visualConfig.visualMode).toBe('focals');
+    expect(john.visualConfig.focals.type).toBe('rose');
+    const john19 = chapelSensoryConfig('john', null, 19);
+    expect(john19.visualConfig.visualMode).toBe('interlocution');
+    expect(john19.visualConfig.interlocution.sourced).toEqual(['chapel-passion', 'chapel-crucifixion']);
     // Spec §5: long presence ≥1400ms — museum stillness, not flashing
-    expect(john.visualConfig.interlocution.duration).toBeGreaterThanOrEqual(1400);
+    expect(john19.visualConfig.interlocution.duration).toBeGreaterThanOrEqual(1400);
 
     expect(chapelSensoryConfig('psalms').visualConfig.visualMode).toBe('off');
     // Genesis carries The Patriarchs now that the painted collection
@@ -356,18 +362,20 @@ describe('Chapel handoff imagery (seam)', () => {
     // Luke 1 — the Annunciation
     expect(chapelSensoryConfig('luke', null, 1).visualConfig.interlocution.sourced)
       .toEqual(['chapel-nativity']);
-    // Matthew 3 — the Baptism of Christ
-    expect(chapelSensoryConfig('matthew', null, 3).visualConfig.interlocution.sourced)
-      .toEqual(['chapel-nativity']);
+    // Matthew 3 — the Baptism: nativity was a name-stretch; the
+    // chapter reads under the rose until a baptism collection exists
+    expect(chapelSensoryConfig('matthew', null, 3).visualConfig.visualMode).toBe('focals');
+    expect(chapelSensoryConfig('matthew', null, 3).visualConfig.focals.type).toBe('rose');
     // John 20 — the empty tomb
     expect(chapelSensoryConfig('john', null, 20).visualConfig.interlocution.sourced)
       .toEqual(['chapel-resurrection']);
-    // A mid-Gospel chapter keeps the book default
-    expect(chapelSensoryConfig('luke', null, 15).visualConfig.interlocution.sourced)
+    // Luke 23 — the Crucifixion narrative carries its paintings
+    expect(chapelSensoryConfig('luke', null, 23).visualConfig.interlocution.sourced)
       .toEqual(['chapel-passion', 'chapel-crucifixion']);
-    // Whole-book launches keep the book default too
-    expect(chapelSensoryConfig('luke', null, null).visualConfig.interlocution.sourced)
-      .toEqual(['chapel-passion', 'chapel-crucifixion']);
+    // A mid-Gospel teaching chapter reads under the rose
+    expect(chapelSensoryConfig('luke', null, 15).visualConfig.visualMode).toBe('focals');
+    // Whole-book launches read under the rose too
+    expect(chapelSensoryConfig('luke', null, null).visualConfig.focals.type).toBe('rose');
     // and it flows through the real handoff
     const luke1 = await createChapelHandoff('luke', { chapter: 1 });
     expect(luke1.config.visualConfig.interlocution.atriumCollections).toEqual(['chapel-nativity']);
@@ -380,9 +388,11 @@ describe('Chapel handoff imagery (seam)', () => {
       focals: { type: 'icon', iconId: 'icon-pantocrator-sinai' }
     });
 
-    // An unpinned icon id is ignored — pinned, never improvised
+    // An unpinned icon id is ignored — pinned, never improvised;
+    // John 3 has no chapter collections, so it falls to the rose
     const bogus = await createChapelHandoff('john', { chapter: 3, iconId: 'icon-of-nowhere' });
-    expect(bogus.config.visualConfig.visualMode).toBe('interlocution');
+    expect(bogus.config.visualConfig.visualMode).toBe('focals');
+    expect(bogus.config.visualConfig.focals.type).toBe('rose');
 
     // Psalms with the Marian icon: focal mode there too
     const marian = await createChapelHandoff('psalms', { chapter: 23, iconId: 'icon-salus-populi-romani' });

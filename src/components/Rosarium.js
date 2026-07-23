@@ -66,6 +66,16 @@ export class Rosarium {
     this._decadeWorkCache = new Map();
     this._galleryOpen = false;
 
+    // VISUAL GENERATION: every async result must prove the devotional
+    // moment that authorized it still exists. The token increments —
+    // and in-flight work aborts — on any change of moment: a new
+    // mystery set, a start, a gallery open/close, a return to
+    // choosing, exit, destroy. A stale resolution that survives its
+    // await must find its generation unchanged before it may touch
+    // the DOM or the speakers; otherwise it evaporates.
+    this._visualGeneration = 0;
+    this._visualAbort = null;
+
     this._abort = new AbortController();
     this.render();
     this.attachEvents();
@@ -186,15 +196,22 @@ export class Rosarium {
   }
 
   async _hydrateGallery() {
+    // A gallery hydration belongs to the generation and set that
+    // opened it; a re-opened gallery mints a new generation, so an
+    // old hydration can never write into identically numbered slots
+    const generation = this._visualGeneration;
+    const setId = this.setId;
     try {
-      const works = ROSARY_MYSTERY_WORKS[this.setId] || [];
+      const works = ROSARY_MYSTERY_WORKS[setId] || [];
       for (let index = 0; index < works.length; index += 1) {
         const pin = works[index];
         if (!pin) continue;
+        if (generation !== this._visualGeneration) return;
         const slot = this.container.querySelector(`[data-gallery-slot="${index}"]`);
         if (!slot) continue;
         const work = await this._resolvePin(pin);
-        if (!work || !this.container.isConnected) continue;
+        if (generation !== this._visualGeneration || setId !== this.setId) return;
+        if (!work || !this._galleryOpen) continue;
         slot.innerHTML = `<img src="${escapeHtml(work.imageUrl)}" alt="${escapeHtml(work.title)}" title="${escapeHtml(work.attribution || `${work.title} — ${work.artist}`)}" />`;
       }
     } catch (e) {
@@ -277,6 +294,7 @@ export class Rosarium {
   // ── Prayer flow ────────────────────────────────────────────
 
   start() {
+    this._beginVisualGeneration();
     this.compiled = compileLiturgy(buildRosaryDefinition(this.setId), { paceMultiplier: this.pace });
     this.stepIndex = -1;
     this.strand.reset();
@@ -287,6 +305,17 @@ export class Rosarium {
     // on a museum API mid-prayer
     if (this.mode === 'imagistic') this._prewarmMysteryWorks();
     if (this.autoAdvance) this._queueAutoAdvance();
+  }
+
+  /**
+   * Begin a new visual generation: abort all in-flight image/audio
+   * work and mint the token every subsequent async result must match.
+   */
+  _beginVisualGeneration() {
+    this._visualGeneration += 1;
+    try { this._visualAbort?.abort(); } catch { /* already dead */ }
+    this._visualAbort = new AbortController();
+    return this._visualGeneration;
   }
 
   /**
@@ -306,18 +335,25 @@ export class Rosarium {
       };
     }
     const { resolveCollection } = await import('../content/atrium/imagery/service.js');
-    const resolved = await resolveCollection({ works: [pin] });
+    const resolved = await resolveCollection(
+      { works: [pin] },
+      { signal: this._visualAbort?.signal }
+    );
     return resolved[0] || null;
   }
 
   async _prewarmMysteryWorks() {
+    const generation = this._visualGeneration;
+    const setId = this.setId;
     try {
       for (let decade = 1; decade <= 5; decade += 1) {
-        const pin = mysteryWork(this.setId, decade);
-        const key = `${this.setId}:${decade}`;
+        if (generation !== this._visualGeneration) return;
+        const pin = mysteryWork(setId, decade);
+        const key = `${setId}:${decade}`;
         if (!pin) { this._decadeWorkCache.set(key, null); continue; }
         if (this._decadeWorkCache.has(key)) continue;
         const work = await this._resolvePin(pin);
+        if (generation !== this._visualGeneration) return;
         this._decadeWorkCache.set(key, work);
         // Also warm the browser's image cache
         if (work?.imageUrl) { const img = new Image(); img.src = work.imageUrl; }
@@ -339,19 +375,21 @@ export class Rosarium {
     this.renderOverlay();
     this._mountPrayerArt(step);
 
-    if (this.autoAdvance || true) {
-      // In BOTH modes the prayer holds at least its recitation length;
-      // Unhurried simply also waits for the click after that.
-      clearTimeout(this._prayerTimer);
-      if (this.autoAdvance) {
-        this._prayerTimer = setTimeout(() => this.returnToStrand(), step.durationMs);
-      }
+    // In BOTH modes the prayer holds a floor: auto advances after the
+    // full recitation length; Unhurried accepts the click only after
+    // a brief settling (a tap cannot skip the prayer it just opened)
+    clearTimeout(this._prayerTimer);
+    this._prayerOpenedAt = Date.now();
+    if (this.autoAdvance) {
+      this._prayerTimer = setTimeout(() => this.returnToStrand(), step.durationMs);
     }
   }
 
   /** Unhurried: the reader says when the prayer is prayed. */
   prayerDone() {
     if (this.phase !== 'prayer' || this.autoAdvance) return;
+    // The floor: an accidental double-tap must not consume a prayer
+    if (Date.now() - (this._prayerOpenedAt || 0) < 1200) return;
     this.returnToStrand();
   }
 
@@ -381,28 +419,40 @@ export class Rosarium {
     const slot = this.container.querySelector('[data-art-slot]');
     if (!slot) return;
     const decade = step.state.decade;
+    // The moment that authorizes this mount:
+    const generation = this._visualGeneration;
+    const setId = this.setId;
+    const stepId = step.id;
 
     // ONE slot: the decade's painting in Imagistic (when pinned),
     // the icon otherwise. Never both.
     if (this.mode === 'imagistic' && decade) {
-      const pin = mysteryWork(this.setId, decade);
+      const pin = mysteryWork(setId, decade);
       if (pin) {
-        const key = `${this.setId}:${decade}`;
+        const key = `${setId}:${decade}`;
         let work = this._decadeWorkCache.get(key);
         if (work === undefined) {
           try {
             work = await this._resolvePin(pin);
           } catch { work = null; }
-          this._decadeWorkCache.set(key, work);
+          // A stale generation must not even poison the cache under
+          // a key another set could share the shape of
+          if (generation === this._visualGeneration) {
+            this._decadeWorkCache.set(key, work);
+          }
         }
-        // Re-query: the overlay may have re-rendered during the await
+        // The devotional moment must still exist: same generation,
+        // same set, same step, still praying
         const liveSlot = this.container.querySelector('[data-art-slot]');
-        if (work && liveSlot && this.phase === 'prayer'
-          && this.compiled.steps[this.stepIndex]?.state.decade === decade) {
+        const momentStands = generation === this._visualGeneration
+          && setId === this.setId
+          && this.phase === 'prayer'
+          && this.compiled?.steps[this.stepIndex]?.id === stepId;
+        if (work && liveSlot && momentStands) {
           liveSlot.innerHTML = `<img src="${escapeHtml(work.imageUrl)}" alt="${escapeHtml(work.title)}" title="${escapeHtml(`${work.title} — ${work.artist}`)}" />`;
           return;
         }
-        if (work) return; // painting exists but the moment passed — show nothing stale
+        if (work || !momentStands) return; // never show a stale image
       }
     }
     const icon = findChapelIcon(this.iconId) || CHAPEL_ICONS[CHAPEL_ICON_DEFAULTS.marian];
@@ -413,10 +463,15 @@ export class Rosarium {
 
   async _startSound() {
     if (this.sound === 'none') return;
+    // Audio belongs to a devotional moment exactly as imagery does:
+    // if the user leaves while the engine initializes, the chant must
+    // not begin after departure. _stopSound invalidates pending starts.
+    const generation = (this._soundGeneration = (this._soundGeneration || 0) + 1);
     try {
       const engine = window.rise?.audioEngine;
       if (!engine) return;
       if (!engine.isInitialized) await engine.init?.();
+      if (generation !== this._soundGeneration) return;
       engine.stopAmbient?.();
       engine.startSoundscape?.(this.sound);
     } catch (e) {
@@ -425,6 +480,7 @@ export class Rosarium {
   }
 
   _stopSound() {
+    this._soundGeneration = (this._soundGeneration || 0) + 1;
     try { window.rise?.audioEngine?.stopSoundscape?.(); } catch { /* released */ }
   }
 
@@ -446,7 +502,12 @@ export class Rosarium {
     if (!target || !this.container.contains(target)) return;
     window.rise?.audioEngine?.playClick?.();
 
-    if (target.dataset.set) { this.setId = target.dataset.set; this.renderOverlay(); return; }
+    if (target.dataset.set) {
+      this.setId = target.dataset.set;
+      this._beginVisualGeneration(); // a new set is a new devotional moment
+      this.renderOverlay();
+      return;
+    }
     if (target.dataset.mode) {
       this.mode = target.dataset.mode === 'imagistic' ? 'imagistic' : 'plain';
       this._setPref(MODE_KEY, this.mode);
@@ -467,8 +528,16 @@ export class Rosarium {
       case 'start': this.start(); break;
       case 'advance': this.advance(); break;
       case 'prayer-done': this.prayerDone(); break;
-      case 'gallery': this._galleryOpen = true; this.renderOverlay(); break;
-      case 'gallery-close': this._galleryOpen = false; this.renderOverlay(); break;
+      case 'gallery':
+        this._beginVisualGeneration(); // each opening is its own moment
+        this._galleryOpen = true;
+        this.renderOverlay();
+        break;
+      case 'gallery-close':
+        this._beginVisualGeneration(); // pending hydrations die with the view
+        this._galleryOpen = false;
+        this.renderOverlay();
+        break;
       default: break;
     }
   }
@@ -492,6 +561,7 @@ export class Rosarium {
     if (this.phase === 'strand' || this.phase === 'complete') {
       clearTimeout(this._strandTimer);
       clearTimeout(this._prayerTimer);
+      this._beginVisualGeneration(); // the devotion ended; its work dies
       this._stopSound();
       this.phase = 'choosing';
       this.strand.reset();
@@ -507,13 +577,19 @@ export class Rosarium {
   _exitToChapel() {
     clearTimeout(this._strandTimer);
     clearTimeout(this._prayerTimer);
+    this._beginVisualGeneration(); // departure invalidates all pending work
     this._stopSound();
     this.onNavigate('chapel');
   }
 
   activate() {
     document.addEventListener('keydown', this._keyHandler);
-    this.container.addEventListener('input', event => this.handleInput(event), { signal: this._abort.signal });
+    // One listener for the component's life — re-activation must not
+    // stack another (the abort signal only fires at destroy)
+    if (!this._inputHandlerBound) {
+      this._inputHandlerBound = true;
+      this.container.addEventListener('input', event => this.handleInput(event), { signal: this._abort.signal });
+    }
   }
 
   deactivate() {
@@ -524,6 +600,7 @@ export class Rosarium {
     this.deactivate();
     clearTimeout(this._strandTimer);
     clearTimeout(this._prayerTimer);
+    this._beginVisualGeneration();
     this._stopSound();
     this._abort.abort();
     this.container.innerHTML = '';

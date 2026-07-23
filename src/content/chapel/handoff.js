@@ -98,10 +98,13 @@ export function sliceChapter(text, chapter, bookId) {
  * chapel-nativity) are a later, deliberate decision.
  */
 const BOOK_COLLECTIONS = Object.freeze({
-  matthew: ['chapel-passion', 'chapel-crucifixion'],
-  mark: ['chapel-passion', 'chapel-crucifixion'],
-  luke: ['chapel-passion', 'chapel-crucifixion'],
-  john: ['chapel-passion', 'chapel-crucifixion'],
+  // The Gospels carry NO whole-book painted default. Passion and
+  // Crucifixion imagery belongs to the Passion narratives (chapter
+  // mappings below) — draped over the Beatitudes, the parables, the
+  // Bread of Life, it stops accompanying and starts editorializing.
+  // Outside the mapped chapters the Gospels read under Rosa Mystica
+  // (ROSE_BOOKS below): accompaniment where depiction would
+  // overstate.
   apocalypse: ['chapel-resurrection'],
 
   // Painted collections (SCRIPTURE-IMAGERY-CLASSIFICATION.md,
@@ -143,21 +146,39 @@ const BOOK_COLLECTIONS = Object.freeze({
 });
 
 /**
- * Chapter-level overrides where the narrative is not the Passion:
- * the infancy narratives and the Baptism carry the Nativity; the
- * Resurrection chapters carry the Resurrection. Assignments follow
- * the text itself:
- *   Matthew 1–2 infancy, 3 Baptism · 28 Resurrection
- *   Mark 1 Baptism · 16 Resurrection
- *   Luke 1–2 Annunciation/Nativity, 3 Baptism · 24 Resurrection
- *   John 20–21 Resurrection (John has no infancy narrative;
- *     the Baptist's testimony in 1 stays with the book default)
+ * Chapter-level assignments follow the text itself — imagery attaches
+ * to the narratives it depicts, never to a whole Gospel by default
+ * (the 2026-07 review: Passion paintings over the Beatitudes turn
+ * accompaniment into editorial interpretation):
+ *   Matthew 1–2 infancy · 26–27 Passion (27 + Crucifixion) · 28 Resurrection
+ *   Mark 14–15 Passion (15 + Crucifixion) · 16 Resurrection
+ *   Luke 1–2 Annunciation/Nativity · 22–23 Passion (23 + Crucifixion) · 24 Resurrection
+ *   John 18–19 Passion (19 + Crucifixion) · 20–21 Resurrection
+ * All other Gospel chapters read under Rosa Mystica (the Gospels are
+ * ROSE_BOOKS below).
  */
 const CHAPTER_COLLECTIONS = Object.freeze({
-  matthew: { 1: ['chapel-nativity'], 2: ['chapel-nativity'], 3: ['chapel-nativity'], 28: ['chapel-resurrection'] },
-  mark: { 1: ['chapel-nativity'], 16: ['chapel-resurrection'] },
-  luke: { 1: ['chapel-nativity'], 2: ['chapel-nativity'], 3: ['chapel-nativity'], 24: ['chapel-resurrection'] },
-  john: { 20: ['chapel-resurrection'], 21: ['chapel-resurrection'] }
+  matthew: {
+    1: ['chapel-nativity'], 2: ['chapel-nativity'],
+    26: ['chapel-passion'], 27: ['chapel-passion', 'chapel-crucifixion'],
+    28: ['chapel-resurrection']
+  },
+  mark: {
+    14: ['chapel-passion'], 15: ['chapel-passion', 'chapel-crucifixion'],
+    16: ['chapel-resurrection']
+  },
+  luke: {
+    1: ['chapel-nativity'], 2: ['chapel-nativity'],
+    22: ['chapel-passion'], 23: ['chapel-passion', 'chapel-crucifixion'],
+    24: ['chapel-resurrection']
+  },
+  john: {
+    18: ['chapel-passion'], 19: ['chapel-passion', 'chapel-crucifixion'],
+    20: ['chapel-resurrection'], 21: ['chapel-resurrection']
+  }
+  // Baptism chapters (Mt 3, Mk 1, Lk 3) carried chapel-nativity by
+  // name-stretch; they now fall to the Gospel default (Rosa Mystica)
+  // until a true chapel-baptism collection is curated.
 });
 
 function collectionsForReading(bookId, chapter) {
@@ -189,7 +210,12 @@ const ROSE_BOOKS = new Set([
   'romans', 'corinthians-1', 'corinthians-2', 'galatians', 'ephesians',
   'philippians', 'colossians', 'thessalonians-1', 'thessalonians-2',
   'timothy-1', 'timothy-2', 'titus', 'philemon', 'hebrews',
-  'james', 'peter-1', 'peter-2', 'john-1', 'john-2', 'john-3', 'jude'
+  'james', 'peter-1', 'peter-2', 'john-1', 'john-2', 'john-3', 'jude',
+  // The Gospels outside their mapped narrative chapters: the rose
+  // accompanies the teaching without depicting an event the chapter
+  // does not hold (2026-07 review — whole-Gospel Passion was
+  // editorial, not accompaniment)
+  'matthew', 'mark', 'luke', 'john'
 ]);
 
 export function chapelSensoryConfig(bookId = null, iconId = null, chapter = null) {
@@ -201,9 +227,12 @@ export function chapelSensoryConfig(bookId = null, iconId = null, chapter = null
   // Everything remains overridable in the orbital. An icon id that
   // is not pinned is ignored — pinned, never improvised. The special
   // id 'rosa-mystica' chooses the rose window instead of an icon.
+  // An icon id that is not pinned is ignored BEFORE any mode
+  // decision — an ignored icon must behave exactly like no icon
+  // (pinned, never improvised)
+  if (iconId && iconId !== 'rosa-mystica' && !findChapelIcon(iconId)) iconId = null;
   const wantsRose = iconId === 'rosa-mystica'
     || (!iconId && !collections && ROSE_BOOKS.has(bookId));
-  if (iconId && iconId !== 'rosa-mystica' && !findChapelIcon(iconId)) iconId = null;
   const visualConfig = wantsRose
     ? {
       visualMode: 'focals',

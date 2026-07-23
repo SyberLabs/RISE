@@ -58,8 +58,12 @@ describe('ROSA MYSTICA (the Chapel procedural, spec §6)', () => {
     expect(proverbs.visualConfig.focals.seed).not.toBe(romans.visualConfig.focals.seed);
     // Psalms: deliberate stillness, untouched
     expect(chapelSensoryConfig('psalms').visualConfig.visualMode).toBe('off');
-    // a Gospel keeps its collections
-    expect(chapelSensoryConfig('john').visualConfig.visualMode).toBe('interlocution');
+    // a whole Gospel reads under the rose (2026-07 review: Passion
+    // imagery belongs to the Passion chapters, not the Beatitudes);
+    // a Passion chapter keeps its collections
+    expect(chapelSensoryConfig('john').visualConfig.visualMode).toBe('focals');
+    expect(chapelSensoryConfig('john').visualConfig.focals.type).toBe('rose');
+    expect(chapelSensoryConfig('john', null, 19).visualConfig.visualMode).toBe('interlocution');
     // the explicit choice works on ANY book
     expect(chapelSensoryConfig('genesis', 'rosa-mystica').visualConfig.focals.type).toBe('rose');
     // and a pinned icon still wins over the book default

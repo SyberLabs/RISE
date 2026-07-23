@@ -49,7 +49,12 @@ describe('The Rosarium (the Rosary’s own room)', () => {
     // the strand is withdrawn during prayer
     expect(container.querySelector('.rosarium-stage').dataset.phase).toBe('prayer');
 
-    // By hand: the reader says when the prayer is prayed
+    // By hand: the reader says when the prayer is prayed. The click
+    // counts only after the settling floor — an accidental double-tap
+    // must not consume a prayer
+    container.querySelector('[data-action="prayer-done"]').click();
+    expect(rosarium.phase).toBe('prayer'); // too soon — the floor holds
+    vi.advanceTimersByTime(1300);
     container.querySelector('[data-action="prayer-done"]').click();
     expect(rosarium.phase).toBe('strand');
     expect(container.querySelector('.rosarium-where').textContent).toContain('Creed');

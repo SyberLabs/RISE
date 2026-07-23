@@ -192,10 +192,14 @@ export class Via {
 
   async _startSound() {
     if (this.sound === 'none') return;
+    // The walk that authorized this sound must still be under way
+    // when the engine finishes initializing — never chant after exit
+    const generation = (this._soundGeneration = (this._soundGeneration || 0) + 1);
     try {
       const engine = window.rise?.audioEngine;
       if (!engine) return;
       if (!engine.isInitialized) await engine.init?.();
+      if (generation !== this._soundGeneration) return;
       engine.stopAmbient?.();
       engine.startSoundscape?.(this.sound);
     } catch (e) {
@@ -204,6 +208,7 @@ export class Via {
   }
 
   _stopSound() {
+    this._soundGeneration = (this._soundGeneration || 0) + 1;
     try { window.rise?.audioEngine?.stopSoundscape?.(); } catch { /* released */ }
   }
 

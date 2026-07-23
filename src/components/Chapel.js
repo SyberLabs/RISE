@@ -370,10 +370,21 @@ export class Chapel {
     this._launching = true;
     window.rise?.audioEngine?.playClick();
     button.classList.add('chapel-book-loading');
-    Promise.resolve(this.onLaunchReading(bookId, chapter, { iconId: this.iconId })).finally(() => {
+    // The callback stays synchronous (launch handlers may depend on
+    // the click's user-activation), but a synchronous throw must
+    // still release the launch guard — Promise.resolve(f()) alone
+    // would throw before any finally existed
+    const release = () => {
       this._launching = false;
       button.classList.remove('chapel-book-loading');
-    });
+    };
+    try {
+      Promise.resolve(this.onLaunchReading(bookId, chapter, { iconId: this.iconId }))
+        .finally(release);
+    } catch (error) {
+      release();
+      throw error;
+    }
   }
 
   /** Router re-entry: refresh the last-read marker and reopen its book */
