@@ -24,6 +24,17 @@
  *   Scenes of Witchcraft ×4 + Danaë + Cupid (register), 1 name-trap.
  *   Rights: cc0=1 pre-filter; the cleveland adapter re-verifies
  *   share_license_status === 'CC0' per object at resolution.
+ * - Rijksmuseum landscapes, 180 (2026-07-23, the first harvest via
+ *   the key-free search at data.rijksmuseum.nl — Atlas §2): the
+ *   Golden Age beyond Ruisdael (Van Goyen 11, Salomon van Ruysdael,
+ *   Avercamp, Koninck, Cuyp, Hobbema, Both, Potter) and the Hague
+ *   School entire (Jacob Maris 29, Mauve 15, Weissenbruch, Willem
+ *   Maris, Bilders), plus Romantics (Schelfhout, Koekkoek). All 210
+ *   resolved candidates cleared Public Domain at the VisualItem;
+ *   cuts were genre scenes, interiors, mythology, and sacred works
+ *   (Mary Praying / Praying Monk — sacred imagery stays pinned in
+ *   the Chapel, never in default pools). 8 true portraits by the
+ *   roster painters transferred to the portraits pool instead.
  *
  * Future museums (Met pins) enter by appending to these arrays —
  * no new UI, ever.
@@ -232,6 +243,178 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "cleveland", id: 136911 },  // Thomas Cole — View of Florence
         { source: "cleveland", id: 93014 },  // Thomas Cole — View of Schroon Mountain, Essex County, New York
         { source: "cleveland", id: 150701 },  // unattributed — Windy Landscape with Sailboat
+        { source: "rijks", id: 200109265 },  // Aelbert Cuyp — River Landscape with Riders
+        { source: "rijks", id: 20027732 },  // Aelbert Cuyp — River Landscape with Cows
+        { source: "rijks", id: 20027735 },  // Aelbert Cuyp — Mountainous Landscape with the Ruins of a Cast
+        { source: "rijks", id: 20015940 },  // Meindert Hobbema — A Watermill
+        { source: "rijks", id: 20028045 },  // Meindert Hobbema — A Watermill
+        { source: "rijks", id: 200445746 },  // Meindert Hobbema — Wooded Landscape with Merrymakers in a Cart
+        { source: "rijks", id: 200109335 },  // Jan Van Goyen — Winter
+        { source: "rijks", id: 200109336 },  // Jan Van Goyen — Landscape with Two Oaks
+        { source: "rijks", id: 200109337 },  // Jan Van Goyen — Panoramic View of a Wide River
+        { source: "rijks", id: 200109338 },  // Jan Van Goyen — Summer
+        { source: "rijks", id: 20027960 },  // Jan Van Goyen — View of Arnhem
+        { source: "rijks", id: 20027961 },  // Jan Van Goyen — Polder Landscape
+        { source: "rijks", id: 20027962 },  // Jan Van Goyen — View of a Town on a River
+        { source: "rijks", id: 20027963 },  // Jan Van Goyen — Panoramic View of a River with Low-lying Meado
+        { source: "rijks", id: 20027964 },  // Jan Van Goyen — The Valkhof in Nijmegen
+        { source: "rijks", id: 20027965 },  // Jan Van Goyen — River View with Sentry Post
+        { source: "rijks", id: 20042026 },  // Jan Van Goyen — View of an Imaginary Town across a River, with
+        { source: "rijks", id: 20026237 },  // Salomon Van Ruysdael — River View near Deventer
+        { source: "rijks", id: 20026238 },  // Salomon Van Ruysdael — View of a village
+        { source: "rijks", id: 20026239 },  // Salomon Van Ruysdael — Landscape with Travellers before an Inn
+        { source: "rijks", id: 20026240 },  // Salomon Van Ruysdael — Landscape with Travellers before an Inn near a
+        { source: "rijks", id: 20026241 },  // Salomon Van Ruysdael — Sailing Vessels on an Inland Body of Water
+        { source: "rijks", id: 200108162 },  // Hendrick Avercamp — Ice-Skating in a Village
+        { source: "rijks", id: 200108163 },  // Hendrick Avercamp — Winter Landscape with Skaters
+        { source: "rijks", id: 200108164 },  // Hendrick Avercamp — Enjoying the Ice
+        { source: "rijks", id: 200529588 },  // Hendrick Avercamp — Enjoying the Ice near a Town
+        { source: "rijks", id: 200107781 },  // Aert Van Der Neer — Landscape by Moonlight
+        { source: "rijks", id: 200107782 },  // Aert Van Der Neer — Winter Landscape near a Town with Bare Trees
+        { source: "rijks", id: 20012365 },  // Aert Van Der Neer — Winter Landscape near a Town with Kolf Players
+        { source: "rijks", id: 20025809 },  // Aert Van Der Neer — Winter Landscape near a Town with Kolf Players
+        { source: "rijks", id: 20025810 },  // Aert Van Der Neer — Landscape by Moonlight
+        { source: "rijks", id: 20025811 },  // Aert Van Der Neer — Landscape with an Inn
+        { source: "rijks", id: 20029044 },  // Aert Van Der Neer — Wooded Landscape with Hunter/Winter Landscape
+        { source: "rijks", id: 200111822 },  // Philips Koninck — River Landscape
+        { source: "rijks", id: 20029302 },  // Philips Koninck — Distant View, with Cottages Lining a Road
+        { source: "rijks", id: 20029304 },  // Philips Koninck — The Entrance to the Woods
+        { source: "rijks", id: 200107888 },  // Paulus Potter — Orpheus charming the beasts
+        { source: "rijks", id: 200107889 },  // Paulus Potter — Cows in a meadow near a farm
+        { source: "rijks", id: 20026071 },  // Paulus Potter — A spaniel
+        { source: "rijks", id: 20026073 },  // Paulus Potter — A herdsman's hut
+        { source: "rijks", id: 20026074 },  // Paulus Potter — Four Young Bulls in a Meadow
+        { source: "rijks", id: 20026075 },  // Paulus Potter — Two Horses in a Meadow near a Gate
+        { source: "rijks", id: 20027075 },  // Paulus Potter — Bear Hunt
+        { source: "rijks", id: 200109448 },  // Willem Maris — White Cow
+        { source: "rijks", id: 200109449 },  // Willem Maris — Cow beside a Ditch
+        { source: "rijks", id: 20027524 },  // Willem Maris — Ducks
+        { source: "rijks", id: 20027552 },  // Willem Maris — Koeien
+        { source: "rijks", id: 20028276 },  // Willem Maris — Meadow with Cows
+        { source: "rijks", id: 20028277 },  // Willem Maris — Cows in a Soggy Meadow
+        { source: "rijks", id: 20028278 },  // Willem Maris — Meadow with Cows by the Water
+        { source: "rijks", id: 20028279 },  // Willem Maris — Eenden
+        { source: "rijks", id: 20028472 },  // Willem Maris — Witte eend met kiekens
+        { source: "rijks", id: 20028503 },  // Willem Maris — Koeien aan een plas
+        { source: "rijks", id: 20028745 },  // Willem Maris — Weide met koeien
+        { source: "rijks", id: 200108991 },  // Jacob Maris — Wooden Bridge across a Canal at Rijswijk
+        { source: "rijks", id: 200109444 },  // Jacob Maris — Arrival of the Boats
+        { source: "rijks", id: 200109445 },  // Jacob Maris — The Truncated Windmill
+        { source: "rijks", id: 20027445 },  // Jacob Maris — Havengezicht
+        { source: "rijks", id: 20027557 },  // Jacob Maris — Stadsgezicht
+        { source: "rijks", id: 20027558 },  // Jacob Maris — Fishing for Shells
+        { source: "rijks", id: 20027559 },  // Jacob Maris — Strand bij avond
+        { source: "rijks", id: 20027560 },  // Jacob Maris — Oud buurtje aan het water
+        { source: "rijks", id: 20027561 },  // Jacob Maris — Vaart bij maanlicht
+        { source: "rijks", id: 20027562 },  // Jacob Maris — De Schreierstoren met de brug over de Gelderse
+        { source: "rijks", id: 20027564 },  // Jacob Maris — Landschap met schuit
+        { source: "rijks", id: 20027565 },  // Jacob Maris — Houses on the Prins Hendrikkade, Amsterdam, on
+        { source: "rijks", id: 20027614 },  // Jacob Maris — De Schreierstoren aan de Buitenkant te Amsterd
+        { source: "rijks", id: 20027615 },  // Jacob Maris — A Bleaching Field
+        { source: "rijks", id: 20028247 },  // Jacob Maris — Harbor View
+        { source: "rijks", id: 20028249 },  // Jacob Maris — Townscape with a Domed Church
+        { source: "rijks", id: 20028250 },  // Jacob Maris — Ships in Dull Weather
+        { source: "rijks", id: 20028253 },  // Jacob Maris — Cityscape
+        { source: "rijks", id: 20028254 },  // Jacob Maris — The Bridge
+        { source: "rijks", id: 20028257 },  // Jacob Maris — The Windmill
+        { source: "rijks", id: 20028258 },  // Jacob Maris — Towpath
+        { source: "rijks", id: 20028259 },  // Jacob Maris — Tired Out (Mother Watched)
+        { source: "rijks", id: 20028260 },  // Jacob Maris — A Polder Landscape after a Thunderstorm
+        { source: "rijks", id: 20028262 },  // Jacob Maris — Havengezicht
+        { source: "rijks", id: 20028263 },  // Jacob Maris — Landschap in de omgeving van Den Haag
+        { source: "rijks", id: 20028264 },  // Jacob Maris — Bluff-bowed Fishing Boat on the Beach at Schev
+        { source: "rijks", id: 20028268 },  // Jacob Maris — Jaagpad
+        { source: "rijks", id: 20028269 },  // Jacob Maris — Dordrecht bij avond
+        { source: "rijks", id: 20028470 },  // Jacob Maris — Schepen in de haven van Dordrecht
+        { source: "rijks", id: 200109454 },  // Anton Mauve — Morning Ride along the Beach
+        { source: "rijks", id: 200109456 },  // Anton Mauve — On the Heath near Laren
+        { source: "rijks", id: 200109457 },  // Anton Mauve — The Vegetable Garden
+        { source: "rijks", id: 20015958 },  // Anton Mauve — De Torenlaan te Laren
+        { source: "rijks", id: 20027381 },  // Anton Mauve — Het in zee brengen van een visserspink
+        { source: "rijks", id: 20027446 },  // Anton Mauve — De melkbocht
+        { source: "rijks", id: 20027525 },  // Anton Mauve — Paarden bij het hek
+        { source: "rijks", id: 20027542 },  // Anton Mauve — Trekvaart
+        { source: "rijks", id: 20027553 },  // Anton Mauve — Winter in the Scheveningen Woods
+        { source: "rijks", id: 20028284 },  // Anton Mauve — Huisje aan een sloot
+        { source: "rijks", id: 20028285 },  // Anton Mauve — Shepherdess with a Flock of Sheep
+        { source: "rijks", id: 20028286 },  // Anton Mauve — The Marsh
+        { source: "rijks", id: 20028287 },  // Anton Mauve — Huisje aan de zandweg
+        { source: "rijks", id: 20028473 },  // Anton Mauve — Lying Cow
+        { source: "rijks", id: 20028528 },  // Anton Mauve — Koe
+        { source: "rijks", id: 200108394 },  // Johan Hendrik Weissenbruch — Wooded View near Barbizon
+        { source: "rijks", id: 200108395 },  // Johan Hendrik Weissenbruch — Summer Day
+        { source: "rijks", id: 200108396 },  // Johan Hendrik Weissenbruch — Autumn Landscape
+        { source: "rijks", id: 200108397 },  // Johan Hendrik Weissenbruch — Cellar of the Artist’s Home in The Hague
+        { source: "rijks", id: 200108398 },  // Johan Hendrik Weissenbruch — The Trekvliet Shipping Canal near Rijswijk, kn
+        { source: "rijks", id: 20026933 },  // Johan Hendrik Weissenbruch — Beach Scene
+        { source: "rijks", id: 20026935 },  // Johan Hendrik Weissenbruch — Dune landscape
+        { source: "rijks", id: 20027556 },  // Johan Hendrik Weissenbruch — The Mill
+        { source: "rijks", id: 20027617 },  // Johan Hendrik Weissenbruch — Landschap met boerderij bij een plas
+        { source: "rijks", id: 20028570 },  // Johan Hendrik Weissenbruch — Boerenhuis aan een vaart
+        { source: "rijks", id: 20027522 },  // Johan Barthold Jongkind — Rotterdam in the Moonlight
+        { source: "rijks", id: 20027529 },  // Johan Barthold Jongkind — Windmills near Rotterdam
+        { source: "rijks", id: 20028159 },  // Johan Barthold Jongkind — River View in France, possibly near Pontoise
+        { source: "rijks", id: 20028160 },  // Johan Barthold Jongkind — Overschie in the Moonlight
+        { source: "rijks", id: 20028526 },  // Johan Barthold Jongkind — Houses on a Waterway near Crooswijk
+        { source: "rijks", id: 2004267 },  // Johan Barthold Jongkind — Rue Notre-Dame, Paris
+        { source: "rijks", id: 200106078 },  // Wouter Johannes Van Troostwijk — The Raampoortje in Amsterdam
+        { source: "rijks", id: 200108018 },  // Wouter Johannes Van Troostwijk — A Barn on the Bank of a Stream in Gelderland
+        { source: "rijks", id: 20026431 },  // Wouter Johannes Van Troostwijk — Farm Building in Gelderland
+        { source: "rijks", id: 200108352 },  // Esaias Van De Velde — The Ferry
+        { source: "rijks", id: 20026823 },  // Esaias Van De Velde — The Robbery
+        { source: "rijks", id: 20026824 },  // Esaias Van De Velde — An open-air Party
+        { source: "rijks", id: 20026825 },  // Esaias Van De Velde — A View in the Dunes
+        { source: "rijks", id: 20027972 },  // Esaias Van De Velde — Roman Landscape with Ruins
+        { source: "rijks", id: 200108292 },  // Jan Both — Italian Landscape with Mule Driver
+        { source: "rijks", id: 200108293 },  // Jan Both — Italian Landscape with a Draughtsman
+        { source: "rijks", id: 200108294 },  // Jan Both — Street Scene with Roman Ruins
+        { source: "rijks", id: 20026718 },  // Jan Both — Italian Landscape with a View of a Harbour
+        { source: "rijks", id: 20026719 },  // Jan Both — Italian Landscape with a River and an Arch Bri
+        { source: "rijks", id: 20026720 },  // Jan Both — Farmyard
+        { source: "rijks", id: 20026721 },  // Jan Both — Italian Landscape with Ferry
+        { source: "rijks", id: 200108602 },  // Everdingen — Swedish Landscape with a Water Mill
+        { source: "rijks", id: 20027044 },  // Everdingen — Swedish Landscape with a Waterfall
+        { source: "rijks", id: 20027374 },  // Everdingen — Hendrick Trip's Cannon Foundry in Julitabroeck
+        { source: "rijks", id: 20027859 },  // Everdingen — Swedish Landscape
+        { source: "rijks", id: 200108226 },  // Bilders — Woodland Pond at Sunset
+        { source: "rijks", id: 200108227 },  // Bilders — Meadow near Oosterbeek
+        { source: "rijks", id: 200108228 },  // Bilders — Jacob van Ruisdael Sketching a Watermill
+        { source: "rijks", id: 20026627 },  // Bilders — The Goatherdess
+        { source: "rijks", id: 20026628 },  // Bilders — Cows in the Meadow
+        { source: "rijks", id: 20026629 },  // Bilders — Cows at a pond
+        { source: "rijks", id: 20026630 },  // Bilders — Swiss Landscape
+        { source: "rijks", id: 20026631 },  // Bilders — Cows at a Pond
+        { source: "rijks", id: 20026632 },  // Bilders — View in the Woods
+        { source: "rijks", id: 20026633 },  // Bilders — The Heath near Wolfheze
+        { source: "rijks", id: 20026634 },  // Bilders — Landscape with Farmstead
+        { source: "rijks", id: 20026635 },  // Bilders — Avenue of Oaks in Late Summer
+        { source: "rijks", id: 20062895 },  // Bilders — Bosgezicht bij Wolfheze.
+        { source: "rijks", id: 200107977 },  // Schelfhout — Farmyard
+        { source: "rijks", id: 200107978 },  // Schelfhout — A Frozen Canal near the River Maas
+        { source: "rijks", id: 20026281 },  // Schelfhout — Windmill beside a frozen river
+        { source: "rijks", id: 20026282 },  // Schelfhout — Winter Scene on the Ice with Wood Gatherers
+        { source: "rijks", id: 20026283 },  // Schelfhout — Landscape with the Ruins of Brederode Castle i
+        { source: "rijks", id: 20026284 },  // Schelfhout — Inner Courtyard
+        { source: "rijks", id: 20065879 },  // Schelfhout — View of the Dunes with the Ruins of Brederode 
+        { source: "rijks", id: 200111819 },  // Koekkoek — View in the Woods
+        { source: "rijks", id: 200111820 },  // Koekkoek — Winter landscape
+        { source: "rijks", id: 20029299 },  // Koekkoek — Landscape with an Oncoming Rainstorm
+        { source: "rijks", id: 20029300 },  // Koekkoek — Italian Landscape
+        { source: "rijks", id: 200108402 },  // Wijnants — Hilly Landscape with a Rider on a Country Road
+        { source: "rijks", id: 20026965 },  // Wijnants — Landscape with Cattle on a Country Road
+        { source: "rijks", id: 20026966 },  // Wijnants — Landscape with a Peddler and Woman Resting
+        { source: "rijks", id: 20026967 },  // Wijnants — Landscape with a Rider Watering his Horse
+        { source: "rijks", id: 20026968 },  // Wijnants — Landscape with a Man Riding a Donkey
+        { source: "rijks", id: 20026969 },  // Wijnants — The Farmhouse
+        { source: "rijks", id: 20026970 },  // Wijnants — Landscape with two Hunters
+        { source: "rijks", id: 20026971 },  // Wijnants — Dune Landscape with Hunters Resting
+        { source: "rijks", id: 20026972 },  // Wijnants — Landscape with a Hunter and other Figures
+        { source: "rijks", id: 20015638 },  // Van Der Heyden — Amsterdam City View with Houses on the Herengr
+        { source: "rijks", id: 20027572 },  // Van Der Heyden — View in the Woods
+        { source: "rijks", id: 20028039 },  // Van Der Heyden — The Stone Bridge
+        { source: "rijks", id: 20028040 },  // Van Der Heyden — The Draw Bridge
+        { source: "rijks", id: 20028041 },  // Van Der Heyden — The Church of St Severin in Cologne in an Imag
+        { source: "rijks", id: 20028517 },  // Van Der Heyden — A Country Home
     ],
     "portraits": [
         { source: "rijks", id: 200109344 },  // Frans Hals
@@ -281,6 +464,14 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "cleveland", id: 125895 },  // Frans Hals — Portrait of a Woman, probably Aeltje Dircksdr. P
         { source: "cleveland", id: 117030 },  // Joseph Paelinck — Self-Portrait
         { source: "cleveland", id: 444535 },  // Frédéric Bazille — Portrait of Renoir
+        { source: "rijks", id: 200109207 },  // Aelbert Cuyp — Portrait of a Young Man, possibly Jacob Franck
+        { source: "rijks", id: 200111821 },  // Philips Koninck — Joost van den Vondel (1587-1679), Poet
+        { source: "rijks", id: 20028261 },  // Jacob Maris — Portrait of Catharina Hendrika Horn, the Artis
+        { source: "rijks", id: 20028766 },  // Anton Mauve — Portrait of Pieter Frederik van Os, Painter
+        { source: "rijks", id: 200108017 },  // Wouter Johannes Van Troostwijk — Self Portrait
+        { source: "rijks", id: 200109280 },  // Everdingen — Willem Jacobsz Baert (1636-84), Burgomaster of
+        { source: "rijks", id: 200109281 },  // Everdingen — Portrait of Elisabeth Pietersdr Kessels (1640-
+        { source: "rijks", id: 200516039 },  // Everdingen — Woman in a Large Hat
     ],
     "impressionism": [
         { source: "cleveland", id: 135382 },  // Claude Monet — The Red Kerchief

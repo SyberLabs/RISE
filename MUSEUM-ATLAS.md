@@ -96,8 +96,15 @@ key-free surface is **Linked Art JSON-LD** at `id.rijksmuseum.nl` /
 
 1. **HumanMadeObject** — `https://id.rijksmuseum.nl/{objectId}`
    (e.g. `200107928` = The Night Watch). Carries `identified_by`
-   (Names + the SK- accession Identifier), production, and a
-   `representation` ref.
+   (Names + the SK- accession Identifier), production, and the
+   VisualItem ref in **`shows`** — the canonical field, and the one
+   the adapter reads. Every object re-probed 2026-07-23 (The Night
+   Watch included) carries `shows` and NOT `representation`.
+   (Amended 2026-07-23: the first draft documented `representation`
+   from a misread probe, and a 210-work harvest script built on it
+   resolved 0 of its first 25 objects. Harvest scripts should read
+   `shows`, optionally falling back to `representation` as
+   belt-and-braces.)
 2. **VisualItem** — the `representation[0].id`. **RIGHTS LIVE HERE**,
    in `subject_to[].identified_by[]` as multilingual Names
    ("Publieke domein" / "Public Domain"; CC0 similarly). Never infer
