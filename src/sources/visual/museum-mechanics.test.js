@@ -91,6 +91,15 @@ describe('museum pool mechanics', () => {
         vi.unstubAllGlobals();
     });
 
+    it('the audit exclusions exist and are non-empty (museum.js soft-guards them, so their loss is otherwise silent)', async () => {
+        const { CATEGORY_EXCLUSIONS } = await import('./museum-pins.js');
+        expect(CATEGORY_EXCLUSIONS, 'CATEGORY_EXCLUSIONS export vanished from museum-pins.js').toBeDefined();
+        // the 2026-07-24 audit floor: these categories carry exclusions
+        expect(CATEGORY_EXCLUSIONS.landscapes?.length).toBeGreaterThanOrEqual(14);
+        expect(CATEGORY_EXCLUSIONS.portraits?.length).toBeGreaterThanOrEqual(2);
+        expect(CATEGORY_EXCLUSIONS.impressionism?.length).toBeGreaterThanOrEqual(3);
+    });
+
     it('every declared pin category exists in MUSEUM_CATEGORIES', async () => {
         const { MUSEUM_CATEGORY_PINS } = await import('./museum-pins.js');
         for (const catId of Object.keys(MUSEUM_CATEGORY_PINS)) {

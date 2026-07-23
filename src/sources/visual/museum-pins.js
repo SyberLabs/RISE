@@ -929,3 +929,15 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "aic", id: 111726 },  // Mon Ancien Regiment
     ]
 });
+
+// Works excluded from LIVE-SEARCH categories by contact-sheet audit
+// (the creator's hand on every card). Live results cannot be cut by
+// omission — search re-serves them — so exclusions bake into the
+// query as must_not id terms. This object shares the pin file so the
+// Curia owns ONE machine-writable curation canon.
+export const CATEGORY_EXCLUSIONS = Object.freeze({
+    "impressionism": [154121, 31816, 110798],
+    "postimpressionism": [191564],
+    "landscapes": [16571, 19339, 28849, 16488, 234781, 15716, 883, 884, 13487, 110242, 39560, 111649, 67362, 16496],
+    "portraits": [25865, 28860]
+});

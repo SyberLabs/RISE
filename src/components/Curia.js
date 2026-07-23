@@ -46,11 +46,13 @@ export class Curia {
     // ---------- data ----------
 
     async load() {
-        const [{ MUSEUM_CATEGORIES }, { MUSEUM_CATEGORY_PINS, CATEGORY_EXCLUSIONS }] =
-            await Promise.all([
-                import('../sources/visual/museum.js'),
-                import('../sources/visual/museum-pins.js')
-            ]);
+        const [museumMod, pinsMod] = await Promise.all([
+            import('../sources/visual/museum.js'),
+            import('../sources/visual/museum-pins.js')
+        ]);
+        const MUSEUM_CATEGORIES = museumMod.MUSEUM_CATEGORIES || {};
+        const MUSEUM_CATEGORY_PINS = pinsMod.MUSEUM_CATEGORY_PINS || {};
+        const CATEGORY_EXCLUSIONS = pinsMod.CATEGORY_EXCLUSIONS || {};
         this.categories = Object.entries(MUSEUM_CATEGORIES).map(([id, cat]) => ({
             id,
             name: cat.name,
