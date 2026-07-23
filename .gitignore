@@ -44,3 +44,7 @@ nul
 # Playwright
 test-results/
 playwright-report/
+
+# Curia transactional write artifacts
+src/sources/visual/museum-pins.js.*.bak
+src/sources/visual/museum-pins.js.tmp

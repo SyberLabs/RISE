@@ -61,10 +61,25 @@ export class Via {
 
   // ── Rendering ─────────────────────────────────────────────
 
+  /**
+   * Reverent degradation for stage imagery: a failed painting must
+   * become absence — the meditation text alone — never a browser
+   * broken-image glyph. Attached after each stage render.
+   */
+  _armImageAbsence(root) {
+    for (const img of root.querySelectorAll('.via-art img, .via-nave-frame img')) {
+      img.addEventListener('error', () => {
+        const frame = img.closest('.via-art, .via-nave-frame');
+        if (frame) frame.remove(); else img.remove();
+      }, { once: true });
+    }
+  }
+
   render() {
     this.container.innerHTML = `
       <main class="via" aria-label="The Stations of the Cross">
         <div class="via-stage" data-phase="${this.phase}"></div>
+        <p class="chant-credit font-mono" aria-live="polite" hidden></p>
       </main>
     `;
     this.renderStage();
@@ -77,6 +92,7 @@ export class Via {
     if (this.phase === 'choosing') stage.innerHTML = this.renderChoosing();
     else if (this.phase === 'walking') stage.innerHTML = this.renderStation();
     else stage.innerHTML = this.renderComplete();
+    this._armImageAbsence(stage);
   }
 
   renderChoosing() {
@@ -200,6 +216,14 @@ export class Via {
       if (!engine) return;
       if (!engine.isInitialized) await engine.init?.();
       if (generation !== this._soundGeneration) return;
+      // The provenance contract: each recording's credit, as it begins
+      engine.onChantTrackChange = (chant) => {
+        if (generation !== this._soundGeneration) return;
+        const line = this.container.querySelector('.chant-credit');
+        if (!line) return;
+        line.textContent = chant.attribution || `${chant.title} — ${chant.performer}`;
+        line.hidden = false;
+      };
       engine.stopAmbient?.();
       engine.startSoundscape?.(this.sound);
     } catch (e) {
@@ -209,7 +233,11 @@ export class Via {
 
   _stopSound() {
     this._soundGeneration = (this._soundGeneration || 0) + 1;
-    try { window.rise?.audioEngine?.stopSoundscape?.(); } catch { /* released */ }
+    const engine = window.rise?.audioEngine;
+    if (engine) engine.onChantTrackChange = null;
+    const line = this.container.querySelector('.chant-credit');
+    if (line) line.hidden = true;
+    try { engine?.stopSoundscape?.(); } catch { /* released */ }
   }
 
   // ── Events / wayfinding ───────────────────────────────────

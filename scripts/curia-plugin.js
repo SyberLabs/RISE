@@ -193,6 +193,68 @@ export function applyChangeset(model, changeset) {
     return applied;
 }
 
+const KNOWN_SOURCES = new Set(['aic', 'rijks', 'cleveland', 'met', 'commons']);
+const CHANGE_VERBS = ['exclude', 'unexclude', 'addPin', 'removePin', 'movePin', 'setLiveSearch'];
+const MAX_BODY_BYTES = 512 * 1024;
+
+/**
+ * Validate an incoming changeset against the parsed model. Throws with
+ * a human-readable reason on the first violation. Category names must
+ * already exist in the canon (the Curia offers no category creation);
+ * ids must be finite positive integers; notes are flattened to one
+ * line.
+ */
+export function validateChangeset(changeset, model) {
+    if (!changeset || typeof changeset !== 'object') throw new Error('changeset is not an object');
+    const knownCats = new Set([...model.order, ...model.exclusionOrder]);
+    const checkCat = (cat, where) => {
+        if (typeof cat !== 'string' || !knownCats.has(cat)) {
+            throw new Error(`${where}: unknown category '${cat}'`);
+        }
+    };
+    const checkId = (id, where) => {
+        const n = Number(id);
+        if (!Number.isInteger(n) || n <= 0) throw new Error(`${where}: invalid id '${id}'`);
+    };
+    for (const key of Object.keys(changeset)) {
+        if (!CHANGE_VERBS.includes(key)) throw new Error(`unknown verb '${key}'`);
+        if (!Array.isArray(changeset[key])) throw new Error(`verb '${key}' is not an array`);
+    }
+    for (const e of changeset.exclude || []) { checkCat(e.category, 'exclude'); checkId(e.id, 'exclude'); }
+    for (const e of changeset.unexclude || []) { checkCat(e.category, 'unexclude'); checkId(e.id, 'unexclude'); }
+    for (const a of changeset.addPin || []) {
+        checkCat(a.category, 'addPin'); checkId(a.id, 'addPin');
+        if (!KNOWN_SOURCES.has(a.source)) throw new Error(`addPin: unknown source '${a.source}'`);
+        if (a.note != null) a.note = String(a.note).replace(/[\r\n]+/g, ' ').slice(0, 60);
+    }
+    for (const r of changeset.removePin || []) {
+        checkCat(r.category, 'removePin'); checkId(r.id, 'removePin');
+        if (!KNOWN_SOURCES.has(r.source)) throw new Error(`removePin: unknown source '${r.source}'`);
+    }
+    for (const m of changeset.movePin || []) {
+        checkCat(m.from, 'movePin.from'); checkCat(m.to, 'movePin.to'); checkId(m.id, 'movePin');
+        if (!KNOWN_SOURCES.has(m.source)) throw new Error(`movePin: unknown source '${m.source}'`);
+    }
+    for (const t of changeset.setLiveSearch || []) {
+        checkCat(t.category, 'setLiveSearch');
+        if (typeof t.enabled !== 'boolean') throw new Error('setLiveSearch: enabled must be boolean');
+    }
+}
+
+/**
+ * Semantic accounting of a model, for the pre/post-write comparison:
+ * the emitted file must reparse to exactly the model we intended.
+ */
+export function modelCensus(model) {
+    return JSON.stringify({
+        pins: Object.fromEntries(Object.entries(model.pins).map(
+            ([c, arr]) => [c, arr.map(p => `${p.source}:${p.id}`).sort()])),
+        exclusions: Object.fromEntries(Object.entries(model.exclusions).map(
+            ([c, arr]) => [c, [...arr].sort((a, b) => a - b)])),
+        liveSearch: model.liveSearch || {}
+    });
+}
+
 export function curiaPlugin() {
     return {
         name: 'curia-dev-write',
@@ -201,16 +263,46 @@ export function curiaPlugin() {
             server.middlewares.use('/__curia/apply', (req, res) => {
                 if (req.method !== 'POST') { res.statusCode = 405; return res.end(); }
                 let body = '';
-                req.on('data', chunk => { body += chunk; });
+                let overflow = false;
+                req.on('data', chunk => {
+                    body += chunk;
+                    if (body.length > MAX_BODY_BYTES) { overflow = true; req.destroy(); }
+                });
                 req.on('end', () => {
+                    if (overflow) { res.statusCode = 413; return res.end(); }
                     try {
+                        // The Curia rewrites the visual canon: it behaves
+                        // like a tiny migration system, not a text editor.
+                        // validate → apply in memory → emit → REPARSE the
+                        // candidate → compare semantics → backup → write
+                        // to a temp file → atomic rename.
                         const changeset = JSON.parse(body);
-                        const text = fs.readFileSync(PINS_PATH, 'utf8');
-                        const model = parsePinsFile(text);
+                        const original = fs.readFileSync(PINS_PATH, 'utf8');
+                        const model = parsePinsFile(original);
+                        if (model.order.length === 0) {
+                            throw new Error('refusing to write: parsed model holds no categories');
+                        }
+                        validateChangeset(changeset, model);
                         const applied = applyChangeset(model, changeset);
-                        fs.writeFileSync(PINS_PATH, emitPinsFile(model));
+
+                        const candidate = emitPinsFile(model);
+                        const reparsed = parsePinsFile(candidate);
+                        if (modelCensus(reparsed) !== modelCensus(model)) {
+                            throw new Error('refusing to write: candidate does not reparse to the intended model');
+                        }
+
+                        // Timestamped backup beside the canon, then an
+                        // atomic temp+rename so a crash never leaves a
+                        // half-written file
+                        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+                        const backupPath = `${PINS_PATH}.${stamp}.bak`;
+                        fs.writeFileSync(backupPath, original);
+                        const tmpPath = `${PINS_PATH}.tmp`;
+                        fs.writeFileSync(tmpPath, candidate);
+                        fs.renameSync(tmpPath, PINS_PATH);
+
                         res.setHeader('content-type', 'application/json');
-                        res.end(JSON.stringify({ ok: true, applied }));
+                        res.end(JSON.stringify({ ok: true, applied, backup: path.basename(backupPath) }));
                     } catch (e) {
                         res.statusCode = 500;
                         res.end(JSON.stringify({ ok: false, error: String(e.message) }));

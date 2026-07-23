@@ -26,24 +26,42 @@ const INTER_TRACK_SILENCE_S = 12;
 /** Fade edges so entries and exits are candle-soft. */
 const FADE_S = 3;
 
-async function fetchChantBuffer(ctx, chant, fetchImpl) {
+/**
+ * Decoded-buffer cache, keyed per AudioContext (a buffer decoded on
+ * one context is not portable to another). Values are PROMISES so a
+ * track fetched twice concurrently decodes once; a null resolution
+ * (failure) is also cached — a track that failed once this context's
+ * life is not re-fetched every program loop. The WeakMap lets a
+ * discarded context release every buffer with it.
+ */
+const decodedByContext = new WeakMap();
+
+function fetchChantBuffer(ctx, chant, fetchImpl) {
+    let byUrl = decodedByContext.get(ctx);
+    if (!byUrl) { byUrl = new Map(); decodedByContext.set(ctx, byUrl); }
+    if (byUrl.has(chant.url)) return byUrl.get(chant.url);
+
     const doFetch = fetchImpl || fetch;
-    try {
-        const response = await doFetch(chant.url);
-        if (!response.ok) return null;
-        const contentType = response.headers.get('content-type') || '';
-        // Audio or bust — a rate-limit page and an error page are both
-        // text/html, and both once masqueraded as mp3s here.
-        if (!/audio|ogg|mpeg|octet-stream/i.test(contentType)) {
-            console.warn('[Chant] Expected audio, got', contentType, 'for', chant.id);
+    const promise = (async () => {
+        try {
+            const response = await doFetch(chant.url);
+            if (!response.ok) return null;
+            const contentType = response.headers.get('content-type') || '';
+            // Audio or bust — a rate-limit page and an error page are both
+            // text/html, and both once masqueraded as mp3s here.
+            if (!/audio|ogg|mpeg|octet-stream/i.test(contentType)) {
+                console.warn('[Chant] Expected audio, got', contentType, 'for', chant.id);
+                return null;
+            }
+            const bytes = await response.arrayBuffer();
+            return await ctx.decodeAudioData(bytes);
+        } catch (error) {
+            console.warn('[Chant] Failed to load', chant.id, error?.message || error);
             return null;
         }
-        const bytes = await response.arrayBuffer();
-        return await ctx.decodeAudioData(bytes);
-    } catch (error) {
-        console.warn('[Chant] Failed to load', chant.id, error?.message || error);
-        return null;
-    }
+    })();
+    byUrl.set(chant.url, promise);
+    return promise;
 }
 
 /**
@@ -63,17 +81,32 @@ export function createChantBed(family, ctx, destination, options = {}) {
     let nextTimer = null;
     let stopped = false;
     let trackIndex = 0;
+    // Once-per-bed failure: a track that fails is not retried this
+    // bed instance, and when every track of the family has failed the
+    // bed settles PERMANENTLY into silence for the session — no
+    // endless five-second request cycle against a dead host. A later
+    // session (new bed) may try again.
+    const failedThisBed = new Set();
 
     async function playNext() {
         if (stopped) return;
+        if (failedThisBed.size >= program.length) return; // the family is silent
         const chant = program[trackIndex % program.length];
         trackIndex += 1;
+        if (failedThisBed.has(chant.id)) {
+            nextTimer = setTimeout(playNext, 50);
+            return;
+        }
 
         const buffer = await fetchChantBuffer(ctx, chant, options.fetchImpl);
         if (stopped) return;
         if (!buffer) {
-            // Skip after a shortened breath; a family with nothing
-            // playable settles into silence one track at a time.
+            failedThisBed.add(chant.id);
+            if (failedThisBed.size >= program.length) {
+                console.warn('[Chant] Every track of', family, 'failed — the bed rests in silence this session');
+                return;
+            }
+            // Skip after a shortened breath
             nextTimer = setTimeout(playNext, 5000);
             return;
         }
@@ -97,6 +130,9 @@ export function createChantBed(family, ctx, destination, options = {}) {
         };
         source.start(now);
         activeSource = source;
+        // The provenance contract: whoever offers the recording shows
+        // its credit — the bed announces each track as it begins
+        try { options.onTrackChange?.(chant); } catch (e) { /* display is optional */ }
     }
 
     return {

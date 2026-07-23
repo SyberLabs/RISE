@@ -221,3 +221,23 @@
   .via-nave { grid-template-columns: repeat(7, 1fr); gap: 4px; }
   .via-art img { max-height: 40vh; }
 }
+
+/* The chant credit — the provenance contract made visible: each
+   recording's attribution, quiet at the room's foot, present only
+   while its track sounds. Shared by the Rosarium and the Via. */
+.chant-credit {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: rgba(200, 195, 210, 0.4);
+  pointer-events: none;
+  max-width: 84vw;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chant-credit[hidden] { display: none; }

@@ -258,7 +258,11 @@ export class MuseumProvider extends SourceProvider {
             this._categoryCache.set(pinKey, pool);
             if (!this._pinResolutions) this._pinResolutions = new Map();
             if (!this._pinsResolved) this._pinsResolved = new Set();
-            if (!this._pinsResolved.has(resolvedId) && !this._pinResolutions.has(resolvedId)) {
+            if (!this._pinRetryAt) this._pinRetryAt = new Map();
+            const retryAt = this._pinRetryAt.get(resolvedId) || 0;
+            if (!this._pinsResolved.has(resolvedId)
+                && !this._pinResolutions.has(resolvedId)
+                && Date.now() >= retryAt) {
                 const run = this._resolvePins(resolvedId, {
                     onBatch: (works) => {
                         const have = new Set(pool.map(w => String(w.id)));
@@ -266,9 +270,23 @@ export class MuseumProvider extends SourceProvider {
                             if (!have.has(String(w.id))) pool.push(w);
                         }
                     }
-                }).then(() => { this._pinsResolved.add(resolvedId); })
-                    .catch(() => { /* pool stays as-is; a later call may retry */ })
-                    .finally(() => { this._pinResolutions.delete(resolvedId); });
+                }).then(() => {
+                    // SUCCESS marks resolved; failure must NOT — a
+                    // transient network failure once froze a category
+                    // as permanently empty for the provider's life
+                    // (2026-07 review, finding 1)
+                    this._pinsResolved.add(resolvedId);
+                    this._pinRetryAt.delete(resolvedId);
+                }).catch(() => {
+                    // Bounded backoff: a dry provider must not restart
+                    // a ~30s resolution on every draw. Doubles from
+                    // 15s to a 4-minute ceiling; partial batches are
+                    // already in the pool and deduplicate on retry.
+                    const prev = this._pinBackoffMs?.get(resolvedId) || 15000;
+                    if (!this._pinBackoffMs) this._pinBackoffMs = new Map();
+                    this._pinBackoffMs.set(resolvedId, Math.min(prev * 2, 240000));
+                    this._pinRetryAt.set(resolvedId, Date.now() + prev);
+                }).finally(() => { this._pinResolutions.delete(resolvedId); });
                 this._pinResolutions.set(resolvedId, run);
             }
             const request = withAbortTimeout(
@@ -405,10 +423,18 @@ export class MuseumProvider extends SourceProvider {
                 // receive each batch as it lands
                 if (typeof options.onBatch === 'function') options.onBatch(shaped);
             }
+            // Declared pins with ZERO resolutions is operational
+            // failure (network down, adapters dark), not an empty
+            // category — the caller must be able to retry. The
+            // adapters degrade individual misses to omissions, so an
+            // all-miss run fulfills with [] unless we throw here.
+            if (works.length === 0 && !options.signal?.aborted) {
+                throw new Error(`No pins resolved for ${categoryId} (${pins.length} declared)`);
+            }
             return works;
         } catch (e) {
-            console.warn('[Museum] Pin enrichment unavailable:', e);
-            return [];
+            console.warn('[Museum] Pin resolution failed:', e);
+            throw e;
         }
     }
 

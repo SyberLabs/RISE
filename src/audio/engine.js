@@ -834,8 +834,15 @@ export class AudioEngine {
 
         // Chant beds are soundscapes whose voices are recorded sacred
         // music (src/audio/chant.js) — same contract, same layer.
+        // The provenance contract rides through: each recording's
+        // credit is announced as it begins (rooms subscribe via
+        // engine.onChantTrackChange).
         const handle = isChantBedId(id)
-            ? createChantBed(CHANT_BED_IDS[id].family, this.context, this.layerGains.soundscape)
+            ? createChantBed(CHANT_BED_IDS[id].family, this.context, this.layerGains.soundscape, {
+                onTrackChange: (chant) => {
+                    try { this.onChantTrackChange?.(chant); } catch (e) { /* display optional */ }
+                }
+            })
             : createSoundscape(id, this.context, this.layerGains.soundscape);
         if (!handle) {
             console.warn('[AudioEngine] Unknown soundscape:', id);

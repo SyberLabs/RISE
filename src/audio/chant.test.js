@@ -150,4 +150,66 @@ describe('Engine + policy seams', () => {
     const css = readFileSync(resolve('src/components/ChamberOrbital.css'), 'utf8');
     expect(css).toMatch(/\.audio-preset-option\[hidden\]\s*\{[^}]*display:\s*none/);
   });
+
+  it('caches decoded buffers per context: a repeating track fetches once', async () => {
+    const ctx = fakeCtx();
+    const fetchImpl = vi.fn(async () => ({
+      ok: true,
+      headers: { get: () => 'application/ogg' },
+      arrayBuffer: async () => new ArrayBuffer(8)
+    }));
+    // two beds on the SAME context: the second replay of a URL must
+    // come from the decoded cache, not the network
+    const a = createChantBed('gregorian', ctx, {}, { fetchImpl });
+    a.start();
+    await vi.waitFor(() => expect(ctx.createBufferSource).toHaveBeenCalled());
+    const fetchesAfterFirst = fetchImpl.mock.calls.length;
+    a.stop(true);
+    const b = createChantBed('gregorian', ctx, {}, { fetchImpl });
+    b.start();
+    await new Promise(f => setTimeout(f, 30));
+    expect(fetchImpl.mock.calls.length).toBe(fetchesAfterFirst); // cache hit
+    b.stop(true);
+  });
+
+  it('a family whose every track fails settles into permanent silence, not a request cycle', async () => {
+    vi.useFakeTimers();
+    try {
+      const ctx = fakeCtx();
+      const fetchImpl = vi.fn(async () => ({ ok: false, headers: { get: () => '' } }));
+      const bed = createChantBed('znamenny', ctx, {}, { fetchImpl });
+      bed.start();
+      // walk far past many 5s retry windows
+      for (let i = 0; i < 40; i++) await vi.advanceTimersByTimeAsync(5000);
+      const total = fetchImpl.mock.calls.length;
+      // once per track at most — never an endless cycle
+      const { chantProgram } = await import('../content/chapel/chants.js');
+      expect(total).toBeLessThanOrEqual(chantProgram('znamenny').length);
+      // and no timer remains armed
+      await vi.advanceTimersByTimeAsync(60000);
+      expect(fetchImpl.mock.calls.length).toBe(total);
+      bed.stop(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('announces each recording as it begins (the provenance contract)', async () => {
+    const ctx = fakeCtx();
+    const fetchImpl = vi.fn(async () => ({
+      ok: true,
+      headers: { get: () => 'application/ogg' },
+      arrayBuffer: async () => new ArrayBuffer(8)
+    }));
+    const seen = [];
+    const bed = createChantBed('gregorian', ctx, {}, {
+      fetchImpl,
+      onTrackChange: (chant) => seen.push(chant)
+    });
+    bed.start();
+    await vi.waitFor(() => expect(seen.length).toBeGreaterThan(0));
+    expect(seen[0]).toHaveProperty('attribution');
+    expect(seen[0]).toHaveProperty('title');
+    bed.stop(true);
+  });
 });

@@ -95,10 +95,41 @@ describe('museum pool mechanics', () => {
     it('pin-resolution failure yields an empty pool, never a throw (pinned-only era)', async () => {
         vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('network down'); }));
         const pool = await provider.getImagesInCategory('oldmasters', 100);
-        // _resolvePins degrades to [] on failure; the caller sees an
-        // empty pool and the cortex treats it like any dry category
+        // the shared run degrades failure to an empty pool; the caller
+        // and the cortex treat it like any dry category
         expect(pool).toEqual([]);
         vi.unstubAllGlobals();
+    });
+
+    it('a transient failure does NOT permanently resolve a category as empty (recovery)', async () => {
+        // first attempt: everything fails
+        let failing = true;
+        vi.spyOn(provider, '_resolvePins').mockImplementation(async (categoryId, options = {}) => {
+            if (failing) throw new Error('museum dark');
+            const works = [{ id: 'rijks:1', title: 'w', url: 'u', fullUrl: 'u' }];
+            options.onBatch?.(works);
+            return works;
+        });
+        const first = await provider.getImagesInCategory('flowers', 100);
+        expect(first).toEqual([]);
+        expect(provider._pinsResolved.has('flowers')).toBe(false); // NOT marked resolved
+
+        // the museum comes back; backoff window elapses
+        failing = false;
+        provider._pinRetryAt.set('flowers', 0);
+        const second = await provider.getImagesInCategory('flowers', 100);
+        expect(second.length).toBe(1); // recovered
+        expect(provider._pinsResolved.has('flowers')).toBe(true);
+    });
+
+    it('failure sets a bounded backoff so a dry provider is not hammered per draw', async () => {
+        vi.spyOn(provider, '_resolvePins').mockRejectedValue(new Error('dark'));
+        await provider.getImagesInCategory('ships', 100);
+        // within the backoff window a second call must NOT start a new run
+        const calls = provider._resolvePins.mock.calls.length;
+        await provider.getImagesInCategory('ships', 100);
+        expect(provider._resolvePins.mock.calls.length).toBe(calls);
+        expect(provider._pinRetryAt.get('ships')).toBeGreaterThan(Date.now());
     });
 
     it('the audit exclusions exist and are non-empty (museum.js soft-guards them, so their loss is otherwise silent)', async () => {

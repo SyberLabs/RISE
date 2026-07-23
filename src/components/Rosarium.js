@@ -96,6 +96,7 @@ export class Rosarium {
         <div class="rosarium-stage" data-phase="${this.phase}">
           <canvas class="rosarium-strand" width="640" height="760" aria-hidden="true"></canvas>
           <div class="rosarium-overlay"></div>
+          <p class="chant-credit font-mono" aria-live="polite" hidden></p>
         </div>
       </main>
     `;
@@ -212,7 +213,10 @@ export class Rosarium {
         const work = await this._resolvePin(pin);
         if (generation !== this._visualGeneration || setId !== this.setId) return;
         if (!work || !this._galleryOpen) continue;
-        slot.innerHTML = `<img src="${escapeHtml(work.imageUrl)}" alt="${escapeHtml(work.title)}" title="${escapeHtml(work.attribution || `${work.title} — ${work.artist}`)}" />`;
+        const { mountSacredImage } = await import('../content/chapel/imagery/sacred-image.js');
+        await mountSacredImage(slot, work, {
+          stillAlive: () => generation === this._visualGeneration && this._galleryOpen
+        });
       }
     } catch (e) {
       console.warn('[Rosarium] Gallery unavailable:', e);
@@ -444,19 +448,25 @@ export class Rosarium {
         // The devotional moment must still exist: same generation,
         // same set, same step, still praying
         const liveSlot = this.container.querySelector('[data-art-slot]');
-        const momentStands = generation === this._visualGeneration
+        const momentStands = () => generation === this._visualGeneration
           && setId === this.setId
           && this.phase === 'prayer'
           && this.compiled?.steps[this.stepIndex]?.id === stepId;
-        if (work && liveSlot && momentStands) {
-          liveSlot.innerHTML = `<img src="${escapeHtml(work.imageUrl)}" alt="${escapeHtml(work.title)}" title="${escapeHtml(`${work.title} — ${work.artist}`)}" />`;
+        if (work && liveSlot && momentStands()) {
+          const { mountSacredImage } = await import('../content/chapel/imagery/sacred-image.js');
+          await mountSacredImage(liveSlot, work, { stillAlive: momentStands });
           return;
         }
-        if (work || !momentStands) return; // never show a stale image
+        if (work || !momentStands()) return; // never show a stale image
       }
     }
     const icon = findChapelIcon(this.iconId) || CHAPEL_ICONS[CHAPEL_ICON_DEFAULTS.marian];
-    slot.innerHTML = `<img src="${escapeHtml(icon.image)}" alt="${escapeHtml(icon.name)}" title="${escapeHtml(icon.attribution)}" />`;
+    const { mountSacredImage } = await import('../content/chapel/imagery/sacred-image.js');
+    await mountSacredImage(slot, {
+      imageUrl: icon.image, title: icon.name, attribution: icon.attribution
+    }, {
+      stillAlive: () => generation === this._visualGeneration && this.phase === 'prayer'
+    });
   }
 
   // ── Sound ─────────────────────────────────────────────────
@@ -472,6 +482,15 @@ export class Rosarium {
       if (!engine) return;
       if (!engine.isInitialized) await engine.init?.();
       if (generation !== this._soundGeneration) return;
+      // The provenance contract: show each recording's credit as it
+      // begins — quiet, factual, per the chant registry's promise
+      engine.onChantTrackChange = (chant) => {
+        if (generation !== this._soundGeneration) return;
+        const line = this.container.querySelector('.chant-credit');
+        if (!line) return;
+        line.textContent = chant.attribution || `${chant.title} — ${chant.performer}`;
+        line.hidden = false;
+      };
       engine.stopAmbient?.();
       engine.startSoundscape?.(this.sound);
     } catch (e) {
@@ -481,7 +500,11 @@ export class Rosarium {
 
   _stopSound() {
     this._soundGeneration = (this._soundGeneration || 0) + 1;
-    try { window.rise?.audioEngine?.stopSoundscape?.(); } catch { /* released */ }
+    const engine = window.rise?.audioEngine;
+    if (engine) engine.onChantTrackChange = null;
+    const line = this.container.querySelector('.chant-credit');
+    if (line) line.hidden = true;
+    try { engine?.stopSoundscape?.(); } catch { /* released */ }
   }
 
   // ── Events / wayfinding ───────────────────────────────────
