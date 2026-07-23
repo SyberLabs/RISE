@@ -867,14 +867,15 @@ describe('VisualCortex external asset hydration', () => {
         expect(assets.filter(asset => asset.img.src === '')).toHaveLength(10);
     });
 
-    it('rolling refresh slides the window: retains a fresh asset and evicts the least-recently-flashed', async () => {
+    it('rolling refresh slides the window: evicts the earliest-FLASHED veteran, never the unseen', async () => {
         const cortex = new VisualCortex();
         cortex.config.activeTypes = ['aic-oldmasters'];
-        // a warm pool of 3, with distinct recency
         const pool = cortex._poolFor('aic-oldmasters');
-        for (let i = 0; i < 3; i++) {
-            pool.images.push({ img: { src: `old-${i}.jpg` }, loadedAt: i, lastUsedAt: i });
-        }
+        // two flashed veterans (old-0 earliest) and one never-flashed work
+        pool.images.push({ img: { src: 'old-0.jpg' }, loadedAt: 0, lastUsedAt: 0, flashedAt: 10 });
+        pool.images.push({ img: { src: 'old-1.jpg' }, loadedAt: 1, lastUsedAt: 1, flashedAt: 20 });
+        pool.images.push({ img: { src: 'unseen.jpg' }, loadedAt: 2, lastUsedAt: 2 });
+        pool.cursor = 1;
         const fresh = { img: { src: 'fresh.jpg' }, loadedAt: 100, lastUsedAt: 100 };
         vi.spyOn(cortex, '_loadIntoPool').mockImplementation(async () => {
             pool.images.push(fresh);
@@ -884,13 +885,26 @@ describe('VisualCortex external asset hydration', () => {
         cortex._scheduleRollingRefresh();
         await new Promise(resolve => setTimeout(resolve, 10));
 
-        // size holds at 3: the newcomer is in, old-0 (least recent) is out
+        // size holds at 3: the earliest-FLASHED (old-0) is out; the
+        // never-flashed work survives (nothing dies unseen)
         expect(pool.images.length).toBe(3);
         expect(pool.images).toContain(fresh);
         expect(pool.images.find(a => a.img.src === 'old-0.jpg')).toBeUndefined();
+        expect(pool.images.find(a => a.img.src === 'unseen.jpg')).toBeDefined();
+        // the newcomer sits just ahead of the cursor so it flashes soon
+        const cursorNext = pool.images[(pool.cursor + 1) % pool.images.length];
+        expect(cursorNext).toBe(fresh);
         // interval gate: an immediate second call is a no-op
         cortex._scheduleRollingRefresh();
         expect(cortex._loadIntoPool).toHaveBeenCalledTimes(1);
+    });
+
+    it('the take path stamps flashedAt so the refresh can tell seen from unseen', () => {
+        const cortex = new VisualCortex();
+        const pool = cortex._poolFor('aic-oldmasters');
+        pool.images.push({ img: { src: 'a.jpg' }, loadedAt: 1, lastUsedAt: 1 });
+        const taken = cortex._takeFromPool(pool);
+        expect(taken.flashedAt).toBeGreaterThan(0);
     });
 
     it('owns exactly one background retry chain and suspends it outside a session', async () => {

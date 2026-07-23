@@ -971,6 +971,10 @@ export class VisualCortex {
         asset ||= recentFallback;
         if (!asset) return null;
 
+        // The screen timestamp: the rolling refresh only ever evicts
+        // works that carry one, so nothing dies unseen.
+        asset.flashedAt = Date.now();
+
         const url = asset.url || asset.img?.src || '';
         if (url) {
             this._recentExternalUrls = this._recentExternalUrls.filter(item => item !== url);
@@ -1213,21 +1217,40 @@ export class VisualCortex {
                 const added = await this._loadIntoPool(categoryId, { version });
                 if (!added || version !== this._configVersion) return;
                 // A genuinely new retain pushes the pool over its
-                // steady-state size: evict this category's least-
-                // recently-flashed asset (never the newcomer) so the
-                // window slides instead of growing.
+                // steady-state size: evict a FLASHED veteran so the
+                // window slides. Two hard-won rules (traced at 100%
+                // frequency, 2026-07-24): (1) a work that has not been
+                // flashed yet is exempt from eviction — the eviction
+                // horizon (9s) is far shorter than a cursor lap
+                // (~140s), so appended newcomers were dying unseen
+                // while the flashed veterans lived forever, freezing
+                // the rotation at exactly the cap; (2) the newcomer is
+                // INSERTED JUST AHEAD of the cursor, not appended, so
+                // it reaches the screen within a flash or two.
                 if (pool.images.length > before && pool.images.length > INITIAL_POOL_TARGET) {
+                    // move the newcomer from the end to the cursor's
+                    // next position
+                    const endIndex = pool.images.indexOf(added);
+                    if (endIndex >= 0) {
+                        pool.images.splice(endIndex, 1);
+                        const insertAt = Math.min(pool.cursor + 1, pool.images.length);
+                        pool.images.splice(insertAt, 0, added);
+                    }
                     let oldestIndex = -1;
                     let oldestTime = Infinity;
                     for (let i = 0; i < pool.images.length; i++) {
                         const asset = pool.images[i];
                         if (asset === added) continue;
-                        const t = asset.lastUsedAt || asset.loadedAt || 0;
-                        if (t < oldestTime) { oldestTime = t; oldestIndex = i; }
+                        if (!asset.flashedAt) continue; // never evict the unseen
+                        if (asset.flashedAt < oldestTime) {
+                            oldestTime = asset.flashedAt;
+                            oldestIndex = i;
+                        }
                     }
                     if (oldestIndex >= 0) {
                         const [evicted] = pool.images.splice(oldestIndex, 1);
                         this._disposeAsset(evicted);
+                        if (oldestIndex <= pool.cursor && pool.cursor > 0) pool.cursor--;
                         if (pool.cursor >= pool.images.length) pool.cursor = 0;
                     }
                 }
