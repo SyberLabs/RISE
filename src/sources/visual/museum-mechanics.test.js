@@ -23,6 +23,15 @@ const aicResponse = (n, prefix = 'w') => ({
     }))
 });
 
+// The pinned path resolves incrementally: _resolvePins feeds each
+// batch to options.onBatch and the category pool grows in place.
+// Mocks must honor that contract or the caller's non-empty wait spins.
+const mockPins = (provider, works) =>
+    vi.spyOn(provider, '_resolvePins').mockImplementation(async (categoryId, options = {}) => {
+        options.onBatch?.(works);
+        return works;
+    });
+
 describe('museum pool mechanics', () => {
     let provider;
 
@@ -36,9 +45,7 @@ describe('museum pool mechanics', () => {
         // categories resolve from pins alone
         const fetchMock = vi.fn(async () => ({ ok: true, json: async () => aicResponse(5) }));
         vi.stubGlobal('fetch', fetchMock);
-        vi.spyOn(provider, '_resolvePins').mockResolvedValue([
-            { id: 'rijks:1', title: 'w', url: 'u', fullUrl: 'u' }
-        ]);
+        mockPins(provider, [{ id: 'rijks:1', title: 'w', url: 'u', fullUrl: 'u' }]);
         const pool = await provider.getImagesInCategory('oldmasters', 100);
         expect(pool.length).toBe(1);
         const searchCalls = fetchMock.mock.calls.filter(([u]) => /artic\.edu/.test(String(u)));
@@ -52,21 +59,19 @@ describe('museum pool mechanics', () => {
         expect(Object.values(LIVE_SEARCH_ENABLED).filter(v => v === true)).toHaveLength(0);
     });
 
-    it('caches per category AND limit — different limits are different pools', async () => {
-        vi.spyOn(provider, '_resolvePins').mockResolvedValue([
-            { id: 'rijks:1', title: 'w', url: 'u', fullUrl: 'u' }
-        ]);
-        await provider.getImagesInCategory('landscapes', 100);
-        await provider.getImagesInCategory('landscapes', 100);
-        await provider.getImagesInCategory('landscapes', 20);
-        // two distinct cache keys → two pin resolutions, not three
-        expect(provider._resolvePins).toHaveBeenCalledTimes(2);
+    it('pinned pools ignore the limit axis: one shared resolution, one growing array', async () => {
+        mockPins(provider, [{ id: 'rijks:1', title: 'w', url: 'u', fullUrl: 'u' }]);
+        const a = await provider.getImagesInCategory('landscapes', 100);
+        const b = await provider.getImagesInCategory('landscapes', 100);
+        const c = await provider.getImagesInCategory('landscapes', 20);
+        // pins ARE the whole pool — every caller shares it
+        expect(provider._resolvePins).toHaveBeenCalledTimes(1);
+        expect(a).toBe(b);
+        expect(b).toBe(c);
     });
 
     it('a fresh provider instance holds no pool state (session-scoped cache)', async () => {
-        vi.spyOn(provider, '_resolvePins').mockResolvedValue([
-            { id: 'rijks:1', title: 'w', url: 'u', fullUrl: 'u' }
-        ]);
+        mockPins(provider, [{ id: 'rijks:1', title: 'w', url: 'u', fullUrl: 'u' }]);
         await provider.getImagesInCategory('portraits', 100);
         expect(provider._categoryCache.size).toBe(1);
         const fresh = new MuseumProvider();
@@ -135,11 +140,7 @@ describe('museum pool mechanics', () => {
     });
 
     it('getRandom draws a full no-repeat cycle from a stable pinned pool', async () => {
-        vi.spyOn(provider, '_resolvePins').mockResolvedValue(
-            Array.from({ length: 6 }, (_, i) => ({
-                id: `rijks:${i}`, title: `w${i}`, url: `u${i}`, fullUrl: `u${i}`
-            }))
-        );
+        mockPins(provider, Array.from({ length: 6 }, (_, i) => ({ id: `rijks:${i}`, title: `w${i}`, url: `u${i}`, fullUrl: `u${i}` })));
         const seen = [];
         for (let i = 0; i < 6; i++) {
             const item = await provider.getRandom({ category: 'ukiyoe' });

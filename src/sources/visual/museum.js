@@ -238,26 +238,65 @@ export class MuseumProvider extends SourceProvider {
         const { LIVE_SEARCH_ENABLED } = await import('./museum-pins.js');
         const liveEnabled = !!cat.clauses && LIVE_SEARCH_ENABLED?.[resolvedId] === true;
         if (!liveEnabled) {
-            // The pin resolution honors the caller's abort/timeout
-            // contract exactly as a live request would: abort rejects
-            // AbortError, a stall rejects a structured TimeoutError.
-            // Only genuine resolution failures degrade to [].
+            // ONE shared resolution per category, populating the cached
+            // pool INCREMENTALLY as batches land. A cold full resolution
+            // runs ~30s — far past any caller's draw budget — so callers
+            // never wait for completion: they wait (within their own
+            // timeout) only for the pool to be non-empty. The first
+            // batch lands in ~2s, first flashes draw from it, and the
+            // pool grows to full behind the session (the ShuffleBag's
+            // growth-merge keeps the cycle sound). Traced 2026-07-24:
+            // the completion-blocking version made the cortex's 8s
+            // hydration budget fail the whole cold session open —
+            // readiness 'failed', retained 0, the reader's "repetition
+            // 30s in".
+            // Pins are the WHOLE pool — the limit axis is meaningless
+            // here, so the cache key drops it (a :100 and a :20 caller
+            // share one growing array).
+            const pinKey = `pins:${resolvedId}`;
+            const pool = this._categoryCache.get(pinKey) || [];
+            this._categoryCache.set(pinKey, pool);
+            if (!this._pinResolutions) this._pinResolutions = new Map();
+            if (!this._pinsResolved) this._pinsResolved = new Set();
+            if (!this._pinsResolved.has(resolvedId) && !this._pinResolutions.has(resolvedId)) {
+                const run = this._resolvePins(resolvedId, {
+                    onBatch: (works) => {
+                        const have = new Set(pool.map(w => String(w.id)));
+                        for (const w of works) {
+                            if (!have.has(String(w.id))) pool.push(w);
+                        }
+                    }
+                }).then(() => { this._pinsResolved.add(resolvedId); })
+                    .catch(() => { /* pool stays as-is; a later call may retry */ })
+                    .finally(() => { this._pinResolutions.delete(resolvedId); });
+                this._pinResolutions.set(resolvedId, run);
+            }
             const request = withAbortTimeout(
-                options.signal, options.timeoutMs ?? 30000, 'Museum pins');
+                options.signal, options.timeoutMs ?? 8000, 'Museum pins');
             try {
-                const pool = await this._resolvePins(resolvedId, {
-                    ...options, signal: request.signal
-                });
+                while (pool.length === 0 && this._pinResolutions.has(resolvedId)) {
+                    if (request.signal.aborted) break;
+                    // wake on either a 150ms tick or the abort itself, so
+                    // an abort/timeout is honored immediately
+                    await new Promise(resolve => {
+                        const timer = setTimeout(done, 150);
+                        function done() {
+                            clearTimeout(timer);
+                            request.signal.removeEventListener('abort', done);
+                            resolve();
+                        }
+                        request.signal.addEventListener('abort', done, { once: true });
+                    });
+                }
                 if (request.signal.aborted) {
-                    if (request.didTimeout()) {
+                    if (request.didTimeout() && pool.length === 0) {
                         const timeoutError = new Error(
-                            `Museum pins timed out after ${options.timeoutMs ?? 30000}ms`);
+                            `Museum pins timed out after ${options.timeoutMs ?? 8000}ms`);
                         timeoutError.name = 'TimeoutError';
                         throw timeoutError;
                     }
-                    throw createAbortError();
+                    if (!request.didTimeout()) throw createAbortError();
                 }
-                this._categoryCache.set(cacheKey, pool);
                 return pool;
             } finally {
                 request.cleanup();
@@ -343,16 +382,7 @@ export class MuseumProvider extends SourceProvider {
             // Chunked: 95 rijks pins are ~285 Linked-Art requests on a
             // cold cache — batches of 8 keep the museum's API unhammered.
             // SourceCache (30 days) makes every later session instant.
-            const works = [];
-            for (let i = 0; i < pins.length; i += 8) {
-                if (options.signal?.aborted) break;
-                const batch = await resolveCollection(
-                    { works: pins.slice(i, i + 8) },
-                    { signal: options.signal }
-                );
-                works.push(...batch);
-            }
-            return works.map(work => ({
+            const shape = work => ({
                 id: work.id,
                 title: work.title,
                 artist: work.artist,
@@ -361,7 +391,21 @@ export class MuseumProvider extends SourceProvider {
                 fullUrl: work.fullImageUrl || work.imageUrl,
                 // Provenance shows on the work, where it is true
                 sourceName: work.sourceName
-            }));
+            });
+            const works = [];
+            for (let i = 0; i < pins.length; i += 8) {
+                if (options.signal?.aborted) break;
+                const batch = await resolveCollection(
+                    { works: pins.slice(i, i + 8) },
+                    { signal: options.signal }
+                );
+                const shaped = batch.map(shape);
+                works.push(...shaped);
+                // Incremental consumers (the shared category resolution)
+                // receive each batch as it lands
+                if (typeof options.onBatch === 'function') options.onBatch(shaped);
+            }
+            return works;
         } catch (e) {
             console.warn('[Museum] Pin enrichment unavailable:', e);
             return [];
