@@ -158,7 +158,7 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "cleveland", id: 135661 },  // Peter Paul Rubens — Diana and Her Nymphs Departing for the Hunt
         { source: "cleveland", id: 97155 },  // unattributed — Portrait of a Couple
         { source: "cleveland", id: 124089 },  // Rembrandt van Rijn — Portrait of a Woman
-        { source: "cleveland", id: 143602 },  // Jacob van Ruisdael — Low Waterfall in a Wooded Landscape with a Dead 
+        { source: "cleveland", id: 143602 },  // Jacob van Ruisdael — Low Waterfall in a Wooded Landscape with a Dead
         { source: "cleveland", id: 128842 },  // Georges de La Tour — Saint Peter Repentant
         { source: "cleveland", id: 153603 },  // Maerten van Heemskerck — Portrait of Machtelt Suijs
         { source: "cleveland", id: 145450 },  // Emanuel de Witte — Interior of a Church
@@ -219,7 +219,7 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "aic", id: 27310 },  // The Holy Family with Saints Elizabeth and John the B
         { source: "aic", id: 11434 },  // Salome with the Head of Saint John the Baptist
         { source: "aic", id: 60755 },  // Landscape with the Ruins of the Castle of Egmond
-        { source: "aic", id: 16298 },  // Portrait of Jean Gros (recto); Coat of Arms of Jean 
+        { source: "aic", id: 16298 },  // Portrait of Jean Gros (recto); Coat of Arms of Jean
         { source: "aic", id: 43145 },  // View of Delphi with a Procession
         { source: "aic", id: 76816 },  // The Young Emperor Akbar Arrests the Insolent Shah Ab
         { source: "aic", id: 4081 },  // Gian Lodovico Madruzzo
@@ -313,7 +313,6 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 20026231 },  // Jacob Isaacksz. van Ruisdael
         { source: "rijks", id: 20026232 },  // Jacob Isaacksz. van Ruisdael
         { source: "rijks", id: 20026233 },  // Jacob Isaacksz. van Ruisdael
-        { source: "cleveland", id: 147016 },  // Jan Gossaert — Virgin and Child in a Landscape
         { source: "cleveland", id: 171296 },  // Robert S. Duncanson — Vale of Kashmir
         { source: "cleveland", id: 152006 },  // Thomas Gainsborough — Rocky, Wooded Landscape with a Dell and Weir
         { source: "cleveland", id: 151298 },  // Ferdinand Georg Waldmüller — Prater Landscape
@@ -419,15 +418,12 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 20027564 },  // Jacob Maris — Landschap met schuit
         { source: "rijks", id: 20027565 },  // Jacob Maris — Houses on the Prins Hendrikkade, Amsterdam, on
         { source: "rijks", id: 20027614 },  // Jacob Maris — De Schreierstoren aan de Buitenkant te Amsterd
-        { source: "rijks", id: 20027615 },  // Jacob Maris — A Bleaching Field
         { source: "rijks", id: 20028247 },  // Jacob Maris — Harbor View
         { source: "rijks", id: 20028249 },  // Jacob Maris — Townscape with a Domed Church
         { source: "rijks", id: 20028250 },  // Jacob Maris — Ships in Dull Weather
         { source: "rijks", id: 20028253 },  // Jacob Maris — Cityscape
-        { source: "rijks", id: 20028254 },  // Jacob Maris — The Bridge
         { source: "rijks", id: 20028257 },  // Jacob Maris — The Windmill
         { source: "rijks", id: 20028258 },  // Jacob Maris — Towpath
-        { source: "rijks", id: 20028259 },  // Jacob Maris — Tired Out (Mother Watched)
         { source: "rijks", id: 20028260 },  // Jacob Maris — A Polder Landscape after a Thunderstorm
         { source: "rijks", id: 20028262 },  // Jacob Maris — Havengezicht
         { source: "rijks", id: 20028263 },  // Jacob Maris — Landschap in de omgeving van Den Haag
@@ -453,7 +449,6 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 200108394 },  // Johan Hendrik Weissenbruch — Wooded View near Barbizon
         { source: "rijks", id: 200108395 },  // Johan Hendrik Weissenbruch — Summer Day
         { source: "rijks", id: 200108396 },  // Johan Hendrik Weissenbruch — Autumn Landscape
-        { source: "rijks", id: 200108397 },  // Johan Hendrik Weissenbruch — Cellar of the Artist’s Home in The Hague
         { source: "rijks", id: 200108398 },  // Johan Hendrik Weissenbruch — The Trekvliet Shipping Canal near Rijswijk, kn
         { source: "rijks", id: 20026933 },  // Johan Hendrik Weissenbruch — Beach Scene
         { source: "rijks", id: 20026935 },  // Johan Hendrik Weissenbruch — Dune landscape
@@ -465,7 +460,6 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 20028159 },  // Johan Barthold Jongkind — River View in France, possibly near Pontoise
         { source: "rijks", id: 20028160 },  // Johan Barthold Jongkind — Overschie in the Moonlight
         { source: "rijks", id: 20028526 },  // Johan Barthold Jongkind — Houses on a Waterway near Crooswijk
-        { source: "rijks", id: 2004267 },  // Johan Barthold Jongkind — Rue Notre-Dame, Paris
         { source: "rijks", id: 200106078 },  // Wouter Johannes Van Troostwijk — The Raampoortje in Amsterdam
         { source: "rijks", id: 200108018 },  // Wouter Johannes Van Troostwijk — A Barn on the Bank of a Stream in Gelderland
         { source: "rijks", id: 20026431 },  // Wouter Johannes Van Troostwijk — Farm Building in Gelderland
@@ -503,8 +497,7 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 20026281 },  // Schelfhout — Windmill beside a frozen river
         { source: "rijks", id: 20026282 },  // Schelfhout — Winter Scene on the Ice with Wood Gatherers
         { source: "rijks", id: 20026283 },  // Schelfhout — Landscape with the Ruins of Brederode Castle i
-        { source: "rijks", id: 20026284 },  // Schelfhout — Inner Courtyard
-        { source: "rijks", id: 20065879 },  // Schelfhout — View of the Dunes with the Ruins of Brederode 
+        { source: "rijks", id: 20065879 },  // Schelfhout — View of the Dunes with the Ruins of Brederode
         { source: "rijks", id: 200111819 },  // Koekkoek — View in the Woods
         { source: "rijks", id: 200111820 },  // Koekkoek — Winter landscape
         { source: "rijks", id: 20029299 },  // Koekkoek — Landscape with an Oncoming Rainstorm
@@ -524,7 +517,6 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 20028040 },  // Van Der Heyden — The Draw Bridge
         { source: "rijks", id: 20028041 },  // Van Der Heyden — The Church of St Severin in Cologne in an Imag
         { source: "rijks", id: 20028517 },  // Van Der Heyden — A Country Home
-        { source: "aic", id: 27992 },  // A Sunday on La Grande Jatte — 1884
         { source: "aic", id: 64818 },  // Stacks of Wheat (End of Summer)
         { source: "aic", id: 16568 },  // Water Lilies
         { source: "aic", id: 90048 },  // Distant View of Niagara Falls
@@ -602,9 +594,7 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "aic", id: 14634 },  // Vétheuil
         { source: "aic", id: 59927 },  // Boats on the Beach at Étretat
         { source: "aic", id: 45240 },  // The Bathers
-        { source: "aic", id: 110541 },  // The Crystal Palace
         { source: "aic", id: 893 },  // Landscape
-        { source: "aic", id: 14630 },  // Venice, Palazzo Dario
         { source: "aic", id: 897 },  // Pasture in Normandy
         { source: "aic", id: 100191 },  // Stack of Wheat (Thaw, Sunset)
         { source: "aic", id: 96559 },  // A Turn in the Road
@@ -682,14 +672,14 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "aic", id: 62371 },  // Madame Cezanne in a Yellow Chair
         { source: "aic", id: 111317 },  // Amédée-David, the Comte de Pastoret
         { source: "aic", id: 14591 },  // Woman Reading
-        { source: "aic", id: 60812 },  // Merahi metua no Tehamana (Tehamana Has Many Parents 
+        { source: "aic", id: 60812 },  // Merahi metua no Tehamana (Tehamana Has Many Parents
         { source: "aic", id: 27307 },  // Madame de Pastoret and Her Son
-        { source: "aic", id: 14574 },  // Henri Degas and His Niece Lucie Degas (The Artist's 
+        { source: "aic", id: 14574 },  // Henri Degas and His Niece Lucie Degas (The Artist's
         { source: "aic", id: 27987 },  // Jacques and Berthe Lipchitz
         { source: "aic", id: 30709 },  // Bar-room Scene
         { source: "aic", id: 4788 },  // Lady Sarah Bunbury Sacrificing to the Graces
         { source: "aic", id: 87643 },  // The Two Disciples at the Tomb
-        { source: "aic", id: 16298 },  // Portrait of Jean Gros (recto); Coat of Arms of Jean 
+        { source: "aic", id: 16298 },  // Portrait of Jean Gros (recto); Coat of Arms of Jean
         { source: "aic", id: 59787 },  // Mrs. Daniel Hubbard (Mary Greene)
         { source: "aic", id: 4428 },  // Mère Grégoire
         { source: "aic", id: 4081 },  // Gian Lodovico Madruzzo
@@ -884,7 +874,7 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "aic", id: 16146 },  // Equestrienne (At the Cirque Fernando)
         { source: "aic", id: 19339 },  // Arlésiennes (Mistral)
         { source: "aic", id: 62371 },  // Madame Cezanne in a Yellow Chair
-        { source: "aic", id: 60812 },  // Merahi metua no Tehamana (Tehamana Has Many Parents 
+        { source: "aic", id: 60812 },  // Merahi metua no Tehamana (Tehamana Has Many Parents
         { source: "aic", id: 27943 },  // Mahana no atua (Day of the God)
         { source: "aic", id: 14586 },  // The Poet's Garden
         { source: "aic", id: 28862 },  // A Peasant Woman Digging in Front of Her Cottage
@@ -917,7 +907,7 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "aic", id: 89856 },  // The actor Bando Mitsugoro II as Ishii Genzo
         { source: "aic", id: 24645 },  // Under the Wave off Kanagawa (Kanagawa oki nami ura),
         { source: "aic", id: 7624 },  // Komurasaki of the Miuraya and Shirai Gompachi (Miura
-        { source: "aic", id: 4371 },  // Hamamatsu, from the series "Fifty-three Stations of 
+        { source: "aic", id: 4371 },  // Hamamatsu, from the series "Fifty-three Stations of
         { source: "aic", id: 4368 },  // Mitsuke: Ferries Crossing the Tenryu River (Mitsuke,
         { source: "aic", id: 22935 },  // Beauty Under an Umbrella in the Snow
         { source: "aic", id: 21720 },  // Cranes on snow-covered pine
@@ -929,13 +919,13 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "aic", id: 11050 },  // No. 37: Miyanokoshi, from the series "Sixty-nine Sta
         { source: "aic", id: 22938 },  // Drawing Lots for Prizes (Ho biki)
         { source: "aic", id: 11054 },  // No. 32: Seba, from the series "Sixty-nine Stations o
-        { source: "aic", id: 20992 },  // Ise, from an untitled series of Thirty-six Immortal 
+        { source: "aic", id: 20992 },  // Ise, from an untitled series of Thirty-six Immortal
         { source: "aic", id: 87008 },  // Shower Below the Summit (Sanka hakuu), from the seri
         { source: "aic", id: 77333 },  // Under the Wave off Kanagawa (Kanagawa oki nami ura),
         { source: "aic", id: 19040 },  // Snow at Benzaiten Shrine in Inokashira Pond (Inokash
-        { source: "aic", id: 25613 },  // Kanbara: Evening Snow (Kanbara, yoru no yuki), from 
+        { source: "aic", id: 25613 },  // Kanbara: Evening Snow (Kanbara, yoru no yuki), from
         { source: "aic", id: 19236 },  // The Courtesan Arihara of the Tsuruya, and Child Atte
-        { source: "aic", id: 2914 },  // Hara, from the series ""Fifty-three Stations of the 
+        { source: "aic", id: 2914 },  // Hara, from the series ""Fifty-three Stations of the
         { source: "aic", id: 2906 },  // Odawara, from the series "Fifty-three Stations of th
         { source: "aic", id: 20994 },  // Double-Flowered Cherry: Motoura of the Minami Yamasa
         { source: "aic", id: 18307 },  // Shirasuka: Shiomi Slope,no. 33 from the series Fifty
@@ -947,7 +937,7 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "aic", id: 3035 },  // Sakanoshita, from the series "Fifty-three Stations o
         { source: "aic", id: 18897 },  // The actors Ichikawa Omezo I (R) as Tomita Hyotaro an
         { source: "aic", id: 18278 },  // Hodogaya: Katabira River and Katabira Brige (Hodogay
-        { source: "aic", id: 18416 },  // No. 56: Mieji, from the series "Sixty-nine Stations 
+        { source: "aic", id: 18416 },  // No. 56: Mieji, from the series "Sixty-nine Stations
         { source: "aic", id: 47398 },  // Kohada Koheiji, from the series "One Hundred Ghost T
         { source: "aic", id: 9788 },  // Maple Leaf Viewing (Momiji gari)
         { source: "aic", id: 4400 },  // Chiryu, from the series "Fifty-three Stations of the
@@ -955,14 +945,14 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "aic", id: 4321 },  // Kanbara, from the series "Fifty-three Stations of th
         { source: "aic", id: 22934 },  // A Test of Skill - the Headwaters of Amorousness (Jit
         { source: "aic", id: 13154 },  // Bingo Province: Kannon Temple at Abuto (Bingo, Abuto
-        { source: "aic", id: 2887 },  // Shinagawa, from the series "Fifty-three Stations of 
+        { source: "aic", id: 2887 },  // Shinagawa, from the series "Fifty-three Stations of
         { source: "aic", id: 18287 },  // Mishima—No. 12, from the series "Fifty-three Station
         { source: "aic", id: 19977 },  // Eight-Platform Bridge (Yatsuhashi), from the "Tale o
         { source: "aic", id: 18327 },  // Miya: Shichiri Ferry Crossing, Gate to the Atsuta Sh
-        { source: "aic", id: 13188 },  // Precints of the Akiba Shrine, Ukeji (Ukeji Akiba no 
+        { source: "aic", id: 13188 },  // Precints of the Akiba Shrine, Ukeji (Ukeji Akiba no
         { source: "aic", id: 19006 },  // Satta Peak in Suruga Province (Suruga Satta mine), f
-        { source: "aic", id: 25110 },  // Chrysanthemum and Horsefly, from an untitled series 
-        { source: "aic", id: 2927 },  // Fuchu, from the series "Fifty-three Stations of the 
+        { source: "aic", id: 25110 },  // Chrysanthemum and Horsefly, from an untitled series
+        { source: "aic", id: 2927 },  // Fuchu, from the series "Fifty-three Stations of the
         { source: "aic", id: 10936 },  // No. 28: Nagakubo, from the series "Sixty-nine Statio
         { source: "aic", id: 23868 },  // Takashima Ohisa
         { source: "aic", id: 3652 },  // Togetsu Bridge at Arashiyama in Yamashiro Province (
@@ -973,7 +963,7 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "aic", id: 100627 },  // Fishing Boats at Choshi in Shimosa (Soshu Choshi) fr
         { source: "aic", id: 89356 },  // A Low Class Prostitute (Gun [teppo]), from the serie
         { source: "aic", id: 18765 },  // The actor Otani Oniji III as Edobei
-        { source: "aic", id: 18296 },  // Ejiri—No. 19, from the series "Fifty-three Stations 
+        { source: "aic", id: 18296 },  // Ejiri—No. 19, from the series "Fifty-three Stations
         { source: "aic", id: 88975 },  // The Evening Bell of the Clock (Tokei no bansho), fro
         { source: "aic", id: 18298 },  // Okabe: Mount Utsu (Okabe, Utsunoyama)—No. 22, from t
         { source: "aic", id: 18351 },  // Otsu—No. 54, from the series "Fifty-three Stations o
@@ -987,7 +977,7 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "aic", id: 81248 },  // Mount Fuji with Cherry Trees in Bloom
         { source: "aic", id: 18290 },  // Yoshiwara: The Famous Sight of Mount Fuji on the Lef
         { source: "aic", id: 3642 },  // Moon over Ryogoku Bridge in Summer (Natsu Ryogoku no
-        { source: "aic", id: 57271 },  // A Peasant Crossing a Bridge, from the series A True 
+        { source: "aic", id: 57271 },  // A Peasant Crossing a Bridge, from the series A True
         { source: "aic", id: 25183 },  // Ono Falls on the Kisokaidō Road (Kisokaidō Ono no ba
         { source: "aic", id: 34277 },  // Ryogoku Bridge and the Great Riverbank (Ryogokubashi
         { source: "aic", id: 6805 },  // A Young Woman in a Summer Shower
@@ -1107,14 +1097,14 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "aic", id: 265263 },  // Still Life with Grapes and Flowers
     ],
     "ships": [
-        { source: "rijks", id: 200108354 },  // The Battle of the Downs against the Spanish Armada, 
+        { source: "rijks", id: 200108354 },  // The Battle of the Downs against the Spanish Armada,
         { source: "rijks", id: 200108355 },  // The Battle of Terheide
         { source: "rijks", id: 200108357 },  // "Sea Battle between Cornelis Tromp on the ""Gouden L
         { source: "rijks", id: 200108514 },  // Captured English Ships after the Four Days’ Battle
         { source: "rijks", id: 200108619 },  // Episode from the Four Days' Battle, 11-14 June 1666,
         { source: "rijks", id: 200108749 },  // The Battle of Dunkirk
         { source: "rijks", id: 200108750 },  // The Battle of Livorno (Leghorn)
-        { source: "rijks", id: 200110522 },  // "Council of War aboard ""The Seven Provinces"", the 
+        { source: "rijks", id: 200110522 },  // "Council of War aboard ""The Seven Provinces"", the
         { source: "rijks", id: 200116984 },  // Zeeslag tussen een Nederlandse en een Engelse vloot
         { source: "rijks", id: 200117122 },  // Zeeslag
         { source: "rijks", id: 200121125 },  // Bewoners van Sunda eilanden en zeeslag
@@ -1122,7 +1112,7 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 200121541 },  // Navium Variae Figurae
         { source: "rijks", id: 200122201 },  // Zeeslagen tijdens de Tweede Engelse Oorlog
         { source: "rijks", id: 200122202 },  // Zeeslag
-        { source: "rijks", id: 200128642 },  // de Roemrijke Overwinning van den franschen Admiraal 
+        { source: "rijks", id: 200128642 },  // de Roemrijke Overwinning van den franschen Admiraal
         { source: "rijks", id: 200128823 },  // Nieuwe Scheeps Batalien
         { source: "rijks", id: 200128824 },  // Nieuwe Scheeps Batalien
         { source: "rijks", id: 200128825 },  // Nieuwe Scheeps Batalien
@@ -1136,7 +1126,7 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 200128833 },  // Zeeslag
         { source: "rijks", id: 200128834 },  // Zeeslag met een zinkend schip
         { source: "rijks", id: 200128835 },  // Na de zeeslag
-        { source: "rijks", id: 200101455 },  // Dit is het schip de Goude Leeuw / Een kiel / die in 
+        { source: "rijks", id: 200101455 },  // Dit is het schip de Goude Leeuw / Een kiel / die in
         { source: "rijks", id: 20010368 },  // Gezicht op het schip "Jupiter" liggende voor de werf
         { source: "rijks", id: 200105977 },  // Schouwburg van den Oorlog, Beginnende van Koning Kar
         { source: "rijks", id: 200108356 },  // Episode from the Battle between the Dutch and Swedis
@@ -1182,7 +1172,7 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 20026301 },  // Ships in a Turbulent Sea
         { source: "rijks", id: 20028207 },  // Ships off the Coast
         { source: "rijks", id: 200444687 },  // Zeegezicht met schepen en boten in de wind
-        { source: "rijks", id: 20026920 },  // Dutch Ships Ramming Spanish Galleys off the English 
+        { source: "rijks", id: 20026920 },  // Dutch Ships Ramming Spanish Galleys off the English
         { source: "rijks", id: 20027312 },  // Episode from the Four Days' Naval Battle (11-14 June
         { source: "rijks", id: 20038739 },  // Tegeltableau met schip, met op de vlaggen VOC A
         { source: "aic", id: 14598 },  // The Beach at Sainte-Adresse
@@ -1269,7 +1259,7 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 20027858 },  // Lioness Resting
         { source: "rijks", id: 200118670 },  // Wit paard
         { source: "rijks", id: 200565591 },  // Girafa. / Giraffe. / Girafe
-        { source: "rijks", id: 200565685 },  // Ours polaire / Polar bear / Eisbär / Orso bianco. / 
+        { source: "rijks", id: 200565685 },  // Ours polaire / Polar bear / Eisbär / Orso bianco. /
         { source: "rijks", id: 200473964 },  // Japanse kraanvogel op tak van pijnboom
         { source: "rijks", id: 200413519 },  // Brullende tijger
         { source: "rijks", id: 200567271 },  // Amphibien
@@ -1336,7 +1326,7 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 200138184 },  // Drie ridders te paard
         { source: "rijks", id: 200149737 },  // Zes voorstellingen van edellieden, ridders en ruiter
         { source: "rijks", id: 200156032 },  // Twee vechtende ridders te paard
-        { source: "rijks", id: 200164486 },  // Optocht van ridders van de Orde van de Saint-Esprit 
+        { source: "rijks", id: 200164486 },  // Optocht van ridders van de Orde van de Saint-Esprit
         { source: "rijks", id: 200169392 },  // Vignet met een vergadering van ridders van de Saint-
         { source: "rijks", id: 200177768 },  // Ridders vechten in de grafkelder van een kerk
         { source: "rijks", id: 200191651 },  // Ridders in gevecht
@@ -1347,7 +1337,7 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 200133090 },  // Ruiterportret van Frederick Schomberg in harnas
         { source: "rijks", id: 200135526 },  // Buste van een soldaat in een harnas
         { source: "rijks", id: 200136963 },  // Twee rechters van Israël in harnas
-        { source: "rijks", id: 200158047 },  // Portret van Karel II, koning van Spanje, staande in 
+        { source: "rijks", id: 200158047 },  // Portret van Karel II, koning van Spanje, staande in
         { source: "rijks", id: 200164544 },  // Piekdrager in harnas, gekleed volgens de mode van ca
         { source: "rijks", id: 200164657 },  // Diverse ontwerpen
         { source: "rijks", id: 200167102 },  // Duitse ruiter in zwart harnas
@@ -1386,7 +1376,7 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "aic", id: 100060 },  // Alexander at the Tomb of Cyrus the Great
         { source: "aic", id: 93394 },  // Battle Scene
         { source: "aic", id: 111618 },  // The Battle of Zama
-        { source: "aic", id: 4089 },  // Venus and Mars with Cupid and the Three Graces in a 
+        { source: "aic", id: 4089 },  // Venus and Mars with Cupid and the Three Graces in a
         { source: "aic", id: 12891 },  // Theodosius Repulsed from the Church by Saint Ambrose
         { source: "aic", id: 16166 },  // Salome Asking Herod for the Head of Saint John the B
         { source: "aic", id: 33249 },  // The Continence of Scipio
@@ -1422,11 +1412,6 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
     ]
 });
 
-// Works excluded from LIVE-SEARCH categories by contact-sheet audit
-// (the creator's hand on every card). Live results cannot be cut by
-// omission — search re-serves them — so exclusions bake into the
-// query as must_not id terms. This object shares the pin file so the
-// Curia owns ONE machine-writable curation canon.
 // LIVE-AIC search per category — canon-governed, default OFF. The
 // creator judged the pinned canon (with every AIC survivor of the
 // full audit promoted to a pin) superior to what live search adds;
@@ -1435,9 +1420,14 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
 export const LIVE_SEARCH_ENABLED = Object.freeze({
 });
 
+// Works excluded from LIVE-SEARCH categories by contact-sheet audit
+// (the creator's hand on every card). Live results cannot be cut by
+// omission — search re-serves them — so exclusions bake into the
+// query as must_not id terms. This object shares the pin file so the
+// Curia owns ONE machine-writable curation canon.
 export const CATEGORY_EXCLUSIONS = Object.freeze({
     "impressionism": [154121, 31816, 110798],
     "postimpressionism": [191564],
-    "landscapes": [16571, 19339, 28849, 16488, 234781, 15716, 883, 884, 13487, 110242, 39560, 111649, 67362, 16496],
+    "landscapes": [16571, 19339, 28849, 16488, 234781, 15716, 883, 884, 13487, 110242, 39560, 111649, 67362, 16496, 16560, 100191, 110663, 14624, 27954, 8983, 14630],
     "portraits": [25865, 28860]
 });
