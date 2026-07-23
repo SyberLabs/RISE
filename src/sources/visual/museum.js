@@ -86,11 +86,15 @@ export const MUSEUM_CATEGORIES = {
         ],
         tags: ['japanese', 'contemplative', 'linear']
     },
+    // AIC's subject vocabulary is uncontrolled (MUSEUM-ATLAS.md §1):
+    // 'portrait' and 'portraits' are separate, largely disjoint tag
+    // populations (200 vs 262 PD paintings, only 161 shared). A terms
+    // array unions both forms so neither population is forfeited.
     'landscapes': {
         name: 'Landscapes',
         clauses: [
             { term: { artwork_type_id: TYPE_PAINTING } },
-            { term: { 'subject_titles.keyword': 'landscapes' } }
+            { terms: { 'subject_titles.keyword': ['landscape', 'landscapes'] } }
         ],
         tags: ['nature', 'serene', 'cinematic']
     },
@@ -98,7 +102,7 @@ export const MUSEUM_CATEGORIES = {
         name: 'Portraits',
         clauses: [
             { term: { artwork_type_id: TYPE_PAINTING } },
-            { term: { 'subject_titles.keyword': 'portraits' } }
+            { terms: { 'subject_titles.keyword': ['portrait', 'portraits'] } }
         ],
         tags: ['human', 'presence', 'cinematic']
     }
