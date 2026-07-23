@@ -227,14 +227,41 @@ export class MuseumProvider extends SourceProvider {
 
         if (!this._categoryCache) this._categoryCache = new Map();
 
-        // SUBJECT categories (clauses: null) are pinned-only: the pins
-        // ARE the pool, so they resolve BLOCKING — an empty first flash
-        // would otherwise greet every subject-category session. Warm
-        // sessions answer from the imagery cache in milliseconds.
-        if (!cat.clauses) {
-            const pool = await this._resolvePins(resolvedId, options);
-            this._categoryCache.set(cacheKey, pool);
-            return pool;
+        // PINNED-ONLY is the default across the board: every AIC
+        // survivor of the full audit is promoted to a pin, and the
+        // creator judged that curated canon superior to what live
+        // search adds. The pins ARE the pool, resolved BLOCKING so no
+        // first flash is empty; warm sessions answer from the imagery
+        // cache in milliseconds. A category opts back into live search
+        // only through the canon flag LIVE_SEARCH_ENABLED (Curia-
+        // governed) — subject categories (clauses: null) can never.
+        const { LIVE_SEARCH_ENABLED } = await import('./museum-pins.js');
+        const liveEnabled = !!cat.clauses && LIVE_SEARCH_ENABLED?.[resolvedId] === true;
+        if (!liveEnabled) {
+            // The pin resolution honors the caller's abort/timeout
+            // contract exactly as a live request would: abort rejects
+            // AbortError, a stall rejects a structured TimeoutError.
+            // Only genuine resolution failures degrade to [].
+            const request = withAbortTimeout(
+                options.signal, options.timeoutMs ?? 30000, 'Museum pins');
+            try {
+                const pool = await this._resolvePins(resolvedId, {
+                    ...options, signal: request.signal
+                });
+                if (request.signal.aborted) {
+                    if (request.didTimeout()) {
+                        const timeoutError = new Error(
+                            `Museum pins timed out after ${options.timeoutMs ?? 30000}ms`);
+                        timeoutError.name = 'TimeoutError';
+                        throw timeoutError;
+                    }
+                    throw createAbortError();
+                }
+                this._categoryCache.set(cacheKey, pool);
+                return pool;
+            } finally {
+                request.cleanup();
+            }
         }
 
         // Structured bool query: public domain AND the category's

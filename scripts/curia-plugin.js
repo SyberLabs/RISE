@@ -38,7 +38,20 @@ export function parsePinsFile(text) {
     const exclusions = {};
     const exclusionOrder = [];
 
+    const liveSearch = {};
+    let inLiveSearch = false;
     for (const line of lines.slice(headerEnd)) {
+        if (/^export const LIVE_SEARCH_ENABLED/.test(line)) {
+            inLiveSearch = true;
+            current = null;
+            continue;
+        }
+        if (inLiveSearch) {
+            const flag = line.match(/^\s{4}"([a-z]+)":\s*(true|false)/);
+            if (flag) liveSearch[flag[1]] = flag[2] === 'true';
+            if (/^\}\);/.test(line)) inLiveSearch = false;
+            continue;
+        }
         if (/^export const CATEGORY_EXCLUSIONS/.test(line)) {
             inExclusions = true;
             current = null;
@@ -71,7 +84,7 @@ export function parsePinsFile(text) {
             });
         }
     }
-    return { header, pins, order, exclusions, exclusionOrder };
+    return { header, pins, order, exclusions, exclusionOrder, liveSearch };
 }
 
 export function emitPinsFile(model) {
@@ -84,6 +97,18 @@ export function emitPinsFile(model) {
             out.push(`        { source: "${p.source}", id: ${p.id} },${note}`);
         }
         out.push(ci === model.order.length - 1 ? '    ]' : '    ],');
+    });
+    out.push('});');
+    out.push('');
+    out.push('// LIVE-AIC search per category — canon-governed, default OFF. The');
+    out.push('// creator judged the pinned canon (with every AIC survivor of the');
+    out.push('// full audit promoted to a pin) superior to what live search adds;');
+    out.push('// a category flipped true serves clauses UNION pins as before. The');
+    out.push("// Curia's toggle writes this object.");
+    out.push('export const LIVE_SEARCH_ENABLED = Object.freeze({');
+    const liveCats = Object.entries(model.liveSearch || {}).filter(([, v]) => v === true);
+    liveCats.forEach(([cat], ci) => {
+        out.push(`    "${cat}": true${ci === liveCats.length - 1 ? '' : ','}`);
     });
     out.push('});');
     out.push('');
@@ -147,6 +172,11 @@ export function applyChangeset(model, changeset) {
         if (!list) continue;
         const i = list.findIndex(p => p.source === r.source && p.id === Number(r.id));
         if (i >= 0) { list.splice(i, 1); applied.removePin++; }
+    }
+    for (const t of changeset.setLiveSearch || []) {
+        model.liveSearch = model.liveSearch || {};
+        model.liveSearch[t.category] = t.enabled === true;
+        applied.setLiveSearch = (applied.setLiveSearch || 0) + 1;
     }
     for (const m of changeset.movePin || []) {
         const from = model.pins[m.from];

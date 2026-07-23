@@ -199,6 +199,106 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "cleveland", id: 146469 },  // Agnolo Bronzino — Portrait of a Woman
         { source: "cleveland", id: 151517 },  // Peter Paul Rubens — Study for "The Bear Hunt" (for the Alcázar, Madr
         { source: "cleveland", id: 95286 },  // Jan Anthonisz. van Ravesteyn — Portrait of a Woman
+        { source: "aic", id: 87479 },  // The Assumption of the Virgin
+        { source: "aic", id: 15468 },  // Saint George and the Dragon
+        { source: "aic", id: 80084 },  // The Crucifixion
+        { source: "aic", id: 59847 },  // Cupid Chastised
+        { source: "aic", id: 869 },  // The Watermill with the Great Red Roof
+        { source: "aic", id: 5848 },  // Landscape with Saint John on Patmos
+        { source: "aic", id: 95998 },  // Old Man with a Gold Chain
+        { source: "aic", id: 84709 },  // Still Life with Game Fowl
+        { source: "aic", id: 4575 },  // Judith
+        { source: "aic", id: 62042 },  // Still Life with Dead Game, Fruits, and Vegetables in
+        { source: "aic", id: 105466 },  // The Battle between the Gods and the Giants
+        { source: "aic", id: 23972 },  // Virgin and Child with the Young Saint John the Bapti
+        { source: "aic", id: 16327 },  // The Annunciation
+        { source: "aic", id: 184371 },  // The Nativity
+        { source: "aic", id: 127644 },  // Autumn Maples with Poem Slips
+        { source: "aic", id: 16169 },  // The Beheading of Saint John the Baptist
+        { source: "aic", id: 185651 },  // Triptych
+        { source: "aic", id: 27310 },  // The Holy Family with Saints Elizabeth and John the B
+        { source: "aic", id: 11434 },  // Salome with the Head of Saint John the Baptist
+        { source: "aic", id: 60755 },  // Landscape with the Ruins of the Castle of Egmond
+        { source: "aic", id: 16298 },  // Portrait of Jean Gros (recto); Coat of Arms of Jean 
+        { source: "aic", id: 43145 },  // View of Delphi with a Procession
+        { source: "aic", id: 76816 },  // The Young Emperor Akbar Arrests the Insolent Shah Ab
+        { source: "aic", id: 4081 },  // Gian Lodovico Madruzzo
+        { source: "aic", id: 146953 },  // Two Cows and a Young Bull beside a Fence in a Meadow
+        { source: "aic", id: 234781 },  // Christ Carrying the Cross
+        { source: "aic", id: 210511 },  // A Monumental Portrait of a Monkey
+        { source: "aic", id: 11272 },  // Maize and Cockscombs
+        { source: "aic", id: 79507 },  // Pillars of the Country
+        { source: "aic", id: 142526 },  // Milarepa on Mount Kailash
+        { source: "aic", id: 76869 },  // Royal Horse Inspection
+        { source: "aic", id: 92975 },  // King Anushirwan and the Owls, from the Khamsa of Niz
+        { source: "aic", id: 863 },  // Pastoral Landscape with Ruins
+        { source: "aic", id: 862 },  // Portrait of an Artist
+        { source: "aic", id: 94840 },  // Young Woman at an Open Half-Door
+        { source: "aic", id: 19336 },  // The Resurrection
+        { source: "aic", id: 561 },  // The Family Concert
+        { source: "aic", id: 66042 },  // Trompe-l'Oeil Still Life with a Flower Garland and a
+        { source: "aic", id: 867 },  // The Guardhouse
+        { source: "aic", id: 15716 },  // Saint Christopher Meets Satan; Saint Christopher bef
+        { source: "aic", id: 2166 },  // The Wedding at Cana
+        { source: "aic", id: 80530 },  // Virgin and Child with an Angel
+        { source: "aic", id: 25740 },  // Scenes from the Life of Saint John the Baptist
+        { source: "aic", id: 65509 },  // The Feast in the House of Simon
+        { source: "aic", id: 64920 },  // Tarquin and Lucretia
+        { source: "aic", id: 110673 },  // Mater Dolorosa (Sorrowing Virgin)
+        { source: "aic", id: 110242 },  // The Temptation of Saint Jerome
+        { source: "aic", id: 21934 },  // Kitchen Scene
+        { source: "aic", id: 16156 },  // Saint John the Baptist Entering the Wilderness
+        { source: "aic", id: 16159 },  // Ecce Agnus Dei
+        { source: "aic", id: 21907 },  // Saint Francis Kneeling in Meditation
+        { source: "aic", id: 53495 },  // A Witches' Sabbath
+        { source: "aic", id: 111649 },  // Abraham's Sacrifice of Isaac
+        { source: "aic", id: 67362 },  // Saint Martin and the Beggar
+        { source: "aic", id: 864 },  // Portrait of a Man with a Pink
+        { source: "aic", id: 62460 },  // The Terrace
+        { source: "aic", id: 127643 },  // Flowering Cherry and Autumn Maples with Poem Slips
+        { source: "aic", id: 111622 },  // The Crucifixion
+        { source: "aic", id: 21682 },  // Still Life
+        { source: "aic", id: 22857 },  // The Garden of Paradise
+        { source: "aic", id: 120172 },  // Penitent Saint Peter
+        { source: "aic", id: 80538 },  // A Lady Reading (Saint Mary Magdalene)
+        { source: "aic", id: 21668 },  // Eve
+        { source: "aic", id: 64996 },  // Jupiter Rebuked by Venus
+        { source: "aic", id: 59856 },  // The Crucifixion
+        { source: "aic", id: 44816 },  // Venus and Cupid
+        { source: "aic", id: 512 },  // The Music Lesson
+        { source: "aic", id: 8953 },  // The Capture of Samson
+        { source: "aic", id: 21937 },  // Adoration of the Magi
+        { source: "aic", id: 59897 },  // Christ Carrying the Cross
+        { source: "aic", id: 16398 },  // The Music Lesson
+        { source: "aic", id: 181702 },  // A View of Vianen with a Herdsman and Cattle by a Riv
+        { source: "aic", id: 111620 },  // The Abduction of the Sabine Women
+        { source: "aic", id: 25743 },  // The Adoration of the Magi
+        { source: "aic", id: 11392 },  // Ecce Agnus Dei
+        { source: "aic", id: 160030 },  // The Ecstasy of Saint Francis
+        { source: "aic", id: 19333 },  // Kitchen Still Life
+        { source: "aic", id: 110759 },  // Alessandro de' Medici
+        { source: "aic", id: 100345 },  // The Adoration of the Christ Child
+        { source: "aic", id: 59956 },  // The Wedding of Peleus and Thetis
+        { source: "aic", id: 16347 },  // An Elegant Company
+        { source: "aic", id: 16261 },  // Lamentation over the Body of Christ
+        { source: "aic", id: 110760 },  // The Adventures of Ulysses
+        { source: "aic", id: 47159 },  // Meekness
+        { source: "aic", id: 16295 },  // Virgin and Child
+        { source: "aic", id: 110782 },  // Diana and Actaeon
+        { source: "aic", id: 16336 },  // Triptych of the Virgin and Child with Saints
+        { source: "aic", id: 101077 },  // Adam and Eve in Paradise
+        { source: "aic", id: 6831 },  // Saint John the Baptist in the Wilderness
+        { source: "aic", id: 866 },  // Helena Tromper Du Bois
+        { source: "aic", id: 16303 },  // Virgin and Child
+        { source: "aic", id: 16257 },  // Virgin and Child Crowned by Angels
+        { source: "aic", id: 11146 },  // Kobo Daishi (Kukai) as a Boy (Chigo Daishi)
+        { source: "aic", id: 80526 },  // Virgin and Child with Two Angels
+        { source: "aic", id: 5304 },  // Homer Dictating
+        { source: "aic", id: 495 },  // Coast Scene
+        { source: "aic", id: 111618 },  // The Battle of Zama
+        { source: "aic", id: 15305 },  // Virgin and Child Adored by Saint Francis
+        { source: "aic", id: 46314 },  // Allegory of Venus and Cupid
+        { source: "aic", id: 100342 },  // Saint Francis
     ],
     "landscapes": [
         { source: "rijks", id: 200107958 },  // Jacob Isaacksz. van Ruisdael
@@ -424,6 +524,92 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 20028040 },  // Van Der Heyden — The Draw Bridge
         { source: "rijks", id: 20028041 },  // Van Der Heyden — The Church of St Severin in Cologne in an Imag
         { source: "rijks", id: 20028517 },  // Van Der Heyden — A Country Home
+        { source: "aic", id: 27992 },  // A Sunday on La Grande Jatte — 1884
+        { source: "aic", id: 64818 },  // Stacks of Wheat (End of Summer)
+        { source: "aic", id: 16568 },  // Water Lilies
+        { source: "aic", id: 90048 },  // Distant View of Niagara Falls
+        { source: "aic", id: 14598 },  // The Beach at Sainte-Adresse
+        { source: "aic", id: 25865 },  // The Herring Net
+        { source: "aic", id: 16487 },  // The Bay of Marseille, Seen from L'Estaque
+        { source: "aic", id: 869 },  // The Watermill with the Great Red Roof
+        { source: "aic", id: 56905 },  // Nocturne: Blue and Gold—Southampton Water
+        { source: "aic", id: 5848 },  // Landscape with Saint John on Patmos
+        { source: "aic", id: 4796 },  // Fishing Boats with Hucksters Bargaining for Fish
+        { source: "aic", id: 109780 },  // Love of Winter
+        { source: "aic", id: 20579 },  // Hercules and the Lernaean Hydra
+        { source: "aic", id: 146701 },  // Mountain Brook
+        { source: "aic", id: 64724 },  // The Home of the Heron
+        { source: "aic", id: 76571 },  // View of Cotopaxi
+        { source: "aic", id: 57051 },  // The Fountains
+        { source: "aic", id: 127644 },  // Autumn Maples with Poem Slips
+        { source: "aic", id: 72801 },  // Icebound
+        { source: "aic", id: 111617 },  // Cabin in the Cotton
+        { source: "aic", id: 64729 },  // Early Morning, Tarpon Springs
+        { source: "aic", id: 109926 },  // Landscape: Window Overlooking the Woods
+        { source: "aic", id: 4758 },  // Stoke-by-Nayland
+        { source: "aic", id: 60755 },  // Landscape with the Ruins of the Castle of Egmond
+        { source: "aic", id: 110663 },  // The Combat of the Giaour and Hassan
+        { source: "aic", id: 43145 },  // View of Delphi with a Procession
+        { source: "aic", id: 81564 },  // Husking Bee, Island of Nantucket
+        { source: "aic", id: 76279 },  // Yang Pu Moving His Family
+        { source: "aic", id: 146953 },  // Two Cows and a Young Bull beside a Fence in a Meadow
+        { source: "aic", id: 111610 },  // The Garden of Palazzo Contarini dal Zaffo
+        { source: "aic", id: 94841 },  // The Song of the Lark
+        { source: "aic", id: 874 },  // Landscape
+        { source: "aic", id: 863 },  // Pastoral Landscape with Ruins
+        { source: "aic", id: 14620 },  // Cliff Walk at Pourville
+        { source: "aic", id: 87088 },  // Water Lily Pond
+        { source: "aic", id: 138 },  // Flower Girl in Holland
+        { source: "aic", id: 81537 },  // Bordighera
+        { source: "aic", id: 27943 },  // Mahana no atua (Day of the God)
+        { source: "aic", id: 14586 },  // The Poet's Garden
+        { source: "aic", id: 14624 },  // Stacks of Wheat (End of Day, Autumn)
+        { source: "aic", id: 16564 },  // Branch of the Seine near Giverny (Mist)
+        { source: "aic", id: 109314 },  // Fishing in Spring, the Pont de Clichy (Asnières)
+        { source: "aic", id: 81539 },  // On the Bank of the Seine, Bennecourt
+        { source: "aic", id: 16554 },  // The Artist's House at Argenteuil
+        { source: "aic", id: 895 },  // Man with Lance Riding through the Snow
+        { source: "aic", id: 61616 },  // Oil Sketch for "A Sunday on La Grande Jatte — 1884"
+        { source: "aic", id: 20199 },  // Final Study for "Bathers at Asnières"
+        { source: "aic", id: 81533 },  // The Races at Longchamp
+        { source: "aic", id: 4783 },  // Poppy Field (Giverny)
+        { source: "aic", id: 876 },  // October Day
+        { source: "aic", id: 14556 },  // Auvers, Panoramic View
+        { source: "aic", id: 16584 },  // Houses of Parliament, London
+        { source: "aic", id: 20545 },  // Rocks at Port-Goulphar, Belle-Île
+        { source: "aic", id: 44742 },  // Are They Thinking about the Grape? (Pensent-ils au r
+        { source: "aic", id: 16544 },  // Charing Cross Bridge, London
+        { source: "aic", id: 27954 },  // Terrace and Observation Deck at the Moulin de Blute-
+        { source: "aic", id: 103139 },  // Waterloo Bridge, Gray Weather
+        { source: "aic", id: 97933 },  // Water Lily Pond
+        { source: "aic", id: 4887 },  // Irises
+        { source: "aic", id: 20701 },  // Waterloo Bridge, Sunlight Effect
+        { source: "aic", id: 81545 },  // Stacks of Wheat (Sunset, Snow Effect)
+        { source: "aic", id: 81557 },  // Seascape
+        { source: "aic", id: 95654 },  // Near the Lake
+        { source: "aic", id: 887 },  // Landscape with Figures
+        { source: "aic", id: 86998 },  // Sandvika, Norway
+        { source: "aic", id: 153799 },  // Woman Bathing Her Feet in a Brook
+        { source: "aic", id: 5349 },  // New England Headlands
+        { source: "aic", id: 111318 },  // Stack of Wheat
+        { source: "aic", id: 20535 },  // Étretat: The Beach and the Falaise d'Amont
+        { source: "aic", id: 68792 },  // A Marine
+        { source: "aic", id: 81505 },  // Lion Hunt
+        { source: "aic", id: 8983 },  // Painting with Troika
+        { source: "aic", id: 57048 },  // The Old Temple
+        { source: "aic", id: 81566 },  // The Sacred Grove, Beloved of the Arts and the Muses
+        { source: "aic", id: 81546 },  // The Petite Creuse River
+        { source: "aic", id: 14634 },  // Vétheuil
+        { source: "aic", id: 59927 },  // Boats on the Beach at Étretat
+        { source: "aic", id: 45240 },  // The Bathers
+        { source: "aic", id: 110541 },  // The Crystal Palace
+        { source: "aic", id: 893 },  // Landscape
+        { source: "aic", id: 14630 },  // Venice, Palazzo Dario
+        { source: "aic", id: 897 },  // Pasture in Normandy
+        { source: "aic", id: 100191 },  // Stack of Wheat (Thaw, Sunset)
+        { source: "aic", id: 96559 },  // A Turn in the Road
+        { source: "aic", id: 894 },  // Springtime
+        { source: "aic", id: 16560 },  // Stack of Wheat (Snow Effect, Overcast Day)
     ],
     "portraits": [
         { source: "rijks", id: 200109344 },  // Frans Hals
@@ -481,6 +667,104 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 200109280 },  // Everdingen — Willem Jacobsz Baert (1636-84), Burgomaster of
         { source: "rijks", id: 200109281 },  // Everdingen — Portrait of Elisabeth Pietersdr Kessels (1640-
         { source: "rijks", id: 200516039 },  // Everdingen — Woman in a Large Hat
+        { source: "aic", id: 14655 },  // Two Sisters (On the Terrace)
+        { source: "aic", id: 80607 },  // Self-Portrait
+        { source: "aic", id: 111442 },  // The Child's Bath
+        { source: "aic", id: 69780 },  // The Fountain, Villa Torlonia, Frascati, Italy
+        { source: "aic", id: 81558 },  // Acrobats at the Cirque Fernando (Francisca and Angel
+        { source: "aic", id: 109780 },  // Love of Winter
+        { source: "aic", id: 14572 },  // The Millinery Shop
+        { source: "aic", id: 95998 },  // Old Man with a Gold Chain
+        { source: "aic", id: 15401 },  // At Mouquin's
+        { source: "aic", id: 193664 },  // The Captive Slave (Ira Aldridge)
+        { source: "aic", id: 81512 },  // Interrupted Reading
+        { source: "aic", id: 97910 },  // The Advance-Guard, or The Military Sacrifice (The Am
+        { source: "aic", id: 62371 },  // Madame Cezanne in a Yellow Chair
+        { source: "aic", id: 111317 },  // Amédée-David, the Comte de Pastoret
+        { source: "aic", id: 14591 },  // Woman Reading
+        { source: "aic", id: 60812 },  // Merahi metua no Tehamana (Tehamana Has Many Parents 
+        { source: "aic", id: 27307 },  // Madame de Pastoret and Her Son
+        { source: "aic", id: 14574 },  // Henri Degas and His Niece Lucie Degas (The Artist's 
+        { source: "aic", id: 27987 },  // Jacques and Berthe Lipchitz
+        { source: "aic", id: 30709 },  // Bar-room Scene
+        { source: "aic", id: 4788 },  // Lady Sarah Bunbury Sacrificing to the Graces
+        { source: "aic", id: 87643 },  // The Two Disciples at the Tomb
+        { source: "aic", id: 16298 },  // Portrait of Jean Gros (recto); Coat of Arms of Jean 
+        { source: "aic", id: 59787 },  // Mrs. Daniel Hubbard (Mary Greene)
+        { source: "aic", id: 4428 },  // Mère Grégoire
+        { source: "aic", id: 4081 },  // Gian Lodovico Madruzzo
+        { source: "aic", id: 8958 },  // Arrangement in Flesh Color and Brown: Portrait of Ar
+        { source: "aic", id: 4773 },  // Isabella Wolff
+        { source: "aic", id: 93900 },  // Portrait of a Man in Costume
+        { source: "aic", id: 150054 },  // Elizabeth Grant Bankson Beatty (Mrs. James Beatty) a
+        { source: "aic", id: 31285 },  // Portrait of Mary Adeline Williams
+        { source: "aic", id: 49702 },  // Richard Bill
+        { source: "aic", id: 55706 },  // Cornelius Allerton
+        { source: "aic", id: 862 },  // Portrait of an Artist
+        { source: "aic", id: 25825 },  // Woman at the Piano
+        { source: "aic", id: 4749 },  // Mrs. George Swinton (Elizabeth Ebsworth)
+        { source: "aic", id: 27949 },  // Madame Roulin Rocking the Cradle (La berceuse)
+        { source: "aic", id: 87467 },  // Édouard Manet
+        { source: "aic", id: 154121 },  // Calf's Head and Ox Tongue
+        { source: "aic", id: 26650 },  // On a Balcony
+        { source: "aic", id: 80499 },  // Dorothea and Francesca
+        { source: "aic", id: 14650 },  // Alfred Sisley
+        { source: "aic", id: 95183 },  // Beggar with a Duffle Coat (Philosopher)
+        { source: "aic", id: 191183 },  // Madame Paul Escudier (Louise Lefevre)
+        { source: "aic", id: 15708 },  // Portrait of a Man with Gray Hair
+        { source: "aic", id: 59798 },  // Winged Figure
+        { source: "aic", id: 16600 },  // Lucie Berard (Child in White)
+        { source: "aic", id: 8969 },  // Beggar with Oysters (Philosopher)
+        { source: "aic", id: 16622 },  // Madame Léon Clapisson
+        { source: "aic", id: 864 },  // Portrait of a Man with a Pink
+        { source: "aic", id: 25832 },  // Jean Renoir Sewing
+        { source: "aic", id: 31816 },  // After the Bullfight
+        { source: "aic", id: 97907 },  // A Mexican Vaquero
+        { source: "aic", id: 72320 },  // Elaine
+        { source: "aic", id: 34461 },  // Polynesian Woman with Children
+        { source: "aic", id: 86780 },  // Mother and Child
+        { source: "aic", id: 7503 },  // The Annunciation
+        { source: "aic", id: 153798 },  // Woman in a Garden
+        { source: "aic", id: 81548 },  // Young Peasant Having Her Coffee
+        { source: "aic", id: 88632 },  // Madame François Buron
+        { source: "aic", id: 110661 },  // Self-Portrait
+        { source: "aic", id: 84076 },  // Café Singer
+        { source: "aic", id: 110759 },  // Alessandro de' Medici
+        { source: "aic", id: 80604 },  // Portrait after a Costume Ball (Portrait of Madame Di
+        { source: "aic", id: 102777 },  // Abigail Chesebrough (Mrs. Alexander Grant)
+        { source: "aic", id: 16648 },  // Woman in Front of a Still Life by Cezanne
+        { source: "aic", id: 27281 },  // Madam Pompadour
+        { source: "aic", id: 97873 },  // Rip Van Winkle
+        { source: "aic", id: 97912 },  // The Mexican Major
+        { source: "aic", id: 866 },  // Helena Tromper Du Bois
+        { source: "aic", id: 59944 },  // The Laundress
+        { source: "aic", id: 29392 },  // Boy with Pitcher (La Régalade)
+        { source: "aic", id: 42949 },  // Portrait of Jeanne Wenz
+        { source: "aic", id: 65709 },  // The Artist in His Studio
+        { source: "aic", id: 12007 },  // The Dreamer (La Rêveuse)
+        { source: "aic", id: 59908 },  // In the Café
+        { source: "aic", id: 89043 },  // Portrait of General José Manuel Romero
+        { source: "aic", id: 11390 },  // Portrait of a Noblewoman Dressed in Mourning
+        { source: "aic", id: 24684 },  // Francesco de' Medici
+        { source: "aic", id: 81576 },  // Mrs. Potter Palmer
+        { source: "aic", id: 13742 },  // Herself
+        { source: "aic", id: 31233 },  // Portrait of Constance Pipelet
+        { source: "aic", id: 55494 },  // Peach Blossoms
+        { source: "aic", id: 110761 },  // Venetian Glass Workers
+        { source: "aic", id: 61146 },  // J. Ellis Bonham
+        { source: "aic", id: 64489 },  // Young Woman in Black
+        { source: "aic", id: 78507 },  // Mrs. John Nicholson (Hannah Duncan) and John Nichols
+        { source: "aic", id: 59784 },  // Daniel Hubbard
+        { source: "aic", id: 16151 },  // Portrait of a Gentleman
+        { source: "aic", id: 87760 },  // Portrait of Magdalena of Saxony, Wife of Elector Joa
+        { source: "aic", id: 2169 },  // John Thomlinson and His Family
+        { source: "aic", id: 40652 },  // Portrait of the Artist
+        { source: "aic", id: 80539 },  // Portrait of a Young Lady
+        { source: "aic", id: 20556 },  // Young Girl with Hat
+        { source: "aic", id: 93780 },  // Alexander Grant
+        { source: "aic", id: 97909 },  // Historians of the Tribe
+        { source: "aic", id: 36678 },  // Girl with Cherries
+        { source: "aic", id: 2179 },  // Portrait of a Man
     ],
     "impressionism": [
         { source: "cleveland", id: 135382 },  // Claude Monet — The Red Kerchief
@@ -503,6 +787,77 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "cleveland", id: 135265 },  // Edgar Degas — Stefanina Primicile Carafa, Marchioness of Cicer
         { source: "cleveland", id: 167142 },  // Gustave Caillebotte — Portrait of a Man
         { source: "cleveland", id: 91231 },  // Gustave Caillebotte — Villas at Trouville
+        { source: "aic", id: 20684 },  // Paris Street; Rainy Day
+        { source: "aic", id: 64818 },  // Stacks of Wheat (End of Summer)
+        { source: "aic", id: 16568 },  // Water Lilies
+        { source: "aic", id: 14655 },  // Two Sisters (On the Terrace)
+        { source: "aic", id: 111442 },  // The Child's Bath
+        { source: "aic", id: 16571 },  // Arrival of the Normandy Train, Gare Saint-Lazare
+        { source: "aic", id: 11723 },  // Woman at Her Toilette
+        { source: "aic", id: 14598 },  // The Beach at Sainte-Adresse
+        { source: "aic", id: 81558 },  // Acrobats at the Cirque Fernando (Francisca and Angel
+        { source: "aic", id: 14620 },  // Cliff Walk at Pourville
+        { source: "aic", id: 87088 },  // Water Lily Pond
+        { source: "aic", id: 81537 },  // Bordighera
+        { source: "aic", id: 14624 },  // Stacks of Wheat (End of Day, Autumn)
+        { source: "aic", id: 25825 },  // Woman at the Piano
+        { source: "aic", id: 16564 },  // Branch of the Seine near Giverny (Mist)
+        { source: "aic", id: 81539 },  // On the Bank of the Seine, Bennecourt
+        { source: "aic", id: 16549 },  // Apples and Grapes
+        { source: "aic", id: 16554 },  // The Artist's House at Argenteuil
+        { source: "aic", id: 4783 },  // Poppy Field (Giverny)
+        { source: "aic", id: 16584 },  // Houses of Parliament, London
+        { source: "aic", id: 20545 },  // Rocks at Port-Goulphar, Belle-Île
+        { source: "aic", id: 16544 },  // Charing Cross Bridge, London
+        { source: "aic", id: 81555 },  // Lunch at the Restaurant Fournaise (The Rowers' Lunch
+        { source: "aic", id: 103139 },  // Waterloo Bridge, Gray Weather
+        { source: "aic", id: 97933 },  // Water Lily Pond
+        { source: "aic", id: 4887 },  // Irises
+        { source: "aic", id: 20701 },  // Waterloo Bridge, Sunlight Effect
+        { source: "aic", id: 16617 },  // Chrysanthemums
+        { source: "aic", id: 81545 },  // Stacks of Wheat (Sunset, Snow Effect)
+        { source: "aic", id: 81557 },  // Seascape
+        { source: "aic", id: 95654 },  // Near the Lake
+        { source: "aic", id: 86998 },  // Sandvika, Norway
+        { source: "aic", id: 153799 },  // Woman Bathing Her Feet in a Brook
+        { source: "aic", id: 111318 },  // Stack of Wheat
+        { source: "aic", id: 20535 },  // Étretat: The Beach and the Falaise d'Amont
+        { source: "aic", id: 26650 },  // On a Balcony
+        { source: "aic", id: 14650 },  // Alfred Sisley
+        { source: "aic", id: 81551 },  // The Place du Havre, Paris
+        { source: "aic", id: 81546 },  // The Petite Creuse River
+        { source: "aic", id: 14647 },  // Young Woman Sewing
+        { source: "aic", id: 14634 },  // Vétheuil
+        { source: "aic", id: 59927 },  // Boats on the Beach at Étretat
+        { source: "aic", id: 110541 },  // The Crystal Palace
+        { source: "aic", id: 14630 },  // Venice, Palazzo Dario
+        { source: "aic", id: 16600 },  // Lucie Berard (Child in White)
+        { source: "aic", id: 100191 },  // Stack of Wheat (Thaw, Sunset)
+        { source: "aic", id: 16622 },  // Madame Léon Clapisson
+        { source: "aic", id: 96559 },  // A Turn in the Road
+        { source: "aic", id: 25832 },  // Jean Renoir Sewing
+        { source: "aic", id: 16560 },  // Stack of Wheat (Snow Effect, Overcast Day)
+        { source: "aic", id: 16629 },  // Fruits of the Midi
+        { source: "aic", id: 81552 },  // Woman and Child at the Well
+        { source: "aic", id: 153798 },  // Woman in a Garden
+        { source: "aic", id: 81548 },  // Young Peasant Having Her Coffee
+        { source: "aic", id: 16579 },  // Vétheuil
+        { source: "aic", id: 16633 },  // The Seine at Port-Marly, Piles of Sand
+        { source: "aic", id: 81540 },  // The Departure of the Boats, Étretat
+        { source: "aic", id: 16542 },  // The Customs House at Varengeville
+        { source: "aic", id: 20530 },  // Rabbit Warren at Pontoise, Snow
+        { source: "aic", id: 6005 },  // The Banks of the Marne in Winter
+        { source: "aic", id: 87000 },  // Haymaking at Éragny
+        { source: "aic", id: 59944 },  // The Laundress
+        { source: "aic", id: 81561 },  // Street in Moret
+        { source: "aic", id: 73054 },  // The Loire
+        { source: "aic", id: 37741 },  // Watering Place at Marly
+        { source: "aic", id: 45838 },  // Snow at Louveciennes
+        { source: "aic", id: 20556 },  // Young Girl with Hat
+        { source: "aic", id: 100026 },  // Studies of Pierre Renoir; His Mother, Aline Charigot
+        { source: "aic", id: 53058 },  // Forêt de Compiègne
+        { source: "aic", id: 58984 },  // Landscape along the Seine with the Institut de Franc
+        { source: "aic", id: 11312 },  // Woman Mending
     ],
     "postimpressionism": [
         { source: "rijks", id: 200109305 },  // Vincent van Gogh
@@ -520,6 +875,143 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "cleveland", id: 135173 },  // Paul Cezanne — The Brook
         { source: "cleveland", id: 135185 },  // Paul Cezanne — Mount Sainte-Victoire
         { source: "cleveland", id: 135512 },  // Georges Seurat — Study for "Bathers at Asnières"
+        { source: "aic", id: 28560 },  // The Bedroom
+        { source: "aic", id: 27992 },  // A Sunday on La Grande Jatte — 1884
+        { source: "aic", id: 80607 },  // Self-Portrait
+        { source: "aic", id: 61128 },  // At the Moulin Rouge
+        { source: "aic", id: 111436 },  // The Basket of Apples
+        { source: "aic", id: 16487 },  // The Bay of Marseille, Seen from L'Estaque
+        { source: "aic", id: 16146 },  // Equestrienne (At the Cirque Fernando)
+        { source: "aic", id: 19339 },  // Arlésiennes (Mistral)
+        { source: "aic", id: 62371 },  // Madame Cezanne in a Yellow Chair
+        { source: "aic", id: 60812 },  // Merahi metua no Tehamana (Tehamana Has Many Parents 
+        { source: "aic", id: 27943 },  // Mahana no atua (Day of the God)
+        { source: "aic", id: 14586 },  // The Poet's Garden
+        { source: "aic", id: 28862 },  // A Peasant Woman Digging in Front of Her Cottage
+        { source: "aic", id: 79349 },  // The Drinkers
+        { source: "aic", id: 109314 },  // Fishing in Spring, the Pont de Clichy (Asnières)
+        { source: "aic", id: 61616 },  // Oil Sketch for "A Sunday on La Grande Jatte — 1884"
+        { source: "aic", id: 20199 },  // Final Study for "Bathers at Asnières"
+        { source: "aic", id: 27949 },  // Madame Roulin Rocking the Cradle (La berceuse)
+        { source: "aic", id: 14556 },  // Auvers, Panoramic View
+        { source: "aic", id: 27954 },  // Terrace and Observation Deck at the Moulin de Blute-
+        { source: "aic", id: 64957 },  // Grapes, Lemons, Pears, and Apples
+        { source: "aic", id: 14664 },  // Moulin de la Galette
+        { source: "aic", id: 9148 },  // Ballet Dancers
+        { source: "aic", id: 14561 },  // The Vase of Tulips
+        { source: "aic", id: 45240 },  // The Bathers
+        { source: "aic", id: 16496 },  // No te aha oe riri (Why Are You Angry?)
+        { source: "aic", id: 34461 },  // Polynesian Woman with Children
+        { source: "aic", id: 65811 },  // The Plate of Apples
+        { source: "aic", id: 111062 },  // Te raau rahi (The Big Tree)
+        { source: "aic", id: 16648 },  // Woman in Front of a Still Life by Cezanne
+        { source: "aic", id: 8360 },  // Te burao (The Hibiscus Tree)
+        { source: "aic", id: 42949 },  // Portrait of Jeanne Wenz
+        { source: "aic", id: 109418 },  // Bathers
+        { source: "aic", id: 153797 },  // Still Life: Wood Tankard and Metal Pitcher
+        { source: "aic", id: 204686 },  // At the Circus: The Bareback Rider (Au Cirque: Écuyèr
+    ],
+    "ukiyoe": [
+        { source: "aic", id: 89503 },  // Under the Wave off Kanagawa (Kanagawa oki nami ura),
+        { source: "aic", id: 88977 },  // Evening Snow on a Floss Shaper (Nurioke no bosetsu),
+        { source: "aic", id: 89856 },  // The actor Bando Mitsugoro II as Ishii Genzo
+        { source: "aic", id: 24645 },  // Under the Wave off Kanagawa (Kanagawa oki nami ura),
+        { source: "aic", id: 7624 },  // Komurasaki of the Miuraya and Shirai Gompachi (Miura
+        { source: "aic", id: 4371 },  // Hamamatsu, from the series "Fifty-three Stations of 
+        { source: "aic", id: 4368 },  // Mitsuke: Ferries Crossing the Tenryu River (Mitsuke,
+        { source: "aic", id: 22935 },  // Beauty Under an Umbrella in the Snow
+        { source: "aic", id: 21720 },  // Cranes on snow-covered pine
+        { source: "aic", id: 10926 },  // Mishima: Morning Mist (Mishima, asagiri), from the s
+        { source: "aic", id: 22939 },  // The Heron Maiden
+        { source: "aic", id: 13405 },  // Goldfish, from the series "Elegant Comparison of Lit
+        { source: "aic", id: 4378 },  // Arai, from the series "Fifty-three Stations of the T
+        { source: "aic", id: 4374 },  // Maisaka: The Ferry at Imagiri (Maisaka, Imagiri funa
+        { source: "aic", id: 11050 },  // No. 37: Miyanokoshi, from the series "Sixty-nine Sta
+        { source: "aic", id: 22938 },  // Drawing Lots for Prizes (Ho biki)
+        { source: "aic", id: 11054 },  // No. 32: Seba, from the series "Sixty-nine Stations o
+        { source: "aic", id: 20992 },  // Ise, from an untitled series of Thirty-six Immortal 
+        { source: "aic", id: 87008 },  // Shower Below the Summit (Sanka hakuu), from the seri
+        { source: "aic", id: 77333 },  // Under the Wave off Kanagawa (Kanagawa oki nami ura),
+        { source: "aic", id: 19040 },  // Snow at Benzaiten Shrine in Inokashira Pond (Inokash
+        { source: "aic", id: 25613 },  // Kanbara: Evening Snow (Kanbara, yoru no yuki), from 
+        { source: "aic", id: 19236 },  // The Courtesan Arihara of the Tsuruya, and Child Atte
+        { source: "aic", id: 2914 },  // Hara, from the series ""Fifty-three Stations of the 
+        { source: "aic", id: 2906 },  // Odawara, from the series "Fifty-three Stations of th
+        { source: "aic", id: 20994 },  // Double-Flowered Cherry: Motoura of the Minami Yamasa
+        { source: "aic", id: 18307 },  // Shirasuka: Shiomi Slope,no. 33 from the series Fifty
+        { source: "aic", id: 18366 },  // Oumayagashi, from the series "One Hundred Famous Vie
+        { source: "aic", id: 10932 },  // Snow at Akabane Bridge in Shiba (Shiba Akabane no yu
+        { source: "aic", id: 7531 },  // Shirabyoshi Dancer Standing in Asazuma Boat
+        { source: "aic", id: 10922 },  // Macaw on a pine branch
+        { source: "aic", id: 13192 },  // Asakusa Rice Fields and Torinomachi Festival (Asakus
+        { source: "aic", id: 3035 },  // Sakanoshita, from the series "Fifty-three Stations o
+        { source: "aic", id: 18897 },  // The actors Ichikawa Omezo I (R) as Tomita Hyotaro an
+        { source: "aic", id: 18278 },  // Hodogaya: Katabira River and Katabira Brige (Hodogay
+        { source: "aic", id: 18416 },  // No. 56: Mieji, from the series "Sixty-nine Stations 
+        { source: "aic", id: 47398 },  // Kohada Koheiji, from the series "One Hundred Ghost T
+        { source: "aic", id: 9788 },  // Maple Leaf Viewing (Momiji gari)
+        { source: "aic", id: 4400 },  // Chiryu, from the series "Fifty-three Stations of the
+        { source: "aic", id: 18329 },  // Kuwana: Ferryboat at Shichiri Crossing (Kuwana, Shic
+        { source: "aic", id: 4321 },  // Kanbara, from the series "Fifty-three Stations of th
+        { source: "aic", id: 22934 },  // A Test of Skill - the Headwaters of Amorousness (Jit
+        { source: "aic", id: 13154 },  // Bingo Province: Kannon Temple at Abuto (Bingo, Abuto
+        { source: "aic", id: 2887 },  // Shinagawa, from the series "Fifty-three Stations of 
+        { source: "aic", id: 18287 },  // Mishima—No. 12, from the series "Fifty-three Station
+        { source: "aic", id: 19977 },  // Eight-Platform Bridge (Yatsuhashi), from the "Tale o
+        { source: "aic", id: 18327 },  // Miya: Shichiri Ferry Crossing, Gate to the Atsuta Sh
+        { source: "aic", id: 13188 },  // Precints of the Akiba Shrine, Ukeji (Ukeji Akiba no 
+        { source: "aic", id: 19006 },  // Satta Peak in Suruga Province (Suruga Satta mine), f
+        { source: "aic", id: 25110 },  // Chrysanthemum and Horsefly, from an untitled series 
+        { source: "aic", id: 2927 },  // Fuchu, from the series "Fifty-three Stations of the 
+        { source: "aic", id: 10936 },  // No. 28: Nagakubo, from the series "Sixty-nine Statio
+        { source: "aic", id: 23868 },  // Takashima Ohisa
+        { source: "aic", id: 3652 },  // Togetsu Bridge at Arashiyama in Yamashiro Province (
+        { source: "aic", id: 8923 },  // Visiting (Kayoi), from the series "Floating World Ve
+        { source: "aic", id: 100626 },  // Whaling off the Coast of the Goto Islands (Goto kuji
+        { source: "aic", id: 3568 },  // Yamauba with Kintaro Holding a Toy Mask
+        { source: "aic", id: 19026 },  // Oystercatchers
+        { source: "aic", id: 100627 },  // Fishing Boats at Choshi in Shimosa (Soshu Choshi) fr
+        { source: "aic", id: 89356 },  // A Low Class Prostitute (Gun [teppo]), from the serie
+        { source: "aic", id: 18765 },  // The actor Otani Oniji III as Edobei
+        { source: "aic", id: 18296 },  // Ejiri—No. 19, from the series "Fifty-three Stations 
+        { source: "aic", id: 88975 },  // The Evening Bell of the Clock (Tokei no bansho), fro
+        { source: "aic", id: 18298 },  // Okabe: Mount Utsu (Okabe, Utsunoyama)—No. 22, from t
+        { source: "aic", id: 18351 },  // Otsu—No. 54, from the series "Fifty-three Stations o
+        { source: "aic", id: 36175 },  // Artist, Block Carver, Applying Sizing (Eshi, hangash
+        { source: "aic", id: 81212 },  // Self-Portrait as a Fisherman
+        { source: "aic", id: 23650 },  // Fujieda station on the Tokaido
+        { source: "aic", id: 7621 },  // The Courtesans Shizuka and Akashi of the Tamaya
+        { source: "aic", id: 4394 },  // Akasaka, from the series "Fifty-three Stations of th
+        { source: "aic", id: 4381 },  // Shirasuka: View of Shiomi Slope (Shirasuka, Shiomiza
+        { source: "aic", id: 2885 },  // Nihonbashi, from the series "Fifty-three Stations of
+        { source: "aic", id: 81248 },  // Mount Fuji with Cherry Trees in Bloom
+        { source: "aic", id: 18290 },  // Yoshiwara: The Famous Sight of Mount Fuji on the Lef
+        { source: "aic", id: 3642 },  // Moon over Ryogoku Bridge in Summer (Natsu Ryogoku no
+        { source: "aic", id: 57271 },  // A Peasant Crossing a Bridge, from the series A True 
+        { source: "aic", id: 25183 },  // Ono Falls on the Kisokaidō Road (Kisokaidō Ono no ba
+        { source: "aic", id: 34277 },  // Ryogoku Bridge and the Great Riverbank (Ryogokubashi
+        { source: "aic", id: 6805 },  // A Young Woman in a Summer Shower
+        { source: "aic", id: 36315 },  // A Bridge in a Snowy Landscape, from the series "A Co
+        { source: "aic", id: 89362 },  // Mirror, from the series “Eight Views of Tea-stalls i
+        { source: "aic", id: 8185 },  // Woman Exhaling Smoke from a Pipe, from the series "T
+        { source: "aic", id: 20971 },  // Meeting on the River (parody of Hakurakuten)
+        { source: "aic", id: 3028 },  // Kameyama, from the series "Fifty-three Stations of t
+        { source: "aic", id: 15817 },  // Ichikawa Danjuro VI
+        { source: "aic", id: 3046 },  // Ishibei, from the series "Fifty-three Stations of th
+        { source: "aic", id: 44659 },  // Abalone Divers
+        { source: "aic", id: 22573 },  // A Lady with Three Servants, from the series "A Broca
+        { source: "aic", id: 89524 },  // Ariwara no Narihirafrom the series One Hundred Poems
+        { source: "aic", id: 2920 },  // Yui, from the series ""Fifty-three Stations of the T
+        { source: "aic", id: 18770 },  // The actors Ichikawa Tomiemon (R) as Kanisaka Toma an
+        { source: "aic", id: 21670 },  // Chinese Beauties at a Banquet
+        { source: "aic", id: 2922 },  // Okitsu, from the series "Fifty-three Stations of the
+        { source: "aic", id: 18309 },  // Futakawa: Sarugababa—No. 34, from the series "Fifty-
+        { source: "aic", id: 20958 },  // Two Young Women Reading Books
+        { source: "aic", id: 18972 },  // Autumn Moon over Ishiyama Temple (Ishiyama shugetsu)
+        { source: "aic", id: 21020 },  // Sumirena: The Mistress of Yojiya (Yojiya musume, Sum
+        { source: "aic", id: 77443 },  // Reflective Love, from the series "Anthology of Poems
+        { source: "aic", id: 18270 },  // Ishibe: Megawa Village (Ishibe, Megawa no sato), fro
+        { source: "aic", id: 13255 },  // Yoro Waterfall in Mino Province (Mino no kuni Yoro n
     ],
     "flowers": [
         { source: "rijks", id: 200148925 },  // Floral Still Life
@@ -935,6 +1427,14 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
 // omission — search re-serves them — so exclusions bake into the
 // query as must_not id terms. This object shares the pin file so the
 // Curia owns ONE machine-writable curation canon.
+// LIVE-AIC search per category — canon-governed, default OFF. The
+// creator judged the pinned canon (with every AIC survivor of the
+// full audit promoted to a pin) superior to what live search adds;
+// a category flipped true serves clauses UNION pins as before. The
+// Curia's toggle writes this object.
+export const LIVE_SEARCH_ENABLED = Object.freeze({
+});
+
 export const CATEGORY_EXCLUSIONS = Object.freeze({
     "impressionism": [154121, 31816, 110798],
     "postimpressionism": [191564],

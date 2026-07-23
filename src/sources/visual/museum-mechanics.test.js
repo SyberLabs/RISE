@@ -31,34 +31,46 @@ describe('museum pool mechanics', () => {
         vi.restoreAllMocks();
     });
 
-    it('serves AIC results immediately without waiting on pins', async () => {
-        vi.stubGlobal('fetch', vi.fn(async () => ({
-            ok: true, json: async () => aicResponse(5)
-        })));
+    it('pinned-only is the default: no AIC search request leaves the provider', async () => {
+        // LIVE_SEARCH_ENABLED ships empty, so even clause-bearing
+        // categories resolve from pins alone
+        const fetchMock = vi.fn(async () => ({ ok: true, json: async () => aicResponse(5) }));
+        vi.stubGlobal('fetch', fetchMock);
+        vi.spyOn(provider, '_resolvePins').mockResolvedValue([
+            { id: 'rijks:1', title: 'w', url: 'u', fullUrl: 'u' }
+        ]);
         const pool = await provider.getImagesInCategory('oldmasters', 100);
-        expect(pool.length).toBe(5);
-        expect(pool[0].url).toContain('artic.edu/iiif');
+        expect(pool.length).toBe(1);
+        const searchCalls = fetchMock.mock.calls.filter(([u]) => /artic\.edu/.test(String(u)));
+        expect(searchCalls.length).toBe(0);
         vi.unstubAllGlobals();
+    });
+
+    it('the live-search canon flag ships, and ships empty (pinned-only everywhere)', async () => {
+        const { LIVE_SEARCH_ENABLED } = await import('./museum-pins.js');
+        expect(LIVE_SEARCH_ENABLED).toBeDefined();
+        expect(Object.values(LIVE_SEARCH_ENABLED).filter(v => v === true)).toHaveLength(0);
     });
 
     it('caches per category AND limit — different limits are different pools', async () => {
-        const fetchMock = vi.fn(async () => ({ ok: true, json: async () => aicResponse(3) }));
-        vi.stubGlobal('fetch', fetchMock);
+        vi.spyOn(provider, '_resolvePins').mockResolvedValue([
+            { id: 'rijks:1', title: 'w', url: 'u', fullUrl: 'u' }
+        ]);
         await provider.getImagesInCategory('landscapes', 100);
         await provider.getImagesInCategory('landscapes', 100);
         await provider.getImagesInCategory('landscapes', 20);
-        // two distinct cache keys → two upstream fetches, not three
-        expect(fetchMock).toHaveBeenCalledTimes(2);
-        vi.unstubAllGlobals();
+        // two distinct cache keys → two pin resolutions, not three
+        expect(provider._resolvePins).toHaveBeenCalledTimes(2);
     });
 
     it('a fresh provider instance holds no pool state (session-scoped cache)', async () => {
-        vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => aicResponse(2) })));
+        vi.spyOn(provider, '_resolvePins').mockResolvedValue([
+            { id: 'rijks:1', title: 'w', url: 'u', fullUrl: 'u' }
+        ]);
         await provider.getImagesInCategory('portraits', 100);
         expect(provider._categoryCache.size).toBe(1);
         const fresh = new MuseumProvider();
         expect(fresh._categoryCache ?? new Map()).toHaveProperty('size', 0);
-        vi.unstubAllGlobals();
     });
 
     it('retired category ids resolve to their living neighbor', async () => {
@@ -75,19 +87,12 @@ describe('museum pool mechanics', () => {
         expect(pool).toEqual([]);
     });
 
-    it('pin-resolution failure degrades to the AIC-only pool', async () => {
-        vi.stubGlobal('fetch', vi.fn(async (url) => {
-            if (String(url).includes('artic.edu')) {
-                return { ok: true, json: async () => aicResponse(4) };
-            }
-            throw new Error('museum API down');
-        }));
+    it('pin-resolution failure yields an empty pool, never a throw (pinned-only era)', async () => {
+        vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('network down'); }));
         const pool = await provider.getImagesInCategory('oldmasters', 100);
-        expect(pool.length).toBe(4);
-        // give the background pin promise a beat to fail quietly
-        await new Promise(r => setTimeout(r, 50));
-        expect(provider._categoryCache.get('cat:oldmasters:100').length)
-            .toBeGreaterThanOrEqual(4);
+        // _resolvePins degrades to [] on failure; the caller sees an
+        // empty pool and the cortex treats it like any dry category
+        expect(pool).toEqual([]);
         vi.unstubAllGlobals();
     });
 
@@ -129,14 +134,17 @@ describe('museum pool mechanics', () => {
         }
     });
 
-    it('getRandom draws a full no-repeat cycle from a stable pool', async () => {
-        vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => aicResponse(6) })));
+    it('getRandom draws a full no-repeat cycle from a stable pinned pool', async () => {
+        vi.spyOn(provider, '_resolvePins').mockResolvedValue(
+            Array.from({ length: 6 }, (_, i) => ({
+                id: `rijks:${i}`, title: `w${i}`, url: `u${i}`, fullUrl: `u${i}`
+            }))
+        );
         const seen = [];
         for (let i = 0; i < 6; i++) {
             const item = await provider.getRandom({ category: 'ukiyoe' });
             seen.push(item.id);
         }
         expect(new Set(seen).size).toBe(6);
-        vi.unstubAllGlobals();
     });
 });

@@ -27,7 +27,8 @@ const VERB_LABELS = {
     unexclude: 'restore',
     addPin: 'pin',
     removePin: 'unpin',
-    movePin: 'move'
+    movePin: 'move',
+    setLiveSearch: 'live-search'
 };
 
 export class Curia {
@@ -36,7 +37,7 @@ export class Curia {
         this.onNavigate = options.onNavigate || (() => {});
         this.categories = null;      // [{ id, name, mode }]
         this.inventory = new Map();  // categoryId -> { live: [], pins: [], excluded: [] }
-        this.changeset = { exclude: [], unexclude: [], addPin: [], removePin: [], movePin: [] };
+        this.changeset = { exclude: [], unexclude: [], addPin: [], removePin: [], movePin: [], setLiveSearch: [] };
         this.openCategory = null;
         this._devWrite = null;       // tri-state: null unknown, true, false
         this.render();
@@ -53,10 +54,13 @@ export class Curia {
         const MUSEUM_CATEGORIES = museumMod.MUSEUM_CATEGORIES || {};
         const MUSEUM_CATEGORY_PINS = pinsMod.MUSEUM_CATEGORY_PINS || {};
         const CATEGORY_EXCLUSIONS = pinsMod.CATEGORY_EXCLUSIONS || {};
+        this._liveSearch = pinsMod.LIVE_SEARCH_ENABLED || {};
         this.categories = Object.entries(MUSEUM_CATEGORIES).map(([id, cat]) => ({
             id,
             name: cat.name,
-            mode: cat.clauses ? 'live+pins' : 'pinned-only',
+            hasClauses: !!cat.clauses,
+            liveOn: this._liveSearch[id] === true,
+            mode: (cat.clauses && this._liveSearch[id] === true) ? 'live+pins' : 'pinned-only',
             pinCount: (MUSEUM_CATEGORY_PINS[id] || []).length,
             exclusionCount: (CATEGORY_EXCLUSIONS[id] || []).length
         }));
@@ -167,7 +171,7 @@ export class Curia {
             if (!j.ok) throw new Error(j.error || 'apply failed');
             status.textContent = `written to canon: ${Object.entries(j.applied)
                 .filter(([, n]) => n > 0).map(([k, n]) => `${VERB_LABELS[k]} ${n}`).join(', ') || 'no changes'}`;
-            this.changeset = { exclude: [], unexclude: [], addPin: [], removePin: [], movePin: [] };
+            this.changeset = { exclude: [], unexclude: [], addPin: [], removePin: [], movePin: [], setLiveSearch: [] };
             this.inventory.clear();
             // re-import fresh canon (dev server serves the new module)
             this.categories = null;
@@ -191,15 +195,17 @@ export class Curia {
     render() {
         this.container.innerHTML = `
             <div class="curia">
-                <header class="curia-header">
-                    <button class="curia-back" data-nav="portal">← Portal</button>
-                    <h1>The Curia</h1>
-                    <p class="curia-sub">The visual canon, governed. Every work each category can
-                    serve — live search and pins alike — with the verbs the audits proved:
-                    exclude, restore, move, unpin.</p>
-                </header>
-                <div class="curia-board"></div>
-                <div class="curia-detail" hidden></div>
+                <div class="curia-scroll">
+                    <header class="curia-header">
+                        <button class="curia-back" data-nav="portal">← Portal</button>
+                        <h1>The Curia</h1>
+                        <p class="curia-sub">The visual canon, governed. Every work each category can
+                        serve — live search and pins alike — with the verbs the audits proved:
+                        exclude, restore, move, unpin.</p>
+                    </header>
+                    <div class="curia-board"></div>
+                    <div class="curia-detail" hidden></div>
+                </div>
                 <footer class="curia-bar">
                     <span class="curia-count"></span>
                     <button class="curia-apply" hidden>Apply to canon</button>
@@ -286,6 +292,11 @@ export class Curia {
                     ${inv.live.length} live · ${inv.pins.length} pins · ${inv.excluded.length} excluded
                     ${inv.loading ? ' · resolving…' : ''}
                 </span>
+                ${cat.hasClauses ? `
+                <label class="curia-live-toggle" title="Serve this category's AIC live-search results alongside the pins (canon-wide, default off)">
+                    <input type="checkbox" data-verb="setLiveSearch" ${cat.liveOn ? 'checked' : ''}>
+                    <span>Live-AIC ${cat.liveOn ? 'on' : 'off'}</span>
+                </label>` : ''}
             </div>
             ${inv.pins.length ? `<h3>Pinned (${inv.pins.length})</h3>
                 <div class="curia-grid">${inv.pins.map(w => card(w, 'pin')).join('')}</div>` : ''}
@@ -318,6 +329,15 @@ export class Curia {
     }
 
     _onDetailChange(e) {
+        const toggle = e.target.closest('input[data-verb="setLiveSearch"]');
+        if (toggle) {
+            this._queue('setLiveSearch', {
+                category: this.openCategory, enabled: toggle.checked
+            });
+            toggle.closest('.curia-live-toggle').querySelector('span').textContent =
+                `Live-AIC ${toggle.checked ? 'on' : 'off'} (pending)`;
+            return;
+        }
         const sel = e.target.closest('select[data-verb="movePin"]');
         if (!sel || !sel.value) return;
         const workEl = sel.closest('.curia-work');
