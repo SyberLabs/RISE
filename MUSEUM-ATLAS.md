@@ -273,3 +273,17 @@ never hand-built (5 of 7 hand-built Commons hashes were wrong).
 Watch for register (biblically/thematically on-theme is not
 sufficient), name-traps (a portrait *of* a Joseph is not Joseph
 imagery), and pendant/school pieces.
+
+### Pool-balance threshold (draw-distribution study, 2026-07-23)
+
+The ShuffleBag is uniform per work, so an institution's flash share
+equals its pool share. Simulated over 10,000 30-flash sessions with
+the real pools: at current ratios (worst 79/21) every institution
+appears in ≥88% of sessions — proportional rarity, never invisibility.
+The measured danger line is roughly **10:1**: past it, a 12-work
+minority falls under 2.5% of flashes and misses ~half of short
+sessions. **Check the ratio at every harvest**; if a category crosses
+~10:1, that is the trigger to build stratified drawing (institution
+first with a presence floor, then work) — not before. Cold-cache
+ordering is already handled: `_resolvePins` interleaves pins
+round-robin by institution so no museum's works all land last.

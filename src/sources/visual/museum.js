@@ -239,8 +239,27 @@ export class MuseumProvider extends SourceProvider {
     async _resolvePins(categoryId, options = {}) {
         try {
             const { MUSEUM_CATEGORY_PINS } = await import('./museum-pins.js');
-            const pins = MUSEUM_CATEGORY_PINS[categoryId];
-            if (!Array.isArray(pins) || pins.length === 0) return [];
+            const declared = MUSEUM_CATEGORY_PINS[categoryId];
+            if (!Array.isArray(declared) || declared.length === 0) return [];
+
+            // Interleave round-robin by institution before resolving.
+            // Pins land into the live pool in resolution order, and the
+            // pin file groups by museum — resolved as-declared, a first
+            // (cold-cache) session drained one institution's pins before
+            // the next institution appeared at all (measured: Cleveland
+            // present in 26% of cold oldmasters sessions vs 100% after
+            // interleaving — draw-distribution study, 2026-07-23).
+            const bySource = new Map();
+            for (const pin of declared) {
+                if (!bySource.has(pin.source)) bySource.set(pin.source, []);
+                bySource.get(pin.source).push(pin);
+            }
+            const pins = [];
+            for (let i = 0; pins.length < declared.length; i++) {
+                for (const group of bySource.values()) {
+                    if (group[i]) pins.push(group[i]);
+                }
+            }
             const { resolveCollection } = await import('../../content/atrium/imagery/service.js');
             // Chunked: 95 rijks pins are ~285 Linked-Art requests on a
             // cold cache — batches of 8 keep the museum's API unhammered.
