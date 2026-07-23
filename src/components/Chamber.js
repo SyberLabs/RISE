@@ -641,6 +641,16 @@ export class Chamber {
           <img src="${focals.personalImage}" alt="Personal focal" class="focal-image" />
         </div>
       `;
+    } else if (focals.standardGlyph === 'rose') {
+      // ROSA MYSTICA as a standard focal — the rose left the Chapel
+      // and joined the glyph grid. Outside chapel launches (which
+      // carry deterministic per-book seeds) each session draws its
+      // own window; the substyle (vitrum/verbum) rides on roseMode.
+      this.initializeRoseFocal(focalContainer, {
+        petala: focals.petala || 12,
+        seed: focals.seed, // undefined → the engine seeds itself
+        roseMode: focals.roseMode
+      });
     } else {
       // Standard glyph focal
       const glyphData = this.getFocalGlyph(focals.standardGlyph || 'breath');

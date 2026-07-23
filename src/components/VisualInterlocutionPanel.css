@@ -1495,3 +1495,27 @@
 .vi-icon-active-hint {
   font-size: 11px;
 }
+
+/* The Rose's substyle row (Vitrum / Verbum) */
+.vi-rose-substyle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+.vi-rose-substyle[hidden] { display: none; }
+.vi-pill {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    color: var(--color-fog, #aab);
+    font-size: 12px;
+    padding: 5px 14px;
+    cursor: pointer;
+    transition: border-color 150ms ease, color 150ms ease;
+}
+.vi-pill:hover { border-color: rgba(255, 255, 255, 0.3); }
+.vi-pill.selected {
+    border-color: var(--color-ember, #c9a95c);
+    color: var(--color-ember, #c9a95c);
+}

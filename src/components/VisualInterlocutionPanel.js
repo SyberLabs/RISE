@@ -545,7 +545,12 @@ export class VisualInterlocutionPanel {
             { id: 'eye', name: 'Eye', icon: '◉', dynamic: true, description: 'Soft focus ring' },
             { id: 'star', name: 'Star', icon: '✦', dynamic: false, description: 'Fixed point of light' },
             { id: 'wave', name: 'Wave', icon: '≈', dynamic: true, description: 'Gentle oscillation' },
-            { id: 'void', name: 'Void', icon: '●', dynamic: false, description: 'Pure stillness' }
+            { id: 'void', name: 'Void', icon: '●', dynamic: false, description: 'Pure stillness' },
+            // ROSA MYSTICA leaves the Chapel: the procedural rose
+            // window as a standard focal, completing the grid. Its
+            // substyle (Vitrum glass / Verbum letterfield) appears
+            // when chosen.
+            { id: 'rose', name: 'Rose', icon: '❂', dynamic: true, description: 'Procedural rose window — stained glass or psalm-lettered field' }
         ];
 
         // Universal Diagrams — generated from the Wikimedia provider registry
@@ -634,6 +639,22 @@ export class VisualInterlocutionPanel {
                             A persistent, gentle focal point displayed throughout your session. Designed for stillness and neurosensitive users.
                         </div>
 
+                        ${this.config.focals.type === 'rose' ? `
+                            <!-- The Chapel's Rosa Mystica (type:'rose', the
+                                 per-book seeded window) named here so an
+                                 active rose never looks like "no focal
+                                 selected" — the invisible-settings report,
+                                 2026-07. Choosing a glyph below releases it
+                                 (the glyph grid's own Rose seeds per session
+                                 instead of per book). -->
+                            <div class="vi-focals-icon-active">
+                                <span class="vi-icon-active-mark" aria-hidden="true">❂</span>
+                                <span class="vi-icon-active-body">
+                                    <span class="vi-icon-active-name">Rosa Mystica${this.config.focals.roseMode === 'verbum' ? ' · Verbum' : ''}</span>
+                                    <span class="vi-icon-active-hint text-mist">Held from the Chapel, seeded to this book · choose a glyph below to release it</span>
+                                </span>
+                            </div>
+                        ` : ''}
                         ${this.config.focals.type === 'icon' ? `
                             <!-- The Chapel's Icon focal: named here so an active
                                  icon never looks like "no focal selected".
@@ -670,6 +691,16 @@ export class VisualInterlocutionPanel {
                                         ${g.dynamic ? '<span class="vi-glyph-badge">Dynamic</span>' : ''}
                                     </button>
                                 `).join('')}
+                            </div>
+                            <!-- The Rose's substyle: VITRUM (stained glass) or
+                                 VERBUM (the psalm-lettered ASCII field of the
+                                 original engine) -->
+                            <div class="vi-rose-substyle" ${this.config.focals.standardGlyph === 'rose' ? '' : 'hidden'}>
+                                <div class="vi-source-family-label">Rendering</div>
+                                <button type="button" class="vi-pill ${(this.config.focals.roseMode || 'vitrum') === 'vitrum' ? 'selected' : ''}"
+                                    data-rose-mode="vitrum" title="Stained glass — jewel panes in night masonry">Vitrum</button>
+                                <button type="button" class="vi-pill ${this.config.focals.roseMode === 'verbum' ? 'selected' : ''}"
+                                    data-rose-mode="verbum" title="The window written in letters — Dominus illuminatio mea">Verbum</button>
                             </div>
                         </div>
 
@@ -1655,6 +1686,22 @@ export class VisualInterlocutionPanel {
                     window.rise.audioEngine.playHiss();
                 }
                 this.config.focals.standardGlyph = btn.dataset.glyph;
+                // Choosing a glyph RELEASES a chapel-held focal (icon
+                // or per-book rose) — the banner's promise
+                this.config.focals.type = 'standard';
+                this.emitChange();
+                this.render();
+                this.attachEvents();
+            });
+        });
+
+        // The Rose's rendering substyle: VITRUM glass / VERBUM letters
+        this.container.querySelectorAll('[data-rose-mode]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (window.rise?.audioEngine) {
+                    window.rise.audioEngine.playHiss();
+                }
+                this.config.focals.roseMode = btn.dataset.roseMode;
                 this.emitChange();
                 this.render();
                 this.attachEvents();
