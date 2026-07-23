@@ -645,6 +645,15 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 200198970 },  // Verschillende schepen serie C
         { source: "rijks", id: 200198978 },  // Verschillende schepen serie E
         { source: "rijks", id: 200413509 },  // Het Schip van Staat, 1620
+        { source: "rijks", id: 200447566 },  // Die bewaffnete Neutralitaets Flotte der Nordischen M
+        { source: "rijks", id: 200447533 },  // Walvisvangst voor Groenland
+        { source: "rijks", id: 20027254 },  // Storm in the Strait of Dover
+        { source: "rijks", id: 20026301 },  // Ships in a Turbulent Sea
+        { source: "rijks", id: 20028207 },  // Ships off the Coast
+        { source: "rijks", id: 200444687 },  // Zeegezicht met schepen en boten in de wind
+        { source: "rijks", id: 20026920 },  // Dutch Ships Ramming Spanish Galleys off the English 
+        { source: "rijks", id: 20027312 },  // Episode from the Four Days' Naval Battle (11-14 June
+        { source: "rijks", id: 20038739 },  // Tegeltableau met schip, met op de vlaggen VOC A
     ],
     "animals": [
         { source: "rijks", id: 200105196 },  // Vogel bij een nest jongen
@@ -684,6 +693,33 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 200105161 },  // Kinder Gänse und Enten bij eenen Bauernhof
         { source: "rijks", id: 200475259 },  // Suricata suricatta (Meerkats)
         { source: "rijks", id: 200475260 },  // Suricata suricatta (Meerkats)
+        { source: "rijks", id: 200138949 },  // Orpheus Enchanting the Birds and Animals with his Ly
+        { source: "rijks", id: 200122502 },  // Rhinocerus
+        { source: "rijks", id: 200393895 },  // Onbekend dier
+        { source: "rijks", id: 200565589 },  // Elefante. / Elephant. / Eléphant. / Olifant
+        { source: "rijks", id: 200475464 },  // Syncerus caffer caffer (Cape buffalo)
+        { source: "rijks", id: 200475432 },  // Tragelaphus strepsiceros (Greater kudu)
+        { source: "rijks", id: 200475406 },  // lcelaphus buselaphus caama (Hartebeest)
+        { source: "rijks", id: 20027858 },  // Lioness Resting
+        { source: "rijks", id: 200118670 },  // Wit paard
+        { source: "rijks", id: 200565591 },  // Girafa. / Giraffe. / Girafe
+        { source: "rijks", id: 200565685 },  // Ours polaire / Polar bear / Eisbär / Orso bianco. / 
+        { source: "rijks", id: 200473964 },  // Japanse kraanvogel op tak van pijnboom
+        { source: "rijks", id: 200413519 },  // Brullende tijger
+        { source: "rijks", id: 200567271 },  // Amphibien
+        { source: "rijks", id: 200598325 },  // Series of Prints with Flowers and Animals in a Lands
+        { source: "rijks", id: 200598326 },  // Series of Prints with Flowers and Animals in a Lands
+        { source: "rijks", id: 200598327 },  // Series of Prints with Flowers and Animals in a Lands
+        { source: "rijks", id: 200598328 },  // Series of Prints with Flowers and Animals in a Lands
+        { source: "rijks", id: 200598329 },  // Series of Prints with Flowers and Animals in a Lands
+        { source: "rijks", id: 200598330 },  // Series of Prints with Flowers and Animals in a Lands
+        { source: "rijks", id: 200567226 },  // Dieren uit vreemde landen
+        { source: "rijks", id: 200138192 },  // Verschillende dieren
+        { source: "rijks", id: 200475518 },  // Equus zebra (Mountain zebra)
+        { source: "rijks", id: 200577452 },  // De zebra
+        { source: "rijks", id: 200527523 },  // Paard uit Denemarken (Danus)
+        { source: "rijks", id: 200691295 },  // Egyptian mongoose (Herpestes ichneumon)
+        { source: "rijks", id: 200567265 },  // Wilde dieren
     ],
     "knights": [
         { source: "rijks", id: 200105288 },  // De ridder en de hond
