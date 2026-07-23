@@ -209,9 +209,61 @@ export class MuseumProvider extends SourceProvider {
             fullUrl: `${this.iiifBase}/${item.image_id}/full/max/0/default.jpg`
         }));
 
+        // Cross-institution enrichment: pinned works from other museums
+        // join the same pool (a category is a reader intent, not an
+        // institution — museum-pins.js). NON-BLOCKING: the AIC results
+        // return immediately so the first flash never waits on a cold
+        // pin resolution; the pins land into the cached pool as they
+        // resolve (chunked), deepening the rotation mid-session. With
+        // the 30-day SourceCache, later sessions get the full pool at
+        // once.
         if (!this._categoryCache) this._categoryCache = new Map();
         this._categoryCache.set(cacheKey, results);
+        this._resolvePins(resolvedId, options).then(pinned => {
+            if (pinned.length === 0) return;
+            const pool = this._categoryCache.get(cacheKey);
+            if (Array.isArray(pool)) pool.push(...pinned);
+        }).catch(() => { /* the AIC pool stands alone */ });
         return results;
+    }
+
+    /**
+     * Resolve a category's cross-institution pins into the provider's
+     * image shape. Lazy imports keep the imagery service out of this
+     * module's static graph; failures degrade to the AIC-only pool.
+     */
+    async _resolvePins(categoryId, options = {}) {
+        try {
+            const { MUSEUM_CATEGORY_PINS } = await import('./museum-pins.js');
+            const pins = MUSEUM_CATEGORY_PINS[categoryId];
+            if (!Array.isArray(pins) || pins.length === 0) return [];
+            const { resolveCollection } = await import('../../content/atrium/imagery/service.js');
+            // Chunked: 95 rijks pins are ~285 Linked-Art requests on a
+            // cold cache — batches of 8 keep the museum's API unhammered.
+            // SourceCache (30 days) makes every later session instant.
+            const works = [];
+            for (let i = 0; i < pins.length; i += 8) {
+                if (options.signal?.aborted) break;
+                const batch = await resolveCollection(
+                    { works: pins.slice(i, i + 8) },
+                    { signal: options.signal }
+                );
+                works.push(...batch);
+            }
+            return works.map(work => ({
+                id: work.id,
+                title: work.title,
+                artist: work.artist,
+                date: work.date,
+                url: work.imageUrl,
+                fullUrl: work.fullImageUrl || work.imageUrl,
+                // Provenance shows on the work, where it is true
+                sourceName: work.sourceName
+            }));
+        } catch (e) {
+            console.warn('[Museum] Pin enrichment unavailable:', e);
+            return [];
+        }
     }
 
     async list(filter = {}) {
