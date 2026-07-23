@@ -440,6 +440,14 @@
   height: min(340px, 36vh);
 }
 
+/* VERBUM asks for more canvas than the glass: a letterfield's beauty
+   is its fine grain (the original ran ~80 rows of psalm letters), and
+   grain needs area. The engine marks its host when in verbum. */
+.focal-rose.rosa-mode-verbum {
+  width: min(460px, 52vh);
+  height: min(460px, 52vh);
+}
+
 .focal-rose .rosa-canvas {
   position: absolute;
   inset: 0;

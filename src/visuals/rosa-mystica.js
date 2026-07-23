@@ -337,12 +337,18 @@ export class RosaMystica {
 
   _applyMode() {
     if (!this.gl) return;
+    // Hosts style per mode (VERBUM claims a larger frame — grain
+    // needs area)
+    this.host.classList.toggle('rosa-mode-verbum', this.mode === 'verbum');
     if (this.mode === 'vitrum') {
       this.pre.classList.remove('on');
       this.canvas.style.display = 'block';
     } else {
       this.canvas.style.display = 'none';
       this.pre.classList.add('on');
+      // The host may have just resized under the mode class; render
+      // after layout settles so the grid measures the new box
+      requestAnimationFrame(() => this.renderOnce(0));
     }
     this._setLoop();
   }
@@ -392,8 +398,19 @@ export class RosaMystica {
   _drawVerbum() {
     const gl = this.gl;
     const box = this.pre.getBoundingClientRect();
-    const fs = 11, cw = fs * 0.60, lh = fs;
     const side = Math.min(box.width || 640, box.height || 640) * 0.97;
+    // GRAIN, not font size, is the constant. The original ran fs=11
+    // in a ~900px viewport — about 80 rows of letters, fine enough
+    // that whole psalm words trace the petals. The Chamber's focal is
+    // ~340px; holding fs=11 there yielded ~31 rows and a coarse,
+    // illegible field (the creator's report, with the original's two
+    // zooms side by side — the fine 50% grain judged best). So the
+    // ROW COUNT is the target and the font derives from the box:
+    // ~76 rows at any size, floored at 6px type for legibility on
+    // small hosts, letters at 0.60em advance as the original.
+    const TARGET_ROWS = 76;
+    const fs = Math.max(6, Math.floor(side / TARGET_ROWS));
+    const cw = fs * 0.60, lh = fs;
     const rows = Math.max(24, Math.floor(side / lh));
     const cols = Math.max(24, Math.floor(side / cw));
 
