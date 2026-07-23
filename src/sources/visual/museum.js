@@ -106,43 +106,53 @@ export const MUSEUM_CATEGORIES = {
         ],
         tags: ['human', 'presence', 'cinematic']
     },
-    // The 2026-07-23 quartet: reader intents anchored by Rijksmuseum
-    // pin harvests (museum-pins.js), with AIC contributing through its
-    // strongest verified facets. These pools embrace works on paper —
-    // prints, drawings, natural-history sheets, tile tableaux — so the
-    // type clause admits Painting AND Print rather than pinning one.
+    // STYLISTIC vs SUBJECT — the 2026-07-24 audit finding. Stylistic
+    // categories (movement, roster, period, place) ride the museum
+    // tradition's own taxonomy: AIC's metadata is authoritative and
+    // live search curates well (the full audit cut 0 of Old Masters,
+    // 0 of Ukiyo-e, 3 of Impressionism). SUBJECT categories ask what
+    // is DEPICTED, and a subject tag is register-blind: `soldiers`
+    // tags the Passion, `flower` tags the Annunciation lily, `bird`
+    // the descending dove — the audit cut 79% of Flowers' and 90% of
+    // Animals' live surfaces. Subject categories are therefore
+    // PINNED-ONLY (clauses: null): every work human-reviewed, the
+    // audit's AIC survivors landed as aic pins in museum-pins.js.
     'flowers': {
         name: 'Flowers',
-        clauses: [
-            { terms: { artwork_type_id: [TYPE_PAINTING, TYPE_PRINT] } },
-            { terms: { 'subject_titles.keyword': ['flower', 'flowers'] } }
-        ],
+        clauses: null, // subject category — pinned-only
         tags: ['nature', 'still-life', 'contemplative']
     },
     'ships': {
         name: 'Ships',
-        clauses: [
-            { terms: { artwork_type_id: [TYPE_PAINTING, TYPE_PRINT] } },
-            { terms: { 'subject_titles.keyword': ['boat', 'boats', 'ship', 'ships', 'sailboats'] } }
-        ],
+        clauses: null, // subject category — pinned-only
         tags: ['sea', 'voyage', 'cinematic']
     },
     'animals': {
         name: 'Animals',
-        clauses: [
-            { terms: { artwork_type_id: [TYPE_PAINTING, TYPE_PRINT] } },
-            { terms: { 'subject_titles.keyword': ['animal', 'animals', 'bird', 'birds'] } }
-        ],
+        clauses: null, // subject category — pinned-only
         tags: ['nature', 'creatures', 'contemplative']
     },
     'knights': {
         name: 'Knights',
-        clauses: [
-            { terms: { artwork_type_id: [TYPE_PAINTING, TYPE_PRINT] } },
-            { terms: { 'subject_titles.keyword': ['armor', 'knights', 'soldiers'] } }
-        ],
+        clauses: null, // subject category — pinned-only
         tags: ['heraldic', 'historical', 'cinematic']
     }
+};
+
+// Works excluded from live-search categories by the 2026-07-24 full
+// audit (the creator's hand on every card). Live results can't be
+// cut by omission — search re-serves them — so exclusions are baked
+// into the query as must_not id terms. Landscapes and Portraits stay
+// live: their bleed was denylist-sized (14 and 2 of 100), and the
+// subject-tag traps that sank the quartet (Wounded Lioness tagged
+// `landscapes`, allegory studies tagged `portraits`) are exactly
+// what these lists hold.
+const CATEGORY_EXCLUSIONS = {
+    'impressionism': [154121, 31816, 110798],
+    'postimpressionism': [191564],
+    'landscapes': [16571, 19339, 28849, 16488, 234781, 15716, 883, 884,
+        13487, 110242, 39560, 111649, 67362, 16496],
+    'portraits': [25865, 28860]
 };
 
 // Retired ids → their richest living neighbor, so saved configs keep
@@ -228,8 +238,22 @@ export class MuseumProvider extends SourceProvider {
         const cacheKey = `cat:${resolvedId}:${limit}`;
         if (this._categoryCache?.has(cacheKey)) return this._categoryCache.get(cacheKey);
 
+        if (!this._categoryCache) this._categoryCache = new Map();
+
+        // SUBJECT categories (clauses: null) are pinned-only: the pins
+        // ARE the pool, so they resolve BLOCKING — an empty first flash
+        // would otherwise greet every subject-category session. Warm
+        // sessions answer from the imagery cache in milliseconds.
+        if (!cat.clauses) {
+            const pool = await this._resolvePins(resolvedId, options);
+            this._categoryCache.set(cacheKey, pool);
+            return pool;
+        }
+
         // Structured bool query: public domain AND the category's
-        // clauses (artist roster / date range / subject / type)
+        // clauses (artist roster / date range / subject / type),
+        // minus the audit's excluded ids (must_not — search would
+        // otherwise re-serve every cut on the next fetch)
         const params = {
             'query[bool][must][0][term][is_public_domain]': 'true',
             limit: limit,
@@ -237,6 +261,10 @@ export class MuseumProvider extends SourceProvider {
         };
         cat.clauses.forEach((clause, i) =>
             flattenClause(clause, `query[bool][must][${i + 1}]`, params));
+        const excluded = CATEGORY_EXCLUSIONS[resolvedId];
+        if (excluded?.length) {
+            flattenClause({ terms: { id: excluded } }, 'query[bool][must_not][0]', params);
+        }
 
         const data = await this._fetch('/search', params, options);
 
@@ -252,13 +280,12 @@ export class MuseumProvider extends SourceProvider {
 
         // Cross-institution enrichment: pinned works from other museums
         // join the same pool (a category is a reader intent, not an
-        // institution — museum-pins.js). NON-BLOCKING: the AIC results
-        // return immediately so the first flash never waits on a cold
-        // pin resolution; the pins land into the cached pool as they
-        // resolve (chunked), deepening the rotation mid-session. With
-        // the 30-day SourceCache, later sessions get the full pool at
-        // once.
-        if (!this._categoryCache) this._categoryCache = new Map();
+        // institution — museum-pins.js). NON-BLOCKING for live-search
+        // categories: the AIC results return immediately so the first
+        // flash never waits on a cold pin resolution; the pins land
+        // into the cached pool as they resolve (chunked), deepening
+        // the rotation mid-session. Later sessions answer from the
+        // 7-day imagery cache at once.
         this._categoryCache.set(cacheKey, results);
         this._resolvePins(resolvedId, options).then(pinned => {
             if (pinned.length === 0) return;

@@ -574,6 +574,45 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 20027055 },  // Still Life with Fruit
         { source: "rijks", id: 20029078 },  // Still Life with Flowers and Fruit
         { source: "rijks", id: 20027537 },  // Still Life with Flowers on a Marble Tabletop
+        { source: "aic", id: 27992 },  // A Sunday on La Grande Jatte — 1884
+        { source: "aic", id: 16568 },  // Water Lilies
+        { source: "aic", id: 14655 },  // Two Sisters (On the Terrace)
+        { source: "aic", id: 144969 },  // The Interior of the Palm House on the Pfaueninsel Ne
+        { source: "aic", id: 100829 },  // Magnolias on Light Blue Velvet Cloth
+        { source: "aic", id: 109926 },  // Landscape: Window Overlooking the Woods
+        { source: "aic", id: 87045 },  // Still Life with Geranium
+        { source: "aic", id: 111610 },  // The Garden of Palazzo Contarini dal Zaffo
+        { source: "aic", id: 87088 },  // Water Lily Pond
+        { source: "aic", id: 138 },  // Flower Girl in Holland
+        { source: "aic", id: 14586 },  // The Poet's Garden
+        { source: "aic", id: 81539 },  // On the Bank of the Seine, Bennecourt
+        { source: "aic", id: 16554 },  // The Artist's House at Argenteuil
+        { source: "aic", id: 4783 },  // Poppy Field (Giverny)
+        { source: "aic", id: 66042 },  // Trompe-l'Oeil Still Life with a Flower Garland and a
+        { source: "aic", id: 97933 },  // Water Lily Pond
+        { source: "aic", id: 4887 },  // Irises
+        { source: "aic", id: 16617 },  // Chrysanthemums
+        { source: "aic", id: 18951 },  // Yellow Dancers (In the Wings)
+        { source: "aic", id: 14561 },  // The Vase of Tulips
+        { source: "aic", id: 81566 },  // The Sacred Grove, Beloved of the Arts and the Muses
+        { source: "aic", id: 14647 },  // Young Woman Sewing
+        { source: "aic", id: 153798 },  // Woman in a Garden
+        { source: "aic", id: 75507 },  // Still Life: Corner of a Table
+        { source: "aic", id: 94126 },  // Still Life with Monkey, Fruits, and Flowers
+        { source: "aic", id: 107938 },  // Fête champêtre (Pastoral Gathering)
+        { source: "aic", id: 111059 },  // Flowers and Fruit in a Porcelain Bowl
+        { source: "aic", id: 110982 },  // Still Life with Flowers
+        { source: "aic", id: 160229 },  // Pergola with Oranges
+        { source: "aic", id: 39479 },  // Springtime and Love
+        { source: "aic", id: 64029 },  // Bouquet of Flowers in an Earthenware Vase
+        { source: "aic", id: 94240 },  // Flowers: Poppies and Daisies
+        { source: "aic", id: 72180 },  // Still Life with Flowers
+        { source: "aic", id: 20534 },  // Roses in a Bowl
+        { source: "aic", id: 41375 },  // Flowers
+        { source: "aic", id: 8610 },  // Flowers in a Vase
+        { source: "aic", id: 11142 },  // Vase of Flowers
+        { source: "aic", id: 264716 },  // Bouquet of Flowers and Fruit with Blue Ribbon
+        { source: "aic", id: 265263 },  // Still Life with Grapes and Flowers
     ],
     "ships": [
         { source: "rijks", id: 200108354 },  // The Battle of the Downs against the Spanish Armada, 
@@ -654,6 +693,41 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 20026920 },  // Dutch Ships Ramming Spanish Galleys off the English 
         { source: "rijks", id: 20027312 },  // Episode from the Four Days' Naval Battle (11-14 June
         { source: "rijks", id: 20038739 },  // Tegeltableau met schip, met op de vlaggen VOC A
+        { source: "aic", id: 14598 },  // The Beach at Sainte-Adresse
+        { source: "aic", id: 25865 },  // The Herring Net
+        { source: "aic", id: 4796 },  // Fishing Boats with Hucksters Bargaining for Fish
+        { source: "aic", id: 76279 },  // Yang Pu Moving His Family
+        { source: "aic", id: 111610 },  // The Garden of Palazzo Contarini dal Zaffo
+        { source: "aic", id: 24645 },  // Under the Wave off Kanagawa (Kanagawa oki nami ura),
+        { source: "aic", id: 14620 },  // Cliff Walk at Pourville
+        { source: "aic", id: 109314 },  // Fishing in Spring, the Pont de Clichy (Asnières)
+        { source: "aic", id: 889 },  // Barks Fleeing Before the Storm
+        { source: "aic", id: 20535 },  // Étretat: The Beach and the Falaise d'Amont
+        { source: "aic", id: 59927 },  // Boats on the Beach at Étretat
+        { source: "aic", id: 14630 },  // Venice, Palazzo Dario
+        { source: "aic", id: 152747 },  // York Harbor, Coast of Maine
+        { source: "aic", id: 81535 },  // Sea View, Calm Weather (Vue de mer, temps calme)
+        { source: "aic", id: 495 },  // Coast Scene
+        { source: "aic", id: 81501 },  // Dante's Bark
+        { source: "aic", id: 30361 },  // Entrance to the Port of Honfleur
+        { source: "aic", id: 16343 },  // Fishing Boats in a Calm
+        { source: "aic", id: 16370 },  // Fishing Boats off an Estuary
+        { source: "aic", id: 58984 },  // Landscape along the Seine with the Institut de Franc
+        { source: "aic", id: 111632 },  // Douarnenez in Sunshine
+        { source: "aic", id: 57854 },  // Shipwreck
+        { source: "aic", id: 40507 },  // Christ in the Storm
+        { source: "aic", id: 111630 },  // The Church of Overschie
+        { source: "aic", id: 28853 },  // River Boat
+        { source: "aic", id: 47601 },  // The Battle of Pharsalus and the Death of Pompey
+        { source: "aic", id: 20597 },  // Capriccio: The Lagoon
+        { source: "aic", id: 57191 },  // On the Nile
+        { source: "aic", id: 100353 },  // Fête de Saint Marc, Venise
+        { source: "aic", id: 86297 },  // Two Boats in a Storm
+        { source: "aic", id: 20542 },  // View on the Seine, Paris
+        { source: "aic", id: 244013 },  // Shipwreck near a Rocky Coast
+        { source: "aic", id: 40021 },  // Perilous Journey
+        { source: "aic", id: 111728 },  // The Dutch Whaling Fleet
+        { source: "aic", id: 209910 },  // Beached Fishing Boats
     ],
     "animals": [
         { source: "rijks", id: 200105196 },  // Vogel bij een nest jongen
@@ -720,6 +794,16 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 200527523 },  // Paard uit Denemarken (Danus)
         { source: "rijks", id: 200691295 },  // Egyptian mongoose (Herpestes ichneumon)
         { source: "rijks", id: 200567265 },  // Wilde dieren
+        { source: "aic", id: 146953 },  // Two Cows and a Young Bull beside a Fence in a Meadow
+        { source: "aic", id: 210511 },  // A Monumental Portrait of a Monkey
+        { source: "aic", id: 898 },  // Unfinished Study of Sheep
+        { source: "aic", id: 883 },  // Wounded Lioness
+        { source: "aic", id: 884 },  // Tiger Resting
+        { source: "aic", id: 81505 },  // Lion Hunt
+        { source: "aic", id: 897 },  // Pasture in Normandy
+        { source: "aic", id: 882 },  // Study of Pigs
+        { source: "aic", id: 39542 },  // Cattle at Rest on a Hillside in the Alps
+        { source: "aic", id: 4776 },  // The Keeper of the Flock
     ],
     "knights": [
         { source: "rijks", id: 200105288 },  // De ridder en de hond
@@ -793,5 +877,55 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "rijks", id: 200302793 },  // Graaf Floris IV tijdens het toernooi in Corbie
         { source: "rijks", id: 200302797 },  // Graaf Floris IV tijdens het toernooi in Corbie
         { source: "rijks", id: 200309419 },  // Ridders met de familiewapens van Brandes en Hirschma
+        { source: "aic", id: 15468 },  // Saint George and the Dragon
+        { source: "aic", id: 105466 },  // The Battle between the Gods and the Giants
+        { source: "aic", id: 110663 },  // The Combat of the Giaour and Hassan
+        { source: "aic", id: 19336 },  // The Resurrection
+        { source: "aic", id: 149778 },  // Allegory of Peace and War
+        { source: "aic", id: 867 },  // The Guardhouse
+        { source: "aic", id: 15716 },  // Saint Christopher Meets Satan; Saint Christopher bef
+        { source: "aic", id: 885 },  // A Mounted Officer
+        { source: "aic", id: 67362 },  // Saint Martin and the Beggar
+        { source: "aic", id: 152851 },  // Sketch for The Revolt of Cairo
+        { source: "aic", id: 16495 },  // Rinaldo and the Magus of Ascalon
+        { source: "aic", id: 16492 },  // Armida Abandoned by Rinaldo
+        { source: "aic", id: 16485 },  // Rinaldo and Armida in Her Garden
+        { source: "aic", id: 59956 },  // The Wedding of Peleus and Thetis
+        { source: "aic", id: 100060 },  // Alexander at the Tomb of Cyrus the Great
+        { source: "aic", id: 93394 },  // Battle Scene
+        { source: "aic", id: 111618 },  // The Battle of Zama
+        { source: "aic", id: 4089 },  // Venus and Mars with Cupid and the Three Graces in a 
+        { source: "aic", id: 12891 },  // Theodosius Repulsed from the Church by Saint Ambrose
+        { source: "aic", id: 16166 },  // Salome Asking Herod for the Head of Saint John the B
+        { source: "aic", id: 33249 },  // The Continence of Scipio
+        { source: "aic", id: 110527 },  // Landscape with Tournament and Hunters
+        { source: "aic", id: 111609 },  // Emperor Heraclius Denied Entry into Jerusalem
+        { source: "aic", id: 16246 },  // The Continence of Scipio
+        { source: "aic", id: 111418 },  // Panthea, Cyrus, and Araspas
+        { source: "aic", id: 44829 },  // Polycrates' Crucifixion
+        { source: "aic", id: 58702 },  // The Dream of Paris
+        { source: "aic", id: 44826 },  // Polycrates and the Fisherman
+        { source: "aic", id: 31173 },  // Resurrection of Christ
+        { source: "aic", id: 59989 },  // Sketch for "Oath on the Rütli" (recto), Female Figur
+        { source: "aic", id: 28173 },  // The Resurrection
+        { source: "aic", id: 111608 },  // Emperor Heraclius Slays the King of Persia
+        { source: "aic", id: 15406 },  // Don Quixote and the Windmills
+        { source: "aic", id: 28143 },  // Architectural Landscape with Belisarius Receiving Al
+        { source: "aic", id: 47601 },  // The Battle of Pharsalus and the Death of Pompey
+        { source: "aic", id: 60867 },  // General Juan Prim (1814-1870)
+        { source: "aic", id: 57652 },  // Queen Philippa at the Battle of Neville's Cross
+        { source: "aic", id: 88404 },  // Warrior Saint
+        { source: "aic", id: 36495 },  // Liberation of Saint Peter from Prison
+        { source: "aic", id: 13208 },  // Saracens and Crusaders
+        { source: "aic", id: 15260 },  // The Judgement of Zaleucus
+        { source: "aic", id: 93737 },  // Landscape with Figures
+        { source: "aic", id: 111660 },  // Saint Sebastian
+        { source: "aic", id: 48776 },  // Man in Armour
+        { source: "aic", id: 100356 },  // The Apotheosis of the Hero
+        { source: "aic", id: 39528 },  // The Out-Post
+        { source: "aic", id: 14565 },  // Don Quixote in the Mountains
+        { source: "aic", id: 46076 },  // Portrait of a Man
+        { source: "aic", id: 100357 },  // David Slaying Goliath
+        { source: "aic", id: 111726 },  // Mon Ancien Regiment
     ]
 });
