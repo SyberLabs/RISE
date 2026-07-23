@@ -37,11 +37,28 @@ import {
 // decoded pixels, not merely compressed network bytes. One image per selected
 // category gates session readiness; a slow single-concurrency task grows the
 // rotation afterward without ever entering the flash hot path.
+//
+// The retained set is a SLIDING WINDOW over the provider's full pool,
+// not a frozen carousel: after warm-up, a gentle rolling-refresh task
+// keeps replacing the least-recently-flashed asset with a fresh draw,
+// so a 248-work provider pool actually reaches the screen. (Measured
+// before the window, a 213s session showed 12 unique works of 248 —
+// 4.8% coverage, 48% repeat flashes, and zero of the enrichment pins,
+// because the 12 slots filled from fast AIC draws before the first
+// pin batch landed and then never turned over.)
 const INITIAL_POOL_TARGET = 1;
 const BACKGROUND_CATEGORY_TARGET = 6;
-const MAX_CATEGORY_TARGET = 12;
-const GLOBAL_ASSET_LIMIT = 18;
+const MAX_CATEGORY_TARGET = 20;
+// Decoded 843px JPEGs run ~1-3MB; 30 ≈ 60-90MB on capable devices.
+// Devices reporting constrained memory keep the old ceiling.
+const GLOBAL_ASSET_LIMIT = (typeof navigator !== 'undefined'
+    && Number(navigator.deviceMemory) > 0
+    && Number(navigator.deviceMemory) < 4) ? 18 : 30;
 const RECENT_EXTERNAL_WINDOW = 6;
+// Rolling refresh: one replacement draw at most every this-many ms,
+// per category, only while a session is actively flashing. Slow by
+// design — it must never compete with the flash hot path for decode.
+const ROLLING_REFRESH_INTERVAL_MS = 9000;
 const IMAGE_LOAD_TIMEOUT_MS = 8000;
 const BACKGROUND_RETRY_BASE_MS = 1000;
 const BACKGROUND_RETRY_MAX_MS = 30000;
@@ -1167,6 +1184,62 @@ export class VisualCortex {
     }
 
     /**
+     * Rolling refresh: once every pool is warm, keep the retained set
+     * turning over so it slides across the provider's full pool instead
+     * of freezing into a carousel. One replacement draw per interval,
+     * fired from the flash path but running entirely off it (async,
+     * single-flight, spaced): retain a fresh asset, then evict the
+     * least-recently-flashed one from the same category so the pool
+     * size holds and decoded-pixel memory never grows.
+     */
+    _scheduleRollingRefresh() {
+        const now = Date.now();
+        if (this._rollingRefreshBusy) return;
+        if (now - (this._lastRollingRefreshAt || 0) < ROLLING_REFRESH_INTERVAL_MS) return;
+        const categories = this._activePoolCategories();
+        if (categories.length === 0) return;
+
+        this._rollingRefreshBusy = true;
+        this._lastRollingRefreshAt = now;
+        const version = this._configVersion;
+        const categoryId = categories[
+            (this._rollingRefreshCursor = ((this._rollingRefreshCursor || 0) + 1) % categories.length)
+        ];
+
+        (async () => {
+            try {
+                const pool = this._poolFor(categoryId);
+                const before = pool.images.length;
+                const added = await this._loadIntoPool(categoryId, { version });
+                if (!added || version !== this._configVersion) return;
+                // A genuinely new retain pushes the pool over its
+                // steady-state size: evict this category's least-
+                // recently-flashed asset (never the newcomer) so the
+                // window slides instead of growing.
+                if (pool.images.length > before && pool.images.length > INITIAL_POOL_TARGET) {
+                    let oldestIndex = -1;
+                    let oldestTime = Infinity;
+                    for (let i = 0; i < pool.images.length; i++) {
+                        const asset = pool.images[i];
+                        if (asset === added) continue;
+                        const t = asset.lastUsedAt || asset.loadedAt || 0;
+                        if (t < oldestTime) { oldestTime = t; oldestIndex = i; }
+                    }
+                    if (oldestIndex >= 0) {
+                        const [evicted] = pool.images.splice(oldestIndex, 1);
+                        this._disposeAsset(evicted);
+                        if (pool.cursor >= pool.images.length) pool.cursor = 0;
+                    }
+                }
+            } catch (e) {
+                // refresh is best-effort; the current rotation stands
+            } finally {
+                this._rollingRefreshBusy = false;
+            }
+        })();
+    }
+
+    /**
      * Cache-only flash selection. This method deliberately contains no await
      * and no provider access: a 33-200ms exposure can never stall the reading
      * clock on network or decode work.
@@ -1186,6 +1259,7 @@ export class VisualCortex {
         const needsWarmth = this._activePoolCategories()
             .some(categoryId => this._poolFor(categoryId).images.length < target);
         if (needsWarmth) this._scheduleBackgroundWarm(false);
+        else this._scheduleRollingRefresh();
         if (stockedPools.length === 0) return null;
 
         const selected = this._externalPoolBag.draw(

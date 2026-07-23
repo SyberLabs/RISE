@@ -789,7 +789,8 @@ describe('VisualCortex external asset hydration', () => {
         await cortex.preload(12);
 
         expect(preload).toHaveBeenCalledWith(1);
-        expect(cortex._sessionAssetTarget).toBe(12);
+        // 12 flashes × 1.25 headroom = 15, inside the raised MAX_CATEGORY_TARGET (20)
+        expect(cortex._sessionAssetTarget).toBe(15);
     });
 
     it('shares one bounded offline pass across many joined callers', async () => {
@@ -847,7 +848,7 @@ describe('VisualCortex external asset hydration', () => {
         const cortex = new VisualCortex();
         cortex.config.activeTypes = ['aic-oldmasters', 'aic-landscapes'];
         const assets = [];
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 40; i++) {
             const category = i % 2 ? 'aic-oldmasters' : 'aic-landscapes';
             const asset = {
                 img: { src: `${i}.jpg` }, loadedAt: i, lastUsedAt: i
@@ -858,10 +859,38 @@ describe('VisualCortex external asset hydration', () => {
 
         const total = [...cortex._assetPools.values()]
             .reduce((count, pool) => count + pool.images.length, 0);
-        expect(total).toBe(18);
+        // GLOBAL_ASSET_LIMIT is 30 in the sliding-window era: 40 retains
+        // leave 30 held and the 10 oldest disposed
+        expect(total).toBe(30);
         expect(cortex._poolFor('aic-oldmasters').images.length).toBeGreaterThan(0);
         expect(cortex._poolFor('aic-landscapes').images.length).toBeGreaterThan(0);
-        expect(assets.filter(asset => asset.img.src === '')).toHaveLength(12);
+        expect(assets.filter(asset => asset.img.src === '')).toHaveLength(10);
+    });
+
+    it('rolling refresh slides the window: retains a fresh asset and evicts the least-recently-flashed', async () => {
+        const cortex = new VisualCortex();
+        cortex.config.activeTypes = ['aic-oldmasters'];
+        // a warm pool of 3, with distinct recency
+        const pool = cortex._poolFor('aic-oldmasters');
+        for (let i = 0; i < 3; i++) {
+            pool.images.push({ img: { src: `old-${i}.jpg` }, loadedAt: i, lastUsedAt: i });
+        }
+        const fresh = { img: { src: 'fresh.jpg' }, loadedAt: 100, lastUsedAt: 100 };
+        vi.spyOn(cortex, '_loadIntoPool').mockImplementation(async () => {
+            pool.images.push(fresh);
+            return fresh;
+        });
+
+        cortex._scheduleRollingRefresh();
+        await new Promise(resolve => setTimeout(resolve, 10));
+
+        // size holds at 3: the newcomer is in, old-0 (least recent) is out
+        expect(pool.images.length).toBe(3);
+        expect(pool.images).toContain(fresh);
+        expect(pool.images.find(a => a.img.src === 'old-0.jpg')).toBeUndefined();
+        // interval gate: an immediate second call is a no-op
+        cortex._scheduleRollingRefresh();
+        expect(cortex._loadIntoPool).toHaveBeenCalledTimes(1);
     });
 
     it('owns exactly one background retry chain and suspends it outside a session', async () => {
