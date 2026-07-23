@@ -61,7 +61,7 @@ export class Chamber {
     }
 
     // Dynamic speed tracking
-    this.baseWpm = Number.isFinite(Number(this.session?.wpm)) ? Number(this.session.wpm) : 320;
+    this.baseWpm = Number.isFinite(Number(this.session?.wpm)) ? Number(this.session.wpm) : 200;
     this.currentWpm = this.baseWpm;
     this.speedHudTimeout = null;
 

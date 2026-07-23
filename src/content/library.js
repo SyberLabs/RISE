@@ -63,7 +63,7 @@ function registerStarterTexts() {
             name: `Segment ${idx + 1}`,
             description: verseText.substring(0, 60) + (verseText.length > 60 ? '...' : ''),
             content: verseText,
-            wpm: seq.wpm || 320,
+            wpm: seq.wpm || 200,
             curve: seq.curve || 'flat'
         }));
 
@@ -76,7 +76,7 @@ function registerStarterTexts() {
             description: seq.description,
             chapterCount: verses.length,
             defaultCurve: seq.curve || 'flat',
-            defaultWpm: seq.wpm || 320,
+            defaultWpm: seq.wpm || 200,
             tags: ['starter', seq.category],
             verses: structuredVerses,
             provider: 'starters',

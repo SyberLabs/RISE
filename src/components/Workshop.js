@@ -28,7 +28,7 @@ function createDefaultSessionData() {
     title: '',
     intent: 'custom',
     sources: [],
-    wpm: 320,
+    wpm: 200,
     curve: 'flat',
     chunkMode: 'word',
     displayMode: 'focal',

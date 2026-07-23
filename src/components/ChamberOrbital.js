@@ -112,7 +112,7 @@ function createDefaultConfig() {
     selectedSwellId: null,
 
     // Temporal orbit
-    wpm: 320,
+    wpm: 200,
     curve: 'flat',
     chunkMode: 'word'
   };

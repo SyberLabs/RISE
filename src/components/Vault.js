@@ -94,7 +94,7 @@ const ARCHETYPES = [
     description: 'Transmutation of base experience into golden insight. Hermetic principles encoded in biological symmetries and sacred geometries.',
     textSeed: 'The Hermetica / Esoteric Texts',
     config: {
-      wpm: 320,
+      wpm: 200,
       curve: 'ascent',
       audioPreset: 'focus',
       visualConfig: {
@@ -510,7 +510,7 @@ export class Vault {
           words = bp.sources.reduce((acc, src) => acc + (src.words || 0), 0);
        }
 
-       const duration = Math.floor((words / (bp.wpm || 320)) * 60 * 1000);
+       const duration = Math.floor((words / (bp.wpm || 200)) * 60 * 1000);
 
        return `
         <div class="sequence-card card card-interactive" data-id="${bp.id}" style="position: relative;">
@@ -522,7 +522,7 @@ export class Vault {
           <div class="sequence-meta text-fog font-mono" style="margin-top: 1rem; align-items: center; display: flex; gap: 0.5rem;">
             <span>${this.formatDuration(duration)}</span>
             <span class="meta-separator">·</span>
-            <span>${bp.wpm || 320} WPM</span>
+            <span>${bp.wpm || 200} WPM</span>
             <span class="meta-separator">·</span>
             <span style="text-transform: capitalize;">${bp.curve || 'Flat'}</span>
           </div>
