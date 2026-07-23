@@ -123,6 +123,13 @@ export class Portal {
           <span class="chapel-lamp-name" aria-hidden="true">The Chapel</span>
         </button>
 
+        <!-- The Curia's door — bottom-left, quieter still than the lamp.
+             The room where the visual canon is governed; a curator's
+             entrance, harmless to stumble into. -->
+        <button class="portal-curia-door" data-nav="curia" title="The Curia" aria-label="The Curia">
+          <span aria-hidden="true">▣</span>
+        </button>
+
         <!-- The Sigil - Center of attention -->
         <div class="portal-sigil-container" style="opacity: 0;">
           <button

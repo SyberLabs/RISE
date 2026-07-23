@@ -139,21 +139,8 @@ export const MUSEUM_CATEGORIES = {
     }
 };
 
-// Works excluded from live-search categories by the 2026-07-24 full
-// audit (the creator's hand on every card). Live results can't be
-// cut by omission — search re-serves them — so exclusions are baked
-// into the query as must_not id terms. Landscapes and Portraits stay
-// live: their bleed was denylist-sized (14 and 2 of 100), and the
-// subject-tag traps that sank the quartet (Wounded Lioness tagged
-// `landscapes`, allegory studies tagged `portraits`) are exactly
-// what these lists hold.
-const CATEGORY_EXCLUSIONS = {
-    'impressionism': [154121, 31816, 110798],
-    'postimpressionism': [191564],
-    'landscapes': [16571, 19339, 28849, 16488, 234781, 15716, 883, 884,
-        13487, 110242, 39560, 111649, 67362, 16496],
-    'portraits': [25865, 28860]
-};
+// Exclusions live beside the pins in museum-pins.js — one machine-
+// writable curation file the Curia (and its dev-write endpoint) owns.
 
 // Retired ids → their richest living neighbor, so saved configs keep
 // receiving art instead of a dead fallback. (Surrealism: the movement
@@ -261,7 +248,8 @@ export class MuseumProvider extends SourceProvider {
         };
         cat.clauses.forEach((clause, i) =>
             flattenClause(clause, `query[bool][must][${i + 1}]`, params));
-        const excluded = CATEGORY_EXCLUSIONS[resolvedId];
+        const { CATEGORY_EXCLUSIONS } = await import('./museum-pins.js');
+        const excluded = CATEGORY_EXCLUSIONS?.[resolvedId];
         if (excluded?.length) {
             flattenClause({ terms: { id: excluded } }, 'query[bool][must_not][0]', params);
         }

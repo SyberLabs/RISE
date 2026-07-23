@@ -1,6 +1,11 @@
 import { defineConfig } from 'vite';
+import { curiaPlugin } from './scripts/curia-plugin.js';
 
 export default defineConfig({
+  // Curia dev-write: apply:'serve' means the endpoint exists only on
+  // the dev server; production builds carry no write path.
+  plugins: [curiaPlugin()],
+
   // Note: We use a custom debug.js utility instead of dropping console statements.
   // This allows: debug logging in dev, optional debug in prod via localStorage,
   // and always-on error logging. Run RISE.enableDebug() in prod console to enable.

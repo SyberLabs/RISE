@@ -42,6 +42,7 @@ import './components/Sol.css';
 import './components/Chapel.css';
 import './components/Rosarium.css';
 import './components/Via.css';
+import './components/Curia.css';
 import './premium-additions.css';
 
 class App {
@@ -709,6 +710,16 @@ class App {
                     setId: data?.setId,
                     iconId: data?.iconId
                 });
+            }
+        });
+
+        // The Curia — the visual canon's curation surface, entered
+        // through the portal's quiet bottom-left door
+        this.router.registerView('curia', {
+            container: document.getElementById('view-curia'),
+            init: async (container) => {
+                const { Curia } = await import('./components/Curia.js');
+                return new Curia(container, { onNavigate: this.handleNavigate });
             }
         });
 
