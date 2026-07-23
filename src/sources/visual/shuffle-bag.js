@@ -40,6 +40,25 @@ export class ShuffleBag {
 
         const signature = unique.map(item => this._identity(item)).join('\u001f');
         let state = this._states.get(key);
+
+        // Pools can GROW mid-cycle (non-blocking pin enrichment appends
+        // late-resolving works). A pure superset must not reset the deck —
+        // a reset re-entered already-shown works, and during a chunked
+        // enrichment it reshuffled on every batch so the cycle never
+        // completed. Instead, shuffle only the newcomers into what
+        // remains; the drawn history stands. Any other change (removal,
+        // replacement) is a genuinely different pool and resets below.
+        if (state?.ids && state.signature !== signature && state.remaining.length > 0) {
+            const additions = unique.filter(item => !state.ids.has(this._identity(item)));
+            if (additions.length > 0
+                && additions.length === unique.length - state.ids.size) {
+                state.remaining.push(...additions);
+                this._shuffle(state.remaining);
+                for (const item of additions) state.ids.add(this._identity(item));
+                state.signature = signature;
+            }
+        }
+
         if (!state || state.signature !== signature || state.remaining.length === 0) {
             const lastId = state?.lastId ?? null;
             const remaining = this._shuffle([...unique]);
@@ -55,7 +74,12 @@ export class ShuffleBag {
                 ];
             }
 
-            state = { signature, remaining, lastId };
+            state = {
+                signature,
+                remaining,
+                lastId,
+                ids: new Set(unique.map(item => this._identity(item)))
+            };
             this._states.set(key, state);
         }
 
