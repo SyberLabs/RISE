@@ -418,9 +418,14 @@ test('12 · Gallery (Continuous Field) mounts behind the reading and reveals ima
     // A work reveals: at least one layer reaches full opacity once the
     // pool warms. This is the whole point — the field shows imagery, and
     // it does so by fading a layer IN (never a fade-through-black cut).
+    // Each layer is a div holding a backdrop + artwork <img> (the adaptive
+    // sizing refactor): the src lives on the artwork, opacity on the layer.
     await expect.poll(async () => page.evaluate(() => {
         const layers = [...document.querySelectorAll('#chamber-continuous-field .continuous-field-layer')];
-        return layers.some(l => Number(l.style.opacity) === 1 && l.getAttribute('src'));
+        return layers.some(l => {
+            const art = l.querySelector('.continuous-field-artwork');
+            return Number(l.style.opacity) === 1 && art && art.getAttribute('src');
+        });
     }), { timeout: 30_000 }).toBe(true);
 });
 

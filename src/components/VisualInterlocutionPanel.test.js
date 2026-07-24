@@ -714,24 +714,48 @@ describe('Stream-maintaining Rhythmic and Atrium collections', () => {
         container.remove();
     });
 
-    it('Gallery selects continuous, reveals the glass toggle, and leaves duration untouched', () => {
+    it('Gallery replaces flash controls with independent cadence and restores them on return', () => {
         let emitted = null;
         const { panel, container } = makePanel({
             visualMode: 'interlocution',
-            interlocution: { sourceFamily: 'procedural', procedural: ['klee'], sourced: [] },
+            interlocution: {
+                sourceFamily: 'procedural',
+                procedural: ['klee'],
+                sourced: [],
+                frequency: 0.37,
+                duration: 700
+            },
             onChange: config => { emitted = config; }
         });
-        // full-frame default duration is 200ms
-        expect(panel.getConfig().interlocution.duration).toBe(200);
+        expect(container.querySelector('[data-slider="frequency"]')).not.toBeNull();
+        expect(container.querySelector('[data-slider="duration"]')).not.toBeNull();
 
         container.querySelector('[data-presentation="continuous"]').click();
         expect(emitted.interlocution.presentation).toBe('continuous');
-        // Gallery has no flash rate, so presence duration is untouched
-        expect(emitted.interlocution.duration).toBe(200);
+        expect(container.querySelector('[data-slider="frequency"]')).toBeNull();
+        expect(container.querySelector('[data-slider="duration"]')).toBeNull();
+
+        const cadence = container.querySelector('[data-slider="gallery-cadence"]');
+        expect(cadence).not.toBeNull();
+        expect(cadence.value).toBe('50');
+        cadence.value = '100';
+        cadence.dispatchEvent(new Event('input', { bubbles: true }));
+        expect(emitted.interlocution.galleryCadence).toBe(1);
+        expect(container.querySelector('[data-value="gallery-cadence"]').textContent).toBe('≈ 8 s');
+
+        // Gallery never rewrites the separate flash economy.
+        expect(emitted.interlocution.frequency).toBe(0.37);
+        expect(emitted.interlocution.duration).toBe(700);
         // The glass tile toggle is offered (the field needs legible text)
         const glass = container.querySelector('[data-presentation-glass]');
         expect(glass).not.toBeNull();
         expect(glass.checked).toBe(true);
+
+        container.querySelector('[data-presentation="full-frame"]').click();
+        expect(container.querySelector('[data-slider="gallery-cadence"]')).toBeNull();
+        expect(container.querySelector('[data-slider="frequency"]').value).toBe('37');
+        expect(panel.getConfig().interlocution.duration).toBe(700);
+        expect(panel.getConfig().interlocution.galleryCadence).toBe(1);
 
         panel.destroy();
         container.remove();

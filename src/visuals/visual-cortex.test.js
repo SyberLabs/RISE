@@ -295,6 +295,33 @@ describe('VisualCortex Klee delegation', () => {
         expect(dispose).toHaveBeenCalledWith(staleAsset);
     });
 
+    it('installs every Rhythmic reading as a fresh generation without discarding a reusable pool', () => {
+        const cortex = new VisualCortex();
+        cortex.config.enabled = false;
+        cortex.config.activeTypes = ['aic-oldmasters'];
+        cortex.config.sourced = ['aic-oldmasters'];
+        cortex.config.customVisuals = [{ id: 'prior-reading' }];
+        const retainedAsset = { img: { src: 'old-master.jpg' } };
+        cortex._poolFor('aic-oldmasters').images.push(retainedAsset);
+        const rotate = vi.spyOn(cortex, '_rotateAssetGeneration');
+        const dispose = vi.spyOn(cortex, '_disposeAsset');
+
+        cortex.beginSessionVisualIdentity({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-oldmasters'],
+            sourced: ['aic-oldmasters']
+        });
+
+        // Equal category arrays must not suppress a new reading boundary.
+        expect(rotate).toHaveBeenCalledOnce();
+        expect(cortex.config.activeTypes).toEqual(['aic-oldmasters']);
+        expect(cortex.config.customVisuals).toEqual([]);
+        // A legitimate return to the same reading reuses decoded works.
+        expect(cortex._poolFor('aic-oldmasters').images).toContain(retainedAsset);
+        expect(dispose).not.toHaveBeenCalled();
+    });
+
     it('normalizes render language independently of the active source set', () => {
         const cortex = new VisualCortex();
         cortex.updateConfig({ renderLanguage: 'ascii', activeTypes: ['klee'] });
@@ -1420,6 +1447,54 @@ describe('Continuous Field (Gallery) wiring', () => {
             activeTypes: ['aic-oldmasters', 'chapel-gospel-before-pilate'] });
         const urls = cortex._continuousPool().map(w => w.url).sort();
         expect(urls).toEqual(['a.jpg', 'b.jpg', 'p.jpg']);
+        cortex.destroy();
+    });
+
+    it('maps Gallery cadence into dwell and dissolve, including live changes', () => {
+        const { cortex } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-oldmasters', ['a.jpg', 'b.jpg']);
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-oldmasters'],
+            galleryCadence: 1
+        });
+        expect(cortex._continuousField.dwellMs).toBe(8000);
+        expect(cortex._continuousField.crossfadeMs).toBe(1440);
+
+        cortex.updateConfig({ galleryCadence: 0 });
+        expect(cortex._continuousField.dwellMs).toBe(30000);
+        expect(cortex._continuousField.crossfadeMs).toBe(2500);
+        cortex.destroy();
+    });
+
+    it('mounts the presenter in the second Chamber host on later Gallery readings', () => {
+        const { cortex, host: firstHost } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-oldmasters', ['first.jpg']);
+        cortex.beginSessionVisualIdentity({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-oldmasters']
+        });
+        expect(firstHost.querySelectorAll('.continuous-field-layer')).toHaveLength(2);
+
+        cortex.updateConfig({ enabled: false });
+        cortex.setContinuousFieldHost(null);
+        expect(firstHost.querySelectorAll('.continuous-field-layer')).toHaveLength(0);
+
+        const secondHost = document.createElement('div');
+        document.body.appendChild(secondHost);
+        seedPool(cortex, 'aic-knights', ['second.jpg']);
+        cortex.beginSessionVisualIdentity({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-knights']
+        });
+        cortex.setContinuousFieldHost(secondHost);
+
+        expect(secondHost.querySelectorAll('.continuous-field-layer')).toHaveLength(2);
+        expect(cortex._continuousField?.host).toBe(secondHost);
+        expect(firstHost.querySelectorAll('.continuous-field-layer')).toHaveLength(0);
         cortex.destroy();
     });
 

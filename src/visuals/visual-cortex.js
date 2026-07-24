@@ -29,7 +29,10 @@ import { ShuffleBag } from '../sources/visual/shuffle-bag.js';
 import { ContinuousField } from './continuous-field.js';
 import { hasVisualInterlocutionConsent, VisualFlashGate } from '../core/visual-safety.js';
 import {
+    GALLERY_CADENCE_DEFAULT,
     VISUAL_PRESENCE_DEFAULT_MS,
+    galleryCadenceTimings,
+    normalizeGalleryCadence,
     normalizeVisualPresence,
     visualPresenceTransition
 } from '../core/visual-presence.js';
@@ -150,6 +153,7 @@ export class VisualCortex {
             enabled: false,
             frequency: 0.3, // 30%
             duration: VISUAL_PRESENCE_DEFAULT_MS,
+            galleryCadence: GALLERY_CADENCE_DEFAULT,
             renderLanguage: 'native', // 'native' | 'ascii'
             activeTypes: ['klee', 'turrell'],
             kleePreset: 'random', // 'random' | 'architectural' | 'chaotic' | 'harmonic' | 'gravitational' | 'twittering'
@@ -407,6 +411,28 @@ export class VisualCortex {
         });
     }
 
+    /**
+     * Install one Rhythmic reading's complete runtime identity.
+     *
+     * The cortex is a singleton, while readings are not. A session boundary
+     * therefore rotates generation ownership even when the next reading uses
+     * an equal category array. The rotation retains pools shared with the new
+     * identity, so returning to the same reading remains warm.
+     */
+    beginSessionVisualIdentity(config = {}) {
+        this.updateConfig({
+            enabled: false,
+            activeTypes: [],
+            sourced: [],
+            customVisuals: [],
+            globalVisuals: [],
+            semanticSignals: null,
+            blueprintMechanism: null,
+            freedomRelation: null,
+            ...config
+        }, { sessionBoundary: true });
+    }
+
     async _prewarmProviderPools(collectionIds) {
         for (const id of collectionIds) {
             try {
@@ -466,6 +492,15 @@ export class VisualCortex {
      */
     setContinuousFieldHost(el) {
         if (this._continuousFieldHost === el) return;
+        // A ContinuousField owns the DOM node supplied to its constructor.
+        // Chamber hosts are session-scoped and are removed on exit, so the
+        // presenter itself must be discarded when ownership moves. Keeping a
+        // stopped presenter here made the second Gallery session recreate its
+        // layers inside the first Chamber's detached host.
+        if (this._continuousField) {
+            this._continuousField.stop();
+            this._continuousField = null;
+        }
         this._continuousFieldHost = el || null;
         this._syncContinuousField();
     }
@@ -533,13 +568,16 @@ export class VisualCortex {
 
     _ensureContinuousField() {
         if (this._continuousField || !this._continuousFieldHost) return;
+        const timings = galleryCadenceTimings(this.config.galleryCadence);
         this._continuousField = new ContinuousField(this._continuousFieldHost, {
             getPool: () => this._continuousPool(),
             poolKey: () => this._continuousPoolKey(),
             // The presenter's own decode-before-reveal (a detached Image
             // decode) governs; the cortex's warm pool already holds decoded
             // works, so this second decode is near-instant and cached.
-            reducedMotion: this._continuousReducedMotion()
+            reducedMotion: this._continuousReducedMotion(),
+            dwellMs: timings.dwellMs,
+            crossfadeMs: timings.crossfadeMs
         });
     }
 
@@ -589,7 +627,10 @@ export class VisualCortex {
         }
     }
 
-    updateConfig(newConfig, { preservePresentation = false } = {}) {
+    updateConfig(newConfig, {
+        preservePresentation = false,
+        sessionBoundary = false
+    } = {}) {
         const nextConfig = { ...newConfig };
         if (!preservePresentation && Object.keys(nextConfig).length > 0) {
             if (this._activePresentation) {
@@ -603,6 +644,9 @@ export class VisualCortex {
         }
         if ('duration' in nextConfig) {
             nextConfig.duration = normalizeVisualPresence(nextConfig.duration);
+        }
+        if ('galleryCadence' in nextConfig) {
+            nextConfig.galleryCadence = normalizeGalleryCadence(nextConfig.galleryCadence);
         }
         if ('renderLanguage' in nextConfig) {
             nextConfig.renderLanguage = nextConfig.renderLanguage === 'ascii' ? 'ascii' : 'native';
@@ -634,8 +678,10 @@ export class VisualCortex {
             const changed = oldExternal.length !== newExternal.length || 
                           !oldExternal.every(t => newExternal.includes(t));
             
-            if (changed) {
-                console.log('[Visual Cortex] Category change detected, rotating asset generation.');
+            if (changed || sessionBoundary) {
+                console.log(changed
+                    ? '[Visual Cortex] Category change detected, rotating asset generation.'
+                    : '[Visual Cortex] New reading detected, rotating asset generation.');
                 this._rotateAssetGeneration(nextConfig.activeTypes);
                 assetGenerationRotated = true;
             }
@@ -651,6 +697,11 @@ export class VisualCortex {
         const prevPresentation = this.config.presentation;
         const prevPoolKey = this._continuousPoolKey();
         this.config = { ...this.config, ...nextConfig };
+        if ('galleryCadence' in nextConfig && this._continuousField) {
+            this._continuousField.setCadence(
+                galleryCadenceTimings(this.config.galleryCadence)
+            );
+        }
 
         // Reconcile the Continuous Field. A presentation or enabled change
         // starts/stops it; a category change (a pericope boundary reached

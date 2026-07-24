@@ -11,6 +11,7 @@ import { prepareChunkText } from './chunk-profiles.js';
 import { PacingEngine, StateCurve } from './pacing.js';
 import { normalizeGlobalPoolSelection, normalizeVisualSelection } from './visual-selection.js';
 import {
+    normalizeGalleryCadence,
     normalizeVisualPresence,
     normalizePresentation,
     VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS
@@ -140,6 +141,7 @@ export function normalizeVisualConfig(value = {}) {
             ),
             renderLanguage: raw.renderLanguage === 'ascii' ? 'ascii' : 'native',
             presentation: normalizePresentation(raw.presentation),
+            galleryCadence: normalizeGalleryCadence(raw.galleryCadence),
             streamGlass: raw.streamGlass !== false,
             kleePreset: KLEE_PRESETS.has(raw.kleePreset) ? raw.kleePreset : 'random',
             // Atrium-curated collections travel as an informational string

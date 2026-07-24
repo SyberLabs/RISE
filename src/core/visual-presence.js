@@ -18,6 +18,64 @@ export const PRESENTATION_SURFACES = Object.freeze(['full-frame', 'behind-stream
 export function normalizePresentation(value) {
     return PRESENTATION_SURFACES.includes(value) ? value : 'full-frame';
 }
+
+// Gallery has one temporal axis: how quickly one complete work yields to the
+// next. Keep it independent from Rhythmic frequency/presence so changing
+// presentation restores both surfaces exactly as the reader left them.
+//
+// The normalized value runs from contemplative (0) to lively (1). Dwell uses
+// an exponential curve because perceived pace follows ratios more naturally
+// than equal millisecond steps: the midpoint is about 15 seconds rather than
+// the arithmetic midpoint of the endpoints. The dissolve follows the dwell,
+// bounded so lively mode remains gentle and contemplative mode never becomes
+// a five-second blur.
+export const GALLERY_CADENCE_DEFAULT = 0.5;
+export const GALLERY_DWELL_MIN_MS = 8_000;
+export const GALLERY_DWELL_MAX_MS = 30_000;
+export const GALLERY_CROSSFADE_MIN_MS = 1_200;
+export const GALLERY_CROSSFADE_MAX_MS = 2_500;
+
+export function normalizeGalleryCadence(value, fallback = GALLERY_CADENCE_DEFAULT) {
+    const fallbackNumber = Number(fallback);
+    const safeFallback = Number.isFinite(fallbackNumber)
+        ? fallbackNumber
+        : GALLERY_CADENCE_DEFAULT;
+    const parsed = Number(value);
+    const cadence = Number.isFinite(parsed) ? parsed : safeFallback;
+    return Math.round(Math.max(0, Math.min(1, cadence)) * 100) / 100;
+}
+
+export function galleryCadenceTimings(value) {
+    const cadence = normalizeGalleryCadence(value);
+    const dwellMs = Math.round(
+        GALLERY_DWELL_MAX_MS
+        * Math.pow(GALLERY_DWELL_MIN_MS / GALLERY_DWELL_MAX_MS, cadence)
+    );
+    const crossfadeMs = Math.round(Math.max(
+        GALLERY_CROSSFADE_MIN_MS,
+        Math.min(GALLERY_CROSSFADE_MAX_MS, dwellMs * 0.18)
+    ));
+    return Object.freeze({ cadence, dwellMs, crossfadeMs });
+}
+
+export function galleryCadenceRole(value) {
+    const cadence = normalizeGalleryCadence(value);
+    if (cadence < 0.34) return 'contemplative';
+    if (cadence > 0.66) return 'lively';
+    return 'balanced';
+}
+
+export function formatGalleryCadence(value) {
+    const { dwellMs } = galleryCadenceTimings(value);
+    return `≈ ${Math.round(dwellMs / 1000)} s`;
+}
+
+export function galleryCadenceValueText(value) {
+    const { dwellMs, crossfadeMs } = galleryCadenceTimings(value);
+    return `${galleryCadenceRole(value)}, about ${Math.round(dwellMs / 1000)} seconds per work, `
+        + `${(crossfadeMs / 1000).toFixed(1)} second dissolve`;
+}
+
 // Behind-stream imagery is peripheral, not a cut: it needs dwell time
 // to register beneath the text, so its default presence is a full beat
 export const VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS = 1000;

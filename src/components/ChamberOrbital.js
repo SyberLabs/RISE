@@ -17,7 +17,9 @@ import {
   normalizeVisualSelection
 } from '../core/visual-selection.js';
 import {
+  GALLERY_CADENCE_DEFAULT,
   VISUAL_PRESENCE_DEFAULT_MS,
+  normalizeGalleryCadence,
   normalizeVisualPresence
 } from '../core/visual-presence.js';
 import {
@@ -107,6 +109,7 @@ function createDefaultConfig() {
         sourced: [],
         frequency: 0.2,
         duration: VISUAL_PRESENCE_DEFAULT_MS,
+        galleryCadence: GALLERY_CADENCE_DEFAULT,
         renderLanguage: 'native',
         presentation: 'full-frame',
         streamGlass: true,
@@ -221,6 +224,9 @@ export class ChamberOrbital {
           ...(vi.interlocution || {}),
           duration: normalizeVisualPresence(
             vi.interlocution?.duration ?? defaults.interlocution.duration
+          ),
+          galleryCadence: normalizeGalleryCadence(
+            vi.interlocution?.galleryCadence ?? defaults.interlocution.galleryCadence
           ),
           ...normalizeVisualSelection(vi.interlocution || defaults.interlocution)
         }
@@ -404,6 +410,10 @@ export class ChamberOrbital {
         duration: normalizeVisualPresence(
           persistableInterlocution.duration
           ?? VISUAL_PRESENCE_DEFAULT_MS
+        ),
+        galleryCadence: normalizeGalleryCadence(
+          persistableInterlocution.galleryCadence
+          ?? GALLERY_CADENCE_DEFAULT
         ),
         ...normalizeVisualSelection(persistableInterlocution)
       }
@@ -1489,6 +1499,7 @@ export class ChamberOrbital {
         interlocution: {
           ...mergedInterlocution,
           duration: normalizeVisualPresence(mergedInterlocution.duration),
+          galleryCadence: normalizeGalleryCadence(mergedInterlocution.galleryCadence),
           ...normalizeVisualSelection(selectionInput)
         }
       };
@@ -1670,6 +1681,9 @@ export class ChamberOrbital {
           frequency: vi.interlocution?.frequency ?? 0.2,
           duration: normalizeVisualPresence(
             vi.interlocution?.duration ?? VISUAL_PRESENCE_DEFAULT_MS
+          ),
+          galleryCadence: normalizeGalleryCadence(
+            vi.interlocution?.galleryCadence ?? GALLERY_CADENCE_DEFAULT
           ),
           kleePreset: vi.interlocution?.kleePreset ?? 'random'
         }

@@ -12,7 +12,12 @@
 import { Router } from './core/router.js';
 import { AudioEngine } from './audio/engine.js';
 import { Player, estimateInterlocutionCount } from './core/player.js';
-import { VISUAL_PRESENCE_DEFAULT_MS, normalizePresentation } from './core/visual-presence.js';
+import {
+    GALLERY_CADENCE_DEFAULT,
+    VISUAL_PRESENCE_DEFAULT_MS,
+    normalizeGalleryCadence,
+    normalizePresentation
+} from './core/visual-presence.js';
 import { compileSession } from './core/session-compiler.js';
 import { MemoryCore } from './core/memory.js';
 import { initSourceSystem } from './sources/index.js';
@@ -436,9 +441,10 @@ class App {
                     }
 
                     // Every new reading installs an authoritative cortex
-                    // identity. Persistent/off modes do not use the cortex,
-                    // but must still clear a prior reading's active category
-                    // instead of relying on omission.
+                    // identity. Persistent/off modes clear it here; Rhythmic
+                    // modes install their complete identity below so an
+                    // interlocution -> interlocution transition cannot depend
+                    // on a diff against the prior reading's singleton state.
                     if (visualMode !== 'interlocution') {
                         visualCortex.resetSessionVisualIdentity();
                     }
@@ -515,10 +521,13 @@ class App {
                                 semanticSignals ? `${semanticSignals.length} flame seed signals sampled` : 'mood off (no flame seeding)');
                         }
 
-                            visualCortex.updateConfig({
+                            visualCortex.beginSessionVisualIdentity({
                                 enabled: true,
                                 frequency: interlocution.frequency ?? 0.2,
                                 duration: interlocution.duration ?? VISUAL_PRESENCE_DEFAULT_MS,
+                                galleryCadence: normalizeGalleryCadence(
+                                    interlocution.galleryCadence ?? GALLERY_CADENCE_DEFAULT
+                                ),
                                 renderLanguage: interlocution.renderLanguage === 'ascii' ? 'ascii' : 'native',
                                 presentation: normalizePresentation(interlocution.presentation),
                                 activeTypes: activeTypes,

@@ -129,6 +129,22 @@ describe('session compiler', () => {
     }).interlocution.duration).toBe(200);
   });
 
+  it('normalizes Gallery cadence independently from flash frequency and presence', () => {
+    const config = normalizeVisualConfig({
+      visualMode: 'interlocution',
+      interlocution: {
+        presentation: 'continuous',
+        galleryCadence: 4,
+        frequency: 0.37,
+        duration: 700
+      }
+    }).interlocution;
+
+    expect(config.galleryCadence).toBe(1);
+    expect(config.frequency).toBe(0.37);
+    expect(config.duration).toBe(700);
+  });
+
   it('normalizes the orthogonal render language without changing source selection', () => {
     const ascii = normalizeVisualConfig({
       visualMode: 'interlocution',

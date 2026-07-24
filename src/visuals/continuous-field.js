@@ -16,9 +16,12 @@
  */
 
 import { ShuffleBag } from '../sources/visual/shuffle-bag.js';
+import {
+    GALLERY_CADENCE_DEFAULT,
+    galleryCadenceTimings
+} from '../core/visual-presence.js';
 
-const DEFAULT_DWELL_MS = 10000;      // a work holds ~10s before the next fade
-const DEFAULT_CROSSFADE_MS = 2000;   // gentle ~2s dissolve
+const DEFAULT_TIMINGS = galleryCadenceTimings(GALLERY_CADENCE_DEFAULT);
 const MIN_TICK_MS = 250;             // the advance clock's coarsest check
 
 export class ContinuousField {
@@ -45,8 +48,10 @@ export class ContinuousField {
         this.decode = typeof options.decode === 'function'
             ? options.decode
             : (url) => this._defaultDecode(url);
-        this.dwellMs = Number.isFinite(options.dwellMs) ? options.dwellMs : DEFAULT_DWELL_MS;
-        this.crossfadeMs = Number.isFinite(options.crossfadeMs) ? options.crossfadeMs : DEFAULT_CROSSFADE_MS;
+        this.dwellMs = Number.isFinite(options.dwellMs) ? options.dwellMs : DEFAULT_TIMINGS.dwellMs;
+        this.crossfadeMs = Number.isFinite(options.crossfadeMs)
+            ? options.crossfadeMs
+            : DEFAULT_TIMINGS.crossfadeMs;
         this.reducedMotion = !!options.reducedMotion;
 
         this._now = options.now || (() => performance.now());
@@ -54,7 +59,7 @@ export class ContinuousField {
         this._caf = options.caf || (id => cancelAnimationFrame(id));
 
         this._bag = new ShuffleBag();
-        this._layers = null;      // [imgA, imgB]
+        this._layers = null;      // [{ root, backdrop, artwork }, ...]
         this._front = 0;          // index of the visible layer
         this._currentUrl = null;
         this._running = false;
@@ -67,20 +72,64 @@ export class ContinuousField {
         this._generation = 0;
     }
 
+    /**
+     * Apply a new presentation cadence without remounting or changing the
+     * current work. A live clock restarts its dwell from the user's change;
+     * the next transition and every mounted layer use the new dissolve.
+     */
+    setCadence({ dwellMs, crossfadeMs } = {}) {
+        if (Number.isFinite(dwellMs) && dwellMs > 0) this.dwellMs = dwellMs;
+        if (Number.isFinite(crossfadeMs) && crossfadeMs >= 0) {
+            this.crossfadeMs = crossfadeMs;
+        }
+        if (this._layers && !this.reducedMotion) {
+            for (const layer of this._layers) {
+                layer.root.style.transition = `opacity ${this.crossfadeMs}ms ease-in-out`;
+            }
+        }
+        if (this._running && !this.reducedMotion) {
+            this._nextAdvanceAt = this._now() + this.dwellMs;
+        }
+    }
+
     /** Mount the two layers (idempotent). */
     _ensureLayers() {
         if (this._layers) return;
         const make = () => {
-            const img = document.createElement('img');
-            img.className = 'continuous-field-layer';
-            img.decoding = 'async';
-            img.alt = '';
-            img.style.opacity = '0';
-            img.style.transition = `opacity ${this.crossfadeMs}ms ease-in-out`;
-            this.host.appendChild(img);
-            return img;
+            const root = document.createElement('div');
+            root.className = 'continuous-field-layer';
+            root.setAttribute('aria-hidden', 'true');
+            root.style.opacity = '0';
+            root.style.transition = `opacity ${this.crossfadeMs}ms ease-in-out`;
+
+            // The backdrop fills the viewport with a softened extension of
+            // the work. The foreground remains the untouched composition,
+            // fitted with `contain`, so portraits and panoramas are never
+            // cropped merely to match the reader's screen ratio.
+            const backdrop = document.createElement('img');
+            backdrop.className = 'continuous-field-backdrop';
+            backdrop.decoding = 'async';
+            backdrop.alt = '';
+            backdrop.draggable = false;
+            backdrop.style.objectFit = 'cover';
+
+            const artwork = document.createElement('img');
+            artwork.className = 'continuous-field-artwork';
+            artwork.decoding = 'async';
+            artwork.alt = '';
+            artwork.draggable = false;
+            artwork.style.objectFit = 'contain';
+
+            root.append(backdrop, artwork);
+            this.host.appendChild(root);
+            return { root, backdrop, artwork };
         };
         this._layers = [make(), make()];
+    }
+
+    _setLayerSource(layer, url) {
+        layer.backdrop.src = url;
+        layer.artwork.src = url;
     }
 
     async _defaultDecode(url) {
@@ -169,23 +218,23 @@ export class ContinuousField {
             // One still work, no motion: set it on the front layer at
             // full opacity, no transition.
             const front = this._layers[this._front];
-            front.style.transition = 'none';
-            front.src = url;
-            front.style.opacity = '1';
+            front.root.style.transition = 'none';
+            this._setLayerSource(front, url);
+            front.root.style.opacity = '1';
             return;
         }
         const incoming = this._layers[1 - this._front];
         const outgoing = this._layers[this._front];
-        incoming.src = url;
+        this._setLayerSource(incoming, url);
         // Rise the incoming and (unless first) fall the outgoing over the
         // same window — the double-buffer never passes through black.
         // Force a style flush so the transition runs from opacity 0.
-        incoming.style.transition = `opacity ${this.crossfadeMs}ms ease-in-out`;
-        void incoming.offsetWidth;
-        incoming.style.opacity = '1';
+        incoming.root.style.transition = `opacity ${this.crossfadeMs}ms ease-in-out`;
+        void incoming.root.offsetWidth;
+        incoming.root.style.opacity = '1';
         if (!first) {
-            outgoing.style.transition = `opacity ${this.crossfadeMs}ms ease-in-out`;
-            outgoing.style.opacity = '0';
+            outgoing.root.style.transition = `opacity ${this.crossfadeMs}ms ease-in-out`;
+            outgoing.root.style.opacity = '0';
         }
         this._front = 1 - this._front;
     }
@@ -193,8 +242,8 @@ export class ContinuousField {
     _fadeToNothing() {
         if (!this._layers) return;
         for (const layer of this._layers) {
-            layer.style.transition = `opacity ${this.crossfadeMs}ms ease-in-out`;
-            layer.style.opacity = '0';
+            layer.root.style.transition = `opacity ${this.crossfadeMs}ms ease-in-out`;
+            layer.root.style.opacity = '0';
         }
         this._currentUrl = null;
     }
@@ -243,7 +292,9 @@ export class ContinuousField {
         if (this._rafId != null) { this._caf(this._rafId); this._rafId = null; }
         if (this._layers) {
             for (const layer of this._layers) {
-                try { layer.remove(); } catch { /* detached */ }
+                layer.backdrop.removeAttribute('src');
+                layer.artwork.removeAttribute('src');
+                try { layer.root.remove(); } catch { /* detached */ }
             }
             this._layers = null;
         }

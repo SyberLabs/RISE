@@ -31,11 +31,15 @@ import {
     requestVisualInterlocutionConsent
 } from '../core/visual-safety.js';
 import {
+    GALLERY_CADENCE_DEFAULT,
     VISUAL_PRESENCE_DEFAULT_MS,
     VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS,
     VISUAL_PRESENCE_STEPS_MS,
+    formatGalleryCadence,
     formatVisualPresence,
+    galleryCadenceValueText,
     nearestVisualPresenceStep,
+    normalizeGalleryCadence,
     normalizeVisualPresence,
     normalizePresentation,
     visualPresenceStepIndex,
@@ -205,6 +209,11 @@ export class VisualInterlocutionPanel {
                     options.interlocution?.duration
                     ?? options.duration
                     ?? VISUAL_PRESENCE_DEFAULT_MS
+                ),
+                galleryCadence: normalizeGalleryCadence(
+                    options.interlocution?.galleryCadence
+                    ?? options.galleryCadence
+                    ?? GALLERY_CADENCE_DEFAULT
                 ),
                 renderLanguage: (options.interlocution?.renderLanguage ?? options.renderLanguage) === 'ascii'
                     ? 'ascii'
@@ -455,6 +464,7 @@ export class VisualInterlocutionPanel {
                 ...mergedInterlocution,
                 atriumCollections: nextAtriumCollections,
                 duration: normalizeVisualPresence(mergedInterlocution.duration),
+                galleryCadence: normalizeGalleryCadence(mergedInterlocution.galleryCadence),
                 renderLanguage: mergedInterlocution.renderLanguage === 'ascii' ? 'ascii' : 'native',
                 presentation: normalizePresentation(mergedInterlocution.presentation),
                 streamGlass: mergedInterlocution.streamGlass !== false,
@@ -666,6 +676,12 @@ export class VisualInterlocutionPanel {
         const displayedPresence = nearestVisualPresenceStep(
             this.config.interlocution.duration
         );
+        const galleryCadence = normalizeGalleryCadence(
+            this.config.interlocution.galleryCadence
+        );
+        const galleryCadencePercent = Math.round(galleryCadence * 100);
+        const galleryPresentation = this.config.interlocution.presentation === 'continuous';
+        const responsivePresenceAvailable = mode === 'interlocution' && !galleryPresentation;
 
         this.container.innerHTML = `
             <div class="vi-panel ${this.expanded ? 'expanded' : ''}" role="region" aria-label="Visual Settings">
@@ -1299,35 +1315,59 @@ export class VisualInterlocutionPanel {
                         </div>
                     </div>
                     
-                    <!-- Rhythm: temporal parameters of the flashes (interlocution only) -->
+                    <!-- Presentation-specific temporal controls (interlocution only) -->
                     <div class="vi-sliders" ${mode === 'interlocution' ? '' : 'hidden'}>
-                        <div class="vi-group-label">Rhythm</div>
-                        <div class="vi-slider-row">
-                            <label class="vi-slider-label">Frequency</label>
-                            <input type="range" class="slider" min="0" max="100"
-                                value="${Math.round(this.config.interlocution.frequency * 100)}" data-slider="frequency">
-                            <span class="vi-slider-value" data-value="frequency">${Math.round(this.config.interlocution.frequency * 100)}%</span>
-                        </div>
-                        <div class="vi-slider-row">
-                            <label class="vi-slider-label" for="vi-presence-slider">Presence</label>
-                            <input id="vi-presence-slider" type="range" class="slider" min="0"
-                                max="${VISUAL_PRESENCE_STEPS_MS.length - 1}" step="1"
-                                value="${visualPresenceStepIndex(displayedPresence)}"
-                                data-slider="duration"
-                                aria-valuetext="${visualPresenceValueText(displayedPresence)}">
-                            <span class="vi-slider-value vi-slider-value--presence" data-value="duration">${formatVisualPresence(displayedPresence)}</span>
-                        </div>
-                        <p class="vi-rhythm-hint text-mist">
-                            Frequency sets how often a visual may appear per stretch of reading,
-                            the same in every chunking mode.
-                            Longer presences automatically create more space between appearances.
-                        </p>
+                        ${galleryPresentation ? `
+                            <div class="vi-group-label">Gallery Cadence</div>
+                            <div class="vi-slider-row">
+                                <label class="vi-slider-label" for="vi-gallery-cadence-slider">Cadence</label>
+                                <input id="vi-gallery-cadence-slider" type="range" class="slider"
+                                    min="0" max="100" step="1"
+                                    value="${galleryCadencePercent}"
+                                    data-slider="gallery-cadence"
+                                    aria-valuetext="${galleryCadenceValueText(galleryCadence)}">
+                                <span class="vi-slider-value vi-slider-value--cadence"
+                                    data-value="gallery-cadence">${formatGalleryCadence(galleryCadence)}</span>
+                            </div>
+                            <div class="vi-cadence-scale" aria-hidden="true">
+                                <span>Contemplative</span>
+                                <span>Lively</span>
+                            </div>
+                            <p class="vi-rhythm-hint text-mist">
+                                Sets how long each complete work remains. The dissolve adapts
+                                automatically; a new pericope still changes the gallery immediately.
+                            </p>
+                        ` : `
+                            <div class="vi-group-label">Rhythm</div>
+                            <div class="vi-slider-row">
+                                <label class="vi-slider-label">Frequency</label>
+                                <input type="range" class="slider" min="0" max="100"
+                                    value="${Math.round(this.config.interlocution.frequency * 100)}" data-slider="frequency">
+                                <span class="vi-slider-value" data-value="frequency">${Math.round(this.config.interlocution.frequency * 100)}%</span>
+                            </div>
+                            <div class="vi-slider-row">
+                                <label class="vi-slider-label" for="vi-presence-slider">Presence</label>
+                                <input id="vi-presence-slider" type="range" class="slider" min="0"
+                                    max="${VISUAL_PRESENCE_STEPS_MS.length - 1}" step="1"
+                                    value="${visualPresenceStepIndex(displayedPresence)}"
+                                    data-slider="duration"
+                                    aria-valuetext="${visualPresenceValueText(displayedPresence)}">
+                                <span class="vi-slider-value vi-slider-value--presence" data-value="duration">${formatVisualPresence(displayedPresence)}</span>
+                            </div>
+                            <p class="vi-rhythm-hint text-mist">
+                                Frequency sets how often a visual may appear per stretch of reading,
+                                the same in every chunking mode.
+                                Longer presences automatically create more space between appearances.
+                            </p>
+                        `}
                     </div>
 
                     <!-- Safety Warning (Interlocution only) -->
                     <div class="vi-warning" ${mode === 'interlocution' ? '' : 'hidden'}>
                         <span class="vi-warning-icon">⚠</span>
-                        <p class="vi-warning-text">Visual interrupts may affect photosensitive individuals.</p>
+                        <p class="vi-warning-text">${galleryPresentation
+                            ? 'Moving gallery imagery may affect photosensitive individuals.'
+                            : 'Visual interrupts may affect photosensitive individuals.'}</p>
                     </div>
 
                     <!-- LIVING RESPONSE: the semantic conductor's subscribers.
@@ -1351,21 +1391,23 @@ export class VisualInterlocutionPanel {
                             </p>
                         </div>
 
-                        <div class="vi-semantic-row ${mode === 'interlocution' ? '' : 'vi-semantic-row--disabled'}">
+                        <div class="vi-semantic-row ${responsivePresenceAvailable ? '' : 'vi-semantic-row--disabled'}">
                             <label class="toggle vi-semantic-toggle">
                                 <input type="checkbox" data-responsive
                                     ${this.config.interlocution.responsive ? 'checked' : ''}
-                                    ${mode === 'interlocution' ? '' : 'disabled'}>
+                                    ${responsivePresenceAvailable ? '' : 'disabled'}>
                                 <span class="toggle-switch"></span>
                                 <span class="vi-semantic-label">Responsive Presence</span>
                             </label>
                             <p class="vi-semantic-hint text-mist">
-                                ${mode === 'interlocution'
+                                ${galleryPresentation
+                                    ? 'Gallery follows its cadence and the reading’s curated scene changes. Responsive Presence returns on a flash presentation.'
+                                    : mode === 'interlocution'
                                     ? 'The text conducts each presence. Your settings above are the envelope — responsiveness only moves within them.'
                                     : 'Available in Rhythmic mode — visuals follow the mood and intensity of the text.'}
                             </p>
 
-                            ${mode === 'interlocution' && this.config.interlocution.responsive ? `
+                            ${responsivePresenceAvailable && this.config.interlocution.responsive ? `
                                 <div class="vi-semantic-subrows">
                                     <div class="vi-semantic-subrow">
                                         <label class="toggle vi-semantic-toggle">
@@ -1650,6 +1692,18 @@ export class VisualInterlocutionPanel {
         });
 
         // ─── Responsive Interlocutions Handlers ───
+        this.container.querySelector('[data-slider="gallery-cadence"]')?.addEventListener('input', (e) => {
+            if (window.rise?.audioEngine) {
+                window.rise.audioEngine.playHiss();
+            }
+            const cadence = normalizeGalleryCadence(parseInt(e.target.value, 10) / 100);
+            this.config.interlocution.galleryCadence = cadence;
+            e.target.setAttribute('aria-valuetext', galleryCadenceValueText(cadence));
+            this.container.querySelector('[data-value="gallery-cadence"]').textContent =
+                formatGalleryCadence(cadence);
+            this.emitChange();
+        });
+
         this.container.querySelector('[data-responsive]')?.addEventListener('change', (e) => {
             if (window.rise?.audioEngine) {
                 window.rise.audioEngine.playHiss();

@@ -57,6 +57,25 @@ describe('ContinuousField', () => {
         field.stop();
     });
 
+    it('shows the complete artwork over an edge-to-edge adaptive backdrop', async () => {
+        const { field, host } = mount({ getPool: () => pool('portrait.jpg') });
+        field.start();
+        await Promise.resolve(); await Promise.resolve();
+
+        const shown = [...host.querySelectorAll('.continuous-field-layer')]
+            .find(layer => layer.style.opacity === '1');
+        const artwork = shown?.querySelector('.continuous-field-artwork');
+        const backdrop = shown?.querySelector('.continuous-field-backdrop');
+
+        expect(artwork).not.toBeNull();
+        expect(backdrop).not.toBeNull();
+        expect(artwork.src).toContain('portrait.jpg');
+        expect(backdrop.src).toContain('portrait.jpg');
+        expect(artwork.style.objectFit).toBe('contain');
+        expect(backdrop.style.objectFit).toBe('cover');
+        field.stop();
+    });
+
     it('crossfades: the incoming rises while the outgoing falls — never both at 0', async () => {
         const works = pool('a.jpg', 'b.jpg', 'c.jpg');
         const { field, host, clock } = mount({ getPool: () => works });
@@ -69,6 +88,28 @@ describe('ContinuousField', () => {
         // at least one layer is at full opacity — the field never passes
         // through black between works
         expect(layers.some(l => l.style.opacity === '1')).toBe(true);
+        field.stop();
+    });
+
+    it('applies a live cadence without replacing the current work', async () => {
+        const works = pool('a.jpg', 'b.jpg', 'c.jpg');
+        const { field, host, clock } = mount({ getPool: () => works });
+        const advance = vi.spyOn(field, '_advance');
+        field.start();
+        await Promise.resolve(); await Promise.resolve();
+        const held = field.currentUrl;
+
+        field.setCadence({ dwellMs: 2500, crossfadeMs: 450 });
+        expect(field.currentUrl).toBe(held);
+        expect(field.dwellMs).toBe(2500);
+        expect(field.crossfadeMs).toBe(450);
+        expect([...host.querySelectorAll('.continuous-field-layer')].every(layer =>
+            layer.style.transition.includes('450ms'))).toBe(true);
+
+        clock.tick(2499);
+        expect(advance).toHaveBeenCalledTimes(1);
+        clock.tick(1);
+        expect(advance).toHaveBeenCalledTimes(2);
         field.stop();
     });
 

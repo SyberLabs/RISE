@@ -450,6 +450,36 @@ describe('ChamberOrbital origin chip', () => {
         container.remove();
     });
 
+    it('normalizes and persists Gallery cadence independently from flash settings', () => {
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
+            visualInterlocution: {
+                visualMode: 'interlocution',
+                interlocution: {
+                    presentation: 'continuous',
+                    galleryCadence: 4,
+                    frequency: 0.37,
+                    duration: 700
+                }
+            }
+        }));
+
+        const { orbital, container } = makeOrbital();
+        const config = orbital.config.visualInterlocution.interlocution;
+        expect(config.galleryCadence).toBe(1);
+        expect(config.frequency).toBe(0.37);
+        expect(config.duration).toBe(700);
+
+        orbital._persistPrefs();
+        const saved = JSON.parse(localStorage.getItem('rise_orbital_prefs_v1'))
+            .visualInterlocution.interlocution;
+        expect(saved.galleryCadence).toBe(1);
+        expect(saved.frequency).toBe(0.37);
+        expect(saved.duration).toBe(700);
+
+        orbital.destroy();
+        container.remove();
+    });
+
     it('a subsequent plain load replaces a previous origin', () => {
         const { orbital, container } = makeOrbital();
         orbital.loadText('text', 'SOL: Dawn', { origin: SOL_ORIGIN });

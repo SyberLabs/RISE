@@ -15,7 +15,10 @@ import { PersonalSwells } from '../core/personal-swells.js';
 import { namingModal } from './NamingModal.js';
 import { safeUrl } from '../core/sanitize.js';
 import { normalizeVisualSelection } from '../core/visual-selection.js';
-import { VISUAL_PRESENCE_DEFAULT_MS } from '../core/visual-presence.js';
+import {
+  GALLERY_CADENCE_DEFAULT,
+  VISUAL_PRESENCE_DEFAULT_MS
+} from '../core/visual-presence.js';
 import './VisualInterlocutionPanel.css';
 import './SourceBrowser.css';
 
@@ -62,6 +65,7 @@ function createDefaultSessionData() {
         },
         frequency: 0.3,
         duration: VISUAL_PRESENCE_DEFAULT_MS,
+        galleryCadence: GALLERY_CADENCE_DEFAULT,
         renderLanguage: 'native',
         kleePreset: 'random',
         responsive: false,

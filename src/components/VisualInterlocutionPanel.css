@@ -628,6 +628,19 @@
     width: 58px;
 }
 
+.vi-slider-value--cadence {
+    width: 58px;
+}
+
+.vi-cadence-scale {
+    display: flex;
+    justify-content: space-between;
+    margin: -2px 74px 4px 96px;
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    color: var(--color-mist);
+}
+
 .vi-rhythm-hint {
     margin: 2px 0 var(--space-sm) 96px;
     font-size: 10px;

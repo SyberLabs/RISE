@@ -733,7 +733,7 @@
    Gallery — the Continuous Field (CONTINUOUS-FIELD-SPEC)
    A persistent two-layer crossfade behind the reading. It sits in
    the same behind-text band as Genesis and the attractor; its two
-   <img> layers stack and cross-dissolve, so one is always present —
+   adaptive layers stack and cross-dissolve, so one is always present —
    the field never passes through black.
    ───────────────────────────────────────────────────────────── */
 
@@ -751,11 +751,46 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
   display: block;
+  overflow: hidden;
+  isolation: isolate;
+  contain: paint;
   /* opacity + transition are driven inline by the presenter; the layer
      starts transparent so a cold field shows the reading's own ground. */
   will-change: opacity;
+}
+
+/* Each crossfade plane has two readings of the same work:
+   - backdrop: a subdued edge-to-edge extension, preventing empty bars;
+   - artwork: the complete composition, fitted without cropping.
+   The backdrop may crop decoratively, but the authored image above it never
+   does. This adapts portraits, landscapes, and square works to any viewport
+   without the former `cover` zoom. */
+.chamber-continuous-field .continuous-field-backdrop,
+.chamber-continuous-field .continuous-field-artwork {
+  position: absolute;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.chamber-continuous-field .continuous-field-backdrop {
+  inset: -6%;
+  width: 112%;
+  height: 112%;
+  object-position: center;
+  filter: blur(clamp(20px, 3.4vw, 52px)) saturate(0.82) brightness(0.48);
+  transform: scale(1.06);
+  opacity: 0.78;
+}
+
+.chamber-continuous-field .continuous-field-artwork {
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-position: center;
+  filter: drop-shadow(0 14px 36px rgba(0, 0, 0, 0.38));
 }
 
 /* A gentle scrim over the imagery so the reading stays legible against a

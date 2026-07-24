@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+    GALLERY_CADENCE_DEFAULT,
     VISUAL_PRESENCE_DEFAULT_MS,
     VISUAL_PRESENCE_STEPS_MS,
     formatVisualPresence,
+    galleryCadenceTimings,
+    galleryCadenceValueText,
     minimumVisualPresenceRest,
     nearestVisualPresenceStep,
+    normalizeGalleryCadence,
     normalizeVisualPresence,
     responsiveVisualPresence,
     visualPresenceTransition,
@@ -12,6 +16,30 @@ import {
 } from './visual-presence.js';
 
 describe('Visual Presence policy', () => {
+    it('maps one normalized Gallery cadence from contemplative to lively', () => {
+        expect(normalizeGalleryCadence(undefined)).toBe(GALLERY_CADENCE_DEFAULT);
+        expect(normalizeGalleryCadence(-4)).toBe(0);
+        expect(normalizeGalleryCadence(4)).toBe(1);
+
+        expect(galleryCadenceTimings(0)).toEqual({
+            cadence: 0,
+            dwellMs: 30000,
+            crossfadeMs: 2500
+        });
+        expect(galleryCadenceTimings(0.5)).toMatchObject({
+            cadence: 0.5,
+            dwellMs: 15492,
+            crossfadeMs: 2500
+        });
+        expect(galleryCadenceTimings(1)).toEqual({
+            cadence: 1,
+            dwellMs: 8000,
+            crossfadeMs: 1440
+        });
+        expect(galleryCadenceValueText(0.5))
+            .toBe('balanced, about 15 seconds per work, 2.5 second dissolve');
+    });
+
     it('normalizes missing, legacy, and oversized values', () => {
         expect(normalizeVisualPresence(undefined)).toBe(VISUAL_PRESENCE_DEFAULT_MS);
         expect(normalizeVisualPresence(80)).toBe(150);
