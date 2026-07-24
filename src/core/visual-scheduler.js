@@ -98,9 +98,34 @@ export class VisualScheduleController {
         if (id !== this._activeCueId) {
             this._activeCueId = id;
             this._generation += 1;
-            this.onCue(cue, { cueId: id, generation: this._generation });
+            // Look-ahead: the NEXT sourced segment's collections, so a
+            // short upcoming episode (a single-verse flagellation) has
+            // its provider pool warm before the reader arrives
+            // (PERICOPE-IMAGERY-SPEC §6.3).
+            const prefetch = this._upcomingSourcedCollections(atom);
+            this.onCue(cue, { cueId: id, generation: this._generation, prefetch });
         }
         return { id, cue };
+    }
+
+    /**
+     * The collections of the next one or two SOURCED segments after
+     * the current atom's position — the pools worth warming ahead.
+     * Coordinate-space only; empty otherwise.
+     */
+    _upcomingSourcedCollections(atom) {
+        if (this.program.coordinateSpace !== 'scripture') return [];
+        if (!Number.isInteger(atom?.chapter) || !Number.isInteger(atom?.verse)) return [];
+        const out = [];
+        for (const seg of this.program.segments) {
+            if (seg.match.chapter < atom.chapter) continue;
+            if (seg.match.chapter === atom.chapter && seg.match.verseEnd <= atom.verse) continue;
+            if (seg.cue?.kind === 'sourced' && Array.isArray(seg.cue.collections)) {
+                out.push(...seg.cue.collections);
+                if (out.length >= 2) break; // two ahead is plenty
+            }
+        }
+        return out;
     }
 
     get generation() {

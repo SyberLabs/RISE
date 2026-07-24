@@ -1877,7 +1877,7 @@
           "artist": "",
           "medium": "",
           "relation": "DIRECT",
-          "status": "existing_pin",
+          "status": "hold",
           "source_url": "",
           "note": "Current Rosarium pin is Met 438466; no exact AIC/CMA/Rijks replacement selected in this pass."
         }

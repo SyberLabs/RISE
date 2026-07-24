@@ -352,6 +352,28 @@ export class VisualCortex {
             // 'still' / 'focal' / anything else → no sourced pool
             this.updateConfig({ activeTypes: [] });
         }
+        // Look-ahead (PERICOPE-IMAGERY-SPEC §6.3): warm the upcoming
+        // collections' PROVIDER pools now, so a short segment (the
+        // flagellation is a single verse) has resolved works ready the
+        // instant it becomes active — the cortex's own decode pool is
+        // disposed on each switch, but the provider's resolution cache
+        // survives, making the next activation near-instant.
+        if (Array.isArray(meta.prefetch) && meta.prefetch.length) {
+            this._prewarmProviderPools(meta.prefetch);
+        }
+    }
+
+    async _prewarmProviderPools(collectionIds) {
+        for (const id of collectionIds) {
+            try {
+                const provider = await this._getProviderForCategory(id);
+                // getImagesInCategory populates the provider's own cache;
+                // we discard the result — activation will re-read it warm.
+                await provider?.getImagesInCategory?.(this._providerCategory(id), 40, {
+                    timeoutMs: 8000
+                });
+            } catch (e) { /* best-effort warmth; a miss costs nothing */ }
+        }
     }
 
     updateConfig(newConfig) {

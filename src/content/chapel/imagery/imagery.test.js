@@ -328,11 +328,17 @@ describe('Chapel handoff imagery (seam)', () => {
     // no longer uses whole-chapter collections. It carries a program
     // and opens on its first pericope's pool — the crucifixion no
     // longer flashes from verse 1 of a Passion chapter.
+    // Matthew 27 opens on before-pilate (27:1), which has works —
+    // not the crucifixion pool that used to flash from verse 1
+    const mt27 = chapelSensoryConfig('matthew', null, 27);
+    expect(mt27.visualConfig.visualMode).toBe('interlocution');
+    expect(mt27.visualConfig.interlocution.sourced).toEqual(['chapel-gospel-before-pilate']);
+    expect(mt27.visualConfig.interlocution.duration).toBeGreaterThanOrEqual(1400);
+    // A chapter whose first episode has no works opens in stillness
+    // (an empty sourced pool) until the first imaged episode — John 19
+    // begins at the flagellation (19:1), which now has no admitted work
     const john19 = chapelSensoryConfig('john', null, 19);
-    expect(john19.visualConfig.visualMode).toBe('interlocution');
-    // John 19 opens on before-pilate (19:1), not crucifixion
-    expect(john19.visualConfig.interlocution.sourced).toEqual(['chapel-gospel-flagellation']);
-    expect(john19.visualConfig.interlocution.duration).toBeGreaterThanOrEqual(1400);
+    expect(john19.visualConfig.interlocution.sourced).toEqual([]);
 
     // a whole Gospel still reads under the rose
     const john = chapelSensoryConfig('john');

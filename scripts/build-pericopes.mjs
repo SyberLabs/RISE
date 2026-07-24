@@ -25,6 +25,16 @@ const BOOK_IDS = Object.freeze({
 // A work is admitted to the runtime only when it is a cleared pin.
 const ADMITTED_STATUSES = new Set(['existing_pin']);
 
+// A resolvable museum id: numeric (all adapters) or dotted accession
+// (Cleveland). Placeholder strings like 'current-rosarium-flagellation'
+// or unresolved 'RP-P-OB-1353' must never enter the runtime — they
+// can't resolve, so their pericope would still forever regardless of
+// its status. This guards the runtime against the research file's
+// work-in-progress markers.
+function isResolvableId(id) {
+    return /^\d+(\.\d+)*$/.test(String(id));
+}
+
 /**
  * Parse one passage reference into an array of normalized ranges.
  * Handles every shape the concordance uses:
@@ -98,6 +108,11 @@ function build() {
         const ranges = (p.passages || []).flatMap(parseRef);
         const works = (p.works || [])
             .filter(w => ADMITTED_STATUSES.has(w.status))
+            .filter(w => {
+                if (isResolvableId(w.id)) return true;
+                console.warn(`[build-pericopes] SKIP ${p.id}: ${w.source}:${w.id} — not a resolvable id (placeholder or unresolved)`);
+                return false;
+            })
             .map(w => ({ source: w.source, id: w.id }));
 
         for (const r of ranges) allRanges.push({ pericope: p.id, ...r });

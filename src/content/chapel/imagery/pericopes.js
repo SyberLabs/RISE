@@ -4,7 +4,7 @@
  * Machine output of scripts/build-pericopes.mjs from
  * image_map/rise-gospel-art-concordance.json. DO NOT EDIT BY HAND —
  * edit the concordance JSON and rebuild. Only cleared, pin-ready works
- * are admitted (101 works across 50 pericopes with imagery;
+ * are admitted (100 works across 49 pericopes with imagery;
  * the rest resolve to stillness until their works clear review).
  *
  * PERICOPE-IMAGERY-SPEC §3.1. Verse ranges within a book never
@@ -230,7 +230,7 @@ export const GOSPEL_PERICOPES = Object.freeze([
     {
         id: "flagellation", title: "The Flagellation of Christ", coverage: "DIRECT",
         ranges: [{ book: "matthew", chapter: 27, verseStart: 26, verseEnd: 26 }, { book: "mark", chapter: 15, verseStart: 15, verseEnd: 15 }, { book: "john", chapter: 19, verseStart: 1, verseEnd: 1 }],
-        works: [{ source: "cleveland", id: "current-rosarium-flagellation" }]
+        works: []
     },
     {
         id: "crowning-ecce-homo", title: "The Crowning with Thorns / Ecce Homo", coverage: "DIRECT",
