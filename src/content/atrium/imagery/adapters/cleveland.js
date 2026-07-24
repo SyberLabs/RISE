@@ -43,15 +43,22 @@ function mapRights(record) {
  * @returns {Promise<Object|null>}
  */
 export async function resolveClevelandWork(id, options = {}) {
+    // Cleveland's object endpoint accepts BOTH a numeric object id
+    // (94979) and a dotted accession number (1953.143) at /{id}
+    // (verified 2026-07). The old digit-only guard silently withheld
+    // every accession-keyed work — the concordance's Baptism, among
+    // others (PERICOPE-IMAGERY-SPEC §9). Accept digits or the dotted
+    // accession form; reject anything else before spending a fetch.
     const objectId = String(id).trim();
-    if (!/^\d+$/.test(objectId)) return null;
+    if (!/^\d+(\.\d+)*$/.test(objectId)) return null;
 
     const doFetch = options.fetchImpl || fetch;
     const request = withAbortTimeout(
         options.signal, options.timeoutMs ?? 8000, 'Cleveland request');
     let payload;
     try {
-        const response = await doFetch(`${OBJECT_ENDPOINT}/${objectId}`, {
+        const response = await doFetch(
+            `${OBJECT_ENDPOINT}/${encodeURIComponent(objectId)}`, {
             signal: request.signal
         });
         if (!response.ok) return null;
@@ -64,6 +71,11 @@ export async function resolveClevelandWork(id, options = {}) {
 
     const record = payload?.data;
     if (!record) return null;
+
+    // PIN IDENTITY stays canonical: a work resolved by its dotted
+    // accession reports its own stable numeric id, and the pin adopts
+    // it so the same work is never pinned under two ids.
+    const canonicalId = Number.isInteger(record.id) ? record.id : objectId;
 
     const images = record.images || {};
     const imageUrl = images.web?.url || images.print?.url;
@@ -79,7 +91,7 @@ export async function resolveClevelandWork(id, options = {}) {
     const artistBio = match ? match[2].trim() : '';
 
     return normalizeWork({
-        id: `${CLEVELAND_SOURCE}:${objectId}`,
+        id: `${CLEVELAND_SOURCE}:${canonicalId}`,
         title: record.title,
         artist,
         artistBio,
@@ -89,6 +101,6 @@ export async function resolveClevelandWork(id, options = {}) {
         imageUrl,
         fullImageUrl: images.print?.url || images.full?.url || imageUrl,
         sourceName: SOURCE_NAME,
-        sourceUrl: record.url || `https://clevelandart.org/art/${objectId}`
+        sourceUrl: record.url || `https://clevelandart.org/art/${canonicalId}`
     });
 }

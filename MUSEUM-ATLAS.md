@@ -137,12 +137,25 @@ Supported parameters (probed; unsupported ones 400 with
 | `technique` | ✓ | `technique=painting` → 4,291 |
 | `imageAvailable` | ✓ | `imageAvailable=true` → 734,681 |
 | `creationDate` | ✓ | **exact year only** — `creationDate=1642` → 1,186; range syntaxes all fail. Harvest per-year if a range is needed. |
-| `q`, `artist`, `text`, `objectType`, `name`, `onDisplay`, `creationDateFrom/To` | ✗ | 400 |
+| `description` | ✓ | **Dutch full-text over the object description** — the concordance's recall key. `description=kruisiging` → 273; `description=annunciatie&type=painting` → 1. Dutch coverage exceeds English (see below). |
+| `aboutActor` | ✓ | subject-OF: who/what the work depicts, not who made it. `aboutActor=Christus` → 30; `aboutActor=rembrandt` → 1,034 (works depicting Rembrandt). Distinct from `creator`. |
+| `q`, `artist`, `text`, `objectType`, `name`, `onDisplay`, `creationDateFrom/To`, `about`, `subject`, `iconclass`, `aboutConcept` | ✗ | 400 |
 
 Parameters combine (AND): `type=painting&creator=vermeer&imageAvailable=true`
 → 5. Search returns no rights — **rights are only knowable at the
 VisualItem hop**, so every candidate still pays the three-hop
 resolution before it can clear the gate.
+
+**Dutch lexicon recall (concordance finding, 2026-07).** For SUBJECT
+harvests (pericopes, iconography) Dutch search terms materially
+out-recall English: *Besnijdenis* (Circumcision), *Bruiloft te Kana*
+(Cana), *Wonderbare spijziging* (feeding of the multitude),
+*Ongelovige Tomas* (doubting Thomas), *Zalving te Betanië* (anointing
+at Bethany), *Zacheüs* surfaced exact subjects English-only searching
+missed. Harvest pericopes with `description=<Dutch term>`, keeping an
+English fallback. `aboutActor` narrows to works depicting a named
+figure. (Rijks is the strongest *concordance* provider precisely
+because these axes reach the Iconclass-grade subject records.)
 
 ### Operational notes
 
@@ -163,7 +176,17 @@ Impressionist works (Monet's *The Red Kerchief*, *Water Lilies
 (Agapanthus)*).
 
 **Endpoint:** `https://openaccess-api.clevelandart.org/api/artworks`
-— GET, no key. Per-object: `/api/artworks/{id}`.
+— GET, no key. Per-object: `/api/artworks/{id}`, where `{id}` is
+EITHER the numeric object id (`94979`) OR the dotted accession number
+(`1953.143`) — both resolve the same work (verified 2026-07). A work
+fetched by its accession reports its own stable numeric id, so the
+adapter adopts that numeric id for pin identity (a work is never
+pinned under two ids). The adapter's id guard is therefore
+`^\d+(\.\d+)*$`, not digits-only — the old digit guard silently
+withheld every accession-keyed candidate (the concordance's Baptism
+among them). NOTE: `accession_number` is NOT a working query
+parameter (`?accession_number=1953.143` → 0 results); accession
+lookup is path-only.
 
 ### Query axes — everything genuinely filters
 
