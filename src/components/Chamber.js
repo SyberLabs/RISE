@@ -608,6 +608,50 @@ export class Chamber {
     // so the text keeps a glass tile for legibility over the imagery
     // (the same pane Genesis uses — one grammar, one implementation).
     this.initializeStreamPresentation();
+
+    // Gallery (Continuous Field): a persistent crossfading gallery behind
+    // the reading, a third interlocution presentation beside behind-stream.
+    this.initializeContinuousField();
+  }
+
+  /**
+   * Gallery — the Continuous Field (CONTINUOUS-FIELD-SPEC). A persistent
+   * two-layer crossfade behind the reading that never fades to black,
+   * holding whichever pool the reading provides and swapping smoothly at
+   * each pericope boundary. Like Genesis and the attractor, its host sits
+   * behind the text on a glass tile; unlike the flash economy, it is a
+   * steady presenter with no flash rate. The cortex owns its lifecycle —
+   * here we only mount the host and hand it over.
+   */
+  initializeContinuousField() {
+    const visualConfig = this.session?.visualConfig;
+    if (!visualConfig || visualConfig.visualMode !== 'interlocution') return;
+    if (visualConfig.interlocution?.presentation !== 'continuous') return;
+
+    const field = this.container.querySelector('#chamber-field');
+    if (!field) return;
+
+    field.classList.add('chamber-field-stream');
+
+    const host = document.createElement('div');
+    host.className = 'chamber-continuous-field';
+    host.id = 'chamber-continuous-field';
+
+    const atomDisplay = field.querySelector('#atom-display');
+    if (atomDisplay) {
+      field.insertBefore(host, atomDisplay);
+    } else {
+      field.appendChild(host);
+    }
+
+    // Glass tile on by default — the text must stay legible over imagery
+    // (the field's whole reason to exist is a presence behind the reading).
+    if (atomDisplay && visualConfig.interlocution?.streamGlass !== false) {
+      atomDisplay.classList.add('glass-tile');
+    }
+
+    visualCortex.setContinuousFieldHost(host);
+    console.log('[Chamber] Continuous Field (Gallery) host mounted');
   }
 
   /**
@@ -1415,5 +1459,9 @@ export class Chamber {
       this.rosaField.destroy();
       this.rosaField = null;
     }
+    // The Continuous Field lives in the (singleton) cortex, not the
+    // Chamber; releasing the host stops it and drops its layers before the
+    // Chamber DOM (and the host with it) is torn down.
+    visualCortex.setContinuousFieldHost(null);
   }
 }
