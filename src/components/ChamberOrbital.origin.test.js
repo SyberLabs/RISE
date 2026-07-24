@@ -535,3 +535,43 @@ describe('Launch-scoped identity is not persisted (2026-07 pill-leak fix)', () =
         orbital.destroy();
     });
 });
+
+describe('clearText resets launch-scoped visual identity (2026-07 Doré leak)', () => {
+    const launchWith = (orbital, collection) => {
+        orbital.loadText('text', 'Source', {
+            visualConfig: {
+                visualMode: 'interlocution',
+                interlocution: {
+                    sourced: [collection], procedural: [],
+                    atriumCollections: [collection], frequency: 0.2, duration: 1600
+                }
+            }
+        });
+    };
+
+    // Every "From this reading" pill family must die with its text —
+    // Doré cycle, engineering blueprints, and colonial-freedom plates
+    // all leaked through clear-text before this fix.
+    for (const collection of ['dore:numbers', 'blueprint:beam-engine', 'freedom:haiti-france', 'chapel-passion']) {
+        it(`clears a ${collection.split(':')[0]} pill on clear-text`, () => {
+            const { orbital } = makeOrbital();
+            launchWith(orbital, collection);
+            expect(orbital.config.visualInterlocution.interlocution.atriumCollections)
+                .toContain(collection);
+            orbital.clearText();
+            expect(orbital.config.visualInterlocution.interlocution.atriumCollections).toEqual([]);
+            expect(orbital.viPanel._chapelLaunch).toBe(false);
+            orbital.destroy();
+        });
+    }
+
+    it('loading a plain source after a launch clears the prior pills', () => {
+        const { orbital } = makeOrbital();
+        launchWith(orbital, 'dore:numbers');
+        // a plain library text carries no visual selection
+        orbital.loadText('Plain prose.', 'Plain', {});
+        expect(orbital.config.visualInterlocution.interlocution.atriumCollections).toEqual([]);
+        expect(orbital.config.visualProgram).toBeNull();
+        orbital.destroy();
+    });
+});

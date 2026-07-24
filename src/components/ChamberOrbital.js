@@ -1323,6 +1323,16 @@ export class ChamberOrbital {
   loadText(text, source, config = {}) {
     this.visualConsentScope = crypto.randomUUID();
     this.viPanel?.setConsentScope(this.visualConsentScope);
+
+    // Each load begins from a clean launch identity: the prior
+    // reading's pills, program, and domain are cleared before this
+    // source's own visual selection (if any) is applied below. A
+    // plain library text carries none, so it correctly opens with no
+    // "From this reading" pills — the Doré/Chapel leak the reader
+    // caught (2026-07). A source WITH a selection re-establishes its
+    // own identity through applyVisualConfig / the visualProgram
+    // assignment that follow.
+    this._clearLaunchVisualIdentity();
     console.log('[ChamberOrbital] loadText called', {
       text: text?.substring(0, 50),
       source,
@@ -1453,12 +1463,37 @@ export class ChamberOrbital {
     this.renderPersonalPool();
   }
 
+  /**
+   * Reset every piece of launch-scoped visual IDENTITY — the pills,
+   * the pericope program, the Chapel-domain memory — so it never
+   * outlives the reading that created it. Called on clear-text and on
+   * loading a source that carries no visual selection of its own.
+   */
+  _clearLaunchVisualIdentity() {
+    this.config.visualProgram = null;
+    const inter = this.config.visualInterlocution?.interlocution;
+    if (inter) inter.atriumCollections = [];
+    if (this.viPanel) {
+      this.viPanel._chapelLaunch = false;
+      if (this.viPanel.config.interlocution) {
+        this.viPanel.config.interlocution.atriumCollections = [];
+      }
+      this.viPanel.setProgramInfo?.(null);
+    }
+  }
+
   clearText() {
     this.config.text = null;
     this.config.textSource = null;
     this.config.origin = null;
     this.config.sources = null;
     this.config.provenance = null;
+    // LAUNCH-SCOPED VISUAL IDENTITY dies with the text that carried it
+    // (2026-07 pill-leak fix): a Doré/Chapel/pericope reading's "From
+    // this reading" pills, its program, and the Chapel-domain flag all
+    // belong to the cleared reading. Without this, clearing a Numbers
+    // launch and loading a plain text left the Doré pill stranded.
+    this._clearLaunchVisualIdentity();
     this.updateOriginChip();
     this._persistText(); // clearing the card clears its persistence
 
