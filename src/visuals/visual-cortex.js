@@ -485,9 +485,13 @@ export class VisualCortex {
      * call on every config change.
      */
     _syncContinuousField() {
+        // Visual interlocution consent governs the field exactly as it
+        // governs the flash economy: no imagery appears behind the reading
+        // without it, even though the field never flashes.
         const shouldRun = this._isContinuousMode()
             && !!this._continuousFieldHost
-            && !this._continuousPhotosensitive();
+            && !this._continuousPhotosensitive()
+            && hasVisualInterlocutionConsent();
         if (shouldRun) {
             this._ensureContinuousField();
             if (this._continuousField && !this._continuousField.running) {
@@ -497,6 +501,16 @@ export class VisualCortex {
         } else if (this._continuousField && this._continuousField.running) {
             this._continuousField.stop();
         }
+    }
+
+    /**
+     * Reconcile the field with a live safety change (photosensitivity or
+     * consent toggled mid-session). The flash economy re-checks these on
+     * every flash() call; the field runs on its own clock and must be told.
+     * Public so the app can call it when it flips photosensitivity-mode.
+     */
+    syncSafety() {
+        this._syncContinuousField();
     }
 
     /** A pericope/cue pool change: the field crossfades to the new pool. */

@@ -616,8 +616,10 @@ describe('Stream-maintaining Rhythmic and Atrium collections', () => {
             interlocution: { sourceFamily: 'procedural', procedural: ['klee'], sourced: [] }
         });
 
-        expect(container.querySelectorAll('[data-presentation]')).toHaveLength(2);
+        // Three surfaces: Full frame, Behind stream, Gallery (the Continuous Field).
+        expect(container.querySelectorAll('[data-presentation]')).toHaveLength(3);
         expect(container.querySelector('[data-presentation="full-frame"]').classList.contains('active')).toBe(true);
+        expect(container.querySelector('[data-presentation="continuous"]')).not.toBeNull();
         expect(panel.getConfig().interlocution.presentation).toBe('full-frame');
 
         panel.destroy();
@@ -646,6 +648,29 @@ describe('Stream-maintaining Rhythmic and Atrium collections', () => {
         expect(emitted.interlocution.streamGlass).toBe(false);
         // Source selection is untouched by a presentation change
         expect(emitted.interlocution.procedural).toEqual(['klee']);
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('Gallery selects continuous, reveals the glass toggle, and leaves duration untouched', () => {
+        let emitted = null;
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: { sourceFamily: 'procedural', procedural: ['klee'], sourced: [] },
+            onChange: config => { emitted = config; }
+        });
+        // full-frame default duration is 200ms
+        expect(panel.getConfig().interlocution.duration).toBe(200);
+
+        container.querySelector('[data-presentation="continuous"]').click();
+        expect(emitted.interlocution.presentation).toBe('continuous');
+        // Gallery has no flash rate, so presence duration is untouched
+        expect(emitted.interlocution.duration).toBe(200);
+        // The glass tile toggle is offered (the field needs legible text)
+        const glass = container.querySelector('[data-presentation-glass]');
+        expect(glass).not.toBeNull();
+        expect(glass.checked).toBe(true);
 
         panel.destroy();
         container.remove();

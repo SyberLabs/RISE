@@ -40,6 +40,14 @@ import {
 // The five curated Klee presets (shared by Rhythmic chips and Genesis chips)
 const KLEE_PRESET_CHIP_IDS = ['architectural', 'chaotic', 'harmonic', 'gravitational', 'twittering'];
 
+// The three interlocution presentation surfaces. 'full-frame' cuts to an
+// opaque overlay; 'behind-stream' flashes beneath the reading; 'continuous'
+// (Gallery) is a persistent crossfading field behind the reading
+// (CONTINUOUS-FIELD-SPEC). Any other value normalizes to 'full-frame'.
+const PRESENTATION_SURFACES = Object.freeze(['full-frame', 'behind-stream', 'continuous']);
+const normalizePresentation = (value) =>
+    PRESENTATION_SURFACES.includes(value) ? value : 'full-frame';
+
 // Chapel vocabulary the panel can NAME without importing chapel content:
 // display labels only. The collections themselves stay Chapel-scoped
 // and never enter the browsable pool.
@@ -204,10 +212,10 @@ export class VisualInterlocutionPanel {
                     ? 'ascii'
                     : 'native',
                 // Presentation surface: behind-stream keeps the reading
-                // text visible beneath the imagery (no concealed swap)
-                presentation: (options.interlocution?.presentation ?? options.presentation) === 'behind-stream'
-                    ? 'behind-stream'
-                    : 'full-frame',
+                // text visible beneath the imagery (no concealed swap);
+                // continuous (Gallery) is a persistent field behind it.
+                presentation: normalizePresentation(
+                    options.interlocution?.presentation ?? options.presentation),
                 streamGlass: (options.interlocution?.streamGlass ?? options.streamGlass) !== false,
                 // Curated collections carried by an Atrium launch. Present
                 // only on Atrium-origin sessions; purely informational —
@@ -420,9 +428,7 @@ export class VisualInterlocutionPanel {
                 atriumCollections: nextAtriumCollections,
                 duration: normalizeVisualPresence(mergedInterlocution.duration),
                 renderLanguage: mergedInterlocution.renderLanguage === 'ascii' ? 'ascii' : 'native',
-                presentation: mergedInterlocution.presentation === 'behind-stream'
-                    ? 'behind-stream'
-                    : 'full-frame',
+                presentation: normalizePresentation(mergedInterlocution.presentation),
                 streamGlass: mergedInterlocution.streamGlass !== false,
                 globalPool: normalizeGlobalPoolSelection(mergedInterlocution.globalPool),
                 ...normalizeVisualSelection({
@@ -1008,7 +1014,8 @@ export class VisualInterlocutionPanel {
                             <div class="vi-source-family-options">
                                 ${[
                                     ['full-frame', 'Full frame'],
-                                    ['behind-stream', 'Behind stream']
+                                    ['behind-stream', 'Behind stream'],
+                                    ['continuous', 'Gallery']
                                 ].map(([id, label]) => `
                                     <button type="button"
                                         class="vi-source-family-btn ${this.config.interlocution.presentation === id ? 'active' : ''}"
@@ -1019,11 +1026,14 @@ export class VisualInterlocutionPanel {
                                 `).join('')}
                             </div>
                             <p class="vi-source-family-hint text-mist">
-                                ${this.config.interlocution.presentation === 'behind-stream'
+                                ${this.config.interlocution.presentation === 'continuous'
+                                    ? 'A gallery of the reading’s imagery holds behind the words, crossfading slowly — never a flash, never black.'
+                                    : this.config.interlocution.presentation === 'behind-stream'
                                     ? 'Imagery presents beneath the reading stream — the words never leave the screen.'
                                     : 'Imagery cuts to full frame, briefly replacing the reading stream.'}
                             </p>
-                            ${this.config.interlocution.presentation === 'behind-stream' ? `
+                            ${(this.config.interlocution.presentation === 'behind-stream'
+                                || this.config.interlocution.presentation === 'continuous') ? `
                                 <label class="vi-toggle-row">
                                     <input type="checkbox" data-presentation-glass
                                         ${this.config.interlocution.streamGlass !== false ? 'checked' : ''}>
@@ -1374,16 +1384,17 @@ export class VisualInterlocutionPanel {
 
         this.container.querySelectorAll('[data-presentation]').forEach(btn => {
             btn.addEventListener('click', () => {
-                const next = btn.dataset.presentation === 'behind-stream'
-                    ? 'behind-stream'
-                    : 'full-frame';
+                const next = normalizePresentation(btn.dataset.presentation);
                 const previous = this.config.interlocution.presentation;
                 if (next !== previous) {
-                    // Each surface has its own sensible presence default:
-                    // a full-frame cut reads at 200ms, imagery beneath the
-                    // text needs a full beat. Follow the surface only while
-                    // the duration is still an untouched default — an
-                    // explicit choice is never rewritten.
+                    // The flash surfaces each carry a sensible presence
+                    // default: a full-frame cut reads at 200ms, imagery
+                    // beneath the text needs a full beat. Follow the surface
+                    // only while the duration is still an untouched default —
+                    // an explicit choice is never rewritten. Gallery has no
+                    // flash rate, so presence duration does not apply to it
+                    // and is left as-is (restored if the reader returns to a
+                    // flash surface).
                     const duration = this.config.interlocution.duration;
                     if (next === 'behind-stream' && duration === VISUAL_PRESENCE_DEFAULT_MS) {
                         this.config.interlocution.duration = VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS;

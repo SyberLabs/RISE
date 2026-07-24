@@ -512,7 +512,9 @@ class App {
                                 frequency: interlocution.frequency ?? 0.2,
                                 duration: interlocution.duration ?? VISUAL_PRESENCE_DEFAULT_MS,
                                 renderLanguage: interlocution.renderLanguage === 'ascii' ? 'ascii' : 'native',
-                                presentation: interlocution.presentation === 'behind-stream' ? 'behind-stream' : 'full-frame',
+                                presentation: ['behind-stream', 'continuous'].includes(interlocution.presentation)
+                                    ? interlocution.presentation
+                                    : 'full-frame',
                                 activeTypes: activeTypes,
                                 kleePreset: interlocution.kleePreset ?? 'random',
                                 harmonographClimate: interlocution.harmonographClimate ?? 'auto',
@@ -1102,6 +1104,11 @@ class App {
         } else {
             root.classList.remove('photosensitivity-mode');
         }
+        // The Continuous Field runs on its own clock, so a live
+        // photosensitivity toggle must be pushed to it (the flash economy
+        // re-checks per flash; the field does not). Suspends it when the
+        // mode turns on, resumes it when the mode clears.
+        visualCortex.syncSafety();
 
         root.dataset.fontSize = this.settings?.fontSize || 'medium';
         root.classList.toggle('hide-session-progress', this.settings?.showProgress === false);

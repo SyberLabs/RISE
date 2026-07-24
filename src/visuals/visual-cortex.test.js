@@ -1293,3 +1293,97 @@ describe('Blend ledger is per-reading', () => {
         cortex.destroy?.();
     });
 });
+
+describe('Continuous Field (Gallery) wiring', () => {
+    afterEach(() => {
+        document.documentElement.classList.remove('photosensitivity-mode');
+        document.body.replaceChildren();
+    });
+
+    // Seed a category's resolved pool without a provider round-trip.
+    function seedPool(cortex, categoryId, urls) {
+        const pool = cortex._poolFor(categoryId);
+        pool.images = urls.map((url, i) => ({ url, name: `w${i}` }));
+        return pool;
+    }
+
+    function hostedContinuousCortex() {
+        grantVisualInterlocutionConsent();
+        const cortex = new VisualCortex();
+        // never touch the network in these tests
+        cortex._scheduleBackgroundWarm = () => {};
+        cortex._scheduleRollingRefresh = () => {};
+        // jsdom has no image pipeline; resolve the field's decode instantly
+        // so start() does not spawn a real (rejecting) Image().decode().
+        cortex._defaultDecode = async () => true;
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+        cortex.setContinuousFieldHost(host);
+        return { cortex, host };
+    }
+
+    it('does NOT start the field until mode, host, and consent all hold', () => {
+        const { cortex, host } = hostedContinuousCortex();
+        // host present + consent, but not in continuous mode
+        expect(cortex._continuousField?.running).toBeFalsy();
+        // enter continuous mode with a pool
+        seedPool(cortex, 'aic-oldmasters', ['a.jpg', 'b.jpg']);
+        cortex.updateConfig({ enabled: true, presentation: 'continuous', activeTypes: ['aic-oldmasters'] });
+        expect(cortex._continuousField?.running).toBe(true);
+        cortex.destroy();
+    });
+
+    it('the field pool is every resolved work across the active categories', () => {
+        const { cortex } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-oldmasters', ['a.jpg', 'b.jpg']);
+        seedPool(cortex, 'chapel-gospel-before-pilate', ['p.jpg']);
+        cortex.updateConfig({ enabled: true, presentation: 'continuous',
+            activeTypes: ['aic-oldmasters', 'chapel-gospel-before-pilate'] });
+        const urls = cortex._continuousPool().map(w => w.url).sort();
+        expect(urls).toEqual(['a.jpg', 'b.jpg', 'p.jpg']);
+        cortex.destroy();
+    });
+
+    it('the pool key follows the active categories (a pericope boundary decks a new cycle)', () => {
+        const { cortex } = hostedContinuousCortex();
+        cortex.updateConfig({ enabled: true, presentation: 'continuous', activeTypes: ['chapel-gospel-before-pilate'] });
+        const k1 = cortex._continuousPoolKey();
+        cortex.updateConfig({ activeTypes: ['chapel-gospel-flagellation'] });
+        const k2 = cortex._continuousPoolKey();
+        expect(k1).not.toBe(k2);
+        cortex.destroy();
+    });
+
+    it('flash() stands down in continuous mode', async () => {
+        const { cortex } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-oldmasters', ['a.jpg']);
+        cortex.updateConfig({ enabled: true, presentation: 'continuous', activeTypes: ['aic-oldmasters'] });
+        const result = await cortex.flash();
+        expect(result.reason).toBe('continuous-field');
+        cortex.destroy();
+    });
+
+    it('photosensitivity suspends the field; clearing it resumes', () => {
+        const { cortex } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-oldmasters', ['a.jpg']);
+        cortex.updateConfig({ enabled: true, presentation: 'continuous', activeTypes: ['aic-oldmasters'] });
+        expect(cortex._continuousField.running).toBe(true);
+        document.documentElement.classList.add('photosensitivity-mode');
+        cortex.syncSafety();
+        expect(cortex._continuousField.running).toBe(false);
+        document.documentElement.classList.remove('photosensitivity-mode');
+        cortex.syncSafety();
+        expect(cortex._continuousField.running).toBe(true);
+        cortex.destroy();
+    });
+
+    it('leaving continuous mode stops the field', () => {
+        const { cortex } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-oldmasters', ['a.jpg']);
+        cortex.updateConfig({ enabled: true, presentation: 'continuous', activeTypes: ['aic-oldmasters'] });
+        expect(cortex._continuousField.running).toBe(true);
+        cortex.updateConfig({ presentation: 'behind-stream' });
+        expect(cortex._continuousField.running).toBe(false);
+        cortex.destroy();
+    });
+});
