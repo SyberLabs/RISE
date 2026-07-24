@@ -1,7 +1,7 @@
 {
   "title": "RISE Gospel Art Concordance",
   "version": "research-draft-1",
-  "generated": "2026-07-23",
+  "generated": "2026-07-24",
   "scope": {
     "institutions": [
       "Art Institute of Chicago",
@@ -300,9 +300,9 @@
           "artist": "Albrecht Dürer",
           "medium": "woodcut",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200122440",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -311,9 +311,9 @@
           "artist": "",
           "medium": "woodcut",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200124519",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -355,9 +355,9 @@
           "artist": "Albrecht Dürer",
           "medium": "woodcut",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200122446",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -366,9 +366,9 @@
           "artist": "Albrecht Dürer",
           "medium": "woodcut",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200122444",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -463,9 +463,9 @@
           "artist": "Bernardino Butinone",
           "medium": "painting",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://www.artic.edu/artworks/16134",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -474,9 +474,9 @@
           "artist": "",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200383792",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -517,9 +517,9 @@
           "artist": "Lodovico Mazzolino",
           "medium": "painting",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/20028291",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -637,9 +637,9 @@
           "artist": "Martin Schongauer",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://www.artic.edu/artworks/3827",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -670,9 +670,9 @@
           "artist": "Cornelis Saftleven",
           "medium": "drawing",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200144296",
-          "note": "Directly depicts the command to turn stones into bread."
+          "note": "Directly depicts the command to turn stones into bread. · Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -726,9 +726,9 @@
           "artist": "Giuseppe Maria Crespi",
           "medium": "painting",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://www.artic.edu/artworks/2166",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -737,9 +737,9 @@
           "artist": "Jacob Matham",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200230363",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -748,9 +748,9 @@
           "artist": "Jacob Matham",
           "medium": "two-plate engraving",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200428834",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -784,9 +784,9 @@
           "artist": "Rembrandt van Rijn",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200124928",
-          "note": "The image is exact, but the same iconography can be assigned to either Johannine or Synoptic placement."
+          "note": "The image is exact, but the same iconography can be assigned to either Johannine or Synoptic placement. · Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -816,9 +816,9 @@
           "artist": "Pieter de Jode II",
           "medium": "drawing",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200148161",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -849,9 +849,9 @@
           "artist": "Pietro Perugino",
           "medium": "painting",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://www.artic.edu/artworks/16200",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -860,9 +860,9 @@
           "artist": "Rembrandt van Rijn",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200124940",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -893,9 +893,9 @@
           "artist": "",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200267740",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -958,9 +958,9 @@
           "artist": "Sébastien Bourdon",
           "medium": "painting",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://www.artic.edu/artworks/9672",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -1003,9 +1003,9 @@
           "artist": "Rembrandt van Rijn",
           "medium": "print",
           "relation": "COMPOSITE",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200126043",
-          "note": "Best used for a multi-episode ministry interval, not a single miracle."
+          "note": "Best used for a multi-episode ministry interval, not a single miracle. · Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -1064,9 +1064,9 @@
           "artist": "Pieter van der Borcht I",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200626632",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -1075,9 +1075,9 @@
           "artist": "Jacques de Gheyn II",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200485086",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -1110,9 +1110,9 @@
           "artist": "Christoffel van Sichem II",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200179614",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -1121,9 +1121,9 @@
           "artist": "Monogrammist AB",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200401646",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -1186,9 +1186,9 @@
           "artist": "",
           "medium": "painting",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200107987",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -1197,9 +1197,9 @@
           "artist": "Rembrandt van Rijn",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200125033",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "cleveland",
@@ -1239,9 +1239,9 @@
           "artist": "Pieter Sluyter",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200255893",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -1272,9 +1272,9 @@
           "artist": "Rembrandt van Rijn",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200125040",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -1303,9 +1303,9 @@
           "artist": "Rembrandt van Rijn",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://www.artic.edu/artworks/49000",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "aic",
@@ -1314,9 +1314,9 @@
           "artist": "Follower of Rembrandt",
           "medium": "painting",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://www.artic.edu/artworks/111467",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -1325,9 +1325,9 @@
           "artist": "Rembrandt van Rijn",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200124949",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -1356,9 +1356,9 @@
           "artist": "Gerbrand van den Eeckhout",
           "medium": "painting",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200110644",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -1367,9 +1367,9 @@
           "artist": "Giuseppe Camerata II",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200168676",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -1399,9 +1399,9 @@
           "artist": "Erasmus Quellinus II",
           "medium": "drawing",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/2009076",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -1410,9 +1410,9 @@
           "artist": "Jan Luyken",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200396204",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -1443,9 +1443,9 @@
           "artist": "Rembrandt van Rijn",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200124921",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -1476,9 +1476,9 @@
           "artist": "Johann Sadeler I",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200247822",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -1512,9 +1512,9 @@
           "artist": "Schelte Adamsz. Bolswert",
           "medium": "engraving",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200395198",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -1544,9 +1544,9 @@
           "artist": "Nicolas Bertin",
           "medium": "painting",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://www.artic.edu/artworks/58052",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -1578,9 +1578,9 @@
           "artist": "Jan Harmensz. Muller",
           "medium": "triptych print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200536193",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "cleveland",
@@ -1635,9 +1635,9 @@
           "artist": "Rembrandt van Rijn",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200124962",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "cleveland",
@@ -1720,9 +1720,9 @@
           "artist": "",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200403431",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -1731,9 +1731,9 @@
           "artist": "",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200403430",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -1766,9 +1766,9 @@
           "artist": "Hendrick ter Brugghen",
           "medium": "painting",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://www.artic.edu/artworks/30901",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -1788,9 +1788,9 @@
           "artist": "",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200225335",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -1822,9 +1822,9 @@
           "artist": "Rembrandt van Rijn",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200124976",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "aic",
@@ -1833,9 +1833,9 @@
           "artist": "Rembrandt van Rijn",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://www.artic.edu/artworks/49009",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "aic",
@@ -1844,9 +1844,9 @@
           "artist": "Pontormo",
           "medium": "drawing",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://www.artic.edu/artworks/109500",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -2142,9 +2142,9 @@
           "artist": "Guercino",
           "medium": "painting",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://www.artic.edu/artworks/86323",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "aic",
@@ -2153,9 +2153,9 @@
           "artist": "Rembrandt van Rijn",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://www.artic.edu/artworks/29120",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -2164,9 +2164,9 @@
           "artist": "",
           "medium": "painting",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/20027024",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -2175,9 +2175,9 @@
           "artist": "Federico Barocci",
           "medium": "drawing",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/20013267",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -2277,9 +2277,9 @@
           "artist": "Pietro Perugino",
           "medium": "painting",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://www.artic.edu/artworks/16207",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "cleveland",
@@ -2332,9 +2332,9 @@
           "artist": "Jan Steen",
           "medium": "painting",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/20026350",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -2343,9 +2343,9 @@
           "artist": "Rembrandt van Rijn",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200125018",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -2375,9 +2375,9 @@
           "artist": "Rembrandt van Rijn",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200125028",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -2386,9 +2386,9 @@
           "artist": "Antonie Wierix II",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200392481",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""
@@ -2419,9 +2419,9 @@
           "artist": "Reinier Vinkeles I",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200178954",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -2495,9 +2495,9 @@
           "artist": "",
           "medium": "",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://www.artic.edu/artworks/16313",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -2506,9 +2506,9 @@
           "artist": "Nicolaes de Bruyn",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200397609",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         },
         {
           "source": "rijks",
@@ -2517,9 +2517,9 @@
           "artist": "Cornelis Galle II",
           "medium": "print",
           "relation": "DIRECT",
-          "status": "needs_contact_sheet",
+          "status": "existing_pin",
           "source_url": "https://id.rijksmuseum.nl/200194093",
-          "note": ""
+          "note": "Contact-sheet reviewed 2026-07-24; kept."
         }
       ],
       "curatorial_note": ""

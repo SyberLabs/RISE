@@ -41,12 +41,14 @@ describe('pericope schedule compilation', () => {
     });
 
     it('a mapped episode with no admitted works compiles to explicit stillness', () => {
-        // before-pilate has no existing_pin works in the current canon
-        const segs = compileChapterSegments('matthew', 27);
-        const beforePilate = segs.find(s => s.id === 'before-pilate');
-        expect(beforePilate.cue.kind).toBe('still');
+        // the arrest (Mt 26:47-56) has no retained work — it stills,
+        // per "stillness outranks substitution"
+        const segs = compileChapterSegments('matthew', 26);
+        const arrest = segs.find(s => s.id === 'betrayal-arrest');
+        expect(arrest.cue.kind).toBe('still');
         // an episode WITH works compiles to a sourced cue
-        const crucifixion = segs.find(s => s.id === 'crucifixion');
+        const crucifixion = compileChapterSegments('matthew', 27)
+            .find(s => s.id === 'crucifixion');
         expect(crucifixion.cue.kind).toBe('sourced');
         expect(crucifixion.cue.collections[0]).toBe('chapel-gospel-crucifixion');
     });
@@ -57,13 +59,13 @@ describe('pericope schedule compilation', () => {
     });
 
     it('collections include only pericopes with admitted works, keyed by chapel-gospel-*', () => {
-        const colls = pericopeCollectionsForChapter('matthew', 27);
+        const colls = pericopeCollectionsForChapter('matthew', 26);
         for (const [id, entry] of Object.entries(colls)) {
             expect(id.startsWith('chapel-gospel-')).toBe(true);
             expect(entry.works.length).toBeGreaterThan(0);
         }
-        // before-pilate has no works → no collection
-        expect(colls[pericopeCollectionId('before-pilate')]).toBeUndefined();
+        // the arrest has no works → no collection
+        expect(colls[pericopeCollectionId('betrayal-arrest')]).toBeUndefined();
     });
 
     it('the compiled program is coordinate-space scripture with a fallback', () => {
