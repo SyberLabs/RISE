@@ -2247,6 +2247,28 @@
           "status": "existing_pin",
           "source_url": "https://www.clevelandart.org/art/133419",
           "note": ""
+        },
+        {
+          "source": "aic",
+          "id": 28173,
+          "title": "The Resurrection",
+          "artist": "Bartholomeus Breenbergh",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.artic.edu/artworks/28173",
+          "note": "Contact-sheet reviewed 2026-07-24; direct PD resurrection."
+        },
+        {
+          "source": "aic",
+          "id": 19336,
+          "title": "The Resurrection",
+          "artist": "Cecco del Caravaggio (Francesco Boneri)",
+          "medium": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "source_url": "https://www.artic.edu/artworks/19336",
+          "note": "Contact-sheet reviewed 2026-07-24; direct PD resurrection."
         }
       ],
       "curatorial_note": ""

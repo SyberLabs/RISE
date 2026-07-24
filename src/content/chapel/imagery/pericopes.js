@@ -4,7 +4,7 @@
  * Machine output of scripts/build-pericopes.mjs from
  * image_map/rise-gospel-art-concordance.json. DO NOT EDIT BY HAND —
  * edit the concordance JSON and rebuild. Only cleared, pin-ready works
- * are admitted (99 works across 50 pericopes with imagery;
+ * are admitted (101 works across 50 pericopes with imagery;
  * the rest resolve to stillness until their works clear review).
  *
  * PERICOPE-IMAGERY-SPEC §3.1. Verse ranges within a book never
@@ -260,7 +260,7 @@ export const GOSPEL_PERICOPES = Object.freeze([
     {
         id: "resurrection", title: "The Resurrection / Empty Tomb", coverage: "DIRECT",
         ranges: [{ book: "matthew", chapter: 28, verseStart: 1, verseEnd: 10 }, { book: "mark", chapter: 16, verseStart: 1, verseEnd: 8 }, { book: "luke", chapter: 24, verseStart: 1, verseEnd: 12 }, { book: "john", chapter: 20, verseStart: 1, verseEnd: 18 }],
-        works: [{ source: "cleveland", id: 78982 }, { source: "cleveland", id: 159717 }, { source: "rijks", id: 200109462 }, { source: "cleveland", id: 133419 }]
+        works: [{ source: "cleveland", id: 78982 }, { source: "cleveland", id: 159717 }, { source: "rijks", id: 200109462 }, { source: "cleveland", id: 133419 }, { source: "aic", id: 28173 }, { source: "aic", id: 19336 }]
     },
     {
         id: "noli-me-tangere", title: "Christ Appears to Mary Magdalene / Noli me tangere", coverage: "DIRECT",
