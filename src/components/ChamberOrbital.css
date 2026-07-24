@@ -756,6 +756,18 @@
   font-weight: var(--font-weight-regular);
 }
 
+/* The WPM readout updates as the arrow keys / slider modulate it. Its box
+   is a constant width (sized for the widest value, "500 WPM") with the
+   text right-anchored, so the digits update in place instead of the block
+   growing, shrinking, and jostling the label as the number changes. Mono
+   digits + a fixed frame = a steady readout. */
+#wpm-val {
+  display: inline-block;
+  min-width: 8ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Sliders */
 .slider {
   -webkit-appearance: none;

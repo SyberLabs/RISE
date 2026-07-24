@@ -143,11 +143,17 @@
     border-bottom: 1px solid var(--color-shadow);
 }
 
-/* Two-option families (Presentation, Render) fill the bar with two
-   equal chips instead of sitting in the four-column Source grid */
-.vi-render-language .vi-source-family-options,
-.vi-presentation-surface .vi-source-family-options {
+/* Render is two options: two equal chips instead of the four-column
+   Source grid. */
+.vi-render-language .vi-source-family-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Presentation is three options (Full frame, Behind stream, Gallery):
+   a single lateral split of three equal chips, never a 2x2 grid with an
+   empty cell. */
+.vi-presentation-surface .vi-source-family-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 /* Glass-tile toggle: the panel's pill-switch idiom at chip scale */
@@ -1221,6 +1227,12 @@
 
     .vi-source-family-options {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    /* Presentation keeps its three-way split at narrow widths too, so
+       Gallery never drops to a lonely second row. */
+    .vi-presentation-surface .vi-source-family-options {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .vi-checkbox-grid,
