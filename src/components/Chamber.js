@@ -4,6 +4,7 @@ import { AttractorField } from '../visuals/attractor.js';
 import { KleeField } from '../visuals/klee-field.js';
 import { escapeHtml } from '../core/sanitize.js';
 import { scoreAtoms, planInterlocution } from '../core/conductor.js';
+import { VisualScheduleController } from '../core/visual-scheduler.js';
 
 /**
  * Chamber Component
@@ -70,16 +71,19 @@ export class Chamber {
     // the reading and sends cues to the cortex. Lazy-built so a plain
     // session pays nothing. Chapel-agnostic: the Chamber wires the
     // controller to the cortex's generic applyCue and never inspects
-    // what the cue means.
+    // what the cue means. Built SYNCHRONOUSLY: an async import() here
+    // raced auto-start — the session began flashing before the
+    // scheduler existed, and every atom's observe() silently no-oped
+    // on a null _visualSchedule, so the pool never switched (the
+    // regression the reader caught in the live app). The module is
+    // tiny; a static import costs nothing and removes the race.
     this._visualSchedule = null;
     const program = this.session?.visualProgram;
     if (program && Array.isArray(program.segments) && program.segments.length) {
-      import('../core/visual-scheduler.js').then(({ VisualScheduleController }) => {
-        this._visualSchedule = new VisualScheduleController(
-          program,
-          (cue, meta) => visualCortex.applyCue(cue, meta)
-        );
-      }).catch(e => console.warn('[Chamber] visual schedule unavailable:', e));
+      this._visualSchedule = new VisualScheduleController(
+        program,
+        (cue, meta) => visualCortex.applyCue(cue, meta)
+      );
     }
 
     console.log('[Chamber] Constructor - session:', this.session);

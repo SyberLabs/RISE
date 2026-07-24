@@ -1847,6 +1847,42 @@
           "status": "existing_pin",
           "source_url": "https://www.artic.edu/artworks/109500",
           "note": "Contact-sheet reviewed 2026-07-24; kept."
+        },
+        {
+          "source": "rijks",
+          "id": 200419820,
+          "title": "Christus voor Pilatus",
+          "artist": "copy after Dürer",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "note": "Contact-sheet reviewed 2026-07-24 (creator-supplied); Dürer Passion copy."
+        },
+        {
+          "source": "rijks",
+          "id": 200395205,
+          "title": "Ecce Homo / Pilate shows Christ",
+          "artist": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "note": "Reviewed 2026-07-24; John 19 margin text."
+        },
+        {
+          "source": "rijks",
+          "id": 200194524,
+          "title": "Christ before Pilate (Passion series)",
+          "artist": "",
+          "relation": "COMPOSITE",
+          "status": "existing_pin",
+          "note": "Reviewed 2026-07-24; Mar 15:1-5, part of a passion series."
+        },
+        {
+          "source": "rijks",
+          "id": 200172519,
+          "title": "Christus en Barabbas voor Pilatus",
+          "artist": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "note": "Reviewed 2026-07-24."
         }
       ],
       "curatorial_note": ""
@@ -1880,6 +1916,42 @@
           "status": "hold",
           "source_url": "",
           "note": "Current Rosarium pin is Met 438466; no exact AIC/CMA/Rijks replacement selected in this pass."
+        },
+        {
+          "source": "rijks",
+          "id": 200109439,
+          "title": "The Flagellation",
+          "artist": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "note": "Contact-sheet reviewed 2026-07-24 (creator-supplied); PAINTING — flagellation gains its first admitted work."
+        },
+        {
+          "source": "rijks",
+          "id": 200271403,
+          "title": "Christus aan de geselpaal",
+          "artist": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "note": "Reviewed 2026-07-24."
+        },
+        {
+          "source": "rijks",
+          "id": 200391252,
+          "title": "Geseling van Christus",
+          "artist": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "note": "Reviewed 2026-07-24."
+        },
+        {
+          "source": "rijks",
+          "id": 200230169,
+          "title": "Christus aan de geselpaal (na de geseling)",
+          "artist": "",
+          "relation": "DIRECT",
+          "status": "existing_pin",
+          "note": "Reviewed 2026-07-24."
         }
       ],
       "curatorial_note": "Provider gap among the three requested institutions in the retained set; keep the existing Met work."

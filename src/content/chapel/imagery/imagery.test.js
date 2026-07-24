@@ -334,11 +334,10 @@ describe('Chapel handoff imagery (seam)', () => {
     expect(mt27.visualConfig.visualMode).toBe('interlocution');
     expect(mt27.visualConfig.interlocution.sourced).toEqual(['chapel-gospel-before-pilate']);
     expect(mt27.visualConfig.interlocution.duration).toBeGreaterThanOrEqual(1400);
-    // A chapter whose first episode has no works opens in stillness
-    // (an empty sourced pool) until the first imaged episode — John 19
-    // begins at the flagellation (19:1), which now has no admitted work
+    // John 19 opens at the flagellation (19:1), which now carries
+    // admitted works — so it opens on that pool
     const john19 = chapelSensoryConfig('john', null, 19);
-    expect(john19.visualConfig.interlocution.sourced).toEqual([]);
+    expect(john19.visualConfig.interlocution.sourced).toEqual(['chapel-gospel-flagellation']);
 
     // a whole Gospel still reads under the rose
     const john = chapelSensoryConfig('john');

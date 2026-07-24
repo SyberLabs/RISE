@@ -114,3 +114,39 @@ describe('Chamber rhythmic visual safety controls', () => {
     chamber.destroy();
   });
 });
+
+describe('Chamber visual program scheduling (PERICOPE-IMAGERY-SPEC)', () => {
+  it('builds the visual scheduler SYNCHRONOUSLY when a program is present', () => {
+    // The regression that stranded a Gospel reading on its first
+    // episode: an async import() raced auto-start, so the scheduler
+    // was null when the first atoms flowed. A synchronous build must
+    // make _visualSchedule available the instant the Chamber exists.
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const session = {
+      title: 'Mt27', atomCount: 1, atoms: [{ content: 'x', duration: 500, chapter: 27, verse: 1 }],
+      wpm: 240,
+      visualConfig: { visualMode: 'interlocution', interlocution: { frequency: 1, duration: 700, procedural: [], sourced: ['chapel-gospel-before-pilate'] } },
+      visualProgram: {
+        coordinateSpace: 'scripture', enabled: true,
+        segments: [
+          { id: 'before-pilate', match: { chapter: 27, verseStart: 1, verseEnd: 25 }, cue: { kind: 'sourced', collections: ['chapel-gospel-before-pilate'] } },
+          { id: 'flagellation', match: { chapter: 27, verseStart: 26, verseEnd: 26 }, cue: { kind: 'sourced', collections: ['chapel-gospel-flagellation'] } }
+        ],
+        fallback: { kind: 'still' }
+      }
+    };
+    const chamber = new Chamber(container, { session, player: fakePlayer(), autoStart: false });
+    expect(chamber._visualSchedule).not.toBeNull();
+    // and it actually switches the cortex on a boundary-crossing atom
+    const applySpy = vi.spyOn(visualCortex, 'applyCue');
+    chamber._visualSchedule.observe({ chapter: 27, verse: 26 });
+    expect(applySpy).toHaveBeenCalled();
+    expect(applySpy.mock.calls[0][0].collections).toEqual(['chapel-gospel-flagellation']);
+  });
+
+  it('no scheduler when the session carries no program (plain reading)', () => {
+    const { chamber } = mount();
+    expect(chamber._visualSchedule).toBeNull();
+  });
+});
