@@ -99,10 +99,10 @@ as the flash economy) and advances through it. When the pool grows
 (streaming pin resolution) or changes (a pericope cue), the field
 picks up the new works on its next advance — no reset, no black.
 
-⁇ **Selection within the pool:** pure ShuffleBag order, or weighted by
-anything (recency, the semantic signal)? Default: ShuffleBag order,
-matching the flash economy's fairness. Semantic-aware ordering is a
-possible future refinement.
+✦ **Selection within the pool: pure ShuffleBag order** (creator's
+ruling), matching the flash economy's fairness — every work shown
+before any repeats. Semantic-aware ordering is a possible future
+refinement, explicitly deferred.
 
 ## 4. Interaction with the pericope schedule
 
@@ -188,9 +188,9 @@ advance, whichever direction the head moved.
 A new presentation option in the interlocution section, beside
 "Behind stream":
 
-- ✦ **Field** (or "Gallery" / "Continuous" — name is the creator's
-  call at build time). Selecting it sets
-  `interlocution.presentation = 'continuous'`.
+- ✦ **Gallery** (creator's ruling). Selecting it sets
+  `interlocution.presentation = 'continuous'`. The user-facing label
+  is "Gallery"; the config value is `'continuous'`.
 - **Cadence** (optional, deferred): dwell/crossfade timing could be
   exposed, but sensible contemplative defaults (dwell ~10s, crossfade
   ~2s) ship first. A single "slower / faster" control is the likely
