@@ -336,15 +336,22 @@ export class ChamberOrbital {
     const { wpm, curve, chunkMode, soundscape, audioPreset, entrainmentMode,
       entrainmentWaveform, voiceEnabled, voiceId, selectedSwellId,
       visualInterlocution } = this.config;
+    // atriumCollections and the visual program are LAUNCH-SCOPED
+    // identity, not preferences — they belong to the specific reading
+    // that was launched, never to the tab. Persisting them would
+    // resurrect a "From this reading" pill on a fresh load with no
+    // source behind it (the pill-leak fix's persistence arm).
+    const { atriumCollections, ...persistableInterlocution } =
+      visualInterlocution.interlocution || {};
     const normalizedVisuals = {
       ...visualInterlocution,
       interlocution: {
-        ...(visualInterlocution.interlocution || {}),
+        ...persistableInterlocution,
         duration: normalizeVisualPresence(
-          visualInterlocution.interlocution?.duration
+          persistableInterlocution.duration
           ?? VISUAL_PRESENCE_DEFAULT_MS
         ),
-        ...normalizeVisualSelection(visualInterlocution.interlocution)
+        ...normalizeVisualSelection(persistableInterlocution)
       }
     };
     const payload = {

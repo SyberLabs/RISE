@@ -523,3 +523,15 @@ describe('ChamberOrbital origin chip', () => {
         b.container.remove();
     });
 });
+
+describe('Launch-scoped identity is not persisted (2026-07 pill-leak fix)', () => {
+    it('atriumCollections never enters the persisted prefs', () => {
+        const { orbital } = makeOrbital();
+        orbital.config.visualInterlocution.interlocution.atriumCollections = ['chapel-passion'];
+        orbital._persistPrefs();
+        const saved = JSON.parse(localStorage.getItem('rise_orbital_prefs_v1'));
+        const inter = saved.visualInterlocution?.interlocution || {};
+        expect('atriumCollections' in inter).toBe(false);
+        orbital.destroy();
+    });
+});

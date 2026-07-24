@@ -809,3 +809,43 @@ describe('Special Collection banner (PERICOPE-IMAGERY-SPEC)', () => {
         expect(container.querySelector('.vi-program-active')).toBeNull();
     });
 });
+
+describe('From-this-reading pill ownership across source changes (2026-07 leak fix)', () => {
+    const launch = (sourced, atriumCollections) => ({
+        visualMode: 'interlocution',
+        interlocution: { sourced, procedural: [], atriumCollections }
+    });
+
+    it('a Chapel→Atrium switch clears the Chapel domain flag and label', () => {
+        const { panel } = makePanel({ visualMode: 'interlocution' });
+        panel.setConfig(launch(['chapel-passion'], ['chapel-passion']));
+        expect(panel._chapelLaunch).toBe(true);
+        // switch to an Atrium blueprint launch
+        panel.setConfig(launch(['blueprint:beam-engine'], ['blueprint:beam-engine']));
+        expect(panel._chapelLaunch).toBe(false);
+        expect(panel.config.interlocution.atriumCollections).toEqual(['blueprint:beam-engine']);
+    });
+
+    it('a source that omits atriumCollections CLEARS it (no stale pill leak)', () => {
+        const { panel } = makePanel({ visualMode: 'interlocution' });
+        panel.setConfig(launch(['blueprint:beam-engine'], ['blueprint:beam-engine']));
+        expect(panel.config.interlocution.atriumCollections).toEqual(['blueprint:beam-engine']);
+        // a plain source (Yoga Sutras) that carries no collections
+        panel.setConfig({ visualMode: 'interlocution', interlocution: { sourced: ['solar'], procedural: [] } });
+        expect(panel.config.interlocution.atriumCollections).toEqual([]);
+    });
+
+    it('atriumCollections is launch-scoped and never persisted', () => {
+        // the pills belong to a launch, not the tab: a fresh load must
+        // not resurrect a "From this reading" chip. Asserted at the
+        // persistence seam in ChamberOrbital, mirrored here as the
+        // contract the panel relies on — atriumCollections is derived,
+        // not a saved preference.
+        const { panel } = makePanel({ visualMode: 'interlocution' });
+        panel.setConfig(launch(['chapel-passion'], ['chapel-passion']));
+        // a config with NO interlocution key leaves prior pills untouched
+        // (mode-only change), but any source-bearing config replaces them
+        panel.setConfig(launch(['gutenberg'], undefined));
+        expect(panel.config.interlocution.atriumCollections).toEqual([]);
+    });
+});

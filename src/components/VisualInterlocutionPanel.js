@@ -380,7 +380,8 @@ export class VisualInterlocutionPanel {
             // A preset/import that supplies any source-selection field owns
             // the complete selection. Missing sibling arrays mean empty,
             // never "preserve whatever paintings were selected before".
-            const selectionInput = hasVisualSelectionFields(incomingInterlocution)
+            const ownsSelection = hasVisualSelectionFields(incomingInterlocution);
+            const selectionInput = ownsSelection
                 ? {
                     sourceFamily: incomingInterlocution.sourceFamily,
                     procedural: Object.hasOwn(incomingInterlocution, 'procedural')
@@ -395,8 +396,28 @@ export class VisualInterlocutionPanel {
                 selectionInput.procedural,
                 selectionInput.sourced
             );
+            // LAUNCH-SCOPED IDENTITY (2026-07 pill-leak fix): the "From
+            // this reading" collections and the Chapel-domain flag belong
+            // to the SAME ownership as `sourced`. A config that owns the
+            // selection owns the reading's identity: it REPLACES
+            // atriumCollections (key-omission = cleared, not preserved)
+            // and re-derives the domain, so a Chapel→Atrium switch cannot
+            // strand the Beam Engine under the "Sacred collections" label,
+            // nor leave a removed source's pill behind after a swap.
+            const nextAtriumCollections = ownsSelection
+                ? (Array.isArray(incomingInterlocution.atriumCollections)
+                    ? [...incomingInterlocution.atriumCollections]
+                    : [])
+                : (this.config.interlocution.atriumCollections || []);
+            if (ownsSelection) {
+                // The Chapel-launch memory is recomputed from THIS reading,
+                // never carried across a source change.
+                this._chapelLaunch = nextAtriumCollections.some(
+                    id => id.startsWith('chapel-') || id.startsWith('dore:'));
+            }
             this.config.interlocution = {
                 ...mergedInterlocution,
+                atriumCollections: nextAtriumCollections,
                 duration: normalizeVisualPresence(mergedInterlocution.duration),
                 renderLanguage: mergedInterlocution.renderLanguage === 'ascii' ? 'ascii' : 'native',
                 presentation: mergedInterlocution.presentation === 'behind-stream'
