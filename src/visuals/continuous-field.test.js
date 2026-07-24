@@ -141,18 +141,40 @@ describe('ContinuousField', () => {
         field.stop();
     });
 
-    it('a works-less pool change fades the field to nothing (stillness)', async () => {
+    it('a works-less pool change (stillness) fades the field to nothing', async () => {
         let works = pool('a.jpg', 'b.jpg');
         const { field, host, clock } = mount({ getPool: () => works });
         field.start();
         await Promise.resolve(); await Promise.resolve();
         expect(field.currentUrl).toBeTruthy();
-        // the episode becomes works-less
+        // the episode becomes works-less BY DESIGN (a still pericope)
         works = [];
-        field.poolChanged();
+        field.poolChanged({ stillness: true });
         expect(field.currentUrl).toBeNull();
         const anyVisible = [...host.querySelectorAll('.continuous-field-layer')].some(l => l.style.opacity === '1');
         expect(anyVisible).toBe(false);
+        field.stop();
+    });
+
+    it('a cold pool change (warming, not stillness) HOLDS the current work', async () => {
+        let works = pool('old.jpg');
+        const { field, host, clock } = mount({ getPool: () => works });
+        field.start();
+        await Promise.resolve(); await Promise.resolve();
+        const held = field.currentUrl;
+        expect(held).toBe('old.jpg');
+        // the new episode's pool is momentarily empty (still warming) — the
+        // field must NOT fade to black; it holds the last work
+        works = [];
+        field.poolChanged({ stillness: false });
+        expect(field.currentUrl).toBe(held);
+        const stillShown = [...host.querySelectorAll('.continuous-field-layer')].some(l => l.style.opacity === '1');
+        expect(stillShown).toBe(true);
+        // when works arrive, the next tick reveals the new episode
+        works = pool('new.jpg');
+        clock.tick(1000);
+        await Promise.resolve(); await Promise.resolve();
+        expect(field.currentUrl).toBe('new.jpg');
         field.stop();
     });
 

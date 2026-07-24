@@ -26,6 +26,7 @@ import {
 import { MemoryCore } from '../core/memory.js';
 import { abortableDelay, createAbortError, isAbortError } from '../sources/visual/request.js';
 import { ShuffleBag } from '../sources/visual/shuffle-bag.js';
+import { ContinuousField } from './continuous-field.js';
 import { hasVisualInterlocutionConsent, VisualFlashGate } from '../core/visual-safety.js';
 import {
     VISUAL_PRESENCE_DEFAULT_MS,
@@ -131,6 +132,13 @@ export class VisualCortex {
         this._pendingKleeResize = false;
         this._flashGate = new VisualFlashGate();
         this._activePresentation = null;
+        // The Continuous Field (Gallery) presenter — a persistent
+        // crossfading gallery behind the reading (CONTINUOUS-FIELD-SPEC).
+        // Constructed lazily the first time 'continuous' presentation is
+        // requested with a host; it draws from the same resolved asset
+        // pools the flash economy uses, so it is a presenter, not a source.
+        this._continuousField = null;
+        this._continuousFieldHost = null;
         // Invalidates work that was already rendering when a stop request
         // arrived. The public cancellation method remains the single kill
         // path for both committed and not-yet-committed presentations.
@@ -361,6 +369,10 @@ export class VisualCortex {
         if (Array.isArray(meta.prefetch) && meta.prefetch.length) {
             this._prewarmProviderPools(meta.prefetch);
         }
+        // The updateConfig above already rotated activeTypes and — when the
+        // pool identity moved — told the Continuous Field to crossfade to
+        // the new episode (or still, when works-less). No separate notify
+        // is needed here; doing so would double-advance the wall.
     }
 
     async _prewarmProviderPools(collectionIds) {
@@ -373,6 +385,128 @@ export class VisualCortex {
                     timeoutMs: 8000
                 });
             } catch (e) { /* best-effort warmth; a miss costs nothing */ }
+        }
+    }
+
+    // ── The Continuous Field (Gallery) ──────────────────────────────
+    //
+    // A persistent crossfading gallery behind the reading, distinct from
+    // the flash economy (CONTINUOUS-FIELD-SPEC). It reads the SAME
+    // resolved asset pools the flash path uses, so it introduces no new
+    // source machinery — it is purely a second presenter. The cortex owns
+    // its lifecycle (start/stop follows presentation mode and safety); the
+    // Chamber supplies the DOM host it mounts its two layers in.
+
+    /**
+     * The Chamber hands the field a host element to mount its layers in
+     * (Step 3). Setting or clearing the host re-syncs the field.
+     */
+    setContinuousFieldHost(el) {
+        if (this._continuousFieldHost === el) return;
+        this._continuousFieldHost = el || null;
+        this._syncContinuousField();
+    }
+
+    _isContinuousMode() {
+        return this.config.presentation === 'continuous' && this.config.enabled !== false;
+    }
+
+    _continuousReducedMotion() {
+        return (typeof document !== 'undefined'
+            && document.documentElement.classList.contains('reduced-motion'))
+            || (typeof window !== 'undefined'
+                && typeof window.matchMedia === 'function'
+                && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    _continuousPhotosensitive() {
+        return typeof document !== 'undefined'
+            && document.documentElement.classList.contains('photosensitivity-mode');
+    }
+
+    /**
+     * The field's pool: every resolved work across the active external
+     * categories, mapped to the presenter's {url, title} shape. Read
+     * fresh on each advance so pool growth (streaming pin resolution) and
+     * cue swaps are picked up with no reset (CONTINUOUS-FIELD-SPEC §3.3).
+     */
+    _continuousPool() {
+        const categories = this._activePoolCategories();
+        const works = [];
+        const seen = new Set();
+        for (const categoryId of categories) {
+            const pool = this._assetPools.get(categoryId);
+            if (!pool) continue;
+            for (const asset of pool.images) {
+                const url = asset?.url || asset?.img?.src || '';
+                if (!url || seen.has(url)) continue;
+                seen.add(url);
+                works.push({ url, title: asset.name || '' });
+            }
+        }
+        // The flash economy nudges pool warmth from _getNextDiagram; in
+        // continuous mode flash() stands down, so the field is the one that
+        // must keep the pool filling toward target. Read cadence (~dwell)
+        // is a fine warm cadence — a cold or under-target pool schedules a
+        // warm, a full one a gentle rolling refresh.
+        if (categories.length > 0) {
+            const target = this._backgroundTarget();
+            const needsWarmth = categories.some(id => this._poolFor(id).images.length < target);
+            if (needsWarmth) this._scheduleBackgroundWarm(false);
+            else this._scheduleRollingRefresh();
+        }
+        return works;
+    }
+
+    /**
+     * A stable key for the active pool identity. A pericope boundary
+     * changes the active categories → a new key → the field's ShuffleBag
+     * decks a fresh no-repeat cycle. Mere growth of the same categories
+     * keeps the key (and the cycle).
+     */
+    _continuousPoolKey() {
+        return this._activePoolCategories().slice().sort().join('|') || 'default';
+    }
+
+    _ensureContinuousField() {
+        if (this._continuousField || !this._continuousFieldHost) return;
+        this._continuousField = new ContinuousField(this._continuousFieldHost, {
+            getPool: () => this._continuousPool(),
+            poolKey: () => this._continuousPoolKey(),
+            decode: (url) => this._defaultDecode(url),
+            reducedMotion: this._continuousReducedMotion()
+        });
+    }
+
+    /**
+     * Reconcile the field with the current mode and safety state. Started
+     * when 'continuous' is selected, enabled, has a host, and
+     * photosensitivity is off; stopped otherwise. Idempotent — safe to
+     * call on every config change.
+     */
+    _syncContinuousField() {
+        const shouldRun = this._isContinuousMode()
+            && !!this._continuousFieldHost
+            && !this._continuousPhotosensitive();
+        if (shouldRun) {
+            this._ensureContinuousField();
+            if (this._continuousField && !this._continuousField.running) {
+                this._continuousField.reducedMotion = this._continuousReducedMotion();
+                this._continuousField.start();
+            }
+        } else if (this._continuousField && this._continuousField.running) {
+            this._continuousField.stop();
+        }
+    }
+
+    /** A pericope/cue pool change: the field crossfades to the new pool. */
+    _notifyContinuousPoolChanged() {
+        if (this._continuousField && this._continuousField.running) {
+            // Stillness is a cue with no sourced categories at all (a
+            // works-less pericope); an empty pool WITH active categories is
+            // merely cold and warming, and must not fade the field to black.
+            const stillness = this._activePoolCategories().length === 0;
+            this._continuousField.poolChanged({ stillness });
         }
     }
 
@@ -428,7 +562,28 @@ export class VisualCortex {
             this._rotateAssetGeneration(nextConfig.activeTypes || this.config.activeTypes || []);
         }
 
+        const prevPresentation = this.config.presentation;
+        const prevPoolKey = this._continuousPoolKey();
         this.config = { ...this.config, ...nextConfig };
+
+        // Reconcile the Continuous Field. A presentation or enabled change
+        // starts/stops it; a category change (a pericope boundary reached
+        // via a direct updateConfig rather than applyCue) crossfades its
+        // wall to the new pool. applyCue notifies separately, so guard
+        // against a redundant double-advance by only notifying here when
+        // the pool key actually moved and we did not just (re)start.
+        if ('presentation' in nextConfig || 'enabled' in nextConfig
+            || this.config.presentation === 'continuous') {
+            const wasRunning = !!this._continuousField?.running;
+            this._syncContinuousField();
+            const nowRunning = !!this._continuousField?.running;
+            const justStarted = nowRunning && !wasRunning;
+            const presentationChanged = prevPresentation !== this.config.presentation;
+            if (nowRunning && !justStarted && !presentationChanged
+                && this._continuousPoolKey() !== prevPoolKey) {
+                this._notifyContinuousPoolChanged();
+            }
+        }
 
         // Forward klee session config — the wrapper value-compares (preset
         // string, signal contents) and only flushes on real changes, so
@@ -1895,6 +2050,13 @@ export class VisualCortex {
     */
     async flash(durationOverride, typeOverride, signal, lifecycle = {}) {
         const duration = normalizeVisualPresence(durationOverride ?? this.config.duration);
+        // The Continuous Field (Gallery) is its own presenter, not a flash
+        // source. In continuous mode the flash economy stands down entirely
+        // — the field holds the imagery behind the reading, and a flash
+        // here would be a discrete interrupt the mode exists to avoid.
+        if (this.config.presentation === 'continuous') {
+            return this._presentationResult(duration, 'continuous-field');
+        }
         // Photosensitivity mode is a global safety override: no visual
         // interrupts, regardless of session config or prior consent.
         if (typeof document !== 'undefined'
@@ -2189,6 +2351,11 @@ export class VisualCortex {
     destroy() {
         this.cancelPresentation('aborted');
         this._destroyed = true;
+        if (this._continuousField) {
+            this._continuousField.stop();
+            this._continuousField = null;
+        }
+        this._continuousFieldHost = null;
         this._assetAbortController.abort(createAbortError('Visual Cortex destroyed'));
         this._configVersion++;
         clearTimeout(this._backgroundWarmTimer);

@@ -201,16 +201,33 @@ export class ContinuousField {
 
     /**
      * The active pool changed (a pericope cue). Advance to the new
-     * pool's imagery on the next crossfade — or, when the new pool is
-     * works-less (stillness), fade the field to nothing. Increments the
-     * generation so any in-flight decode from the old pool is discarded.
+     * pool's imagery on the next crossfade — or, when the new episode is
+     * genuinely works-less (stillness), fade the field to nothing.
+     * Increments the generation so any in-flight decode from the old pool
+     * is discarded.
+     *
+     * @param {Object} [opts]
+     *   - stillness: true when the new episode has NO imagery by design
+     *     (a works-less pericope — the one sanctioned fade). Distinct from
+     *     a cold pool whose works are merely still warming: an empty pool
+     *     that is NOT stillness holds the current work and lets the
+     *     advance clock reveal the new episode once it warms, rather than
+     *     flashing to black. (CONTINUOUS-FIELD-SPEC §4, §8.)
      */
-    poolChanged() {
+    poolChanged(opts = {}) {
         if (!this._running) return;
         this._generation += 1;
         const pool = this.getPool() || [];
         if (pool.length === 0) {
-            this._fadeToNothing();
+            if (opts.stillness) {
+                // A genuinely works-less episode: fade to stillness.
+                this._fadeToNothing();
+            } else {
+                // Cold pool, warming: hold the current work; the advance
+                // clock reveals the new episode when its works resolve.
+                // Bring the next advance forward so the reveal is prompt.
+                this._nextAdvanceAt = this._now();
+            }
         } else {
             // crossfade to the new episode immediately, not on the next
             // dwell — the scene changed, the field should follow
