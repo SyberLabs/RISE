@@ -84,6 +84,12 @@ export class Chamber {
         program,
         (cue, meta) => visualCortex.applyCue(cue, meta)
       );
+      console.info(
+        `[Chamber] Visual schedule ready: ${program.segments.length} episodes`
+      );
+    } else if (this.session?.visualConfig?.interlocution?.sourced
+      ?.some(id => id.startsWith('chapel-gospel-'))) {
+      console.warn('[Chamber] Gospel episode selection has no visual schedule');
     }
 
     console.log('[Chamber] Constructor - session:', this.session);

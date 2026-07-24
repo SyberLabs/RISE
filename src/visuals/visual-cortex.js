@@ -354,6 +354,11 @@ export class VisualCortex {
      */
     applyCue(cue, meta = {}) {
         if (!cue || typeof cue !== 'object') return;
+        const cueLabel = meta.cueId || cue.kind || 'unknown';
+        const cueCollections = cue.kind === 'sourced' && Array.isArray(cue.collections)
+            ? cue.collections.join(', ')
+            : cue.kind;
+        console.info(`[Visual Cortex] Cue activated: ${cueLabel} → ${cueCollections}`);
         if (cue.kind === 'sourced' && Array.isArray(cue.collections) && cue.collections.length) {
             // A cue boundary can arrive while the previous atom's visual is
             // already committed. Let that honest presentation finish; the
@@ -430,6 +435,14 @@ export class VisualCortex {
             const status = await this._preloadDiagrams(INITIAL_POOL_TARGET);
             if (version === this._configVersion && !status.aborted) {
                 this._scheduleBackgroundWarm(status.minimumReady === false);
+                // Gallery was told about the cue while its new retained pool
+                // was still cold, so it correctly held the previous work.
+                // Wake it again the moment minimum readiness lands; otherwise
+                // it can wait a full dwell interval and visually skip a short
+                // episode such as Matthew 27's one-verse flagellation.
+                if (this._isContinuousMode()) {
+                    this._notifyContinuousPoolChanged();
+                }
             }
             return status;
         } catch (error) {

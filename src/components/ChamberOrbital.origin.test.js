@@ -4,6 +4,8 @@
  * that returns to the originating view; plain sessions show nothing.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { compileSession } from '../core/session-compiler.js';
+import { VisualScheduleController } from '../core/visual-scheduler.js';
 
 // jsdom has no indexedDB; PersonalSwells (unrelated to the chip) probes it
 // during orbital init. A never-settling stub keeps the run clean.
@@ -592,6 +594,78 @@ describe('reading-owned visual program persistence', () => {
         second.orbital.destroy();
         second.container.remove();
     });
+
+    it('repairs a pre-program persisted Gospel reading before Gallery begins', () => {
+        // This is the deployed failure captured in the live console: the
+        // reader entered Chamber directly from Portal, restoring Matthew 27
+        // from a record written before visualProgram persistence existed.
+        // Its first sourced preference survived, but no schedule could advance.
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
+            paceV2: true,
+            visualInterlocution: {
+                visualMode: 'interlocution',
+                interlocution: {
+                    presentation: 'continuous',
+                    procedural: [],
+                    sourced: ['chapel-gospel-before-pilate']
+                }
+            }
+        }));
+        localStorage.setItem('rise_orbital_text_v1', JSON.stringify({
+            text: '[v 27:1] And when morning was come.\n\n[v 27:26] Then he released Barabbas.',
+            textSource: 'The Chapel · Matthew 27',
+            origin: {
+                view: 'chapel',
+                icon: '✛',
+                name: 'Chapel',
+                data: { bookId: 'matthew', chapter: 27 }
+            },
+            provenance: { kind: 'chapel-book', bookId: 'matthew', chapter: 27 }
+            // Deliberately no visualProgram: legacy deployed record.
+        }));
+
+        const onBeginSession = vi.fn();
+        const restored = makeOrbital(onBeginSession);
+        expect(restored.orbital.config.visualProgram).toMatchObject({
+            coordinateSpace: 'scripture',
+            enabled: true,
+            segments: expect.arrayContaining([
+                expect.objectContaining({ id: 'before-pilate' }),
+                expect.objectContaining({ id: 'flagellation' }),
+                expect.objectContaining({ id: 'crowning-ecce-homo' })
+            ])
+        });
+
+        restored.orbital.beginSession();
+        expect(onBeginSession).toHaveBeenCalledWith(expect.objectContaining({
+            visualProgram: expect.objectContaining({
+                segments: expect.arrayContaining([
+                    expect.objectContaining({ id: 'flagellation' })
+                ])
+            })
+        }));
+        const beginPayload = onBeginSession.mock.calls[0][0];
+        const compiled = compileSession({
+            ...beginPayload,
+            title: beginPayload.source
+        });
+        const activated = [];
+        const schedule = new VisualScheduleController(
+            compiled.visualProgram,
+            cue => activated.push(cue.collections?.[0] || cue.kind)
+        );
+        compiled.atoms.forEach(atom => schedule.observe(atom));
+        expect(activated).toEqual([
+            'chapel-gospel-before-pilate',
+            'chapel-gospel-flagellation'
+        ]);
+        // Recovery is a one-time migration, not an in-memory workaround.
+        expect(JSON.parse(localStorage.getItem('rise_orbital_text_v1')).visualProgram)
+            .toBeDefined();
+
+        restored.orbital.destroy();
+        restored.container.remove();
+    });
 });
 
 describe('Launch-scoped identity is not persisted (2026-07 pill-leak fix)', () => {
@@ -763,6 +837,47 @@ describe('clearText resets launch-scoped visual identity (2026-07 Doré leak)', 
                 focals: expect.objectContaining({ type: 'standard' })
             })
         }));
+        orbital.destroy();
+        container.remove();
+    });
+
+    it('replaces a Rosa Mystica program fallback when switching to Rhythmic', () => {
+        const { orbital, container } = makeOrbital();
+        orbital.loadText('[v 1:1] The beginning...', 'The Chapel · John 1', {
+            visualProgram: {
+                coordinateSpace: 'scripture',
+                enabled: true,
+                segments: [{
+                    id: 'prologue',
+                    match: { chapter: 1, verseStart: 1, verseEnd: 18 },
+                    cue: {
+                        kind: 'sourced',
+                        collections: ['chapel-gospel-prologue']
+                    }
+                }],
+                fallback: {
+                    kind: 'focal',
+                    focal: { type: 'rose', seed: 12 }
+                }
+            },
+            visualConfig: {
+                visualMode: 'focals',
+                focals: { type: 'rose', seed: 12 },
+                interlocution: {
+                    procedural: [],
+                    sourced: ['chapel-gospel-prologue']
+                }
+            }
+        });
+
+        orbital.viPanel.hasConsent = true;
+        container.querySelector('[data-visual-mode="interlocution"]').click();
+
+        expect(orbital.config.visualInterlocution.focals.type).toBe('standard');
+        expect(orbital.config.visualProgram).toMatchObject({
+            enabled: true,
+            fallback: { kind: 'still' }
+        });
         orbital.destroy();
         container.remove();
     });

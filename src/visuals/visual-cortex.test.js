@@ -241,6 +241,30 @@ describe('VisualCortex Klee delegation', () => {
         expect(cortex.config.activeTypes).toEqual(['chapel-gospel-flagellation']);
     });
 
+    it('wakes Gallery as soon as a newly activated cue pool becomes ready', async () => {
+        const cortex = new VisualCortex();
+        cortex.config.enabled = true;
+        cortex.config.presentation = 'continuous';
+        cortex.config.activeTypes = ['chapel-gospel-before-pilate'];
+        vi.spyOn(cortex, '_preloadDiagrams').mockResolvedValue({
+            aborted: false,
+            minimumReady: true,
+            targetSatisfied: false
+        });
+        vi.spyOn(cortex, '_scheduleBackgroundWarm').mockImplementation(() => {});
+        const notify = vi.spyOn(cortex, '_notifyContinuousPoolChanged');
+
+        cortex.applyCue({
+            kind: 'sourced',
+            collections: ['chapel-gospel-flagellation']
+        }, { cueId: 'flagellation' });
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(notify).toHaveBeenCalledOnce();
+        expect(cortex.config.activeTypes).toEqual(['chapel-gospel-flagellation']);
+    });
+
     it('a cue swap preserves a visual that has already committed', () => {
         const cortex = new VisualCortex();
         cortex._activePresentation = { settled: false };

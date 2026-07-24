@@ -30,6 +30,10 @@ import {
   isLaunchHeldFocal,
   releaseLaunchHeldFocal
 } from '../core/visual-identity.js';
+import {
+  recoverLegacyChapelScriptureSources,
+  recoverLegacyChapelVisualProgram
+} from '../content/chapel/imagery/program-recovery.js';
 import './VisualInterlocutionPanel.css';
 
 // Last-used session settings survive across chamber visits (the orbital
@@ -301,7 +305,34 @@ export class ChamberOrbital {
         this.config.textSource = saved.textSource || null;
         this.config.origin = saved.origin || null;
         this.config.provenance = saved.provenance || null;
-        this.config.visualProgram = deserializeVisualProgram(saved.visualProgram);
+        const persistedProgram = deserializeVisualProgram(saved.visualProgram);
+        this.config.visualProgram = persistedProgram
+          || recoverLegacyChapelVisualProgram({
+            provenance: this.config.provenance,
+            origin: this.config.origin,
+            sources: this.config.sources,
+            textSource: this.config.textSource,
+            visualConfig: this.config.visualInterlocution
+          });
+        if (this.config.visualProgram) {
+          this.config.sources = recoverLegacyChapelScriptureSources({
+            provenance: this.config.provenance,
+            origin: this.config.origin,
+            sources: this.config.sources,
+            textSource: this.config.textSource,
+            text: this.config.text
+          });
+        }
+        if (!persistedProgram && this.config.visualProgram) {
+          console.info('[ChamberOrbital] Recovered legacy Chapel visual program', {
+            bookId: this.config.provenance?.bookId || this.config.origin?.data?.bookId,
+            chapter: this.config.provenance?.chapter || this.config.origin?.data?.chapter,
+            episodes: this.config.visualProgram.segments.length
+          });
+          // Heal the durable record immediately; every later visit takes the
+          // ordinary deserialize path and never depends on this migration.
+          this._persistText();
+        }
       }
     } catch (e) {
       console.warn('[ChamberOrbital] Could not read saved text:', e);
@@ -1384,7 +1415,23 @@ export class ChamberOrbital {
     // pass-through the schedule was compiled
     // by the handoff and then silently dropped here, so a Gospel
     // chapter stayed frozen on its first episode.
-    this.config.visualProgram = normalizeVisualProgram(config.visualProgram);
+    this.config.visualProgram = normalizeVisualProgram(config.visualProgram)
+      || recoverLegacyChapelVisualProgram({
+        provenance: this.config.provenance,
+        origin: config.origin,
+        sources: this.config.sources,
+        textSource: source,
+        visualConfig: config.visualConfig || this.config.visualInterlocution
+      });
+    if (this.config.visualProgram) {
+      this.config.sources = recoverLegacyChapelScriptureSources({
+        provenance: this.config.provenance,
+        origin: config.origin,
+        sources: this.config.sources,
+        textSource: source,
+        text
+      });
+    }
 
     // Launch origin for the wayfinding chip (null when launched plainly)
     this.config.origin = config.origin || null;
@@ -1531,7 +1578,8 @@ export class ChamberOrbital {
    */
   _unlockVisualProgramAfterFocalRelease() {
     const program = this.config.visualProgram;
-    if (!program || program.enabled !== false) return false;
+    if (!program) return false;
+    if (program.enabled === true && program.fallback?.kind === 'still') return false;
     this.config.visualProgram = {
       ...program,
       enabled: true,
