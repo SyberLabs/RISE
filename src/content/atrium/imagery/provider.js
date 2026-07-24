@@ -38,6 +38,13 @@ export class PinnedWorksProvider {
         this.name = options.name || 'Atrium curated works';
         this.contentType = 'image';
         this._collections = options.collections || ATRIUM_PINNED_COLLECTIONS;
+        // Chapel pericope launches replace the collection map per
+        // session (PERICOPE-IMAGERY-SPEC §6.1); the ShuffleBag state is
+        // keyed per collection id, so a swap does not disturb the
+        // rotation of collections that persist across it.
+        this.setCollections = (collections) => {
+            this._collections = collections || this._collections;
+        };
         // A curated collection is small — a dozen works at most — so raw
         // random selection would repeat a painting before the reader has
         // seen the rest. The bag exhausts the collection first.

@@ -326,6 +326,34 @@ export class VisualCortex {
      * Update the visual cortex configuration.
      * @param {Object} newConfig - Partial config object
      */
+    /**
+     * Render a generic visual cue (PERICOPE-IMAGERY-SPEC §6). The
+     * Chapel-agnostic bottom layer: the cortex receives cues, not
+     * coordinates — it never learns what a pericope is. A cue's kind
+     * selects the mechanism:
+     *   'sourced' → activate exactly these collection ids as the
+     *               rhythmic pool (swapping the previous cue's pools);
+     *               updateConfig already rotates the asset generation,
+     *               so a stale pool resolution from the prior cue can
+     *               never publish into the new one.
+     *   'still'   → suspend sourced imagery (the field goes dark;
+     *               any focal persists).
+     *   'focal'   → a persistent focal field (handled by the Chamber's
+     *               focal init, not here); the cortex simply stills its
+     *               rhythmic pool.
+     * The `meta` (cueId, generation) is diagnostic; the cortex's own
+     * generation rotation is the authority on staleness.
+     */
+    applyCue(cue, meta = {}) {
+        if (!cue || typeof cue !== 'object') return;
+        if (cue.kind === 'sourced' && Array.isArray(cue.collections) && cue.collections.length) {
+            this.updateConfig({ activeTypes: [...cue.collections] });
+        } else {
+            // 'still' / 'focal' / anything else → no sourced pool
+            this.updateConfig({ activeTypes: [] });
+        }
+    }
+
     updateConfig(newConfig) {
         const nextConfig = { ...newConfig };
         if (this._activePresentation && Object.keys(nextConfig).length > 0) {

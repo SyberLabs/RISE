@@ -14,9 +14,36 @@
  */
 
 import { PinnedWorksProvider } from '../../atrium/imagery/provider.js';
-import { CHAPEL_PINNED_COLLECTIONS, hasChapelCollection } from './collections.js';
+import { CHAPEL_PINNED_COLLECTIONS, hasChapelCollection as hasStaticChapelCollection } from './collections.js';
 
-export { hasChapelCollection };
+// Dynamic pericope collections (PERICOPE-IMAGERY-SPEC §6.1): a Gospel
+// chapter launch registers its chapter's pericope collections here,
+// keyed by their chapel-gospel-* ids. They live beside the static
+// painted collections; the cortex resolves both through the one
+// provider and never learns which is which. A launch replaces the
+// whole overlay, so a previous reading's pericopes never linger.
+let dynamicCollections = Object.freeze({});
+
+/** True for a static painted collection OR a registered pericope. */
+export function hasChapelCollection(id) {
+    return hasStaticChapelCollection(id) || Object.hasOwn(dynamicCollections, id);
+}
+
+/**
+ * Register (replacing) this session's dynamic pericope collections.
+ * Passing {} clears them (a non-Gospel or unmapped reading).
+ */
+export function setDynamicChapelCollections(collections) {
+    dynamicCollections = Object.freeze({ ...(collections || {}) });
+    // The provider holds a live reference to the merged view, so a
+    // fresh instance next call picks up the change; refresh the
+    // existing instance's collection map too.
+    if (instance) instance.setCollections(mergedCollections());
+}
+
+function mergedCollections() {
+    return { ...CHAPEL_PINNED_COLLECTIONS, ...dynamicCollections };
+}
 
 let instance = null;
 export function getChapelWorksProvider() {
@@ -24,7 +51,7 @@ export function getChapelWorksProvider() {
         instance = new PinnedWorksProvider({
             id: 'chapel-pinned',
             name: 'Chapel sacred works',
-            collections: CHAPEL_PINNED_COLLECTIONS
+            collections: mergedCollections()
         });
     }
     return instance;

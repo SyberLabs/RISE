@@ -186,7 +186,11 @@ export class Session {
     voiceId = null,
     selectedSwellId = null,
     // Liturgical sessions refuse traversal (LATERAL-TRAVERSAL-SPEC §8)
-    shuttleExempt = false
+    shuttleExempt = false,
+    // A generic coordinate-tagged visual schedule (PERICOPE-IMAGERY-
+    // SPEC §6): compiled by a content domain, followed by the runtime,
+    // opaque to the Session model. Absent for plain sessions.
+    visualProgram = null
   }) {
     const safeWpm = Number(wpm);
     const chunkModes = new Set(['word', 'phrase', 'sentence', 'paragraph']);
@@ -212,6 +216,8 @@ export class Session {
     this.voiceId = voiceId;
     this.selectedSwellId = selectedSwellId;
     this.shuttleExempt = shuttleExempt === true;
+    this.visualProgram = visualProgram && typeof visualProgram === 'object'
+      ? visualProgram : null;
     this.createdAt = new Date();
   }
 

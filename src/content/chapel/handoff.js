@@ -13,6 +13,14 @@
 
 import { CHAPEL_TRANSLATION, findChapelBook } from './corpus/manifest.js';
 import { findChapelIcon } from './imagery/icons.js';
+import {
+  compileVisualProgram,
+  pericopeCollectionsForChapter
+} from './imagery/pericope-program.js';
+import { setDynamicChapelCollections } from './imagery/provider.js';
+
+// The four Gospels carry pericope schedules; other books do not.
+const GOSPEL_BOOKS = new Set(['matthew', 'mark', 'luke', 'john']);
 
 export class ChapelHandoffError extends Error {
   constructor(code, message, details = {}) {
@@ -278,6 +286,30 @@ export function chapelSensoryConfig(bookId = null, iconId = null, chapter = null
         visualMode: 'off'
       };
 
+  // PERICOPE IMAGERY (PERICOPE-IMAGERY-SPEC §6): a Gospel chapter is
+  // read as a schedule of episodes. Compile the concordance into a
+  // GENERIC visual program (coordinate-tagged segments) and register
+  // this chapter's pericope collections with the chapel provider. The
+  // program is DISABLED (locked) when a chosen icon holds the focal —
+  // the fixed focal outranks the dynamic schedule. A chapter with no
+  // mapped pericopes gets no program (null): the reading keeps its
+  // ordinary rose/chapter/stillness config above.
+  let visualProgram = null;
+  if (chapter != null && GOSPEL_BOOKS.has(bookId)) {
+    const collections = pericopeCollectionsForChapter(bookId, chapter);
+    setDynamicChapelCollections(collections);
+    // The fallback for unmapped verses: whatever the reading would
+    // otherwise show. Under the rose (Gospels are ROSE_BOOKS) that is
+    // the rose window; with a chosen icon it is that icon; else still.
+    const fallbackCue = visualConfig.visualMode === 'focals'
+      ? { kind: 'focal', focal: visualConfig.focals }
+      : { kind: 'still' };
+    const enabled = !(iconId && iconId !== 'rosa-mystica'); // a true icon locks it
+    visualProgram = compileVisualProgram(bookId, chapter, fallbackCue, enabled);
+  } else {
+    setDynamicChapelCollections({}); // a non-Gospel reading clears the overlay
+  }
+
   return {
     wpm: 240,
     chunkMode: 'phrase',
@@ -287,7 +319,8 @@ export function chapelSensoryConfig(bookId = null, iconId = null, chapter = null
     // changes it in one click, and the fixed devotions (Rosary,
     // Stations) will still default to silence per the spec.
     soundscape: 'chant-gregorian',
-    visualConfig
+    visualConfig,
+    ...(visualProgram ? { visualProgram } : {})
   };
 }
 

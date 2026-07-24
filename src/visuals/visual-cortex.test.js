@@ -209,6 +209,19 @@ describe('VisualCortex Klee delegation', () => {
         expect(spy).toHaveBeenCalledWith({ preset: 'chaotic', signals: null });
     });
 
+    it('applyCue renders a generic sourced cue as the active pool (Chapel-agnostic)', () => {
+        const cortex = new VisualCortex();
+        cortex.applyCue({ kind: 'sourced', collections: ['chapel-gospel-crucifixion'] });
+        expect(cortex.config.activeTypes).toEqual(['chapel-gospel-crucifixion']);
+        // a still cue suspends the sourced pool
+        cortex.applyCue({ kind: 'still' });
+        expect(cortex.config.activeTypes).toEqual([]);
+        // a focal cue also stills the rhythmic pool (the focal is the
+        // Chamber's concern, not the cortex's flash pool)
+        cortex.applyCue({ kind: 'focal', focal: { type: 'rose' } });
+        expect(cortex.config.activeTypes).toEqual([]);
+    });
+
     it('normalizes render language independently of the active source set', () => {
         const cortex = new VisualCortex();
         cortex.updateConfig({ renderLanguage: 'ascii', activeTypes: ['klee'] });

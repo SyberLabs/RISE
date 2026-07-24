@@ -65,6 +65,23 @@ export class Chamber {
     this.currentWpm = this.baseWpm;
     this.speedHudTimeout = null;
 
+    // The visual schedule (PERICOPE-IMAGERY-SPEC §6): when the session
+    // carries a compiled visual program, a generic controller follows
+    // the reading and sends cues to the cortex. Lazy-built so a plain
+    // session pays nothing. Chapel-agnostic: the Chamber wires the
+    // controller to the cortex's generic applyCue and never inspects
+    // what the cue means.
+    this._visualSchedule = null;
+    const program = this.session?.visualProgram;
+    if (program && Array.isArray(program.segments) && program.segments.length) {
+      import('../core/visual-scheduler.js').then(({ VisualScheduleController }) => {
+        this._visualSchedule = new VisualScheduleController(
+          program,
+          (cue, meta) => visualCortex.applyCue(cue, meta)
+        );
+      }).catch(e => console.warn('[Chamber] visual schedule unavailable:', e));
+    }
+
     console.log('[Chamber] Constructor - session:', this.session);
     console.log('[Chamber] Session atoms:', this.session?.atoms);
     console.log('[Chamber] First atom:', this.session?.atoms?.[0]);
@@ -409,9 +426,16 @@ export class Chamber {
         }
       }, reason => visualCortex.cancelPresentation(reason));
 
-      this.player.on('atom', (data) => this.displayAtom(data.atom, data.index, {
-        concealed: data.concealed === true
-      }));
+      this.player.on('atom', (data) => {
+        // The visual schedule follows the reading (PERICOPE-IMAGERY-
+        // SPEC §6): each atom's coordinates drive at most one cue
+        // change, which the generic scheduler sends to the cortex.
+        // Chapel-agnostic — the Chamber knows nothing of pericopes.
+        this._visualSchedule?.observe(data.atom);
+        this.displayAtom(data.atom, data.index, {
+          concealed: data.concealed === true
+        });
+      });
       this.player.on('progress', (progress) => this.updateProgress(progress));
       this.player.on('complete', () => this.onSessionComplete());
       this.player.on('state', (state) => this.onStateChange(state));
