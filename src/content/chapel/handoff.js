@@ -239,21 +239,58 @@ const ROSE_BOOKS = new Set([
   'matthew', 'mark', 'luke', 'john'
 ]);
 
+/**
+ * The collections of a program's first segment — the pool the reading
+ * opens on (verse 1's episode). A first segment that stills, or a
+ * program with no sourced first segment, opens empty (stillness).
+ */
+function firstSegmentCollections(program) {
+  const first = program?.segments?.[0];
+  return first?.cue?.kind === 'sourced' && Array.isArray(first.cue.collections)
+    ? [...first.cue.collections]
+    : null;
+}
+
 export function chapelSensoryConfig(bookId = null, iconId = null, chapter = null) {
-  const collections = collectionsForReading(bookId, chapter);
+  // An icon id that is not pinned is ignored BEFORE any other
+  // decision — an ignored icon must behave exactly like no icon
+  // everywhere (pinned, never improvised). This must precede the
+  // program compile below, whose lock depends on whether a REAL icon
+  // was chosen.
+  if (iconId && iconId !== 'rosa-mystica' && !findChapelIcon(iconId)) iconId = null;
+  const hasTrueIcon = !!iconId && iconId !== 'rosa-mystica';
+
+  // A Gospel chapter with a pericope program is governed by the
+  // PROGRAM, not by the old chapter-level collections
+  // (CHAPTER_COLLECTIONS). Using collectionsForReading here would seed
+  // the session with the whole-chapter Passion pool, so the crucifixion
+  // flashed from verse 1 until the first cue fired. When a program
+  // exists, the chapter collection is suppressed; the program's own
+  // first segment becomes the initial sourced pool below. A true icon
+  // LOCKS the program (enabled: false) — the fixed focal wins.
+  const gospelChapterProgram = (chapter != null && GOSPEL_BOOKS.has(bookId))
+    ? compileVisualProgram(bookId, chapter, { kind: 'still' }, !hasTrueIcon)
+    : null;
+  const collections = gospelChapterProgram
+    ? null
+    : collectionsForReading(bookId, chapter);
 
   // The Icon mode is a MODE: a chosen icon holds the Chamber's focal
   // and the reading proceeds around it — it wins over the book's
-  // collections. "None" returns each book to its own imagery.
-  // Everything remains overridable in the orbital. An icon id that
-  // is not pinned is ignored — pinned, never improvised. The special
-  // id 'rosa-mystica' chooses the rose window instead of an icon.
-  // An icon id that is not pinned is ignored BEFORE any mode
-  // decision — an ignored icon must behave exactly like no icon
-  // (pinned, never improvised)
-  if (iconId && iconId !== 'rosa-mystica' && !findChapelIcon(iconId)) iconId = null;
+  // collections. "None" returns each book to its own imagery. The
+  // special id 'rosa-mystica' chooses the rose window instead.
   const wantsRose = iconId === 'rosa-mystica'
-    || (!iconId && !collections && ROSE_BOOKS.has(bookId));
+    || (!iconId && !collections && !gospelChapterProgram && ROSE_BOOKS.has(bookId));
+
+  // The initial sourced pool for a Gospel-chapter program: the FIRST
+  // segment's cue (verse 1's episode), so the reading opens on the
+  // right pericope rather than flashing a stale pool until the first
+  // atom is observed. A first segment that stills (works-less episode)
+  // opens empty. A program locked by a chosen icon yields no pool.
+  const programInitialSourced = (gospelChapterProgram && gospelChapterProgram.enabled)
+    ? firstSegmentCollections(gospelChapterProgram)
+    : null;
+
   const visualConfig = wantsRose
     ? {
       visualMode: 'focals',
@@ -266,7 +303,7 @@ export function chapelSensoryConfig(bookId = null, iconId = null, chapter = null
       visualMode: 'focals',
       focals: { type: 'icon', iconId }
     }
-    : collections
+    : (collections || gospelChapterProgram)
       ? {
         visualMode: 'interlocution',
         interlocution: {
@@ -274,11 +311,10 @@ export function chapelSensoryConfig(bookId = null, iconId = null, chapter = null
           frequency: 0.12,
           duration: 1600,
           procedural: [],
-          sourced: collections,
-          // Drives the "From this reading" pills in the visual panel,
-          // exactly as Atrium launches do — informational; `sourced`
-          // already carries the collections and stays editable.
-          atriumCollections: collections,
+          // A Gospel chapter opens on its program's first episode; a
+          // non-Gospel book uses its chapter/book collection.
+          sourced: gospelChapterProgram ? (programInitialSourced || []) : collections,
+          atriumCollections: gospelChapterProgram ? (programInitialSourced || []) : collections,
           responsive: false
         }
       }
@@ -287,25 +323,20 @@ export function chapelSensoryConfig(bookId = null, iconId = null, chapter = null
       };
 
   // PERICOPE IMAGERY (PERICOPE-IMAGERY-SPEC §6): a Gospel chapter is
-  // read as a schedule of episodes. Compile the concordance into a
-  // GENERIC visual program (coordinate-tagged segments) and register
-  // this chapter's pericope collections with the chapel provider. The
-  // program is DISABLED (locked) when a chosen icon holds the focal —
-  // the fixed focal outranks the dynamic schedule. A chapter with no
-  // mapped pericopes gets no program (null): the reading keeps its
-  // ordinary rose/chapter/stillness config above.
+  // read as a schedule of episodes. The program was compiled above
+  // (with a provisional 'still' fallback) to drive the initial pool;
+  // recompile once here with the RESOLVED fallback — under the rose
+  // that is the rose window, with a chosen icon that icon, else still
+  // — and register this chapter's pericope collections with the chapel
+  // provider so the cortex can resolve them.
   let visualProgram = null;
-  if (chapter != null && GOSPEL_BOOKS.has(bookId)) {
-    const collections = pericopeCollectionsForChapter(bookId, chapter);
-    setDynamicChapelCollections(collections);
-    // The fallback for unmapped verses: whatever the reading would
-    // otherwise show. Under the rose (Gospels are ROSE_BOOKS) that is
-    // the rose window; with a chosen icon it is that icon; else still.
+  if (gospelChapterProgram) {
+    setDynamicChapelCollections(pericopeCollectionsForChapter(bookId, chapter));
     const fallbackCue = visualConfig.visualMode === 'focals'
       ? { kind: 'focal', focal: visualConfig.focals }
       : { kind: 'still' };
-    const enabled = !(iconId && iconId !== 'rosa-mystica'); // a true icon locks it
-    visualProgram = compileVisualProgram(bookId, chapter, fallbackCue, enabled);
+    visualProgram = compileVisualProgram(
+      bookId, chapter, fallbackCue, gospelChapterProgram.enabled);
   } else {
     setDynamicChapelCollections({}); // a non-Gospel reading clears the overlay
   }

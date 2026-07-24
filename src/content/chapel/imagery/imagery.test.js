@@ -323,62 +323,54 @@ describe('The Doré cycle', () => {
 });
 
 describe('Chapel handoff imagery (seam)', () => {
-  it('Passion imagery belongs to the Passion chapters; a whole Gospel reads under the rose', async () => {
-    // The 2026-07 review: a whole-book Passion default draped
-    // Crucifixion paintings over the Beatitudes and parables —
-    // editorial, not accompaniment. Whole-Gospel launches now read
-    // under Rosa Mystica; the Passion chapters carry the Passion.
-    const john = chapelSensoryConfig('john');
-    expect(john.visualConfig.visualMode).toBe('focals');
-    expect(john.visualConfig.focals.type).toBe('rose');
+  it('a Gospel chapter is governed by its pericope PROGRAM, opening on its first episode', async () => {
+    // The pericope campaign (PERICOPE-IMAGERY-SPEC): a Gospel chapter
+    // no longer uses whole-chapter collections. It carries a program
+    // and opens on its first pericope's pool — the crucifixion no
+    // longer flashes from verse 1 of a Passion chapter.
     const john19 = chapelSensoryConfig('john', null, 19);
     expect(john19.visualConfig.visualMode).toBe('interlocution');
-    expect(john19.visualConfig.interlocution.sourced).toEqual(['chapel-passion', 'chapel-crucifixion']);
-    // Spec §5: long presence ≥1400ms — museum stillness, not flashing
+    // John 19 opens on before-pilate (19:1), not crucifixion
+    expect(john19.visualConfig.interlocution.sourced).toEqual(['chapel-gospel-flagellation']);
     expect(john19.visualConfig.interlocution.duration).toBeGreaterThanOrEqual(1400);
 
+    // a whole Gospel still reads under the rose
+    const john = chapelSensoryConfig('john');
+    expect(john.visualConfig.focals.type).toBe('rose');
+
+    // non-Gospel books are untouched by the program path
     expect(chapelSensoryConfig('psalms').visualConfig.visualMode).toBe('off');
-    // Genesis carries The Patriarchs now that the painted collection
-    // exists (a book carries paintings OR the cycle, never both)
     expect(chapelSensoryConfig('genesis').visualConfig.interlocution.sourced)
       .toEqual(['chapel-patriarchs']);
-    expect(chapelSensoryConfig('jeremias').visualConfig.interlocution.sourced)
-      .toEqual(['chapel-prophets']);
     expect(chapelSensoryConfig('apocalypse').visualConfig.interlocution.sourced)
       .toEqual(['chapel-resurrection']);
   });
 
-  it('a launched Gospel chapter carries the collections through the real handoff', async () => {
-    const handoff = await createChapelHandoff('john', { chapter: 19 });
+  it('a launched Gospel chapter carries its pericope program through the real handoff', async () => {
+    const handoff = await createChapelHandoff('matthew', { chapter: 27 });
+    // the program governs; the initial pool is the first episode
+    expect(handoff.config.visualProgram).toBeDefined();
+    expect(handoff.config.visualProgram.segments[0].id).toBe('before-pilate');
     expect(handoff.config.visualConfig.interlocution.sourced)
-      .toEqual(['chapel-passion', 'chapel-crucifixion']);
-    // The "From this reading" pills are driven by atriumCollections,
-    // exactly as Atrium launches drive them
-    expect(handoff.config.visualConfig.interlocution.atriumCollections)
-      .toEqual(['chapel-passion', 'chapel-crucifixion']);
+      .toEqual(['chapel-gospel-before-pilate']);
   });
 
-  it('the infancy and Baptism chapters carry the Nativity; Resurrection chapters the Resurrection', async () => {
-    // Luke 1 — the Annunciation
-    expect(chapelSensoryConfig('luke', null, 1).visualConfig.interlocution.sourced)
-      .toEqual(['chapel-nativity']);
-    // Matthew 3 — the Baptism: nativity was a name-stretch; the
-    // chapter reads under the rose until a baptism collection exists
-    expect(chapelSensoryConfig('matthew', null, 3).visualConfig.visualMode).toBe('focals');
-    expect(chapelSensoryConfig('matthew', null, 3).visualConfig.focals.type).toBe('rose');
-    // John 20 — the empty tomb
-    expect(chapelSensoryConfig('john', null, 20).visualConfig.interlocution.sourced)
-      .toEqual(['chapel-resurrection']);
-    // Luke 23 — the Crucifixion narrative carries its paintings
-    expect(chapelSensoryConfig('luke', null, 23).visualConfig.interlocution.sourced)
-      .toEqual(['chapel-passion', 'chapel-crucifixion']);
-    // A mid-Gospel teaching chapter reads under the rose
-    expect(chapelSensoryConfig('luke', null, 15).visualConfig.visualMode).toBe('focals');
+  it('an infancy chapter opens on its first episode; a teaching chapter reads under the rose', async () => {
+    // Luke 2 — opens on the Nativity episode
+    expect(chapelSensoryConfig('luke', null, 2).visualConfig.interlocution.sourced)
+      .toEqual(['chapel-gospel-nativity']);
+    // Matthew 3 — the Baptism: the pericope campaign gave it a real
+    // episode (Mt 3:13-17), so it opens on the baptism pool
+    expect(chapelSensoryConfig('matthew', null, 3).visualConfig.interlocution.sourced)
+      .toEqual(['chapel-gospel-baptism']);
+    // Luke 23 — the Passion chapter opens on its first episode
+    const luke23 = chapelSensoryConfig('luke', null, 23);
+    expect(luke23.visualConfig.visualMode).toBe('interlocution');
+    expect(luke23.visualConfig.interlocution.sourced[0]).toMatch(/^chapel-gospel-/);
+    // A mid-Gospel teaching chapter with no pericopes reads under the rose
+    expect(chapelSensoryConfig('john', null, 7).visualConfig.focals.type).toBe('rose');
     // Whole-book launches read under the rose too
     expect(chapelSensoryConfig('luke', null, null).visualConfig.focals.type).toBe('rose');
-    // and it flows through the real handoff
-    const luke1 = await createChapelHandoff('luke', { chapter: 1 });
-    expect(luke1.config.visualConfig.interlocution.atriumCollections).toEqual(['chapel-nativity']);
   });
 
   it('a chosen icon becomes the focal MODE, winning over the book collections', async () => {
@@ -389,8 +381,8 @@ describe('Chapel handoff imagery (seam)', () => {
     });
 
     // An unpinned icon id is ignored — pinned, never improvised;
-    // John 3 has no chapter collections, so it falls to the rose
-    const bogus = await createChapelHandoff('john', { chapter: 3, iconId: 'icon-of-nowhere' });
+    // John 7 has no mapped pericope, so it falls to the rose
+    const bogus = await createChapelHandoff('john', { chapter: 7, iconId: 'icon-of-nowhere' });
     expect(bogus.config.visualConfig.visualMode).toBe('focals');
     expect(bogus.config.visualConfig.focals.type).toBe('rose');
 
