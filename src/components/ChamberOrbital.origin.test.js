@@ -574,4 +574,62 @@ describe('clearText resets launch-scoped visual identity (2026-07 Doré leak)', 
         expect(orbital.config.visualProgram).toBeNull();
         orbital.destroy();
     });
+
+    // The Chapel-HELD focal (an Icon, or the per-book Rosa Mystica) is
+    // launch-scoped exactly like the pills: it must not outlive the reading
+    // that seeded it. Before this fix, "✛ The Transfiguration · Held from
+    // the Chapel" stranded in the panel after the Chapel reading was gone,
+    // because a plain text carries no visualConfig and so never overwrote
+    // focals (2026-07).
+    const launchChapelIcon = (orbital, iconId) => {
+        orbital.loadText('Chapel text', 'The Chapel · Matthew 17', {
+            visualConfig: {
+                visualMode: 'focals',
+                focals: { type: 'icon', iconId }
+            }
+        });
+    };
+
+    it('releases a Chapel-held Icon focal on clear-text', () => {
+        const { orbital } = makeOrbital();
+        launchChapelIcon(orbital, 'icon-transfiguration');
+        expect(orbital.config.visualInterlocution.focals.type).toBe('icon');
+        orbital.clearText();
+        expect(orbital.config.visualInterlocution.focals.type).toBe('standard');
+        expect(orbital.config.visualInterlocution.focals.iconId).toBeNull();
+        orbital.destroy();
+    });
+
+    it('releases a Chapel-held Icon focal when a plain text is loaded next', () => {
+        const { orbital } = makeOrbital();
+        launchChapelIcon(orbital, 'icon-transfiguration');
+        // a plain library text carries no visualConfig — the icon must not
+        // survive into it
+        orbital.loadText('Plain prose.', 'Plain', {});
+        expect(orbital.config.visualInterlocution.focals.type).toBe('standard');
+        expect(orbital.config.visualInterlocution.focals.iconId).toBeNull();
+        orbital.destroy();
+    });
+
+    it('releases a per-book Rosa Mystica focal on clear-text', () => {
+        const { orbital } = makeOrbital();
+        orbital.loadText('Chapel text', 'The Chapel · Psalm 23', {
+            visualConfig: { visualMode: 'focals', focals: { type: 'rose', roseMode: 'vitrum' } }
+        });
+        expect(orbital.config.visualInterlocution.focals.type).toBe('rose');
+        orbital.clearText();
+        expect(orbital.config.visualInterlocution.focals.type).toBe('standard');
+        orbital.destroy();
+    });
+
+    it('a standard glyph (a user choice, not Chapel-held) survives clear-text', () => {
+        const { orbital } = makeOrbital();
+        orbital.loadText('text', 'Source', {
+            visualConfig: { visualMode: 'focals', focals: { type: 'standard', standardGlyph: 'spiral' } }
+        });
+        orbital.clearText();
+        expect(orbital.config.visualInterlocution.focals.type).toBe('standard');
+        expect(orbital.config.visualInterlocution.focals.standardGlyph).toBe('spiral');
+        orbital.destroy();
+    });
 });

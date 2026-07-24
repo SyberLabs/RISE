@@ -1473,10 +1473,32 @@ export class ChamberOrbital {
     this.config.visualProgram = null;
     const inter = this.config.visualInterlocution?.interlocution;
     if (inter) inter.atriumCollections = [];
+    // The Chapel-HELD focal — an Icon (type:'icon') or the per-book Rosa
+    // Mystica (type:'rose') — is seeded by the Chapel launch and belongs
+    // to that reading, exactly like the pericope program and the pills.
+    // Without releasing it here, clearing a Chapel reading and loading a
+    // plain text (which carries no visualConfig and so never overwrites
+    // focals) stranded "✛ The Transfiguration · Held from the Chapel" in
+    // the panel — the same launch-scope leak the pills had (2026-07). A
+    // real new Chapel launch re-seeds its own icon via visualConfig after
+    // this reset, so nothing legitimate is lost. The standard glyphs and
+    // a Personal image are user choices, never Chapel-held: they survive.
+    const focals = this.config.visualInterlocution?.focals;
+    if (focals && (focals.type === 'icon' || focals.type === 'rose')) {
+      focals.type = 'standard';
+      focals.standardGlyph = focals.standardGlyph || 'breath';
+      focals.iconId = null;
+    }
     if (this.viPanel) {
       this.viPanel._chapelLaunch = false;
       if (this.viPanel.config.interlocution) {
         this.viPanel.config.interlocution.atriumCollections = [];
+      }
+      const panelFocals = this.viPanel.config.focals;
+      if (panelFocals && (panelFocals.type === 'icon' || panelFocals.type === 'rose')) {
+        panelFocals.type = 'standard';
+        panelFocals.standardGlyph = panelFocals.standardGlyph || 'breath';
+        panelFocals.iconId = null;
       }
       this.viPanel.setProgramInfo?.(null);
     }
