@@ -261,6 +261,34 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
         });
     }
 
+    // SCRIPTURE ANCHORS (PERICOPE-IMAGERY-SPEC §4): prepareScripture
+    // parsed the ingest's [v C:V] sentinels into verse anchors keyed
+    // by non-empty-paragraph ordinal — the same split this loop walks.
+    // Build a per-paragraph (chapter, verse) map, each paragraph
+    // inheriting the last anchor at or before it (verse text may wrap
+    // across paragraphs). Purely additive: no anchors → no map → no
+    // atom is stamped, and every non-Chapel source is untouched.
+    const verseByParagraph = new Map();
+    const scriptureAnchors = Array.isArray(hints?.scripture?.verseAnchors)
+        ? hints.scripture.verseAnchors
+        : null;
+    if (scriptureAnchors && scriptureAnchors.length > 0) {
+        // Index anchors by their paragraph ordinal, then sweep the
+        // paragraph array carrying the current verse forward.
+        const anchorByOrdinal = new Map();
+        for (const a of scriptureAnchors) {
+            if (Number.isInteger(a.paragraph)) anchorByOrdinal.set(a.paragraph, a);
+        }
+        let ordinal = 0;
+        let current = null;
+        for (let index = 0; index < paragraphs.length; index++) {
+            if (paragraphs[index].trim() === '') continue; // prepareScripture skipped these too
+            if (anchorByOrdinal.has(ordinal)) current = anchorByOrdinal.get(ordinal);
+            if (current) verseByParagraph.set(index, current);
+            ordinal += 1;
+        }
+    }
+
     let position = 0;
 
     for (let paragraphIndex = 0; paragraphIndex < paragraphs.length; paragraphIndex += 1) {
@@ -284,6 +312,12 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
             }));
             continue;
         }
+
+        // Every atom minted from THIS paragraph inherits its verse
+        // (PERICOPE-IMAGERY-SPEC §4). Record the boundary; stamp the
+        // range once the paragraph's atoms are pushed.
+        const verse = verseByParagraph.get(paragraphIndex) || null;
+        const atomsBeforeParagraph = atoms.length;
 
         // Split based on mode
         let chunks;
@@ -384,6 +418,17 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
             && syntheticSpeakerBoundaries.has(nextSpeakerOrdinal);
         // A promoted inline marker IS the authored pause — adding a
         // paragraph break beside it would double-count the silence
+        // Stamp this paragraph's atoms with their verse. The
+        // paragraph-break atom appended below belongs to no verse —
+        // it is structural silence — so it is deliberately outside
+        // this range.
+        if (verse) {
+            for (let i = atomsBeforeParagraph; i < atoms.length; i++) {
+                atoms[i].chapter = verse.chapter;
+                atoms[i].verse = verse.verse;
+            }
+        }
+
         // (and change Word mode's historical timing for inline markers)
         const nextIsMarker = paragraphIndex + 1 < paragraphs.length
             && checkMarker(paragraphs[paragraphIndex + 1].trim()).isMarker;

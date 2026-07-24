@@ -274,3 +274,55 @@ describe('estimateDuration', () => {
     expect(estimateDuration('', 220)).toBe(0);
   });
 });
+
+describe('scripture verse anchoring (PERICOPE-IMAGERY-SPEC §4)', () => {
+  // The shape prepareScripture emits: anchors keyed by non-empty
+  // paragraph ordinal, sentinels already stripped from the text.
+  const scriptureHints = anchors => ({ scripture: { verseAnchors: anchors } });
+
+  it('stamps each atom with the verse of its paragraph', () => {
+    const text = 'In the beginning was the Word.\n\nAnd the Word was God.';
+    const atoms = chunkText(text, {
+      mode: 'sentence',
+      hints: scriptureHints([
+        { paragraph: 0, chapter: 1, verse: 1 },
+        { paragraph: 1, chapter: 1, verse: 2 }
+      ])
+    });
+    const worded = atoms.filter(a => a.content.trim());
+    expect(worded[0].chapter).toBe(1);
+    expect(worded[0].verse).toBe(1);
+    expect(worded[worded.length - 1].verse).toBe(2);
+  });
+
+  it('a paragraph with no anchor inherits the last verse in force', () => {
+    // verse text wrapping across the chunker's paragraph split: only
+    // the first paragraph carries an anchor
+    const text = 'First line of the verse.\n\nSecond line, same verse.';
+    const atoms = chunkText(text, {
+      mode: 'sentence',
+      hints: scriptureHints([{ paragraph: 0, chapter: 3, verse: 16 }])
+    });
+    const worded = atoms.filter(a => a.content.trim());
+    expect(worded.every(a => a.chapter === 3 && a.verse === 16)).toBe(true);
+  });
+
+  it('structural silence (paragraph breaks) carries no verse', () => {
+    const text = 'Verse one text.\n\nVerse two text.';
+    const atoms = chunkText(text, {
+      mode: 'word',
+      hints: scriptureHints([
+        { paragraph: 0, chapter: 1, verse: 1 },
+        { paragraph: 1, chapter: 1, verse: 2 }
+      ])
+    });
+    const breaks = atoms.filter(a => a.tags.includes('paragraph-break'));
+    expect(breaks.length).toBeGreaterThan(0);
+    expect(breaks.every(a => a.chapter === undefined && a.verse === undefined)).toBe(true);
+  });
+
+  it('is inert without scripture hints — no atom is stamped', () => {
+    const atoms = chunkText('Plain prose, no scripture.', { mode: 'word' });
+    expect(atoms.every(a => a.chapter === undefined && a.verse === undefined)).toBe(true);
+  });
+});
