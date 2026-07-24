@@ -48,3 +48,6 @@ playwright-report/
 # Curia transactional write artifacts
 src/sources/visual/museum-pins.js.*.bak
 src/sources/visual/museum-pins.js.tmp
+
+# Raw source media — the compressed, cropped web assets ship from public/portal/
+/videos/

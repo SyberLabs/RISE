@@ -33,14 +33,16 @@ describe('Portal SOL strip', () => {
         expect(secondary).toHaveLength(3);
         expect([...secondary].map(el => el.dataset.nav)).toEqual(['vault', 'library', 'workshop']);
 
-        const door = container.querySelector('.portal-atrium-door');
+        // The Atrium is now a stone archway in the side margin, not a
+        // stacked door — but the same nav hook and living detail hold.
+        const door = container.querySelector('.portal-arch-atrium');
         expect(door).not.toBeNull();
         expect(door.dataset.nav).toBe('atrium');
-        expect(door.querySelector('.atrium-door-name').textContent).toBe('Atrium');
-        // The door renders complete before any lazy detail arrives
+        expect(door.querySelector('.portal-arch-name').textContent).toBe('Atrium');
+        // The arch renders complete before any lazy detail arrives
         expect(door.querySelector('.atrium-door-detail').textContent.length).toBeGreaterThan(0);
 
-        const strip = container.querySelector('.portal-sol-strip');
+        const strip = container.querySelector('.portal-arch-sol');
         expect(strip).not.toBeNull();
         expect(strip.dataset.nav).toBe('sol');
 
@@ -48,15 +50,15 @@ describe('Portal SOL strip', () => {
         container.remove();
     });
 
-    it('clicking the Atrium door navigates to the Atrium', () => {
+    it('clicking the Atrium arch navigates to the Atrium', () => {
         const { portal, container, onNavigate } = makePortal();
-        container.querySelector('.portal-atrium-door').click();
+        container.querySelector('.portal-arch-atrium').click();
         expect(onNavigate).toHaveBeenCalledWith('atrium');
         portal.destroy();
         container.remove();
     });
 
-    it('deepens the Atrium door with today\'s featured sequence at idle', async () => {
+    it('deepens the Atrium arch with today\'s featured sequence at idle', async () => {
         const { portal, container } = makePortal();
 
         // The populate hook is what idle scheduling invokes; call it
@@ -65,19 +67,21 @@ describe('Portal SOL strip', () => {
 
         const detail = container.querySelector('.atrium-door-detail').textContent;
         expect(detail).toMatch(/^today · .+/);
-        expect(container.querySelector('.portal-atrium-door').getAttribute('aria-label'))
+        expect(container.querySelector('.portal-arch-atrium').getAttribute('aria-label'))
             .toContain("today's sequence");
 
         portal.destroy();
         container.remove();
     });
 
-    it('shows the current window and its context, live', () => {
+    it('shows the current window, live, on the SOL arch plinth', () => {
         const { portal, container } = makePortal();
         const window_ = getWindowAt(new Date());
 
+        // The window name is carried in a hidden field (still written by
+        // updateSolStrip); the plinth detail names the window; the time ticks.
         expect(container.querySelector('.sol-strip-window').textContent).toBe(window_.name);
-        expect(container.querySelector('.sol-strip-detail').textContent).toContain(window_.context);
+        expect(container.querySelector('.sol-strip-detail').textContent).toBe(window_.name);
         expect(container.querySelector('.sol-strip-time').textContent).toMatch(/\d/);
 
         portal.destroy();
@@ -96,9 +100,9 @@ describe('Portal SOL strip', () => {
         container.remove();
     });
 
-    it('clicking the strip navigates to SOL', () => {
+    it('clicking the SOL arch navigates to SOL', () => {
         const { portal, container, onNavigate } = makePortal();
-        container.querySelector('.portal-sol-strip').click();
+        container.querySelector('.portal-arch-sol').click();
         expect(onNavigate).toHaveBeenCalledWith('sol');
         portal.destroy();
         container.remove();

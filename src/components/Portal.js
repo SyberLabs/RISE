@@ -38,7 +38,7 @@ export class Portal {
       try {
         const { featuredAtriumPoint } = await import('../content/atrium/featured.js');
         const featured = featuredAtriumPoint();
-        const door = this.container.querySelector('.portal-atrium-door');
+        const door = this.container.querySelector('.portal-arch-atrium');
         if (!featured || !door || !this.container.isConnected) return;
         door.querySelector('.atrium-door-detail').textContent = `today · ${featured.title}`;
         door.setAttribute('aria-label',
@@ -65,14 +65,17 @@ export class Portal {
    * (following the user's My Day plan when set).
    */
   updateSolStrip() {
-    const strip = this.container.querySelector('.portal-sol-strip');
+    const strip = this.container.querySelector('.portal-arch-sol');
     if (!strip) return;
 
     const now = new Date();
     const window = getWindowAt(now);
     const suggestion = resolveWindowPlan(window);
     const hour = now.getHours();
-    const orb = hour >= 6 && hour < 18 ? '☀' : '☾';
+    // The same 6–18 boundary the SOL orb has always used decides whether
+    // the arch shows the daylit Earth or the lamplit night side.
+    const isDay = hour >= 6 && hour < 18;
+    const orb = isDay ? '☀' : '☾';
     const time = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
     strip.querySelector('.sol-strip-orb').textContent = orb;
@@ -80,8 +83,36 @@ export class Portal {
     strip.querySelector('.sol-strip-window').textContent = window.name;
     strip.querySelector('.sol-strip-detail').textContent = suggestion.isCustom
       ? `from your plan · ${suggestion.title}`
-      : `“${window.context}”`;
+      : window.name;
     strip.setAttribute('aria-label', `Enter SOL — ${window.name}: ${suggestion.title}`);
+
+    // The Earth turns with the day. Swap the source only when the phase
+    // actually changes, so we never restart a playing loop needlessly.
+    this._syncEarthPhase(strip, isDay);
+  }
+
+  /**
+   * Point the SOL arch's Earth video at the day or night source. The video
+   * is lazy: it has no src until the arch is revealed, and it respects
+   * reduced-motion by holding a still first frame rather than looping.
+   */
+  _syncEarthPhase(strip, isDay) {
+    const video = strip.querySelector('.arch-earth-video');
+    if (!video) return;
+    // Nothing loads until the arch is armed at idle — but do not record the
+    // phase yet, so the arming pass still recognises work to do.
+    if (!this._earthArmed) return;
+    const phase = isDay ? 'day' : 'night';
+    if (video.dataset.phase === phase && video.src) return;
+    video.dataset.phase = phase;
+    video.src = isDay ? '/portal/earth-day.mp4' : '/portal/earth-night.mp4';
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) {
+      video.removeAttribute('loop');
+      // hold the first frame — a still Earth, no motion
+      video.addEventListener('loadeddata', () => { try { video.pause(); } catch {} }, { once: true });
+    }
+    video.play?.().catch(() => { /* autoplay blocked until interaction; the still poster stands */ });
   }
 
   startSolStrip() {
@@ -176,27 +207,47 @@ export class Portal {
           </div>
         </nav>
 
-        <!-- ATRIUM: the curated doorway — the nav row is tools you own;
-             this is an invitation into prepared worlds. A featured
-             sequence arrives lazily so the door itself is alive. -->
-        <button class="portal-atrium-door" data-nav="atrium" style="opacity: 0;" aria-label="Enter the Atrium">
-          <span class="atrium-door-glyph" aria-hidden="true">◈</span>
-          <span class="atrium-door-body">
-            <span class="atrium-door-name">Atrium</span>
-            <span class="atrium-door-detail">philosophy &amp; history, prepared for reading</span>
+        <!-- THE TWO THRESHOLDS — slate archways flanking the centre, each
+             a window carved into a thick stone wall. The frame is the same
+             tactile stone as the nav tiles; the soul inside each arch
+             differs. Left: the Atrium, a timeless marble held in shadow.
+             Right: SOL, a living window onto the Earth as it is this hour —
+             daylit or lamplit by the real clock. -->
+
+        <!-- ATRIUM: the curated doorway — an invitation into prepared
+             worlds. A featured sequence arrives lazily so the arch is
+             alive. -->
+        <button class="portal-arch portal-arch-atrium" data-nav="atrium" style="opacity: 0;" aria-label="Enter the Atrium">
+          <span class="portal-arch-window" aria-hidden="true">
+            <span class="arch-marble"></span>
+            <span class="arch-vignette"></span>
+            <span class="arch-glass"></span>
           </span>
-          <span class="atrium-door-enter" aria-hidden="true">enter ›</span>
+          <span class="portal-arch-plinth">
+            <span class="portal-arch-name">Atrium</span>
+            <span class="portal-arch-detail atrium-door-detail">philosophy &amp; history</span>
+          </span>
         </button>
 
-        <!-- SOL: the portal's living strip — the hour introduces itself -->
-        <button class="portal-sol-strip" data-nav="sol" style="opacity: 0;" aria-label="Enter SOL">
-          <span class="sol-strip-orb" aria-hidden="true">☀</span>
-          <span class="sol-strip-time font-mono"></span>
-          <span class="sol-strip-body">
-            <span class="sol-strip-window"></span>
-            <span class="sol-strip-detail"></span>
+        <!-- SOL: a *when*, not a place — the hour introduces itself. The
+             window holds the Earth (day or night by the real clock) as a
+             disc in a field of stars. -->
+        <button class="portal-arch portal-arch-sol" data-nav="sol" style="opacity: 0;" aria-label="Enter SOL">
+          <span class="portal-arch-window" aria-hidden="true">
+            <span class="arch-starfield"></span>
+            <span class="arch-earth-disc">
+              <video class="arch-earth-video" muted loop playsinline preload="none" disablePictureInPicture></video>
+            </span>
+            <span class="arch-glass"></span>
           </span>
-          <span class="sol-strip-enter" aria-hidden="true">enter ›</span>
+          <span class="portal-arch-plinth">
+            <span class="portal-arch-name">SOL</span>
+            <span class="portal-arch-detail sol-strip-detail"></span>
+            <span class="sol-strip-time font-mono"></span>
+          </span>
+          <!-- hidden fields the existing updateSolStrip() still writes -->
+          <span class="sol-strip-orb" hidden></span>
+          <span class="sol-strip-window" hidden></span>
         </button>
 
         <!-- Portal Footer - Heritage & Onboarding -->
@@ -311,19 +362,32 @@ export class Portal {
       nav.style.opacity = '1';
     }, 1100);
 
-    const atriumDoor = this.container.querySelector('.portal-atrium-door');
+    const atriumArch = this.container.querySelector('.portal-arch-atrium');
     revealTimeout(() => {
-      if (atriumDoor) {
-        atriumDoor.style.transition = 'opacity 500ms var(--ease-out)';
-        atriumDoor.style.opacity = '1';
+      if (atriumArch) {
+        atriumArch.style.transition = 'opacity 700ms var(--ease-out)';
+        atriumArch.style.opacity = '1';
       }
     }, 1300);
 
-    const solStrip = this.container.querySelector('.portal-sol-strip');
+    const solArch = this.container.querySelector('.portal-arch-sol');
     revealTimeout(() => {
-      if (solStrip) {
-        solStrip.style.transition = 'opacity 500ms var(--ease-out)';
-        solStrip.style.opacity = '1';
+      if (solArch) {
+        solArch.style.transition = 'opacity 700ms var(--ease-out)';
+        solArch.style.opacity = '1';
+      }
+      // The arch is up: arm the Earth and load the current phase's loop
+      // (deferred to idle so it never competes with first paint).
+      const armEarth = () => {
+        this._earthArmed = true;
+        const strip = this.container.querySelector('.portal-arch-sol');
+        const now = new Date();
+        if (strip) this._syncEarthPhase(strip, now.getHours() >= 6 && now.getHours() < 18);
+      };
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(armEarth, { timeout: 1500 });
+      } else {
+        revealTimeout(armEarth, 300);
       }
     }, 1500);
 
