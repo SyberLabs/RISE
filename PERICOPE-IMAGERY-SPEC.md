@@ -130,52 +130,138 @@ pericopeForVerse(book, chapter, verse) → pericope | null
 - A verse in no pericope's range → `null` → stillness. Most of a
   Gospel is *not* a mapped episode; null is the common, correct case.
 
-## 6. Runtime: the visual schedule
+## 6. Runtime: three layers, one law
 
-The chapel handoff already computes one `sourced` collection for a
-reading (`collectionsForReading`). Pericope switching makes that
-*dynamic within a chapter*:
+✦ **The law (the architecture's governing rule):**
 
-✦ **The pool follows the reader's verse.** The cortex learns the
-current atom's (chapter, verse) — it already receives the atom on
-each `atom` event — resolves the pericope, and when the pericope
-CHANGES from the last one, swaps the active pin pool.
+> **Content domains author schedules. The session runtime follows
+> schedules. The cortex renders cues.**
 
-- **The switch is at pericope boundaries only**, not per atom — a
-  pericope holds for its whole verse range, so most atoms cause no
-  switch. Crossing 26:46→26:47 (Gethsemane→arrest) is a switch;
-  26:39→26:40 is not.
-- **A pericope with no works (GAP, or `null`) suspends the pool** —
-  the field goes still (the rhythmic layer draws nothing, the focal
-  if any persists). Stillness outranks substitution: an unmapped
-  stretch of narrative shows no borrowed image.
-- **Pool warmth**: entering a pericope resolves its (small — a
-  handful of) works through the existing streaming resolution. Pin
-  pools this small warm in one batch; the reader is typically inside
-  a pericope for many seconds (verses at reading pace), far longer
-  than a cold resolve.
+Three layers, each ignorant of the one above it:
 
-⁇ **Look-ahead warming.** Should the cortex pre-warm the *next*
-pericope's pool while the reader is still in the current one (the
-verse schedule is known — the whole chapter's pericopes are
-enumerable at launch)? Deferred; the default is resolve-on-entry
-(pools are tiny and reads are slow). Look-ahead is a clean future
-optimization if a boundary flash ever arrives cold.
+```
+Chapel concordance (pericopeForVerse, narrowest-wins, evidence classes)
+        ↓  compiles
+Chapel handoff → a GENERIC visual program (coordinate-tagged segments)
+        ↓  followed by
+Generic visual scheduler (reads atom coordinates, emits cues)
+        ↓  commands
+Chapel-AGNOSTIC cortex (activates / suspends pools by cue)
+```
 
-### 6.1 Selection order within a pericope (concordance §Recommended)
+The cortex must **never** import the concordance, know a Gospel book,
+or resolve a pericope. It knows how to resolve pin pools, warm them,
+draw without repetition, switch sources, suspend imagery, and cancel
+stale requests. It does not know what Matthew 27:26 *means*. This
+boundary is what keeps the cortex from accreting a domain conditional
+for every future content type (Scholastic commentary sections, poetry
+stanzas, historical periods) — those become new *compilers*, not new
+cortex branches.
 
-A pericope's pool is composed in this priority, and the pool is
-simply the highest tier that is non-empty:
+### 6.1 The generic visual program (the Chamber contract)
+
+The handoff compiles the pericope concordance into a domain-neutral
+program on `config.visualProgram`. No Chapel vocabulary leaks into
+the Chamber contract — it speaks *coordinates* and *cues*:
+
+```js
+config.visualProgram = {
+  coordinateSpace: 'scripture',   // atoms carry {chapter, verse}
+  enabled: true,                  // false when a chosen icon locks the focal
+  segments: [                     // DISJOINT, ordered, non-overlapping
+    { id: 'before-pilate', match: { chapter: 27, verseStart: 11, verseEnd: 25 },
+      cue: { kind: 'sourced', collections: ['chapel-gospel-before-pilate'] } },
+    { id: 'flagellation',  match: { chapter: 27, verseStart: 26, verseEnd: 26 },
+      cue: { kind: 'sourced', collections: ['chapel-gospel-flagellation'] } },
+    …
+  ],
+  fallback: { kind: 'still' }     // or { kind: 'focal', focal: {…} } — the rose
+};
+```
+
+The scheduler's contract is narrow — it understands that atoms may
+carry coordinates and that segments match ranges; it does **not**
+understand pericopes:
+
+```js
+const cue = cueForAtom(program, atom);     // linear scan; segments are few
+if (cue.id !== activeCueId) {
+  activeCueId = cue.id;
+  cortex.applyCue(cue, { generation: ++cueGeneration });
+}
+```
+
+### 6.2 Overlap is flattened at COMPILE time
+
+✦ The concordance's overlaps are real *content semantics* (§5), but
+the executable schedule must be **disjoint** — one cue governs each
+displayed verse. The compiler flattens overlaps by narrowest-wins so
+the runtime never arbitrates:
+
+```
+Research (may overlap):        Executable (disjoint):
+  before-pilate 27:11-26   →     before-pilate 27:11-25
+  flagellation  27:26-26   →     flagellation  27:26-26
+
+  resurrection  20:1-18    →     resurrection  20:1-10
+  noli-me-tangere 20:11-18 →     noli-me-tangere 20:11-18
+```
+
+The concordance is NOT mutated — the true conceptual overlap stays in
+the research JSON and the runtime module. Only the compiled *session
+schedule* is disjoint. Two representations, each correct for its
+purpose.
+
+### 6.3 Cue lifecycle
+
+- **One activation per segment.** A segment holds for its whole
+  range, so most atoms match the active cue and cause no switch.
+  Crossing 26:46→26:47 switches; 26:39→26:40 does not.
+- **A segment with no works, a GAP, or an unmapped verse → the
+  fallback cue** (stillness, or the rose if the fallback is focal).
+  Stillness outranks substitution: an unmapped stretch shows no
+  borrowed image, and a null cue never falls back to unrelated Gospel
+  imagery.
+- **The generation token is mandatory.** Every `applyCue` advances
+  `cueGeneration`; every async pool resolution verifies its
+  generation is still current before publishing. The reader racing
+  Gethsemane→Arrest→Denial while the Gethsemane pool resolves must
+  not see the late Gethsemane result land in the Denial pool. This is
+  the SOL review's principle again — *a resolved request is not
+  authorized to display; the moment that requested it must still
+  exist.*
+- **Pool warmth**: a segment's works (a handful) resolve through the
+  existing streaming resolution; the reader is inside a segment for
+  many seconds, far longer than a cold resolve.
+
+⁇ **Look-ahead warming.** Pre-warm the *next* segment's pool while
+the reader is still in the current one (the whole schedule is known
+at launch)? Deferred; resolve-on-entry is the default (pools tiny,
+reads slow).
+
+### 6.4 Selection order within a pericope (concordance §Recommended)
+
+A pericope's pool is composed in this priority; the pool is simply
+the highest tier that is non-empty:
 
 1. DIRECT works already reviewed in RISE
 2. DIRECT works newly reviewed via contact sheet
-3. COMPOSITE works (episode shares the frame) — only when no DIRECT
+3. COMPOSITE works — only when no DIRECT
 4. RELATED works — only as consciously authored accompaniment
 5. Otherwise **stillness**
 
 The derived module (§3.1) pre-resolves this: each pericope's `works`
-already holds only its admitted tier. The runtime does not re-rank;
-it plays the pool it is given, or stills.
+already holds only its admitted tier. The compiler and runtime do not
+re-rank; they play the pool they are given, or still.
+
+### 6.5 The icon lock (precedence, §8)
+
+A chosen icon focal outranks the whole program. The handoff sets
+`visualProgram.enabled = false` when an icon is chosen, so the
+scheduler never even attempts a pericope transition — the dynamic
+schedule cannot compete with the fixed focal. Full precedence:
+
+> chosen icon > pericope segment > chapter cue > Rosa Mystica > stillness
 
 ## 7. Interaction with the Shuttle
 
@@ -246,10 +332,18 @@ episodes and changes nothing elsewhere.
 3. **The concordance module + build script** (§3.1) — JSON → frozen
    `pericopes.js`, admitting only cleared works; `pericopeForVerse`
    pure lookup with the no-overlap assertion.
-4. **Cortex verse-aware switching** (§6) — swap pool on pericope
-   change; stillness on GAP/null.
-5. **Land works**: the 39 existing pins immediately; contact-sheet
-   the 60 newly discovered via the Curia workflow; land survivors.
+4. **The handoff compiler** (§6.1–6.2) — pericope concordance →
+   generic `visualProgram` with disjoint segments (overlaps flattened
+   narrowest-wins), coordinateSpace, fallback, and the icon-lock.
+5. **The generic scheduler** (§6.3) — `cueForAtom` → `cortex.applyCue`
+   with a generation token; one activation per segment; icon-lock
+   respected. Chapel-agnostic.
+6. **The cortex cue API** (§6) — `activateCollections` /
+   `suspendSourced` by cueId + generation. The cortex never sees a
+   coordinate.
+7. **Land works**: the 39 existing pins as `chapel-gospel-*`
+   collections immediately; contact-sheet the 60 newly discovered via
+   the Curia workflow; land survivors.
 
 ---
 
