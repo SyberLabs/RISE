@@ -35,7 +35,7 @@ async function boot(page, { text = true, prefs = null } = {}) {
         if (seedPrefs) localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(seedPrefs));
     }, { gate: GATE_SESSION, seedText: text ? SEED_TEXT : null, seedPrefs: prefs });
     await page.goto('/');
-    await expect(page.locator('.portal-sol-strip')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.portal-arch-sol')).toBeVisible({ timeout: 15_000 });
 }
 
 async function enterChamber(page) {
@@ -80,14 +80,14 @@ async function exitSession(page) {
 
 test('1 · portal presents the four tools and the living entries', async ({ page }) => {
     await boot(page, { text: false });
-    // The nav row is tools you own; Atrium and SOL are specialized entries
+    // The nav row is tools you own; Atrium and SOL are specialized entries,
+    // now marble pavilions flanking the centre.
     const nav = page.locator('.nav-secondary .nav-item');
     await expect(nav).toHaveCount(3);
-    await expect(page.locator('.portal-atrium-door[data-nav="atrium"]')).toBeVisible();
+    await expect(page.locator('.portal-arch-atrium[data-nav="atrium"]')).toBeVisible();
     await expect(page.locator('.sol-strip-window')).not.toBeEmpty();
-    // The door deepens with today's featured sequence once the lazy
-    // corpus metadata arrives at idle
-    await expect(page.locator('.atrium-door-detail')).toContainText('today ·', { timeout: 10_000 });
+    // The Atrium pavilion carries a simple, timeless caption
+    await expect(page.locator('.atrium-door-detail')).toContainText('philosophy & history', { timeout: 10_000 });
 });
 
 test('2+3 · Aurora sounds — and sounds again the second time', async ({ page }) => {
@@ -173,7 +173,7 @@ test('6 · text and settings survive a refresh', async ({ page }) => {
     await expect(page.locator('.chamber-orbital')).toContainText('Smoke Seed');
 
     await page.reload();
-    await expect(page.locator('.portal-sol-strip')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.portal-arch-sol')).toBeVisible({ timeout: 15_000 });
     await enterChamber(page);
 
     await expect(page.locator('.chamber-orbital')).toContainText('Smoke Seed');

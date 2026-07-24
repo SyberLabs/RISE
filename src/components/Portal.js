@@ -34,28 +34,11 @@ export class Portal {
    * Only launchable sequences are ever featured.
    */
   startAtriumDoor() {
-    const populate = async () => {
-      try {
-        const { featuredAtriumPoint } = await import('../content/atrium/featured.js');
-        const featured = featuredAtriumPoint();
-        const door = this.container.querySelector('.portal-arch-atrium');
-        if (!featured || !door || !this.container.isConnected) return;
-        door.querySelector('.atrium-door-detail').textContent = `today · ${featured.title}`;
-        door.setAttribute('aria-label',
-          `Enter the Atrium — today's sequence: ${featured.title}`);
-      } catch (error) {
-        // The static copy remains a complete doorway
-        console.warn('[Portal] Atrium door detail unavailable:', error);
-      }
-    };
-    this._populateAtriumDoor = populate;
-
-    if ('requestIdleCallback' in window) {
-      window.requestIdleCallback(() => populate(), { timeout: 2000 });
-    } else {
-      this._revealTimers = this._revealTimers || [];
-      this._revealTimers.push(setTimeout(populate, 1200));
-    }
+    // The pavilion keeps a simple, timeless caption — "philosophy &
+    // history" — rather than deepening into today's featured sequence.
+    // The hook is retained (update() calls it) as a harmless no-op so the
+    // caption stays constant across router re-entries.
+    this._populateAtriumDoor = () => {};
   }
 
   /**
@@ -84,7 +67,7 @@ export class Portal {
     strip.querySelector('.sol-strip-detail').textContent = suggestion.isCustom
       ? `from your plan · ${suggestion.title}`
       : window.name;
-    strip.setAttribute('aria-label', `Enter SOL — ${window.name}: ${suggestion.title}`);
+    strip.setAttribute('aria-label', `Enter the Solarium — ${window.name}: ${suggestion.title}`);
 
     // The Earth turns with the day. Swap the source only when the phase
     // actually changes, so we never restart a playing loop needlessly.
@@ -129,6 +112,59 @@ export class Portal {
     this.updateSolStrip();
     // The featured sequence rolls at midnight; module is cached by now
     this._populateAtriumDoor?.();
+  }
+
+  /**
+   * A classical marble pavilion (aedicula), authored at its natural
+   * 420×560 and scaled to the margin by CSS. Ported from the creator's
+   * Archway.dc design: a domed roof + finial, an entablature bearing the
+   * NAME, fluted columns with volute capitals framing an arched niche
+   * (which holds `nicheInner` — the living window), on a stepped base.
+   * `plinthInner` is the caption beneath.
+   */
+  _gazeboMarkup(name, nicheInner, plinthInner) {
+    return `
+      <span class="gazebo" aria-hidden="true">
+        <span class="gazebo-stage">
+          <span class="gz-shadow"></span>
+          <span class="gz-finial-spire"></span>
+          <span class="gz-finial-orb"></span>
+          <span class="gz-dome"><span class="gz-dome-rays"></span></span>
+          <span class="gz-architrave"></span>
+          <span class="gz-frieze"><span class="gz-name">${name}</span></span>
+          <span class="gz-cornice"></span>
+          <span class="gz-niche-back"></span>
+          <span class="gz-niche">${nicheInner}</span>
+          <span class="gz-keystone"></span>
+          <span class="gz-volutes">
+            <svg viewBox="0 0 420 560" fill="none">
+              <defs><linearGradient id="gzSilver" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="oklch(96% 0.004 250)"/>
+                <stop offset="0.55" stop-color="oklch(72% 0.012 252)"/>
+                <stop offset="1" stop-color="oklch(52% 0.016 256)"/>
+              </linearGradient></defs>
+              <g stroke="rgba(60,70,85,.24)" stroke-width="5" stroke-linecap="round" transform="translate(1.5,2.5)">
+                <path d="M 74 150 C 74 172 90 184 108 188 C 120 191 124 202 116 209 C 108 216 96 210 99 201 C 101 195 109 195 112 200"/>
+                <path d="M 346 150 C 346 172 330 184 312 188 C 300 191 296 202 304 209 C 312 216 324 210 321 201 C 319 195 311 195 308 200"/>
+              </g>
+              <g stroke="url(#gzSilver)" stroke-width="3.4" stroke-linecap="round">
+                <path d="M 74 150 C 74 172 90 184 108 188 C 120 191 124 202 116 209 C 108 216 96 210 99 201 C 101 195 109 195 112 200"/>
+                <path d="M 346 150 C 346 172 330 184 312 188 C 300 191 296 202 304 209 C 312 216 324 210 321 201 C 319 195 311 195 308 200"/>
+              </g>
+            </svg>
+          </span>
+          <span class="gz-cap gz-cap-l"></span>
+          <span class="gz-cap gz-cap-r"></span>
+          <span class="gz-col gz-col-l"></span>
+          <span class="gz-base-block gz-base-l"></span>
+          <span class="gz-col gz-col-r"></span>
+          <span class="gz-base-block gz-base-r"></span>
+          <span class="gz-step gz-step-1"></span>
+          <span class="gz-step gz-step-2"></span>
+          <span class="gz-step gz-step-3"></span>
+        </span>
+      </span>
+      <span class="portal-arch-plinth">${plinthInner}</span>`;
   }
 
   render() {
@@ -207,47 +243,41 @@ export class Portal {
           </div>
         </nav>
 
-        <!-- THE TWO THRESHOLDS — slate archways flanking the centre, each
-             a window carved into a thick stone wall. The frame is the same
-             tactile stone as the nav tiles; the soul inside each arch
-             differs. Left: the Atrium, a timeless marble held in shadow.
-             Right: SOL, a living window onto the Earth as it is this hour —
-             daylit or lamplit by the real clock. -->
+        <!-- THE TWO THRESHOLDS — classical marble pavilions (aediculae)
+             flanking the centre, each a lit shrine glowing against the
+             void. A domed roof and finial, an entablature bearing the
+             name, fluted columns with volute capitals framing an arched
+             niche, on a stepped base. The niche is the living window: a
+             timeless marble (Atrium), the Earth of this hour (SOL). -->
 
-        <!-- ATRIUM: the curated doorway — an invitation into prepared
-             worlds. A featured sequence arrives lazily so the arch is
-             alive. -->
+        <!-- ATRIUM: the curated doorway — a featured sequence arrives
+             lazily so the shrine is alive. -->
         <button class="portal-arch portal-arch-atrium" data-nav="atrium" style="opacity: 0;" aria-label="Enter the Atrium">
-          <span class="portal-arch-window" aria-hidden="true">
-            <span class="arch-marble"></span>
-            <span class="arch-vignette"></span>
-            <span class="arch-glass"></span>
-          </span>
-          <span class="portal-arch-plinth">
-            <span class="portal-arch-name">Atrium</span>
+          ${this._gazeboMarkup('Atrium', `
+            <span class="gz-marble"></span>
+            <span class="gz-niche-shade"></span>
+          `, `
             <span class="portal-arch-detail atrium-door-detail">philosophy &amp; history</span>
-          </span>
+          `)}
         </button>
 
-        <!-- SOL: a *when*, not a place — the hour introduces itself. The
-             window holds the Earth (day or night by the real clock) as a
-             disc in a field of stars. -->
-        <button class="portal-arch portal-arch-sol" data-nav="sol" style="opacity: 0;" aria-label="Enter SOL">
-          <span class="portal-arch-window" aria-hidden="true">
-            <span class="arch-starfield"></span>
-            <span class="arch-earth-disc">
+        <!-- SOLARIUM (the sundial-room): a *when*, not a place — the niche
+             holds the Earth, daylit or lamplit by the real clock, in a
+             field of stars. The route/view remain 'sol'; only the carved
+             name pairs with ATRIUM as a matched Latin room. -->
+        <button class="portal-arch portal-arch-sol" data-nav="sol" style="opacity: 0;" aria-label="Enter the Solarium">
+          ${this._gazeboMarkup('Solarium', `
+            <span class="gz-starfield"></span>
+            <span class="gz-earth-disc">
               <video class="arch-earth-video" muted loop playsinline preload="none" disablePictureInPicture></video>
             </span>
-            <span class="arch-glass"></span>
-          </span>
-          <span class="portal-arch-plinth">
-            <span class="portal-arch-name">SOL</span>
+            <span class="gz-niche-shade"></span>
+          `, `
             <span class="portal-arch-detail sol-strip-detail"></span>
             <span class="sol-strip-time font-mono"></span>
-          </span>
-          <!-- hidden fields the existing updateSolStrip() still writes -->
-          <span class="sol-strip-orb" hidden></span>
-          <span class="sol-strip-window" hidden></span>
+            <span class="sol-strip-orb" hidden></span>
+            <span class="sol-strip-window" hidden></span>
+          `)}
         </button>
 
         <!-- Portal Footer - Heritage & Onboarding -->

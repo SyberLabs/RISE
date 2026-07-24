@@ -439,299 +439,271 @@
   }
 }
 /* ═════════════════════════════════════════════════════════════
-   THE TWO THRESHOLDS — slate archways flanking the centre
-   Each arch is a window carved into a thick stone wall. The FRAME
-   inherits the nav-tile stone grammar (slate gradient, four-way
-   bevel, layered depth shadows, a physical press). The WINDOW is
-   recessed — you look THROUGH the wall — and holds a different soul
-   on each side: a timeless marble (Atrium) and the living Earth of
-   this very hour (SOL). Absolutely positioned in the portal's empty
-   side margins so the centre keeps its hierarchy.
+   THE TWO THRESHOLDS — classical marble pavilions (aediculae)
+   Ported from the creator's Archway.dc: a domed roof + finial, an
+   entablature bearing the name, fluted columns with volute capitals
+   framing an arched niche, on a stepped base. Pale marble glowing
+   against the void — "darkness first, light emerges." The pavilion is
+   authored at its natural 420×560 (.gazebo-stage) and scaled to the
+   side margin; the niche is the living window (marble / Earth).
    ═════════════════════════════════════════════════════════════ */
 
 .portal-arch {
   /* Reset the button */
-  border: 0;
-  background: none;
+  all: unset;
   cursor: pointer;
-  padding: 0;
-
-  /* Placed in the side margins, vertically centred on the stack */
   position: absolute;
   top: 50%;
-  transform: translateY(-50%);
   z-index: 2;
-
-  width: clamp(150px, 15vw, 224px);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-
-  /* The stone slab the window is cut into — the nav-tile surface */
-  padding: 14px 14px 0;
-  border-radius: 120px 120px 8px 8px;   /* the tombstone arch */
-  background:
-    linear-gradient(180deg,
-      rgba(42, 42, 48, 0.62) 0%,
-      rgba(24, 24, 28, 0.82) 100%);
-
-  /* Four-way bevel: light top/left, dark bottom/right — carved stone */
-  border: 1px solid transparent;
-  border-top-color: rgba(80, 80, 90, 0.4);
-  border-left-color: rgba(70, 70, 80, 0.32);
-  border-bottom-color: rgba(10, 10, 12, 0.8);
-  border-right-color: rgba(15, 15, 18, 0.62);
-
-  box-shadow:
-    0 3px 8px rgba(0, 0, 0, 0.35),
-    0 10px 26px rgba(0, 0, 0, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.035);
-
-  transition:
-    transform 120ms var(--ease-out),
-    box-shadow 220ms var(--ease-default),
-    border-color 220ms var(--ease-default);
-}
-
-.portal-arch-atrium { left: clamp(16px, 4vw, 72px); }
-.portal-arch-sol    { right: clamp(16px, 4vw, 72px); }
-
-/* Fine stone micro-texture over the slab */
-.portal-arch::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background:
-    radial-gradient(ellipse 120% 80% at 34% 12%,
-      rgba(255, 255, 255, 0.028) 0%, transparent 55%);
-  pointer-events: none;
-}
-
-/* Hover — the stone lifts a touch toward the reader, warms faintly */
-.portal-arch:hover {
-  transform: translateY(-50%) translateY(-2px);
-  border-top-color: rgba(100, 100, 110, 0.5);
-  border-left-color: rgba(90, 90, 100, 0.4);
-  box-shadow:
-    0 5px 12px rgba(0, 0, 0, 0.4),
-    0 14px 34px rgba(0, 0, 0, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-}
-
-/* Press — inverted bevel, the slab pushes into the wall */
-.portal-arch:active {
-  transform: translateY(-50%) translateY(1px);
-  border-top-color: rgba(10, 10, 12, 0.9);
-  border-left-color: rgba(15, 15, 18, 0.7);
-  border-bottom-color: rgba(60, 60, 70, 0.3);
-  border-right-color: rgba(50, 50, 60, 0.22);
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.45),
-    inset 0 3px 8px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(0, 0, 0, 0.2);
-}
-
-.portal-arch:focus-visible {
-  outline: none;
-  box-shadow:
-    0 3px 8px rgba(0, 0, 0, 0.35),
-    0 10px 26px rgba(0, 0, 0, 0.28),
-    0 0 0 2px var(--color-void),
-    0 0 0 4px rgba(139, 127, 212, 0.5);
-}
-
-/* ─── The recessed window: an opening through thick stone ─── */
-.portal-arch-window {
-  position: relative;
-  display: block;
-  width: 100%;
-  aspect-ratio: 3 / 4;
-  border-radius: 108px 108px 4px 4px;
-  overflow: hidden;
-  background: #060608;
-
-  /* The reveal (deep inner shadow all round) that makes the wall read
-     as THICK — the imagery sits below the plane of the stone face. */
-  box-shadow:
-    inset 0 3px 10px rgba(0, 0, 0, 0.85),
-    inset 0 0 0 1px rgba(0, 0, 0, 0.6),
-    inset 0 -2px 6px rgba(0, 0, 0, 0.6);
-}
-
-/* A soft glass film over the opening — the one shared skin, so both
-   windows feel like the same polished stone was cut. */
-.arch-glass {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  background:
-    linear-gradient(180deg,
-      rgba(255, 255, 255, 0.045) 0%,
-      transparent 22%,
-      transparent 78%,
-      rgba(0, 0, 0, 0.28) 100%);
-}
-
-/* ─── Left arch: the timeless marble ─── */
-.arch-marble {
-  position: absolute;
-  inset: 0;
-  background-image: image-set(
-    url('/portal/statue.webp') type('image/webp'),
-    url('/portal/statue.png') type('image/png'));
-  background-repeat: no-repeat;
-  background-position: center 8%;
-  background-size: cover;
-  /* Lit from top-left to agree with the arch's own bevel; the figure
-     emerges from shadow rather than posing under gallery lights. */
-  filter: brightness(0.92) contrast(1.04);
-  transition: transform 900ms var(--ease-out), filter 400ms var(--ease-default);
-}
-
-/* An inner shadow vignette — the marble stands in reverent gloom */
-.arch-vignette {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 78% 90% at 50% 40%,
-      transparent 42%,
-      rgba(6, 6, 10, 0.55) 100%);
-}
-
-.portal-arch-atrium:hover .arch-marble {
-  filter: brightness(1.0) contrast(1.06);
-  transform: scale(1.02);
-}
-
-/* ─── Right arch: the living Earth in a field of stars ─── */
-.arch-starfield {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(1.4px 1.4px at 18% 22%, rgba(255, 255, 255, 0.95), transparent 62%),
-    radial-gradient(1px 1px at 68% 12%, rgba(255, 255, 255, 0.8), transparent 62%),
-    radial-gradient(1.6px 1.6px at 84% 40%, rgba(220, 230, 255, 0.9), transparent 62%),
-    radial-gradient(1px 1px at 10% 58%, rgba(255, 255, 255, 0.7), transparent 62%),
-    radial-gradient(1.2px 1.2px at 42% 84%, rgba(255, 255, 255, 0.85), transparent 62%),
-    radial-gradient(1px 1px at 28% 38%, rgba(255, 255, 255, 0.6), transparent 62%),
-    radial-gradient(1.6px 1.6px at 76% 74%, rgba(214, 224, 255, 0.9), transparent 62%),
-    radial-gradient(1px 1px at 58% 28%, rgba(255, 255, 255, 0.65), transparent 62%),
-    radial-gradient(1px 1px at 90% 66%, rgba(255, 255, 255, 0.7), transparent 62%),
-    radial-gradient(1px 1px at 34% 66%, rgba(255, 255, 255, 0.55), transparent 62%),
-    radial-gradient(1.3px 1.3px at 8% 84%, rgba(230, 236, 255, 0.75), transparent 62%),
-    radial-gradient(1px 1px at 62% 52%, rgba(255, 255, 255, 0.5), transparent 62%),
-    radial-gradient(1px 1px at 48% 8%, rgba(255, 255, 255, 0.7), transparent 62%),
-    radial-gradient(ellipse 90% 70% at 50% 42%, rgba(24, 30, 56, 0.7) 0%, #05050c 72%);
-}
-
-/* The Earth, isolated as a disc — a circle floating in the stars.
-   The cropped video already holds the globe centred; the round mask
-   trims its dark margin to a clean edge and a faint atmosphere glows. */
-.arch-earth-disc {
-  position: absolute;
-  left: 50%;
-  top: 44%;
-  transform: translate(-50%, -50%);
-  width: 74%;
-  aspect-ratio: 1 / 1;
-  border-radius: 50%;
-  overflow: hidden;
-  box-shadow:
-    0 0 18px 2px rgba(90, 130, 210, 0.22),   /* atmospheric halo */
-    inset 0 0 22px rgba(0, 0, 0, 0.55);       /* terminator softening */
-}
-
-.arch-earth-video {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  /* the crop leaves a hair of margin; scale a touch so the globe
-     meets the disc edge cleanly */
-  transform: scale(1.06);
-  display: block;
-}
-
-.portal-arch-sol:hover .arch-earth-disc {
-  box-shadow:
-    0 0 26px 3px rgba(110, 150, 230, 0.32),
-    inset 0 0 22px rgba(0, 0, 0, 0.5);
-}
-
-/* ─── The plinth: the carved label at the base of each arch ─── */
-.portal-arch-plinth {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 10px 8px 12px;
-  text-align: center;
 }
 
-.portal-arch-name {
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: var(--font-weight-light);
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--color-cloud);
-  transition: color var(--transition-normal) var(--ease-default);
+/* The pavilion is drawn at 420×560, then scaled to the margin. Scaling
+   the whole stage keeps every proportion of the design exact. */
+.gazebo {
+  /* A fixed scale, stepped by media query below. 0.42 → a 176×235
+     pavilion that clears the reading centre. */
+  --gz-scale: 0.42;
+  display: block;
+  width: calc(420px * var(--gz-scale));
+  height: calc(560px * var(--gz-scale));
+  position: relative;
+  transition: transform 0.35s var(--ease-out);
+}
+@media (min-width: 1600px) { .gazebo { --gz-scale: 0.5; } }
+@media (min-width: 1300px) and (max-width: 1599px) { .gazebo { --gz-scale: 0.46; } }
+.gazebo-stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 420px;
+  height: 560px;
+  transform: scale(var(--gz-scale));
+  transform-origin: top left;
 }
 
-.portal-arch:hover .portal-arch-name { color: var(--color-light); }
-.portal-arch-atrium:hover .portal-arch-name { color: var(--color-threshold); }
-.portal-arch-sol:hover .portal-arch-name { color: var(--color-ember); }
+/* Centre the whole button block against the viewport; hold it apart from
+   the reading centre. translateY keeps vertical centring under the scale. */
+.portal-arch { transform: translateY(-50%); }
+/* Nudged inward from the true edges — the pavilions sit a little closer
+   to the reading centre without crowding it. */
+.portal-arch-atrium { left: clamp(40px, 6vw, 132px); }
+.portal-arch-sol    { right: clamp(40px, 6vw, 132px); }
 
-.portal-arch-detail {
-  font-family: var(--font-literary);
-  font-style: italic;
-  font-size: 11px;
-  line-height: 1.3;
-  color: var(--color-fog);
-  max-width: 100%;
+.portal-arch:hover .gazebo { transform: translateY(-5px); }
+.portal-arch:active .gazebo { transform: translateY(-1px); }
+.portal-arch:focus-visible { outline: none; }
+.portal-arch:focus-visible .gazebo-stage {
+  filter: drop-shadow(0 0 0 var(--color-void)) drop-shadow(0 0 6px rgba(139, 127, 212, 0.9));
+}
+
+/* Every marble piece is positioned at the design's exact coordinates. */
+.gazebo-stage > span { position: absolute; }
+
+/* ground shadow */
+.gz-shadow {
+  left: 40px; right: 40px; bottom: -16px; height: 44px; border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 50%, oklch(48% 0.014 256 / .32), transparent 72%);
+  filter: blur(6px);
+}
+/* finial spire + orb */
+.gz-finial-spire {
+  left: 50%; top: -52px; transform: translateX(-50%); width: 14px; height: 46px;
+  clip-path: polygon(50% 0%, 74% 26%, 62% 100%, 38% 100%, 26% 26%);
+  background: linear-gradient(180deg, oklch(92% 0.006 250), oklch(64% 0.012 252) 55%, oklch(48% 0.016 255));
+  box-shadow: 0 4px 8px rgba(60, 70, 85, .35);
+}
+.gz-finial-orb {
+  left: 50%; top: -10px; transform: translateX(-50%); width: 22px; height: 12px;
+  border-radius: 50% 50% 40% 40%;
+  background: linear-gradient(180deg, oklch(90% 0.006 250), oklch(58% 0.014 254));
+}
+/* the fluted dome */
+.gz-dome {
+  left: 60px; top: 0; width: 300px; height: 76px;
+  border-radius: 150px 150px 6px 6px / 76px 76px 6px 6px;
+  background: linear-gradient(178deg, oklch(93% 0.005 250), oklch(78% 0.01 252) 52%, oklch(64% 0.014 256));
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .6), 0 6px 14px -4px rgba(50, 60, 75, .35);
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+.gz-dome-rays {
+  position: absolute; inset: 0;
+  background: repeating-conic-gradient(from 180deg at 50% 112%,
+    rgba(255, 255, 255, .30) 0deg 2deg, transparent 2deg 10deg,
+    rgba(70, 80, 95, .10) 10deg 12deg, transparent 12deg 20deg);
+}
+.gz-dome::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 16px;
+  background: linear-gradient(180deg, transparent, rgba(60, 70, 85, .28));
+}
+/* architrave (top slab of the entablature) */
+.gz-architrave {
+  left: 14px; top: 74px; width: 392px; height: 15px; border-radius: 2px;
+  background: linear-gradient(180deg, oklch(93% 0.005 250), oklch(72% 0.01 252) 60%, oklch(56% 0.014 256));
+  box-shadow: 0 4px 8px -2px rgba(50, 60, 75, .3), inset 0 1px 0 rgba(255, 255, 255, .6);
+}
+/* frieze — the name band */
+.gz-frieze {
+  left: 34px; top: 89px; width: 352px; height: 40px;
+  background: linear-gradient(180deg, oklch(84% 0.008 252), oklch(70% 0.012 254));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), inset 0 -2px 5px rgba(60, 70, 85, .22);
+  display: flex; align-items: center; justify-content: center;
+}
+.gz-name {
+  font-family: var(--font-display, 'Cinzel', serif);
+  font-size: 23px; font-weight: 600; letter-spacing: 7px; white-space: nowrap;
+  text-transform: uppercase;
+  color: oklch(36% 0.02 258);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, .55), 0 -1px 1px rgba(40, 50, 65, .35);
+  transition: color 0.3s var(--ease-default);
+}
+.portal-arch:hover .gz-name { color: oklch(28% 0.03 262); }
+/* cornice (bottom slab of the entablature) */
+.gz-cornice {
+  left: 26px; top: 129px; width: 368px; height: 11px; border-radius: 2px;
+  background: linear-gradient(180deg, oklch(90% 0.006 250), oklch(62% 0.014 254));
+  box-shadow: 0 3px 6px -2px rgba(50, 60, 75, .28);
+}
+/* the arched niche back-plate */
+.gz-niche-back {
+  left: 92px; top: 142px; width: 236px; bottom: 80px; border-radius: 118px 118px 0 0;
+  background: linear-gradient(178deg, oklch(92% 0.005 250), oklch(74% 0.01 253) 40%, oklch(60% 0.014 256));
+  box-shadow: 0 4px 10px -4px rgba(50, 60, 75, .4), inset 0 2px 0 rgba(255, 255, 255, .55);
+}
+/* the niche opening — the LIVING WINDOW (holds marble / Earth) */
+.gz-niche {
+  left: 106px; top: 156px; width: 208px; bottom: 80px;
+  border-radius: 104px 104px 0 0; overflow: hidden; background: #0a0a10;
+}
+/* The Atrium statue's PNG carries a flat #23273c navy ground; fill the
+   niche with the SAME navy so the smaller (contained) figure sits on a
+   seamless field — no darker negative space around it. SOL keeps the
+   near-black niche for its starfield. */
+.portal-arch-atrium .gz-niche { background: #23273c; }
+.gz-niche > span,
+.gz-niche > .gz-earth-disc { position: absolute; }
+/* the niche's inner shading — depth, and legibility for the name/caption */
+.gz-niche-shade {
+  inset: 0; border-radius: inherit; pointer-events: none; z-index: 4;
+  box-shadow:
+    inset 14px 0 26px -10px rgba(10, 12, 20, .6),
+    inset -14px 0 26px -10px rgba(10, 12, 20, .6),
+    inset 0 22px 30px -14px rgba(10, 12, 20, .55);
+}
+/* keystone at the crown of the niche */
+.gz-keystone {
+  left: 50%; top: 136px; transform: translateX(-50%); width: 26px; height: 34px;
+  clip-path: polygon(50% 0%, 100% 22%, 84% 100%, 16% 100%, 0% 22%);
+  background: linear-gradient(180deg, oklch(94% 0.005 250), oklch(66% 0.012 252) 60%, oklch(52% 0.016 256));
+  box-shadow: 0 3px 6px rgba(50, 60, 75, .3); z-index: 5;
+}
+/* volute scrollwork (SVG) under the entablature */
+.gz-volutes { left: 0; top: 0; width: 420px; height: 560px; pointer-events: none; }
+.gz-volutes svg { position: absolute; left: 0; top: 0; width: 420px; height: 560px; overflow: visible; }
+/* column capitals */
+.gz-cap { top: 141px; width: 44px; height: 16px; border-radius: 2px;
+  background: linear-gradient(180deg, oklch(94% 0.005 250), oklch(68% 0.012 253));
+  box-shadow: 0 2px 5px -1px rgba(50, 60, 75, .3); }
+.gz-cap-l { left: 52px; }
+.gz-cap-r { left: 324px; }
+/* fluted columns */
+.gz-col { top: 155px; width: 32px; bottom: 92px;
+  background: repeating-linear-gradient(90deg,
+    oklch(52% 0.016 256) 0 1.5px, oklch(88% 0.008 250) 1.5px 5px, oklch(66% 0.012 253) 5px 8px);
+  box-shadow: inset 0 0 6px rgba(60, 70, 85, .2); }
+.gz-col-l { left: 58px; }
+.gz-col-r { right: 58px; }
+/* column base blocks */
+.gz-base-block { bottom: 80px; width: 48px; height: 12px; border-radius: 2px;
+  background: linear-gradient(180deg, oklch(90% 0.006 250), oklch(62% 0.014 255)); }
+.gz-base-l { left: 50px; }
+.gz-base-r { right: 50px; }
+/* the stepped base */
+.gz-step { border-radius: 2px; }
+.gz-step-1 { left: 36px; right: 36px; bottom: 62px; height: 18px;
+  background: linear-gradient(180deg, oklch(93% 0.005 250), oklch(72% 0.01 253) 55%, oklch(58% 0.014 256));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), 0 3px 6px -2px rgba(50, 60, 75, .3); }
+.gz-step-2 { left: 18px; right: 18px; bottom: 44px; height: 18px;
+  background: linear-gradient(180deg, oklch(90% 0.006 250), oklch(68% 0.012 254) 55%, oklch(54% 0.016 257));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 3px 6px -2px rgba(50, 60, 75, .28); }
+.gz-step-3 { left: 0; right: 0; bottom: 26px; height: 18px;
+  background: linear-gradient(180deg, oklch(87% 0.008 251), oklch(64% 0.014 255) 55%, oklch(50% 0.018 258));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 6px 12px -4px rgba(50, 60, 75, .35); }
+
+/* ─── The niche's living content ─── */
+
+/* Atrium: the marble figure filling the niche */
+.gz-marble {
+  inset: 0; z-index: 2;
+  background-image: image-set(url('/portal/statue.webp') type('image/webp'),
+                              url('/portal/statue.png') type('image/png'));
+  /* Smaller in proportion to the pavilion — the figure stands with air
+     around it — pushed down far enough that the plinth slab sinks below
+     the niche floor, so he appears to stand on the ground on his own feet.
+     (Previously center calc(100% + 16px) — kept the base visible.) */
+  background-repeat: no-repeat; background-position: center calc(100% + 34px);
+  background-size: auto 84%;
+  filter: brightness(1.02) contrast(1.02);
+  transition: transform 0.9s var(--ease-out);
+}
+.portal-arch-atrium:hover .gz-marble { transform: scale(1.03); }
+
+/* SOL: the Earth disc in a field of stars */
+.gz-starfield {
+  inset: 0; z-index: 1;
+  background:
+    radial-gradient(1.3px 1.3px at 20% 22%, rgba(255,255,255,.95), transparent 62%),
+    radial-gradient(1px 1px at 66% 14%, rgba(255,255,255,.8), transparent 62%),
+    radial-gradient(1.5px 1.5px at 82% 42%, rgba(220,230,255,.9), transparent 62%),
+    radial-gradient(1px 1px at 12% 58%, rgba(255,255,255,.7), transparent 62%),
+    radial-gradient(1.1px 1.1px at 44% 82%, rgba(255,255,255,.85), transparent 62%),
+    radial-gradient(1px 1px at 30% 40%, rgba(255,255,255,.55), transparent 62%),
+    radial-gradient(1.4px 1.4px at 76% 72%, rgba(214,224,255,.9), transparent 62%),
+    radial-gradient(1px 1px at 56% 30%, rgba(255,255,255,.6), transparent 62%),
+    radial-gradient(1px 1px at 90% 64%, rgba(255,255,255,.65), transparent 62%),
+    radial-gradient(ellipse 90% 70% at 50% 46%, rgba(20,26,48,.7) 0%, #05050c 74%);
+}
+.gz-earth-disc {
+  left: 50%; top: 48%; transform: translate(-50%, -50%);
+  width: 78%; aspect-ratio: 1 / 1; border-radius: 50%; overflow: hidden; z-index: 2;
+  box-shadow: 0 0 16px 2px rgba(90, 130, 210, .24), inset 0 0 20px rgba(0, 0, 0, .5);
+}
+.portal-arch-sol:hover .gz-earth-disc {
+  box-shadow: 0 0 24px 3px rgba(110, 150, 230, .34), inset 0 0 20px rgba(0, 0, 0, .45);
+}
+.arch-earth-video {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  transform: scale(1.02); display: block;
 }
 
+/* ─── The caption beneath the pavilion ─── */
+.portal-arch-plinth {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  margin-top: 2px; text-align: center; max-width: calc(420px * 0.62);
+}
+.portal-arch-detail {
+  font-family: var(--font-literary); font-style: italic; font-size: 11px; line-height: 1.3;
+  letter-spacing: 0.02em; color: var(--color-fog);
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .portal-arch-sol .sol-strip-time {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  color: var(--color-mist);
-  margin-top: 1px;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em;
+  color: var(--color-mist); margin-top: 1px;
 }
 
-/* ─── Responsive: the arches step out of the way ───
-   On narrow viewports the side margins vanish, so the arches leave
-   their absolute posts and rejoin the flow beneath the nav as a pair
-   of compact windows — never crowding the centred stack. */
-@media (max-width: 900px) {
+/* ─── Responsive ───
+   Below 960px the margins vanish; the pavilions leave their posts and
+   stack beneath the nav, centred, at full scale. */
+@media (max-width: 960px) {
   .portal-arch {
-    position: static;
-    transform: none;
-    width: min(46%, 220px);
+    position: static; transform: none;
+    left: auto; right: auto; margin: var(--space-lg) auto 0;
   }
-  .portal-arch:hover { transform: translateY(-2px); }
-  .portal-arch:active { transform: translateY(1px); }
-
-  /* A shared row centred under the navigation */
-  .portal-arch-atrium,
-  .portal-arch-sol {
-    display: inline-flex;
-    left: auto;
-    right: auto;
-    margin: var(--space-md) 1.5% 0;
-    vertical-align: top;
-  }
-  .portal .portal-arch-atrium { margin-left: 0; }
+  .portal-arch:hover .gazebo { transform: translateY(-5px); }
+  .gazebo { --gz-scale: 0.6; }
 }
-
 @media (max-width: 480px) {
-  .portal-arch { width: min(80%, 240px); display: flex; margin: var(--space-md) auto 0; }
-  .portal-arch-detail { display: none; }
+  .gazebo { --gz-scale: 0.5; }
 }

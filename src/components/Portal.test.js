@@ -33,13 +33,14 @@ describe('Portal SOL strip', () => {
         expect(secondary).toHaveLength(3);
         expect([...secondary].map(el => el.dataset.nav)).toEqual(['vault', 'library', 'workshop']);
 
-        // The Atrium is now a stone archway in the side margin, not a
-        // stacked door — but the same nav hook and living detail hold.
+        // The Atrium is now a marble pavilion in the side margin, not a
+        // stacked door — but the same nav hook and living detail hold. The
+        // name is carved on the pavilion's entablature frieze.
         const door = container.querySelector('.portal-arch-atrium');
         expect(door).not.toBeNull();
         expect(door.dataset.nav).toBe('atrium');
-        expect(door.querySelector('.portal-arch-name').textContent).toBe('Atrium');
-        // The arch renders complete before any lazy detail arrives
+        expect(door.querySelector('.gz-name').textContent).toBe('Atrium');
+        // The pavilion renders complete before any lazy detail arrives
         expect(door.querySelector('.atrium-door-detail').textContent.length).toBeGreaterThan(0);
 
         const strip = container.querySelector('.portal-arch-sol');
@@ -58,17 +59,17 @@ describe('Portal SOL strip', () => {
         container.remove();
     });
 
-    it('deepens the Atrium arch with today\'s featured sequence at idle', async () => {
+    it('keeps a simple, timeless Atrium caption across re-entries', async () => {
         const { portal, container } = makePortal();
 
-        // The populate hook is what idle scheduling invokes; call it
-        // directly so the test does not depend on rIC timing
-        await portal._populateAtriumDoor();
+        const before = container.querySelector('.atrium-door-detail').textContent;
+        expect(before).toBe('philosophy & history');
 
-        const detail = container.querySelector('.atrium-door-detail').textContent;
-        expect(detail).toMatch(/^today · .+/);
-        expect(container.querySelector('.portal-arch-atrium').getAttribute('aria-label'))
-            .toContain("today's sequence");
+        // The populate hook is invoked at idle and on router re-entry; it
+        // must NOT deepen the caption into today's featured sequence.
+        await portal._populateAtriumDoor();
+        expect(container.querySelector('.atrium-door-detail').textContent)
+            .toBe('philosophy & history');
 
         portal.destroy();
         container.remove();

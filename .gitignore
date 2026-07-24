@@ -51,3 +51,6 @@ src/sources/visual/museum-pins.js.tmp
 
 # Raw source media — the compressed, cropped web assets ship from public/portal/
 /videos/
+
+# Design-tool source exports (the shipped assets live in public/portal/)
+*.dc.html
