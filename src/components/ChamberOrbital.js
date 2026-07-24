@@ -1329,6 +1329,14 @@ export class ChamberOrbital {
       : null;
     this.config.provenance = config.provenance || null;
 
+    // A compiled visual program (PERICOPE-IMAGERY-SPEC §6) rides
+    // through opaquely — the orbital neither reads nor edits it, but
+    // must carry it to the begin payload so the Chamber's scheduler
+    // receives it. Without this pass-through the schedule was compiled
+    // by the handoff and then silently dropped here, so a Gospel
+    // chapter stayed frozen on its first episode.
+    this.config.visualProgram = config.visualProgram || null;
+
     // Launch origin for the wayfinding chip (null when launched plainly)
     this.config.origin = config.origin || null;
     this.updateOriginChip();
@@ -1484,6 +1492,10 @@ export class ChamberOrbital {
       voiceEnabled: this.config.voiceEnabled,
       voiceId: this.config.voiceId,
       selectedSwellId: this.config.selectedSwellId,
+      // The compiled visual program rides opaquely to the Chamber's
+      // scheduler (PERICOPE-IMAGERY-SPEC §6) — carried through, never
+      // edited here.
+      ...(this.config.visualProgram ? { visualProgram: this.config.visualProgram } : {}),
       visualConfig: {
         consentScope: this.visualConsentScope,
         visualMode: vi.visualMode || 'off',
