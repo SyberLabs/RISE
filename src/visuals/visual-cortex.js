@@ -473,7 +473,9 @@ export class VisualCortex {
         this._continuousField = new ContinuousField(this._continuousFieldHost, {
             getPool: () => this._continuousPool(),
             poolKey: () => this._continuousPoolKey(),
-            decode: (url) => this._defaultDecode(url),
+            // The presenter's own decode-before-reveal (a detached Image
+            // decode) governs; the cortex's warm pool already holds decoded
+            // works, so this second decode is near-instant and cached.
             reducedMotion: this._continuousReducedMotion()
         });
     }

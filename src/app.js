@@ -12,7 +12,7 @@
 import { Router } from './core/router.js';
 import { AudioEngine } from './audio/engine.js';
 import { Player, estimateInterlocutionCount } from './core/player.js';
-import { VISUAL_PRESENCE_DEFAULT_MS } from './core/visual-presence.js';
+import { VISUAL_PRESENCE_DEFAULT_MS, normalizePresentation } from './core/visual-presence.js';
 import { compileSession } from './core/session-compiler.js';
 import { MemoryCore } from './core/memory.js';
 import { initSourceSystem } from './sources/index.js';
@@ -512,9 +512,7 @@ class App {
                                 frequency: interlocution.frequency ?? 0.2,
                                 duration: interlocution.duration ?? VISUAL_PRESENCE_DEFAULT_MS,
                                 renderLanguage: interlocution.renderLanguage === 'ascii' ? 'ascii' : 'native',
-                                presentation: ['behind-stream', 'continuous'].includes(interlocution.presentation)
-                                    ? interlocution.presentation
-                                    : 'full-frame',
+                                presentation: normalizePresentation(interlocution.presentation),
                                 activeTypes: activeTypes,
                                 kleePreset: interlocution.kleePreset ?? 'random',
                                 harmonographClimate: interlocution.harmonographClimate ?? 'auto',

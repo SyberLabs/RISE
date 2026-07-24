@@ -7,6 +7,17 @@
 
 export const VISUAL_PRESENCE_MIN_MS = 150;
 export const VISUAL_PRESENCE_DEFAULT_MS = 200;
+
+// The three interlocution presentation surfaces. 'full-frame' cuts to an
+// opaque overlay; 'behind-stream' flashes beneath the reading; 'continuous'
+// (Gallery) is a persistent crossfading field behind the reading
+// (CONTINUOUS-FIELD-SPEC). Shared here so persisted settings, the session
+// compiler, the panel, and playback cannot drift apart. Any other value
+// normalizes to 'full-frame'.
+export const PRESENTATION_SURFACES = Object.freeze(['full-frame', 'behind-stream', 'continuous']);
+export function normalizePresentation(value) {
+    return PRESENTATION_SURFACES.includes(value) ? value : 'full-frame';
+}
 // Behind-stream imagery is peripheral, not a cut: it needs dwell time
 // to register beneath the text, so its default presence is a full beat
 export const VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS = 1000;

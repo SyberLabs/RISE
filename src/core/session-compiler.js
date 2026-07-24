@@ -12,6 +12,7 @@ import { PacingEngine, StateCurve } from './pacing.js';
 import { normalizeGlobalPoolSelection, normalizeVisualSelection } from './visual-selection.js';
 import {
     normalizeVisualPresence,
+    normalizePresentation,
     VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS
 } from './visual-presence.js';
 
@@ -138,7 +139,7 @@ export function normalizeVisualConfig(value = {}) {
                     : undefined
             ),
             renderLanguage: raw.renderLanguage === 'ascii' ? 'ascii' : 'native',
-            presentation: raw.presentation === 'behind-stream' ? 'behind-stream' : 'full-frame',
+            presentation: normalizePresentation(raw.presentation),
             streamGlass: raw.streamGlass !== false,
             kleePreset: KLEE_PRESETS.has(raw.kleePreset) ? raw.kleePreset : 'random',
             // Atrium-curated collections travel as an informational string

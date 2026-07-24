@@ -379,6 +379,51 @@ test('10 · Atrium point preserves origin, curated config, Begin, exit, and retu
     await expect(page.locator('.atrium-detail h2')).toHaveText('Aristotle');
 });
 
+test('12 · Gallery (Continuous Field) mounts behind the reading and reveals imagery without fading to black', async ({ page }) => {
+    // A sourced continuous presentation: the Gallery is a persistent
+    // crossfading field, not a flash source. It must mount its two layers
+    // behind the reading and reveal a work — never passing through black.
+    await boot(page, {
+        prefs: {
+            visualInterlocution: {
+                visualMode: 'interlocution',
+                interlocution: {
+                    sourceFamily: 'sourced',
+                    procedural: [],
+                    sourced: ['aic-oldmasters'],
+                    presentation: 'continuous',
+                    streamGlass: true
+                }
+            }
+        }
+    });
+    await enterChamber(page);
+
+    await page.locator('#begin-btn').click();
+    // The field is imagery, so the safety warning still gates entry.
+    const warning = page.locator('#photosensitivity-modal');
+    await expect(warning).toBeVisible({ timeout: 10_000 });
+    await warning.locator('#safety-accept').click();
+    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
+    await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+
+    // The host mounts behind the text with exactly two crossfade layers.
+    const host = page.locator('#chamber-continuous-field');
+    await expect(host).toBeAttached({ timeout: 15_000 });
+    await expect(host.locator('.continuous-field-layer')).toHaveCount(2);
+
+    // The reading text sits above the field, on its glass tile.
+    await expect(page.locator('#atom-display.glass-tile')).toBeAttached();
+
+    // A work reveals: at least one layer reaches full opacity once the
+    // pool warms. This is the whole point — the field shows imagery, and
+    // it does so by fading a layer IN (never a fade-through-black cut).
+    await expect.poll(async () => page.evaluate(() => {
+        const layers = [...document.querySelectorAll('#chamber-continuous-field .continuous-field-layer')];
+        return layers.some(l => Number(l.style.opacity) === 1 && l.getAttribute('src'));
+    }), { timeout: 30_000 }).toBe(true);
+});
+
 test('11 · Atrium dialogue keeps speaker labels at the head of Phrase atoms', async ({ page }) => {
     await boot(page, { text: false });
     await page.locator('[data-nav="atrium"]').click();

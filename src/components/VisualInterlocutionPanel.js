@@ -33,6 +33,7 @@ import {
     formatVisualPresence,
     nearestVisualPresenceStep,
     normalizeVisualPresence,
+    normalizePresentation,
     visualPresenceStepIndex,
     visualPresenceValueText
 } from '../core/visual-presence.js';
@@ -40,13 +41,6 @@ import {
 // The five curated Klee presets (shared by Rhythmic chips and Genesis chips)
 const KLEE_PRESET_CHIP_IDS = ['architectural', 'chaotic', 'harmonic', 'gravitational', 'twittering'];
 
-// The three interlocution presentation surfaces. 'full-frame' cuts to an
-// opaque overlay; 'behind-stream' flashes beneath the reading; 'continuous'
-// (Gallery) is a persistent crossfading field behind the reading
-// (CONTINUOUS-FIELD-SPEC). Any other value normalizes to 'full-frame'.
-const PRESENTATION_SURFACES = Object.freeze(['full-frame', 'behind-stream', 'continuous']);
-const normalizePresentation = (value) =>
-    PRESENTATION_SURFACES.includes(value) ? value : 'full-frame';
 
 // Chapel vocabulary the panel can NAME without importing chapel content:
 // display labels only. The collections themselves stay Chapel-scoped

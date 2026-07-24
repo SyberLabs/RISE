@@ -4,9 +4,10 @@
  * review findings: queue survival across resizes and identical configs,
  * refill-on-low, preload failure recovery, and one-shot preset overrides.
  */
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { VisualCortex } from './visual-cortex.js';
 import { KleeFlashes } from './klee-flashes.js';
+import { ContinuousField } from './continuous-field.js';
 import { grantVisualInterlocutionConsent } from '../core/visual-safety.js';
 
 function mockEngine(width = 800, height = 400) {
@@ -1295,7 +1296,16 @@ describe('Blend ledger is per-reading', () => {
 });
 
 describe('Continuous Field (Gallery) wiring', () => {
+    let decodeSpy;
+    beforeEach(() => {
+        // jsdom has no image pipeline; resolve the presenter's decode
+        // instantly so start()'s reveal does not spawn a rejecting
+        // Image().decode(). Wiring tests care about lifecycle, not pixels.
+        decodeSpy = vi.spyOn(ContinuousField.prototype, '_defaultDecode')
+            .mockResolvedValue(true);
+    });
     afterEach(() => {
+        decodeSpy?.mockRestore();
         document.documentElement.classList.remove('photosensitivity-mode');
         document.body.replaceChildren();
     });
@@ -1313,9 +1323,6 @@ describe('Continuous Field (Gallery) wiring', () => {
         // never touch the network in these tests
         cortex._scheduleBackgroundWarm = () => {};
         cortex._scheduleRollingRefresh = () => {};
-        // jsdom has no image pipeline; resolve the field's decode instantly
-        // so start() does not spawn a real (rejecting) Image().decode().
-        cortex._defaultDecode = async () => true;
         const host = document.createElement('div');
         document.body.appendChild(host);
         cortex.setContinuousFieldHost(host);
