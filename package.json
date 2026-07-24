@@ -14,7 +14,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "build:pericopes": "node scripts/build-pericopes.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

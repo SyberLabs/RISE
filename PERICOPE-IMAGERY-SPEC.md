@@ -118,9 +118,15 @@ pericopeForVerse(book, chapter, verse) → pericope | null
 ```
 
 - Returns the pericope whose range **contains** (chapter, verse) for
-  this book. Ranges within a book do not overlap (a build-time
-  assertion; overlapping concordance entries are a data error the
-  build script rejects).
+  this book.
+- ✦ **Overlaps are real — narrowest wins.** The Gospels nest and
+  adjoin episodes: the flagellation sits *within* the Pilate scene
+  (Mt 27:26), Noli me tangere *within* the resurrection
+  (Jn 20:11–18). When a verse falls in more than one pericope's
+  range, the lookup returns the **narrowest** — the most specific
+  episode the reader is in. (The spec's first draft assumed
+  non-overlap; the concordance data proved richer. The build script
+  reports overlaps as a sanity trace, never a failure.)
 - A verse in no pericope's range → `null` → stillness. Most of a
   Gospel is *not* a mapped episode; null is the common, correct case.
 
