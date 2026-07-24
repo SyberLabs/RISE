@@ -3,7 +3,11 @@ import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { CHAPEL_PINNED_COLLECTIONS, hasChapelCollection } from './collections.js';
 import { CHAPEL_ICONS, CHAPEL_ICON_DEFAULTS, findChapelIcon } from './icons.js';
-import { getChapelWorksProvider } from './provider.js';
+import {
+  getChapelWorksProvider,
+  hasChapelCollection as hasProviderChapelCollection,
+  setDynamicChapelCollections
+} from './provider.js';
 import { resolveAicWork } from '../../atrium/imagery/adapters/aic.js';
 import { resolveRijksWork } from '../../atrium/imagery/adapters/rijks.js';
 import { createChapelHandoff, chapelSensoryConfig } from '../handoff.js';
@@ -334,6 +338,7 @@ describe('Chapel handoff imagery (seam)', () => {
     expect(mt27.visualConfig.visualMode).toBe('interlocution');
     expect(mt27.visualConfig.interlocution.sourced).toEqual(['chapel-gospel-before-pilate']);
     expect(mt27.visualConfig.interlocution.duration).toBeGreaterThanOrEqual(1400);
+    expect(mt27.visualConfig.interlocution.presentation).toBe('behind-stream');
     // John 19 opens at the flagellation (19:1), which now carries
     // admitted works — so it opens on that pool
     const john19 = chapelSensoryConfig('john', null, 19);
@@ -360,6 +365,16 @@ describe('Chapel handoff imagery (seam)', () => {
       .toEqual(['chapel-gospel-before-pilate']);
   });
 
+  it('resolves persisted pericope ids after the launch-time overlay is cleared', () => {
+    chapelSensoryConfig('matthew', null, 27);
+    setDynamicChapelCollections({}); // simulate module/session launch state loss
+
+    expect(hasProviderChapelCollection('chapel-gospel-before-pilate')).toBe(true);
+    expect(hasProviderChapelCollection('chapel-gospel-crucifixion')).toBe(true);
+    expect(getChapelWorksProvider()._collections['chapel-gospel-before-pilate'].works.length)
+      .toBeGreaterThan(0);
+  });
+
   it('an infancy chapter opens on its first episode; a teaching chapter reads under the rose', async () => {
     // Luke 2 — opens on the Nativity episode
     expect(chapelSensoryConfig('luke', null, 2).visualConfig.interlocution.sourced)
@@ -380,10 +395,16 @@ describe('Chapel handoff imagery (seam)', () => {
 
   it('a chosen icon becomes the focal MODE, winning over the book collections', async () => {
     const withIcon = await createChapelHandoff('john', { chapter: 3, iconId: 'icon-pantocrator-sinai' });
-    expect(withIcon.config.visualConfig).toEqual({
+    expect(withIcon.config.visualConfig).toMatchObject({
       visualMode: 'focals',
-      focals: { type: 'icon', iconId: 'icon-pantocrator-sinai' }
+      focals: { type: 'icon', iconId: 'icon-pantocrator-sinai' },
+      interlocution: {
+        sourceFamily: 'collections',
+        presentation: 'behind-stream',
+        sourced: ['chapel-gospel-nicodemus']
+      }
     });
+    expect(withIcon.config.visualProgram.enabled).toBe(false);
 
     // An unpinned icon id is ignored — pinned, never improvised;
     // John 7 has no mapped pericope, so it falls to the rose

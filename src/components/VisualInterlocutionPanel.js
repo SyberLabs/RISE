@@ -23,6 +23,10 @@ import {
     normalizeVisualSelection
 } from '../core/visual-selection.js';
 import {
+    clearLaunchVisualSelection,
+    releaseLaunchHeldFocal
+} from '../core/visual-identity.js';
+import {
     hasVisualInterlocutionConsent,
     requestVisualInterlocutionConsent
 } from '../core/visual-safety.js';
@@ -252,10 +256,11 @@ export class VisualInterlocutionPanel {
     }
 
     async showSafetyModal() {
+        const previousMode = this.config.visualMode;
         const accepted = await requestVisualInterlocutionConsent(this.consentScope);
         if (this._destroyed) return;
         this.hasConsent = accepted || hasVisualInterlocutionConsent(this.consentScope);
-        this.config.visualMode = accepted ? 'interlocution' : 'off';
+        this._transitionVisualMode(accepted ? 'interlocution' : previousMode);
         this.emitChange();
         this.render();
         this.attachEvents();
@@ -286,7 +291,7 @@ export class VisualInterlocutionPanel {
     setLocked(locked) {
         this.locked = locked;
         if (this.locked) {
-            this.config.visualMode = 'off';
+            this._transitionVisualMode('off');
             this.emitChange();
         }
         this.render();
@@ -307,12 +312,40 @@ export class VisualInterlocutionPanel {
      */
     setVisualMode(mode) {
         if (this.locked) return;
-        this.config.visualMode = mode;
+        this._transitionVisualMode(mode);
         this.render();
         this.attachEvents();
         // Skip safety check here as it's assumed to be triggered by explicit logic
         // But we still emit the change
         this.emitChange();
+    }
+
+    /**
+     * Enforce the mode/focal ownership invariant. A Chapel-held icon or
+     * per-book rose only exists in Focals mode; leaving that mode is an
+     * explicit release. Standard and personal focals remain user-owned.
+     */
+    _transitionVisualMode(mode) {
+        if (mode !== 'focals') {
+            const released = releaseLaunchHeldFocal(this.config.focals);
+            if (released) this.config.focals = released;
+        }
+        this.config.visualMode = mode;
+    }
+
+    /**
+     * Clear identity authored by the reading being removed. The Orbital calls
+     * this at its load/clear chokepoint and controls the surrounding render.
+     */
+    clearLaunchVisualIdentity() {
+        this.config.interlocution = clearLaunchVisualSelection(
+            this.config.interlocution
+        );
+        const released = releaseLaunchHeldFocal(this.config.focals);
+        if (released) this.config.focals = released;
+        this._chapelLaunch = false;
+        this._chapelTrayOpen = false;
+        this.programInfo = null;
     }
 
     /**
@@ -335,17 +368,18 @@ export class VisualInterlocutionPanel {
     setConfig(visualConfig) {
         console.log('[VisualInterlocutionPanel] setConfig called:', visualConfig);
 
-        // Apply visual mode
-        if (visualConfig.visualMode) {
-            this.config.visualMode = visualConfig.visualMode;
-        }
-
         // Apply focals config
         if (visualConfig.focals) {
             this.config.focals = {
                 ...this.config.focals,
                 ...visualConfig.focals
             };
+        }
+
+        // Apply the mode after the focal payload so a source cannot leave a
+        // held Chapel focal attached to a non-focal mode.
+        if (visualConfig.visualMode) {
+            this._transitionVisualMode(visualConfig.visualMode);
         }
 
         // Apply attractor config
@@ -1434,7 +1468,7 @@ export class VisualInterlocutionPanel {
                     window.rise.audioEngine.playClick();
                 }
 
-                this.config.visualMode = newMode;
+                this._transitionVisualMode(newMode);
 
                 // Clear procedural if switching from focals to interlocution for the first time
                 // to prevent unexpected flashes, but keep if user has explicitly selected them

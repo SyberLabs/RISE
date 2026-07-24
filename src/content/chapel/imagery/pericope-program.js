@@ -35,6 +35,21 @@ export function pericopeCollectionsForChapter(bookId, chapter) {
 }
 
 /**
+ * The complete recoverable Gospel collection catalog. It stays inside the
+ * Chapel provider (never the browsable/global registry), allowing a persisted
+ * visual program to resolve its pinned works after a true page reload when
+ * the launch-time dynamic overlay no longer exists.
+ */
+export function allPericopeCollections() {
+    const out = {};
+    for (const p of GOSPEL_PERICOPES) {
+        if (p.works.length === 0) continue;
+        out[pericopeCollectionId(p.id)] = { works: p.works.map(w => ({ ...w })) };
+    }
+    return out;
+}
+
+/**
  * Flatten the (possibly overlapping) pericope ranges intersecting one
  * chapter into a DISJOINT, ordered list of executable segments
  * (spec §6.2). Narrowest-wins: at any verse, the segment is the

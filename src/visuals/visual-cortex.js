@@ -355,10 +355,19 @@ export class VisualCortex {
     applyCue(cue, meta = {}) {
         if (!cue || typeof cue !== 'object') return;
         if (cue.kind === 'sourced' && Array.isArray(cue.collections) && cue.collections.length) {
-            this.updateConfig({ activeTypes: [...cue.collections] });
+            // A cue boundary can arrive while the previous atom's visual is
+            // already committed. Let that honest presentation finish; the
+            // new generation only governs future selections and pool work.
+            this.updateConfig(
+                { activeTypes: [...cue.collections] },
+                { preservePresentation: true }
+            );
+            // Session preload may be long finished by this boundary. Arm the
+            // new current pool explicitly on every sourced activation.
+            void this._rearmActiveCuePools();
         } else {
             // 'still' / 'focal' / anything else → no sourced pool
-            this.updateConfig({ activeTypes: [] });
+            this.updateConfig({ activeTypes: [] }, { preservePresentation: true });
         }
         // Look-ahead (PERICOPE-IMAGERY-SPEC §6.3): warm the upcoming
         // collections' PROVIDER pools now, so a short segment (the
@@ -375,6 +384,24 @@ export class VisualCortex {
         // is needed here; doing so would double-advance the wall.
     }
 
+    /**
+     * Install the authoritative empty runtime identity for a new session that
+     * does not use Rhythmic visuals. Warm pools may survive an exit briefly,
+     * but they cannot survive assignment to a different reading by omission.
+     */
+    resetSessionVisualIdentity() {
+        this.updateConfig({
+            enabled: false,
+            activeTypes: [],
+            sourced: [],
+            customVisuals: [],
+            globalVisuals: [],
+            semanticSignals: null,
+            blueprintMechanism: null,
+            freedomRelation: null
+        });
+    }
+
     async _prewarmProviderPools(collectionIds) {
         for (const id of collectionIds) {
             try {
@@ -385,6 +412,29 @@ export class VisualCortex {
                     timeoutMs: 8000
                 });
             } catch (e) { /* best-effort warmth; a miss costs nothing */ }
+        }
+    }
+
+    /**
+     * Idempotently join/start warmth for the current cue generation. A rapid
+     * replacement rotates the abort controller in updateConfig; the old task
+     * therefore cannot retain or schedule work into the new cue.
+     */
+    async _rearmActiveCuePools() {
+        if (this._destroyed || this.config.enabled !== true
+            || this._activePoolCategories().length === 0) {
+            return this.getExternalAssetStatus();
+        }
+        const version = this._configVersion;
+        try {
+            const status = await this._preloadDiagrams(INITIAL_POOL_TARGET);
+            if (version === this._configVersion && !status.aborted) {
+                this._scheduleBackgroundWarm(status.minimumReady === false);
+            }
+            return status;
+        } catch (error) {
+            if (!isAbortError(error)) this._recordExternalFailure('pool', 'cue-rearm', error);
+            return { ...this.getExternalAssetStatus(), aborted: true };
         }
     }
 
@@ -526,10 +576,17 @@ export class VisualCortex {
         }
     }
 
-    updateConfig(newConfig) {
+    updateConfig(newConfig, { preservePresentation = false } = {}) {
         const nextConfig = { ...newConfig };
-        if (this._activePresentation && Object.keys(nextConfig).length > 0) {
-            this.cancelPresentation('aborted');
+        if (!preservePresentation && Object.keys(nextConfig).length > 0) {
+            if (this._activePresentation) {
+                this.cancelPresentation('aborted');
+            } else {
+                // Also invalidate a visual still rendering before its first
+                // frame commits.
+                this._presentationEpoch += 1;
+                this._lastCancellationReason = 'aborted';
+            }
         }
         if ('duration' in nextConfig) {
             nextConfig.duration = normalizeVisualPresence(nextConfig.duration);

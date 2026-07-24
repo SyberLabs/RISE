@@ -524,6 +524,76 @@ describe('ChamberOrbital origin chip', () => {
     });
 });
 
+describe('reading-owned visual program persistence', () => {
+    beforeEach(() => {
+        localStorage.removeItem('rise_orbital_prefs_v1');
+        localStorage.removeItem('rise_orbital_text_v1');
+    });
+
+    const visualProgram = {
+        coordinateSpace: 'scripture',
+        enabled: true,
+        segments: [
+            {
+                id: 'before-pilate',
+                match: { chapter: 27, verseStart: 1, verseEnd: 25 },
+                cue: { kind: 'sourced', collections: ['chapel-gospel-before-pilate'] }
+            },
+            {
+                id: 'entombment',
+                match: { chapter: 27, verseStart: 57, verseEnd: Infinity },
+                cue: { kind: 'sourced', collections: ['chapel-gospel-entombment'] }
+            }
+        ],
+        fallback: { kind: 'still' }
+    };
+
+    it('survives Orbital reconstruction and reaches the second Begin payload', () => {
+        const first = makeOrbital();
+        first.orbital.loadText('[v 27:1] And when morning was come...', 'The Chapel · Matthew 27', {
+            provenance: { kind: 'chapel-book', bookId: 'matthew', chapter: 27 },
+            visualProgram
+        });
+
+        const stored = JSON.parse(localStorage.getItem('rise_orbital_text_v1'));
+        expect(stored.visualProgram.segments[1].match.verseEnd).not.toBeNull();
+        first.orbital.destroy();
+        first.container.remove();
+
+        const onBeginSession = vi.fn();
+        const second = makeOrbital(onBeginSession);
+        expect(second.orbital.config.visualProgram.segments[1].match.verseEnd).toBe(Infinity);
+        second.orbital.beginSession();
+        expect(onBeginSession).toHaveBeenCalledWith(expect.objectContaining({
+            visualProgram: expect.objectContaining({
+                coordinateSpace: 'scripture',
+                segments: expect.arrayContaining([
+                    expect.objectContaining({ id: 'before-pilate' }),
+                    expect.objectContaining({ id: 'entombment' })
+                ])
+            })
+        }));
+        second.orbital.destroy();
+        second.container.remove();
+    });
+
+    it('survives settings reset but is removed with its reading', () => {
+        const first = makeOrbital();
+        first.orbital.loadText('[v 27:1] Reading', 'The Chapel · Matthew 27', { visualProgram });
+        first.orbital.resetPrefs();
+        expect(first.orbital.config.visualProgram.segments[0].id).toBe('before-pilate');
+        first.orbital.clearText();
+        first.orbital.destroy();
+        first.container.remove();
+
+        const second = makeOrbital();
+        expect(second.orbital.config.text).toBeNull();
+        expect(second.orbital.config.visualProgram).toBeNull();
+        second.orbital.destroy();
+        second.container.remove();
+    });
+});
+
 describe('Launch-scoped identity is not persisted (2026-07 pill-leak fix)', () => {
     it('atriumCollections never enters the persisted prefs', () => {
         const { orbital } = makeOrbital();
@@ -560,6 +630,7 @@ describe('clearText resets launch-scoped visual identity (2026-07 Doré leak)', 
                 .toContain(collection);
             orbital.clearText();
             expect(orbital.config.visualInterlocution.interlocution.atriumCollections).toEqual([]);
+            expect(orbital.config.visualInterlocution.interlocution.sourced).toEqual([]);
             expect(orbital.viPanel._chapelLaunch).toBe(false);
             orbital.destroy();
         });
@@ -571,6 +642,7 @@ describe('clearText resets launch-scoped visual identity (2026-07 Doré leak)', 
         // a plain library text carries no visual selection
         orbital.loadText('Plain prose.', 'Plain', {});
         expect(orbital.config.visualInterlocution.interlocution.atriumCollections).toEqual([]);
+        expect(orbital.config.visualInterlocution.interlocution.sourced).toEqual([]);
         expect(orbital.config.visualProgram).toBeNull();
         orbital.destroy();
     });
@@ -631,5 +703,67 @@ describe('clearText resets launch-scoped visual identity (2026-07 Doré leak)', 
         expect(orbital.config.visualInterlocution.focals.type).toBe('standard');
         expect(orbital.config.visualInterlocution.focals.standardGlyph).toBe('spiral');
         orbital.destroy();
+    });
+
+    it('releases an Icon lock atomically when the reader chooses Rhythmic', () => {
+        const onBeginSession = vi.fn();
+        const { orbital, container } = makeOrbital(onBeginSession);
+        const visualProgram = {
+            coordinateSpace: 'scripture',
+            enabled: false,
+            segments: [{
+                id: 'transfiguration',
+                match: { chapter: 17, verseStart: 1, verseEnd: 13 },
+                cue: {
+                    kind: 'sourced',
+                    collections: ['chapel-gospel-transfiguration']
+                }
+            }],
+            fallback: {
+                kind: 'focal',
+                focal: { type: 'icon', iconId: 'icon-transfiguration' }
+            }
+        };
+        orbital.loadText('[v 17:1] And after six days...', 'The Chapel · Matthew 17', {
+            visualProgram,
+            visualConfig: {
+                visualMode: 'focals',
+                focals: { type: 'icon', iconId: 'icon-transfiguration' },
+                interlocution: {
+                    sourceFamily: 'collections',
+                    procedural: [],
+                    sourced: ['chapel-gospel-transfiguration'],
+                    atriumCollections: ['chapel-gospel-transfiguration'],
+                    presentation: 'behind-stream'
+                }
+            }
+        });
+        expect(orbital.config.visualProgram.enabled).toBe(false);
+
+        orbital.viPanel.hasConsent = true;
+        container.querySelector('[data-visual-mode="interlocution"]').click();
+
+        expect(orbital.config.visualInterlocution.visualMode).toBe('interlocution');
+        expect(orbital.config.visualInterlocution.focals).toMatchObject({
+            type: 'standard',
+            iconId: null
+        });
+        expect(orbital.config.visualInterlocution.interlocution.sourced)
+            .toEqual(['chapel-gospel-transfiguration']);
+        expect(orbital.config.visualProgram).toMatchObject({
+            enabled: true,
+            fallback: { kind: 'still' }
+        });
+
+        orbital.beginSession();
+        expect(onBeginSession).toHaveBeenCalledWith(expect.objectContaining({
+            visualProgram: expect.objectContaining({ enabled: true }),
+            visualConfig: expect.objectContaining({
+                visualMode: 'interlocution',
+                focals: expect.objectContaining({ type: 'standard' })
+            })
+        }));
+        orbital.destroy();
+        container.remove();
     });
 });

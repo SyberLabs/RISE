@@ -20,6 +20,16 @@ import {
   VISUAL_PRESENCE_DEFAULT_MS,
   normalizeVisualPresence
 } from '../core/visual-presence.js';
+import {
+  deserializeVisualProgram,
+  normalizeVisualProgram,
+  serializeVisualProgram
+} from '../core/visual-program.js';
+import {
+  clearLaunchVisualSelection,
+  isLaunchHeldFocal,
+  releaseLaunchHeldFocal
+} from '../core/visual-identity.js';
 import './VisualInterlocutionPanel.css';
 
 // Last-used session settings survive across chamber visits (the orbital
@@ -50,6 +60,9 @@ function createDefaultConfig() {
     // uses these to keep passage boundaries intact through configuration.
     sources: null,
     provenance: null,
+    // Content-authored cue schedule. Launch identity, persisted with the
+    // reading rather than with the user's reusable visual preferences.
+    visualProgram: null,
 
     // Visual orbit
     visualInterlocution: {
@@ -240,8 +253,16 @@ export class ChamberOrbital {
       console.warn('[ChamberOrbital] Could not clear prefs:', e);
     }
 
-    const { text, textSource, origin, sources, provenance } = this.config;
-    this.config = { ...createDefaultConfig(), text, textSource, origin, sources, provenance };
+    const { text, textSource, origin, sources, provenance, visualProgram } = this.config;
+    this.config = {
+      ...createDefaultConfig(),
+      text,
+      textSource,
+      origin,
+      sources,
+      provenance,
+      visualProgram
+    };
 
     // The visual panel holds its own copy of the config — rebuild it
     if (this.viPanel) {
@@ -280,6 +301,7 @@ export class ChamberOrbital {
         this.config.textSource = saved.textSource || null;
         this.config.origin = saved.origin || null;
         this.config.provenance = saved.provenance || null;
+        this.config.visualProgram = deserializeVisualProgram(saved.visualProgram);
       }
     } catch (e) {
       console.warn('[ChamberOrbital] Could not read saved text:', e);
@@ -299,7 +321,8 @@ export class ChamberOrbital {
           textSource: this.config.textSource,
           origin: this.config.origin,
           sources,
-          provenance: this.config.provenance
+          provenance: this.config.provenance,
+          visualProgram: serializeVisualProgram(this.config.visualProgram)
         }));
       } else {
         localStorage.removeItem(ORBITAL_TEXT_KEY);
@@ -747,6 +770,14 @@ export class ChamberOrbital {
           locked: !this.config.text,
           lockedMessage: 'Please load a text source first to configure Visuals.',
           onChange: (config) => {
+            const previouslyHeld = isLaunchHeldFocal(
+              this.config.visualInterlocution?.focals
+            );
+            const releasedHeldFocal = previouslyHeld
+              && !isLaunchHeldFocal(config?.focals);
+            if (releasedHeldFocal) {
+              this._unlockVisualProgramAfterFocalRelease();
+            }
             // Store the panel's config verbatim — never mix in activeTypes
             // (cortex vocabulary); app.js derives those from procedural +
             // sourced at session start.
@@ -1347,12 +1378,13 @@ export class ChamberOrbital {
     this.config.provenance = config.provenance || null;
 
     // A compiled visual program (PERICOPE-IMAGERY-SPEC §6) rides
-    // through opaquely — the orbital neither reads nor edits it, but
-    // must carry it to the begin payload so the Chamber's scheduler
-    // receives it. Without this pass-through the schedule was compiled
+    // through as reading identity. The orbital validates its generic
+    // boundary but does not interpret or edit its cues; it must carry
+    // it to Begin so the Chamber's scheduler receives it. Without this
+    // pass-through the schedule was compiled
     // by the handoff and then silently dropped here, so a Gospel
     // chapter stayed frozen on its first episode.
-    this.config.visualProgram = config.visualProgram || null;
+    this.config.visualProgram = normalizeVisualProgram(config.visualProgram);
 
     // Launch origin for the wayfinding chip (null when launched plainly)
     this.config.origin = config.origin || null;
@@ -1471,8 +1503,10 @@ export class ChamberOrbital {
    */
   _clearLaunchVisualIdentity() {
     this.config.visualProgram = null;
-    const inter = this.config.visualInterlocution?.interlocution;
-    if (inter) inter.atriumCollections = [];
+    const visual = this.config.visualInterlocution;
+    if (visual?.interlocution) {
+      visual.interlocution = clearLaunchVisualSelection(visual.interlocution);
+    }
     // The Chapel-HELD focal — an Icon (type:'icon') or the per-book Rosa
     // Mystica (type:'rose') — is seeded by the Chapel launch and belongs
     // to that reading, exactly like the pericope program and the pills.
@@ -1483,25 +1517,27 @@ export class ChamberOrbital {
     // real new Chapel launch re-seeds its own icon via visualConfig after
     // this reset, so nothing legitimate is lost. The standard glyphs and
     // a Personal image are user choices, never Chapel-held: they survive.
-    const focals = this.config.visualInterlocution?.focals;
-    if (focals && (focals.type === 'icon' || focals.type === 'rose')) {
-      focals.type = 'standard';
-      focals.standardGlyph = focals.standardGlyph || 'breath';
-      focals.iconId = null;
-    }
+    const released = releaseLaunchHeldFocal(visual?.focals);
+    if (released) visual.focals = released;
     if (this.viPanel) {
-      this.viPanel._chapelLaunch = false;
-      if (this.viPanel.config.interlocution) {
-        this.viPanel.config.interlocution.atriumCollections = [];
-      }
-      const panelFocals = this.viPanel.config.focals;
-      if (panelFocals && (panelFocals.type === 'icon' || panelFocals.type === 'rose')) {
-        panelFocals.type = 'standard';
-        panelFocals.standardGlyph = panelFocals.standardGlyph || 'breath';
-        panelFocals.iconId = null;
-      }
-      this.viPanel.setProgramInfo?.(null);
+      this.viPanel.clearLaunchVisualIdentity();
     }
+  }
+
+  /**
+   * A true Chapel Icon locks a Gospel schedule while the icon is held.
+   * Releasing that focal transfers authority back to the reading's episodes;
+   * the stale icon must not remain as the disabled program's fallback.
+   */
+  _unlockVisualProgramAfterFocalRelease() {
+    const program = this.config.visualProgram;
+    if (!program || program.enabled !== false) return false;
+    this.config.visualProgram = {
+      ...program,
+      enabled: true,
+      fallback: { kind: 'still' }
+    };
+    return true;
   }
 
   clearText() {
@@ -1607,4 +1643,3 @@ export class ChamberOrbital {
     }
   }
 }
-

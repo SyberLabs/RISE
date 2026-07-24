@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+    allPericopeCollections,
     compileChapterSegments,
     compileVisualProgram,
     pericopeCollectionsForChapter,
@@ -66,6 +67,15 @@ describe('pericope schedule compilation', () => {
         }
         // the arrest has no works → no collection
         expect(colls[pericopeCollectionId('betrayal-arrest')]).toBeUndefined();
+    });
+
+    it('keeps every admitted pericope pin recoverable after launch state is lost', () => {
+        const catalog = allPericopeCollections();
+        expect(catalog['chapel-gospel-before-pilate'].works.length).toBeGreaterThan(0);
+        expect(catalog['chapel-gospel-flagellation'].works.length).toBeGreaterThan(0);
+        expect(catalog['chapel-gospel-crucifixion'].works.length).toBeGreaterThan(0);
+        expect(catalog['chapel-gospel-entombment'].works.length).toBeGreaterThan(0);
+        expect(catalog['chapel-gospel-betrayal-arrest']).toBeUndefined();
     });
 
     it('the compiled program is coordinate-space scripture with a fallback', () => {

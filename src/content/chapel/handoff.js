@@ -286,9 +286,22 @@ export function chapelSensoryConfig(bookId = null, iconId = null, chapter = null
   // segment's cue (verse 1's episode), so the reading opens on the
   // right pericope rather than flashing a stale pool until the first
   // atom is observed. A first segment that stills (works-less episode)
-  // opens empty. A program locked by a chosen icon yields no pool.
-  const programInitialSourced = (gospelChapterProgram && gospelChapterProgram.enabled)
+  // opens empty. Under a chosen Icon this is dormant configuration,
+  // ready only if the reader explicitly releases the Icon for Rhythmic.
+  const programInitialSourced = gospelChapterProgram
     ? firstSegmentCollections(gospelChapterProgram)
+    : null;
+  const gospelProgramInterlocution = gospelChapterProgram
+    ? {
+      sourceFamily: 'collections',
+      frequency: 0.12,
+      duration: 1600,
+      presentation: 'behind-stream',
+      procedural: [],
+      sourced: [...(programInitialSourced || [])],
+      atriumCollections: [...(programInitialSourced || [])],
+      responsive: false
+    }
     : null;
 
   const visualConfig = wantsRose
@@ -296,25 +309,31 @@ export function chapelSensoryConfig(bookId = null, iconId = null, chapter = null
       visualMode: 'focals',
       // Seeded from the book so each epistle keeps its own window,
       // deterministically — the same book, the same glass, forever
-      focals: { type: 'rose', petala: 12, seed: seedFromBook(bookId) }
+      focals: { type: 'rose', petala: 12, seed: seedFromBook(bookId) },
+      ...(gospelProgramInterlocution
+        ? { interlocution: gospelProgramInterlocution }
+        : {})
     }
     : iconId
     ? {
       visualMode: 'focals',
-      focals: { type: 'icon', iconId }
+      focals: { type: 'icon', iconId },
+      ...(gospelProgramInterlocution
+        ? { interlocution: gospelProgramInterlocution }
+        : {})
     }
     : (collections || gospelChapterProgram)
       ? {
         visualMode: 'interlocution',
-        interlocution: {
+        interlocution: gospelProgramInterlocution || {
           sourceFamily: 'collections',
           frequency: 0.12,
           duration: 1600,
           procedural: [],
           // A Gospel chapter opens on its program's first episode; a
           // non-Gospel book uses its chapter/book collection.
-          sourced: gospelChapterProgram ? (programInitialSourced || []) : collections,
-          atriumCollections: gospelChapterProgram ? (programInitialSourced || []) : collections,
+          sourced: collections,
+          atriumCollections: collections,
           responsive: false
         }
       }

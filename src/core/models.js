@@ -3,6 +3,8 @@
  * Data structures for atoms, sources, and sessions
  */
 
+import { normalizeVisualProgram } from './visual-program.js';
+
 /**
  * Modality types for content atoms
  * @typedef {'text' | 'image' | 'symbol' | 'audio' | 'composite'} Modality
@@ -216,8 +218,7 @@ export class Session {
     this.voiceId = voiceId;
     this.selectedSwellId = selectedSwellId;
     this.shuttleExempt = shuttleExempt === true;
-    this.visualProgram = visualProgram && typeof visualProgram === 'object'
-      ? visualProgram : null;
+    this.visualProgram = normalizeVisualProgram(visualProgram);
     this.createdAt = new Date();
   }
 

@@ -119,7 +119,10 @@ export class VisualScheduleController {
         const out = [];
         for (const seg of this.program.segments) {
             if (seg.match.chapter < atom.chapter) continue;
-            if (seg.match.chapter === atom.chapter && seg.match.verseEnd <= atom.verse) continue;
+            // The active segment is already being armed by applyCue; only
+            // warm segments whose start is genuinely ahead of this atom.
+            if (seg.match.chapter === atom.chapter
+                && seg.match.verseStart <= atom.verse) continue;
             if (seg.cue?.kind === 'sourced' && Array.isArray(seg.cue.collections)) {
                 out.push(...seg.cue.collections);
                 if (out.length >= 2) break; // two ahead is plenty

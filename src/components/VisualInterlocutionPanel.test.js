@@ -154,6 +154,29 @@ describe('Chapel collection editing in the panel', () => {
         });
         expect(plain.querySelector('.vi-focals-icon-active')).toBeNull();
     });
+
+    it('releases a Chapel-held focal when leaving Focals, preserving user-owned focals', () => {
+        const icon = makePanel({
+            visualMode: 'focals',
+            focals: { type: 'icon', iconId: 'icon-pantocrator-sinai' }
+        });
+        icon.panel.hasConsent = true;
+        icon.container.querySelector('[data-visual-mode="interlocution"]').click();
+        expect(icon.panel.getConfig()).toMatchObject({
+            visualMode: 'interlocution',
+            focals: { type: 'standard', iconId: null }
+        });
+
+        const personal = makePanel({
+            visualMode: 'focals',
+            focals: { type: 'personal', personalImage: 'data:image/png;base64,AAAA' }
+        });
+        personal.panel.setVisualMode('interlocution');
+        expect(personal.panel.getConfig().focals).toMatchObject({
+            type: 'personal',
+            personalImage: 'data:image/png;base64,AAAA'
+        });
+    });
 });
 
 describe('VisualInterlocutionPanel preset visibility', () => {
@@ -179,6 +202,44 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         expect(panel.getConfig().visualMode).toBe('off');
         expect(onChange).toHaveBeenLastCalledWith(
             expect.objectContaining({ visualMode: 'off' }),
+            expect.any(Array)
+        );
+
+        panel.destroy();
+        container.remove();
+        document.querySelector('#photosensitivity-modal')?.remove();
+        endVisualInterlocutionSession();
+    });
+
+    it('keeps a Chapel focal when a requested Rhythmic switch is cancelled', async () => {
+        endVisualInterlocutionSession();
+        document.body.insertAdjacentHTML('beforeend', `
+          <div id="photosensitivity-modal" class="hidden">
+            <button id="safety-cancel">Cancel</button>
+            <button id="safety-accept">Accept</button>
+          </div>
+        `);
+        const onChange = vi.fn();
+        const { panel, container } = makePanel({
+            visualMode: 'focals',
+            consentScope: 'panel-icon-cancel',
+            focals: { type: 'icon', iconId: 'icon-pantocrator-sinai' },
+            onChange
+        });
+
+        container.querySelector('[data-visual-mode="interlocution"]').click();
+        document.querySelector('#safety-cancel').click();
+        await Promise.resolve();
+
+        expect(panel.getConfig()).toMatchObject({
+            visualMode: 'focals',
+            focals: { type: 'icon', iconId: 'icon-pantocrator-sinai' }
+        });
+        expect(onChange).toHaveBeenLastCalledWith(
+            expect.objectContaining({
+                visualMode: 'focals',
+                focals: expect.objectContaining({ type: 'icon' })
+            }),
             expect.any(Array)
         );
 

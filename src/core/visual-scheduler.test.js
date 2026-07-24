@@ -48,6 +48,13 @@ describe('VisualScheduleController', () => {
         expect(onCue.mock.calls[1][0].collections).toEqual(['coll-b']);
     });
 
+    it('prefetches only future sourced segments, not the cue being activated', () => {
+        const onCue = vi.fn();
+        const ctrl = new VisualScheduleController(program, onCue);
+        ctrl.observe(atom(1, 1));
+        expect(onCue.mock.calls[0][1].prefetch).toEqual(['coll-b']);
+    });
+
     it('the generation advances on every cue change', () => {
         const gens = [];
         const ctrl = new VisualScheduleController(program, (_, meta) => gens.push(meta.generation));

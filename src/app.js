@@ -435,6 +435,14 @@ class App {
                         });
                     }
 
+                    // Every new reading installs an authoritative cortex
+                    // identity. Persistent/off modes do not use the cortex,
+                    // but must still clear a prior reading's active category
+                    // instead of relying on omission.
+                    if (visualMode !== 'interlocution') {
+                        visualCortex.resetSessionVisualIdentity();
+                    }
+
                     // Configure visual cortex based on the consented mode.
                     if (visualMode === 'interlocution') {
                         this.updateLoadingStatus('Loading visual engine...');

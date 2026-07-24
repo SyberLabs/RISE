@@ -223,6 +223,54 @@ describe('VisualCortex Klee delegation', () => {
         expect(cortex.config.activeTypes).toEqual([]);
     });
 
+    it('re-arms current-pool hydration on every sourced cue activation', async () => {
+        const cortex = new VisualCortex();
+        cortex.config.enabled = true;
+        const warm = vi.spyOn(cortex, '_preloadDiagrams').mockResolvedValue({
+            aborted: false,
+            minimumReady: true,
+            targetSatisfied: true
+        });
+        vi.spyOn(cortex, '_scheduleBackgroundWarm').mockImplementation(() => {});
+
+        cortex.applyCue({ kind: 'sourced', collections: ['chapel-gospel-before-pilate'] });
+        cortex.applyCue({ kind: 'sourced', collections: ['chapel-gospel-flagellation'] });
+        await Promise.resolve();
+
+        expect(warm).toHaveBeenCalledTimes(2);
+        expect(cortex.config.activeTypes).toEqual(['chapel-gospel-flagellation']);
+    });
+
+    it('a cue swap preserves a visual that has already committed', () => {
+        const cortex = new VisualCortex();
+        cortex._activePresentation = { settled: false };
+        const cancel = vi.spyOn(cortex, 'cancelPresentation');
+        const epoch = cortex._presentationEpoch;
+
+        cortex.applyCue({ kind: 'sourced', collections: ['chapel-gospel-crucifixion'] });
+
+        expect(cancel).not.toHaveBeenCalled();
+        expect(cortex._presentationEpoch).toBe(epoch);
+        expect(cortex.config.activeTypes).toEqual(['chapel-gospel-crucifixion']);
+    });
+
+    it('installs an authoritative empty identity for a non-Rhythmic reading', () => {
+        const cortex = new VisualCortex();
+        cortex.config.enabled = true;
+        cortex.config.activeTypes = ['dore:numbers'];
+        const staleAsset = { img: { src: 'dore-numbers.jpg' } };
+        cortex._poolFor('dore:numbers').images.push(staleAsset);
+        const dispose = vi.spyOn(cortex, '_disposeAsset');
+
+        cortex.resetSessionVisualIdentity();
+
+        expect(cortex.config.enabled).toBe(false);
+        expect(cortex.config.activeTypes).toEqual([]);
+        expect(cortex.config.sourced).toEqual([]);
+        expect(cortex._assetPools.has('dore:numbers')).toBe(false);
+        expect(dispose).toHaveBeenCalledWith(staleAsset);
+    });
+
     it('normalizes render language independently of the active source set', () => {
         const cortex = new VisualCortex();
         cortex.updateConfig({ renderLanguage: 'ascii', activeTypes: ['klee'] });

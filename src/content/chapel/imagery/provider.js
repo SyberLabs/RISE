@@ -15,18 +15,25 @@
 
 import { PinnedWorksProvider } from '../../atrium/imagery/provider.js';
 import { CHAPEL_PINNED_COLLECTIONS, hasChapelCollection as hasStaticChapelCollection } from './collections.js';
+import { allPericopeCollections } from './pericope-program.js';
+
+// A persisted program can outlive the launch module state (hard reload).
+// Keep the curated pins recoverable inside this hidden provider so its ids
+// continue to resolve without registering them as global/browsable sources.
+const RECOVERABLE_PERICOPE_COLLECTIONS = Object.freeze(allPericopeCollections());
 
 // Dynamic pericope collections (PERICOPE-IMAGERY-SPEC §6.1): a Gospel
 // chapter launch registers its chapter's pericope collections here,
-// keyed by their chapel-gospel-* ids. They live beside the static
-// painted collections; the cortex resolves both through the one
-// provider and never learns which is which. A launch replaces the
-// whole overlay, so a previous reading's pericopes never linger.
+// keyed by their chapel-gospel-* ids. They may override the recoverable
+// catalog for that launch; activation still comes exclusively from the
+// current reading's schedule, never by searching this provider.
 let dynamicCollections = Object.freeze({});
 
-/** True for a static painted collection OR a registered pericope. */
+/** True for a static painted collection or a curated pericope id. */
 export function hasChapelCollection(id) {
-    return hasStaticChapelCollection(id) || Object.hasOwn(dynamicCollections, id);
+    return hasStaticChapelCollection(id)
+        || Object.hasOwn(RECOVERABLE_PERICOPE_COLLECTIONS, id)
+        || Object.hasOwn(dynamicCollections, id);
 }
 
 /**
@@ -42,7 +49,11 @@ export function setDynamicChapelCollections(collections) {
 }
 
 function mergedCollections() {
-    return { ...CHAPEL_PINNED_COLLECTIONS, ...dynamicCollections };
+    return {
+        ...CHAPEL_PINNED_COLLECTIONS,
+        ...RECOVERABLE_PERICOPE_COLLECTIONS,
+        ...dynamicCollections
+    };
 }
 
 let instance = null;
