@@ -146,6 +146,13 @@ export class VisualInterlocutionPanel {
         });
 
         // Configuration state
+        // When a session follows a curated visual PROGRAM (a Gospel
+        // chapter's pericope schedule — PERICOPE-IMAGERY-SPEC), the
+        // panel shows a read-only banner and treats its sourced pool
+        // as program-owned, not freely editable. { episodes } summary,
+        // or null for an ordinary reading.
+        this.programInfo = options.programInfo || null;
+
         this.config = {
             // Top-level mode: 'off' | 'focals' | 'attractor' | 'interlocution'
             visualMode: options.visualMode || 'off',
@@ -311,6 +318,18 @@ export class VisualInterlocutionPanel {
      * Safety consent remains a separate launch-time requirement.
      * Note: Does NOT check locked state - programmatic config should always apply
      */
+    /**
+     * Declare (or clear) a curated visual program for this session. A
+     * non-null summary makes the interlocution panel show its read-only
+     * banner and mark the sourced pool as program-owned.
+     * @param {{episodes:number}|null} info
+     */
+    setProgramInfo(info) {
+        this.programInfo = info && typeof info === 'object' ? info : null;
+        this.render();
+        this.attachEvents();
+    }
+
     setConfig(visualConfig) {
         console.log('[VisualInterlocutionPanel] setConfig called:', visualConfig);
 
@@ -794,7 +813,28 @@ export class VisualInterlocutionPanel {
 
                     <!-- INTERLOCUTION: Probabilistic interrupts -->
                     <div class="vi-accordions" ${mode === 'interlocution' ? '' : 'hidden'}>
+                        ${this.programInfo ? `
+                            <!-- A curated visual program owns this reading's
+                                 imagery (PERICOPE-IMAGERY-SPEC): the schedule
+                                 follows the passage episode by episode, so the
+                                 pools below are program-driven, not freely
+                                 chosen. Non-editable, informational. -->
+                            <div class="vi-program-active" role="status">
+                                <span class="vi-program-mark" aria-hidden="true">✦</span>
+                                <span class="vi-program-body">
+                                    <span class="vi-program-name">Special Collection · ${this.programInfo.episodes} episodes</span>
+                                    <span class="vi-program-hint text-mist">The imagery follows this passage scene by scene — a curated program, not a fixed pool.</span>
+                                </span>
+                            </div>
+                        ` : ''}
                         ${(() => {
+                            // A curated program owns the imagery: the banner
+                            // above says so, and the per-episode pools are not
+                            // freely chosen. Suppress the editable "From this
+                            // reading" chips entirely — a single editable
+                            // before-pilate pill the schedule overrides would
+                            // be exactly the confusion the banner resolves.
+                            if (this.programInfo) return '';
                             // "From this reading": collections curated for the
                             // launched Atrium record. Appears only on Atrium
                             // launches; informational, since `sourced` already
@@ -839,6 +879,15 @@ export class VisualInterlocutionPanel {
                                     // their own names; they are corpus content
                                     // and never appear in the browsable list
                                     return ATRIUM_CATEGORIES[id]?.name || id;
+                                }
+                                if (id.startsWith('chapel-gospel-')) {
+                                    // Pericope collections: title-case the
+                                    // episode slug (chapel-gospel-before-pilate
+                                    // → "Before Pilate"). They rarely surface
+                                    // as a chip (a program suppresses them),
+                                    // but never show a raw id if they do.
+                                    return id.slice('chapel-gospel-'.length)
+                                        .split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
                                 }
                                 if (id.startsWith('chapel-')) {
                                     // Chapel-scoped sacred collections: named

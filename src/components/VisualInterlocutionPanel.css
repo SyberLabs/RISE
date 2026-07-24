@@ -1519,3 +1519,34 @@
     border-color: var(--color-ember, #c9a95c);
     color: var(--color-ember, #c9a95c);
 }
+
+/* Special Collection banner — a curated visual program owns this
+   reading's imagery (PERICOPE-IMAGERY-SPEC). Read-only, informational,
+   mirroring the icon-active banner but in the ember key of the Chapel. */
+.vi-program-active {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(201, 169, 92, 0.32);
+  border-radius: 4px;
+  background: rgba(201, 169, 92, 0.06);
+}
+.vi-program-mark {
+  color: var(--color-ember, #c9a95c);
+  font-size: 15px;
+}
+.vi-program-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.vi-program-name {
+  color: var(--color-light, #eee);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+.vi-program-hint {
+  font-size: 11px;
+}

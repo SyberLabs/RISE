@@ -1400,6 +1400,15 @@ export class ChamberOrbital {
       // Update the VisualInterlocutionPanel if it exists
       if (this.viPanel) {
         this.viPanel.setConfig(config.visualConfig);
+        // A curated visual program (a Gospel chapter's pericope
+        // schedule) makes the panel show its read-only Special
+        // Collection banner. Cleared for ordinary readings.
+        const program = this.config.visualProgram;
+        this.viPanel.setProgramInfo(
+          program && Array.isArray(program.segments) && program.segments.length
+            ? { episodes: program.segments.length }
+            : null
+        );
       }
     }
 

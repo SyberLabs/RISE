@@ -789,3 +789,23 @@ describe('Atrium-exclusive pattern pills', () => {
         container.remove();
     });
 });
+
+describe('Special Collection banner (PERICOPE-IMAGERY-SPEC)', () => {
+    it('shows the read-only program banner and suppresses the editable chips', () => {
+        const { panel, container } = makePanel({ visualMode: 'interlocution' });
+        panel.setProgramInfo({ episodes: 7 });
+        const banner = container.querySelector('.vi-program-active');
+        expect(banner).not.toBeNull();
+        expect(banner.querySelector('.vi-program-name').textContent).toContain('7 episodes');
+        // the "From this reading" editable chip block must not appear
+        expect(container.querySelector('.vi-chapel-collections')).toBeNull();
+    });
+
+    it('clears the banner for an ordinary reading', () => {
+        const { panel, container } = makePanel({ visualMode: 'interlocution' });
+        panel.setProgramInfo({ episodes: 3 });
+        expect(container.querySelector('.vi-program-active')).not.toBeNull();
+        panel.setProgramInfo(null);
+        expect(container.querySelector('.vi-program-active')).toBeNull();
+    });
+});
