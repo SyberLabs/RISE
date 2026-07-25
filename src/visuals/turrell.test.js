@@ -117,6 +117,37 @@ describe('Turrell plan contract', () => {
     }
   });
 
+  it('rasterizes the same plan into a Gallery-ready canvas still', () => {
+    const { turrell } = makeTurrell();
+    const gradients = [];
+    const ctx = {
+      save() {},
+      restore() {},
+      fillRect() {},
+      translate() {},
+      scale() {},
+      createRadialGradient() {
+        const stops = [];
+        gradients.push(stops);
+        return {
+          addColorStop(offset, color) { stops.push({ offset, color }); }
+        };
+      }
+    };
+    const canvas = {
+      width: 1200,
+      height: 800,
+      getContext: () => ctx
+    };
+    const plan = turrell.generate();
+
+    expect(turrell.render(canvas, plan)).toBe(true);
+    expect(gradients).toHaveLength(2);
+    expect(gradients[0]).toHaveLength(plan.stops.length);
+    expect(gradients[0].map(stop => stop.offset))
+      .toEqual(plan.stops.map(stop => stop.offset));
+  });
+
   it('never emits NaN, undefined, or unparseable CSS', () => {
     // One invalid layer voids the entire background shorthand and the
     // field renders pure black — the failure mode is silent and total.

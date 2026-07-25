@@ -9,10 +9,10 @@
  * holding whichever pool the reading provides. It has no flash rate
  * and therefore no flash gate (§5).
  *
- * This module is PURE of the cortex: it is handed a DOM host, a pool
- * accessor (a function returning the current pool's works), and a
- * decode function. It knows nothing of providers, pericopes, or the
- * flash pipeline. The cortex wires those in.
+ * This module is PURE of the cortex: it is handed a DOM host, either a pool
+ * accessor or an asynchronous next-work adapter, and a decode function. It
+ * knows nothing of providers, generators, pericopes, or the flash pipeline.
+ * The cortex wires those in.
  */
 
 import { ShuffleBag } from '../sources/visual/shuffle-bag.js';
@@ -37,6 +37,11 @@ export class ContinuousField {
      *   - decode: (url) => Promise<boolean>  resolves true when the
      *       image at url is decoded and safe to reveal (SacredImage's
      *       decode-before-reveal); false to skip it.
+     *   - getNextWork: async ({ currentUrl }) => { url, title? } | null
+     *       optional source adapter for generated works. When present it
+     *       owns selection/materialization; the field remains a presenter.
+     *   - hasWorks: () => boolean  whether the current identity has either
+     *       ready or generatable works (used on live pool changes).
      *   - dwellMs / crossfadeMs: cadence overrides
      *   - reducedMotion: boolean — one still work, no clock, no fades
      *   - now / raf / caf: injectable clock for tests
@@ -45,6 +50,12 @@ export class ContinuousField {
         this.host = host;
         this.getPool = typeof options.getPool === 'function' ? options.getPool : () => [];
         this.poolKey = typeof options.poolKey === 'function' ? options.poolKey : () => 'default';
+        this.getNextWork = typeof options.getNextWork === 'function'
+            ? options.getNextWork
+            : null;
+        this.hasWorks = typeof options.hasWorks === 'function'
+            ? options.hasWorks
+            : () => (this.getPool() || []).length > 0;
         this.decode = typeof options.decode === 'function'
             ? options.decode
             : (url) => this._defaultDecode(url);
@@ -177,27 +188,47 @@ export class ContinuousField {
      * @param {boolean} first - the initial reveal (fade in from nothing)
      */
     async _advance(first) {
-        const pool = this.getPool() || [];
-        if (pool.length === 0) {
-            // Cold or emptied pool: hold what is shown (or nothing).
-            // The next advance retries; the pin-recovery backoff refills.
-            if (first) this._fadeToNothing();
-            return;
-        }
         this._advanceInFlight = true;
         const generation = this._generation;
-        const key = this.poolKey();
-        // The bag decks per pool identity: a pericope boundary (new key)
-        // starts a fresh no-repeat cycle; growth of the same pool keeps
-        // the cycle (ShuffleBag's growth-merge).
-        let work = this._bag.draw(key, pool);
-        // Skip the current work if the bag handed it back (a 1-item pool
-        // legitimately repeats; a larger pool should move on).
-        if (work && pool.length > 1 && work.url === this._currentUrl) {
-            work = this._bag.draw(key, pool) || work;
+        let work = null;
+        try {
+            if (this.getNextWork) {
+                // Generated sources may cross an asynchronous boundary.
+                // The generation token below gives them the same stale
+                // completion protection as image decode.
+                work = await this.getNextWork({
+                    currentUrl: this._currentUrl,
+                    poolKey: this.poolKey()
+                });
+            } else {
+                const pool = this.getPool() || [];
+                if (pool.length > 0) {
+                    const key = this.poolKey();
+                    // The bag decks per pool identity: a pericope boundary
+                    // starts a fresh no-repeat cycle; growth of the same pool
+                    // keeps the cycle (ShuffleBag's growth-merge).
+                    work = this._bag.draw(key, pool);
+                    if (work && pool.length > 1 && work.url === this._currentUrl) {
+                        work = this._bag.draw(key, pool) || work;
+                    }
+                }
+            }
+        } catch {
+            // A generator failure is equivalent to a cold work: retain the
+            // current wall and retry at the next cadence boundary.
+            work = null;
+        }
+
+        if (!this._running || generation !== this._generation) {
+            this._advanceInFlight = false;
+            return;
         }
         const url = work?.url;
-        if (!url) { this._advanceInFlight = false; return; }
+        if (!url) {
+            if (first) this._fadeToNothing();
+            this._advanceInFlight = false;
+            return;
+        }
 
         const ok = await this.decode(url);
         // The moment that requested this must still exist, and nothing
@@ -266,8 +297,7 @@ export class ContinuousField {
     poolChanged(opts = {}) {
         if (!this._running) return;
         this._generation += 1;
-        const pool = this.getPool() || [];
-        if (pool.length === 0) {
+        if (!this.hasWorks()) {
             if (opts.stillness) {
                 // A genuinely works-less episode: fade to stillness.
                 this._fadeToNothing();
@@ -280,8 +310,12 @@ export class ContinuousField {
         } else {
             // crossfade to the new episode immediately, not on the next
             // dwell — the scene changed, the field should follow
-            this._advance(false);
-            this._nextAdvanceAt = this._now() + this.dwellMs;
+            if (!this._advanceInFlight) {
+                this._advance(false);
+                this._nextAdvanceAt = this._now() + this.dwellMs;
+            } else {
+                this._nextAdvanceAt = this._now();
+            }
         }
     }
 

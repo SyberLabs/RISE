@@ -74,6 +74,26 @@ const COVER_SETTLE_FRAME_MS = 17;
 // Pool key for bare 'diagram' flashes (no concrete category): a
 // Wikimedia grab-bag, one pool like any other
 const ANY_POOL = '__any__';
+const GALLERY_PROCEDURAL_TYPES = Object.freeze([
+    'klee',
+    'turrell',
+    'fractal',
+    'neural',
+    'rockgarden',
+    'harmonograph',
+    'blueprint',
+    'freedom'
+]);
+const GALLERY_PROCEDURAL_TITLES = Object.freeze({
+    klee: 'Klee Engine',
+    turrell: 'Light Field',
+    fractal: 'Fractal Flame',
+    neural: 'Neural Field',
+    rockgarden: 'Rock Garden',
+    harmonograph: 'Harmonograph',
+    blueprint: 'Blueprint',
+    freedom: 'Freedom Field'
+});
 
 export class VisualCortex {
     constructor() {
@@ -91,6 +111,7 @@ export class VisualCortex {
         this.asciiCompiler = null;
         this._asciiCanvas = null;
         this._asciiScratchCanvas = null;
+        this._fractalCanvas = null;
         this._localAsciiAssets = new Map();
         this.initialized = false;
         this._destroyed = false;
@@ -137,11 +158,16 @@ export class VisualCortex {
         this._activePresentation = null;
         // The Continuous Field (Gallery) presenter — a persistent
         // crossfading gallery behind the reading (CONTINUOUS-FIELD-SPEC).
-        // Constructed lazily the first time 'continuous' presentation is
-        // requested with a host; it draws from the same resolved asset
-        // pools the flash economy uses, so it is a presenter, not a source.
+        // Constructed lazily with its Chamber-owned host. It receives
+        // immutable works from the same provider pools and procedural engines
+        // as Rhythmic; it remains a presenter, never a second source system.
         this._continuousField = null;
         this._continuousFieldHost = null;
+        // Gallery draws families and procedural types without replacement.
+        // This prevents a large museum pool from suppressing a selected
+        // procedural signature and keeps multiple generators in rotation.
+        this._continuousWorkBag = new ShuffleBag();
+        this._continuousSignalCursor = 0;
         // Invalidates work that was already rendering when a stop request
         // arrived. The public cancellation method remains the single kill
         // path for both committed and not-yet-committed presentations.
@@ -203,6 +229,7 @@ export class VisualCortex {
 
         const fractalCanvas = document.getElementById('fractal-canvas');
         if (fractalCanvas) {
+            this._fractalCanvas = fractalCanvas;
             this.fractal = new FractalFlame(fractalCanvas);
             console.log('[Visual Cortex] Fractal canvas bound:', fractalCanvas);
         } else {
@@ -480,11 +507,11 @@ export class VisualCortex {
     // ── The Continuous Field (Gallery) ──────────────────────────────
     //
     // A persistent crossfading gallery behind the reading, distinct from
-    // the flash economy (CONTINUOUS-FIELD-SPEC). It reads the SAME
-    // resolved asset pools the flash path uses, so it introduces no new
-    // source machinery — it is purely a second presenter. The cortex owns
-    // its lifecycle (start/stop follows presentation mode and safety); the
-    // Chamber supplies the DOM host it mounts its two layers in.
+    // the flash economy (CONTINUOUS-FIELD-SPEC). The cortex adapts the SAME
+    // resolved asset pools and procedural engines into immutable image works,
+    // so Gallery introduces no parallel source machinery. It only adds a
+    // second presenter. The cortex owns its lifecycle; the Chamber supplies
+    // the DOM host it mounts its two layers in.
 
     /**
      * The Chamber hands the field a host element to mount its layers in
@@ -522,6 +549,16 @@ export class VisualCortex {
             && document.documentElement.classList.contains('photosensitivity-mode');
     }
 
+    _continuousProceduralTypes() {
+        const active = this.config.activeTypes || [];
+        return GALLERY_PROCEDURAL_TYPES.filter(type => active.includes(type));
+    }
+
+    _continuousHasWorks() {
+        return this._continuousProceduralTypes().length > 0
+            || this._activePoolCategories().length > 0;
+    }
+
     /**
      * The field's pool: every resolved work across the active external
      * categories, mapped to the presenter's {url, title} shape. Read
@@ -556,6 +593,202 @@ export class VisualCortex {
         return works;
     }
 
+    _drawContinuousExternalWork(works, currentUrl) {
+        if (!works.length) return null;
+        const key = `gallery:external:${this._continuousPoolKey()}`;
+        let work = this._continuousWorkBag.draw(key, works);
+        if (work && works.length > 1 && work.url === currentUrl) {
+            work = this._continuousWorkBag.draw(key, works) || work;
+        }
+        return work;
+    }
+
+    _nextContinuousSignal() {
+        const signals = Array.isArray(this.config.semanticSignals)
+            ? this.config.semanticSignals
+            : [];
+        if (!signals.length) return null;
+        const signal = signals[this._continuousSignalCursor % signals.length];
+        this._continuousSignalCursor += 1;
+        return signal;
+    }
+
+    _canvasToContinuousWork(canvas, type) {
+        if (!canvas?.toDataURL) return null;
+        try {
+            // WebP keeps a viewport-sized procedural still compact. Browsers
+            // without WebP canvas export fall back to PNG automatically.
+            const url = canvas.toDataURL('image/webp', 0.9);
+            if (!url || url === 'data:,') return null;
+            return {
+                url,
+                title: GALLERY_PROCEDURAL_TITLES[type] || type,
+                sourceType: type
+            };
+        } catch (error) {
+            console.warn(`[Visual Cortex] Gallery could not snapshot ${type}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Materialize one procedural still using the same engines, semantic
+     * signal, render-language adapters, and session-owned queues as Rhythmic
+     * flashes. The result is an immutable data URL: ContinuousField remains
+     * image-only and never acquires generator or canvas lifecycle knowledge.
+     */
+    async _renderContinuousProceduralWork(type) {
+        if (!GALLERY_PROCEDURAL_TYPES.includes(type)) return null;
+        if (!this.initialized) this.init();
+        const signal = this._nextContinuousSignal();
+        const asciiMode = this.config.renderLanguage === 'ascii';
+        let canvas = null;
+        let asciiFrame = null;
+        let rendered = false;
+
+        if (type === 'klee' && this.kleeFlashes && this._kleeCanvas) {
+            this._resizeKleeCanvas();
+            if (asciiMode) {
+                asciiFrame = await this.kleeFlashes.createAsciiFlash(160, signal, {
+                    displayWidth: this._asciiCanvas?.width,
+                    displayHeight: this._asciiCanvas?.height
+                });
+            } else {
+                rendered = await this.kleeFlashes.renderFlash(this._kleeCanvas, 160, signal);
+                canvas = this._kleeCanvas;
+            }
+        } else if (type === 'turrell' && this.turrell && this._kleeCanvas) {
+            this._resizeKleeCanvas();
+            const plan = this.turrell.generate();
+            if (asciiMode) {
+                asciiFrame = compileFieldPlanToAscii(
+                    plan,
+                    this._asciiOptions(signal, { source: 'turrell' })
+                );
+            } else {
+                rendered = this.turrell.render(this._kleeCanvas, plan);
+                canvas = this._kleeCanvas;
+            }
+        } else if (type === 'fractal' && this.fractal && this._fractalCanvas) {
+            if (!this.fractal.isReady()) await this.fractal.fillQueue(1);
+            if (asciiMode) {
+                const item = this.fractal.takeFrame(signal);
+                if (item) {
+                    item.asciiFrame ||= await this.asciiCompiler.compileImageData(
+                        item.imageData,
+                        this._asciiOptions(signal, { source: 'fractal' })
+                    );
+                    asciiFrame = item.asciiFrame;
+                }
+            } else {
+                rendered = this.fractal.generate(signal);
+                canvas = this._fractalCanvas;
+            }
+        } else if (type === 'neural' && this.neural && this._neuralCanvas) {
+            rendered = this.neural.generate();
+            if (asciiMode && rendered) asciiFrame = this._neuralAsciiFrame(signal);
+            else canvas = this._neuralCanvas;
+        } else if (type === 'harmonograph' && this.harmonograph && this._kleeCanvas) {
+            this._resizeKleeCanvas();
+            rendered = this.harmonograph.generate(signal, undefined, {
+                climate: this.config.harmonographClimate
+            });
+            if (asciiMode && rendered) asciiFrame = this._harmonographAsciiFrame(signal);
+            else if (rendered) {
+                rendered = this.harmonograph.render(this._kleeCanvas);
+                canvas = this._kleeCanvas;
+            }
+        } else if (type === 'blueprint' && this.blueprint && this._kleeCanvas) {
+            this._resizeKleeCanvas();
+            rendered = this.blueprint.generate(signal, undefined, {
+                climate: this.config.blueprintClimate,
+                mechanism: this.config.blueprintMechanism
+            });
+            if (asciiMode && rendered) asciiFrame = this._blueprintAsciiFrame(signal);
+            else if (rendered) {
+                rendered = this.blueprint.render(this._kleeCanvas);
+                canvas = this._kleeCanvas;
+            }
+        } else if (type === 'freedom' && this.freedom && this._kleeCanvas) {
+            this._resizeKleeCanvas();
+            rendered = this.freedom.generate(signal, undefined, {
+                relation: this.config.freedomRelation
+            });
+            if (asciiMode && rendered) asciiFrame = this._freedomAsciiFrame(signal);
+            else if (rendered) {
+                rendered = this.freedom.render(this._kleeCanvas);
+                canvas = this._kleeCanvas;
+            }
+        } else if (type === 'rockgarden' && this.rockgarden && this._kleeCanvas) {
+            this._resizeKleeCanvas();
+            this.rockgarden.generateRockGarden({
+                width: this._kleeCanvas.width,
+                height: this._kleeCanvas.height
+            });
+            if (asciiMode) {
+                asciiFrame = this._rockGardenAsciiFrame(signal);
+            } else {
+                rendered = this.rockgarden.renderRockGarden(this._kleeCanvas, {
+                    backgroundColor: ASCII_BACKGROUND,
+                    strokeColor: 'rgba(232, 232, 236, 0.8)',
+                    brushStroke: true
+                }) !== false;
+                canvas = this._kleeCanvas;
+            }
+        }
+
+        if (asciiMode) {
+            rendered = !!asciiFrame && !!this.asciiRenderer?.render(asciiFrame);
+            canvas = this._asciiCanvas;
+        }
+        return rendered ? this._canvasToContinuousWork(canvas, type) : null;
+    }
+
+    /**
+     * Gallery-level selection. Blend chooses a family first, so one selected
+     * procedural is not drowned by many sourced works; then each family uses
+     * its own no-repeat bag. A failed generator falls through to another
+     * selected procedural or a ready sourced work without blanking the wall.
+     */
+    async _nextContinuousWork({ currentUrl = null } = {}) {
+        const procedural = this._continuousProceduralTypes();
+        const sourcedWorks = this._continuousPool();
+        const families = [];
+        if (procedural.length) families.push('procedural');
+        if (sourcedWorks.length) families.push('sourced');
+        if (!families.length) return null;
+
+        const poolKey = this._continuousPoolKey();
+        const firstFamily = this._continuousWorkBag.draw(
+            `gallery:families:${poolKey}`,
+            families
+        );
+        const familyOrder = firstFamily === 'procedural'
+            ? ['procedural', 'sourced']
+            : ['sourced', 'procedural'];
+
+        for (const family of familyOrder) {
+            if (family === 'sourced' && sourcedWorks.length) {
+                const work = this._drawContinuousExternalWork(sourcedWorks, currentUrl);
+                if (work) return work;
+            }
+            if (family === 'procedural' && procedural.length) {
+                const attempted = new Set();
+                while (attempted.size < procedural.length) {
+                    const type = this._continuousWorkBag.draw(
+                        `gallery:procedural:${poolKey}`,
+                        procedural
+                    );
+                    if (!type || attempted.has(type)) break;
+                    attempted.add(type);
+                    const work = await this._renderContinuousProceduralWork(type);
+                    if (work) return work;
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * A stable key for the active pool identity. A pericope boundary
      * changes the active categories → a new key → the field's ShuffleBag
@@ -563,7 +796,15 @@ export class VisualCortex {
      * keeps the key (and the cycle).
      */
     _continuousPoolKey() {
-        return this._activePoolCategories().slice().sort().join('|') || 'default';
+        const identities = (this.config.activeTypes || [])
+            .filter(type => GALLERY_PROCEDURAL_TYPES.includes(type)
+                || type === 'diagram'
+                || this._isExternalCategory(type))
+            .slice()
+            .sort();
+        return identities.length
+            ? `${this.config.renderLanguage || 'native'}:${identities.join('|')}`
+            : 'default';
     }
 
     _ensureContinuousField() {
@@ -571,6 +812,8 @@ export class VisualCortex {
         const timings = galleryCadenceTimings(this.config.galleryCadence);
         this._continuousField = new ContinuousField(this._continuousFieldHost, {
             getPool: () => this._continuousPool(),
+            getNextWork: context => this._nextContinuousWork(context),
+            hasWorks: () => this._continuousHasWorks(),
             poolKey: () => this._continuousPoolKey(),
             // The presenter's own decode-before-reveal (a detached Image
             // decode) governs; the cortex's warm pool already holds decoded
@@ -622,7 +865,7 @@ export class VisualCortex {
             // Stillness is a cue with no sourced categories at all (a
             // works-less pericope); an empty pool WITH active categories is
             // merely cold and warming, and must not fade the field to black.
-            const stillness = this._activePoolCategories().length === 0;
+            const stillness = !this._continuousHasWorks();
             this._continuousField.poolChanged({ stillness });
         }
     }
@@ -632,6 +875,10 @@ export class VisualCortex {
         sessionBoundary = false
     } = {}) {
         const nextConfig = { ...newConfig };
+        if (sessionBoundary) {
+            this._continuousWorkBag.clear();
+            this._continuousSignalCursor = 0;
+        }
         if (!preservePresentation && Object.keys(nextConfig).length > 0) {
             if (this._activePresentation) {
                 this.cancelPresentation('aborted');
@@ -1651,7 +1898,13 @@ export class VisualCortex {
         if (this.fractal && this.config.activeTypes.includes('fractal')) {
             this.fractal.beginSession(this.config.semanticSignals);
             const fractalShare = 1 / Math.max(1, this.config.activeTypes.length);
-            const count = Math.ceil(flashCount * fractalShare * 1.5);
+            const estimatedCount = Math.ceil(flashCount * fractalShare * 1.5);
+            // Gallery has no flash-frequency demand estimate, but it still
+            // needs a decoded first wall at session entry. Gate on two flames:
+            // one for the opening still and one while the queue replenishes.
+            const count = this.config.presentation === 'continuous'
+                ? Math.max(2, estimatedCount)
+                : estimatedCount;
             preloadPromises.push(this.fractal.preload(count));
         }
 
@@ -2528,7 +2781,10 @@ export class VisualCortex {
         this.asciiRenderer = null;
         this._asciiScratchCanvas = null;
         this._localAsciiAssets.clear();
+        this._continuousWorkBag.clear();
+        this._continuousSignalCursor = 0;
         this.klee?.destroy?.();
+        this._fractalCanvas = null;
         this.initialized = false;
     }
 }

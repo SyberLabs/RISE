@@ -1450,6 +1450,175 @@ describe('Continuous Field (Gallery) wiring', () => {
         cortex.destroy();
     });
 
+    it('materializes a Fractal Flame as an immutable Gallery work', async () => {
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.config.renderLanguage = 'native';
+        cortex.fractal = {
+            isReady: vi.fn(() => false),
+            fillQueue: vi.fn().mockResolvedValue(undefined),
+            generate: vi.fn(() => true)
+        };
+        cortex._fractalCanvas = {
+            toDataURL: vi.fn(() => 'data:image/webp;base64,flame')
+        };
+
+        const work = await cortex._renderContinuousProceduralWork('fractal');
+
+        expect(cortex.fractal.fillQueue).toHaveBeenCalledWith(1);
+        expect(cortex.fractal.generate).toHaveBeenCalledWith(null);
+        expect(work).toEqual({
+            url: 'data:image/webp;base64,flame',
+            title: 'Fractal Flame',
+            sourceType: 'fractal'
+        });
+        cortex.destroy();
+    });
+
+    it('adapts every Rhythmic procedural into the common Gallery work contract', async () => {
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.config.renderLanguage = 'native';
+        cortex._resizeKleeCanvas = vi.fn();
+        const canvas = {
+            width: 1200,
+            height: 800,
+            toDataURL: vi.fn(() => 'data:image/webp;base64,procedural')
+        };
+        cortex._kleeCanvas = canvas;
+        cortex._fractalCanvas = canvas;
+        cortex._neuralCanvas = canvas;
+        cortex.kleeFlashes = {
+            renderFlash: vi.fn().mockResolvedValue(true),
+            destroy: vi.fn()
+        };
+        cortex.turrell = {
+            generate: vi.fn(() => ({ center: [0.5, 0.5] })),
+            render: vi.fn(() => true)
+        };
+        cortex.fractal = {
+            isReady: vi.fn(() => true),
+            fillQueue: vi.fn(),
+            generate: vi.fn(() => true)
+        };
+        cortex.neural = { generate: vi.fn(() => true) };
+        cortex.harmonograph = {
+            generate: vi.fn(() => true),
+            render: vi.fn(() => true)
+        };
+        cortex.blueprint = {
+            generate: vi.fn(() => true),
+            render: vi.fn(() => true)
+        };
+        cortex.freedom = {
+            generate: vi.fn(() => true),
+            render: vi.fn(() => true)
+        };
+        cortex.rockgarden = {
+            generateRockGarden: vi.fn(),
+            renderRockGarden: vi.fn(() => true)
+        };
+
+        const types = [
+            'klee', 'turrell', 'fractal', 'neural',
+            'rockgarden', 'harmonograph', 'blueprint', 'freedom'
+        ];
+        const works = await Promise.all(
+            types.map(type => cortex._renderContinuousProceduralWork(type))
+        );
+
+        expect(works.map(work => work.sourceType)).toEqual(types);
+        expect(works.every(work => work.url.startsWith('data:image/'))).toBe(true);
+        cortex.destroy();
+    });
+
+    it('renders a Fractal Flame Gallery through the selected ASCII language', async () => {
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.config.renderLanguage = 'ascii';
+        const asciiFrame = { layers: [['#']], rows: 1, columns: 1 };
+        const item = { imageData: {}, asciiFrame };
+        cortex.fractal = {
+            isReady: vi.fn(() => true),
+            takeFrame: vi.fn(() => item)
+        };
+        cortex._fractalCanvas = {};
+        cortex.asciiCompiler = { compileImageData: vi.fn() };
+        cortex.asciiRenderer = { render: vi.fn(() => true) };
+        cortex._asciiCanvas = {
+            toDataURL: vi.fn(() => 'data:image/webp;base64,ascii-flame')
+        };
+
+        const work = await cortex._renderContinuousProceduralWork('fractal');
+
+        expect(cortex.fractal.takeFrame).toHaveBeenCalledWith(null);
+        expect(cortex.asciiRenderer.render).toHaveBeenCalledWith(asciiFrame);
+        expect(work.sourceType).toBe('fractal');
+        expect(work.url).toContain('ascii-flame');
+        cortex.destroy();
+    });
+
+    it('runs a procedural-only Gallery without requiring an external pool', async () => {
+        const { cortex } = hostedContinuousCortex();
+        vi.spyOn(cortex, '_renderContinuousProceduralWork')
+            .mockResolvedValue({
+                url: 'data:image/webp;base64,flame',
+                title: 'Fractal Flame',
+                sourceType: 'fractal'
+            });
+
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['fractal']
+        });
+        await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+
+        expect(cortex._continuousField.currentUrl)
+            .toBe('data:image/webp;base64,flame');
+        expect(cortex._continuousField.running).toBe(true);
+        cortex.destroy();
+    });
+
+    it('keeps procedural and sourced families equally present in Blend', async () => {
+        const { cortex } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-oldmasters', ['painting.jpg']);
+        cortex.config.activeTypes = ['fractal', 'aic-oldmasters'];
+        vi.spyOn(cortex, '_renderContinuousProceduralWork')
+            .mockResolvedValue({
+                url: 'data:image/webp;base64,flame',
+                sourceType: 'fractal'
+            });
+
+        const first = await cortex._nextContinuousWork();
+        const second = await cortex._nextContinuousWork({ currentUrl: first.url });
+        const urls = new Set([first.url, second.url]);
+
+        expect(urls).toEqual(new Set([
+            'painting.jpg',
+            'data:image/webp;base64,flame'
+        ]));
+        cortex.destroy();
+    });
+
+    it('includes procedural identity and render language in the Gallery pool key', () => {
+        const { cortex } = hostedContinuousCortex();
+        vi.spyOn(cortex, '_renderContinuousProceduralWork')
+            .mockResolvedValue({ url: 'data:image/webp;base64,flame' });
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['fractal'],
+            renderLanguage: 'native'
+        });
+        const nativeKey = cortex._continuousPoolKey();
+        cortex.updateConfig({ renderLanguage: 'ascii' });
+
+        expect(nativeKey).toContain('fractal');
+        expect(cortex._continuousPoolKey()).not.toBe(nativeKey);
+        cortex.destroy();
+    });
+
     it('maps Gallery cadence into dwell and dissolve, including live changes', () => {
         const { cortex } = hostedContinuousCortex();
         seedPool(cortex, 'aic-oldmasters', ['a.jpg', 'b.jpg']);

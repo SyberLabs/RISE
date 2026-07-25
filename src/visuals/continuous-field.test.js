@@ -57,6 +57,54 @@ describe('ContinuousField', () => {
         field.stop();
     });
 
+    it('awaits a generated work through the same decode-before-reveal path', async () => {
+        const getNextWork = vi.fn().mockResolvedValue({
+            url: 'data:image/webp;base64,procedural',
+            title: 'Fractal Flame'
+        });
+        const decode = vi.fn().mockResolvedValue(true);
+        const { field } = mount({
+            getPool: () => [],
+            getNextWork,
+            hasWorks: () => true,
+            decode
+        });
+
+        field.start();
+        await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+
+        expect(getNextWork).toHaveBeenCalledWith({
+            currentUrl: null,
+            poolKey: 'default'
+        });
+        expect(decode).toHaveBeenCalledWith('data:image/webp;base64,procedural');
+        expect(field.currentUrl).toBe('data:image/webp;base64,procedural');
+        field.stop();
+    });
+
+    it('rejects a generated work that finishes after the source identity changes', async () => {
+        let resolveOld;
+        const getNextWork = vi.fn()
+            .mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve; }))
+            .mockResolvedValue({ url: 'new-procedural.jpg' });
+        const { field, clock } = mount({
+            getPool: () => [],
+            getNextWork,
+            hasWorks: () => true
+        });
+
+        field.start();
+        field.poolChanged();
+        resolveOld({ url: 'old-procedural.jpg' });
+        await Promise.resolve(); await Promise.resolve();
+        expect(field.currentUrl).not.toBe('old-procedural.jpg');
+
+        clock.tick(1);
+        await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+        expect(field.currentUrl).toBe('new-procedural.jpg');
+        field.stop();
+    });
+
     it('shows the complete artwork over an edge-to-edge adaptive backdrop', async () => {
         const { field, host } = mount({ getPool: () => pool('portrait.jpg') });
         field.start();

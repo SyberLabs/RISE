@@ -318,4 +318,55 @@ export class Turrell {
         this.lastPlan = aperturePlan;
         return aperturePlan;
     }
+
+    /**
+     * Rasterize the current light-field plan into a canvas. The live flash
+     * surface remains the richer CSS composition above; Gallery needs an
+     * immutable image work, so this canvas transcription preserves the
+     * plan's ground, elliptical aperture, color ramp, and room vignette.
+     */
+    render(canvas, plan = this.lastPlan) {
+        if (!canvas || !plan?.center || !plan?.radius || !plan?.stops?.length) {
+            return false;
+        }
+        const ctx = canvas.getContext?.('2d');
+        if (!ctx) return false;
+
+        const width = Math.max(1, canvas.width);
+        const height = Math.max(1, canvas.height);
+        const color = value => this.hslToString(value, 1);
+        const ground = plan.stops.at(-1)?.color;
+
+        ctx.save();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = ground ? color(ground) : '#0A0A0C';
+        ctx.fillRect(0, 0, width, height);
+
+        const [cx, cy] = plan.center;
+        const [rx, ry] = plan.radius;
+        ctx.translate(cx * width, cy * height);
+        ctx.scale(Math.max(1, rx * width), Math.max(1, ry * height));
+        const aperture = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+        for (const stop of plan.stops) {
+            aperture.addColorStop(
+                Math.max(0, Math.min(1, Number(stop.offset) || 0)),
+                color(stop.color)
+            );
+        }
+        ctx.fillStyle = aperture;
+        ctx.fillRect(-1, -1, 2, 2);
+        ctx.restore();
+
+        // Seat the aperture in a room rather than leaving a flat digital
+        // edge. This is intentionally subtle and mirrors createVignette().
+        const vignette = ctx.createRadialGradient(
+            width / 2, height / 2, Math.min(width, height) * 0.18,
+            width / 2, height / 2, Math.max(width, height) * 0.72
+        );
+        vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        vignette.addColorStop(1, 'rgba(2, 2, 6, 0.42)');
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0, 0, width, height);
+        return true;
+    }
 }
