@@ -175,10 +175,26 @@
 /* Placement: the compositor's decision, rendered.
    BLEED — the episode's plate, edge to edge beyond the measure. */
 .page-figure.placement-bleed {
-  width: min(100vw, 1100px);
-  margin-left: 50%;
-  transform: translateX(-50%);
-  padding: 0 var(--space-lg);
+  /* Break out of the measure and centre on the VIEWPORT.
+     `margin-left:50%; translateX(-50%)` centred on the ARTICLE instead —
+     and since the article is optically nudged right (for the hanging
+     verse marks), a wide plate overflowed the window by that offset.
+     Anchoring to 50vw removes the dependency on the parent's position,
+     and the width can never exceed the viewport minus its gutters. */
+  --bleed-gutter: clamp(var(--space-md), 4vw, 4rem);
+  /* Anchored to the ARTICLE's own box (relative positioning), so the
+     plate widens symmetrically about the measure without ever needing to
+     know where the article sits in the window. Bounded so the total width
+     can never exceed the viewport minus its gutters. */
+  position: relative;
+  width: auto;
+  margin-left: calc(-1 * var(--bleed-reach));
+  margin-right: calc(-1 * var(--bleed-reach));
+  --bleed-reach: max(0px, min(
+    calc((1100px - var(--page-measure)) / 2),
+    calc((100vw - var(--page-measure) - 2 * var(--bleed-gutter)) / 2)
+  ));
+  padding: 0;
 }
 /* INSET — a figure that keeps the measure. */
 .page-figure.placement-inset { width: 100%; }
