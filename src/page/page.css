@@ -172,6 +172,25 @@
     0 12px 32px rgba(0, 0, 0, 0.32);
 }
 
+/* ADAPTIVE SIZING for full plates.
+   A plate bounded only by WIDTH lets a tall portrait (a Dürer woodcut,
+   an altarpiece) run past the bottom of the window — the reader meets a
+   slice of the work instead of the composition. A plate is therefore
+   bounded in BOTH dimensions: it takes the width its band allows, but
+   never more height than the viewport can hold, and shrinks its own
+   width to keep the whole work in view. `object-fit: contain` means the
+   image is never cropped to achieve this — the composition is complete
+   or it is not shown. */
+.page-figure.placement-bleed .page-figure-image,
+.page-figure.placement-inset .page-figure-image {
+  --plate-height: calc(100vh - var(--plate-headroom, 12rem));
+  width: auto;
+  max-width: 100%;
+  max-height: max(18rem, var(--plate-height));
+  margin-inline: auto;
+  object-fit: contain;
+}
+
 /* Placement: the compositor's decision, rendered.
    BLEED — the episode's plate, edge to edge beyond the measure. */
 .page-figure.placement-bleed {
