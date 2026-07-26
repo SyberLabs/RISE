@@ -121,9 +121,35 @@ parameters from a signal (`planFlame`, `planHarmonograph`,
 `planKleeModulation`) — this simply gives those plans a **position in the
 text** instead of a moment in time.
 
-⁇ Whether the Page renders procedural cues as figures (a generated plate
-in the column) or omits them is an open question; the Stream renders them
-as it does today.
+✦ **The Page renders procedural cues as figures too** (creator's ruling).
+If the compiler judged that a passage earns a visual, the spatial
+projection honors that judgment exactly as the temporal one does — a
+generated form attuned to its passage is as legitimate a plate as a
+painting. The Stream renders them as it does today.
+
+This has one real architectural consequence. Sourced figures resolve to a
+**URL** the Page can put in an `<img>`; procedural forms are **drawn**,
+not fetched. So the Page needs a way to obtain a still raster of a
+procedural family at a given signal:
+
+- ✦ **A procedural plate is a STILL**, rendered once and held. The Page
+  is a spatial medium with no clock (`PAGE-MODE-SPEC` §4) — a plate that
+  animated would contradict the whole projection, and would also break
+  the reduced-motion guarantee the Page currently satisfies trivially.
+- The engines already render to a canvas for the flash economy; the Page
+  needs that canvas **once, at a chosen size, for a given signal**, then
+  keeps the raster (a data URL or a retained canvas element).
+- ⁇ The exact seam — a small `renderStill(family, signal, size)` on the
+  cortex beside `resolveCollectionWorks()`, versus each engine exposing
+  its own — is a build-time decision. The discipline is the same one that
+  governed `resolveCollectionWorks`: **one path, reused**, never a second
+  drifting renderer.
+- The compositor treats a procedural figure exactly like a sourced one
+  (bleed / wrap / inset by the same rules). Its caption names the form
+  and its attunement rather than an artist — there is no institution to
+  credit, and no `creditRequired` obligation.
+- Reverent degradation holds: an engine that cannot render in time leaves
+  **no frame**, precisely as an unresolvable collection does.
 
 ## 6. What must not change
 
@@ -148,7 +174,10 @@ as it does today.
 3. **Wire it opt-in**: a reading with no authored program and a chosen
    pool may request attunement; the payload carries the derived program
    exactly like a Chapel one.
-4. **Procedural cues** (§5), once sourced attunement reads well.
+4. **Procedural cues** (§5), once sourced attunement reads well. Two
+   parts, in order: the **still-raster seam** (one path, reused by both
+   projections), then the Page figure + caption. The Stream needs no
+   change — it already renders procedural forms.
 5. **Verify** on three registers: a poem, a long prose chapter, a
    dialogue — that density and placement feel composed rather than
    sprinkled.
