@@ -87,6 +87,24 @@ export class Settings {
                 <span class="toggle-switch"></span>
               </label>
             </div>
+
+            <div class="settings-row">
+              <div class="settings-label-group">
+                <label class="settings-label">Artwork Labels</label>
+                <p class="settings-hint text-mist">
+                  Show the title and artist while a sourced work is visible.
+                  Credits required by a work's license always remain visible.
+                </p>
+              </div>
+              <label class="toggle">
+                <input
+                  type="checkbox"
+                  data-setting="showArtworkLabels"
+                  ${this.settings.showArtworkLabels !== false ? 'checked' : ''}
+                />
+                <span class="toggle-switch"></span>
+              </label>
+            </div>
           </section>
 
           <!-- Audio Section -->

@@ -114,9 +114,10 @@ export const MUSEUM_CATEGORIES = {
     // is DEPICTED, and a subject tag is register-blind: `soldiers`
     // tags the Passion, `flower` tags the Annunciation lily, `bird`
     // the descending dove — the audit cut 79% of Flowers' and 90% of
-    // Animals' live surfaces. Subject categories are therefore
-    // PINNED-ONLY (clauses: null): every work human-reviewed, the
-    // audit's AIC survivors landed as aic pins in museum-pins.js.
+    // Animals' live surfaces. Subject categories therefore never use live
+    // search (clauses: null): Flowers, Ships, and Knights are pinned; Animals
+    // is corpus-backed by the rights-audited Audubon catalog, with its prior
+    // reviewed pins retained strictly as an operational fallback.
     'flowers': {
         name: 'Flowers',
         clauses: null, // subject category — pinned-only
@@ -129,7 +130,7 @@ export const MUSEUM_CATEGORIES = {
     },
     'animals': {
         name: 'Animals',
-        clauses: null, // subject category — pinned-only
+        clauses: null, // subject category — Audubon corpus + pin fallback
         tags: ['nature', 'creatures', 'contemplative']
     },
     'knights': {
@@ -171,7 +172,7 @@ function flattenClause(value, prefix, params) {
 }
 
 export class MuseumProvider extends SourceProvider {
-    constructor() {
+    constructor(options = {}) {
         super({
             id: 'museum-aic',
             name: 'Art Institute of Chicago',
@@ -186,6 +187,42 @@ export class MuseumProvider extends SourceProvider {
         this.iiifBase = 'https://www.artic.edu/iiif/2';
         this.thumbSize = 843; // Standard high-quality size
         this._candidateBag = new ShuffleBag();
+        this._audubonService = options.audubonService || null;
+        this._audubonLoader = options.audubonLoader || null;
+        this._audubonUnavailable = false;
+    }
+
+    /**
+     * Animals has a corpus authority rather than hundreds of work pins.
+     * Dynamic loading keeps the ~585-record catalog out of every non-Animal
+     * museum session and gives restored configurations the same category id.
+     */
+    async _getAudubonService(options = {}) {
+        if (options.signal?.aborted) throw createAbortError();
+        if (this._audubonService) return this._audubonService;
+        if (this._audubonUnavailable) return null;
+
+        try {
+            const module = this._audubonLoader
+                ? await this._audubonLoader()
+                : await import('./audubon.js');
+            if (options.signal?.aborted) throw createAbortError();
+            this._audubonService = typeof module?.getAudubonHydrationService === 'function'
+                ? module.getAudubonHydrationService()
+                : module;
+            if (!this._audubonService?.getPool || !this._audubonService?.draw) {
+                throw new Error('Audubon hydration service has an invalid contract');
+            }
+            return this._audubonService;
+        } catch (error) {
+            if (isAbortError(error)) throw error;
+            // The generated catalog is versioned with the application, so a
+            // structural failure cannot recover during this provider's life.
+            // Preserve the reviewed museum pins as the operational fallback.
+            this._audubonUnavailable = true;
+            console.warn('[Museum] Audubon catalog unavailable; using curated animal pins:', error);
+            return null;
+        }
     }
 
     async _fetch(endpoint, params = {}, options = {}) {
@@ -221,6 +258,15 @@ export class MuseumProvider extends SourceProvider {
             : RETIRED_CATEGORIES[categoryId];
         const cat = MUSEUM_CATEGORIES[resolvedId];
         if (!cat) return [];
+
+        // Audubon is the normal Animals authority. It is a checked-in,
+        // rights-verified metadata corpus, so it returns synchronously after
+        // its lazy chunk loads; only the selected IIIF image incurs network
+        // I/O. The old museum pins remain below as outage fallback.
+        if (resolvedId === 'animals') {
+            const audubon = await this._getAudubonService(options);
+            if (audubon) return audubon.getPool();
+        }
 
         const cacheKey = `cat:${resolvedId}:${limit}`;
         if (this._categoryCache?.has(cacheKey)) return this._categoryCache.get(cacheKey);
@@ -347,7 +393,10 @@ export class MuseumProvider extends SourceProvider {
             artist: item.artist_display,
             date: item.date_display,
             url: `${this.iiifBase}/${item.image_id}/full/${this.thumbSize},/0/default.jpg`,
-            fullUrl: `${this.iiifBase}/${item.image_id}/full/max/0/default.jpg`
+            fullUrl: `${this.iiifBase}/${item.image_id}/full/max/0/default.jpg`,
+            sourceName: 'Art Institute of Chicago',
+            sourceUrl: `https://www.artic.edu/artworks/${item.id}`,
+            rights: 'PUBLIC_DOMAIN'
         }));
 
         // Cross-institution enrichment: pinned works from other museums
@@ -408,7 +457,9 @@ export class MuseumProvider extends SourceProvider {
                 url: work.imageUrl,
                 fullUrl: work.fullImageUrl || work.imageUrl,
                 // Provenance shows on the work, where it is true
-                sourceName: work.sourceName
+                sourceName: work.sourceName,
+                sourceUrl: work.sourceUrl,
+                rights: work.rights
             });
             const works = [];
             for (let i = 0; i < pins.length; i += 8) {
@@ -485,6 +536,35 @@ export class MuseumProvider extends SourceProvider {
             ? requestedId
             : RETIRED_CATEGORIES[requestedId];
         if (!catId) return null;
+
+        // Balance the two Audubon folios at the authority itself. A uniform
+        // draw from all 585 works would make mammals only 26% of Animals.
+        if (catId === 'animals') {
+            const audubon = await this._getAudubonService(filter);
+            const img = audubon?.draw();
+            if (img) {
+                return {
+                    id: img.id,
+                    type: 'image',
+                    name: img.title,
+                    data: img,
+                    providerId: this.id,
+                    tier: this.tier,
+                    metadata: {
+                        artist: img.artist,
+                        date: img.date,
+                        url: img.url,
+                        categoryId: catId,
+                        corpus: img.corpus,
+                        plate: img.plate,
+                        sourceName: img.sourceName,
+                        sourceUrl: img.sourceUrl,
+                        rights: img.rights,
+                        rightsUri: img.rightsUri
+                    }
+                };
+            }
+        }
         
         const images = await this.getImagesInCategory(catId, 100, {
             signal: filter.signal,
@@ -506,7 +586,11 @@ export class MuseumProvider extends SourceProvider {
                 artist: img.artist,
                 date: img.date,
                 url: img.url,
-                categoryId: catId
+                categoryId: catId,
+                sourceName: img.sourceName,
+                sourceUrl: img.sourceUrl,
+                rights: img.rights,
+                rightsUri: img.rightsUri
             }
         };
     }

@@ -1211,6 +1211,9 @@ export const MUSEUM_CATEGORY_PINS = Object.freeze({
         { source: "aic", id: 111728 },  // The Dutch Whaling Fleet
         { source: "aic", id: 209910 },  // Beached Fishing Boats
     ],
+    // FALLBACK ONLY. Normal Animals authority is the generated 585-plate
+    // Audubon corpus (museum.js -> audubon.js). These reviewed works preserve
+    // graceful degradation if that versioned catalog ever fails validation.
     "animals": [
         { source: "rijks", id: 200105196 },  // Vogel bij een nest jongen
         { source: "rijks", id: 200105207 },  // Grauwe Klovenier bij haar nest met jongen

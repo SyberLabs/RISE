@@ -4,11 +4,36 @@
 Stream), but text and image composed in space — an automated typesetter that
 lays out beautiful, re-readable pages from the same session the Stream plays.**
 
-Status: SPEC — no implementation yet. A sibling to `CONTINUOUS-FIELD-SPEC`.
-Direction chosen: an **automated typesetter** (the engine composes; the reader
-reads — never a manual frame-dragging canvas), whose first incarnation is the
-**illuminated single-column reader**. Rulings by the creator are marked ✦;
-open questions ⁇.
+Status: **IMPLEMENTED (v1)** — the illuminated single-column reader ships.
+A sibling to `CONTINUOUS-FIELD-SPEC`. Direction chosen: an **automated
+typesetter** (the engine composes; the reader reads — never a manual
+frame-dragging canvas). Rulings by the creator are marked ✦; open questions ⁇.
+
+### Implementation ledger — v1
+
+| Layer | Module | Proof |
+|---|---|---|
+| 1 · Flow (story) | `src/page/flow.js` | 9 unit tests; binds via the SAME `cueForAtom` the Stream uses |
+| 2 · Compositor (layout) | `src/page/compositor.js` | 13 unit tests; pure data, no DOM |
+| 3 · Page renderer | `src/page/PageReader.js` + `page.css` | 12 unit tests; lazy + decode-before-reveal |
+| Wiring | `Chamber.js` Stream⇄Page toggle | e2e over real Matthew 27 |
+
+**Strictly additive.** Page Mode adds a projection; it modifies no Stream,
+cortex, or flash-economy behavior. The only change outside `src/page/` is a
+new *read-only* cortex accessor, `resolveCollectionWorks(collectionId)`, which
+routes through the existing `_getProviderForCategory` dispatch so there is
+never a second, drifting source path. Full suite green at 1018 unit + 12 e2e.
+
+Two contracts worth recording, both found by live probe:
+
+- **Providers speak two shapes.** `getRandom` returns nested
+  `{ name, data:{url,…} }`; `getImagesInCategory` returns flat
+  `{ title, url, artist,… }`. The accessor normalizes to the nested form so
+  consumers (and `normalizeArtworkLabel`) see one contract.
+- **A bleed must be earned by prose.** Matthew 27's seven short episodes each
+  open a plate; without a text-debt rule the chapter renders as seven stacked
+  full-bleed images — a reel, not a book. `BLEED_TEXT_DEBT` makes intervening
+  prose, not a mere scene change, buy the next full-bleed placement.
 
 ---
 

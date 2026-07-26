@@ -20,9 +20,220 @@ import {
     GALLERY_CADENCE_DEFAULT,
     galleryCadenceTimings
 } from '../core/visual-presence.js';
+import {
+    applyArtworkLabelElement,
+    displayedArtworkLabel
+} from './artwork-label.js';
 
 const DEFAULT_TIMINGS = galleryCadenceTimings(GALLERY_CADENCE_DEFAULT);
 const MIN_TICK_MS = 250;             // the advance clock's coarsest check
+
+function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), Math.max(min, max));
+}
+
+/**
+ * Resolve the visible rectangle of an `object-fit: contain` image.
+ * Keeping this as pure geometry gives the label and the artwork one shared
+ * definition of "the displayed image", independent of browser paint timing.
+ */
+export function containedArtworkBounds(
+    frameWidth,
+    frameHeight,
+    naturalWidth,
+    naturalHeight
+) {
+    const fw = Number(frameWidth);
+    const fh = Number(frameHeight);
+    const nw = Number(naturalWidth);
+    const nh = Number(naturalHeight);
+    if (![fw, fh, nw, nh].every(value => Number.isFinite(value) && value > 0)) {
+        return null;
+    }
+
+    const scale = Math.min(fw / nw, fh / nh);
+    const width = nw * scale;
+    const height = nh * scale;
+    const left = (fw - width) / 2;
+    const top = (fh - height) / 2;
+    return Object.freeze({
+        left,
+        top,
+        right: left + width,
+        bottom: top + height,
+        width,
+        height
+    });
+}
+
+/**
+ * True only when `contain` leaves a visually meaningful matte.
+ *
+ * The threshold is the uncovered share of either viewport axis, not total
+ * area. This maps directly to the bars a reader perceives and avoids paying
+ * for a filtered full-screen duplicate to cover sub-pixel rounding or tiny
+ * aspect-ratio differences.
+ */
+export function needsAdaptiveImageWash({
+    frameWidth,
+    frameHeight,
+    naturalWidth,
+    naturalHeight,
+    minimumMatteRatio = 0.02
+} = {}) {
+    const artwork = containedArtworkBounds(
+        frameWidth,
+        frameHeight,
+        naturalWidth,
+        naturalHeight
+    );
+    const threshold = Number(minimumMatteRatio);
+    if (!artwork || !Number.isFinite(threshold) || threshold < 0) return false;
+
+    const horizontalMatte = Math.max(0, 1 - (artwork.width / Number(frameWidth)));
+    const verticalMatte = Math.max(0, 1 - (artwork.height / Number(frameHeight)));
+    return Math.max(horizontalMatte, verticalMatte) > threshold;
+}
+
+function placementForMode(mode, frame, artwork, label, padding, gap) {
+    const { width: frameWidth, height: frameHeight } = frame;
+    const { width: labelWidth, height: labelHeight } = label;
+
+    switch (mode) {
+        case 'outside-left':
+            return {
+                mode,
+                left: padding,
+                top: frameHeight - padding - labelHeight,
+                maxWidth: artwork.left - gap - padding
+            };
+        case 'outside-right':
+            return {
+                mode,
+                left: frameWidth - padding - labelWidth,
+                top: frameHeight - padding - labelHeight,
+                maxWidth: frameWidth - padding - artwork.right - gap
+            };
+        case 'outside-bottom':
+            return {
+                mode,
+                left: frameWidth - padding - labelWidth,
+                top: frameHeight - padding - labelHeight,
+                maxWidth: frameWidth - (2 * padding)
+            };
+        case 'outside-top':
+            return {
+                mode,
+                left: frameWidth - padding - labelWidth,
+                top: padding,
+                maxWidth: frameWidth - (2 * padding)
+            };
+        default:
+            return {
+                mode: 'inside',
+                left: artwork.right - padding - labelWidth,
+                top: clamp(
+                    artwork.bottom - padding - labelHeight,
+                    artwork.top + padding,
+                    artwork.bottom - padding - labelHeight
+                ),
+                maxWidth: artwork.width - (2 * padding)
+            };
+    }
+}
+
+/**
+ * Choose one of two legal attribution relationships:
+ *   1. wholly in the matte outside the contained artwork, separated by `gap`;
+ *   2. wholly inside the artwork, inset by `padding`.
+ *
+ * A candidate matte must contain the complete measured label. This prevents
+ * the former half-on / half-off placement when a portrait or panorama leaves
+ * substantial adaptive borders.
+ */
+export function resolveGalleryLabelPlacement({
+    frameWidth,
+    frameHeight,
+    naturalWidth,
+    naturalHeight,
+    labelWidth,
+    labelHeight,
+    padding = 18,
+    gap = 12
+} = {}) {
+    const artwork = containedArtworkBounds(
+        frameWidth,
+        frameHeight,
+        naturalWidth,
+        naturalHeight
+    );
+    const dimensions = [
+        frameWidth,
+        frameHeight,
+        labelWidth,
+        labelHeight,
+        padding,
+        gap
+    ].map(Number);
+    if (!artwork || !dimensions.every(value => Number.isFinite(value) && value >= 0)) {
+        return null;
+    }
+
+    const [
+        fw,
+        fh,
+        lw,
+        lh,
+        safePadding,
+        safeGap
+    ] = dimensions;
+    const frame = { width: fw, height: fh };
+    const label = { width: lw, height: lh };
+    const fullHeightFits = lh <= fh - (2 * safePadding);
+    const fullWidthFits = lw <= fw - (2 * safePadding);
+
+    // The attribution grammar is lower-right: a portrait prefers its right
+    // matte; a panorama prefers its lower matte. Left/top are fallbacks only
+    // for asymmetric future artwork positioning.
+    const candidates = [
+        {
+            mode: 'outside-right',
+            fits: fullHeightFits
+                && lw <= fw - artwork.right - safeGap - safePadding
+        },
+        {
+            mode: 'outside-bottom',
+            fits: fullWidthFits
+                && lh <= fh - artwork.bottom - safeGap - safePadding
+        },
+        {
+            mode: 'outside-left',
+            fits: fullHeightFits
+                && lw <= artwork.left - safeGap - safePadding
+        },
+        {
+            mode: 'outside-top',
+            fits: fullWidthFits
+                && lh <= artwork.top - safeGap - safePadding
+        }
+    ];
+    const outside = candidates.find(candidate => candidate.fits);
+    const placement = placementForMode(
+        outside?.mode || 'inside',
+        frame,
+        artwork,
+        label,
+        safePadding,
+        safeGap
+    );
+
+    return Object.freeze({
+        ...placement,
+        padding: safePadding,
+        gap: safeGap,
+        artwork
+    });
+}
 
 export class ContinuousField {
     /**
@@ -44,6 +255,7 @@ export class ContinuousField {
      *       ready or generatable works (used on live pool changes).
      *   - dwellMs / crossfadeMs: cadence overrides
      *   - reducedMotion: boolean — one still work, no clock, no fades
+     *   - showArtworkLabels: boolean — optional title/artist labels
      *   - now / raf / caf: injectable clock for tests
      */
     constructor(host, options = {}) {
@@ -64,19 +276,22 @@ export class ContinuousField {
             ? options.crossfadeMs
             : DEFAULT_TIMINGS.crossfadeMs;
         this.reducedMotion = !!options.reducedMotion;
+        this.showArtworkLabels = options.showArtworkLabels !== false;
 
         this._now = options.now || (() => performance.now());
         this._raf = options.raf || (cb => requestAnimationFrame(cb));
         this._caf = options.caf || (id => cancelAnimationFrame(id));
 
         this._bag = new ShuffleBag();
-        this._layers = null;      // [{ root, backdrop, artwork }, ...]
+        this._layers = null;      // [{ root, backdrop, artwork, label, work }, ...]
         this._front = 0;          // index of the visible layer
         this._currentUrl = null;
         this._running = false;
         this._rafId = null;
         this._nextAdvanceAt = 0;
         this._advanceInFlight = false;
+        this._resizeObserver = null;
+        this._boundRefreshLayers = () => this._refreshLayerGeometry();
         // A monotone token: an advance whose token is stale when its
         // decode resolves must not enter a layer (the SOL-review
         // principle — the moment that requested it must still exist).
@@ -101,6 +316,12 @@ export class ContinuousField {
         if (this._running && !this.reducedMotion) {
             this._nextAdvanceAt = this._now() + this.dwellMs;
         }
+    }
+
+    setArtworkLabelsVisible(visible) {
+        this.showArtworkLabels = visible !== false;
+        if (!this._layers) return;
+        for (const layer of this._layers) this._renderLayerLabel(layer);
     }
 
     /** Mount the two layers (idempotent). */
@@ -131,16 +352,128 @@ export class ContinuousField {
             artwork.draggable = false;
             artwork.style.objectFit = 'contain';
 
-            root.append(backdrop, artwork);
+            const label = document.createElement('div');
+            label.className = 'continuous-field-label';
+            label.hidden = true;
+
+            root.append(backdrop, artwork, label);
             this.host.appendChild(root);
-            return { root, backdrop, artwork };
+            const layer = { root, backdrop, artwork, label, work: null };
+            artwork.addEventListener('load', () => {
+                this._syncLayerWash(layer);
+                this._layoutLayerLabel(layer);
+            });
+            return layer;
         };
         this._layers = [make(), make()];
+        if (typeof ResizeObserver === 'function') {
+            this._resizeObserver = new ResizeObserver(this._boundRefreshLayers);
+            this._resizeObserver.observe(this.host);
+        } else if (typeof window !== 'undefined') {
+            window.addEventListener('resize', this._boundRefreshLayers);
+        }
     }
 
-    _setLayerSource(layer, url) {
-        layer.backdrop.src = url;
-        layer.artwork.src = url;
+    _renderLayerLabel(layer) {
+        const label = layer?.work?.artworkLabel || null;
+        const text = displayedArtworkLabel(label, this.showArtworkLabels);
+        applyArtworkLabelElement(layer.label, text, label?.creditRequired);
+        this._layoutLayerLabel(layer);
+    }
+
+    _refreshLayerGeometry() {
+        if (!this._layers) return;
+        for (const layer of this._layers) {
+            this._syncLayerWash(layer);
+            this._layoutLayerLabel(layer);
+        }
+    }
+
+    _syncLayerWash(layer) {
+        if (!layer?.backdrop || !layer?.artwork || !layer.work?.url) return;
+        const frameRect = this.host?.getBoundingClientRect?.();
+        const showWash = needsAdaptiveImageWash({
+            frameWidth: frameRect?.width,
+            frameHeight: frameRect?.height,
+            naturalWidth: layer.artwork.naturalWidth,
+            naturalHeight: layer.artwork.naturalHeight
+        });
+
+        layer.root.dataset.imageWash = showWash ? 'active' : 'none';
+        layer.backdrop.hidden = !showWash;
+        if (showWash) {
+            if (layer.backdrop.getAttribute('src') !== layer.work.url) {
+                layer.backdrop.src = layer.work.url;
+            }
+        } else {
+            layer.backdrop.removeAttribute('src');
+        }
+    }
+
+    _layoutLayerLabel(layer) {
+        if (!layer?.label || layer.label.hidden) return;
+        const frameRect = this.host?.getBoundingClientRect?.();
+        const labelRect = layer.label.getBoundingClientRect?.();
+        const naturalWidth = layer.artwork.naturalWidth;
+        const naturalHeight = layer.artwork.naturalHeight;
+        if (!frameRect?.width || !frameRect?.height
+            || !labelRect?.width || !labelRect?.height
+            || !naturalWidth || !naturalHeight) {
+            return;
+        }
+
+        // Scale spacing gently with the field while retaining practical
+        // minimums on compact screens and restrained maximums on large ones.
+        const shorterEdge = Math.min(frameRect.width, frameRect.height);
+        const padding = clamp(shorterEdge * 0.022, 12, 24);
+        const gap = clamp(shorterEdge * 0.016, 10, 18);
+        const placement = resolveGalleryLabelPlacement({
+            frameWidth: frameRect.width,
+            frameHeight: frameRect.height,
+            naturalWidth,
+            naturalHeight,
+            labelWidth: labelRect.width,
+            labelHeight: labelRect.height,
+            padding,
+            gap
+        });
+        if (!placement) return;
+
+        layer.label.dataset.placement = placement.mode;
+        layer.label.style.left = `${placement.left}px`;
+        layer.label.style.top = `${placement.top}px`;
+        layer.label.style.right = 'auto';
+        layer.label.style.bottom = 'auto';
+        layer.label.style.maxWidth = `${Math.max(1, placement.maxWidth)}px`;
+
+        // An inside placement may narrow and wrap the label. Re-read its
+        // height once and keep its lower edge padded inside the artwork.
+        if (placement.mode === 'inside') {
+            const wrapped = layer.label.getBoundingClientRect?.();
+            if (wrapped?.height) {
+                layer.label.style.left = `${placement.artwork.right
+                    - placement.padding
+                    - wrapped.width}px`;
+                layer.label.style.top = `${clamp(
+                    placement.artwork.bottom - placement.padding - wrapped.height,
+                    placement.artwork.top + placement.padding,
+                    placement.artwork.bottom - placement.padding - wrapped.height
+                )}px`;
+            }
+        }
+    }
+
+    _setLayerWork(layer, work) {
+        layer.work = work || null;
+        // The wash starts unallocated. The foreground's intrinsic dimensions
+        // decide whether a matte actually exists once it loads.
+        layer.backdrop.hidden = true;
+        layer.backdrop.removeAttribute('src');
+        layer.artwork.src = work.url;
+        this._renderLayerLabel(layer);
+        if (layer.artwork.complete && layer.artwork.naturalWidth) {
+            this._syncLayerWash(layer);
+        }
     }
 
     async _defaultDecode(url) {
@@ -238,25 +571,25 @@ export class ContinuousField {
             // a decode failure holds the current work; the next tick retries
             return;
         }
-        this._crossfadeTo(url, first);
+        this._crossfadeTo(work, first);
         this._currentUrl = url;
         this._advanceInFlight = false;
     }
 
-    _crossfadeTo(url, first) {
+    _crossfadeTo(work, first) {
         if (!this._layers) return;
         if (this.reducedMotion) {
             // One still work, no motion: set it on the front layer at
             // full opacity, no transition.
             const front = this._layers[this._front];
             front.root.style.transition = 'none';
-            this._setLayerSource(front, url);
+            this._setLayerWork(front, work);
             front.root.style.opacity = '1';
             return;
         }
         const incoming = this._layers[1 - this._front];
         const outgoing = this._layers[this._front];
-        this._setLayerSource(incoming, url);
+        this._setLayerWork(incoming, work);
         // Rise the incoming and (unless first) fall the outgoing over the
         // same window — the double-buffer never passes through black.
         // Force a style flush so the transition runs from opacity 0.
@@ -324,10 +657,17 @@ export class ContinuousField {
         this._running = false;
         this._generation += 1;
         if (this._rafId != null) { this._caf(this._rafId); this._rafId = null; }
+        this._resizeObserver?.disconnect();
+        this._resizeObserver = null;
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('resize', this._boundRefreshLayers);
+        }
         if (this._layers) {
             for (const layer of this._layers) {
                 layer.backdrop.removeAttribute('src');
                 layer.artwork.removeAttribute('src');
+                layer.label.textContent = '';
+                layer.work = null;
                 try { layer.root.remove(); } catch { /* detached */ }
             }
             this._layers = null;

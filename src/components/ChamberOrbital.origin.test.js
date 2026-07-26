@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { compileSession } from '../core/session-compiler.js';
 import { VisualScheduleController } from '../core/visual-scheduler.js';
+import { chapelSensoryConfig } from '../content/chapel/handoff.js';
 
 // jsdom has no indexedDB; PersonalSwells (unrelated to the chip) probes it
 // during orbital init. A never-settling stub keeps the run clean.
@@ -77,6 +78,46 @@ describe('ChamberOrbital origin chip', () => {
         container.querySelector('.orbital-origin-chip').click();
         expect(onNavigate).toHaveBeenCalledWith('sol');
 
+        orbital.destroy();
+        container.remove();
+    });
+
+    it('a reconstructed Orbital on the shared Chamber container owns the click exclusively', () => {
+        const container = document.createElement('div');
+        document.body.appendChild(container);
+        const staleNavigate = vi.fn();
+        const first = new ChamberOrbital(container, { onNavigate: staleNavigate });
+        first.loadText('Library text', 'Library', {
+            origin: { view: 'library', icon: '◇', name: 'Library' }
+        });
+        first.destroy();
+
+        const currentNavigate = vi.fn();
+        const second = new ChamberOrbital(container, { onNavigate: currentNavigate });
+        second.loadText('Scripture', 'The Chapel · Numbers 2', {
+            origin: { view: 'chapel', icon: '✛', name: 'Chapel' }
+        });
+        container.querySelector('.orbital-origin-chip').click();
+
+        expect(staleNavigate).not.toHaveBeenCalled();
+        expect(currentNavigate).toHaveBeenCalledTimes(1);
+        expect(currentNavigate).toHaveBeenCalledWith('chapel');
+
+        second.destroy();
+        container.remove();
+    });
+
+    it('full settings re-renders replace rather than multiply delegated navigation', () => {
+        const { orbital, container, onNavigate } = makeOrbital();
+        orbital.loadText('Scripture', 'The Chapel · Numbers 2', {
+            origin: { view: 'chapel', icon: '✛', name: 'Chapel' }
+        });
+        orbital.resetPrefs();
+        orbital.resetPrefs();
+        container.querySelector('.orbital-origin-chip').click();
+
+        expect(onNavigate).toHaveBeenCalledTimes(1);
+        expect(onNavigate).toHaveBeenCalledWith('chapel');
         orbital.destroy();
         container.remove();
     });
@@ -698,7 +739,190 @@ describe('reading-owned visual program persistence', () => {
     });
 });
 
-describe('Launch-scoped identity is not persisted (2026-07 pill-leak fix)', () => {
+describe('ordinary reading visual identity persistence', () => {
+    beforeEach(() => {
+        localStorage.removeItem('rise_orbital_prefs_v1');
+        localStorage.removeItem('rise_orbital_text_v1');
+    });
+
+    const chapelLaunch = (bookId, chapter) => ({
+        ...chapelSensoryConfig(bookId, null, chapter),
+        provenance: { kind: 'chapel-book', bookId, chapter },
+        origin: {
+            view: 'chapel',
+            icon: '✛',
+            name: 'Chapel',
+            data: { bookId, chapter }
+        }
+    });
+
+    it('restores Numbers 2 Doré as one reading-owned UI and runtime identity', () => {
+        const first = makeOrbital();
+        first.orbital.loadText(
+            '[v 2:1] And the Lord spoke to Moses and Aaron, saying:',
+            'The Chapel · Numbers 2',
+            chapelLaunch('numbers', 2)
+        );
+        expect(first.orbital.config.readingVisualIdentity).toEqual({
+            version: 1,
+            domain: 'chapel',
+            collections: ['dore:numbers']
+        });
+        first.orbital.destroy();
+        first.container.remove();
+
+        const onBeginSession = vi.fn();
+        const restored = makeOrbital(onBeginSession);
+        expect(restored.orbital.config.visualProgram).toBeNull();
+        expect(restored.orbital.config.visualInterlocution.interlocution.sourced)
+            .toEqual(['dore:numbers']);
+        expect(restored.orbital.config.visualInterlocution.interlocution.atriumCollections)
+            .toEqual(['dore:numbers']);
+        expect(restored.container.querySelector('[data-chapel-remove="dore:numbers"]'))
+            .not.toBeNull();
+
+        restored.orbital.beginSession();
+        expect(onBeginSession.mock.calls[0][0].visualConfig.interlocution.sourced)
+            .toEqual(['dore:numbers']);
+        restored.orbital.destroy();
+        restored.container.remove();
+    });
+
+    it('migrates an already-deployed Numbers record only from its exact active assignment', () => {
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
+            paceV2: true,
+            visualInterlocution: {
+                visualMode: 'interlocution',
+                interlocution: {
+                    procedural: [],
+                    sourced: ['dore:numbers']
+                }
+            }
+        }));
+        localStorage.setItem('rise_orbital_text_v1', JSON.stringify({
+            text: '[v 2:1] The camp of Israel.',
+            textSource: 'The Chapel · Numbers 2',
+            provenance: { kind: 'chapel-book', bookId: 'numbers', chapter: 2 },
+            origin: {
+                view: 'chapel',
+                data: { bookId: 'numbers', chapter: 2 }
+            }
+        }));
+
+        const restored = makeOrbital();
+        expect(restored.orbital.config.readingVisualIdentity?.collections)
+            .toEqual(['dore:numbers']);
+        expect(restored.container.querySelector('[data-chapel-remove="dore:numbers"]'))
+            .not.toBeNull();
+        expect(JSON.parse(localStorage.getItem('rise_orbital_text_v1')).readingVisualIdentity)
+            .toEqual({
+                version: 1,
+                domain: 'chapel',
+                collections: ['dore:numbers']
+            });
+        restored.orbital.destroy();
+        restored.container.remove();
+    });
+
+    it('does not convert a stale broad Chapel category into Numbers imagery', () => {
+        localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
+            paceV2: true,
+            visualInterlocution: {
+                visualMode: 'interlocution',
+                interlocution: {
+                    procedural: [],
+                    sourced: ['chapel-passion']
+                }
+            }
+        }));
+        localStorage.setItem('rise_orbital_text_v1', JSON.stringify({
+            text: '[v 2:1] The camp of Israel.',
+            textSource: 'The Chapel · Numbers 2',
+            provenance: { kind: 'chapel-book', bookId: 'numbers', chapter: 2 }
+        }));
+
+        const restored = makeOrbital();
+        expect(restored.orbital.config.visualProgram).toBeNull();
+        expect(restored.orbital.config.readingVisualIdentity?.collections).toEqual([]);
+        expect(restored.orbital.config.visualInterlocution.interlocution.sourced).toEqual([]);
+        expect(restored.container.querySelector('[data-chapel-remove]')).toBeNull();
+        restored.orbital.destroy();
+        restored.container.remove();
+    });
+
+    it('persists removal of Doré with the reading and keeps the Chapel tray available', () => {
+        const first = makeOrbital();
+        first.orbital.loadText(
+            '[v 2:1] The camp of Israel.',
+            'The Chapel · Numbers 2',
+            chapelLaunch('numbers', 2)
+        );
+        first.container.querySelector('[data-chapel-remove="dore:numbers"]').click();
+        expect(first.orbital.config.readingVisualIdentity?.collections).toEqual([]);
+        first.orbital.destroy();
+        first.container.remove();
+
+        const onBeginSession = vi.fn();
+        const restored = makeOrbital(onBeginSession);
+        expect(restored.orbital.config.visualInterlocution.interlocution.sourced).toEqual([]);
+        expect(restored.container.querySelector('.vi-chapel-collections')).not.toBeNull();
+        expect(restored.container.querySelector('[data-chapel-remove]')).toBeNull();
+        expect(restored.container.querySelector('[data-action="chapel-add-toggle"]'))
+            .not.toBeNull();
+        restored.orbital.beginSession();
+        expect(onBeginSession.mock.calls[0][0].visualConfig.interlocution.sourced).toEqual([]);
+        restored.orbital.destroy();
+        restored.container.remove();
+    });
+
+    it('persists source replacement before refresh so Doré cannot pair with plain text', () => {
+        const first = makeOrbital();
+        first.orbital.loadText(
+            '[v 2:1] The camp of Israel.',
+            'The Chapel · Numbers 2',
+            chapelLaunch('numbers', 2)
+        );
+        first.orbital.loadText('Plain prose.', 'Pasted', {});
+        first.orbital.destroy();
+        first.container.remove();
+
+        const restored = makeOrbital();
+        expect(restored.orbital.config.text).toBe('Plain prose.');
+        expect(restored.orbital.config.readingVisualIdentity).toBeNull();
+        expect(restored.orbital.config.visualInterlocution.interlocution.sourced).toEqual([]);
+        expect(restored.container.querySelector('.vi-chapel-collections')).toBeNull();
+        restored.orbital.destroy();
+        restored.container.remove();
+    });
+
+    it('keeps Matthew 27 under pericope authority without restoring broad collections', () => {
+        const first = makeOrbital();
+        first.orbital.loadText(
+            '[v 27:1] And when morning was come.',
+            'The Chapel · Matthew 27',
+            chapelLaunch('matthew', 27)
+        );
+        const stored = JSON.parse(localStorage.getItem('rise_orbital_text_v1'));
+        expect(stored.visualProgram).toBeTruthy();
+        expect(stored.readingVisualIdentity).toBeNull();
+        first.orbital.destroy();
+        first.container.remove();
+
+        const restored = makeOrbital();
+        expect(restored.orbital.config.visualProgram?.segments?.length).toBeGreaterThan(1);
+        expect(restored.orbital.config.readingVisualIdentity).toBeNull();
+        expect(restored.orbital.config.visualInterlocution.interlocution.sourced)
+            .toEqual(['chapel-gospel-before-pilate']);
+        expect(restored.orbital.config.visualInterlocution.interlocution.sourced)
+            .not.toContain('chapel-passion');
+        expect(restored.container.querySelector('.vi-program-active')).not.toBeNull();
+        expect(restored.container.querySelector('.vi-chapel-collections')).toBeNull();
+        restored.orbital.destroy();
+        restored.container.remove();
+    });
+});
+
+describe('Launch-scoped identity is not persisted as reusable preferences', () => {
     it('atriumCollections never enters the persisted prefs', () => {
         const { orbital } = makeOrbital();
         orbital.config.visualInterlocution.interlocution.atriumCollections = ['chapel-passion'];

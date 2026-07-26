@@ -254,6 +254,7 @@ export class VisualInterlocutionPanel {
         this.expanded = options.expanded ?? false;
         // Chapel collection tray: closed until the + orb opens it;
         // survives the re-render an add/remove triggers
+        this._chapelLaunch = options.readingVisualDomain === 'chapel';
         this._chapelTrayOpen = false;
 
         // Check if user has already given consent this session

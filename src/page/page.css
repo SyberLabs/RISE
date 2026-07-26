@@ -1,0 +1,242 @@
+/* ═══════════════════════════════════════════════════════════
+   Page Mode — the Illuminated Reader (PAGE-MODE-SPEC §3.3)
+
+   A SPATIAL projection: the whole reading present at once, typeset in
+   one column the reader moves through at their own pace. Nothing here
+   flashes, times out, or animates on a clock — the calm opposite of the
+   Stream. The aesthetic is the room's own: dim ground, literary serif,
+   imagery that arrives quietly and never breaks the measure.
+   ═══════════════════════════════════════════════════════════ */
+
+.page-reader {
+  --page-measure: 34rem;          /* ~62-70 characters: the readable line */
+  --page-ink: var(--color-cloud);
+  --page-ink-strong: var(--color-light);
+  --page-ink-quiet: var(--color-mist);
+
+  /* The reader owns a real scrollable window. Its host may live inside a
+     min-height:100vh column that grows with content, so `height:100%`
+     alone would make the element as tall as its own text and it could
+     never scroll (scrollHeight === clientHeight). Bounding it to the
+     viewport guarantees the overflow the reader scrolls through. */
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  background: var(--color-void);
+  /* momentum scrolling, and a scrollbar that does not shout */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-shadow) transparent;
+}
+
+.page-reader::-webkit-scrollbar { width: 10px; }
+.page-reader::-webkit-scrollbar-track { background: transparent; }
+.page-reader::-webkit-scrollbar-thumb {
+  background: var(--color-shadow);
+  border-radius: 6px;
+  border: 3px solid var(--color-void);
+}
+
+.page-article {
+  max-width: var(--page-measure);
+  /* Optically centred: the hanging verse marks sit OUTSIDE the measure on
+     the left, so a mathematically centred column reads pushed left. Nudge
+     the block right by half the marginal gutter to restore balance. */
+  margin: 0 auto 0 calc(50% - var(--page-measure) / 2 + 1.4rem);
+  padding: clamp(2rem, 6vh, 3.5rem) var(--space-lg) clamp(6rem, 22vh, 12rem);
+  color: var(--page-ink);
+  font-family: var(--font-literary);
+  font-size: clamp(17px, 1.15vw + 14px, 20px);
+  line-height: 1.72;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Masthead ─── */
+.page-masthead {
+  margin-bottom: clamp(2.5rem, 6vh, 4rem);
+  text-align: center;
+}
+.page-title {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 2.4vw, 34px);
+  font-weight: var(--font-weight-light);
+  letter-spacing: 0.06em;
+  color: var(--page-ink-strong);
+  margin: 0 0 0.4rem;
+}
+.page-source {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--page-ink-quiet);
+  margin: 0;
+}
+
+/* ─── Text: the measure ─── */
+.page-text {
+  /* Verses are a continuous scripture column, not a stack of islands:
+     a modest gap keeps each verse legible as a unit while the chapter
+     still reads as one body of prose. */
+  margin: 0 0 0.55em;
+  /* hyphenation + justification kept OFF: ragged-right reads calmer and
+     avoids the rivers a naive justifier opens in a narrow measure. */
+  hanging-punctuation: first last;
+}
+
+/* Rhythm slots the compositor assigned */
+.page-text.rhythm-tight  { margin-top: -0.1em; margin-bottom: 0.5em; }
+.page-text.rhythm-normal { }
+.page-text.rhythm-open   { margin-top: 0.5em; }
+/* Stillness: a works-less episode reads with deliberate air, never a
+   scramble to fill the space. */
+.page-text.rhythm-still  { margin-top: 1.6em; }
+
+/* Marginal verse numbers — outside the measure on wide screens, inline
+   on narrow ones. They mark without interrupting. */
+.page-verse {
+  float: left;
+  width: 2.4em;
+  margin-left: -2.9em;
+  padding-right: 0.5em;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 0.62em;
+  line-height: 2.6;
+  color: var(--page-ink-quiet);
+  opacity: 0.65;
+  user-select: none;
+}
+
+/* ─── Chapter opening ─── */
+.page-chapter {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 5vw, 62px);
+  font-weight: var(--font-weight-light);
+  line-height: 1;
+  color: var(--color-shadow);
+  text-align: center;
+  margin: clamp(2rem, 6vh, 3.5rem) 0 clamp(1.5rem, 4vh, 2.5rem);
+  user-select: none;
+}
+
+/* ─── Section breaks ─── */
+.page-break {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: clamp(1.6rem, 4vh, 2.6rem) 0;
+  color: var(--color-shadow);
+}
+.page-break-mark { font-size: 15px; opacity: 0.75; }
+/* The sanctioned stillness of a works-less episode: more air, dimmer
+   mark. The absence is a register, not a gap. */
+.page-break-still { margin: clamp(2.6rem, 7vh, 4.2rem) 0; }
+.page-break-still .page-break-mark { opacity: 0.4; }
+
+.page-pause { height: clamp(0.8rem, 2vh, 1.4rem); }
+
+/* ─── Figures ─── */
+.page-figure {
+  margin: clamp(1.8rem, 5vh, 3rem) 0;
+  padding: 0;
+  /* Pending and absent figures occupy NOTHING — a page whose imagery
+     never resolves reads as text alone (reverent degradation). */
+}
+.page-figure.is-pending,
+.page-figure.is-absent {
+  margin: 0;
+  height: 0;
+  overflow: hidden;
+}
+.page-figure.is-shown {
+  animation: page-figure-in 700ms var(--ease-out, ease-out) both;
+}
+
+@keyframes page-figure-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.page-figure-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  border-radius: 2px;
+  background: var(--color-abyss);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.4),
+    0 12px 32px rgba(0, 0, 0, 0.32);
+}
+
+/* Placement: the compositor's decision, rendered.
+   BLEED — the episode's plate, edge to edge beyond the measure. */
+.page-figure.placement-bleed {
+  width: min(100vw, 1100px);
+  margin-left: 50%;
+  transform: translateX(-50%);
+  padding: 0 var(--space-lg);
+}
+/* INSET — a figure that keeps the measure. */
+.page-figure.placement-inset { width: 100%; }
+/* MARGIN — a small plate riding the outer edge on wide screens. */
+.page-figure.placement-margin {
+  width: min(46%, 15rem);
+  float: right;
+  margin: 0.4rem 0 1rem 1.6rem;
+}
+
+.page-figure-caption {
+  margin-top: 0.6rem;
+  font-family: var(--font-literary);
+  font-size: 12.5px;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--page-ink-quiet);
+  text-align: center;
+}
+/* A CC-BY work's credit is an obligation, not decoration: it is never
+   dimmed past legibility and never truncated by ellipsis. */
+.page-figure-caption.is-required-credit {
+  color: var(--color-fog);
+  font-style: normal;
+  font-size: 12px;
+}
+
+/* ─── Responsive: the verse marks come inside on narrow screens ─── */
+@media (max-width: 640px) {
+  .page-article { padding-left: var(--space-md); padding-right: var(--space-md); }
+  .page-verse {
+    float: none;
+    width: auto;
+    margin: 0 0.45em 0 0;
+    padding: 0;
+    line-height: inherit;
+    text-align: left;
+  }
+  .page-figure.placement-margin {
+    width: 100%;
+    float: none;
+    margin: clamp(1.4rem, 4vh, 2rem) 0;
+  }
+  .page-figure.placement-bleed { padding: 0; }
+}
+
+/* ─── Reduced motion: the figure simply is, with no arrival ─── */
+@media (prefers-reduced-motion: reduce) {
+  .page-figure.is-shown { animation: none; }
+}
+
+/* ─── Print: the page was always meant to be a page ─── */
+@media print {
+  .page-reader { overflow: visible; background: #fff; height: auto; }
+  .page-article { color: #111; max-width: none; padding: 0; }
+  .page-chapter { color: #999; }
+  .page-figure.placement-bleed { width: 100%; margin-left: 0; transform: none; padding: 0; }
+  .page-figure-image { box-shadow: none; }
+  .page-figure-caption { color: #444; }
+  .page-figure.is-pending, .page-figure.is-absent { display: none; }
+}

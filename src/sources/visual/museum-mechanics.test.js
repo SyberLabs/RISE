@@ -179,4 +179,81 @@ describe('museum pool mechanics', () => {
         }
         expect(new Set(seen).size).toBe(6);
     });
+
+    describe('Audubon Animals authority', () => {
+        const audubonWork = {
+            id: 'audubon:birds-folio:1',
+            title: 'Wild Turkey',
+            artist: 'John James Audubon',
+            date: '1827',
+            url: 'https://iiif.example/1600.jpg',
+            fullUrl: 'https://iiif.example/3200.jpg',
+            corpus: 'birds-folio',
+            plate: 1,
+            sourceName: 'Cincinnati Library',
+            sourceUrl: 'https://digital.cincinnatilibrary.org/item/1',
+            rights: 'PUBLIC_DOMAIN',
+            rightsUri: 'http://rightsstatements.org/vocab/NoC-US/1.0/'
+        };
+
+        it('uses the bulk Audubon pool without starting pin resolution', async () => {
+            const audubon = { getPool: () => [audubonWork], draw: () => audubonWork };
+            provider = new MuseumProvider({ audubonService: audubon });
+            vi.spyOn(provider, '_resolvePins');
+
+            const pool = await provider.getImagesInCategory('animals');
+
+            expect(pool).toEqual([audubonWork]);
+            expect(provider._resolvePins).not.toHaveBeenCalled();
+        });
+
+        it('preserves corpus, plate, rights, and provenance on random results', async () => {
+            const audubon = { getPool: () => [audubonWork], draw: () => audubonWork };
+            provider = new MuseumProvider({ audubonService: audubon });
+
+            const result = await provider.getRandom({ category: 'animals' });
+
+            expect(result.id).toBe(audubonWork.id);
+            expect(result.data).toBe(audubonWork);
+            expect(result.metadata).toMatchObject({
+                categoryId: 'animals',
+                corpus: 'birds-folio',
+                plate: 1,
+                sourceName: 'Cincinnati Library',
+                rights: 'PUBLIC_DOMAIN'
+            });
+        });
+
+        it('falls back to the prior curated pins if catalog loading fails', async () => {
+            provider = new MuseumProvider({
+                audubonLoader: async () => { throw new Error('invalid generated catalog'); }
+            });
+            mockPins(provider, [{
+                id: 'rijks:1', title: 'Fallback', url: 'fallback.jpg', fullUrl: 'fallback.jpg'
+            }]);
+
+            const pool = await provider.getImagesInCategory('animals');
+
+            expect(pool).toHaveLength(1);
+            expect(pool[0].id).toBe('rijks:1');
+            expect(provider._audubonUnavailable).toBe(true);
+        });
+
+        it('rejects a stale lazy-load completion after the caller aborts', async () => {
+            let release;
+            const audubon = { getPool: () => [audubonWork], draw: () => audubonWork };
+            provider = new MuseumProvider({
+                audubonLoader: () => new Promise(resolve => { release = resolve; })
+            });
+            const controller = new AbortController();
+            const request = provider.getImagesInCategory('animals', 100, {
+                signal: controller.signal
+            });
+
+            controller.abort();
+            release(audubon);
+
+            await expect(request).rejects.toMatchObject({ name: 'AbortError' });
+        });
+    });
 });

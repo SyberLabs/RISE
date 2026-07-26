@@ -202,7 +202,7 @@ const CHAPTER_COLLECTIONS = Object.freeze({
   // until a true chapel-baptism collection is curated.
 });
 
-function collectionsForReading(bookId, chapter) {
+export function collectionsForReading(bookId, chapter) {
   const perChapter = chapter != null ? CHAPTER_COLLECTIONS[bookId]?.[chapter] : null;
   return perChapter || BOOK_COLLECTIONS[bookId] || null;
 }

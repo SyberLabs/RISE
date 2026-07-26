@@ -29,10 +29,14 @@ import {
 } from '../core/visual-program.js';
 import {
   clearLaunchVisualSelection,
+  createReadingVisualIdentity,
   isLaunchHeldFocal,
+  normalizeReadingVisualIdentity,
+  reconcileReadingVisualIdentity,
   releaseLaunchHeldFocal
 } from '../core/visual-identity.js';
 import {
+  recoverLegacyChapelCollectionIdentity,
   recoverLegacyChapelScriptureSources,
   recoverLegacyChapelVisualProgram
 } from '../content/chapel/imagery/program-recovery.js';
@@ -69,6 +73,9 @@ function createDefaultConfig() {
     // Content-authored cue schedule. Launch identity, persisted with the
     // reading rather than with the user's reusable visual preferences.
     visualProgram: null,
+    // Ordinary-reading collections are weaker than a visualProgram but still
+    // belong to the loaded reading, never to reusable preferences.
+    readingVisualIdentity: null,
 
     // Visual orbit
     visualInterlocution: {
@@ -165,11 +172,12 @@ export class ChamberOrbital {
     // Visual interlocution panel instance
     this.viPanel = null;
 
-    // Persist at every exit point — not only at Begin. Otherwise settings
-    // changed after the last session (e.g. Genesis -> Focals) are lost on
-    // refresh and the stale last-used state resurrects.
+    // One abortable event scope owns every listener installed by this
+    // Orbital. The Chamber and immersive session reuse the same container,
+    // so DOM replacement alone cannot retire delegated container listeners.
+    this._eventController = null;
+    this._destroyed = false;
     this._boundPersist = () => this._persistPrefs();
-    window.addEventListener('beforeunload', this._boundPersist);
 
     this.render();
     this.attachEvents();
@@ -263,7 +271,15 @@ export class ChamberOrbital {
       console.warn('[ChamberOrbital] Could not clear prefs:', e);
     }
 
-    const { text, textSource, origin, sources, provenance, visualProgram } = this.config;
+    const {
+      text,
+      textSource,
+      origin,
+      sources,
+      provenance,
+      visualProgram,
+      readingVisualIdentity
+    } = this.config;
     this.config = {
       ...createDefaultConfig(),
       text,
@@ -271,8 +287,16 @@ export class ChamberOrbital {
       origin,
       sources,
       provenance,
-      visualProgram
+      visualProgram,
+      readingVisualIdentity
     };
+    if (this.config.readingVisualIdentity && !this.config.visualProgram) {
+      this.config.visualInterlocution.interlocution =
+        reconcileReadingVisualIdentity(
+          this.config.visualInterlocution.interlocution,
+          this.config.readingVisualIdentity
+        );
+    }
 
     // The visual panel holds its own copy of the config — rebuild it
     if (this.viPanel) {
@@ -320,6 +344,24 @@ export class ChamberOrbital {
             textSource: this.config.textSource,
             visualConfig: this.config.visualInterlocution
           });
+        const persistedIdentity = this.config.visualProgram
+          ? null
+          : normalizeReadingVisualIdentity(saved.readingVisualIdentity);
+        this.config.readingVisualIdentity = persistedIdentity
+          || (!this.config.visualProgram
+            ? recoverLegacyChapelCollectionIdentity({
+              provenance: this.config.provenance,
+              origin: this.config.origin,
+              visualConfig: this.config.visualInterlocution
+            })
+            : null);
+        if (this.config.readingVisualIdentity) {
+          this.config.visualInterlocution.interlocution =
+            reconcileReadingVisualIdentity(
+              this.config.visualInterlocution.interlocution,
+              this.config.readingVisualIdentity
+            );
+        }
         if (this.config.visualProgram) {
           this.config.sources = recoverLegacyChapelScriptureSources({
             provenance: this.config.provenance,
@@ -329,11 +371,13 @@ export class ChamberOrbital {
             text: this.config.text
           });
         }
-        if (!persistedProgram && this.config.visualProgram) {
-          console.info('[ChamberOrbital] Recovered legacy Chapel visual program', {
+        if ((!persistedProgram && this.config.visualProgram)
+          || (!persistedIdentity && this.config.readingVisualIdentity)) {
+          console.info('[ChamberOrbital] Recovered legacy Chapel visual identity', {
             bookId: this.config.provenance?.bookId || this.config.origin?.data?.bookId,
             chapter: this.config.provenance?.chapter || this.config.origin?.data?.chapter,
-            episodes: this.config.visualProgram.segments.length
+            episodes: this.config.visualProgram?.segments?.length || 0,
+            collections: this.config.readingVisualIdentity?.collections || []
           });
           // Heal the durable record immediately; every later visit takes the
           // ordinary deserialize path and never depends on this migration.
@@ -359,7 +403,10 @@ export class ChamberOrbital {
           origin: this.config.origin,
           sources,
           provenance: this.config.provenance,
-          visualProgram: serializeVisualProgram(this.config.visualProgram)
+          visualProgram: serializeVisualProgram(this.config.visualProgram),
+          readingVisualIdentity: this.config.visualProgram
+            ? null
+            : normalizeReadingVisualIdentity(this.config.readingVisualIdentity)
         }));
       } else {
         localStorage.removeItem(ORBITAL_TEXT_KEY);
@@ -810,6 +857,10 @@ export class ChamberOrbital {
           expanded: true,
           locked: !this.config.text,
           lockedMessage: 'Please load a text source first to configure Visuals.',
+          programInfo: this.config.visualProgram?.segments?.length
+            ? { episodes: this.config.visualProgram.segments.length }
+            : null,
+          readingVisualDomain: this.config.readingVisualIdentity?.domain || null,
           onChange: (config) => {
             const previouslyHeld = isLaunchHeldFocal(
               this.config.visualInterlocution?.focals
@@ -823,6 +874,12 @@ export class ChamberOrbital {
             // (cortex vocabulary); app.js derives those from procedural +
             // sourced at session start.
             this.config.visualInterlocution = { ...config };
+            if (this.config.readingVisualIdentity && !this.config.visualProgram) {
+              this.config.readingVisualIdentity = normalizeReadingVisualIdentity({
+                ...this.config.readingVisualIdentity,
+                collections: config.interlocution?.atriumCollections || []
+              });
+            }
             this.updateOrbitStatus('visual');
             // Visual settings are the most-edited dials — durable immediately
             this._persistPrefs();
@@ -904,15 +961,30 @@ export class ChamberOrbital {
     return str.charAt(0).toUpperCase() + str.slice(1);
   }
 
+  _listen(target, type, listener, options = {}) {
+    if (!target || this._destroyed || !this._eventController) return;
+    target.addEventListener(type, listener, {
+      ...options,
+      signal: this._eventController.signal
+    });
+  }
+
   attachEvents() {
+    // Full renders replace the controls but not `this.container`. Abort the
+    // prior scope before binding the new DOM so delegated listeners cannot
+    // multiply across Reset or shared-container reconstruction.
+    this._eventController?.abort();
+    this._eventController = new AbortController();
+    this._listen(window, 'beforeunload', this._boundPersist);
+
     // Back button
-    this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
+    this._listen(this.container.querySelector('[data-action="back"]'), 'click', () => {
       window.rise?.audioEngine?.playClick();
       this.onNavigate('portal');
     });
 
     // Origin chip (delegated — the chip re-renders on loadText/clearText)
-    this.container.addEventListener('click', (e) => {
+    this._listen(this.container, 'click', (e) => {
       if (e.target.closest('[data-action="origin-return"]') && this.config.origin?.view) {
         window.rise?.audioEngine?.playClick();
         if (this.config.origin.data) {
@@ -924,7 +996,7 @@ export class ChamberOrbital {
     });
 
     // Reset settings to factory defaults (keeps the loaded text)
-    this.container.querySelector('[data-action="reset-prefs"]')?.addEventListener('click', () => {
+    this._listen(this.container.querySelector('[data-action="reset-prefs"]'), 'click', () => {
       window.rise?.audioEngine?.playClick();
       this.resetPrefs();
     });
@@ -936,7 +1008,7 @@ export class ChamberOrbital {
     this.attachOrbitEvents();
 
     // Begin button
-    this.container.querySelector('#begin-btn')?.addEventListener('click', () => {
+    this._listen(this.container.querySelector('#begin-btn'), 'click', () => {
       if (this.config.text) {
         window.rise?.audioEngine?.playClick();
         this.beginSession();
@@ -949,13 +1021,13 @@ export class ChamberOrbital {
 
   attachTextSourceEvents() {
     // Browse library (single entry point)
-    this.container.querySelector('[data-action="library"]')?.addEventListener('click', () => {
+    this._listen(this.container.querySelector('[data-action="library"]'), 'click', () => {
       window.rise?.audioEngine?.playHiss();
       this.onNavigate('library');
     });
 
     // Clear text
-    this.container.querySelector('[data-action="clear-text"]')?.addEventListener('click', () => {
+    this._listen(this.container.querySelector('[data-action="clear-text"]'), 'click', () => {
       window.rise?.audioEngine?.playHiss();
       this.clearText();
     });
@@ -964,7 +1036,7 @@ export class ChamberOrbital {
   attachOrbitEvents() {
     const nodes = this.container.querySelectorAll('.orbit-node');
     nodes.forEach(node => {
-      node.addEventListener('click', () => {
+      this._listen(node, 'click', () => {
         window.rise?.audioEngine?.playClick();
         const orbit = node.dataset.orbit;
         this.openModal(orbit);
@@ -977,7 +1049,7 @@ export class ChamberOrbital {
     // Close buttons
     const closeBtns = this.container.querySelectorAll('.modal-close');
     closeBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
+      this._listen(btn, 'click', () => {
         window.rise?.audioEngine?.playHiss();
         this.closeModal(btn.dataset.close);
       });
@@ -986,7 +1058,7 @@ export class ChamberOrbital {
     // Click outside to close
     const modals = this.container.querySelectorAll('.orbital-modal');
     modals.forEach(modal => {
-      modal.addEventListener('click', (e) => {
+      this._listen(modal, 'click', (e) => {
         if (e.target === modal) {
           const modalId = modal.id.replace('modal-', '');
           this.closeModal(modalId);
@@ -1013,6 +1085,9 @@ export class ChamberOrbital {
     if (!listEl) return;
 
     const swells = await PersonalSwells.getAll();
+    // The shared Chamber container may have changed owners while IndexedDB
+    // resolved. Never let a retired Orbital bind into the successor's DOM.
+    if (this._destroyed || !this.container.contains(listEl)) return;
 
     // The pool can shrink elsewhere (Workshop deletes, cleared data);
     // a selection pointing at a missing swell would silently degrade
@@ -1042,7 +1117,7 @@ export class ChamberOrbital {
 
     // Attach row events (Selection)
     listEl.querySelectorAll('.swell-item').forEach(row => {
-      row.addEventListener('click', (e) => {
+      this._listen(row, 'click', (e) => {
         // Only select if we didn't click a button
         if (e.target.closest('.swell-btn')) return;
         
@@ -1061,7 +1136,7 @@ export class ChamberOrbital {
 
     // Attach button events (Delete / Preview)
     listEl.querySelectorAll('.swell-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
+      this._listen(btn, 'click', async (e) => {
         e.stopPropagation(); // Prevent row selection
         const id = btn.closest('.swell-item').dataset.id;
         const action = btn.dataset.action;
@@ -1093,7 +1168,7 @@ export class ChamberOrbital {
     const presetOptions = this.container.querySelectorAll('[data-audio-preset]');
 
     soundscapeOptions.forEach(opt => {
-      opt.addEventListener('click', () => {
+      this._listen(opt, 'click', () => {
         window.rise?.audioEngine?.playHiss();
         this.config.soundscape = opt.dataset.soundscape;
         if (opt.dataset.soundscape !== 'none' && this.config.audioPreset !== 'silent') {
@@ -1107,7 +1182,7 @@ export class ChamberOrbital {
     });
 
     presetOptions.forEach(opt => {
-      opt.addEventListener('click', () => {
+      this._listen(opt, 'click', () => {
         window.rise?.audioEngine?.playHiss();
         this.config.audioPreset = opt.dataset.audioPreset;
         if (opt.dataset.audioPreset !== 'silent' && this.config.soundscape !== 'none') {
@@ -1124,7 +1199,7 @@ export class ChamberOrbital {
     // Entrainment mode
     const entrainmentOptions = this.container.querySelectorAll('[data-entrainment]');
     entrainmentOptions.forEach(opt => {
-      opt.addEventListener('click', () => {
+      this._listen(opt, 'click', () => {
         window.rise?.audioEngine?.playHiss();
         this.config.entrainmentMode = opt.dataset.entrainment;
         this.updateOrbitStatus('audio');
@@ -1136,7 +1211,7 @@ export class ChamberOrbital {
     // Waveform
     const waveformOptions = this.container.querySelectorAll('[data-waveform]');
     waveformOptions.forEach(opt => {
-      opt.addEventListener('click', () => {
+      this._listen(opt, 'click', () => {
         window.rise?.audioEngine?.playClick();
         this.config.entrainmentWaveform = opt.dataset.waveform;
         this.updateOrbitStatus('audio');
@@ -1159,7 +1234,7 @@ export class ChamberOrbital {
     const voiceSelectSection = this.container.querySelector('#voice-select-section');
     const voiceSelect = this.container.querySelector('#voice-select');
 
-    voiceToggle?.addEventListener('change', () => {
+    this._listen(voiceToggle, 'change', () => {
       window.rise?.audioEngine?.playClick();
       this.config.voiceEnabled = voiceToggle.checked;
       // Show/hide voice selector
@@ -1174,7 +1249,7 @@ export class ChamberOrbital {
     });
 
     // Voice selection change
-    voiceSelect?.addEventListener('change', () => {
+    this._listen(voiceSelect, 'change', () => {
       this.config.voiceId = voiceSelect.value;
       this.updateOrbitStatus('audio');
     });
@@ -1186,7 +1261,7 @@ export class ChamberOrbital {
 
     // Personal Pool Upload
     const swellUpload = this.container.querySelector('#swell-upload');
-    swellUpload?.addEventListener('change', async (e) => {
+    this._listen(swellUpload, 'change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
@@ -1274,7 +1349,7 @@ export class ChamberOrbital {
     // WPM slider
     const wpmSlider = this.container.querySelector('#wpm-slider');
     const wpmVal = this.container.querySelector('#wpm-val');
-    wpmSlider?.addEventListener('input', () => {
+    this._listen(wpmSlider, 'input', () => {
       this.config.wpm = parseInt(wpmSlider.value, 10);
       wpmVal.textContent = `${wpmSlider.value} WPM`;
       this.updateOrbitStatus('temporal');
@@ -1283,7 +1358,7 @@ export class ChamberOrbital {
     // Curve options
     const curveOptions = this.container.querySelectorAll('[data-curve]');
     curveOptions.forEach(opt => {
-      opt.addEventListener('click', () => {
+      this._listen(opt, 'click', () => {
         window.rise?.audioEngine?.playHiss();
         this.config.curve = opt.dataset.curve;
         curveOptions.forEach(o => o.classList.remove('active'));
@@ -1294,7 +1369,7 @@ export class ChamberOrbital {
     // Chunk mode
     const chunkOptions = this.container.querySelectorAll('[data-chunk]');
     chunkOptions.forEach(opt => {
-      opt.addEventListener('click', () => {
+      this._listen(opt, 'click', () => {
         window.rise?.audioEngine?.playHiss();
         this.config.chunkMode = opt.dataset.chunk;
         chunkOptions.forEach(o => o.classList.remove('active'));
@@ -1447,10 +1522,6 @@ export class ChamberOrbital {
     this.config.origin = config.origin || null;
     this.updateOriginChip();
 
-    // Capture immediately — a refresh right after choosing a text
-    // should bring it back, not wait for an exit event
-    this._persistText();
-
     // Apply optional config parameters from source
     if (config.wpm) this.config.wpm = config.wpm;
     if (config.curve) this.config.curve = config.curve;
@@ -1519,6 +1590,25 @@ export class ChamberOrbital {
       }
     }
 
+    const authoredInterlocution = config.visualConfig?.interlocution;
+    this.config.readingVisualIdentity = createReadingVisualIdentity({
+      visualProgram: this.config.visualProgram,
+      provenance: this.config.provenance,
+      origin: this.config.origin,
+      collections: authoredInterlocution?.atriumCollections,
+      hasAuthoredCollections: Boolean(
+        authoredInterlocution
+        && Object.hasOwn(authoredInterlocution, 'atriumCollections')
+        && Array.isArray(authoredInterlocution.atriumCollections)
+      )
+    });
+
+    // Persist only after text and visual identity have both crossed the load
+    // boundary. _persistPrefs writes the reading record first, then the
+    // effective reusable controls, so a replacement cannot leave the prior
+    // reading's sourced pool stranded on disk.
+    this._persistPrefs();
+
     // Sync HTML modal elements with new config state
     this.syncUIWithConfig();
 
@@ -1561,6 +1651,7 @@ export class ChamberOrbital {
    */
   _clearLaunchVisualIdentity() {
     this.config.visualProgram = null;
+    this.config.readingVisualIdentity = null;
     const visual = this.config.visualInterlocution;
     if (visual?.interlocution) {
       visual.interlocution = clearLaunchVisualSelection(visual.interlocution);
@@ -1612,7 +1703,7 @@ export class ChamberOrbital {
     // launch and loading a plain text left the Doré pill stranded.
     this._clearLaunchVisualIdentity();
     this.updateOriginChip();
-    this._persistText(); // clearing the card clears its persistence
+    this._persistPrefs(); // clears both the reading and its effective pool
 
     // Lock visual interlocution again
     if (this.viPanel) {
@@ -1694,10 +1785,13 @@ export class ChamberOrbital {
   }
 
   destroy() {
+    if (this._destroyed) return;
     // The latest dials are the user's truth — capture them on the way out
     // (session start destroys this instance; so does navigating away)
     this._persistPrefs();
-    window.removeEventListener('beforeunload', this._boundPersist);
+    this._destroyed = true;
+    this._eventController?.abort();
+    this._eventController = null;
 
     // Cleanup
     if (this.viPanel) {

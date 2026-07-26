@@ -786,6 +786,41 @@ describe('VisualCortex external asset hydration', () => {
         expect(cortex._poolFor('aic-oldmasters').images).toHaveLength(1);
     });
 
+    it('preserves normalized artwork metadata on the decoded asset', async () => {
+        const cortex = new VisualCortex();
+        vi.spyOn(cortex, '_getProviderForCategory').mockResolvedValue({
+            getRandom: vi.fn().mockResolvedValue({
+                name: 'The Work',
+                data: {
+                    url: 'work.jpg',
+                    artist: '<b>The Artist</b>',
+                    rights: 'PUBLIC_DOMAIN',
+                    sourceName: 'The Museum',
+                    sourceUrl: 'https://example.org/work'
+                }
+            })
+        });
+        vi.spyOn(cortex, '_loadImage').mockImplementation(
+            async (url, name, category, signal, artworkLabel) => ({
+                img: { src: url },
+                url,
+                name,
+                category,
+                artworkLabel
+            })
+        );
+
+        const asset = await cortex._loadIntoPool('aic-oldmasters');
+
+        expect(asset.artworkLabel).toMatchObject({
+            title: 'The Work',
+            artist: 'The Artist',
+            labelText: 'The Work · The Artist',
+            sourceName: 'The Museum',
+            creditRequired: false
+        });
+    });
+
     it('joins an active warm-up instead of reporting preload complete early', async () => {
         const cortex = new VisualCortex();
         cortex.config.activeTypes = ['aic-oldmasters'];
@@ -1165,6 +1200,153 @@ describe('VisualCortex external asset hydration', () => {
             category: 'aic-oldmasters',
             url: 'loaded.jpg'
         });
+    });
+
+    it('applies the label preference live while retaining required credits', () => {
+        const cortex = new VisualCortex();
+        cortex.artworkLabelEl = document.createElement('div');
+        cortex._setFlashArtworkLabel({
+            labelText: 'Optional · Artist',
+            requiredText: 'Optional · Artist',
+            creditRequired: false
+        });
+        expect(cortex.artworkLabelEl.hidden).toBe(false);
+
+        cortex.setArtworkLabelsVisible(false);
+        expect(cortex.artworkLabelEl.hidden).toBe(true);
+
+        cortex._setFlashArtworkLabel({
+            labelText: 'Required · Artist',
+            requiredText: 'Required · Artist · CC BY 4.0',
+            creditRequired: true
+        });
+        expect(cortex.artworkLabelEl.hidden).toBe(false);
+        expect(cortex.artworkLabelEl.textContent)
+            .toBe('Required · Artist · CC BY 4.0');
+    });
+
+    it('presents the selected sourced work and its label as one flash', async () => {
+        grantVisualInterlocutionConsent();
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.container = {
+            hidden: true,
+            style: {},
+            classList: { toggle: vi.fn() },
+            getBoundingClientRect: () => ({ width: 1200, height: 800 })
+        };
+        cortex.imageWashEl = document.createElement('img');
+        cortex.diagramEl = document.createElement('img');
+        Object.defineProperties(cortex.diagramEl, {
+            complete: { configurable: true, value: true },
+            naturalWidth: { configurable: true, value: 600 },
+            naturalHeight: { configurable: true, value: 1200 }
+        });
+        cortex.artworkLabelEl = document.createElement('div');
+        cortex.config.activeTypes = ['aic-oldmasters'];
+        vi.spyOn(cortex, '_scheduleBackgroundWarm').mockImplementation(() => {});
+        vi.spyOn(cortex, '_getNextDiagram').mockReturnValue({
+            img: { src: 'work.jpg' },
+            name: 'The Work',
+            artworkLabel: {
+                labelText: 'The Work · The Artist',
+                requiredText: 'The Work · The Artist',
+                creditRequired: false
+            }
+        });
+        vi.spyOn(cortex, '_presentRenderedVisual').mockResolvedValue({
+            presented: true,
+            requestedDurationMs: 200,
+            presentedDurationMs: 200,
+            reason: 'complete'
+        });
+
+        await cortex.flash(200, 'aic-oldmasters');
+
+        expect(cortex.diagramEl.src).toContain('work.jpg');
+        expect(cortex.diagramEl.style.objectFit).toBe('contain');
+        expect(cortex.imageWashEl.src).toContain('work.jpg');
+        expect(cortex.imageWashEl.hidden).toBe(false);
+        expect(cortex.artworkLabelEl.hidden).toBe(false);
+        expect(cortex.artworkLabelEl.textContent).toBe('The Work · The Artist');
+    });
+});
+
+describe('VisualCortex adaptive image wash', () => {
+    it('uses the same uncropped foreground and ambient wash in Behind Stream', () => {
+        const cortex = new VisualCortex();
+        cortex.config.presentation = 'behind-stream';
+        cortex.container = {
+            getBoundingClientRect: () => ({ width: 1200, height: 800 })
+        };
+        cortex.imageWashEl = document.createElement('img');
+        const foreground = document.createElement('img');
+        Object.defineProperties(foreground, {
+            complete: { configurable: true, value: true },
+            naturalWidth: { configurable: true, value: 600 },
+            naturalHeight: { configurable: true, value: 1200 }
+        });
+
+        expect(cortex._showAdaptiveImage(
+            foreground,
+            'portrait.jpg',
+            'Portrait'
+        )).toBe(true);
+
+        expect(foreground.hidden).toBe(false);
+        expect(foreground.src).toContain('portrait.jpg');
+        expect(foreground.alt).toBe('Portrait');
+        expect(foreground.style.objectFit).toBe('contain');
+        expect(cortex.imageWashEl.hidden).toBe(false);
+        expect(cortex.imageWashEl.src).toContain('portrait.jpg');
+    });
+
+    it('does not allocate a wash for a full-frame image', () => {
+        const cortex = new VisualCortex();
+        cortex.container = {
+            getBoundingClientRect: () => ({ width: 1200, height: 800 })
+        };
+        cortex.imageWashEl = document.createElement('img');
+        const foreground = document.createElement('img');
+        Object.defineProperties(foreground, {
+            complete: { configurable: true, value: true },
+            naturalWidth: { configurable: true, value: 1200 },
+            naturalHeight: { configurable: true, value: 800 }
+        });
+
+        cortex._showAdaptiveImage(foreground, 'full-frame.jpg', 'Full frame');
+
+        expect(foreground.hidden).toBe(false);
+        expect(cortex.imageWashEl.hidden).toBe(true);
+        expect(cortex.imageWashEl.hasAttribute('src')).toBe(false);
+    });
+
+    it('hides the wash before a procedural or ASCII frame presents', () => {
+        const cortex = new VisualCortex();
+        cortex.imageWashEl = document.createElement('img');
+        cortex.imageWashEl.hidden = false;
+        cortex.imageWashEl.src = 'previous-work.jpg';
+
+        cortex._hideAdaptiveImageWash();
+
+        expect(cortex.imageWashEl.hidden).toBe(true);
+        expect(cortex.imageWashEl.hasAttribute('src')).toBe(false);
+    });
+
+    it('wires wash clearing into the flash reset before procedural dispatch', async () => {
+        grantVisualInterlocutionConsent();
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.container = { hidden: true, style: {} };
+        cortex.imageWashEl = document.createElement('img');
+        cortex.imageWashEl.hidden = false;
+        cortex.imageWashEl.src = 'previous-work.jpg';
+
+        const result = await cortex.flash(200, 'klee');
+
+        expect(result.reason).toBe('render-failed');
+        expect(cortex.imageWashEl.hidden).toBe(true);
+        expect(cortex.imageWashEl.hasAttribute('src')).toBe(false);
     });
 });
 

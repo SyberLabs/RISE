@@ -29,6 +29,10 @@ export class Chamber {
     this.controlsVisible = false;
     this.attractorField = null;
     this.kleeField = null;
+    // Page Mode (PAGE-MODE-SPEC): the spatial projection, mounted lazily
+    // on demand. Null until the reader opens it; nothing is paid before.
+    this.pageReader = null;
+    this.pageModeActive = false;
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
     this.hasRhythmicVisuals = this.session?.visualConfig?.visualMode === 'interlocution';
@@ -159,6 +163,13 @@ export class Chamber {
             <div class="atom-display" id="atom-display"></div>
           </div>
 
+          <!-- PAGE MODE (PAGE-MODE-SPEC): the SPATIAL projection of this
+               same reading. Empty and hidden until engaged; the Stream
+               above is never modified, only paused while the reader
+               studies. Mounted lazily so a reader who never opens it
+               pays nothing. -->
+          <div class="chamber-page" id="chamber-page" hidden></div>
+
           <!-- Speed HUD - briefly appears on WPM change -->
           <div id="chamber-speed-hud" class="speed-hud hidden">
             <span class="speed-hud-label">PACE</span>
@@ -190,6 +201,14 @@ export class Chamber {
                 <span class="control-label">Visuals</span>
               </button>
             ` : ''}
+
+            <!-- Stream ⇄ Page: the two projections of one reading -->
+            <button class="control-btn page-mode-toggle" id="page-mode-btn"
+              type="button" aria-pressed="false" aria-label="Read as a page"
+              title="Read as a page (the spatial projection)">
+              <span class="icon" aria-hidden="true">&#9638;</span>
+              <span class="control-label">Page</span>
+            </button>
 
             ${this.hasAttractorField ? `
               <button class="control-btn kaleidoscope-toggle" id="kaleidoscope-btn"
@@ -330,6 +349,11 @@ export class Chamber {
     volumeBtn?.addEventListener('click', () => {
       window.rise?.audioEngine?.playHiss();
       this.toggleVolume();
+    });
+    const pageModeBtn = this.container.querySelector('#page-mode-btn');
+    pageModeBtn?.addEventListener('click', () => {
+      window.rise?.audioEngine?.playHiss();
+      this.togglePageMode();
     });
     const kaleidoscopeBtn = this.container.querySelector('#kaleidoscope-btn');
     kaleidoscopeBtn?.addEventListener('click', () => {
@@ -1044,6 +1068,74 @@ export class Chamber {
   }
 
   /**
+   * Stream ⇄ Page — the two projections of one reading (PAGE-MODE-SPEC §4).
+   *
+   * Engaging the Page pauses the Stream and typesets the SAME compiled
+   * session in space; leaving it returns the reader to the stream exactly
+   * where it stood. This adds a projection; it modifies nothing about how
+   * the Stream, the cortex, or the flash economy behave. The reader may
+   * outpace a page — that is the point of a page.
+   */
+  async togglePageMode(forceOn) {
+    const host = this.container.querySelector('#chamber-page');
+    if (!host) return false;
+
+    const next = typeof forceOn === 'boolean' ? forceOn : !this.pageModeActive;
+    if (next === this.pageModeActive) return next;
+    this.pageModeActive = next;
+
+    const btn = this.container.querySelector('#page-mode-btn');
+    const display = this.container.querySelector('#chamber-display');
+    btn?.setAttribute('aria-pressed', String(next));
+    btn?.setAttribute('aria-label', next ? 'Return to the stream' : 'Read as a page');
+    btn?.classList.toggle('is-on', next);
+    display?.classList.toggle('page-mode-on', next);
+
+    if (!next) {
+      // Leaving the Page: tear it down and give the stream back.
+      host.hidden = true;
+      this.pageReader?.destroy();
+      this.pageReader = null;
+      return false;
+    }
+
+    // A page is read, not raced: hold the stream while it is open.
+    if (this.player?.state === 'playing' || this.player?.state === 'interlocuting') {
+      this.player.pause();
+      window.rise?.audioEngine?.fadeOutSession(0.4);
+      this.container.querySelector('#play-icon')?.classList.remove('hidden');
+      this.container.querySelector('#pause-icon')?.classList.add('hidden');
+    }
+
+    host.hidden = false;
+    try {
+      const [{ PageReader }, { visualCortex }] = await Promise.all([
+        import('../page/PageReader.js'),
+        import('../visuals/visual-cortex.js')
+      ]);
+      this.pageReader = new PageReader(host, {
+        session: this.session,
+        title: this.session?.title || '',
+        source: this.session?.sources?.[0]?.name || '',
+        // The SAME provider dispatch the Stream uses — one source path,
+        // two projections. A collection that cannot resolve yields
+        // stillness, never a substitute.
+        resolveCollection: (id) => visualCortex.resolveCollectionWorks(id, { limit: 12 })
+      });
+      this.pageReader.render();
+    } catch (error) {
+      console.warn('[Chamber] Page Mode unavailable:', error);
+      host.hidden = true;
+      this.pageModeActive = false;
+      btn?.setAttribute('aria-pressed', 'false');
+      btn?.classList.remove('is-on');
+      display?.classList.remove('page-mode-on');
+      return false;
+    }
+    return true;
+  }
+
+  /**
    * Session-local kill switch for warning-governed rhythmic visuals.
    * Persistent Genesis, attractor, and focal modes never expose this control.
    */
@@ -1465,6 +1557,11 @@ export class Chamber {
       this.rosaField.destroy();
       this.rosaField = null;
     }
+    if (this.pageReader) {
+      this.pageReader.destroy();
+      this.pageReader = null;
+    }
+    this.pageModeActive = false;
     // The Continuous Field lives in the (singleton) cortex, not the
     // Chamber; releasing the host stops it and drops its layers before the
     // Chamber DOM (and the host with it) is torn down.

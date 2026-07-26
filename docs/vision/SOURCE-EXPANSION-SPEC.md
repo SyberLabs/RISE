@@ -4,11 +4,34 @@
 the living world, sourced with the same rights discipline and reverent
 register the Chapel and Atrium already hold.**
 
-Status: SPEC / DESIGN — no implementation, no live probing yet. A plan
-to review before harvesting. Every API claim below is from general
-knowledge and is marked ⚠ **UNVERIFIED** where it must be confirmed by
-a live probe under the MUSEUM-ATLAS discipline before any code trusts
-it. Rulings by the creator marked ✦; open questions ⁇.
+Status: ACTIVE — the Audubon art-of-nature corpus and the cross-presenter
+artwork-label pathway are implemented; the remaining Cosmos and
+natural-history providers are still design candidates.
+Claims marked ⚠ **UNVERIFIED** must be confirmed by a live probe under the
+MUSEUM-ATLAS discipline before code trusts them. Rulings by the creator
+marked ✦; open questions ⁇.
+
+### Implementation ledger — Audubon Animals
+
+The existing `animals` reader intent now hydrates from a checked-in,
+versioned catalog of 585 institution-verified public-domain plates:
+
+- all 435 double-elephant-folio plates of *Birds of America*, from the
+  Cincinnati & Hamilton County Public Library;
+- all 150 imperial-folio plates of *The Viviparous Quadrupeds of North
+  America*, from the University of Michigan Library.
+
+`npm run build:audubon` is the controlled refresh boundary. It harvests the
+institutions' IIIF manifests, verifies exact gapless plate ranges, rights,
+image dimensions, identifiers, and provenance, then replaces the generated
+catalog. The browser never performs that metadata crawl. At runtime, the
+Animals provider lazy-loads the catalog, independently re-gates every record,
+and derives responsive IIIF image URLs. The former curated animal pins remain
+an explicit degraded-mode fallback, not a second competing authority.
+
+The octavo *Birds of America* and later *Quadrupeds of North America* remain
+future corpus candidates; they are not silently mixed into this canonical
+folio release.
 
 ---
 
@@ -45,8 +68,10 @@ meaning**:
 Audubon's *Birds of America*, Haeckel's *Kunstformen der Natur*, Maria
 Sibylla Merian's insects, historical celestial atlases (Bayer, Hevelius,
 Flamsteed), botanical and zoological plates. These are **artworks whose
-subject is nature**. They already live in the museum-pins model —
-Smithsonian, Rijks, Cleveland, the Met all hold them, under the same
+subject is nature**. Most still live in the museum-pins model; Audubon is
+the first bulk-corpus exception, compiled from institutional IIIF manifests
+into an audited runtime catalog. Smithsonian, Rijks, Cleveland, the Met,
+and specialist libraries hold this material under the same
 CC0/PD rights regime and the same contact-sheet review we know. A reader
 of St. Francis, of a bestiary, of natural theology wants these:
 reverent, made by a human hand, at home beside a Rembrandt.
@@ -147,8 +172,9 @@ conceptually).
 
 The museum sources cleared on PD/CC0 — **no attribution obligation**. The
 witness-of sources introduce **CC BY**, which is free to use *only if
-credited*. This is a genuine new requirement the system does not yet
-handle, and getting it wrong is a license violation, not a quality issue.
+credited*. The runtime now carries normalized title, artist, source, rights,
+and required-credit identity from provider hydration into both flash and
+Gallery presenters.
 
 ✦ **Ruling: a work carrying an attribution obligation must display its
 credit whenever shown.** Implications:
@@ -157,8 +183,8 @@ credit whenever shown.** Implications:
   license), read from the API, never hand-built (the Atlas's URL rule
   extends to credit strings).
 - Every presenter that shows a CC-BY work must surface its credit —
-  the flash economy's caption, the Continuous Field's (currently
-  title-only) label, the Page Mode figure caption. A CC-BY work with no
+  the flash economy's caption, the Continuous Field's layer-owned label,
+  and the future Page Mode figure caption. A CC-BY work with no
   place to show its credit **cannot be shown** in that presenter
   (reverent withholding, now legally required).
 - The **rights ledger (MUSEUM-ATLAS §5) gains rows** for each new
@@ -231,10 +257,10 @@ Front-loaded with the cleanest source and the one prerequisite (rights),
 mirroring how the Gallery and pericopes were built: the hard, durable
 core first.
 
-1. **The attribution pathway (§3) FIRST.** Extend the work model and the
-   rights ledger to carry a CC-BY basis + required credit, and give at
-   least one presenter (the Gallery label, or the flash caption) a place
-   to show it. Until this exists, only PD/CC0 sources may be harvested.
+1. **COMPLETE — attribution pathway (§3).** The decoded-work model carries
+   rights and credit metadata; flash and Gallery both render labels; the
+   reader may hide optional title/artist labels, but required credits remain
+   visible. Page Mode must consume the same contract when implemented.
 2. **NASA Image Library probe + adapter** (witness-of, mostly PD) —
    Atlas-style live probe (endpoints, the asset-manifest hop, the
    per-item rights field, image URLs, pagination, throttling), then an

@@ -784,6 +784,10 @@
   opacity: 0.78;
 }
 
+.chamber-continuous-field .continuous-field-backdrop[hidden] {
+  display: none;
+}
+
 .chamber-continuous-field .continuous-field-artwork {
   inset: 0;
   z-index: 1;
@@ -791,6 +795,69 @@
   height: 100%;
   object-position: center;
   filter: drop-shadow(0 14px 36px rgba(0, 0, 0, 0.38));
+}
+
+.chamber-continuous-field .continuous-field-label {
+  position: absolute;
+  /* These are resilient pre-load defaults. Once the image exposes its
+     intrinsic dimensions, ContinuousField replaces them with coordinates
+     derived from the actual object-fit:contain artwork rectangle. */
+  left: auto;
+  right: clamp(14px, 3vw, 46px);
+  bottom: clamp(16px, 3.5vh, 42px);
+  z-index: 3;
+  box-sizing: border-box;
+  max-width: min(26vw, 320px);
+  padding: 6px 9px 6px 10px;
+  border-left: 1px solid rgba(232, 232, 236, 0.52);
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(90deg, rgba(8, 8, 10, 0.76), rgba(8, 8, 10, 0.38));
+  color: rgba(232, 232, 236, 0.90);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: clamp(8.5px, 0.58vw, 10.5px);
+  line-height: 1.28;
+  letter-spacing: 0.025em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.92);
+}
+
+.chamber-continuous-field .continuous-field-label[data-placement^="outside-"] {
+  background: linear-gradient(90deg, rgba(8, 8, 10, 0.86), rgba(8, 8, 10, 0.58));
+  backdrop-filter: blur(8px);
+}
+
+.chamber-continuous-field .continuous-field-label[data-placement="inside"] {
+  background: linear-gradient(90deg, rgba(8, 8, 10, 0.80), rgba(8, 8, 10, 0.44));
+}
+
+.chamber-continuous-field .continuous-field-label[data-label-length="long"] {
+  font-size: clamp(8px, 0.52vw, 9.5px);
+  letter-spacing: 0.015em;
+}
+
+.chamber-continuous-field .continuous-field-label[data-label-length="very-long"] {
+  font-size: clamp(7.5px, 0.48vw, 8.75px);
+  line-height: 1.22;
+  letter-spacing: 0.01em;
+}
+
+.chamber-continuous-field .continuous-field-label[data-credit-required="false"] {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.chamber-continuous-field .continuous-field-label[hidden] {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .chamber-continuous-field .continuous-field-label {
+    max-width: min(68vw, 300px);
+  }
 }
 
 /* A gentle scrim over the imagery so the reading stays legible against a
@@ -808,4 +875,47 @@
     rgba(8, 8, 10, 0.44) 45%,
     rgba(8, 8, 10, 0.30) 100%
   );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Page Mode surface (PAGE-MODE-SPEC)
+   The SPATIAL projection overlays the stream inside the same
+   display. Purely additive: when it is closed it occupies
+   nothing and the stream is untouched.
+   ═══════════════════════════════════════════════════════════ */
+
+.chamber-page {
+  /* Pinned to the VIEWPORT, not the display: .chamber-display is a
+     min-height:100vh column that grows with its content, so an
+     inset:0 absolute child would stretch to the full document height
+     and could never scroll (scrollHeight === clientHeight). Fixed
+     positioning gives the reader a real, scrollable window. */
+  position: fixed !important;   /* wins over .page-reader's own relative */
+  inset: 0;
+  height: 100vh;
+  z-index: 20;              /* above the field, below the controls */
+  background: var(--color-void);
+  animation: chamber-page-in 320ms var(--ease-out, ease-out) both;
+}
+
+.chamber-page[hidden] { display: none; }
+
+@keyframes chamber-page-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* While the page is open the stream rests behind it, inert. */
+.chamber-display.page-mode-on .chamber-field {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* The toggle reads as engaged */
+.control-btn.page-mode-toggle.is-on {
+  color: var(--color-light);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chamber-page { animation: none; }
 }

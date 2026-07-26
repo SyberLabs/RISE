@@ -1,5 +1,9 @@
-import { isLaunchHeldFocal } from '../../../core/visual-identity.js';
+import {
+  isLaunchHeldFocal,
+  normalizeReadingVisualIdentity
+} from '../../../core/visual-identity.js';
 import { normalizeVisualProgram } from '../../../core/visual-program.js';
+import { collectionsForReading } from '../handoff.js';
 import { compileVisualProgram } from './pericope-program.js';
 
 const GOSPEL_BOOKS = new Set(['matthew', 'mark', 'luke', 'john']);
@@ -124,4 +128,49 @@ export function recoverLegacyChapelScriptureSources({
     data: text,
     provenance: canonicalProvenance
   }];
+}
+
+/**
+ * Heal an ordinary Chapel reading saved before reading-owned collection
+ * identity existed. This migration is intentionally conjunctive:
+ *
+ * 1. provenance must identify a non-program Chapel reading;
+ * 2. current Chapel policy must explicitly assign collections there; and
+ * 3. only exact assigned ids already present in the old effective selection
+ *    are retained; absence is preserved as an empty (removed) selection.
+ *
+ * Merely being Scripture is never enough. In particular, a Gospel pericope
+ * program is recovered by recoverLegacyChapelVisualProgram and never enters
+ * this broad/ordinary collection path.
+ */
+export function recoverLegacyChapelCollectionIdentity({
+  provenance = null,
+  origin = null,
+  visualConfig = null
+} = {}) {
+  const candidate = provenance?.kind === 'chapel-book'
+    ? provenance
+    : origin?.view === 'chapel'
+      ? origin.data
+      : null;
+  const bookId = typeof candidate?.bookId === 'string'
+    ? candidate.bookId.toLowerCase()
+    : '';
+  const chapterValue = Number(candidate?.chapter);
+  const chapter = Number.isInteger(chapterValue) && chapterValue > 0
+    ? chapterValue
+    : null;
+  if (!bookId) return null;
+
+  const expected = collectionsForReading(bookId, chapter);
+  if (!Array.isArray(expected) || expected.length === 0) return null;
+  const sourced = visualConfig?.interlocution?.sourced;
+  if (!Array.isArray(sourced)) return null;
+  const activeExpected = expected.filter(id => sourced.includes(id));
+
+  return normalizeReadingVisualIdentity({
+    version: 1,
+    domain: 'chapel',
+    collections: activeExpected
+  });
 }

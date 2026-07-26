@@ -1019,6 +1019,7 @@ class App {
             fontSize: 'medium',
             showProgress: true,
             showDuration: true,
+            showArtworkLabels: true,
 
             // Audio
             enableAmbient: false,
@@ -1042,7 +1043,15 @@ class App {
             const merged = { ...defaultSettings, ...candidate };
             const fontSizes = new Set(['small', 'medium', 'large']);
             const curves = new Set(['flat', 'induction', 'ascent', 'wave', 'climax']);
-            const booleanKeys = ['showProgress', 'showDuration', 'enableAmbient', 'enableBinaural', 'photosensitivityMode', 'reducedMotion'];
+            const booleanKeys = [
+                'showProgress',
+                'showDuration',
+                'showArtworkLabels',
+                'enableAmbient',
+                'enableBinaural',
+                'photosensitivityMode',
+                'reducedMotion'
+            ];
             this.settings = {
                 ...defaultSettings,
                 fontSize: fontSizes.has(merged.fontSize) ? merged.fontSize : defaultSettings.fontSize,
@@ -1090,6 +1099,9 @@ class App {
         if (key === 'masterVolume' && this.audioEngine) {
             this.audioEngine.setMasterVolume(value);
         }
+        if (key === 'showArtworkLabels') {
+            visualCortex.setArtworkLabelsVisible(value);
+        }
         if (key === 'enableAmbient' && this.audioEngine?.isInitialized && !this.audioEngine.sessionActive) {
             if (value) this.audioEngine.startAmbientPlaylist();
             else this.audioEngine.stopAmbient(true);
@@ -1128,6 +1140,7 @@ class App {
         root.dataset.fontSize = this.settings?.fontSize || 'medium';
         root.classList.toggle('hide-session-progress', this.settings?.showProgress === false);
         root.classList.toggle('hide-session-duration', this.settings?.showDuration === false);
+        visualCortex.setArtworkLabelsVisible(this.settings?.showArtworkLabels !== false);
     }
 
     /**

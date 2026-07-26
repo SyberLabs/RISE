@@ -56,7 +56,83 @@
     height: 100%;
     object-fit: contain;
     z-index: 100;
-    background: var(--color-void, #0A0A0C);
+    background: transparent;
+    filter: drop-shadow(0 14px 36px rgba(0, 0, 0, 0.38));
+}
+
+/* Adaptive image matte for Full Frame and Behind Stream. This is the same
+   visual principle as Gallery's continuous-field-backdrop: the authored work
+   remains complete and uncropped above; only this atmospheric duplicate may
+   crop to carry color into aspect-ratio borders. */
+.visual-image-wash {
+    position: absolute;
+    inset: -6%;
+    width: 112%;
+    height: 112%;
+    z-index: 80;
+    object-fit: cover;
+    object-position: center;
+    filter: blur(clamp(20px, 3.4vw, 52px)) saturate(0.82) brightness(0.48);
+    transform: scale(1.06);
+    opacity: 0.78;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.visual-image-wash[hidden] {
+    display: none;
+}
+
+.visual-artwork-label {
+    position: absolute;
+    left: auto;
+    right: clamp(14px, 3vw, 48px);
+    bottom: clamp(16px, 4vh, 52px);
+    z-index: 180;
+    box-sizing: border-box;
+    max-width: min(26vw, 320px);
+    padding: 6px 9px 6px 10px;
+    border-left: 1px solid rgba(232, 232, 236, 0.56);
+    border-radius: 0 4px 4px 0;
+    background: linear-gradient(90deg, rgba(8, 8, 10, 0.82), rgba(8, 8, 10, 0.48));
+    color: rgba(232, 232, 236, 0.92);
+    font-family: var(--font-sans, system-ui, sans-serif);
+    font-size: clamp(8.5px, 0.58vw, 10.5px);
+    font-weight: 400;
+    line-height: 1.28;
+    letter-spacing: 0.025em;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
+}
+
+.visual-artwork-label[data-label-length="long"] {
+    font-size: clamp(8px, 0.52vw, 9.5px);
+    letter-spacing: 0.015em;
+}
+
+.visual-artwork-label[data-label-length="very-long"] {
+    font-size: clamp(7.5px, 0.48vw, 8.75px);
+    line-height: 1.22;
+    letter-spacing: 0.01em;
+}
+
+.visual-artwork-label[data-credit-required="false"] {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+
+.visual-artwork-label[hidden] {
+    display: none;
+}
+
+@media (max-width: 720px) {
+    .visual-artwork-label {
+        max-width: min(68vw, 300px);
+    }
 }
 
 #ascii-canvas {

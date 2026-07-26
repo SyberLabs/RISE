@@ -298,8 +298,9 @@ export class WikimediaProvider extends SourceProvider {
      */
     async getImageInfo(title, options = {}) {
         if (options.signal?.aborted) throw createAbortError();
+        const cacheKey = `credit-v2:${title}`;
         // Check persistent cache first
-        const cached = await SourceCache.get(this.id, title);
+        const cached = await SourceCache.get(this.id, cacheKey);
         if (cached) {
             return this._isDisplayQuality(cached.data) ? cached.data : null;
         }
@@ -331,7 +332,15 @@ export class WikimediaProvider extends SourceProvider {
             mime: info.mime,
             description: metadata.ImageDescription?.value || '',
             artist: metadata.Artist?.value || '',
-            license: metadata.LicenseShortName?.value || 'Unknown'
+            license: metadata.LicenseShortName?.value || 'Unknown',
+            licenseUrl: metadata.LicenseUrl?.value || '',
+            attribution: metadata.Attribution?.value || '',
+            creditRequired: /^true$/i.test(metadata.AttributionRequired?.value || '')
+                || /\bCC[\s-]*BY\b|creative commons attribution/i.test(
+                    metadata.LicenseShortName?.value || ''
+                ),
+            sourceName: 'Wikimedia Commons',
+            sourceUrl: info.descriptionurl || ''
         };
 
         // Reject only clearly undersized raster candidates. Missing dimensions
@@ -345,7 +354,7 @@ export class WikimediaProvider extends SourceProvider {
         }
 
         // Cache for future use
-        await SourceCache.set(this.id, title, result, { title }, 'diagram');
+        await SourceCache.set(this.id, cacheKey, result, { title }, 'diagram');
 
         return result;
     }
@@ -527,7 +536,12 @@ export class WikimediaProvider extends SourceProvider {
                 categoryName: category.name,
                 url: imageInfo.url,
                 artist: imageInfo.artist,
-                license: imageInfo.license
+                license: imageInfo.license,
+                licenseUrl: imageInfo.licenseUrl,
+                attribution: imageInfo.attribution,
+                creditRequired: imageInfo.creditRequired,
+                sourceName: imageInfo.sourceName,
+                sourceUrl: imageInfo.sourceUrl
             }
         };
     }

@@ -945,12 +945,10 @@ describe('From-this-reading pill ownership across source changes (2026-07 leak f
         expect(panel.config.interlocution.atriumCollections).toEqual([]);
     });
 
-    it('atriumCollections is launch-scoped and never persisted', () => {
-        // the pills belong to a launch, not the tab: a fresh load must
-        // not resurrect a "From this reading" chip. Asserted at the
-        // persistence seam in ChamberOrbital, mirrored here as the
-        // contract the panel relies on — atriumCollections is derived,
-        // not a saved preference.
+    it('atriumCollections is launch-scoped and omitted by a new source config', () => {
+        // The pills belong to the loaded reading, not the tab's reusable
+        // preferences. ChamberOrbital persists them beside that reading and
+        // supplies them again only when the same reading is reconstructed.
         const { panel } = makePanel({ visualMode: 'interlocution' });
         panel.setConfig(launch(['chapel-passion'], ['chapel-passion']));
         // a config with NO interlocution key leaves prior pills untouched

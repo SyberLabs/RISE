@@ -13,6 +13,7 @@ describe('App safety orchestration', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    localStorage.clear();
     document.documentElement.classList.remove('photosensitivity-mode', 'reduced-motion');
   });
 
@@ -31,6 +32,20 @@ describe('App safety orchestration', () => {
 
     expect(document.documentElement.classList.contains('photosensitivity-mode')).toBe(true);
     expect(cancel).toHaveBeenCalledWith('photosensitivity');
+  });
+
+  it('defaults artwork labels on, restores an explicit opt-out, and propagates it live', () => {
+    const app = new App();
+    app.loadSettings();
+    expect(app.settings.showArtworkLabels).toBe(true);
+
+    localStorage.setItem('rise-settings', JSON.stringify({ showArtworkLabels: false }));
+    app.loadSettings();
+    expect(app.settings.showArtworkLabels).toBe(false);
+
+    const apply = vi.spyOn(visualCortex, 'setArtworkLabelsVisible');
+    app.handleSettingsChange('showArtworkLabels', true);
+    expect(apply).toHaveBeenLastCalledWith(true);
   });
 
   it('surfaces aggregate budget failures from orbital and Workshop launches', async () => {

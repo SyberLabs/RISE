@@ -26,7 +26,15 @@ import {
 import { MemoryCore } from '../core/memory.js';
 import { abortableDelay, createAbortError, isAbortError } from '../sources/visual/request.js';
 import { ShuffleBag } from '../sources/visual/shuffle-bag.js';
-import { ContinuousField } from './continuous-field.js';
+import {
+    ContinuousField,
+    needsAdaptiveImageWash
+} from './continuous-field.js';
+import {
+    applyArtworkLabelElement,
+    displayedArtworkLabel,
+    normalizeArtworkLabel
+} from './artwork-label.js';
 import { hasVisualInterlocutionConsent, VisualFlashGate } from '../core/visual-safety.js';
 import {
     GALLERY_CADENCE_DEFAULT,
@@ -106,7 +114,11 @@ export class VisualCortex {
         this.harmonograph = null;
         this.blueprint = null;
         this.freedom = null;
+        this.imageWashEl = null;
+        this._activeAdaptiveImage = null;
+        this._adaptiveImageHandlers = new Map();
         this.diagramEl = null;
+        this.artworkLabelEl = null;
         this.asciiRenderer = null;
         this.asciiCompiler = null;
         this._asciiCanvas = null;
@@ -168,6 +180,8 @@ export class VisualCortex {
         // procedural signature and keeps multiple generators in rotation.
         this._continuousWorkBag = new ShuffleBag();
         this._continuousSignalCursor = 0;
+        this.showArtworkLabels = true;
+        this._flashArtworkLabel = null;
         // Invalidates work that was already rendering when a stop request
         // arrived. The public cancellation method remains the single kill
         // path for both committed and not-yet-committed presentations.
@@ -282,6 +296,24 @@ export class VisualCortex {
             this.freedom = new Freedom();
         }
 
+        // Native sourced imagery uses the same two-plane presentation as
+        // Gallery: an uncropped composition over a subdued, edge-to-edge
+        // reading of itself. When the foreground fills the viewport the wash
+        // is naturally occluded; when `contain` leaves a matte, the wash
+        // carries its color and atmosphere into that space.
+        this.imageWashEl = document.getElementById('visual-image-wash');
+        if (!this.imageWashEl) {
+            this.imageWashEl = document.createElement('img');
+            this.imageWashEl.id = 'visual-image-wash';
+            this.imageWashEl.className = 'visual-image-wash';
+            this.imageWashEl.hidden = true;
+            this.imageWashEl.alt = '';
+            this.imageWashEl.decoding = 'async';
+            this.imageWashEl.draggable = false;
+            this.imageWashEl.setAttribute('aria-hidden', 'true');
+            this.container.appendChild(this.imageWashEl);
+        }
+
         // Create diagram element if it doesn't exist
         this.diagramEl = document.getElementById('diagram-display');
         if (!this.diagramEl) {
@@ -293,20 +325,99 @@ export class VisualCortex {
             // console.log('[Visual Cortex] Created diagram display element');
         }
 
+        // One caption surface serves every sourced flash, including its ASCII
+        // rendering. It is deliberately separate from the image element so
+        // the metadata survives render-language changes.
+        this.artworkLabelEl = document.getElementById('visual-artwork-label');
+        if (!this.artworkLabelEl) {
+            this.artworkLabelEl = document.createElement('div');
+            this.artworkLabelEl.id = 'visual-artwork-label';
+            this.artworkLabelEl.className = 'visual-artwork-label';
+            this.artworkLabelEl.hidden = true;
+            this.artworkLabelEl.setAttribute('aria-hidden', 'true');
+            this.container.appendChild(this.artworkLabelEl);
+        }
+
         // Create custom visual display element if it doesn't exist
         this.customImageEl = document.getElementById('custom-visual-display');
         if (!this.customImageEl) {
             this.customImageEl = document.createElement('img');
             this.customImageEl.id = 'custom-visual-display';
             this.customImageEl.className = 'diagram-display'; // Reuse diagram styles for fullscreen
-            this.customImageEl.style.objectFit = 'cover';
             this.customImageEl.hidden = true;
             this.container.appendChild(this.customImageEl);
             // console.log('[Visual Cortex] Created custom visual display element');
         }
+        // An element may survive destroy/init cycles, including one authored
+        // by an older runtime that used `cover`. The foreground contract is
+        // always contain; only the wash is allowed to crop.
+        this.customImageEl.style.objectFit = 'contain';
 
         this.initialized = true;
         console.log('[Visual Cortex] Online.');
+    }
+
+    _showAdaptiveImage(element, src, alt = '') {
+        if (!element || !src) return false;
+        this._hideAdaptiveImageWash();
+        this._activeAdaptiveImage = { element, src };
+        this._bindAdaptiveImageElement(element);
+        element.src = src;
+        element.alt = alt;
+        element.hidden = false;
+        if (element.style) element.style.objectFit = 'contain';
+        if (element.complete && element.naturalWidth) {
+            this._syncAdaptiveImageWash(element);
+        }
+        return true;
+    }
+
+    _bindAdaptiveImageElement(element) {
+        if (!element?.addEventListener || this._adaptiveImageHandlers.has(element)) return;
+        const onLoad = () => this._syncAdaptiveImageWash(element);
+        element.addEventListener('load', onLoad);
+        this._adaptiveImageHandlers.set(element, onLoad);
+    }
+
+    _syncAdaptiveImageWash(element) {
+        const active = this._activeAdaptiveImage;
+        if (!active || active.element !== element || element.hidden) return false;
+        const rect = this.container?.getBoundingClientRect?.() || {};
+        const frameWidth = rect.width
+            || (typeof window !== 'undefined' ? window.innerWidth : 0);
+        const frameHeight = rect.height
+            || (typeof window !== 'undefined' ? window.innerHeight : 0);
+        const showWash = needsAdaptiveImageWash({
+            frameWidth,
+            frameHeight,
+            naturalWidth: element.naturalWidth,
+            naturalHeight: element.naturalHeight
+        });
+
+        if (!this.imageWashEl) return showWash;
+        if (this.imageWashEl.dataset) {
+            this.imageWashEl.dataset.imageWash = showWash ? 'active' : 'none';
+        }
+        this.imageWashEl.hidden = !showWash;
+        if (showWash) {
+            if (this.imageWashEl.getAttribute?.('src') !== active.src) {
+                this.imageWashEl.src = active.src;
+            }
+        } else {
+            this.imageWashEl.removeAttribute?.('src');
+        }
+        return showWash;
+    }
+
+    _hideAdaptiveImageWash() {
+        this._activeAdaptiveImage = null;
+        if (this.imageWashEl) {
+            this.imageWashEl.hidden = true;
+            if (this.imageWashEl.dataset) {
+                this.imageWashEl.dataset.imageWash = 'none';
+            }
+            this.imageWashEl.removeAttribute?.('src');
+        }
     }
 
     _setupKleeResizeObserver() {
@@ -315,6 +426,9 @@ export class VisualCortex {
         // frame; artwork snapshots rescale on restore so nothing is lost by
         // waiting for the size to settle.
         const requestResize = () => {
+            if (this._activeAdaptiveImage?.element) {
+                this._syncAdaptiveImageWash(this._activeAdaptiveImage.element);
+            }
             clearTimeout(this._kleeResizeTimer);
             this._kleeResizeTimer = setTimeout(() => this._resizeKleeCanvas(), 150);
         };
@@ -504,6 +618,80 @@ export class VisualCortex {
         }
     }
 
+    // ── Page Mode's read-only source seam ───────────────────────────
+    //
+    // Page Mode (PAGE-MODE-SPEC) is a SPATIAL projection of a reading: it
+    // typesets works beside their passages instead of flashing them. It
+    // must resolve a collection id to works through the SAME provider
+    // dispatch the flash economy and the Gallery use — the chapel
+    // no-fallback rule, the Doré cycle, the aic- prefix, all of it — so
+    // there is never a second, drifting source path.
+    //
+    // This accessor is deliberately: read-only (it never touches
+    // _assetPools, the flash gate, generations, or config), additive (no
+    // existing caller changes), and honest about failure (a collection
+    // that cannot resolve yields [] — stillness, never a substitute).
+
+    /**
+     * Resolve a collection id to an ordered list of works for typesetting.
+     *
+     * @param {string} collectionId - e.g. 'chapel-gospel-flagellation'
+     * @param {Object} [options] - { limit, timeoutMs, signal }
+     * @returns {Promise<Array>} provider items ({ name, data:{url,...} }),
+     *   empty when the collection cannot resolve (reverent degradation).
+     */
+    async resolveCollectionWorks(collectionId, options = {}) {
+        if (!collectionId || typeof collectionId !== 'string') return [];
+        const limit = Number.isFinite(options.limit) ? options.limit : 12;
+        try {
+            const provider = await this._getProviderForCategory(collectionId);
+            if (!provider?.getImagesInCategory) return [];
+            const works = await provider.getImagesInCategory(
+                this._providerCategory(collectionId),
+                limit,
+                {
+                    timeoutMs: Number.isFinite(options.timeoutMs) ? options.timeoutMs : 8000,
+                    ...(options.signal ? { signal: options.signal } : {})
+                }
+            );
+            if (!Array.isArray(works)) return [];
+            // Providers speak two shapes: getRandom returns a nested
+            // { name, data:{url,…} } item, while getImagesInCategory
+            // returns a FLAT { title, url, artist, … } record. Normalize
+            // to the nested form here so Page Mode (and any later
+            // consumer) sees exactly one contract — and so
+            // normalizeArtworkLabel, which reads `data`/`metadata`, keeps
+            // working for both.
+            return works
+                .map(work => this._asImageItem(work))
+                .filter(item => item?.data?.url);
+        } catch (error) {
+            // A miss withholds the work; the page composes without it.
+            return [];
+        }
+    }
+
+    /** Coerce either provider shape into the nested image-item contract. */
+    _asImageItem(work) {
+        if (!work || typeof work !== 'object') return null;
+        if (work.data && typeof work.data === 'object' && work.data.url) return work;
+        if (!work.url) return null;
+        return {
+            name: work.title || work.name || '',
+            data: {
+                url: work.url,
+                fullUrl: work.fullUrl,
+                title: work.title,
+                artist: work.artist,
+                date: work.date,
+                sourceName: work.sourceName,
+                sourceUrl: work.sourceUrl,
+                rightsBasis: work.license || work.rights,
+                attribution: work.attribution
+            }
+        };
+    }
+
     // ── The Continuous Field (Gallery) ──────────────────────────────
     //
     // A persistent crossfading gallery behind the reading, distinct from
@@ -530,6 +718,34 @@ export class VisualCortex {
         }
         this._continuousFieldHost = el || null;
         this._syncContinuousField();
+    }
+
+    /**
+     * Apply the persisted display preference without making presenters read
+     * global application state. Required credits are never suppressed.
+     */
+    setArtworkLabelsVisible(visible) {
+        this.showArtworkLabels = visible !== false;
+        this._renderFlashArtworkLabel();
+        this._continuousField?.setArtworkLabelsVisible(this.showArtworkLabels);
+    }
+
+    _setFlashArtworkLabel(label) {
+        this._flashArtworkLabel = label || null;
+        this._renderFlashArtworkLabel();
+    }
+
+    _renderFlashArtworkLabel() {
+        if (!this.artworkLabelEl) return;
+        const text = displayedArtworkLabel(
+            this._flashArtworkLabel,
+            this.showArtworkLabels
+        );
+        applyArtworkLabelElement(
+            this.artworkLabelEl,
+            text,
+            this._flashArtworkLabel?.creditRequired
+        );
     }
 
     _isContinuousMode() {
@@ -576,7 +792,11 @@ export class VisualCortex {
                 const url = asset?.url || asset?.img?.src || '';
                 if (!url || seen.has(url)) continue;
                 seen.add(url);
-                works.push({ url, title: asset.name || '' });
+                works.push({
+                    url,
+                    title: asset.name || '',
+                    artworkLabel: asset.artworkLabel || null
+                });
             }
         }
         // The flash economy nudges pool warmth from _getNextDiagram; in
@@ -815,6 +1035,7 @@ export class VisualCortex {
             getNextWork: context => this._nextContinuousWork(context),
             hasWorks: () => this._continuousHasWorks(),
             poolKey: () => this._continuousPoolKey(),
+            showArtworkLabels: this.showArtworkLabels,
             // The presenter's own decode-before-reveal (a detached Image
             // decode) governs; the cortex's warm pool already holds decoded
             // works, so this second decode is near-instant and cached.
@@ -1125,7 +1346,13 @@ export class VisualCortex {
      * Helper to load an image into an Image element
      * @private
      */
-    _loadImage(url, name, categoryId, signal = this._assetAbortController.signal) {
+    _loadImage(
+        url,
+        name,
+        categoryId,
+        signal = this._assetAbortController.signal,
+        artworkLabel = null
+    ) {
         return new Promise((resolve, reject) => {
             if (signal?.aborted) {
                 reject(createAbortError());
@@ -1185,6 +1412,7 @@ export class VisualCortex {
                     name: name,
                     category: categoryId,
                     url,
+                    artworkLabel,
                     loadedAt: now,
                     lastUsedAt: now
                 };
@@ -1614,7 +1842,14 @@ export class VisualCortex {
                 const duplicate = pool.images.find(a => a.img?.src === image.data.url);
                 if (duplicate) return this._touchAsset(duplicate);
 
-                const asset = await this._loadImage(image.data.url, image.name, categoryId, signal);
+                const artworkLabel = normalizeArtworkLabel(image);
+                const asset = await this._loadImage(
+                    image.data.url,
+                    image.name,
+                    categoryId,
+                    signal,
+                    artworkLabel
+                );
                 if (signal.aborted || version !== this._configVersion) throw createAbortError();
                 return this._retainAsset(categoryId, asset);
             } catch (e) {
@@ -2517,6 +2752,8 @@ export class VisualCortex {
         if (this._asciiCanvas) this._asciiCanvas.hidden = true;
         if (this.diagramEl) this.diagramEl.hidden = true;
         if (this.customImageEl) this.customImageEl.hidden = true;
+        this._hideAdaptiveImageWash();
+        this._setFlashArtworkLabel(null);
 
         let asciiFrame = null;
         let rendered = false;
@@ -2599,11 +2836,13 @@ export class VisualCortex {
                         return this._presentationResult(duration, 'source-unavailable');
                     }
                 } else {
-                    this.diagramEl.src = diagram.img.src;
-                    this.diagramEl.alt = diagram.name || 'External Asset';
-                    this.diagramEl.hidden = false;
-                    rendered = true;
+                    rendered = this._showAdaptiveImage(
+                        this.diagramEl,
+                        diagram.img.src,
+                        diagram.name || 'External Asset'
+                    );
                 }
+                this._setFlashArtworkLabel(diagram.artworkLabel);
             } catch (err) {
                 this._externalStatus.skippedFlashes++;
                 this._recordExternalFailure(selectedType, 'flash-select', err);
@@ -2677,10 +2916,11 @@ export class VisualCortex {
             if (asciiMode) {
                 asciiFrame = this._localAsciiAssets.get(customUri) || null;
             } else {
-                this.customImageEl.src = customUri;
-                this.customImageEl.alt = 'Custom Sequence Frame';
-                this.customImageEl.hidden = false;
-                rendered = true;
+                rendered = this._showAdaptiveImage(
+                    this.customImageEl,
+                    customUri,
+                    'Custom Sequence Frame'
+                );
             }
         } else if (selectedType === 'global' && this.customImageEl) {
             const globals = this._globalVisualUris();
@@ -2689,10 +2929,11 @@ export class VisualCortex {
                 if (asciiMode) {
                     asciiFrame = this._localAsciiAssets.get(globalUri) || null;
                 } else {
-                    this.customImageEl.src = globalUri;
-                    this.customImageEl.alt = 'Global Pool Frame';
-                    this.customImageEl.hidden = false;
-                    rendered = true;
+                    rendered = this._showAdaptiveImage(
+                        this.customImageEl,
+                        globalUri,
+                        'Global Pool Frame'
+                    );
                 }
             }
         } else if (selectedType.startsWith('personal:') && this.customImageEl) {
@@ -2706,10 +2947,11 @@ export class VisualCortex {
                     if (asciiMode) {
                         asciiFrame = this._localAsciiAssets.get(personalUri) || null;
                     } else {
-                        this.customImageEl.src = personalUri;
-                        this.customImageEl.alt = 'Personal Sequence Frame';
-                        this.customImageEl.hidden = false;
-                        rendered = true;
+                        rendered = this._showAdaptiveImage(
+                            this.customImageEl,
+                            personalUri,
+                            'Personal Sequence Frame'
+                        );
                     }
                 }
             }
@@ -2783,6 +3025,14 @@ export class VisualCortex {
         this._localAsciiAssets.clear();
         this._continuousWorkBag.clear();
         this._continuousSignalCursor = 0;
+        this._flashArtworkLabel = null;
+        this.artworkLabelEl = null;
+        for (const [element, onLoad] of this._adaptiveImageHandlers) {
+            element.removeEventListener?.('load', onLoad);
+        }
+        this._adaptiveImageHandlers.clear();
+        this._activeAdaptiveImage = null;
+        this.imageWashEl = null;
         this.klee?.destroy?.();
         this._fractalCanvas = null;
         this.initialized = false;
