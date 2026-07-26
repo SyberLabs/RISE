@@ -127,6 +127,69 @@ describe('compose', () => {
         expect(items[items.length - 1].type).toBe('text');
     });
 
+    // ─── Wrapped (margin) figures: the intelligent grid ───
+
+    const longLine = (n) => `Verse ${n}: and the governor answered and said unto them, whether of the twain will ye that I release unto you.`;
+
+    it('promotes an inset to a WRAPPED figure when real prose follows it', () => {
+        const { items } = compose({
+            blocks: [
+                text('Opening prose that precedes the figure entirely.'),
+                image('inset'),
+                text(longLine(1)), text(longLine(2)), text(longLine(3)), text(longLine(4))
+            ]
+        });
+        const fig = items.find(i => i.type === 'figure');
+        expect(fig.placement).toBe(PLACEMENT.MARGIN);
+        expect(fig.wrapBlocks).toBeGreaterThanOrEqual(3);
+        expect(['left', 'right']).toContain(fig.side);
+    });
+
+    it('does NOT wrap when too little prose follows — no stranded float', () => {
+        const { items } = compose({
+            blocks: [image('inset'), text('He was silent.')]
+        });
+        expect(items.find(i => i.type === 'figure').placement).toBe(PLACEMENT.INSET);
+    });
+
+    it('does NOT wrap when a break interrupts the prose beside it', () => {
+        const { items } = compose({
+            blocks: [
+                image('inset'),
+                text(longLine(1)),
+                mark(MARK.EPISODE_BREAK, { episodeId: 'next' }),
+                text(longLine(2)), text(longLine(3)), text(longLine(4))
+            ]
+        });
+        // only one paragraph belongs to this figure's scene — not enough
+        expect(items.find(i => i.type === 'figure').placement).toBe(PLACEMENT.INSET);
+    });
+
+    it('alternates the side so wrapped figures read as a spread', () => {
+        const run = [];
+        for (let k = 0; k < 2; k++) {
+            run.push(image('inset'));
+            run.push(text(longLine(k * 4 + 1)), text(longLine(k * 4 + 2)),
+                     text(longLine(k * 4 + 3)), text(longLine(k * 4 + 4)));
+        }
+        const { items } = compose({ blocks: run });
+        const sides = items.filter(i => i.type === 'figure').map(i => i.side);
+        expect(sides).toHaveLength(2);
+        expect(sides[0]).not.toBe(sides[1]);
+    });
+
+    it('a full-bleed plate is never converted into a wrap', () => {
+        const { items } = compose({
+            blocks: [
+                image('plate'),
+                text(longLine(1)), text(longLine(2)), text(longLine(3)), text(longLine(4))
+            ]
+        });
+        const fig = items.find(i => i.type === 'figure');
+        expect(fig.placement).toBe(PLACEMENT.BLEED);
+        expect(fig.wrapBlocks).toBe(0);
+    });
+
     it('an empty flow composes to an empty composition, not a crash', () => {
         expect(compose({ blocks: [] }).items).toEqual([]);
         expect(compose(null).items).toEqual([]);

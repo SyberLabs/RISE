@@ -182,12 +182,53 @@
 }
 /* INSET — a figure that keeps the measure. */
 .page-figure.placement-inset { width: 100%; }
-/* MARGIN — a small plate riding the outer edge on wide screens. */
-.page-figure.placement-margin {
-  width: min(46%, 15rem);
-  float: right;
-  margin: 0.4rem 0 1rem 1.6rem;
+/* MARGIN — a WRAPPED figure: prose flows down its side.
+   The group is the containing block, so the float can only affect the
+   paragraphs the compositor gave it, and `overflow` is NOT used (that
+   would suppress the wrap entirely). The clear element closes the band. */
+.page-wrap {
+  /* establishes the wrap band without creating a BFC on the paragraphs */
+  display: block;
 }
+.page-wrap-clear { clear: both; }
+
+.page-figure.placement-margin {
+  /* Sized as a FRACTION OF THE MEASURE and margin-collapsed inward, so it
+     can never push past the column edge (the overflow the reader caught).
+     Roughly a third of the line leaves a genuine, readable remainder. */
+  width: 38%;
+  max-width: 13rem;
+  margin: 0.35em 0 0.9em;
+}
+/* A wrapped figure must be SHORT ENOUGH that its assigned prose covers
+   it — otherwise the float outlives the text and leaves a ragged hole
+   below. A portrait plate is cropped to a band rather than allowed to
+   run the column's whole height. */
+.page-wrap .page-figure.placement-margin .page-figure-image {
+  max-height: 15rem;
+  object-fit: cover;
+  object-position: center 28%;   /* faces and upper composition survive the crop */
+}
+.page-wrap.side-right .page-figure.placement-margin {
+  float: right;
+  margin-left: 1.5rem;
+  /* let the plate breathe toward the outer edge without leaving the measure */
+  margin-right: 0;
+  shape-outside: margin-box;
+}
+.page-wrap.side-left .page-figure.placement-margin {
+  float: left;
+  margin-right: 1.5rem;
+  margin-left: 0;
+  shape-outside: margin-box;
+}
+/* A wrapped figure's caption keeps to the figure's own width, aligned to
+   the text it sits beside rather than centred like a plate's. */
+.page-wrap .page-figure-caption {
+  text-align: left;
+  font-size: 11.5px;
+}
+.page-wrap.side-right .page-figure-caption { text-align: right; }
 
 .page-figure-caption {
   margin-top: 0.6rem;
@@ -217,11 +258,18 @@
     line-height: inherit;
     text-align: left;
   }
+  /* Below this width a wrapped figure would leave a two-word gutter.
+     It unwraps and becomes a full-measure figure instead. */
+  .page-wrap.side-right .page-figure.placement-margin,
+  .page-wrap.side-left .page-figure.placement-margin,
   .page-figure.placement-margin {
     width: 100%;
+    max-width: none;
     float: none;
     margin: clamp(1.4rem, 4vh, 2rem) 0;
   }
+  .page-wrap .page-figure-caption,
+  .page-wrap.side-right .page-figure-caption { text-align: center; }
   .page-figure.placement-bleed { padding: 0; }
 }
 

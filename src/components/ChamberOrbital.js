@@ -73,6 +73,10 @@ function createDefaultConfig() {
     // Content-authored cue schedule. Launch identity, persisted with the
     // reading rather than with the user's reusable visual preferences.
     visualProgram: null,
+
+    // The reading MEDIUM (SPATIAL-CHAMBER-SPEC): 'stream' (of Time) or
+    // 'page' (of Space). A reusable preference, like wpm or soundscape.
+    projection: 'stream',
     // Ordinary-reading collections are weaker than a visualProgram but still
     // belong to the loaded reading, never to reusable preferences.
     readingVisualIdentity: null,
@@ -1755,6 +1759,10 @@ export class ChamberOrbital {
       // scheduler (PERICOPE-IMAGERY-SPEC §6) — carried through, never
       // edited here.
       ...(this.config.visualProgram ? { visualProgram: this.config.visualProgram } : {}),
+      // Which MEDIUM renders this reading (SPATIAL-CHAMBER-SPEC §3). The
+      // two chambers share every field above; they differ only here.
+      // Absent or unknown means the Stream — today's reading, unchanged.
+      projection: this.config.projection === 'page' ? 'page' : 'stream',
       visualConfig: {
         consentScope: this.visualConsentScope,
         visualMode: vi.visualMode || 'off',

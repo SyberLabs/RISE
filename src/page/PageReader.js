@@ -64,7 +64,50 @@ export class PageReader {
             article.appendChild(this._buildMasthead());
         }
 
-        for (const item of this.composition.items) {
+        // A WRAPPED figure and the prose that flows beside it must share a
+        // containing block: a float only wraps text that follows it in the
+        // same parent, and confining them together scopes the wrap so it
+        // cannot leak down the rest of the column. Everything else is a
+        // plain sibling in the article.
+        const items = this.composition.items;
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.type === 'figure' && item.placement === PLACEMENT.MARGIN && item.wrapBlocks > 0) {
+                const group = document.createElement('div');
+                group.className = `page-wrap side-${item.side || 'right'}`;
+                const fig = this._buildItem(item);
+                if (fig) group.appendChild(fig);
+                // Gather the prose the compositor assigned. Non-text items
+                // that merely punctuate the run (a pause) travel WITH the
+                // group rather than ending it — otherwise the float takes
+                // one paragraph and strands itself, which is exactly the
+                // ragged hole the reader saw. Anything structural (a
+                // figure, a chapter, an episode break) does end the band,
+                // matching the compositor's own proseAfter().
+                let taken = 0;
+                while (taken < item.wrapBlocks && i + 1 < items.length) {
+                    const next = items[i + 1];
+                    if (next.type === 'text') {
+                        const el = this._buildItem(items[++i]);
+                        if (el) group.appendChild(el);
+                        taken += 1;
+                        continue;
+                    }
+                    if (next.type === 'pause') {
+                        const el = this._buildItem(items[++i]);
+                        if (el) group.appendChild(el);
+                        continue;
+                    }
+                    break;
+                }
+                // Close the float so following content starts a clean line.
+                const clear = document.createElement('div');
+                clear.className = 'page-wrap-clear';
+                clear.setAttribute('aria-hidden', 'true');
+                group.appendChild(clear);
+                article.appendChild(group);
+                continue;
+            }
             const el = this._buildItem(item);
             if (el) article.appendChild(el);
         }

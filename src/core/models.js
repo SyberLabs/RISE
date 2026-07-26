@@ -192,7 +192,11 @@ export class Session {
     // A generic coordinate-tagged visual schedule (PERICOPE-IMAGERY-
     // SPEC §6): compiled by a content domain, followed by the runtime,
     // opaque to the Session model. Absent for plain sessions.
-    visualProgram = null
+    visualProgram = null,
+    // Which MEDIUM renders this reading (SPATIAL-CHAMBER-SPEC §3):
+    // 'stream' (RSVP, through time) or 'page' (typeset, in space).
+    // Anything unknown is the Stream — the reading as it has always been.
+    projection = 'stream'
   }) {
     const safeWpm = Number(wpm);
     const chunkModes = new Set(['word', 'phrase', 'sentence', 'paragraph']);
@@ -219,6 +223,7 @@ export class Session {
     this.selectedSwellId = selectedSwellId;
     this.shuttleExempt = shuttleExempt === true;
     this.visualProgram = normalizeVisualProgram(visualProgram);
+    this.projection = projection === 'page' ? 'page' : 'stream';
     this.createdAt = new Date();
   }
 

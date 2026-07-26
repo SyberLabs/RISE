@@ -178,6 +178,45 @@ describe('PageReader', () => {
         reader.destroy();
     });
 
+    it('a WRAPPED figure shares one containing block with its prose', async () => {
+        // A float only wraps text that follows it in the SAME parent, so
+        // the renderer must group them — otherwise the figure strands.
+        const long = (n) => `Verse ${n}: and the governor answered and said unto them, whether of the twain will ye that I release unto you.`;
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+        const reader = new PageReader(host, {
+            session: {
+                atoms: [
+                    atom('Opening prose before the plate entirely.', { chapter: 27, verse: 1 }),
+                    atom(long(3), { chapter: 27, verse: 3 }),
+                    atom(long(4), { chapter: 27, verse: 4 }),
+                    atom(long(5), { chapter: 27, verse: 5 }),
+                    atom(long(6), { chapter: 27, verse: 6 })
+                ],
+                // an episode starting at v3 whose plate demotes to a wrap
+                visualProgram: {
+                    coordinateSpace: 'scripture', enabled: true, fallback: { kind: 'still' },
+                    segments: [{
+                        id: 'e', match: { chapter: 27, verseStart: 3, verseEnd: 9 },
+                        cue: { kind: 'sourced', collections: ['c'] }
+                    }]
+                }
+            },
+            resolveCollection: async () => [work('a.jpg')]
+        });
+        reader.render();
+        await settle();
+
+        const group = host.querySelector('.page-wrap');
+        expect(group).not.toBeNull();
+        // the figure and its wrapping prose are siblings inside the group
+        expect(group.querySelector('.page-figure')).not.toBeNull();
+        expect(group.querySelectorAll('.page-text').length).toBeGreaterThanOrEqual(3);
+        // and the float is closed so later content starts a clean line
+        expect(group.querySelector('.page-wrap-clear')).not.toBeNull();
+        reader.destroy();
+    });
+
     it('reports the collections it will need (for pre-warming)', () => {
         const { reader } = mount({ resolveCollection: async () => [] });
         expect(reader.collections()).toEqual(['chapel-gospel-before-pilate']);

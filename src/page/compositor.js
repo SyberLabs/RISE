@@ -43,10 +43,42 @@ const WIDOW_CHARS = 42;
 const BLEED_TEXT_DEBT = 4;
 
 /**
+ * A wrapped (margin) figure only earns its place when there is enough
+ * prose beside it to actually wrap. A float with one short verse next to
+ * it leaves a ragged hole in the column and pushes the figure past the
+ * measure — the failure the reader caught. These are the thresholds a
+ * human typesetter applies by eye.
+ */
+const WRAP_MIN_BLOCKS = 3;     // paragraphs that must follow the figure
+const WRAP_MIN_CHARS = 340;    // and the prose they must amount to
+
+/**
+ * How much uninterrupted prose follows this image block? Only TEXT
+ * counts, and only until the next figure or structural break — text
+ * after a break belongs to the next scene and cannot wrap this figure.
+ */
+function proseAfter(blocks, index) {
+    let count = 0;
+    let chars = 0;
+    for (let i = index + 1; i < blocks.length; i++) {
+        const b = blocks[i];
+        if (b.kind === BLOCK.TEXT) {
+            count += 1;
+            chars += (b.text || '').length;
+            continue;
+        }
+        if (b.kind === BLOCK.MARK && b.mark === MARK.PAUSE) continue;
+        break;   // a figure, a chapter, or an episode break ends the run
+    }
+    return { count, chars };
+}
+
+/**
  * Choose a placement for an image block.
- * `plate` (an episode head) reads full-bleed; anything else insets.
- * A margin plate is reserved for low-emphasis marks, kept for the grid
- * engine to exploit later.
+ * `plate` (an episode head) reads full-bleed; anything else insets — and
+ * an inset MAY be promoted to a wrapped margin figure when the prose that
+ * follows can genuinely flow beside it (decided in compose(), which can
+ * see the blocks around it).
  */
 function placementFor(block) {
     if (block.emphasis === 'plate') return PLACEMENT.BLEED;
@@ -71,6 +103,7 @@ export function compose(flow, options = {}) {
     let bleedRun = 0;
     let sinceImageText = 0;   // text blocks since the last image
     let stillPending = false; // an episode break with no image followed
+    let wrapSide = 'left';    // alternates, so wrapped figures read as a spread
 
     const push = (item) => items.push(item);
 
@@ -125,11 +158,36 @@ export function compose(flow, options = {}) {
             } else {
                 bleedRun = 0;
             }
+
+            // Promote an inset to a WRAPPED margin figure only when real
+            // prose follows it — enough paragraphs, and enough of them, to
+            // flow down its side. Otherwise the float strands itself with
+            // a ragged hole beside it. `wrapBlocks` tells the renderer how
+            // many following paragraphs share the figure's band, so the
+            // wrap can be scoped instead of leaking down the whole column.
+            let wrapBlocks = 0;
+            if (placement === PLACEMENT.INSET) {
+                const prose = proseAfter(blocks, i);
+                if (prose.count >= WRAP_MIN_BLOCKS && prose.chars >= WRAP_MIN_CHARS) {
+                    placement = PLACEMENT.MARGIN;
+                    // Give the float ALL the prose of its scene, so the
+                    // text reliably outlasts the image's height instead of
+                    // running out beside it and leaving a ragged hole.
+                    wrapBlocks = prose.count;
+                }
+            }
+
             push({
                 type: 'figure',
                 collections: block.collections,
                 episodeId: block.episodeId,
                 placement,
+                wrapBlocks,
+                // Alternate the side so a chapter of wrapped figures reads
+                // as a spread, not a right-hand gutter.
+                side: placement === PLACEMENT.MARGIN
+                    ? (wrapSide = wrapSide === 'right' ? 'left' : 'right')
+                    : null,
                 at: block.at || null,
                 rhythm: RHYTHM.OPEN
             });

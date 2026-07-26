@@ -105,8 +105,14 @@ export class Chamber {
     this.attachEvents();
     this.initializeDisplay();
 
-    // Auto-start if requested (skip pre-session screen)
-    if (this.autoStart) {
+    // A SPATIAL reading opens as a page rather than playing as a stream
+    // (SPATIAL-CHAMBER-SPEC §3). The session is identical in every other
+    // field; only the medium differs. The stream stays available behind
+    // it — the in-session toggle returns to it at any time.
+    if (this.session?.projection === 'page') {
+      setTimeout(() => this.togglePageMode(true), 120);
+    } else if (this.autoStart) {
+      // Auto-start if requested (skip pre-session screen)
       setTimeout(() => {
         console.log('[Chamber] Auto-starting session...');
         if (document.documentElement.requestFullscreen) {
