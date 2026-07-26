@@ -69,9 +69,52 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     // A page is read, not raced: the stream rests while it is open.
     expect(stats.playerState).not.toBe('playing');
 
+    // PAGE AUTHORITY (red-team #1). The Page must actually HOLD the
+    // stream — not merely pause it once on activation. Space and the Play
+    // button both routed into togglePlayPause() and would start an
+    // invisible stream underneath the reader: atoms advancing, audio
+    // resuming, cues firing over the page, the session able to complete
+    // while they study. Space in particular should SCROLL a page.
+    const scrollBefore = await page.evaluate(() =>
+        document.querySelector('#chamber-page').scrollTop);
+
+    // Space must belong to the PAGE: it scrolls, and it neither starts a
+    // hidden stream nor re-fires the still-focused toggle (which would
+    // throw the reader back to the Stream).
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(600);
+    // The Play button must be inert while the Page holds the reading.
+    await page.locator('#chamber-display').hover();
+    await page.locator('#play-pause-btn').click();
+    await page.waitForTimeout(600);
+
+    const held = await page.evaluate(() => {
+        const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
+        const host = document.querySelector('#chamber-page');
+        return {
+            state: ch?.player?.state,
+            pageModeActive: ch?.pageModeActive === true,
+            pageStillOpen: !host.hidden,
+            scrollTop: host.scrollTop
+        };
+    });
+    expect(held.state).not.toBe('playing');
+    expect(held.state).not.toBe('interlocuting');
+    expect(held.pageModeActive).toBe(true);
+    expect(held.pageStillOpen).toBe(true);
+    expect(held.scrollTop).toBeGreaterThan(scrollBefore);
+
     // Leaving the Page returns the reader to the stream, intact.
     await page.locator('#chamber-display').hover();
     await btn.click();
     await expect(page.locator('#chamber-page')).toBeHidden();
     await expect(page.locator('#atom-display')).toBeVisible();
+
+    // …and the stream is drivable again once the page has let go.
+    await page.locator('#chamber-display').hover();
+    await page.locator('#play-pause-btn').click();
+    await page.waitForTimeout(500);
+    const resumed = await page.evaluate(() =>
+        window.rise?.router?.views?.get('chamber-session')?.instance?.player?.state);
+    expect(['playing', 'interlocuting']).toContain(resumed);
 });

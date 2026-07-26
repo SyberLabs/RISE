@@ -46,7 +46,9 @@ function mount(options = {}) {
 
 // A decode that always succeeds, so tests exercise reveal, not the network.
 beforeEach(() => {
-    vi.spyOn(PageReader.prototype, '_decode').mockResolvedValue(true);
+    // jsdom never loads images. Settle the DISPLAYED element (the real
+    // decode-before-reveal path) so tests exercise reveal, not the network.
+    vi.spyOn(PageReader.prototype, '_settleImage').mockResolvedValue(true);
 });
 afterEach(() => {
     vi.restoreAllMocks();
@@ -109,8 +111,8 @@ describe('PageReader', () => {
         reader.destroy();
     });
 
-    it('a work that fails to decode is withheld, not shown broken', async () => {
-        PageReader.prototype._decode.mockResolvedValue(false);
+    it('a work whose DISPLAYED image fails is withheld, not shown broken', async () => {
+        PageReader.prototype._settleImage.mockResolvedValue(false);
         const { reader, host } = mount({ resolveCollection: async () => [work('bad.jpg')] });
         reader.render();
         await settle();
@@ -214,6 +216,77 @@ describe('PageReader', () => {
         expect(group.querySelectorAll('.page-text').length).toBeGreaterThanOrEqual(3);
         // and the float is closed so later content starts a clean line
         expect(group.querySelector('.page-wrap-clear')).not.toBeNull();
+        reader.destroy();
+    });
+
+    it('a real Session titles the masthead (name, not the title alias)', async () => {
+        // Regression (red-team #9): Session stores the compiled title as
+        // `name`; `title` is an input alias and is undefined on the model,
+        // so every masthead was untitled. Injecting a title in the fixture
+        // hid it — this test uses a REAL Session.
+        const { Session } = await import('../core/models.js');
+        const real = new Session({ title: 'Matthew 27', atoms: [] });
+        expect(real.title).toBeUndefined();
+        expect(real.name).toBe('Matthew 27');
+
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+        const reader = new PageReader(host, {
+            session: { ...session, name: real.name, title: real.title },
+            title: real.name || real.title || '',
+            resolveCollection: async () => []
+        });
+        reader.render();
+        expect(host.querySelector('.page-title').textContent).toBe('Matthew 27');
+        reader.destroy();
+    });
+
+    it('honours the artwork-label preference, but never hides a required credit', async () => {
+        // Regression (red-team #8): optional labels were hardcoded on, so
+        // disabling "Artwork labels" in Settings governed the cortex and
+        // Gallery but not the Page.
+        const plain = mount({
+            resolveCollection: async () => [work('a.jpg')],
+            showOptionalLabels: false
+        });
+        plain.reader.render();
+        await settle();
+        expect(plain.host.querySelector('.page-figure-caption')).toBeNull();
+        plain.reader.destroy();
+
+        const cc = {
+            name: 'Nebula',
+            data: {
+                url: 'n.jpg', title: 'Carina Nebula', artist: 'NASA/ESA',
+                sourceName: 'ESA/Hubble', rightsBasis: 'CC BY 4.0', creditRequired: true
+            }
+        };
+        const credited = mount({
+            resolveCollection: async () => [cc],
+            showOptionalLabels: false
+        });
+        credited.reader.render();
+        await settle();
+        const cap = credited.host.querySelector('.page-figure-caption');
+        expect(cap).not.toBeNull();               // obligation survives the preference
+        expect(cap.textContent).toContain('Carina Nebula');
+        credited.reader.destroy();
+    });
+
+    it('an aborted reader stops filling figures', async () => {
+        // Regression (red-team #2/#3): closing the Page must revoke work
+        // it began, not merely disconnect the observer.
+        const controller = new AbortController();
+        const resolveCollection = vi.fn(async () => [work('a.jpg')]);
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+        const reader = new PageReader(host, {
+            session, resolveCollection, signal: controller.signal
+        });
+        controller.abort();
+        reader.render();
+        await settle();
+        expect(host.querySelector('.page-figure.is-shown')).toBeNull();
         reader.destroy();
     });
 

@@ -152,7 +152,12 @@ export function compose(flow, options = {}) {
             // episodes (Matthew 27's seven Passion pericopes) would render
             // as seven stacked full-bleed plates — a reel, not a book.
             if (placement === PLACEMENT.BLEED) {
-                const earned = items.length === 0 || sinceImageText >= BLEED_TEXT_DEBT;
+                // "First" means no PROSE has run yet — not an empty
+                // composition. A real chapter opens with its numeral, so
+                // testing items.length silently demoted every opening
+                // plate (the chapter mark alone made it look owed).
+                const noProseYet = !items.some(it => it.type === 'text');
+                const earned = noProseYet || sinceImageText >= BLEED_TEXT_DEBT;
                 if (!earned || bleedRun >= maxBleedRun) placement = PLACEMENT.INSET;
                 else bleedRun += 1;
             } else {

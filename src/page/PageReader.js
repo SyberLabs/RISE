@@ -27,6 +27,9 @@ export class PageReader {
      *   - session: { atoms, visualProgram }
      *   - resolveCollection: (collectionId) => Promise<Array<work>>
      *   - title / source: heading copy (optional)
+     *   - signal: AbortSignal revoking this reader's async work
+     *   - showOptionalLabels: honour the reader's artwork-label preference
+     *     (required credits are shown regardless)
      */
     constructor(host, options = {}) {
         this.host = host;
@@ -36,6 +39,11 @@ export class PageReader {
             : async () => [];
         this.title = options.title || '';
         this.source = options.source || '';
+        this.signal = options.signal || null;
+        // Supplied by the Chamber from the cortex's live setting, so the
+        // Page agrees with the flash economy and the Gallery instead of
+        // hardcoding labels on. Required credits ignore this.
+        this.showOptionalLabels = options.showOptionalLabels !== false;
 
         this._observer = null;
         this._destroyed = false;
@@ -243,14 +251,14 @@ export class PageReader {
     }
 
     async _fillFigure(fig) {
-        if (this._destroyed || !fig || fig.dataset.filled === '1') return;
+        if (this._destroyed || this._aborted() || !fig || fig.dataset.filled === '1') return;
         fig.dataset.filled = '1';
 
         const ids = (fig.dataset.collections || '').split(',').filter(Boolean);
         let work = null;
         for (const id of ids) {
             const works = await this._worksFor(id);
-            if (this._destroyed) return;
+            if (this._destroyed || this._aborted()) return;
             // Deterministic: a page is re-readable, so the same figure
             // shows the same work — index by the figure's ordinal within
             // its collection, never at random.
@@ -269,21 +277,28 @@ export class PageReader {
             return;
         }
 
-        const ok = await this._decode(work.data.url);
-        if (this._destroyed) return;
+        // DECODE-BEFORE-REVEAL, on the element that is actually shown.
+        // Decoding a detached probe and then creating a SECOND <img> only
+        // proves the URL was once decodable — the displayed element could
+        // still fail (a one-use/signed URL, an evicted cache, an engine
+        // without Image.decode), and a lazy-loaded image is not even
+        // fetched at that point. So the real element is built, decoded,
+        // and only then revealed.
+        const img = document.createElement('img');
+        img.className = 'page-figure-image';
+        img.decoding = 'async';
+        img.alt = '';
+        img.draggable = false;
+        img.src = work.data.url;
+
+        const ok = await this._settleImage(img);
+        if (this._destroyed || this._aborted()) return;
         if (!ok) {
+            // Reverent degradation: no broken frame, no placeholder.
             fig.classList.remove('is-pending');
             fig.classList.add('is-absent');
             return;
         }
-
-        const img = document.createElement('img');
-        img.className = 'page-figure-image';
-        img.decoding = 'async';
-        img.loading = 'lazy';
-        img.src = work.data.url;
-        img.alt = '';
-        img.draggable = false;
         fig.appendChild(img);
 
         const label = normalizeArtworkLabel(work);
@@ -291,16 +306,46 @@ export class PageReader {
             const cap = document.createElement('figcaption');
             cap.className = 'page-figure-caption';
             // A credit-required work (CC-BY) MUST show its attribution —
-            // the obligation from SOURCE-EXPANSION-SPEC §3.
+            // the obligation from SOURCE-EXPANSION-SPEC §3 — regardless of
+            // the reader's optional-label preference. Ordinary title/artist
+            // labels honour that preference, as the cortex and Gallery do.
             cap.textContent = label.creditRequired
                 ? label.requiredText
-                : displayedArtworkLabel(label, true);
+                : displayedArtworkLabel(label, this.showOptionalLabels);
             if (label.creditRequired) cap.classList.add('is-required-credit');
-            fig.appendChild(cap);
+            if (cap.textContent) fig.appendChild(cap);
         }
 
         fig.classList.remove('is-pending');
         fig.classList.add('is-shown');
+    }
+
+    /**
+     * Resolve true once THIS element has decoded (or loaded, where
+     * decode() is unavailable); false if it errors. Never rejects.
+     */
+    _settleImage(img) {
+        return new Promise(resolve => {
+            let done = false;
+            const finish = (ok) => { if (!done) { done = true; resolve(ok); } };
+            img.addEventListener('error', () => finish(false), { once: true });
+            if (typeof img.decode === 'function') {
+                img.decode().then(() => finish(true)).catch(() => {
+                    // Some engines reject decode() after a successful load;
+                    // fall back to the load event rather than withholding.
+                    if (img.complete && img.naturalWidth > 0) finish(true);
+                    else img.addEventListener('load', () => finish(true), { once: true });
+                });
+                return;
+            }
+            if (img.complete) { finish(img.naturalWidth > 0); return; }
+            img.addEventListener('load', () => finish(true), { once: true });
+        });
+    }
+
+    /** True once the owning activation has been revoked. */
+    _aborted() {
+        return this.signal?.aborted === true;
     }
 
     /** Decode-before-reveal (SacredImage's contract). */

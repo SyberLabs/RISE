@@ -186,7 +186,11 @@
   --plate-height: calc(100vh - var(--plate-headroom, 12rem));
   width: auto;
   max-width: 100%;
-  max-height: max(18rem, var(--plate-height));
+  /* The floor keeps a plate from collapsing to a stamp on a shallow
+     window, but it can never itself exceed the window — otherwise the
+     minimum reintroduces the very overflow this rule exists to prevent.
+     Bounded by the viewport, always. */
+  max-height: min(90vh, max(18rem, var(--plate-height)));
   margin-inline: auto;
   object-fit: contain;
 }
@@ -237,12 +241,17 @@
 }
 /* A wrapped figure must be SHORT ENOUGH that its assigned prose covers
    it — otherwise the float outlives the text and leaves a ragged hole
-   below. A portrait plate is cropped to a band rather than allowed to
-   run the column's whole height. */
+   below. It is bounded in height, but NEVER cropped to achieve that:
+   `contain` makes a tall work give up width instead, exactly as a full
+   plate does. Cropping here would contradict the rule the rest of this
+   sheet keeps — the composition arrives complete or it does not arrive —
+   and would silently cut sacred works. */
 .page-wrap .page-figure.placement-margin .page-figure-image {
   max-height: 15rem;
-  object-fit: cover;
-  object-position: center 28%;   /* faces and upper composition survive the crop */
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  margin-inline: auto;
 }
 .page-wrap.side-right .page-figure.placement-margin {
   float: right;

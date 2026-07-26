@@ -14,6 +14,21 @@ const image = (emphasis = 'plate', collections = ['c1']) =>
 const mark = (m, extra = {}) => ({ kind: BLOCK.MARK, mark: m, ...extra });
 
 describe('compose', () => {
+    it('the OPENING plate of a real chapter is full-bleed, not demoted', () => {
+        // Regression (red-team #10): a real scripture flow begins with a
+        // chapter mark, so testing `items.length === 0` made the very
+        // first plate look as though it already owed a text debt. The
+        // fixture must include the chapter mark or the bug hides.
+        const { items } = compose({
+            blocks: [
+                mark(MARK.CHAPTER_OPEN, { chapter: 27 }),
+                image('plate'),
+                text('And when morning was come, all the chief priests took counsel.')
+            ]
+        });
+        expect(items.find(i => i.type === 'figure').placement).toBe(PLACEMENT.BLEED);
+    });
+
     it('an episode plate reads full-bleed', () => {
         const { items } = compose({ blocks: [image('plate'), text('After the plate, a long enough line of prose.')] });
         const fig = items.find(i => i.type === 'figure');

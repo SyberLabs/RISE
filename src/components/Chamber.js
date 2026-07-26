@@ -110,10 +110,19 @@ export class Chamber {
     // field; only the medium differs. The stream stays available behind
     // it — the in-session toggle returns to it at any time.
     if (this.session?.projection === 'page') {
-      setTimeout(() => this.togglePageMode(true), 120);
+      // Tracked so a Chamber destroyed during the delay cannot mount a
+      // reader into detached DOM.
+      this._pageOpenTimer = setTimeout(() => {
+        this._pageOpenTimer = null;
+        this.togglePageMode(true);
+      }, 120);
     } else if (this.autoStart) {
-      // Auto-start if requested (skip pre-session screen)
-      setTimeout(() => {
+      // Auto-start if requested (skip pre-session screen). Tracked and
+      // Page-aware: a reader who opens the Page inside this delay must
+      // not have a stream start underneath them when it fires.
+      this._autoStartTimer = setTimeout(() => {
+        this._autoStartTimer = null;
+        if (this.pageModeActive) return;
         console.log('[Chamber] Auto-starting session...');
         if (document.documentElement.requestFullscreen) {
           document.documentElement.requestFullscreen().catch(() => { });
@@ -493,6 +502,12 @@ export class Chamber {
     // Don't let spacebar trigger play/pause while user is typing in a field
     const tag = document.activeElement?.tagName;
     const isTyping = tag === 'TEXTAREA' || tag === 'INPUT' || document.activeElement?.isContentEditable;
+
+    // While the Page holds the reading, the keyboard belongs to the page:
+    // Space scrolls (its native behaviour) instead of driving a hidden
+    // stream. Only Escape still reaches the Chamber, so the reader can
+    // always leave. (PAGE-MODE-SPEC §4 — page authority.)
+    if (this.pageModeActive && e.code !== 'Escape') return;
 
     // Spacebar: play/pause (only when NOT typing)
     if (e.code === 'Space' && !isTyping) {
@@ -1048,6 +1063,15 @@ export class Chamber {
   togglePlayPause() {
     if (!this.player) return;
 
+    // PAGE AUTHORITY (PAGE-MODE-SPEC §4). While the Page is open it is
+    // the reading, and the Stream must not be startable behind it — by
+    // Space, by the Play button, or by anything else routed here. Without
+    // this the hidden stream advances atoms, resumes audio, fires visual
+    // cues over the page, and can complete the session while the reader
+    // is studying. Space is the sharpest case: on a page it should
+    // scroll, and it was instead starting an invisible stream.
+    if (this.pageModeActive) return;
+
     // Debounce to prevent double-click issues (hardware or accidental)
     const now = Date.now();
     if (this._lastToggleTime && now - this._lastToggleTime < 200) return;
@@ -1097,9 +1121,21 @@ export class Chamber {
     btn?.classList.toggle('is-on', next);
     display?.classList.toggle('page-mode-on', next);
 
+    // OWNERSHIP TOKEN. Activation awaits a dynamic import, so a rapid
+    // on → off → on can otherwise land two readers: the first activation
+    // resolves after being revoked, overwrites this.pageReader, and
+    // leaks an observer. Every activation claims a generation and must
+    // still hold it after each await, or it withdraws silently. (The
+    // same SOL-review principle the cortex and scheduler already use:
+    // the moment that requested this must still exist.)
+    const generation = (this._pageGeneration = (this._pageGeneration || 0) + 1);
+
     if (!next) {
-      // Leaving the Page: tear it down and give the stream back.
+      // Leaving the Page: tear it down and give the stream back. The
+      // abort revokes any provider/decode work the reader had begun.
       host.hidden = true;
+      this._pageAbort?.abort();
+      this._pageAbort = null;
       this.pageReader?.destroy();
       this.pageReader = null;
       return false;
@@ -1114,23 +1150,48 @@ export class Chamber {
     }
 
     host.hidden = false;
+    // The toggle keeps DOM focus after a click, so a reader who presses
+    // Space to scroll would instead re-activate the focused button and be
+    // thrown back to the Stream. Hand focus to the page itself: Space
+    // scrolls it, and the reading owns the keyboard it is read with.
+    btn?.blur();
+    host.setAttribute('tabindex', '-1');
+    host.focus?.({ preventScroll: true });
+    // One controller per activation: closing the Page, replacing it, or
+    // destroying the Chamber revokes the work it started.
+    this._pageAbort?.abort();
+    const abort = (this._pageAbort = new AbortController());
     try {
       const [{ PageReader }, { visualCortex }] = await Promise.all([
         import('../page/PageReader.js'),
         import('../visuals/visual-cortex.js')
       ]);
+      // Authority check: a newer toggle (or a destroy) superseded us.
+      if (generation !== this._pageGeneration || !this.container?.isConnected) {
+        return this.pageModeActive;
+      }
       this.pageReader = new PageReader(host, {
         session: this.session,
-        title: this.session?.title || '',
+        // Session stores the compiled title as `name`; `title` is only an
+        // input alias and is undefined on the model, which left every
+        // masthead untitled.
+        title: this.session?.name || this.session?.title || '',
         source: this.session?.sources?.[0]?.name || '',
+        signal: abort.signal,
+        // One preference, every presenter: the reader's artwork-label
+        // setting governs the Page exactly as it governs the flash
+        // economy and the Gallery. Required credits are never optional.
+        showOptionalLabels: visualCortex.showArtworkLabels !== false,
         // The SAME provider dispatch the Stream uses — one source path,
         // two projections. A collection that cannot resolve yields
         // stillness, never a substitute.
-        resolveCollection: (id) => visualCortex.resolveCollectionWorks(id, { limit: 12 })
+        resolveCollection: (id) =>
+          visualCortex.resolveCollectionWorks(id, { limit: 12, signal: abort.signal })
       });
       this.pageReader.render();
     } catch (error) {
       console.warn('[Chamber] Page Mode unavailable:', error);
+      if (generation !== this._pageGeneration) return this.pageModeActive;
       host.hidden = true;
       this.pageModeActive = false;
       btn?.setAttribute('aria-pressed', 'false');
@@ -1563,6 +1624,15 @@ export class Chamber {
       this.rosaField.destroy();
       this.rosaField = null;
     }
+    // Page Mode: revoke any pending activation, cancel its timers, and
+    // abort provider/decode work before the DOM it would write into goes.
+    this._pageGeneration = (this._pageGeneration || 0) + 1;
+    clearTimeout(this._pageOpenTimer);
+    clearTimeout(this._autoStartTimer);
+    this._pageOpenTimer = null;
+    this._autoStartTimer = null;
+    this._pageAbort?.abort();
+    this._pageAbort = null;
     if (this.pageReader) {
       this.pageReader.destroy();
       this.pageReader = null;
