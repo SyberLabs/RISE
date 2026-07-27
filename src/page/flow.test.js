@@ -229,8 +229,27 @@ describe('compileFlow', () => {
             visualProgram: null,
             visualConfig: { interlocution: { sourced: ['aic-landscapes'] } }
         });
-        expect(flow.derivedFigures).toBeLessThanOrEqual(8);
+        expect(flow.derivedFigures).toBeLessThanOrEqual(14);   // MAX_DERIVED_FIGURES
         expect(flow.derivedFigures).toBeGreaterThan(1);
+    });
+
+    it('a PROCEDURAL selection is chosen imagery too', () => {
+        // A fractal/Klee reading selected its visuals as deliberately as
+        // one that picked a museum collection. Reading only `sourced` made
+        // the Page silently blank for every procedural reader.
+        const atoms = [];
+        for (let i = 0; i < 40; i++) {
+            atoms.push(atom(`Paragraph ${i} of a reading long enough to carry imagery here.`));
+            atoms.push(silence());
+        }
+        const flow = compileFlow({
+            atoms,
+            visualProgram: null,
+            visualConfig: { interlocution: { sourced: [], procedural: ['fractal'] } }
+        });
+        const figs = flow.blocks.filter(b => b.kind === BLOCK.IMAGE);
+        expect(figs.length).toBeGreaterThan(0);
+        expect(figs[0].collections).toEqual(['fractal']);
     });
 
     it('no chosen collections means no derived figures', () => {

@@ -643,6 +643,35 @@ export class VisualCortex {
     async resolveCollectionWorks(collectionId, options = {}) {
         if (!collectionId || typeof collectionId !== 'string') return [];
         const limit = Number.isFinite(options.limit) ? options.limit : 12;
+
+        // A PROCEDURAL family is drawn, not fetched. Page Mode renders it
+        // as a STILL (TEXT-ATTUNED-IMAGERY-SPEC §5): the Page has no
+        // clock, so an animating plate would contradict the projection
+        // and break its reduced-motion guarantee. This reuses the very
+        // renderer the Gallery uses — one path, never a second drifting
+        // one — which already yields an immutable data URL.
+        if (GALLERY_PROCEDURAL_TYPES.includes(collectionId)) {
+            // The engines are built in init() but their queues are filled by
+            // preload(), which a Page-only reading never runs — so a family
+            // asked cold would draw nothing. Warm just this family, once.
+            await this._ensureProceduralReady(collectionId);
+            const stills = [];
+            const wanted = Math.max(1, Math.min(limit, 4));
+            for (let i = 0; i < wanted; i++) {
+                if (options.signal?.aborted) break;
+                try {
+                    // The procedural renderer yields the Gallery's FLAT
+                    // { url, title, sourceType } shape, not the nested
+                    // provider shape — normalize through the same coercion
+                    // sourced works use, so the Page sees one contract.
+                    const item = this._asImageItem(
+                        await this._renderContinuousProceduralWork(collectionId));
+                    if (item?.data?.url) stills.push(item);
+                } catch { /* a family that will not draw yields stillness */ }
+            }
+            return stills;
+        }
+
         try {
             const provider = await this._getProviderForCategory(collectionId);
             if (!provider?.getImagesInCategory) return [];
@@ -668,6 +697,42 @@ export class VisualCortex {
         } catch (error) {
             // A miss withholds the work; the page composes without it.
             return [];
+        }
+    }
+
+    /**
+     * Make one procedural family drawable on demand.
+     *
+     * The Stream warms these through preload() before its first flash; a
+     * Page-only reading never flashes, so a family asked cold would have
+     * an empty queue and yield nothing (the blank page a fractal reader
+     * met). This warms exactly the family requested, and only enough to
+     * draw a still — it starts no clock and no session.
+     */
+    async _ensureProceduralReady(type) {
+        if (!this.initialized) this.init();
+        try {
+            if (type === 'fractal' && this.fractal) {
+                if (!this.fractal.isReady?.()) {
+                    this.fractal.beginSession?.(this.config.semanticSignals);
+                    await this.fractal.fillQueue?.(1);
+                }
+                return;
+            }
+            if (type === 'klee' && this.kleeFlashes) {
+                if (!this.kleeFlashes.queue?.length) {
+                    this.kleeFlashes.beginSession?.({
+                        preset: this.config.kleePreset ?? 'random',
+                        signals: this.config.semanticSignals
+                    });
+                    await this.kleeFlashes.preload?.(1);
+                }
+            }
+            // turrell / neural / harmonograph / blueprint / freedom /
+            // rockgarden generate synchronously from their engines and
+            // need no queue.
+        } catch {
+            // A family that will not warm simply yields stillness.
         }
     }
 

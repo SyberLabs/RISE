@@ -9,13 +9,13 @@ const PREFS = {
   visualInterlocution: {
     visualMode: 'interlocution',
     interlocution: {
-      sourceFamily: 'collections', procedural: [], sourced: ['aic-landscapes'],
+      sourceFamily: 'procedural', procedural: ['fractal'], sourced: [],
       presentation: 'behind-stream'
     }
   }
 };
 
-test('a sourced reading with NO program still typesets figures', async ({ page }) => {
+test('a PROCEDURAL reading with no program typesets rendered stills', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.addInitScript((g) => {
     localStorage.setItem('rise-beta-session', JSON.stringify(g.gate));
@@ -42,13 +42,15 @@ test('a sourced reading with NO program still typesets figures', async ({ page }
   const stats = await page.evaluate(() => ({
     hasProgram: !!window.rise?.currentSession?.visualProgram,
     sourced: window.rise?.currentSession?.visualConfig?.interlocution?.sourced,
+    procedural: window.rise?.currentSession?.visualConfig?.interlocution?.procedural,
     texts: document.querySelectorAll('.page-text').length,
     figures: document.querySelectorAll('.page-figure').length,
     shown: document.querySelectorAll('.page-figure.is-shown').length
   }));
   console.log('FIDELITY ' + JSON.stringify(stats));
+
   expect(stats.hasProgram).toBe(false);            // no authored schedule
-  expect(stats.sourced).toContain('aic-landscapes');
+  expect(stats.procedural).toContain('fractal');
   expect(stats.texts).toBeGreaterThan(5);
   expect(stats.figures).toBeGreaterThan(0);        // …yet imagery appears
   expect(stats.shown).toBeGreaterThanOrEqual(1);   // and it resolved

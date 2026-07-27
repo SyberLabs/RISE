@@ -81,11 +81,19 @@ function collectionsOf(cue) {
  * its whole body into one run, so counting blocks would see "1" for a
  * novel and place nothing.
  */
-const MIN_PROSE_FOR_FIGURE = 900;
-/** Roughly one derived figure per this much prose — restraint by default. */
-const PROSE_PER_FIGURE = 2400;
+const MIN_PROSE_FOR_FIGURE = 700;
+/**
+ * Roughly one derived figure per this much prose. Tuned against real
+ * chunker output so an ILLUMINATED reader actually feels illuminated: at
+ * ~1100 chars a short reading earns one or two plates and a long one is
+ * illustrated throughout, while the ceiling still keeps it a book rather
+ * than a gallery wall. (The first pass used 2400, which gave a
+ * thirty-paragraph reading a single figure — too austere to read as
+ * illustrated at all.)
+ */
+const PROSE_PER_FIGURE = 1100;
 /** A ceiling so a very long reading stays a book, not a gallery wall. */
-const MAX_DERIVED_FIGURES = 8;
+const MAX_DERIVED_FIGURES = 14;
 
 /**
  * A reading with NO authored program but WITH chosen collections still
@@ -336,9 +344,16 @@ export function compileFlow(session, options = {}) {
  * the reader's own selection — the Page places it, never picks it.
  */
 function sourcedCollectionsOf(session) {
-    const sourced = session?.visualConfig?.interlocution?.sourced;
-    if (!Array.isArray(sourced)) return [];
-    return sourced.filter(id => typeof id === 'string' && id.length > 0);
+    const interlocution = session?.visualConfig?.interlocution;
+    const clean = (list) => Array.isArray(list)
+        ? list.filter(id => typeof id === 'string' && id.length > 0)
+        : [];
+    // PROCEDURAL families count as chosen imagery too. A reading set to
+    // fractal or Klee selected its visuals just as deliberately as one
+    // that picked a museum collection — reading only `sourced` made the
+    // Page silently blank for every procedural reader. The cortex renders
+    // these as stills; the Page places them like any other figure.
+    return [...clean(interlocution?.sourced), ...clean(interlocution?.procedural)];
 }
 
 /**
