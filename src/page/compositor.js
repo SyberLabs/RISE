@@ -145,6 +145,20 @@ export function compose(flow, options = {}) {
             continue;
         }
 
+        // A symbol the reading authored: a glyph standing on its own,
+        // neither prose nor figure. It reads as a mark in the column.
+        if (block.kind === BLOCK.SYMBOL) {
+            push({
+                type: 'symbol',
+                symbol: block.symbol,
+                episodeId: block.episodeId ?? null,
+                rhythm: RHYTHM.OPEN
+            });
+            bleedRun = 0;
+            stillPending = false;
+            continue;
+        }
+
         if (block.kind === BLOCK.IMAGE) {
             let placement = placementFor(block);
             // Restraint: a bleed is earned by intervening prose, not by a
@@ -185,6 +199,11 @@ export function compose(flow, options = {}) {
             push({
                 type: 'figure',
                 collections: block.collections,
+                // An authored image carries its own URL and needs no
+                // collection resolution at all.
+                url: block.url || null,
+                title: block.title || '',
+                derived: block.derived === true,
                 episodeId: block.episodeId,
                 placement,
                 wrapBlocks,

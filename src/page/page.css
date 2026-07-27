@@ -110,6 +110,22 @@
   user-select: none;
 }
 
+/* ─── Authored symbols ───
+   A glyph or sigil the reading itself supplied (a symbol atom). It is
+   content, not decoration: the Stream would have played it, so the Page
+   carries it rather than dropping it. It stands alone, centred, quiet. */
+.page-symbol {
+  margin: clamp(1.2rem, 3vh, 2rem) 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: clamp(22px, 2.4vw, 30px);
+  line-height: 1;
+  color: var(--color-fog);
+  user-select: none;
+}
+.page-symbol.rhythm-tight { margin: 0.6rem 0; }
+.page-symbol.rhythm-still { margin: clamp(2rem, 5vh, 3rem) 0; }
+
 /* ─── Chapter opening ─── */
 .page-chapter {
   font-family: var(--font-display);

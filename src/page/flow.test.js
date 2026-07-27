@@ -131,6 +131,115 @@ describe('compileFlow', () => {
         expect(compileFlow(null).blocks).toEqual([]);
     });
 
+    // ─── Content fidelity (red-team #5) ───
+
+    it('carries an AUTHORED image atom into the page, with its own URL', () => {
+        const flow = compileFlow({
+            atoms: [
+                atom('Before the plate.'),
+                { content: 'https://x/plate.jpg', url: 'https://x/plate.jpg', modality: 'image', name: 'A Plate' },
+                atom('After the plate.')
+            ],
+            visualProgram: null
+        });
+        const img = flow.blocks.find(b => b.kind === BLOCK.IMAGE);
+        expect(img).toBeTruthy();
+        expect(img.url).toBe('https://x/plate.jpg');
+        expect(img.collections).toEqual([]);   // needs no provider
+        expect(img.title).toBe('A Plate');
+        // and it did not swallow the prose around it
+        expect(flow.blocks.filter(b => b.kind === BLOCK.TEXT)).toHaveLength(2);
+    });
+
+    it('carries an authored SYMBOL atom into the page', () => {
+        const flow = compileFlow({
+            atoms: [
+                atom('Before.'),
+                { content: '✕', modality: 'symbol' },
+                atom('After.')
+            ],
+            visualProgram: null
+        });
+        const sym = flow.blocks.find(b => b.kind === BLOCK.SYMBOL);
+        expect(sym).toBeTruthy();
+        expect(sym.symbol).toBe('✕');
+        expect(flow.blocks.filter(b => b.kind === BLOCK.TEXT)).toHaveLength(2);
+    });
+
+    it('an audio atom is silence — there is nothing to typeset', () => {
+        const flow = compileFlow({
+            atoms: [atom('A.'), { content: 'x.mp3', modality: 'audio' }, atom('B.')],
+            visualProgram: null
+        });
+        expect(flow.blocks.some(b => b.kind === BLOCK.IMAGE)).toBe(false);
+        expect(flow.blocks.some(b => b.kind === BLOCK.SYMBOL)).toBe(false);
+    });
+
+    it('a reading with CHOSEN COLLECTIONS but no program still gets figures', () => {
+        const atoms = [];
+        for (let i = 0; i < 40; i++) {
+            atoms.push(atom(`Paragraph ${i} of a reading long enough to carry imagery here.`));
+            atoms.push(silence());
+        }
+        const flow = compileFlow({
+            atoms,
+            visualProgram: null,
+            visualConfig: { interlocution: { sourced: ['aic-landscapes'] } }
+        });
+        const figs = flow.blocks.filter(b => b.kind === BLOCK.IMAGE);
+        expect(figs.length).toBeGreaterThan(0);
+        expect(flow.derivedFigures).toBe(figs.length);
+        expect(figs[0].collections).toEqual(['aic-landscapes']);
+        expect(figs[0].derived).toBe(true);
+        // Derived figures are quieter than an authored episode plate.
+        expect(figs.every(f => f.emphasis === 'inset')).toBe(true);
+    });
+
+    it('an AUTHORED program is never second-guessed by derived figures', () => {
+        const flow = compileFlow({
+            atoms: [atom('Pilate.', { chapter: 27, verse: 1 })],
+            visualProgram: program,
+            visualConfig: { interlocution: { sourced: ['aic-landscapes'] } }
+        });
+        expect(flow.derivedFigures).toBe(0);
+        const figs = flow.blocks.filter(b => b.kind === BLOCK.IMAGE);
+        expect(figs).toHaveLength(1);
+        expect(figs[0].collections).toEqual(['chapel-gospel-before-pilate']);
+    });
+
+    it('too little prose earns no derived figure — restraint by default', () => {
+        const flow = compileFlow({
+            atoms: [atom('A short note.'), atom('And one more line.')],
+            visualProgram: null,
+            visualConfig: { interlocution: { sourced: ['aic-landscapes'] } }
+        });
+        expect(flow.derivedFigures).toBe(0);
+    });
+
+    it('a long reading is capped — a book, not a gallery wall', () => {
+        // Paragraphs arrive separated by structural silence (as the
+        // chunker emits them), so the body is many blocks, not one run.
+        const atoms = [];
+        for (let i = 0; i < 200; i++) {
+            atoms.push(atom(`Paragraph ${i} of a very long reading indeed, with enough prose to matter.`));
+            atoms.push(silence());
+        }
+        const flow = compileFlow({
+            atoms,
+            visualProgram: null,
+            visualConfig: { interlocution: { sourced: ['aic-landscapes'] } }
+        });
+        expect(flow.derivedFigures).toBeLessThanOrEqual(8);
+        expect(flow.derivedFigures).toBeGreaterThan(1);
+    });
+
+    it('no chosen collections means no derived figures', () => {
+        const atoms = [];
+        for (let i = 0; i < 40; i++) { atoms.push(atom(`Paragraph ${i} here with prose.`)); atoms.push(silence()); }
+        const flow = compileFlow({ atoms, visualProgram: null, visualConfig: { interlocution: { sourced: [] } } });
+        expect(flow.derivedFigures).toBe(0);
+    });
+
     it('flowCollections lists referenced collections in first-appearance order', () => {
         const flow = compileFlow({
             atoms: [

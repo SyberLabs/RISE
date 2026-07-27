@@ -149,6 +149,7 @@ export class PageReader {
             case 'break': return this._buildBreak(item);
             case 'pause': return this._buildPause(item);
             case 'figure': return this._buildFigure(item);
+            case 'symbol': return this._buildSymbol(item);
             case 'text': return this._buildText(item);
             default: return null;
         }
@@ -179,6 +180,18 @@ export class PageReader {
         return el;
     }
 
+    /**
+     * A glyph the reading authored (a symbol atom) — carried into the
+     * spatial projection rather than dropped, so a Page shows what the
+     * Stream would have played.
+     */
+    _buildSymbol(item) {
+        const el = document.createElement('p');
+        el.className = `page-symbol rhythm-${item.rhythm}`;
+        el.textContent = item.symbol;
+        return el;
+    }
+
     _buildText(item) {
         const p = document.createElement('p');
         p.className = `page-text rhythm-${item.rhythm}`;
@@ -202,7 +215,14 @@ export class PageReader {
         const fig = document.createElement('figure');
         fig.className = `page-figure placement-${item.placement} rhythm-${item.rhythm} is-pending`;
         fig.dataset.pageFigure = String(this._figureSeq++);
-        fig.dataset.collections = item.collections.join(',');
+        fig.dataset.collections = (item.collections || []).join(',');
+        // An AUTHORED image carries its own URL: the reading supplied the
+        // work, so there is no collection to resolve and no provider to
+        // ask. It still decodes before it is revealed.
+        if (item.url) {
+            fig.dataset.url = item.url;
+            if (item.title) fig.dataset.title = item.title;
+        }
         // Reserve nothing until an image actually arrives (no placeholder,
         // no broken frame — the reverent contract).
         return fig;
@@ -254,8 +274,18 @@ export class PageReader {
         if (this._destroyed || this._aborted() || !fig || fig.dataset.filled === '1') return;
         fig.dataset.filled = '1';
 
-        const ids = (fig.dataset.collections || '').split(',').filter(Boolean);
         let work = null;
+
+        // An authored image resolves without a provider: the reading
+        // already named the work.
+        if (fig.dataset.url) {
+            work = {
+                name: fig.dataset.title || '',
+                data: { url: fig.dataset.url, title: fig.dataset.title || '' }
+            };
+        }
+
+        const ids = work ? [] : (fig.dataset.collections || '').split(',').filter(Boolean);
         for (const id of ids) {
             const works = await this._worksFor(id);
             if (this._destroyed || this._aborted()) return;

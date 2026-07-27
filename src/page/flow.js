@@ -20,6 +20,8 @@ import { cueForAtom } from '../core/visual-scheduler.js';
 export const BLOCK = Object.freeze({
     TEXT: 'text',
     IMAGE: 'image',
+    /** A glyph or sigil the reading itself authored (a symbol atom). */
+    SYMBOL: 'symbol',
     MARK: 'mark'
 });
 
@@ -33,14 +35,35 @@ export const MARK = Object.freeze({
 const FALLBACK_CUE_ID = '__fallback__';
 
 /**
- * Is this atom structural silence (a pause/marker) rather than reading
- * text? The chunker mints marker atoms with empty content and a tag.
+ * Is this atom structural silence (a pause/marker) rather than content?
+ * The chunker mints marker atoms with empty content and a tag.
+ *
+ * NOTE: this asks about SILENCE, not about text. A non-text atom is
+ * content the Page must carry, not something to drop — treating every
+ * modality but text as silence is what once discarded image, symbol,
+ * and composite atoms from the spatial projection while the Stream
+ * played them (red-team #5).
  */
 function isStructuralSilence(atom) {
-    return !atom
-        || atom.modality !== 'text'
-        || typeof atom.content !== 'string'
-        || atom.content.trim() === '';
+    if (!atom) return true;
+    if (atom.modality === 'image') return !(atom.url || atom.content);
+    if (atom.modality === 'symbol' || atom.modality === 'composite') {
+        return typeof atom.content !== 'string' || atom.content.trim() === '';
+    }
+    if (atom.modality === 'audio') return true;   // nothing to typeset
+    return typeof atom.content !== 'string' || atom.content.trim() === '';
+}
+
+/** An atom the Page renders as a figure in its own right. */
+function isAuthoredImage(atom) {
+    return atom?.modality === 'image' && !!(atom.url || atom.content);
+}
+
+/** An atom the Page renders as a standalone mark (a glyph, a sigil). */
+function isSymbol(atom) {
+    return (atom?.modality === 'symbol' || atom?.modality === 'composite')
+        && typeof atom.content === 'string'
+        && atom.content.trim() !== '';
 }
 
 /**
@@ -53,11 +76,89 @@ function collectionsOf(cue) {
 }
 
 /**
+ * Prose CHARACTERS below which a derived figure would overwhelm the page.
+ * Measured in characters, not blocks: a coordinate-less reading merges
+ * its whole body into one run, so counting blocks would see "1" for a
+ * novel and place nothing.
+ */
+const MIN_PROSE_FOR_FIGURE = 900;
+/** Roughly one derived figure per this much prose — restraint by default. */
+const PROSE_PER_FIGURE = 2400;
+/** A ceiling so a very long reading stays a book, not a gallery wall. */
+const MAX_DERIVED_FIGURES = 8;
+
+/**
+ * A reading with NO authored program but WITH chosen collections still
+ * deserves its imagery: the reader picked those sources, and the Stream
+ * would draw from them. Without this, a Gospel chapter typeset with
+ * plates while an Atrium or Library reading with the very same
+ * collections rendered as a bare column (red-team #5).
+ *
+ * The placement rule is deliberately modest, and deliberately NOT the
+ * attunement compiler (TEXT-ATTUNED-IMAGERY-SPEC), which will supersede
+ * it with real segmentation and scoring: figures are spaced evenly
+ * through the prose on a density budget, so a long reading breathes and
+ * a short one is not swamped. Restraint is the default — a book, not a
+ * feed.
+ *
+ * @param {Array} blocks - the compiled flow blocks (mutated: figures inserted)
+ * @param {Array<string>} collections - the reading's chosen sources
+ */
+function placeCollectionFigures(blocks, collections) {
+    if (!collections.length) return 0;
+
+    // Walk the text blocks, accumulating prose so figures can be placed at
+    // even intervals BY VOLUME rather than by block count.
+    const textPoints = [];   // { index, cumulativeChars }
+    let total = 0;
+    for (let i = 0; i < blocks.length; i++) {
+        if (blocks[i].kind !== BLOCK.TEXT) continue;
+        total += (blocks[i].text || '').length;
+        textPoints.push({ index: i, at: total });
+    }
+    if (total < MIN_PROSE_FOR_FIGURE || textPoints.length === 0) return 0;
+
+    const budget = Math.max(
+        1,
+        Math.min(MAX_DERIVED_FIGURES, Math.floor(total / PROSE_PER_FIGURE))
+    );
+
+    // Space the figures through the body, each landing on the block
+    // boundary nearest its share of the prose. A page opens on prose, so
+    // the first figure sits after the first interval, never at the head.
+    const points = [];
+    for (let n = 1; n <= budget; n++) {
+        const target = (total * n) / (budget + 1);
+        const spot = textPoints.find(p => p.at >= target) || textPoints[textPoints.length - 1];
+        // Insert AFTER that block so the figure follows prose it belongs to.
+        const at = spot.index + 1;
+        if (!points.includes(at)) points.push(at);
+    }
+
+    // Splice from the end so earlier indices stay valid.
+    for (let n = points.length - 1; n >= 0; n--) {
+        blocks.splice(points[n], 0, {
+            kind: BLOCK.IMAGE,
+            collections: [...collections],
+            episodeId: null,
+            // Derived figures are quieter than an authored episode plate:
+            // they inset (and may be promoted to a wrap by the compositor
+            // when enough prose follows), never claiming a full bleed.
+            emphasis: 'inset',
+            at: null,
+            derived: true
+        });
+    }
+    return points.length;
+}
+
+/**
  * Compile a session into a Flow.
  *
- * @param {Object} session - { atoms, visualProgram }
+ * @param {Object} session - { atoms, visualProgram, visualConfig }
  * @param {Object} [options]
  *   - includeVerseMarks: stamp verse coordinates on text blocks (default true)
+ *   - collections: override the reading's sourced collections
  * @returns {{ blocks: Array, coordinateSpace: string|null, episodes: number }}
  */
 export function compileFlow(session, options = {}) {
@@ -98,6 +199,38 @@ export function compileFlow(session, options = {}) {
         if (isStructuralSilence(atom)) {
             flushRun();
             pendingPause = true;
+            continue;
+        }
+
+        // An AUTHORED image: the reading supplied this work itself, so it
+        // needs no collection and no provider — its URL is already known.
+        // It is placed exactly where the author put it in the stream.
+        if (isAuthoredImage(atom)) {
+            flushRun();
+            pendingPause = false;
+            blocks.push({
+                kind: BLOCK.IMAGE,
+                // An authored image resolves by URL, never by collection.
+                collections: [],
+                url: atom.url || atom.content,
+                title: typeof atom.name === 'string' ? atom.name : '',
+                episodeId: activeCueId,
+                emphasis: 'plate',
+                at: null
+            });
+            continue;
+        }
+
+        // A SYMBOL/sigil the reading authored — a glyph, not prose and
+        // not a figure. It stands alone on its own line.
+        if (isSymbol(atom)) {
+            flushRun();
+            pendingPause = false;
+            blocks.push({
+                kind: BLOCK.SYMBOL,
+                symbol: atom.content.trim(),
+                episodeId: activeCueId
+            });
             continue;
         }
 
@@ -179,11 +312,33 @@ export function compileFlow(session, options = {}) {
 
     flushRun();
 
+    // A reading whose imagery was AUTHORED (a pericope program) is never
+    // second-guessed: the domain already said where every plate belongs.
+    // Only an unscheduled reading falls back to its own chosen sources.
+    let derived = 0;
+    if (!program) {
+        const chosen = Array.isArray(options.collections)
+            ? options.collections.filter(Boolean)
+            : sourcedCollectionsOf(session);
+        derived = placeCollectionFigures(blocks, chosen);
+    }
+
     return {
         blocks,
         coordinateSpace,
-        episodes: episodeCount
+        episodes: episodeCount,
+        derivedFigures: derived
     };
+}
+
+/**
+ * The collections this reading chose, as the panel recorded them. This is
+ * the reader's own selection — the Page places it, never picks it.
+ */
+function sourcedCollectionsOf(session) {
+    const sourced = session?.visualConfig?.interlocution?.sourced;
+    if (!Array.isArray(sourced)) return [];
+    return sourced.filter(id => typeof id === 'string' && id.length > 0);
 }
 
 /**
