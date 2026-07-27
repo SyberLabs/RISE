@@ -143,16 +143,21 @@ function placeCollectionFigures(blocks, collections) {
         if (!points.includes(at)) points.push(at);
     }
 
-    // Splice from the end so earlier indices stay valid.
+    // Splice from the end so earlier indices stay valid — but decide each
+    // figure's weight by its position in DOCUMENT order, so the rhythm
+    // reads forwards the way the page does.
     for (let n = points.length - 1; n >= 0; n--) {
         blocks.splice(points[n], 0, {
             kind: BLOCK.IMAGE,
             collections: [...collections],
             episodeId: null,
-            // Derived figures are quieter than an authored episode plate:
-            // they inset (and may be promoted to a wrap by the compositor
-            // when enough prose follows), never claiming a full bleed.
-            emphasis: 'inset',
+            // Derived figures VARY in weight rather than all whispering.
+            // Hardcoding every one to 'inset' meant a derived page could
+            // never show a full plate, only small inline figures — timid,
+            // and visibly poorer than an authored page. The first asks to
+            // be a plate and they alternate from there; the compositor
+            // still has final say, and its bleed-debt rule stops stacking.
+            emphasis: n % 2 === 0 ? 'plate' : 'inset',
             at: null,
             derived: true
         });
@@ -344,16 +349,53 @@ export function compileFlow(session, options = {}) {
  * the reader's own selection — the Page places it, never picks it.
  */
 function sourcedCollectionsOf(session) {
-    const interlocution = session?.visualConfig?.interlocution;
+    const visual = session?.visualConfig;
     const clean = (list) => Array.isArray(list)
         ? list.filter(id => typeof id === 'string' && id.length > 0)
         : [];
+
+    // The reading's MODE decides what its imagery is. Reading only
+    // `interlocution` made a Genesis or attractor reading fall through to
+    // whatever happened to sit in interlocution.procedural — which is why
+    // both rendered fractal flame instead of themselves.
+    const mode = visual?.visualMode;
+
+    // A PERSISTENT FIELD is dynamic, so a single still would misrepresent
+    // it. Its honest translation into a spatial medium is a SEQUENCE:
+    // the same system sampled at successive states, the last being its
+    // settled form. The cortex renders those samples; the compositor
+    // places them like any other figures.
+    if (mode === 'genesis') return ['genesis'];
+    if (mode === 'attractor') return ['attractor'];
+    // A focal is a single held glyph, not a series — it is shown once at
+    // the head of the page (see focalOf), never placed through the body.
+    if (mode === 'focals') return [];
+
     // PROCEDURAL families count as chosen imagery too. A reading set to
     // fractal or Klee selected its visuals just as deliberately as one
     // that picked a museum collection — reading only `sourced` made the
     // Page silently blank for every procedural reader. The cortex renders
     // these as stills; the Page places them like any other figure.
+    const interlocution = visual?.interlocution;
     return [...clean(interlocution?.sourced), ...clean(interlocution?.procedural)];
+}
+
+/**
+ * The focal a reading holds, if any — a glyph, a Chapel icon, or the
+ * rose. It is shown ONCE at the head of the page rather than placed
+ * through the body: a focal is a thing to rest on, not a series.
+ */
+export function focalOf(session) {
+    const visual = session?.visualConfig;
+    if (visual?.visualMode !== 'focals') return null;
+    const focals = visual.focals || {};
+    return {
+        type: focals.type || 'standard',
+        glyph: focals.standardGlyph || null,
+        iconId: focals.iconId || null,
+        image: focals.personalImage || null,
+        roseMode: focals.roseMode || null
+    };
 }
 
 /**

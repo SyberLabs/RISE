@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compileFlow, flowCollections, BLOCK, MARK } from './flow.js';
+import { compileFlow, flowCollections, focalOf, BLOCK, MARK } from './flow.js';
 
 /**
  * The Flow compiler (PAGE-MODE-SPEC §3.1). Pure: fake atoms, a fake
@@ -191,8 +191,9 @@ describe('compileFlow', () => {
         expect(flow.derivedFigures).toBe(figs.length);
         expect(figs[0].collections).toEqual(['aic-landscapes']);
         expect(figs[0].derived).toBe(true);
-        // Derived figures are quieter than an authored episode plate.
-        expect(figs.every(f => f.emphasis === 'inset')).toBe(true);
+        // Derived figures vary in weight (see the dedicated test below);
+        // each is a placement the compositor understands.
+        expect(figs.every(f => ['plate', 'inset'].includes(f.emphasis))).toBe(true);
     });
 
     it('an AUTHORED program is never second-guessed by derived figures', () => {
@@ -250,6 +251,91 @@ describe('compileFlow', () => {
         const figs = flow.blocks.filter(b => b.kind === BLOCK.IMAGE);
         expect(figs.length).toBeGreaterThan(0);
         expect(figs[0].collections).toEqual(['fractal']);
+    });
+
+    // ─── Persistent fields and focals ───
+
+    it('a GENESIS reading is itself, not whatever sits in interlocution', () => {
+        const atoms = [];
+        for (let i = 0; i < 40; i++) {
+            atoms.push(atom(`Paragraph ${i} of a reading long enough to carry imagery here.`));
+            atoms.push(silence());
+        }
+        const flow = compileFlow({
+            atoms,
+            visualProgram: null,
+            visualConfig: {
+                visualMode: 'genesis',
+                genesis: { preset: 'random' },
+                // a stale interlocution selection must NOT win
+                interlocution: { sourced: [], procedural: ['fractal'] }
+            }
+        });
+        const figs = flow.blocks.filter(b => b.kind === BLOCK.IMAGE);
+        expect(figs.length).toBeGreaterThan(0);
+        expect(figs.every(f => f.collections[0] === 'genesis')).toBe(true);
+    });
+
+    it('an ATTRACTOR reading is itself', () => {
+        const atoms = [];
+        for (let i = 0; i < 40; i++) {
+            atoms.push(atom(`Paragraph ${i} of a reading long enough to carry imagery here.`));
+            atoms.push(silence());
+        }
+        const flow = compileFlow({
+            atoms,
+            visualProgram: null,
+            visualConfig: {
+                visualMode: 'attractor',
+                attractor: { system: 'aizawa' },
+                interlocution: { sourced: [], procedural: ['fractal'] }
+            }
+        });
+        const figs = flow.blocks.filter(b => b.kind === BLOCK.IMAGE);
+        expect(figs.every(f => f.collections[0] === 'attractor')).toBe(true);
+    });
+
+    it('derived figures VARY in weight — a page is not all whispers', () => {
+        const atoms = [];
+        for (let i = 0; i < 120; i++) {
+            atoms.push(atom(`Paragraph ${i} of a long reading with ample prose to carry plates.`));
+            atoms.push(silence());
+        }
+        const flow = compileFlow({
+            atoms,
+            visualProgram: null,
+            visualConfig: { interlocution: { sourced: ['aic-landscapes'] } }
+        });
+        const figs = flow.blocks.filter(b => b.kind === BLOCK.IMAGE);
+        expect(figs.length).toBeGreaterThan(2);
+        expect(figs.some(f => f.emphasis === 'plate')).toBe(true);
+        expect(figs.some(f => f.emphasis === 'inset')).toBe(true);
+    });
+
+    it('a FOCALS reading places no figures — a focal is held, not serialized', () => {
+        const atoms = [];
+        for (let i = 0; i < 40; i++) {
+            atoms.push(atom(`Paragraph ${i} with enough prose to have earned a figure.`));
+            atoms.push(silence());
+        }
+        const flow = compileFlow({
+            atoms,
+            visualProgram: null,
+            visualConfig: {
+                visualMode: 'focals',
+                focals: { type: 'standard', standardGlyph: 'lotus' }
+            }
+        });
+        expect(flow.derivedFigures).toBe(0);
+    });
+
+    it('focalOf reports the held focal, and nothing when the mode is not focals', () => {
+        expect(focalOf({ visualConfig: { visualMode: 'focals', focals: { type: 'standard', standardGlyph: 'star' } } }))
+            .toMatchObject({ type: 'standard', glyph: 'star' });
+        expect(focalOf({ visualConfig: { visualMode: 'focals', focals: { type: 'icon', iconId: 'icon-transfiguration' } } }))
+            .toMatchObject({ type: 'icon', iconId: 'icon-transfiguration' });
+        expect(focalOf({ visualConfig: { visualMode: 'interlocution' } })).toBeNull();
+        expect(focalOf(null)).toBeNull();
     });
 
     it('no chosen collections means no derived figures', () => {

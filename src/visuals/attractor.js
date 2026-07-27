@@ -506,6 +506,54 @@ export class AttractorField {
         return true;
     }
 
+    /**
+     * Capture this field AS IT LOOKS AT `seconds` into its evolution.
+     *
+     * Page Mode's honest translation of a dynamic system: it cannot be one
+     * static image, but it can be the same system sampled at successive
+     * states. The field's appearance is a pure function of elapsed time
+     * (`t = (now - t0) / 1000`), so a sample is just a tick rendered at a
+     * synthetic timestamp. The live field's own clock is untouched: only
+     * the pending rAF is swapped out and restored.
+     *
+     * @param {number} seconds elapsed-time offset to render
+     * @returns {string|null} a data URL, or null in a headless environment
+     */
+    sampleAt(seconds) {
+        if (!this.canvas?.toDataURL || !this.ctx) return null;
+        const pending = this.rafId;
+        this.rafId = null;                       // the sample must not queue a frame
+        try {
+            this.tick(this.t0 + Math.max(0, seconds) * 1000);
+            return this.canvas.toDataURL('image/webp', 0.9);
+        } catch {
+            return null;
+        } finally {
+            if (this.rafId) cancelAnimationFrame(this.rafId);
+            this.rafId = pending;                // restore the live loop as it was
+        }
+    }
+
+    /**
+     * Stop integrating without tearing the field down.
+     *
+     * Page Mode needs this: the spatial projection has no clock, and
+     * `visibility: hidden` stops PAINTING but not the rAF beneath it, so
+     * an unpaused attractor keeps burning CPU/GPU for a filament nobody
+     * can see. Matches KleeField's pause/resume contract so the Chamber
+     * can suspend every persistent field the same way.
+     */
+    pause() {
+        if (this.rafId) cancelAnimationFrame(this.rafId);
+        this.rafId = null;
+    }
+
+    /** Resume integrating from wherever the field stood. */
+    resume() {
+        if (this.rafId) return;              // already running
+        this.rafId = requestAnimationFrame(this.tick);
+    }
+
     destroy() {
         if (this.rafId) cancelAnimationFrame(this.rafId);
         this.rafId = null;

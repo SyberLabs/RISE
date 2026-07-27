@@ -149,6 +149,33 @@ export class KleeField {
         }
     }
 
+    /**
+     * Draw this composition AS IT STANDS AT `progress`, returning a still.
+     *
+     * Page Mode's honest translation of a growing field: a dynamic system
+     * cannot be one static image, but it can be the same system sampled
+     * at successive states (PAGE-MODE-SPEC — the spatial projection). The
+     * live field is left exactly as it was: we render the sample, capture
+     * it, then restore and redraw the true progress.
+     *
+     * @param {number} progress 0..1 — 1 is the settled composition
+     * @returns {string|null} a data URL, or null in a headless environment
+     */
+    sampleAt(progress) {
+        if (!this.ctx || !this.canvas?.toDataURL) return null;
+        const restore = this.progress;
+        try {
+            this.progress = Math.max(0, Math.min(1, progress));
+            this._render();
+            return this.canvas.toDataURL('image/webp', 0.9);
+        } catch {
+            return null;
+        } finally {
+            this.progress = restore;
+            this._render();
+        }
+    }
+
     _render() {
         if (!this.ctx) return; // headless environment (tests)
         this.engine.render(this.canvas, {

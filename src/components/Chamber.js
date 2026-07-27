@@ -1204,8 +1204,8 @@ export class Chamber {
         // The SAME provider dispatch the Stream uses — one source path,
         // two projections. A collection that cannot resolve yields
         // stillness, never a substitute.
-        resolveCollection: (id) =>
-          visualCortex.resolveCollectionWorks(id, { limit: 12, signal: abort.signal })
+        resolveCollection: (id, count) =>
+          this._resolvePageCollection(id, count, abort.signal, visualCortex)
       });
       this.pageReader.render();
     } catch (error) {
@@ -1222,6 +1222,53 @@ export class Chamber {
   }
 
   /**
+   * Resolve one Page collection to works.
+   *
+   * Most ids go straight to the cortex's provider dispatch. The two
+   * PERSISTENT FIELDS are different: they are dynamic systems the Chamber
+   * owns, not pools, and a single still would misrepresent them. Their
+   * honest spatial translation is a SEQUENCE — the same system sampled at
+   * evenly spaced states, the last being its settled form — so a page
+   * asking for three images gets the field at three moments of its life.
+   *
+   * @param {string} id collection id
+   * @param {number} [count] how many samples the page wants
+   */
+  async _resolvePageCollection(id, count, signal, visualCortex) {
+    const wanted = Math.max(1, Math.min(Number.isFinite(count) ? count : 3, 6));
+
+    if (id === 'genesis' && this.kleeField?.sampleAt) {
+      // Growth is parameterised 0..1, so the samples are evenly spaced
+      // through the composition's life and the LAST is the settled work.
+      return this._fieldSamples(wanted, (n) =>
+        this.kleeField.sampleAt((n + 1) / wanted), 'Genesis');
+    }
+
+    if (id === 'attractor' && this.attractorField?.sampleAt) {
+      // The filament's appearance is a function of elapsed time; spacing
+      // the samples across a full sweep shows the field in different
+      // states rather than three near-identical frames.
+      const SWEEP_SECONDS = 24;
+      return this._fieldSamples(wanted, (n) =>
+        this.attractorField.sampleAt(((n + 1) / wanted) * SWEEP_SECONDS), 'Attractor');
+    }
+
+    return visualCortex.resolveCollectionWorks(id, { limit: 12, signal });
+  }
+
+  /** Turn N field samples into the Page's image-work contract. */
+  _fieldSamples(count, sample, title) {
+    const works = [];
+    for (let n = 0; n < count; n++) {
+      let url = null;
+      try { url = sample(n); } catch { url = null; }
+      // A field that will not draw yields stillness, never a broken frame.
+      if (url) works.push({ name: title, data: { url, title } });
+    }
+    return works;
+  }
+
+  /**
    * Stop every TEMPORAL presenter while the Page holds the reading.
    *
    * Hiding the stream field stops painting, not running: each of these
@@ -1233,7 +1280,8 @@ export class Chamber {
     if (this._temporalSuspended) return;
     this._temporalSuspended = {
       gallery: false,
-      klee: false
+      klee: false,
+      attractor: false
     };
     // The Gallery lives in the (singleton) cortex; releasing its host
     // stops its cadence clock and drops its layers.
@@ -1246,6 +1294,12 @@ export class Chamber {
     if (this.kleeField?.pause) {
       this.kleeField.pause();
       this._temporalSuspended.klee = true;
+    }
+    // The attractor integrates on its own rAF. Hiding the field stops
+    // painting, not the integration beneath it.
+    if (this.attractorField?.pause) {
+      this.attractorField.pause();
+      this._temporalSuspended.attractor = true;
     }
     // The flash economy is already inert: the Page pauses the Player, and
     // flashes are Player-driven opportunities. Cancel any in-flight one so
@@ -1263,6 +1317,7 @@ export class Chamber {
     }
     this._galleryHost = null;
     if (suspended.klee && this.kleeField?.resume) this.kleeField.resume();
+    if (suspended.attractor && this.attractorField?.resume) this.attractorField.resume();
   }
 
   /**

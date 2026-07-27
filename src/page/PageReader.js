@@ -14,11 +14,21 @@
  */
 
 import './page.css';
-import { compileFlow, flowCollections } from './flow.js';
+import { compileFlow, flowCollections, focalOf } from './flow.js';
 import { compose, PLACEMENT, RHYTHM } from './compositor.js';
 import { normalizeArtworkLabel, displayedArtworkLabel } from '../visuals/artwork-label.js';
 
 const OBSERVER_MARGIN = '600px';   // begin resolving well before view
+
+/**
+ * The standard focal glyphs, as the visual panel names them. The Page
+ * states a focal rather than animating it: a spatial projection has no
+ * clock, so the mark stands still.
+ */
+const FOCAL_MARKS = Object.freeze({
+    breath: '◯', anchor: '⚓', lotus: '❀', eye: '◉',
+    star: '✦', wave: '≈', void: '●', rose: '❂'
+});
 
 export class PageReader {
     /**
@@ -44,6 +54,8 @@ export class PageReader {
         // Page agrees with the flash economy and the Gallery instead of
         // hardcoding labels on. Required credits ignore this.
         this.showOptionalLabels = options.showOptionalLabels !== false;
+        // The reading's held focal, shown once at the head of the page.
+        this.focal = options.focal !== undefined ? options.focal : focalOf(this.session);
 
         this._observer = null;
         this._destroyed = false;
@@ -68,7 +80,7 @@ export class PageReader {
         const article = document.createElement('article');
         article.className = 'page-article';
 
-        if (this.title || this.source) {
+        if (this.title || this.source || this.focal) {
             article.appendChild(this._buildMasthead());
         }
 
@@ -125,9 +137,54 @@ export class PageReader {
         return this.composition;
     }
 
+    /**
+     * The reading's held focal, shown ONCE above the title.
+     *
+     * A focal is a thing to rest on, not a series, so the Page states it
+     * at the head rather than placing it through the body. A Chapel icon
+     * or a personal image renders as itself; a standard glyph renders as
+     * its mark; the rose names itself, since it is a generated window
+     * rather than a character.
+     */
+    _buildFocal(focal) {
+        if (!focal) return null;
+        const el = document.createElement('div');
+        el.className = `page-focal focal-${focal.type}`;
+        el.setAttribute('aria-hidden', 'true');
+
+        if (focal.type === 'personal' && focal.image) {
+            const img = document.createElement('img');
+            img.className = 'page-focal-image';
+            img.src = focal.image;
+            img.alt = '';
+            img.decoding = 'async';
+            el.appendChild(img);
+            return el;
+        }
+        if (focal.type === 'icon') {
+            // The Chapel's held icon: named rather than drawn, since its
+            // artwork is pinned and belongs to the Chapel's own surface.
+            el.textContent = '✛';
+            el.classList.add('is-mark');
+            return el;
+        }
+        if (focal.type === 'rose') {
+            el.textContent = '❂';
+            el.classList.add('is-mark');
+            return el;
+        }
+        const mark = FOCAL_MARKS[focal.glyph] || FOCAL_MARKS.breath;
+        el.textContent = mark;
+        el.classList.add('is-mark');
+        return el;
+    }
+
     _buildMasthead() {
         const head = document.createElement('header');
         head.className = 'page-masthead';
+        // The focal sits ABOVE the title — the first thing the page holds.
+        const focal = this._buildFocal(this.focal);
+        if (focal) head.appendChild(focal);
         if (this.title) {
             const h = document.createElement('h1');
             h.className = 'page-title';
@@ -250,11 +307,27 @@ export class PageReader {
         figures.forEach(fig => this._observer.observe(fig));
     }
 
-    /** Resolve a collection once; every figure on the page shares it. */
+    /** How many figures on this page reference a given collection. */
+    _figureDemand(collectionId) {
+        let n = 0;
+        for (const item of this.composition?.items || []) {
+            if (item.type === 'figure' && (item.collections || []).includes(collectionId)) n += 1;
+        }
+        return Math.max(1, n);
+    }
+
+    /**
+     * Resolve a collection once; every figure on the page shares it.
+     *
+     * The demand is passed along because a DYNAMIC field is sampled, not
+     * drawn from a pool: asking for as many samples as there are figures
+     * is what makes each figure a different state of the same system
+     * rather than the same frame repeated.
+     */
     async _worksFor(collectionId) {
         if (this._resolved.has(collectionId)) return this._resolved.get(collectionId);
         if (this._pending.has(collectionId)) return this._pending.get(collectionId);
-        const p = Promise.resolve(this.resolveCollection(collectionId))
+        const p = Promise.resolve(this.resolveCollection(collectionId, this._figureDemand(collectionId)))
             .then(works => {
                 const list = Array.isArray(works) ? works : [];
                 this._resolved.set(collectionId, list);
