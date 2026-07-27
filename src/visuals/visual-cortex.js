@@ -721,6 +721,15 @@ export class VisualCortex {
     }
 
     /**
+     * Is a Gallery host currently mounted? Read-only; the Chamber uses it
+     * to know whether a Page suspension actually stopped anything, so it
+     * restores exactly what it stopped and nothing more.
+     */
+    hasContinuousFieldHost() {
+        return !!this._continuousFieldHost;
+    }
+
+    /**
      * Apply the persisted display preference without making presenters read
      * global application state. Required credits are never suppressed.
      */

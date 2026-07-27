@@ -374,6 +374,30 @@ class App {
                 }
 
                 let visualMode = session.visualConfig?.visualMode || 'off';
+
+                // A SPATIAL reading runs no temporal visual machinery.
+                // Page Mode has no flash economy and no advance clock
+                // (PAGE-MODE-SPEC §4), so a session that opens as a page
+                // must not request interlocution consent, configure the
+                // flash economy, preload a flash pool, or start Gallery,
+                // attractor, Genesis, or focal engines — all of which
+                // would otherwise run invisibly beneath the page, burning
+                // CPU/GPU/network and contradicting the projection. The
+                // reader's visual SELECTION is untouched: switching back
+                // to the Stream restores it (see Chamber.togglePageMode).
+                const spatialLaunch = session.projection === 'page';
+                if (spatialLaunch && visualMode !== 'off') {
+                    session.visualConfig = {
+                        ...session.visualConfig,
+                        visualMode: 'off',
+                        // The reader's choice is REMEMBERED, not discarded:
+                        // it is what the Stream returns to if they leave the
+                        // page. Suspension is not deselection.
+                        suspendedVisualMode: visualMode
+                    };
+                    visualMode = 'off';
+                }
+
                 try {
                     // Consent is an interaction phase, not a loading task. It
                     // must resolve before the opaque preparation overlay can

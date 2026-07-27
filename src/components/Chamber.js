@@ -1138,8 +1138,16 @@ export class Chamber {
       this._pageAbort = null;
       this.pageReader?.destroy();
       this.pageReader = null;
+      this._resumeTemporalVisuals();
       return false;
     }
+
+    // The temporal presenters stop too. `visibility: hidden` only stops
+    // PAINTING — the Gallery's cadence clock, Genesis's growth loop, and
+    // the attractor's rAF keep running behind the page, contradicting the
+    // Page's "no advance clock" principle and burning CPU/GPU/network for
+    // imagery no one can see (red-team #4).
+    this._suspendTemporalVisuals();
 
     // A page is read, not raced: hold the stream while it is open.
     if (this.player?.state === 'playing' || this.player?.state === 'interlocuting') {
@@ -1200,6 +1208,50 @@ export class Chamber {
       return false;
     }
     return true;
+  }
+
+  /**
+   * Stop every TEMPORAL presenter while the Page holds the reading.
+   *
+   * Hiding the stream field stops painting, not running: each of these
+   * owns its own clock and would keep advancing behind the page. Only
+   * engines that are actually live are touched, and what was suspended is
+   * recorded so leaving the page restores exactly that and nothing more.
+   */
+  _suspendTemporalVisuals() {
+    if (this._temporalSuspended) return;
+    this._temporalSuspended = {
+      gallery: false,
+      klee: false
+    };
+    // The Gallery lives in the (singleton) cortex; releasing its host
+    // stops its cadence clock and drops its layers.
+    if (visualCortex.hasContinuousFieldHost?.()) {
+      this._galleryHost = this.container.querySelector('#chamber-continuous-field');
+      visualCortex.setContinuousFieldHost(null);
+      this._temporalSuspended.gallery = true;
+    }
+    // Genesis grows on its own loop.
+    if (this.kleeField?.pause) {
+      this.kleeField.pause();
+      this._temporalSuspended.klee = true;
+    }
+    // The flash economy is already inert: the Page pauses the Player, and
+    // flashes are Player-driven opportunities. Cancel any in-flight one so
+    // a committed presentation cannot paint over the page.
+    visualCortex.cancelPresentation('page-mode');
+  }
+
+  /** Restore exactly what _suspendTemporalVisuals stopped. */
+  _resumeTemporalVisuals() {
+    const suspended = this._temporalSuspended;
+    if (!suspended) return;
+    this._temporalSuspended = null;
+    if (suspended.gallery && this._galleryHost?.isConnected) {
+      visualCortex.setContinuousFieldHost(this._galleryHost);
+    }
+    this._galleryHost = null;
+    if (suspended.klee && this.kleeField?.resume) this.kleeField.resume();
   }
 
   /**
@@ -1638,6 +1690,10 @@ export class Chamber {
       this.pageReader = null;
     }
     this.pageModeActive = false;
+    // Suspension bookkeeping dies with the Chamber; the host below is
+    // released unconditionally anyway.
+    this._temporalSuspended = null;
+    this._galleryHost = null;
     // The Continuous Field lives in the (singleton) cortex, not the
     // Chamber; releasing the host stops it and drops its layers before the
     // Chamber DOM (and the host with it) is torn down.
