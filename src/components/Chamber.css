@@ -911,6 +911,29 @@
   pointer-events: none;
 }
 
+/* ─── The control bar condenses in Page Mode ───
+   A page has no playback and no elapsed time, so the transport controls
+   are not merely inert here — they are noise, and a play button that
+   correctly refuses is worse than an absent one because it invites a
+   click that silently fails. Only what a reader actually needs remains:
+   the Page toggle (to leave), the music control (a soundscape is ambient
+   and clock-independent, so it legitimately plays on), and the exit,
+   which must always stay reachable.
+
+   Purely presentational and driven by the class the toggle already sets,
+   so restoration on return is automatic and cannot desync from state. */
+.chamber-display.page-mode-on #play-pause-btn,
+.chamber-display.page-mode-on #time-display,
+.chamber-display.page-mode-on #visuals-toggle-btn,
+.chamber-display.page-mode-on #kaleidoscope-btn {
+  display: none;
+}
+
+/* With fewer controls the bar closes up rather than leaving gaps. */
+.chamber-display.page-mode-on .chamber-controls {
+  gap: var(--space-lg);
+}
+
 /* The toggle reads as engaged */
 .control-btn.page-mode-toggle.is-on {
   color: var(--color-light);

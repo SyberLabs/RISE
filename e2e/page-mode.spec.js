@@ -83,21 +83,37 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     // throw the reader back to the Stream).
     await page.keyboard.press('Space');
     await page.waitForTimeout(600);
-    // The Play button must be inert while the Page holds the reading.
+
+    // The transport is not merely inert while the Page holds the reading —
+    // it is GONE. A play button that correctly refuses is worse than an
+    // absent one, because it invites a click that silently fails. The
+    // control bar condenses to what a page actually needs, so the strong
+    // guarantee is now absence, and the guard behind it is still proven by
+    // the fact that nothing started the stream.
     await page.locator('#chamber-display').hover();
-    await page.locator('#play-pause-btn').click();
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(300);
 
     const held = await page.evaluate(() => {
         const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
         const host = document.querySelector('#chamber-page');
+        const vis = (sel) => {
+            const el = document.querySelector(sel);
+            return !!el && getComputedStyle(el).display !== 'none';
+        };
         return {
             state: ch?.player?.state,
             pageModeActive: ch?.pageModeActive === true,
             pageStillOpen: !host.hidden,
-            scrollTop: host.scrollTop
+            scrollTop: host.scrollTop,
+            playVisible: vis('#play-pause-btn'),
+            timeVisible: vis('#time-display'),
+            exitVisible: vis('#exit-btn')
         };
     });
+    // Transport hidden, but the way out always remains.
+    expect(held.playVisible).toBe(false);
+    expect(held.timeVisible).toBe(false);
+    expect(held.exitVisible).toBe(true);
     expect(held.state).not.toBe('playing');
     expect(held.state).not.toBe('interlocuting');
     expect(held.pageModeActive).toBe(true);

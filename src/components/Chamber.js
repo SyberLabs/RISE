@@ -109,6 +109,17 @@ export class Chamber {
     // (SPATIAL-CHAMBER-SPEC §3). The session is identical in every other
     // field; only the medium differs. The stream stays available behind
     // it — the in-session toggle returns to it at any time.
+    //
+    // PARKED SEAM — read before changing the visual-init path. Nothing in
+    // the UI currently sets `projection` to 'page': the orbital's
+    // two-choice threshold was built, then withdrawn pending the real
+    // Spatial Chamber, so in production this branch never runs and every
+    // session is 'stream'. The plumbing is kept deliberately (config
+    // default → beginSession payload → Session model → here), normalized
+    // so an unknown value is always 'stream', and it is exercised only by
+    // e2e/page-suspend.spec.js. Treat that test as the contract: if you
+    // change how visuals initialise, run it, because it is the only thing
+    // guarding this path from silent rot.
     if (this.session?.projection === 'page') {
       // Tracked so a Chamber destroyed during the delay cannot mount a
       // reader into detached DOM.
