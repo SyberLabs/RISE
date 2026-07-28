@@ -132,6 +132,39 @@ Under curation-only this check becomes strong rather than advisory: a pinned
 collection resolving to zero is unambiguously a defect, because nothing about
 it depends on what a remote tree holds today.
 
+**Built 2026-07-28** as `scripts/probe-collections.mjs` (`npm run
+probe:collections`). It resolves all 17 pinned collections through the real
+service — the same `resolveCollection` and `isDisplayable` a reader gets — and
+reports EMPTY, DEGRADED, or THROTTLED per collection. Current state: **341/341
+works resolve.**
+
+It is a script rather than a suite test on purpose. It issues real requests to
+four institutions, so in CI it would fail on any museum outage and train people
+to ignore it — the exact opposite of its purpose. The unit tests mock `fetch`
+and assert the CONTRACT; this asserts the WORLD, and the world is allowed to be
+briefly unavailable.
+
+Two lessons are baked in, both learned the hard way while building it:
+
+- **Pace the requests.** The first version probed 341 works in a tight loop,
+  tripped the Met's per-IP rate limit, and reported `chapel-resurrection` at
+  20/46 — manufacturing the very absence it exists to detect. Every missing
+  work was a Met pin; each resolved fine when asked alone.
+- **Distinguish CANNOT-ASK from IS-ABSENT.** The Met's block is total while it
+  holds (403 to every request) and lifts after ~45 seconds, so the count was
+  identical every run and read like a real defect. A retry inside that window
+  is refused identically. The probe now backs off past the window and reports a
+  single-institution shortfall as THROTTLED rather than as absence.
+
+A corollary worth stating: **the Met is the largest source, not the smallest** —
+127 works of 341, ahead of Cleveland (86), Rijks (66), and AIC (62). Nine of the
+eleven Atrium collections are 100% Met, so removing it would empty Plato,
+Socrates, Aristotle, Marcus Aurelius, Stoicism, Cicero, Diogenes, Demosthenes,
+and Rousseau. Its per-collection counts look small only because philosopher
+collections are inherently small. The Chapel, by contrast, is well diversified
+(crucifixion 23/25 non-Met, patriarchs 81/83). The concentration risk is the
+Atrium's philosophers, and it is a curatorial matter, not a provider defect.
+
 ---
 
 ## 6. The Collections IA
