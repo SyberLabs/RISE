@@ -33,16 +33,34 @@ const DOMAIN_CONFIG = Object.freeze({
 describe('Atrium record collections', () => {
   it('every curated id resolves to a real provider category', () => {
     const valid = new Set([
-      ...Object.keys(WIKIMEDIA_CATEGORIES),
       ...Object.keys(MUSEUM_CATEGORIES).map(id => `aic-${id}`),
       // Atrium-scoped subject categories (atr-*) are corpus content
       ...Object.keys(ATRIUM_CATEGORIES)
     ]);
 
+    // An EMPTY list is a real editorial answer under curation-only: the
+    // reading carries no sourced imagery and stands on its authored
+    // procedural visuals. Only the ids that ARE named must resolve.
     for (const [recordId, ids] of Object.entries(ATRIUM_RECORD_COLLECTIONS)) {
-      expect(Array.isArray(ids) && ids.length > 0, `${recordId} has no ids`).toBe(true);
+      expect(Array.isArray(ids), `${recordId} is not a list`).toBe(true);
       for (const id of ids) {
         expect(valid.has(id), `${recordId} names unknown category '${id}'`).toBe(true);
+      }
+    }
+  });
+
+  it('names no keyword-searched category', () => {
+    // CURATION-ONLY (SOURCE-CURATION-SPEC): every image the system can
+    // show is a work someone chose. The retired Wikimedia family was
+    // searched, not curated — an audit found it returning scratch files,
+    // topical noise, and in one case ('microscopy') nothing whatsoever,
+    // which reverent degradation then hid for months. No id here may
+    // resolve through that provider again.
+    const searched = new Set(Object.keys(WIKIMEDIA_CATEGORIES));
+    for (const [recordId, ids] of Object.entries(ATRIUM_RECORD_COLLECTIONS)) {
+      for (const id of ids) {
+        expect(searched.has(id), `${recordId} names searched category '${id}'`)
+          .toBe(false);
       }
     }
   });

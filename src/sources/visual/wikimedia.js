@@ -20,59 +20,40 @@ const MIN_DISPLAY_AREA = 360_000;
  * Curated categories for R.I.S.E. visual content
  * Based on diagram.txt catalog
  */
-export const WIKIMEDIA_CATEGORIES = {
-
-    'haeckel': {
-        name: 'Haeckel Biology',
-        category: 'Category:Kunstformen der Natur',
-        tags: ['natural', 'biological', 'symmetry']
-    },
-    'botany': {
-        name: 'Botanical Flora',
-        category: 'Category:Botanical illustrations',
-        tags: ['natural', 'biological', 'flora']
-    },
-    'anatomy': {
-        name: 'Historic Anatomy',
-        category: 'Category:Historic anatomical plates and drawings',
-        tags: ['anatomical', 'vitruvian', 'historical']
-    },
-    'astronomy': {
-        name: 'Celestial Mechanics',
-        category: 'Category:Astronomical diagrams',
-        tags: ['space', 'physics', 'cosmic']
-    },
-    'geometry': {
-        name: 'Geometric Proofs',
-        category: 'Category:Mathematical diagrams',
-        tags: ['geometric', 'mathematical', 'pattern']
-    },
-    'fractals': {
-        name: 'Fractal Patterns',
-        category: 'Category:Fractals',
-        tags: ['mathematical', 'recursive', 'complexity']
-    },
-    'microscopy': {
-        name: 'Microscopic Forms',
-        category: 'Category:Microscopic Cellular Forms',
-        tags: ['microscopic', 'cellular', 'biological']
-    },
-    'romantic': {
-        name: 'Romantic Landscapes',
-        category: 'Category:Romantic paintings',
-        tags: ['aesthetic', 'historical', 'sublime']
-    },
-    'sacred': {
-        name: 'Sacred Symmetry',
-        category: 'Category:Sacred geometry',
-        tags: ['geometric', 'spiritual', 'pattern', 'symmetry']
-    },
-    'solar': {
-        name: 'Solar Dynamics',
-        category: 'Category:Sun',
-        tags: ['solar', 'sun', 'astronomy', 'energy']
-    }
-};
+/**
+ * RETIRED — the public registry is empty by design.
+ *
+ * These ten categories were live keyword searches against Wikimedia
+ * category trees, and an audit on 2026-07-28 (Commons API, 40 members
+ * each) found the shape failing in every way it can:
+ *
+ *   microscopy  n=0 — the category does not exist on Commons, and had
+ *                     been silently returning nothing for its whole
+ *                     life. Reverent degradation did exactly what it
+ *                     promises and hid a dead dependency for months.
+ *   solar       Category:Sun is topical: an .ogg audio file, French
+ *               springs, the Luxor temple. Almost nothing is the sun.
+ *   sacred      contemporary hobbyist "sacred geometry"
+ *   geometry    1690625457877-image.png, 15brezinys-2.png — scratch files
+ *   fractals    amateur 3D renders; we GENERATE fractals, better
+ *   astronomy   a "Little of Earth" PNG series, not diagrams
+ *   botany      real plates mixed with colonial-era ethnographic material
+ *   haeckel     genuinely fine — and that is the trap. Its quality was
+ *   anatomy     an accident of what the tree held that week, not a
+ *   romantic    property we control. Worth PINNING, not searching.
+ *
+ * CURATION-ONLY (SOURCE-CURATION-SPEC): every image the system can show
+ * is a work someone chose. A category that cannot promise a good image
+ * does not promise one.
+ *
+ * The export and the provider both remain: Atrium content registers its
+ * own `atr-` categories through registerWikimediaCategoryResolver below,
+ * and resolveCategory consults those resolvers for ids absent from this
+ * registry. Emptying it retires the searched families without severing
+ * that extension point. (Those atr- categories are themselves searched
+ * and are the next tranche of this same work.)
+ */
+export const WIKIMEDIA_CATEGORIES = {};
 
 /**
  * Regex patterns for filtering out unwanted imagery

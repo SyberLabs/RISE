@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { MuseumProvider } from './museum.js';
-import { WikimediaProvider } from './wikimedia.js';
+import { WikimediaProvider, registerWikimediaCategoryResolver } from './wikimedia.js';
 
 describe('visual provider candidate selection', () => {
     it('draws Art Institute candidates without replacement', async () => {
@@ -34,13 +34,23 @@ describe('visual provider candidate selection', () => {
             license: 'Public domain'
         }));
 
+        // The searched WIKIMEDIA_CATEGORIES are retired, but the provider
+        // itself lives on to serve categories that CONTENT registers
+        // (registerWikimediaCategoryResolver). Register a test-local one
+        // rather than importing an Atrium module: the dependency arrow
+        // runs content → source, never source → content, and a test in
+        // the sources tree must not invert it.
+        const CATEGORY = 'test-registered-category';
+        registerWikimediaCategoryResolver(id => id === CATEGORY
+            ? { name: 'Test', category: 'Category:Test', tags: [] }
+            : null);
         const results = [];
         for (let index = 0; index < 3; index++) {
-            results.push(await provider.getRandom({ category: 'geometry' }));
+            results.push(await provider.getRandom({ category: CATEGORY }));
         }
 
         expect(new Set(results.map(result => result.id)).size).toBe(3);
-        expect(results.every(result => result.metadata.categoryId === 'geometry')).toBe(true);
+        expect(results.every(result => result.metadata.categoryId === CATEGORY)).toBe(true);
     });
 
     it('rejects clearly undersized rasters without penalizing scalable vectors', () => {

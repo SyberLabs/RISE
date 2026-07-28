@@ -78,7 +78,10 @@ const ARCHETYPES = [
           // plays — for the non-dual archetype, sound made visible
           procedural: ['fractal', 'harmonograph'],
           harmonographClimate: 'auto',
-          sourced: ['geometry', 'fractals'],
+          // Curation-only: the searched 'geometry'/'fractals' categories
+          // are retired, and we already GENERATE fractals — better, and
+          // without asking a remote tree what it holds today.
+          sourced: [],
           frequency: 0.25,
           duration: VISUAL_PRESENCE_DEFAULT_MS
         }
@@ -103,9 +106,12 @@ const ARCHETYPES = [
           sourceFamily: 'blend',
           procedural: ['klee'],
           kleePreset: 'harmonic',
-          // Ukiyo-e joins the organic-form study: the master line,
-          // Hokusai beside Haeckel
-          sourced: ['haeckel', 'botany', 'aic-ukiyoe'],
+          // The master line carries the organic-form study alone.
+          // Haeckel's plates were genuinely fine, but they came from a
+          // SEARCHED category whose quality was an accident of what the
+          // tree held that week — so they are retired with the rest and
+          // await pinning as chosen plates (SOURCE-CURATION-SPEC).
+          sourced: ['aic-ukiyoe'],
           frequency: 0.2,
           duration: VISUAL_PRESENCE_DEFAULT_MS
         }

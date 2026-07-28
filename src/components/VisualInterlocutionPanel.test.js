@@ -13,9 +13,14 @@ import { MemoryCore } from '../core/memory.js';
 import { endVisualInterlocutionSession } from '../core/visual-safety.js';
 
 // SOL Dawn's visual preset, as it arrives via `...visualConfig` spread
+// SOL's dawn preset once sourced the searched 'solar' category. That
+// family is retired (SOURCE-CURATION-SPEC) and the sequence now reads
+// with the Light Field, so the fixture carries a collection that still
+// exists — the invariant under test is that a NESTED preset survives
+// construction and is visible in the UI, not which category it names.
 const SOL_DAWN_CONFIG = {
     visualMode: 'interlocution',
-    interlocution: { frequency: 0.2, duration: 120, sourced: ['solar'], procedural: [] }
+    interlocution: { frequency: 0.2, duration: 120, sourced: ['aic-landscapes'], procedural: [] }
 };
 
 function makePanel(options = {}) {
@@ -290,22 +295,22 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         expect(config.visualMode).toBe('interlocution');
         expect(config.interlocution.frequency).toBe(0.2);
         expect(config.interlocution.duration).toBe(150);
-        expect(config.interlocution.sourced).toEqual(['solar']);
+        expect(config.interlocution.sourced).toEqual(['aic-landscapes']);
 
-        // The preset is visible: the solar checkbox exists and is checked
-        const solarCheckbox = container.querySelector('[data-sourced="solar"]');
-        expect(solarCheckbox).not.toBeNull();
-        expect(solarCheckbox.checked).toBe(true);
+        // The preset is visible: the checkbox exists and is checked
+        const presetCheckbox = container.querySelector('[data-sourced="aic-landscapes"]');
+        expect(presetCheckbox).not.toBeNull();
+        expect(presetCheckbox.checked).toBe(true);
 
         panel.destroy();
         container.remove();
     });
 
     it('still honors legacy flattened options', () => {
-        const { panel, container } = makePanel({ frequency: 0.4, sourced: ['haeckel'], procedural: ['klee'] });
+        const { panel, container } = makePanel({ frequency: 0.4, sourced: ['aic-ukiyoe'], procedural: ['klee'] });
         const config = panel.getConfig();
         expect(config.interlocution.frequency).toBe(0.4);
-        expect(config.interlocution.sourced).toEqual(['haeckel']);
+        expect(config.interlocution.sourced).toEqual(['aic-ukiyoe']);
         expect(config.interlocution.procedural).toEqual(['klee']);
         panel.destroy();
         container.remove();
@@ -451,7 +456,7 @@ describe('VisualInterlocutionPanel preset visibility', () => {
 
         expect(panel.getConfig().interlocution).toMatchObject({
             sourceFamily: 'blend',
-            sourced: ['solar']
+            sourced: ['aic-landscapes']
         });
         expect(panel.getConfig().interlocution.procedural).toContain('klee');
 
@@ -605,8 +610,8 @@ describe('VisualInterlocutionPanel preset visibility', () => {
 
         const config = panel.getConfig();
         expect(config.visualMode).toBe('interlocution');
-        expect(config.interlocution.sourced).toEqual(['solar']);
-        expect(container.querySelector('[data-sourced="solar"]').checked).toBe(true);
+        expect(config.interlocution.sourced).toEqual(['aic-landscapes']);
+        expect(container.querySelector('[data-sourced="aic-landscapes"]').checked).toBe(true);
 
         panel.destroy();
         container.remove();
@@ -941,7 +946,7 @@ describe('From-this-reading pill ownership across source changes (2026-07 leak f
         panel.setConfig(launch(['blueprint:beam-engine'], ['blueprint:beam-engine']));
         expect(panel.config.interlocution.atriumCollections).toEqual(['blueprint:beam-engine']);
         // a plain source (Yoga Sutras) that carries no collections
-        panel.setConfig({ visualMode: 'interlocution', interlocution: { sourced: ['solar'], procedural: [] } });
+        panel.setConfig({ visualMode: 'interlocution', interlocution: { sourced: ['aic-landscapes'], procedural: [] } });
         expect(panel.config.interlocution.atriumCollections).toEqual([]);
     });
 

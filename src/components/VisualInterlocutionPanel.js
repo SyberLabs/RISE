@@ -638,15 +638,12 @@ export class VisualInterlocutionPanel {
             { id: 'rose', name: 'Rose', icon: '❂', dynamic: true, description: 'Procedural rose window — stained glass or psalm-lettered field' }
         ];
 
-        // Universal Diagrams — generated from the Wikimedia provider registry
-        // so the panel always shows exactly the categories that exist
-        // (presets like SOL's 'solar' stay visible and modifiable).
-        // Bare ids that the cortex legacy-routes to the Art Institute are
-        // excluded here (only 'romantic' collides) — they live in the AIC
-        // section below under their namespaced 'aic-' ids.
-        const LEGACY_AIC_IDS = ['renaissance', 'romantic', 'impressionism', 'photography', 'surrealism', 'landscapes'];
+        // Universal Diagrams — RETIRED (SOURCE-CURATION-SPEC). The
+        // registry is empty by design, so this resolves to nothing and
+        // the section does not render. Kept as a generated list rather
+        // than a deleted block because the shape is what a future PINNED
+        // diagram family would use; nothing here searches any more.
         const diagramCategories = Object.entries(WIKIMEDIA_CATEGORIES)
-            .filter(([id]) => !LEGACY_AIC_IDS.includes(id))
             .map(([id, cat]) => ({ id, name: cat.name }));
 
         // Art Institute of Chicago — generated from the museum provider
@@ -1181,9 +1178,10 @@ export class VisualInterlocutionPanel {
                             </div>
                         </div>
 
-                        <!-- 2. Universal Diagrams -->
+                        <!-- 2. Universal Diagrams — retired; hidden while
+                             the registry is empty (SOURCE-CURATION-SPEC) -->
                         <div class="vi-accordion ${this.activeAccordions.includes('universal') ? 'active' : ''}"
-                            ${sourceFamily === 'collections' || sourceFamily === 'blend' ? '' : 'hidden'}>
+                            ${diagramCategories.length && (sourceFamily === 'collections' || sourceFamily === 'blend') ? '' : 'hidden'}>
                             <button type="button" class="vi-accordion-header" data-toggle="universal">
                                 <span>Universal Diagrams</span>
                                 <span class="vi-chevron">${this.activeAccordions.includes('universal') ? '▲' : '▼'}</span>
