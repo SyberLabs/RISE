@@ -28,6 +28,9 @@ src/scripts/ingest_private.js
 # Netlify
 .netlify/
 
+# Agent tooling — local settings and session state, never shared
+.claude/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
