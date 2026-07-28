@@ -43,133 +43,48 @@ import { registerWikimediaCategoryResolver } from '../../sources/visual/wikimedi
  * their own name. Container categories (Socrates, Plato) hold only
  * subcategories and would yield nothing — hence "Plato in art".
  */
-export const ATRIUM_CATEGORIES = freezeManifest({
-  // ── Philosophy: the figures as depicted ──
-  'atr-plato-art': {
-    name: 'Plato in Art',
-    category: 'Category:Plato in art',
-    probedFiles: 50, // files returned at probe time, NOT a quality claim
-    tags: ['philosophy', 'portrait', 'reception']
-  },
-  'atr-socrates-art': {
-    name: 'Socrates in Art',
-    category: 'Category:Socrates in art',
-    probedFiles: 50, // files returned at probe time, NOT a quality claim
-    tags: ['philosophy', 'portrait', 'reception']
-  },
-  'atr-aristotle-art': {
-    name: 'Aristotle in Art',
-    category: 'Category:Aristotle in art',
-    probedFiles: 23, // files returned at probe time, NOT a quality claim
-    tags: ['philosophy', 'portrait', 'reception']
-  },
-  'atr-aristotle': {
-    name: 'Aristotle',
-    category: 'Category:Aristotle',
-    probedFiles: 50, // files returned at probe time, NOT a quality claim
-    tags: ['philosophy', 'manuscript', 'reception']
-  },
-  'atr-cicero-art': {
-    name: 'Cicero in Art',
-    category: 'Category:Cicero in art',
-    probedFiles: 48, // files returned at probe time, NOT a quality claim
-    tags: ['philosophy', 'portrait', 'rome']
-  },
-  'atr-heraclitus': {
-    name: 'Heraclitus',
-    category: 'Category:Heraclitus',
-    probedFiles: 50, // files returned at probe time, NOT a quality claim
-    tags: ['philosophy', 'portrait', 'presocratic']
-  },
-  'atr-pythagoras': {
-    name: 'Pythagoras',
-    category: 'Category:Pythagoras',
-    probedFiles: 50, // files returned at probe time, NOT a quality claim
-    tags: ['philosophy', 'mathematics', 'presocratic']
-  },
-  'atr-empedocles': {
-    name: 'Empedocles',
-    category: 'Category:Empedocles',
-    probedFiles: 21, // files returned at probe time, NOT a quality claim
-    tags: ['philosophy', 'presocratic']
-  },
-  'atr-stoicism': {
-    name: 'Stoicism',
-    category: 'Category:Stoicism',
-    probedFiles: 37, // files returned at probe time, NOT a quality claim
-    tags: ['philosophy', 'hellenistic']
-  },
-  'atr-marcus-aurelius': {
-    name: 'Marcus Aurelius',
-    category: 'Category:Marcus Aurelius',
-    probedFiles: 50, // files returned at probe time, NOT a quality claim
-    tags: ['philosophy', 'portrait', 'rome']
-  },
-  'atr-plotinus': {
-    name: 'Plotinus',
-    category: 'Category:Plotinus',
-    probedFiles: 24, // files returned at probe time, NOT a quality claim
-    tags: ['philosophy', 'late-antiquity']
-  },
+/**
+ * Atrium-scoped Wikimedia categories — RETIRED.
+ *
+ * The registry is empty by design. These twenty categories were live
+ * keyword searches against Commons category trees, and the audit of
+ * 2026-07-21 recorded in this file's history established that the
+ * approach is structurally unsound rather than merely miscounted:
+ * Commons categories are FILING, not curation. "Category:Thomas Paine"
+ * correctly includes his death mask, a modern pub sign bearing his
+ * name, and a NASA Apollo 13 staff photo tagged for a Rights of Man
+ * quotation.
+ *
+ * A second audit (2026-07-28) confirmed it and found the failure hides
+ * from measurement. By file type these pools look strong — Plato in art
+ * scores 91% raster, Marcus Aurelius 93% — but the rasters are coins,
+ * genealogical charts, a Brussels building facade, an Esperanto book
+ * cover, and a Wellcome engraving of a woman with a bird on her head.
+ * The earlier audit put it exactly: FILENAME PLAUSIBILITY IS NOT IMAGE
+ * QUALITY, and atr-james-watt scores clean on every automated metric
+ * available while remaining poor on sight.
+ *
+ * CURATION-ONLY (SOURCE-CURATION-SPEC): every image the system can show
+ * is a work someone chose. The successor already exists and is the only
+ * survivor — src/content/atrium/imagery/collections.js holds eleven
+ * PINNED collections naming museum accessions with artist, title, and
+ * date (David's Death of Socrates, Testa's Plato's Symposium). The
+ * cortex checks pinned collections BEFORE this resolver, so the six ids
+ * that existed in both registries were already resolving to real works;
+ * emptying this one removes the shadow, not the imagery.
+ *
+ * The module and its registration seam remain so the extension point —
+ * content registering categories with a provider, the dependency arrow
+ * pointing content → source and never the reverse — survives for
+ * whatever is pinned next.
+ */
+export const ATRIUM_CATEGORIES = freezeManifest({});
 
-  // ── History: the events, documents, and actors themselves ──
-  'atr-french-revolution': {
-    name: 'French Revolution',
-    category: 'Category:French Revolution',
-    probedFiles: 50, // files returned at probe time, NOT a quality claim
-    tags: ['history', 'revolution', 'print']
-  },
-  'atr-bastille': {
-    name: 'The Bastille',
-    category: 'Category:Bastille',
-    probedFiles: 46, // files returned at probe time, NOT a quality claim
-    tags: ['history', 'revolution', 'architecture']
-  },
-  'atr-rights-of-man': {
-    name: 'Declaration of the Rights of Man',
-    category: 'Category:Declaration of the Rights of Man and of the Citizen',
-    probedFiles: 30, // files returned at probe time, NOT a quality claim
-    tags: ['history', 'document', 'revolution']
-  },
-  'atr-haitian-revolution': {
-    name: 'Haitian Revolution',
-    category: 'Category:Haitian Revolution',
-    probedFiles: 50, // files returned at probe time, NOT a quality claim
-    tags: ['history', 'revolution', 'emancipation']
-  },
-  'atr-louverture': {
-    name: 'Toussaint Louverture',
-    category: 'Category:Toussaint Louverture',
-    probedFiles: 50, // files returned at probe time, NOT a quality claim
-    tags: ['history', 'portrait', 'emancipation']
-  },
-  'atr-us-declaration': {
-    name: 'US Declaration of Independence',
-    category: 'Category:United States Declaration of Independence',
-    probedFiles: 50, // files returned at probe time, NOT a quality claim
-    tags: ['history', 'document', 'revolution']
-  },
-  'atr-thomas-paine': {
-    name: 'Thomas Paine',
-    category: 'Category:Thomas Paine',
-    probedFiles: 49, // files returned at probe time, NOT a quality claim
-    tags: ['history', 'portrait', 'pamphlet']
-  },
-  'atr-rousseau': {
-    name: 'Jean-Jacques Rousseau',
-    category: 'Category:Jean-Jacques Rousseau',
-    probedFiles: 50, // files returned at probe time, NOT a quality claim
-    tags: ['history', 'portrait', 'enlightenment']
-  },
-  'atr-james-watt': {
-    name: 'James Watt',
-    category: 'Category:James Watt',
-    probedFiles: 50, // files returned at probe time, NOT a quality claim
-    tags: ['history', 'portrait', 'industry']
-  }
-});
-
-/** Atrium category ids are namespaced so they never collide with providers. */
+/**
+ * Atrium ids are namespaced so they never collide with providers. This
+ * outlived the searched registry: the PINNED collections share the same
+ * `atr-` namespace, so the predicate still answers for real imagery.
+ */
 export function isAtriumCategoryId(id) {
   return typeof id === 'string' && id.startsWith('atr-');
 }

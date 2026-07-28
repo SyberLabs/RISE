@@ -13,6 +13,7 @@
 import { WIKIMEDIA_CATEGORIES } from '../sources/visual/wikimedia.js';
 import { MUSEUM_CATEGORIES } from '../sources/visual/museum.js';
 import { ATRIUM_CATEGORIES } from '../content/atrium/atrium-categories.js';
+import { ATRIUM_PINNED_COLLECTIONS } from '../content/atrium/imagery/collections.js';
 import { MemoryCore } from '../core/memory.js';
 import { ATTRACTOR_SYSTEMS, ATTRACTOR_PALETTES } from '../visuals/attractor.js';
 import { escapeHtml, safeUrl } from '../core/sanitize.js';
@@ -944,10 +945,16 @@ export class VisualInterlocutionPanel {
                                     return `${name(freed)} · ${name(empire)}`;
                                 }
                                 if (id.startsWith('atr-')) {
-                                    // Atrium-scoped subject categories carry
+                                    // Atrium-scoped subject collections carry
                                     // their own names; they are corpus content
-                                    // and never appear in the browsable list
-                                    return ATRIUM_CATEGORIES[id]?.name || id;
+                                    // and never appear in the browsable list.
+                                    // The PINNED registry is the live one —
+                                    // the searched categories are retired, so
+                                    // asking it first is what keeps a chip
+                                    // reading "Aristotle" and not "atr-aristotle".
+                                    return ATRIUM_PINNED_COLLECTIONS[id]?.name
+                                        || ATRIUM_CATEGORIES[id]?.name
+                                        || id;
                                 }
                                 if (id.startsWith('chapel-gospel-')) {
                                     // Pericope collections: title-case the

@@ -157,6 +157,36 @@ grouping should be designed against what actually remains.
 4. **Regroup the panel** (§6).
 5. **Then** the source expansion (NASA and beyond) enters as pinned works.
 
+### Tranche 2 — the Atrium's atr- categories (DONE, 2026-07-28)
+
+The twenty `atr-` categories were searched too, and are retired. Two
+things made this smaller and clearer than expected:
+
+- **A successor already existed.** `imagery/collections.js` holds eleven
+  PINNED collections naming museum accessions with artist, title, and
+  date — David's *Death of Socrates*, Testa's *Plato's Symposium*. Six
+  ids lived in BOTH registries, and the cortex checks pinned first, so
+  those were already resolving to real works. Emptying the searched
+  registry removed a shadow, not imagery.
+- **A prior audit (2026-07-21) had already reached this conclusion** and
+  marked the module deprecated, recording the sharpest statement of the
+  problem: *Commons categories are FILING, not curation*, and *filename
+  plausibility is not image quality*.
+
+That last line corrected this pass's own method. A file-type audit
+scored these pools at 90%+ "artwork" — Plato in art 91%, Marcus Aurelius
+93% — which looked like grounds to keep them. Inspecting the actual
+titles showed the rasters were coins, genealogical charts, a Brussels
+building facade, an Esperanto book cover, and a Wellcome engraving of a
+woman with a bird on her head. **The metric was measuring file
+extensions and calling it curation.** Any future source audit must look
+at what the images ARE, not at what the filenames suggest.
+
+No reading lost imagery: every affected record was already overridden by
+`imageryPlanFor` (conceptual → fractal, liberation → the Freedom field,
+mechanism → blueprint), and all 44 records still resolve to either
+pinned works or a procedural engine.
+
 ---
 
 ## 8. Invariants

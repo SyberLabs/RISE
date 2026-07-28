@@ -13,6 +13,7 @@ import {
 import { WIKIMEDIA_CATEGORIES } from '../../sources/visual/wikimedia.js';
 import { MUSEUM_CATEGORIES } from '../../sources/visual/museum.js';
 import { ATRIUM_CATEGORIES } from './atrium-categories.js';
+import { ATRIUM_PINNED_COLLECTIONS } from './imagery/collections.js';
 import { PHILOSOPHY_CORPUS } from './philosophy.js';
 import { HISTORY_CORPUS } from './history.js';
 
@@ -34,8 +35,11 @@ describe('Atrium record collections', () => {
   it('every curated id resolves to a real provider category', () => {
     const valid = new Set([
       ...Object.keys(MUSEUM_CATEGORIES).map(id => `aic-${id}`),
-      // Atrium-scoped subject categories (atr-*) are corpus content
-      ...Object.keys(ATRIUM_CATEGORIES)
+      // Atrium-scoped subject collections (atr-*) are corpus content.
+      // The searched registry is retired and empty; the PINNED
+      // collections are what an atr- id now resolves to.
+      ...Object.keys(ATRIUM_CATEGORIES),
+      ...Object.keys(ATRIUM_PINNED_COLLECTIONS)
     ]);
 
     // An EMPTY list is a real editorial answer under curation-only: the

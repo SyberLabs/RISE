@@ -37,18 +37,18 @@ export const ATRIUM_RECORD_COLLECTIONS = freezeManifest({
   // Cosmological and mathematical traditions read against the
   // diagrammatic and astronomical record.
   'ph-school-milesian': [],
-  'ph-tradition-pythagorean': ['atr-pythagoras'],
+  'ph-tradition-pythagorean': [],
   'ph-tradition-neopythagorean': [],
   'ph-school-eleatic': [],
   'ph-school-atomism': [],
-  'ph-tradition-pluralists': ['atr-empedocles'],
-  'ph-thinker-heraclitus': ['atr-heraclitus'],
+  'ph-tradition-pluralists': [],
+  'ph-thinker-heraclitus': [],
 
   // Classical Athens and its successors: the human figure and the
   // Old Master tradition that carried these texts forward.
-  'ph-tradition-socratic': ['atr-socrates-art', 'aic-oldmasters'],
-  'ph-thinker-plato': ['atr-plato-art', 'aic-oldmasters'],
-  'ph-thinker-aristotle': ['atr-aristotle-art', 'atr-aristotle'],
+  'ph-tradition-socratic': ['aic-oldmasters'],
+  'ph-thinker-plato': ['aic-oldmasters'],
+  'ph-thinker-aristotle': ['atr-aristotle'],
   'ph-school-peripatetic': [],
   'ph-movement-sophistic': ['aic-portraits'],
 
@@ -58,7 +58,7 @@ export const ATRIUM_RECORD_COLLECTIONS = freezeManifest({
   'ph-school-epicurean': ['aic-landscapes'],
 
   // Late antiquity: light, emanation, and the sacred image.
-  'ph-thinker-plotinus': ['atr-plotinus'],
+  'ph-thinker-plotinus': [],
   'ph-school-athenian-neoplatonism': [],
   'ph-school-alexandrian-neoplatonism': [],
   'ph-tradition-iamblichean': [],
@@ -75,18 +75,18 @@ export const ATRIUM_RECORD_COLLECTIONS = freezeManifest({
   // collection to replace it with. Pinning one is future curation.
   //
   // Founding documents: the portrait tradition that framed their authors.
-  'hist-us-declaration': ['atr-us-declaration', 'aic-portraits'],
-  'hist-rights-man': ['atr-rights-of-man', 'atr-french-revolution'],
+  'hist-us-declaration': ['aic-portraits'],
+  'hist-rights-man': ['atr-french-revolution'],
   'hist-rights-woman': ['aic-portraits'],
   'hist-us-bill-rights': ['aic-portraits'],
   'hist-social-contract': ['atr-rousseau', 'aic-portraits'],
-  'hist-common-sense': ['atr-thomas-paine', 'aic-portraits'],
+  'hist-common-sense': ['aic-portraits'],
 
   // Insurrection and its ground.
   'hist-bastille': ['atr-bastille', 'atr-french-revolution'],
-  'hist-haitian-uprising': ['atr-haitian-revolution', 'atr-louverture'],
-  'hist-haiti-independence': ['atr-haitian-revolution', 'aic-landscapes'],
-  'hist-haiti-constitution-1801': ['atr-louverture', 'atr-haitian-revolution'],
+  'hist-haitian-uprising': [],
+  'hist-haiti-independence': ['aic-landscapes'],
+  'hist-haiti-constitution-1801': [],
   'hist-lexington-concord': ['aic-landscapes'],
   'hist-boston-massacre': ['aic-portraits'],
 
@@ -99,7 +99,7 @@ export const ATRIUM_RECORD_COLLECTIONS = freezeManifest({
   'hist-brazil-independence': ['aic-landscapes', 'aic-portraits'],
 
   // Industry and empire: the machines and treaties that framed the era.
-  'hist-watt-patent': ['atr-james-watt'],
+  'hist-watt-patent': [],
   'hist-water-frame': [],
   'hist-seven-years-war': ['aic-landscapes'],
   'hist-treaty-paris-1763': ['aic-oldmasters']
