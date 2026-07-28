@@ -35,10 +35,22 @@
  * as a suite rather than a repetition:
  *   1. Genesis                  — the origin of a system
  *   2. Attractor                — the space of possibility
- *   3. Fractal, behind-stream   — the words stay, the flames breathe beneath
- *   4. Neural, behind-stream    — the model as living substrate
- *   5. Impressionist collections — Monet's own canvases, behind-stream
- *   6. Klee + collections blend — full-frame, the co-creative finale
+ *   3. Fractal, Gallery         — the flames breathe as one continuous field
+ *   4. Neural, Gallery          — the model as living substrate
+ *   5. Impressionist collections — Monet's own canvases, in Gallery
+ *   6. Harmonograph, full-frame — the pendulum tracing its own path
+ *
+ * PRESENTATION
+ * ────────────
+ * The interlocution sequences read in GALLERY (a persistent crossfading
+ * field) rather than behind-stream flashes. Her writing argues by
+ * sustained development rather than by punctuation, and a field that
+ * stays present suits that; imagery of complete works especially, since
+ * a canvas cannot be entered in a 1400ms flash.
+ *
+ * ViFlow is the deliberate exception and stays full-frame: its 200ms
+ * harmonograph flashes ARE the pendulum's trace, and the passage argues
+ * against pre-rendered continuity.
  */
 
 export const VAULT_A_SEQUENCES = [
@@ -223,13 +235,18 @@ giving users the freedom | to focus on aspects | of the creative process | in wh
       // arousal. Her prose swings 0.5–1.0 in valence, so this reads as
       // movement across an argument rather than a constant tint.
       livingText: { enabled: true, intensity: 0.7 },
+      // Gallery rather than behind-stream: the argument unfolds slowly
+      // from individuation toward mentorship, and a persistent field
+      // sustains one continuous thought where flashes would punctuate it
+      // into separate ones.
       interlocution: {
         sourceFamily: 'procedural',
         procedural: ['fractal'],
         sourced: [],
         frequency: 0.42,
         duration: 1000,
-        presentation: 'behind-stream',
+        presentation: 'continuous',
+        galleryCadence: 0.4,
         streamGlass: true
       }
     },
@@ -321,13 +338,17 @@ The autonomous | and mentorship roles | need not be conflicting.`
       // arousal. Her prose swings 0.5–1.0 in valence, so this reads as
       // movement across an argument rather than a constant tint.
       livingText: { enabled: true, intensity: 0.7 },
+      // Gallery rather than behind-stream: the neural field reads as a
+      // living substrate the criteria rest on, which asks to be present
+      // continuously rather than to appear and withdraw.
       interlocution: {
         sourceFamily: 'procedural',
         procedural: ['neural'],
         sourced: [],
         frequency: 0.42,
         duration: 1000,
-        presentation: 'behind-stream',
+        presentation: 'continuous',
+        galleryCadence: 0.4,
         streamGlass: true
       }
     },
@@ -424,13 +445,20 @@ and fostering independence— | that is, | helping the user | to develop creativ
       // Pure collections: the passage is about Monet's own canvases, so
       // the imagery is Monet and his neighbours rather than a procedural
       // field standing beside them.
+      //
+      // Gallery rather than behind-stream: the passage is literally about
+      // being taken "into the painting," and a flash cannot be entered.
+      // A crossfading field holds each canvas whole and long enough to be
+      // looked at. Cadence sits contemplative — Monet recorded "what is
+      // seen rather than what is known," which asks for dwelling.
       interlocution: {
         sourceFamily: 'collections',
         procedural: [],
         sourced: ['aic-impressionism', 'aic-landscapes'],
         frequency: 0.42,
         duration: 1400,
-        presentation: 'behind-stream',
+        presentation: 'continuous',
+        galleryCadence: 0.35,
         streamGlass: true
       }
     },

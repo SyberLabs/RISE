@@ -83,15 +83,27 @@ describe('Vault A sensory design', () => {
     expect(modes).toContain('genesis');
     expect(modes).toContain('attractor');
 
-    const behindStream = VAULT_A_SEQUENCES.filter(
-      s => s.visualConfig.interlocution?.presentation === 'behind-stream'
+    // The interlocution sequences read in Gallery: a persistent field
+    // suits prose that argues by sustained development. Imagery that
+    // sits beneath the reading still needs glass, whichever surface
+    // carries it, or the text loses legibility over the picture.
+    const underText = VAULT_A_SEQUENCES.filter(
+      s => s.visualConfig.interlocution?.presentation === 'continuous'
+        || s.visualConfig.interlocution?.presentation === 'behind-stream'
     );
-    expect(behindStream.length).toBeGreaterThanOrEqual(3);
-    // Behind-stream imagery needs dwell time to register beneath the text
-    for (const seq of behindStream) {
-      expect(seq.visualConfig.interlocution.duration, seq.id)
-        .toBeGreaterThanOrEqual(1000);
+    expect(underText.length).toBeGreaterThanOrEqual(3);
+    for (const seq of underText) {
       expect(seq.visualConfig.interlocution.streamGlass, seq.id).toBe(true);
+    }
+
+    // Gallery has its own temporal axis; leaving it unstated would let a
+    // reading inherit a pace nobody chose for it.
+    for (const seq of underText) {
+      if (seq.visualConfig.interlocution.presentation !== 'continuous') continue;
+      const cadence = seq.visualConfig.interlocution.galleryCadence;
+      expect(typeof cadence, seq.id).toBe('number');
+      expect(cadence, seq.id).toBeGreaterThan(0);
+      expect(cadence, seq.id).toBeLessThanOrEqual(1);
     }
   });
 
