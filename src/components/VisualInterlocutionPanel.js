@@ -649,9 +649,23 @@ export class VisualInterlocutionPanel {
 
         // Art Institute of Chicago — generated from the museum provider
         // registry; ids namespaced 'aic-*' so they never collide with
-        // Wikimedia category names
+        // Wikimedia category names.
+        //
+        // Grouped by the registry's own `kind`, because a reader picking
+        // imagery is asking one of two different questions: in what
+        // MANNER was this painted, or what is IN the picture. A flat list
+        // of ten made them choose without that frame. The split is the
+        // museum taxonomy's, not ours — so a new category lands under its
+        // heading without this file being touched.
         const aicCategories = Object.entries(MUSEUM_CATEGORIES)
-            .map(([id, cat]) => ({ id: `aic-${id}`, name: cat.name }));
+            .map(([id, cat]) => ({ id: `aic-${id}`, name: cat.name, kind: cat.kind }));
+        const aicGroups = [
+            { kind: 'style', label: 'By manner', items: aicCategories.filter(c => c.kind === 'style') },
+            { kind: 'subject', label: 'By subject', items: aicCategories.filter(c => c.kind === 'subject') },
+            // A category with no `kind` would silently vanish from the
+            // panel; give it a home rather than lose it.
+            { kind: 'other', label: 'Other', items: aicCategories.filter(c => c.kind !== 'style' && c.kind !== 'subject') }
+        ].filter(g => g.items.length);
 
         // (The Met section was retired: its public API serves ~750px
         // primaryImageSmall derivatives from pools too shallow to
@@ -1215,16 +1229,21 @@ export class VisualInterlocutionPanel {
                                 <span class="vi-chevron">${this.activeAccordions.includes('aic') ? '▲' : '▼'}</span>
                             </button>
                             <div class="vi-accordion-body" ${this.activeAccordions.includes('aic') ? '' : 'hidden'}>
-                                <div class="vi-checkbox-grid vi-checkbox-grid-2">
-                                    ${aicCategories.map(c => `
-                                        <label class="vi-checkbox">
-                                            <input type="checkbox"
-                                                ${this.config.interlocution.sourced.includes(c.id) ? 'checked' : ''}
-                                                data-sourced="${c.id}">
-                                            <span class="vi-checkbox-label">${c.name}</span>
-                                        </label>
-                                    `).join('')}
-                                </div>
+                                ${aicGroups.map(group => `
+                                    <div class="vi-collection-group" data-collection-group="${group.kind}">
+                                        <div class="vi-collection-group-label">${group.label}</div>
+                                        <div class="vi-checkbox-grid vi-checkbox-grid-2">
+                                            ${group.items.map(c => `
+                                                <label class="vi-checkbox">
+                                                    <input type="checkbox"
+                                                        ${this.config.interlocution.sourced.includes(c.id) ? 'checked' : ''}
+                                                        data-sourced="${c.id}">
+                                                    <span class="vi-checkbox-label">${c.name}</span>
+                                                </label>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                `).join('')}
                             </div>
                         </div>
 

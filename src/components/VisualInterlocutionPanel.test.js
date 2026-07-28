@@ -367,6 +367,47 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         container.remove();
     });
 
+    it('groups collections by manner and subject, losing none', () => {
+        // A reader picking imagery is asking one of two questions: in
+        // what MANNER was this painted, or what is IN the picture. The
+        // grouping comes from the museum registry's own `kind`, so the
+        // panel can never drift from that taxonomy.
+        const { panel, container } = makePanel({ ...SOL_DAWN_CONFIG });
+
+        const groups = [...container.querySelectorAll('[data-collection-group]')];
+        expect(groups.map(g => g.dataset.collectionGroup)).toEqual(['style', 'subject']);
+        for (const group of groups) {
+            expect(group.querySelector('.vi-collection-group-label').textContent.trim())
+                .toBeTruthy();
+        }
+
+        // Every category lands in exactly one group — a category with no
+        // `kind` would otherwise vanish from the UI silently, which is
+        // the failure mode this codebase is most prone to.
+        const grouped = groups.flatMap(g =>
+            [...g.querySelectorAll('[data-sourced]')].map(b => b.getAttribute('data-sourced')));
+        expect(new Set(grouped).size).toBe(grouped.length);
+        expect(new Set(grouped)).toEqual(
+            new Set(Object.keys(MUSEUM_CATEGORIES).map(id => `aic-${id}`)));
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('places each collection under the heading its registry kind names', () => {
+        const { panel, container } = makePanel({ ...SOL_DAWN_CONFIG });
+
+        for (const [id, cat] of Object.entries(MUSEUM_CATEGORIES)) {
+            const box = container.querySelector(`[data-sourced="aic-${id}"]`);
+            const group = box.closest('[data-collection-group]');
+            expect(group?.dataset.collectionGroup, `${id} is grouped wrongly`)
+                .toBe(cat.kind);
+        }
+
+        panel.destroy();
+        container.remove();
+    });
+
     it('an AIC preset is visible and checked (e.g. archetype with aic-oldmasters)', () => {
         const { panel, container } = makePanel({
             visualMode: 'interlocution',

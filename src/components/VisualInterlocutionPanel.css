@@ -329,6 +329,25 @@
     display: none;
 }
 
+/* Collections are grouped by the museum taxonomy's own distinction —
+   manner vs subject. The heading borrows the source-family label's
+   voice so the grouping reads as part of the panel rather than as a
+   new kind of control. */
+.vi-collection-group + .vi-collection-group {
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-shadow);
+}
+
+.vi-collection-group-label {
+    margin-bottom: var(--space-sm);
+    color: var(--color-fog);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
 /* Isolated Row (Enable Toggle) */
 .vi-row-isolated {
     margin-top: var(--space-xs);

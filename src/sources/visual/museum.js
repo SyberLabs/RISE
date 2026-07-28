@@ -34,6 +34,7 @@ const TYPE_PRINT = 18;
 export const MUSEUM_CATEGORIES = {
     'oldmasters': {
         name: 'Old Masters',
+        kind: 'style',
         clauses: [
             { term: { artwork_type_id: TYPE_PAINTING } },
             { range: { date_start: { gte: 1400, lte: 1700 } } }
@@ -42,6 +43,7 @@ export const MUSEUM_CATEGORIES = {
     },
     'impressionism': {
         name: 'Monet & the Impressionists',
+        kind: 'style',
         clauses: [
             { term: { artwork_type_id: TYPE_PAINTING } },
             {
@@ -58,6 +60,7 @@ export const MUSEUM_CATEGORIES = {
     },
     'postimpressionism': {
         name: 'Van Gogh & Post-Impressionists',
+        kind: 'style',
         clauses: [
             { term: { artwork_type_id: TYPE_PAINTING } },
             {
@@ -73,6 +76,7 @@ export const MUSEUM_CATEGORIES = {
     },
     'ukiyoe': {
         name: 'Masters of Ukiyo-e',
+        kind: 'style',
         clauses: [
             { term: { artwork_type_id: TYPE_PRINT } },
             {
@@ -92,6 +96,7 @@ export const MUSEUM_CATEGORIES = {
     // array unions both forms so neither population is forfeited.
     'landscapes': {
         name: 'Landscapes',
+        kind: 'subject',
         clauses: [
             { term: { artwork_type_id: TYPE_PAINTING } },
             { terms: { 'subject_titles.keyword': ['landscape', 'landscapes'] } }
@@ -100,12 +105,21 @@ export const MUSEUM_CATEGORIES = {
     },
     'portraits': {
         name: 'Portraits',
+        kind: 'subject',
         clauses: [
             { term: { artwork_type_id: TYPE_PAINTING } },
             { terms: { 'subject_titles.keyword': ['portrait', 'portraits'] } }
         ],
         tags: ['human', 'presence', 'cinematic']
     },
+    // `kind` makes the STYLISTIC vs SUBJECT distinction below into data
+    // rather than prose. It is what the Visual panel groups its
+    // Collections list by — a reader choosing imagery is asking either
+    // "in what manner was this painted" or "what is in the picture", and
+    // those are different questions. Deriving the grouping from here
+    // means the panel can never drift from the taxonomy the audit
+    // established; adding a category assigns its heading automatically.
+    //
     // STYLISTIC vs SUBJECT — the 2026-07-24 audit finding. Stylistic
     // categories (movement, roster, period, place) ride the museum
     // tradition's own taxonomy: AIC's metadata is authoritative and
@@ -120,21 +134,25 @@ export const MUSEUM_CATEGORIES = {
     // reviewed pins retained strictly as an operational fallback.
     'flowers': {
         name: 'Flowers',
+        kind: 'subject',
         clauses: null, // subject category — pinned-only
         tags: ['nature', 'still-life', 'contemplative']
     },
     'ships': {
         name: 'Ships',
+        kind: 'subject',
         clauses: null, // subject category — pinned-only
         tags: ['sea', 'voyage', 'cinematic']
     },
     'animals': {
         name: 'Animals',
+        kind: 'subject',
         clauses: null, // subject category — Audubon corpus + pin fallback
         tags: ['nature', 'creatures', 'contemplative']
     },
     'knights': {
         name: 'Knights',
+        kind: 'subject',
         clauses: null, // subject category — pinned-only
         tags: ['heraldic', 'historical', 'cinematic']
     }

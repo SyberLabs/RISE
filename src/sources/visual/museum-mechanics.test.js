@@ -150,6 +150,31 @@ describe('museum pool mechanics', () => {
         }
     });
 
+    it('every category declares what kind it is', () => {
+        // `kind` is what the Visual panel groups Collections by. A
+        // category without one would still resolve imagery but would
+        // fall into the panel's catch-all heading — visible, but filed
+        // under nothing a reader recognises. Declare it at the source.
+        for (const [id, category] of Object.entries(MUSEUM_CATEGORIES)) {
+            expect(['style', 'subject'], `'${id}' has no usable kind`)
+                .toContain(category.kind);
+        }
+    });
+
+    it('a subject category never rides live search', () => {
+        // The 2026-07-24 audit: subject tags are register-blind —
+        // `soldiers` tags the Passion, `flower` the Annunciation lily —
+        // and cut 79% of Flowers' and 90% of Animals' live surfaces.
+        // Landscapes and Portraits are the deliberate exceptions: their
+        // tags are unambiguous, so they keep clauses.
+        const LIVE_SUBJECTS = new Set(['landscapes', 'portraits']);
+        for (const [id, category] of Object.entries(MUSEUM_CATEGORIES)) {
+            if (category.kind !== 'subject' || LIVE_SUBJECTS.has(id)) continue;
+            expect(category.clauses, `subject category '${id}' must be pinned-only`)
+                .toBeNull();
+        }
+    });
+
     it('the pin file holds no duplicate works within a category', async () => {
         const { MUSEUM_CATEGORY_PINS } = await import('./museum-pins.js');
         for (const [catId, pins] of Object.entries(MUSEUM_CATEGORY_PINS)) {
