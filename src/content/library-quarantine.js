@@ -87,16 +87,18 @@ export const QUARANTINED = Object.freeze({
         recovery: 'Same as the deep edition: rebuild from Müller 1884, or identify the actual translator and date it.'
     },
 
-    'sacred-yoga-sutras': {
-        claimed: 'Charles Johnston',
-        actual: 'Swami Vivekananda (1896)',
-        status: 'clear-but-misattributed',
-        evidence: 'Vivekananda died 1902 and Raja Yoga is 1896, so the TEXT is public domain. The Archive simply named the wrong translator.',
-        // Quarantined for honesty rather than rights: a provenance that
-        // is wrong is not provenance, even when the answer it gets to
-        // happens to be safe.
-        recovery: 'Correct the attribution to Vivekananda, 1896. No rights obstacle.'
-    }
+    'sacred-marcus-aurelius': {
+        claimed: 'a distinct work',
+        actual: 'the same George Long text the Archive already holds in full',
+        status: 'duplicate',
+        evidence: 'Both this and literary-meditations are Long’s 1862 translation. The rights are clean; the holding is not. A selection is a ROUTE through a work, not a second copy of it.',
+        // Withheld rather than deleted because the selection itself is
+        // an editorial judgement worth keeping: it should return as a
+        // reading route into the full text once the Archive can express
+        // one, which is a feature it does not yet have.
+        recovery: 'Reinstate as a named route through literary-meditations once the Archive supports routes. Never as a separate holding.'
+    },
+
 });
 
 /** Is this work withheld from readers? */

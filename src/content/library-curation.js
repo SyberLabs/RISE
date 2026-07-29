@@ -149,6 +149,16 @@ export const ARCHIVE_CURATION = Object.freeze({
         provenance: { year: 1924, basis: PD_BASIS.PRE_1930 }
     },
 
+    'sacred-yoga-sutras': {
+        shelf: 'interior',
+        why: 'A technical manual for the mind, compressed to the point where a teacher was assumed present. Vivekananda’s 1896 commentary is what makes it readable without one — he is arguing with the reader, not glossing.',
+        functions: [R.PATTERN, R.RECURSION],
+        rhymes: ['extended-bhagavad-gita-full', 'literary-meditations'],
+        // Corrected: this was recorded as Charles Johnston, which the
+        // source never said. Vivekananda died 1902 — the text was
+        // always clear; the provenance was the defect.
+        provenance: { translator: 'Swami Vivekananda', year: 1896, basis: PD_BASIS.AUTHOR_70 }
+    },
     // ── THE INTERIOR ────────────────────────────────────────────
     'literary-meditations': {
         shelf: 'interior',
@@ -245,18 +255,11 @@ export const ARCHIVE_CURATION = Object.freeze({
     },
 
     // ── THE INTERIOR ────────────────────────────────────────────
-    'sacred-marcus-aurelius': {
-        shelf: 'interior',
-        why: 'A shorter selection from the same private notebook the Meditations comes from. Read this if you want the argument without the repetition; read the full text if you want to feel him repeating it to himself.',
-        functions: [R.RECURSION],
-        rhymes: ['literary-meditations', 'literary-walden'],
-        provenance: { translator: 'George Long', year: 1862, basis: PD_BASIS.AUTHOR_70 }
-    },
     'extended-bhagavad-gita-full': {
         shelf: 'interior',
         why: 'A conversation held between two armies about whether to fight. That the setting is a battlefield and the subject is duty makes it the least abstract of the great philosophical texts.',
         functions: [R.STATE, R.RECURSION],
-        rhymes: ['literary-meditations', 'sacred-marcus-aurelius'],
+        rhymes: ['literary-meditations', 'epictetus-encheiridion'],
         provenance: { translator: 'Edwin Arnold', year: 1885, basis: PD_BASIS.PRE_1930 }
     },
 
