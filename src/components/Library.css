@@ -181,6 +181,28 @@
   color: var(--color-fog);
 }
 
+/* The editorial judgement — why a work is held. Set in the literary
+   face rather than the UI face, because it is prose written for a
+   reader and not a label. Slightly brighter than the metadata around
+   it: on a card, this is the part worth reading. */
+.archive-why {
+  font-family: var(--font-literary);
+  font-size: 14px;
+  line-height: 1.55;
+  margin-top: var(--space-sm);
+  color: var(--color-fog);
+}
+
+/* A shelf's orienting line, shown when standing in front of that shelf. */
+.archive-orientation {
+  font-family: var(--font-literary);
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.5;
+  margin-top: var(--space-sm);
+  max-width: 60ch;
+}
+
 /* Resonance bar */
 .resonance-bar {
   width: 100%;

@@ -10,17 +10,19 @@ import { LITERARY_DEEP } from '../sources/text/data/literary_deep.js';
 import { DECLASSIFIED_LIBRARY } from '../sources/text/declassified.js';
 import { ARXIV_CATEGORIES } from '../sources/text/arxiv.js';
 import EXTENDED_SACRED from '../sources/text/data/sacred_texts.json';
+// Editorial judgement lives beside the corpus, not inside the provider
+// adapters: a registration loop knows where a file came from, never why
+// a work is worth an hour. See library-curation.js.
+import { curationFor } from './library-curation.js';
 
 /**
  * Library categories
  */
-export const LIBRARY_CATEGORIES = [
-    { id: 'foundational', name: 'Foundational', icon: '⚿', description: 'Core sequences formatted as pure text' },
-    { id: 'sacred', name: 'Sacred Texts', icon: '☯', description: 'Ancient wisdom traditions' },
-    { id: 'literary', name: 'Literary', icon: '📜', description: 'Classic literature and philosophy' },
-    { id: 'research', name: 'Research', icon: '🔬', description: 'Academic and scientific papers' },
-    { id: 'declassified', name: 'Declassified', icon: '👁️', description: 'Released intelligence documents' }
-];
+// The shelves and curation vocabulary live in library-constants.js so
+// that this registry and library-curation.js can both use them without
+// forming an import cycle. Re-exported here: callers have always asked
+// the library for its categories, and should keep being able to.
+export { LIBRARY_CATEGORIES, RESONANCE_FUNCTIONS, PD_BASIS } from './library-constants.js';
 
 /**
  * Sacred text metadata template
@@ -71,7 +73,10 @@ function registerStarterTexts() {
             id: textId,
             title: seq.name,
             author: 'R.I.S.E. Core',
-            category: 'foundational',
+            // Composed here, not inherited. Kept distinct from the found
+            // works because provenance is the Archive's central promise:
+            // a reader should always know which they are meeting.
+            category: 'composed',
             tradition: 'Core System',
             description: seq.description,
             chapterCount: verses.length,
@@ -272,10 +277,24 @@ function registerExtendedSacredTexts() {
  * @param {SacredText} text - Text metadata
  */
 export function registerText(text) {
-    if (!LIBRARY_TEXTS.find(t => t.id === text.id)) {
-        LIBRARY_TEXTS.push(text);
-        console.log(`[Library] Registered: ${text.title}`);
-    }
+    if (LIBRARY_TEXTS.find(t => t.id === text.id)) return;
+
+    // Curation is applied HERE rather than in each provider loop, so a
+    // new source cannot arrive unshelved by forgetting to ask. The
+    // curated shelf wins over whatever category the adapter guessed:
+    // where a work belongs is an editorial judgement, and the adapter
+    // only knows which file it came out of.
+    const curation = curationFor(text.id);
+    LIBRARY_TEXTS.push(curation
+        ? {
+            ...text,
+            category: curation.shelf,
+            why: curation.why,
+            functions: curation.functions,
+            rhymes: curation.rhymes,
+            provenance: curation.provenance
+        }
+        : text);
 }
 
 /**
@@ -335,7 +354,21 @@ registerExtendedSacredTexts();   // Priority 2
 registerSimplifiedSacredTexts(); // Priority 3 (Fallback)
 registerStarterTexts();          // Registers Starters - now with Title check
 registerLiteraryTexts();         // Local curated literary texts (replaces Gutenberg)
-registerDeclassifiedDocs();
-registerResearchPapers();
+
+// RETIRED (LIBRARY-SPEC §0). Two registrations are deliberately absent:
+//
+//   registerDeclassifiedDocs() — Gateway Process, Project Stargate,
+//   Soviet Psychotronics: four excerpts totalling ~5K characters. The
+//   clearest instance of a register the system has outgrown. A library
+//   that files remote-viewing memoranda beside Marcus Aurelius is not
+//   making a claim about either.
+//
+//   registerResearchPapers() — a live ArXiv abstract feed is a
+//   different product. Abstracts arrive unread and unchosen, so they
+//   cannot be curated, cannot carry an editorial judgement, and cannot
+//   rhyme with anything. Whatever else the Archive is, it holds works
+//   somebody selected.
+//
+// The provider modules remain on disk; only the shelving is retired.
 
 console.log(`[Library] Registered ${LIBRARY_TEXTS.length} texts`);

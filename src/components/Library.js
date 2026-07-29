@@ -8,7 +8,7 @@
  * - Quick preview before commitment
  */
 
-import { LIBRARY_TEXTS } from '../content/library.js';
+import { LIBRARY_TEXTS, LIBRARY_CATEGORIES } from '../content/library.js';
 import { escapeHtml } from '../core/sanitize.js';
 import { MemoryCore } from '../core/memory.js';
 
@@ -117,20 +117,26 @@ export class Library {
   }
 
   renderArchive() {
+    // A shelf states its own orienting line when the reader is standing
+    // in front of it; the general statement covers "All".
+    const orientation = LIBRARY_CATEGORIES
+      .find(c => c.id === this.currentFilter)?.orientation || '';
     return `
       <div class="library-section">
         <div class="section-header">
           <h2 class="text-light">The Archive</h2>
-          <p class="text-fog">Foundational texts, wisdom traditions, and research</p>
+          <p class="text-fog">Organised by resonance rather than genre — by what a work does to a reader, not the shelf a bookshop would file it on. Every text here is public domain, and says which edition you are reading.</p>
+          ${this.currentFilter !== 'all' && orientation
+            ? `<p class="archive-orientation text-mist">${escapeHtml(orientation)}</p>`
+            : ''}
         </div>
 
         <div class="section-filters" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem;">
-          <button class="filter-btn active" data-filter="all">All</button>
-          <button class="filter-btn" data-filter="foundational">Foundational</button>
-          <button class="filter-btn" data-filter="sacred">Sacred</button>
-          <button class="filter-btn" data-filter="literary">Literary</button>
-          <button class="filter-btn" data-filter="research">Research</button>
-          <button class="filter-btn" data-filter="declassified">Declassified</button>
+          <button class="filter-btn ${this.currentFilter === 'all' ? 'active' : ''}" data-filter="all">All</button>
+          ${LIBRARY_CATEGORIES.map(c => `
+            <button class="filter-btn ${this.currentFilter === c.id ? 'active' : ''}"
+              data-filter="${c.id}" title="${escapeHtml(c.description)}">${escapeHtml(c.name)}</button>
+          `).join('')}
         </div>
 
         <div class="archive-grid">
@@ -153,25 +159,38 @@ export class Library {
       return '<div class="empty-state"><p class="text-fog">No texts in this category</p></div>';
     }
 
-    return texts.map(text => `
+    return texts.map(text => {
+      const shelf = LIBRARY_CATEGORIES.find(c => c.id === text.category);
+      // Provenance is part of the reading, not a footnote: a world-class
+      // housing of public-domain texts says which EDITION you are
+      // holding, because a translation carries its own copyright.
+      const p = text.provenance;
+      const edition = p
+        ? [p.translator ? `trans. ${p.translator}` : null, p.year || null]
+          .filter(Boolean).join(', ')
+        : '';
+      return `
       <div class="archive-card card card-interactive" data-text-id="${text.id}">
         <div class="archive-card-header">
-          <span class="archive-status">◇</span>
-          <span class="archive-type text-fog text-uppercase">${text.category}</span>
+          <span class="archive-status">${shelf?.icon || '◇'}</span>
+          <span class="archive-type text-fog text-uppercase">${escapeHtml(shelf?.name || text.category)}</span>
         </div>
         <h3 class="archive-title text-light">${escapeHtml(text.title)}</h3>
         <p class="archive-subtitle text-fog">${escapeHtml(text.author)} · ${escapeHtml(text.tradition)}</p>
-        <p class="archive-description text-fog" style="font-size: 0.9rem; margin-top: 0.5rem;">
-          ${escapeHtml(text.description) || ''}
-        </p>
+        ${text.why
+          ? `<p class="archive-why">${escapeHtml(text.why)}</p>`
+          : `<p class="archive-description text-fog" style="font-size: 0.9rem; margin-top: 0.5rem;">
+               ${escapeHtml(text.description) || ''}
+             </p>`}
         <div class="archive-meta text-mist font-mono" style="margin-top: 0.75rem; font-size: 0.85rem;">
-          ${text.chapterCount || 0} ${text.chapterCount === 1 ? 'chapter' : 'verses'}
+          ${text.chapterCount || 0} ${text.chapterCount === 1 ? 'chapter' : 'verses'}${edition ? ` · ${escapeHtml(edition)}` : ''}
         </div>
         <button class="btn-primary btn-sm" style="margin-top: 1rem;" data-action="select-text" data-id="${text.id}">
           Load Text
         </button>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
 
   renderPersonal() {
