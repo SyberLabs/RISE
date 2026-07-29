@@ -8,6 +8,7 @@ import { escapeHtml } from '../core/sanitize.js';
 import {
   splitWords, stripEmphasis, revealBudget, revealSchedule
 } from '../core/recitation.js';
+import { Voice } from '../audio/voice.js';
 import { scoreAtoms, planInterlocution } from '../core/conductor.js';
 import { VisualScheduleController } from '../core/visual-scheduler.js';
 
@@ -45,6 +46,14 @@ export class Chamber {
     // the same textContent path the Chamber has always used.
     this.recitationEnabled = this.session?.recitation?.enabled === true;
     this._revealTimers = null;
+
+    // The voice is constructed only when a reading asks for it: the
+    // model is 92 MB and must never be fetched as a side effect of
+    // opening the Chamber. Warmed in activate(), where the reader is
+    // already choosing settings and the 3.2s load is free.
+    this.voice = this.recitationEnabled
+      ? new Voice({ audioEngine: window.rise?.audioEngine || null })
+      : null;
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
     this.hasRhythmicVisuals = this.session?.visualConfig?.visualMode === 'interlocution';
@@ -504,9 +513,21 @@ export class Chamber {
         // change, which the generic scheduler sends to the cortex.
         // Chapel-agnostic — the Chamber knows nothing of pericopes.
         this._visualSchedule?.observe(data.atom);
+
+        // Speak BEFORE painting, so the reveal can follow the voice's
+        // real onsets rather than an interpolation. `speak` never waits
+        // — if the buffer has not reached this atom it returns null and
+        // the reading proceeds silently at its own pace.
+        const spoken = this.voice?.speak(data.index) ?? null;
+
         this.displayAtom(data.atom, data.index, {
-          concealed: data.concealed === true
+          concealed: data.concealed === true,
+          spoken
         });
+
+        // Refill after painting: generation is the slow neighbour and
+        // must never delay the frame the reader is waiting on.
+        this.voice?.prime(this.session?.atoms, data.index + 1);
       });
       this.player.on('progress', (progress) => this.updateProgress(progress));
       this.player.on('complete', () => this.onSessionComplete());
@@ -1058,7 +1079,7 @@ export class Chamber {
     atomDisplay.style.textShadow = `0 0 ${glowRadius.toFixed(0)}px rgba(${r}, ${g}, ${b}, ${glowAlpha.toFixed(3)})`;
   }
 
-  displayAtom(atom, index, { concealed = false } = {}) {
+  displayAtom(atom, index, { concealed = false, spoken = null } = {}) {
     console.log('[Chamber] displayAtom called with:', atom);
     const atomDisplay = this.container.querySelector('#atom-display');
     if (!atomDisplay) {
@@ -1111,8 +1132,14 @@ export class Chamber {
       // Inject new content. The reveal is decided here rather than in
       // paintAtomText so the budget can consult the atom's duration and
       // the reader's motion preference in one place.
+      // With a voice the reveal follows SPEECH: words appear as they
+      // are spoken, and the utterance is the clock. Without one it
+      // borrows a share of the atom's duration and never extends it.
+      const reducedMotion = this._prefersReducedMotion();
       const budget = this.recitationEnabled
-        ? revealBudget(atom.duration, { reducedMotion: this._prefersReducedMotion() })
+        ? (spoken && !reducedMotion
+          ? spoken.durationMs
+          : revealBudget(atom.duration, { reducedMotion }))
         : 0;
       const spans = this.paintAtomText(atomDisplay, atom.content, { reveal: budget > 0 });
 
@@ -1137,7 +1164,8 @@ export class Chamber {
       // Reveal AFTER the frame is laid out and fading in, so the words
       // arrive over a stable frame rather than racing the reflow.
       if (spans) {
-        this.revealAtomWords(spans, revealSchedule(spans.length, budget));
+        this.revealAtomWords(spans, revealSchedule(
+          spans.length, budget, spoken && !reducedMotion ? spoken.onsets : null));
       } else {
         this.cancelReveal();
       }
@@ -1265,6 +1293,9 @@ export class Chamber {
     // Page's "no advance clock" principle and burning CPU/GPU/network for
     // imagery no one can see (red-team #4).
     this._suspendTemporalVisuals();
+    // Speech is temporal too: a page is read at the reader's pace, and
+    // a voice narrating over it would be reading something else.
+    this.voice?.stop();
 
     // A page is read, not raced: hold the stream while it is open.
     if (this.player?.state === 'playing' || this.player?.state === 'interlocuting') {
@@ -1783,6 +1814,12 @@ export class Chamber {
 
     // The Genesis field breathes with the session: pausing the text
     // pauses the pen
+    // A paused reading is silent. The voice speaks one atom at a time
+    // and cannot be resumed mid-phrase, so pausing stops it outright —
+    // the next atom speaks from its beginning. Stopping also restores
+    // the ducked music, which would otherwise stay down while paused.
+    if (state === 'paused' || state === 'idle') this.voice?.stop();
+
     if (this.kleeField) {
       if (state === 'paused') this.kleeField.pause();
       else if (state === 'playing') this.kleeField.resume();
@@ -1823,6 +1860,18 @@ export class Chamber {
     if (this._active) return;
     this._active = true;
     document.addEventListener('keydown', this.boundKeyboardHandler);
+
+    // Warm the voice now rather than at the first word. The model takes
+    // ~3.2s to load and generation runs slightly slower than speech, so
+    // the lead built here is what lets the reading stay ahead of itself
+    // later. Fire and forget: a failure leaves `voice.available` false
+    // and the reading proceeds silently.
+    if (this.voice) {
+      this.voice.enabled = true;
+      this.voice.load()
+        .then(ok => { if (ok) this.voice?.prime(this.session?.atoms, 0); })
+        .catch(() => { /* silent reading; already logged by Voice */ });
+    }
   }
 
   deactivate() {
@@ -1835,6 +1884,10 @@ export class Chamber {
     this.deactivate();
     // A reveal in flight would otherwise fire into a torn-down DOM.
     this.cancelReveal();
+    // Terminates the worker and releases the buffered audio. Without
+    // this a 92 MB model and a queue of samples outlive the reading.
+    this.voice?.destroy();
+    this.voice = null;
     if (this.controlsTimeout) {
       clearTimeout(this.controlsTimeout);
     }

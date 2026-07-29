@@ -82,3 +82,51 @@ test('an ordinary reading pays nothing — no spans, no timers', async ({ page }
   expect(r.timers).toBeFalsy();
   expect(r.text.length).toBeGreaterThan(0);
 });
+
+test('the voice never blocks the reading, and never ships unasked', async ({ page }) => {
+  // The 92 MB model must not be fetched because someone opened the
+  // Chamber. Only a reading that asks for a voice pays for one.
+  const fetched = [];
+  await page.route('**huggingface.co**', r => { fetched.push(r.request().url()); return r.continue(); });
+
+  await enterChamber(page, false, PLAIN);
+  await page.waitForTimeout(3000);
+
+  const r = await page.evaluate(() => {
+    const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
+    return { voice: !!ch?.voice, recitation: ch?.recitationEnabled };
+  });
+  console.log('NO_VOICE ' + JSON.stringify(r) + ' model requests: ' + fetched.length);
+
+  // No recitation, no Voice instance, no model fetch.
+  expect(r.recitation).toBe(false);
+  expect(r.voice).toBe(false);
+  expect(fetched).toEqual([]);
+});
+
+test('a recitation reading advances even before speech is ready', async ({ page }) => {
+  // The contract from RECITATION-SPEC section 2: a reading that cannot
+  // be spoken is read SILENTLY, never stalled. The model takes seconds
+  // to load, so the first atoms are always unspoken — and the reading
+  // must not wait for them.
+  await enterChamber(page, true);
+
+  // Sample the atom INDEX rather than the text: an empty display is a
+  // legitimate state — pause atoms render nothing — so text alone
+  // cannot tell a stalled reading from a resting one.
+  const at = () => page.evaluate(() =>
+    window.rise?.router?.views?.get('chamber-session')?.instance?.player?.sessionState?.currentIndex ?? -1);
+  const before = await at();
+  await page.waitForTimeout(4000);
+  const after = await at();
+
+  const r = await page.evaluate(() => {
+    const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
+    return { hasVoice: !!ch?.voice, failed: ch?.voice?._failed, playing: ch?.player?.state };
+  });
+  console.log('ADVANCES ' + JSON.stringify({ ...r, before, after }));
+
+  expect(r.hasVoice).toBe(true);
+  // Whatever happened to the model, the reading moved on.
+  expect(after).toBeGreaterThan(before);
+});
