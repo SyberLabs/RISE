@@ -605,6 +605,56 @@ export class AudioEngine {
      * the layer's prior gain. Soundscapes and chant beds are ambient
      * and clock-independent — they persist untouched.
      */
+    /**
+     * VOICE DUCKING (RECITATION-SPEC §5): the music yields to a voice
+     * and returns.
+     *
+     * Duck, do not silence. A floor keeps the bed present under the
+     * speech — cutting to zero between every phrase would pump audibly,
+     * and the effect wanted is music making room, not music stopping.
+     *
+     * Asymmetric by design: down fast so the voice never fights a
+     * swell, up slow so the return is a breath rather than a switch.
+     *
+     * Only the MUSICAL layers duck. `ui` and `typing` are feedback —
+     * a keystroke or a click should still be heard — and the voice
+     * itself never enters the Web Audio graph at all, so there is no
+     * risk of attenuating the thing being made room for.
+     */
+    setVoiceDucking(ducked, { floor = 0.18, downSec = 0.15, upSec = 0.6 } = {}) {
+        if (!this.context) return;
+        const now = this.context.currentTime;
+        const MUSICAL = ['binaural', 'harmonics', 'noise', 'drone', 'ambient',
+            'swell', 'soundscape'];
+
+        if (ducked) {
+            // Remember the pre-duck gains once. A second duck while
+            // already ducked must not record the ducked value as the
+            // level to restore — that would ratchet the music down.
+            this._duckedGains ??= new Map();
+            for (const name of MUSICAL) {
+                const gain = this.layerGains?.[name]?.gain;
+                if (!gain) continue;
+                if (!this._duckedGains.has(name)) this._duckedGains.set(name, gain.value);
+                const target = this._duckedGains.get(name) * floor;
+                gain.cancelScheduledValues(now);
+                gain.setValueAtTime(gain.value, now);
+                gain.linearRampToValueAtTime(target, now + downSec);
+            }
+            return;
+        }
+
+        if (!this._duckedGains) return;
+        for (const [name, prior] of this._duckedGains) {
+            const gain = this.layerGains?.[name]?.gain;
+            if (!gain) continue;
+            gain.cancelScheduledValues(now);
+            gain.setValueAtTime(gain.value, now);
+            gain.linearRampToValueAtTime(prior, now + upSec);
+        }
+        this._duckedGains = null;
+    }
+
     setShuttleSuspension(suspended) {
         const gain = this.layerGains?.binaural?.gain;
         if (!gain || !this.context) return;
