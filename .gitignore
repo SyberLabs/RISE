@@ -57,3 +57,4 @@ src/sources/visual/museum-pins.js.tmp
 
 # Design-tool source exports (the shipped assets live in public/portal/)
 *.dc.html
+.ingest-cache/

@@ -17,6 +17,9 @@ import { curationFor } from './library-curation.js';
 // Rights are established per EDITION, and a work whose edition is not
 // established does not reach a reader. See library-quarantine.js.
 import { isQuarantined } from './library-quarantine.js';
+// Works ingested from verified public-domain sources, each carrying its
+// own edition, source digest, and rights basis. See scripts/archive-ingest.mjs.
+import { ingestedArchiveTexts } from './archive/index.js';
 
 /**
  * Library categories
@@ -176,6 +179,18 @@ function registerLiteraryTexts() {
             getSequences: () => text.sequences
         });
     }
+}
+
+/**
+ * Register works ingested from verified public-domain sources.
+ *
+ * Unlike every other registration here, these arrive with their rights
+ * already established at ingest time — edition, source URL, retrieval
+ * date, and SHA-256 of the artifact as fetched. The registry does not
+ * re-derive any of it; it carries what the ingest proved.
+ */
+function registerIngestedWorks() {
+    for (const text of ingestedArchiveTexts()) registerText(text);
 }
 
 /**
@@ -364,6 +379,7 @@ registerExtendedSacredTexts();   // Priority 2
 registerSimplifiedSacredTexts(); // Priority 3 (Fallback)
 registerStarterTexts();          // Registers Starters - now with Title check
 registerLiteraryTexts();         // Local curated literary texts (replaces Gutenberg)
+registerIngestedWorks();         // Verified public-domain ingests
 
 // RETIRED (LIBRARY-SPEC §0). Two registrations are deliberately absent:
 //

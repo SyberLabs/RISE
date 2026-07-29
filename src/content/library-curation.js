@@ -28,6 +28,15 @@ import { PD_BASIS, RESONANCE_FUNCTIONS as R } from './library-constants.js';
 
 export const ARCHIVE_CURATION = Object.freeze({
 
+    // ── FORM ────────────────────────────────────────────────────
+    'vitruvius-architecture': {
+        shelf: 'form',
+        why: 'The only architectural treatise to survive antiquity, written by a working engineer who had built artillery for Caesar. It treats a building as a compact between proportion, material, climate, acoustics, water and civic life — form here is not appearance but an agreement between unlike kinds of knowledge.',
+        functions: [R.PATTERN, R.CONNECTION, R.RECURSION],
+        rhymes: ['literary-meditations', 'sacred-emerald-tablet'],
+        provenance: { translator: 'Morris Hicky Morgan', year: 1914, basis: PD_BASIS.PRE_1930 }
+    },
+
     // ── THE INTERIOR ────────────────────────────────────────────
     'literary-meditations': {
         shelf: 'interior',
