@@ -155,9 +155,71 @@ Three ways forward:
    it speaks a handful of held phrases. **At that density RTF 1.09 is
    irrelevant** — there is dead air between utterances to generate in.
 
-Option 3 is what the reel actually needs, and it is the honest scope.
-Continuous narration of a full reading is a different feature and should
-not be promised.
+Option 3 is what the reel actually needs. But continuous narration turns
+out to be achievable too — see below.
+
+---
+
+## Continuous narration: how, measured 2026-07-29
+
+The RTF 1.09 figure sounds fatal and is not. **The deficit is 9%**, not
+9×. Two independent sources of slack each cover it.
+
+### 1. The reading is already 19–23% silence
+
+Measured across both corpora:
+
+| corpus | pause share |
+|---|---|
+| Vault sequences (authored `\|`) | **23%** |
+| Literary corpus | **19%** |
+
+`[PAUSE]` and `[HOLD]` markers, paragraph breaks, and the phrase-boundary
+atoms are dead air. **The synthesiser generates straight through them.**
+A 9% deficit against 19–23% of free time is not a deficit at all — the
+buffer grows during silence faster than it drains during speech.
+
+This is the whole answer, and it is a property of how R.I.S.E. already
+authors readings rather than something that had to be built.
+
+### 2. A head start buys minutes, not seconds
+
+Even ignoring pauses, a lead drains at only `RTF − 1` = 0.09 per second
+of audio:
+
+| head start | continuous reading before the buffer empties |
+|---|---|
+| 10s | 1.9 min |
+| 30s | **5.6 min** |
+| 60s | **11.1 min** |
+
+A 3.2s cold start plus a ~30s pre-generation pass — which is a
+"preparing the reading" moment, not a loading screen — covers most
+sessions outright. Combined with the pause slack, it does not run out.
+
+### The design that follows
+
+1. **Cold start on entering the Chamber**, not on pressing play. 3.2s,
+   concurrent with the reader choosing settings, so it is free.
+2. **Pre-generate a lead before the first atom.** Ten to twenty atoms
+   is a few seconds of preparation and is the honest place for a
+   progress indicator — the Chamber already has a preparation stage.
+3. **Generate during pauses.** The scheduler knows a `[PAUSE]` is
+   coming; that is when the queue refills.
+4. **Watch the buffer and degrade before it empties.** If the lead
+   falls below a threshold, stop speaking new atoms and let the reading
+   continue silently. **Never stall the reading to wait for audio** —
+   reverent degradation applies to speech exactly as to imagery.
+5. **WebGPU where available** removes the question entirely, but is not
+   required for this to work.
+
+### Why the loading-screen instinct was right but unnecessary
+
+Pre-computing the whole reading is possible — a 5-minute reading is
+~30s of generation — but it front-loads a wait for something the reader
+may abandon, and it fails the moment they change the pace or skip. The
+rolling buffer gets the same result without ever making anyone wait for
+audio they have not reached.
 
 ### Timing: interpolation is not required
 
