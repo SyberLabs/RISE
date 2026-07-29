@@ -6,7 +6,7 @@
  * failure path here must return rather than wait, because a reading
  * that pauses for a synthesiser has stopped being a reading.
  */
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { Voice } from './voice.js';
 
 describe('speakable text', () => {
@@ -47,6 +47,7 @@ describe('degradation — the reading never stalls', () => {
         // through to its own timing; waiting would freeze the reading.
         voice.enabled = true;
         voice._worker = {};
+        voice._loaded = true;
         expect(voice.speak(3)).toBeNull();
     });
 
@@ -108,5 +109,218 @@ describe('wav encoding', () => {
         const view = new DataView(voice._wavBuffer(new Float32Array([2, -2]), 24000));
         expect(view.getInt16(44, true)).toBe(0x7fff);
         expect(view.getInt16(46, true)).toBe(-0x8000);
+    });
+});
+
+/**
+ * The generation storm.
+ *
+ * These are regression tests for a fault that crashed a reader's tab and
+ * that the entire suite above was blind to, because every test here
+ * reasoned about ONE request at a time. The fault only existed in the
+ * relationship between requests: each was individually correct, and
+ * together they saturated the main thread until the audio graph could
+ * not fill its buffers and the drones tore into a buzz.
+ *
+ * The lesson is in the shape of the tests, not only their assertions —
+ * what needed asserting was how OFTEN something happens, not whether it
+ * can happen at all.
+ */
+describe('no request is made before there is a model to answer it', () => {
+    it('is unavailable while the worker exists but the model is still loading', () => {
+        // 92 MB, tens of seconds. Treating the worker's EXISTENCE as
+        // readiness is the whole bug: every speak request in that window
+        // threw `voice not loaded` and cleared its in-flight flag on the
+        // way out, so the next atom queued the same indices again.
+        const voice = new Voice();
+        voice.enabled = true;
+        voice._worker = {};
+        expect(voice.available).toBe(false);
+
+        voice._loaded = true;
+        expect(voice.available).toBe(true);
+    });
+
+    it('queues nothing at all until the model is loaded', () => {
+        const voice = new Voice();
+        voice.enabled = true;
+        voice._worker = {};
+        voice._send = vi.fn();
+        const atoms = Array.from({ length: 20 }, (_, i) => ({ content: 'phrase ' + i }));
+
+        // The Chamber primes on EVERY atom. Forty advances during the
+        // load window used to mean hundreds of doomed requests.
+        for (let i = 0; i < 40; i++) voice.prime(atoms, i % 12);
+        expect(voice._send).not.toHaveBeenCalled();
+    });
+});
+
+describe('work the reading has outrun is abandoned', () => {
+    const flush = () => new Promise(resolve => setTimeout(resolve, 0));
+
+    const readyVoice = () => {
+        const voice = new Voice();
+        voice.enabled = true;
+        voice._worker = {};
+        voice._loaded = true;
+        return voice;
+    };
+
+    it('does not generate audio for atoms the reader has passed', async () => {
+        // Kokoro on WASM holds a core for the whole run, so a phrase
+        // that is already history delays the ones still ahead AND
+        // starves the audio graph. This is what made PAUSING the
+        // trigger: resuming primed a fresh lead on top of a backlog
+        // that had no way to expire.
+        const voice = readyVoice();
+        const spoken = [];
+        voice._send = vi.fn((_type, { text }) => {
+            spoken.push(text);
+            return Promise.resolve({ samples: new Float32Array(8), sampleRate: 24000 });
+        });
+
+        const atoms = Array.from({ length: 40 }, (_, i) => ({ content: 'phrase ' + i }));
+        voice.prime(atoms, 0);          // queues 0..7, serialised
+        voice.prime(atoms, 30);         // the reader jumps ahead
+
+        await flush();
+        await voice._queue;
+
+        // Whatever was already in flight may finish, but nothing behind
+        // the reader gets STARTED.
+        const stale = spoken.filter(t => {
+            const n = Number(t.split(' ')[1]);
+            return n > 0 && n < 30;
+        });
+        expect(stale).toEqual([]);
+        expect(spoken).toContain('phrase 30');
+    });
+
+    it('caches only what it actually generated', async () => {
+        const voice = readyVoice();
+        voice._send = vi.fn(() =>
+            Promise.resolve({ samples: new Float32Array(8), sampleRate: 24000 }));
+
+        const atoms = Array.from({ length: 40 }, (_, i) => ({ content: 'phrase ' + i }));
+        voice.prime(atoms, 0);
+        voice.prime(atoms, 30);
+        await flush();
+        await voice._queue;
+
+        // A skipped request resolves to null; storing that would put an
+        // entry with no samples in the cache, and speak() would read
+        // `samples.length` off undefined.
+        for (const entry of voice._cache.values()) {
+            expect(entry.samples).toBeInstanceOf(Float32Array);
+            expect(entry.sampleRate).toBe(24000);
+        }
+    });
+
+    it('clears the in-flight flag for skipped work too', async () => {
+        // If `finally` did not run for skipped requests the index would
+        // be permanently marked in-flight and never generated, even when
+        // the reader came back to it.
+        const voice = readyVoice();
+        voice._send = vi.fn(() =>
+            Promise.resolve({ samples: new Float32Array(8), sampleRate: 24000 }));
+        const atoms = Array.from({ length: 40 }, (_, i) => ({ content: 'phrase ' + i }));
+
+        voice.prime(atoms, 0);
+        voice.prime(atoms, 30);
+        await flush();
+        await voice._queue;
+        expect(voice._generating.size).toBe(0);
+    });
+});
+
+describe('a recurring cause is reported once', () => {
+    it('does not log the same failure per atom per advance', async () => {
+        // The diagnostic became the fault: one warning with a full async
+        // stack trace, several times a second, was itself enough console
+        // work to starve the audio thread.
+        const voice = new Voice();
+        voice.enabled = true;
+        voice._worker = {};
+        voice._loaded = true;
+        voice._send = vi.fn(() => Promise.reject(new Error('voice not loaded')));
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+        const atoms = Array.from({ length: 30 }, (_, i) => ({ content: 'phrase ' + i }));
+        for (let i = 0; i < 30; i++) voice.prime(atoms, i);
+        await voice._queue;
+
+        expect(warn).toHaveBeenCalledTimes(1);
+        warn.mockRestore();
+    });
+
+    it('still reports a DIFFERENT cause', () => {
+        const voice = new Voice();
+        voice._warnUnspoken(1, new Error('voice not loaded'));
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        voice._warnUnspoken(2, new Error('voice not loaded'));
+        expect(warn).not.toHaveBeenCalled();
+        voice._warnUnspoken(3, new Error('session already started'));
+        expect(warn).toHaveBeenCalledTimes(1);
+        warn.mockRestore();
+    });
+});
+
+describe('speech begins once, with a lead behind it', () => {
+    // jsdom has neither object URLs nor a working play(). The gate is
+    // what is under test, so playback is stubbed to the thinnest thing
+    // that lets speak() run to its return value.
+    beforeEach(() => {
+        vi.stubGlobal('URL', Object.assign(Object.create(URL), {
+            createObjectURL: () => 'blob:stub',
+            revokeObjectURL: () => {}
+        }));
+        vi.stubGlobal('Audio', class {
+            constructor(src) { this.src = src; }
+            play() { return Promise.resolve(); }
+            pause() {}
+        });
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    const seeded = (n) => {
+        const voice = new Voice();
+        voice.enabled = true;
+        voice._worker = {};
+        voice._loaded = true;
+        for (let i = 0; i < n; i++) {
+            voice._cache.set(i, { samples: new Float32Array(2400), sampleRate: 24000 });
+        }
+        return voice;
+    };
+
+    it('stays silent while only a phrase or two is ready', () => {
+        // The false start: the first phrase to finish generating was
+        // spoken alone, then the reading fell silent until the next one
+        // happened to be ready. Stuttering in and out reads worse than
+        // waiting and then staying.
+        const voice = seeded(2);
+        expect(voice.speak(0)).toBeNull();
+        expect(voice._speaking).toBe(false);
+    });
+
+    it('begins once the lead exists', () => {
+        const voice = seeded(6);
+        expect(voice.speak(0)).not.toBeNull();
+        expect(voice._speaking).toBe(true);
+    });
+
+    it('does not go back to waiting once it has begun', () => {
+        // Having started, a momentary shortfall is a silent phrase, not
+        // a restart of the whole gate — otherwise one starved atom would
+        // re-impose the wait and the voice would drop out for several
+        // phrases rather than for the one it lacked.
+        const voice = seeded(6);
+        voice.speak(0);
+        voice._cache.clear();
+        expect(voice.speak(1)).toBeNull();
+        expect(voice._speaking).toBe(true);
+
+        voice._cache.set(2, { samples: new Float32Array(2400), sampleRate: 24000 });
+        expect(voice.speak(2)).not.toBeNull();
     });
 });

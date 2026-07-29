@@ -138,9 +138,11 @@ test('the control turns recitation on, and the choice survives a return', async 
   }, { gate: GATE, seed: SEED });
   await page.goto('/');
   await page.locator('[data-nav="chamber"]').first().click();
-  // Recitation lives in the TEMPORAL orbit, beside pace and chunking —
-  // it modifies how the text is presented, not the imagery.
-  await page.locator('.orbit-node[data-orbit="temporal"]').click();
+  // Recitation lives in the AUDIO orbit. It began in Temporal on the
+  // argument that it presents TEXT — true, but a reader looking for a
+  // voice looks under Audio, and a dead "Text-to-Speech" toggle was
+  // already sitting there answering the question wrongly.
+  await page.locator('.orbit-node[data-orbit="audio"]').click();
   await expect(page.locator('[data-recitation="on"]')).toBeVisible({ timeout: 15000 });
 
   // The note explains the download BEFORE it happens, so enabling a
@@ -165,8 +167,22 @@ test('the control turns recitation on, and the choice survives a return', async 
   expect(after.onActive).toBe(true);
   expect(after.offActive).toBe(false);
 
+  // The voice picker appears with recitation and offers only voices
+  // worth hearing — the model ships twenty-four and grades one F+.
+  const voices = await page.evaluate(() => {
+    const sec = document.querySelector('#voice-select-section');
+    return {
+      shown: sec && !sec.hidden,
+      options: [...document.querySelectorAll('#voice-select option')].map(o => o.value)
+    };
+  });
+  console.log('VOICES ' + JSON.stringify(voices));
+  expect(voices.shown).toBe(true);
+  expect(voices.options[0]).toBe('af_heart');
+  expect(voices.options).not.toContain('am_adam');
+
   // Begin persists the dials; returning must not reset the choice.
-  await page.locator('[data-close="temporal"]').click();
+  await page.locator('[data-close="audio"]').click();
   await page.locator('#begin-btn').click();
   const warn = page.locator('#photosensitivity-modal');
   if (await warn.isVisible({ timeout: 3000 }).catch(() => false)) {
@@ -178,4 +194,66 @@ test('the control turns recitation on, and the choice survives a return', async 
     JSON.parse(localStorage.getItem('rise_orbital_prefs_v1') || '{}').recitation);
   console.log('PERSISTED ' + JSON.stringify(persisted));
   expect(persisted).toEqual({ enabled: true });
+});
+
+/**
+ * The generation storm, in a real browser.
+ *
+ * A unit test can prove `prime()` makes no request before the model is
+ * loaded. It cannot prove the Chamber does not CALL it in a way that
+ * produces one anyway, and the failure was in exactly that seam: the
+ * Chamber primes on every atom, the model takes tens of seconds to
+ * fetch, and each doomed request cleared its own in-flight flag so the
+ * next atom queued it again. Several a second, for the whole download.
+ *
+ * The reader never saw a voice error. They heard the drones tear into a
+ * buzz — Web Audio underrunning behind a saturated main thread — and on
+ * one occasion lost the tab.
+ *
+ * So this asserts a RATE, and deliberately runs for the part of the
+ * session where the model is still on the wire.
+ */
+test('the voice makes no storm while its model is still loading', async ({ page }) => {
+  const voiceLogs = [];
+  page.on('console', (m) => {
+    if (m.text().includes('[Voice]')) voiceLogs.push(m.text());
+  });
+
+  // Long enough that the reading is still going when the window closes.
+  // SEED runs out after four atoms, which would have this test passing
+  // because nothing happened rather than because nothing went wrong.
+  const LONG = {
+    text: Array.from({ length: 40 }, (_, i) =>
+      `Phrase number ${i} | carries enough words | to occupy a moment of reading.`
+    ).join('\n\n'),
+    textSource: 'Storm', origin: null
+  };
+  await enterChamber(page, true, LONG);
+  // Long enough to cross many atoms at 150 wpm while 92 MB downloads.
+  await page.waitForTimeout(20000);
+
+  const state = await page.evaluate(() => {
+    const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
+    const v = ch?.voice;
+    return {
+      hasVoice: !!v,
+      index: ch?.player?.sessionState?.currentIndex ?? -1,
+      loaded: v?._loaded ?? null,
+      generating: v?._generating?.size ?? null,
+      cached: v?._cache?.size ?? null
+    };
+  });
+  console.log('STORM ' + JSON.stringify(state) + ' warnings=' + voiceLogs.length);
+
+  // The reading must actually have advanced, or this proves nothing.
+  expect(state.hasVoice).toBe(true);
+  expect(state.index).toBeGreaterThan(3);
+
+  // Before the fix this was in the hundreds. One line per distinct
+  // cause is the contract; the allowance is for genuinely different
+  // causes, not repetition of one.
+  expect(voiceLogs.length).toBeLessThanOrEqual(3);
+
+  // And nothing may be left wedged as permanently in-flight.
+  expect(state.generating).toBeLessThanOrEqual(8);
 });

@@ -759,20 +759,39 @@ export class ChamberOrbital {
                 <button class="audio-waveform-option ${this.config.entrainmentWaveform === 'sawtooth' ? 'active' : ''}" data-waveform="sawtooth">Saw</button>
               </div>
             </div>
-            <!-- Voice -->
+            <!-- Recitation (RECITATION-SPEC). This replaced a
+                 "Text-to-Speech" toggle and a system-voice picker that
+                 configured window.speechSynthesis — a synthesiser
+                 nothing ever invoked. It was dead, and worse than dead:
+                 it sat exactly where a reader looks for speech and
+                 answered the question wrongly. -->
             <div class="config-section">
-              <label class="toggle">
-                <input type="checkbox" id="voice-toggle" ${this.config.voiceEnabled ? 'checked' : ''}>
-                <span class="toggle-switch"></span>
-                <span class="toggle-label">Text-to-Speech</span>
-              </label>
+              <label class="config-label">Recitation</label>
+              <div class="chunk-options">
+                <button class="chunk-option ${!this.config.recitation?.enabled ? 'active' : ''}"
+                  data-recitation="off">Off</button>
+                <button class="chunk-option ${this.config.recitation?.enabled ? 'active' : ''}"
+                  data-recitation="on">Spoken</button>
+              </div>
+              <p class="config-note text-mist" data-recitation-note ${this.config.recitation?.enabled ? '' : 'hidden'}>
+                The reading is spoken aloud and the words arrive as they
+                are said. A voice is downloaded once, then kept. If it
+                cannot load, the reading continues silently.
+              </p>
             </div>
 
-            <!-- Voice Selection (shown when TTS enabled) -->
-            <div class="config-section voice-select-section" id="voice-select-section" ${this.config.voiceEnabled ? '' : 'hidden'}>
+            <!-- Only the voices worth offering. The model ships
+                 twenty-four and grades them itself: most are C or D, and
+                 one is F+. Listing all of them would let a reader pick
+                 the worst and conclude the feature is bad. -->
+            <div class="config-section" id="voice-select-section" ${this.config.recitation?.enabled ? '' : 'hidden'}>
               <label class="config-label">Voice</label>
               <select id="voice-select" class="voice-select">
-                <option value="">System Default</option>
+                <option value="af_heart" ${this.config.voiceId === 'af_heart' || !this.config.voiceId ? 'selected' : ''}>Heart — warm, the reference voice</option>
+                <option value="af_bella" ${this.config.voiceId === 'af_bella' ? 'selected' : ''}>Bella — fuller, most trained</option>
+                <option value="bf_emma" ${this.config.voiceId === 'bf_emma' ? 'selected' : ''}>Emma — British, measured</option>
+                <option value="am_michael" ${this.config.voiceId === 'am_michael' ? 'selected' : ''}>Michael — male, even</option>
+                <option value="am_fenrir" ${this.config.voiceId === 'am_fenrir' ? 'selected' : ''}>Fenrir — male, darker</option>
               </select>
             </div>
 
@@ -854,24 +873,6 @@ export class ChamberOrbital {
               </div>
             </div>
 
-            <!-- Recitation (RECITATION-SPEC §6). A TEXT presentation, so
-                 it sits beside pace and chunking rather than among the
-                 imagery surfaces — those are a different axis, and a
-                 recitation can run under any of them. -->
-            <div class="config-section">
-              <label class="config-label">Recitation</label>
-              <div class="chunk-options">
-                <button class="chunk-option ${!this.config.recitation?.enabled ? 'active' : ''}"
-                  data-recitation="off">Off</button>
-                <button class="chunk-option ${this.config.recitation?.enabled ? 'active' : ''}"
-                  data-recitation="on">Spoken</button>
-              </div>
-              <p class="config-note text-mist" data-recitation-note ${this.config.recitation?.enabled ? '' : 'hidden'}>
-                Words arrive as they are spoken, and the voice sets the
-                pace — a downloaded voice, once, then kept. If it cannot
-                load, the reading continues silently.
-              </p>
-            </div>
           </div>
         </div>
       </div>
@@ -1266,35 +1267,12 @@ export class ChamberOrbital {
       opt.classList.toggle('active', opt.dataset.waveform === this.config.entrainmentWaveform);
     });
 
-    // Voice toggle
-    const voiceToggle = this.container.querySelector('#voice-toggle');
-    const voiceSelectSection = this.container.querySelector('#voice-select-section');
-    const voiceSelect = this.container.querySelector('#voice-select');
-
-    this._listen(voiceToggle, 'change', () => {
-      window.rise?.audioEngine?.playClick();
-      this.config.voiceEnabled = voiceToggle.checked;
-      // Show/hide voice selector
-      if (voiceSelectSection) {
-        voiceSelectSection.hidden = !voiceToggle.checked;
-      }
-      // Populate voices if enabling
-      if (voiceToggle.checked && voiceSelect) {
-        this.populateVoices(voiceSelect);
-      }
-      this.updateOrbitStatus('audio');
-    });
-
-    // Voice selection change
-    this._listen(voiceSelect, 'change', () => {
-      this.config.voiceId = voiceSelect.value;
-      this.updateOrbitStatus('audio');
-    });
-
-    // Pre-populate voices if TTS is already enabled
-    if (this.config.voiceEnabled && voiceSelect) {
-      this.populateVoices(voiceSelect);
-    }
+    // The voice controls are bound with the rest of Recitation, in
+    // attachConfigEvents. What stood here drove #voice-toggle, which no
+    // longer exists, and called populateVoices() — which would have
+    // replaced the curated Kokoro list with the system's own
+    // speechSynthesis voices, the very voices Recitation exists to
+    // replace.
 
     // Personal Pool Upload
     const swellUpload = this.container.querySelector('#swell-upload');
@@ -1418,6 +1396,7 @@ export class ChamberOrbital {
     // is downloaded once — so the download is never a surprise.
     const recitationOptions = this.container.querySelectorAll('[data-recitation]');
     const recitationNote = this.container.querySelector('[data-recitation-note]');
+    const voiceSection = this.container.querySelector('#voice-select-section');
     recitationOptions.forEach(opt => {
       this._listen(opt, 'click', () => {
         window.rise?.audioEngine?.playHiss();
@@ -1426,8 +1405,17 @@ export class ChamberOrbital {
         recitationOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
         if (recitationNote) recitationNote.hidden = !enabled;
+        // The voice picker is meaningless without a voice to pick for.
+        if (voiceSection) voiceSection.hidden = !enabled;
       });
     });
+
+    const voiceSelect = this.container.querySelector('#voice-select');
+    if (voiceSelect) {
+      this._listen(voiceSelect, 'change', () => {
+        this.config.voiceId = voiceSelect.value || 'af_heart';
+      });
+    }
   }
 
   /**
@@ -1512,11 +1500,18 @@ export class ChamberOrbital {
       opt.classList.toggle('active', opt.dataset.audioPreset === this.config.audioPreset);
     });
 
-    // Voice toggle
-    const voiceToggle = this.container.querySelector('#voice-toggle');
-    if (voiceToggle) {
-      voiceToggle.checked = !!this.config.voiceEnabled;
-    }
+    // Recitation, and the voice picker that only matters when it is on.
+    const enabled = this.config.recitation?.enabled === true;
+    this.container.querySelectorAll('[data-recitation]').forEach(opt => {
+      opt.classList.toggle('active',
+        (opt.dataset.recitation === 'on') === enabled);
+    });
+    const note = this.container.querySelector('[data-recitation-note]');
+    if (note) note.hidden = !enabled;
+    const voiceSection = this.container.querySelector('#voice-select-section');
+    if (voiceSection) voiceSection.hidden = !enabled;
+    const voiceSelect = this.container.querySelector('#voice-select');
+    if (voiceSelect && this.config.voiceId) voiceSelect.value = this.config.voiceId;
   }
 
   loadText(text, source, config = {}) {

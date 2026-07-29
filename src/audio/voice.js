@@ -32,6 +32,16 @@ import { speechOnsets } from '../core/recitation.js';
 const LEAD = 8;
 
 /**
+ * How much lead must exist before the voice starts speaking at all.
+ *
+ * Without this the first phrase to finish generating is spoken alone,
+ * then the reading falls silent until the next one happens to be ready.
+ * A voice that stutters in and out reads far worse than one that waits
+ * and then stays — so speech begins once, late, and continues.
+ */
+const LEAD_TO_BEGIN = 4;
+
+/**
  * Below this the buffer has lost its race and speech steps aside.
  * Chosen so the reading degrades a phrase or two BEFORE it would have
  * to wait — a silent reading is a reading; a stalled one is a fault.
@@ -39,10 +49,14 @@ const LEAD = 8;
 const STARVED = 1;
 
 export class Voice {
-    constructor({ audioEngine = null } = {}) {
+    constructor({ audioEngine = null, voiceId = null } = {}) {
         this.audioEngine = audioEngine;
         this.enabled = false;
-        this.voiceId = 'af_heart';
+        // af_heart is the model's reference voice and the only one it
+        // grades A. Most of the twenty-four are C or D, so an unknown
+        // or absent choice falls back here rather than to whatever
+        // happens to be first.
+        this.voiceId = voiceId || 'af_heart';
 
         this._worker = null;
         this._pending = new Map();     // id → {resolve, reject}
@@ -53,12 +67,31 @@ export class Voice {
         this._current = null;          // the HTMLAudioElement now playing
         this._queue = Promise.resolve(); // generation runs one at a time
         this._failed = false;          // load failed; never retry this session
+        this._loaded = false;          // the MODEL is up, not merely the worker
+        this._speaking = false;        // the lead was reached and speech began
+        this._readerIndex = 0;         // how far the reading has actually got
+        this._warned = new Set();      // causes already reported this session
         this.onProgress = null;
     }
 
-    /** Is speech available and working? */
+    /**
+     * Is speech available and working?
+     *
+     * The worker EXISTING is not the model being LOADED, and conflating
+     * the two cost a reader their session. Kokoro is 92 MB and takes
+     * tens of seconds to fetch; throughout that window every speak
+     * request threw `voice not loaded` and cleared its in-flight flag on
+     * the way out, so the Chamber — which primes on every atom — queued
+     * the same eight indices again, and again, several times a second.
+     *
+     * Nothing about that was audible as a voice failure. What it did was
+     * flood the main thread with rejections and stack traces until the
+     * audio graph could not fill its buffers, and a reader heard the
+     * drones tear into a buzz. The fix is this one condition: no request
+     * is made until there is a model to answer it.
+     */
     get available() {
-        return this.enabled && !this._failed && !!this._worker;
+        return this.enabled && !this._failed && this._loaded;
     }
 
     /**
@@ -87,6 +120,7 @@ export class Voice {
                     dtype: webgpu ? 'fp32' : 'q8',
                     device: webgpu ? 'webgpu' : 'wasm'
                 });
+                this._loaded = true;
                 return true;
             } catch (error) {
                 this._fail(error?.message || 'voice unavailable');
@@ -105,6 +139,8 @@ export class Voice {
      */
     prime(atoms, fromIndex) {
         if (!this.available || !Array.isArray(atoms)) return;
+        this._readerIndex = fromIndex;
+
         for (let i = fromIndex; i < Math.min(atoms.length, fromIndex + LEAD); i++) {
             const text = this._speakable(atoms[i]);
             if (!text) continue;
@@ -117,16 +153,29 @@ export class Voice {
             // a generation storm, which read as speech that stuttered
             // in and out. Each request waits for the last.
             this._queue = this._queue
-                .then(() => this._send('speak', { text, voice: this.voiceId }))
-                .then(({ samples, sampleRate }) => {
-                    this._cache.set(i, { samples, sampleRate });
+                .then(() => {
+                    // ABANDON WORK THE READING HAS OUTRUN.
+                    //
+                    // A queued request may wait seconds for its turn,
+                    // and in that time the reader moves on. Generating
+                    // audio nobody will now hear is not merely wasted:
+                    // Kokoro on WASM pegs a core for the whole run, so
+                    // the atoms still ahead wait behind a phrase that
+                    // is already history while the audio graph starves.
+                    //
+                    // This is what made PAUSING the trigger. Resuming
+                    // primed a fresh lead on top of a backlog that had
+                    // no way to expire, and the buzz returned within a
+                    // phrase or two.
+                    if (i < this._readerIndex) return null;
+                    return this._send('speak', { text, voice: this.voiceId });
                 })
-                .catch((error) => {
-                    // Logged, not swallowed: a silent failure here looks
-                    // identical to a slow one, and the two want
-                    // different fixes.
-                    console.warn(`[Voice] atom ${i} unspoken:`, error?.message || error);
+                .then((audio) => {
+                    if (audio) this._cache.set(i, {
+                        samples: audio.samples, sampleRate: audio.sampleRate
+                    });
                 })
+                .catch((error) => this._warnUnspoken(i, error))
                 .finally(() => this._generating.delete(i));
         }
         this._evictBefore(fromIndex - 2);
@@ -143,6 +192,15 @@ export class Voice {
      */
     speak(index) {
         if (!this.available) return null;
+
+        // Speech begins once, when there is enough behind it to keep
+        // going — see LEAD_TO_BEGIN. Before that the reading is silent
+        // rather than sporadic.
+        if (!this._speaking) {
+            if (this._cache.size < LEAD_TO_BEGIN) return null;
+            this._speaking = true;
+        }
+
         const entry = this._cache.get(index);
         if (!entry) return null;              // starved: read on in silence
 
@@ -177,6 +235,11 @@ export class Voice {
         const el = this._current;
         this._current = null;
         el.pause();
+        // pause() fires no `ended`, so the handler that would have
+        // released this URL never runs. Every interrupted phrase used to
+        // leak its WAV — a megabyte at a time, over a reading long
+        // enough for the collection pauses to be audible themselves.
+        URL.revokeObjectURL(el.src);
         this.audioEngine?.setVoiceDucking?.(false);
     }
 
@@ -199,6 +262,26 @@ export class Voice {
         this._pending.clear();
         this._worker?.terminate();
         this._worker = null;
+    }
+
+    /**
+     * Report a cause once per session.
+     *
+     * The first version logged every failure. A model that had not
+     * finished loading produced one per atom per advance — thousands of
+     * warnings, each with a full async stack trace — and the console
+     * work alone was enough to starve the audio thread. The diagnostic
+     * became the fault.
+     *
+     * Still logged, though: a silent failure looks identical to a slow
+     * one, and the two want different fixes.
+     */
+    _warnUnspoken(index, error) {
+        const reason = String(error?.message || error);
+        if (this._warned.has(reason)) return;
+        this._warned.add(reason);
+        console.warn(`[Voice] atom ${index} unspoken:`, reason,
+            '— further reports of this cause suppressed');
     }
 
     _send(type, payload) {

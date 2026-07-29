@@ -50,6 +50,32 @@ import './components/Via.css';
 import './components/Curia.css';
 import './premium-additions.css';
 
+/**
+ * A DEPLOY MUST NOT STRAND AN OPEN TAB.
+ *
+ * Views are loaded lazily, so the chunk names a session will need are
+ * resolved from the index.html the reader loaded — possibly hours ago.
+ * Ship a new build and those hashes stop existing: the app keeps working
+ * until the reader opens the Chamber, at which point the import 404s and
+ * the session dies with `Failed to fetch dynamically imported module`.
+ *
+ * The headers are already right (index.html revalidates, assets are
+ * immutable); the gap is time, not caching. Vite raises this event for
+ * exactly this case, and the only correct answer is to fetch the current
+ * index. Reloading ONCE per session, guarded by a sentinel, because a
+ * genuine network failure would otherwise reload forever.
+ */
+export const STALE_BUILD_SENTINEL = 'rise_reloaded_for_stale_build';
+
+window.addEventListener('vite:preloadError', (event) => {
+    if (sessionStorage.getItem(STALE_BUILD_SENTINEL)) return;  // not a deploy: a real failure
+    sessionStorage.setItem(STALE_BUILD_SENTINEL, '1');
+    event.preventDefault();
+    console.warn('[R.I.S.E.] Build changed underneath this tab — reloading once.');
+    window.location.reload();
+});
+
+
 class App {
     constructor() {
         this.router = null;
@@ -209,6 +235,12 @@ class App {
         this.setupUtilityListeners();
 
         // Audio interaction listener is already set up in init()
+
+        // The tab is now running a build it fetched itself, so the
+        // one-reload guard is spent and may be released. Without this a
+        // reader who leaves a tab open across TWO deploys is stranded by
+        // the second one, the sentinel having been set by the first.
+        sessionStorage.removeItem(STALE_BUILD_SENTINEL);
 
         console.log('[R.I.S.E.] Application initialized');
     }

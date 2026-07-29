@@ -52,7 +52,10 @@ export class Chamber {
     // opening the Chamber. Warmed in activate(), where the reader is
     // already choosing settings and the 3.2s load is free.
     this.voice = this.recitationEnabled
-      ? new Voice({ audioEngine: window.rise?.audioEngine || null })
+      ? new Voice({
+        audioEngine: window.rise?.audioEngine || null,
+        voiceId: this.session?.voiceId
+      })
       : null;
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
