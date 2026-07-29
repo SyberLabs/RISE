@@ -406,6 +406,7 @@ class App {
                 }
 
                 let visualMode = session.visualConfig?.visualMode || 'off';
+                let recitationVoice = null;
 
                 // A SPATIAL reading runs no temporal visual machinery.
                 // Page Mode has no flash economy and no advance clock
@@ -452,11 +453,32 @@ class App {
                     // the safety decision has completed.
                     this.showLoading('Preparing Session');
 
+                    // Start the selected neural voice during preparation, not
+                    // after the first atom is already on screen. It builds a
+                    // contiguous eight-phrase lead while the rest of session
+                    // setup proceeds; the Chamber is not shown until that
+                    // lead is ready (or preparation degrades cleanly).
+                    let recitationReady = Promise.resolve(false);
+                    if (session.recitation?.enabled === true) {
+                        this.updateLoadingStatus('Preparing spoken voice...');
+                        const { Voice } = await import('./audio/voice.js');
+                        recitationVoice = new Voice({
+                            audioEngine: this.audioEngine,
+                            voiceId: session.voiceId
+                        });
+                        recitationVoice.enabled = true;
+                        recitationReady = recitationVoice.prepare(session.atoms, 0)
+                            .catch(() => false);
+                    }
+
                     // Start audio initialization early to minimize lag on chamber entry.
                     // It belongs inside this failure boundary so blocked Web Audio cannot
                     // strand the loading overlay or the router transition.
                     const hasSoundscape = session.soundscape && session.soundscape !== 'none';
-                    const hasAudio = (session.audioPreset && session.audioPreset !== 'silent') || session.selectedSwellId || hasSoundscape;
+                    const hasAudio = (session.audioPreset && session.audioPreset !== 'silent')
+                        || session.selectedSwellId
+                        || hasSoundscape
+                        || session.recitation?.enabled === true;
 
                     if (hasAudio) {
                         this.updateLoadingStatus('Stabilizing carrier frequencies...');
@@ -654,6 +676,11 @@ class App {
 
                     const { Chamber } = await import('./components/Chamber.js');
 
+                    if (recitationVoice) {
+                        this.updateLoadingStatus('Building the spoken lead...');
+                        await recitationReady;
+                    }
+
                     // Brief delay for smooth transition
                     await new Promise(resolve => setTimeout(resolve, 300));
 
@@ -664,6 +691,7 @@ class App {
                     return new Chamber(container, {
                         session: session,
                         player: player,
+                        voice: recitationVoice,
                         autoStart: true,
                         onExit: (reason, data) => {
                             // Cleanup
@@ -698,6 +726,7 @@ class App {
                     });
                 } catch (error) {
                     console.error('[R.I.S.E.] Session initialization failed:', error);
+                    recitationVoice?.destroy();
                     endVisualInterlocutionSession();
                     visualCortex.updateConfig({ enabled: false });
                     await this.audioEngine.stopSession({

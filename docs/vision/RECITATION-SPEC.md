@@ -117,27 +117,38 @@ advances the reading rather than the computed duration.
 it sound human. Replaced by **Kokoro-82M via kokoro-js**, both
 Apache-2.0, running fully client-side — see TTS-RESEARCH.
 
+The browser reliability baseline is Kokoro's supported **q4f16** dtype
+on **WASM**. q8/WASM produces healthy audio but cannot sustain the
+real Chamber on a single-thread browser runtime: it generated each
+roughly 2-second Tao phrase in about 5.8 seconds. WebGPU/fp32 is not
+selected merely because `navigator.gpu` exists; it remains an explicit
+future optimization after browser/device qualification.
+
 ### Continuous narration is viable
 
-Measured: cold start **3.2s**, real-time factor **~1.09** on CPU. That
-sounds fatal and is not — a **9% deficit**, against which:
+Measured on the same CPU probe: q8/WASM ran at **RTF 1.15–1.26** while
+q4f16/WASM ran at **RTF 0.34–0.38**. The latter produces audio materially
+faster than it is consumed and can replenish a rolling buffer during
+continuous narration. Its model is approximately 155 MB versus q8's
+92 MB; that one-time cached download is the explicit cost of reliable
+throughput.
 
-- **The reading is already 19–23% silence.** `[PAUSE]`, `[HOLD]`, and
-  paragraph breaks are dead air the synthesiser generates through.
-- **A head start drains slowly.** 30s of lead covers 5.6 minutes of
-  continuous reading.
-
-So: cold start on entering the Chamber (concurrent with choosing
-settings, therefore free), pre-generate a lead during the preparation
-stage that already exists, refill during pauses the scheduler can see
-coming.
+So: cold start before entering the Chamber, pre-generate a contiguous
+eight-phrase lead during preparation, then keep the nearest twelve
+speakable phrases queued. Generation is serial because ONNX permits one
+run per session, but the queue is reader-aware: work the reader has
+already passed is discarded. Once the Chamber is visible, generation
+never holds the reader. A missing later phrase degrades to the authored
+silent timer and narration resumes only after four contiguous phrases
+have been rebuilt.
 
 ### Degradation
 
 If the buffer runs low, **stop speaking and let the reading continue
-silently.** Never stall the reading to wait for audio. `speak()` already
-calls `onEnd` on error and on empty text. **Reverent degradation applies
-to speech exactly as it does to imagery.**
+silently.** Never stall the reading to wait for audio. Authored
+`[PAUSE]`/empty atoms do not count as underruns. A bounded state-transition
+diagnostic records starvation and recovery without flooding the console.
+**Reverent degradation applies to speech exactly as it does to imagery.**
 
 ### Timing for the reveal
 
@@ -148,6 +159,11 @@ words directly: a 7-word phrase yielded 6 gaps, onsets at
 0.30/0.80/1.12/1.62/1.92s.
 
 **The reveal follows real speech onsets, not an interpolation.**
+
+RISE does not re-encode those samples. Normal playback copies them
+directly into Web Audio; media fallback uses Kokoro's own IEEE Float32
+WAV Blob. A parallel PCM16 encoder is both unnecessary and a format
+drift risk.
 
 ---
 
@@ -224,10 +240,12 @@ Speech starts, music ramps down; speech ends, it returns.
    a breath rather than a switch.
 
 **Verified:** the graph is named layer gains each connected to
-`masterGain`. TTS audio does not enter the Web Audio graph through
-`speechSynthesis`, and Kokoro's output is a Blob played through an
-`Audio` element — so ducking the musical layers cannot attenuate the
-voice. Duck the musical layers; leave `ui` and `typing` alone.
+`masterGain`. Kokoro's compacted Float32 samples enter through a mono
+`AudioBufferSourceNode` connected directly to `masterGain`, outside the
+named musical layer gains. Ducking the musical layers therefore cannot
+attenuate the voice. Duck the musical layers; leave `ui` and `typing`
+alone. Kokoro's own Float32 WAV Blob is retained as the compatibility
+fallback when no shared Web Audio graph exists.
 
 ---
 

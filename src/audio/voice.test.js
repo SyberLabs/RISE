@@ -53,7 +53,7 @@ describe('degradation — the reading never stalls', () => {
 
     it('never retries a failed load', () => {
         // A device that cannot run the model will not start being able
-        // to mid-session, and retrying would re-download 92 MB.
+        // to mid-session, and retrying would re-download 155 MB.
         voice._fail('no worker');
         expect(voice._failed).toBe(true);
         expect(voice.available).toBe(false);
@@ -93,25 +93,6 @@ describe('buffer housekeeping', () => {
     });
 });
 
-describe('wav encoding', () => {
-    const voice = new Voice();
-
-    it('writes a header an audio element will accept', () => {
-        const blob = voice._wav(new Float32Array([0, 0.5, -0.5]), 24000);
-        expect(blob.type).toBe('audio/wav');
-        // 44-byte header plus 16-bit samples.
-        expect(blob.size).toBe(44 + 3 * 2);
-    });
-
-    it('clamps samples rather than letting them wrap', () => {
-        // A value outside [-1, 1] wrapping to the opposite extreme is an
-        // audible click, and Kokoro's output is not guaranteed bounded.
-        const view = new DataView(voice._wavBuffer(new Float32Array([2, -2]), 24000));
-        expect(view.getInt16(44, true)).toBe(0x7fff);
-        expect(view.getInt16(46, true)).toBe(-0x8000);
-    });
-});
-
 /**
  * The generation storm.
  *
@@ -127,8 +108,31 @@ describe('wav encoding', () => {
  * can happen at all.
  */
 describe('no request is made before there is a model to answer it', () => {
+    it('uses Kokoro\'s supported q4f16 dtype on WASM', async () => {
+        const sent = [];
+        vi.stubGlobal('Worker', class {
+            postMessage(message) {
+                sent.push(message);
+                queueMicrotask(() => this.onmessage({
+                    data: { id: message.id, type: 'ready', voices: ['af_heart'] }
+                }));
+            }
+            terminate() {}
+        });
+
+        const voice = new Voice();
+        voice.enabled = true;
+        await expect(voice.load()).resolves.toBe(true);
+        expect(sent[0]).toMatchObject({
+            type: 'load',
+            dtype: 'q4f16',
+            device: 'wasm'
+        });
+        vi.unstubAllGlobals();
+    });
+
     it('is unavailable while the worker exists but the model is still loading', () => {
-        // 92 MB, tens of seconds. Treating the worker's EXISTENCE as
+        // A large model, tens of seconds. Treating the worker's EXISTENCE as
         // readiness is the whole bug: every speak request in that window
         // threw `voice not loaded` and cleared its in-flight flag on the
         // way out, so the next atom queued the same indices again.
@@ -288,7 +292,11 @@ describe('speech begins once, with a lead behind it', () => {
         voice._worker = {};
         voice._loaded = true;
         for (let i = 0; i < n; i++) {
-            voice._cache.set(i, { samples: new Float32Array(2400), sampleRate: 24000 });
+            voice._cache.set(i, {
+                samples: new Float32Array(2400),
+                sampleRate: 24000,
+                blob: new Blob([], { type: 'audio/wav' })
+            });
         }
         return voice;
     };
@@ -304,23 +312,139 @@ describe('speech begins once, with a lead behind it', () => {
     });
 
     it('begins once the lead exists', () => {
-        const voice = seeded(6);
+        const voice = seeded(8);
         expect(voice.speak(0)).not.toBeNull();
         expect(voice._speaking).toBe(true);
     });
 
-    it('does not go back to waiting once it has begun', () => {
-        // Having started, a momentary shortfall is a silent phrase, not
-        // a restart of the whole gate — otherwise one starved atom would
-        // re-impose the wait and the voice would drop out for several
-        // phrases rather than for the one it lacked.
-        const voice = seeded(6);
+    it('rebuilds a cushion after a real underrun before resuming', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+        const voice = seeded(8);
         voice.speak(0);
         voice._cache.clear();
         expect(voice.speak(1)).toBeNull();
-        expect(voice._speaking).toBe(true);
+        expect(voice._speaking).toBe(false);
 
-        voice._cache.set(2, { samples: new Float32Array(2400), sampleRate: 24000 });
+        for (let i = 2; i < 6; i++) {
+            voice._cache.set(i, {
+                samples: new Float32Array(2400),
+                sampleRate: 24000,
+                blob: new Blob([], { type: 'audio/wav' })
+            });
+        }
         expect(voice.speak(2)).not.toBeNull();
+        expect(voice._speaking).toBe(true);
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(info).toHaveBeenCalledTimes(1);
+        warn.mockRestore();
+        info.mockRestore();
+    });
+
+    it('does not mistake an authored pause for an underrun', () => {
+        const voice = seeded(8);
+        voice._atoms = [
+            { content: 'phrase 0' },
+            { content: '[PAUSE]' }
+        ];
+        voice.speak(0);
+        expect(voice.speak(1)).toBeNull();
+        expect(voice._speaking).toBe(true);
+        expect(voice._starvedAt).toBeNull();
+    });
+
+    it('uses Kokoro\'s native Blob in the media fallback', () => {
+        const voice = seeded(8);
+        const nativeBlob = new Blob(['kokoro'], { type: 'audio/wav' });
+        voice._cache.get(0).blob = nativeBlob;
+        const createObjectURL = vi.spyOn(URL, 'createObjectURL');
+
+        expect(voice.speak(0)).not.toBeNull();
+
+        expect(createObjectURL).toHaveBeenCalledWith(nativeBlob);
+        createObjectURL.mockRestore();
+    });
+
+    it('plays raw samples through the shared Web Audio graph', async () => {
+        const source = {
+            connect: vi.fn(),
+            start: vi.fn(),
+            stop: vi.fn(),
+            onended: null
+        };
+        const buffer = { copyToChannel: vi.fn() };
+        const context = {
+            state: 'running',
+            destination: {},
+            createBuffer: vi.fn(() => buffer),
+            createBufferSource: vi.fn(() => source)
+        };
+        const audioEngine = {
+            context,
+            masterGain: {},
+            setVoiceDucking: vi.fn()
+        };
+        const voice = new Voice({ audioEngine });
+        voice.enabled = true;
+        voice._worker = {};
+        voice._loaded = true;
+        for (let i = 0; i < 8; i++) {
+            voice._cache.set(i, {
+                samples: new Float32Array(2400),
+                sampleRate: 24000
+            });
+        }
+
+        const spoken = voice.speak(0);
+        expect(spoken).not.toBeNull();
+        expect(context.createBuffer).toHaveBeenCalledWith(1, 2400, 24000);
+        expect(buffer.copyToChannel).toHaveBeenCalledWith(
+            voice._cache.get(0).samples, 0);
+        expect(source.connect).toHaveBeenCalledWith(audioEngine.masterGain);
+        expect(source.start).toHaveBeenCalledTimes(1);
+        expect(audioEngine.setVoiceDucking).toHaveBeenCalledWith(true);
+
+        source.onended();
+        await expect(spoken.finished).resolves.toMatchObject({ reason: 'ended' });
+        expect(audioEngine.setVoiceDucking).toHaveBeenLastCalledWith(false);
+    });
+});
+
+describe('preparation lead', () => {
+    it('generates a contiguous lead before the Chamber enters', async () => {
+        const voice = new Voice();
+        voice.enabled = true;
+        voice._worker = {};
+        voice._loaded = true;
+        voice.load = vi.fn(() => Promise.resolve(true));
+        voice._send = vi.fn(() => Promise.resolve({
+            samples: new Float32Array(2400),
+            sampleRate: 24000,
+            blob: new Blob()
+        }));
+        const atoms = Array.from({ length: 24 }, (_, i) => ({
+            // Preparation counts utterances, not raw atom positions:
+            // authored pauses must not shorten the spoken lead.
+            content: i % 3 === 0 ? `phrase ${i}` : '[PAUSE]'
+        }));
+
+        await expect(voice.prepare(atoms, 0)).resolves.toBe(true);
+        expect([0, 3, 6, 9, 12, 15, 18, 21]
+            .every(i => voice._cache.has(i))).toBe(true);
+        expect(voice._hasLead(0)).toBe(true);
+    });
+
+    it('does not mistake unrelated cached atoms for a lead', () => {
+        const voice = new Voice();
+        voice._atoms = Array.from({ length: 10 }, (_, i) => ({
+            content: `phrase ${i}`
+        }));
+        for (const i of [0, 6, 7, 8]) {
+            voice._cache.set(i, {
+                samples: new Float32Array(1),
+                sampleRate: 24000
+            });
+        }
+        expect(voice._hasLead(0)).toBe(false);
     });
 });

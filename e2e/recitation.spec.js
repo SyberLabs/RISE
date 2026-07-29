@@ -18,8 +18,55 @@ const PLAIN = {
   textSource: 'Plain', origin: null
 };
 
+async function installVoiceWorkerStub(page) {
+  // UI/timing coverage must not download a 92 MB model. This worker
+  // preserves the production protocol, including compact samples and
+  // Kokoro's Blob fallback, while live-model/CSP coverage stays in
+  // csp-live.spec.js.
+  await page.addInitScript(() => {
+    class VoiceWorkerStub {
+      postMessage(message) {
+        queueMicrotask(() => {
+          if (message.type === 'load') {
+            this.onmessage?.({
+              data: { id: message.id, type: 'ready', voices: ['af_heart'] }
+            });
+            return;
+          }
+          if (message.type === 'speak') {
+            const samples = new Float32Array(4800);
+            this.onmessage?.({
+              data: {
+                id: message.id,
+                type: 'audio',
+                samples,
+                sampleRate: 24000,
+                blob: new Blob([new Uint8Array(44)], { type: 'audio/wav' }),
+                diagnostics: {
+                  sourceByteOffset: 0,
+                  sourceByteLength: samples.byteLength,
+                  sourceBufferByteLength: samples.byteLength,
+                  transferredByteLength: samples.byteLength,
+                  peak: 0
+                }
+              }
+            });
+          }
+        });
+      }
+      terminate() {}
+    }
+    Object.defineProperty(window, 'Worker', {
+      configurable: true,
+      writable: true,
+      value: VoiceWorkerStub
+    });
+  });
+}
+
 async function enterChamber(page, recitation, seed = SEED) {
   await page.setViewportSize({ width: 1280, height: 900 });
+  if (recitation) await installVoiceWorkerStub(page);
   await page.addInitScript((g) => {
     localStorage.setItem('rise-beta-session', JSON.stringify(g.gate));
     localStorage.setItem('rise_orbital_text_v1', JSON.stringify(g.seed));
@@ -104,11 +151,10 @@ test('the voice never blocks the reading, and never ships unasked', async ({ pag
   expect(fetched).toEqual([]);
 });
 
-test('a recitation reading advances even before speech is ready', async ({ page }) => {
-  // The contract from RECITATION-SPEC section 2: a reading that cannot
-  // be spoken is read SILENTLY, never stalled. The model takes seconds
-  // to load, so the first atoms are always unspoken — and the reading
-  // must not wait for them.
+test('a recitation prepares a contiguous spoken lead before reading', async ({ page }) => {
+  // Preparation owns the cold-start wait. Once the Chamber is visible,
+  // its first phrase is already speakable and actual audio completion
+  // advances the reading.
   await enterChamber(page, true);
 
   // Sample the atom INDEX rather than the text: an empty display is a
@@ -117,21 +163,31 @@ test('a recitation reading advances even before speech is ready', async ({ page 
   const at = () => page.evaluate(() =>
     window.rise?.router?.views?.get('chamber-session')?.instance?.player?.sessionState?.currentIndex ?? -1);
   const before = await at();
-  await page.waitForTimeout(4000);
+  await page.waitForTimeout(500);
   const after = await at();
 
   const r = await page.evaluate(() => {
     const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
-    return { hasVoice: !!ch?.voice, failed: ch?.voice?._failed, playing: ch?.player?.state };
+    return {
+      hasVoice: !!ch?.voice,
+      failed: ch?.voice?._failed,
+      loaded: ch?.voice?._loaded,
+      cached: ch?.voice?._cache?.size ?? 0,
+      speaking: ch?.voice?._speaking,
+      playing: ch?.player?.state
+    };
   });
   console.log('ADVANCES ' + JSON.stringify({ ...r, before, after }));
 
   expect(r.hasVoice).toBe(true);
-  // Whatever happened to the model, the reading moved on.
+  expect(r.failed).toBe(false);
+  expect(r.loaded).toBe(true);
+  expect(r.speaking).toBe(true);
   expect(after).toBeGreaterThan(before);
 });
 
 test('the control turns recitation on, and the choice survives a return', async ({ page }) => {
+  await installVoiceWorkerStub(page);
   await page.addInitScript((g) => {
     localStorage.setItem('rise-beta-session', JSON.stringify(g.gate));
     localStorage.setItem('rise_orbital_text_v1', JSON.stringify(g.seed));
@@ -210,10 +266,11 @@ test('the control turns recitation on, and the choice survives a return', async 
  * buzz — Web Audio underrunning behind a saturated main thread — and on
  * one occasion lost the tab.
  *
- * So this asserts a RATE, and deliberately runs for the part of the
- * session where the model is still on the wire.
+ * So this asserts a RATE across preparation and playback. Model-load
+ * behavior itself is covered by the Voice unit suite; this browser test
+ * preserves the full Chamber/Player call pattern without a 92 MB fetch.
  */
-test('the voice makes no storm while its model is still loading', async ({ page }) => {
+test('the voice makes no request storm around preparation and playback', async ({ page }) => {
   const voiceLogs = [];
   page.on('console', (m) => {
     if (m.text().includes('[Voice]')) voiceLogs.push(m.text());
@@ -229,8 +286,8 @@ test('the voice makes no storm while its model is still loading', async ({ page 
     textSource: 'Storm', origin: null
   };
   await enterChamber(page, true, LONG);
-  // Long enough to cross many atoms at 150 wpm while 92 MB downloads.
-  await page.waitForTimeout(20000);
+  // Long enough to cross many stubbed utterances after the initial lead.
+  await page.waitForTimeout(2000);
 
   const state = await page.evaluate(() => {
     const ch = window.rise?.router?.views?.get('chamber-session')?.instance;

@@ -617,9 +617,9 @@ export class AudioEngine {
      * swell, up slow so the return is a breath rather than a switch.
      *
      * Only the MUSICAL layers duck. `ui` and `typing` are feedback —
-     * a keystroke or a click should still be heard — and the voice
-     * itself never enters the Web Audio graph at all, so there is no
-     * risk of attenuating the thing being made room for.
+     * a keystroke or a click should still be heard. Recitation connects
+     * directly to `masterGain`, outside these named musical layer gains,
+     * so this cannot attenuate the voice being made room for.
      */
     setVoiceDucking(ducked, { floor = 0.18, downSec = 0.15, upSec = 0.6 } = {}) {
         if (!this.context) return;

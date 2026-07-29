@@ -47,15 +47,15 @@ export class Chamber {
     this.recitationEnabled = this.session?.recitation?.enabled === true;
     this._revealTimers = null;
 
-    // The voice is constructed only when a reading asks for it: the
-    // model is 92 MB and must never be fetched as a side effect of
-    // opening the Chamber. Warmed in activate(), where the reader is
-    // already choosing settings and the 3.2s load is free.
+    // The voice exists only when a reading asks for it: the model is
+    // 155 MB and must never be fetched as a side effect of opening the
+    // Chamber. App normally passes a prepared instance; constructing
+    // here preserves graceful use by direct/embedded Chamber callers.
     this.voice = this.recitationEnabled
-      ? new Voice({
+      ? (options.voice || new Voice({
         audioEngine: window.rise?.audioEngine || null,
         voiceId: this.session?.voiceId
-      })
+      }))
       : null;
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
@@ -522,11 +522,10 @@ export class Chamber {
         // — if the buffer has not reached this atom it returns null and
         // the reading proceeds silently at its own pace.
         const spoken = this.voice?.speak(data.index) ?? null;
-        // The utterance is the clock. Stashed for the duration override
-        // below, which the Player consults immediately after this event
-        // — an atom paced by WPM would cut the voice off mid-word, which
-        // is what made speech sound like buzzing rather than reading.
+        // The utterance is the clock. Duration remains the pause/error
+        // fallback; normal progression follows the real completion event.
         this._spokenMs = spoken?.durationMs ?? null;
+        this._spokenCompletion = spoken?.finished ?? null;
 
         this.displayAtom(data.atom, data.index, {
           concealed: data.concealed === true,
@@ -537,10 +536,11 @@ export class Chamber {
         // must never delay the frame the reader is waiting on.
         this.voice?.prime(this.session?.atoms, data.index + 1);
       });
-      // A spoken atom lasts as long as its utterance (RECITATION-SPEC
-      // §1). Returning null falls back to the authored duration, which
-      // is what an unspoken atom — or a starved buffer — must get.
+      // A spoken atom advances on its actual end (RECITATION-SPEC §2).
+      // Its duration is retained for progress accounting and for the
+      // silent fallback after interruption or playback failure.
       this.player.atomDurationOverride = () => this._spokenMs;
+      this.player.atomCompletionOverride = () => this._spokenCompletion;
 
       this.player.on('progress', (progress) => this.updateProgress(progress));
       this.player.on('complete', () => this.onSessionComplete());
@@ -549,6 +549,11 @@ export class Chamber {
       // home; rewind clamps home at atom 0) carry the same subsystem
       // contract and HUD as key-initiated steps
       this.player.on('shuttle', ({ velocity }) => {
+        // Speech has no meaningful 2×/4× representation. Leaving home
+        // stops the current utterance; its completion promise degrades
+        // to the shuttle timer, and narration may resume next atom once
+        // traversal returns home.
+        if (velocity !== 1) this.voice?.stop();
         this._applyShuttleState(velocity);
         this.showShuttleHud(velocity);
       });
@@ -1874,11 +1879,10 @@ export class Chamber {
     this._active = true;
     document.addEventListener('keydown', this.boundKeyboardHandler);
 
-    // Warm the voice now rather than at the first word. The model takes
-    // ~3.2s to load and generation runs slightly slower than speech, so
-    // the lead built here is what lets the reading stay ahead of itself
-    // later. Fire and forget: a failure leaves `voice.available` false
-    // and the reading proceeds silently.
+    // App normally completed the initial lead during session
+    // preparation. Keep this idempotent warm/prime path for direct
+    // Chamber callers and for a prepared voice that still has later
+    // phrases to queue.
     if (this.voice) {
       this.voice.enabled = true;
       this.voice.load()
@@ -1898,7 +1902,7 @@ export class Chamber {
     // A reveal in flight would otherwise fire into a torn-down DOM.
     this.cancelReveal();
     // Terminates the worker and releases the buffered audio. Without
-    // this a 92 MB model and a queue of samples outlive the reading.
+    // this a 155 MB model and a queue of samples outlive the reading.
     this.voice?.destroy();
     this.voice = null;
     if (this.controlsTimeout) {

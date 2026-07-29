@@ -8,7 +8,7 @@
  * jumping to the next. Repeated every few hundred milliseconds, that is
  * a buzz rather than a reading.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Player } from './player.js';
 import { compileSession } from './session-compiler.js';
 
@@ -57,5 +57,41 @@ describe('atom duration override', () => {
         expect(divisor).toBeGreaterThan(1);
         expect(player._atomDisplayMs(player.sessionState.currentAtom))
             .toBe(2000 / divisor);
+    });
+});
+
+describe('event-governed atom completion', () => {
+    it('advances from the actual audio end instead of starting a timer', async () => {
+        const player = new Player(session());
+        player.sessionState.state = 'playing';
+        let finish;
+        const ended = new Promise(resolve => { finish = resolve; });
+        player.atomCompletionOverride = () => ended;
+        player.processNextNode = vi.fn();
+        const raf = vi.spyOn(globalThis, 'requestAnimationFrame');
+
+        player.scheduleNextAtom();
+        expect(raf).not.toHaveBeenCalled();
+        expect(player.processNextNode).not.toHaveBeenCalled();
+
+        finish({ reason: 'ended' });
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(player.processNextNode).toHaveBeenCalledTimes(1);
+        raf.mockRestore();
+    });
+
+    it('uses traversal timing instead of speech away from home velocity', () => {
+        const player = new Player(session());
+        player.sessionState.state = 'playing';
+        player.shuttle.stepForward();
+        player.atomCompletionOverride = vi.fn(() => Promise.resolve({ reason: 'ended' }));
+        const raf = vi.spyOn(globalThis, 'requestAnimationFrame');
+
+        player.scheduleNextAtom();
+
+        expect(player.atomCompletionOverride).not.toHaveBeenCalled();
+        expect(raf).toHaveBeenCalled();
+        raf.mockRestore();
     });
 });

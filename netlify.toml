@@ -28,8 +28,8 @@
     #
     # script-src stays 'self': transformers.js would otherwise pull its
     # ONNX runtime from cdn.jsdelivr.net at load time, which is a third-
-    # party CDN executing code. The runtime ships inside the package, so
-    # it is served from public/ort/ instead and the policy holds.
+    # party CDN executing code. Vite emits the packaged runtime as hashed
+    # same-origin assets, so the policy holds without a CDN exception.
     # 'wasm-unsafe-eval' is required to COMPILE that WebAssembly; it does
     # not permit eval() or inline script.
     #

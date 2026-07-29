@@ -14,7 +14,7 @@ export default defineConfig({
   },
 
   // The voice worker (RECITATION-SPEC §2) imports kokoro-js lazily, so
-  // the 92 MB model is fetched only when a reading asks for a voice.
+  // the 155 MB model is fetched only when a reading asks for a voice.
   // A dynamic import inside a worker requires the ES module format —
   // the default IIFE cannot code-split, which is exactly what makes the
   // laziness work.

@@ -152,6 +152,10 @@ export class Player {
         // Optional: a consumer that governs how long an atom lasts.
         // See _atomDisplayMs. Null means the authored duration rules.
         this.atomDurationOverride = null;
+        // A consumer may govern completion with a real event (for
+        // example AudioBufferSourceNode.onended). The timer remains the
+        // fallback for unavailable or failed media.
+        this.atomCompletionOverride = null;
         this.progressFrameId = null; // For smooth progress animation
         this.transitionDuration = 300; // ms for fade transitions
         this.atomStartTime = null;
@@ -785,6 +789,40 @@ export class Player {
         // Emit current atom only if we're not just safely resuming
         if (!isResuming && !alreadyPrepared) {
             this._prepareCurrentAtom();
+        }
+
+        // Event-governed completion. RECITATION-SPEC §2 requires the
+        // utterance's actual end — not an estimated duration — to advance
+        // the reading. The atom listener has already started playback and
+        // exposed its completion promise through this override.
+        const completion = !isResuming && this.shuttle.atHome
+            ? this.atomCompletionOverride?.(atom, this.sessionState.currentIndex)
+            : null;
+        if (completion && typeof completion.then === 'function') {
+            this.atomStartTime = performance.now();
+            const currentSyncId = ++this.speechSyncId;
+            Promise.resolve(completion)
+                .then(result => {
+                    if (this.speechSyncId !== currentSyncId) return;
+                    if (this.sessionState.state !== 'playing') return;
+                    if (result?.reason !== 'ended') {
+                        // Playback failed after speak() returned. Degrade
+                        // to the ordinary timer rather than flashing the
+                        // atom or stalling the reading.
+                        this.scheduleNextAtom(true);
+                        return;
+                    }
+                    this.timerId = null;
+                    this.atomStartTime = null;
+                    this.currentAtomRemainingTime = null;
+                    void this.processNextNode();
+                })
+                .catch(() => {
+                    if (this.speechSyncId !== currentSyncId) return;
+                    if (this.sessionState.state !== 'playing') return;
+                    this.scheduleNextAtom(true);
+                });
+            return;
         }
 
         // Voice sync mode: let speech control timing. Voice belongs

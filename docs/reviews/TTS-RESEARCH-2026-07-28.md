@@ -91,10 +91,10 @@ whole feature is bad.
 
 ### The costs, stated plainly
 
-1. **A 92 MB model download** (q8 quantisation; fp32 is 326 MB). One
-   time, then cached — but it is real, and must never happen unless a
-   reader asks for voice. Load lazily, on enabling recitation, with
-   visible progress.
+1. **A 155 MB model download** (the q4f16 production baseline; q8 is
+   92 MB and fp32 is 326 MB). One time, then cached — but it is real,
+   and must never happen unless a reader asks for voice. Load lazily,
+   on enabling recitation, with visible progress.
 2. **WASM inference is slow.** WebGPU is 10–100× faster and is the
    difference between usable and not. Chrome/Edge 113+ have it; Safari
    and Firefox largely do not, so a large share of readers get the slow
@@ -120,11 +120,12 @@ applies to speech exactly as it does to imagery.**
 
 ---
 
-## Measured, 2026-07-29
+## Initial q8 Node probe, measured 2026-07-29
 
-Both open questions are answered. Measured in **Node with
-`device: "cpu"`**, which is the WASM/CPU path — the slow one, and the
-one most Safari and Firefox readers get. WebGPU only improves on this.
+Measured in **Node with `device: "cpu"`**. These figures established the
+audio/timestamp behavior, but the q8 throughput did not reproduce the
+slower single-thread runtime observed in the live Chamber; the production
+correction and dtype comparison follow below.
 
 | measurement | result |
 |---|---|
@@ -160,10 +161,14 @@ out to be achievable too — see below.
 
 ---
 
-## Continuous narration: how, measured 2026-07-29
+## Continuous narration: corrected by the live Chamber, 2026-07-29
 
-The RTF 1.09 figure sounds fatal and is not. **The deficit is 9%**, not
-9×. Two independent sources of slack each cover it.
+The first Node probe made q8 look close enough to real time that authored
+silence and a deep lead appeared sufficient. The real browser invalidated
+that conclusion: eight Tao phrases took about 40 seconds to generate
+after model load, while the reader consumed them at roughly two seconds
+each. The voice stopped after the initial lead because its buffer was
+being depleted much faster than the original RTF predicted.
 
 ### 1. The reading is already 19–23% silence
 
@@ -176,49 +181,59 @@ Measured across both corpora:
 
 `[PAUSE]` and `[HOLD]` markers, paragraph breaks, and the phrase-boundary
 atoms are dead air. **The synthesiser generates straight through them.**
-A 9% deficit against 19–23% of free time is not a deficit at all — the
-buffer grows during silence faster than it drains during speech.
-
-This is the whole answer, and it is a property of how R.I.S.E. already
-authors readings rather than something that had to be built.
+A fast backend still benefits from that silence, but pauses cannot rescue
+a backend whose live RTF is near three.
 
 ### 2. A head start buys minutes, not seconds
 
-Even ignoring pauses, a lead drains at only `RTF − 1` = 0.09 per second
-of audio:
+No finite lead makes a backend slower than the consumer sustainable for
+an unbounded reading. The production backend must generate faster than
+real time; the lead then absorbs normal per-phrase variance rather than
+hiding a permanent throughput deficit.
 
-| head start | continuous reading before the buffer empties |
-|---|---|
-| 10s | 1.9 min |
-| 30s | **5.6 min** |
-| 60s | **11.1 min** |
+### Quantisation benchmark
 
-A 3.2s cold start plus a ~30s pre-generation pass — which is a
-"preparing the reading" moment, not a loading screen — covers most
-sessions outright. Combined with the pause slack, it does not run out.
+Four representative Tao phrases, serial generation on the same CPU:
+
+| dtype | model size | observed RTF | decision |
+|---|---:|---:|---|
+| q8 | 92.4 MB | 1.15–1.26 | healthy audio, insufficient throughput |
+| q4 | 305 MB | 0.34–0.45 | fast, but an unjustified cold-download cost |
+| **q4f16** | **155 MB** | **0.34–0.38** | **production WASM baseline** |
+
+[Kokoro's JavaScript README](https://github.com/hexgrad/kokoro/blob/main/kokoro.js/README.md)
+lists q4f16 as a supported dtype. It is about three times faster than q8
+in the probe and avoids the WebGPU/fp32 path that produced corrupted
+output in both Chrome and Edge.
+
+[ONNX Runtime's generic CPU guidance](https://onnxruntime.ai/docs/tutorials/web/performance-diagnosis.html)
+prefers uint8 and warns that float16 is not natively supported by CPUs.
+That is useful guidance, not a substitute for this model's measurement:
+Kokoro's q4f16 artifact was the fastest practical supported option here,
+and the live Chamber soak is the acceptance test.
 
 ### The design that follows
 
 1. **Cold start on entering the Chamber**, not on pressing play. 3.2s,
    concurrent with the reader choosing settings, so it is free.
-2. **Pre-generate a lead before the first atom.** Ten to twenty atoms
-   is a few seconds of preparation and is the honest place for a
-   progress indicator — the Chamber already has a preparation stage.
+2. **Pre-generate eight speakable phrases before the first atom.** Keep
+   twelve queued thereafter; that is the honest place for a progress
+   indicator — the Chamber already has a preparation stage.
 3. **Generate during pauses.** The scheduler knows a `[PAUSE]` is
    coming; that is when the queue refills.
 4. **Watch the buffer and degrade before it empties.** If the lead
    falls below a threshold, stop speaking new atoms and let the reading
    continue silently. **Never stall the reading to wait for audio** —
    reverent degradation applies to speech exactly as to imagery.
-5. **WebGPU where available** removes the question entirely, but is not
-   required for this to work.
+5. **Record generation RTF in the live worker.** A state-transition log
+   records starvation and recovery. This makes backend performance an
+   observed fact rather than an inference from silence.
 
 ### Why the loading-screen instinct was right but unnecessary
 
-Pre-computing the whole reading is possible — a 5-minute reading is
-~30s of generation — but it front-loads a wait for something the reader
-may abandon, and it fails the moment they change the pace or skip. The
-rolling buffer gets the same result without ever making anyone wait for
+Pre-computing the whole reading front-loads a wait for something the
+reader may abandon, and it fails the moment they change the pace or skip.
+The rolling buffer gets the same result without making anyone wait for
 audio they have not reached.
 
 ### Timing: interpolation is not required

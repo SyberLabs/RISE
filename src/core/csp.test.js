@@ -17,6 +17,10 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const toml = readFileSync(resolve(process.cwd(), 'netlify.toml'), 'utf8');
+const voiceWorker = readFileSync(
+    resolve(process.cwd(), 'src/audio/voice-worker.js'),
+    'utf8'
+);
 const csp = toml.match(/Content-Security-Policy = "([^"]+)"/)?.[1] ?? '';
 const directive = (name) =>
     csp.split(';').map(d => d.trim()).find(d => d.startsWith(name)) ?? '';
@@ -66,9 +70,9 @@ describe('content security policy', () => {
         // weaken: transformers.js fetches its ONNX runtime from
         // cdn.jsdelivr.net unless told otherwise. Allowing that would
         // let a third party execute code in the app so a voice could
-        // speak — a bad trade. The runtime is served from public/ort/
-        // instead, and the worker sets env.backends.onnx.wasm.wasmPaths
-        // BEFORE the first model load.
+        // speak — a bad trade. The worker imports the packaged runtime
+        // through Vite asset URLs and sets both wasmPaths entries BEFORE
+        // the first model load.
         const script = directive('script-src');
         expect(script).toContain("'self'");
         expect(script).not.toContain('jsdelivr');
@@ -82,11 +86,22 @@ describe('content security policy', () => {
         expect(directive('frame-ancestors')).toBe("frame-ancestors 'none'");
     });
 
-    it('ships the ONNX runtime it refuses to fetch from a CDN', () => {
-        // Blocking jsdelivr only works if the runtime is actually here.
-        // A missing file fails identically to a blocked one — the voice
-        // simply never loads — so the policy and the assets have to be
-        // asserted together or the guarantee is half a guarantee.
+    it('routes both ONNX runtime files through Vite assets, not public imports', () => {
+        expect(voiceWorker).toContain(
+            '../../node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jsep.mjs'
+        );
+        expect(voiceWorker).toContain(
+            '../../node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jsep.wasm'
+        );
+        expect(voiceWorker).toContain('mjs: ortWasmModuleUrl');
+        expect(voiceWorker).toContain('wasm: ortWasmBinaryUrl');
+        expect(voiceWorker).not.toContain("wasmPaths = '/ort/'");
+    });
+
+    it('retains the deploy-safe public ONNX runtime mirror', () => {
+        // The worker now uses Vite-managed package assets in every mode.
+        // Keep the public mirror checked as a deployment fallback until
+        // an explicit asset-manifest assertion replaces it.
         for (const file of [
             'public/ort/ort-wasm-simd-threaded.jsep.mjs',
             'public/ort/ort-wasm-simd-threaded.jsep.wasm'
