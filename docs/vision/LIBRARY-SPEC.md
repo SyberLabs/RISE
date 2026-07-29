@@ -389,3 +389,50 @@ one division renders as a flat list rather than labelling the obvious.
 **"All" stays flat.** Divisions across four canons at once would
 interleave traditions and say nothing; the grouping only means something
 when a reader is standing at one shelf.
+
+
+---
+
+## 11. Two axes, and the acute gap (2026-07-28)
+
+**Form & Design is a subject, not a fourth region.** It sat in one filter
+row beside Western, Eastern, and Indigenous, implying they were
+alternatives. They are not — Vitruvius is Western AND a book about form.
+Each shelf now declares an `axis`, and the panel shows two labelled
+rows, mirroring the Collections panel for imagery.
+
+The subject row filters on `axis !== 'tradition'`, so a shelf that
+forgets to declare one appears somewhere rather than vanishing from
+both. A test asserts every shelf appears exactly once across the rows.
+
+The subject axis is deliberately open. What belongs on it — Cosmos,
+Number, Craft, Attention — is a philosophical question rather than a
+filing one, and worth deciding rather than accreting.
+
+### The corpus is shallow, and the brief caused it
+
+The Western shelf holds thirteen essayists, poets, and philosophers, and
+**no imaginative literature at all**: no Homer, Dante, Chaucer,
+Shakespeare, Cervantes, Milton, Goethe, or Melville. Verified — all
+twelve names return absent.
+
+This is a defect in the acquisitions brief, not in SOL's work. The brief
+asked for *"aphorism, dialogue, verse, and the essay in its older
+sense"* and warned that *"prose that is merely informative reads poorly
+here."* Each clause is true. Together they made *short* an unstated
+requirement, and SOL delivered exactly what was asked.
+
+**Paradise Lost is compressed. The Inferno is compressed.** They are
+simply also long — and length was never the constraint, since payloads
+load lazily.
+
+`docs/reviews/SOL-PD-BRIEF-2-IMAGINATIVE-LITERATURE.md` corrects it, and
+carries one instruction the first brief needed: *do not let a stated
+preference become an unstated exclusion — if something in this brief
+would narrow the result in a way we have not noticed, say so before
+beginning.*
+
+It also asks SOL to challenge the divisions. If forty works of
+imaginative literature arrive, "Literary" holds both Montaigne's essays
+and Melville's novel, which are not the same kind of thing. The parallel
+across shelves is worth defending, but not against evidence.
