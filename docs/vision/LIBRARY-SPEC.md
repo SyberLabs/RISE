@@ -226,3 +226,73 @@ defined here are what the ingest will populate.
   the runtime cannot yet tell an authored boundary from a derived one,
   and a bulk ingest that guessed would poison that distinction before
   it is built.
+
+
+---
+
+## 8. The ingest stint (2026-07-28)
+
+Sixteen works ingested from SOL's acquisitions dossier; 53 texts across
+five shelves. **Form went from 0 to 6.**
+
+| shelf | texts | ingested |
+|---|---:|---:|
+| Form | 6 | 6 |
+| The Interior | 10 | 3 |
+| The Limit | 11 | 3 |
+| The Recurrence | 8 | 4 |
+| Composed | 19 | — |
+
+Machinery: `scripts/archive-ingest.mjs`. A work declares its edition,
+rights, source, and what its headings look like; shared code does the
+rest. Every generated module carries the SHA-256 of the artifact **as
+fetched** alongside the payload checksum — the first says this is the
+file the world served us, the second says this is what we made of it.
+
+### What the work taught
+
+**Check the END of a text, not only the beginning.** This caught six
+defects that a first-lines check would have missed entirely: Vitruvius
+ending on his editor's essay, Boethius running into Gutenberg's licence
+and then into the translator's citation list, Dow closing on "THE END",
+Ross on a printer's colophon and a paragraph index, Rasmussen on a list
+of tellers and page numbers.
+
+**Losing the first section is the quietest failure.** Parker and
+Beckwith both lost tale 1 to a contents-skip neither edition needed. A
+collection that begins at its second story reads perfectly well and is
+simply wrong.
+
+**Structure is per-edition, not per-work.** Five Gutenberg files state
+the same three things five different ways. Counting headings to find the
+body failed on Dow (six in contents, eight in the body); a contents
+block is contiguous and body headings are far apart, so DISTANCE is the
+signal. Boethius defeated the shared helper entirely and got an explicit
+parser rather than another option on the general one.
+
+**The reading unit is an editorial decision.** Montaigne parsed into
+three books of ~940,000 characters each — sixty hours a section, which
+is a file rather than a reading. He is read one essay at a time; 102 of
+them.
+
+**Lazy loading is not optional at this scale.** Six works statically
+imported took the content bundle to 1.63 MB. Metadata is now eager and
+text is lazy: the eager bundle is ~116 kB with sixteen works, and
+Montaigne alone is a 2.8 MB chunk nobody downloads unless they open him.
+
+### Deferred, honestly
+
+- **Westervelt's Hawaiian legends** — the plain-text edition has no
+  machine-detectable chapter structure. Guessing would produce sections
+  that are not the work's own divisions.
+- **The Upanishads and Hermetica** remain withheld. Both need rebuilding
+  from Müller and Mead alone, and no clean Gutenberg edition of either
+  translation was found.
+- **The Heart Sutra and Gospel of Thomas** cannot be cleared at all:
+  Conze and Lambdin are modern, and the Nag Hammadi codices were
+  unearthed in 1945.
+- **Marcus Aurelius (Selected)** is withheld as a duplicate, awaiting a
+  reading-route feature the Archive does not yet have.
+- Twenty-seven of SOL's 43 cleared editions remain un-ingested, including
+  the four requiring Internet Archive scans (Euclid, Alberti, Helmholtz,
+  Owen Jones) and the image-dependent works SOL placed last.
