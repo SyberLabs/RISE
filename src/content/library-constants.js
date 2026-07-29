@@ -26,25 +26,25 @@ export const LIBRARY_CATEGORIES = [
         orientation: 'Structure, proportion, the grammar of things — read for the sense that form is legible.'
     },
     {
-        id: 'interior',
-        name: 'The Interior',
-        icon: '◎',
-        description: 'The self, and the keeping of it',
-        orientation: 'The inner fortress and the practices that maintain it. Read slowly; these were written slowly.'
+        id: 'western',
+        name: 'The Western Canon',
+        icon: '⌂',
+        description: 'Greece, Rome, and what Europe made of them',
+        orientation: 'From the Hermetica and the Stoics through the Christian mystics to the Americans — a long argument that has never stopped being had.'
     },
     {
-        id: 'limit',
-        name: 'The Limit',
-        icon: '○',
-        description: 'Where knowing runs out',
-        orientation: 'Texts that arrive at the edge of what language holds, and go on speaking carefully anyway.'
+        id: 'eastern',
+        name: 'The Eastern Canon',
+        icon: '☯',
+        description: 'India, China, Persia, Japan',
+        orientation: 'Traditions that were old when Greece was young, and are still being read the way they were meant to be read: slowly, and more than once.'
     },
     {
-        id: 'recurrence',
-        name: 'The Recurrence',
+        id: 'indigenous',
+        name: 'Indigenous Traditions',
         icon: '◈',
-        description: 'What keeps returning, across cultures that never met',
-        orientation: 'The same intuition surfacing in places with no contact between them. Read for the rhyme.'
+        description: 'Held in memory and speech, written down late',
+        orientation: 'Stories that lived by being told. Each reached print through a named outsider who collected them — read the tellers first, and the collector as the window they are.'
     },
     {
         // Not a shelf of found works but of written ones: sequences

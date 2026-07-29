@@ -35,7 +35,7 @@ export const KABIR_SONGS_META = Object.freeze({
     id: "kabir-songs",
     title: "Songs of Kabir",
     author: "Kabir",
-    shelf: "limit",
+    shelf: "eastern",
     edition: {"translator":"Rabindranath Tagore","publisher":"Macmillan","year":1915},
     source: {"url":"https://www.gutenberg.org/cache/epub/6519/pg6519.txt","label":"Project Gutenberg #6519","file":"kabir-songs-6519.txt","retrieved":"2026-07-29","sha256":"1d07cff3db00a37cd5fc6a394c48aa5b555d35b8a7c338ce9adf2c7325287ef4"},
     rights: {"basis":"pre-1930-us","evidence":"Artifact names Tagore as translator with Evelyn Underhill's introduction, Macmillan, 1915 — pre-1930. Kabir died c. 1518; Tagore died 1941."},

@@ -87,6 +87,20 @@ export const QUARANTINED = Object.freeze({
         recovery: 'Same as the deep edition: rebuild from Müller 1884, or identify the actual translator and date it.'
     },
 
+    'sacred-wheel-of-time': {
+        claimed: 'Toltec Tradition, translator "Traditional"',
+        actual: 'Carlos Castaneda, Tales of Power (1974) and The Wheel of Time (1998)',
+        status: 'in-copyright',
+        evidence: 'The verses are verbatim don Juan quotations — "We are perceivers. We are awareness; we are not objects" is Tales of Power, Simon & Schuster 1974. Castaneda died 1998; the material is under copyright.',
+        // The deeper problem is the attribution, not only the rights.
+        // Castaneda's don Juan is a twentieth-century literary creation
+        // whose ethnographic basis is disputed by the scholars of the
+        // people it claims to describe. Filing it as "Toltec" would
+        // misrepresent a living tradition even if the rights were clean
+        // — which is why it cannot simply move to another shelf.
+        recovery: 'None. If Mesoamerican material belongs in the Archive it must come from an attributed source, not from Castaneda.'
+    },
+
     'sacred-marcus-aurelius': {
         claimed: 'a distinct work',
         actual: 'the same George Long text the Archive already holds in full',

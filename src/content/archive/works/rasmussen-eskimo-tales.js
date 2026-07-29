@@ -127,7 +127,7 @@ export const RASMUSSEN_ESKIMO_TALES_META = Object.freeze({
     id: "rasmussen-eskimo-tales",
     title: "Eskimo Folk-Tales",
     author: "collected by Knud Rasmussen",
-    shelf: "recurrence",
+    shelf: "indigenous",
     edition: {"translator":"W. J. Alexander Worster","publisher":"Gyldendal","year":1921},
     source: {"url":"https://www.gutenberg.org/cache/epub/28932/pg28932.txt","label":"Project Gutenberg #28932","file":"rasmussen-eskimo-tales-28932.txt","retrieved":"2026-07-29","sha256":"3808307639be438239fbbdb3f58d587755d85924643523473b9bf3b9f8a8694d"},
     rights: {"basis":"pre-1930-us","evidence":"Artifact names Rasmussen, Worster, and the 1921 Gyldendal, Copenhagen imprint — pre-1930. Rasmussen died 1933; Worster died 1929."},

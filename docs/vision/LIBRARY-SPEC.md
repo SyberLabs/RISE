@@ -296,3 +296,60 @@ Montaigne alone is a 2.8 MB chunk nobody downloads unless they open him.
 - Twenty-seven of SOL's 43 cleared editions remain un-ingested, including
   the four requiring Internet Archive scans (Euclid, Alberti, Helmholtz,
   Owen Jones) and the image-dependent works SOL placed last.
+
+
+---
+
+## 9. The shelves are geographic (2026-07-28, revised)
+
+**Form · The Western Canon · The Eastern Canon · Indigenous Traditions ·
+Composed.** The functional shelves (Interior, Limit, Recurrence) are
+retired.
+
+### Why the first cut failed
+
+Organising by *what a work does* is a real property and it flattened a
+more important one. "The Limit" filed **Lao Tzu beside Nietzsche and the
+Dhammapada beside Emily Dickinson** — as though the tradition a mystic
+comes from were incidental to them. For a mystic it is most of what they
+are.
+
+"The Recurrence" was worse. Four collected oral traditions sat with the
+Hermetica and the I Ching under a heading meaning *the same intuition
+appearing where there was no contact* — which turns living traditions
+into evidence for a thesis. That is precisely what SOL's dossier warned
+against, and the caveat had been written into the curation while the
+shelf that caused it was left standing. A warning in a comment does not
+fix a heading.
+
+### Why Indigenous is not simply a third region
+
+Eastern and Western name literate canonical traditions; Indigenous names
+a relationship to colonisation. Yuwaalaraay, Kalaallit, Cherokee, and
+Jamaican Maroon traditions share nothing with each other except that
+outsiders collected them.
+
+The shelf is kept and named plainly, with the shared property stated in
+its own orientation rather than hidden: *held in memory and speech,
+written down late* — and each work's line says whose framing stands
+between the reader and the tradition.
+
+### Form survives because it is a different kind of book
+
+Vitruvius, Dow, Ross, Crane, Kandinsky, and Dresser are Western by
+geography, but they are read as craft rather than as canon. Filing
+*Principles of Decorative Design* beside *Thus Spoke Zarathustra* would
+be the same error in the other direction.
+
+### One work withheld by the re-sort
+
+`sacred-wheel-of-time`, filed as "Toltec Tradition, translator
+Traditional," is **Carlos Castaneda** — the verses are verbatim don Juan
+quotations from *Tales of Power* (1974). In copyright, and the deeper
+problem is the attribution: Castaneda's don Juan is a twentieth-century
+literary creation whose ethnographic basis is disputed by scholars of
+the people it claims to describe. It could not simply move to the
+Indigenous shelf; it had to leave.
+
+Asking where a work belongs geographically is what surfaced it. The
+functional shelves never had to ask.

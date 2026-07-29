@@ -39,7 +39,7 @@ export const EPICTETUS_ENCHEIRIDION_META = Object.freeze({
     id: "epictetus-encheiridion",
     title: "The Discourses and Encheiridion",
     author: "Epictetus",
-    shelf: "interior",
+    shelf: "western",
     edition: {"translator":"George Long","publisher":"George Bell & Sons","year":1890},
     source: {"url":"https://www.gutenberg.org/cache/epub/10661/pg10661.txt","label":"Project Gutenberg #10661","file":"epictetus-encheiridion-10661.txt","retrieved":"2026-07-29","sha256":"7915eac7442daed1fbc461b8a281ecc315c5e619126d50d914c29c39fa3b2209"},
     rights: {"basis":"author-death-70","evidence":"Artifact names George Long as translator; Long died 1879 — 147 years. Epictetus is ancient. Same translator the Archive already holds for Marcus Aurelius, which is a coherence worth having: two Stoics in one English voice."},

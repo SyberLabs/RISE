@@ -55,7 +55,7 @@ export const OKAKURA_BOOK_OF_TEA_META = Object.freeze({
     id: "okakura-book-of-tea",
     title: "The Book of Tea",
     author: "Kakuzo Okakura",
-    shelf: "interior",
+    shelf: "eastern",
     edition: {"publisher":"Fox, Duffield & Co.","year":1906},
     source: {"url":"https://www.gutenberg.org/cache/epub/769/pg769.txt","label":"Project Gutenberg #769","file":"okakura-book-of-tea-769.txt","retrieved":"2026-07-29","sha256":"a7464287f9b431a55ff50d05e48dec31db050eb4a88554425961c6699ea6fcd7"},
     rights: {"basis":"pre-1930-us","evidence":"Artifact carries the 1906 Fox, Duffield & Co. New York imprint. Written in English by Okakura, who died 1913 — no translator intervenes."},

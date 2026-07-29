@@ -116,10 +116,10 @@ describe('curation is editorial, and says so', () => {
         // registerText applies curation centrally so a new source cannot
         // arrive unshelved by forgetting to ask.
         const walden = LIBRARY_TEXTS.find(t => t.id === 'literary-walden');
-        expect(walden.category).toBe('interior');
+        expect(walden.category).toBe('western');
         expect(walden.why).toBeTruthy();
         expect(walden.provenance.basis).toBe(PD_BASIS.PRE_1930);
-        expect(shelfFor('literary-walden')).toBe('interior');
+        expect(shelfFor('literary-walden')).toBe('western');
         expect(curationFor('nothing-of-the-kind')).toBeNull();
     });
 });

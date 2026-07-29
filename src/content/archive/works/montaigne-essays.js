@@ -439,7 +439,7 @@ export const MONTAIGNE_ESSAYS_META = Object.freeze({
     id: "montaigne-essays",
     title: "Essays",
     author: "Michel de Montaigne",
-    shelf: "interior",
+    shelf: "western",
     edition: {"translator":"Charles Cotton","editor":"William Carew Hazlitt","year":1877},
     source: {"url":"https://www.gutenberg.org/cache/epub/3600/pg3600.txt","label":"Project Gutenberg #3600","file":"montaigne-essays-3600.txt","retrieved":"2026-07-29","sha256":"1b4c87312f0890e04cecee48e3a5fa263de65743230b819e16cb1bd72f7aee59"},
     rights: {"basis":"pre-1930-us","evidence":"Artifact names the Cotton translation as edited by William Carew Hazlitt, 1877 — pre-1930 and outside the renewal regime. Cotton died 1687; Hazlitt died 1893."},

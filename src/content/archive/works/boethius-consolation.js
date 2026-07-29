@@ -51,7 +51,7 @@ export const BOETHIUS_CONSOLATION_META = Object.freeze({
     id: "boethius-consolation",
     title: "The Consolation of Philosophy",
     author: "Boethius",
-    shelf: "limit",
+    shelf: "western",
     edition: {"translator":"H. R. James","publisher":"Elliot Stock","year":1897},
     source: {"url":"https://www.gutenberg.org/cache/epub/14328/pg14328.txt","label":"Project Gutenberg #14328","file":"boethius-consolation-14328.txt","retrieved":"2026-07-29","sha256":"82257f260aeb9f1f2d197ceb18aec1180c7a831fe6437a642f6ba5b32f44cdbd"},
     rights: {"basis":"pre-1930-us","evidence":"Artifact names H. R. James and the 1897 Elliot Stock, London imprint — pre-1930. Boethius died 524."},

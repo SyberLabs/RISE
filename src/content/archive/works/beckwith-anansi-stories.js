@@ -551,7 +551,7 @@ export const BECKWITH_ANANSI_STORIES_META = Object.freeze({
     id: "beckwith-anansi-stories",
     title: "Jamaica Anansi Stories",
     author: "collected by Martha Warren Beckwith",
-    shelf: "recurrence",
+    shelf: "indigenous",
     edition: {"publisher":"American Folk-Lore Society","year":1924},
     source: {"url":"https://www.gutenberg.org/cache/epub/72735/pg72735.txt","label":"Project Gutenberg #72735","file":"beckwith-anansi-stories-72735.txt","retrieved":"2026-07-29","sha256":"d3fe3027f7bb11b0e00152ba1ad03b3ceddb84d23d7acfc9ba3db0ea0b8c5d6d"},
     rights: {"basis":"pre-1930-us","evidence":"Artifact carries the 1924 American Folk-Lore Society, New York imprint — pre-1930. Beckwith died 1959."},

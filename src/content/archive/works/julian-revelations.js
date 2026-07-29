@@ -375,7 +375,7 @@ export const JULIAN_REVELATIONS_META = Object.freeze({
     id: "julian-revelations",
     title: "Revelations of Divine Love",
     author: "Julian of Norwich",
-    shelf: "limit",
+    shelf: "western",
     edition: {"editor":"Grace Warrack","publisher":"Methuen & Co.","year":1901},
     source: {"url":"https://www.gutenberg.org/cache/epub/52958/pg52958.txt","label":"Project Gutenberg #52958","file":"julian-revelations-52958.txt","retrieved":"2026-07-29","sha256":"2e01d1a44b27b001b51053053fe69db771a6609edbbbc5a7fb31da9d4b3cc4b9"},
     rights: {"basis":"pre-1930-us","evidence":"The text's own title page reads \"A version from the MS. in the BRITISH MUSEUM edited by GRACE WARRACK\", Methuen & Company, London, 1901 — pre-1930. Julian wrote in 1373; Warrack died 1932."},

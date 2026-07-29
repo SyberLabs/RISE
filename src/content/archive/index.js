@@ -114,7 +114,7 @@ const WORKS = [
             id: 'epictetus-encheiridion',
             title: 'The Discourses and Encheiridion',
             author: 'Epictetus',
-            shelf: 'interior',
+            shelf: 'western',
             edition: { translator: 'George Long', publisher: 'George Bell & Sons', year: 1890 },
             basis: 'author-death-70'
         },
@@ -126,7 +126,7 @@ const WORKS = [
             id: 'montaigne-essays',
             title: 'Essays',
             author: 'Michel de Montaigne',
-            shelf: 'interior',
+            shelf: 'western',
             edition: { translator: 'Charles Cotton', publisher: 'ed. William Carew Hazlitt', year: 1877 },
             basis: 'pre-1930-us'
         },
@@ -138,7 +138,7 @@ const WORKS = [
             id: 'okakura-book-of-tea',
             title: 'The Book of Tea',
             author: 'Kakuzo Okakura',
-            shelf: 'interior',
+            shelf: 'eastern',
             edition: { publisher: 'Fox, Duffield & Co.', year: 1906 },
             basis: 'pre-1930-us'
         },
@@ -150,7 +150,7 @@ const WORKS = [
             id: 'boethius-consolation',
             title: 'The Consolation of Philosophy',
             author: 'Boethius',
-            shelf: 'limit',
+            shelf: 'western',
             edition: { translator: 'H. R. James', publisher: 'Elliot Stock', year: 1897 },
             basis: 'pre-1930-us'
         },
@@ -162,7 +162,7 @@ const WORKS = [
             id: 'julian-revelations',
             title: 'Revelations of Divine Love',
             author: 'Julian of Norwich',
-            shelf: 'limit',
+            shelf: 'western',
             edition: { publisher: 'ed. Grace Warrack, Methuen & Co.', year: 1901 },
             basis: 'pre-1930-us'
         },
@@ -174,7 +174,7 @@ const WORKS = [
             id: 'kabir-songs',
             title: 'Songs of Kabir',
             author: 'Kabir',
-            shelf: 'limit',
+            shelf: 'eastern',
             edition: { translator: 'Rabindranath Tagore', publisher: 'Macmillan', year: 1915 },
             basis: 'pre-1930-us'
         },
@@ -186,7 +186,7 @@ const WORKS = [
             id: 'parker-australian-tales',
             title: 'Australian Legendary Tales',
             author: 'collected by K. Langloh Parker',
-            shelf: 'recurrence',
+            shelf: 'indigenous',
             edition: { publisher: 'David Nutt', year: 1896 },
             basis: 'author-death-70'
         },
@@ -198,7 +198,7 @@ const WORKS = [
             id: 'rasmussen-eskimo-tales',
             title: 'Eskimo Folk-Tales',
             author: 'collected by Knud Rasmussen',
-            shelf: 'recurrence',
+            shelf: 'indigenous',
             edition: { translator: 'W. J. Alexander Worster', publisher: 'Gyldendal', year: 1921 },
             basis: 'pre-1930-us'
         },
@@ -210,7 +210,7 @@ const WORKS = [
             id: 'mooney-cherokee-myths',
             title: 'Myths of the Cherokee',
             author: 'collected by James Mooney',
-            shelf: 'recurrence',
+            shelf: 'indigenous',
             edition: { publisher: 'Bureau of American Ethnology, Nineteenth Annual Report', year: 1900 },
             basis: 'us-government-work'
         },
@@ -222,7 +222,7 @@ const WORKS = [
             id: 'beckwith-anansi-stories',
             title: 'Jamaica Anansi Stories',
             author: 'collected by Martha Warren Beckwith',
-            shelf: 'recurrence',
+            shelf: 'indigenous',
             edition: { publisher: 'American Folk-Lore Society', year: 1924 },
             basis: 'pre-1930-us'
         },

@@ -53,7 +53,7 @@ const OUT = resolve(ROOT, 'src/content/archive/works');
 // the rights are the reason we may parse it at all.
 
 const WORKS = {
-    // ── THE RECURRENCE ──────────────────────────────────────────
+    // ── INDIGENOUS TRADITIONS ───────────────────────────────────
     // SOL's dossier is emphatic on these, and the caution is carried
     // into the curation rather than left in a review document:
     // "recurrence must not mean stripping stories of place in order to
@@ -64,7 +64,7 @@ const WORKS = {
         id: 'parker-australian-tales',
         title: 'Australian Legendary Tales',
         author: 'collected by K. Langloh Parker',
-        shelf: 'recurrence',
+        shelf: 'indigenous',
         edition: { publisher: 'David Nutt', year: 1896 },
         source: { url: 'https://www.gutenberg.org/cache/epub/3833/pg3833.txt', label: 'Project Gutenberg #3833', file: 'parker-australian-tales-3833.txt' },
         rights: {
@@ -83,7 +83,7 @@ const WORKS = {
         id: 'rasmussen-eskimo-tales',
         title: 'Eskimo Folk-Tales',
         author: 'collected by Knud Rasmussen',
-        shelf: 'recurrence',
+        shelf: 'indigenous',
         edition: { translator: 'W. J. Alexander Worster', publisher: 'Gyldendal', year: 1921 },
         source: { url: 'https://www.gutenberg.org/cache/epub/28932/pg28932.txt', label: 'Project Gutenberg #28932', file: 'rasmussen-eskimo-tales-28932.txt' },
         rights: {
@@ -103,7 +103,7 @@ const WORKS = {
         id: 'mooney-cherokee-myths',
         title: 'Myths of the Cherokee',
         author: 'collected by James Mooney',
-        shelf: 'recurrence',
+        shelf: 'indigenous',
         edition: { publisher: 'Bureau of American Ethnology, Nineteenth Annual Report', year: 1900 },
         source: { url: 'https://www.gutenberg.org/cache/epub/45634/pg45634.txt', label: 'Project Gutenberg #45634', file: 'mooney-cherokee-myths-45634.txt' },
         rights: {
@@ -123,7 +123,7 @@ const WORKS = {
         id: 'beckwith-anansi-stories',
         title: 'Jamaica Anansi Stories',
         author: 'collected by Martha Warren Beckwith',
-        shelf: 'recurrence',
+        shelf: 'indigenous',
         edition: { publisher: 'American Folk-Lore Society', year: 1924 },
         source: { url: 'https://www.gutenberg.org/cache/epub/72735/pg72735.txt', label: 'Project Gutenberg #72735', file: 'beckwith-anansi-stories-72735.txt' },
         rights: {
@@ -137,12 +137,12 @@ const WORKS = {
         })
     },
 
-    // ── THE INTERIOR ────────────────────────────────────────────
+    // ── THE WESTERN CANON ───────────────────────────────────────
     epictetus: {
         id: 'epictetus-encheiridion',
         title: 'The Discourses and Encheiridion',
         author: 'Epictetus',
-        shelf: 'interior',
+        shelf: 'western',
         edition: { translator: 'George Long', publisher: 'George Bell & Sons', year: 1890 },
         source: { url: 'https://www.gutenberg.org/cache/epub/10661/pg10661.txt', label: 'Project Gutenberg #10661', file: 'epictetus-encheiridion-10661.txt' },
         rights: {
@@ -159,7 +159,7 @@ const WORKS = {
         id: 'montaigne-essays',
         title: 'Essays',
         author: 'Michel de Montaigne',
-        shelf: 'interior',
+        shelf: 'western',
         edition: { translator: 'Charles Cotton', editor: 'William Carew Hazlitt', year: 1877 },
         source: { url: 'https://www.gutenberg.org/cache/epub/3600/pg3600.txt', label: 'Project Gutenberg #3600', file: 'montaigne-essays-3600.txt' },
         rights: {
@@ -181,7 +181,7 @@ const WORKS = {
         id: 'okakura-book-of-tea',
         title: 'The Book of Tea',
         author: 'Kakuzo Okakura',
-        shelf: 'interior',
+        shelf: 'eastern',
         edition: { publisher: 'Fox, Duffield & Co.', year: 1906 },
         source: { url: 'https://www.gutenberg.org/cache/epub/769/pg769.txt', label: 'Project Gutenberg #769', file: 'okakura-book-of-tea-769.txt' },
         rights: {
@@ -195,12 +195,12 @@ const WORKS = {
         })
     },
 
-    // ── THE LIMIT ───────────────────────────────────────────────
+    // ── THE WESTERN CANON, continued ────────────────────────────
     boethius: {
         id: 'boethius-consolation',
         title: 'The Consolation of Philosophy',
         author: 'Boethius',
-        shelf: 'limit',
+        shelf: 'western',
         edition: { translator: 'H. R. James', publisher: 'Elliot Stock', year: 1897 },
         source: { url: 'https://www.gutenberg.org/cache/epub/14328/pg14328.txt', label: 'Project Gutenberg #14328', file: 'boethius-consolation-14328.txt' },
         rights: {
@@ -264,7 +264,7 @@ const WORKS = {
         id: 'julian-revelations',
         title: 'Revelations of Divine Love',
         author: 'Julian of Norwich',
-        shelf: 'limit',
+        shelf: 'western',
         edition: { editor: 'Grace Warrack', publisher: 'Methuen & Co.', year: 1901 },
         source: { url: 'https://www.gutenberg.org/cache/epub/52958/pg52958.txt', label: 'Project Gutenberg #52958', file: 'julian-revelations-52958.txt' },
         rights: {
@@ -284,7 +284,7 @@ const WORKS = {
         id: 'kabir-songs',
         title: 'Songs of Kabir',
         author: 'Kabir',
-        shelf: 'limit',
+        shelf: 'eastern',
         edition: { translator: 'Rabindranath Tagore', publisher: 'Macmillan', year: 1915 },
         source: { url: 'https://www.gutenberg.org/cache/epub/6519/pg6519.txt', label: 'Project Gutenberg #6519', file: 'kabir-songs-6519.txt' },
         rights: {

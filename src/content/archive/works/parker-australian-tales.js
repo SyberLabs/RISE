@@ -155,7 +155,7 @@ export const PARKER_AUSTRALIAN_TALES_META = Object.freeze({
     id: "parker-australian-tales",
     title: "Australian Legendary Tales",
     author: "collected by K. Langloh Parker",
-    shelf: "recurrence",
+    shelf: "indigenous",
     edition: {"publisher":"David Nutt","year":1896},
     source: {"url":"https://www.gutenberg.org/cache/epub/3833/pg3833.txt","label":"Project Gutenberg #3833","file":"parker-australian-tales-3833.txt","retrieved":"2026-07-29","sha256":"b53f68075b7a169ce8fa03f6594bd91fa68278d4a465f100435241a39d01233b"},
     rights: {"basis":"author-death-70","evidence":"Artifact reproduces the 1896 David Nutt, London collection; Parker died 1940 — 86 years. The tales themselves are Yuwaalaraay oral tradition and predate any collector."},

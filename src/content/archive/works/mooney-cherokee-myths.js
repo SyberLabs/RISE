@@ -447,7 +447,7 @@ export const MOONEY_CHEROKEE_MYTHS_META = Object.freeze({
     id: "mooney-cherokee-myths",
     title: "Myths of the Cherokee",
     author: "collected by James Mooney",
-    shelf: "recurrence",
+    shelf: "indigenous",
     edition: {"publisher":"Bureau of American Ethnology, Nineteenth Annual Report","year":1900},
     source: {"url":"https://www.gutenberg.org/cache/epub/45634/pg45634.txt","label":"Project Gutenberg #45634","file":"mooney-cherokee-myths-45634.txt","retrieved":"2026-07-29","sha256":"c6b85afa38c7ab8a99ba6981ad571f2c71a129ab9f905a7970bf0507773cda4e"},
     rights: {"basis":"us-government-work","evidence":"Published in the Nineteenth Annual Report of the Bureau of American Ethnology, a United States government publication, 1900. Mooney died 1921."},
