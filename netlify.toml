@@ -25,7 +25,14 @@
     # CSP: self-hosted scripts only; APIs limited to the content providers the app
     # actually calls (Gutenberg, arXiv, Wikimedia Commons, Met, Art Institute, corsproxy).
     # img-src allows any https CDN because museum APIs return varied image hosts.
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://www.gutenberg.org https://corsproxy.io https://export.arxiv.org https://commons.wikimedia.org https://upload.wikimedia.org https://api.artic.edu https://www.artic.edu https://collectionapi.metmuseum.org https://openaccess-api.clevelandart.org https://id.rijksmuseum.nl; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+    #
+    # The two Hugging Face hosts are the Kokoro voice (RECITATION-SPEC).
+    # BOTH are required and neither is redundant: huggingface.co serves
+    # config.json and tokenizer.json, then redirects the weights and the
+    # voice data to us.aws.cdn.hf.co. Allowing only the first fixes the
+    # config fetch and then fails on the model — verified by following
+    # the redirects rather than assumed.
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https://www.gutenberg.org https://corsproxy.io https://export.arxiv.org https://commons.wikimedia.org https://upload.wikimedia.org https://api.artic.edu https://www.artic.edu https://collectionapi.metmuseum.org https://openaccess-api.clevelandart.org https://id.rijksmuseum.nl https://huggingface.co https://us.aws.cdn.hf.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
 
 # The shell must never be cached: it names the hashed chunks, so a
 # stale index.html sends a browser after files the current deploy has
