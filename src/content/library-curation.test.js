@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { LIBRARY_TEXTS, LIBRARY_CATEGORIES } from './library.js';
 import { ARCHIVE_CURATION, curationFor, shelfFor } from './library-curation.js';
 import { PD_BASIS, RESONANCE_FUNCTIONS } from './library-constants.js';
+import { QUARANTINED, isQuarantined } from './library-quarantine.js';
 
 const SHELVES = new Set(LIBRARY_CATEGORIES.map(c => c.id));
 const BASES = new Set(Object.values(PD_BASIS));
@@ -113,6 +114,39 @@ describe('curation is editorial, and says so', () => {
         expect(walden.provenance.basis).toBe(PD_BASIS.PRE_1930);
         expect(shelfFor('literary-walden')).toBe('interior');
         expect(curationFor('nothing-of-the-kind')).toBeNull();
+    });
+});
+
+describe('quarantine — works withheld until rights are established', () => {
+    it('no quarantined work reaches a reader', () => {
+        // Enforced at registerText, which is the only path into the
+        // Archive. A render-time filter would leave the text reachable
+        // by anything that walked LIBRARY_TEXTS directly.
+        for (const id of Object.keys(QUARANTINED)) {
+            expect(LIBRARY_TEXTS.some(t => t.id === id), `'${id}' is quarantined but still registered`)
+                .toBe(false);
+        }
+    });
+
+    it('a quarantined work carries evidence and a recovery path', () => {
+        // The quarantine is a record, not a bin. Each entry says what
+        // was CLAIMED, what the source actually SAYS, and what would
+        // clear it — that difference is the finding.
+        for (const [id, entry] of Object.entries(QUARANTINED)) {
+            expect(entry.claimed, `${id} does not record what was claimed`).toBeTruthy();
+            expect(entry.actual, `${id} does not record what the source says`).toBeTruthy();
+            expect(entry.evidence.length, `${id} has no real evidence`).toBeGreaterThan(40);
+            expect(entry.recovery.length, `${id} has no recovery path`).toBeGreaterThan(20);
+        }
+    });
+
+    it('curation makes no claim about a withheld work', () => {
+        // A `why` for a text nobody can read is a claim we are not
+        // entitled to make, and it would quietly re-enter if the
+        // quarantine were lifted without re-checking provenance.
+        for (const id of Object.keys(ARCHIVE_CURATION)) {
+            expect(isQuarantined(id), `'${id}' is curated but withheld`).toBe(false);
+        }
     });
 });
 

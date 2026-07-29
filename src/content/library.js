@@ -14,6 +14,9 @@ import EXTENDED_SACRED from '../sources/text/data/sacred_texts.json';
 // adapters: a registration loop knows where a file came from, never why
 // a work is worth an hour. See library-curation.js.
 import { curationFor } from './library-curation.js';
+// Rights are established per EDITION, and a work whose edition is not
+// established does not reach a reader. See library-quarantine.js.
+import { isQuarantined } from './library-quarantine.js';
 
 /**
  * Library categories
@@ -278,6 +281,13 @@ function registerExtendedSacredTexts() {
  */
 export function registerText(text) {
     if (LIBRARY_TEXTS.find(t => t.id === text.id)) return;
+
+    // A work whose rights are not established is withheld at the door.
+    // Registration is the only path into the Archive, so refusing here
+    // is what makes the quarantine real rather than advisory — a filter
+    // applied at render time would leave the text reachable by any
+    // caller that walked LIBRARY_TEXTS itself.
+    if (isQuarantined(text.id)) return;
 
     // Curation is applied HERE rather than in each provider loop, so a
     // new source cannot arrive unshelved by forgetting to ask. The

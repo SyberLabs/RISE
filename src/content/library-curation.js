@@ -98,36 +98,15 @@ export const ARCHIVE_CURATION = Object.freeze({
         shelf: 'limit',
         why: 'Eighty-one chapters that begin by warning you the subject cannot be named, and then name it for eighty-one chapters. The contradiction is the instruction.',
         functions: [R.RECURSION, R.STATE],
-        rhymes: ['sacred-heart-sutra', 'sacred-i-ching'],
+        rhymes: ['sacred-zen-koans', 'sacred-i-ching'],
         provenance: { translator: 'James Legge', year: 1891, basis: PD_BASIS.PRE_1930 }
-    },
-    'sacred-upanishads': {
-        shelf: 'limit',
-        why: 'The oldest sustained attempt to ask what is doing the looking. Its answer — that the questioner and the world are not two things — has never stopped being difficult.',
-        functions: [R.STATE, R.RECURSION],
-        rhymes: ['extended-bhagavad-gita-full', 'sacred-heart-sutra'],
-        provenance: { translator: 'Max Müller', year: 1884, basis: PD_BASIS.PRE_1930 }
-    },
-    'sacred-heart-sutra': {
-        shelf: 'limit',
-        why: 'A few hundred words that dismantle every category they invoke, including their own. Short enough to memorise and long enough to spend a life on.',
-        functions: [R.RECURSION, R.STATE],
-        rhymes: ['sacred-tao-te-ching', 'sacred-zen-koans'],
-        provenance: { translator: 'Traditional', basis: PD_BASIS.AUTHOR_70 }
     },
     'sacred-zen-koans': {
         shelf: 'limit',
         why: 'Questions built so that answering them correctly is the failure. They work on the part of the mind that wants to resolve things.',
         functions: [R.RECURSION, R.PATTERN],
-        rhymes: ['sacred-heart-sutra', 'sacred-tao-te-ching'],
+        rhymes: ['extended-dhammapada-full', 'sacred-tao-te-ching'],
         provenance: { translator: 'Various', basis: PD_BASIS.AUTHOR_70 }
-    },
-    'sacred-gospel-of-thomas': {
-        shelf: 'limit',
-        why: 'Sayings without narrative — no birth, no passion, no resurrection. Buried at Nag Hammadi and recovered in 1945, it reads like the parts that were hardest to systematise.',
-        functions: [R.STATE, R.CONNECTION],
-        rhymes: ['sacred-hermetica', 'sacred-corpus-hermeticum'],
-        provenance: { translator: 'Traditional', basis: PD_BASIS.AUTHOR_70 }
     },
     'sacred-rumi': {
         shelf: 'limit',
@@ -140,7 +119,7 @@ export const ARCHIVE_CURATION = Object.freeze({
         shelf: 'limit',
         why: 'The teaching compressed to aphorism, arranged so that reading it straight through is itself a kind of practice.',
         functions: [R.RECURSION, R.PATTERN],
-        rhymes: ['sacred-heart-sutra', 'sacred-zen-koans'],
+        rhymes: ['sacred-tao-te-ching', 'sacred-zen-koans'],
         provenance: { translator: 'Max Müller', year: 1881, basis: PD_BASIS.PRE_1930 }
     },
 
@@ -152,56 +131,42 @@ export const ARCHIVE_CURATION = Object.freeze({
         rhymes: ['literary-meditations', 'literary-walden'],
         provenance: { translator: 'George Long', year: 1862, basis: PD_BASIS.AUTHOR_70 }
     },
-    'sacred-yoga-sutras': {
-        shelf: 'interior',
-        why: 'A technical manual for the mind, written with the compression of someone who expected a teacher to be present. The second line defines the whole discipline and the rest is commentary.',
-        functions: [R.PATTERN, R.RECURSION],
-        rhymes: ['extended-bhagavad-gita-full', 'literary-meditations'],
-        provenance: { translator: 'Charles Johnston', year: 1912, basis: PD_BASIS.PRE_1930 }
-    },
     'extended-bhagavad-gita-full': {
         shelf: 'interior',
         why: 'A conversation held between two armies about whether to fight. That the setting is a battlefield and the subject is duty makes it the least abstract of the great philosophical texts.',
         functions: [R.STATE, R.RECURSION],
-        rhymes: ['sacred-upanishads', 'sacred-yoga-sutras'],
+        rhymes: ['literary-meditations', 'sacred-marcus-aurelius'],
         provenance: { translator: 'Edwin Arnold', year: 1885, basis: PD_BASIS.PRE_1930 }
     },
 
     // ── THE RECURRENCE ──────────────────────────────────────────
     // The same intuition surfacing where there was no contact.
-    'sacred-hermetica': {
-        shelf: 'recurrence',
-        why: 'Greek-Egyptian texts that the Renaissance mistook for older than Moses and rebuilt its cosmology around. The error mattered more than the correction did.',
-        functions: [R.CONNECTION, R.PATTERN],
-        rhymes: ['sacred-corpus-hermeticum', 'sacred-emerald-tablet'],
-        provenance: { translator: 'G. R. S. Mead', year: 1906, basis: PD_BASIS.PRE_1930 }
-    },
     'sacred-corpus-hermeticum': {
         shelf: 'recurrence',
         why: 'The fuller collection behind the Hermetica. Read it for how much of later European thought is already sitting here, waiting to be rediscovered.',
         functions: [R.CONNECTION, R.PATTERN],
-        rhymes: ['sacred-hermetica', 'sacred-emerald-tablet'],
+        rhymes: ['sacred-emerald-tablet', 'sacred-i-ching'],
         provenance: { translator: 'G. R. S. Mead', year: 1906, basis: PD_BASIS.PRE_1930 }
     },
     'sacred-emerald-tablet': {
         shelf: 'recurrence',
         why: 'A few lines that the entire alchemical tradition treated as its foundation. "As above, so below" is here, before it became a slogan.',
         functions: [R.CONNECTION, R.PATTERN],
-        rhymes: ['sacred-hermetica', 'sacred-corpus-hermeticum'],
+        rhymes: ['sacred-corpus-hermeticum', 'sacred-i-ching'],
         provenance: { translator: 'Isaac Newton', year: 1680, basis: PD_BASIS.PRE_1930 }
     },
     'sacred-i-ching': {
         shelf: 'recurrence',
         why: 'A system for reading situations as configurations rather than events. Whether or not you consult it, the structural claim — that change has a grammar — is the interesting part.',
         functions: [R.PATTERN, R.RECURSION],
-        rhymes: ['sacred-tao-te-ching', 'sacred-hermetica'],
+        rhymes: ['sacred-tao-te-ching', 'sacred-corpus-hermeticum'],
         provenance: { translator: 'James Legge', year: 1882, basis: PD_BASIS.PRE_1930 }
     },
     'sacred-wheel-of-time': {
         shelf: 'recurrence',
         why: 'Toltec material of contested transmission. Held here for the pattern it shares with traditions it never met, and read with that provenance in view rather than hidden.',
         functions: [R.CONNECTION],
-        rhymes: ['sacred-i-ching', 'sacred-hermetica'],
+        rhymes: ['sacred-i-ching', 'sacred-corpus-hermeticum'],
         provenance: { translator: 'Traditional', basis: PD_BASIS.AUTHOR_70 }
     }
 });
