@@ -10,23 +10,25 @@
  */
 
 /**
- * The four shelves (LIBRARY-SPEC §2). Organized by RESONANCE, not
- * genre: a work earns its place by what it does to a reader, not by
- * which shelf a bookshop would file it on.
+ * The shelves. Names are deliberately plain and the voice lives in
+ * `orientation` — a shelf a visitor cannot predict is one they will not
+ * open.
  *
- * Names are deliberately plain and the voice lives in `orientation` — a
- * shelf a visitor cannot predict is a shelf they will not open.
+ * TWO AXES, as the Collections panel already does for imagery.
+ *
+ * A reader browsing a library asks one of two questions: WHERE is this
+ * from, or WHAT is it about. Those are not alternatives, and presenting
+ * them in one row implies they are — Vitruvius is Western AND a book
+ * about form, and a filter row that offers "Western" beside "Form"
+ * makes a reader choose between two true answers.
+ *
+ * So each shelf declares its `axis`. Tradition shelves divide the world
+ * by where a work comes from; subject shelves cut across them.
  */
 export const LIBRARY_CATEGORIES = [
     {
-        id: 'form',
-        name: 'Form',
-        icon: '△',
-        description: 'How things are made, and how they hold together',
-        orientation: 'Structure, proportion, the grammar of things — read for the sense that form is legible.'
-    },
-    {
         id: 'western',
+        axis: 'tradition',
         name: 'The Western Canon',
         icon: '⌂',
         description: 'Greece, Rome, and what Europe made of them',
@@ -34,6 +36,7 @@ export const LIBRARY_CATEGORIES = [
     },
     {
         id: 'eastern',
+        axis: 'tradition',
         name: 'The Eastern Canon',
         icon: '☯',
         description: 'India, China, Persia, Japan',
@@ -41,10 +44,29 @@ export const LIBRARY_CATEGORIES = [
     },
     {
         id: 'indigenous',
+        axis: 'tradition',
         name: 'Indigenous Traditions',
         icon: '◈',
         description: 'Held in memory and speech, written down late',
         orientation: 'Stories that lived by being told. Each reached print through a named outsider who collected them — read the tellers first, and the collector as the window they are.'
+    },
+    {
+        // The first SUBJECT shelf. It cuts across the traditions rather
+        // than sitting beside them: every work here is also Western,
+        // and is filed here because a reader looking for the grammar of
+        // made things is asking a different question than a reader
+        // looking for the Western canon.
+        //
+        // Named plainly. "Architectonics" is the precise word and most
+        // readers would not recognise it — the same lesson the shelf
+        // names themselves taught: obliquity at the door costs more
+        // than it earns. The orienting line carries the register.
+        id: 'form',
+        axis: 'subject',
+        name: 'Form & Design',
+        icon: '△',
+        description: 'How things are made, and how they hold together',
+        orientation: 'Structure, proportion, ornament, and colour — the grammar of made things, argued by people who made them.'
     },
     {
         // Not a shelf of found works but of written ones: sequences
@@ -53,6 +75,7 @@ export const LIBRARY_CATEGORIES = [
         // a reader should always know whether they are meeting a
         // received text or one written here.
         id: 'composed',
+        axis: 'subject',
         name: 'Composed',
         icon: '✎',
         description: 'Written for this system, in its own voice',

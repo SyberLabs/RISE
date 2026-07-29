@@ -131,12 +131,30 @@ export class Library {
             : ''}
         </div>
 
-        <div class="section-filters" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2rem;">
-          <button class="filter-btn ${this.currentFilter === 'all' ? 'active' : ''}" data-filter="all">All</button>
-          ${LIBRARY_CATEGORIES.map(c => `
-            <button class="filter-btn ${this.currentFilter === c.id ? 'active' : ''}"
-              data-filter="${c.id}" title="${escapeHtml(c.description)}">${escapeHtml(c.name)}</button>
-          `).join('')}
+        <!-- Two axes, as the Collections panel does for imagery: a
+             reader is asking either where a work is FROM or what it is
+             ABOUT, and one row of buttons would make those look like
+             alternatives. Vitruvius is Western and a book about form. -->
+        <div class="archive-axes">
+          <div class="archive-axis">
+            <div class="archive-axis-label">By tradition</div>
+            <div class="section-filters">
+              <button class="filter-btn ${this.currentFilter === 'all' ? 'active' : ''}" data-filter="all">All</button>
+              ${LIBRARY_CATEGORIES.filter(c => c.axis === 'tradition').map(c => `
+                <button class="filter-btn ${this.currentFilter === c.id ? 'active' : ''}"
+                  data-filter="${c.id}" title="${escapeHtml(c.description)}">${escapeHtml(c.name)}</button>
+              `).join('')}
+            </div>
+          </div>
+          <div class="archive-axis">
+            <div class="archive-axis-label">By subject</div>
+            <div class="section-filters">
+              ${LIBRARY_CATEGORIES.filter(c => c.axis !== 'tradition').map(c => `
+                <button class="filter-btn ${this.currentFilter === c.id ? 'active' : ''}"
+                  data-filter="${c.id}" title="${escapeHtml(c.description)}">${escapeHtml(c.name)}</button>
+              `).join('')}
+            </div>
+          </div>
         </div>
 
         <!-- Grouped by division when standing at one shelf, so the

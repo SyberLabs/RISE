@@ -16,6 +16,21 @@ test('a shelf shows its divisions in order; All stays flat', async ({ page }) =>
   const flat = await page.evaluate(() =>
     document.querySelectorAll('[data-division]').length);
 
+  // Two axes: where a work is from, and what it is about.
+  const axes = await page.evaluate(() =>
+    [...document.querySelectorAll('.archive-axis')].map(a => ({
+      label: a.querySelector('.archive-axis-label').textContent.trim(),
+      buttons: [...a.querySelectorAll('.filter-btn')].map(b => b.dataset.filter)
+    })));
+  console.log('AXES ' + JSON.stringify(axes));
+  expect(axes.map(a => a.label)).toEqual(['By tradition', 'By subject']);
+  expect(axes[0].buttons).toEqual(['all', 'western', 'eastern', 'indigenous']);
+  // Form & Design cuts across the traditions rather than sitting beside
+  // them; every shelf must appear in exactly one row.
+  expect(axes[1].buttons).toContain('form');
+  const seen = axes.flatMap(a => a.buttons);
+  expect(new Set(seen).size).toBe(seen.length);
+
   await page.locator('[data-filter="western"]').click();
   const western = await page.evaluate(() => ({
     divisions: [...document.querySelectorAll('[data-division]')].map(d => d.dataset.division),
