@@ -72,6 +72,48 @@ export const ARCHIVE_CURATION = Object.freeze({
         rhymes: ['crane-line-and-form', 'vitruvius-architecture'],
         provenance: { year: 1873, basis: PD_BASIS.PRE_1930 }
     },
+    'epictetus-encheiridion': {
+        shelf: 'interior',
+        why: 'A former slave teaching that the one thing nobody can take is your judgement about what happens to you. Long’s translation is the same English the Archive’s Marcus Aurelius speaks, which lets you hear the master behind the emperor.',
+        functions: [R.RECURSION, R.PATTERN],
+        rhymes: ['literary-meditations', 'boethius-consolation'],
+        provenance: { translator: 'George Long', year: 1890, basis: PD_BASIS.AUTHOR_70 }
+    },
+    'montaigne-essays': {
+        shelf: 'interior',
+        why: 'He invented the essay by refusing to pretend he had finished thinking. A hundred and two attempts to catch a mind in motion, including its contradictions, which he leaves standing.',
+        functions: [R.RECURSION, R.STATE],
+        rhymes: ['literary-essays-emerson', 'literary-meditations'],
+        provenance: { translator: 'Charles Cotton', year: 1877, basis: PD_BASIS.PRE_1930 }
+    },
+    'okakura-book-of-tea': {
+        shelf: 'interior',
+        why: 'Written in English for Western readers in 1906, it uses the tea ceremony to argue that attention to small things is not smallness. The chapter on flowers is a quiet indictment of how we treat what we admire.',
+        functions: [R.STATE, R.RECURSION],
+        rhymes: ['sacred-tao-te-ching', 'literary-walden'],
+        provenance: { year: 1906, basis: PD_BASIS.PRE_1930 }
+    },
+    'boethius-consolation': {
+        shelf: 'limit',
+        why: 'Written in a cell while awaiting execution, and it does not console by denying the situation. Philosophy arrives as a woman who has come to argue, and the argument is what steadies him.',
+        functions: [R.STATE, R.RECURSION],
+        rhymes: ['epictetus-encheiridion', 'julian-revelations'],
+        provenance: { translator: 'H. R. James', year: 1897, basis: PD_BASIS.PRE_1930 }
+    },
+    'julian-revelations': {
+        shelf: 'limit',
+        why: 'The first book written in English by a woman, composed after a near-fatal illness in which she saw sixteen showings and spent twenty years asking what they meant. “All shall be well” is a conclusion she works for, not a comfort she assumes.',
+        functions: [R.STATE, R.RECURSION],
+        rhymes: ['boethius-consolation', 'sacred-rumi'],
+        provenance: { year: 1901, basis: PD_BASIS.PRE_1930 }
+    },
+    'kabir-songs': {
+        shelf: 'limit',
+        why: 'A fifteenth-century weaver who belonged to neither the Hindus nor the Muslims claiming him, and said so in poems that mock both. Tagore’s English keeps the plainness that makes the mockery land.',
+        functions: [R.STATE, R.CONNECTION],
+        rhymes: ['sacred-rumi', 'literary-poems-blake'],
+        provenance: { translator: 'Rabindranath Tagore', year: 1915, basis: PD_BASIS.PRE_1930 }
+    },
     // ── THE INTERIOR ────────────────────────────────────────────
     'literary-meditations': {
         shelf: 'interior',

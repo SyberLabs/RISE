@@ -108,6 +108,78 @@ const WORKS = [
         },
         load: () => import('./works/dresser-decorative-design.js')
             .then(m => m.DRESSER_DECORATIVE_DESIGN_SECTIONS)
+    },
+    {
+        meta: {
+            id: 'epictetus-encheiridion',
+            title: 'The Discourses and Encheiridion',
+            author: 'Epictetus',
+            shelf: 'interior',
+            edition: { translator: 'George Long', publisher: 'George Bell & Sons', year: 1890 },
+            basis: 'author-death-70'
+        },
+        load: () => import('./works/epictetus-encheiridion.js')
+            .then(m => m.EPICTETUS_ENCHEIRIDION_SECTIONS)
+    },
+    {
+        meta: {
+            id: 'montaigne-essays',
+            title: 'Essays',
+            author: 'Michel de Montaigne',
+            shelf: 'interior',
+            edition: { translator: 'Charles Cotton', publisher: 'ed. William Carew Hazlitt', year: 1877 },
+            basis: 'pre-1930-us'
+        },
+        load: () => import('./works/montaigne-essays.js')
+            .then(m => m.MONTAIGNE_ESSAYS_SECTIONS)
+    },
+    {
+        meta: {
+            id: 'okakura-book-of-tea',
+            title: 'The Book of Tea',
+            author: 'Kakuzo Okakura',
+            shelf: 'interior',
+            edition: { publisher: 'Fox, Duffield & Co.', year: 1906 },
+            basis: 'pre-1930-us'
+        },
+        load: () => import('./works/okakura-book-of-tea.js')
+            .then(m => m.OKAKURA_BOOK_OF_TEA_SECTIONS)
+    },
+    {
+        meta: {
+            id: 'boethius-consolation',
+            title: 'The Consolation of Philosophy',
+            author: 'Boethius',
+            shelf: 'limit',
+            edition: { translator: 'H. R. James', publisher: 'Elliot Stock', year: 1897 },
+            basis: 'pre-1930-us'
+        },
+        load: () => import('./works/boethius-consolation.js')
+            .then(m => m.BOETHIUS_CONSOLATION_SECTIONS)
+    },
+    {
+        meta: {
+            id: 'julian-revelations',
+            title: 'Revelations of Divine Love',
+            author: 'Julian of Norwich',
+            shelf: 'limit',
+            edition: { publisher: 'ed. Grace Warrack, Methuen & Co.', year: 1901 },
+            basis: 'pre-1930-us'
+        },
+        load: () => import('./works/julian-revelations.js')
+            .then(m => m.JULIAN_REVELATIONS_SECTIONS)
+    },
+    {
+        meta: {
+            id: 'kabir-songs',
+            title: 'Songs of Kabir',
+            author: 'Kabir',
+            shelf: 'limit',
+            edition: { translator: 'Rabindranath Tagore', publisher: 'Macmillan', year: 1915 },
+            basis: 'pre-1930-us'
+        },
+        load: () => import('./works/kabir-songs.js')
+            .then(m => m.KABIR_SONGS_SECTIONS)
     }
 ];
 

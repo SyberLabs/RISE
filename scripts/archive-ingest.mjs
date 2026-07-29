@@ -53,6 +53,180 @@ const OUT = resolve(ROOT, 'src/content/archive/works');
 // the rights are the reason we may parse it at all.
 
 const WORKS = {
+    // ── THE INTERIOR ────────────────────────────────────────────
+    epictetus: {
+        id: 'epictetus-encheiridion',
+        title: 'The Discourses and Encheiridion',
+        author: 'Epictetus',
+        shelf: 'interior',
+        edition: { translator: 'George Long', publisher: 'George Bell & Sons', year: 1890 },
+        source: { url: 'https://www.gutenberg.org/cache/epub/10661/pg10661.txt', label: 'Project Gutenberg #10661', file: 'epictetus-encheiridion-10661.txt' },
+        rights: {
+            basis: 'author-death-70',
+            evidence: 'Artifact names George Long as translator; Long died 1879 — 147 years. Epictetus is ancient. Same translator the Archive already holds for Marcus Aurelius, which is a coherence worth having: two Stoics in one English voice.'
+        },
+        parse: raw => chaptered(raw, {
+            heading: /^(BOOK [IVX]+|THE ENCHEIRIDION, OR MANUAL\.)$/,
+            until: /^(INDEX|APPENDIX|FOOTNOTES)\b/
+        })
+    },
+
+    montaigne: {
+        id: 'montaigne-essays',
+        title: 'Essays',
+        author: 'Michel de Montaigne',
+        shelf: 'interior',
+        edition: { translator: 'Charles Cotton', editor: 'William Carew Hazlitt', year: 1877 },
+        source: { url: 'https://www.gutenberg.org/cache/epub/3600/pg3600.txt', label: 'Project Gutenberg #3600', file: 'montaigne-essays-3600.txt' },
+        rights: {
+            basis: 'pre-1930-us',
+            evidence: 'Artifact names the Cotton translation as edited by William Carew Hazlitt, 1877 — pre-1930 and outside the renewal regime. Cotton died 1687; Hazlitt died 1893.'
+        },
+        // The ESSAY is the reading unit, not the book. Dividing on the
+        // three books gave sections of roughly 940,000 characters —
+        // some sixty hours each, which is a file rather than a reading.
+        // Montaigne has always been read one essay at a time.
+        parse: raw => chaptered(raw, {
+            heading: /^CHAPTER [IVXLC]+$/,
+            until: /^(INDEX|APPENDIX)\b/,
+            name: (h, n) => `Essay ${n + 1}`
+        })
+    },
+
+    okakura: {
+        id: 'okakura-book-of-tea',
+        title: 'The Book of Tea',
+        author: 'Kakuzo Okakura',
+        shelf: 'interior',
+        edition: { publisher: 'Fox, Duffield & Co.', year: 1906 },
+        source: { url: 'https://www.gutenberg.org/cache/epub/769/pg769.txt', label: 'Project Gutenberg #769', file: 'okakura-book-of-tea-769.txt' },
+        rights: {
+            basis: 'pre-1930-us',
+            evidence: 'Artifact carries the 1906 Fox, Duffield & Co. New York imprint. Written in English by Okakura, who died 1913 — no translator intervenes.'
+        },
+        parse: raw => chaptered(raw, {
+            heading: /^[IVX]+\.\s+[A-Z].{3,50}\.?$/,
+            skipTo: 'half',
+            until: /^(INDEX|APPENDIX)\b/
+        })
+    },
+
+    // ── THE LIMIT ───────────────────────────────────────────────
+    boethius: {
+        id: 'boethius-consolation',
+        title: 'The Consolation of Philosophy',
+        author: 'Boethius',
+        shelf: 'limit',
+        edition: { translator: 'H. R. James', publisher: 'Elliot Stock', year: 1897 },
+        source: { url: 'https://www.gutenberg.org/cache/epub/14328/pg14328.txt', label: 'Project Gutenberg #14328', file: 'boethius-consolation-14328.txt' },
+        rights: {
+            basis: 'pre-1930-us',
+            evidence: 'Artifact names H. R. James and the 1897 Elliot Stock, London imprint — pre-1930. Boethius died 524.'
+        },
+        /**
+         * #14328 defeats the shared chaptered() helper, so it gets an
+         * explicit parser rather than another option on the general one.
+         *
+         * The file names each book repeatedly: a contents list, then for
+         * each book a SUMMARY heading followed about thirty lines later
+         * by the book itself. Halving, distance, and keeping-the-longer
+         * each got some books and lost others, because the pattern is
+         * not uniform across the five.
+         *
+         * What IS uniform: after the contents block the headings
+         * alternate summary, text, summary, text. So take every second
+         * heading, and assert the count — a broken assumption should
+         * fail loudly, not ship a precis as though it were the text.
+         */
+        parse(raw) {
+            const lines = raw.split(/\r?\n/);
+            const hits = [];
+            lines.forEach((l, i) => { if (/^BOOK [IVX]+\.$/.test(l.trim())) hits.push(i); });
+
+            let start = 0;
+            while (start < hits.length - 1 && hits[start + 1] - hits[start] < 100) start++;
+
+            const body = [];
+            for (let i = start; i < hits.length; i += 2) body.push(hits[i]);
+            if (body.length !== 5) {
+                throw new Error(`expected 5 books, resolved ${body.length} — the alternation assumption broke`);
+            }
+
+            // The licence follows the END marker, and the marker's own
+            // line begins with "*** END OF" — but Gutenberg also emits
+            // a plain "End of the Project Gutenberg EBook" line before
+            // it in some files. Stop at whichever comes first.
+            // James closes with an unlabelled list of his source
+            // citations — "Bk. IV., ch. vi., p. 206, l. 17: Lucan" —
+            // which has no header to stop at, so its SHAPE is the
+            // boundary. Without this the last book ends on Aristotle
+            // page references rather than on Boethius.
+            const stopAt = lines.findIndex((l, i) =>
+                i > body[body.length - 1] && (
+                    /^\*{0,3}\s*End of (the )?Project Gutenberg/i.test(l.trim())
+                    || /^Bk\.\s+[IVX]+\.,\s+ch\./.test(l.trim())));
+            const end = stopAt > 0 ? stopAt : lines.length;
+            const captions = [];
+            const numerals = ['I', 'II', 'III', 'IV', 'V'];
+            const sections = body.map((from, n) => ({
+                name: `Book ${numerals[n]}`,
+                content: sectionText(lines.slice(from + 1, body[n + 1] !== undefined ? body[n + 1] : end), captions)
+            }));
+            return { sections, captions };
+        }
+    },
+
+    julian: {
+        id: 'julian-revelations',
+        title: 'Revelations of Divine Love',
+        author: 'Julian of Norwich',
+        shelf: 'limit',
+        edition: { editor: 'Grace Warrack', publisher: 'Methuen & Co.', year: 1901 },
+        source: { url: 'https://www.gutenberg.org/cache/epub/52958/pg52958.txt', label: 'Project Gutenberg #52958', file: 'julian-revelations-52958.txt' },
+        rights: {
+            basis: 'pre-1930-us',
+            evidence: 'The text\'s own title page reads "A version from the MS. in the BRITISH MUSEUM edited by GRACE WARRACK", Methuen & Company, London, 1901 — pre-1930. Julian wrote in 1373; Warrack died 1932.'
+        },
+        // Headings are indented, so the pattern must tolerate leading
+        // space — chaptered() trims before testing.
+        parse: raw => chaptered(raw, {
+            heading: /^CHAPTER [IVXLC]+$/,
+            until: /^(INDEX|APPENDIX|GLOSSARY|NOTES)\b/,
+            name: (h, n) => `Chapter ${n + 1}`
+        })
+    },
+
+    kabir: {
+        id: 'kabir-songs',
+        title: 'Songs of Kabir',
+        author: 'Kabir',
+        shelf: 'limit',
+        edition: { translator: 'Rabindranath Tagore', publisher: 'Macmillan', year: 1915 },
+        source: { url: 'https://www.gutenberg.org/cache/epub/6519/pg6519.txt', label: 'Project Gutenberg #6519', file: 'kabir-songs-6519.txt' },
+        rights: {
+            basis: 'pre-1930-us',
+            evidence: 'Artifact names Tagore as translator with Evelyn Underhill\'s introduction, Macmillan, 1915 — pre-1930. Kabir died c. 1518; Tagore died 1941.'
+        },
+        // One hundred poems introduced once, with no repeating heading
+        // to divide on. This is the case chaptered() cannot serve, so
+        // the work takes everything after its marker as one reading —
+        // which is also how the book asks to be read.
+        parse(raw) {
+            const lines = raw.split(/\r?\n/);
+            const from = lines.findIndex(l => /^KABIR'S POEMS$/.test(l.trim()));
+            if (from < 0) throw new Error("marker KABIR'S POEMS not found");
+            const end = lines.findIndex((l, i) => i > from && /^\*\*\* END OF/.test(l));
+            const captions = [];
+            return {
+                sections: [{
+                    name: 'Songs of Kabir',
+                    content: sectionText(lines.slice(from + 1, end > 0 ? end : lines.length), captions)
+                }],
+                captions
+            };
+        }
+    },
+
     dow: {
         id: 'dow-composition',
         title: 'Composition',
@@ -254,6 +428,7 @@ const WORKS = {
 function sectionText(lines, captions = []) {
     const paras = [];
     let buf = [];
+    let skipping = false;
     const flush = () => {
         if (!buf.length) return;
         paras.push(buf.join(' ').replace(/\s+/g, ' ').trim());
@@ -277,6 +452,16 @@ function sectionText(lines, captions = []) {
         // if its canonical asset is text-only; recording the count here
         // is how we know how much is missing.
         if (/^\[Illustration/i.test(t)) { flush(); captions.push(t); continue; }
+        // A CONTENTS block can appear mid-text: Gutenberg's Montaigne
+        // is assembled from five volumes and reprints a table before
+        // each. Skip from the header to the next real prose paragraph —
+        // an essay list read aloud is not the essay.
+        if (/^CONTENTS( OF VOLUME \d+)?\.?$/i.test(t)) { flush(); skipping = true; continue; }
+        if (skipping) {
+            // Contents entries are short numbered lines; prose is not.
+            if (/^[IVXLC]+\.?\s/.test(t) || t.length < 70) continue;
+            skipping = false;
+        }
         // Typographic furniture from the printed page. "FINIS" and rule
         // lines are the book's binding, not its prose.
         // Also: a printer's colophon ("The Riverside Press, CAMBRIDGE")
@@ -319,12 +504,17 @@ function sha256(s) {
  * own preface IS part of the argument.
  */
 function chaptered(raw, opts) {
-    const { heading, until, skipTo = 1, keepPreface = false, name } = opts;
+    const { heading, until, skipTo = 1, keepPreface = false, name, pairs } = opts;
     const lines = raw.split(/\r?\n/);
 
     // Gutenberg's own wrapper is never part of any work.
     const startMark = lines.findIndex(l => /^\*\*\* START OF/.test(l));
-    const endMark = lines.findIndex(l => /^\*\*\* END OF/.test(l));
+    // Some files print a plain "End of the Project Gutenberg EBook"
+    // line before the starred marker; the licence sits between them.
+    // Taking the starred one alone lets the licence into the last
+    // section, which a test caught in Boethius.
+    const endMark = lines.findIndex(l =>
+        /^\*{0,3}\s*End of (the )?Project Gutenberg/i.test(l.trim()));
     const lo = startMark >= 0 ? startMark + 1 : 0;
     const hi = endMark > 0 ? endMark : lines.length;
 
@@ -366,7 +556,28 @@ function chaptered(raw, opts) {
         if (s > 0) stop = s;
     }
 
-    const body = hits.filter(i => i >= bodyFrom && i < stop);
+    let body = hits.filter(i => i >= bodyFrom && i < stop);
+    // Some editions interleave a summary with each division, so the
+    // headings arrive in close pairs. Keeping both would hand the
+    // reader a précis as though it were the text. Drop whichever of the
+    // pair is the shorter run — measured, not assumed, because the
+    // order differs between editions.
+    if (pairs === 'second') {
+        const kept = [];
+        for (let i = 0; i < body.length; i++) {
+            const next = body[i + 1];
+            const after = body[i + 2] ?? stop;
+            // A summary is a heading whose run is far shorter than its
+            // neighbour's; keep the longer of any close pair.
+            if (next !== undefined && next - body[i] < 80) {
+                kept.push(next - body[i] >= after - next ? body[i] : next);
+                i++;
+            } else {
+                kept.push(body[i]);
+            }
+        }
+        body = kept;
+    }
     const captions = [];
     const sections = [];
     for (let n = 0; n < body.length; n++) {
