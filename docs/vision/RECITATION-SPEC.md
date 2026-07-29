@@ -1,159 +1,259 @@
-# Recitation — spoken reading, typed text, ducked music
+# Recitation — spoken reading, revealed text, ducked music
 
-*Written 2026-07-28. A presentation mode in which the reading is spoken
-aloud, the text arrives as it is spoken, and the music yields to the
-voice and returns.*
+*Written 2026-07-28, revised 2026-07-29 against a frame-by-frame reading
+of the reference reel and a measured TTS probe.*
 
 ---
 
-## 0. What this is, and what it is not
+## 0. What this is
 
-**A reading mode, not an export.** The Chamber gains a way of reading;
-if a reel is wanted, the screen is recorded. JSON → MP4 remains deferred
-(NORTH-STAR §5.7) and this does not bring it closer — but it does make
+A presentation in which text arrives over a short duration rather than
+appearing whole, optionally spoken aloud, with the music yielding to the
+voice and returning.
+
+**A reading mode, not an export.** If a reel is wanted, the screen is
+recorded. JSON → MP4 stays deferred (NORTH-STAR §5.7) — but this makes
 the eventual export a *capture* problem rather than a *rendering* one,
 which is the harder half.
 
-Four elements, three of which mostly exist:
+### What the reference reel actually does
 
-| element | state before this work |
+The reel is two acts, and only the second is R.I.S.E.'s business.
+
+**Act one (0:00–8:25)** — captions over filmed footage, in **word
+mode**: `OKAY` · `IF` · `YOU` · `HAD` · `15` · `MINUTES`, each word
+replacing the last at 150–350ms. This is word-chunked RSVP, which
+R.I.S.E. already does. The footage is not ours to generate.
+
+**Act two (8:25–25:30)** — a hard cut to black, then a montage in
+**phrase mode**, where each phrase *reveals itself* rather than
+appearing:
+
+```
+I   →   I AM   →   I AM THE   →   I AM THE ALPHA.
+```
+
+That is **one atom revealing progressively**, not four atoms replacing
+each other. Measured from the frames: **750ms reveal, then 1000ms held**
+— a 43% reveal share, about 50ms per character. Then imagery, then
+`THE FIRST.` held 1400ms, then more imagery, then `AND` at 450ms, then
+`THE END` split across a composition.
+
+So the two acts differ in **chunk mode**, and the "typewriter" is a
+reveal *within* a phrase atom.
+
+### What already exists
+
+| element | state |
 |---|---|
-| **Speech** | `AudioEngine.speak()` exists, complete, with `onStart`/`onEnd` hooks — and **no callers anywhere**. Dead code since it was written. |
-| **Ducking** | The exact pattern exists for the Shuttle: ramp a gain to 0 over 0.4s, restore over 0.8s. Not wired to voice. |
-| **Glowing text** | Living Text already tints each atom by valence — amber warm, blue-violet cool, tanh-saturated. Colour, not glow. |
-| **Typed reveal** | Nothing. This is the only genuinely new mechanism. |
-| **Keystroke sound** | `layerGains.typing` and a `buffers.typing` sampler already exist, with a configured volume — built for something else and ready to pair with the reveal. |
-
-So the work is one mechanism and three connections.
+| **Word / phrase chunking** | Both modes exist and are selectable. |
+| **Held sacred imagery** | The Chapel pins works; Gallery and full-frame present them. |
+| **Speech** | `AudioEngine.speak()` is complete at `engine.js:2064` with `onStart`/`onEnd` hooks — and **has never had a caller**. |
+| **Ducking** | The exact ramp pattern exists for the Shuttle. Not wired to voice. |
+| **Per-atom colour** | Living Text tints by valence. Driven by the wrong signal for this — see §3. |
+| **Keystroke sound** | `layerGains.typing` with a sampler and configured volume, built for something else. |
+| **Progressive reveal** | Nothing. The one genuinely new mechanism. |
 
 ---
 
-## 1. Typed reveal
+## 1. The reveal
 
 ### The problem it creates
 
-R.I.S.E. rests on a temporal contract: an atom's `duration` is computed
-from its word count at the session's WPM, and the reader is promised
-that long enough to read it. A character-by-character reveal breaks
+An atom's `duration` is computed from word count at the session WPM, and
+the reader is promised that long to read it. A progressive reveal breaks
 that promise silently — the phrase is not readable until the reveal
-finishes, so a reader gets less time than the duration implies.
+completes, so the reader gets less time than the duration implies.
 
 ### The rule
 
-**Typing is independent of speech, and behaves differently with it.**
+**The reveal is independent of speech, and behaves differently with it.**
 
-- **Without TTS** — the reveal completes within the first portion of the
-  atom's duration; the remainder is reading time at rest. The temporal
-  contract is preserved exactly: `duration` still means what it has
-  always meant.
-- **With TTS** — the text follows the voice. Characters arrive as they
-  are spoken, and the atom lasts as long as the utterance does. The WPM
-  setting stops governing, which is correct: when a reading is *spoken*,
+- **Without speech** — the reveal completes within a share of the atom's
+  duration; the remainder is reading time at rest. The temporal contract
+  is preserved exactly.
+- **With speech** — the reveal follows the voice. Words appear as they
+  are spoken, and the atom lasts as long as the utterance. **The WPM
+  setting stops governing**, which is correct: when a reading is spoken,
   the voice is the clock.
 
-That second case is a deliberate transfer of authority, and it must be
-visible in the UI rather than surprising. A reader who set 250 wpm and
-then enabled voice should understand why the pace changed.
+That second case transfers authority away from a setting the reader
+chose, so it must be visible in the UI rather than surprising.
 
-### Reveal budget (no TTS)
+### Budget, without speech
 
-The reveal takes `min(REVEAL_MAX_MS, duration × REVEAL_SHARE)`, so a
-short atom is not swallowed by its own animation and a long one does not
-crawl. Proposed: `REVEAL_SHARE = 0.35`, `REVEAL_MAX_MS = 600`.
+`reveal = min(REVEAL_MAX_MS, duration × REVEAL_SHARE)`.
 
-An atom shorter than roughly 400ms already bypasses the fade path in
-`displayAtom` — those appear whole, as they do now. **Typing a
-three-word atom that lives for 300ms would be a strobe, not a reveal.**
+The reel measures **43%** and ~50ms per character. Proposed:
+`REVEAL_SHARE = 0.4`, `REVEAL_MAX_MS = 800`. A short atom is not
+swallowed by its own animation; a long one does not crawl.
+
+Atoms under ~400ms already bypass the fade path in `displayAtom` and
+appear whole. **Revealing a three-word atom that lives 300ms is a
+strobe, not a reveal** — those keep appearing whole.
+
+### Granularity: word, not character
+
+The reel reveals `I` → `I AM` → `I AM THE`, which is **word by word**.
+Character-by-character is a different effect and a worse one here: a
+reader tracking half-words is decoding, not reading. Words also give the
+speech case a natural unit to sync against.
 
 ### Reduced motion
 
-`prefers-reduced-motion` disables typing entirely; text appears whole.
-This is animation, and the existing safety posture treats animation as
-opt-out by default.
+`prefers-reduced-motion` disables the reveal entirely — text appears
+whole. Not "reveals faster": off.
 
 ---
 
 ## 2. Speech
 
-`speak()` is wired to the player's atom advance. Its `onEnd` is what
-advances the reading rather than the computed duration — that is the
-authority transfer above, made concrete.
+`speak()` is wired to the player's atom advance, and its `onEnd`
+advances the reading rather than the computed duration.
 
-Failure is not silence-forever: `speak()` already calls `onEnd` on
-error and on empty text, so a voice that will not speak still advances
-the reading. **Reverent degradation applies to speech exactly as it does
-to imagery** — a reading that cannot be spoken is read silently, never
-stalled.
+### Voice
 
-The phrase markers `|` and `[PAUSE]` are already stripped before
-speaking. Good: they are breath notation for a reader, not words.
+`window.speechSynthesis` is a formant synthesiser and no setting makes
+it sound human. Replaced by **Kokoro-82M via kokoro-js**, both
+Apache-2.0, running fully client-side — see TTS-RESEARCH.
+
+### Continuous narration is viable
+
+Measured: cold start **3.2s**, real-time factor **~1.09** on CPU. That
+sounds fatal and is not — a **9% deficit**, against which:
+
+- **The reading is already 19–23% silence.** `[PAUSE]`, `[HOLD]`, and
+  paragraph breaks are dead air the synthesiser generates through.
+- **A head start drains slowly.** 30s of lead covers 5.6 minutes of
+  continuous reading.
+
+So: cold start on entering the Chamber (concurrent with choosing
+settings, therefore free), pre-generate a lead during the preparation
+stage that already exists, refill during pauses the scheduler can see
+coming.
+
+### Degradation
+
+If the buffer runs low, **stop speaking and let the reading continue
+silently.** Never stall the reading to wait for audio. `speak()` already
+calls `onEnd` on error and on empty text. **Reverent degradation applies
+to speech exactly as it does to imagery.**
+
+### Timing for the reveal
+
+kokoro-js exposes **no per-word timestamps** — `generate()` returns
+`{audio, sampling_rate}` and nothing else. But it returns raw
+`Float32Array` samples, and 20ms RMS windows find the silences between
+words directly: a 7-word phrase yielded 6 gaps, onsets at
+0.30/0.80/1.12/1.62/1.92s.
+
+**The reveal follows real speech onsets, not an interpolation.**
 
 ---
 
-## 3. Ducking
+## 3. Emphasis
 
-When speech starts, the music ramps down; when it ends, back up. The
-Shuttle's `_setSuspended` is the pattern — cancel scheduled values, set
-current, ramp.
+The reel colours emphasised words **cyan** against white: `15`,
+`MINUTES`, `BEAUTIFUL`, `AMAZING`, `LORD`, `JESUS`, `CHRIST`. That is
+semantic, not decorative — it marks what the sentence is *for*.
 
-Two differences from the Shuttle case:
+**Emphasis is authored, exactly as phrase boundaries are.** The Vault's
+sequences already carry `|` marks placed by a human; emphasis is the
+same kind of notation and belongs in the same layer. Content authors;
+the runtime follows.
 
-1. **Duck, do not silence.** The reel's effect is music *yielding*, not
-   stopping. A floor around 15–20% keeps the bed present under the
-   voice. Full silence between every phrase would pump audibly.
-2. **Asymmetric timing.** Down fast (~150ms) so the voice is never
-   fighting a swell; up slow (~600ms) so the return is a breath rather
-   than a switch. The Shuttle's 0.4/0.8 is close and worth borrowing.
+Living Text is **not** the right source. It computes valence, and
+sentiment is not emphasis — `BEAUTIFUL` scores high and `15` does not,
+yet the reel emphasises both. Deriving emphasis from sentiment would
+mark the wrong words confidently.
 
-**Verified rather than assumed:** the graph is a set of named layer
-gains (`binaural`, `harmonics`, `noise`, `drone`, `ambient`, `swell`,
-`soundscape`, plus `typing` and `ui`) each connected to `masterGain`.
-TTS goes through `window.speechSynthesis`, which does **not** route
-through the Web Audio graph at all — so ducking the musical layers
-cannot attenuate the voice, and the risk this paragraph was written to
-flag does not exist. Duck the musical layers; leave `ui` and `typing`
-alone, since those are feedback rather than bed.
+The two coexist: Living Text tints the atom by mood; emphasis marks
+particular words within it. One is climate, the other is stress.
+
+**Emphasis also affects timing.** `DO` holds 950ms where its neighbours
+hold 200ms — the question landing. An emphasised word earns dwell, which
+the temporal system can already express.
+
+---
+
+### Notation and the display path
+
+Checked: an asterisk notation passes through the chunker untouched —
+`I would tell you how *beautiful* and *amazing*...` survives phrase
+chunking as one atom with the marks intact. So emphasis can be authored
+in the text and parsed at the display layer, the same seam `|` uses.
+The marks are stripped before display and before speech, exactly as
+`|` and `[PAUSE]` already are.
+
+**One real consequence.** `displayAtom` currently sets
+`atomDisplay.textContent = atom.content` at two sites. Text content
+cannot carry per-word colour, and it cannot be revealed word by word.
+Both the reveal and emphasis require the atom to be built from
+**per-word spans** instead.
+
+That is a change to the hottest path in the reading loop, so it must:
+
+- keep the existing fast path for atoms under ~400ms, which appear whole
+  and need no spans at all;
+- escape the text, since building HTML from content is a new injection
+  surface where `textContent` was inherently safe;
+- and leave the non-recitation path byte-identical, so an ordinary
+  reading is not paying for a feature it is not using.
 
 ---
 
 ## 4. Glow
 
-Living Text already computes a per-atom colour from valence. Glow is a
-`text-shadow` derived from that same colour, so the two never disagree —
+Serif type on black with a blurred halo. Glow is a `text-shadow`
+derived from the atom's Living Text colour, so the two never disagree —
 one signal, two expressions.
 
-It should be **strongest on the character being revealed** and settle as
-the phrase completes, which is what makes typed text look alive rather
-than merely animated. If that proves fussy, a whole-atom glow that
-brightens during the reveal and settles afterward is an acceptable
-simplification.
+Strongest on the word being revealed, settling as the phrase completes.
+If that proves fussy, a whole-atom glow that brightens during the reveal
+and settles after is an acceptable simplification.
 
 ---
 
-## 5. Where it lives
+## 5. Ducking
 
-A presentation choice, beside Full-frame / Behind-stream / Gallery —
-those describe how imagery is presented; this describes how the *text*
-is presented, which is a different axis and may want its own control.
+Speech starts, music ramps down; speech ends, it returns.
 
-**Open question**, and the one most likely to need a second pass: the
-visual presentation surfaces and this are orthogonal (a recitation can
-run under a Gallery), so folding it into the same three-way control
-would be a category error of the kind the Library's shelves just went
-through. It probably belongs beside the WPM and chunking controls, in
-the temporal orbit, because that is what it modifies.
+1. **Duck, do not silence.** A floor around 15–20% keeps the bed present.
+   Full silence between phrases would pump audibly.
+2. **Asymmetric.** Down fast (~150ms), up slow (~600ms) so the return is
+   a breath rather than a switch.
+
+**Verified:** the graph is named layer gains each connected to
+`masterGain`. TTS audio does not enter the Web Audio graph through
+`speechSynthesis`, and Kokoro's output is a Blob played through an
+`Audio` element — so ducking the musical layers cannot attenuate the
+voice. Duck the musical layers; leave `ui` and `typing` alone.
 
 ---
 
-## 6. Invariants
+## 6. Where it lives
 
-- **The temporal contract holds when the voice is off.** Duration means
-  what it means; typing borrows from it, never extends it.
-- **Reverent degradation.** No voice, no speech synthesis, an error
-  mid-utterance — the reading continues silently. It never stalls.
-- **Reduced motion disables typing.** Not "types faster" — off.
+The existing three-way control (Full-frame / Behind-stream / Gallery)
+describes how **imagery** is presented. This describes how **text** is
+presented. They are orthogonal — a recitation can run under a Gallery —
+so folding them into one control would be a category error of the kind
+the Library's shelves just went through.
+
+It belongs beside WPM and chunking, in the temporal orbit, because that
+is what it modifies.
+
+---
+
+## 7. Invariants
+
+- **The temporal contract holds when the voice is off.** The reveal
+  borrows from `duration`, never extends it.
+- **Reverent degradation.** No model, slow device, error mid-utterance —
+  the reading continues silently. It never stalls waiting for audio.
+- **Reduced motion disables the reveal.** Off, not faster.
+- **Emphasis is authored.** The runtime never guesses which words matter.
 - **One signal, two expressions.** Glow derives from the Living Text
   colour rather than computing its own.
-- **The Chapel is unaffected.** Sacred readings have their own
-  chant beds and liturgical pacing; nothing here changes them, and
-  synthetic speech over scripture is a decision nobody has made.
+- **The Chapel is unaffected.** Sacred readings have chant beds and
+  liturgical pacing. Synthetic speech over scripture is a decision
+  nobody has made, and this spec does not make it.
