@@ -130,3 +130,52 @@ test('a recitation reading advances even before speech is ready', async ({ page 
   // Whatever happened to the model, the reading moved on.
   expect(after).toBeGreaterThan(before);
 });
+
+test('the control turns recitation on, and the choice survives a return', async ({ page }) => {
+  await page.addInitScript((g) => {
+    localStorage.setItem('rise-beta-session', JSON.stringify(g.gate));
+    localStorage.setItem('rise_orbital_text_v1', JSON.stringify(g.seed));
+  }, { gate: GATE, seed: SEED });
+  await page.goto('/');
+  await page.locator('[data-nav="chamber"]').first().click();
+  // Recitation lives in the TEMPORAL orbit, beside pace and chunking —
+  // it modifies how the text is presented, not the imagery.
+  await page.locator('.orbit-node[data-orbit="temporal"]').click();
+  await expect(page.locator('[data-recitation="on"]')).toBeVisible({ timeout: 15000 });
+
+  // The note explains the download BEFORE it happens, so enabling a
+  // voice is never a surprise.
+  const noteHiddenAtFirst = await page.locator('[data-recitation-note]').isHidden();
+  await page.locator('[data-recitation="on"]').click();
+
+  const after = await page.evaluate(() => {
+    const o = window.rise?.router?.views?.get('chamber')?.instance;
+    return {
+      config: o?.config?.recitation,
+      noteShown: !document.querySelector('[data-recitation-note]')?.hidden,
+      onActive: document.querySelector('[data-recitation="on"]')?.classList.contains('active'),
+      offActive: document.querySelector('[data-recitation="off"]')?.classList.contains('active')
+    };
+  });
+  console.log('CONTROL ' + JSON.stringify({ noteHiddenAtFirst, ...after }));
+
+  expect(noteHiddenAtFirst).toBe(true);
+  expect(after.config).toEqual({ enabled: true });
+  expect(after.noteShown).toBe(true);
+  expect(after.onActive).toBe(true);
+  expect(after.offActive).toBe(false);
+
+  // Begin persists the dials; returning must not reset the choice.
+  await page.locator('[data-close="temporal"]').click();
+  await page.locator('#begin-btn').click();
+  const warn = page.locator('#photosensitivity-modal');
+  if (await warn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await warn.locator('#safety-accept').click();
+  }
+  await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20000 });
+
+  const persisted = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem('rise_orbital_prefs_v1') || '{}').recitation);
+  console.log('PERSISTED ' + JSON.stringify(persisted));
+  expect(persisted).toEqual({ enabled: true });
+});

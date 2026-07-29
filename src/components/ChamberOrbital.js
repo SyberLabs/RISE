@@ -457,7 +457,7 @@ export class ChamberOrbital {
     this._normalizeAudioExclusivity();
     const { wpm, curve, chunkMode, soundscape, audioPreset, entrainmentMode,
       entrainmentWaveform, voiceEnabled, voiceId, selectedSwellId,
-      visualInterlocution } = this.config;
+      recitation, visualInterlocution } = this.config;
     // atriumCollections and the visual program are LAUNCH-SCOPED
     // identity, not preferences — they belong to the specific reading
     // that was launched, never to the tab. Persisting them would
@@ -486,6 +486,9 @@ export class ChamberOrbital {
       paceV2: true,
       wpm, curve, chunkMode, soundscape, audioPreset, entrainmentMode,
       entrainmentWaveform, voiceEnabled, voiceId, selectedSwellId,
+      // Only the field we understand: the restore side reads the same
+      // way, so a hand-edited entry cannot introduce unvalidated keys.
+      recitation: { enabled: recitation?.enabled === true },
       visualInterlocution: normalizedVisuals
     };
     this._persistText();
@@ -849,6 +852,25 @@ export class ChamberOrbital {
                 <button class="chunk-option ${this.config.chunkMode === 'phrase' ? 'active' : ''}" data-chunk="phrase">Phrase</button>
                 <button class="chunk-option ${this.config.chunkMode === 'sentence' ? 'active' : ''}" data-chunk="sentence">Sentence</button>
               </div>
+            </div>
+
+            <!-- Recitation (RECITATION-SPEC §6). A TEXT presentation, so
+                 it sits beside pace and chunking rather than among the
+                 imagery surfaces — those are a different axis, and a
+                 recitation can run under any of them. -->
+            <div class="config-section">
+              <label class="config-label">Recitation</label>
+              <div class="chunk-options">
+                <button class="chunk-option ${!this.config.recitation?.enabled ? 'active' : ''}"
+                  data-recitation="off">Off</button>
+                <button class="chunk-option ${this.config.recitation?.enabled ? 'active' : ''}"
+                  data-recitation="on">Spoken</button>
+              </div>
+              <p class="config-note text-mist" data-recitation-note ${this.config.recitation?.enabled ? '' : 'hidden'}>
+                Words arrive as they are spoken, and the voice sets the
+                pace — a downloaded voice, once, then kept. If it cannot
+                load, the reading continues silently.
+              </p>
             </div>
           </div>
         </div>
@@ -1389,6 +1411,21 @@ export class ChamberOrbital {
         this.config.chunkMode = opt.dataset.chunk;
         chunkOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
+      });
+    });
+
+    // Recitation. The note explains what enabling it costs — a voice
+    // is downloaded once — so the download is never a surprise.
+    const recitationOptions = this.container.querySelectorAll('[data-recitation]');
+    const recitationNote = this.container.querySelector('[data-recitation-note]');
+    recitationOptions.forEach(opt => {
+      this._listen(opt, 'click', () => {
+        window.rise?.audioEngine?.playHiss();
+        const enabled = opt.dataset.recitation === 'on';
+        this.config.recitation = { enabled };
+        recitationOptions.forEach(o => o.classList.remove('active'));
+        opt.classList.add('active');
+        if (recitationNote) recitationNote.hidden = !enabled;
       });
     });
   }
