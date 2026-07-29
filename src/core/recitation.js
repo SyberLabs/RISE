@@ -186,8 +186,13 @@ export function speechOnsets(samples, sampleRate, { windowMs = 20, floorRatio = 
     if (!energy.length) return [];
 
     const floor = Math.max(...energy) * floorRatio;
-    const onsets = [0];
-    let inGap = false;
+    const onsets = [];
+    // Begin INSIDE a gap so the first burst of energy registers as an
+    // onset. Seeding with 0 instead made the first word appear at the
+    // very start of the clip — but Kokoro opens with roughly 300ms of
+    // silence, so the word arrived a third of a second before it was
+    // spoken, and every later word inherited the offset.
+    let inGap = true;
     energy.forEach((e, i) => {
         if (e < floor) {
             inGap = true;

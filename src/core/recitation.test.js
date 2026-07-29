@@ -174,3 +174,26 @@ describe('speech onsets', () => {
         expect(onsets).toEqual([...onsets].sort((a, b) => a - b));
     });
 });
+
+describe('the utterance is the clock', () => {
+    it('reports the real onset, not the start of the clip', () => {
+        // Kokoro opens with ~300ms of silence. Seeding the first onset
+        // at 0 made the first word appear a third of a second before it
+        // was spoken, and every later word inherited the offset.
+        const sr = 24000;
+        const samples = new Float32Array(sr);
+        for (let i = Math.floor(sr * 0.32); i < Math.floor(sr * 0.5); i++) {
+            samples[i] = Math.sin(i * 0.3) * 0.8;
+        }
+        const onsets = speechOnsets(samples, sr);
+        expect(onsets[0]).toBeGreaterThan(250);
+        expect(onsets[0]).toBeLessThan(400);
+    });
+
+    it('gives a reveal schedule that waits for the voice', () => {
+        // A schedule starting at 0 would reveal into silence.
+        const schedule = revealSchedule(3, 0, [320, 800, 1200]);
+        expect(schedule[0]).toBe(320);
+        expect(schedule).toEqual([320, 800, 1200]);
+    });
+});

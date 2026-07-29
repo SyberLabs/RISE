@@ -519,6 +519,11 @@ export class Chamber {
         // — if the buffer has not reached this atom it returns null and
         // the reading proceeds silently at its own pace.
         const spoken = this.voice?.speak(data.index) ?? null;
+        // The utterance is the clock. Stashed for the duration override
+        // below, which the Player consults immediately after this event
+        // — an atom paced by WPM would cut the voice off mid-word, which
+        // is what made speech sound like buzzing rather than reading.
+        this._spokenMs = spoken?.durationMs ?? null;
 
         this.displayAtom(data.atom, data.index, {
           concealed: data.concealed === true,
@@ -529,6 +534,11 @@ export class Chamber {
         // must never delay the frame the reader is waiting on.
         this.voice?.prime(this.session?.atoms, data.index + 1);
       });
+      // A spoken atom lasts as long as its utterance (RECITATION-SPEC
+      // §1). Returning null falls back to the authored duration, which
+      // is what an unspoken atom — or a starved buffer — must get.
+      this.player.atomDurationOverride = () => this._spokenMs;
+
       this.player.on('progress', (progress) => this.updateProgress(progress));
       this.player.on('complete', () => this.onSessionComplete());
       this.player.on('state', (state) => this.onStateChange(state));

@@ -149,6 +149,9 @@ export class Player {
         this.sessionState = new SessionState(session);
         this.listeners = new Map();
         this.timerId = null;
+        // Optional: a consumer that governs how long an atom lasts.
+        // See _atomDisplayMs. Null means the authored duration rules.
+        this.atomDurationOverride = null;
         this.progressFrameId = null; // For smooth progress animation
         this.transitionDuration = 300; // ms for fade transitions
         this.atomStartTime = null;
@@ -210,7 +213,27 @@ export class Player {
      * ÷ |velocity| (the ←→ shuttle axis). Floored so a chunk is
      * always perceptible even at 8×.
      */
+    /**
+     * How long the current atom is shown.
+     *
+     * Normally the authored duration, scaled by pace and shuttle. But a
+     * consumer may GOVERN an atom's duration — `atomDurationOverride` is
+     * consulted first, and a finite result wins.
+     *
+     * The case this exists for is speech (RECITATION-SPEC §1): when a
+     * reading is spoken aloud the utterance is the clock, and an atom
+     * paced by words-per-minute would be cut off mid-word. The Player
+     * does not know what speech is; it knows only that something may
+     * have a better claim than the timer on how long a phrase lasts.
+     *
+     * The override is consulted AFTER the 'atom' event, so a listener
+     * has already had its chance to start whatever governs the timing.
+     */
     _atomDisplayMs(atom) {
+        const governed = this.atomDurationOverride?.(atom, this.sessionState.currentIndex);
+        if (Number.isFinite(governed) && governed > 0) {
+            return governed / this.shuttle.durationDivisor;
+        }
         return Math.max(
             (atom.duration * this.speedFactor) / this.shuttle.durationDivisor,
             50

@@ -49,3 +49,52 @@ test('the live policy admits the voice model', async ({ page }) => {
   expect(reachable.ok).toBe(true);
   expect(violations).toEqual([]);
 });
+
+test('the voice actually loads on the deployed site', async ({ page }) => {
+  // The only test that proves the whole chain: policy, self-hosted
+  // runtime, model download, and WASM compilation. Each failed
+  // separately, and each looked like the others from the outside.
+  test.setTimeout(300000);
+  const blocked = [];
+  const ortRequests = [];
+  page.on('console', m => {
+    const t = m.text();
+    if (/Content Security Policy|Refused to|violates/i.test(t)) blocked.push(t.slice(0, 140));
+  });
+  page.on('request', r => {
+    const u = r.url();
+    if (/jsdelivr|unpkg/.test(u)) ortRequests.push('CDN: ' + u.slice(0, 90));
+    else if (/\/ort\//.test(u)) ortRequests.push('self: ' + u.split('/').pop());
+  });
+
+  await page.addInitScript(() => {
+    localStorage.setItem('rise-beta-session', JSON.stringify(
+      { code: 'rise2025', name: 'Live', vault: null, timestamp: Date.now() }));
+    localStorage.setItem('rise_orbital_text_v1', JSON.stringify(
+      { text: 'The first fire came from the thunder.', textSource: 'Live', origin: null }));
+    localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(
+      { wpm: 150, chunkMode: 'phrase', recitation: { enabled: true } }));
+  });
+  await page.goto(LIVE);
+  await page.locator('[data-nav="chamber"]').first().click();
+  await page.locator('#begin-btn').click({ timeout: 30000 });
+  const warn = page.locator('#photosensitivity-modal');
+  if (await warn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await warn.locator('#safety-accept').click();
+  }
+  // The model is ~92 MB on a cold cache; give it room.
+  await page.waitForTimeout(90000);
+
+  const voice = await page.evaluate(() => {
+    const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
+    return { hasVoice: !!ch?.voice, failed: ch?.voice?._failed, cached: ch?.voice?._cache?.size ?? 0 };
+  });
+  console.log('VOICE ' + JSON.stringify(voice));
+  console.log('ORT ' + JSON.stringify([...new Set(ortRequests)].slice(0, 4)));
+  console.log('BLOCKED ' + JSON.stringify(blocked));
+
+  // The runtime came from us, never a CDN.
+  expect(ortRequests.filter(r => r.startsWith('CDN'))).toEqual([]);
+  expect(blocked).toEqual([]);
+  expect(voice.failed).toBeFalsy();
+});

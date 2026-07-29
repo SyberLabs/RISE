@@ -51,6 +51,7 @@ export class Voice {
         this._cache = new Map();       // atom index → {samples, sampleRate}
         this._generating = new Set();  // indices currently in flight
         this._current = null;          // the HTMLAudioElement now playing
+        this._queue = Promise.resolve(); // generation runs one at a time
         this._failed = false;          // load failed; never retry this session
         this.onProgress = null;
     }
@@ -110,11 +111,22 @@ export class Voice {
             if (this._cache.has(i) || this._generating.has(i)) continue;
 
             this._generating.add(i);
-            this._send('speak', { text, voice: this.voiceId })
+            // SERIALISED. ONNX Runtime rejects overlapping runs on one
+            // session ("Session already started"), so firing the whole
+            // lead at once made most of them fail — a sparse cache and
+            // a generation storm, which read as speech that stuttered
+            // in and out. Each request waits for the last.
+            this._queue = this._queue
+                .then(() => this._send('speak', { text, voice: this.voiceId }))
                 .then(({ samples, sampleRate }) => {
                     this._cache.set(i, { samples, sampleRate });
                 })
-                .catch(() => { /* one atom unspoken; the reading continues */ })
+                .catch((error) => {
+                    // Logged, not swallowed: a silent failure here looks
+                    // identical to a slow one, and the two want
+                    // different fixes.
+                    console.warn(`[Voice] atom ${i} unspoken:`, error?.message || error);
+                })
                 .finally(() => this._generating.delete(i));
         }
         this._evictBefore(fromIndex - 2);
