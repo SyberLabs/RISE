@@ -9,7 +9,7 @@
 import { describe, expect, it } from 'vitest';
 import { LIBRARY_TEXTS, LIBRARY_CATEGORIES } from './library.js';
 import { ARCHIVE_CURATION, curationFor, shelfFor } from './library-curation.js';
-import { PD_BASIS, RESONANCE_FUNCTIONS } from './library-constants.js';
+import { PD_BASIS, RESONANCE_FUNCTIONS, DIVISIONS } from './library-constants.js';
 import { QUARANTINED, isQuarantined } from './library-quarantine.js';
 
 const SHELVES = new Set(LIBRARY_CATEGORIES.map(c => c.id));
@@ -32,6 +32,42 @@ describe('the Archive shelves every text it holds', () => {
             expect(SHELVES.has(entry.shelf), `${id} claims unknown shelf '${entry.shelf}'`)
                 .toBe(true);
         }
+    });
+});
+
+describe('divisions within a shelf', () => {
+    const DIV_IDS = new Set(DIVISIONS.map(d => d.id));
+
+    it('every curated work is placed within its canon', () => {
+        // A work with no division falls into the panel's "Other" bucket
+        // — visible, but filed under nothing a reader recognises. The
+        // same standard the shelves themselves are held to.
+        for (const [id, entry] of Object.entries(ARCHIVE_CURATION)) {
+            expect(DIV_IDS.has(entry.division), `${id} has no usable division '${entry.division}'`)
+                .toBe(true);
+        }
+    });
+
+    it('the division reaches the registered text', () => {
+        const tao = LIBRARY_TEXTS.find(t => t.id === 'sacred-tao-te-ching');
+        expect(tao.division).toBe('classical');
+        const koans = LIBRARY_TEXTS.find(t => t.id === 'sacred-zen-koans');
+        expect(koans.division).toBe('esoteric');
+    });
+
+    it('no shelf is a single division alone, except where that is true', () => {
+        // Indigenous Traditions is deliberately all-classical: four
+        // collected oral corpora, with no literature written in their
+        // light and no esoteric commentary that the Archive holds. The
+        // panel renders a lone division as a flat list rather than
+        // labelling the obvious, so this records the intent.
+        const byShelf = {};
+        for (const entry of Object.values(ARCHIVE_CURATION)) {
+            (byShelf[entry.shelf] ||= new Set()).add(entry.division);
+        }
+        expect([...byShelf.western]).toHaveLength(3);
+        expect([...byShelf.eastern]).toHaveLength(3);
+        expect([...byShelf.indigenous]).toEqual(['classical']);
     });
 });
 

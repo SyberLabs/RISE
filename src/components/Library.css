@@ -140,6 +140,39 @@
   gap: var(--space-md);
 }
 
+/* Divisions within a shelf: classical, literary, esoteric — a canon in
+   reading order. The heading is quiet because it is orientation, not a
+   control; the reader is already standing at the shelf. */
+.archive-divisions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.archive-division-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--color-shadow);
+}
+
+.archive-division-name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-fog);
+}
+
+.archive-division-note {
+  font-family: var(--font-literary);
+  font-size: 13px;
+  font-style: italic;
+}
+
 .archive-card {
   display: flex;
   flex-direction: column;

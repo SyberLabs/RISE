@@ -353,3 +353,39 @@ Indigenous shelf; it had to leave.
 
 Asking where a work belongs geographically is what surfaced it. The
 functional shelves never had to ask.
+
+
+---
+
+## 10. Divisions within a shelf (2026-07-28)
+
+Each canon divides into **Classical · Literary · Esoteric**, in reading
+order: the founding texts, then what was written in their light, then
+where the tradition goes quiet and strange.
+
+Deliberately the SAME three on every shelf. A reader learns the
+vocabulary once, and the parallel is itself a claim worth making — that
+every tradition has a classical core, a literature, and an esoteric edge.
+The Archive makes that claim by structure rather than by saying so.
+
+| shelf | classical | literary | esoteric |
+|---|---|---|---|
+| **Form** | Vitruvius | Dow, Ross, Crane, Dresser | Kandinsky |
+| **Western** | Marcus Aurelius, Epictetus, Boethius | Montaigne, Thoreau, Emerson, Rilke, Whitman, Dickinson, Nietzsche | Hermetica, Emerald Tablet, Blake, Julian |
+| **Eastern** | Tao Te Ching, Gita, Dhammapada, Yoga Sutras, I Ching | Rumi, Kabir, Okakura | Zen koans |
+| **Indigenous** | all four collections | — | — |
+
+Some fits are looser than others, and the curation says which and why.
+The Tao Te Ching is CLASSICAL because it founds a tradition, not because
+it resembles Marcus Aurelius. Blake is ESOTERIC rather than literary
+because he claimed transcription rather than composition. Julian sits
+with the esoteric because a visionary is not a systematist.
+
+**Indigenous Traditions is all-classical and that is correct**, not an
+omission: four collected oral corpora, with no literature written in
+their light and no esoteric commentary the Archive holds. A shelf with
+one division renders as a flat list rather than labelling the obvious.
+
+**"All" stays flat.** Divisions across four canons at once would
+interleave traditions and say nothing; the grouping only means something
+when a reader is standing at one shelf.

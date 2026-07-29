@@ -8,7 +8,7 @@
  * - Quick preview before commitment
  */
 
-import { LIBRARY_TEXTS, LIBRARY_CATEGORIES } from '../content/library.js';
+import { LIBRARY_TEXTS, LIBRARY_CATEGORIES, DIVISIONS } from '../content/library.js';
 import { escapeHtml } from '../core/sanitize.js';
 import { MemoryCore } from '../core/memory.js';
 
@@ -139,7 +139,10 @@ export class Library {
           `).join('')}
         </div>
 
-        <div class="archive-grid">
+        <!-- Grouped by division when standing at one shelf, so the
+             wrapper must not impose a grid over the group headings;
+             each division carries its own grid. -->
+        <div class="${this.currentFilter === 'all' ? 'archive-grid' : 'archive-divisions'}">
           ${this.renderArchiveItems()}
         </div>
       </div>
@@ -159,6 +162,38 @@ export class Library {
       return '<div class="empty-state"><p class="text-fog">No texts in this category</p></div>';
     }
 
+    // Standing in front of ONE shelf, a reader sees its divisions:
+    // classical, then literary, then esoteric — a canon in reading
+    // order. Across all shelves at once the divisions would interleave
+    // four traditions and say nothing, so "All" stays a flat list.
+    if (this.currentFilter !== 'all') {
+      const grouped = DIVISIONS
+        .map(d => ({ d, items: texts.filter(t => t.division === d.id) }))
+        .filter(g => g.items.length);
+      // A work with no division would vanish from a grouped view —
+      // the same silent-absence failure the shelves themselves guard
+      // against — so anything unplaced is shown under its own heading.
+      const unplaced = texts.filter(t => !t.division);
+      if (unplaced.length) {
+        grouped.push({ d: { id: 'other', name: 'Other', description: 'Not yet placed within this canon' }, items: unplaced });
+      }
+      if (grouped.length > 1) {
+        return grouped.map(({ d, items }) => `
+          <div class="archive-division" data-division="${d.id}">
+            <div class="archive-division-head">
+              <span class="archive-division-name">${escapeHtml(d.name)}</span>
+              <span class="archive-division-note text-mist">${escapeHtml(d.description)}</span>
+            </div>
+            <div class="archive-grid">${this.renderArchiveCards(items)}</div>
+          </div>
+        `).join('');
+      }
+    }
+
+    return this.renderArchiveCards(texts);
+  }
+
+  renderArchiveCards(texts) {
     return texts.map(text => {
       const shelf = LIBRARY_CATEGORIES.find(c => c.id === text.category);
       // Provenance is part of the reading, not a footnote: a world-class

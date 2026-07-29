@@ -72,6 +72,41 @@ export const RESONANCE_FUNCTIONS = Object.freeze({
 });
 
 /**
+ * Divisions WITHIN a shelf, in reading order: a canon opens with its
+ * founding texts, moves through what was written in their light, and
+ * ends where it goes quiet and strange.
+ *
+ * Deliberately the SAME three on every shelf. A reader learns the
+ * vocabulary once, and the parallel is itself informative — that every
+ * tradition has a classical core, a literature, and an esoteric edge is
+ * a claim worth making, and the Archive makes it by structure rather
+ * than by saying so.
+ *
+ * Some fits are looser than others. The Tao Te Ching sits under
+ * CLASSICAL because it founds a tradition, not because it resembles
+ * Marcus Aurelius; Rumi and Kabir are LITERARY because they are poets,
+ * though their subject is devotional. Where a work could go two ways
+ * the curation says which and why.
+ */
+export const DIVISIONS = [
+    {
+        id: 'classical',
+        name: 'Classical',
+        description: 'The founding texts, and the commentaries that became texts themselves'
+    },
+    {
+        id: 'literary',
+        name: 'Literary',
+        description: 'Written in their light — essays, poems, and the long argument after'
+    },
+    {
+        id: 'esoteric',
+        name: 'Esoteric',
+        description: 'The hidden reading: what a tradition says when it stops explaining'
+    }
+];
+
+/**
  * Public-domain bases. EVERY text records why we may hold it — the
  * textual analogue of curation-only for imagery (SOURCE-CURATION-SPEC),
  * and non-negotiable for the same reason: the system would rather show

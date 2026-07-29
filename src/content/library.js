@@ -28,7 +28,7 @@ import { ingestedArchiveTexts } from './archive/index.js';
 // that this registry and library-curation.js can both use them without
 // forming an import cycle. Re-exported here: callers have always asked
 // the library for its categories, and should keep being able to.
-export { LIBRARY_CATEGORIES, RESONANCE_FUNCTIONS, PD_BASIS } from './library-constants.js';
+export { LIBRARY_CATEGORIES, DIVISIONS, RESONANCE_FUNCTIONS, PD_BASIS } from './library-constants.js';
 
 /**
  * Sacred text metadata template
@@ -314,6 +314,7 @@ export function registerText(text) {
         ? {
             ...text,
             category: curation.shelf,
+            division: curation.division,
             why: curation.why,
             functions: curation.functions,
             rhymes: curation.rhymes,
