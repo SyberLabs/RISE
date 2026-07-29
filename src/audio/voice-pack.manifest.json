@@ -1,0 +1,1243 @@
+{
+  "schema": "rise.recitation-voice-pack.v1",
+  "generatedAt": "2026-07-29T21:01:19.207Z",
+  "model": "onnx-community/Kokoro-82M-v1.0-ONNX",
+  "voices": {
+    "af_heart": {
+      "label": "Heart — warm, the reference voice",
+      "model": "onnx-community/Kokoro-82M-v1.0-ONNX",
+      "dtype": "q8",
+      "format": "wav",
+      "entries": {
+        "17-1pgfmsx": {
+          "text": "and for which I was brought into the world?",
+          "asset": "/audio/recitation/af_heart/17-1pgfmsx.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2450,
+          "onsetsMs": [
+            300,
+            760,
+            1140,
+            1560,
+            1840,
+            1940
+          ],
+          "peak": 0.435677
+        },
+        "2-z7ocwo": {
+          "text": "I,",
+          "asset": "/audio/recitation/af_heart/2-z7ocwo.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1325,
+          "onsetsMs": [
+            400
+          ],
+          "peak": 0.476162
+        },
+        "8-1o53ijn": {
+          "text": "however,",
+          "asset": "/audio/recitation/af_heart/8-1o53ijn.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1400,
+          "onsetsMs": [
+            380
+          ],
+          "peak": 0.458576
+        },
+        "8-1vrctb8": {
+          "text": "violent,",
+          "asset": "/audio/recitation/af_heart/8-1vrctb8.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1475,
+          "onsetsMs": [
+            380,
+            900
+          ],
+          "peak": 0.557446
+        },
+        "8-dlwnro": {
+          "text": "and evil",
+          "asset": "/audio/recitation/af_heart/8-dlwnro.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1450,
+          "onsetsMs": [
+            380
+          ],
+          "peak": 0.467073
+        },
+        "8-ude79c": {
+          "text": "envious,",
+          "asset": "/audio/recitation/af_heart/8-ude79c.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1500,
+          "onsetsMs": [
+            400
+          ],
+          "peak": 0.860272
+        },
+        "9-hd8uxl": {
+          "text": "meddling,",
+          "asset": "/audio/recitation/af_heart/9-hd8uxl.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1425,
+          "onsetsMs": [
+            380
+          ],
+          "peak": 0.506321
+        },
+        "a-17k8k6a": {
+          "text": "like feet,",
+          "asset": "/audio/recitation/af_heart/a-17k8k6a.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1550,
+          "onsetsMs": [
+            360,
+            600,
+            740,
+            980
+          ],
+          "peak": 0.638433
+        },
+        "b-1r4e9hg": {
+          "text": "ungrateful,",
+          "asset": "/audio/recitation/af_heart/b-1r4e9hg.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1625,
+          "onsetsMs": [
+            380,
+            800
+          ],
+          "peak": 0.560479
+        },
+        "b-4ojf8a": {
+          "text": "In general,",
+          "asset": "/audio/recitation/af_heart/b-4ojf8a.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1600,
+          "onsetsMs": [
+            380
+          ],
+          "peak": 0.403137
+        },
+        "b-6e4evk": {
+          "text": "like hands,",
+          "asset": "/audio/recitation/af_heart/b-6e4evk.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1575,
+          "onsetsMs": [
+            360,
+            560
+          ],
+          "peak": 0.569276
+        },
+        "b-ahqnc8": {
+          "text": "but change,",
+          "asset": "/audio/recitation/af_heart/b-ahqnc8.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1475,
+          "onsetsMs": [
+            360,
+            480
+          ],
+          "peak": 0.554289
+        },
+        "b-b1puq6": {
+          "text": "but change.",
+          "asset": "/audio/recitation/af_heart/b-b1puq6.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1500,
+          "onsetsMs": [
+            340,
+            480
+          ],
+          "peak": 0.549024
+        },
+        "c-1i1sp65": {
+          "text": "Look within.",
+          "asset": "/audio/recitation/af_heart/c-1i1sp65.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1575,
+          "onsetsMs": [
+            380,
+            600,
+            780
+          ],
+          "peak": 0.523179
+        },
+        "c-1mtmgih": {
+          "text": "nor the past",
+          "asset": "/audio/recitation/af_heart/c-1mtmgih.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1600,
+          "onsetsMs": [
+            380,
+            700,
+            1140
+          ],
+          "peak": 0.453701
+        },
+        "c-1yfh6we": {
+          "text": "treacherous,",
+          "asset": "/audio/recitation/af_heart/c-1yfh6we.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1525,
+          "onsetsMs": [
+            360,
+            600
+          ],
+          "peak": 0.513317
+        },
+        "d-1aec4fy": {
+          "text": "like the rows",
+          "asset": "/audio/recitation/af_heart/d-1aec4fy.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1700,
+          "onsetsMs": [
+            380,
+            600,
+            660
+          ],
+          "peak": 0.563379
+        },
+        "d-jf46oz": {
+          "text": "Ask yourself:",
+          "asset": "/audio/recitation/af_heart/d-jf46oz.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1650,
+          "onsetsMs": [
+            360,
+            620
+          ],
+          "peak": 0.47394
+        },
+        "d-na3won": {
+          "text": "like eyelids,",
+          "asset": "/audio/recitation/af_heart/d-na3won.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1575,
+          "onsetsMs": [
+            360,
+            520
+          ],
+          "peak": 0.617421
+        },
+        "d-z2mbfd": {
+          "text": "Realize this,",
+          "asset": "/audio/recitation/af_heart/d-z2mbfd.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1675,
+          "onsetsMs": [
+            360,
+            900
+          ],
+          "peak": 0.457444
+        },
+        "e-1drtg5e": {
+          "text": "many troubles,",
+          "asset": "/audio/recitation/af_heart/e-1drtg5e.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1575,
+          "onsetsMs": [
+            360,
+            620
+          ],
+          "peak": 0.479257
+        },
+        "e-1lzgn6s": {
+          "text": "nor hate them.",
+          "asset": "/audio/recitation/af_heart/e-1lzgn6s.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1650,
+          "onsetsMs": [
+            340,
+            900
+          ],
+          "peak": 0.449319
+        },
+        "e-1rtdtpx": {
+          "text": "In the morning",
+          "asset": "/audio/recitation/af_heart/e-1rtdtpx.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1450,
+          "onsetsMs": [
+            360
+          ],
+          "peak": 0.502928
+        },
+        "e-1s5vkse": {
+          "text": "to confess it.",
+          "asset": "/audio/recitation/af_heart/e-1s5vkse.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1700,
+          "onsetsMs": [
+            340,
+            500,
+            740
+          ],
+          "peak": 0.62127
+        },
+        "e-dgtt8r": {
+          "text": "and contained.",
+          "asset": "/audio/recitation/af_heart/e-dgtt8r.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1675,
+          "onsetsMs": [
+            380,
+            560
+          ],
+          "peak": 0.697838
+        },
+        "e-njkege": {
+          "text": "into one view.",
+          "asset": "/audio/recitation/af_heart/e-njkege.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1700,
+          "onsetsMs": [
+            340
+          ],
+          "peak": 0.637582
+        },
+        "f-1p6ie9k": {
+          "text": "and its beauty,",
+          "asset": "/audio/recitation/af_heart/f-1p6ie9k.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1600,
+          "onsetsMs": [
+            340,
+            560,
+            700
+          ],
+          "peak": 0.820972
+        },
+        "f-2mrem1": {
+          "text": "by any of them,",
+          "asset": "/audio/recitation/af_heart/f-2mrem1.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1650,
+          "onsetsMs": [
+            360,
+            880
+          ],
+          "peak": 0.378855
+        },
+        "f-6rxa5r": {
+          "text": "Do not assemble",
+          "asset": "/audio/recitation/af_heart/f-6rxa5r.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1700,
+          "onsetsMs": [
+            360
+          ],
+          "peak": 0.463063
+        },
+        "f-xbpctj": {
+          "text": "of my creation:",
+          "asset": "/audio/recitation/af_heart/f-xbpctj.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1750,
+          "onsetsMs": [
+            340,
+            660
+          ],
+          "peak": 0.512208
+        },
+        "g-10ngybw": {
+          "text": "with my kinsman,",
+          "asset": "/audio/recitation/af_heart/g-10ngybw.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1725,
+          "onsetsMs": [
+            340,
+            460,
+            500,
+            700
+          ],
+          "peak": 0.54944
+        },
+        "g-1bmt3k9": {
+          "text": "past and future,",
+          "asset": "/audio/recitation/af_heart/g-1bmt3k9.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1825,
+          "onsetsMs": [
+            320,
+            660,
+            1060
+          ],
+          "peak": 0.35601
+        },
+        "g-1x5bhri": {
+          "text": "advances action.",
+          "asset": "/audio/recitation/af_heart/g-1x5bhri.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1900,
+          "onsetsMs": [
+            340,
+            1100
+          ],
+          "peak": 0.519155
+        },
+        "g-58mphy": {
+          "text": "or for exertion?",
+          "asset": "/audio/recitation/af_heart/g-58mphy.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1775,
+          "onsetsMs": [
+            340
+          ],
+          "peak": 0.476696
+        },
+        "g-nf3ztj": {
+          "text": "our life is what",
+          "asset": "/audio/recitation/af_heart/g-nf3ztj.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1725,
+          "onsetsMs": [
+            340,
+            1240
+          ],
+          "peak": 0.555608
+        },
+        "g-rnrlb9": {
+          "text": "becomes the way.",
+          "asset": "/audio/recitation/af_heart/g-rnrlb9.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1650,
+          "onsetsMs": [
+            380,
+            480,
+            800
+          ],
+          "peak": 0.537847
+        },
+        "h-1sx7h7k": {
+          "text": "of good and evil.",
+          "asset": "/audio/recitation/af_heart/h-1sx7h7k.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1825,
+          "onsetsMs": [
+            320,
+            560
+          ],
+          "peak": 0.60497
+        },
+        "h-50euew": {
+          "text": "and its ugliness,",
+          "asset": "/audio/recitation/af_heart/h-50euew.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1675,
+          "onsetsMs": [
+            340,
+            560
+          ],
+          "peak": 0.824706
+        },
+        "h-5wgzw5": {
+          "text": "of a human being.",
+          "asset": "/audio/recitation/af_heart/h-5wgzw5.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1800,
+          "onsetsMs": [
+            320,
+            920
+          ],
+          "peak": 1.042683
+        },
+        "h-gtr7bf": {
+          "text": "I shall encounter",
+          "asset": "/audio/recitation/af_heart/h-gtr7bf.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1900,
+          "onsetsMs": [
+            360,
+            1080
+          ],
+          "peak": 0.783275
+        },
+        "h-usqowl": {
+          "text": "Begin the morning",
+          "asset": "/audio/recitation/af_heart/h-usqowl.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1650,
+          "onsetsMs": [
+            340,
+            460,
+            1100
+          ],
+          "peak": 0.46642
+        },
+        "i-19hkqvn": {
+          "text": "unsociable people.",
+          "asset": "/audio/recitation/af_heart/i-19hkqvn.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2000,
+          "onsetsMs": [
+            320,
+            1140,
+            1180,
+            1340
+          ],
+          "peak": 0.71348
+        },
+        "i-65cy4f": {
+          "text": "nor can I be angry",
+          "asset": "/audio/recitation/af_heart/i-65cy4f.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1825,
+          "onsetsMs": [
+            320,
+            620,
+            900,
+            1200
+          ],
+          "peak": 0.359074
+        },
+        "i-exzq6s": {
+          "text": "and the complaint,",
+          "asset": "/audio/recitation/af_heart/i-exzq6s.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1650,
+          "onsetsMs": [
+            320,
+            560,
+            820,
+            1100
+          ],
+          "peak": 0.740231
+        },
+        "i-gn7rn1": {
+          "text": "that is unbearable",
+          "asset": "/audio/recitation/af_heart/i-gn7rn1.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1825,
+          "onsetsMs": [
+            380,
+            720,
+            940,
+            1200,
+            1320
+          ],
+          "peak": 0.513035
+        },
+        "i-yfcwkc": {
+          "text": "Remove the opinion",
+          "asset": "/audio/recitation/af_heart/i-yfcwkc.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1875,
+          "onsetsMs": [
+            340,
+            740,
+            940
+          ],
+          "peak": 0.440379
+        },
+        "j-1699nk5": {
+          "text": "if I am going to do",
+          "asset": "/audio/recitation/af_heart/j-1699nk5.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1875,
+          "onsetsMs": [
+            300,
+            1180,
+            1420
+          ],
+          "peak": 0.461259
+        },
+        "j-1gqcno7": {
+          "text": "Remind yourself too",
+          "asset": "/audio/recitation/af_heart/j-1gqcno7.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1825,
+          "onsetsMs": [
+            320,
+            1020,
+            1100,
+            1180,
+            1340,
+            1380
+          ],
+          "peak": 0.469023
+        },
+        "j-1r9da97": {
+          "text": "that weighs on you,",
+          "asset": "/audio/recitation/af_heart/j-1r9da97.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1700,
+          "onsetsMs": [
+            340
+          ],
+          "peak": 0.49278
+        },
+        "j-s6wvtk": {
+          "text": "not outside events.",
+          "asset": "/audio/recitation/af_heart/j-s6wvtk.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1850,
+          "onsetsMs": [
+            300,
+            700,
+            1060,
+            1280
+          ],
+          "peak": 0.773476
+        },
+        "k-1m8u2js": {
+          "text": "Loss is nothing else",
+          "asset": "/audio/recitation/af_heart/k-1m8u2js.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1950,
+          "onsetsMs": [
+            340,
+            720,
+            1060
+          ],
+          "peak": 0.384737
+        },
+        "k-svm1dh": {
+          "text": "You would be ashamed",
+          "asset": "/audio/recitation/af_heart/k-svm1dh.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1650,
+          "onsetsMs": [
+            340
+          ],
+          "peak": 0.540677
+        },
+        "k-we8ypl": {
+          "text": "from their ignorance",
+          "asset": "/audio/recitation/af_heart/k-we8ypl.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1750,
+          "onsetsMs": [
+            360,
+            720,
+            1180
+          ],
+          "peak": 0.581757
+        },
+        "l-1ca2igf": {
+          "text": "and keep myself warm?",
+          "asset": "/audio/recitation/af_heart/l-1ca2igf.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1875,
+          "onsetsMs": [
+            300,
+            600,
+            1040
+          ],
+          "peak": 0.480774
+        },
+        "l-1ogasn8": {
+          "text": "our thoughts make it.",
+          "asset": "/audio/recitation/af_heart/l-1ogasn8.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1750,
+          "onsetsMs": [
+            300,
+            580,
+            820,
+            1080,
+            1280
+          ],
+          "peak": 0.4984
+        },
+        "l-1xiql9l": {
+          "text": "and beyond endurance?",
+          "asset": "/audio/recitation/af_heart/l-1xiql9l.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1925,
+          "onsetsMs": [
+            320,
+            500,
+            1360
+          ],
+          "peak": 0.521888
+        },
+        "l-lgybxb": {
+          "text": "in what is degrading,",
+          "asset": "/audio/recitation/af_heart/l-lgybxb.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1875,
+          "onsetsMs": [
+            320,
+            800,
+            920
+          ],
+          "peak": 0.436755
+        },
+        "l-ov6smq": {
+          "text": "what is there in this",
+          "asset": "/audio/recitation/af_heart/l-ov6smq.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1700,
+          "onsetsMs": [
+            340,
+            660
+          ],
+          "peak": 0.495981
+        },
+        "l-raf8g1": {
+          "text": "\"I have been harmed,\"",
+          "asset": "/audio/recitation/af_heart/l-raf8g1.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1775,
+          "onsetsMs": [
+            320,
+            600,
+            1220
+          ],
+          "peak": 0.618889
+        },
+        "m-16ysqqt": {
+          "text": "Or is this the purpose",
+          "asset": "/audio/recitation/af_heart/m-16ysqqt.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1950,
+          "onsetsMs": [
+            320,
+            720,
+            920,
+            1000,
+            1220
+          ],
+          "peak": 0.497182
+        },
+        "m-1aydf37": {
+          "text": "But all of this arises",
+          "asset": "/audio/recitation/af_heart/m-1aydf37.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1975,
+          "onsetsMs": [
+            300,
+            460
+          ],
+          "peak": 0.549324
+        },
+        "m-1o6e2wz": {
+          "text": "What stands in the way",
+          "asset": "/audio/recitation/af_heart/m-1o6e2wz.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1750,
+          "onsetsMs": [
+            300,
+            460,
+            580,
+            1240
+          ],
+          "peak": 0.452887
+        },
+        "m-h0v4oy": {
+          "text": "can neither be injured",
+          "asset": "/audio/recitation/af_heart/m-h0v4oy.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1825,
+          "onsetsMs": [
+            300,
+            680,
+            840,
+            1380
+          ],
+          "peak": 0.406583
+        },
+        "m-nww393": {
+          "text": "by saying to yourself:",
+          "asset": "/audio/recitation/af_heart/m-nww393.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1875,
+          "onsetsMs": [
+            300
+          ],
+          "peak": 0.489704
+        },
+        "n-15oyqh4": {
+          "text": "The universe is change;",
+          "asset": "/audio/recitation/af_heart/n-15oyqh4.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2000,
+          "onsetsMs": [
+            320,
+            1060
+          ],
+          "peak": 0.515347
+        },
+        "n-1ah983": {
+          "text": "Do not disturb yourself",
+          "asset": "/audio/recitation/af_heart/n-1ah983.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2125,
+          "onsetsMs": [
+            320,
+            760,
+            980
+          ],
+          "peak": 0.41415
+        },
+        "n-1pbth07": {
+          "text": "I am rising to the work",
+          "asset": "/audio/recitation/af_heart/n-1pbth07.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2025,
+          "onsetsMs": [
+            320,
+            1440,
+            1580
+          ],
+          "peak": 0.493831
+        },
+        "o-1ez777w": {
+          "text": "and the present's burden",
+          "asset": "/audio/recitation/af_heart/o-1ez777w.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1800,
+          "onsetsMs": [
+            300,
+            500,
+            980
+          ],
+          "peak": 0.599391
+        },
+        "o-1w4pfsb": {
+          "text": "to lie in the bed covers",
+          "asset": "/audio/recitation/af_heart/o-1w4pfsb.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2100,
+          "onsetsMs": [
+            300,
+            980,
+            1200,
+            1400
+          ],
+          "peak": 0.351319
+        },
+        "o-bldlmn": {
+          "text": "and the harm is removed.",
+          "asset": "/audio/recitation/af_heart/o-bldlmn.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2075,
+          "onsetsMs": [
+            300,
+            1060,
+            1520,
+            1560
+          ],
+          "peak": 0.62794
+        },
+        "o-hy6173": {
+          "text": "The impediment to action",
+          "asset": "/audio/recitation/af_heart/o-hy6173.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2000,
+          "onsetsMs": [
+            340,
+            580,
+            960,
+            1120,
+            1300,
+            1540
+          ],
+          "peak": 0.600933
+        },
+        "p-19cj6x5": {
+          "text": "were you born for feeling",
+          "asset": "/audio/recitation/af_heart/p-19cj6x5.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1875,
+          "onsetsMs": [
+            320,
+            560
+          ],
+          "peak": 0.412668
+        },
+        "p-1rivrq7": {
+          "text": "if you always look there.",
+          "asset": "/audio/recitation/af_heart/p-1rivrq7.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1925,
+          "onsetsMs": [
+            300,
+            1100,
+            1200
+          ],
+          "peak": 0.479246
+        },
+        "p-j8933r": {
+          "text": "and it will always spring",
+          "asset": "/audio/recitation/af_heart/p-j8933r.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1900,
+          "onsetsMs": [
+            320,
+            680,
+            1120
+          ],
+          "peak": 0.533529
+        },
+        "q-weaxin": {
+          "text": "Why then am I dissatisfied",
+          "asset": "/audio/recitation/af_heart/q-weaxin.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2300,
+          "onsetsMs": [
+            320,
+            880,
+            1600,
+            1840
+          ],
+          "peak": 0.375988
+        },
+        "q-x0u3v3": {
+          "text": "when you rise unwillingly,",
+          "asset": "/audio/recitation/af_heart/q-x0u3v3.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2050,
+          "onsetsMs": [
+            320,
+            940
+          ],
+          "peak": 0.405582
+        },
+        "r-17ob9kv": {
+          "text": "and you will find strength.",
+          "asset": "/audio/recitation/af_heart/r-17ob9kv.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1850,
+          "onsetsMs": [
+            300,
+            720,
+            1020,
+            1300
+          ],
+          "peak": 0.493089
+        },
+        "r-18c777x": {
+          "text": "Were you born for pleasure?",
+          "asset": "/audio/recitation/af_heart/r-18c777x.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1950,
+          "onsetsMs": [
+            320,
+            600,
+            1060,
+            1120
+          ],
+          "peak": 0.450377
+        },
+        "r-1r93hb7": {
+          "text": "for no one can implicate me",
+          "asset": "/audio/recitation/af_heart/r-1r93hb7.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2350,
+          "onsetsMs": [
+            300,
+            1020,
+            1200,
+            1320,
+            1460,
+            1700,
+            1880
+          ],
+          "peak": 0.44583
+        },
+        "s-1hcvki": {
+          "text": "It is so much more pleasant.",
+          "asset": "/audio/recitation/af_heart/s-1hcvki.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2125,
+          "onsetsMs": [
+            320,
+            980,
+            1060,
+            1240,
+            1300,
+            1620
+          ],
+          "peak": 0.489767
+        },
+        "s-1seaerb": {
+          "text": "let this thought be present:",
+          "asset": "/audio/recitation/af_heart/s-1seaerb.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 1975,
+          "onsetsMs": [
+            300,
+            560,
+            780,
+            960,
+            1080
+          ],
+          "peak": 0.52801
+        },
+        "s-c2h4v3": {
+          "text": "the things for which I exist",
+          "asset": "/audio/recitation/af_heart/s-c2h4v3.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2225,
+          "onsetsMs": [
+            300,
+            480,
+            860,
+            1060,
+            1640
+          ],
+          "peak": 0.50327
+        },
+        "t-1ijofr5": {
+          "text": "of the upper and lower teeth.",
+          "asset": "/audio/recitation/af_heart/t-1ijofr5.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2200,
+          "onsetsMs": [
+            300,
+            740,
+            960,
+            1400,
+            1480,
+            1620,
+            1720
+          ],
+          "peak": 0.716666
+        },
+        "t-fvva3e": {
+          "text": "that it is neither the future",
+          "asset": "/audio/recitation/af_heart/t-fvva3e.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2100,
+          "onsetsMs": [
+            320,
+            560,
+            1340
+          ],
+          "peak": 0.38839
+        },
+        "u-1tbvfsi": {
+          "text": "You have power over your mind,",
+          "asset": "/audio/recitation/af_heart/u-1tbvfsi.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2150,
+          "onsetsMs": [
+            320,
+            640
+          ],
+          "peak": 0.322646
+        },
+        "u-9ht6j1": {
+          "text": "Within is the fountain of good",
+          "asset": "/audio/recitation/af_heart/u-9ht6j1.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2275,
+          "onsetsMs": [
+            320,
+            480,
+            860,
+            1540,
+            1800
+          ],
+          "peak": 0.60785
+        },
+        "u-jbkk46": {
+          "text": "but always the present alone —",
+          "asset": "/audio/recitation/af_heart/u-jbkk46.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2175,
+          "onsetsMs": [
+            300,
+            840,
+            940
+          ],
+          "peak": 0.542801
+        },
+        "v-1wyi2rs": {
+          "text": "and change is Nature's delight.",
+          "asset": "/audio/recitation/af_heart/v-1wyi2rs.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2475,
+          "onsetsMs": [
+            320,
+            980,
+            1320,
+            1580,
+            1980
+          ],
+          "peak": 0.557587
+        },
+        "v-e1kxd4": {
+          "text": "And change is Nature's delight.",
+          "asset": "/audio/recitation/af_heart/v-e1kxd4.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2475,
+          "onsetsMs": [
+            320,
+            980,
+            1320,
+            1580,
+            1980
+          ],
+          "peak": 0.557587
+        },
+        "w-1bjban5": {
+          "text": "grows less when considered alone",
+          "asset": "/audio/recitation/af_heart/w-1bjban5.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2350,
+          "onsetsMs": [
+            320,
+            960,
+            1080,
+            1840
+          ],
+          "peak": 0.469771
+        },
+        "w-1ivmg75": {
+          "text": "Confine yourself to the present.",
+          "asset": "/audio/recitation/af_heart/w-1ivmg75.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2325,
+          "onsetsMs": [
+            300,
+            500,
+            560,
+            1240,
+            1440,
+            1480,
+            1820
+          ],
+          "peak": 0.54382
+        },
+        "w-aqnjqa": {
+          "text": "who have seen the nature of good",
+          "asset": "/audio/recitation/af_heart/w-aqnjqa.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2075,
+          "onsetsMs": [
+            340,
+            1020,
+            1340,
+            1600
+          ],
+          "peak": 0.41481
+        },
+        "w-ukgeph": {
+          "text": "For we are made for cooperation,",
+          "asset": "/audio/recitation/af_heart/w-ukgeph.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2400,
+          "onsetsMs": [
+            320,
+            1060,
+            1400
+          ],
+          "peak": 0.432074
+        },
+        "y-28r8m4": {
+          "text": "by picturing your life as a whole.",
+          "asset": "/audio/recitation/af_heart/y-28r8m4.wav",
+          "mimeType": "audio/wav",
+          "sampleRate": 24000,
+          "durationMs": 2400,
+          "onsetsMs": [
+            300,
+            480,
+            640,
+            1400,
+            1640
+          ],
+          "peak": 0.649869
+        }
+      },
+      "source": "heart-beta.mjs"
+    }
+  }
+}

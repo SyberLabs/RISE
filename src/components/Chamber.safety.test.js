@@ -29,7 +29,15 @@ function fakePlayer(initialState = 'playing') {
     state: initialState,
     handler: null,
     cancel: null,
-    on: vi.fn(),
+    handlers: new Map(),
+    on: vi.fn((event, listener) => {
+      const listeners = player.handlers.get(event) || [];
+      listeners.push(listener);
+      player.handlers.set(event, listeners);
+    }),
+    emit: (event, payload) => {
+      for (const listener of player.handlers.get(event) || []) listener(payload);
+    },
     play: vi.fn(() => { player.state = 'playing'; }),
     stop: vi.fn(() => { player.state = 'idle'; }),
     setInterlocutionHandler: vi.fn((handler, cancel) => {
@@ -57,7 +65,9 @@ function mount(player = fakePlayer()) {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
   localStorage.removeItem('unrelated-pref');
   document.body.replaceChildren();
 });
@@ -111,6 +121,108 @@ describe('Chamber rhythmic visual safety controls', () => {
     const chamber = new Chamber(container, { session, player: fakePlayer(), autoStart: false });
 
     expect(container.querySelector('#visuals-toggle-btn')).toBeNull();
+    chamber.destroy();
+  });
+});
+
+describe('Chamber Recitation visual contract', () => {
+  function recitationVoice() {
+    return {
+      speak: vi.fn(() => ({
+        durationMs: 1400,
+        onsets: [120, 650],
+        finished: Promise.resolve({ reason: 'ended' })
+      })),
+      prepare: vi.fn(() => Promise.resolve(true)),
+      prime: vi.fn(),
+      stop: vi.fn(),
+      destroy: vi.fn(),
+      setDuckingEnabled: vi.fn()
+    };
+  }
+
+  it('starts narration and the progressive reveal only after a full-frame presence', () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false })));
+    const session = rhythmicSession();
+    session.recitation = { enabled: true };
+    session.atoms[1].content = 'Second phrase';
+    session.visualConfig.interlocution.presentation = 'full-frame';
+    const player = fakePlayer();
+    const voice = recitationVoice();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const chamber = new Chamber(container, {
+      session,
+      player,
+      voice,
+      autoStart: false
+    });
+
+    player.emit('atom', {
+      atom: session.atoms[1],
+      index: 1,
+      concealed: true
+    });
+
+    expect(voice.speak).not.toHaveBeenCalled();
+    expect(player.atomDurationOverride(session.atoms[1], 1)).toBeNull();
+    const words = [...container.querySelectorAll('#atom-display .atom-word')];
+    expect(words).toHaveLength(2);
+    expect(words[0].hasAttribute('data-pending')).toBe(true);
+    expect(words[1].hasAttribute('data-pending')).toBe(true);
+
+    const completion = player.atomCompletionOverride(session.atoms[1], 1);
+    expect(voice.speak).toHaveBeenCalledOnce();
+    expect(voice.speak).toHaveBeenCalledWith(1);
+    expect(completion).toBeInstanceOf(Promise);
+    expect(words[0].hasAttribute('data-pending')).toBe(true);
+    vi.advanceTimersByTime(120);
+    expect(words[0].hasAttribute('data-pending')).toBe(false);
+    expect(words[1].hasAttribute('data-pending')).toBe(true);
+    vi.advanceTimersByTime(530);
+    expect(words[1].hasAttribute('data-pending')).toBe(false);
+
+    // Completion lookup is idempotent; scheduling cannot start the same WAV twice.
+    expect(player.atomCompletionOverride(session.atoms[1], 1)).toBe(completion);
+    expect(voice.speak).toHaveBeenCalledOnce();
+    chamber.destroy();
+  });
+
+  it.each([
+    ['full-frame', 'interlocution'],
+    ['behind-stream', 'interlocution'],
+    ['continuous', 'interlocution'],
+    ['full-frame', 'attractor'],
+    ['full-frame', 'focals'],
+    ['full-frame', 'off']
+  ])('never requests automatic ducking for %s/%s', (presentation, visualMode) => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false })));
+    vi.stubGlobal('ResizeObserver', class {
+      observe() {}
+      disconnect() {}
+    });
+    const session = rhythmicSession();
+    session.recitation = { enabled: true };
+    session.visualConfig.visualMode = visualMode;
+    session.visualConfig.interlocution.presentation = presentation;
+    const player = fakePlayer();
+    const voice = recitationVoice();
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const chamber = new Chamber(container, {
+      session,
+      player,
+      voice,
+      autoStart: false
+    });
+
+    expect(voice.setDuckingEnabled).not.toHaveBeenCalled();
+    if (visualMode === 'interlocution') {
+      chamber.toggleRhythmicVisuals(false);
+      chamber.toggleRhythmicVisuals(true);
+      expect(voice.setDuckingEnabled).not.toHaveBeenCalled();
+    }
     chamber.destroy();
   });
 });

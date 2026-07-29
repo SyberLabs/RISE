@@ -799,6 +799,12 @@ export class Player {
             ? this.atomCompletionOverride?.(atom, this.sessionState.currentIndex)
             : null;
         if (completion && typeof completion.then === 'function') {
+            // A completion governor may begin lazily here. Full-frame
+            // Recitation does exactly that: the next phrase is laid out while
+            // concealed, but its WAV starts only after the presence resolves.
+            // Re-read its duration now so pause/progress use the actual audio
+            // budget rather than the concealed atom's authored fallback.
+            this.currentAtomRemainingTime = this._atomDisplayMs(atom);
             this.atomStartTime = performance.now();
             const currentSyncId = ++this.speechSyncId;
             Promise.resolve(completion)

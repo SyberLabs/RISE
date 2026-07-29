@@ -1,4 +1,4 @@
-# Recitation — spoken reading, revealed text, ducked music
+# Recitation — spoken reading, revealed text, acoustic balance
 
 *Written 2026-07-28, revised 2026-07-29 against a frame-by-frame reading
 of the reference reel and a measured TTS probe.*
@@ -111,36 +111,87 @@ whole. Not "reveals faster": off.
 `speak()` is wired to the player's atom advance, and its `onEnd`
 advances the reading rather than the computed duration.
 
-### Voice
+> **Runtime decision, 2026-07-29:** browser neural inference is retired.
+> The browser-provisioning material below is retained as the measurement
+> record that led to the decision, not as the current implementation.
+
+### Runtime architecture: static voice packs
+
+Kokoro-82M and kokoro-js are local authoring tools. The pack builder runs
+under Node and emits content-addressed WAV assets plus a bundled manifest:
+
+```text
+npm run build:voice-pack -- --input scripts/voice-packs/heart-beta.mjs
+```
+
+Production receives only same-origin audio. A reader's browser downloads
+no model, creates no ONNX worker, requests no Hugging Face resource, and
+uses no speech API or account. There is no recurring synthesis or server
+cost; deployment pays only ordinary static-file storage and bandwidth.
+
+The browser normalizes each speakable phrase, hashes it, and verifies the
+exact normalized text at that manifest key. It requires **complete session
+coverage before fetching audio**, so a partial pack can never stutter in
+and out. It fetches and decodes eight initial phrase assets, then maintains
+a twelve-asset lead with concurrent static requests.
+
+The builder validates finite samples, audible energy, and safe peak before
+writing Kokoro's own WAV output. Duration and speech-onset metadata are
+computed once and stored in the manifest. The first admitted pack is Heart
+(`af_heart`) for the complete Library *Meditations* selection in Phrase
+mode. The UI lists only installed packs and Spoken mode selects Phrase
+chunking to keep compilation and asset identity aligned.
+
+### Historical browser-inference record (retired)
 
 `window.speechSynthesis` is a formant synthesiser and no setting makes
 it sound human. Replaced by **Kokoro-82M via kokoro-js**, both
 Apache-2.0, running fully client-side — see TTS-RESEARCH.
 
-The browser reliability baseline is Kokoro's supported **q4f16** dtype
-on **WASM**. q8/WASM produces healthy audio but cannot sustain the
-real Chamber on a single-thread browser runtime: it generated each
-roughly 2-second Tao phrase in about 5.8 seconds. WebGPU/fp32 is not
-selected merely because `navigator.gpu` exists; it remains an explicit
-future optimization after browser/device qualification.
+There is no assumed browser reliability baseline. The earlier Node
+benchmark selected q4f16/WASM because it measured at RTF 0.34–0.38, but
+Node uses `onnxruntime-node`, not the browser's `onnxruntime-web`.
+Deployed Chrome and Edge later produced non-finite q4f16 samples for
+both Heart and Fenrir, while q8/WASM produced healthy audio too slowly
+to sustain the Chamber. Both conclusions are measured.
 
-### Continuous narration is viable
+The full five-voice harness confirmed this on 2026-07-29 under controlled
+frame pressure: single-thread q8/WASM ran at RTF 2.60–3.03; q4f16/WASM
+ran at RTF 1.86–2.09 and returned sample-zero non-finite output for
+Bella's passage and two Fenrir lengths. A sparse q8 Fenrir transient
+peaked at 1.082 without exceeding the clipping-ratio threshold; that is
+recorded as a warning, not conflated with q4f16's numeric corruption.
 
-Measured on the same CPU probe: q8/WASM ran at **RTF 1.15–1.26** while
-q4f16/WASM ran at **RTF 0.34–0.38**. The latter produces audio materially
-faster than it is consumed and can replenish a rolling buffer during
-continuous narration. Its model is approximately 155 MB versus q8's
-92 MB; that one-time cached download is the explicit cost of reliable
-throughput.
+fp32/WebGPU then measured at steady-state RTF 0.11–0.41 after shader
+warm-up, but seven of fifteen combinations produced finite numeric
+explosions, including a peak of 2.7 × 10²⁶. Because validation occurs
+inside the worker on Kokoro's raw samples, this rejects WebGPU before
+encoding, transfer, or playback enter the path.
 
-So: cold start before entering the Chamber, pre-generate a contiguous
-eight-phrase lead during preparation, then keep the nearest twelve
-speakable phrases queued. Generation is serial because ONNX permits one
-run per session, but the queue is reader-aware: work the reader has
-already passed is discarded. Once the Chamber is visible, generation
-never holds the reader. A missing later phrase degrades to the authored
-silent timer and narration resumes only after four contiguous phrases
-have been rebuilt.
+### Continuous narration requires provider qualification
+
+A provider is admitted only after the deployed-browser harness verifies
+every offered voice and representative fragment, sentence, and passage.
+Every run must contain finite, healthy samples and p95 generation RTF
+must be at most **0.75**, leaving 25% replenishment headroom for normal
+variance and the Chamber's visual workload. “The model loaded” is not
+an audio-health or throughput result.
+
+The harness lives at `/tts-harness.html`. It creates a fresh worker and
+ONNX session per provider, measures q8/WASM, q4f16/WASM, optional
+uint8/WASM, and fp32/WebGPU when available, retains Kokoro's own WAV for
+audition, and exports the complete browser/device evidence as JSON.
+Until a provider passes on the target browser/device class, Recitation
+must treat speech as unavailable rather than choosing a backend by
+feature detection alone.
+
+Once a provider is qualified: cold start before entering the Chamber,
+then buffer by **audio duration**, not phrase count. Generation remains
+serial because ONNX permits one run per session, and queued work remains
+reader-aware so text the reader has passed is discarded. Once the
+Chamber is visible, generation never holds the reader. A missing or
+invalid segment degrades to the authored silent timer and cannot poison
+the rest of the startup lead.
 
 ### Degradation
 
@@ -152,13 +203,21 @@ diagnostic records starvation and recovery without flooding the console.
 
 ### Timing for the reveal
 
+The signal analysis below now runs in the local pack builder. Its onset
+result travels in the manifest; the deployed browser performs no Kokoro
+generation or waveform analysis.
+
 kokoro-js exposes **no per-word timestamps** — `generate()` returns
 `{audio, sampling_rate}` and nothing else. But it returns raw
 `Float32Array` samples, and 20ms RMS windows find the silences between
 words directly: a 7-word phrase yielded 6 gaps, onsets at
 0.30/0.80/1.12/1.62/1.92s.
 
-**The reveal follows real speech onsets, not an interpolation.**
+**The reveal is anchored to real speech onsets, not a blind
+interpolation.** The first detected word remains aligned to its measured
+onset. The remaining onset span is compressed to 70%, so written words
+lead comprehension slightly and a run of short words cannot leave the
+visual reveal trailing the voice.
 
 RISE does not re-encode those samples. Normal playback copies them
 directly into Web Audio; media fallback uses Kokoro's own IEEE Float32
@@ -230,22 +289,35 @@ and settles after is an acceptable simplification.
 
 ---
 
-## 5. Ducking
+## 5. Interlocution and acoustic mixing
 
-Speech starts, music ramps down; speech ends, it returns.
+The static WAV is decoded into an `AudioBufferSourceNode` on the shared
+graph. Media fallback plays the fetched WAV Blob.
 
-1. **Duck, do not silence.** A floor around 15–20% keeps the bed present.
-   Full silence between phrases would pump audibly.
-2. **Asymmetric.** Down fast (~150ms), up slow (~600ms) so the return is
-   a breath rather than a switch.
+Full-frame Rhythmic presence is a semantic pause. The completed phrase
+finishes before the visual opportunity; a next phrase prepared behind the
+opaque overlay keeps every word pending, does not begin speaking, and does
+not start its reading clock until the visual has fully resolved. Its measured
+word reveal, WAV, and reading clock then resume together without emitting or
+laying out the atom a second time. Concealed DOM preparation is never a text
+or audio entrance.
+
+Music and narration always coexist at their authored levels. Recitation
+does not automatically duck in Full-frame, Attractor, Focal,
+Behind-stream, Gallery, or any other presentation.
+
+The engine retains a dormant, tested musical-layer ramp primitive for a
+future authored dramatic structure such as quote → synth accent → continued
+quote. That behavior must be a precise content cue with an explicit span,
+not an ambient consequence of enabling speech or selecting a visual mode.
 
 **Verified:** the graph is named layer gains each connected to
-`masterGain`. Kokoro's compacted Float32 samples enter through a mono
+`masterGain`. Static decoded samples enter through a mono
 `AudioBufferSourceNode` connected directly to `masterGain`, outside the
-named musical layer gains. Ducking the musical layers therefore cannot
-attenuate the voice. Duck the musical layers; leave `ui` and `typing`
-alone. Kokoro's own Float32 WAV Blob is retained as the compatibility
-fallback when no shared Web Audio graph exists.
+named musical layer gains. A future cue may therefore shape musical layers
+without attenuating narration; `ui` and `typing` remain outside that
+primitive. The authored WAV Blob remains the compatibility fallback when no
+shared Web Audio graph exists.
 
 ---
 

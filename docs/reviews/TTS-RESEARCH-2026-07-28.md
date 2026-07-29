@@ -49,7 +49,33 @@ an endpoint that may be withdrawn or may not be permitted.
 
 ---
 
-## Recommendation: Kokoro-82M, in the browser
+## Decision: Kokoro locally, static audio in production
+
+The browser-inference recommendation below is retired by the deployed
+measurements later in this document. No tested provider satisfied both
+numeric health and continuous-narration throughput:
+
+- q8/WASM was healthy but ran at RTF 2.60–3.03;
+- q4f16/WASM ran at RTF 1.86–2.09 and produced non-finite samples;
+- fp32/WebGPU was fast but produced input-dependent numeric explosions.
+
+RISE now uses Kokoro only as a local, build-time authoring dependency.
+`scripts/build-voice-pack.mjs` generates validated, content-addressed WAV
+assets and onset metadata. Production imports the manifest and fetches
+same-origin audio; it contains no Kokoro, Transformers.js, ONNX runtime,
+model host, API key, or speech server.
+
+This keeps the no-subscription constraint. There is no per-character or
+per-request synthesis bill. The only possible external cost is normal
+static hosting storage/bandwidth; the first complete Heart/Meditations
+pack is roughly 15 MB and is immutable-cacheable.
+
+The remainder of this document is the historical evidence and rejected
+runtime design.
+
+---
+
+## Historical recommendation: Kokoro-82M in the browser
 
 **[kokoro-js](https://www.npmjs.com/package/kokoro-js) v1.2.1,
 Apache-2.0**, running
@@ -91,8 +117,8 @@ whole feature is bad.
 
 ### The costs, stated plainly
 
-1. **A 155 MB model download** (the q4f16 production baseline; q8 is
-   92 MB and fp32 is 326 MB). One time, then cached — but it is real,
+1. **A 92–326 MB model download**, depending on the browser-qualified
+   provider. One time, then cached — but it is real,
    and must never happen unless a reader asks for voice. Load lazily,
    on enabling recitation, with visible progress.
 2. **WASM inference is slow.** WebGPU is 10–100× faster and is the
@@ -199,7 +225,7 @@ Four representative Tao phrases, serial generation on the same CPU:
 |---|---:|---:|---|
 | q8 | 92.4 MB | 1.15–1.26 | healthy audio, insufficient throughput |
 | q4 | 305 MB | 0.34–0.45 | fast, but an unjustified cold-download cost |
-| **q4f16** | **155 MB** | **0.34–0.38** | **production WASM baseline** |
+| **q4f16** | **155 MB** | **0.34–0.38** | Node-only candidate; rejected by later browser runs |
 
 [Kokoro's JavaScript README](https://github.com/hexgrad/kokoro/blob/main/kokoro.js/README.md)
 lists q4f16 as a supported dtype. It is about three times faster than q8
@@ -208,9 +234,11 @@ output in both Chrome and Edge.
 
 [ONNX Runtime's generic CPU guidance](https://onnxruntime.ai/docs/tutorials/web/performance-diagnosis.html)
 prefers uint8 and warns that float16 is not natively supported by CPUs.
-That is useful guidance, not a substitute for this model's measurement:
-Kokoro's q4f16 artifact was the fastest practical supported option here,
-and the live Chamber soak is the acceptance test.
+That is useful guidance, not a substitute for this model's measurement.
+The measurement above was also not a browser measurement: Node selects
+`onnxruntime-node`, while the deployed worker selects `onnxruntime-web`.
+Later Chrome and Edge Chamber runs returned non-finite q4f16 samples for
+Heart and Fenrir, so this benchmark cannot admit a browser provider.
 
 ### The design that follows
 
@@ -256,6 +284,69 @@ Moved to a plain Node script: **43 seconds, complete answers.** The
 lesson is the one this codebase keeps teaching — reach for the smallest
 harness that can answer the question, and read the diagnostic before
 running the expensive thing again.
+
+## Historical deployed-browser qualification harness
+
+`/tts-harness.html` is now the admission boundary. It is a separate Vite
+entry and does not boot the RISE application or mutate Chamber state.
+Each dtype/device pair receives a fresh module worker and ONNX session,
+using the same same-origin runtime assets and Kokoro model hosts as the
+production voice worker.
+
+The full matrix covers q8/WASM, q4f16/WASM, optional uint8/WASM, and
+fp32/WebGPU when available; all five voices offered by RISE; and the
+fragment, sentence, and passage lengths that exposed different failures.
+It records cold load, generation time, audio duration, RTF, finite-sample
+integrity, peak, RMS, DC offset, clipping, silence, zero crossings, and
+the source view's buffer geometry. Healthy results retain Kokoro's native
+WAV Blob for human audition, and the complete evidence exports as JSON.
+
+A provider is **qualified** only when the full voice/segment matrix is
+complete, no generation is invalid, and p95 RTF is at most 0.75. A
+subset can be used as a quick probe but is labelled incomplete. Optional
+controlled frame pressure spends approximately 5 ms per animation frame
+and records frame p50/p95; it is a repeatable pressure probe, not a claim
+to reproduce every Chamber visual.
+
+### First full matrix, 2026-07-29
+
+The deployed-browser matrix ran on a 16-logical-core browser without
+cross-origin isolation, so ONNX correctly reported one WASM thread.
+Under the enabled frame-pressure probe:
+
+| provider | signal result | throughput result |
+|---|---|---|
+| q8/WASM | finite across all 15 combinations; one sparse 1.082 peak warning | RTF 2.60–3.03, p95 ≈ 2.995 |
+| q4f16/WASM | sample-zero non-finite output for Bella passage and Fenrir fragment/passage | RTF 1.86–2.09, p95 ≈ 2.055 |
+
+The frame probe itself held p95 at 7 ms with only 0.01% of frames over
+25 ms, so main-thread frame starvation does not explain the synthesis
+rate. q8 is a numerically viable but unsustainable single-thread
+provider. q4f16 is both unsustainable and numerically inadmissible.
+Phrase-count buffering cannot repair either result.
+
+### fp32/WebGPU matrix
+
+WebGPU demonstrated the throughput the architecture needs after its
+one-time shader warm-up: most measured RTFs were 0.11–0.41. It failed
+the more important numeric contract. Seven of fifteen voice/length
+combinations produced finite but explosive output, with peaks from 5.67
+through 2.7 × 10²⁶ and corresponding RMS/DC failures. The analysis ran
+on `RawAudio.audio` inside the worker, before structured clone, encoding,
+or playback, so none of those seams can cause this result.
+
+Michael passed all three lengths, while Heart, Bella, Emma, and Fenrir
+failed input-dependent combinations. A successful default voice or short
+phrase therefore cannot qualify the provider. fp32/WebGPU is rejected on
+this browser/GPU despite its excellent steady-state throughput.
+
+The remaining local experiment is multithreaded integer WASM. The first
+matrix reported 16 logical cores but `crossOriginIsolated: false` and one
+ONNX thread. The harness document now receives scoped COOP/COEP headers
+and explicitly requests half the logical cores, capped at eight. Its
+warm-up is reported separately from steady-state RTF. These headers are
+not yet applied to RISE itself because cross-origin museum imagery must
+be audited before that architectural change.
 
 ## What remains unmeasured
 

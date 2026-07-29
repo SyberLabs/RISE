@@ -36,6 +36,14 @@ export const REVEAL_MAX_MS = 800;
 export const REVEAL_MIN_ATOM_MS = 400;
 
 /**
+ * Spoken text should lead comprehension very slightly, not trail speech.
+ * Preserve the first measured onset, then compress later onset intervals so
+ * the written phrase completes 30% sooner. This especially helps short-word
+ * runs whose boundaries merge in waveform analysis.
+ */
+export const SPOKEN_REVEAL_TIME_SCALE = 0.7;
+
+/**
  * Strip emphasis marks. Used for speech and for any consumer that wants
  * the plain sentence — the marks are notation, never content.
  */
@@ -113,10 +121,11 @@ export function revealBudget(durationMs, { reducedMotion = false } = {}) {
  *   - no onsets → the words divide the reveal budget evenly. The atom
  *     still lasts exactly `duration`; only the first `budget` ms of it
  *     are spent arriving.
- *   - onsets given → the words follow the VOICE. kokoro-js exposes no
+ *   - onsets given → the words anchor to the VOICE. kokoro-js exposes no
  *     per-word timestamps, but its raw samples do expose the silences
- *     between words (see speechOnsets), so the reveal can track real
- *     speech rather than interpolating over it.
+ *     between words (see speechOnsets). The first real onset is preserved;
+ *     later intervals are compressed slightly so text leads rather than
+ *     trails comprehension.
  *
  * A mismatch between onset count and word count is expected and
  * tolerated: silence detection is a heuristic, and a phrase with an
@@ -135,20 +144,32 @@ export function revealSchedule(wordCount, budgetMs, onsetsMs = null) {
     if (budgetMs <= 0 && !onsetsMs?.length) return new Array(wordCount).fill(0);
 
     if (onsetsMs?.length) {
-        const out = [];
-        for (let i = 0; i < wordCount; i++) {
-            if (i < onsetsMs.length) {
-                out.push(Math.max(0, onsetsMs[i]));
-            } else {
-                // Ran out of onsets. Continue at the average pace
-                // established so far rather than dumping the remainder
-                // at once — a bunched tail reads worse than a drift.
-                const known = out.length;
-                const pace = known > 1 ? out[known - 1] / (known - 1) : 120;
-                out.push(out[known - 1] + pace);
+        const detectedCount = Math.min(wordCount, onsetsMs.length);
+        const out = onsetsMs.slice(0, detectedCount)
+            .map(at => Math.max(0, Number(at) || 0));
+
+        if (out.length < wordCount) {
+            // Short words often join into one continuous energy burst, so the
+            // waveform may expose fewer gaps than the sentence has words.
+            // Spread the unmatched tail across the remaining AUDIO duration;
+            // extrapolating from sparse gaps can otherwise run past the WAV.
+            const missing = wordCount - out.length;
+            const last = out[out.length - 1] || 0;
+            const detectedPace = out.length > 1
+                ? (last - out[0]) / (out.length - 1)
+                : 120;
+            const finish = Number.isFinite(budgetMs) && budgetMs > last
+                ? budgetMs
+                : last + (Math.max(1, detectedPace) * missing);
+            const pace = (finish - last) / missing;
+            for (let i = 1; i <= missing; i++) {
+                out.push(last + (pace * i));
             }
         }
-        return out;
+        const anchor = out[0] || 0;
+        return out.map(at => Math.round(
+            anchor + ((at - anchor) * SPOKEN_REVEAL_TIME_SCALE)
+        ));
     }
 
     // Even division. The LAST word lands at the end of the budget, not

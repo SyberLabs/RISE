@@ -46,11 +46,15 @@ export class Chamber {
     // the same textContent path the Chamber has always used.
     this.recitationEnabled = this.session?.recitation?.enabled === true;
     this._revealTimers = null;
+    // A full-frame interlocution lays the successor out while an opaque
+    // presence still owns the screen. Keep its hidden word spans here so the
+    // reveal can begin at the later semantic entrance, alongside the WAV,
+    // without emitting or laying out the atom a second time.
+    this._concealedReveal = null;
 
-    // The voice exists only when a reading asks for it: the model is
-    // 155 MB and must never be fetched as a side effect of opening the
-    // Chamber. App normally passes a prepared instance; constructing
-    // here preserves graceful use by direct/embedded Chamber callers.
+    // The voice exists only when a reading asks for it. It now resolves
+    // bundled static assets and never starts browser inference. App normally
+    // passes a prepared instance; this fallback preserves embedded callers.
     this.voice = this.recitationEnabled
       ? (options.voice || new Voice({
         audioEngine: window.rise?.audioEngine || null,
@@ -61,6 +65,10 @@ export class Chamber {
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
     this.hasRhythmicVisuals = this.session?.visualConfig?.visualMode === 'interlocution';
     this.rhythmicVisualsEnabled = this.hasRhythmicVisuals;
+    this._spokenIndex = null;
+    this._spokenPlayback = null;
+    this._spokenMs = null;
+    this._spokenCompletion = null;
     // The attractor is a persistent field, so its symmetry can be
     // changed mid-reading — the first in-chamber visual control.
     this.hasAttractorField = this.session?.visualConfig?.visualMode === 'attractor';
@@ -521,14 +529,14 @@ export class Chamber {
         // real onsets rather than an interpolation. `speak` never waits
         // — if the buffer has not reached this atom it returns null and
         // the reading proceeds silently at its own pace.
-        const spoken = this.voice?.speak(data.index) ?? null;
-        // The utterance is the clock. Duration remains the pause/error
-        // fallback; normal progression follows the real completion event.
-        this._spokenMs = spoken?.durationMs ?? null;
-        this._spokenCompletion = spoken?.finished ?? null;
+        // A full-frame presence may prepare the next text while its opaque
+        // overlay covers the Stream. That is layout preparation, not an atom
+        // entrance: its WAV begins only after the presence has resolved.
+        const concealed = data.concealed === true;
+        const spoken = concealed ? null : this._startSpokenAtom(data.index);
 
         this.displayAtom(data.atom, data.index, {
-          concealed: data.concealed === true,
+          concealed,
           spoken
         });
 
@@ -539,8 +547,10 @@ export class Chamber {
       // A spoken atom advances on its actual end (RECITATION-SPEC §2).
       // Its duration is retained for progress accounting and for the
       // silent fallback after interruption or playback failure.
-      this.player.atomDurationOverride = () => this._spokenMs;
-      this.player.atomCompletionOverride = () => this._spokenCompletion;
+      this.player.atomDurationOverride = (_atom, index) =>
+        index === this._spokenIndex ? this._spokenMs : null;
+      this.player.atomCompletionOverride = (_atom, index) =>
+        this._startSpokenAtom(index)?.finished ?? null;
 
       this.player.on('progress', (progress) => this.updateProgress(progress));
       this.player.on('complete', () => this.onSessionComplete());
@@ -558,6 +568,60 @@ export class Chamber {
         this.showShuttleHud(velocity);
       });
     }
+  }
+
+  /**
+   * Start one atom's static narration exactly once. Ordinary atoms call this
+   * before painting so word reveal can follow measured onsets. A concealed
+   * full-frame successor calls it later through atomCompletionOverride, after
+   * the visual presence has fully yielded the Stream.
+   */
+  _startSpokenAtom(index) {
+    if (!this.voice) {
+      this._startConcealedReveal(index, null);
+      return null;
+    }
+    if (this._spokenIndex === index) return this._spokenPlayback;
+
+    const spoken = this.voice.speak(index) ?? null;
+    this._spokenIndex = index;
+    this._spokenPlayback = spoken;
+    this._spokenMs = spoken?.durationMs ?? null;
+    this._spokenCompletion = spoken?.finished ?? null;
+    this._startConcealedReveal(index, spoken);
+    return spoken;
+  }
+
+  /**
+   * Give a successor prepared behind a full-frame presence its real entrance.
+   * The presence has resolved by the time atomCompletionOverride reaches this
+   * method, so starting these timers here keeps text and narration on the same
+   * clock. If static audio is unavailable, the ordinary authored visual budget
+   * remains the graceful fallback.
+   */
+  _startConcealedReveal(index, spoken) {
+    const pending = this._concealedReveal;
+    if (!pending || pending.index !== index) return;
+    this._concealedReveal = null;
+
+    const spans = pending.spans?.filter(span => span.isConnected);
+    if (!spans?.length) return;
+
+    const reducedMotion = this._prefersReducedMotion();
+    const budget = spoken && !reducedMotion
+      ? spoken.durationMs
+      : revealBudget(pending.durationMs, { reducedMotion });
+    if (!(budget > 0)) {
+      this.cancelReveal();
+      for (const span of spans) span.removeAttribute('data-pending');
+      return;
+    }
+
+    this.revealAtomWords(spans, revealSchedule(
+      spans.length,
+      budget,
+      spoken && !reducedMotion ? spoken.onsets : null
+    ));
   }
 
   handleKeyboard(e) {
@@ -1123,13 +1187,29 @@ export class Chamber {
     // A boundary presence prepares the next atom while the overlay is fully
     // opaque. Make that hidden update instantaneous so the reveal exposes one
     // stable, already-laid-out text frame instead of a post-flash text fade.
-    // Fast atoms use the same path to avoid spending their lifespan fading.
+    // In Recitation its words remain pending until the presence yields; the
+    // lazy voice start then releases them on the same measured clock.
+    // Fast, non-concealed atoms use the whole-text path to avoid strobing.
     if (concealed || (atom.duration && atom.duration < 400)) {
       atomDisplay.style.transition = 'none';
       // A fast atom appears whole — revealing a phrase that lives 300ms
       // would strobe — but it may still carry emphasis to colour.
       this.cancelReveal();
-      this.paintAtomText(atomDisplay, atom.content);
+      this._concealedReveal = null;
+      const reducedMotion = this._prefersReducedMotion();
+      const deferReveal = concealed && this.recitationEnabled && !reducedMotion;
+      const spans = this.paintAtomText(
+        atomDisplay,
+        atom.content,
+        { reveal: deferReveal }
+      );
+      if (spans) {
+        this._concealedReveal = {
+          index,
+          spans,
+          durationMs: atom.duration
+        };
+      }
 
       // Size on what is SHOWN. Emphasis marks are notation and would
       // otherwise push a phrase into a smaller face than it needs.
@@ -1143,6 +1223,7 @@ export class Chamber {
       this.applyLivingText(atomDisplay, index);
       atomDisplay.style.opacity = '1';
     } else {
+      this._concealedReveal = null;
       // Force instantaneous opacity wipe 
       atomDisplay.style.transition = 'none';
       atomDisplay.style.opacity = '0';
@@ -1879,14 +1960,13 @@ export class Chamber {
     this._active = true;
     document.addEventListener('keydown', this.boundKeyboardHandler);
 
-    // App normally completed the initial lead during session
-    // preparation. Keep this idempotent warm/prime path for direct
-    // Chamber callers and for a prepared voice that still has later
-    // phrases to queue.
+    // App normally completed the initial static lead during session
+    // preparation. prepare() is idempotent, and is required here for direct
+    // Chamber callers because it performs complete-pack admission before any
+    // phrase may play.
     if (this.voice) {
       this.voice.enabled = true;
-      this.voice.load()
-        .then(ok => { if (ok) this.voice?.prime(this.session?.atoms, 0); })
+      this.voice.prepare(this.session?.atoms, 0)
         .catch(() => { /* silent reading; already logged by Voice */ });
     }
   }
@@ -1901,8 +1981,8 @@ export class Chamber {
     this.deactivate();
     // A reveal in flight would otherwise fire into a torn-down DOM.
     this.cancelReveal();
-    // Terminates the worker and releases the buffered audio. Without
-    // this a 155 MB model and a queue of samples outlive the reading.
+    // Abort pending fetches and release decoded audio so they cannot outlive
+    // the reading.
     this.voice?.destroy();
     this.voice = null;
     if (this.controlsTimeout) {

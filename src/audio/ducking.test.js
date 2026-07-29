@@ -1,7 +1,8 @@
 /**
- * Voice ducking (RECITATION-SPEC §5).
+ * Dormant musical-layer ducking primitive.
  *
- * The failure this guards against is a ratchet: ducking twice without
+ * Recitation does not currently call this. It remains tested for a future
+ * authored dramatic cue, where ducking twice without
  * an intervening restore must not record the ducked level as the level
  * to return to, or the music walks itself down to silence over a
  * reading. That is exactly the kind of bug that only appears after

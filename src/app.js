@@ -652,26 +652,6 @@ class App {
 
 
 
-                    // Configure Text-to-Speech if enabled
-                    if (session.voiceEnabled) {
-                        this.updateLoadingStatus('Configuring voice...');
-                        // Set selected voice if specified
-                        if (session.voiceId) {
-                            await this.audioEngine.setVoice(session.voiceId);
-                        }
-
-                        // Set voice rate based on WPM for natural pacing
-                        this.audioEngine.setVoiceRateFromWpm(session.wpm || 220);
-                        this.audioEngine.setVoiceEnabled(true);
-
-                        // Wire player to use voice-synced timing
-                        player.setVoiceSync(true, (text, options) => {
-                            this.audioEngine.speak(text, options);
-                        });
-
-                        console.log('[R.I.S.E.] TTS enabled for session', session.voiceId ? `(voice: ${session.voiceId})` : '(default voice)');
-                    }
-
                     this.updateLoadingStatus('Entering chamber...');
 
                     const { Chamber } = await import('./components/Chamber.js');
@@ -699,12 +679,6 @@ class App {
                             endVisualInterlocutionSession();
                             visualCortex.updateConfig({ enabled: false });
                             this.audioEngine.stopSession();
-
-                            // Stop TTS if active
-                            if (session.voiceEnabled) {
-                                this.audioEngine.stopSpeaking();
-                                this.audioEngine.setVoiceEnabled(false);
-                            }
 
                             // Force disposal of the instance so next session starts fresh
                             const view = this.router.views.get('chamber-session');

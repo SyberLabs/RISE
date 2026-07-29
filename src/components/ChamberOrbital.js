@@ -40,6 +40,10 @@ import {
   recoverLegacyChapelScriptureSources,
   recoverLegacyChapelVisualProgram
 } from '../content/chapel/imagery/program-recovery.js';
+import {
+  availableVoicePacks,
+  defaultVoicePackId
+} from '../audio/voice-pack.js';
 import './VisualInterlocutionPanel.css';
 
 // Last-used session settings survive across chamber visits (the orbital
@@ -54,6 +58,9 @@ const ORBITAL_TEXT_KEY = 'rise_orbital_text_v1';
 const AUDIO_PRESET_IDS = new Set([
   'silent', 'focus', 'deep', 'drift', 'gateway', 'personal'
 ]);
+const STATIC_VOICE_PACKS = availableVoicePacks();
+const STATIC_VOICE_IDS = new Set(STATIC_VOICE_PACKS.map(pack => pack.id));
+const DEFAULT_STATIC_VOICE_ID = defaultVoicePackId();
 
 /**
  * Factory defaults for the orbital — one source of truth for the
@@ -138,8 +145,7 @@ function createDefaultConfig() {
     audioPreset: 'silent',
     entrainmentMode: 'binaural',
     entrainmentWaveform: 'sine',
-    voiceEnabled: false,
-    voiceId: null,
+    voiceId: DEFAULT_STATIC_VOICE_ID,
     selectedSwellId: null,
 
     // Temporal orbit
@@ -209,7 +215,7 @@ export class ChamberOrbital {
     if (!saved) return;
 
     const scalarKeys = ['wpm', 'curve', 'chunkMode', 'soundscape', 'audioPreset',
-      'entrainmentMode', 'entrainmentWaveform', 'voiceEnabled', 'voiceId', 'selectedSwellId'];
+      'entrainmentMode', 'entrainmentWaveform', 'voiceId', 'selectedSwellId'];
     for (const key of scalarKeys) {
       if (saved[key] !== undefined) this.config[key] = saved[key];
     }
@@ -220,6 +226,17 @@ export class ChamberOrbital {
     // introduce keys the runtime never validated.
     if (saved.recitation && typeof saved.recitation === 'object') {
       this.config.recitation = { enabled: saved.recitation.enabled === true };
+    }
+    // A saved q4f16-era voice must not resurrect browser inference.
+    if (!STATIC_VOICE_IDS.has(this.config.voiceId)) {
+      this.config.voiceId = DEFAULT_STATIC_VOICE_ID;
+    }
+    if (!DEFAULT_STATIC_VOICE_ID) {
+      this.config.recitation = { enabled: false };
+    } else if (this.config.recitation.enabled) {
+      // Migrate stale runtime-inference sessions onto the only segmentation
+      // whose static asset identity is admitted.
+      this.config.chunkMode = 'phrase';
     }
 
     // TEMPORAL CONTRACT MIGRATION: WPM saved before the honest-pacing
@@ -456,7 +473,7 @@ export class ChamberOrbital {
   _persistPrefs() {
     this._normalizeAudioExclusivity();
     const { wpm, curve, chunkMode, soundscape, audioPreset, entrainmentMode,
-      entrainmentWaveform, voiceEnabled, voiceId, selectedSwellId,
+      entrainmentWaveform, voiceId, selectedSwellId,
       recitation, visualInterlocution } = this.config;
     // atriumCollections and the visual program are LAUNCH-SCOPED
     // identity, not preferences — they belong to the specific reading
@@ -485,7 +502,7 @@ export class ChamberOrbital {
       // (post-1.4375× repair) — never migrate it again
       paceV2: true,
       wpm, curve, chunkMode, soundscape, audioPreset, entrainmentMode,
-      entrainmentWaveform, voiceEnabled, voiceId, selectedSwellId,
+      entrainmentWaveform, voiceId, selectedSwellId,
       // Only the field we understand: the restore side reads the same
       // way, so a hand-edited entry cannot introduce unvalidated keys.
       recitation: { enabled: recitation?.enabled === true },
@@ -643,6 +660,15 @@ export class ChamberOrbital {
   }
 
   renderModals() {
+    const recitationAvailable = STATIC_VOICE_PACKS.length > 0;
+    const recitationEnabled =
+      recitationAvailable && this.config.recitation?.enabled === true;
+    const voiceOptions = STATIC_VOICE_PACKS.map(pack => `
+      <option value="${escapeHtml(pack.id)}"
+        ${this.config.voiceId === pack.id ? 'selected' : ''}>
+        ${escapeHtml(pack.label)}
+      </option>
+    `).join('');
     return `
       <!-- Visual Modal -->
       <div class="orbital-modal" id="modal-visual" hidden>
@@ -768,30 +794,27 @@ export class ChamberOrbital {
             <div class="config-section">
               <label class="config-label">Recitation</label>
               <div class="chunk-options">
-                <button class="chunk-option ${!this.config.recitation?.enabled ? 'active' : ''}"
+                <button class="chunk-option ${!recitationEnabled ? 'active' : ''}"
                   data-recitation="off">Off</button>
-                <button class="chunk-option ${this.config.recitation?.enabled ? 'active' : ''}"
-                  data-recitation="on">Spoken</button>
+                <button class="chunk-option ${recitationEnabled ? 'active' : ''}"
+                  data-recitation="on" ${recitationAvailable ? '' : 'disabled'}
+                  title="${recitationAvailable ? 'Use a bundled static voice pack' : 'No static voice pack is installed in this build'}">Spoken</button>
               </div>
-              <p class="config-note text-mist" data-recitation-note ${this.config.recitation?.enabled ? '' : 'hidden'}>
-                The reading is spoken aloud and the words arrive as they
-                are said. A voice is downloaded once, then kept. If it
-                cannot load, the reading continues silently.
+              <p class="config-note text-mist" data-recitation-note ${recitationEnabled || !recitationAvailable ? '' : 'hidden'}>
+                ${recitationAvailable
+                  ? `The reading uses pre-generated audio from this RISE build.
+                     No model, account, or API is used. An unpacked reading
+                     continues silently. Static Recitation uses Phrase chunking.`
+                  : `No static Recitation pack is installed in this build.
+                     Ordinary silent reading remains available.`}
               </p>
             </div>
 
-            <!-- Only the voices worth offering. The model ships
-                 twenty-four and grades them itself: most are C or D, and
-                 one is F+. Listing all of them would let a reader pick
-                 the worst and conclude the feature is bad. -->
-            <div class="config-section" id="voice-select-section" ${this.config.recitation?.enabled ? '' : 'hidden'}>
+            <!-- Only voice packs actually present in this deployment. -->
+            <div class="config-section" id="voice-select-section" ${recitationEnabled ? '' : 'hidden'}>
               <label class="config-label">Voice</label>
-              <select id="voice-select" class="voice-select">
-                <option value="af_heart" ${this.config.voiceId === 'af_heart' || !this.config.voiceId ? 'selected' : ''}>Heart — warm, the reference voice</option>
-                <option value="af_bella" ${this.config.voiceId === 'af_bella' ? 'selected' : ''}>Bella — fuller, most trained</option>
-                <option value="bf_emma" ${this.config.voiceId === 'bf_emma' ? 'selected' : ''}>Emma — British, measured</option>
-                <option value="am_michael" ${this.config.voiceId === 'am_michael' ? 'selected' : ''}>Michael — male, even</option>
-                <option value="am_fenrir" ${this.config.voiceId === 'am_fenrir' ? 'selected' : ''}>Fenrir — male, darker</option>
+              <select id="voice-select" class="voice-select" ${recitationAvailable ? '' : 'disabled'}>
+                ${voiceOptions || '<option value="">No voice pack installed</option>'}
               </select>
             </div>
 
@@ -867,9 +890,9 @@ export class ChamberOrbital {
             <div class="config-section">
               <label class="config-label">Chunking Mode</label>
               <div class="chunk-options">
-                <button class="chunk-option ${this.config.chunkMode === 'word' ? 'active' : ''}" data-chunk="word">Word</button>
+                <button class="chunk-option ${this.config.chunkMode === 'word' ? 'active' : ''}" data-chunk="word" ${recitationEnabled ? 'disabled' : ''}>Word</button>
                 <button class="chunk-option ${this.config.chunkMode === 'phrase' ? 'active' : ''}" data-chunk="phrase">Phrase</button>
-                <button class="chunk-option ${this.config.chunkMode === 'sentence' ? 'active' : ''}" data-chunk="sentence">Sentence</button>
+                <button class="chunk-option ${this.config.chunkMode === 'sentence' ? 'active' : ''}" data-chunk="sentence" ${recitationEnabled ? 'disabled' : ''}>Sentence</button>
               </div>
             </div>
 
@@ -1267,12 +1290,8 @@ export class ChamberOrbital {
       opt.classList.toggle('active', opt.dataset.waveform === this.config.entrainmentWaveform);
     });
 
-    // The voice controls are bound with the rest of Recitation, in
-    // attachConfigEvents. What stood here drove #voice-toggle, which no
-    // longer exists, and called populateVoices() — which would have
-    // replaced the curated Kokoro list with the system's own
-    // speechSynthesis voices, the very voices Recitation exists to
-    // replace.
+    // Static voice-pack controls are bound with the rest of Recitation
+    // in attachConfigEvents.
 
     // Personal Pool Upload
     const swellUpload = this.container.querySelector('#swell-upload');
@@ -1304,60 +1323,6 @@ export class ChamberOrbital {
 
     // Initial render of pool
     this.renderPersonalPool();
-  }
-
-  async populateVoices(selectEl) {
-    // Get voices from SpeechSynthesis API
-    const synth = window.speechSynthesis;
-    if (!synth) {
-      console.warn('[ChamberOrbital] SpeechSynthesis not available');
-      return;
-    }
-
-    const getVoices = () => {
-      return new Promise((resolve) => {
-        let voices = synth.getVoices();
-        if (voices.length > 0) {
-          resolve(voices);
-          return;
-        }
-        // Chrome loads voices async
-        synth.onvoiceschanged = () => {
-          resolve(synth.getVoices());
-        };
-        // Fallback timeout
-        setTimeout(() => resolve(synth.getVoices()), 100);
-      });
-    };
-
-    const voices = await getVoices();
-
-    // Clear existing options except default
-    selectEl.innerHTML = '<option value="">System Default</option>';
-
-    // Group voices by language
-    const grouped = {};
-    voices.forEach(voice => {
-      const lang = voice.lang.split('-')[0].toUpperCase();
-      if (!grouped[lang]) grouped[lang] = [];
-      grouped[lang].push(voice);
-    });
-
-    // Add grouped options
-    Object.keys(grouped).sort().forEach(lang => {
-      const optgroup = document.createElement('optgroup');
-      optgroup.label = lang;
-      grouped[lang].forEach(voice => {
-        const option = document.createElement('option');
-        option.value = voice.name;
-        option.textContent = `${voice.name} ${voice.localService ? '' : '(Online)'}`;
-        if (this.config.voiceId === voice.name) {
-          option.selected = true;
-        }
-        optgroup.appendChild(option);
-      });
-      selectEl.appendChild(optgroup);
-    });
   }
 
   attachTemporalModalEvents() {
@@ -1392,18 +1357,24 @@ export class ChamberOrbital {
       });
     });
 
-    // Recitation. The note explains what enabling it costs — a voice
-    // is downloaded once — so the download is never a surprise.
+    // Recitation. A voice pack is served as ordinary same-origin audio;
+    // phrase mode is the asset identity used by the installed pack.
     const recitationOptions = this.container.querySelectorAll('[data-recitation]');
     const recitationNote = this.container.querySelector('[data-recitation-note]');
     const voiceSection = this.container.querySelector('#voice-select-section');
     recitationOptions.forEach(opt => {
       this._listen(opt, 'click', () => {
+        if (opt.disabled) return;
         window.rise?.audioEngine?.playHiss();
         const enabled = opt.dataset.recitation === 'on';
         this.config.recitation = { enabled };
+        if (enabled) this.config.chunkMode = 'phrase';
         recitationOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
+        chunkOptions.forEach(chunk => {
+          chunk.classList.toggle('active', chunk.dataset.chunk === this.config.chunkMode);
+          chunk.disabled = enabled && chunk.dataset.chunk !== 'phrase';
+        });
         if (recitationNote) recitationNote.hidden = !enabled;
         // The voice picker is meaningless without a voice to pick for.
         if (voiceSection) voiceSection.hidden = !enabled;
@@ -1413,7 +1384,7 @@ export class ChamberOrbital {
     const voiceSelect = this.container.querySelector('#voice-select');
     if (voiceSelect) {
       this._listen(voiceSelect, 'change', () => {
-        this.config.voiceId = voiceSelect.value || 'af_heart';
+        this.config.voiceId = voiceSelect.value || DEFAULT_STATIC_VOICE_ID;
       });
     }
   }
@@ -1471,6 +1442,8 @@ export class ChamberOrbital {
   }
 
   syncUIWithConfig() {
+    const enabled = STATIC_VOICE_PACKS.length > 0
+      && this.config.recitation?.enabled === true;
     // Temporal Modal
     const wpmSlider = this.container.querySelector('#wpm-slider');
     const wpmVal = this.container.querySelector('#wpm-val');
@@ -1487,6 +1460,7 @@ export class ChamberOrbital {
     const chunkOptions = this.container.querySelectorAll('[data-chunk]');
     chunkOptions.forEach(opt => {
       opt.classList.toggle('active', opt.dataset.chunk === this.config.chunkMode);
+      opt.disabled = enabled && opt.dataset.chunk !== 'phrase';
     });
 
     // Audio Modal
@@ -1501,7 +1475,6 @@ export class ChamberOrbital {
     });
 
     // Recitation, and the voice picker that only matters when it is on.
-    const enabled = this.config.recitation?.enabled === true;
     this.container.querySelectorAll('[data-recitation]').forEach(opt => {
       opt.classList.toggle('active',
         (opt.dataset.recitation === 'on') === enabled);
@@ -1795,10 +1768,12 @@ export class ChamberOrbital {
       soundscape: this.config.soundscape,
       entrainmentMode: this.config.entrainmentMode,
       entrainmentWaveform: this.config.entrainmentWaveform,
-      voiceEnabled: this.config.voiceEnabled,
       voiceId: this.config.voiceId,
       // Recitation rides through to the compiler, which normalises it.
-      recitation: this.config.recitation,
+      recitation: {
+        enabled: STATIC_VOICE_PACKS.length > 0
+          && this.config.recitation?.enabled === true
+      },
       selectedSwellId: this.config.selectedSwellId,
       // The compiled visual program rides opaquely to the Chamber's
       // scheduler (PERICOPE-IMAGERY-SPEC §6) — carried through, never

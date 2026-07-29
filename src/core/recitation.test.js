@@ -9,7 +9,8 @@
 import { describe, expect, it } from 'vitest';
 import {
     splitWords, stripEmphasis, revealBudget, revealSchedule, speechOnsets,
-    REVEAL_SHARE, REVEAL_MAX_MS, REVEAL_MIN_ATOM_MS
+    REVEAL_SHARE, REVEAL_MAX_MS, REVEAL_MIN_ATOM_MS,
+    SPOKEN_REVEAL_TIME_SCALE
 } from './recitation.js';
 
 describe('authored emphasis', () => {
@@ -108,26 +109,33 @@ describe('reveal schedule', () => {
         expect(revealSchedule(5, 0)).toEqual([0, 0, 0, 0, 0]);
     });
 
-    it('follows speech onsets when they are given', () => {
-        // With a voice the reveal tracks REAL onsets rather than
-        // interpolating: the voice is the clock.
+    it('preserves the first speech onset and completes the phrase 30% sooner', () => {
+        // The first word still waits for the real voice. Later words lead
+        // slightly so short-word runs cannot leave text trailing speech.
         expect(revealSchedule(4, 800, [0, 300, 800, 1120]))
-            .toEqual([0, 300, 800, 1120]);
+            .toEqual([0, 210, 560, 784]);
+        expect(SPOKEN_REVEAL_TIME_SCALE).toBe(0.7);
     });
 
     it('drifts rather than bunching when onsets run short', () => {
         // Silence detection is a heuristic and will sometimes find
-        // fewer gaps than there are words. The tail should continue at
-        // the established pace, not dump the remainder at once.
+        // fewer gaps than there are words. The tail should use the remaining
+        // audio span, not dump at once or extrapolate beyond the WAV.
         const s = revealSchedule(5, 800, [0, 200, 400]);
-        expect(s.slice(0, 3)).toEqual([0, 200, 400]);
+        expect(s.slice(0, 3)).toEqual([0, 140, 280]);
         expect(s[3]).toBeGreaterThan(s[2]);
         expect(s[4]).toBeGreaterThan(s[3]);
         expect(s).toEqual([...s].sort((a, b) => a - b));
     });
 
+    it('finishes a sparse short-word sentence before its audio ends', () => {
+        const s = revealSchedule(6, 2000, [300, 650]);
+        expect(s).toEqual([300, 545, 781, 1018, 1254, 1490]);
+        expect(s.at(-1)).toBeLessThan(2000);
+    });
+
     it('ignores surplus onsets', () => {
-        expect(revealSchedule(2, 800, [0, 100, 200, 300])).toEqual([0, 100]);
+        expect(revealSchedule(2, 800, [0, 100, 200, 300])).toEqual([0, 70]);
     });
 
     it('returns nothing for no words', () => {
@@ -194,6 +202,6 @@ describe('the utterance is the clock', () => {
         // A schedule starting at 0 would reveal into silence.
         const schedule = revealSchedule(3, 0, [320, 800, 1200]);
         expect(schedule[0]).toBe(320);
-        expect(schedule).toEqual([320, 800, 1200]);
+        expect(schedule).toEqual([320, 656, 936]);
     });
 });

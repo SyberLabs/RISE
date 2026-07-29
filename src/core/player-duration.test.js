@@ -81,6 +81,21 @@ describe('event-governed atom completion', () => {
         raf.mockRestore();
     });
 
+    it('refreshes duration after a lazy completion governor starts', () => {
+        const player = new Player(session());
+        player.sessionState.state = 'playing';
+        let audioStarted = false;
+        player.atomDurationOverride = () => audioStarted ? 2875 : null;
+        player.atomCompletionOverride = () => {
+            audioStarted = true;
+            return new Promise(() => {});
+        };
+
+        player.scheduleNextAtom();
+
+        expect(player.currentAtomRemainingTime).toBe(2875);
+    });
+
     it('uses traversal timing instead of speech away from home velocity', () => {
         const player = new Player(session());
         player.sessionState.state = 'playing';
