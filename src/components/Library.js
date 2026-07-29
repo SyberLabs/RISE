@@ -413,8 +413,12 @@ export class Library {
         return;
       }
 
-      // Handle standard texts
-      const sequences = typeof text.getSequences === 'function' ? text.getSequences() : (text.verses || []);
+      // Handle standard texts. Ingested Archive works resolve their
+      // payload lazily — a reader who never opens Vitruvius should not
+      // download half a megabyte of him — so this may be a promise.
+      const sequences = await (typeof text.getSequences === 'function'
+        ? text.getSequences()
+        : (text.verses || []));
 
       if (!sequences || sequences.length === 0) {
         console.error('[Library] No verses available for text:', textId);

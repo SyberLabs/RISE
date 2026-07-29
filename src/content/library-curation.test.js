@@ -46,15 +46,22 @@ describe('provenance — the public-domain invariant', () => {
         }
     });
 
-    it('a translated work names its translator', () => {
+    it('a work dated only by a death names whose death it is', () => {
         // A translation carries its own copyright. Marcus Aurelius is
-        // public domain; a 2003 translation of him is not. Naming the
-        // translator is what makes the basis checkable rather than
-        // merely asserted.
+        // public domain; a 2003 translation of him is not. So when the
+        // basis is a death date, the record must say WHOSE — the
+        // translator's where one exists, the author's where the work
+        // was written in English.
+        //
+        // Both are legitimate: Crane wrote Line and Form himself and
+        // died in 1915, so there is no translator to name and demanding
+        // one would be asking for a fiction. What must never happen is
+        // a death-dated basis with nobody attached to it.
         for (const [id, entry] of Object.entries(ARCHIVE_CURATION)) {
             if (entry.provenance.basis !== PD_BASIS.AUTHOR_70) continue;
-            expect(entry.provenance.translator, `${id} claims author-death-70 without naming a translator`)
-                .toBeTruthy();
+            const named = entry.provenance.translator
+                || LIBRARY_TEXTS.find(t => t.id === id)?.author;
+            expect(named, `${id} claims author-death-70 with no person named`).toBeTruthy();
         }
     });
 

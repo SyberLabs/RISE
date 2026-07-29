@@ -37,6 +37,41 @@ export const ARCHIVE_CURATION = Object.freeze({
         provenance: { translator: 'Morris Hicky Morgan', year: 1914, basis: PD_BASIS.PRE_1930 }
     },
 
+    'dow-composition': {
+        shelf: 'form',
+        why: 'Dow taught that a picture is built the way music is — from line, dark-light, and colour arranged in relation — and taught it to Georgia O’Keeffe, who said it gave her something of her own to say. The exercises are the argument.',
+        functions: [R.PATTERN, R.RECURSION],
+        rhymes: ['ross-pure-design', 'crane-line-and-form'],
+        provenance: { year: 1913, basis: PD_BASIS.PRE_1930 }
+    },
+    'ross-pure-design': {
+        shelf: 'form',
+        why: 'An attempt to state the grammar of order itself — harmony, balance, rhythm — before any question of subject arises. Ross wanted design to be teachable the way harmony is teachable, and the book is dry in exactly the way that ambition requires.',
+        functions: [R.PATTERN, R.CONNECTION],
+        rhymes: ['dow-composition', 'vitruvius-architecture'],
+        provenance: { year: 1907, basis: PD_BASIS.PRE_1930 }
+    },
+    'crane-line-and-form': {
+        shelf: 'form',
+        why: 'Crane treats line not as contour but as a force that travels — from a leaf to a figure to the edge of the page. It is a grammar of continuity, and unusually useful where text and image share one field.',
+        functions: [R.PATTERN, R.CONNECTION, R.RECURSION],
+        rhymes: ['dow-composition', 'dresser-decorative-design'],
+        provenance: { year: 1900, basis: PD_BASIS.AUTHOR_70 }
+    },
+    'kandinsky-spiritual-in-art': {
+        shelf: 'form',
+        why: 'Written while he was making the first abstract paintings and needed to explain to himself why colour could carry meaning without depicting anything. The argument is strange and in earnest; he is not theorising after the fact.',
+        functions: [R.STATE, R.PATTERN],
+        rhymes: ['ross-pure-design', 'literary-poems-blake'],
+        provenance: { translator: 'Michael T. H. Sadler', year: 1914, basis: PD_BASIS.PRE_1930 }
+    },
+    'dresser-decorative-design': {
+        shelf: 'form',
+        why: 'Dresser keeps asking whether an ornament tells the truth about the material and the use beneath it. A sugar bowl becomes a test of attention, without pretending that usefulness abolishes delight.',
+        functions: [R.PATTERN, R.CONNECTION],
+        rhymes: ['crane-line-and-form', 'vitruvius-architecture'],
+        provenance: { year: 1873, basis: PD_BASIS.PRE_1930 }
+    },
     // ── THE INTERIOR ────────────────────────────────────────────
     'literary-meditations': {
         shelf: 'interior',

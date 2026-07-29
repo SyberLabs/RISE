@@ -53,6 +53,114 @@ const OUT = resolve(ROOT, 'src/content/archive/works');
 // the rights are the reason we may parse it at all.
 
 const WORKS = {
+    dow: {
+        id: 'dow-composition',
+        title: 'Composition',
+        author: 'Arthur Wesley Dow',
+        shelf: 'form',
+        edition: { publisher: 'Doubleday, Page & Co.', year: 1913, note: 'ninth edition, revised and enlarged' },
+        source: { url: 'https://www.gutenberg.org/cache/epub/45410/pg45410.txt', label: 'Project Gutenberg #45410', file: 'dow-composition-45410.txt' },
+        rights: {
+            basis: 'pre-1930-us',
+            evidence: 'Artifact names Arthur W. Dow and the Doubleday, Page & Co. printing; the work first appeared 1899 and this revised edition is pre-1930, outside the 1909 Act renewal regime. Dow died 1922.'
+        },
+        // Dow's headings are bare capitalised phrases rather than
+        // numbered chapters, and the contents list them once before the
+        // body repeats them — hence skipTo:'half'.
+        parse: raw => chaptered(raw, {
+            heading: /^(BEGINNINGS|THE THREE ELEMENTS|LINE DRAWING|PRINCIPLES OF COMPOSITION|NOTAN|COLOR|THE STUDY OF COLOR|SYNTHETIC METHOD|APPLICATIONS)\.?$/,
+            skipTo: 'half',
+            until: /^(INDEX|APPENDIX|BIBLIOGRAPHY)\b/
+        })
+    },
+
+    ross: {
+        id: 'ross-pure-design',
+        title: 'A Theory of Pure Design',
+        author: 'Denman Waldo Ross',
+        shelf: 'form',
+        edition: { publisher: 'Houghton, Mifflin & Co.', year: 1907 },
+        source: { url: 'https://www.gutenberg.org/cache/epub/74765/pg74765.txt', label: 'Project Gutenberg #74765', file: 'ross-pure-design-74765.txt' },
+        rights: {
+            basis: 'pre-1930-us',
+            evidence: 'Artifact names Denman Waldo Ross and the 1907 Houghton, Mifflin imprint; pre-1930 and outside the renewal regime. Ross died 1935.'
+        },
+        // Ross's own preface argues the book's thesis and is kept.
+        parse: raw => chaptered(raw, {
+            heading: /^(INTRODUCTION|THE ORDER OF HARMONY|THE ORDER OF BALANCE|THE ORDER OF RHYTHM)\.?$/,
+            skipTo: 'half',
+            keepPreface: true,
+            // His front matter carries the preface AND an introduction
+            // that the body headings do not cover — "Preface" alone
+            // would understate what the section holds.
+            prefaceName: 'Preface & Introduction',
+            // #74765 closes with an unlabelled recapitulation — every
+            // numbered proposition with its page, "1, p. 1. The Meaning
+            // of Design." There is no header to stop at, so the shape
+            // is the signal. Without this the last chapter absorbs a
+            // few thousand lines of index and the reading ends on a
+            // page reference.
+            until: /^(PARAGRAPH INDEX|\d+,\s+p\.\s+\d+\.)/
+        })
+    },
+
+    crane_line: {
+        id: 'crane-line-and-form',
+        title: 'Line and Form',
+        author: 'Walter Crane',
+        shelf: 'form',
+        edition: { publisher: 'George Bell & Sons', year: 1900 },
+        source: { url: 'https://www.gutenberg.org/cache/epub/25290/pg25290.txt', label: 'Project Gutenberg #25290', file: 'crane-line-form-25290.txt' },
+        rights: {
+            basis: 'author-death-70',
+            evidence: 'Artifact reproduces the 1900 George Bell & Sons edition and names Crane, who died 1915 — 111 years. No later translator or editor intervenes.'
+        },
+        parse: raw => chaptered(raw, {
+            heading: /^CHAPTER [IVX]+\.?$/,
+            skipTo: 'half',
+            until: /^(INDEX|APPENDIX)\b/,
+            name: (h, n) => `Chapter ${n + 1}`
+        })
+    },
+
+    kandinsky: {
+        id: 'kandinsky-spiritual-in-art',
+        title: 'Concerning the Spiritual in Art',
+        author: 'Wassily Kandinsky',
+        shelf: 'form',
+        edition: { translator: 'Michael T. H. Sadler', publisher: 'Constable & Co.', year: 1914 },
+        source: { url: 'https://www.gutenberg.org/cache/epub/5321/pg5321.txt', label: 'Project Gutenberg #5321', file: 'kandinsky-spiritual-5321.txt' },
+        rights: {
+            basis: 'pre-1930-us',
+            evidence: 'The text\'s own title page reads "BY WASSILY KANDINSKY [TRANSLATED BY MICHAEL T. H. SADLER]" and the translator signs "MICHAEL T. H. SADLER" at the end of his introduction. Note the Gutenberg metadata field says "Michael Sadleir" — his later legal name — but the EDITION names Sadler, and the edition is what the rights attach to. First English translation 1914, pre-1930.'
+        },
+        // Numbered roman headings under two PART banners.
+        parse: raw => chaptered(raw, {
+            heading: /^[IVX]+\.\s+[A-Z][A-Z ,'-]+$/,
+            skipTo: 'half',
+            until: /^(INDEX|APPENDIX|FOOTNOTES)\b/
+        })
+    },
+
+    dresser: {
+        id: 'dresser-decorative-design',
+        title: 'Principles of Decorative Design',
+        author: 'Christopher Dresser',
+        shelf: 'form',
+        edition: { publisher: 'Cassell, Petter & Galpin', year: 1873, note: 'fourth edition' },
+        source: { url: 'https://www.gutenberg.org/cache/epub/39749/pg39749.txt', label: 'Project Gutenberg #39749', file: 'dresser-decorative-39749.txt' },
+        rights: {
+            basis: 'pre-1930-us',
+            evidence: 'Artifact carries the fourth-edition title matter and the 1873 London/New York Cassell, Petter & Galpin imprint; pre-1930. Dresser died 1904.'
+        },
+        parse: raw => chaptered(raw, {
+            heading: /^CHAPTER [IVX]+\.?$/,
+            skipTo: 'half',
+            until: /^(INDEX|APPENDIX)\b/,
+            name: (h, n) => `Chapter ${n + 1}`
+        })
+    },
+
     vitruvius: {
         id: 'vitruvius-architecture',
         title: 'The Ten Books on Architecture',
@@ -171,7 +279,12 @@ function sectionText(lines, captions = []) {
         if (/^\[Illustration/i.test(t)) { flush(); captions.push(t); continue; }
         // Typographic furniture from the printed page. "FINIS" and rule
         // lines are the book's binding, not its prose.
-        if (/^(FINIS|\*\s*\*[\s*]*)$/i.test(t)) { flush(); continue; }
+        // Also: a printer's colophon ("The Riverside Press, CAMBRIDGE")
+        // belongs to the physical book, not the argument.
+        if (/^(FINIS|THE END|\*\s*\*[\s*]*)\.?$/i.test(t)) { flush(); continue; }
+        if (/^_?(The [A-Z][a-z]+ Press)_?/.test(t) || /^(CAMBRIDGE|BOSTON|LONDON)\s*[·.]/.test(t)) {
+            flush(); continue;
+        }
         // Footnote MARKERS are Morgan's apparatus — textual variants
         // and manuscript readings, not Vitruvius. Strip the marker and
         // keep the sentence it interrupts.
@@ -184,6 +297,107 @@ function sectionText(lines, captions = []) {
 
 function sha256(s) {
     return createHash('sha256').update(s, 'utf8').digest('hex');
+}
+
+/**
+ * The common case: a Gutenberg plain text whose body is divided by a
+ * repeating heading (CHAPTER I, PART 1:, and so on).
+ *
+ * Every one of these files states the same three things in a different
+ * way, so a work declares WHAT its headings look like and this handles
+ * the rest:
+ *
+ *   heading    /^CHAPTER [IVX]+/ — the divider
+ *   from       skip past front matter; the body usually begins at the
+ *              SECOND occurrence, the first being the table of contents
+ *   until      a trailing marker that ends the work (INDEX, APPENDIX,
+ *              a signed editorial note)
+ *
+ * Everything before the first body heading is front matter: title page,
+ * translator's preface, contents. It is apparatus and is dropped — with
+ * one deliberate exception, `keepPreface`, for works where the author's
+ * own preface IS part of the argument.
+ */
+function chaptered(raw, opts) {
+    const { heading, until, skipTo = 1, keepPreface = false, name } = opts;
+    const lines = raw.split(/\r?\n/);
+
+    // Gutenberg's own wrapper is never part of any work.
+    const startMark = lines.findIndex(l => /^\*\*\* START OF/.test(l));
+    const endMark = lines.findIndex(l => /^\*\*\* END OF/.test(l));
+    const lo = startMark >= 0 ? startMark + 1 : 0;
+    const hi = endMark > 0 ? endMark : lines.length;
+
+    const hits = [];
+    for (let i = lo; i < hi; i++) if (heading.test(lines[i].trim())) hits.push(i);
+    if (hits.length < 2) {
+        throw new Error(`heading ${heading} matched ${hits.length} lines — check the pattern against the artifact`);
+    }
+
+    // Find where the BODY starts.
+    //
+    // A table of contents is CONTIGUOUS — its headings sit within a few
+    // lines of each other because there is no prose between them. Body
+    // headings are far apart because chapters intervene. Counting was
+    // the obvious approach and it is wrong: Dow's contents list six
+    // headings while his body has eight, so halving landed mid-contents
+    // and produced four fragments of a table.
+    //
+    // So: walk from the first hit, and take the body as beginning at
+    // the first heading followed by real distance.
+    const GAP = 25;
+    let bodyFrom = hits[0];
+    if (skipTo === 'half') {
+        for (let i = 0; i < hits.length - 1; i++) {
+            if (hits[i + 1] - hits[i] >= GAP) { bodyFrom = hits[i + 1]; break; }
+        }
+        // A contents block whose last entry is the body's first heading
+        // leaves bodyFrom pointing at the contents; step past any hit
+        // that is immediately followed by another.
+        while (bodyFrom !== hits.at(-1)) {
+            const at = hits.indexOf(bodyFrom);
+            if (hits[at + 1] - bodyFrom >= GAP) break;
+            bodyFrom = hits[at + 1];
+        }
+    }
+    let stop = hi;
+    if (until) {
+        const s = lines.findIndex((l, i) => i > bodyFrom && until.test(l.trim()));
+        if (s > 0) stop = s;
+    }
+
+    const body = hits.filter(i => i >= bodyFrom && i < stop);
+    const captions = [];
+    const sections = [];
+    for (let n = 0; n < body.length; n++) {
+        const from = body[n];
+        const to = n + 1 < body.length ? body[n + 1] : stop;
+        sections.push({
+            name: name ? name(lines[from].trim(), n) : lines[from].trim(),
+            content: sectionText(lines.slice(from + 1, to), captions)
+        });
+    }
+
+    if (keepPreface && bodyFrom > lo) {
+        // A transcriber's note sits INSIDE Gutenberg's START marker but
+        // is not part of any edition — it is the digitiser describing
+        // their own choices. Begin the preface after it, or the reading
+        // opens on a note about hyphenation.
+        let preFrom = lo;
+        const note = lines.findIndex((l, i) =>
+            i >= lo && i < bodyFrom && /transcriber.?s? note/i.test(l));
+        if (note >= 0) {
+            const resumes = lines.findIndex((l, i) =>
+                i > note && i < bodyFrom && /^(PREFACE|INTRODUCTION|CONTENTS)\b/i.test(l.trim()));
+            preFrom = resumes > 0 ? resumes : bodyFrom;
+        }
+        const pre = sectionText(lines.slice(preFrom, bodyFrom), captions);
+        // Named by the work, not by us: Ross's front matter carries his
+        // preface AND an introduction that his body headings do not
+        // cover, so calling it "Preface" would understate what it holds.
+        if (pre.length > 400) sections.unshift({ name: opts.prefaceName || 'Preface', content: pre });
+    }
+    return { sections, captions };
 }
 
 async function fetchSource(work) {
@@ -265,7 +479,9 @@ if (!work) {
 
 const raw = await fetchSource(work);
 const sourceDigest = sha256(raw);
-const sections = work.parse(raw);
+const parsed = work.parse(raw);
+const sections = Array.isArray(parsed) ? parsed : parsed.sections;
+if (!Array.isArray(parsed) && parsed.captions?.length) work._captions = parsed.captions;
 
 if (!sections.length) throw new Error('parse produced no sections');
 for (const s of sections) {

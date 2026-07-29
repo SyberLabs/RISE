@@ -7,26 +7,115 @@
  * it converts a work's sections into the reading-sequence shape the
  * rest of the system expects, and nothing more.
  *
+ * LAZY BY NECESSITY
+ * ─────────────────
+ * These are whole books. Six of them statically imported took the
+ * content bundle from 627 kB to 1.63 MB (548 kB gzipped) — every
+ * visitor downloading every book before reading a word, and growing
+ * with each acquisition.
+ *
+ * So the METADATA is eager and the TEXT is not. A card can show its
+ * title, edition, and rights without the prose behind it; the payload
+ * arrives only when a reader opens the work. This is what makes the
+ * shelf extensible: the hundredth ingest costs a browsing reader
+ * nothing.
+ *
  * The rights evidence travels WITH the work rather than being restated
  * here. A second copy would be a second thing to keep true, and the
  * failure this Archive has already suffered once is a provenance record
  * that drifted from the text it described.
  */
 
-import {
-    VITRUVIUS_ARCHITECTURE_SECTIONS,
-    VITRUVIUS_ARCHITECTURE_META
-} from './works/vitruvius-architecture.js';
-
-const INGESTED = [
-    { meta: VITRUVIUS_ARCHITECTURE_META, sections: VITRUVIUS_ARCHITECTURE_SECTIONS }
+/**
+ * Metadata for every ingested work, and a loader for its text.
+ *
+ * The `meta` objects are small — a few hundred bytes each — and are
+ * inlined here rather than imported, because importing them would pull
+ * their module and with it the payload we are trying to defer. They are
+ * copied from each generated module's *_META export; the test asserts
+ * they still agree, so a re-ingest that changes an edition cannot leave
+ * this file quietly stale.
+ */
+const WORKS = [
+    {
+        meta: {
+            id: 'vitruvius-architecture',
+            title: 'The Ten Books on Architecture',
+            author: 'Vitruvius',
+            shelf: 'form',
+            edition: { translator: 'Morris Hicky Morgan', publisher: 'Harvard University Press', year: 1914 },
+            basis: 'pre-1930-us'
+        },
+        load: () => import('./works/vitruvius-architecture.js')
+            .then(m => m.VITRUVIUS_ARCHITECTURE_SECTIONS)
+    },
+    {
+        meta: {
+            id: 'dow-composition',
+            title: 'Composition',
+            author: 'Arthur Wesley Dow',
+            shelf: 'form',
+            edition: { publisher: 'Doubleday, Page & Co.', year: 1913 },
+            basis: 'pre-1930-us'
+        },
+        load: () => import('./works/dow-composition.js')
+            .then(m => m.DOW_COMPOSITION_SECTIONS)
+    },
+    {
+        meta: {
+            id: 'ross-pure-design',
+            title: 'A Theory of Pure Design',
+            author: 'Denman Waldo Ross',
+            shelf: 'form',
+            edition: { publisher: 'Houghton, Mifflin & Co.', year: 1907 },
+            basis: 'pre-1930-us'
+        },
+        load: () => import('./works/ross-pure-design.js')
+            .then(m => m.ROSS_PURE_DESIGN_SECTIONS)
+    },
+    {
+        meta: {
+            id: 'crane-line-and-form',
+            title: 'Line and Form',
+            author: 'Walter Crane',
+            shelf: 'form',
+            edition: { publisher: 'George Bell & Sons', year: 1900 },
+            basis: 'author-death-70'
+        },
+        load: () => import('./works/crane-line-and-form.js')
+            .then(m => m.CRANE_LINE_AND_FORM_SECTIONS)
+    },
+    {
+        meta: {
+            id: 'kandinsky-spiritual-in-art',
+            title: 'Concerning the Spiritual in Art',
+            author: 'Wassily Kandinsky',
+            shelf: 'form',
+            edition: { translator: 'Michael T. H. Sadler', publisher: 'Constable & Co.', year: 1914 },
+            basis: 'pre-1930-us'
+        },
+        load: () => import('./works/kandinsky-spiritual-in-art.js')
+            .then(m => m.KANDINSKY_SPIRITUAL_IN_ART_SECTIONS)
+    },
+    {
+        meta: {
+            id: 'dresser-decorative-design',
+            title: 'Principles of Decorative Design',
+            author: 'Christopher Dresser',
+            shelf: 'form',
+            edition: { publisher: 'Cassell, Petter & Galpin', year: 1873 },
+            basis: 'pre-1930-us'
+        },
+        load: () => import('./works/dresser-decorative-design.js')
+            .then(m => m.DRESSER_DECORATIVE_DESIGN_SECTIONS)
+    }
 ];
 
 /**
  * A long work is not one reading. Vitruvius is half a million
  * characters — roughly thirty-five hours at a contemplative pace — so
- * each book becomes its own sequence, and the reader chooses where to
- * enter rather than being handed the whole of it.
+ * each section becomes its own sequence, and the reader chooses where
+ * to enter rather than being handed the whole of it.
  */
 function sequencesFor(meta, sections) {
     return sections.map((section, i) => ({
@@ -44,31 +133,37 @@ function sequencesFor(meta, sections) {
 
 /** Library-registry records for every ingested work. */
 export function ingestedArchiveTexts() {
-    return INGESTED.map(({ meta, sections }) => {
-        const verses = sequencesFor(meta, sections);
+    return WORKS.map(({ meta, load }) => {
+        let cached = null;
         return {
             id: meta.id,
             title: meta.title,
             author: meta.author,
             category: meta.shelf,
             tradition: `${meta.edition.publisher}, ${meta.edition.year}`,
-            description: `${meta.title}, translated by ${meta.edition.translator}.`,
-            chapterCount: verses.length,
+            description: meta.edition.translator
+                ? `${meta.title}, translated by ${meta.edition.translator}.`
+                : `${meta.title}.`,
+            // Unknown until the payload loads. The card shows the
+            // edition instead, which is the more useful fact anyway.
+            chapterCount: null,
             defaultCurve: 'flat',
             defaultWpm: 200,
             tags: ['archive', 'ingested', meta.shelf],
             provider: 'archive-ingest',
-            verses,
-            getSequences: () => verses,
-            // Carried through so the reader can see which edition they
-            // hold, and so the provenance test has something to check.
+            // The text arrives when asked for, once.
+            getSequences: async () => {
+                if (!cached) cached = sequencesFor(meta, await load());
+                return cached;
+            },
             provenance: {
                 translator: meta.edition.translator,
                 year: meta.edition.year,
-                basis: meta.rights.basis,
-                source: meta.source.label,
-                sourceChecksum: meta.source.sha256
+                basis: meta.basis
             }
         };
     });
 }
+
+/** The declared metadata, for tests that check it against the payloads. */
+export const INGESTED_META = WORKS.map(w => w.meta);
