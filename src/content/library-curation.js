@@ -114,6 +114,41 @@ export const ARCHIVE_CURATION = Object.freeze({
         rhymes: ['sacred-rumi', 'literary-poems-blake'],
         provenance: { translator: 'Rabindranath Tagore', year: 1915, basis: PD_BASIS.PRE_1930 }
     },
+    // ── THE RECURRENCE ─────────────────────────
+    // These are COLLECTED works: a named outsider stands between the
+    // reader and a living tradition, and the editorial line says so.
+    // Recurrence must not mean stripping stories of place in order to
+    // exhibit archetypes — so the collector is named in the author
+    // field, never presented as the author.
+    'parker-australian-tales': {
+        shelf: 'recurrence',
+        why: 'Yuwaalaraay stories written down by a settler woman who grew up beside the people she was recording, and whose framing is visible on every page. Read them for the law and country inside the tales, and read Parker as the window she is — including the period language of her title.',
+        functions: [R.CONNECTION, R.RECURSION],
+        rhymes: ['rasmussen-eskimo-tales', 'mooney-cherokee-myths'],
+        provenance: { year: 1896, basis: PD_BASIS.AUTHOR_70 }
+    },
+    'rasmussen-eskimo-tales': {
+        shelf: 'recurrence',
+        why: 'Greenland Inuit tales gathered by a man raised among Kalaallit speakers, then carried into English through his Danish. Hunger, weather, kinship and the instability between human and animal are not symbols laid over these stories; they are the conditions under which a world holds.',
+        functions: [R.STATE, R.CONNECTION, R.RECURSION],
+        rhymes: ['parker-australian-tales', 'beckwith-anansi-stories'],
+        provenance: { translator: 'W. J. Alexander Worster', year: 1921, basis: PD_BASIS.PRE_1930 }
+    },
+    'mooney-cherokee-myths': {
+        shelf: 'recurrence',
+        why: 'Recorded from Cherokee speakers in the 1880s, a generation after the removal, by an ethnographer who learned the language. The cosmology is intact and so is the grief; the volume was published by the government that caused it.',
+        functions: [R.CONNECTION, R.RECURSION],
+        rhymes: ['parker-australian-tales', 'rasmussen-eskimo-tales'],
+        provenance: { year: 1900, basis: PD_BASIS.US_GOV }
+    },
+    'beckwith-anansi-stories': {
+        shelf: 'recurrence',
+        why: 'The West African spider who crossed the Atlantic in the memory of enslaved people and kept telling his stories in Jamaica. Beckwith names her tellers and their parishes, which is why this collection is worth more than its archetypes.',
+        functions: [R.CONNECTION, R.STATE],
+        rhymes: ['rasmussen-eskimo-tales', 'mooney-cherokee-myths'],
+        provenance: { year: 1924, basis: PD_BASIS.PRE_1930 }
+    },
+
     // ── THE INTERIOR ────────────────────────────────────────────
     'literary-meditations': {
         shelf: 'interior',

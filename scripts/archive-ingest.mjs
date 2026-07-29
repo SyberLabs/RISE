@@ -53,6 +53,90 @@ const OUT = resolve(ROOT, 'src/content/archive/works');
 // the rights are the reason we may parse it at all.
 
 const WORKS = {
+    // ── THE RECURRENCE ──────────────────────────────────────────
+    // SOL's dossier is emphatic on these, and the caution is carried
+    // into the curation rather than left in a review document:
+    // "recurrence must not mean stripping stories of place in order to
+    // exhibit archetypes." Each is a COLLECTED work — a named collector
+    // standing between the reader and a living tradition — and the
+    // caveat travels with the reading, not as an internal comment.
+    parker: {
+        id: 'parker-australian-tales',
+        title: 'Australian Legendary Tales',
+        author: 'collected by K. Langloh Parker',
+        shelf: 'recurrence',
+        edition: { publisher: 'David Nutt', year: 1896 },
+        source: { url: 'https://www.gutenberg.org/cache/epub/3833/pg3833.txt', label: 'Project Gutenberg #3833', file: 'parker-australian-tales-3833.txt' },
+        rights: {
+            basis: 'author-death-70',
+            evidence: 'Artifact reproduces the 1896 David Nutt, London collection; Parker died 1940 — 86 years. The tales themselves are Yuwaalaraay oral tradition and predate any collector.'
+        },
+        parse: raw => chaptered(raw, {
+            // No contents block in this edition — every hit is a tale,
+            // so skipping any would silently drop the first.
+            heading: /^\d+\.\s+[A-Z].{6,70}$/,
+            until: /^(GLOSSARY|INDEX|APPENDIX)\b/
+        })
+    },
+
+    rasmussen: {
+        id: 'rasmussen-eskimo-tales',
+        title: 'Eskimo Folk-Tales',
+        author: 'collected by Knud Rasmussen',
+        shelf: 'recurrence',
+        edition: { translator: 'W. J. Alexander Worster', publisher: 'Gyldendal', year: 1921 },
+        source: { url: 'https://www.gutenberg.org/cache/epub/28932/pg28932.txt', label: 'Project Gutenberg #28932', file: 'rasmussen-eskimo-tales-28932.txt' },
+        rights: {
+            basis: 'pre-1930-us',
+            evidence: 'Artifact names Rasmussen, Worster, and the 1921 Gyldendal, Copenhagen imprint — pre-1930. Rasmussen died 1933; Worster died 1929.'
+        },
+        parse: raw => chaptered(raw, {
+            heading: /^THE [A-Z][A-Z ,'-]{8,70}$/,
+            // The volume closes with a list of tellers and page numbers
+            // — "Ikardlituarssuk 75 Upernivik" — which has no header.
+            // A line ending in a bare page number is the signal.
+            until: /^(GLOSSARY|INDEX|NOTES|CONTENTS)\b|^Note\.--The particular sources|\s\d{1,3}$/
+        })
+    },
+
+    mooney: {
+        id: 'mooney-cherokee-myths',
+        title: 'Myths of the Cherokee',
+        author: 'collected by James Mooney',
+        shelf: 'recurrence',
+        edition: { publisher: 'Bureau of American Ethnology, Nineteenth Annual Report', year: 1900 },
+        source: { url: 'https://www.gutenberg.org/cache/epub/45634/pg45634.txt', label: 'Project Gutenberg #45634', file: 'mooney-cherokee-myths-45634.txt' },
+        rights: {
+            basis: 'us-government-work',
+            evidence: 'Published in the Nineteenth Annual Report of the Bureau of American Ethnology, a United States government publication, 1900. Mooney died 1921.'
+        },
+        // The volume opens with a long historical sketch before the
+        // myths. Only the numbered myths are the reading; the history
+        // is Mooney's own scholarship and belongs to a study surface.
+        parse: raw => chaptered(raw, {
+            heading: /^\d+\.\s+[A-Z][A-Z ,'()-]{6,70}$/,
+            until: /^(NOTES AND PARALLELS|GLOSSARY|INDEX|AUTHORITIES)\b/
+        })
+    },
+
+    beckwith: {
+        id: 'beckwith-anansi-stories',
+        title: 'Jamaica Anansi Stories',
+        author: 'collected by Martha Warren Beckwith',
+        shelf: 'recurrence',
+        edition: { publisher: 'American Folk-Lore Society', year: 1924 },
+        source: { url: 'https://www.gutenberg.org/cache/epub/72735/pg72735.txt', label: 'Project Gutenberg #72735', file: 'beckwith-anansi-stories-72735.txt' },
+        rights: {
+            basis: 'pre-1930-us',
+            evidence: 'Artifact carries the 1924 American Folk-Lore Society, New York imprint — pre-1930. Beckwith died 1959.'
+        },
+        parse: raw => chaptered(raw, {
+            // Every hit is a story; there is no contents block to skip.
+            heading: /^\d+\.\s+[A-Z][A-Z ,'.-]{4,70}$/,
+            until: /^(NOTES|INDEX|APPENDIX|BIBLIOGRAPHY)\b/
+        })
+    },
+
     // ── THE INTERIOR ────────────────────────────────────────────
     epictetus: {
         id: 'epictetus-encheiridion',

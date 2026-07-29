@@ -180,6 +180,54 @@ const WORKS = [
         },
         load: () => import('./works/kabir-songs.js')
             .then(m => m.KABIR_SONGS_SECTIONS)
+    },
+    {
+        meta: {
+            id: 'parker-australian-tales',
+            title: 'Australian Legendary Tales',
+            author: 'collected by K. Langloh Parker',
+            shelf: 'recurrence',
+            edition: { publisher: 'David Nutt', year: 1896 },
+            basis: 'author-death-70'
+        },
+        load: () => import('./works/parker-australian-tales.js')
+            .then(m => m.PARKER_AUSTRALIAN_TALES_SECTIONS)
+    },
+    {
+        meta: {
+            id: 'rasmussen-eskimo-tales',
+            title: 'Eskimo Folk-Tales',
+            author: 'collected by Knud Rasmussen',
+            shelf: 'recurrence',
+            edition: { translator: 'W. J. Alexander Worster', publisher: 'Gyldendal', year: 1921 },
+            basis: 'pre-1930-us'
+        },
+        load: () => import('./works/rasmussen-eskimo-tales.js')
+            .then(m => m.RASMUSSEN_ESKIMO_TALES_SECTIONS)
+    },
+    {
+        meta: {
+            id: 'mooney-cherokee-myths',
+            title: 'Myths of the Cherokee',
+            author: 'collected by James Mooney',
+            shelf: 'recurrence',
+            edition: { publisher: 'Bureau of American Ethnology, Nineteenth Annual Report', year: 1900 },
+            basis: 'us-government-work'
+        },
+        load: () => import('./works/mooney-cherokee-myths.js')
+            .then(m => m.MOONEY_CHEROKEE_MYTHS_SECTIONS)
+    },
+    {
+        meta: {
+            id: 'beckwith-anansi-stories',
+            title: 'Jamaica Anansi Stories',
+            author: 'collected by Martha Warren Beckwith',
+            shelf: 'recurrence',
+            edition: { publisher: 'American Folk-Lore Society', year: 1924 },
+            basis: 'pre-1930-us'
+        },
+        load: () => import('./works/beckwith-anansi-stories.js')
+            .then(m => m.BECKWITH_ANANSI_STORIES_SECTIONS)
     }
 ];
 
