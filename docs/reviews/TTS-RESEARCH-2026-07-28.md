@@ -120,22 +120,72 @@ applies to speech exactly as it does to imagery.**
 
 ---
 
-## What I could not establish
+## Measured, 2026-07-29
 
-- **Word-level timing.** The typed reveal following the voice
-  (RECITATION-SPEC §1) needs to know when each word is spoken.
-  kokoro-js exposes phonemes per chunk but the README does not document
-  per-word timestamps. If they are unavailable, the reveal can be
-  driven by audio duration divided across the phrase — an approximation
-  that will drift on long atoms. **This needs a prototype before the
-  design is committed.**
-- **Real-world latency on a mid-range machine.** Reported figures vary
-  and none of them measured our case: short phrases, generated
-  continuously. Worth measuring before promising streaming keeps up.
+Both open questions are answered. Measured in **Node with
+`device: "cpu"`**, which is the WASM/CPU path — the slow one, and the
+one most Safari and Firefox readers get. WebGPU only improves on this.
 
-## Suggested next step
+| measurement | result |
+|---|---|
+| **Cold start** | **3.2s** — far better than the three-phase warning implied |
+| **Warm generation** | ~3.1s average per atom |
+| **Real-time factor** | **~1.09 consistently** |
+| **Per-word timestamps** | **NO** — `generate()` returns `{audio, sampling_rate}` and nothing else |
+| **Waveform onsets** | **YES** — 6 silence gaps for a 7-word phrase, onsets at 0.30 / 0.80 / 1.12 / 1.62 / 1.92s |
 
-A throwaway prototype that loads the model in a worker and speaks ten
-atoms, measuring cold start, per-atom latency, and whether timing data
-is available. **Roughly an hour, and it answers the two open questions
-above before any of it is wired into the Chamber.**
+### The number that decides the design
+
+**RTF ~1.09 means generation takes LONGER than the audio it produces.**
+Every atom costs slightly more wall-clock time to synthesise than to
+speak. On CPU, Kokoro cannot stay ahead of a reading — it falls further
+behind with each phrase.
+
+This does not kill the feature, but it rules out generating on demand.
+Three ways forward:
+
+1. **WebGPU where available.** Reported 10–100× over WASM would put RTF
+   well under 1. But it excludes most Safari and Firefox readers, so it
+   cannot be the only plan.
+2. **Generate ahead, buffer deep.** Start synthesising several atoms
+   before playback begins and keep a queue. At RTF 1.09 the buffer
+   drains slowly, so a long reading still degrades — but a lead of ten
+   atoms covers a lot.
+3. **Speak selectively.** The montage act does not narrate continuously;
+   it speaks a handful of held phrases. **At that density RTF 1.09 is
+   irrelevant** — there is dead air between utterances to generate in.
+
+Option 3 is what the reel actually needs, and it is the honest scope.
+Continuous narration of a full reading is a different feature and should
+not be promised.
+
+### Timing: interpolation is not required
+
+`generate()` exposes raw `Float32Array` samples, so 20ms RMS windows find
+the silences between words directly. A 7-word phrase yielded 6 gaps —
+enough to drive the typed reveal off **real speech onsets** rather than
+dividing duration evenly. The reveal can follow the voice honestly.
+
+### What the probe cost, and the lesson
+
+The first four attempts each took roughly seven minutes and produced
+nothing, because they ran through Playwright — whose `webServer` config
+rebuilds the entire app before serving. Worse, the page was never
+loading at all: the SPA fallback served `index.html`, and the
+diagnostic saying so (`title: R.I.S.E.`, `#go: 0`) was in hand after the
+second run and not acted on.
+
+Moved to a plain Node script: **43 seconds, complete answers.** The
+lesson is the one this codebase keeps teaching — reach for the smallest
+harness that can answer the question, and read the diagnostic before
+running the expensive thing again.
+
+## What remains unmeasured
+
+- **WebGPU speed in a real browser.** The 10–100× figure is reported,
+  not measured here. It decides whether continuous narration is ever
+  viable, and needs a browser probe — but only if continuous narration
+  is wanted, which the reel does not require.
+- **`stream()` under Node hangs.** The streaming API produced no output
+  and exited 13. It may be browser-only. Worth knowing before relying
+  on it; `generate()` works fine and is sufficient for held phrases.
