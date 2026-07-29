@@ -90,7 +90,19 @@ export function normalizeSessionConfig(input = {}) {
     const chunkMode = CHUNK_MODES.has(input.chunkMode) ? input.chunkMode : 'word';
     const curve = Object.hasOwn(CURVES, input.curve) ? input.curve : 'flat';
 
-    return { ...input, wpm, chunkMode, curve };
+    // Recitation (RECITATION-SPEC) is a TEXT presentation and belongs
+    // in the temporal orbit, beside wpm and chunkMode, because that is
+    // what it modifies — not beside the imagery surfaces, which are a
+    // different axis entirely.
+    //
+    // Normalised here for the same reason everything else is: a
+    // restored or imported session may carry anything, and there is
+    // exactly one validated path to the runtime.
+    const recitation = Object.freeze({
+        enabled: input.recitation?.enabled === true
+    });
+
+    return { ...input, wpm, chunkMode, curve, recitation };
 }
 
 export function normalizeVisualConfig(value = {}) {

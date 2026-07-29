@@ -163,6 +163,7 @@ export class Session {
    * @param {Object|null} [config.origin=null] - Launch-surface return descriptor
    * @param {Object|null} [config.provenance=null] - Bounded session provenance
    * @param {boolean} [config.voiceEnabled=false] - Enable text-to-speech
+   * @param {Object} [config.recitation] - Text presentation (RECITATION-SPEC)
    * @param {string|null} [config.voiceId=null] - Selected voice name
    */
   constructor({
@@ -183,6 +184,11 @@ export class Session {
     origin = null,
     provenance = null,
     customVisuals = [],
+    // Recitation is a TEXT presentation — the reveal, its emphasis, and
+    // later its voice. Normalised by the session compiler, so the shape
+    // arriving here is already validated; the default keeps a hand-built
+    // Session (tests, restored state) from reading `undefined.enabled`.
+    recitation = { enabled: false },
     isCustom = false,
     voiceEnabled = false,
     voiceId = null,
@@ -217,6 +223,9 @@ export class Session {
     this.origin = origin;
     this.provenance = provenance;
     this.customVisuals = customVisuals;
+    // Frozen so a consumer cannot flip a reading into recitation after
+    // compilation — the same discipline the visual config follows.
+    this.recitation = Object.freeze({ enabled: recitation?.enabled === true });
     this.isCustom = isCustom;
     this.voiceEnabled = voiceEnabled;
     this.voiceId = voiceId;

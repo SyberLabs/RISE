@@ -110,6 +110,51 @@
   transition: opacity 150ms var(--ease-out);
 }
 
+/* ── Recitation (RECITATION-SPEC) ──────────────────────────────
+   Words are spans only when a phrase carries authored emphasis or is
+   being revealed. An ordinary reading never produces these elements,
+   so none of this applies to it. */
+
+.atom-word {
+  /* Inline-block so opacity and transform animate per word without the
+     line reflowing as each arrives. */
+  display: inline-block;
+  transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out);
+}
+
+/* A word not yet reached by the reveal. Hidden by opacity rather than
+   display, so the full phrase is laid out from the first frame and the
+   line does not jump as words arrive — the text grows into a shape it
+   already occupies. */
+.atom-word[data-pending] {
+  opacity: 0;
+  transform: translateY(0.12em);
+}
+
+/* Authored emphasis. The cyan is the reference reel's, and it reads as
+   a different KIND of word rather than a brighter one: stress, not
+   volume. Living Text still tints the atom as a whole — that is
+   climate; this is stress — so the two never fight for the same
+   channel. */
+.atom-word.is-emphasised {
+  color: var(--color-emphasis, #5fe3e8);
+  text-shadow: 0 0 24px rgba(95, 227, 232, 0.35);
+}
+
+/* Reduced motion: the reveal is disabled upstream (revealBudget returns
+   0), so no word is ever pending. This is belt and braces — if a
+   pending word somehow reaches the DOM, it is visible rather than
+   invisible. Failing toward legible is the only acceptable direction. */
+@media (prefers-reduced-motion: reduce) {
+  .atom-word {
+    transition: none;
+  }
+  .atom-word[data-pending] {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* Display Mode: Focal (RSVP - default) */
 
 /* Display Mode: Chamber (Immersive) */

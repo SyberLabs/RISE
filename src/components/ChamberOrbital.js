@@ -144,6 +144,9 @@ function createDefaultConfig() {
 
     // Temporal orbit
     wpm: 200,
+    // Text presentation (RECITATION-SPEC). Off by default: an ordinary
+    // reading takes the same path it always has.
+    recitation: { enabled: false },
     curve: 'flat',
     chunkMode: 'word'
   };
@@ -209,6 +212,14 @@ export class ChamberOrbital {
       'entrainmentMode', 'entrainmentWaveform', 'voiceEnabled', 'voiceId', 'selectedSwellId'];
     for (const key of scalarKeys) {
       if (saved[key] !== undefined) this.config[key] = saved[key];
+    }
+
+    // Recitation is an object, so it cannot ride the scalar list. Read
+    // only the field we understand: restored state is untrusted input,
+    // and copying it wholesale would let a stale or hand-edited entry
+    // introduce keys the runtime never validated.
+    if (saved.recitation && typeof saved.recitation === 'object') {
+      this.config.recitation = { enabled: saved.recitation.enabled === true };
     }
 
     // TEMPORAL CONTRACT MIGRATION: WPM saved before the honest-pacing
@@ -1754,6 +1765,8 @@ export class ChamberOrbital {
       entrainmentWaveform: this.config.entrainmentWaveform,
       voiceEnabled: this.config.voiceEnabled,
       voiceId: this.config.voiceId,
+      // Recitation rides through to the compiler, which normalises it.
+      recitation: this.config.recitation,
       selectedSwellId: this.config.selectedSwellId,
       // The compiled visual program rides opaquely to the Chamber's
       // scheduler (PERICOPE-IMAGERY-SPEC §6) — carried through, never

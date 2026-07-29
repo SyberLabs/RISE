@@ -3,6 +3,11 @@ import { MemoryCore } from '../core/memory.js';
 import { AttractorField } from '../visuals/attractor.js';
 import { KleeField } from '../visuals/klee-field.js';
 import { escapeHtml } from '../core/sanitize.js';
+// The reveal and its emphasis notation are pure logic — no DOM, no
+// audio — so they live in core and are tested without a browser.
+import {
+  splitWords, stripEmphasis, revealBudget, revealSchedule
+} from '../core/recitation.js';
 import { scoreAtoms, planInterlocution } from '../core/conductor.js';
 import { VisualScheduleController } from '../core/visual-scheduler.js';
 
@@ -33,6 +38,13 @@ export class Chamber {
     // on demand. Null until the reader opens it; nothing is paid before.
     this.pageReader = null;
     this.pageModeActive = false;
+
+    // Recitation (RECITATION-SPEC): text arrives over a short duration
+    // rather than appearing whole. Off unless the reading asks for it,
+    // so an ordinary session pays nothing — no spans, no timers, and
+    // the same textContent path the Chamber has always used.
+    this.recitationEnabled = this.session?.recitation?.enabled === true;
+    this._revealTimers = null;
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
     this.hasRhythmicVisuals = this.session?.visualConfig?.visualMode === 'interlocution';
@@ -954,6 +966,70 @@ export class Chamber {
    * is no flicker and nothing for photosensitive users to worry about.
    * No-op when the track is absent (Living Text off).
    */
+  /**
+   * Paint an atom's text into the display.
+   *
+   * Two shapes, and the cheap one is the default. Plain text goes
+   * through `textContent` exactly as it always has — no spans, no
+   * parsing, no HTML — because that is the hot path every ordinary
+   * reading takes and it must not pay for a feature it is not using.
+   *
+   * Text that carries authored emphasis, or an atom that will be
+   * revealed word by word, is built from per-word spans instead.
+   * `textContent` cannot colour part of a phrase and cannot reveal one
+   * word at a time, so this is the price of both features.
+   *
+   * SAFETY. Building markup from content is a new injection surface
+   * where `textContent` was inherently safe, so every word is escaped.
+   * The only markup that reaches the DOM is the span scaffolding this
+   * function writes.
+   *
+   * @returns {HTMLElement[]|null} the word spans, or null when the text
+   *   was painted plainly and there is nothing to reveal.
+   */
+  paintAtomText(atomDisplay, content, { reveal = false } = {}) {
+    const words = splitWords(content);
+    const marked = words.some(w => w.emphasised);
+
+    if (!reveal && !marked) {
+      atomDisplay.textContent = stripEmphasis(content);
+      return null;
+    }
+
+    atomDisplay.innerHTML = words.map(w =>
+      `<span class="atom-word${w.emphasised ? ' is-emphasised' : ''}"` +
+      `${reveal ? ' data-pending=""' : ''}>${escapeHtml(w.text)}</span>`
+    ).join(' ');
+
+    return reveal ? Array.from(atomDisplay.querySelectorAll('.atom-word')) : null;
+  }
+
+  /**
+   * Reveal an atom's words over time.
+   *
+   * The schedule decides WHEN each word appears; this only applies it.
+   * Timers are tracked so a reader who advances early does not get the
+   * previous atom's words arriving over the new one — the commonest way
+   * an animation like this goes wrong.
+   */
+  revealAtomWords(spans, schedule) {
+    this.cancelReveal();
+    if (!spans?.length) return;
+    this._revealTimers = spans.map((span, i) => {
+      const at = schedule[i] ?? 0;
+      if (at <= 0) { span.removeAttribute('data-pending'); return null; }
+      return setTimeout(() => span.removeAttribute('data-pending'), at);
+    }).filter(Boolean);
+  }
+
+  /** Stop a reveal in flight. Idempotent. */
+  cancelReveal() {
+    if (this._revealTimers) {
+      for (const t of this._revealTimers) clearTimeout(t);
+      this._revealTimers = null;
+    }
+  }
+
   applyLivingText(atomDisplay, index) {
     if (!this.semanticTrack) return;
     const sig = this.semanticTrack[index];
@@ -1011,12 +1087,18 @@ export class Chamber {
     // Fast atoms use the same path to avoid spending their lifespan fading.
     if (concealed || (atom.duration && atom.duration < 400)) {
       atomDisplay.style.transition = 'none';
-      atomDisplay.textContent = atom.content;
+      // A fast atom appears whole — revealing a phrase that lives 300ms
+      // would strobe — but it may still carry emphasis to colour.
+      this.cancelReveal();
+      this.paintAtomText(atomDisplay, atom.content);
 
+      // Size on what is SHOWN. Emphasis marks are notation and would
+      // otherwise push a phrase into a smaller face than it needs.
+      const shownLength = stripEmphasis(atom.content).length;
       let fontSize = '72px';
-      if (atom.content.length > 20) fontSize = '56px';
-      if (atom.content.length > 40) fontSize = '40px';
-      if (atom.content.length > 60) fontSize = '32px';
+      if (shownLength > 20) fontSize = '56px';
+      if (shownLength > 40) fontSize = '40px';
+      if (shownLength > 60) fontSize = '32px';
       atomDisplay.style.fontSize = fontSize;
 
       this.applyLivingText(atomDisplay, index);
@@ -1026,14 +1108,21 @@ export class Chamber {
       atomDisplay.style.transition = 'none';
       atomDisplay.style.opacity = '0';
 
-      // Inject new content
-      atomDisplay.textContent = atom.content;
-      console.log('[Chamber] Set atom content:', atom.content);
+      // Inject new content. The reveal is decided here rather than in
+      // paintAtomText so the budget can consult the atom's duration and
+      // the reader's motion preference in one place.
+      const budget = this.recitationEnabled
+        ? revealBudget(atom.duration, { reducedMotion: this._prefersReducedMotion() })
+        : 0;
+      const spans = this.paintAtomText(atomDisplay, atom.content, { reveal: budget > 0 });
 
+      // Size on what is SHOWN. Emphasis marks are notation and would
+      // otherwise push a phrase into a smaller face than it needs.
+      const shownLength = stripEmphasis(atom.content).length;
       let fontSize = '72px';
-      if (atom.content.length > 20) fontSize = '56px';
-      if (atom.content.length > 40) fontSize = '40px';
-      if (atom.content.length > 60) fontSize = '32px';
+      if (shownLength > 20) fontSize = '56px';
+      if (shownLength > 40) fontSize = '40px';
+      if (shownLength > 60) fontSize = '32px';
       atomDisplay.style.fontSize = fontSize;
 
       this.applyLivingText(atomDisplay, index);
@@ -1044,7 +1133,24 @@ export class Chamber {
       // Restore transition for smooth fade in
       atomDisplay.style.transition = 'opacity 150ms var(--ease-out)';
       atomDisplay.style.opacity = '1';
+
+      // Reveal AFTER the frame is laid out and fading in, so the words
+      // arrive over a stable frame rather than racing the reflow.
+      if (spans) {
+        this.revealAtomWords(spans, revealSchedule(spans.length, budget));
+      } else {
+        this.cancelReveal();
+      }
     }
+  }
+
+  /**
+   * Reduced motion is read live rather than cached: a reader may change
+   * the system setting mid-session, and the reveal should stop being
+   * animated the moment they do.
+   */
+  _prefersReducedMotion() {
+    return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
   }
 
   updateProgress(progress) {
@@ -1727,6 +1833,8 @@ export class Chamber {
 
   destroy() {
     this.deactivate();
+    // A reveal in flight would otherwise fire into a torn-down DOM.
+    this.cancelReveal();
     if (this.controlsTimeout) {
       clearTimeout(this.controlsTimeout);
     }
