@@ -43,6 +43,20 @@ async function ensureModel({ dtype, device }) {
         // 92 MB of weights is fetched only when a reading actually asks
         // for a voice — never as a side effect of loading the app.
         const { KokoroTTS } = await import('kokoro-js');
+
+        // SELF-HOST THE ONNX RUNTIME.
+        //
+        // transformers.js loads its WASM backend from cdn.jsdelivr.net
+        // at runtime. That is a third-party CDN executing code, and
+        // `script-src 'self'` is the strongest line in our policy —
+        // weakening it so a voice can speak would be a bad trade.
+        //
+        // The runtime files ship inside the package, so they are copied
+        // to public/ort/ and served from our own origin. Set BEFORE the
+        // first model load, because the path is read when the backend
+        // initialises and cannot be changed afterwards.
+        const { env } = await import('@huggingface/transformers');
+        env.backends.onnx.wasm.wasmPaths = '/ort/';
         tts = await KokoroTTS.from_pretrained(
             'onnx-community/Kokoro-82M-v1.0-ONNX',
             {

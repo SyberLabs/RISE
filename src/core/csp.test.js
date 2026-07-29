@@ -13,7 +13,7 @@
  * generic "csp exists" test would have caught nothing.
  */
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const toml = readFileSync(resolve(process.cwd(), 'netlify.toml'), 'utf8');
@@ -61,11 +61,37 @@ describe('content security policy', () => {
         }
     });
 
-    it('keeps scripts self-hosted', () => {
-        // The strongest line in the policy. Kokoro runs from our own
-        // bundle rather than a CDN precisely so this can stay strict.
-        expect(directive('script-src')).toBe("script-src 'self'");
+    it('keeps scripts self-hosted, and admits no CDN', () => {
+        // The strongest line in the policy, and the one most tempting to
+        // weaken: transformers.js fetches its ONNX runtime from
+        // cdn.jsdelivr.net unless told otherwise. Allowing that would
+        // let a third party execute code in the app so a voice could
+        // speak — a bad trade. The runtime is served from public/ort/
+        // instead, and the worker sets env.backends.onnx.wasm.wasmPaths
+        // BEFORE the first model load.
+        const script = directive('script-src');
+        expect(script).toContain("'self'");
+        expect(script).not.toContain('jsdelivr');
+        expect(script).not.toContain('unpkg');
+        expect(script).not.toContain("'unsafe-inline'");
+        expect(script).not.toContain("'unsafe-eval'");
+        // WebAssembly must still COMPILE. This permits that and nothing
+        // more — notably not eval() and not inline script.
+        expect(script).toContain("'wasm-unsafe-eval'");
         expect(directive('object-src')).toBe("object-src 'none'");
         expect(directive('frame-ancestors')).toBe("frame-ancestors 'none'");
+    });
+
+    it('ships the ONNX runtime it refuses to fetch from a CDN', () => {
+        // Blocking jsdelivr only works if the runtime is actually here.
+        // A missing file fails identically to a blocked one — the voice
+        // simply never loads — so the policy and the assets have to be
+        // asserted together or the guarantee is half a guarantee.
+        for (const file of [
+            'public/ort/ort-wasm-simd-threaded.jsep.mjs',
+            'public/ort/ort-wasm-simd-threaded.jsep.wasm'
+        ]) {
+            expect(existsSync(resolve(process.cwd(), file)), `${file} is missing`).toBe(true);
+        }
     });
 });
