@@ -423,11 +423,33 @@ function unwrapArtifact(raw) {
     return lines.slice(start >= 0 ? start + 1 : 0, end >= 0 ? end : lines.length);
 }
 
-function isStructuralHeading(line) {
+/**
+ * A DIVISION WORD IS NOT A HEADING.
+ *
+ * The ordinal used to be optional — `(?:[IVXLCDM\d]+|THE\s+\w+)?` — so
+ * the pattern reduced to "a line beginning with one of these words".
+ * Tolstoy writes "part. Anna Pávlovna Schérer on the contrary, despite
+ * her forty years," and that became a section, named after itself. 27%
+ * of the corpus's 9,212 section names were prose caught this way.
+ *
+ * A numbered division carries a number. Unnumbered matter is matched
+ * separately and exactly, on its own line, as it always was.
+ */
+const NUMBERED_HEADING =
+    /^(VOLUME|VOL\.?|PART|BOOK|CANTO|CHAPTER|ACT|SCENE|DAY|NIGHT|TALE|STORY|ADVENTURE|RUNE|POEM|SECTION)\b[\s.:—-]*(?:[IVXLCDM]+|\d{1,4})\b/i;
+
+const NAMED_MATTER =
+    /^(PREFACE|PROLOGUE|INTRODUCTION|EPILOGUE|APPENDIX|NOTES|GLOSSARY|INDEX)$/i;
+
+function isStructuralHeading(line, previousLine = null) {
     const value = line.trim();
     if (!value || value.length > 100) return false;
-    return /^(VOLUME|VOL\.?|PART|BOOK|CANTO|CHAPTER|ACT|SCENE|DAY|NIGHT|TALE|STORY|ADVENTURE|RUNE|POEM|SECTION)\b[\s.:—-]*(?:[IVXLCDM\d]+|THE\s+\w+)?/i.test(value)
-        || /^(PREFACE|PROLOGUE|INTRODUCTION|EPILOGUE|APPENDIX|NOTES|GLOSSARY|INDEX)$/i.test(value);
+    // A HEADING STANDS ALONE. Without this a contents page — where the
+    // divisions are listed one per line, consecutively — became one
+    // section per entry, and the Odyssey's title page ended up named
+    // "BOOK XXIV." after the last line of its own table of contents.
+    if (previousLine !== null && previousLine.trim()) return false;
+    return NUMBERED_HEADING.test(value) || NAMED_MATTER.test(value);
 }
 
 function compactSections(sections) {
@@ -436,13 +458,15 @@ function compactSections(sections) {
         if (section.content.trim().length > 200 || !result.length) {
             result.push(section);
         } else {
-            result[result.length - 1].content += `\n\n${section.name}\n${section.content}`;
+            // The heading is INSIDE the content now, so re-inserting the
+            // name here would print it twice.
+            result[result.length - 1].content += `\n\n${section.content}`;
             result[result.length - 1].endAnchor = section.endAnchor;
         }
     }
     if (result.length > 1 && result[0].content.trim().length <= 200) {
         const front = result.shift();
-        result[0].content = `${front.content}\n\n${result[0].name}\n${result[0].content}`;
+        result[0].content = `${front.content}\n\n${result[0].content}`;
         result[0].startAnchor = front.startAnchor;
     }
     return result;
@@ -452,14 +476,22 @@ function sectionsForArtifact(artifact, volumeIndex, volumeCount) {
     const lines = unwrapArtifact(artifact.text);
     const hits = [];
     for (let i = 0; i < lines.length; i++) {
-        if (isStructuralHeading(lines[i])) hits.push(i);
+        if (isStructuralHeading(lines[i], i > 0 ? lines[i - 1] : null)) hits.push(i);
     }
     const boundaries = [0, ...hits.filter(i => i > 0)];
     const volume = volumeCount > 1 ? `Volume ${volumeIndex + 1}` : null;
     const sections = boundaries.map((from, i) => {
         const to = boundaries[i + 1] ?? lines.length;
         const heading = hits.includes(from) ? lines[from].trim() : 'Front matter';
-        const contentFrom = hits.includes(from) ? from + 1 : from;
+        // THE HEADING STAYS IN THE TEXT.
+        //
+        // It used to be dropped (`from + 1`), which left the section
+        // NAME as the only witness to where a division began — and that
+        // name is wrong a quarter of the time. Keeping the line makes
+        // the payload self-describing: a reader sees the chapter it
+        // announces, and anything deriving divisions can read the text
+        // instead of trusting a label.
+        const contentFrom = from;
         return {
             name: volume ? `${volume} — ${heading}` : heading,
             path: [volume, heading].filter(Boolean),
