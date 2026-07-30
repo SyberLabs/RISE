@@ -425,13 +425,63 @@ function decodeArtifact(bytes, mediaType) {
     return text;
 }
 
+/**
+ * Who digitised a text is not part of the text.
+ *
+ * Gutenberg and Internet Archive transcriptions open with a producer
+ * credit, and sometimes a transcriber's note about typographic
+ * conventions. Both are real and both deserve to be recorded — but as
+ * provenance, in the work's source record, not as the first words a
+ * reader sees. Ten works opened on "Produced by Gregory Walker" and
+ * "[Transcriber's Note: The original text does not observe…]".
+ *
+ * Bounded to the head of the artifact so a line of actual prose reading
+ * "produced by" cannot be swallowed from the middle of a book.
+ */
+const PRODUCER = /^\s*(produced by|e-?text (was )?prepared by|transcribed (from|by)|this e-?book was produced|updated editions will replace|html version by)\b/i;
+const NOTE_OPEN = /^\s*\[?\s*transcriber'?s?\s+note/i;
+const CHROME = /^\s*(www\.|https?:\/\/|[\w.-]+\.(?:de|com|org|net)\s*[-–—])/i;
+const HEAD_WINDOW = 120;
+
+function stripDistributionMatter(lines) {
+    const out = [];
+    let skipUntilBlank = false;
+    let skipUntilBracket = false;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (i < HEAD_WINDOW) {
+            if (skipUntilBracket) {
+                if (line.includes(']')) skipUntilBracket = false;
+                continue;
+            }
+            if (skipUntilBlank) {
+                if (!line.trim()) { skipUntilBlank = false; }
+                continue;
+            }
+            if (NOTE_OPEN.test(line)) {
+                // A note may close on its own line or run several.
+                if (!line.includes(']')) skipUntilBracket = true;
+                continue;
+            }
+            if (PRODUCER.test(line)) { skipUntilBlank = true; continue; }
+            if (CHROME.test(line)) continue;
+        }
+        out.push(line);
+    }
+    // Leading blank lines left behind by the removal.
+    while (out.length && !out[0].trim()) out.shift();
+    return out;
+}
+
 function unwrapArtifact(raw) {
     const text = raw.replace(/\r\n?/g, '\n');
     const lines = text.split('\n');
     const start = lines.findIndex(line => /^\s*\*{3}\s*START OF/i.test(line));
     const end = lines.findIndex((line, i) =>
         i > Math.max(start, 0) && /^\s*\*{3}\s*END OF/i.test(line));
-    return lines.slice(start >= 0 ? start + 1 : 0, end >= 0 ? end : lines.length);
+    return stripDistributionMatter(
+        lines.slice(start >= 0 ? start + 1 : 0, end >= 0 ? end : lines.length));
 }
 
 /**
