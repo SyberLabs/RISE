@@ -1,0 +1,107 @@
+{
+  "generated": "2026-07-30T13:38:11.553Z",
+  "dossierCount": 66,
+  "ingested": [
+    "W01",
+    "W02",
+    "W03",
+    "W04",
+    "W05",
+    "W06",
+    "W07",
+    "W08",
+    "W09",
+    "W10",
+    "W11",
+    "W12",
+    "W13",
+    "W14",
+    "W15",
+    "W16",
+    "W17",
+    "W18",
+    "W19",
+    "W20",
+    "W21",
+    "W22",
+    "W23",
+    "W24",
+    "W25",
+    "W26",
+    "W27",
+    "W28",
+    "W29",
+    "W30",
+    "W31",
+    "W32",
+    "W33",
+    "W34",
+    "W35",
+    "W36",
+    "W37",
+    "W38",
+    "W39",
+    "W40",
+    "W41",
+    "W42",
+    "E01",
+    "E02",
+    "E03",
+    "E04",
+    "E05",
+    "E06",
+    "E07",
+    "E08",
+    "E09",
+    "E10",
+    "E11",
+    "E12",
+    "E13",
+    "E14",
+    "E15",
+    "E16"
+  ],
+  "staged": [
+    {
+      "code": "I01",
+      "acquired": true,
+      "reason": "Community review/contact and access-restriction fields are required before public release."
+    },
+    {
+      "code": "I02",
+      "acquired": false,
+      "reason": "Community review/contact and access-restriction fields are required before public release."
+    },
+    {
+      "code": "I03",
+      "acquired": false,
+      "reason": "Community review/contact and access-restriction fields are required before public release."
+    },
+    {
+      "code": "I04",
+      "acquired": false,
+      "reason": "Community review/contact and access-restriction fields are required before public release."
+    },
+    {
+      "code": "I05",
+      "acquired": true,
+      "reason": "Community review/contact and access-restriction fields are required before public release."
+    },
+    {
+      "code": "I06",
+      "acquired": true,
+      "reason": "Community review/contact and access-restriction fields are required before public release."
+    },
+    {
+      "code": "I07",
+      "acquired": true,
+      "reason": "Community review/contact and access-restriction fields are required before public release."
+    },
+    {
+      "code": "I08",
+      "acquired": true,
+      "reason": "Community review/contact and access-restriction fields are required before public release."
+    }
+  ],
+  "blocked": []
+}

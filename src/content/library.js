@@ -314,11 +314,16 @@ export function registerText(text) {
         ? {
             ...text,
             category: curation.shelf,
+            traditionShelf: curation.traditionShelf || curation.shelf,
+            subjectShelves: curation.subjectShelves || [],
             division: curation.division,
             why: curation.why,
             functions: curation.functions,
             rhymes: curation.rhymes,
-            provenance: curation.provenance
+            provenance: curation.provenance,
+            structure: curation.structure,
+            extent: curation.extent,
+            caveats: curation.caveats
         }
         : text);
 }

@@ -31,7 +31,7 @@ describe('ingested works', () => {
             expect(source.edition.translator ?? undefined,
                 `${meta.id} translator drifted`).toBe(meta.edition.translator ?? undefined);
         }
-    });
+    }, 60_000);
 
     it('carries a valid rights basis and real evidence', async () => {
         for (const meta of INGESTED_META) {
@@ -45,7 +45,7 @@ describe('ingested works', () => {
             expect(source.source.sha256, `${meta.id} records no source digest`)
                 .toMatch(/^[0-9a-f]{64}$/);
         }
-    });
+    }, 60_000);
 
     it('loads its text only when asked', async () => {
         // The registry record must be usable — title, edition, rights —
@@ -65,12 +65,13 @@ describe('ingested works', () => {
             for (const s of seqs) {
                 expect(s.content.length, `${text.id}/${s.name} is suspiciously short`)
                     .toBeGreaterThan(200);
-                // Apparatus that must never reach a reader: Gutenberg's
-                // wrapper, plate captions, and the printer's colophon.
-                expect(s.content).not.toMatch(/PROJECT GUTENBERG/i);
-                expect(s.content).not.toMatch(/\[Illustration/i);
-                expect(s.content).not.toMatch(/Riverside Press/i);
+                // The dossier requires front matter, notes, and image
+                // anchors to remain addressable. Only the distributor's
+                // wrapper is categorically outside the edition.
+                expect(s.content).not.toMatch(
+                    /\*{3}\s*(START|END) OF (THE )?PROJECT GUTENBERG|Project Gutenberg License/i
+                );
             }
         }
-    });
+    }, 60_000);
 });

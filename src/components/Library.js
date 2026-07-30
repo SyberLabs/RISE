@@ -466,6 +466,11 @@ export class Library {
         return;
       }
 
+      // A long work opens at its contents, not at its first word.
+      // openWork returns false for anything with no verified divisions,
+      // which falls through to the whole-text path below unchanged.
+      if (await this.openWork(textId)) return;
+
       // Handle standard texts. Ingested Archive works resolve their
       // payload lazily — a reader who never opens Vitruvius should not
       // download half a megabyte of him — so this may be a promise.
@@ -501,6 +506,230 @@ export class Library {
     } catch (error) {
       console.error('[Library] Failure during text selection processing:', error);
     }
+  }
+
+
+  // ── The table of contents ──────────────────────────────────────
+  //
+  // A long work is entered at a division, not at its first word. Before
+  // this, choosing Moby-Dick handed the Chamber every word of it at
+  // once — and choosing the Mahabharata handed it 2.9 million. The
+  // reader now opens the book and chooses where to begin.
+  //
+  // The sheet is deliberately not a modal dialog with a list in it. It
+  // is the work presenting itself: its own division noun, its own
+  // numerals, and the weight of each division stated honestly in
+  // minutes, so a reader can tell a two-minute lyric from an hour of
+  // Montaigne before committing to it.
+
+  /** Minutes of reading, at the work's own pace. */
+  contentsMinutes(words, wpm = 200) {
+    return Math.max(1, Math.round(words / wpm));
+  }
+
+  contentsDuration(minutes) {
+    if (minutes < 60) return `${minutes} min`;
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m ? `${h}h ${m}m` : `${h}h`;
+  }
+
+  /**
+   * Open a work. Divided works show their contents; undivided ones go
+   * straight to the Chamber, because a table of contents with one row
+   * is a door with a sign on it saying "door".
+   */
+  async openWork(textId) {
+    const text = (LIBRARY_TEXTS || []).find(t => t.id === textId);
+    if (!text || typeof text.getDivisions !== 'function') return false;
+
+    const card = this.container.querySelector(`[data-text-id="${textId}"]`);
+    card?.classList.add('is-opening');
+    try {
+      const divisions = await text.getDivisions();
+      card?.classList.remove('is-opening');
+      if (!divisions?.divided) return false;
+      this._contents = { text, divisions, query: '' };
+      this.renderContents();
+      return true;
+    } catch (error) {
+      card?.classList.remove('is-opening');
+      console.error('[Library] Could not open work:', textId, error);
+      return false;
+    }
+  }
+
+  contentsEntries() {
+    const { divisions, query } = this._contents;
+    if (!query) return divisions.entries;
+    const q = query.toLowerCase();
+    return divisions.entries.filter(e =>
+      e.label.toLowerCase().includes(q) ||
+      (e.title || '').toLowerCase().includes(q));
+  }
+
+  renderContents() {
+    const { text, divisions, query } = this._contents;
+    const entries = this.contentsEntries();
+    const totalWords = divisions.entries.reduce((n, e) => n + e.words, 0);
+    const totalMin = this.contentsMinutes(totalWords, text.defaultWpm || 200);
+    const p = text.provenance;
+    const edition = p
+      ? [p.translator ? `trans. ${p.translator}` : null, p.year || null].filter(Boolean).join(', ')
+      : '';
+
+    // A work with many divisions needs a way in that is not scrolling.
+    // Below that count the search field is clutter.
+    const searchable = divisions.entries.length > 12;
+
+    let sheet = document.querySelector('.toc-scrim');
+    if (!sheet) {
+      sheet = document.createElement('div');
+      sheet.className = 'toc-scrim';
+      document.body.appendChild(sheet);
+    }
+
+    sheet.innerHTML = `
+      <div class="toc-sheet" role="dialog" aria-modal="true" aria-label="Contents of ${escapeHtml(text.title)}">
+        <header class="toc-head">
+          <button class="btn-ghost toc-close" data-toc="close" aria-label="Close contents">
+            <span class="icon" aria-hidden="true">←</span> Shelf
+          </button>
+          <div class="toc-identity">
+            <h2 class="toc-title text-light">${escapeHtml(text.title)}</h2>
+            <p class="toc-byline text-fog">${escapeHtml(text.author)}${edition ? ` · ${escapeHtml(edition)}` : ''}</p>
+          </div>
+          <div class="toc-weight font-mono text-mist">
+            <span class="toc-weight-count">${divisions.entries.length}</span>
+            <span class="toc-weight-noun">${escapeHtml(divisions.noun.toLowerCase())}${divisions.entries.length === 1 ? '' : 's'}</span>
+            <span class="toc-weight-time">${this.contentsDuration(totalMin)}</span>
+          </div>
+        </header>
+
+        ${divisions.reason === 'measured' ? `
+          <p class="toc-note text-mist">
+            This edition carries no division scheme this Archive can verify,
+            so it is offered in readings of even length rather than under
+            chapter names it does not have.
+          </p>` : ''}
+
+        ${searchable ? `
+          <div class="toc-search">
+            <input type="search" class="toc-search-input" data-toc="search"
+                   placeholder="Find a ${escapeHtml(divisions.noun.toLowerCase())}…"
+                   value="${escapeHtml(query)}" aria-label="Filter contents">
+            ${query ? `<span class="toc-search-count font-mono text-mist">${entries.length} of ${divisions.entries.length}</span>` : ''}
+          </div>` : ''}
+
+        <div class="toc-list" role="list">
+          ${entries.length === 0
+            ? `<p class="toc-empty text-fog">Nothing here matches “${escapeHtml(query)}”.</p>`
+            : entries.map(e => {
+              const min = this.contentsMinutes(e.words, text.defaultWpm || 200);
+              return `
+              <button class="toc-entry" role="listitem" data-toc="read" data-entry="${e.id}">
+                <span class="toc-entry-mark font-mono" aria-hidden="true">${escapeHtml(this.contentsMark(e, divisions))}</span>
+                <span class="toc-entry-body">
+                  <span class="toc-entry-label">${escapeHtml(e.label)}</span>
+                  ${e.title ? `<span class="toc-entry-title text-fog">${escapeHtml(e.title)}</span>` : ''}
+                </span>
+                <span class="toc-entry-time font-mono text-mist">${this.contentsDuration(min)}</span>
+              </button>`;
+            }).join('')}
+        </div>
+
+        <footer class="toc-foot">
+          <button class="btn-ghost toc-whole" data-toc="whole">
+            Read the whole work · ${this.contentsDuration(totalMin)}
+          </button>
+        </footer>
+      </div>
+    `;
+
+    requestAnimationFrame(() => sheet.classList.add('is-open'));
+    if (searchable && query) {
+      const input = sheet.querySelector('.toc-search-input');
+      input?.focus();
+      input?.setSelectionRange(query.length, query.length);
+    } else {
+      sheet.querySelector('.toc-entry')?.focus();
+    }
+    this.attachContentsEvents(sheet);
+  }
+
+  /** The mark in the margin — the work's own numeral where it has one. */
+  contentsMark(entry, divisions) {
+    const m = entry.label.match(/\s([IVXLCDM]+|\d+)(?:\s|$|\()/i);
+    if (m) return m[1];
+    return divisions.noun === 'Reading' ? String(entry.id + 1) : '·';
+  }
+
+  attachContentsEvents(sheet) {
+    if (sheet._wired) return;
+    sheet._wired = true;
+
+    sheet.addEventListener('click', (e) => {
+      // The scrim closes; the sheet does not close when clicked through.
+      if (e.target === sheet) return this.closeContents();
+      const el = e.target.closest('[data-toc]');
+      if (!el) return;
+      const what = el.dataset.toc;
+      window.rise?.audioEngine?.playClick?.();
+
+      if (what === 'close') return this.closeContents();
+      if (what === 'whole') return this.readWhole();
+      if (what === 'read') return this.readEntry(Number(el.dataset.entry));
+    });
+
+    // Debounced so a 807-entry list is not re-rendered per keystroke.
+    let timer = null;
+    sheet.addEventListener('input', (e) => {
+      const input = e.target.closest('[data-toc="search"]');
+      if (!input) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        this._contents.query = input.value;
+        this.renderContents();
+      }, 120);
+    });
+
+    sheet.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.stopPropagation(); this.closeContents(); }
+    });
+  }
+
+  closeContents() {
+    const sheet = document.querySelector('.toc-scrim');
+    if (!sheet) return;
+    sheet.classList.remove('is-open');
+    const done = () => sheet.remove();
+    sheet.addEventListener('transitionend', done, { once: true });
+    // A missed transitionend must not leave a scrim over the Library.
+    setTimeout(done, 400);
+    this._contents = null;
+  }
+
+  readEntry(entryId) {
+    const { text, divisions } = this._contents || {};
+    const entry = divisions?.entries.find(e => e.id === entryId);
+    if (!entry) return;
+    const label = entry.title ? `${entry.label} — ${entry.title}` : entry.label;
+    this.closeContents();
+    this.onSelectText(entry.content, `${text.title} · ${label}`, {
+      wpm: text.defaultWpm,
+      curve: text.defaultCurve
+    });
+  }
+
+  readWhole() {
+    const { text, divisions } = this._contents || {};
+    if (!divisions) return;
+    const full = divisions.entries.map(e => e.content).join('\n\n');
+    this.closeContents();
+    this.onSelectText(full, text.title, {
+      wpm: text.defaultWpm,
+      curve: text.defaultCurve
+    });
   }
 
   formatDuration(ms) {

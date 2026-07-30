@@ -65,8 +65,10 @@ describe('divisions within a shelf', () => {
         for (const entry of Object.values(ARCHIVE_CURATION)) {
             (byShelf[entry.shelf] ||= new Set()).add(entry.division);
         }
-        expect([...byShelf.western]).toHaveLength(3);
-        expect([...byShelf.eastern]).toHaveLength(3);
+        expect([...byShelf.western].sort())
+            .toEqual(['classical', 'esoteric', 'imaginative', 'literary']);
+        expect([...byShelf.eastern].sort())
+            .toEqual(['classical', 'esoteric', 'imaginative', 'literary']);
         expect([...byShelf.indigenous]).toEqual(['classical']);
     });
 });

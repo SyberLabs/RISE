@@ -25,8 +25,10 @@
  */
 
 import { PD_BASIS, RESONANCE_FUNCTIONS as R } from './library-constants.js';
+import { LITERATURE_CURATION } from './archive/literature-curation.js';
 
 export const ARCHIVE_CURATION = Object.freeze({
+    ...LITERATURE_CURATION,
 
     // ── FORM ────────────────────────────────────────────────────
     'vitruvius-architecture': {

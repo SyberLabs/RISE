@@ -119,8 +119,13 @@ export const DIVISIONS = [
     },
     {
         id: 'literary',
-        name: 'Literary',
-        description: 'Written in their light — essays, poems, and the long argument after'
+        name: 'Discursive',
+        description: 'Essays, letters, criticism, and the long argument after'
+    },
+    {
+        id: 'imaginative',
+        name: 'Imaginative',
+        description: 'Worlds made in language — epic, drama, fiction, and tale'
     },
     {
         id: 'esoteric',

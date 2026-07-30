@@ -548,3 +548,203 @@
   color: var(--color-mist);
   opacity: 0.6;
 }
+
+/* ── Table of contents ──────────────────────────────────────────────
+ *
+ * A work opening. The sheet rises rather than fading, because the
+ * gesture being modelled is a book being opened on a table, not a
+ * dialog being summoned.
+ *
+ * The restraint is deliberate. This surface holds up to 807 rows for
+ * the Mahabharata, and anything decorative repeated 807 times stops
+ * being decoration and becomes noise. What earns its place: the work's
+ * own numeral in the margin, the division's name, and its weight in
+ * minutes — so a reader can tell a two-minute lyric from an hour of
+ * Montaigne before committing to it.
+ */
+.toc-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: color-mix(in srgb, var(--color-void) 72%, transparent);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity var(--transition-normal) var(--ease-default);
+}
+.toc-scrim.is-open { opacity: 1; }
+
+.toc-sheet {
+  display: flex;
+  flex-direction: column;
+  width: min(760px, 100%);
+  max-height: min(88vh, 900px);
+  background: var(--color-shadow);
+  border: 1px solid var(--color-threshold);
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  box-shadow: 0 -24px 64px color-mix(in srgb, var(--color-void) 60%, transparent);
+  transform: translateY(24px);
+  transition: transform var(--transition-normal) var(--ease-default);
+}
+.toc-scrim.is-open .toc-sheet { transform: translateY(0); }
+
+.toc-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--space-lg) var(--space-md);
+  border-bottom: 1px solid var(--color-threshold);
+}
+.toc-close { align-self: center; white-space: nowrap; }
+.toc-identity { min-width: 0; }
+.toc-title {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-light);
+  font-size: 1.35rem;
+  line-height: 1.25;
+  margin: 0;
+}
+.toc-byline { font-size: 0.85rem; margin: 0.25rem 0 0; }
+
+/* The weight of the whole work, stacked so the number reads first. */
+.toc-weight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-align: right;
+}
+.toc-weight-count {
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--color-cloud);
+  font-weight: var(--font-weight-light);
+}
+.toc-weight-noun { text-transform: uppercase; letter-spacing: 0.08em; }
+.toc-weight-time { opacity: 0.7; }
+
+.toc-note {
+  margin: 0;
+  padding: var(--space-sm) var(--space-lg);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  border-bottom: 1px solid var(--color-threshold);
+  font-style: italic;
+}
+
+.toc-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  border-bottom: 1px solid var(--color-threshold);
+}
+.toc-search-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--color-threshold);
+  color: var(--color-light);
+  font-family: var(--font-literary);
+  font-size: 0.95rem;
+  padding: var(--space-xs) 0;
+  transition: border-color var(--transition-fast) var(--ease-default);
+}
+.toc-search-input::placeholder { color: var(--color-mist); }
+.toc-search-input:focus {
+  outline: none;
+  border-bottom-color: var(--color-cloud);
+}
+.toc-search-count { font-size: 0.75rem; white-space: nowrap; }
+
+.toc-list {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-xs) 0;
+}
+
+.toc-entry {
+  display: grid;
+  grid-template-columns: 3.25rem 1fr auto;
+  align-items: baseline;
+  gap: var(--space-md);
+  width: 100%;
+  padding: var(--space-sm) var(--space-lg);
+  background: transparent;
+  border: none;
+  border-left: 2px solid transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast) var(--ease-default),
+    border-color var(--transition-fast) var(--ease-default);
+}
+.toc-entry:hover,
+.toc-entry:focus-visible {
+  background: color-mix(in srgb, var(--color-threshold) 45%, transparent);
+  border-left-color: var(--color-cloud);
+  outline: none;
+}
+
+/* The numeral in the margin, as the edition wrote it. */
+.toc-entry-mark {
+  font-size: 0.8rem;
+  color: var(--color-mist);
+  text-align: right;
+  letter-spacing: 0.04em;
+}
+.toc-entry:hover .toc-entry-mark,
+.toc-entry:focus-visible .toc-entry-mark { color: var(--color-cloud); }
+
+.toc-entry-body { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.toc-entry-label {
+  font-family: var(--font-literary);
+  font-size: 0.95rem;
+  color: var(--color-light);
+}
+.toc-entry-title {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  /* Chapter titles in these editions can be a full sentence. Two
+   * lines is generous; a third would make every row a paragraph. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.toc-entry-time { font-size: 0.75rem; white-space: nowrap; }
+
+.toc-empty { padding: var(--space-xl) var(--space-lg); text-align: center; }
+
+.toc-foot {
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--color-threshold);
+}
+.toc-whole { width: 100%; justify-content: center; }
+
+/* The card acknowledges the click while the payload is fetched — these
+ * are whole books and the wait is real. */
+.archive-card.is-opening { opacity: 0.55; pointer-events: none; }
+
+@media (max-width: 600px) {
+  .toc-sheet { max-height: 94vh; }
+  .toc-head { grid-template-columns: auto 1fr; row-gap: var(--space-sm); }
+  .toc-weight { grid-column: 2; flex-direction: row; gap: var(--space-sm); align-items: baseline; }
+  .toc-weight-count { font-size: 1rem; }
+  .toc-entry { grid-template-columns: 2.5rem 1fr; padding-inline: var(--space-md); }
+  .toc-entry-time { grid-column: 2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toc-scrim, .toc-sheet { transition: none; }
+  .toc-sheet { transform: none; }
+}

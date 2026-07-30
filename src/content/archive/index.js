@@ -36,7 +36,10 @@
  * they still agree, so a re-ingest that changes an edition cannot leave
  * this file quietly stale.
  */
-const WORKS = [
+import { LITERATURE_WORKS } from './literature-catalog.js';
+import { divideSections } from './divisions.js';
+
+const CORE_WORKS = [
     {
         meta: {
             id: 'vitruvius-architecture',
@@ -231,23 +234,40 @@ const WORKS = [
     }
 ];
 
+const WORKS = [...CORE_WORKS, ...LITERATURE_WORKS];
+
 /**
- * A long work is not one reading. Vitruvius is half a million
- * characters — roughly thirty-five hours at a contemplative pace — so
- * each section becomes its own sequence, and the reader chooses where
- * to enter rather than being handed the whole of it.
+ * A long work is not one reading, and its own sections are not its
+ * divisions.
+ *
+ * The generated `sections` are where the ingest's heading detector
+ * fired, which is not the same thing as where the book divides: 27% of
+ * their names are prose caught mid-sentence, and the true heading is
+ * stripped out of the content entirely. Handing those to a reader
+ * offers War and Peace in 445 pieces, a third of them titled with
+ * fragments of Tolstoy's sentences.
+ *
+ * So divisions.js reads the sections as EVIDENCE and reconstructs the
+ * work's real scheme — merging the mis-cut fragments back into the
+ * chapter they were taken from, and refusing to divide at all when no
+ * scheme survives verification.
  */
 function sequencesFor(meta, sections) {
-    return sections.map((section, i) => ({
+    const { entries } = divideSections(sections);
+    return entries.map((entry, i) => ({
         id: `${meta.id}-${i + 1}`,
-        name: section.name,
-        content: section.content,
+        name: entry.label,
+        title: entry.title,
+        content: entry.content,
+        words: entry.words,
         // Ingested prose carries no authored phrase marks. Left at the
         // work's own pace rather than the system default, because these
         // are arguments to be followed, not aphorisms to be dwelt on.
         wpm: 200,
         curve: 'flat',
-        description: `${section.name} of ${meta.title}`
+        description: entry.title
+            ? `${entry.label} — ${entry.title}`
+            : `${entry.label} of ${meta.title}`
     }));
 }
 
@@ -255,6 +275,7 @@ function sequencesFor(meta, sections) {
 export function ingestedArchiveTexts() {
     return WORKS.map(({ meta, load }) => {
         let cached = null;
+        let divisions = null;
         return {
             id: meta.id,
             title: meta.title,
@@ -267,6 +288,15 @@ export function ingestedArchiveTexts() {
             // Unknown until the payload loads. The card shows the
             // edition instead, which is the more useful fact anyway.
             chapterCount: null,
+            // A long work is entered at a division, not at its first
+            // word. The Library reads this to decide whether to offer
+            // a table of contents; it stays null until the payload
+            // arrives, because the divisions are derived from it.
+            divisions: null,
+            getDivisions: async () => {
+                if (!divisions) divisions = divideSections(await load());
+                return divisions;
+            },
             defaultCurve: 'flat',
             defaultWpm: 200,
             tags: ['archive', 'ingested', meta.shelf],
