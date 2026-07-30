@@ -317,21 +317,60 @@ describe('the division index agrees with the works it describes', () => {
         }
     });
 
-    it('indexes every payload, including those not yet shelved', async () => {
-        // The index is built from the works DIRECTORY, not the catalogue,
-        // and the two disagree: five Indigenous ingests carry complete
-        // metadata and rights bases but appear on no shelf, two of them
-        // under an explicit caveat to consult the community before
-        // release. Whether they are shelved is a curation decision and
-        // not this file's to make — so the invariant asserted here is
-        // the one that protects a reader: nothing on a shelf may be
-        // missing from the index. An extra entry is a book waiting.
+    it('carries no payload that is on no shelf', async () => {
+        // The index is built from the works DIRECTORY and the catalogue
+        // is written by hand, so the two can drift apart in silence.
+        // They had: five Indigenous ingests sat in the corpus with
+        // complete metadata and rights bases while appearing on no
+        // shelf, two of them under an explicit caveat to consult the
+        // community before release. A book nobody can reach is not
+        // held back, it is merely lost, and the difference was
+        // invisible until something compared the two lists.
+        //
+        // They were removed on 2026-07-30. Git keeps them, so the
+        // decision stays reversible; the shelf does not pretend.
         const { default: index } = await import('./division-index.json');
         const { INGESTED_META } = await import('./index.js');
         const registered = new Set(INGESTED_META.map(m => m.id));
         const unshelved = Object.keys(index).filter(id => !registered.has(id));
-        // Recorded rather than forbidden. If this grows, someone should
-        // be asked why, which is the point of stating the number.
-        expect(unshelved.length).toBeLessThanOrEqual(5);
+        expect(unshelved, `${unshelved.join(', ')} are ingested but on no shelf`).toEqual([]);
+    });
+});
+
+describe('a misnamed head does not open the work', () => {
+    const sec = (name, words) => ({
+        name, content: Array.from({ length: words }, () => 'word').join(' ')
+    });
+
+    it('drops a front-matter section named after the contents page', () => {
+        // The Odyssey's title page arrives named "BOOK XXIV.", because
+        // the ingest names a section after a heading found inside it and
+        // the contents list ends at Book XXIV. Ordinals read 24, 1, 2, 3
+        // — which passes an ascent test and then opens Homer at Book 24.
+        const w = divideSections([
+            sec('BOOK XXIV.', 1800),
+            sec('BOOK I', 4100), sec('BOOK II', 3000),
+            sec('BOOK III', 3000), sec('BOOK IV', 3000)
+        ], { minWords: 100 });
+
+        expect(w.entries[0].label).toBe('Front matter');
+        expect(w.entries[1].label).toBe('Book I');
+        expect(w.entries.some(e => e.label === 'Book XXIV')).toBe(false);
+    });
+
+    it('keeps a work whose numbering merely skips a number', () => {
+        // THE MISTAKE THIS RULE HAD TO BE NARROWED TO AVOID. Trimming to
+        // the longest CONSECUTIVE run instead buried Moby-Dick's first
+        // sixteen chapters in front matter, because its chapters skip
+        // from 16 to 18 and the run after the gap was longer. A scheme
+        // starts at its lowest number; irregularity later is normal.
+        const sections = [];
+        for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 19, 20, 21, 22]) {
+            sections.push(sec(`CHAPTER ${n}`, 800));
+        }
+        const w = divideSections(sections, { minWords: 100 });
+        expect(w.entries[0].label).toBe('Chapter 1');
+        expect(w.entries.filter(e => e.label.startsWith('Front matter'))).toHaveLength(0);
+        expect(w.entries).toHaveLength(21);
     });
 });

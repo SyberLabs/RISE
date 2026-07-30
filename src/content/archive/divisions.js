@@ -157,6 +157,32 @@ export function headingCandidates(text) {
 }
 
 /**
+ * Drop a misnamed head from a run of headings.
+ *
+ * The ingest names a section after a heading found INSIDE it, and for
+ * front matter that heading is whatever the contents page happened to
+ * list last. So the Odyssey's title page arrives named "BOOK XXIV." and
+ * the ordinals read 24, 1, 2, 3 … — which passes an ascent test,
+ * because everything after the first item ascends perfectly, and then
+ * opens the work at Book XXIV.
+ *
+ * A book's numbering STARTS AT ITS LOWEST NUMBER. That is the whole
+ * rule, and it has to be exactly this narrow: the first attempt kept
+ * the longest consecutive run instead, and since Moby-Dick's chapters
+ * skip from 16 to 18, the longest run began at 18 and buried the first
+ * sixteen chapters in front matter. Irregularity inside a work is
+ * normal and already tolerated; only the head is trimmed.
+ */
+function trimToRun(items) {
+    if (items.length < 2) return items;
+    let lowestAt = 0;
+    for (let i = 1; i < items.length; i++) {
+        if (items[i].ordinal < items[lowestAt].ordinal) lowestAt = i;
+    }
+    return items.slice(lowestAt);
+}
+
+/**
  * Is what follows the numeral a TITLE, or the rest of a sentence?
  *
  * The Odyssey's sections include "Book i., is continued to the end of
@@ -238,7 +264,7 @@ export function schemesIn(text, { minCount = 3, minAscending = 0.6 } = {}) {
             word: word === '#' ? null : word,
             count: items.length,
             ascending,
-            items
+            items: trimToRun(items)
         });
     }
     schemes.sort((a, b) => (b.ascending * b.count) - (a.ascending * a.count));
@@ -455,7 +481,10 @@ export function schemeFromNames(names, { minCount = 3, minAscending = 0.5 } = {}
         if (ascending < minAscending) continue;
         const score = ascending * items.length;
         if (!best || score > best.score) {
-            best = { word: word === '#' ? null : word, items, ascending, score };
+            best = {
+                word: word === '#' ? null : word,
+                items: trimToRun(items), ascending, score
+            };
         }
     }
     return best;

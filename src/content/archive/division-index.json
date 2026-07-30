@@ -23,12 +23,6 @@
     "count": 236,
     "words": 348800
   },
-  "aw-aw-tam-indian-nights": {
-    "divided": true,
-    "noun": "Reading",
-    "count": 15,
-    "words": 56008
-  },
   "beckwith-anansi-stories": {
     "divided": true,
     "noun": "Reading",
@@ -86,7 +80,7 @@
   "faust": {
     "divided": true,
     "noun": "Act",
-    "count": 40,
+    "count": 38,
     "words": 145392
   },
   "hamlet": {
@@ -314,7 +308,7 @@
   "the-iliad": {
     "divided": true,
     "noun": "Book",
-    "count": 57,
+    "count": 56,
     "words": 157376
   },
   "the-kalevala": {
@@ -344,7 +338,7 @@
   "the-no-plays-of-japan": {
     "divided": true,
     "noun": "Chapter",
-    "count": 18,
+    "count": 17,
     "words": 55686
   },
   "the-odyssey": {
@@ -413,29 +407,11 @@
     "count": 22,
     "words": 33251
   },
-  "traditions-of-the-skidi-pawnee": {
-    "divided": true,
-    "noun": "Reading",
-    "count": 53,
-    "words": 205467
-  },
-  "traditions-of-the-thompson-river-indians-of-british-columbia": {
-    "divided": true,
-    "noun": "Reading",
-    "count": 19,
-    "words": 70772
-  },
   "translations-of-shakuntala-and-other-works": {
     "divided": true,
     "noun": "Act",
     "count": 18,
     "words": 65123
-  },
-  "tsimshian-mythology": {
-    "divided": true,
-    "noun": "Reading",
-    "count": 142,
-    "words": 552883
   },
   "twenty-two-goblins": {
     "divided": true,
@@ -466,11 +442,5 @@
     "noun": "Chapter",
     "count": 46,
     "words": 115666
-  },
-  "zuni-folk-tales": {
-    "divided": true,
-    "noun": "Reading",
-    "count": 33,
-    "words": 124221
   }
 }
