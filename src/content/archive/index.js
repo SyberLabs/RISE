@@ -38,6 +38,11 @@
  */
 import { LITERATURE_WORKS } from './literature-catalog.js';
 import { divideSections } from './divisions.js';
+// Precomputed by scripts/build-division-index.mjs. Divisions derive
+// deterministically from bytes already committed, so they are derived
+// once at build time rather than in every reader's browser — which is
+// what lets a card say "365 chapters" without downloading Tolstoy.
+import DIVISION_INDEX from './division-index.json';
 
 const CORE_WORKS = [
     {
@@ -281,13 +286,24 @@ export function ingestedArchiveTexts() {
             title: meta.title,
             author: meta.author,
             category: meta.shelf,
-            tradition: `${meta.edition.publisher}, ${meta.edition.year}`,
+            // An edition names itself one of two ways, and they must not
+            // be concatenated. Interpolating both fields blindly gave
+            // "Homer · undefined, 1883" where a publisher was absent,
+            // and then "…Ernest Myers, 1883, 1883" once the hole was
+            // patched, because a `statement` already carries its year.
+            tradition: meta.edition.publisher
+                ? `${meta.edition.publisher}, ${meta.edition.year}`
+                : (meta.edition.statement || String(meta.edition.year || '')),
             description: meta.edition.translator
                 ? `${meta.title}, translated by ${meta.edition.translator}.`
                 : `${meta.title}.`,
-            // Unknown until the payload loads. The card shows the
-            // edition instead, which is the more useful fact anyway.
-            chapterCount: null,
+            // What the work holds, and what IT calls them. Every card
+            // used to read "0 verses" — a count that was wrong in a
+            // noun that was wrong — because the payload had not loaded
+            // and nothing else knew.
+            chapterCount: DIVISION_INDEX[meta.id]?.count ?? null,
+            chapterNoun: DIVISION_INDEX[meta.id]?.noun ?? null,
+            wordCount: DIVISION_INDEX[meta.id]?.words ?? null,
             // A long work is entered at a division, not at its first
             // word. The Library reads this to decide whether to offer
             // a table of contents; it stays null until the payload

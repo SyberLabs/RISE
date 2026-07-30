@@ -211,6 +211,38 @@ export class Library {
     return this.renderArchiveCards(texts);
   }
 
+  /**
+   * What a card says the work holds.
+   *
+   * In the work's OWN noun where it has one — 365 chapters, 48 books,
+   * 187 essays — because "verses" applied to Homer is the kind of small
+   * wrongness that reads as carelessness. Every archive card used to
+   * say "0 verses": a count that was wrong because the payload had not
+   * loaded, in a noun that was wrong because there was only one.
+   *
+   * A work whose divisions could not be verified says how long it is
+   * instead, which is the honest remaining fact.
+   */
+  holdingsPhrase(text) {
+    const n = text.chapterCount;
+    if (Number.isFinite(n) && n > 0) {
+      // ALWAYS A COUNT AND A NOUN. Falling back to a duration for
+      // undivided works put "5.2 hours" beside "12 books" in the same
+      // row, and a shelf scanned by eye wants one unit, not two.
+      // "Reading" is the Archive's own word where a work has none of
+      // its own — still a count of things a reader can enter.
+      const noun = (text.chapterNoun || 'verse').toLowerCase();
+      return `${n} ${noun}${n === 1 ? '' : 's'}`;
+    }
+    if (Number.isFinite(text.wordCount) && text.wordCount > 0) {
+      const hours = text.wordCount / 200 / 60;
+      return hours >= 1
+        ? `${hours.toFixed(hours < 10 ? 1 : 0)} hours`
+        : `${Math.max(1, Math.round(hours * 60))} min`;
+    }
+    return '';
+  }
+
   renderArchiveCards(texts) {
     return texts.map(text => {
       const shelf = LIBRARY_CATEGORIES.find(c => c.id === text.category);
@@ -232,15 +264,15 @@ export class Library {
         <p class="archive-subtitle text-fog">${escapeHtml(text.author)} · ${escapeHtml(text.tradition)}</p>
         ${text.why
           ? `<p class="archive-why">${escapeHtml(text.why)}</p>`
-          : `<p class="archive-description text-fog" style="font-size: 0.9rem; margin-top: 0.5rem;">
-               ${escapeHtml(text.description) || ''}
-             </p>`}
-        <div class="archive-meta text-mist font-mono" style="margin-top: 0.75rem; font-size: 0.85rem;">
-          ${text.chapterCount || 0} ${text.chapterCount === 1 ? 'chapter' : 'verses'}${edition ? ` · ${escapeHtml(edition)}` : ''}
+          : `<p class="archive-description text-fog">${escapeHtml(text.description) || ''}</p>`}
+        <div class="archive-card-foot">
+          <div class="archive-meta text-mist font-mono">
+            ${this.holdingsPhrase(text)}${edition ? ` · ${escapeHtml(edition)}` : ''}
+          </div>
+          <button class="btn-primary btn-sm archive-open" data-action="select-text" data-id="${text.id}">
+            ${text.chapterCount > 1 ? 'Open' : 'Load Text'}
+          </button>
         </div>
-        <button class="btn-primary btn-sm" style="margin-top: 1rem;" data-action="select-text" data-id="${text.id}">
-          Load Text
-        </button>
       </div>
     `;
     }).join('');

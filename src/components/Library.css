@@ -748,3 +748,50 @@
   .toc-scrim, .toc-sheet { transition: none; }
   .toc-sheet { transform: none; }
 }
+
+/* ── Card consistency ───────────────────────────────────────────────
+ *
+ * A grid of cards is read by scanning down a column, and that only
+ * works if the same thing sits in the same place on every card. The
+ * action button was positioned by an inline margin after whatever text
+ * happened to precede it, so it landed at a different height on every
+ * card and the grid read as ragged.
+ *
+ * The foot is pinned to the bottom instead: cards stretch to a shared
+ * height, the description takes the slack, and holdings and action land
+ * on the same line across the row however long the blurb is.
+ */
+.archive-grid > .archive-card,
+.archive-division .archive-grid > .archive-card {
+  height: 100%;
+}
+
+.archive-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-top: auto;              /* the pin */
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-threshold);
+}
+
+.archive-meta {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.archive-description {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.archive-open { white-space: nowrap; flex-shrink: 0; }
+
+@media (max-width: 480px) {
+  .archive-card-foot { flex-direction: column; align-items: stretch; }
+  .archive-open { width: 100%; }
+}

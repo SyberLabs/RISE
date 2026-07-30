@@ -119,7 +119,7 @@ export function headingCandidates(text) {
         const numbered = raw.match(NUMBERED);
         if (numbered) {
             const ordinal = ordinalOf(numbered[2]);
-            if (Number.isFinite(ordinal)) {
+            if (Number.isFinite(ordinal) && titleIsPlausible(numbered[3])) {
                 out.push({
                     index: start,
                     word: numbered[1].toLowerCase(),
@@ -154,6 +154,26 @@ export function headingCandidates(text) {
         }
     }
     return out;
+}
+
+/**
+ * Is what follows the numeral a TITLE, or the rest of a sentence?
+ *
+ * The Odyssey's sections include "Book i., is continued to the end of
+ * Book iv., and not resumed till" — a cross-reference from an editor's
+ * note, which opens exactly like a heading and then keeps talking. The
+ * numeral is real; the line is not a division.
+ *
+ * A title begins. It does not continue: it never opens with a comma or
+ * a conjunction, and an edition that titles its chapters capitalises
+ * them. Anything else is the middle of a sentence that happened to
+ * start with the word "Book".
+ */
+function titleIsPlausible(title) {
+    const t = String(title || '').trim();
+    if (!t) return true;                       // a bare heading is fine
+    if (/^[,;:)\]]/.test(t)) return false;      // continues a clause
+    return /^["'“‘(\[]?[A-Z0-9]/.test(t);
 }
 
 /**
@@ -388,7 +408,7 @@ export function parseHeading(name) {
     const numbered = raw.match(NUMBERED);
     if (numbered) {
         const ordinal = ordinalOf(numbered[2]);
-        if (Number.isFinite(ordinal)) {
+        if (Number.isFinite(ordinal) && titleIsPlausible(numbered[3])) {
             return {
                 word: numbered[1].toLowerCase(), ordinal,
                 numeral: numbered[2].trim(), title: numbered[3].trim(), kind: 'numbered'

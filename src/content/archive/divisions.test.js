@@ -298,3 +298,40 @@ describe('a pattern inside a work is not the work\'s scheme', () => {
         expect(w.noun).not.toBe('Canto');
     });
 });
+
+describe('the division index agrees with the works it describes', () => {
+    it('names every ingested work, with a count that matches', async () => {
+        // The index is generated (scripts/build-division-index.mjs) and
+        // is what every card reads. A stale one mis-states the shelf
+        // silently — the card says 365 chapters, the sheet opens 92 —
+        // so an ingest that forgets to regenerate must fail here rather
+        // than in front of a reader.
+        const { default: index } = await import('./division-index.json');
+        const { INGESTED_META } = await import('./index.js');
+
+        for (const meta of INGESTED_META) {
+            const entry = index[meta.id];
+            expect(entry, `${meta.id} is missing from division-index.json`).toBeTruthy();
+            expect(entry.count).toBeGreaterThan(0);
+            if (entry.divided) expect(entry.noun).toBeTruthy();
+        }
+    });
+
+    it('indexes every payload, including those not yet shelved', async () => {
+        // The index is built from the works DIRECTORY, not the catalogue,
+        // and the two disagree: five Indigenous ingests carry complete
+        // metadata and rights bases but appear on no shelf, two of them
+        // under an explicit caveat to consult the community before
+        // release. Whether they are shelved is a curation decision and
+        // not this file's to make — so the invariant asserted here is
+        // the one that protects a reader: nothing on a shelf may be
+        // missing from the index. An extra entry is a book waiting.
+        const { default: index } = await import('./division-index.json');
+        const { INGESTED_META } = await import('./index.js');
+        const registered = new Set(INGESTED_META.map(m => m.id));
+        const unshelved = Object.keys(index).filter(id => !registered.has(id));
+        // Recorded rather than forbidden. If this grows, someone should
+        // be asked why, which is the point of stating the number.
+        expect(unshelved.length).toBeLessThanOrEqual(5);
+    });
+});
