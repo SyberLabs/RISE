@@ -25,6 +25,7 @@ import {
     assertDossier,
     parseLiteratureDossier
 } from './archive-dossier.mjs';
+import { headingVocabulary } from '../src/content/archive/divisions.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CACHE = resolve(ROOT, '.ingest-cache', 'literature');
@@ -496,13 +497,31 @@ function unwrapArtifact(raw) {
  * A numbered division carries a number. Unnumbered matter is matched
  * separately and exactly, on its own line, as it always was.
  */
-const NUMBERED_HEADING =
-    /^(VOLUME|VOL\.?|PART|BOOK|CANTO|CHAPTER|ACT|SCENE|DAY|NIGHT|TALE|STORY|ADVENTURE|RUNE|POEM|SECTION)\b[\s.:—-]*(?:[IVXLCDM]+|\d{1,4})\b/i;
+const GLOBAL_DIVISION_WORDS = [
+    'VOLUME', 'VOL\\.?', 'PART', 'BOOK', 'CANTO', 'CHAPTER', 'ACT', 'SCENE',
+    'DAY', 'NIGHT', 'TALE', 'STORY', 'ADVENTURE', 'RUNE', 'POEM', 'SECTION'
+];
+
+/**
+ * A heading matcher over a GIVEN vocabulary.
+ *
+ * The vocabulary is the whole point. Searching every work for all
+ * sixteen global words is what manufactures false positives; searching
+ * the Kalevala for `runo` and nothing else produces almost none. The
+ * words come from what the curator declared — see headingVocabulary()
+ * in src/content/archive/divisions.js.
+ */
+function headingPattern(words) {
+    return new RegExp(
+        `^(${words.join('|')})\\b[\\s.:—-]*(?:[IVXLCDM]+|\\d{1,4})\\b`, 'i');
+}
+
+const GLOBAL_HEADING = headingPattern(GLOBAL_DIVISION_WORDS);
 
 const NAMED_MATTER =
     /^(PREFACE|PROLOGUE|INTRODUCTION|EPILOGUE|APPENDIX|NOTES|GLOSSARY|INDEX)$/i;
 
-function isStructuralHeading(line, previousLine = null) {
+function isStructuralHeading(line, previousLine = null, pattern = GLOBAL_HEADING) {
     const value = line.trim();
     if (!value || value.length > 100) return false;
     // A HEADING STANDS ALONE. Without this a contents page — where the
@@ -510,7 +529,54 @@ function isStructuralHeading(line, previousLine = null) {
     // section per entry, and the Odyssey's title page ended up named
     // "BOOK XXIV." after the last line of its own table of contents.
     if (previousLine !== null && previousLine.trim()) return false;
-    return NUMBERED_HEADING.test(value) || NAMED_MATTER.test(value);
+    return pattern.test(value) || NAMED_MATTER.test(value);
+}
+
+/** Line indices where a heading matching `pattern` stands alone. */
+function headingHits(lines, pattern) {
+    const hits = [];
+    for (let i = 0; i < lines.length; i++) {
+        if (isStructuralHeading(lines[i], i > 0 ? lines[i - 1] : null, pattern)) hits.push(i);
+    }
+    return hits;
+}
+
+/**
+ * How well a set of headings behaves like a book's numbering.
+ *
+ * COUNTING HITS IS NOT ENOUGH, and assuming otherwise nearly wrecked
+ * the Kalevala. Its curator declared "one runo"; its translator titled
+ * the divisions RUNE. Searching for `runo` finds four stray mentions in
+ * the preface — more than a "at least three hits" threshold would have
+ * rejected — so the work would have been cut into four pieces while the
+ * global list's fifty ascending RUNE headings sat there unused.
+ *
+ * A scheme counts UP. Scoring by how much of a run ascends separates
+ * fifty real divisions from four passing references, which a tally
+ * never can.
+ */
+function schemeScore(lines, hits) {
+    const ordinals = [];
+    for (const i of hits) {
+        const m = lines[i].trim().match(/\b([IVXLCDM]+|\d{1,4})\b/i);
+        if (!m) continue;
+        const raw = m[1];
+        let value = /^\d+$/.test(raw) ? Number(raw) : 0;
+        if (!value) {
+            const V = { M: 1000, D: 500, C: 100, L: 50, X: 10, V: 5, I: 1 };
+            const s = raw.toUpperCase();
+            for (let k = 0; k < s.length; k++) {
+                value += (V[s[k + 1]] > V[s[k]] ? -V[s[k]] : V[s[k]]) || 0;
+            }
+        }
+        if (value > 0) ordinals.push(value);
+    }
+    if (ordinals.length < 2) return 0;
+    let steps = 0;
+    for (let i = 1; i < ordinals.length; i++) {
+        if (ordinals[i] === ordinals[i - 1] + 1) steps++;
+    }
+    return steps;
 }
 
 function compactSections(sections) {
@@ -533,12 +599,22 @@ function compactSections(sections) {
     return result;
 }
 
-function sectionsForArtifact(artifact, volumeIndex, volumeCount) {
+function sectionsForArtifact(artifact, volumeIndex, volumeCount, vocabulary = []) {
     const lines = unwrapArtifact(artifact.text);
-    const hits = [];
-    for (let i = 0; i < lines.length; i++) {
-        if (isStructuralHeading(lines[i], i > 0 ? lines[i - 1] : null)) hits.push(i);
-    }
+
+    // THE WORK'S OWN WORD, WHERE IT EARNS IT. Searching for one or two
+    // declared nouns instead of sixteen rejects most accidental matches
+    // — the Faerie Queene drops from 268 heading-shaped lines to 106
+    // real cantos — but a declaration is prose written for a human and
+    // is sometimes simply not the word the translator used. So both
+    // vocabularies are tried and the one that produces the better
+    // ASCENDING RUN wins; the loser is discarded rather than merged.
+    const global = headingHits(lines, GLOBAL_HEADING);
+    const declared = vocabulary.length
+        ? headingHits(lines, headingPattern(vocabulary.map(w => w.toUpperCase())))
+        : [];
+    const hits = schemeScore(lines, declared) > schemeScore(lines, global) ? declared : global;
+
     const boundaries = [0, ...hits.filter(i => i > 0)];
     const volume = volumeCount > 1 ? `Volume ${volumeIndex + 1}` : null;
     const sections = boundaries.map((from, i) => {
@@ -651,8 +727,11 @@ async function ingest(entry) {
     for (let i = 0; i < declared.length; i++) {
         artifacts.push(await fetchArtifact(entry, declared[i], i));
     }
+    // The curator's own structure line, read at last rather than merely
+    // copied into the metadata beside the text it describes.
+    const vocabulary = headingVocabulary(entry.structure);
     const sections = artifacts.flatMap((artifact, i) =>
-        sectionsForArtifact(artifact, i, artifacts.length));
+        sectionsForArtifact(artifact, i, artifacts.length, vocabulary));
     if (!sections.length) throw new Error('artifact produced no addressable reading units');
     const payload = sections.map(section => section.content).join('\n\n');
     if (payload.length < 1000) throw new Error(`payload is suspiciously short (${payload.length} chars)`);

@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-    romanValue, parseHeading, schemeFromNames, splitLongDivision, divideSections
+    romanValue, parseHeading, schemeFromNames, splitLongDivision, divideSections, headingVocabulary
 } from './divisions.js';
 
 describe('roman numerals', () => {
@@ -372,5 +372,59 @@ describe('a misnamed head does not open the work', () => {
         expect(w.entries[0].label).toBe('Chapter 1');
         expect(w.entries.filter(e => e.label.startsWith('Front matter'))).toHaveLength(0);
         expect(w.entries).toHaveLength(21);
+    });
+});
+
+describe('a work is read in the vocabulary it was written in', () => {
+    const sec = (name, words) => ({
+        name, content: Array.from({ length: words }, () => 'word').join(' ')
+    });
+
+    it('parses the division words the ingest already writes', () => {
+        // The acquisition list has always contained RUNE and ADVENTURE,
+        // so the Kalevala's runes and the Nibelungenlied's adventures
+        // were found and named correctly in the payload — and then
+        // arrived on the shelf as anonymous "Readings", because this
+        // module's list could not read the names the other one wrote.
+        for (const [word, noun] of [['RUNE', 'Rune'], ['ADVENTURE', 'Adventure'], ['POEM', 'Poem']]) {
+            const w = divideSections(
+                [1, 2, 3, 4].map(n => sec(`${word} ${n}`, 900)), { minWords: 100 });
+            expect(w.noun, `${word} should divide`).toBe(noun);
+            expect(w.entries).toHaveLength(4);
+        }
+    });
+});
+
+describe('a declared vocabulary is a hint, not an authority', () => {
+    it('reads the division noun out of a curator\'s prose', () => {
+        expect(headingVocabulary({ readingUnit: 'one runo', levels: ['50 runos'] }))
+            .toEqual(['runo']);
+        expect(headingVocabulary({ readingUnit: 'one book, with speech blocks retained' }))
+            .toEqual(['book']);
+        // "a route of 10–20 laisses, while each laisse remains addressable"
+        expect(headingVocabulary({ readingUnit: 'a route of 10-20 laisses, while each laisse remains addressable' }))
+            .toContain('laisse');
+    });
+
+    it('yields nothing for a unit that names no heading', () => {
+        // "one numbered narrative" describes a division without naming
+        // one. A vocabulary of "narrative" would search a text for a
+        // word it never uses and find no structure at all, so the
+        // caller must be told there is nothing to try.
+        expect(headingVocabulary({ readingUnit: 'one numbered narrative' })).toEqual([]);
+        expect(headingVocabulary({ readingUnit: 'one editorially mapped movement' })).toEqual([]);
+        expect(headingVocabulary({})).toEqual([]);
+    });
+
+    it('does not widen a work\'s search back out through its levels', () => {
+        // Levels are consulted only when the reading unit gave nothing.
+        // Adding them always would put "trilogy", "choral" and "frame"
+        // into the search, which is the opposite of scoping it.
+        const v = headingVocabulary({
+            readingUnit: 'one play for ordinary reading, one scene for RSVP',
+            levels: ['trilogy > play > choral/scene blocks']
+        });
+        expect(v).toEqual(['play', 'scene']);
+        expect(v).not.toContain('trilogy');
     });
 });

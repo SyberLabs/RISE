@@ -45,7 +45,15 @@
 const DIVISION_WORDS = [
     'chapter', 'canto', 'book', 'section', 'part', 'act', 'scene',
     'essay', 'tale', 'night', 'letter', 'psalm', 'hymn', 'ode',
-    'fable', 'story', 'sonnet', 'idyll', 'fytte', 'lecture'
+    'fable', 'story', 'sonnet', 'idyll', 'fytte', 'lecture',
+    // THE INGEST KNEW THESE AND THE READER DID NOT. The acquisition
+    // list has always contained RUNE, ADVENTURE, POEM, DAY and VOLUME,
+    // so the Kalevala's fifty runes and the Nibelungenlied's thirty-nine
+    // adventures were found, cut, and named correctly in the payload —
+    // and then arrived on the shelf as anonymous "Readings", because
+    // THIS list could not parse the names the other one had written.
+    // Two vocabularies for one job, and only one of them was maintained.
+    'rune', 'runo', 'adventure', 'poem', 'day', 'volume'
 ];
 
 /** Roman numerals, strictly — `I` through `MMMCMXCIX`, and not "I" the pronoun. */
@@ -578,4 +586,88 @@ export function divideSections(sections, { maxWords = 4000, minWords = 12000 } =
 
     if (entries.length < 2) return whole('too-few');
     return { divided: true, noun, reason: 'scheme', entries };
+}
+
+/**
+ * The division vocabulary a work DECLARES for itself.
+ *
+ * Every dossier entry carries a `structure / reading unit / bounds`
+ * line written by a curator — "50 runos with verse lines; one runo;
+ * runo heading to next" — and until now the ingest copied it into the
+ * metadata and parsed with a fixed global word list instead.
+ *
+ * That list has twenty entries and contains neither `runo` nor `laisse`
+ * nor `adventure`, so the Kalevala's fifty runos arrived as 36 anonymous
+ * readings, the Nibelungenlied's thirty-nine adventures as 27, and the
+ * Song of Roland's laisses as 291 "Parts" — the right count under the
+ * wrong word.
+ *
+ * Widening the global list is the wrong fix: `runo` would then be
+ * matchable in all seventy-four works, buying four books at the cost of
+ * false positives everywhere. Scoping the vocabulary PER WORK does the
+ * opposite — the Kalevala looks for runos and nothing else, Hamlet for
+ * scenes and nothing else — so the search space shrinks from twenty
+ * words to one and false positives collapse with it.
+ *
+ * A declaration is a hint, not an authority. It is prose written for a
+ * human, so extraction is imperfect by construction, and several units
+ * ("one numbered narrative", "one editorially mapped movement") name no
+ * heading that appears in any text. Callers must therefore treat an
+ * empty result — and a declared vocabulary that finds nothing — as a
+ * reason to fall back, never as a reason to refuse.
+ *
+ * @param {{levels?: string[], readingUnit?: string}} structure
+ * @returns {string[]} candidate division nouns, singular and lowercased
+ */
+export function declaredVocabulary(structure) {
+    const out = [];
+    const add = (word) => {
+        if (!word) return;
+        const w = String(word).toLowerCase().replace(/[^a-z]/g, '');
+        if (w.length < 3) return;
+        // Naive de-pluralisation is enough for this vocabulary; none of
+        // these nouns has an irregular plural. A cleverer "-ses" rule
+        // turned "laisses" into "laiss".
+        const singular = w.endsWith('s') ? w.slice(0, -1) : w;
+        if (!out.includes(singular)) out.push(singular);
+    };
+
+    const unit = String(structure?.readingUnit || '');
+    // "one book", "one runo", "one scene/ode", "one play or scene"
+    for (const m of unit.matchAll(/\b(?:one|each)\s+([a-z]+)/gi)) add(m[1]);
+    // "a route of 10–20 laisses" — a count and a plural, no "one".
+    for (const m of unit.matchAll(/\b\d+\s+([a-z]+s)\b/gi)) add(m[1]);
+    // "one scene/ode" — the alternative after a slash.
+    for (const m of unit.matchAll(/\/([a-z]+)/gi)) add(m[1]);
+
+    // The levels are consulted ONLY when the reading unit yielded
+    // nothing. Adding them unconditionally widens each work's search
+    // straight back out — "trilogy", "choral", "frame", "machine",
+    // "detectable" — which is the opposite of the point of scoping it.
+    if (!out.length) {
+        for (const level of structure?.levels || []) {
+            for (const m of String(level).matchAll(/\b([a-z]{3,})\b/gi)) add(m[1]);
+        }
+    }
+    return out;
+}
+
+/**
+ * Words that describe a unit without ever appearing as a heading.
+ * Kept out of a work's vocabulary so a declaration cannot narrow the
+ * search to a term the text never uses.
+ */
+const NON_HEADING = new Set([
+    'one', 'each', 'complete', 'declared', 'editorially', 'mapped', 'named',
+    'curated', 'numbered', 'route', 'while', 'with', 'and', 'the', 'its',
+    'pair', 'cluster', 'variant', 'variants', 'metadata', 'teller', 'day',
+    'riddle', 'return', 'present', 'where', 'beat', 'marked', 'editor',
+    'ordinary', 'reading', 'rsvp', 'nested', 'addressable', 'remains',
+    'narrative', 'movement', 'tradition', 'entry', 'arc', 'blocks',
+    'retained', 'speech', 'lines', 'verse', 'containing', 'titled'
+]);
+
+/** A work's declared vocabulary, filtered to words that can be headings. */
+export function headingVocabulary(structure) {
+    return declaredVocabulary(structure).filter(w => !NON_HEADING.has(w));
 }
