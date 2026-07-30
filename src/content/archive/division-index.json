@@ -77,6 +77,18 @@
     "count": 17,
     "words": 61805
   },
+  "extended-bhagavad-gita-full": {
+    "divided": true,
+    "noun": "Chapter",
+    "count": 16,
+    "words": 20119
+  },
+  "extended-dhammapada-full": {
+    "divided": true,
+    "noun": "Chapter",
+    "count": 27,
+    "words": 12059
+  },
   "faust": {
     "divided": true,
     "noun": "Act",
@@ -130,6 +142,54 @@
     "noun": "Reading",
     "count": 92,
     "words": 355672
+  },
+  "literary-essays-emerson": {
+    "divided": true,
+    "noun": "Reading",
+    "count": 20,
+    "words": 74186
+  },
+  "literary-leaves-of-grass": {
+    "divided": true,
+    "noun": "Book",
+    "count": 41,
+    "words": 110279
+  },
+  "literary-letters-young-poet": {
+    "divided": false,
+    "noun": null,
+    "count": 1,
+    "words": 11042
+  },
+  "literary-meditations": {
+    "divided": true,
+    "noun": "Reading",
+    "count": 19,
+    "words": 71921
+  },
+  "literary-poems-blake": {
+    "divided": false,
+    "noun": null,
+    "count": 1,
+    "words": 5539
+  },
+  "literary-poems-dickinson": {
+    "divided": true,
+    "noun": "Part",
+    "count": 274,
+    "words": 30369
+  },
+  "literary-thus-spoke-zarathustra": {
+    "divided": true,
+    "noun": "Part",
+    "count": 128,
+    "words": 110900
+  },
+  "literary-walden": {
+    "divided": true,
+    "noun": "Reading",
+    "count": 31,
+    "words": 115510
   },
   "madame-bovary": {
     "divided": true,
@@ -227,6 +287,48 @@
     "count": 1,
     "words": 11672
   },
+  "sacred-corpus-hermeticum": {
+    "divided": true,
+    "noun": "Reading",
+    "count": 94,
+    "words": 369634
+  },
+  "sacred-emerald-tablet": {
+    "divided": false,
+    "noun": null,
+    "count": 1,
+    "words": 237
+  },
+  "sacred-i-ching": {
+    "divided": true,
+    "noun": "Chapter",
+    "count": 46,
+    "words": 170542
+  },
+  "sacred-rumi": {
+    "divided": true,
+    "noun": "Reading",
+    "count": 4,
+    "words": 14111
+  },
+  "sacred-tao-te-ching": {
+    "divided": false,
+    "noun": null,
+    "count": 1,
+    "words": 10661
+  },
+  "sacred-yoga-sutras": {
+    "divided": true,
+    "noun": "Book",
+    "count": 11,
+    "words": 30313
+  },
+  "sacred-zen-koans": {
+    "divided": true,
+    "noun": "Essay",
+    "count": 40,
+    "words": 137141
+  },
   "strange-stories-from-a-chinese-studio": {
     "divided": true,
     "noun": "Reading",
@@ -301,9 +403,9 @@
   },
   "the-house-of-atreus": {
     "divided": true,
-    "noun": "Part",
+    "noun": "Reading",
     "count": 9,
-    "words": 23090
+    "words": 34709
   },
   "the-iliad": {
     "divided": true,

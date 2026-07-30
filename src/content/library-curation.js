@@ -176,13 +176,10 @@ export const ARCHIVE_CURATION = Object.freeze({
     'sacred-yoga-sutras': {
         shelf: 'eastern',
         division: 'classical',
-        why: 'A technical manual for the mind, compressed to the point where a teacher was assumed present. Vivekananda’s 1896 commentary is what makes it readable without one — he is arguing with the reader, not glossing.',
+        why: 'A technical manual for the mind, compressed to the point where a teacher was assumed present. Charles Johnston’s 1912 reading expands the aphorisms into a continuous argument without pretending the source is self-explanatory.',
         functions: [R.PATTERN, R.RECURSION],
         rhymes: ['extended-bhagavad-gita-full', 'literary-meditations'],
-        // Corrected: this was recorded as Charles Johnston, which the
-        // source never said. Vivekananda died 1902 — the text was
-        // always clear; the provenance was the defect.
-        provenance: { translator: 'Swami Vivekananda', year: 1896, basis: PD_BASIS.AUTHOR_70 }
+        provenance: { translator: 'Charles Johnston', year: 1912, basis: PD_BASIS.PRE_1930 }
     },
     // ── THE WESTERN CANON ───────────────────────────────────────
     'literary-meditations': {
@@ -215,7 +212,8 @@ export const ARCHIVE_CURATION = Object.freeze({
         why: 'Ten letters to a stranger who asked whether his poems were any good. Rilke declines to answer and addresses the harder question underneath it.',
         functions: [R.STATE, R.RECURSION],
         rhymes: ['literary-meditations', 'literary-poems-dickinson'],
-        provenance: { translator: 'M. D. Herter Norton', year: 1929, basis: PD_BASIS.PRE_1930 }
+        provenance: { editor: 'Franz Xaver Kappus', language: 'German', year: 1929, basis: PD_BASIS.AUTHOR_70 },
+        caveats: ['German original. The renewed 1934 M. D. Herter Norton English translation is not included.']
     },
 
     // ── THE WESTERN CANON, continued ────────────────────────────
@@ -233,7 +231,7 @@ export const ARCHIVE_CURATION = Object.freeze({
         why: 'Blake believed he was transcribing rather than composing. Whatever the truth of that, the poems behave like transcription — plain surfaces over something that does not resolve.',
         functions: [R.STATE, R.CONNECTION],
         rhymes: ['literary-poems-dickinson', 'literary-leaves-of-grass'],
-        provenance: { year: 1794, basis: PD_BASIS.PRE_1930 }
+        provenance: { edition: 'R. Brimley Johnson', year: 1901, basis: PD_BASIS.PRE_1930 }
     },
     'literary-thus-spoke-zarathustra': {
         shelf: 'western',
@@ -249,7 +247,7 @@ export const ARCHIVE_CURATION = Object.freeze({
         why: 'Whitman kept revising one book for thirty-six years. The catalogues are not padding; they are an argument that nothing is too ordinary to be included.',
         functions: [R.STATE, R.CONNECTION],
         rhymes: ['literary-poems-blake', 'literary-thus-spoke-zarathustra'],
-        provenance: { year: 1855, basis: PD_BASIS.PRE_1930 }
+        provenance: { edition: '1891–92 deathbed edition', year: 1892, basis: PD_BASIS.PRE_1930 }
     },
 
     // ── THE EASTERN CANON ───────────────────────────────────────
@@ -269,7 +267,8 @@ export const ARCHIVE_CURATION = Object.freeze({
         why: 'Questions built so that answering them correctly is the failure. They work on the part of the mind that wants to resolve things.',
         functions: [R.RECURSION, R.PATTERN],
         rhymes: ['extended-dhammapada-full', 'sacred-tao-te-ching'],
-        provenance: { translator: 'Various', basis: PD_BASIS.AUTHOR_70 }
+        provenance: { author: 'D. T. Suzuki', edition: 'Essays in Zen Buddhism: First Series', year: 1927, basis: PD_BASIS.PRE_1930 },
+        caveats: ['The unattributed legacy miscellany is replaced by Suzuki’s complete 1927 first series, which includes historical koan material; the identifier remains stable.']
     },
     'sacred-rumi': {
         shelf: 'eastern',
@@ -277,7 +276,7 @@ export const ARCHIVE_CURATION = Object.freeze({
         why: 'Love poetry that is not metaphorically about God. Rumi means it literally, which is what makes the poems uncomfortable rather than merely beautiful.',
         functions: [R.STATE, R.RECURSION],
         rhymes: ['literary-poems-blake', 'sacred-tao-te-ching'],
-        provenance: { translator: 'Reynold A. Nicholson', year: 1926, basis: PD_BASIS.PRE_1930 }
+        provenance: { translator: 'Reynold A. Nicholson', year: 1898, basis: PD_BASIS.AUTHOR_70 }
     },
     'extended-dhammapada-full': {
         shelf: 'eastern',
@@ -295,7 +294,7 @@ export const ARCHIVE_CURATION = Object.freeze({
         why: 'A conversation held between two armies about whether to fight. That the setting is a battlefield and the subject is duty makes it the least abstract of the great philosophical texts.',
         functions: [R.STATE, R.RECURSION],
         rhymes: ['literary-meditations', 'epictetus-encheiridion'],
-        provenance: { translator: 'Edwin Arnold', year: 1885, basis: PD_BASIS.PRE_1930 }
+        provenance: { translator: 'Sir Edwin Arnold', edition: 'Truslove, Hanson & Comba reprint', year: 1900, basis: PD_BASIS.PRE_1930 }
     },
 
     // ── THE WESTERN CANON — the Hermetic line ───────────────────
@@ -314,7 +313,7 @@ export const ARCHIVE_CURATION = Object.freeze({
         why: 'A few lines that the entire alchemical tradition treated as its foundation. "As above, so below" is here, before it became a slogan.',
         functions: [R.CONNECTION, R.PATTERN],
         rhymes: ['sacred-corpus-hermeticum', 'sacred-i-ching'],
-        provenance: { translator: 'Isaac Newton', year: 1680, basis: PD_BASIS.PRE_1930 }
+        provenance: { translator: 'Isaac Newton', year: 1680, basis: PD_BASIS.AUTHOR_70 }
     },
     'sacred-i-ching': {
         shelf: 'eastern',

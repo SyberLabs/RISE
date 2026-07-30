@@ -125,6 +125,11 @@ function registerDeepSacredTexts() {
 function registerSimplifiedSacredTexts() {
     for (const [id, text] of Object.entries(SACRED_TEXTS)) {
         const textId = `sacred-${id}`;
+
+        // The verified Arnold Gita keeps the historical extended id.
+        // Retire the unverified simplified alias instead of exposing the
+        // same work twice under incompatible provenance.
+        if (textId === 'sacred-bhagavad-gita') continue;
         
         // Skip if ID already exists
         if (LIBRARY_TEXTS.find(t => t.id === textId)) continue;
@@ -255,6 +260,11 @@ function registerExtendedSacredTexts() {
 
     for (const [id, text] of Object.entries(EXTENDED_SACRED)) {
         const textId = `extended-${id}`;
+
+        // This alias carried the same unverified modernized Tao payload
+        // as the legacy sacred record. The exact Legge ingest now owns
+        // the stable public entry, so the duplicate alias is retired.
+        if (textId === 'extended-tao-te-ching-full') continue;
         
         // Skip if ID already exists
         if (LIBRARY_TEXTS.find(t => t.id === textId)) continue;
@@ -378,14 +388,16 @@ export function formatChapterNumber(num, style = 'arabic') {
 
 console.log('[Library] System initialized');
 
-// Register texts from providers on module load
-// Order matters: higher fidelity sources should be registered first
-registerDeepSacredTexts();       // Priority 1
-registerExtendedSacredTexts();   // Priority 2
-registerSimplifiedSacredTexts(); // Priority 3 (Fallback)
-registerStarterTexts();          // Registers Starters - now with Title check
-registerLiteraryTexts();         // Local curated literary texts (replaces Gutenberg)
+// Register texts from providers on module load.
+// Order matters: exact, checksummed editions win the identifier before
+// legacy excerpts can claim it. This makes a completed re-ingest an
+// atomic replacement; no temporary quarantine window is needed.
 registerIngestedWorks();         // Verified public-domain ingests
+registerDeepSacredTexts();       // Legacy high-fidelity excerpts
+registerExtendedSacredTexts();   // Legacy extended texts
+registerSimplifiedSacredTexts(); // Legacy fallback texts
+registerStarterTexts();          // Original R.I.S.E. compositions
+registerLiteraryTexts();         // Legacy local literary excerpts
 
 // RETIRED (LIBRARY-SPEC §0). Two registrations are deliberately absent:
 //

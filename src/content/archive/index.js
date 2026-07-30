@@ -37,6 +37,7 @@
  * this file quietly stale.
  */
 import { LITERATURE_WORKS } from './literature-catalog.js';
+import { LEGACY_REINGESTED_WORKS } from './legacy-catalog.js';
 import { divideSections } from './divisions.js';
 // Precomputed by scripts/build-division-index.mjs. Divisions derive
 // deterministically from bytes already committed, so they are derived
@@ -239,7 +240,7 @@ const CORE_WORKS = [
     }
 ];
 
-const WORKS = [...CORE_WORKS, ...LITERATURE_WORKS];
+const WORKS = [...CORE_WORKS, ...LEGACY_REINGESTED_WORKS, ...LITERATURE_WORKS];
 
 /**
  * A long work is not one reading, and its own sections are not its

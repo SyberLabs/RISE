@@ -55,9 +55,20 @@ function sha256(value) {
     return createHash('sha256').update(value).digest('hex');
 }
 
+/**
+ * The cache key must name the SOURCE, not just the slot.
+ *
+ * It used to be `w13-1.txt` — the work's code and nothing else. When
+ * W13's dossier was corrected from Gutenberg #1246 (Conrad Aiken's
+ * "The House of Dust") to #8604 (Morshead's actual Oresteia), the
+ * re-ingest read the cache, found `w13-1.txt`, and served the Aiken
+ * again. A correction that cannot invalidate its own cache is not a
+ * correction; it is a second copy of the mistake.
+ */
 function artifactName(entry, n, url) {
     const ext = url.match(/\.(txt|xml|json|pdf)(?:[?#]|$)/i)?.[1]?.toLowerCase() || 'txt';
-    return `${entry.code.toLowerCase()}-${n + 1}.${ext}`;
+    const key = createHash('sha256').update(url).digest('hex').slice(0, 8);
+    return `${entry.code.toLowerCase()}-${n + 1}-${key}.${ext}`;
 }
 
 function projectGutenbergArtifact(source) {

@@ -170,8 +170,8 @@ A holding is the complete work or complete named collection. A **reading unit** 
 ### W13 — *The House of Atreus*
 
 - **author / shelf / division:** Aeschylus; `western`; `classical`
-- **edition / source / basis:** trans. E. D. A. Morshead, 1881; [Project Gutenberg #1246](https://www.gutenberg.org/ebooks/1246); `author-death-70`
-- **evidence:** The source record identifies Morshead and all three plays—*Agamemnon*, *The Libation-Bearers*, and *The Furies*; translator died in 1912.
+- **edition / source / basis:** trans. E. D. A. Morshead, 1881; [Project Gutenberg #8604](https://www.gutenberg.org/ebooks/8604); `author-death-70`
+- **evidence:** Gutenberg #8604 is titled "The House of Atreus; Being the Agamemnon, the Libation bearers, and the Furies" and names Morshead as translator; Morshead died in 1912. CORRECTED 2026-07-30: this record previously cited #1246, which is Conrad Aiken's *The House of Dust: A Symphony*. The ingest fetched #1246 faithfully and every checksum matched, so the shelf served Aiken under Aeschylus's name until the payload was read. The evidence sentence above had asserted facts about a source nobody had opened.
 - **why:** The trilogy changes vengeance from a sacred duty into a civic problem without pretending that a court erases blood. Its form supplies the decisive long arc missing from a shelf of isolated tragedies.
 - **functions / rhymes:** `induce-state`, `install-pattern`, `generate-connection`; *The Iliad*, *The Nibelungenlied*, *Hamlet*
 - **structure / reading unit / bounds:** trilogy > play > choral/scene blocks; one play for ordinary reading, one scene for RSVP; title/speaker boundary to next.
