@@ -213,3 +213,35 @@ test('the three reported faults are gone', async ({ page }) => {
   expect(visuals.presentation).toBe('continuous');
   expect(visuals.procedural).toContain('paradise-lost');
 });
+
+test('the door stays open when a reader declines the safety notice', async ({ page }) => {
+  test.setTimeout(240000);
+  await openJourneys(page);
+  await expect(page.locator('.journey-credits')).toBeVisible({ timeout: 60000 });
+
+  await page.locator('.journey-begin').click();
+  const cancel = page.locator('#safety-cancel');
+  await cancel.waitFor({ state: 'visible', timeout: 60000 });
+  await cancel.click();
+  await page.waitForTimeout(5000);
+
+  // Declining turns the imagery off and reads on — it does not abort.
+  const after = await page.evaluate(() => {
+    const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
+    const b = document.querySelector('.journey-begin');
+    return {
+      reading: !!ch?.session,
+      visualMode: ch?.session?.visualConfig?.visualMode ?? null,
+      beginLabel: b?.textContent?.trim() ?? null,
+      beginDisabled: b?.disabled ?? null
+    };
+  });
+  console.log('DECLINED ' + JSON.stringify(after));
+
+  expect(after.reading).toBe(true);
+  expect(after.visualMode).toBe('off');
+  // And the door is still a door: it only ever restored the label on
+  // failure, so declining left it disabled reading "Preparing…" for good.
+  expect(after.beginLabel).toBe('Begin');
+  expect(after.beginDisabled).toBe(false);
+});

@@ -172,7 +172,8 @@ export class Journeys {
             if (!entry) return;
 
             this._busy = true;
-            const label = begin.textContent;
+            const label = begin.dataset.label || begin.textContent;
+            begin.dataset.label = label;
             begin.textContent = 'Preparing…';
             begin.disabled = true;
             window.rise?.audioEngine?.playClick?.();
@@ -203,6 +204,24 @@ export class Journeys {
                 setTimeout(() => { begin.textContent = label; begin.disabled = false; }, 2400);
             } finally {
                 this._busy = false;
+                // ALWAYS GIVE THE BUTTON BACK.
+                //
+                // Beginning a Journey hands off to the app, which asks
+                // for photosensitivity consent before the Chamber opens
+                // — so this promise stays pending while a modal owns
+                // the screen, which is right. What was wrong is that it
+                // only ever restored the label on FAILURE. Decline the
+                // notice, or come back to Journeys afterwards, and the
+                // button sat disabled reading "Preparing…" for good,
+                // with no way to start the reading again.
+                //
+                // The reading has navigated away by now, so restoring
+                // is invisible when it succeeds and is the difference
+                // between a live door and a dead one when it does not.
+                if (begin.isConnected && begin.textContent === 'Preparing…') {
+                    begin.textContent = label;
+                    begin.disabled = false;
+                }
             }
         });
     }
