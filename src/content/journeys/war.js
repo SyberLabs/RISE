@@ -149,7 +149,24 @@ export const WAR_JOURNEY = Object.freeze({
                 + 'intelligible: Homer does not present heroic meaning as an '
                 + 'illusion the next movement will expose.',
             segments: [
-                { passageId: 'pass-iliad-hector-household', role: 'context' },
+                {
+                    passageId: 'pass-iliad-hector-household',
+                    role: 'context',
+                    // SIXTEEN BOOKS PASS HERE. Hector leaves his wife at
+                    // the gate; the next thing this Journey shows is his
+                    // body in the dust. Three beats of the reading's own
+                    // pace is what separates two paragraphs, not what
+                    // separates those. Longer than the movement
+                    // boundaries around it, because the distance inside
+                    // this movement is greater than the distance out of
+                    // it — which is the movement's whole claim.
+                    transitionOut: {
+                        id: 'hector-gate-to-death',
+                        durationMs: 3200,
+                        visual: { kind: 'still' },
+                        audio: { kind: 'silence', fadeMs: 900 }
+                    }
+                },
                 { passageId: 'pass-iliad-hector-death', role: 'critique' }
             ],
             presentation: {

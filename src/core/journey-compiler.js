@@ -205,20 +205,61 @@ export function compileJourney(journey) {
             cue: normalizeAudioCue(presentation.audio)
         });
 
+        // A boundary between ADJACENT PASSAGES inside this movement
+        // (§3.1: "an authored boundary between every adjacent passage").
+        // Hector at the Scaean gate and Hector dead are one movement and
+        // sixteen books apart; three beats of the reading's own pace is
+        // not what sits between them. Declared per segment, because only
+        // an author knows how long that gap is.
+        segments.forEach((segment, s) => {
+            const out = segment?.transitionOut;
+            const nextSource = sourceIds[s + 1];
+            if (!out || !nextSource) return;
+            const tid = boundedId(out.id) || `${id}-seg-${s}`;
+            boundaries.push({
+                id: tid,
+                sourceId: boundarySourceId(tid),
+                fromMovementId: id,
+                toMovementId: id,
+                afterSourceId: sourceIds[s],
+                beforeSourceId: nextSource,
+                durationMs: boundedMs(out.durationMs, MAX_DURATION_MS, 1200)
+            });
+            visualSegments.push({
+                id: `${tid}-visual`,
+                match: { sourceIds: [boundarySourceId(tid)] },
+                cue: normalizeVisualCue(out.visual)
+            });
+            audioSegments.push({
+                id: `${tid}-audio`,
+                match: { sourceIds: [boundarySourceId(tid)] },
+                cue: normalizeAudioCue(out.audio)
+            });
+        });
+
         // A transition belongs BETWEEN movements. One authored after the
-        // last movement is a coda — a scored ending — and is kept, but
-        // it names no destination.
+        // last movement is a coda — a scored ending — and it is kept, but
+        // it names no destination and joins nothing.
         const out = movement.transitionOut;
         if (!out) return;
         const transitionId = boundedId(out.id) || `${id}-out`;
         const sourceId = boundarySourceId(transitionId);
         const next = authored[index + 1];
+        // The compiler knows the reading order, so it knows which two
+        // passages actually meet: the last of this movement and the
+        // first of the next. Leaving that to a later stage meant two
+        // places had to agree about the same join.
+        const nextSegments = Array.isArray(next?.segments) ? next.segments : [];
+        const nextFirst = nextSegments
+            .map(seg => boundedId(seg?.passageId)).filter(Boolean)[0] || null;
 
         boundaries.push({
             id: transitionId,
             sourceId,
             fromMovementId: id,
             toMovementId: next ? boundedId(next.id) || null : null,
+            afterSourceId: sourceIds[sourceIds.length - 1],
+            beforeSourceId: nextFirst,
             durationMs: boundedMs(out.durationMs, MAX_DURATION_MS, 1200)
         });
         visualSegments.push({
