@@ -107,6 +107,22 @@ export const WAR_JOURNEY = Object.freeze({
     terminalCondition: 'No synthesis. An emptied landscape, and silence.',
 
     estimatedMinutes: 24,
+
+    // PHRASE, NOT SENTENCE — measured, not preferred.
+    //
+    // Milton's sentences run ten lines, so sentence mode never reached a
+    // period before the 16-word ceiling and `splitLongChunk` windowed
+    // them by word count instead: 71.6% of Book VI's atoms ended
+    // mid-phrase, on "and", "which", "with". A reader met
+    // "darkness in perpetual round Lodge and" / "dislodge by turns, which".
+    //
+    // Phrase mode alone was worse in the other direction — 27% fragments
+    // and 95 stutter runs, "unpursued," alone on a screen. With the
+    // chunker's new floor it measures 0.1% fragments, 0.3% dangling
+    // tails, no stutter, and a median of seven words, which is a breath.
+    chunkMode: 'phrase',
+    phraseFloor: true,
+
     status: 'publishable',
     openRequirements: Object.freeze([]),
 

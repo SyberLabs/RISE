@@ -320,7 +320,12 @@ export function compileSession(input = {}) {
             wpm: config.wpm,
             source: source.name,
             sourceId: source.id,
-            hints: prepared.hints || null
+            hints: prepared.hints || null,
+            // Phrase mode's floor: merges pieces below a word floor back
+            // into what they were cut from. Opt-in per session, because
+            // it improves mechanically-split prose and would damage text
+            // whose short phrases are authored (see PHRASE-CHUNKING-STUDY).
+            phraseFloor: config.phraseFloor === true
         });
         if (sourceAtoms.length === 0) continue;
         const projectedAtomCount = atoms.length + sourceAtoms.length + (atoms.length > 0 ? 1 : 0);

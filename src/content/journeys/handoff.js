@@ -233,6 +233,7 @@ export async function createJourneyHandoff(journey, passages, options = {}) {
             // (§3.3). Pace, chunking and recitation are the author's.
             wpm: journey.wpm || 200,
             chunkMode: journey.chunkMode || 'sentence',
+            phraseFloor: journey.phraseFloor === true,
             curve: 'flat',
             recitation: { enabled: journey.recitation?.enabled === true },
             ...(journey.recitation?.voiceId ? { voiceId: journey.recitation.voiceId } : {}),

@@ -326,3 +326,75 @@ describe('scripture verse anchoring (PERICOPE-IMAGERY-SPEC §4)', () => {
     expect(atoms.every(a => a.chapter === undefined && a.verse === undefined)).toBe(true);
   });
 });
+
+describe('the phrase floor', () => {
+    // Phrase mode had a ceiling and nothing underneath it, so a
+    // comma-separated list — one thought — became one screen per item.
+    // Book VI measured 27% fragments and 95 stutter runs before this.
+    const floorOn = text => chunkText(text, { mode: 'phrase', wpm: 200, phraseFloor: true })
+        .map(a => a.content);
+    const floorOff = text => chunkText(text, { mode: 'phrase', wpm: 200 })
+        .map(a => a.content);
+
+    it('rejoins fragments into the thought they were cut from', () => {
+        const marcus = 'I shall encounter meddling, ungrateful, violent, '
+            + 'treacherous, envious, unsociable people.';
+        expect(floorOff(marcus).length).toBeGreaterThan(5);
+        const merged = floorOn(marcus);
+        expect(merged.length).toBeLessThan(4);
+        for (const atom of merged) {
+            expect(atom.split(/\s+/).length).toBeGreaterThan(2);
+        }
+    });
+
+    it('is off unless a caller asks', () => {
+        // It improves mechanically-split prose and damages text whose
+        // short phrases are authored, so it cannot be a default.
+        const text = 'One, two, three, four, five, six, seven, eight.';
+        expect(floorOff(text).length).toBeGreaterThan(floorOn(text).length);
+    });
+
+    it('never joins one sentence to the next', () => {
+        const text = 'He stopped. Then, slowly, he turned and walked away.';
+        for (const atom of floorOn(text)) {
+            // A period inside an atom, with more text after it, is two
+            // thoughts sharing one breath.
+            expect(atom).not.toMatch(/[.!?]\s+\S/);
+        }
+    });
+
+    it('never merges away an authored boundary', () => {
+        // The Vault's sequences carry hand-placed `|` marks. By every
+        // metric here they look like the defect — short pieces, many of
+        // them — because they are short BY DESIGN. That is the phrasing
+        // an author asked for, and it is the one thing the floor may not
+        // touch. Content authors; the runtime follows.
+        const authored = 'This is a new approach | to writing songs '
+            + '| that requires minimal | to no musical training.';
+        expect(floorOn(authored)).toEqual(floorOff(authored));
+        expect(floorOn(authored).length).toBe(4);
+    });
+
+    it('never exceeds the ceiling it was given', () => {
+        const long = Array.from({ length: 40 }, (_, i) => `word${i},`).join(' ');
+        for (const atom of floorOn(long)) {
+            expect(atom.split(/\s+/).filter(Boolean).length).toBeLessThanOrEqual(16);
+        }
+    });
+
+    it('leaves a one-word sentence standing alone', () => {
+        // Three survivors in the study were one-word sentences, and they
+        // should stay that way.
+        const atoms = floorOn('Enough. The rest of this is a longer clause entirely.');
+        expect(atoms[0]).toBe('Enough.');
+    });
+
+    it('touches no other mode', () => {
+        const text = 'One, two, three, four, five, six, seven, eight.';
+        for (const mode of ['word', 'sentence', 'paragraph']) {
+            const on = chunkText(text, { mode, wpm: 200, phraseFloor: true }).map(a => a.content);
+            const off = chunkText(text, { mode, wpm: 200 }).map(a => a.content);
+            expect(on, mode).toEqual(off);
+        }
+    });
+});

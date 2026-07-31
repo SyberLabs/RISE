@@ -49,6 +49,15 @@ const PUNCTUATION_PAUSE_WEIGHTS = {
  * must be split into readable pieces, never compressed by a ceiling.
  */
 const MAX_CHUNK_WORDS = 16;
+
+/**
+ * The floor, measured rather than chosen. Against Book VI, Iliad XXII
+ * and Guillemont, floors of 4/5/6 all clear fragments and stutter runs
+ * completely; 5 lands the median at 7-8 words, which is a breath, and
+ * keeps roughly a third more atoms than 6 — so the phrasing stays finer
+ * than sentence mode's while reading as whole units.
+ */
+const PHRASE_FLOOR_WORDS = 5;
 const LEADING_SPEAKER_LABEL = /^([A-Z][A-Z '.-]{1,30}):\s+/;
 
 /**
@@ -100,6 +109,84 @@ function getPunctuationPause(text, baseDuration) {
  * @param {number} maxWords
  * @returns {string[]}
  */
+/**
+ * The floor. Phrase mode had a ceiling and nothing underneath it.
+ *
+ * `splitPhrases` cuts after every `, ; : — – |` and every sentence end,
+ * and nothing ever put a short piece back. A comma-separated list — one
+ * thought — became one screen per item, and Book VI measured 27%
+ * fragments and 95 stutter runs: `"unpursued,"` alone on screen, then
+ * `"till Morn,"` alone after it.
+ *
+ * Sentence mode is not the answer to that. It has no fragments, but
+ * Milton's sentences run ten lines, so `splitLongChunk` windows them by
+ * word count and 71.6% of atoms end mid-phrase — `"...Lodge and"`,
+ * `"dislodge by turns, which"`. Phrase mode gets the BOUNDARIES right
+ * and the LENGTHS wrong; this fixes the lengths and touches nothing
+ * else.
+ *
+ * Three refusals, and the third is the important one:
+ *
+ *   1. Never past the ceiling — MAX_CHUNK_WORDS still governs.
+ *   2. Never across a sentence end. A naive floor produces
+ *      `"unsociable people. But all of this arises"`, which is two
+ *      thoughts in one breath.
+ *   3. NEVER ACROSS AN AUTHORED BOUNDARY. The Vault's sequences carry
+ *      hand-placed `|` marks, and by every metric here they look like
+ *      the defect — 19.5% fragments — because they are short BY DESIGN.
+ *      That is the phrasing an author asked for. `splitPhrases` treats
+ *      `|` and `,` identically and the provenance is gone by the time we
+ *      see the pieces, so this checks the paragraph's own text: if a
+ *      pipe was written anywhere in it, the floor declines to touch that
+ *      paragraph at all.
+ *
+ * Coarse, and deliberately so. Content authors; the runtime follows.
+ * The finer version is per-boundary provenance through `splitPhrases`,
+ * which is the real Chunker V2 item.
+ *
+ * @param {string[]} phrases pieces from splitPhrases, one paragraph's worth
+ * @param {string} paragraph the text they came from, for authored marks
+ */
+export function applyPhraseFloor(phrases, paragraph = '', {
+    floor = PHRASE_FLOOR_WORDS,
+    maxWords = MAX_CHUNK_WORDS
+} = {}) {
+    if (!Array.isArray(phrases) || phrases.length < 2) return phrases;
+    // An author who marked their own phrasing has already answered the
+    // question this function exists to answer.
+    if (paragraph.includes('|')) return phrases;
+
+    const words = piece => piece.trim().split(/\s+/).filter(Boolean).length;
+    const closesSentence = piece => /[.!?][)\]"'”’]*$/.test(piece.trim());
+    const joinable = (prev, next) =>
+        prev && !closesSentence(prev) && words(prev) + words(next) <= maxWords;
+
+    // Backward: a short piece rejoins what it was cut from.
+    const grown = [];
+    for (const piece of phrases) {
+        const prev = grown[grown.length - 1];
+        if (words(prev ?? '') < floor && joinable(prev, piece)) {
+            grown[grown.length - 1] = `${prev} ${piece}`;
+            continue;
+        }
+        grown.push(piece);
+    }
+
+    // Forward: a piece absorbs a short follower. Backward merging alone
+    // cannot rescue the LAST fragment of a sentence — `"of me."`,
+    // `"is unfathomable."` — because there is nothing after it to join.
+    const settled = [];
+    for (const piece of grown) {
+        const prev = settled[settled.length - 1];
+        if (words(piece) < floor && joinable(prev, piece)) {
+            settled[settled.length - 1] = `${prev} ${piece}`;
+            continue;
+        }
+        settled.push(piece);
+    }
+    return settled;
+}
+
 function splitLongChunk(chunk, maxWords = MAX_CHUNK_WORDS) {
     const words = chunk.split(/\s+/).filter(Boolean);
     if (words.length <= maxWords) return [chunk];
@@ -226,7 +313,7 @@ function splitParagraphs(text) {
  * @param {Object|null} [options.hints=null] - Default-off, profile-authored structural hints
  * @returns {Atom[]}
  */
-export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceId = '', hints = null } = {}) {
+export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceId = '', hints = null, phraseFloor = false } = {}) {
     if (typeof text !== 'string') return [];
 
     // STRUCTURAL TOKENIZATION: authored markers are choreography, not
@@ -328,9 +415,29 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
             case 'sentence':
                 chunks = splitSentences(trimmed);
                 break;
-            case 'phrase':
-                chunks = splitPhrases(trimmed, dialogueHints?.preserveSpeakerHead === true);
+            case 'phrase': {
+                const speakerHead = dialogueHints?.preserveSpeakerHead === true;
+                chunks = splitPhrases(trimmed, speakerHead);
+                // OPT-IN, AND THAT IS THE FINDING, NOT A HEDGE.
+                //
+                // The floor measures beautifully on Book VI and clears
+                // every fragment and stutter run. Enabled globally it
+                // also rewrote the Atrium's pinned durations and merged
+                // a stranded `SOCRATES:` that a test was using as its
+                // control — which is the study's own warning arriving on
+                // schedule: the metrics detect a defect in text split
+                // MECHANICALLY on punctuation and misread deliberate
+                // phrasing as the same defect.
+                //
+                // So a caller asks for it. A speaker label is an
+                // authored boundary — the strongest kind, it says a
+                // different person is talking — so dialogue declines it
+                // even when asked.
+                if (phraseFloor && !speakerHead) {
+                    chunks = applyPhraseFloor(chunks, trimmed);
+                }
                 break;
+            }
             case 'word':
             default:
                 chunks = splitWords(trimmed);

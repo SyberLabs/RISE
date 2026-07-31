@@ -173,3 +173,114 @@ Order:
 Step 1 is the real prerequisite, and it is worth doing regardless: the
 three-layer law says content authors and the runtime follows, and right
 now the runtime cannot tell the difference.
+
+---
+
+# Addendum — sentence mode, and the floor as built
+
+*Measured 2026-07-31 against the three works of the War Journey — Book VI,
+Iliad XXII, Guillemont — through the real chunker at 200 wpm.*
+
+## 6. The Journey was never in phrase mode
+
+The study above measured **phrase** mode. The War Journey ran **sentence**
+mode, where the defect is different and worse.
+
+Milton's sentences run ten lines. Sentence mode therefore almost never
+reaches a period before `MAX_CHUNK_WORDS`, so `splitLongChunk` windows
+the remainder by word count — and word count knows nothing about syntax.
+
+| work | mode | atoms | fragments | dangling tails | stutter | median |
+|---|---|---:|---:|---:|---:|---:|
+| Paradise Lost VI | sentence | 776 | 7.7% | **71.6%** | 1 | 9 |
+| | phrase | 1742 | 27.1% | 1.0% | **95** | 4 |
+| Iliad XXII | sentence | 621 | 6.4% | **60.1%** | 2 | 9 |
+| | phrase | 1004 | 24.8% | 9.9% | 18 | 5 |
+| Guillemont | sentence | 633 | 9.8% | **41.2%** | 2 | 9 |
+| | phrase | 1063 | 27.3% | 12.2% | 24 | 5 |
+
+Dangling tails were 1.4% in the original study. In sentence mode they are
+**71.6%**. What a reader met:
+
+```
+ 6w  darkness in perpetual round Lodge and
+ 4w  dislodge by turns, which
+ 8w  makes through Heaven Grateful vicissitude, like day and
+ 5w  night; Light issues forth, and
+```
+
+Phrase mode alone is not the answer — it is the original defect at full
+strength, 95 stutter runs in one book:
+
+```
+ 5w  All night the dreadless Angel,
+ 1w  unpursued,
+ 7w  Through Heaven's wide champain held his way;
+ 2w  till Morn,
+```
+
+**Phrase mode gets the boundaries right and the lengths wrong. Sentence
+mode gets neither.**
+
+### A rejected fix, recorded
+
+`splitLongChunk` splits *after* the connective —
+`/(?<=\s(?:and|but|or|that|with|which))\s+/` — which is why the tails
+dangle. Flipping the lookbehind to a lookahead was simulated: tails fall
+70.0% → 5.4% and orphan heads rise 2.6% → 68.5%. It moves the defect
+rather than fixing it, and the metric cannot say which shape reads
+better. Not done.
+
+## 7. The floor, implemented
+
+Exactly §5's rule, and its three refusals:
+
+| work | phrase | phrase + floor 5 |
+|---|---|---|
+| Paradise Lost VI | 1742 atoms, 27.1% frag, 95 stutter, median 4 | **968, 0.1%, 0, median 7** |
+| Iliad XXII | 1004, 24.8%, 18, median 5 | **632, 0.3%, 0, median 8** |
+| Guillemont | 1063, 27.3%, 24, median 5 | **680, 4.6%, 2, median 8** |
+
+```
+ 5w  Lodge and dislodge by turns,
+ 6w  which makes through Heaven Grateful vicissitude,
+ 7w  like day and night; Light issues forth,
+```
+
+`applyPhraseFloor` (chunker.js) never crosses the ceiling, never crosses
+a sentence end, and never touches a paragraph containing an authored `|`.
+It runs per paragraph, so a running head such as `Book VI` cannot be
+absorbed into the first line. Dialogue with `preserveSpeakerHead`
+declines it outright — a speaker label is the strongest authored boundary
+there is.
+
+### It is OPT-IN, and that is the finding
+
+Enabled globally, the floor rewrote the Atrium's pinned durations and
+merged a stranded `SOCRATES:` that a test used as its control. That is
+§4's warning arriving on schedule: **these metrics detect a defect in
+text split mechanically on punctuation, and misread deliberate phrasing
+as the same defect.**
+
+So `phraseFloor` is a session flag. `WAR_JOURNEY` sets it; nothing else
+does. Turning it on elsewhere is a per-corpus decision requiring the
+measurement above, not a default anyone inherits.
+
+## 8. Still open
+
+- §5 step 1 — **per-boundary provenance** through `splitPhrases`, which
+  still treats `|`, `,` and a newline as the same anonymous split. The
+  paragraph-level `|` check is a coarse stand-in for it.
+- **Verse is not modelled at all.** Milton's line is a unit, and nothing
+  in the chunker knows it. There is no verse chunk profile; the only
+  profile is the Chapel's verse *sentinel* stripper, which is unrelated.
+  A line-aware profile for poetry is the obvious next study, and it may
+  beat the floor for verse outright.
+- `splitPhrases` splits after `.` before a capital, but **not after `?`
+  or `!`** — so `"Question? SOCRATES:"` is one piece. Pre-existing, and
+  visible in the dialogue tests.
+- The orphan-head metric misreads floored text: 42.6% of Book VI's atoms
+  begin with a connective, but with 0.1% fragments those are clauses
+  (`"which makes through Heaven Grateful vicissitude,"`), not orphans.
+  The metric was built for 2-word fragments and should not be read
+  without the fragment column beside it.
