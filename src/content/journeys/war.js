@@ -65,7 +65,27 @@ export const WAR_PASSAGES = Object.freeze([
         role: 'context',
         language: 'en',
         note: 'The scene that gives Hector\'s death its cost. Without it, Book '
-            + 'XXII is a duel.'
+            + 'XXII is a duel.',
+        /**
+         * A DISCLOSED ROUTE (§1.4), not the whole book.
+         *
+         * Book VI entire is 5,431 words and most of it is Glaukos and
+         * Diomedes exchanging armour — a magnificent episode about
+         * something else. The movement needs one scene: Hector leaving
+         * the gate to find his wife, and the household that mourns him
+         * while he is still alive.
+         *
+         * The closing anchor is chosen and not merely convenient. "So
+         * bewailed they Hector, while yet he lived" is the whole reason
+         * this passage precedes Book XXII: Troy has already begun the
+         * funeral, and the second movement only has to arrive.
+         */
+        excerpt: {
+            from: 'So spake Hector of the glancing helm and departed',
+            to: 'So bewailed they Hector, while yet he lived',
+            note: 'From Hector leaving the gate to the household mourning '
+                + 'him while he still lives.'
+        }
     },
     {
         id: 'pass-iliad-hector-death',
@@ -75,7 +95,21 @@ export const WAR_PASSAGES = Object.freeze([
         role: 'critique',
         language: 'en',
         note: 'Revises Book VI rather than illustrating it: the code that made '
-            + 'him intelligible is what kills him.'
+            + 'him intelligible is what kills him.',
+        /**
+         * The opening anchor IS the movement's counterpressure.
+         *
+         * "Thus saying Athene in her subtlety led him on" — Hector turns
+         * and stands because a god wearing his brother's face told him
+         * to. The code that makes him intelligible is the deception that
+         * kills him, and the route begins on the line where that
+         * happens rather than at the top of the book.
+         */
+        excerpt: {
+            from: 'Thus saying Athene in her subtlety led him on',
+            to: 'leaving her vigour and youth',
+            note: 'From Athene\'s deception to the moment his soul leaves him.'
+        }
     },
     {
         id: 'pass-storm-of-steel-guillemont',

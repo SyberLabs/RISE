@@ -17,8 +17,15 @@ async function openJourneys(page) {
  * Chamber opens. That gate is correct and belongs to the reader, so a
  * test walks through it rather than around it.
  */
+/**
+ * War specifically. The Demonstration now sits above it — it is the
+ * shorter door and belongs first — so a bare `.journey-begin` picks the
+ * wrong card, and every assertion below is about War's three movements.
+ */
+const WAR = '[data-journey="journey-war"]';
+
 async function enterReading(page) {
-  await page.locator('.journey-begin').click();
+  await page.locator(`${WAR} .journey-begin`).click();
   // isVisible() does NOT auto-wait — it reports the state at that
   // instant and ignores a timeout — so checking it straight after the
   // click asked whether a modal that had not appeared yet was showing.
@@ -45,7 +52,7 @@ test('War states its argument before asking for twenty minutes', async ({ page }
   await openJourneys(page);
 
   const card = await page.evaluate(() => {
-    const el = document.querySelector('.journey-card');
+    const el = document.querySelector('[data-journey="journey-war"]');
     return {
       title: el.querySelector('.journey-name')?.textContent.trim(),
       thesis: el.querySelector('.journey-thesis')?.textContent.trim(),
@@ -69,13 +76,16 @@ test('War states its argument before asking for twenty minutes', async ({ page }
 test('the introduction hydrates with real editions and a real duration', async ({ page }) => {
   await openJourneys(page);
   // Resolution reads whole books; give it room.
-  await expect(page.locator('.journey-credits')).toBeVisible({ timeout: 60000 });
+  await expect(page.locator(`${WAR} .journey-credits`)).toBeVisible({ timeout: 60000 });
 
-  const hydrated = await page.evaluate(() => ({
-    meta: [...document.querySelectorAll('.journey-meta span')].map(s => s.textContent.trim()),
-    credits: [...document.querySelectorAll('.journey-credits li')].map(l => l.textContent.trim()),
-    works: [...document.querySelectorAll('.journey-movement-works')].map(w => w.textContent.trim())
-  }));
+  const hydrated = await page.evaluate(() => {
+    const el = document.querySelector('[data-journey="journey-war"]');
+    return {
+      meta: [...el.querySelectorAll('.journey-meta span')].map(s => s.textContent.trim()),
+      credits: [...el.querySelectorAll('.journey-credits li')].map(l => l.textContent.trim()),
+      works: [...el.querySelectorAll('.journey-movement-works')].map(w => w.textContent.trim())
+    };
+  });
   console.log('HYDRATED ' + JSON.stringify(hydrated).slice(0, 400));
 
   // Editions, because that is what a reader is actually shown.
@@ -92,7 +102,7 @@ test('the introduction hydrates with real editions and a real duration', async (
 test('Begin enters the reading directly, bypassing the orbital', async ({ page }) => {
   test.setTimeout(180000);
   await openJourneys(page);
-  await expect(page.locator('.journey-credits')).toBeVisible({ timeout: 60000 });
+  await expect(page.locator(`${WAR} .journey-credits`)).toBeVisible({ timeout: 60000 });
 
   // §3.3: a published Journey is not reconfigured on the way in.
   await enterReading(page);
@@ -125,7 +135,7 @@ test('Begin enters the reading directly, bypassing the orbital', async ({ page }
 test('the movement title follows the reading', async ({ page }) => {
   test.setTimeout(180000);
   await openJourneys(page);
-  await expect(page.locator('.journey-credits')).toBeVisible({ timeout: 60000 });
+  await expect(page.locator(`${WAR} .journey-credits`)).toBeVisible({ timeout: 60000 });
   await enterReading(page);
   await page.waitForTimeout(3000);
 
@@ -162,7 +172,7 @@ test('the three reported faults are gone', async ({ page }) => {
   expect(scroll.scrollable).toBe(true);
   expect(scroll.moved).toBe(true);
 
-  await expect(page.locator('.journey-credits')).toBeVisible({ timeout: 60000 });
+  await expect(page.locator(`${WAR} .journey-credits`)).toBeVisible({ timeout: 60000 });
   await enterReading(page);
   await page.waitForTimeout(6000);
 
@@ -227,9 +237,9 @@ test('the three reported faults are gone', async ({ page }) => {
 test('the door stays open when a reader declines the safety notice', async ({ page }) => {
   test.setTimeout(240000);
   await openJourneys(page);
-  await expect(page.locator('.journey-credits')).toBeVisible({ timeout: 60000 });
+  await expect(page.locator(`${WAR} .journey-credits`)).toBeVisible({ timeout: 60000 });
 
-  await page.locator('.journey-begin').click();
+  await page.locator(`${WAR} .journey-begin`).click();
   const cancel = page.locator('#safety-cancel');
   await cancel.waitFor({ state: 'visible', timeout: 60000 });
   await cancel.click();
@@ -238,7 +248,7 @@ test('the door stays open when a reader declines the safety notice', async ({ pa
   // Declining turns the imagery off and reads on — it does not abort.
   const after = await page.evaluate(() => {
     const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
-    const b = document.querySelector('.journey-begin');
+    const b = document.querySelector('[data-journey="journey-war"] .journey-begin');
     return {
       reading: !!ch?.session,
       visualMode: ch?.session?.visualConfig?.visualMode ?? null,
@@ -268,7 +278,7 @@ test("Milton's engines are alive, not photographs of themselves", async ({ page 
   page.on('console', m => { if (m.text().includes('[WorkEngines]')) failures.push(m.text()); });
 
   await openJourneys(page);
-  await expect(page.locator('.journey-credits')).toBeVisible({ timeout: 60000 });
+  await expect(page.locator(`${WAR} .journey-credits`)).toBeVisible({ timeout: 60000 });
   await enterReading(page);
   await expect(page.locator('.work-engine-plane')).toHaveCount(2, { timeout: 60000 });
   await page.waitForTimeout(4000);
@@ -338,11 +348,59 @@ test('a movement\'s soundscape cue actually reaches the audio engine', async ({ 
   });
 
   await openJourneys(page);
-  await expect(page.locator('.journey-credits')).toBeVisible({ timeout: 60000 });
+  await expect(page.locator(`${WAR} .journey-credits`)).toBeVisible({ timeout: 60000 });
   await enterReading(page);
   await page.waitForTimeout(10000);
 
   console.log('DELIVERED ' + JSON.stringify([...new Set(delivered)]));
   expect(delivered, 'no soundscape cue reached the engine').not.toEqual([]);
   expect(delivered).toContain('war-ordered-field');
+});
+
+test('the Demonstration is the short door, and it opens', async ({ page }) => {
+  test.setTimeout(300000);
+  // War is seventy-five minutes and should be. This is what you open in
+  // front of somebody who has ten, and it runs on exactly the same
+  // compiler, handoff, schedulers and living field — no special path.
+  const DEMO = '[data-journey="demo-procedural"]';
+  const cues = [];
+  page.on('console', m => {
+    const hit = m.text().match(/Cue activated: \S+ → procedural: (\S+) \[([^\]]+)\]/);
+    if (hit) cues.push(hit[2]);
+  });
+
+  await openJourneys(page);
+  // It leads, because it is the one a reader can afford to try.
+  const order = await page.evaluate(() =>
+    [...document.querySelectorAll('.journey-card')].map(c => c.dataset.journey));
+  expect(order[0]).toBe('demo-procedural');
+
+  await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
+  const card = await page.evaluate(() => {
+    const el = document.querySelector('[data-journey="demo-procedural"]');
+    return {
+      title: el.querySelector('.journey-name')?.textContent.trim(),
+      minutes: [...el.querySelectorAll('.journey-meta span')]
+        .map(s => s.textContent.trim()).find(t => t.includes('min')),
+      disabled: el.querySelector('.journey-begin')?.disabled
+    };
+  });
+  console.log('DEMO ' + JSON.stringify(card));
+  expect(card.title).toBe('Demonstration');
+  expect(card.disabled).toBe(false);
+  // Short enough to show. If this creeps past a quarter of an hour it
+  // has stopped being the short door.
+  expect(parseInt(card.minutes, 10)).toBeLessThan(15);
+
+  await page.locator(`${DEMO} .journey-begin`).click();
+  const accept = page.locator('#safety-accept');
+  await accept.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
+  if (await accept.isVisible()) await accept.click();
+  await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
+  await expect(page.locator('.work-engine-plane')).toHaveCount(2, { timeout: 60000 });
+  await page.waitForTimeout(8000);
+
+  console.log('DEMOCUES ' + JSON.stringify([...new Set(cues)]));
+  // The reel is showing a NAMED engine, not the family at large.
+  expect(cues.length).toBeGreaterThan(0);
 });

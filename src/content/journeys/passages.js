@@ -76,6 +76,87 @@ export function entriesForDivision(entries, division) {
  * @param {{id: string, workId: string, division: string}} passage
  * @returns {Promise<{id, workId, division, text, words, checksum, edition, title}>}
  */
+/**
+ * A DISCLOSED ROUTE THROUGH A READING UNIT (JOURNEYS-SPEC §1.4).
+ *
+ * The spec permits an excerpt and states the condition exactly: a
+ * Journey "may use a disclosed route through a reading unit, but it may
+ * not silently store or present an excerpt as though it were the
+ * complete holding." So the route is a LOCATOR like everything else
+ * here — never stored text — and the passage says openly which part of
+ * the division it takes.
+ *
+ * BY QUOTATION, NOT BY OFFSET. The obvious primitive is a character or
+ * line range, and it is the wrong one for this Archive. Our Iliad is a
+ * prose translation hard-wrapped at 71 columns, so its "lines" are an
+ * artefact of the file rather than anything Homer or the translator
+ * chose, and an offset is a number nobody can check by reading. An
+ * anchor is the text itself:
+ *
+ *     from: 'So spake Hector of the glancing helm and departed'
+ *
+ * An editor can verify that against a printed page; it survives
+ * whitespace normalisation; and when it stops matching it says so
+ * rather than sliding quietly to a different scene. Same principle as
+ * the passage checksum, and the same one the Experience Program's
+ * quoteStart/quoteEnd anchors are specified to use.
+ *
+ * Refusal, not approximation: an anchor that cannot be found is an
+ * error. Falling back to the whole division would present a route as
+ * the holding, which is the one thing §1.4 forbids.
+ */
+function applyExcerpt(text, excerpt, context) {
+    if (!excerpt || typeof excerpt !== 'object') return text;
+    const from = typeof excerpt.from === 'string' ? excerpt.from.trim() : '';
+    const to = typeof excerpt.to === 'string' ? excerpt.to.trim() : '';
+    if (!from && !to) return text;
+
+    // Anchors match against whitespace-flattened text, so a line break
+    // inside a quoted phrase cannot defeat it. `offsets` maps each
+    // flattened character back to the original, which keeps the
+    // excerpt's own paragraphing intact.
+    const flatten = (value) => value.replace(/\s+/g, ' ');
+    let flat = '';
+    const offsets = [];
+    let previousWasSpace = false;
+    for (let i = 0; i < text.length; i += 1) {
+        const isSpace = /\s/.test(text[i]);
+        if (isSpace) {
+            if (previousWasSpace || flat.length === 0) continue;
+            flat += ' ';
+        } else {
+            flat += text[i];
+        }
+        offsets.push(i);
+        previousWasSpace = isSpace;
+    }
+
+    const openAt = from ? flat.indexOf(flatten(from)) : 0;
+    if (openAt < 0) {
+        throw new PassageResolutionError('EXCERPT_ANCHOR_NOT_FOUND',
+            `The opening anchor was not found in ${context.division}.`,
+            { ...context, anchor: from });
+    }
+    const closing = to ? flatten(to) : '';
+    const closeAt = to ? flat.indexOf(closing, openAt + 1) : -1;
+    if (to && closeAt < 0) {
+        throw new PassageResolutionError('EXCERPT_ANCHOR_NOT_FOUND',
+            `The closing anchor was not found after the opening one in ${context.division}.`,
+            { ...context, anchor: to });
+    }
+
+    const start = offsets[openAt] ?? 0;
+    const end = to
+        ? (offsets[closeAt + closing.length - 1] ?? text.length - 1) + 1
+        : text.length;
+    const route = text.slice(start, end).trim();
+    if (!route) {
+        throw new PassageResolutionError('EXCERPT_EMPTY',
+            `The route through ${context.division} resolved to nothing.`, context);
+    }
+    return route;
+}
+
 export async function resolvePassage(passage, texts = null) {
     const id = passage?.id;
     const workId = passage?.workId;
@@ -100,8 +181,16 @@ export async function resolvePassage(passage, texts = null) {
             { id, workId, division: passage.division, noun: divisions.noun });
     }
 
-    const text = entries.map(entry => entry.content).join('\n\n');
-    const words = entries.reduce((n, entry) => n + entry.words, 0);
+    const whole = entries.map(entry => entry.content).join('\n\n');
+    // The excerpt is applied BEFORE the checksum, because the checksum
+    // must describe what a reader actually reads. A digest of the whole
+    // division would verify a text the Journey never presents.
+    const text = applyExcerpt(whole, passage.excerpt,
+        { id, workId, division: passage.division });
+    const excerpted = text.length !== whole.length;
+    const words = excerpted
+        ? text.split(/\s+/).filter(Boolean).length
+        : entries.reduce((n, entry) => n + entry.words, 0);
     const checksum = await sha256Hex(text);
 
     return {
@@ -116,6 +205,12 @@ export async function resolvePassage(passage, texts = null) {
         edition: work.tradition,
         provenance: work.provenance || null,
         parts: entries.length,
+        // DISCLOSURE, carried with the passage rather than left implicit.
+        // §1.4: an excerpt may never be presented as the whole holding,
+        // so every surface showing a credit can say which this is.
+        excerpted,
+        excerptNote: excerpted ? (passage.excerpt?.note || null) : null,
+        wholeWords: entries.reduce((n, entry) => n + entry.words, 0),
         words,
         checksum,
         text

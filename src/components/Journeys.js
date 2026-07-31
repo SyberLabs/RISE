@@ -26,11 +26,23 @@
  */
 
 import { WAR_JOURNEY, WAR_PASSAGES } from '../content/journeys/war.js';
+import { DEMO_JOURNEY, DEMO_PASSAGES } from '../content/journeys/demo.js';
 import { createJourneyHandoff, journeyIntroduction } from '../content/journeys/handoff.js';
 import { resolveJourneyPassages } from '../content/journeys/passages.js';
 
-/** Every published Journey. One, for now. */
-const JOURNEYS = [{ journey: WAR_JOURNEY, passages: WAR_PASSAGES }];
+/**
+ * Everything published here, shortest first.
+ *
+ * The Demonstration leads because it is the one a reader can afford to
+ * try. It is not a Journey — §1.1 — and its card says so; it sits here
+ * because this is where someone arrives, and asking them for
+ * seventy-five minutes before they know what any of it is would lose
+ * most of them at the door.
+ */
+const JOURNEYS = [
+    { journey: DEMO_JOURNEY, passages: DEMO_PASSAGES },
+    { journey: WAR_JOURNEY, passages: WAR_PASSAGES }
+];
 
 const esc = (value) => String(value ?? '').replace(/[&<>"]/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
