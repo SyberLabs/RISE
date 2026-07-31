@@ -304,6 +304,7 @@ export function ingestedArchiveTexts() {
             // and nothing else knew.
             chapterCount: DIVISION_INDEX[meta.id]?.count ?? null,
             chapterNoun: DIVISION_INDEX[meta.id]?.noun ?? null,
+            chapterTitled: DIVISION_INDEX[meta.id]?.titled === true,
             wordCount: DIVISION_INDEX[meta.id]?.words ?? null,
             // A long work is entered at a division, not at its first
             // word. The Library reads this to decide whether to offer

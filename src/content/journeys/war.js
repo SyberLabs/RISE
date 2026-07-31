@@ -25,23 +25,20 @@
  * and `critique` because the second revises the first rather than
  * illustrating it.
  *
- * Jünger would complete the descent, and cannot yet be cited — see
- * `openRequirements`. The Storm of Steel's ingested edition carries no
- * division scheme this Archive can verify: its chapters are unnumbered,
- * so the Archive offers it in twenty-five readings of even length. Those
- * are OUR measurement, not the work's structure, and §1.4 permits a
- * Journey to cite only "the smallest stable authored or source-defined
- * division that can stand alone". Citing "Reading 7" would be citing
- * ourselves.
+ * Jünger's Guillemont completes the descent. This movement was blocked
+ * for exactly one day, on the reading that his chapters are unnumbered
+ * and therefore not citable under §1.4 — which was true about ordinals
+ * and false about the book. He TITLES his chapters for the places they
+ * happened, Orainville through My Last Storm, and the edition prints
+ * them in its own contents. A division does not have to be numbered to
+ * be source-defined; it has to be the work's, and these are.
  *
- * So this Journey is authored complete and published `blocked`, which is
- * what §2.4's source gate anticipated: "exact chapters and passages
- * selected only after edition collation". Two movements are bound to
- * verified text; the third is written and waiting for its edition.
- * Shipping it as a two-movement Journey would be the more comfortable
- * choice and the wrong one — the argument's whole shape is the descent
- * into machinery, and a version that stops at Hector says something
- * else.
+ * Guillemont is the Somme chapter, and the one where the perceptible
+ * whole disappears: shelling without a visible enemy, survival decided
+ * by chance, and an exhilaration the text never takes back. Its role is
+ * `transmission` rather than `conclusion` because the Journey has no
+ * conclusion — §2.1's terminal condition is an emptied landscape, not a
+ * verdict.
  */
 
 /**
@@ -79,18 +76,21 @@ export const WAR_PASSAGES = Object.freeze([
         language: 'en',
         note: 'Revises Book VI rather than illustrating it: the code that made '
             + 'him intelligible is what kills him.'
+    },
+    {
+        id: 'pass-storm-of-steel-guillemont',
+        workId: 'the-storm-of-steel',
+        division: 'Guillemont',
+        label: 'Guillemont',
+        role: 'transmission',
+        language: 'en',
+        note: 'Jünger\'s Somme. The chapter where the perceptible whole '
+            + 'disappears: shelling without visible enemy, survival by chance, '
+            + 'and an exhilaration the text never retracts.'
     }
 ]);
 
-/**
- * The authored manifest (§6.1).
- *
- * Movement III is present and unbound. It states what it would do and
- * names no passage, so the compiler refuses it — deliberately. A
- * movement that names no passages is an argument with a missing step,
- * and the compiler is right to say so rather than let the Journey look
- * complete.
- */
+/** The authored manifest (§6.1). */
 export const WAR_JOURNEY = Object.freeze({
     schemaVersion: 'rise.journey.v1',
     id: 'journey-war',
@@ -107,15 +107,8 @@ export const WAR_JOURNEY = Object.freeze({
     terminalCondition: 'No synthesis. An emptied landscape, and silence.',
 
     estimatedMinutes: 24,
-    status: 'blocked',
-    blockedReason: 'The third movement has no citable reading unit.',
-    openRequirements: Object.freeze([
-        'Collate an edition of The Storm of Steel whose chapters are numbered, '
-        + 'or author explicit passage bounds for the Chatto & Windus 1929 '
-        + 'setting. The Archive currently divides it into 25 readings of even '
-        + 'length, which are a measurement rather than a source-defined '
-        + 'division, and JOURNEYS-SPEC 1.4 does not permit citing those.'
-    ]),
+    status: 'publishable',
+    openRequirements: Object.freeze([]),
 
     movements: Object.freeze([
         {
@@ -171,13 +164,20 @@ export const WAR_JOURNEY = Object.freeze({
             counterpressure: 'Jünger\'s exhilaration is real and is not '
                 + 'retracted. The movement must not resolve into an anti-war '
                 + 'conclusion the text does not reach.',
-            // UNBOUND ON PURPOSE. See openRequirements. The compiler
-            // refuses a movement that names no passages, which is the
-            // correct behaviour and the reason this Journey is blocked
-            // rather than quietly two movements long.
-            segments: [],
+            segments: [
+                { passageId: 'pass-storm-of-steel-guillemont', role: 'transmission' }
+            ],
             presentation: {
-                visual: { kind: 'sourced', collections: ['journey-war-trench-ground'] },
+                // PROCEDURAL, NOT PINNED IMAGERY. The first two movements
+                // are accompanied by works someone made about war. The
+                // third cannot be: photographs of the Somme are evidence
+                // of the thing Junger says stopped being perceptible, and
+                // hanging them beside him would settle retrospectively
+                // what the chapter refuses to settle. RISE's own storm
+                // engines are the honest accompaniment — trench geometry,
+                // ballistic vectors, gas diffusion, flare phosphenes —
+                // authored rather than found, and depicting no one.
+                visual: { kind: 'procedural', collections: ['storm-of-steel'] },
                 audio: { kind: 'soundscape', soundscapeId: 'war-pressure-field', gain: 0.4, fadeMs: 700 },
                 textStyle: 'documentary'
             },
@@ -194,8 +194,11 @@ export const WAR_JOURNEY = Object.freeze({
 });
 
 /**
- * The movements whose passages exist. Used to compile and rehearse the
- * bound part of a blocked Journey without pretending it is publishable.
+ * The movements whose passages exist.
+ *
+ * All three, now. Kept as a distinct export because a Journey may be
+ * authored ahead of its sources again, and the rehearsal path that
+ * allowed is worth keeping rather than rediscovering.
  */
 export const WAR_BOUND_MOVEMENTS = Object.freeze(
     WAR_JOURNEY.movements.filter(movement => movement.segments.length > 0));

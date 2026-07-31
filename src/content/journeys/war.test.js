@@ -49,34 +49,48 @@ describe('the manifest states an argument, not a topic', () => {
     });
 });
 
-describe('it is honestly blocked rather than quietly shortened', () => {
-    it('publishes as blocked, with the reason stated', () => {
-        expect(WAR_JOURNEY.status).toBe('blocked');
-        expect(WAR_JOURNEY.blockedReason).toBeTruthy();
-        expect(WAR_JOURNEY.openRequirements[0]).toMatch(/Storm of Steel/);
+describe('all three movements are bound', () => {
+    it('publishes, with nothing outstanding', () => {
+        // Blocked for one day, on the reading that Junger's unnumbered
+        // chapters were not citable. True about ordinals, false about
+        // the book: he titles them, and the edition prints the titles in
+        // its own contents.
+        expect(WAR_JOURNEY.status).toBe('publishable');
+        expect(WAR_JOURNEY.openRequirements).toEqual([]);
     });
 
-    it('keeps the unbound movement in the manifest', () => {
-        // Deleting it would make the Journey look complete at two
-        // movements, and the argument's whole shape is the descent into
-        // machinery. A version that stops at Hector says something else.
+    it('keeps the descent whole — three movements, not two', () => {
+        // The argument's shape IS the descent into machinery. A version
+        // that stops at Hector says something else.
+        expect(WAR_JOURNEY.movements.map(m => m.id))
+            .toEqual(['war-heaven', 'war-hero', 'war-steel']);
+        for (const movement of WAR_JOURNEY.movements) {
+            expect(movement.segments.length, `${movement.id} is unbound`).toBeGreaterThan(0);
+        }
+    });
+
+    it('compiles whole', () => {
+        expect(() => compileJourney(WAR_JOURNEY)).not.toThrow();
+    });
+
+    it('accompanies Junger procedurally rather than with photographs', () => {
+        // The first two movements are accompanied by works someone made
+        // ABOUT war. The third cannot be: a photograph of the Somme is
+        // evidence of the thing Junger says stopped being perceptible,
+        // and hanging it beside him settles retrospectively what the
+        // chapter refuses to settle.
         const steel = WAR_JOURNEY.movements.find(m => m.id === 'war-steel');
-        expect(steel).toBeTruthy();
-        expect(steel.segments).toHaveLength(0);
-    });
-
-    it('refuses to compile while a movement names no passages', () => {
-        // The compiler is right to refuse. That refusal is what makes
-        // "blocked" a fact about the Journey rather than a label on it.
-        expect(() => compileJourney(WAR_JOURNEY)).toThrow(JourneyCompileError);
-        expect(() => compileJourney(WAR_JOURNEY)).toThrow(/names no passages/);
+        expect(steel.presentation.visual.kind).toBe('procedural');
+        const others = WAR_JOURNEY.movements.filter(m => m.id !== 'war-steel');
+        for (const m of others) expect(m.presentation.visual.kind).toBe('sourced');
     });
 
     it('compiles the bound movements for rehearsal', () => {
         const { movementProgram, visualProgram, audioProgram } =
             compileJourney({ ...WAR_JOURNEY, movements: WAR_BOUND_MOVEMENTS });
 
-        expect(movementProgram.movements.map(m => m.id)).toEqual(['war-heaven', 'war-hero']);
+        expect(movementProgram.movements.map(m => m.id))
+            .toEqual(['war-heaven', 'war-hero', 'war-steel']);
         expect(cueForSource(visualProgram, 'pass-paradise-lost-war-heaven'))
             .toMatchObject({ kind: 'sourced' });
         expect(cueForSource(audioProgram, 'pass-iliad-hector-death'))
@@ -97,7 +111,7 @@ describe('every bound passage resolves against the Archive', () => {
         const { resolved, failures, ready } = await resolveJourneyPassages(bound);
         expect(failures, JSON.stringify(failures)).toEqual([]);
         expect(ready).toBe(true);
-        expect(resolved).toHaveLength(3);
+        expect(resolved).toHaveLength(4);
 
         for (const passage of resolved) {
             expect(passage.words, `${passage.id} is empty`).toBeGreaterThan(500);
@@ -143,9 +157,10 @@ describe('the sources do not become equivalent', () => {
     it('keeps each passage\'s own edition and role', async () => {
         // §1.3: "The Journey may create a relation. It may not erase the
         // differences that make the relation meaningful."
-        const { resolved } = await resolveJourneyPassages(WAR_PASSAGES.slice(0, 3));
+        const { resolved } = await resolveJourneyPassages(WAR_PASSAGES);
         const editions = new Set(resolved.map(p => p.edition));
         expect(editions.size).toBeGreaterThan(1);
-        expect(resolved.map(p => p.role)).toEqual(['proposition', 'context', 'critique']);
+        expect(resolved.map(p => p.role))
+            .toEqual(['proposition', 'context', 'critique', 'transmission']);
     }, 180000);
 });

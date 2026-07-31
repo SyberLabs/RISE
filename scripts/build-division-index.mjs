@@ -39,10 +39,14 @@ for (const file of readdirSync(WORKS_DIR).filter(f => f.endsWith('.js')).sort())
         console.warn(`  ! ${id}: no SECTIONS export`);
         continue;
     }
-    const { divided: isDivided, noun, entries } = divideSections(mod[key]);
+    const { divided: isDivided, noun, reason, entries } = divideSections(mod[key]);
     const words = entries.reduce((n, e) => n + e.words, 0);
     index[id] = {
         divided: isDivided,
+        // A TITLED scheme has no division noun: Junger's chapters are
+        // named for places, not numbered, so there is no word like
+        // "Chapter" to count them in. Recorded rather than invented.
+        titled: reason === 'titled',
         // The work's own word for its divisions, so a card can say
         // "365 chapters" and "24 books" rather than flattening both.
         noun: noun || null,

@@ -592,8 +592,39 @@ export function divideSections(sections, { maxWords = 4000, minWords = 12000 } =
     if (!total) return whole('empty');
     if (total < minWords) return whole('short');
 
-    const scheme = schemeFromNames(list.map(s => s?.name));
+    const names = list.map(s => s?.name);
+    const scheme = schemeFromNames(names);
     if (!scheme) {
+        // A work may TITLE its divisions instead of numbering them.
+        // Tried before the inline and measured fallbacks, because a
+        // named chapter is the work's own structure and a reading of
+        // even length is ours.
+        const titled = titledSchemeFromNames(names);
+        if (titled) {
+            const entries = [];
+            list.forEach((section, i) => {
+                const content = String(section?.content || '').trim();
+                if (!content) return;
+                const label = displayTitle(section?.name) || `Part ${i + 1}`;
+                // A long chapter arrives in parts, and both parts
+                // carrying the same label made Junger offer
+                // "Guillemont" twice with no way to tell them apart.
+                const pieces = splitLongDivision(content, { maxWords });
+                pieces.forEach((piece, k) => {
+                    entries.push({
+                        id: entries.length,
+                        label: pieces.length > 1 ? `${label} (${k + 1}/${pieces.length})` : label,
+                        title: null,
+                        content: piece, words: wordsIn(piece)
+                    });
+                });
+            });
+            const kept = foldEmptyDivisions(entries);
+            if (kept.length >= 2) {
+                return { divided: true, noun: null, reason: 'titled', entries: kept };
+            }
+        }
+
         // THE NAMES ARE NOT THE ONLY WITNESS. The ingest strips a
         // heading only where it chose to cut, so every heading it
         // MISSED is still sitting in the prose. Dante's names yield
@@ -739,4 +770,124 @@ const NON_HEADING = new Set([
 /** A work's declared vocabulary, filtered to words that can be headings. */
 export function headingVocabulary(structure) {
     return declaredVocabulary(structure).filter(w => !NON_HEADING.has(w));
+}
+
+/**
+ * Divisions that are TITLED rather than numbered.
+ *
+ * Jünger names his chapters for the places they happened — ORAINVILLE,
+ * FROM BAZANCOURT TO HATTONCHATEL, LES EPARGES — and never numbers one.
+ * Every rule above this looks for an ordinal, so the whole memoir
+ * arrived as twenty-five readings of even length: our measurement of a
+ * book that had told us its own structure.
+ *
+ * THE RUNNING HEAD IS THE EVIDENCE, NOT THE NOISE.
+ *
+ * This is a page scan, so each chapter's title is reprinted at the top
+ * of every page of that chapter, with the page number on one side or
+ * the other:
+ *
+ *     ORAINVILLE          <- the chapter begins
+ *     2 ORAINVILLE        <- a running head
+ *     ORAINVILLE 3        <- a running head
+ *
+ * A title that repeats dozens of times beside a changing number is a
+ * running head, and a running head names a chapter. Its BARE occurrence
+ * — the one printed without a page number — is where that chapter
+ * starts. Repetition is what proves it, exactly as an ascending run
+ * proves a numbered scheme: one occurrence of a capitalised line means
+ * nothing, forty mean the compositor was labelling pages.
+ *
+ * This is a second profile, and it is earned rather than assumed. It
+ * fires only where the numbered rules found nothing, and it must still
+ * verify — three distinct titles, in order — before it is believed.
+ */
+const PAGE_NUMBER = /^\s*(?:[IVXLCDM]+|\d{1,4})\s+|\s+(?:[IVXLCDM]+|\d{1,4})\s*$/g;
+const MIN_RUNNING_HEAD_PAGES = 3;
+const MIN_TITLED_DIVISIONS = 3;
+
+/** A line with its page number stripped from either end. */
+function withoutPageNumber(line) {
+    PAGE_NUMBER.lastIndex = 0;
+    return line.trim().replace(PAGE_NUMBER, '').trim();
+}
+
+/**
+ * Chapter starts inferred from running heads.
+ *
+ * @param {string[]} lines
+ * @returns {{index: number, title: string}[]} in document order
+ */
+export function titledSchemeIn(lines) {
+    if (!Array.isArray(lines) || lines.length < 50) return [];
+
+    const seen = new Map();      // normalised title -> occurrences
+    for (let i = 0; i < lines.length; i++) {
+        const raw = lines[i].trim();
+        if (!raw || raw.length > 60) continue;
+        // Titles in this setting are capitals. Requiring that keeps
+        // body prose out without needing a prose detector.
+        if (!/[A-Z]/.test(raw) || raw !== raw.toUpperCase()) continue;
+        const title = withoutPageNumber(raw);
+        if (title.length < 4) continue;
+        if (!seen.has(title)) seen.set(title, []);
+        seen.get(title).push({ index: i, bare: raw === title });
+    }
+
+    const starts = [];
+    for (const [title, occurrences] of seen) {
+        if (occurrences.length < MIN_RUNNING_HEAD_PAGES) continue;
+        // The chapter opens where the title stands WITHOUT a page
+        // number. A title that never appears bare is a running head
+        // whose chapter opening the scan lost, and is not guessed at.
+        const opening = occurrences.find(o => o.bare);
+        if (!opening) continue;
+        starts.push({ index: opening.index, title });
+    }
+
+    starts.sort((a, b) => a.index - b.index);
+    return starts.length >= MIN_TITLED_DIVISIONS ? starts : [];
+}
+
+/**
+ * Names that are TITLES rather than numbered headings.
+ *
+ * The counterpart of titledSchemeIn(), for the runtime. Once the ingest
+ * cuts Jünger at ORAINVILLE and GUILLEMONT, the payload holds eighteen
+ * correctly-titled sections — and the divider read them as nothing,
+ * because parseHeading wants an ordinal and a place-name has none. The
+ * memoir went on arriving as twenty-five measured readings while its
+ * own chapters sat in the file, named.
+ *
+ * That is the second vocabulary trap in this module, caught for the
+ * second time: the ingest learned something the reader could not read.
+ *
+ * A titled scheme is one section per division, its name its label. The
+ * evidence is that the names are short, distinct, and none of them is
+ * prose — a work whose sections repeat a name, or whose names run to
+ * sentences, has not been cut at its titles.
+ */
+export function titledSchemeFromNames(names, { minCount = 3 } = {}) {
+    const list = (names || []).map(n => String(n || '').trim());
+    const usable = list.filter(n =>
+        n && n.length <= 60 && n !== 'Front matter' && !parseHeading(n));
+    if (usable.length < minCount) return null;
+
+    // Distinctness is the test. A running head that leaked into the
+    // section names would repeat; a chapter title does not.
+    if (new Set(usable.map(n => n.toUpperCase())).size !== usable.length) return null;
+
+    // Prose does not sit in a title. A comma-ended or lowercase-opening
+    // name is the ingest's old failure mode, not a chapter.
+    if (usable.some(n => /[,;]$/.test(n) || /^[a-z]/.test(n))) return null;
+
+    return { titles: usable };
+}
+
+/** "ORAINVILLE" -> "Orainville"; leaves mixed-case names alone. */
+export function displayTitle(name) {
+    const raw = String(name || '').trim();
+    if (!raw || raw !== raw.toUpperCase()) return raw;
+    return raw.toLowerCase().replace(/(^|[\s(\u2014-])([a-z])/g,
+        (_, lead, ch) => lead + ch.toUpperCase());
 }

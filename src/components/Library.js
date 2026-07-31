@@ -231,7 +231,14 @@ export class Library {
       // row, and a shelf scanned by eye wants one unit, not two.
       // "Reading" is the Archive's own word where a work has none of
       // its own — still a count of things a reader can enter.
-      const noun = (text.chapterNoun || 'verse').toLowerCase();
+      //
+      // A TITLED work has no counting word at all: Jünger's divisions
+      // are Orainville and Guillemont, not "Chapter 1". "Sections" is
+      // the generic that claims nothing; the contents sheet shows the
+      // names themselves, which is where they belong.
+      const noun = text.chapterTitled
+        ? 'section'
+        : (text.chapterNoun || 'verse').toLowerCase();
       return `${n} ${noun}${n === 1 ? '' : 's'}`;
     }
     if (Number.isFinite(text.wordCount) && text.wordCount > 0) {

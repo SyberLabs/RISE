@@ -313,7 +313,12 @@ describe('the division index agrees with the works it describes', () => {
             const entry = index[meta.id];
             expect(entry, `${meta.id} is missing from division-index.json`).toBeTruthy();
             expect(entry.count).toBeGreaterThan(0);
-            if (entry.divided) expect(entry.noun).toBeTruthy();
+            // A divided work names its divisions one of two ways: with a
+            // counting word ("Book VI") or with titles ("Guillemont").
+            // The second has no noun, and demanding one would push the
+            // divider back into inventing "Chapter" for a work that
+            // never said it.
+            if (entry.divided) expect(entry.noun || entry.titled).toBeTruthy();
         }
     });
 

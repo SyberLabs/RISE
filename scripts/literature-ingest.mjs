@@ -26,7 +26,7 @@ import {
     assertDossier,
     parseLiteratureDossier
 } from './archive-dossier.mjs';
-import { headingVocabulary } from '../src/content/archive/divisions.js';
+import { headingVocabulary, titledSchemeIn } from '../src/content/archive/divisions.js';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CACHE = resolve(ROOT, '.ingest-cache', 'literature');
@@ -614,7 +614,18 @@ function sectionsForArtifact(artifact, volumeIndex, volumeCount, vocabulary = []
     const declared = vocabulary.length
         ? headingHits(lines, headingPattern(vocabulary.map(w => w.toUpperCase())))
         : [];
-    const hits = schemeScore(lines, declared) > schemeScore(lines, global) ? declared : global;
+    let hits = schemeScore(lines, declared) > schemeScore(lines, global) ? declared : global;
+
+    // A WORK MAY NAME ITS DIVISIONS INSTEAD OF NUMBERING THEM. Junger
+    // titles his chapters for the places they happened and numbers none,
+    // so every rule above finds nothing and the memoir arrives as
+    // readings of even length — our measurement of a book that had told
+    // us its own structure. Tried only where the numbered rules failed,
+    // and it must still verify before it is believed.
+    if (schemeScore(lines, hits) < 2) {
+        const titled = titledSchemeIn(lines);
+        if (titled.length) hits = titled.map(t => t.index);
+    }
 
     const boundaries = [0, ...hits.filter(i => i > 0)];
     const volume = volumeCount > 1 ? `Volume ${volumeIndex + 1}` : null;

@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STORM OF STEEL — Procedural Visual Pattern Engines Demo</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-dark: #080706;
+            --panel-bg: rgba(18, 16, 14, 0.82);
+            --panel-border: rgba(215, 140, 60, 0.25);
+            --accent-ember: #ff7722;
+            --accent-gold: #e6b800;
+            --accent-steel: #66ccff;
+            --text-main: #e8e2d8;
+            --text-muted: #999083;
+            --font-title: 'Cinzel', serif;
+            --font-body: 'Inter', sans-serif;
+            --font-quote: 'Playfair Display', serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Header HUD */
+        header {
+            background: linear-gradient(180deg, rgba(24, 20, 16, 0.95) 0%, rgba(8, 7, 6, 0.8) 100%);
+            border-bottom: 1px solid var(--panel-border);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(12px);
+            z-index: 100;
+        }
+
+        .brand-title {
+            font-family: var(--font-title);
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            color: #f0e6d6;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-title span.badge {
+            font-size: 0.65rem;
+            font-family: var(--font-mono);
+            background: rgba(255, 119, 34, 0.15);
+            border: 1px solid var(--accent-ember);
+            color: var(--accent-ember);
+            padding: 2px 8px;
+            border-radius: 3px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .brand-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            background: rgba(35, 30, 25, 0.8);
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            font-size: 0.85rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: rgba(255, 119, 34, 0.15);
+            border-color: var(--accent-ember);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .btn.active {
+            background: var(--accent-ember);
+            border-color: var(--accent-ember);
+            color: #000;
+            font-weight: 600;
+        }
+
+        /* Layout Main */
+        main {
+            display: flex;
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Studio View */
+        .viewport-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            background: #000;
+        }
+
+        .studio-canvas-host {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas.engine-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            cursor: crosshair;
+        }
+
+        /* Passage Overlay Reader Box */
+        .passage-overlay {
+            position: absolute;
+            bottom: 2rem;
+            left: 2rem;
+            right: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 1.25rem 1.5rem;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .passage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            color: var(--accent-ember);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .passage-quote {
+            font-family: var(--font-quote);
+            font-size: 1.15rem;
+            line-height: 1.6;
+            color: #f4efea;
+            font-style: italic;
+        }
+
+        .passage-footer {
+            margin-top: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Sidebar Control Panel */
+        .sidebar {
+            width: 380px;
+            background: var(--panel-bg);
+            border-left: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(16px);
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        .sidebar-section {
+            padding: 1.25rem;
+            border-bottom: 1px solid rgba(215, 140, 60, 0.15);
+        }
+
+        .section-title {
+            font-family: var(--font-title);
+            font-size: 0.9rem;
+            letter-spacing: 0.1em;
+            color: var(--accent-ember);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Engine Selector List */
+        .engine-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .engine-card {
+            background: rgba(30, 26, 22, 0.6);
+            border: 1px solid rgba(215, 140, 60, 0.15);
+            padding: 0.75rem 0.9rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .engine-card:hover {
+            border-color: var(--accent-ember);
+            background: rgba(255, 119, 34, 0.08);
+        }
+
+        .engine-card.active {
+            border-color: var(--accent-ember);
+            background: rgba(255, 119, 34, 0.18);
+            box-shadow: 0 0 12px rgba(255, 119, 34, 0.2);
+        }
+
+        .engine-card-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #f0e6d6;
+        }
+
+        .engine-card-cat {
+            font-size: 0.7rem;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Sliders & Controls */
+        .control-group {
+            margin-bottom: 1rem;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-main);
+            margin-bottom: 0.35rem;
+        }
+
+        .control-label span.val {
+            font-family: var(--font-mono);
+            color: var(--accent-ember);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.15);
+            appearance: none;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent-ember);
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(255, 119, 34, 0.6);
+        }
+
+        select {
+            width: 100%;
+            background: rgba(30, 26, 22, 0.9);
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-family: var(--font-body);
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        /* Gallery Grid Mode */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 1rem;
+            padding: 1.5rem;
+            flex: 1;
+            overflow-y: auto;
+            background: #050404;
+        }
+
+        .gallery-item {
+            background: rgba(18, 16, 14, 0.9);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .gallery-item:hover {
+            border-color: var(--accent-ember);
+            transform: translateY(-3px);
+        }
+
+        .gallery-canvas-host {
+            width: 100%;
+            height: 240px;
+            position: relative;
+            background: #000;
+        }
+
+        .gallery-item-footer {
+            padding: 0.75rem 1rem;
+            border-top: 1px solid rgba(215, 140, 60, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .gallery-item-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #f0e6d6;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header HUD -->
+    <header>
+        <div>
+            <div class="brand-title">
+                STORM OF STEEL
+                <span class="badge">Ernst Jünger</span>
+            </div>
+            <div class="brand-subtitle">8 Procedural Visual Pattern Engines — Visual Interlocution Catalog</div>
+        </div>
+
+        <div class="nav-controls">
+            <button class="btn active" id="btnStudioView">Studio View</button>
+            <button class="btn" id="btnGalleryView">Gallery Grid (All 8)</button>
+            <button class="btn" id="btnAudioToggle">🔊 Soundscape: OFF</button>
+            <button class="btn" id="btnPassagePlay">▶ Play Passages</button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main>
+        <!-- Studio Single Viewhost -->
+        <div class="viewport-container" id="studioContainer">
+            <div class="studio-canvas-host">
+                <canvas id="studioCanvas"></canvas>
+            </div>
+
+            <!-- Passage Text Overlay -->
+            <div class="passage-overlay" id="passageOverlay">
+                <div class="passage-header">
+                    <span id="passageChapter">Chapter I: In the Trenches of Bazancourt</span>
+                    <span id="passageMetrics">Arousal: 0.85 | Valence: -0.40</span>
+                </div>
+                <div class="passage-quote" id="passageText">
+                    "We came from classrooms and workbenches... We had taken in the sound of war, the intense fascination of the steel rain..."
+                </div>
+                <div class="passage-footer">
+                    <span>Ernst Jünger — In Stahlgewittern (1920)</span>
+                    <span id="passageCounter">1 / 8</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gallery Grid View Host (Hidden initially) -->
+        <div class="gallery-grid" id="galleryContainer" style="display: none;">
+            <!-- Grid cards populated dynamically -->
+        </div>
+
+        <!-- Sidebar Control Panel -->
+        <aside class="sidebar" id="sidebarPanel">
+            <!-- Engine Selection -->
+            <div class="sidebar-section">
+                <div class="section-title">Visual Pattern Engines</div>
+                <div class="engine-list" id="engineList">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+            <!-- Live Engine Parameters -->
+            <div class="sidebar-section">
+                <div class="section-title">Engine Parameters</div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Arousal (Kinetic Intensity)</span>
+                        <span class="val" id="valArousal">0.75</span>
+                    </div>
+                    <input type="range" id="inputArousal" min="0" max="1" step="0.01" value="0.75">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Valence (Tone / Harmony)</span>
+                        <span class="val" id="valValence">-0.40</span>
+                    </div>
+                    <input type="range" id="inputValence" min="-1" max="1" step="0.01" value="-0.40">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Animation Speed</span>
+                        <span class="val" id="valSpeed">1.0x</span>
+                    </div>
+                    <input type="range" id="inputSpeed" min="0.1" max="3" step="0.1" value="1.0">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Color Palette</span>
+                    </div>
+                    <select id="selectPalette">
+                        <!-- Populated per engine -->
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <button class="btn" id="btnRegenSeed" style="flex:1;">🎲 New Seed</button>
+                    <button class="btn" id="btnExportPNG" style="flex:1;">📸 Save Frame</button>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script type="module">
+        import { STORM_OF_STEEL_ENGINES, createStormEngine } from './src/visuals/storm/index.js';
+
+        // Curated Passages from Ernst Jünger's Storm of Steel
+        const PASSAGES = [
+            {
+                chapter: "Chapter I: Bazancourt Trenches",
+                text: "We came from classrooms and lecture halls... We were enchanted by the spell of war, the grand, terrible fascination of the steel rain.",
+                arousal: 0.45, valence: -0.2, engineId: 'voronoi',
+                palette: 'iron_ember'
+            },
+            {
+                chapter: "Chapter III: The Somme Drumfire",
+                text: "The hurricane of shellfire raged with unimaginable fury. The earth heaved, the air was a roaring furnace of flying iron and pulverized dust.",
+                arousal: 0.95, valence: -0.8, engineId: 'attractor',
+                palette: 'ember_crucible'
+            },
+            {
+                chapter: "Chapter IV: Guillemont Shrapnel",
+                text: "Tracers and hot shrapnel whistling through the gloom like incandescent comets, tearing through barbed wire and shattered parapets.",
+                arousal: 0.85, valence: -0.6, engineId: 'flowfield',
+                palette: 'combustion'
+            },
+            {
+                chapter: "Chapter VI: The Mustard Gas Cloud",
+                text: "A heavy, sweetish yellow cloud crept over the shell craters. The gas masks transformed us into silent, entomological monsters in a toxic mist.",
+                arousal: 0.60, valence: -0.9, engineId: 'turing_gas',
+                palette: 'mustard_gas'
+            },
+            {
+                chapter: "Chapter VIII: Flares over No Man's Land",
+                text: "Blinding magnesium flares hung suspended in the night sky like cold silver moons, casting razor-sharp shadows and leaving burning phosphenes on the retina.",
+                arousal: 0.70, valence: -0.3, engineId: 'flare_phosphene',
+                palette: 'magnesium_white'
+            },
+            {
+                chapter: "Chapter XI: Counter-Battery Trajectories",
+                text: "The high mathematical precision of the artillery arcs, Lissajous curves etched by heavy howitzers in sound and iron across the grey sky.",
+                arousal: 0.50, valence: 0.1, engineId: 'spirograph',
+                palette: 'copper_steel'
+            },
+            {
+                chapter: "Chapter XIV: The Great Offensive 1918 (Deformable Ground)",
+                text: "High-explosive heavy artillery shells tearing into the earth, carving deep crater depressions, throwing up soil lips, and leaving smoldering molten cores.",
+                arousal: 1.00, valence: -0.7, engineId: 'incendiary_blast',
+                palette: 'scorched_earth'
+            },
+            {
+                chapter: "Chapter XVI: Steel & Spirit",
+                text: "Standing guard in No Man's Land: a lone soldier etched against shattered trees and twisted barbed wire entanglements under cold iron stars.",
+                arousal: 0.65, valence: -0.4, engineId: 'ascii_soldier',
+                palette: 'iron_amber'
+            }
+        ];
+
+        // State
+        let currentEngineIndex = 0;
+        let activeEngine = null;
+        let isGalleryView = false;
+        let isPassagePlaying = false;
+        let passageTimer = null;
+        let passageIdx = 0;
+        let currentSeed = "storm-demo-seed-1";
+
+        // Web Audio Synthesizer State
+        let audioCtx = null;
+        let isAudioOn = false;
+        let subDroneNode = null;
+        let noiseNode = null;
+        let noiseGainNode = null;
+
+        // Canvas Elements
+        const studioCanvas = document.getElementById('studioCanvas');
+
+        // Initial setup
+        function initApp() {
+            renderEngineList();
+            setupViewToggle();
+            setupParameterControls();
+            setupAudio();
+            setupCanvasClickDeformation();
+            
+            // Handle window resize
+            window.addEventListener('resize', resizeStudioCanvas);
+            resizeStudioCanvas();
+
+            // Load default engine (Engine 1)
+            switchEngine(0);
+
+            // Start main animation loop
+            requestAnimationFrame(animLoop);
+        }
+
+        function setupCanvasClickDeformation() {
+            studioCanvas.addEventListener('click', (e) => {
+                const rect = studioCanvas.getBoundingClientRect();
+                const normX = (e.clientX - rect.left) / rect.width;
+                const normY = (e.clientY - rect.top) / rect.height;
+
+                if (activeEngine && activeEngine.createCrater) {
+                    const cx = Math.floor(normX * activeEngine.gridW);
+                    const cy = Math.floor(normY * activeEngine.gridH);
+                    activeEngine.createCrater(cx, cy, 11 + Math.floor(Math.random() * 8), 1.2);
+                }
+            });
+        }
+
+        function resizeStudioCanvas() {
+            const host = studioCanvas.parentElement;
+            studioCanvas.width = host.clientWidth;
+            studioCanvas.height = host.clientHeight;
+            if (activeEngine) {
+                activeEngine.render(studioCanvas);
+            }
+        }
+
+        function renderEngineList() {
+            const listEl = document.getElementById('engineList');
+            listEl.innerHTML = '';
+
+            STORM_OF_STEEL_ENGINES.forEach((eng, idx) => {
+                const card = document.createElement('div');
+                card.className = `engine-card ${idx === currentEngineIndex ? 'active' : ''}`;
+                card.innerHTML = `
+                    <div class="engine-card-name">${eng.name}</div>
+                    <div class="engine-card-cat">${eng.category}</div>
+                `;
+                card.addEventListener('click', () => switchEngine(idx));
+                listEl.appendChild(card);
+            });
+        }
+
+        function switchEngine(index) {
+            currentEngineIndex = index;
+            renderEngineList();
+
+            const engConfig = STORM_OF_STEEL_ENGINES[index];
+            activeEngine = createStormEngine(engConfig.id);
+            activeEngine.generate({ arousal: 0.75, valence: -0.4 }, currentSeed);
+
+            // Populate palette options
+            const selectPal = document.getElementById('selectPalette');
+            selectPal.innerHTML = '';
+            
+            const palettes = {
+                voronoi: ['iron_ember', 'sulfur_mud', 'phosphor_green', 'steel_cyan'],
+                flowfield: ['combustion', 'phosphor', 'steel', 'mud_ash'],
+                attractor: ['ember_crucible', 'phosphor_mist', 'cyan_steel'],
+                turing_gas: ['mustard_gas', 'phosphor_glow', 'smoke_soot', 'crucible_heat'],
+                flare_phosphene: ['magnesium_white', 'sulfur_flare', 'phosphor_green'],
+                spirograph: ['copper_steel', 'sulfur_gold', 'phosphor_emerald', 'cyan_spark'],
+                incendiary_blast: ['scorched_earth', 'sulfur_mud', 'crucible_steel', 'phosphor_glow'],
+                ascii_soldier: ['iron_amber', 'terminal_green', 'steel_cyan', 'monochrome']
+            }[engConfig.id] || ['default'];
+
+            palettes.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.textContent = p.replace('_', ' ').toUpperCase();
+                selectPal.appendChild(opt);
+            });
+
+            // Update passage overlay to match engine
+            const matchingPassage = PASSAGES.find(p => p.engineId === engConfig.id) || PASSAGES[0];
+            updatePassageDisplay(matchingPassage);
+        }
+
+        function updatePassageDisplay(p) {
+            document.getElementById('passageChapter').textContent = p.chapter;
+            document.getElementById('passageText').textContent = `"${p.text}"`;
+            document.getElementById('passageMetrics').textContent = `Arousal: ${p.arousal.toFixed(2)} | Valence: ${p.valence.toFixed(2)}`;
+            
+            document.getElementById('inputArousal').value = p.arousal;
+            document.getElementById('valArousal').textContent = p.arousal.toFixed(2);
+            
+            document.getElementById('inputValence').value = p.valence;
+            document.getElementById('valValence').textContent = p.valence.toFixed(2);
+        }
+
+        function animLoop() {
+            if (!isGalleryView && activeEngine) {
+                const dt = 0.016;
+                const arousal = parseFloat(document.getElementById('inputArousal').value);
+                const speed = parseFloat(document.getElementById('inputSpeed').value);
+
+                activeEngine.step(dt * speed, { arousal });
+                activeEngine.render(studioCanvas);
+
+                // Modulate ambient soundscape with arousal
+                modulateAudio(arousal);
+            } else if (isGalleryView) {
+                // Update all gallery canvases
+                galleryInstances.forEach(inst => {
+                    inst.engine.step(0.016, { arousal: 0.7 });
+                    inst.engine.render(inst.canvas);
+                });
+            }
+
+            requestAnimationFrame(animLoop);
+        }
+
+        // Setup Viewport Toggle (Studio vs Gallery Grid)
+        let galleryInstances = [];
+
+        function setupViewToggle() {
+            const btnStudio = document.getElementById('btnStudioView');
+            const btnGallery = document.getElementById('btnGalleryView');
+            const studioHost = document.getElementById('studioContainer');
+            const galleryHost = document.getElementById('galleryContainer');
+
+            btnStudio.addEventListener('click', () => {
+                isGalleryView = false;
+                btnStudio.classList.add('active');
+                btnGallery.classList.remove('active');
+                studioHost.style.display = 'flex';
+                galleryHost.style.display = 'none';
+                resizeStudioCanvas();
+            });
+
+            btnGallery.addEventListener('click', () => {
+                isGalleryView = true;
+                btnGallery.classList.add('active');
+                btnStudio.classList.remove('active');
+                studioHost.style.display = 'none';
+                galleryHost.style.display = 'grid';
+
+                // Build 8 Canvas Grid
+                galleryHost.innerHTML = '';
+                galleryInstances = [];
+
+                STORM_OF_STEEL_ENGINES.forEach((engConfig, idx) => {
+                    const card = document.createElement('div');
+                    card.className = 'gallery-item';
+
+                    const canvasHost = document.createElement('div');
+                    canvasHost.className = 'gallery-canvas-host';
+
+                    const cvs = document.createElement('canvas');
+                    cvs.width = 400;
+                    cvs.height = 240;
+                    cvs.className = 'engine-canvas';
+                    canvasHost.appendChild(cvs);
+
+                    const footer = document.createElement('div');
+                    footer.className = 'gallery-item-footer';
+                    footer.innerHTML = `
+                        <div class="gallery-item-title">${engConfig.name}</div>
+                        <button class="btn" style="padding:0.25rem 0.5rem; font-size:0.75rem;">Inspect</button>
+                    `;
+
+                    footer.querySelector('button').addEventListener('click', () => {
+                        switchEngine(idx);
+                        btnStudio.click();
+                    });
+
+                    card.appendChild(canvasHost);
+                    card.appendChild(footer);
+                    galleryHost.appendChild(card);
+
+                    const engineInstance = createStormEngine(engConfig.id);
+                    engineInstance.generate({}, `seed-gallery-${idx}`);
+
+                    galleryInstances.push({
+                        engine: engineInstance,
+                        canvas: cvs
+                    });
+                });
+            });
+        }
+
+        // Setup Parameter Sliders & Buttons
+        function setupParameterControls() {
+            document.getElementById('inputArousal').addEventListener('input', (e) => {
+                document.getElementById('valArousal').textContent = parseFloat(e.target.value).toFixed(2);
+            });
+
+            document.getElementById('inputValence').addEventListener('input', (e) => {
+                document.getElementById('valValence').textContent = parseFloat(e.target.value).toFixed(2);
+            });
+
+            document.getElementById('inputSpeed').addEventListener('input', (e) => {
+                document.getElementById('valSpeed').textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
+            });
+
+            document.getElementById('selectPalette').addEventListener('change', (e) => {
+                if (activeEngine) {
+                    activeEngine.params.colorPalette = e.target.value;
+                }
+            });
+
+            document.getElementById('btnRegenSeed').addEventListener('click', () => {
+                currentSeed = `storm-seed-${Math.random().toString(36).substr(2, 6)}`;
+                if (activeEngine) {
+                    activeEngine.generate({}, currentSeed);
+                }
+            });
+
+            document.getElementById('btnExportPNG').addEventListener('click', () => {
+                const link = document.createElement('a');
+                link.download = `storm-of-steel-${STORM_OF_STEEL_ENGINES[currentEngineIndex].id}.png`;
+                link.href = studioCanvas.toDataURL('image/png');
+                link.click();
+            });
+
+            // Passage Auto Playback
+            const btnPlay = document.getElementById('btnPassagePlay');
+            btnPlay.addEventListener('click', () => {
+                isPassagePlaying = !isPassagePlaying;
+                if (isPassagePlaying) {
+                    btnPlay.textContent = '⏸ Pause Passages';
+                    btnPlay.classList.add('active');
+                    playNextPassage();
+                    passageTimer = setInterval(playNextPassage, 6000);
+                } else {
+                    btnPlay.textContent = '▶ Play Passages';
+                    btnPlay.classList.remove('active');
+                    clearInterval(passageTimer);
+                }
+            });
+        }
+
+        function playNextPassage() {
+            const p = PASSAGES[passageIdx];
+            const engIdx = STORM_OF_STEEL_ENGINES.findIndex(e => e.id === p.engineId);
+            if (engIdx >= 0) switchEngine(engIdx);
+
+            document.getElementById('passageCounter').textContent = `${passageIdx + 1} / ${PASSAGES.length}`;
+            passageIdx = (passageIdx + 1) % PASSAGES.length;
+        }
+
+        // Web Audio Generative Soundscape (Sub-bass drumfire & trench wind)
+        function setupAudio() {
+            const btnAudio = document.getElementById('btnAudioToggle');
+            btnAudio.addEventListener('click', () => {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                isAudioOn = !isAudioOn;
+                if (isAudioOn) {
+                    btnAudio.textContent = '🔊 Soundscape: ON';
+                    btnAudio.classList.add('active');
+                    startSoundscape();
+                } else {
+                    btnAudio.textContent = '🔊 Soundscape: OFF';
+                    btnAudio.classList.remove('active');
+                    stopSoundscape();
+                }
+            });
+        }
+
+        function startSoundscape() {
+            if (!audioCtx) return;
+
+            // 1. Sub-bass subterranean drumfire drone (55Hz)
+            subDroneNode = audioCtx.createOscillator();
+            const subGain = audioCtx.createGain();
+            subDroneNode.type = 'triangle';
+            subDroneNode.frequency.setValueAtTime(55, audioCtx.currentTime);
+            subGain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+
+            subDroneNode.connect(subGain);
+            subGain.connect(audioCtx.destination);
+            subDroneNode.start();
+
+            // 2. Filtered noise trench wind
+            const bufferSize = audioCtx.sampleRate * 2;
+            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+
+            noiseNode = audioCtx.createBufferSource();
+            noiseNode.buffer = noiseBuffer;
+            noiseNode.loop = true;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(220, audioCtx.currentTime);
+            filter.Q.setValueAtTime(3.0, audioCtx.currentTime);
+
+            noiseGainNode = audioCtx.createGain();
+            noiseGainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+
+            noiseNode.connect(filter);
+            filter.connect(noiseGainNode);
+            noiseGainNode.connect(audioCtx.destination);
+            noiseNode.start();
+        }
+
+        function stopSoundscape() {
+            if (subDroneNode) { subDroneNode.stop(); subDroneNode = null; }
+            if (noiseNode) { noiseNode.stop(); noiseNode = null; }
+        }
+
+        function modulateAudio(arousal) {
+            if (!isAudioOn || !subDroneNode) return;
+            subDroneNode.frequency.setValueAtTime(45 + arousal * 35, audioCtx.currentTime);
+            if (noiseGainNode) {
+                noiseGainNode.gain.setValueAtTime(0.04 + arousal * 0.1, audioCtx.currentTime);
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
