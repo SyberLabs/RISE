@@ -250,6 +250,39 @@ firmly.** The Met's search is the least trustworthy of the four:
 **Endpoint:** `https://collectionapi.metmuseum.org/public/collection/v1`
 — GET, no key. Documented courtesy limit 80 req/s; be far politer.
 
+### The `q` axis cannot find subjects (measured 2026-07-30)
+
+Stronger than "loose ranking". `q` does not retrieve iconography at
+all, and the failure is silent:
+
+| query | total | what it actually returns |
+|---|---:|---|
+| `q=Achilles` | 674 | — |
+| `q=Achilles&hasImages=true` | 140 | Book of the Dead, Minbar Doors, Marie Antoinette in a Park |
+| `q=Achilles&isPublicDomain=true` | 7 | Manet's *Boating*, Gauguin's *Ia Orana Maria*, an Egyptian peasant woman — **no Achilles in any of the seven** |
+| `q=Achilles&title=true` | 0 | `title=true` returns 0 for every term tried |
+| `q=Achilles&departmentId=13` | 3 | — |
+| `departmentId=13&q=vase` | 21937 | the whole department — **`q` is ignored beside `departmentId`** |
+| `q=Achilles&departmentId=13&hasImages=true` | 0 | a third parameter zeroes the result |
+
+Three rules follow, and the first two are the expensive ones:
+
+1. **Never combine three parameters.** The API collapses rather than
+   intersects, and returns 0 without an error.
+2. **Never let a harvest script inject a "helpful" default.** Adding
+   `hasImages=true` to every query is what silently zeroed the first
+   Homeric harvest.
+3. **`departmentId` is the only trustworthy discovery axis.** It needs
+   a `q` to be syntactically valid and ignores it, which is precisely
+   why it can be relied on: it enumerates a department rather than
+   ranking a guess. Greek and Roman Art (13) yields 28,110 ids; filter
+   locally on `classification` and `culture` after the per-object
+   fetch, then look at them.
+
+This is why §4's "pinned ids only — firmly" is not a preference. There
+is no subject search to pin from; there is a department to walk and an
+eye to walk it with. `scripts/met-harvest.mjs` does the walking.
+
 ### Rights & images (per-object)
 
 `isPublicDomain: true` is the only value that clears. Images are

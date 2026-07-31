@@ -319,7 +319,7 @@
         /* Gallery Grid Mode */
         .gallery-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
             gap: 1.25rem;
             padding: 1.5rem;
             flex: 1;
@@ -403,7 +403,7 @@
                 </div>
                 <div class="passage-footer">
                     <span>John Milton — Paradise Lost</span>
-                    <span id="passageCounter">1 / 2</span>
+                    <span id="passageCounter">1 / 3</span>
                 </div>
             </div>
         </div>
@@ -476,14 +476,27 @@
             {
                 book: "Book VI: Fall of the Rebel Angels",
                 text: "Nine days they fell; confounded Chaos roared, And Heaven ruined from Heaven; headlong themselves they threw Down from the verge of Heaven into the waste Deep.",
-                arousal: 0.85, valence: -0.7, engineId: 'fall_hypercube',
-                palette: 'empyrean_gold'
+                arousal: 0.85, valence: -0.7, engineId: 'fall_hypercube'
             },
             {
                 book: "Book VI: Chariot of Paternal Deity",
                 text: "Forth rush'd with whirlwind sound The Chariot of Paternal Deity, Flashing thick flames, wheel within wheel undrawn, It self instinct with Spirit.",
-                arousal: 0.95, valence: 0.8, engineId: 'chariot_deity',
-                palette: 'sapphire_throne'
+                arousal: 0.95, valence: 0.8, engineId: 'chariot_deity'
+            },
+            {
+                book: "Book VI: St. Michael's Flaming Sword",
+                text: "Michael's sword nor stayed, nor stood, but with huge two-handed sway brandished aloft the sword of God... given him tempered so, that neither keen nor solid might resist that edge: QUIS UT DEUS.",
+                arousal: 0.90, valence: 0.9, engineId: 'flaming_sword'
+            },
+            {
+                book: "Book I: Sulfur & Brimstone Magma Network",
+                text: "A dungeon horrible, on all sides round As one great furnace flamed; yet from those flames No light, but rather darkness visible Serv'd only to discover sights of woe.",
+                arousal: 0.88, valence: -0.85, engineId: 'sulfur_magma'
+            },
+            {
+                book: "Book II: The Dark Ocean of Chaos",
+                text: "A dark illimitable Ocean without bound, Where length, breadth, and highth and time and place are lost; Where eldest Night and Chaos, Ancestors of Nature, hold Eternal Anarchy.",
+                arousal: 0.75, valence: -0.4, engineId: 'dark_ocean_chaos'
             }
         ];
 
@@ -496,7 +509,7 @@
         let passageIdx = 0;
         let currentSeed = "paradise-demo-seed-1";
 
-        // Web Audio Synthesizer State (Celestial organ & divine thunder drone)
+        // Web Audio Synthesizer State
         let audioCtx = null;
         let isAudioOn = false;
         let organOsc1 = null;
@@ -561,8 +574,9 @@
             selectPal.innerHTML = '';
             
             const palettes = {
-                fall_hypercube: ['empyrean_gold', 'seraphic_flame', 'void_abyss'],
-                chariot_deity: ['sapphire_throne', 'empyrean_thunder', 'celestial_wrath']
+                fall_hypercube: ['empyrean_sun', 'sapphire_radiance', 'sovereign_gold'],
+                chariot_deity: ['sapphire_throne', 'empyrean_thunder', 'celestial_wrath'],
+                flaming_sword: ['archangel_flame', 'empyrean_gold', 'sapphire_fire']
             }[engConfig.id] || ['default'];
 
             palettes.forEach(p => {
@@ -677,7 +691,7 @@
             });
         }
 
-        // Setup Parameter Sliders & Buttons
+        // Setup Parameter Controls
         function setupParameterControls() {
             document.getElementById('inputArousal').addEventListener('input', (e) => {
                 document.getElementById('valArousal').textContent = parseFloat(e.target.value).toFixed(2);
@@ -737,7 +751,7 @@
             passageIdx = (passageIdx + 1) % PASSAGES.length;
         }
 
-        // Web Audio Generative Soundscape (Celestial Sine Organ)
+        // Web Audio Synthesizer
         function setupAudio() {
             const btnAudio = document.getElementById('btnAudioToggle');
             btnAudio.addEventListener('click', () => {
@@ -765,7 +779,6 @@
         function startSoundscape() {
             if (!audioCtx) return;
 
-            // Celestial Organ harmonic fifth (220Hz A3 + 330Hz E4)
             organOsc1 = audioCtx.createOscillator();
             organOsc2 = audioCtx.createOscillator();
 
