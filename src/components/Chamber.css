@@ -987,3 +987,27 @@
 @media (prefers-reduced-motion: reduce) {
   .chamber-page { animation: none; }
 }
+
+/* A movement's title (JOURNEYS-SPEC §8.4).
+ *
+ * Present but recessive: a reader is inside an argument, not reading a
+ * chapter heading, so this names where they are without competing with
+ * the text for the eye. Hidden entirely at a boundary, because a scored
+ * transition announces nothing — labelling the silence would be talking
+ * over it. */
+.movement-title {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-mist);
+  opacity: 0.55;
+  text-align: center;
+  margin-bottom: var(--space-lg);
+  transition: opacity var(--transition-normal) var(--ease-default);
+}
+.movement-title[hidden] { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .movement-title { transition: none; }
+}

@@ -11,6 +11,10 @@ import {
 import { Voice } from '../audio/voice.js';
 import { scoreAtoms, planInterlocution } from '../core/conductor.js';
 import { VisualScheduleController } from '../core/visual-scheduler.js';
+import {
+  MovementScheduleController,
+  AudioScheduleController
+} from '../core/journey-schedulers.js';
 
 /**
  * Chamber Component
@@ -128,6 +132,41 @@ export class Chamber {
       console.warn('[Chamber] Gospel episode selection has no visual schedule');
     }
 
+    // A JOURNEY'S TWO SIBLINGS (JOURNEYS-SPEC §8.4). Built here for the
+    // same reason and with the same discipline as the visual schedule
+    // above: synchronously, so nothing races auto-start, and wired to
+    // generic subsystems the Chamber does not interpret. It receives
+    // movement labels and bounded audio commands; it never learns what
+    // "metaphysical" or "industrial" means.
+    this._movementSchedule = null;
+    this._audioSchedule = null;
+    this._activeMovement = null;
+
+    const movementProgram = this.session?.movementProgram;
+    if (movementProgram?.movements?.length) {
+      this._movementSchedule = new MovementScheduleController(
+        movementProgram,
+        (position) => this.onMovementChange(position)
+      );
+      console.info(
+        `[Chamber] Movement schedule ready: ${movementProgram.movements.length} movements, `
+        + `${movementProgram.boundaries.length} boundaries`
+      );
+    }
+
+    const audioProgram = this.session?.audioProgram;
+    if (audioProgram?.segments?.length) {
+      this._audioSchedule = new AudioScheduleController(
+        audioProgram,
+        window.rise?.audioEngine || null,
+        // A reader may silence a Journey without rewriting it (§3.3).
+        { enabled: this.session?.audioPreset !== 'silent' }
+      );
+      console.info(
+        `[Chamber] Audio schedule ready: ${audioProgram.segments.length} cues`
+      );
+    }
+
     console.log('[Chamber] Constructor - session:', this.session);
     console.log('[Chamber] Session atoms:', this.session?.atoms);
     console.log('[Chamber] First atom:', this.session?.atoms?.[0]);
@@ -218,6 +257,8 @@ export class Chamber {
         <div class="chamber-display" id="chamber-display" style="${this.autoStart ? 'display: flex; opacity: 1;' : 'display: none;'}">
           <!-- Content area - mode-specific rendering -->
           <div class="chamber-field" id="chamber-field">
+            <div class="movement-title" id="movement-title" role="status"
+                 aria-live="polite" hidden></div>
             <div class="atom-display" id="atom-display"></div>
           </div>
 
@@ -519,11 +560,26 @@ export class Chamber {
       }, reason => visualCortex.cancelPresentation(reason));
 
       this.player.on('atom', (data) => {
+        // ORDER IS THE CONTRACT (JOURNEYS-SPEC §8.4): movement, then
+        // visual, then audio, then recitation, then display. The
+        // movement is announced before the cues it explains, and the
+        // text is painted last so nothing a reader sees precedes the
+        // world it belongs to.
+        this._movementSchedule?.observe(data.atom);
+
         // The visual schedule follows the reading (PERICOPE-IMAGERY-
         // SPEC §6): each atom's coordinates drive at most one cue
         // change, which the generic scheduler sends to the cortex.
         // Chapel-agnostic — the Chamber knows nothing of pericopes.
         this._visualSchedule?.observe(data.atom);
+
+        this._audioSchedule?.observe(data.atom);
+
+        // AN AUTHORED BOUNDARY SPEAKS NOTHING (§8.4). It is empty, so
+        // the voice would find nothing to say in any case — but saying
+        // so here keeps that a decision rather than a coincidence that
+        // a later change to the speakable test could quietly undo.
+        const isBoundary = data.atom?.tags?.includes('authored-boundary') === true;
 
         // Speak BEFORE painting, so the reveal can follow the voice's
         // real onsets rather than an interpolation. `speak` never waits
@@ -533,7 +589,7 @@ export class Chamber {
         // overlay covers the Stream. That is layout preparation, not an atom
         // entrance: its WAV begins only after the presence has resolved.
         const concealed = data.concealed === true;
-        const spoken = concealed ? null : this._startSpokenAtom(data.index);
+        const spoken = (concealed || isBoundary) ? null : this._startSpokenAtom(data.index);
 
         this.displayAtom(data.atom, data.index, {
           concealed,
@@ -1907,9 +1963,47 @@ export class Chamber {
     }
   }
 
+  /**
+   * A movement, or a scored transition between two, has been entered.
+   *
+   * The Chamber receives a LABEL and an identity, never a meaning
+   * (JOURNEYS-SPEC §5). It does not know that "war-heaven" is
+   * metaphysical or that Guillemont is the Somme; it knows a title
+   * changed and that a reader may want to be told.
+   */
+  onMovementChange(position) {
+    if (!position) return;
+    if (position.kind === 'boundary') {
+      // A transition announces nothing. It is the silence between two
+      // worlds, and naming it would be talking over it.
+      this._activeMovement = null;
+      this.announceMovement(null);
+      return;
+    }
+    this._activeMovement = position.movement;
+    console.info(`[Chamber] Movement: ${position.movement.title || position.movement.id}`);
+    this.announceMovement(position.movement.title || null);
+  }
+
+  /**
+   * Put the movement's title where a reader can find it without it
+   * interrupting them. Assertive would speak over the reading itself.
+   */
+  announceMovement(title) {
+    const region = this.container?.querySelector('#movement-title');
+    if (!region) return;
+    region.textContent = title || '';
+    region.hidden = !title;
+  }
+
   onStateChange(data) {
     const state = data.state;
     console.log('[Chamber] Player state change:', state);
+
+    // NO AUDIO OUTLIVES THE READING (§8.3). The engine owns its own
+    // pause path for scheduled ramps; this stops the Journey's score
+    // from continuing to mean something while nothing is being read.
+    if (state === 'paused' || state === 'idle') this._audioSchedule?.silence();
 
     // The Genesis field breathes with the session: pausing the text
     // pauses the pen
@@ -1981,6 +2075,11 @@ export class Chamber {
     this.deactivate();
     // A reveal in flight would otherwise fire into a torn-down DOM.
     this.cancelReveal();
+    // A Journey's score must not outlive its Chamber (§8.3). The
+    // controllers hold no timers, so silencing is the whole of it.
+    this._audioSchedule?.silence();
+    this._audioSchedule = null;
+    this._movementSchedule = null;
     // Abort pending fetches and release decoded audio so they cannot outlive
     // the reading.
     this.voice?.destroy();
