@@ -30,6 +30,7 @@ import {
     renderWorkEngine,
     workEngineFamilies
 } from './work-engines.js';
+import { WorkEngineField } from './work-engine-field.js';
 import { ShuffleBag } from '../sources/visual/shuffle-bag.js';
 import {
     ContinuousField,
@@ -193,6 +194,10 @@ export class VisualCortex {
         // as Rhythmic; it remains a presenter, never a second source system.
         this._continuousField = null;
         this._continuousFieldHost = null;
+        // The living layer beneath it, for engines authored FOR a work.
+        // They step and redraw every frame rather than being snapshotted,
+        // so they share the host but not the gallery's image abstraction.
+        this._workEngineField = null;
         // Gallery draws families and procedural types without replacement.
         // This prevents a large museum pool from suppressing a selected
         // procedural signature and keeps multiple generators in rotation.
@@ -818,6 +823,12 @@ export class VisualCortex {
             this._continuousField.stop();
             this._continuousField = null;
         }
+        // The living layer holds canvases in that same host, so it is
+        // discarded on exactly the same grounds.
+        if (this._workEngineField) {
+            this._workEngineField.destroy();
+            this._workEngineField = null;
+        }
         this._continuousFieldHost = el || null;
         this._syncContinuousField();
     }
@@ -876,13 +887,29 @@ export class VisualCortex {
             && document.documentElement.classList.contains('photosensitivity-mode');
     }
 
+    /**
+     * The generators the gallery may snapshot as stills.
+     *
+     * Work families are excluded because they are ALIVE: they run on
+     * their own layer under the gallery, stepping and redrawing every
+     * frame. Snapshotting one here as well would put a frozen WebP of
+     * the chariot into the crossfade rotation beside the turning one.
+     */
     _continuousProceduralTypes() {
         const active = this.config.activeTypes || [];
-        return GALLERY_PROCEDURAL_TYPES.filter(type => active.includes(type));
+        return GALLERY_PROCEDURAL_TYPES.filter(type =>
+            active.includes(type) && !isWorkEngineFamily(type));
+    }
+
+    /** The families that get a living layer rather than a still. */
+    _continuousWorkFamilies() {
+        const active = this.config.activeTypes || [];
+        return workEngineFamilies().filter(type => active.includes(type));
     }
 
     _continuousHasWorks() {
         return this._continuousProceduralTypes().length > 0
+            || this._continuousWorkFamilies().length > 0
             || this._activePoolCategories().length > 0;
     }
 
@@ -1191,6 +1218,44 @@ export class VisualCortex {
         } else if (this._continuousField && this._continuousField.running) {
             this._continuousField.stop();
         }
+        this._syncWorkEngineField(shouldRun);
+    }
+
+    /**
+     * The living layer, under the gallery.
+     *
+     * It answers to exactly the same gate as the image field — mode,
+     * host, photosensitivity, consent — because it is imagery behind a
+     * reading and nothing about being procedural exempts it from that.
+     * What it adds is a family list, which changes when a movement does.
+     */
+    _syncWorkEngineField(gateOpen) {
+        const families = this._continuousWorkFamilies();
+        const shouldRun = gateOpen && families.length > 0;
+
+        if (!shouldRun) {
+            if (this._workEngineField?.running) this._workEngineField.stop();
+            return;
+        }
+        if (!this._workEngineField) {
+            if (!this._continuousFieldHost) return;
+            const timings = galleryCadenceTimings(this.config.galleryCadence);
+            this._workEngineField = new WorkEngineField(this._continuousFieldHost, {
+                families,
+                dwellMs: timings.dwellMs,
+                crossfadeMs: timings.crossfadeMs,
+                reducedMotion: this._continuousReducedMotion(),
+                getSignal: () => this._nextContinuousSignal() || {}
+            });
+        }
+        this._workEngineField.reducedMotion = this._continuousReducedMotion();
+        if (this._workEngineField.running) {
+            this._workEngineField.setFamilies(families);
+        } else {
+            this._workEngineField.families = families;
+            this._workEngineField.start().catch(error =>
+                console.warn('[Visual Cortex] Living field could not start:', error));
+        }
     }
 
     /**
@@ -1288,6 +1353,10 @@ export class VisualCortex {
         const prevPresentation = this.config.presentation;
         const prevPoolKey = this._continuousPoolKey();
         this.config = { ...this.config, ...nextConfig };
+        if ('galleryCadence' in nextConfig && this._workEngineField) {
+            this._workEngineField.setCadence(
+                galleryCadenceTimings(this.config.galleryCadence));
+        }
         if ('galleryCadence' in nextConfig && this._continuousField) {
             this._continuousField.setCadence(
                 galleryCadenceTimings(this.config.galleryCadence)
@@ -3112,6 +3181,12 @@ export class VisualCortex {
         if (this._continuousField) {
             this._continuousField.stop();
             this._continuousField = null;
+        }
+        // A RAF loop that outlives its cortex keeps a whole Chamber's
+        // canvases alive and repainting behind a screen nobody is on.
+        if (this._workEngineField) {
+            this._workEngineField.destroy();
+            this._workEngineField = null;
         }
         this._continuousFieldHost = null;
         this._assetAbortController.abort(createAbortError('Visual Cortex destroyed'));

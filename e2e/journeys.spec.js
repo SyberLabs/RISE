@@ -256,39 +256,61 @@ test('the door stays open when a reader declines the safety notice', async ({ pa
   expect(after.beginDisabled).toBe(false);
 });
 
-test('Milton\'s engines actually draw into the gallery', async ({ page }) => {
+test("Milton's engines are alive, not photographs of themselves", async ({ page }) => {
   test.setTimeout(300000);
-  // The end of a long chain, and every link failed silently in turn:
-  // the visual program was normalized to null, the cue was dropped by
-  // applyCue, the engines were registered nowhere, and finally the
-  // gallery's own allowlist filtered the family out — leaving no
-  // families, no work, and a dark field with nothing in the log.
+  // Two faults, in order. First the engines were filtered out of the
+  // gallery's own allowlist and nothing drew at all. Then they drew —
+  // once. Every one of the thirteen has step(dt) beside render(canvas),
+  // and the cortex called only render, handing the result to the gallery
+  // as a WebP still: the chariot photographed mid-turn and held there for
+  // twenty seconds. Everything worked and nothing moved.
   const failures = [];
   page.on('console', m => { if (m.text().includes('[WorkEngines]')) failures.push(m.text()); });
 
   await openJourneys(page);
   await expect(page.locator('.journey-credits')).toBeVisible({ timeout: 60000 });
   await enterReading(page);
-  // The gallery advances on its own cadence; give it a turn.
-  await page.waitForTimeout(14000);
+  await expect(page.locator('.work-engine-plane')).toHaveCount(2, { timeout: 60000 });
+  await page.waitForTimeout(4000);
 
-  const field = await page.evaluate(() => {
-    const shown = [...document.querySelectorAll('img')]
-      .filter(i => i.src && i.getBoundingClientRect().width > 100);
-    return {
-      works: shown.length,
-      // A rendered canvas is committed as a data URI; a museum work
-      // would be an https URL. This movement is procedural, so the
-      // field must be holding something WE drew.
-      procedural: shown.some(i => i.src.startsWith('data:image')),
-      bytes: Math.max(0, ...shown.map(i => i.src.length))
-    };
+  // Sample the visible plane twice, seconds apart. A still is identical;
+  // a turning wheel is not.
+  const sample = () => page.evaluate(() => {
+    const plane = [...document.querySelectorAll('.work-engine-plane')]
+      .find(c => parseFloat(getComputedStyle(c).opacity) > 0.5);
+    if (!plane) return null;
+    // The CENTRE. The first version of this test read the top-left
+    // 160x160, which on every one of these engines is flat background
+    // gradient — it reported a still field while the chariot turned.
+    const w = Math.min(240, plane.width);
+    const h = Math.min(240, plane.height);
+    if (!w || !h) return null;
+    const x = Math.max(0, (plane.width >> 1) - (w >> 1));
+    const y = Math.max(0, (plane.height >> 1) - (h >> 1));
+    const d = plane.getContext('2d').getImageData(x, y, w, h).data;
+    let lit = 0, sum = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] > 8) lit++;
+      sum += d[i] + d[i + 1] + d[i + 2];
+    }
+    return { lit, sum };
   });
-  console.log('FIELD ' + JSON.stringify({ ...field, failures: failures.length }));
+
+  const first = await sample();
+  await page.waitForTimeout(2500);
+  const second = await sample();
+  console.log('MOTION ' + JSON.stringify({ first, second, failures: failures.length }));
 
   expect(failures, failures.join(' | ')).toEqual([]);
-  expect(field.works).toBeGreaterThan(0);
-  expect(field.procedural).toBe(true);
-  // A real render, not a blank canvas.
-  expect(field.bytes).toBeGreaterThan(5000);
+  expect(first, 'no visible engine plane').not.toBeNull();
+  // Something is drawn: a dark field would be near zero.
+  expect(first.lit).toBeGreaterThan(0);
+  expect(first.sum).toBeGreaterThan(0);
+  // And it moved — but gently. The engines were authored at demo speed;
+  // behind a paragraph they run on a scaled dt, so this asserts both
+  // that the field is alive and that it is not thrashing.
+  expect(second.sum).not.toBe(first.sum);
+  const drift = Math.abs(second.sum - first.sum) / first.sum;
+  expect(drift).toBeGreaterThan(0.0001);
+  expect(drift, 'the field is moving too fast to read against').toBeLessThan(0.5);
 });

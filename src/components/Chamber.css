@@ -1023,3 +1023,22 @@
 @media (prefers-reduced-motion: reduce) {
   .movement-title { transition: none; }
 }
+
+/* The living layer: engines authored for a work, stepping every frame.
+   It sits UNDER the gallery's image planes — a movement that mixes a
+   procedural family with museum works shows the works over the field,
+   never the field over the works. */
+.chamber-continuous-field .work-engine-plane {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.chamber-continuous-field .continuous-field-layer {
+  z-index: 1;
+}
