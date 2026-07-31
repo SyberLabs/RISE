@@ -17,6 +17,7 @@
     "test:e2e": "playwright test",
     "probe:collections": "vite-node scripts/probe-collections.mjs",
     "study:chunking": "vite-node scripts/study-phrase-chunking.mjs",
+    "study:awareness": "vite-node scripts/study-chunker-awareness.mjs",
     "build:audubon": "node scripts/build-audubon-catalog.mjs",
     "build:pericopes": "node scripts/build-pericopes.mjs",
     "build:voice-pack": "node scripts/build-voice-pack.mjs"
