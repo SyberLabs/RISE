@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-30T20:58:43.324Z",
+  "generated": "2026-07-30T23:59:46.601Z",
   "cohortCount": 18,
   "acquiredClassics": 17,
   "retainedComposition": {
@@ -67,13 +67,13 @@
         "evidence": "The artifact is the 1900 Truslove, Hanson & Comba reprint of Arnold’s 1885 verse translation and is marked public domain in the United States by Project Gutenberg."
       },
       "sourceSha256": "1a86e50814e20cbf14f3a05e2a64e9d64e90849808b8b3283dbfc510897f413d",
-      "payloadChecksum": "cbd31901d6de3aaa9ff192303c918f72f67ce6b51e406dc97c8924e2ff798d7c",
+      "payloadChecksum": "90eb2e9bac6473ef934a8c69947f8b31050b41ebeb5979a524e568a804cd413e",
       "sections": 16,
-      "chars": 117871,
+      "chars": 117818,
       "caveat": null,
       "legacyOpening": "Chapter 2 - Sankhya Yoga: You have the right to work, but never to the fruit of work. You should never engage in action for the sake of reward, nor should you long for inaction. Perform work in this world, Arjuna, as a man established within himself - without selfish attachments, and alike in success and defeat. For yoga is perfect evenness of mind.",
-      "verifiedOpening": "Produced by J. C. Byers. HTML version by Al Haines.\n\nThe Song Celestial. or Bhagavad-Gita (From the Mahabharata)\n\nBeing a Discourse Between Arjuna, Prince of India, and the Supreme Being Under the Form of Krishna\n\nTranslated from the Sanskrit Text by Sir Edwin Arnold, M.A., K.C.I.E., C.S.I.\n\nNew York Truslove, Hanson & Comba, Ltd. 67 Fifth Avenue 1900\n\nDedication\n\nTO INDIA\n\nSo have I read this wonderful and spirit-thrilling speech, By Krishna and Prince Arjun held, discoursing each with each; So",
-      "closestVerifiedPassage": "selfhood go yogins toil ever towards their souls release such votaries renouncing fruit of deeds gain endless peace the unvowed the passion bound seeking a fruit from works are fastened down the embodied sage withdrawn within his soul at every act sits godlike in the town which hath nine gateways fn 9 neither doing aught nor causing any deed this world s lord makes neither the work nor passion for the work nor lust for fruit of work the man",
+      "verifiedOpening": "The Song Celestial. or Bhagavad-Gita (From the Mahabharata)\n\nBeing a Discourse Between Arjuna, Prince of India, and the Supreme Being Under the Form of Krishna\n\nTranslated from the Sanskrit Text by Sir Edwin Arnold, M.A., K.C.I.E., C.S.I.\n\nNew York Truslove, Hanson & Comba, Ltd. 67 Fifth Avenue 1900\n\nDedication\n\nTO INDIA\n\nSo have I read this wonderful and spirit-thrilling speech, By Krishna and Prince Arjun held, discoursing each with each; So have I writ its wisdom here,--its hidden mystery, Fo",
+      "closestVerifiedPassage": "votaries renouncing fruit of deeds gain endless peace the unvowed the passion bound seeking a fruit from works are fastened down the embodied sage withdrawn within his soul at every act sits godlike in the town which hath nine gateways fn 9 neither doing aught nor causing any deed this world s lord makes neither the work nor passion for the work nor lust for fruit of work the man s own self pushes to these the master of this",
       "openingTokenOverlap": 0.5,
       "verdict": "does-not-match-named-edition"
     },
@@ -136,13 +136,13 @@
         "evidence": "Nicholson’s 1898 translation; Nicholson died in 1945. Exact scan OCR is pinned by SHA-256."
       },
       "sourceSha256": "85a9f7c354d9812c5d25a6060ec594c36ec3fe160d1c9cc81452821dc0d2d93b",
-      "payloadChecksum": "05f5fe16b65c28cf61514204b4805fa61cfe7dbc9e4931fe06303425246e6be6",
+      "payloadChecksum": "3c6c43f4d3ad7e0142d1cc4af3c6d3903e2c4fb92a11be47afc4cd5f2c25c605",
       "sections": 1,
-      "chars": 72834,
+      "chars": 72819,
       "caveat": null,
       "legacyOpening": "What you seek is seeking you.",
-      "verifiedOpening": "www.sattor.com Selected Poems from the Divani Shamsi Tabriz Edited and Translated by R. A. Nicholson Ist published in 1898\n\nI. If thou art Love's lover1 \"If thou art Love's lover\" \"Love, implying loss of self- hood and by that means perfect union with the divine Beloved, is the living rock on which all mysticism is based. and seekest Love, Take a keen poniard and cut the throat of bashfulness2 \"Bashfulness\" (Haya') \"cf. the hadis: \"Alhaya' yamnao' al imana\". Shame hinders faith, and Redhouse's M",
-      "closestVerifiedPassage": "it thou art come even as thou wentest where are the traces of my benefactions tis notorious that copper by alchemy becomes gold our copper has been transmuted by this rare alchemy from god s grace this sun wants no crown or robe he is cap to a hundred bald men and cloak to ten naked child jesus sate on an ass for humility s sake how else should the zephyr ride on the back of an ass o spirit",
+      "verifiedOpening": "Selected Poems from the Divani Shamsi Tabriz Edited and Translated by R. A. Nicholson Ist published in 1898\n\nI. If thou art Love's lover1 \"If thou art Love's lover\" \"Love, implying loss of self- hood and by that means perfect union with the divine Beloved, is the living rock on which all mysticism is based. and seekest Love, Take a keen poniard and cut the throat of bashfulness2 \"Bashfulness\" (Haya') \"cf. the hadis: \"Alhaya' yamnao' al imana\". Shame hinders faith, and Redhouse's Masnavi, p. 115:",
+      "closestVerifiedPassage": "thou art come even as thou wentest where are the traces of my benefactions tis notorious that copper by alchemy becomes gold our copper has been transmuted by this rare alchemy from god s grace this sun wants no crown or robe he is cap to a hundred bald men and cloak to ten naked child jesus sate on an ass for humility s sake how else should the zephyr ride on the back of an ass o spirit make",
       "openingTokenOverlap": 0.833,
       "verdict": "edited-or-modernized"
     },
@@ -183,13 +183,13 @@
         "evidence": "Rilke’s original German letters; Rilke died in 1926. The former M. D. Herter Norton English payload was renewed in 1962 and is not reused."
       },
       "sourceSha256": "be6f9d6aa206ca9a5dd221da3ace299b2dea3a0f4d3b59959a4b87fd61c4fae3",
-      "payloadChecksum": "1e9e615c2f21486bda11f6a368bdaa45ec9766b9faca859850f3fee65a1f8f48",
+      "payloadChecksum": "a4d80e98854559f83efc770681cd8d13a45419c98083e20ad79b7a5ec276e0d5",
       "sections": 10,
-      "chars": 74231,
+      "chars": 73825,
       "caveat": "No public-domain English translation was substituted for Norton’s renewed 1934 translation. This verified holding is the German original.",
       "legacyOpening": "I would like to beg you, | dear Sir, | as well as I can, | to have patience | with everything that remains unsolved | in your heart. | [PAUSE] | Try to love the questions themselves | as if they were locked rooms | or books written in a very foreign language. | [PAUSE] | Do not search for the answers, | which could not be given to you now, | because you would not be able | to live them. | And the point is, | to live everything. | [PAUSE] | Live the questions now. | Perhaps then, | someday far in",
-      "verifiedOpening": "rilke.de - Briefe an einen jungen Dichter\n\nBriefe\n\nAn Franz Xaver Kappus\n\nParis am 17. Februar 1903\n\nSehr geehrter Herr,\n\nIhr Brief hat mich erst vor einigen Tagen erreicht. Ich will Ihnen danken f&uuml;r sein gro&szlig;es und liebes Vertrauen. Ich kann kaum mehr. Ich kann nicht auf die Art Ihrer Verse eingehen; denn mir liegt jede kritische Absicht zu fern. Mit nichts kann man ein Kunst-Werk so wenig ber&uuml;hren als mit kritischen Worten: es kommt dabei immer auf mehr oder minder gl&uuml;ckli",
-      "closestVerifiedPassage": "sie nicht mehr f uuml rchten sich zu verlieren und unw uuml rdig zu werden ihres besten besitzes die k ouml rperliche wollust ist ein sinnliches erlebnis nicht anders als das reine schauen oder das reine gef uuml hl mit dem eine sch ouml ne frucht die zunge f uuml llt sie ist eine gro szlig e unendliche erfahrung die uns gegeben wird ein wissen von der welt die f uuml lle und der glanz alles wissens und nicht da",
+      "verifiedOpening": "Briefe\n\nAn Franz Xaver Kappus\n\nParis am 17. Februar 1903\n\nSehr geehrter Herr,\n\nIhr Brief hat mich erst vor einigen Tagen erreicht. Ich will Ihnen danken f&uuml;r sein gro&szlig;es und liebes Vertrauen. Ich kann kaum mehr. Ich kann nicht auf die Art Ihrer Verse eingehen; denn mir liegt jede kritische Absicht zu fern. Mit nichts kann man ein Kunst-Werk so wenig ber&uuml;hren als mit kritischen Worten: es kommt dabei immer auf mehr oder minder gl&uuml;ckliche Mi&szlig;verst&auml;ndnisse heraus. Die",
+      "closestVerifiedPassage": "uuml rchten sich zu verlieren und unw uuml rdig zu werden ihres besten besitzes die k ouml rperliche wollust ist ein sinnliches erlebnis nicht anders als das reine schauen oder das reine gef uuml hl mit dem eine sch ouml ne frucht die zunge f uuml llt sie ist eine gro szlig e unendliche erfahrung die uns gegeben wird ein wissen von der welt die f uuml lle und der glanz alles wissens und nicht da szlig wir sie empfangen",
       "openingTokenOverlap": 0.083,
       "verdict": "does-not-match-named-edition"
     },
@@ -275,13 +275,13 @@
         "evidence": "The three historical public-domain series are complete in the pinned Project Gutenberg artifact."
       },
       "sourceSha256": "d063f4d9d85a11334dfd20030febe56c50bae2d0204763fb11205c1170376e0d",
-      "payloadChecksum": "7d29f534e5f79d09cf5a27c2c5c29a607edcfe994614701f72556c9350fbab85",
+      "payloadChecksum": "36b104179ed97d91016c516269fa71b12d122e21d813a105b65a5673536653ac",
       "sections": 274,
-      "chars": 167599,
+      "chars": 166720,
       "caveat": null,
       "legacyOpening": "The Brain | — is wider than the Sky — | for — put them side by side — | the one the other will contain | with ease — | and You — beside — | [PAUSE] | The Brain is deeper than the sea — | for — hold them | — Blue to Blue — | the one the other will absorb — | as Sponges — | Buckets — do — | [PAUSE] | The Brain is just the weight of God — | for — Heft them — | Pound for Pound — | and they will differ — | if they do — | as Syllable from Sound —",
       "verifiedOpening": "POEMS\n\nby EMILY DICKINSON\n\nEdited by two of her friends\n\nMABEL LOOMIS TODD and T.W. HIGGINSON\n\nPREFACE.\n\nThe verses of Emily Dickinson belong emphatically to what Emerson long since called \"the Poetry of the Portfolio,\"--something produced absolutely without the thought of publication, and solely by way of expression of the writer's own mind. Such verse must inevitably forfeit whatever advantage lies in the discipline of public criticism and the enforced conformity to accepted ways. On the other",
-      "closestVerifiedPassage": "their curtains and we look farther on italy stands the other side while like a guard between the solemn alps the siren alps forever intervene xli remembrance remembrance has a rear and front t is something like a house it has a garret also for refuse and the mouse besides the deepest cellar that ever mason hewed look to it by its fathoms ourselves be not pursued xlii to hang our head ostensibly and subsequent to find that such was",
+      "closestVerifiedPassage": "farther on italy stands the other side while like a guard between the solemn alps the siren alps forever intervene xli remembrance remembrance has a rear and front t is something like a house it has a garret also for refuse and the mouse besides the deepest cellar that ever mason hewed look to it by its fathoms ourselves be not pursued xlii to hang our head ostensibly and subsequent to find that such was not the posture of our",
       "openingTokenOverlap": 0.967,
       "verdict": "edited-or-modernized"
     },
@@ -388,13 +388,13 @@
         "evidence": "James Legge’s 1891 Sacred Books of the East translation; exact artifact is marked public domain in the United States."
       },
       "sourceSha256": "3ec5ac31ee72b8c30b80bc276d8014dd870008da2c4a35840c9033fd51f5c74b",
-      "payloadChecksum": "d4a2fc52d416b1449232ef1bc86ba35c1afbef8e7e60566eaf38b289e550282c",
+      "payloadChecksum": "81ae10618d495b95eb45e1049e3336f28be9a430f4a453160724d146adcb9f3c",
       "sections": 1,
-      "chars": 58200,
+      "chars": 58172,
       "caveat": null,
       "legacyOpening": "The Tao that can be told | is not the eternal Tao. | The name that can be named | is not the eternal name. | [PAUSE] | The nameless | is the beginning of heaven and earth. | The named | is the mother of ten thousand things. | [PAUSE] | Ever desireless, | one can see the mystery. | Ever desiring, | one can see the manifestations. | [PAUSE] | These two spring from the same source | but differ in name; | This appears as darkness. | Darkness within darkness. | The gate to all mystery.",
-      "verifiedOpening": "Produced by Gregory Walker\n\nTHE TAO TEH KING,\n\nOR\n\nTHE TAO AND ITS CHARACTERISTICS\n\nby Lao-Tse\n\nTranslated by James Legge\n\nPART 1.\n\nCh. 1. 1. The Tao that can be trodden is not the enduring and unchanging Tao. The name that can be named is not the enduring and unchanging name.\n\n2. (Conceived of as) having no name, it is the Originator of heaven and earth; (conceived of as) having a name, it is the Mother of all things.\n\n3.\n\nAlways without desire we must be found, If its deep mystery we would sou",
-      "closestVerifiedPassage": "produced by gregory walker the tao teh king or the tao and its characteristics by lao tse translated by james legge part 1 ch 1 1 the tao that can be trodden is not the enduring and unchanging tao the name that can be named is not the enduring and unchanging name 2 conceived of as having no name it is the originator of heaven and earth conceived of as having a name it is the mother of all things",
+      "verifiedOpening": "THE TAO TEH KING,\n\nOR\n\nTHE TAO AND ITS CHARACTERISTICS\n\nby Lao-Tse\n\nTranslated by James Legge\n\nPART 1.\n\nCh. 1. 1. The Tao that can be trodden is not the enduring and unchanging Tao. The name that can be named is not the enduring and unchanging name.\n\n2. (Conceived of as) having no name, it is the Originator of heaven and earth; (conceived of as) having a name, it is the Mother of all things.\n\n3.\n\nAlways without desire we must be found, If its deep mystery we would sound; But if desire always wit",
+      "closestVerifiedPassage": "the tao teh king or the tao and its characteristics by lao tse translated by james legge part 1 ch 1 1 the tao that can be trodden is not the enduring and unchanging tao the name that can be named is not the enduring and unchanging name 2 conceived of as having no name it is the originator of heaven and earth conceived of as having a name it is the mother of all things 3 always without desire",
       "openingTokenOverlap": 0.733,
       "verdict": "edited-or-modernized"
     }

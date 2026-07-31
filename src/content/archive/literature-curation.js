@@ -488,12 +488,12 @@ export const LITERATURE_CURATION = Object.freeze({
             "year": 1881,
             "basis": "author-death-70",
             "evidence": [
-                "The source record identifies Morshead and all three plays—*Agamemnon*, *The Libation-Bearers*, and *The Furies*; translator died in 1912."
+                "Gutenberg #8604 is titled \"The House of Atreus; Being the Agamemnon, the Libation bearers, and the Furies\" and names Morshead as translator; Morshead died in 1912. CORRECTED 2026-07-30: this record previously cited #1246, which is Conrad Aiken's *The House of Dust: A Symphony*. The ingest fetched #1246 faithfully and every checksum matched, so the shelf served Aiken under Aeschylus's name until the payload was read. The evidence sentence above had asserted facts about a source nobody had opened."
             ],
             "sources": [
                 {
-                    "label": "Project Gutenberg #1246",
-                    "url": "https://www.gutenberg.org/ebooks/1246"
+                    "label": "Project Gutenberg #8604",
+                    "url": "https://www.gutenberg.org/ebooks/8604"
                 }
             ]
         },

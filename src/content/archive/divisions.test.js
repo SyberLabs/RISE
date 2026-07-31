@@ -428,3 +428,43 @@ describe('a declared vocabulary is a hint, not an authority', () => {
         expect(v).not.toContain('trilogy');
     });
 });
+
+describe('a heading with no body is a contents line', () => {
+    it('folds a repeated contents table into the work it describes', () => {
+        // Editions that print a table of acts or chapters before the
+        // text repeat every heading, and the repeats survived as entries
+        // holding nothing but themselves — The Little Clay Cart offered
+        // "Act I" containing 34 characters, and 22 acts for a play that
+        // has 10. The floor is 200 characters because that is the bar
+        // archive.test.js has always used for "suspiciously short".
+        const body = (n) => `ACT ${n}\n\n${Array.from({ length: 400 }, () => 'word').join(' ')}`;
+        const sections = [
+            // The contents table: heading lines with a one-line gloss.
+            { name: 'ACT I', content: 'ACT I\n\nThe gems are stolen.' },
+            { name: 'ACT II', content: 'ACT II\n\nThe gambler flees.' },
+            { name: 'ACT III', content: 'ACT III\n\nThe cart is taken.' },
+            // The play itself.
+            { name: 'ACT I', content: body('I') },
+            { name: 'ACT II', content: body('II') },
+            { name: 'ACT III', content: body('III') }
+        ];
+        const w = divideSections(sections, { minWords: 100 });
+        expect(w.noun).toBe('Act');
+        // Three acts, not six, and every one of them has a body.
+        expect(w.entries).toHaveLength(3);
+        for (const e of w.entries) expect(e.content.length).toBeGreaterThan(200);
+    });
+
+    it('keeps the folded text rather than discarding it', () => {
+        // A contents line is not part of the reading, but throwing it
+        // away would make the divider lossy, and a view that drops
+        // prose is not a view.
+        const sections = [
+            { name: 'ACT I', content: 'ACT I\n\nA gloss.' },
+            { name: 'ACT I', content: `ACT I\n\n${Array.from({ length: 400 }, () => 'w').join(' ')}` },
+            { name: 'ACT II', content: `ACT II\n\n${Array.from({ length: 400 }, () => 'w').join(' ')}` }
+        ];
+        const w = divideSections(sections, { minWords: 100 });
+        expect(w.entries.map(e => e.content).join(' ')).toContain('A gloss.');
+    });
+});

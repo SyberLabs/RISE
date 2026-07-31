@@ -11,7 +11,7 @@ export const LEGACY_REINGESTED_WORKS = [
             .then(module => module.SACRED_ZEN_KOANS_SECTIONS)
     },
     {
-        meta: {"id":"extended-bhagavad-gita-full","title":"The Song Celestial; or, Bhagavad-Gîtâ","author":"traditional attribution to Vyasa","shelf":"eastern","edition":{"translator":"Sir Edwin Arnold","publisher":"Truslove, Hanson & Comba, Ltd.","year":1900,"statement":"1900 New York reprint; Arnold translation first published 1885"},"basis":"pre-1930-us","chars":117871,"sections":16,"sourceSha256":"1a86e50814e20cbf14f3a05e2a64e9d64e90849808b8b3283dbfc510897f413d","payloadChecksum":"cbd31901d6de3aaa9ff192303c918f72f67ce6b51e406dc97c8924e2ff798d7c"},
+        meta: {"id":"extended-bhagavad-gita-full","title":"The Song Celestial; or, Bhagavad-Gîtâ","author":"traditional attribution to Vyasa","shelf":"eastern","edition":{"translator":"Sir Edwin Arnold","publisher":"Truslove, Hanson & Comba, Ltd.","year":1900,"statement":"1900 New York reprint; Arnold translation first published 1885"},"basis":"pre-1930-us","chars":117818,"sections":16,"sourceSha256":"1a86e50814e20cbf14f3a05e2a64e9d64e90849808b8b3283dbfc510897f413d","payloadChecksum":"90eb2e9bac6473ef934a8c69947f8b31050b41ebeb5979a524e568a804cd413e"},
         load: () => import('./works/extended-bhagavad-gita-full.js')
             .then(module => module.EXTENDED_BHAGAVAD_GITA_FULL_SECTIONS)
     },
@@ -26,7 +26,7 @@ export const LEGACY_REINGESTED_WORKS = [
             .then(module => module.EXTENDED_DHAMMAPADA_FULL_SECTIONS)
     },
     {
-        meta: {"id":"sacred-rumi","title":"Selected Poems from the Dīvāni Shamsi Tabrīz","author":"Jalálu’ddín Rúmí","shelf":"eastern","edition":{"translator":"Reynold A. Nicholson","publisher":"Cambridge University Press","year":1898},"basis":"author-death-70","chars":72834,"sections":1,"sourceSha256":"85a9f7c354d9812c5d25a6060ec594c36ec3fe160d1c9cc81452821dc0d2d93b","payloadChecksum":"05f5fe16b65c28cf61514204b4805fa61cfe7dbc9e4931fe06303425246e6be6"},
+        meta: {"id":"sacred-rumi","title":"Selected Poems from the Dīvāni Shamsi Tabrīz","author":"Jalálu’ddín Rúmí","shelf":"eastern","edition":{"translator":"Reynold A. Nicholson","publisher":"Cambridge University Press","year":1898},"basis":"author-death-70","chars":72819,"sections":1,"sourceSha256":"85a9f7c354d9812c5d25a6060ec594c36ec3fe160d1c9cc81452821dc0d2d93b","payloadChecksum":"3c6c43f4d3ad7e0142d1cc4af3c6d3903e2c4fb92a11be47afc4cd5f2c25c605"},
         load: () => import('./works/sacred-rumi.js')
             .then(module => module.SACRED_RUMI_SECTIONS)
     },
@@ -36,7 +36,7 @@ export const LEGACY_REINGESTED_WORKS = [
             .then(module => module.SACRED_CORPUS_HERMETICUM_SECTIONS)
     },
     {
-        meta: {"id":"literary-letters-young-poet","title":"Briefe an einen jungen Dichter","author":"Rainer Maria Rilke","shelf":"western","edition":{"editor":"Franz Xaver Kappus","publisher":"Insel-Verlag","year":1929,"language":"German"},"basis":"author-death-70","chars":74231,"sections":10,"sourceSha256":"be6f9d6aa206ca9a5dd221da3ace299b2dea3a0f4d3b59959a4b87fd61c4fae3","payloadChecksum":"1e9e615c2f21486bda11f6a368bdaa45ec9766b9faca859850f3fee65a1f8f48"},
+        meta: {"id":"literary-letters-young-poet","title":"Briefe an einen jungen Dichter","author":"Rainer Maria Rilke","shelf":"western","edition":{"editor":"Franz Xaver Kappus","publisher":"Insel-Verlag","year":1929,"language":"German"},"basis":"author-death-70","chars":73825,"sections":10,"sourceSha256":"be6f9d6aa206ca9a5dd221da3ace299b2dea3a0f4d3b59959a4b87fd61c4fae3","payloadChecksum":"a4d80e98854559f83efc770681cd8d13a45419c98083e20ad79b7a5ec276e0d5"},
         load: () => import('./works/literary-letters-young-poet.js')
             .then(module => module.LITERARY_LETTERS_YOUNG_POET_SECTIONS)
     },
@@ -56,7 +56,7 @@ export const LEGACY_REINGESTED_WORKS = [
             .then(module => module.LITERARY_LEAVES_OF_GRASS_SECTIONS)
     },
     {
-        meta: {"id":"literary-poems-dickinson","title":"Poems by Emily Dickinson: Three Series, Complete","author":"Emily Dickinson","shelf":"western","edition":{"editors":"Mabel Loomis Todd and T. W. Higginson","publisher":"Roberts Brothers","year":1890,"statement":"three historical series, 1890–1896"},"basis":"pre-1930-us","chars":167599,"sections":274,"sourceSha256":"d063f4d9d85a11334dfd20030febe56c50bae2d0204763fb11205c1170376e0d","payloadChecksum":"7d29f534e5f79d09cf5a27c2c5c29a607edcfe994614701f72556c9350fbab85"},
+        meta: {"id":"literary-poems-dickinson","title":"Poems by Emily Dickinson: Three Series, Complete","author":"Emily Dickinson","shelf":"western","edition":{"editors":"Mabel Loomis Todd and T. W. Higginson","publisher":"Roberts Brothers","year":1890,"statement":"three historical series, 1890–1896"},"basis":"pre-1930-us","chars":166720,"sections":274,"sourceSha256":"d063f4d9d85a11334dfd20030febe56c50bae2d0204763fb11205c1170376e0d","payloadChecksum":"36b104179ed97d91016c516269fa71b12d122e21d813a105b65a5673536653ac"},
         load: () => import('./works/literary-poems-dickinson.js')
             .then(module => module.LITERARY_POEMS_DICKINSON_SECTIONS)
     },
@@ -81,7 +81,7 @@ export const LEGACY_REINGESTED_WORKS = [
             .then(module => module.SACRED_YOGA_SUTRAS_SECTIONS)
     },
     {
-        meta: {"id":"sacred-tao-te-ching","title":"The Tao Teh King; or, The Tao and Its Characteristics","author":"Lao-tze","shelf":"eastern","edition":{"translator":"James Legge","publisher":"Clarendon Press","year":1891},"basis":"pre-1930-us","chars":58200,"sections":1,"sourceSha256":"3ec5ac31ee72b8c30b80bc276d8014dd870008da2c4a35840c9033fd51f5c74b","payloadChecksum":"d4a2fc52d416b1449232ef1bc86ba35c1afbef8e7e60566eaf38b289e550282c"},
+        meta: {"id":"sacred-tao-te-ching","title":"The Tao Teh King; or, The Tao and Its Characteristics","author":"Lao-tze","shelf":"eastern","edition":{"translator":"James Legge","publisher":"Clarendon Press","year":1891},"basis":"pre-1930-us","chars":58172,"sections":1,"sourceSha256":"3ec5ac31ee72b8c30b80bc276d8014dd870008da2c4a35840c9033fd51f5c74b","payloadChecksum":"81ae10618d495b95eb45e1049e3336f28be9a430f4a453160724d146adcb9f3c"},
         load: () => import('./works/sacred-tao-te-ching.js')
             .then(module => module.SACRED_TAO_TE_CHING_SECTIONS)
     }

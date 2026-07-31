@@ -15,6 +15,7 @@ import {
     existsSync,
     mkdirSync,
     readFileSync,
+    rmSync,
     writeFileSync
 } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -795,11 +796,28 @@ const ingested = results.filter(result => result.status === 'ingested');
 if (!dryRun) {
     mkdirSync(OUT, { recursive: true });
     for (const result of acquired) {
-        writeFileSync(
-            resolve(OUT, `${result.entry.id}.js`),
-            moduleText(result.entry, result.sections, result.artifacts),
-            'utf8'
-        );
+        const path = resolve(OUT, `${result.entry.id}.js`);
+
+        // A RELEASE GATE MUST REACH THE DISK.
+        //
+        // The catalogue already filtered gated works out (below), but
+        // their payloads were written anyway — so the eight Indigenous
+        // accessions, every one of them carrying "community review and
+        // access-restriction fields are required before public
+        // release", sat in the works directory reachable by anything
+        // that globbed the folder rather than reading the catalogue.
+        // The division index did exactly that, which is how five of
+        // them were found.
+        //
+        // Gated means gated: no payload, and an existing one removed,
+        // so the decision survives the next run instead of having to be
+        // taken again by hand.
+        if (result.entry.releaseGate) {
+            if (existsSync(path)) rmSync(path);
+            continue;
+        }
+
+        writeFileSync(path, moduleText(result.entry, result.sections, result.artifacts), 'utf8');
     }
     // A full run is authoritative. A single-code run only writes its
     // payload; it cannot safely replace the batch catalogue.

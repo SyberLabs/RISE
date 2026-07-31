@@ -3,25 +3,25 @@
     "divided": true,
     "noun": "Act",
     "count": 9,
-    "words": 26436
+    "words": 26479
   },
   "a-hundred-and-seventy-chinese-poems": {
     "divided": true,
     "noun": "Chapter",
     "count": 15,
-    "words": 33101
+    "words": 33209
   },
   "a-hundred-verses-from-old-japan": {
     "divided": true,
     "noun": "Reading",
     "count": 5,
-    "words": 17255
+    "words": 17315
   },
   "anna-karenina": {
     "divided": true,
     "noun": "Chapter",
-    "count": 236,
-    "words": 348800
+    "count": 239,
+    "words": 349763
   },
   "beckwith-anansi-stories": {
     "divided": true,
@@ -33,7 +33,7 @@
     "divided": true,
     "noun": "Part",
     "count": 42,
-    "words": 26077
+    "words": 26116
   },
   "boethius-consolation": {
     "divided": true,
@@ -50,14 +50,14 @@
   "crime-and-punishment": {
     "divided": true,
     "noun": "Chapter",
-    "count": 75,
-    "words": 203116
+    "count": 76,
+    "words": 203505
   },
   "don-quixote": {
     "divided": true,
     "noun": "Chapter",
-    "count": 159,
-    "words": 425792
+    "count": 172,
+    "words": 427246
   },
   "dow-composition": {
     "divided": true,
@@ -81,7 +81,7 @@
     "divided": true,
     "noun": "Chapter",
     "count": 16,
-    "words": 20119
+    "words": 20109
   },
   "extended-dhammapada-full": {
     "divided": true,
@@ -92,20 +92,20 @@
   "faust": {
     "divided": true,
     "noun": "Act",
-    "count": 38,
-    "words": 145392
+    "count": 42,
+    "words": 145828
   },
   "hamlet": {
     "divided": true,
     "noun": "Reading",
     "count": 22,
-    "words": 84694
+    "words": 85173
   },
   "jane-eyre": {
     "divided": true,
     "noun": "Chapter",
     "count": 66,
-    "words": 184959
+    "words": 185390
   },
   "julian-revelations": {
     "divided": true,
@@ -128,20 +128,20 @@
   "king-lear": {
     "divided": true,
     "noun": "Scene",
-    "count": 38,
-    "words": 63779
+    "count": 35,
+    "words": 64272
   },
   "kwaidan-stories-and-studies-of-strange-things": {
     "divided": true,
     "noun": "Reading",
     "count": 10,
-    "words": 36485
+    "words": 36610
   },
   "le-morte-darthur": {
     "divided": true,
-    "noun": "Reading",
-    "count": 92,
-    "words": 355672
+    "noun": "Chapter",
+    "count": 507,
+    "words": 362068
   },
   "literary-essays-emerson": {
     "divided": true,
@@ -159,7 +159,7 @@
     "divided": false,
     "noun": null,
     "count": 1,
-    "words": 11042
+    "words": 10976
   },
   "literary-meditations": {
     "divided": true,
@@ -177,7 +177,7 @@
     "divided": true,
     "noun": "Part",
     "count": 274,
-    "words": 30369
+    "words": 30208
   },
   "literary-thus-spoke-zarathustra": {
     "divided": true,
@@ -193,27 +193,27 @@
   },
   "madame-bovary": {
     "divided": true,
-    "noun": "Reading",
-    "count": 30,
-    "words": 115366
+    "noun": "Part",
+    "count": 31,
+    "words": 115663
   },
   "metamorphoses": {
     "divided": true,
     "noun": "Book",
     "count": 50,
-    "words": 135203
+    "words": 135257
   },
   "middlemarch": {
     "divided": true,
     "noun": "Chapter",
     "count": 121,
-    "words": 315549
+    "words": 316381
   },
   "moby-dick-or-the-whale": {
     "divided": true,
     "noun": "Chapter",
-    "count": 141,
-    "words": 210819
+    "count": 144,
+    "words": 212796
   },
   "montaigne-essays": {
     "divided": true,
@@ -231,7 +231,7 @@
     "divided": true,
     "noun": "Reading",
     "count": 16,
-    "words": 63477
+    "words": 63594
   },
   "okakura-book-of-tea": {
     "divided": true,
@@ -242,8 +242,8 @@
   "paradise-lost": {
     "divided": true,
     "noun": "Book",
-    "count": 20,
-    "words": 79652
+    "count": 12,
+    "words": 79798
   },
   "parker-australian-tales": {
     "divided": true,
@@ -255,13 +255,13 @@
     "divided": true,
     "noun": "Scene",
     "count": 31,
-    "words": 13937
+    "words": 14001
   },
   "pride-and-prejudice": {
     "divided": true,
     "noun": "Chapter",
     "count": 65,
-    "words": 126973
+    "words": 127359
   },
   "rasmussen-eskimo-tales": {
     "divided": true,
@@ -271,9 +271,9 @@
   },
   "romance-of-the-three-kingdoms": {
     "divided": true,
-    "noun": "Reading",
-    "count": 144,
-    "words": 568937
+    "noun": "Chapter",
+    "count": 214,
+    "words": 569189
   },
   "ross-pure-design": {
     "divided": true,
@@ -285,7 +285,7 @@
     "divided": false,
     "noun": null,
     "count": 1,
-    "words": 11672
+    "words": 11719
   },
   "sacred-corpus-hermeticum": {
     "divided": true,
@@ -309,13 +309,13 @@
     "divided": true,
     "noun": "Reading",
     "count": 4,
-    "words": 14111
+    "words": 14110
   },
   "sacred-tao-te-ching": {
     "divided": false,
     "noun": null,
     "count": 1,
-    "words": 10661
+    "words": 10657
   },
   "sacred-yoga-sutras": {
     "divided": true,
@@ -333,73 +333,73 @@
     "divided": true,
     "noun": "Reading",
     "count": 61,
-    "words": 217153
+    "words": 217794
   },
   "swann-s-way": {
     "divided": true,
     "noun": "Reading",
     "count": 52,
-    "words": 194641
+    "words": 195237
   },
   "the-aeneid": {
     "divided": true,
     "noun": "Book",
     "count": 33,
-    "words": 107456
+    "words": 107551
   },
   "the-bacchae": {
     "divided": true,
     "noun": "Reading",
     "count": 5,
-    "words": 17087
+    "words": 17074
   },
   "the-book-of-the-thousand-nights-and-a-night": {
     "divided": true,
-    "noun": "Reading",
-    "count": 461,
-    "words": 1711263
+    "noun": "Volume",
+    "count": 467,
+    "words": 1717949
   },
   "the-brothers-karamazov": {
     "divided": true,
     "noun": "Chapter",
-    "count": 130,
-    "words": 349280
+    "count": 131,
+    "words": 350685
   },
   "the-canterbury-tales-and-other-poems": {
     "divided": true,
     "noun": "Reading",
     "count": 73,
-    "words": 279243
+    "words": 279774
   },
   "the-decameron": {
     "divided": true,
     "noun": "Reading",
     "count": 82,
-    "words": 306597
+    "words": 307765
   },
   "the-divine-comedy": {
     "divided": true,
     "noun": "Reading",
     "count": 10,
-    "words": 37893
+    "words": 38044
   },
   "the-duchess-of-malfi": {
     "divided": true,
     "noun": "Scene",
     "count": 20,
-    "words": 26477
+    "words": 26520
   },
   "the-faerie-queene": {
     "divided": true,
     "noun": "Reading",
-    "count": 79,
-    "words": 310603
+    "count": 80,
+    "words": 313177
   },
   "the-gulistan-or-rose-garden-of-sa-di": {
     "divided": true,
     "noun": "Chapter",
     "count": 16,
-    "words": 43887
+    "words": 44002
   },
   "the-house-of-atreus": {
     "divided": true,
@@ -411,121 +411,121 @@
     "divided": true,
     "noun": "Book",
     "count": 56,
-    "words": 157376
+    "words": 157684
   },
   "the-kalevala": {
     "divided": true,
     "noun": "Rune",
     "count": 58,
-    "words": 137084
+    "words": 137529
   },
   "the-little-clay-cart": {
     "divided": true,
-    "noun": "Reading",
-    "count": 13,
-    "words": 51525
+    "noun": "Act",
+    "count": 14,
+    "words": 51620
   },
   "the-mahabharata-of-krishna-dwaipayana-vyasa": {
     "divided": true,
-    "noun": "Reading",
-    "count": 805,
-    "words": 2945268
+    "noun": "Section",
+    "count": 2119,
+    "words": 2953381
   },
   "the-nibelungenlied": {
     "divided": true,
     "noun": "Adventure",
     "count": 45,
-    "words": 102471
+    "words": 103023
   },
   "the-no-plays-of-japan": {
     "divided": true,
     "noun": "Chapter",
     "count": 17,
-    "words": 55686
+    "words": 55862
   },
   "the-odyssey": {
     "divided": true,
     "noun": "Book",
     "count": 48,
-    "words": 129272
+    "words": 129571
   },
   "the-oedipus-trilogy": {
     "divided": true,
     "noun": "Reading",
     "count": 10,
-    "words": 37409
+    "words": 37439
   },
   "the-ramayan-of-valmiki": {
     "divided": true,
     "noun": "Canto",
-    "count": 509,
-    "words": 394601
+    "count": 510,
+    "words": 399123
   },
   "the-scarlet-letter": {
     "divided": true,
     "noun": "Part",
     "count": 28,
-    "words": 82788
+    "words": 83020
   },
   "the-shahnama-of-firdausi": {
     "divided": true,
-    "noun": "Reading",
-    "count": 281,
-    "words": 1109679
+    "noun": "Volume",
+    "count": 286,
+    "words": 1112558
   },
   "the-shih-king-or-book-of-poetry": {
     "divided": true,
-    "noun": "Book",
-    "count": 21,
-    "words": 53453
+    "noun": "Ode",
+    "count": 71,
+    "words": 53673
   },
   "the-song-of-roland": {
     "divided": true,
     "noun": "Part",
     "count": 291,
-    "words": 32297
+    "words": 32345
   },
   "the-storm-of-steel": {
     "divided": true,
     "noun": "Reading",
-    "count": 24,
-    "words": 94337
+    "count": 25,
+    "words": 94660
   },
   "the-tempest": {
     "divided": true,
-    "noun": "Reading",
-    "count": 6,
-    "words": 23745
+    "noun": "Scene",
+    "count": 11,
+    "words": 24022
   },
   "the-tragical-history-of-doctor-faustus": {
     "divided": true,
     "noun": "Reading",
     "count": 5,
-    "words": 19693
+    "words": 19716
   },
   "the-troubadours": {
     "divided": true,
     "noun": "Chapter",
     "count": 22,
-    "words": 33251
+    "words": 33459
   },
   "translations-of-shakuntala-and-other-works": {
     "divided": true,
     "noun": "Act",
     "count": 18,
-    "words": 65123
+    "words": 65507
   },
   "twenty-two-goblins": {
     "divided": true,
     "noun": "Reading",
     "count": 11,
-    "words": 40074
+    "words": 40132
   },
   "ulysses": {
     "divided": true,
     "noun": "Reading",
-    "count": 70,
-    "words": 264334
+    "count": 69,
+    "words": 265059
   },
   "vitruvius-architecture": {
     "divided": true,
@@ -536,13 +536,13 @@
   "war-and-peace": {
     "divided": true,
     "noun": "Chapter",
-    "count": 365,
-    "words": 560803
+    "count": 367,
+    "words": 563286
   },
   "wuthering-heights": {
     "divided": true,
     "noun": "Chapter",
     "count": 46,
-    "words": 115666
+    "words": 115945
   }
 }

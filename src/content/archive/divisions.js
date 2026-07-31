@@ -342,6 +342,52 @@ export function splitLongDivision(content, { maxWords = 4000 } = {}) {
     return parted;
 }
 
+/**
+ * A HEADING WITH NO BODY IS A CONTENTS LINE, NOT A DIVISION.
+ *
+ * Editions that print a table of acts or chapters before the text
+ * repeat every heading, and the repeats survive as entries holding
+ * nothing but themselves — The Little Clay Cart offered "Act I"
+ * containing thirty-four characters, and twenty-two acts for a play
+ * that has ten.
+ *
+ * Folded FORWARD, because a contents table precedes the work it
+ * describes; a stray heading at the very end has nothing after it and
+ * folds back instead. Shared by both division paths, since the first
+ * fix went into only one of them and the work took the other.
+ */
+function foldEmptyDivisions(entries, minBodyChars = 200) {
+    const kept = [];
+    for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        // 200 characters is not a number chosen here: it is the bar
+        // archive.test.js has always used for "suspiciously short",
+        // i.e. the Archive's own standing definition of a reading unit
+        // that stands alone. Using anything else would be two answers
+        // to one question.
+        const body = entry.content.length - entry.label.length;
+        if (body >= minBodyChars) {
+            kept.push(entry);
+            continue;
+        }
+        const next = entries[i + 1];
+        if (next) {
+            next.content = `${entry.content}
+
+${next.content}`;
+            next.words += entry.words;
+        } else if (kept.length) {
+            const prev = kept[kept.length - 1];
+            prev.content += `
+
+${entry.content}`;
+            prev.words += entry.words;
+        }
+    }
+    kept.forEach((entry, i) => { entry.id = i; });
+    return kept;
+}
+
 /** Title Case for a division word, for display. */
 const capitalise = (w) => w ? w[0].toUpperCase() + w.slice(1) : w;
 
@@ -427,8 +473,9 @@ export function divide(text, { maxWords = 4000, minWords = 12000 } = {}) {
         });
     }
 
-    if (entries.length < 2) return whole();
-    return { divided: true, noun, entries };
+    const kept = foldEmptyDivisions(entries);
+    if (kept.length < 2) return whole();
+    return { divided: true, noun, entries: kept };
 }
 
 /**
@@ -436,19 +483,40 @@ export function divide(text, { maxWords = 4000, minWords = 12000 } = {}) {
  * body text. Returns null when the string is not a heading.
  */
 export function parseHeading(name) {
-    const raw = String(name || '').trim();
-    if (!raw || raw.length > 90) return null;
+    // A MULTI-VOLUME WORK PREFIXES ITS OWN DIVISIONS. The ingest names
+    // sections "Volume 1 — CHAPTER XII…" when an acquisition spans
+    // several files, and the prefix belongs to the edition rather than
+    // to the heading.
+    const raw = String(name || '').trim().replace(/^Volume\s+\d+\s*[—–-]\s*/i, '');
+    if (!raw) return null;
 
     const numbered = raw.match(NUMBERED);
     if (numbered) {
+        // THE LENGTH GUARD IS ABOUT PROSE, NOT ABOUT TITLES. Rejecting
+        // any name over 90 characters also rejected Malory, whose
+        // chapters are titled "CHAPTER XII. How King Pellinore rode
+        // after the lady and the knight" — so Le Morte d'Arthur's names
+        // parsed as nothing, the divider fell through to scanning the
+        // prose, and found all 507 chapters twice: once in the
+        // chapter-summary table Malory's edition prints before each
+        // book, and once in the book itself.
+        //
+        // A line that opens with a division word, an ordinal, and a
+        // capitalised title has already proved it is a heading. Length
+        // is the wrong thing to disqualify it on; the guard stays for
+        // the unnumbered forms below, where shape is all there is.
         const ordinal = ordinalOf(numbered[2]);
-        if (Number.isFinite(ordinal) && titleIsPlausible(numbered[3])) {
+        if (raw.length <= 200 && Number.isFinite(ordinal) && titleIsPlausible(numbered[3])) {
             return {
                 word: numbered[1].toLowerCase(), ordinal,
                 numeral: numbered[2].trim(), title: numbered[3].trim(), kind: 'numbered'
             };
         }
     }
+    // The unnumbered forms have only their shape to go on, so the
+    // length guard still applies to them.
+    if (raw.length > 90) return null;
+
     const bare = raw.match(BARE_ORDINAL);
     if (bare) {
         const ordinal = ordinalOf(bare[1]);
@@ -584,8 +652,9 @@ export function divideSections(sections, { maxWords = 4000, minWords = 12000 } =
         });
     }
 
-    if (entries.length < 2) return whole('too-few');
-    return { divided: true, noun, reason: 'scheme', entries };
+    const substantial = foldEmptyDivisions(entries);
+    if (substantial.length < 2) return whole('too-few');
+    return { divided: true, noun, reason: 'scheme', entries: substantial };
 }
 
 /**
