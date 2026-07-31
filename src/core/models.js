@@ -3,7 +3,11 @@
  * Data structures for atoms, sources, and sessions
  */
 
-import { normalizeVisualProgram } from './visual-program.js';
+import {
+  normalizeVisualProgram,
+  normalizeMovementProgram,
+  normalizeAudioProgram
+} from './visual-program.js';
 
 /**
  * Modality types for content atoms
@@ -199,6 +203,14 @@ export class Session {
     // SPEC §6): compiled by a content domain, followed by the runtime,
     // opaque to the Session model. Absent for plain sessions.
     visualProgram = null,
+    // A Journey's two siblings to the visual program (JOURNEYS-SPEC
+    // §7.5). Like it, they are launch identity: compiled above the
+    // runtime, followed by it, and opaque to this model. They must
+    // survive the Chamber's destroy/recreate cycle, so they are stored
+    // rather than rebuilt — a Journey that recompiled on every Chamber
+    // construction would be a different Journey each time.
+    movementProgram = null,
+    audioProgram = null,
     // Which MEDIUM renders this reading (SPATIAL-CHAMBER-SPEC §3):
     // 'stream' (RSVP, through time) or 'page' (typeset, in space).
     // Anything unknown is the Stream — the reading as it has always been.
@@ -232,6 +244,8 @@ export class Session {
     this.selectedSwellId = selectedSwellId;
     this.shuttleExempt = shuttleExempt === true;
     this.visualProgram = normalizeVisualProgram(visualProgram);
+    this.movementProgram = normalizeMovementProgram(movementProgram);
+    this.audioProgram = normalizeAudioProgram(audioProgram);
     this.projection = projection === 'page' ? 'page' : 'stream';
     this.createdAt = new Date();
   }

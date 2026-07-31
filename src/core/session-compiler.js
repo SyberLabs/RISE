@@ -82,6 +82,38 @@ export function normalizeProvenance(value, depth = 0) {
     return normalized;
 }
 
+/**
+ * Authored source boundaries, bounded before they reach runtime state.
+ *
+ * A Journey compiler produces these, but nothing stops a persisted
+ * session or a hand-written config from carrying something else, and a
+ * boundary is an atom with a duration — the one field that can stall a
+ * reading if it arrives wrong.
+ */
+const MAX_SOURCE_BOUNDARIES = 32;
+
+function normalizeSourceBoundaries(value) {
+    if (!Array.isArray(value)) return [];
+    const out = [];
+    for (const raw of value.slice(0, MAX_SOURCE_BOUNDARIES)) {
+        if (!raw || typeof raw !== 'object') continue;
+        const id = typeof raw.id === 'string' ? raw.id.slice(0, 160) : '';
+        const sourceId = typeof raw.sourceId === 'string' ? raw.sourceId.slice(0, 160) : '';
+        const afterSourceId = typeof raw.afterSourceId === 'string' ? raw.afterSourceId.slice(0, 160) : '';
+        const beforeSourceId = typeof raw.beforeSourceId === 'string' ? raw.beforeSourceId.slice(0, 160) : '';
+        // A boundary that does not name both sides cannot replace a
+        // break, and one with no source id of its own would carry no cue.
+        if (!id || !sourceId || !afterSourceId || !beforeSourceId) continue;
+        const durationMs = Number(raw.durationMs);
+        out.push({
+            id, sourceId, afterSourceId, beforeSourceId,
+            kind: typeof raw.kind === 'string' ? raw.kind.slice(0, 40) : 'movement',
+            durationMs: Number.isFinite(durationMs) ? durationMs : 1200
+        });
+    }
+    return out;
+}
+
 export function normalizeSessionConfig(input = {}) {
     const wpm = Math.max(
         SESSION_LIMITS.minWpm,
@@ -102,7 +134,8 @@ export function normalizeSessionConfig(input = {}) {
         enabled: input.recitation?.enabled === true
     });
 
-    return { ...input, wpm, chunkMode, curve, recitation };
+    return { ...input, wpm, chunkMode, curve, recitation,
+        sourceBoundaries: normalizeSourceBoundaries(input.sourceBoundaries) };
 }
 
 export function normalizeVisualConfig(value = {}) {
@@ -231,12 +264,55 @@ function createSourceBreak(wpm, position) {
     });
 }
 
+/** A boundary shorter than this is not a transition; longer is a stall. */
+const BOUNDARY_MIN_MS = 200;
+const BOUNDARY_MAX_MS = 30_000;
+
+/**
+ * An AUTHORED boundary between two sources (JOURNEYS-SPEC §7.4).
+ *
+ * The generic break above is three beats of the reading's own pace,
+ * which is right for two texts that merely follow one another. A
+ * Journey's movement change is scored: it has a duration someone chose
+ * and cues of its own, and it replaces the generic break rather than
+ * sitting beside it.
+ *
+ * THIS IS WHY THE PLAYER REMAINS THE ONLY CLOCK. The transition is not
+ * something that happens between atoms while text waits — the
+ * transition IS the current atom. So it pauses when the reading pauses,
+ * rewinds when the reading rewinds, and cannot drift from it, because
+ * there is no second timer to drift.
+ *
+ * Its synthetic sourceId is what makes the visual and audio programs
+ * change cue at exactly this point and nowhere else.
+ */
+function createAuthoredBoundary(boundary, position) {
+    const duration = Math.min(
+        Math.max(Math.round(Number(boundary.durationMs) || 0), BOUNDARY_MIN_MS),
+        BOUNDARY_MAX_MS
+    );
+    return new Atom({
+        content: '',
+        modality: 'text',
+        duration,
+        weight: 0,
+        complexity: 0,
+        // `source-break` is kept so everything that already understands
+        // a break keeps working; the other two say what KIND of break.
+        tags: ['source-break', 'authored-boundary', `boundary:${boundary.id}`],
+        timingLocked: true,
+        sourceId: boundary.sourceId,
+        position
+    });
+}
+
 export function compileSession(input = {}) {
     const config = normalizeSessionConfig(input);
     const sources = normalizeSources(config);
     if (sources.length === 0) throw new TypeError('A session requires at least one non-empty text source');
 
     const atoms = [];
+    let previousSourceId = null;
     for (const source of sources) {
         const prepared = prepareChunkText(source.raw, source.chunkProfile ?? null);
         const sourceAtoms = chunkText(prepared.text, {
@@ -253,11 +329,22 @@ export function compileSession(input = {}) {
                 `Session produces more than ${SESSION_LIMITS.maxAtoms.toLocaleString()} reading atoms. Use shorter text or choose Phrase or Sentence chunking.`
             );
         }
-        if (atoms.length > 0) atoms.push(createSourceBreak(config.wpm, atoms.length));
+        if (atoms.length > 0) {
+            // An authored boundary REPLACES the generic break between
+            // exactly the pair it names. Unmatched adjacent sources keep
+            // the current behaviour, so a Journey's transitions are the
+            // only thing that changes.
+            const authored = (config.sourceBoundaries || []).find(
+                b => b.afterSourceId === previousSourceId && b.beforeSourceId === source.id);
+            atoms.push(authored
+                ? createAuthoredBoundary(authored, atoms.length)
+                : createSourceBreak(config.wpm, atoms.length));
+        }
         for (const atom of sourceAtoms) {
             atom.position = atoms.length;
             atoms.push(atom);
         }
+        previousSourceId = source.id;
     }
     if (atoms.length === 0) throw new TypeError('The supplied sources produced no playable content');
 

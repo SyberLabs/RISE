@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PARADISE LOST — Procedural Visual Pattern Engines Demo</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,600;1,400&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-dark: #050309;
+            --panel-bg: rgba(15, 10, 24, 0.85);
+            --panel-border: rgba(220, 180, 80, 0.3);
+            --accent-gold: #ffd700;
+            --accent-sapphire: #55ccff;
+            --text-main: #f0eaf8;
+            --text-muted: #9f94b8;
+            --font-title: 'Cinzel', serif;
+            --font-body: 'Inter', sans-serif;
+            --font-quote: 'Playfair Display', serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Header HUD */
+        header {
+            background: linear-gradient(180deg, rgba(22, 14, 38, 0.95) 0%, rgba(5, 3, 9, 0.85) 100%);
+            border-bottom: 1px solid var(--panel-border);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(12px);
+            z-index: 100;
+        }
+
+        .brand-title {
+            font-family: var(--font-title);
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            color: #fff6e6;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-title span.badge {
+            font-size: 0.65rem;
+            font-family: var(--font-mono);
+            background: rgba(255, 215, 0, 0.15);
+            border: 1px solid var(--accent-gold);
+            color: var(--accent-gold);
+            padding: 2px 8px;
+            border-radius: 3px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .brand-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            background: rgba(35, 25, 55, 0.8);
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            font-family: var(--font-body);
+            font-size: 0.85rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:hover {
+            background: rgba(255, 215, 0, 0.15);
+            border-color: var(--accent-gold);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .btn.active {
+            background: var(--accent-gold);
+            border-color: var(--accent-gold);
+            color: #000;
+            font-weight: 600;
+        }
+
+        /* Layout Main */
+        main {
+            display: flex;
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Studio View */
+        .viewport-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            background: #000;
+        }
+
+        .studio-canvas-host {
+            flex: 1;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas.engine-canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+
+        /* Passage Overlay Reader Box */
+        .passage-overlay {
+            position: absolute;
+            bottom: 2rem;
+            left: 2rem;
+            right: 2rem;
+            max-width: 820px;
+            margin: 0 auto;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            padding: 1.25rem 1.5rem;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.8);
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .passage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            color: var(--accent-gold);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .passage-quote {
+            font-family: var(--font-quote);
+            font-size: 1.15rem;
+            line-height: 1.6;
+            color: #fff9f0;
+            font-style: italic;
+        }
+
+        .passage-footer {
+            margin-top: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Sidebar Control Panel */
+        .sidebar {
+            width: 380px;
+            background: var(--panel-bg);
+            border-left: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(16px);
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        .sidebar-section {
+            padding: 1.25rem;
+            border-bottom: 1px solid rgba(220, 180, 80, 0.15);
+        }
+
+        .section-title {
+            font-family: var(--font-title);
+            font-size: 0.9rem;
+            letter-spacing: 0.1em;
+            color: var(--accent-gold);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Engine Selector List */
+        .engine-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .engine-card {
+            background: rgba(30, 20, 48, 0.6);
+            border: 1px solid rgba(220, 180, 80, 0.15);
+            padding: 0.85rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .engine-card:hover {
+            border-color: var(--accent-gold);
+            background: rgba(255, 215, 0, 0.08);
+        }
+
+        .engine-card.active {
+            border-color: var(--accent-gold);
+            background: rgba(255, 215, 0, 0.18);
+            box-shadow: 0 0 14px rgba(255, 215, 0, 0.25);
+        }
+
+        .engine-card-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #fff6e6;
+        }
+
+        .engine-card-cat {
+            font-size: 0.7rem;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        /* Sliders & Controls */
+        .control-group {
+            margin-bottom: 1rem;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-main);
+            margin-bottom: 0.35rem;
+        }
+
+        .control-label span.val {
+            font-family: var(--font-mono);
+            color: var(--accent-gold);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.15);
+            appearance: none;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent-gold);
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+        }
+
+        select {
+            width: 100%;
+            background: rgba(30, 20, 48, 0.9);
+            border: 1px solid var(--panel-border);
+            color: var(--text-main);
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-family: var(--font-body);
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        /* Gallery Grid Mode */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+            gap: 1.25rem;
+            padding: 1.5rem;
+            flex: 1;
+            overflow-y: auto;
+            background: #040207;
+        }
+
+        .gallery-item {
+            background: rgba(18, 12, 30, 0.9);
+            border: 1px solid var(--panel-border);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .gallery-item:hover {
+            border-color: var(--accent-gold);
+            transform: translateY(-3px);
+        }
+
+        .gallery-canvas-host {
+            width: 100%;
+            height: 280px;
+            position: relative;
+            background: #000;
+        }
+
+        .gallery-item-footer {
+            padding: 0.85rem 1.1rem;
+            border-top: 1px solid rgba(220, 180, 80, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .gallery-item-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #fff6e6;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header HUD -->
+    <header>
+        <div>
+            <div class="brand-title">
+                PARADISE LOST
+                <span class="badge">John Milton (1667)</span>
+            </div>
+            <div class="brand-subtitle">Movement I: War in Heaven — Procedural Visual Pattern Showcase</div>
+        </div>
+
+        <div class="nav-controls">
+            <button class="btn active" id="btnStudioView">Studio View</button>
+            <button class="btn" id="btnGalleryView">Gallery Grid View</button>
+            <button class="btn" id="btnAudioToggle">🔊 Celestial Organ: OFF</button>
+            <button class="btn" id="btnPassagePlay">▶ Play Passages</button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main>
+        <!-- Studio Single Viewhost -->
+        <div class="viewport-container" id="studioContainer">
+            <div class="studio-canvas-host">
+                <canvas id="studioCanvas"></canvas>
+            </div>
+
+            <!-- Passage Text Overlay -->
+            <div class="passage-overlay" id="passageOverlay">
+                <div class="passage-header">
+                    <span id="passageBook">Book VI: The Fall of the Rebel Angels</span>
+                    <span id="passageMetrics">Arousal: 0.80 | Valence: -0.50</span>
+                </div>
+                <div class="passage-quote" id="passageText">
+                    "Nine days they fell; confounded Chaos roared, And Heaven ruined from Heaven; headlong themselves they threw Down from the verge of Heaven..."
+                </div>
+                <div class="passage-footer">
+                    <span>John Milton — Paradise Lost</span>
+                    <span id="passageCounter">1 / 2</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gallery Grid View Host (Hidden initially) -->
+        <div class="gallery-grid" id="galleryContainer" style="display: none;">
+            <!-- Grid cards populated dynamically -->
+        </div>
+
+        <!-- Sidebar Control Panel -->
+        <aside class="sidebar" id="sidebarPanel">
+            <!-- Engine Selection -->
+            <div class="sidebar-section">
+                <div class="section-title">Paradise Lost Engines</div>
+                <div class="engine-list" id="engineList">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+            <!-- Live Engine Parameters -->
+            <div class="sidebar-section">
+                <div class="section-title">Engine Parameters</div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Arousal (Celestial Intensity)</span>
+                        <span class="val" id="valArousal">0.80</span>
+                    </div>
+                    <input type="range" id="inputArousal" min="0" max="1" step="0.01" value="0.80">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Valence (Divinity / Darkness)</span>
+                        <span class="val" id="valValence">-0.50</span>
+                    </div>
+                    <input type="range" id="inputValence" min="-1" max="1" step="0.01" value="-0.50">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Rotation Speed</span>
+                        <span class="val" id="valSpeed">1.0x</span>
+                    </div>
+                    <input type="range" id="inputSpeed" min="0.1" max="3" step="0.1" value="1.0">
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Color Palette</span>
+                    </div>
+                    <select id="selectPalette">
+                        <!-- Populated per engine -->
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <button class="btn" id="btnRegenSeed" style="flex:1;">🎲 New Seed</button>
+                    <button class="btn" id="btnExportPNG" style="flex:1;">📸 Save Frame</button>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <script type="module">
+        import { PARADISE_LOST_ENGINES, createParadiseEngine } from './src/visuals/paradise_lost/index.js';
+
+        // Curated Passages from John Milton's Paradise Lost
+        const PASSAGES = [
+            {
+                book: "Book VI: Fall of the Rebel Angels",
+                text: "Nine days they fell; confounded Chaos roared, And Heaven ruined from Heaven; headlong themselves they threw Down from the verge of Heaven into the waste Deep.",
+                arousal: 0.85, valence: -0.7, engineId: 'fall_hypercube',
+                palette: 'empyrean_gold'
+            },
+            {
+                book: "Book VI: Chariot of Paternal Deity",
+                text: "Forth rush'd with whirlwind sound The Chariot of Paternal Deity, Flashing thick flames, wheel within wheel undrawn, It self instinct with Spirit.",
+                arousal: 0.95, valence: 0.8, engineId: 'chariot_deity',
+                palette: 'sapphire_throne'
+            }
+        ];
+
+        // State
+        let currentEngineIndex = 0;
+        let activeEngine = null;
+        let isGalleryView = false;
+        let isPassagePlaying = false;
+        let passageTimer = null;
+        let passageIdx = 0;
+        let currentSeed = "paradise-demo-seed-1";
+
+        // Web Audio Synthesizer State (Celestial organ & divine thunder drone)
+        let audioCtx = null;
+        let isAudioOn = false;
+        let organOsc1 = null;
+        let organOsc2 = null;
+
+        // Canvas Elements
+        const studioCanvas = document.getElementById('studioCanvas');
+
+        // Initial setup
+        function initApp() {
+            renderEngineList();
+            setupViewToggle();
+            setupParameterControls();
+            setupAudio();
+            
+            // Handle window resize
+            window.addEventListener('resize', resizeStudioCanvas);
+            resizeStudioCanvas();
+
+            // Load default engine (Engine 1)
+            switchEngine(0);
+
+            // Start main animation loop
+            requestAnimationFrame(animLoop);
+        }
+
+        function resizeStudioCanvas() {
+            const host = studioCanvas.parentElement;
+            studioCanvas.width = host.clientWidth;
+            studioCanvas.height = host.clientHeight;
+            if (activeEngine) {
+                activeEngine.render(studioCanvas);
+            }
+        }
+
+        function renderEngineList() {
+            const listEl = document.getElementById('engineList');
+            listEl.innerHTML = '';
+
+            PARADISE_LOST_ENGINES.forEach((eng, idx) => {
+                const card = document.createElement('div');
+                card.className = `engine-card ${idx === currentEngineIndex ? 'active' : ''}`;
+                card.innerHTML = `
+                    <div class="engine-card-name">${eng.name}</div>
+                    <div class="engine-card-cat">${eng.category}</div>
+                `;
+                card.addEventListener('click', () => switchEngine(idx));
+                listEl.appendChild(card);
+            });
+        }
+
+        function switchEngine(index) {
+            currentEngineIndex = index;
+            renderEngineList();
+
+            const engConfig = PARADISE_LOST_ENGINES[index];
+            activeEngine = createParadiseEngine(engConfig.id);
+            activeEngine.generate({ arousal: 0.8, valence: 0.0 }, currentSeed);
+
+            // Populate palette options
+            const selectPal = document.getElementById('selectPalette');
+            selectPal.innerHTML = '';
+            
+            const palettes = {
+                fall_hypercube: ['empyrean_gold', 'seraphic_flame', 'void_abyss'],
+                chariot_deity: ['sapphire_throne', 'empyrean_thunder', 'celestial_wrath']
+            }[engConfig.id] || ['default'];
+
+            palettes.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p;
+                opt.textContent = p.replace('_', ' ').toUpperCase();
+                selectPal.appendChild(opt);
+            });
+
+            // Update passage overlay
+            const matchingPassage = PASSAGES.find(p => p.engineId === engConfig.id) || PASSAGES[0];
+            updatePassageDisplay(matchingPassage);
+        }
+
+        function updatePassageDisplay(p) {
+            document.getElementById('passageBook').textContent = p.book;
+            document.getElementById('passageText').textContent = `"${p.text}"`;
+            document.getElementById('passageMetrics').textContent = `Arousal: ${p.arousal.toFixed(2)} | Valence: ${p.valence.toFixed(2)}`;
+            
+            document.getElementById('inputArousal').value = p.arousal;
+            document.getElementById('valArousal').textContent = p.arousal.toFixed(2);
+            
+            document.getElementById('inputValence').value = p.valence;
+            document.getElementById('valValence').textContent = p.valence.toFixed(2);
+        }
+
+        function animLoop() {
+            if (!isGalleryView && activeEngine) {
+                const dt = 0.016;
+                const arousal = parseFloat(document.getElementById('inputArousal').value);
+                const speed = parseFloat(document.getElementById('inputSpeed').value);
+
+                activeEngine.step(dt * speed, { arousal });
+                activeEngine.render(studioCanvas);
+            } else if (isGalleryView) {
+                // Update all gallery canvases
+                galleryInstances.forEach(inst => {
+                    inst.engine.step(0.016, { arousal: 0.8 });
+                    inst.engine.render(inst.canvas);
+                });
+            }
+
+            requestAnimationFrame(animLoop);
+        }
+
+        // Setup Viewport Toggle (Studio vs Gallery Grid)
+        let galleryInstances = [];
+
+        function setupViewToggle() {
+            const btnStudio = document.getElementById('btnStudioView');
+            const btnGallery = document.getElementById('btnGalleryView');
+            const studioHost = document.getElementById('studioContainer');
+            const galleryHost = document.getElementById('galleryContainer');
+
+            btnStudio.addEventListener('click', () => {
+                isGalleryView = false;
+                btnStudio.classList.add('active');
+                btnGallery.classList.remove('active');
+                studioHost.style.display = 'flex';
+                galleryHost.style.display = 'none';
+                resizeStudioCanvas();
+            });
+
+            btnGallery.addEventListener('click', () => {
+                isGalleryView = true;
+                btnGallery.classList.add('active');
+                btnStudio.classList.remove('active');
+                studioHost.style.display = 'none';
+                galleryHost.style.display = 'grid';
+
+                // Build Gallery Grid
+                galleryHost.innerHTML = '';
+                galleryInstances = [];
+
+                PARADISE_LOST_ENGINES.forEach((engConfig, idx) => {
+                    const card = document.createElement('div');
+                    card.className = 'gallery-item';
+
+                    const canvasHost = document.createElement('div');
+                    canvasHost.className = 'gallery-canvas-host';
+
+                    const cvs = document.createElement('canvas');
+                    cvs.width = 450;
+                    cvs.height = 280;
+                    cvs.className = 'engine-canvas';
+                    canvasHost.appendChild(cvs);
+
+                    const footer = document.createElement('div');
+                    footer.className = 'gallery-item-footer';
+                    footer.innerHTML = `
+                        <div class="gallery-item-title">${engConfig.name}</div>
+                        <button class="btn" style="padding:0.25rem 0.5rem; font-size:0.75rem;">Inspect</button>
+                    `;
+
+                    footer.querySelector('button').addEventListener('click', () => {
+                        switchEngine(idx);
+                        btnStudio.click();
+                    });
+
+                    card.appendChild(canvasHost);
+                    card.appendChild(footer);
+                    galleryHost.appendChild(card);
+
+                    const engineInstance = createParadiseEngine(engConfig.id);
+                    engineInstance.generate({}, `seed-gallery-${idx}`);
+
+                    galleryInstances.push({
+                        engine: engineInstance,
+                        canvas: cvs
+                    });
+                });
+            });
+        }
+
+        // Setup Parameter Sliders & Buttons
+        function setupParameterControls() {
+            document.getElementById('inputArousal').addEventListener('input', (e) => {
+                document.getElementById('valArousal').textContent = parseFloat(e.target.value).toFixed(2);
+            });
+
+            document.getElementById('inputValence').addEventListener('input', (e) => {
+                document.getElementById('valValence').textContent = parseFloat(e.target.value).toFixed(2);
+            });
+
+            document.getElementById('inputSpeed').addEventListener('input', (e) => {
+                document.getElementById('valSpeed').textContent = `${parseFloat(e.target.value).toFixed(1)}x`;
+            });
+
+            document.getElementById('selectPalette').addEventListener('change', (e) => {
+                if (activeEngine) {
+                    activeEngine.params.colorPalette = e.target.value;
+                }
+            });
+
+            document.getElementById('btnRegenSeed').addEventListener('click', () => {
+                currentSeed = `paradise-seed-${Math.random().toString(36).substr(2, 6)}`;
+                if (activeEngine) {
+                    activeEngine.generate({}, currentSeed);
+                }
+            });
+
+            document.getElementById('btnExportPNG').addEventListener('click', () => {
+                const link = document.createElement('a');
+                link.download = `paradise-lost-${PARADISE_LOST_ENGINES[currentEngineIndex].id}.png`;
+                link.href = studioCanvas.toDataURL('image/png');
+                link.click();
+            });
+
+            // Passage Auto Playback
+            const btnPlay = document.getElementById('btnPassagePlay');
+            btnPlay.addEventListener('click', () => {
+                isPassagePlaying = !isPassagePlaying;
+                if (isPassagePlaying) {
+                    btnPlay.textContent = '⏸ Pause Passages';
+                    btnPlay.classList.add('active');
+                    playNextPassage();
+                    passageTimer = setInterval(playNextPassage, 7000);
+                } else {
+                    btnPlay.textContent = '▶ Play Passages';
+                    btnPlay.classList.remove('active');
+                    clearInterval(passageTimer);
+                }
+            });
+        }
+
+        function playNextPassage() {
+            const p = PASSAGES[passageIdx];
+            const engIdx = PARADISE_LOST_ENGINES.findIndex(e => e.id === p.engineId);
+            if (engIdx >= 0) switchEngine(engIdx);
+
+            document.getElementById('passageCounter').textContent = `${passageIdx + 1} / ${PASSAGES.length}`;
+            passageIdx = (passageIdx + 1) % PASSAGES.length;
+        }
+
+        // Web Audio Generative Soundscape (Celestial Sine Organ)
+        function setupAudio() {
+            const btnAudio = document.getElementById('btnAudioToggle');
+            btnAudio.addEventListener('click', () => {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                isAudioOn = !isAudioOn;
+                if (isAudioOn) {
+                    btnAudio.textContent = '🔊 Celestial Organ: ON';
+                    btnAudio.classList.add('active');
+                    startSoundscape();
+                } else {
+                    btnAudio.textContent = '🔊 Celestial Organ: OFF';
+                    btnAudio.classList.remove('active');
+                    stopSoundscape();
+                }
+            });
+        }
+
+        function startSoundscape() {
+            if (!audioCtx) return;
+
+            // Celestial Organ harmonic fifth (220Hz A3 + 330Hz E4)
+            organOsc1 = audioCtx.createOscillator();
+            organOsc2 = audioCtx.createOscillator();
+
+            const gain = audioCtx.createGain();
+            organOsc1.type = 'sine';
+            organOsc2.type = 'sine';
+
+            organOsc1.frequency.setValueAtTime(220, audioCtx.currentTime);
+            organOsc2.frequency.setValueAtTime(330, audioCtx.currentTime);
+
+            gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+
+            organOsc1.connect(gain);
+            organOsc2.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            organOsc1.start();
+            organOsc2.start();
+        }
+
+        function stopSoundscape() {
+            if (organOsc1) { organOsc1.stop(); organOsc1 = null; }
+            if (organOsc2) { organOsc2.stop(); organOsc2 = null; }
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>

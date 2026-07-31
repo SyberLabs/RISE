@@ -28,13 +28,25 @@ export function cueForAtom(program, atom) {
         return { id: FALLBACK_ID, cue: program?.fallback ?? { kind: 'still' } };
     }
     const coord = readCoordinate(program.coordinateSpace, atom);
-    if (coord) {
+    if (coord && program.coordinateSpace === 'scripture') {
         // Linear scan — segments are few (a chapter's pericopes) and
         // disjoint, so the first containing segment is the only one.
         for (const seg of program.segments) {
             if (seg.match.chapter === coord.chapter
                 && coord.verse >= seg.match.verseStart
                 && coord.verse <= seg.match.verseEnd) {
+                return { id: seg.id, cue: seg.cue };
+            }
+        }
+    }
+    if (coord && program.coordinateSpace === 'source') {
+        // A Journey's coordinate is the sourceId an atom already
+        // carries (JOURNEYS-SPEC §7.2), so a movement needs no new
+        // atom field. A paragraph break inside a movement carries that
+        // movement's sourceId and therefore HOLDS its cue; an authored
+        // boundary carries a synthetic one and therefore changes it.
+        for (const seg of program.segments) {
+            if (seg.match?.sourceIds?.includes(coord.sourceId)) {
                 return { id: seg.id, cue: seg.cue };
             }
         }
@@ -47,6 +59,10 @@ function readCoordinate(space, atom) {
         if (Number.isInteger(atom?.chapter) && Number.isInteger(atom?.verse)) {
             return { chapter: atom.chapter, verse: atom.verse };
         }
+    }
+    if (space === 'source') {
+        const sourceId = atom?.sourceId;
+        if (typeof sourceId === 'string' && sourceId) return { sourceId };
     }
     return null;
 }
@@ -89,9 +105,11 @@ export class VisualScheduleController {
      */
     observe(atom) {
         if (!this.program) return null;
-        const coordinated = this.program.coordinateSpace === 'scripture'
-            ? Number.isInteger(atom?.chapter) && Number.isInteger(atom?.verse)
-            : true;
+        // Structural silence holds the cue in EITHER space. In source
+        // space an atom with no sourceId is the same kind of event a
+        // coordinate-less verse is: a pause inside the reading, not a
+        // change of reading.
+        const coordinated = readCoordinate(this.program.coordinateSpace, atom) !== null;
         if (!coordinated) return null; // hold: structural silence
 
         const { id, cue } = cueForAtom(this.program, atom);
@@ -114,6 +132,21 @@ export class VisualScheduleController {
      * Coordinate-space only; empty otherwise.
      */
     _upcomingSourcedCollections(atom) {
+        if (this.program.coordinateSpace === 'source') {
+            // Ordered segments, not chapter/verse (§8.2). Warm the pools
+            // of the next sourced segments so a movement's imagery is
+            // ready before its first word rather than after it.
+            const here = this.program.segments.findIndex(
+                seg => seg.match?.sourceIds?.includes(atom?.sourceId));
+            const out = [];
+            for (const seg of this.program.segments.slice(here + 1)) {
+                if (seg.cue?.kind === 'sourced' && Array.isArray(seg.cue.collections)) {
+                    out.push(...seg.cue.collections);
+                    if (out.length >= 2) break;
+                }
+            }
+            return out;
+        }
         if (this.program.coordinateSpace !== 'scripture') return [];
         if (!Number.isInteger(atom?.chapter) || !Number.isInteger(atom?.verse)) return [];
         const out = [];

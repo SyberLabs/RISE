@@ -116,3 +116,105 @@ export function serializeVisualProgram(value) {
 export function deserializeVisualProgram(value) {
   return normalizeVisualProgram(value);
 }
+
+/**
+ * A Journey's movement program, bounded for persistence.
+ *
+ * Sibling to normalizeVisualProgram, and here rather than in the
+ * Journey compiler for the same reason that one is here: this is the
+ * PERSISTED boundary, and a session restored from storage has no
+ * compiler between it and the runtime. Whatever survives a reload
+ * arrives through this function.
+ */
+const MAX_MOVEMENTS = 16;
+const MAX_BOUNDARIES = 16;
+const MAX_SOURCE_IDS = 64;
+
+export function normalizeMovementProgram(value) {
+  if (!value || typeof value !== 'object'
+    || value.schema !== 'rise.movement-program.v1'
+    || !Array.isArray(value.movements)) {
+    return null;
+  }
+  const movements = [];
+  for (const raw of value.movements.slice(0, MAX_MOVEMENTS)) {
+    const id = boundedString(raw?.id);
+    if (!id) continue;
+    const sourceIds = (Array.isArray(raw.sourceIds) ? raw.sourceIds : [])
+      .map(v => boundedString(v)).filter(Boolean).slice(0, MAX_SOURCE_IDS);
+    if (!sourceIds.length) continue;
+    movements.push({
+      id,
+      index: Number.isInteger(raw.index) ? raw.index : movements.length,
+      title: boundedString(raw.title, 200) || null,
+      sourceIds
+    });
+  }
+  if (!movements.length) return null;
+
+  const boundaries = [];
+  for (const raw of (Array.isArray(value.boundaries) ? value.boundaries : []).slice(0, MAX_BOUNDARIES)) {
+    const id = boundedString(raw?.id);
+    const sourceId = boundedString(raw?.sourceId);
+    if (!id || !sourceId) continue;
+    const durationMs = Number(raw.durationMs);
+    boundaries.push({
+      id,
+      sourceId,
+      fromMovementId: boundedString(raw.fromMovementId) || null,
+      toMovementId: boundedString(raw.toMovementId) || null,
+      durationMs: Number.isFinite(durationMs) ? Math.min(Math.max(durationMs, 0), 60_000) : 1200
+    });
+  }
+
+  return {
+    schema: 'rise.movement-program.v1',
+    journeyId: boundedString(value.journeyId),
+    movements,
+    boundaries
+  };
+}
+
+/** One audio cue, bounded. Unknown kinds hold rather than guess. */
+function normalizeAudioCue(value) {
+  const KINDS = new Set(['hold', 'silence', 'soundscape', 'swell']);
+  if (!value || typeof value !== 'object' || !KINDS.has(value.kind)) return { kind: 'hold' };
+  const cue = { kind: value.kind };
+  const fadeMs = Number(value.fadeMs);
+  if (Number.isFinite(fadeMs)) cue.fadeMs = Math.min(Math.max(fadeMs, 0), 10_000);
+  if (value.kind === 'soundscape') {
+    const id = boundedString(value.soundscapeId);
+    if (!id) return { kind: 'hold' };
+    cue.soundscapeId = id;
+    const gain = Number(value.gain);
+    if (Number.isFinite(gain)) cue.gain = Math.min(Math.max(gain, 0), 1);
+  }
+  if (value.kind === 'swell') {
+    const id = boundedString(value.swellId);
+    if (!id) return { kind: 'hold' };
+    cue.swellId = id;
+  }
+  return cue;
+}
+
+export function normalizeAudioProgram(value) {
+  if (!value || typeof value !== 'object'
+    || value.coordinateSpace !== 'source'
+    || !Array.isArray(value.segments)) {
+    return null;
+  }
+  const segments = [];
+  for (const raw of value.segments.slice(0, MAX_SEGMENTS)) {
+    const id = boundedString(raw?.id);
+    const sourceIds = (Array.isArray(raw?.match?.sourceIds) ? raw.match.sourceIds : [])
+      .map(v => boundedString(v)).filter(Boolean).slice(0, MAX_SOURCE_IDS);
+    if (!id || !sourceIds.length) continue;
+    segments.push({ id, match: { sourceIds }, cue: normalizeAudioCue(raw.cue) });
+  }
+  if (!segments.length) return null;
+  return {
+    coordinateSpace: 'source',
+    segments,
+    fallback: normalizeAudioCue(value.fallback) || { kind: 'silence', fadeMs: 500 }
+  };
+}
