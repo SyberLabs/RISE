@@ -255,3 +255,40 @@ test('the door stays open when a reader declines the safety notice', async ({ pa
   expect(after.beginLabel).toBe('Begin');
   expect(after.beginDisabled).toBe(false);
 });
+
+test('Milton\'s engines actually draw into the gallery', async ({ page }) => {
+  test.setTimeout(300000);
+  // The end of a long chain, and every link failed silently in turn:
+  // the visual program was normalized to null, the cue was dropped by
+  // applyCue, the engines were registered nowhere, and finally the
+  // gallery's own allowlist filtered the family out — leaving no
+  // families, no work, and a dark field with nothing in the log.
+  const failures = [];
+  page.on('console', m => { if (m.text().includes('[WorkEngines]')) failures.push(m.text()); });
+
+  await openJourneys(page);
+  await expect(page.locator('.journey-credits')).toBeVisible({ timeout: 60000 });
+  await enterReading(page);
+  // The gallery advances on its own cadence; give it a turn.
+  await page.waitForTimeout(14000);
+
+  const field = await page.evaluate(() => {
+    const shown = [...document.querySelectorAll('img')]
+      .filter(i => i.src && i.getBoundingClientRect().width > 100);
+    return {
+      works: shown.length,
+      // A rendered canvas is committed as a data URI; a museum work
+      // would be an https URL. This movement is procedural, so the
+      // field must be holding something WE drew.
+      procedural: shown.some(i => i.src.startsWith('data:image')),
+      bytes: Math.max(0, ...shown.map(i => i.src.length))
+    };
+  });
+  console.log('FIELD ' + JSON.stringify({ ...field, failures: failures.length }));
+
+  expect(failures, failures.join(' | ')).toEqual([]);
+  expect(field.works).toBeGreaterThan(0);
+  expect(field.procedural).toBe(true);
+  // A real render, not a blank canvas.
+  expect(field.bytes).toBeGreaterThan(5000);
+});

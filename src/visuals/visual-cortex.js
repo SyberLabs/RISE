@@ -88,6 +88,19 @@ const COVER_SETTLE_FRAME_MS = 17;
 // Wikimedia grab-bag, one pool like any other
 const ANY_POOL = '__any__';
 const GALLERY_PROCEDURAL_TYPES = Object.freeze([
+    // FAMILIES AUTHORED FOR A WORK COME FIRST, because they are the
+    // reason this list stopped being complete. The gallery filters the
+    // active types against this allowlist, so a type absent from it is
+    // not refused — it simply vanishes, leaving no families, no work,
+    // and a field that stays dark without a word in the log.
+    //
+    // This is the FOURTH place a vocabulary lived and only one copy
+    // learned a new word: the ingest taught the reader nothing about
+    // titled chapters, applyCue dropped procedural cues,
+    // normalizeVisualProgram rejected the source coordinate space, and
+    // here. Sourced from work-engines.js rather than typed out, so the
+    // fifth cannot be this file.
+    ...workEngineFamilies(),
     'klee',
     'turrell',
     'fractal',
