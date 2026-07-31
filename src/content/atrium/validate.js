@@ -16,6 +16,7 @@ import {
   RELATIONSHIP_TYPES
 } from './constants.js';
 import { PHILOSOPHY_CORPUS } from './philosophy.js';
+import { readJourneySegments } from './journey-segments.js';
 import { HISTORY_CORPUS } from './history.js';
 import { ATRIUM_CATALOG } from './catalog.js';
 import { evaluatePassageReadiness, evaluateSourceReadiness } from './readiness.js';
@@ -237,10 +238,11 @@ function validateJourney(journey, anchors, report, expectedDomain, passageIds) {
   if (journey.status === 'blocked' && !hasText(journey.blockedReason)) {
     add(report, 'errors', 'missing-block-reason', 'Blocked journey needs a reason.', journey.id);
   }
-  if (!Array.isArray(journey.segments) || journey.segments.length === 0) {
+  const journeySegments = readJourneySegments(journey);
+  if (journeySegments.length === 0) {
     add(report, 'errors', 'missing-journey-segments', 'Journey needs at least one passage segment.', journey.id);
   } else {
-    journey.segments.forEach(segment => {
+    journeySegments.forEach(segment => {
       if (!isRecord(segment) || !passageIds.has(segment.passageId)) {
         add(report, 'errors', 'dangling-journey-passage', `Unknown journey passage: ${segment?.passageId}.`, journey.id);
         return;

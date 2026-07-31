@@ -1,4 +1,5 @@
 import { ATRIUM_PASSAGES, ATRIUM_SOURCES } from './catalog.js';
+import { readJourneySegments } from './journey-segments.js';
 import {
   ATRIUM_PACK_JURISDICTION,
   PACKABLE_RIGHTS,
@@ -122,7 +123,10 @@ export function evaluateJourneyReadiness(
   sources = ATRIUM_SOURCES
 ) {
   const passagesById = passageIndex(passages);
-  const segments = Array.isArray(journey?.segments) ? journey.segments : [];
+  // One segment order, read one way (JOURNEYS-SPEC 6.2): a Journey may
+  // be a flat playlist or carry authored movements, and readiness must
+  // not be the place that learns the difference.
+  const segments = readJourneySegments(journey);
   const segmentReports = segments.map(segment => ({
     ...segment,
     ...evaluatePassageReadiness(passagesById.get(segment.passageId) || null, sources)
