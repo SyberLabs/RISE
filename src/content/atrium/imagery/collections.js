@@ -160,6 +160,55 @@ export const ATRIUM_PINNED_COLLECTIONS = freezeManifest({
         ]
     },
 
+    /**
+     * Attic vase painting, for the Journey "War" (JOURNEYS-SPEC §2).
+     *
+     * Movement II contracts war to the mortal body: Hector at the
+     * Scaean gate, then Hector dead. Its counterpressure is that the
+     * heroic code "remains intelligible" — Homer does not present it as
+     * an illusion the next movement exposes.
+     *
+     * Vase painting argues that in its form. It is a CODE for showing
+     * bodies: flat, frontal, figures on a ground-line, refusing the
+     * illusionistic depth that would make a scene feel like a window
+     * onto a fact. It schematises rather than naturalises, and it was
+     * made by the people the poem was sung to.
+     *
+     * Neoclassical painting was considered and rejected for the
+     * opposite reason. David and his kind read Hector's death as
+     * already-interpreted tragedy, which settles in advance what Homer
+     * leaves open — the same error a photograph of the Somme would make
+     * beside Jünger.
+     *
+     * Curated 2026-07-30 from a contact sheet of the Met's Greek and
+     * Roman department (28,110 ids; scripts/met-harvest.mjs). Rights
+     * verified per object at `isPublicDomain`; all eighteen cleared,
+     * all are Greek, Attic, classification Vases.
+     */
+    'atr-attic-vases': {
+        name: 'Attic Vase Painting',
+        works: [
+            { source: 'met', id: 258464 },  // Princeton Group, Terracotta neck-amphora (jar), ca. 540–530 BCE
+            { source: 'met', id: 254871 },  // Group E, Terracotta amphora (jar), ca. 550 BCE
+            { source: 'met', id: 254869 },  // Group E, Terracotta amphora (jar), ca. 540 BCE
+            { source: 'met', id: 254865 },  // Bateman Group, Terracotta amphora (jar), ca. 530 BCE
+            { source: 'met', id: 254864 },  // Kittos Group, Terracotta Panathenaic prize amphora, ca. 366/365 BCE
+            { source: 'met', id: 254168 },  // Thorvaldsen Group, Terracotta kylix (drinking cup), ca. 500 BCE
+            { source: 'met', id: 248299 },  // Mannerist Group, Terracotta column-krater, ca. 460 BCE
+            { source: 'met', id: 254906 },  // Group of Polygnotos, Terracotta calyx-krater, ca. 440–430 BCE
+            { source: 'met', id: 247229 },  // Michigan Class, Terracotta lekythos (oil flask), late 6th c. BCE
+            { source: 'met', id: 254911 },  // Group of Polygnotos, Terracotta stamnos (jar), ca. 440 BCE
+            { source: 'met', id: 255154 },  // Andokides, Terracotta amphora (jar), ca. 530 BCE
+            { source: 'met', id: 246931 },  // C Painter, Terracotta kylix: Siana cup, ca. 575 BCE
+            { source: 'met', id: 247326 },  // Greek, Attic, Terracotta standlet, ca. 520–500 BCE
+            { source: 'met', id: 247958 },  // Eucharides Painter, Terracotta amphora (jar), ca. 490 BCE
+            { source: 'met', id: 247236 },  // Rycroft Painter, Terracotta amphora (jar), ca. 510 BCE
+            { source: 'met', id: 254345 },  // Antimenes Painter, Terracotta amphora (jar), ca. 510 BCE
+            { source: 'met', id: 247915 },  // Washing Painter, Terracotta lebes gamikos, ca. 430–420 BCE
+            { source: 'met', id: 251104 }   // Greek, Attic, Terracotta oinochoe: chous (jug), ca. 400 BCE
+        ]
+    }
+
 });
 
 /**

@@ -73,16 +73,25 @@ describe('all three movements are bound', () => {
         expect(() => compileJourney(WAR_JOURNEY)).not.toThrow();
     });
 
-    it('accompanies Junger procedurally rather than with photographs', () => {
+    it('depicts only the movement that has a body to depict', () => {
         // The first two movements are accompanied by works someone made
         // ABOUT war. The third cannot be: a photograph of the Somme is
         // evidence of the thing Junger says stopped being perceptible,
         // and hanging it beside him settles retrospectively what the
         // chapter refuses to settle.
-        const steel = WAR_JOURNEY.movements.find(m => m.id === 'war-steel');
-        expect(steel.presentation.visual.kind).toBe('procedural');
-        const others = WAR_JOURNEY.movements.filter(m => m.id !== 'war-steel');
-        for (const m of others) expect(m.presentation.visual.kind).toBe('sourced');
+        // Two procedural movements, for MIRRORED reasons, with the one
+        // depicted movement between them. Milton's combatants cannot
+        // die, so there are no bodies yet; Junger's have been effaced,
+        // so there are none left. Homer is the only movement where a
+        // person can be seen — which is the descent, made visible in
+        // how each movement is shown.
+        const kinds = Object.fromEntries(
+            WAR_JOURNEY.movements.map(m => [m.id, m.presentation.visual.kind]));
+        expect(kinds).toEqual({
+            'war-heaven': 'procedural',
+            'war-hero': 'sourced',
+            'war-steel': 'procedural'
+        });
     });
 
     it('compiles the bound movements for rehearsal', () => {
@@ -92,7 +101,9 @@ describe('all three movements are bound', () => {
         expect(movementProgram.movements.map(m => m.id))
             .toEqual(['war-heaven', 'war-hero', 'war-steel']);
         expect(cueForSource(visualProgram, 'pass-paradise-lost-war-heaven'))
-            .toMatchObject({ kind: 'sourced' });
+            .toMatchObject({ kind: 'procedural', collections: ['paradise-lost'] });
+        expect(cueForSource(visualProgram, 'pass-iliad-hector-household'))
+            .toMatchObject({ kind: 'sourced', collections: ['atr-attic-vases'] });
         expect(cueForSource(audioProgram, 'pass-iliad-hector-death'))
             .toMatchObject({ kind: 'soundscape', soundscapeId: 'war-mortal-pulse' });
         // Hector's two passages are one movement, not two.

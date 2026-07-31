@@ -123,7 +123,14 @@ export const WAR_JOURNEY = Object.freeze({
                 { passageId: 'pass-paradise-lost-war-heaven', role: 'proposition' }
             ],
             presentation: {
-                visual: { kind: 'sourced', collections: ['journey-war-celestial-geometry'] },
+                // PROCEDURAL, like Jünger and for the mirrored reason.
+                // Milton's combatants are angels who cannot die, so
+                // there are no bodies to depict — his war is geometry
+                // and light. The engines are specific to this book:
+                // the Chariot of Paternal Deity IS Book VI's climax,
+                // Michael's flaming sword its combat, the Fall of the
+                // Rebel Angels its ending.
+                visual: { kind: 'procedural', collections: ['paradise-lost'] },
                 audio: { kind: 'soundscape', soundscapeId: 'war-ordered-field', gain: 0.55, fadeMs: 1200 },
                 textStyle: 'monumental'
             },
@@ -146,7 +153,11 @@ export const WAR_JOURNEY = Object.freeze({
                 { passageId: 'pass-iliad-hector-death', role: 'critique' }
             ],
             presentation: {
-                visual: { kind: 'sourced', collections: ['journey-war-homeric-bronze'] },
+                // Attic vase painting, curated from the Met (see
+                // atr-attic-vases). Chosen because it is a CODE for
+                // showing bodies rather than a window onto them, which
+                // is what this movement claims heroic meaning is.
+                visual: { kind: 'sourced', collections: ['atr-attic-vases'] },
                 audio: { kind: 'soundscape', soundscapeId: 'war-mortal-pulse', gain: 0.48, fadeMs: 900 },
                 textStyle: 'heroic'
             },

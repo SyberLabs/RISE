@@ -91,11 +91,17 @@ export function isBoundarySource(sourceId) {
 function normalizeVisualCue(value) {
     if (!value || typeof value !== 'object') return { kind: 'still' };
     const kind = VISUAL_KINDS.has(value.kind) ? value.kind : 'still';
-    if (kind !== 'sourced') return { kind };
+    // `still` and `focal` name nothing to draw from; the other two do.
+    // Procedural needs its collections as much as sourced does — they
+    // name WHICH engine family renders, and dropping them left a
+    // movement asking for "some procedural" and getting whatever the
+    // cortex last had.
+    if (kind !== 'sourced' && kind !== 'procedural') return { kind };
+
     const collections = (Array.isArray(value.collections) ? value.collections : [])
         .map(boundedId).filter(Boolean).slice(0, 32);
-    // A sourced cue with no pool would show whatever happened to be
-    // loaded. Stillness is the honest reading of "no imagery named".
+    // A cue with no pool would show whatever happened to be loaded.
+    // Stillness is the honest reading of "no imagery named".
     return collections.length ? { kind, collections } : { kind: 'still' };
 }
 

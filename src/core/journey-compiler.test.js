@@ -226,3 +226,26 @@ describe('a flat playlist still compiles', () => {
         expect(movementProgram.boundaries).toEqual([]);
     });
 });
+
+describe('a procedural cue names its engines', () => {
+    it('carries collections, as a sourced cue does', () => {
+        // They were dropped for every kind but `sourced`, which left a
+        // movement asking for "some procedural" and getting whatever
+        // the cortex last had. Milton's Book VI needs its OWN engines —
+        // the Chariot of Paternal Deity is that book's climax.
+        const { visualProgram } = compileJourney(journey([
+            movement('m1', ['p1'], {
+                presentation: { visual: { kind: 'procedural', collections: ['paradise-lost'] } }
+            })
+        ]));
+        expect(cueForSource(visualProgram, 'p1'))
+            .toEqual({ kind: 'procedural', collections: ['paradise-lost'] });
+    });
+
+    it('still falls to stillness when it names none', () => {
+        const { visualProgram } = compileJourney(journey([
+            movement('m1', ['p1'], { presentation: { visual: { kind: 'procedural' } } })
+        ]));
+        expect(cueForSource(visualProgram, 'p1')).toEqual({ kind: 'still' });
+    });
+});
