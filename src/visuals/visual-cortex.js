@@ -25,6 +25,11 @@ import {
 } from './ascii-engine.js';
 import { MemoryCore } from '../core/memory.js';
 import { abortableDelay, createAbortError, isAbortError } from '../sources/visual/request.js';
+import {
+    isWorkEngineFamily,
+    renderWorkEngine,
+    workEngineFamilies
+} from './work-engines.js';
 import { ShuffleBag } from '../sources/visual/shuffle-bag.js';
 import {
     ContinuousField,
@@ -504,6 +509,19 @@ export class VisualCortex {
             ? cue.collections.join(', ')
             : cue.kind;
         console.info(`[Visual Cortex] Cue activated: ${cueLabel} → ${cueCollections}`);
+        // A PROCEDURAL CUE NAMES ENGINES, NOT A MUSEUM POOL. It fell
+        // into the else below and cleared activeTypes, so a movement
+        // that asked for Milton's chariot and flaming sword got an
+        // empty field — the cue arrived, was logged, and turned
+        // everything off. Procedural types ARE activeTypes; the
+        // gallery already draws them, it was simply never told.
+        if (cue.kind === 'procedural' && Array.isArray(cue.collections) && cue.collections.length) {
+            this.updateConfig(
+                { activeTypes: [...cue.collections] },
+                { preservePresentation: true }
+            );
+            return;
+        }
         if (cue.kind === 'sourced' && Array.isArray(cue.collections) && cue.collections.length) {
             // A cue boundary can arrive while the previous atom's visual is
             // already committed. Let that honest presentation finish; the
@@ -711,6 +729,9 @@ export class VisualCortex {
      */
     async _ensureProceduralReady(type) {
         if (!this.initialized) this.init();
+        // A work family draws a still on demand; there is no queue to
+        // fill and no session to begin.
+        if (isWorkEngineFamily(type)) return;
         try {
             if (type === 'fractal' && this.fractal) {
                 if (!this.fractal.isReady?.()) {
@@ -940,7 +961,19 @@ export class VisualCortex {
         let asciiFrame = null;
         let rendered = false;
 
-        if (type === 'klee' && this.kleeFlashes && this._kleeCanvas) {
+        if (isWorkEngineFamily(type) && this._kleeCanvas) {
+            // Engines authored FOR a work (Milton's Book VI, Jünger's
+            // Somme). They share render(canvas, options) with the
+            // cortex's own generators, so the family is all this needs
+            // to know — never which of its members draws what.
+            this._resizeKleeCanvas();
+            this._workEngineCursor = (this._workEngineCursor || 0) + 1;
+            rendered = await renderWorkEngine(
+                type, this._kleeCanvas, this._workEngineCursor,
+                { width: this._kleeCanvas.width, height: this._kleeCanvas.height }
+            );
+            canvas = this._kleeCanvas;
+        } else if (type === 'klee' && this.kleeFlashes && this._kleeCanvas) {
             this._resizeKleeCanvas();
             if (asciiMode) {
                 asciiFrame = await this.kleeFlashes.createAsciiFlash(160, signal, {
@@ -2074,7 +2107,10 @@ export class VisualCortex {
     _isExternalCategory(type) {
         if (typeof type !== 'string' || this._isRetiredExternalType(type)) return false;
         // Core types are internal or handled elsewhere
-        const coreTypes = ['klee', 'turrell', 'fractal', 'neural', 'global', 'custom', 'rockgarden', 'harmonograph', 'blueprint', 'freedom', 'diagram', 'global-pool'];
+        const coreTypes = ['klee', 'turrell', 'fractal', 'neural', 'global', 'custom', 'rockgarden', 'harmonograph', 'blueprint', 'freedom', 'diagram', 'global-pool',
+            // Families authored for one work. Listed so selection does
+            // not filter out a type the cortex can genuinely render.
+            ...workEngineFamilies()];
         if (coreTypes.includes(type) || type.startsWith('personal:')) return false;
 
         // Otherwise assume it's a category for one of our external providers

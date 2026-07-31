@@ -996,6 +996,19 @@
  * transition announces nothing — labelling the silence would be talking
  * over it. */
 .movement-title {
+  /* OUT OF THE FLOW. `.chamber-field` centres its children as a flex
+   * ROW, so a block sibling here sat BESIDE the text and shoved every
+   * phrase to the left for the whole movement. The title belongs over
+   * the field, not in it: absolute, centred, and taking no width from
+   * the reading. */
+  position: absolute;
+  top: var(--space-xl);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  pointer-events: none;
+  max-width: 80%;
+
   font-family: var(--font-mono);
   font-size: 0.7rem;
   letter-spacing: 0.14em;
@@ -1003,7 +1016,6 @@
   color: var(--color-mist);
   opacity: 0.55;
   text-align: center;
-  margin-bottom: var(--space-lg);
   transition: opacity var(--transition-normal) var(--ease-default);
 }
 .movement-title[hidden] { display: none; }

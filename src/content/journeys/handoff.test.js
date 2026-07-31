@@ -189,3 +189,23 @@ describe('the introduction is derived, never authored twice', () => {
         expect(intro.estimatedMinutes).toBe(24);
     });
 });
+
+describe('the opening field', () => {
+    it('turns the cortex on, in gallery, at the first movement\'s cue', async () => {
+        // A cue can swap a field; it cannot turn one on. Without this
+        // the Chamber began with visuals off and every cue the
+        // controller sent landed on a disabled cortex — the movement
+        // changed, the pool changed, and the reader saw nothing.
+        const handoff = await createJourneyHandoff(WAR_JOURNEY, WAR_PASSAGES);
+        const visual = handoff.config.visualConfig;
+
+        expect(visual.visualMode).toBe('interlocution');
+        // Gallery: a persistent field behind the reading, not a flash
+        // between phrases. A Journey's imagery accompanies its whole
+        // movement.
+        expect(visual.interlocution.presentation).toBe('continuous');
+        // War opens on Milton, whose accompaniment is procedural.
+        expect(visual.interlocution.procedural).toEqual(['paradise-lost']);
+        expect(visual.interlocution.sourced).toEqual([]);
+    }, 240000);
+});

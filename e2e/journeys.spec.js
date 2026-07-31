@@ -11,6 +11,23 @@ async function openJourneys(page) {
   await expect(page.locator('.journeys-title')).toBeVisible({ timeout: 20000 });
 }
 
+
+/**
+ * A Journey with imagery asks for photosensitivity consent before the
+ * Chamber opens. That gate is correct and belongs to the reader, so a
+ * test walks through it rather than around it.
+ */
+async function enterReading(page) {
+  await page.locator('.journey-begin').click();
+  // isVisible() does NOT auto-wait — it reports the state at that
+  // instant and ignores a timeout — so checking it straight after the
+  // click asked whether a modal that had not appeared yet was showing.
+  const accept = page.locator('#safety-accept');
+  await accept.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
+  if (await accept.isVisible()) await accept.click();
+  await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
+}
+
 test('the Portal offers Journeys beside the Chamber', async ({ page }) => {
   await page.addInitScript((g) => {
     localStorage.setItem('rise-beta-session', JSON.stringify(g));
@@ -77,9 +94,8 @@ test('Begin enters the reading directly, bypassing the orbital', async ({ page }
   await openJourneys(page);
   await expect(page.locator('.journey-credits')).toBeVisible({ timeout: 60000 });
 
-  await page.locator('.journey-begin').click();
   // §3.3: a published Journey is not reconfigured on the way in.
-  await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
+  await enterReading(page);
 
   const state = await page.evaluate(() => {
     const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
@@ -110,8 +126,7 @@ test('the movement title follows the reading', async ({ page }) => {
   test.setTimeout(180000);
   await openJourneys(page);
   await expect(page.locator('.journey-credits')).toBeVisible({ timeout: 60000 });
-  await page.locator('.journey-begin').click();
-  await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
+  await enterReading(page);
   await page.waitForTimeout(3000);
 
   const title = await page.evaluate(() => {
@@ -121,4 +136,80 @@ test('the movement title follows the reading', async ({ page }) => {
   console.log('MOVEMENT ' + JSON.stringify(title));
   expect(title.text).toBe('War in Heaven');
   expect(title.hidden).toBe(false);
+});
+
+test('the three reported faults are gone', async ({ page }) => {
+  test.setTimeout(240000);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openJourneys(page);
+
+  // 1. The view scrolls. Journeys states a whole argument; none of it
+  //    below the fold was reachable.
+  const scroll = await page.evaluate(() => {
+    // The scrolling element is the view's own root, not the router's
+    // wrapper: body is overflow:hidden, so a long view claims the
+    // viewport and scrolls inside it (the Library's pattern).
+    const view = document.querySelector('.journeys');
+    const before = view.scrollTop;
+    view.scrollTop = 400;
+    return { scrollable: view.scrollHeight > view.clientHeight, moved: view.scrollTop > before };
+  });
+  console.log('SCROLL ' + JSON.stringify(scroll));
+  expect(scroll.scrollable).toBe(true);
+  expect(scroll.moved).toBe(true);
+
+  await expect(page.locator('.journey-credits')).toBeVisible({ timeout: 60000 });
+  await enterReading(page);
+  await page.waitForTimeout(6000);
+
+  // 2. The title is out of the flow: it must not take width from the
+  //    text, which it did as a flex sibling for a whole movement.
+  const layout = await page.evaluate(() => {
+    const title = document.querySelector('#movement-title');
+    const text = document.querySelector('#atom-display');
+    const t = title.getBoundingClientRect();
+    const a = text.getBoundingClientRect();
+    return {
+      title: title.textContent.trim(),
+      position: getComputedStyle(title).position,
+      // Centred in the field rather than beside the text.
+      textCentre: Math.round(a.left + a.width / 2),
+      fieldCentre: Math.round(document.querySelector('#chamber-field').getBoundingClientRect().width / 2),
+      overlaps: !(t.bottom < a.top || t.top > a.bottom)
+    };
+  });
+  console.log('LAYOUT ' + JSON.stringify(layout));
+  expect(layout.position).toBe('absolute');
+  // The text sits centred in the field, not shoved left by the title.
+  expect(Math.abs(layout.textCentre - layout.fieldCentre)).toBeLessThan(60);
+
+  // 3. Procedural visuals reach the cortex and something is drawn.
+  const visuals = await page.evaluate(() => {
+    // The cortex is a module singleton, not on window. What is
+    // observable from the page is the SESSION it was configured from
+    // and whether a canvas has been painted.
+    const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
+    const cortex = { config: ch?.session?.visualConfig?.interlocution || null };
+    const canvas = document.querySelector('canvas.visual-canvas:not([hidden]), #klee-canvas');
+    let painted = false;
+    if (canvas?.getContext) {
+      const ctx = canvas.getContext('2d');
+      try {
+        const d = ctx.getImageData(0, 0, Math.min(canvas.width, 80), Math.min(canvas.height, 80)).data;
+        painted = d.some(v => v !== 0);
+      } catch { painted = false; }
+    }
+    return {
+      mode: ch?.session?.visualConfig?.visualMode ?? null,
+      presentation: cortex.config?.presentation ?? null,
+      procedural: cortex.config?.procedural ?? null,
+      painted
+    };
+  });
+  console.log('VISUALS ' + JSON.stringify(visuals));
+  // The reading opens with the cortex ON, in gallery, holding Milton's
+  // engines — a cue can swap a field but cannot turn one on.
+  expect(visuals.mode).toBe('interlocution');
+  expect(visuals.presentation).toBe('continuous');
+  expect(visuals.procedural).toContain('paradise-lost');
 });

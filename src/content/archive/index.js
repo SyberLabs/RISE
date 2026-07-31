@@ -278,8 +278,25 @@ function sequencesFor(meta, sections) {
 }
 
 /** Library-registry records for every ingested work. */
+/**
+ * The registry, built once.
+ *
+ * Each record closes over its own `cached` payload and `divisions`, so
+ * a work is imported and divided the first time it is opened and not
+ * again. That was true per RECORD and false per CALL: this function
+ * rebuilt every closure on every invocation, so the caches were always
+ * empty and each caller re-imported and re-divided whole books.
+ *
+ * Invisible in the Library, which asks once. Fatal for a Journey, which
+ * asks while showing its introduction and again when a reader presses
+ * Begin — the second pass re-read Milton, Homer and Jünger from
+ * nothing, and Begin sat on "Preparing…".
+ */
+let registry = null;
+
 export function ingestedArchiveTexts() {
-    return WORKS.map(({ meta, load }) => {
+    if (registry) return registry;
+    registry = WORKS.map(({ meta, load }) => {
         let cached = null;
         let divisions = null;
         return {
@@ -331,6 +348,7 @@ export function ingestedArchiveTexts() {
             }
         };
     });
+    return registry;
 }
 
 /** The declared metadata, for tests that check it against the payloads. */

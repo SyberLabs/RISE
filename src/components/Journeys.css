@@ -5,10 +5,28 @@
  * spend twenty minutes inside someone else's ordering of the world.
  * That question deserves space around it. */
 
+/* THE VIEW OWNS ITS SCROLL, as the Library's does.
+ *
+ * `body` is `overflow: hidden` — right for the Portal and the Chamber,
+ * which are fixed fields where nothing should move under the reader.
+ * It means a long view must claim the viewport and scroll inside it;
+ * putting `overflow-y` on `.view-container` did nothing at all, because
+ * that element sizes to its content and so can never overflow.
+ *
+ * Journeys states a whole argument before asking for anyone's time —
+ * thesis, three movements with their counterpressures, the editions —
+ * and none of it below the fold was reachable. */
 .journeys {
-  max-width: 780px;
-  margin: 0 auto;
+  height: 100vh;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: var(--space-2xl) var(--space-lg) var(--space-2xl);
+}
+
+.journeys > * {
+  max-width: 780px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .journeys-header {

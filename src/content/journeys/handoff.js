@@ -147,6 +147,29 @@ export async function createJourneyHandoff(journey, passages, options = {}) {
 
     const boundaries = joinableBoundaries(programs.movementProgram.boundaries);
 
+    // THE FIRST MOVEMENT'S CUE BECOMES THE OPENING FIELD (§7.2).
+    //
+    // Without this the Chamber began with visuals OFF and every cue
+    // the controller sent landed on a disabled cortex: the movement
+    // changed, the pool changed, and the reader saw nothing at all.
+    // A cue can swap a field; it cannot turn one on.
+    //
+    // GALLERY, not rhythmic. `continuous` is the persistent crossfading
+    // field behind the reading rather than a flash between phrases — a
+    // place the words happen in. A Journey's imagery accompanies its
+    // whole movement; interrupting the text with it would make the
+    // accompaniment an event.
+    const opening = programs.visualProgram.segments.find(segment =>
+        segment.match.sourceIds.includes(sources[0]?.id))?.cue || { kind: 'still' };
+    const visualConfig = {
+        visualMode: 'interlocution',
+        interlocution: {
+            presentation: 'continuous',
+            procedural: opening.kind === 'procedural' ? [...opening.collections] : [],
+            sourced: opening.kind === 'sourced' ? [...opening.collections] : []
+        }
+    };
+
     return {
         text: sources.map(source => source.data).join('\n\n'),
         source: `Journey · ${journey.title}`,
@@ -158,6 +181,7 @@ export async function createJourneyHandoff(journey, passages, options = {}) {
             movementProgram: programs.movementProgram,
             visualProgram: programs.visualProgram,
             audioProgram: programs.audioProgram,
+            visualConfig,
             // An authored Journey is not a playlist a reader reshuffles
             // (§3.3). Pace, chunking and recitation are the author's.
             wpm: journey.wpm || 200,
