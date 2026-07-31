@@ -272,22 +272,29 @@ describe('Book VI is read figure by figure', () => {
             .toBeGreaterThanOrEqual(byName.get('michaels-sword').match.toProgress);
     }, 240000);
 
-    it('leaves the five unwritten figures as gaps, not as wrong engines', async () => {
-        // Milton's Book VI wants ten figures and five engines exist. The
-        // opening — heaven in order before the breach — is the largest
-        // of them, and it must fall through to the movement's own cue
-        // rather than borrowing the chariot or the sword.
-        const { byName, segments, progressOfLine } = await figures();
-        expect(segments).toHaveLength(5);
-        for (const gap of ['heaven-in-order', 'the-hosts-meet', 'the-rebel-night',
+    it('opens on heaven in order, from the first line', async () => {
+        // The largest figure in Book VI and the one the whole Journey is
+        // measured against: the state before the breach. It runs from
+        // line 1 until the hosts meet.
+        const { byName, progressOfLine } = await figures();
+        const opening = byName.get('heaven-in-order');
+        expect(opening).toBeTruthy();
+        expect(opening.cue.engines).toEqual(['heaven_in_order']);
+        expect(opening.match.fromProgress).toBe(0);
+        // Present at the very first word, and gone by Michael's sword.
+        expect(progressOfLine(2)).toBeLessThan(opening.match.toProgress);
+        expect(progressOfLine(251)).toBeGreaterThanOrEqual(opening.match.toProgress);
+    }, 240000);
+
+    it('leaves the four unwritten figures as gaps, not as wrong engines', async () => {
+        // Book VI wants ten figures. Six exist; the remaining four fall
+        // through to the movement's own cue rather than borrowing the
+        // chariot or the sword.
+        const { byName, segments } = await figures();
+        expect(segments).toHaveLength(6);
+        for (const gap of ['the-hosts-meet', 'the-rebel-night',
             'the-cannonade', 'the-hills-uptorn']) {
             expect(byName.has(gap), `${gap} should not be a segment`).toBe(false);
-        }
-        // Nothing claims the opening.
-        const opening = progressOfLine(20);
-        for (const segment of segments) {
-            expect(opening < segment.match.fromProgress
-                || opening >= segment.match.toProgress).toBe(true);
         }
     }, 240000);
 

@@ -11,16 +11,20 @@ import { ParadiseChariotDeityEngine } from './ParadiseChariotDeityEngine.js';
 import { ParadiseFlamingSwordEngine } from './ParadiseFlamingSwordEngine.js';
 import { ParadiseSulfurMagmaEngine } from './ParadiseSulfurMagmaEngine.js';
 import { ParadiseDarkOceanChaosEngine } from './ParadiseDarkOceanChaosEngine.js';
+import { ParadiseHeavenInOrderEngine } from './ParadiseHeavenInOrderEngine.js';
 
 export {
     ParadiseFallHypercubeEngine,
     ParadiseChariotDeityEngine,
     ParadiseFlamingSwordEngine,
     ParadiseSulfurMagmaEngine,
-    ParadiseDarkOceanChaosEngine
+    ParadiseDarkOceanChaosEngine,
+    ParadiseHeavenInOrderEngine
 };
 
 export const PARADISE_LOST_ENGINES = [
+    // Book VI in its own order: heaven before the breach, then the war.
+    { id: 'heaven_in_order', name: '0. Heaven in Order (The Perpetual Round)', engineClass: ParadiseHeavenInOrderEngine, category: 'DIMENSIONAL / SPATIAL' },
     { id: 'fall_hypercube', name: '1. Fall of the Rebel Angels (Mandelbrot Abyss)', engineClass: ParadiseFallHypercubeEngine, category: 'DIMENSIONAL / SPATIAL' },
     { id: 'chariot_deity', name: '2. Chariot of Paternal Deity (Ezekiel Wheels)', engineClass: ParadiseChariotDeityEngine, category: 'DIMENSIONAL / SPATIAL' },
     { id: 'flaming_sword', name: '3. St. Michael\'s Flaming Sword (3D Inscribed)', engineClass: ParadiseFlamingSwordEngine, category: 'DIMENSIONAL / SPATIAL' },

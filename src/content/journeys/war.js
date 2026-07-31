@@ -139,14 +139,18 @@ export const WAR_JOURNEY = Object.freeze({
                      * it did everywhere before figures existed. `wanted`
                      * names the engine Book VI is asking for.
                      *
-                     * Milton wants ten. Five exist.
+                     * Milton wants ten. Six exist.
                      */
                     figures: [
                         {
                             id: 'heaven-in-order',
-                            fromLine: 1,
-                            engines: [],
-                            wanted: 'heaven-in-order',
+                            // Line 0, not 1: the passage opens with its own
+                            // running head, and a figure starting after it
+                            // leaves the first atoms to the fallback — a
+                            // flicker of the wrong engine on the first words
+                            // a reader sees.
+                            fromLine: 0,
+                            engines: ['heaven_in_order'],
                             note: 'Dawn over Heaven\'s champain, Abdiel returned, '
                                 + 'the war declared from a throne that was never in '
                                 + 'doubt. Order BEFORE the breach — the one state '
