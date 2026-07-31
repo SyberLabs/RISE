@@ -707,3 +707,10 @@
 @media (max-width: 480px) {
   .gazebo { --gz-scale: 0.5; }
 }
+
+/* Two primary acts rather than one. Chamber and Journeys are the same
+ * act differently authored — a reading you assemble, and a reading
+ * someone argued — so they sit at the same level with air between. */
+.portal-nav .nav-primary {
+  gap: var(--space-2xl);
+}

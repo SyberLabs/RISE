@@ -224,9 +224,16 @@ export class Portal {
           style="opacity: 0;"
           aria-label="Main navigation"
         >
+          <!-- TWO WAYS TO READ. The Chamber is a reading you assemble;
+               a Journey is one someone else argued. They belong at the
+               same level because they are the same act, differently
+               authored — not a feature beside a utility. -->
           <div class="nav-primary">
             <button class="nav-item" data-nav="chamber" role="link">
               Chamber
+            </button>
+            <button class="nav-item" data-nav="journeys" role="link">
+              Journeys
             </button>
           </div>
 

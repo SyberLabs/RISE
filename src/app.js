@@ -48,6 +48,7 @@ import './components/Chapel.css';
 import './components/Rosarium.css';
 import './components/Via.css';
 import './components/Curia.css';
+import './components/Journeys.css';
 import './premium-additions.css';
 
 /**
@@ -723,6 +724,21 @@ class App {
                 return new Library(container, {
                     onNavigate: this.handleNavigate,
                     onSelectText: (text, source, config) => this.handleTextSelection(text, source, config)
+                });
+            }
+        });
+
+        // Journeys — authored transformations across works. Launches
+        // DIRECTLY into the reading rather than through the orbital: a
+        // published Journey's pace and imagery are the author's, not
+        // knobs a reader finds on the way in (JOURNEYS-SPEC §3.3).
+        this.router.registerView('journeys', {
+            container: document.getElementById('view-journeys'),
+            init: async (container) => {
+                const { Journeys } = await import('./components/Journeys.js');
+                return new Journeys(container, {
+                    onNavigate: this.handleNavigate,
+                    onBeginSession: (config) => this.handleBeginSession(config)
                 });
             }
         });
