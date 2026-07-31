@@ -58,6 +58,15 @@ const MAX_CHUNK_WORDS = 16;
  * than sentence mode's while reading as whole units.
  */
 const PHRASE_FLOOR_WORDS = 5;
+
+/**
+ * A verse line shorter than this cannot stand as its own atom — a
+ * running head, a speaker name, a half-line handed between speakers.
+ * Lower than the prose floor because a poet's line is ALREADY a chosen
+ * unit: three words on a line may be exactly the point, where three
+ * words left by a comma never are.
+ */
+const VERSE_MIN_WORDS = 3;
 const LEADING_SPEAKER_LABEL = /^([A-Z][A-Z '.-]{1,30}):\s+/;
 
 /**
@@ -147,6 +156,108 @@ function getPunctuationPause(text, baseDuration) {
  * @param {string[]} phrases pieces from splitPhrases, one paragraph's worth
  * @param {string} paragraph the text they came from, for authored marks
  */
+/**
+ * Is this text actually printed as verse lines?
+ *
+ * DERIVED, NEVER DECLARED — and the reason is Dickinson. Labelling a
+ * work "verse" in a manifest describes the poem; it does not describe
+ * the FILE. Measured, our Dickinson edition has a median line of 19
+ * words with 66% of lines over the chunker's ceiling, because its poems
+ * are set as running prose and the lineation is simply gone. Milton's
+ * Book VI measures a median of 8 with nothing over the ceiling.
+ *
+ * A `structure: "verse"` flag would have been true about both and
+ * useful for only one. So the question this asks is not "is this
+ * poetry" but "does this text still carry its lines", which is the only
+ * form of the question the chunker can act on.
+ *
+ * @returns {{lineated: boolean, lines: number, medianWords: number, overCeiling: number}}
+ */
+export function detectVerseLineation(text, { maxWords = MAX_CHUNK_WORDS } = {}) {
+    const lines = String(text ?? '').split(/\r?\n/)
+        .map(l => l.trim()).filter(Boolean);
+    if (lines.length < 8) {
+        return { lineated: false, lines: lines.length, medianWords: 0, overCeiling: 1 };
+    }
+    const lengths = lines.map(l => l.split(/\s+/).filter(Boolean).length);
+    const sorted = [...lengths].sort((a, b) => a - b);
+    const medianWords = sorted[sorted.length >> 1];
+    const overCeiling = lengths.filter(n => n > maxWords).length / lengths.length;
+
+    // WRAPPED PROSE IS NOT VERSE, and by word count alone it looks
+    // exactly like it. Gutenberg wraps at a fixed column, so Moby-Dick,
+    // Karamazov, Swann's Way and the prose Odyssey all have short lines
+    // and none over the ceiling — and a wrap point is not an authored
+    // boundary, it is an artefact of plain-text typesetting from before
+    // any of this existed.
+    //
+    // The tell is character length, and the separation is total:
+    //
+    //   Milton         max 59 chars, 40% of lines near the maximum
+    //   Dante          max 58,       41%
+    //   Moby-Dick      max 71,       82%
+    //   Karamazov      max 71,       84%
+    //   Odyssey (prose) max 71,      86%
+    //   Swann's Way    max 73,       89%
+    //
+    // A wrapped file crowds its lines against the column because the
+    // wrapper filled each one. A poet's line ends where the line ends.
+    const chars = lines.map(l => l.length);
+    const charsSorted = [...chars].sort((a, b) => a - b);
+    const p90Chars = charsSorted[Math.floor(charsSorted.length * 0.9)] || 1;
+    const crowding = chars.filter(c => c >= p90Chars * 0.9).length / chars.length;
+
+    const lineated = medianWords <= 12 && overCeiling <= 0.08 && crowding < 0.6;
+    return { lineated, lines: lines.length, medianWords, overCeiling, crowding };
+}
+
+/**
+ * One line, one atom — with two exceptions the text itself declares.
+ *
+ * A line over the ceiling is not a verse line: it is prose that happened
+ * to be in a lineated file, or a line the edition ran together. It falls
+ * back to the punctuation splitter, which is what it would have got
+ * anyway.
+ *
+ * A line too short to stand — a running head, a speaker name, a
+ * half-line — joins the NEXT line rather than the previous one. Verse
+ * runs forward: `"Hamlet,"` belongs to what Hamlet then says, and a
+ * stanza's opening fragment belongs to the stanza. This is the opposite
+ * direction from the prose floor, and deliberately so.
+ */
+function splitVerseLines(paragraph, preserveSpeakerHead, useFloor) {
+    const lines = paragraph.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) return splitPhrases(paragraph, preserveSpeakerHead);
+
+    const out = [];
+    let held = '';
+    for (const line of lines) {
+        const candidate = held ? `${held} ${line}` : line;
+        const length = candidate.split(/\s+/).filter(Boolean).length;
+
+        if (length > MAX_CHUNK_WORDS) {
+            // Not a verse line. Hand it to the punctuation splitter, and
+            // let the floor tidy the pieces if this session asked for it.
+            let pieces = splitPhrases(candidate, preserveSpeakerHead);
+            if (useFloor && !preserveSpeakerHead) {
+                pieces = applyPhraseFloor(pieces, candidate);
+            }
+            out.push(...pieces);
+            held = '';
+            continue;
+        }
+        if (length < VERSE_MIN_WORDS) {
+            // Too short to stand alone. Carry it into the next line.
+            held = candidate;
+            continue;
+        }
+        out.push(candidate);
+        held = '';
+    }
+    if (held) out.push(held);
+    return out;
+}
+
 export function applyPhraseFloor(phrases, paragraph = '', {
     floor = PHRASE_FLOOR_WORDS,
     maxWords = MAX_CHUNK_WORDS
@@ -313,7 +424,7 @@ function splitParagraphs(text) {
  * @param {Object|null} [options.hints=null] - Default-off, profile-authored structural hints
  * @returns {Atom[]}
  */
-export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceId = '', hints = null, phraseFloor = false } = {}) {
+export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceId = '', hints = null, phraseFloor = false, verseLines = false } = {}) {
     if (typeof text !== 'string') return [];
 
     // STRUCTURAL TOKENIZATION: authored markers are choreography, not
@@ -417,7 +528,21 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
                 break;
             case 'phrase': {
                 const speakerHead = dialogueHints?.preserveSpeakerHead === true;
-                chunks = splitPhrases(trimmed, speakerHead);
+                // THE LINE IS THE UNIT, WHERE THERE ARE LINES.
+                //
+                // Milton wrote in lines. `splitPhrases` splits on his
+                // commas instead, and `splitLongChunk` windows what is
+                // left by word count — so the chunker had two opinions
+                // about where Book VI breathes and neither was Milton's.
+                // Measured, his lines are a median of 8 words with NONE
+                // over the ceiling: the poet already solved the problem
+                // this module exists to solve.
+                //
+                // Only where the lines survive in the file. See
+                // detectVerseLineation, and Dickinson.
+                chunks = verseLines
+                    ? splitVerseLines(trimmed, speakerHead, phraseFloor)
+                    : splitPhrases(trimmed, speakerHead);
                 // OPT-IN, AND THAT IS THE FINDING, NOT A HEDGE.
                 //
                 // The floor measures beautifully on Book VI and clears
@@ -433,7 +558,10 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
                 // authored boundary — the strongest kind, it says a
                 // different person is talking — so dialogue declines it
                 // even when asked.
-                if (phraseFloor && !speakerHead) {
+                // The floor is for punctuation-split text. A verse line
+                // is already the author's unit and must not be grown
+                // into the next one.
+                if (phraseFloor && !speakerHead && !verseLines) {
                     chunks = applyPhraseFloor(chunks, trimmed);
                 }
                 break;

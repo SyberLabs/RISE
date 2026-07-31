@@ -246,6 +246,11 @@ function normalizeSources(config) {
             ...((source.chunkProfile ?? config.chunkProfile ?? null) == null
                 ? {}
                 : { chunkProfile: String(source.chunkProfile ?? config.chunkProfile) }),
+            // PER SOURCE, because a reading may hold several kinds of
+            // text at once. War's first movement is Milton's blank
+            // verse; its second and third are prose translations. One
+            // session-wide flag would have to be wrong about two of them.
+            verseLines: source.verseLines === true,
             raw
         };
     }).filter(source => source.raw.trim().length > 0);
@@ -325,7 +330,8 @@ export function compileSession(input = {}) {
             // into what they were cut from. Opt-in per session, because
             // it improves mechanically-split prose and would damage text
             // whose short phrases are authored (see PHRASE-CHUNKING-STUDY).
-            phraseFloor: config.phraseFloor === true
+            phraseFloor: config.phraseFloor === true,
+            verseLines: source.verseLines === true
         });
         if (sourceAtoms.length === 0) continue;
         const projectedAtomCount = atoms.length + sourceAtoms.length + (atoms.length > 0 ? 1 : 0);

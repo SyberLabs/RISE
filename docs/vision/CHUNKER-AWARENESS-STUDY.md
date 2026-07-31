@@ -278,3 +278,96 @@ In order, smallest first:
    features §1 shows to be discriminating.
 
 Step 3 is worth doing regardless of everything else in this document.
+
+---
+
+# Addendum — the verse profile, built
+
+*2026-07-31, the same day. §6 step 3 turned out to be smaller than
+expected and is done; what it revealed was not.*
+
+## 7. One line, one atom
+
+Milton's Book VI, measured by line rather than by punctuation:
+
+| | atoms | median | fragments | over ceiling | stutter | stranded subjects |
+|---|---:|---:|---:|---:|---:|---:|
+| phrase, no floor | 5173 | 4 | 25.6% | 0 | 215 | 209 |
+| phrase + floor | 2884 | 7 | 0.1% | 0 | 0 | 101 |
+| **verse lines** | **2767** | **8** | **0.1%** | **0** | **0** | **59** |
+
+In the Journey the Milton passage now compiles to **913 atoms for 913
+lines** — exactly the poet's own unit — and its interrupted-subject count
+falls from 209 to **19**. Nothing grammatical was consulted to achieve
+that. A verse line simply rarely ends at the interrupting comma, so the
+defect the parser was wanted for is largely a side effect of ignoring
+the lineation in the first place.
+
+```
+ 6w  All night the dreadless Angel, unpursued,
+ 9w  Through Heaven's wide champain held his way; till Morn,
+ 8w  Waked by the circling Hours, with rosy hand
+```
+
+## 8. What it cost to get right: verse is not wrapping
+
+The first detector used word counts and classified **Moby-Dick,
+Karamazov, Swann's Way and the prose Odyssey as verse.** They are
+hard-wrapped Gutenberg plain text: short lines, none over the ceiling,
+indistinguishable from blank verse by word count. A wrap column is not
+an authored boundary; it is an artefact of typesetting from before any
+of this existed.
+
+The tell is character length, and the separation is total:
+
+| | max chars | lines crowded at the maximum |
+|---|---:|---:|
+| Paradise Lost | 59 | 40% |
+| Divine Comedy | 58 | 41% |
+| Hamlet | 103 | 16% |
+| Moby-Dick | 71 | **82%** |
+| Karamazov | 71 | **84%** |
+| Odyssey (prose) | 71 | **86%** |
+| Swann's Way | 73 | **89%** |
+
+A wrapper fills each line to the column. A poet's line ends where the
+line ends. `detectVerseLineation` requires median ≤ 12 words, ≤ 8% over
+the ceiling, and crowding < 0.6.
+
+Classified across the Archive, every answer is correct:
+
+```
+YES  Paradise Lost, Divine Comedy, Hamlet, Beowulf,
+     The Faerie Queene, The Kalevala
+no   Dickinson, Leaves of Grass          (editions lost the lineation)
+no   Moby-Dick, Karamazov, Swann's Way,
+     Odyssey, Iliad                      (wrapped prose)
+no   Ulysses, Storm of Steel, Meditations
+```
+
+**Leaves of Grass is the second edition found with its lineation gone**,
+after Dickinson — a corpus problem, not a chunker problem, and now
+detectable rather than invisible.
+
+## 9. Drama is detected but not yet served
+
+Hamlet passes the detector correctly — it *is* lineated — and verse
+lines make it **worse**: 34.1% fragments against the floor's 31.0%, and
+230 stutter runs against 168. The cause is visible in the text: 13.8% of
+its lines are bare speaker names.
+
+That is the "dramatic speaker head: hard boundary plus first utterance"
+rule, and it is not built. Until it is, drama should not enable verse
+lines. Detection and policy are different questions and this is the
+proof: the detector is right and the policy is still missing.
+
+## 10. Where this leaves the parser
+
+The verse profile removed 90% of Milton's interrupted subjects (209 → 19)
+without any grammatical knowledge. That does not retire the parser
+argument, but it changes its target: the remaining cases are in **prose**,
+where there are no lines to fall back on, and the Iliad and Guillemont
+still carry 24 and 12 respectively.
+
+The parser experiment should therefore be run on prose, not on Milton —
+who was the motivating example and is now the least in need of it.

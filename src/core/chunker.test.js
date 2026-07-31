@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { chunkText, countWords, estimateDuration } from './chunker.js';
+import { chunkText, countWords, estimateDuration, detectVerseLineation } from './chunker.js';
 
 describe('chunkText', () => {
   describe('word mode', () => {
@@ -396,5 +396,123 @@ describe('the phrase floor', () => {
             const off = chunkText(text, { mode, wpm: 200 }).map(a => a.content);
             expect(on, mode).toEqual(off);
         }
+    });
+});
+
+describe('verse lineation, detected rather than declared', () => {
+    const verse = (lines) => lines.join('\n');
+    const miltonic = verse([
+        'All night the dreadless Angel, unpursued,',
+        'Through Heaven\'s wide champain held his way; till Morn,',
+        'Waked by the circling Hours, with rosy hand',
+        'Unbarred the gates of light. There is a cave',
+        'Within the mount of God, fast by his throne,',
+        'Where light and darkness in perpetual round',
+        'Lodge and dislodge by turns, which makes through Heaven',
+        'Grateful vicissitude, like day and night;',
+        'Light issues forth, and at the other door',
+        'Obsequious darkness enters, till her hour'
+    ]);
+
+    it('recognises a text that still carries its lines', () => {
+        const found = detectVerseLineation(miltonic);
+        expect(found.lineated).toBe(true);
+        expect(found.medianWords).toBeLessThanOrEqual(12);
+    });
+
+    it('refuses a poem whose edition lost its lineation', () => {
+        // Our Dickinson and Leaves of Grass are set as running prose:
+        // median line 19-20 words, more than half over the ceiling. A
+        // manifest saying `structure: "verse"` would be true about the
+        // poem and false about the file, and the chunker can only act on
+        // the file.
+        const runTogether = verse([
+            'If I can stop one heart from breaking, I shall not live in vain; '
+            + 'if I can ease one life the aching, or cool one pain,',
+            'or help one fainting robin unto his nest again, I shall not live in vain. '
+            + 'And this is all there is to say of it, at length and over.',
+            'A wounded deer leaps highest, I have heard the hunter tell; '
+            + 'it is but the ecstasy of death, and then the brake is still.',
+            'The smitten rock that gushes, the trampled steel that springs, '
+            + 'a cheek is always redder just where the hectic stings.',
+            'Mirth is the mail of anguish, in which it caution arm, '
+            + 'lest anybody spy the blood and you be looking on.',
+            'I like a look of agony, because I know it is true; '
+            + 'men do not sham convulsion, nor simulate a throe.',
+            'The eyes glaze once, and that is death, impossible to feign '
+            + 'the beads upon the forehead by homely anguish strung.',
+            'Heart, we will forget him, you and I, tonight! '
+            + 'You must forget the warmth he gave, I will forget the light.',
+            'When you have done, pray tell me, that I my thoughts may dim; '
+            + 'haste, lest while you are lagging, I may remember him.'
+        ]);
+        expect(detectVerseLineation(runTogether).lineated).toBe(false);
+    });
+
+    it('refuses hard-wrapped prose, which by word count looks identical', () => {
+        // Gutenberg wraps at a fixed column, so Moby-Dick, Karamazov,
+        // Swann's Way and the prose Odyssey all have short lines with
+        // none over the ceiling. A wrap point is not an authored
+        // boundary. The tell is crowding: those files put 82-89% of
+        // their lines against the column; Milton and Dante sit at 40%.
+        const wrapped = verse(Array.from({ length: 20 }, () =>
+            'and it was upon that morning that he came down to the harbour side'));
+        const found = detectVerseLineation(wrapped);
+        expect(found.crowding).toBeGreaterThan(0.6);
+        expect(found.lineated).toBe(false);
+    });
+
+    it('gives one atom per line where the lines are real', () => {
+        const atoms = chunkText(miltonic, { mode: 'phrase', wpm: 200, verseLines: true })
+            .map(a => a.content);
+        expect(atoms).toHaveLength(10);
+        expect(atoms[0]).toBe('All night the dreadless Angel, unpursued,');
+        // Without it, his commas are obeyed instead of his lines.
+        const split = chunkText(miltonic, { mode: 'phrase', wpm: 200 }).map(a => a.content);
+        expect(split.length).toBeGreaterThan(atoms.length);
+        expect(split).toContain('unpursued,');
+    });
+
+    it('sends an over-long line to the punctuation splitter', () => {
+        // A line above the ceiling is not a verse line; it is prose in a
+        // lineated file, or a line the edition ran together.
+        const mixed = verse([
+            'A short and ordinary line of verse,',
+            'and now a line which runs on far past any reasonable ceiling '
+            + 'for a single breath, continuing well beyond sixteen words, '
+            + 'and further still, and further.',
+            'Another short and ordinary line.'
+        ]);
+        const atoms = chunkText(mixed, { mode: 'phrase', wpm: 200, verseLines: true })
+            .map(a => a.content);
+        expect(atoms.length).toBeGreaterThan(3);
+        for (const atom of atoms) {
+            expect(atom.split(/\s+/).filter(Boolean).length).toBeLessThanOrEqual(16);
+        }
+    });
+
+    it('carries a too-short line FORWARD, not back', () => {
+        // Verse runs forward: a running head or half-line belongs to
+        // what follows it. This is the opposite direction from the prose
+        // floor, and deliberately so.
+        const atoms = chunkText(verse([
+            'Book VI',
+            'All night the dreadless Angel, unpursued,',
+            'Through Heaven\'s wide champain held his way; till Morn,',
+            'Waked by the circling Hours, with rosy hand',
+            'Unbarred the gates of light. There is a cave',
+            'Within the mount of God, fast by his throne,'
+        ]), { mode: 'phrase', wpm: 200, verseLines: true }).map(a => a.content);
+        expect(atoms[0]).toBe('Book VI All night the dreadless Angel, unpursued,');
+    });
+
+    it('does not apply the prose floor to a verse line', () => {
+        // A poet's line is already a chosen unit; growing it into the
+        // next one would be the floor overruling the author.
+        const withFloor = chunkText(miltonic,
+            { mode: 'phrase', wpm: 200, verseLines: true, phraseFloor: true }).map(a => a.content);
+        const without = chunkText(miltonic,
+            { mode: 'phrase', wpm: 200, verseLines: true }).map(a => a.content);
+        expect(withFloor).toEqual(without);
     });
 });

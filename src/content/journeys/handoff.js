@@ -20,6 +20,7 @@
  */
 
 import { compileJourney } from '../../core/journey-compiler.js';
+import { detectVerseLineation } from '../../core/chunker.js';
 import { resolveJourneyPassages, verifyPassageChecksums } from './passages.js';
 import { readJourneyMovements } from '../atrium/journey-segments.js';
 
@@ -170,6 +171,17 @@ export async function createJourneyHandoff(journey, passages, options = {}) {
         type: 'text',
         providerId: 'journey',
         data: passage.text,
+        // DETECTED HERE, HONOURED THERE.
+        //
+        // Whether a passage still carries its verse lines is a fact
+        // about the text, so it is measured where the text is — not
+        // declared in the manifest, which would describe the poem
+        // rather than the file, and not sniffed inside the chunker,
+        // which would be the runtime making an editorial decision.
+        //
+        // Milton passes; the prose Iliad and Jünger do not, and this
+        // is why the flag is per source rather than per session.
+        verseLines: detectVerseLineation(passage.text).lineated,
         // §1.3: every difference that makes the relation meaningful
         // travels with the passage. The Journey creates a relation; it
         // may not erase what the works are.
