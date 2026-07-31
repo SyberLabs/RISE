@@ -140,6 +140,10 @@ test('the movement title follows the reading', async ({ page }) => {
 
 test('the three reported faults are gone', async ({ page }) => {
   test.setTimeout(240000);
+  const cues = [];
+  page.on('console', m => { if (m.text().includes('Cue activated')) cues.push(m.text()); });
+  const sched = [];
+  page.on('console', m => { if (m.text().includes('schedule ready')) sched.push(m.text()); });
   await page.setViewportSize({ width: 1280, height: 720 });
   await openJourneys(page);
 
@@ -207,6 +211,12 @@ test('the three reported faults are gone', async ({ page }) => {
     };
   });
   console.log('VISUALS ' + JSON.stringify(visuals));
+  console.log('SCHEDULES ' + JSON.stringify(sched.map(x => x.replace(/^.*Chamber\] /, ''))));
+  console.log('CUES ' + JSON.stringify(cues.map(c => c.replace(/^.*Cortex\] /, ''))));
+  // The visual schedule must EXIST — its absence was silent.
+  expect(sched.join(' ')).toMatch(/Visual schedule ready/);
+  // And it must have activated Milton's engines.
+  expect(cues.join(' ')).toMatch(/paradise-lost/);
   // The reading opens with the cortex ON, in gallery, holding Milton's
   // engines — a cue can swap a field but cannot turn one on.
   expect(visuals.mode).toBe('interlocution');

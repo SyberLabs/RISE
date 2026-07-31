@@ -219,3 +219,55 @@ describe('the programs survive the Session', () => {
         expect(session.audioProgram).toBeNull();
     });
 });
+
+describe('the programs survive normalization, not only serialization', () => {
+    it('keeps a source-coordinate visual program', async () => {
+        // It was rejected outright: the normalizer accepted only
+        // `scripture`, so a Journey's program came out null and the
+        // Chamber built no visual controller. No error, no warning —
+        // the movement schedule announced itself, the audio schedule
+        // announced itself, and the line between them was simply absent
+        // from the log while a reader watched an empty field.
+        const { Session } = await import('./models.js');
+        const { visualProgram } = compileJourney(MANIFEST);
+        const session = new Session({ name: 'War', atoms: [], sources: [], visualProgram });
+
+        expect(session.visualProgram).not.toBeNull();
+        expect(session.visualProgram.coordinateSpace).toBe('source');
+        expect(session.visualProgram.segments.length).toBe(visualProgram.segments.length);
+    });
+
+    it('keeps a procedural cue\'s engines through the Session', async () => {
+        const { Session } = await import('./models.js');
+        const { visualProgram } = compileJourney(MANIFEST);
+        const session = new Session({ name: 'War', atoms: [], sources: [], visualProgram });
+
+        // The fixture above is `sourced`; War's first movement is not,
+        // so the procedural path needs a program of its own.
+        const procedural = compileJourney({
+            id: 'j',
+            movements: [
+                {
+                    id: 'm', segments: [{ passageId: 'p' }],
+                    presentation: { visual: { kind: 'procedural', collections: ['paradise-lost'] } }
+                },
+                { id: 'm2', segments: [{ passageId: 'p2' }] }
+            ]
+        }).visualProgram;
+        const kept = new Session({
+            name: 'x', atoms: [], sources: [], visualProgram: procedural
+        });
+        const cue = cueForAtom(kept.visualProgram, { sourceId: 'p' }).cue;
+        expect(cue).toEqual({ kind: 'procedural', collections: ['paradise-lost'] });
+    });
+
+    it('still rejects a malformed or unknown coordinate space', async () => {
+        const { Session } = await import('./models.js');
+        const a = new Session({ name: 'x', atoms: [], sources: [],
+            visualProgram: { coordinateSpace: 'galactic', segments: [{ id: 'a' }] } });
+        const b = new Session({ name: 'x', atoms: [], sources: [],
+            visualProgram: { coordinateSpace: 'source', segments: [{ id: '', match: {} }] } });
+        expect(a.visualProgram).toBeNull();
+        expect(b.visualProgram).toBeNull();
+    });
+});

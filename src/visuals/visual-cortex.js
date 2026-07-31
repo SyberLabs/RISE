@@ -505,8 +505,11 @@ export class VisualCortex {
     applyCue(cue, meta = {}) {
         if (!cue || typeof cue !== 'object') return;
         const cueLabel = meta.cueId || cue.kind || 'unknown';
-        const cueCollections = cue.kind === 'sourced' && Array.isArray(cue.collections)
-            ? cue.collections.join(', ')
+        // Name the pool for EVERY kind that has one. Logging just
+        // "procedural" said a cue arrived and not what it asked for,
+        // which is the difference between a diagnostic and a noise.
+        const cueCollections = Array.isArray(cue.collections) && cue.collections.length
+            ? `${cue.kind}: ${cue.collections.join(', ')}`
             : cue.kind;
         console.info(`[Visual Cortex] Cue activated: ${cueLabel} → ${cueCollections}`);
         // A PROCEDURAL CUE NAMES ENGINES, NOT A MUSEUM POOL. It fell

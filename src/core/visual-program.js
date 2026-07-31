@@ -48,6 +48,21 @@ export function normalizeVisualCue(value) {
       ? { kind: 'sourced', collections }
       : { kind: 'still' };
   }
+  // PROCEDURAL NAMES ENGINES, and they must survive persistence for
+  // the same reason a sourced cue's collections do. Collapsing it to
+  // `still` here would strip Milton's chariot and flaming sword on the
+  // way through the Session — the second place this vocabulary gap
+  // hid, after the cortex's own applyCue.
+  if (value.kind === 'procedural') {
+    const collections = Array.isArray(value.collections)
+      ? [...new Set(value.collections
+        .map(id => boundedString(id))
+        .filter(Boolean))].slice(0, MAX_COLLECTIONS)
+      : [];
+    return collections.length
+      ? { kind: 'procedural', collections }
+      : { kind: 'still' };
+  }
   if (value.kind === 'focal') {
     return { kind: 'focal', focal: normalizeFocal(value.focal) };
   }
@@ -60,11 +75,42 @@ export function normalizeVisualCue(value) {
  * in-memory normalization share exactly one validation path.
  */
 export function normalizeVisualProgram(value) {
-  if (!value || typeof value !== 'object'
-    || value.coordinateSpace !== 'scripture'
-    || !Array.isArray(value.segments)) {
+  if (!value || typeof value !== 'object' || !Array.isArray(value.segments)) {
     return null;
   }
+
+  // TWO COORDINATE SPACES, ONE PERSISTED BOUNDARY.
+  //
+  // This rejected everything that was not `scripture`, which was right
+  // when scripture was the only space and silently wrong the moment a
+  // second one existed. A Journey's source-coordinate program went
+  // through here, came out null, and the Chamber built no visual
+  // controller at all — the movement schedule announced itself, the
+  // audio schedule announced itself, and the line between them was
+  // simply absent from the log.
+  //
+  // The failure had no error and no warning: a reader saw the text,
+  // heard nothing, and watched an empty field for a movement that had
+  // named its imagery precisely. Adding movement and audio normalizers
+  // beside this one and leaving IT narrow is the whole mistake.
+  if (value.coordinateSpace === 'source') {
+    const segments = [];
+    for (const segment of value.segments.slice(0, MAX_SEGMENTS)) {
+      const id = boundedString(segment?.id);
+      const sourceIds = (Array.isArray(segment?.match?.sourceIds) ? segment.match.sourceIds : [])
+        .map(v => boundedString(v)).filter(Boolean).slice(0, 64);
+      if (!id || !sourceIds.length) continue;
+      segments.push({ id, match: { sourceIds }, cue: normalizeVisualCue(segment.cue) });
+    }
+    if (!segments.length) return null;
+    return {
+      coordinateSpace: 'source',
+      segments,
+      fallback: normalizeVisualCue(value.fallback)
+    };
+  }
+
+  if (value.coordinateSpace !== 'scripture') return null;
 
   const segments = [];
   for (const segment of value.segments.slice(0, MAX_SEGMENTS)) {
