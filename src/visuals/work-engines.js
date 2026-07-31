@@ -91,3 +91,94 @@ export async function renderWorkEngine(familyId, canvas, index = 0, options = {}
         return false;
     }
 }
+
+/**
+ * PAGE MODE ASKS FOR ONE ENGINE, NOT A FAMILY.
+ *
+ * The Page resolves imagery by an opaque collection id, and a Journey's
+ * figures each name their own engine — so "paradise-lost" alone is not
+ * enough to put the flaming sword beside Michael's sword. The id
+ * therefore carries both, and BOTH ENDS USE THESE FUNCTIONS rather than
+ * writing the format by hand. That rule is not fussiness: a vocabulary
+ * kept in two places has failed six times in this codebase, and every
+ * time it was silent.
+ */
+const PAGE_ID_SEPARATOR = '::';
+
+export function pageCollectionId(familyId, engineId = '') {
+    return engineId ? `${familyId}${PAGE_ID_SEPARATOR}${engineId}` : String(familyId);
+}
+
+/** @returns {{familyId: string, engineId: string}|null} null when not a work family */
+export function parsePageCollectionId(id) {
+    const [familyId, engineId = ''] = String(id ?? '').split(PAGE_ID_SEPARATOR);
+    return isWorkEngineFamily(familyId) ? { familyId, engineId } : null;
+}
+
+/**
+ * The step used when winding an engine forward to a sampled moment.
+ * Coarser than a real frame because nobody is watching the intermediate
+ * states — but not so coarse that an integrator diverges from what the
+ * live field would have shown.
+ */
+const SAMPLE_STEP_SECONDS = 1 / 24;
+
+/**
+ * One engine, at one moment of its life, as an immutable image.
+ *
+ * The Page has no clock — that is its whole premise — so a living field
+ * has to be translated rather than embedded. The Chamber already
+ * decided how: Genesis and the attractor are sampled at evenly spaced
+ * states because "a single still would misrepresent them", and their
+ * honest spatial translation is a SEQUENCE. Work engines are the same
+ * kind of thing and get the same treatment.
+ *
+ * @param {string} familyId
+ * @param {string} engineId  '' takes the family's first engine
+ * @param {number} atSeconds how far into its life to sample
+ */
+export async function sampleWorkEngine(familyId, engineId, atSeconds, {
+    width = 1200, height = 800, timeScale = 1
+} = {}) {
+    const engines = await loadWorkEngines(familyId);
+    if (!engines.length) return null;
+    const entry = (engineId && engines.find(e => e.id === engineId)) || engines[0];
+
+    let canvas;
+    try {
+        canvas = typeof OffscreenCanvas === 'function'
+            ? new OffscreenCanvas(width, height)
+            : Object.assign(document.createElement('canvas'), { width, height });
+    } catch {
+        return null;
+    }
+
+    try {
+        const engine = new entry.engineClass();
+        engine.generate?.({}, `${familyId}-${entry.id}-page`);
+        // Wind it forward. Engines integrate, so the state at t is not
+        // recoverable by assigning t — it has to be walked to.
+        const target = Math.max(0, atSeconds) * timeScale;
+        for (let t = 0; t < target; t += SAMPLE_STEP_SECONDS) {
+            engine.step?.(Math.min(SAMPLE_STEP_SECONDS, target - t), {});
+        }
+        if (engine.render(canvas, { width, height }) === false) return null;
+
+        if (typeof canvas.toDataURL === 'function') {
+            return canvas.toDataURL('image/webp', 0.9);
+        }
+        // OffscreenCanvas has no toDataURL; convert its blob instead.
+        const blob = await canvas.convertToBlob?.({ type: 'image/webp', quality: 0.9 });
+        if (!blob) return null;
+        return await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.warn(`[WorkEngines] ${familyId}/${entry.id} would not sample:`,
+            error?.message || error);
+        return null;
+    }
+}

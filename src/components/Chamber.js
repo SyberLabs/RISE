@@ -1,4 +1,6 @@
 import { visualCortex } from '../visuals/visual-cortex.js';
+import { parsePageCollectionId, sampleWorkEngine } from '../visuals/work-engines.js';
+import { TIME_SCALE as WORK_ENGINE_TIME_SCALE } from '../visuals/work-engine-field.js';
 import { MemoryCore } from '../core/memory.js';
 import { AttractorField } from '../visuals/attractor.js';
 import { KleeField } from '../visuals/klee-field.js';
@@ -1555,6 +1557,36 @@ export class Chamber {
       const SWEEP_SECONDS = 24;
       return this._fieldSamples(wanted, (n) =>
         this.attractorField.sampleAt(((n + 1) / wanted) * SWEEP_SECONDS), 'Attractor');
+    }
+
+    // Engines authored FOR a work are persistent fields too, and they
+    // get the same answer Genesis and the attractor already get: a
+    // SEQUENCE, not a still. One frame of Milton's chariot is a
+    // photograph of a wheel mid-turn — the same misrepresentation the
+    // Gallery made before it was given a clock.
+    //
+    // What these can do that the two general fields cannot is
+    // CORRESPOND: the id names one engine, so the flaming sword stands
+    // beside the passage where Michael's sword falls.
+    const work = parsePageCollectionId(id);
+    if (work) {
+      // Spaced across a sweep long enough for the slow figures to have
+      // visibly moved. The last sample is the most developed state, as
+      // it is for Genesis.
+      const SWEEP_SECONDS = 45;
+      const samples = [];
+      for (let n = 0; n < wanted; n++) {
+        if (signal?.aborted) break;
+        const url = await sampleWorkEngine(
+          work.familyId, work.engineId,
+          ((n + 1) / wanted) * SWEEP_SECONDS,
+          { timeScale: WORK_ENGINE_TIME_SCALE }
+        );
+        // A field that will not draw yields stillness, never a broken
+        // frame — and never a substitute from another family.
+        if (url) samples.push({ name: work.engineId || work.familyId, data: { url } });
+      }
+      return samples;
     }
 
     return visualCortex.resolveCollectionWorks(id, { limit: 12, signal });

@@ -359,3 +359,91 @@ describe('compileFlow', () => {
         ]);
     });
 });
+
+describe('a Journey has its authored imagery reach the page at all', () => {
+    // Two faults, and only the second is deferred.
+    //
+    // compileFlow consulted the visual program only for atoms carrying
+    // chapter AND verse — the scripture space. A Journey's atoms carry a
+    // sourceId, so cueForAtom was never called and NO authored cue of
+    // any kind was read. With `program` set, the unscheduled fallback is
+    // deliberately skipped too, so a Journey's page came out as bare
+    // text while an ordinary session's was illustrated.
+    //
+    // That is fixed here. Procedural figures are a separate question and
+    // are held until the Page paginates (PAGE-MODE-SPEC v4).
+    const atoms = (n, sourceId) => Array.from({ length: n }, (_, i) => ({
+        content: `Line ${i} of the passage with enough words to make a real block of prose here.`,
+        sourceId,
+        sourceProgress: i / n,
+        tags: []
+    }));
+
+    const programWith = (cue) => ({
+        coordinateSpace: 'source',
+        segments: [{ id: 'seg', match: { sourceIds: ['p1'] }, cue }],
+        fallback: { kind: 'still' }
+    });
+
+    it('places the works of a sourced cue without chapter and verse', () => {
+        // The Homeric movement is museum imagery on the ordinary path,
+        // and it was invisible for the same reason as everything else.
+        const flow = compileFlow({
+            atoms: atoms(40, 'p1'),
+            visualProgram: programWith({
+                kind: 'sourced', collections: ['atr-attic-vases']
+            })
+        });
+        const images = flow.blocks.filter(b => b.collections?.length);
+        expect(images.length).toBeGreaterThan(0);
+        expect(images[0].collections).toEqual(['atr-attic-vases']);
+    });
+
+    it('reads the program at all in the source coordinate space', () => {
+        // The episode boundary itself was never detected, so a Journey
+        // page had no episode structure either.
+        const flow = compileFlow({
+            atoms: [...atoms(20, 'p1'), ...atoms(20, 'p2')],
+            visualProgram: {
+                coordinateSpace: 'source',
+                segments: [
+                    { id: 'a', match: { sourceIds: ['p1'] },
+                      cue: { kind: 'sourced', collections: ['one'] } },
+                    { id: 'b', match: { sourceIds: ['p2'] },
+                      cue: { kind: 'sourced', collections: ['two'] } }
+                ],
+                fallback: { kind: 'still' }
+            }
+        });
+        const seen = flow.blocks.filter(b => b.collections?.length)
+            .map(b => b.collections[0]);
+        expect(seen).toContain('one');
+        expect(seen).toContain('two');
+    });
+
+    it('holds procedural figures until the Page paginates', () => {
+        // Not a defect: §1.5 names an unillustrated passage a valid
+        // scored state, and a 23,000-word reading is one continuous
+        // column until pagination divides it. The machinery exists and
+        // one constant turns it on.
+        const flow = compileFlow({
+            atoms: atoms(40, 'p1'),
+            visualProgram: programWith({
+                kind: 'procedural',
+                collections: ['paradise-lost'],
+                engines: ['flaming_sword']
+            })
+        });
+        expect(flow.blocks.filter(b => b.collections?.length)).toHaveLength(0);
+    });
+
+    it('still places nothing for a still cue', () => {
+        // §5: a works-less episode is sanctioned stillness, not a gap to
+        // be filled.
+        const flow = compileFlow({
+            atoms: atoms(40, 'p1'),
+            visualProgram: programWith({ kind: 'still' })
+        });
+        expect(flow.blocks.filter(b => b.collections?.length)).toHaveLength(0);
+    });
+});

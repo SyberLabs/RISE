@@ -416,3 +416,56 @@ RISE Chain can be meaningful rather than merely random.
 > A Journey is a published composition.
 > The Live Curator is an arranger.
 > RISE Chain is a generative sequencer.
+
+---
+
+## 12. Page mode and the Journey — where this stands (2026-07-31)
+
+Two faults, one fixed and one deferred.
+
+**Fixed: the Page never read a Journey's program.** `compileFlow`
+consulted the visual program only for atoms carrying chapter AND verse
+— the scripture space it was written for. A Journey's atoms carry a
+`sourceId`, so `cueForAtom` was never called and no authored cue of any
+kind was read. And because `program` was set, the unscheduled fallback
+(`placeCollectionFigures`) is deliberately skipped, so a Journey's page
+came out as bare text while an ordinary session's was illustrated.
+
+This is the same root as `normalizeVisualProgram` rejecting
+`coordinateSpace: 'source'`: a second copy of "how do I read a
+coordinate", which learned one space and not the other. `cueForAtom`
+already understood both and was answering correctly — the question was
+never put to it.
+
+The Homeric movement's museum works now reach the page, which is what
+that fix buys immediately.
+
+**Deferred: procedural figures, until the Page paginates.** The
+machinery is built and tested — `pageCollectionId` / `sampleWorkEngine`
+in work-engines.js, and the Chamber's resolver branch — and one constant
+in flow.js (`PROCEDURAL_FIGURES`) turns it on.
+
+It is off because of what the Page currently *is*. PAGE-MODE-SPEC §199
+and §250 put spread pagination at v4: v1 scrolls. A Journey is 23,000
+words, so its page is one continuous column of ~2,800 atoms, and a
+sampled engine still at every figure adds render cost to the largest
+document this projection has been asked to typeset. Pagination is what
+makes it tractable — it divides the reading into bounded units, and a
+bounded unit can afford its own imagery.
+
+Until then a Journey's procedural movements typeset as text, which §1.5
+of JOURNEYS-SPEC names explicitly: *an unillustrated passage is a valid
+scored state.*
+
+**The doctrine, when it is turned on, is already settled.** The Chamber
+decided it for Genesis and the attractor: a persistent field is *"a
+dynamic system, not a pool, and a single still would misrepresent it —
+its honest spatial translation is a SEQUENCE, the same system sampled at
+evenly spaced states, the last being its settled form."* Work engines
+get the same treatment, and one thing the general fields cannot do:
+because a figure names its own engine, the id carries both family and
+engine, so the flaming sword stands beside the passage where Michael's
+sword falls.
+
+**Trigger to revisit:** pagination, or a Journey short enough that the
+column is bounded anyway — which the Demo journey would be.

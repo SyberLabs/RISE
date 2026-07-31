@@ -15,6 +15,7 @@
  */
 
 import { cueForAtom } from '../core/visual-scheduler.js';
+import { pageCollectionId } from '../visuals/work-engines.js';
 
 /** Block kinds the compositor understands. */
 export const BLOCK = Object.freeze({
@@ -67,12 +68,71 @@ function isSymbol(atom) {
 }
 
 /**
+ * DEFERRED UNTIL THE PAGE PAGINATES (PAGE-MODE-SPEC v4).
+ *
+ * The machinery is built and tested — `pageCollectionId` above,
+ * `sampleWorkEngine` in work-engines.js, and the Chamber's resolver —
+ * and turning it on is this one line. It is off because of what the
+ * Page currently IS rather than anything wrong with it.
+ *
+ * §199 and §250 of the spec: "v1 scrolls; pagination is v4". A Journey
+ * is 23,000 words, so its page is one continuous column of some 2,800
+ * atoms, and adding a sampled engine still at every figure adds render
+ * cost to a document that is already the largest thing this projection
+ * has been asked to typeset. Pagination is what makes that tractable —
+ * it divides the reading into bounded units, and a bounded unit can
+ * afford its own imagery.
+ *
+ * Until then a Journey's procedural movements typeset as text, which
+ * §1.5 names explicitly: "an unillustrated passage is a valid scored
+ * state." The Homeric movement's museum works are unaffected — they are
+ * ordinary images on the ordinary path, and they arrive now that the
+ * source coordinate space is read at all.
+ */
+const PROCEDURAL_FIGURES = false;
+
+/**
  * A cue's sourced collections, or [] for stillness. A works-less episode
  * is sanctioned stillness (§5) — it yields no ImagePlacement at all.
  */
 function collectionsOf(cue) {
-    if (!cue || cue.kind !== 'sourced') return [];
-    return Array.isArray(cue.collections) ? cue.collections.filter(Boolean) : [];
+    if (!cue) return [];
+    const collections = Array.isArray(cue.collections)
+        ? cue.collections.filter(Boolean) : [];
+    if (cue.kind === 'sourced') return collections;
+
+    // A PROCEDURAL CUE PLACES A FIGURE TOO — ON THE AUTHORED PATH.
+    //
+    // Worth being exact about the scope, because it is narrower than it
+    // looks. An UNSCHEDULED reading never reaches here: compileFlow
+    // sends it to placeCollectionFigures with its chosen collections,
+    // which is why an ordinary Chamber session has always been able to
+    // put Genesis and the attractor on a page. Only a reading with an
+    // authored program comes through this function, and that program is
+    // "never second-guessed" — so the fallback is deliberately skipped.
+    //
+    // Which made this Journey-specific. The Chapel's pericope cues are
+    // all `sourced`, so `kind !== 'sourced'` was true of nothing that
+    // existed until Journeys introduced procedural cues. The result was
+    // that the one kind of reading whose imagery is most deliberately
+    // placed got no figures at all, while a session that chose the same
+    // engines from the orbital got them.
+    //
+    // The SHAPE is still the one this codebase keeps paying for: a
+    // vocabulary that learned `sourced` and never learned the other
+    // word, silent when it failed. applyCue and the gallery allowlist
+    // were the same, and were also introduced by the same work.
+    //
+    // A figure names its own engine, so the id carries both. The format
+    // belongs to work-engines.js and is written by nobody else.
+    if (cue.kind === 'procedural' && collections.length && PROCEDURAL_FIGURES) {
+        const engines = Array.isArray(cue.engines) ? cue.engines.filter(Boolean) : [];
+        if (!engines.length) return collections.map(family => pageCollectionId(family));
+        // One figure per named engine, per family it belongs to.
+        return collections.flatMap(family =>
+            engines.map(engine => pageCollectionId(family, engine)));
+    }
+    return [];
 }
 
 /**
@@ -251,6 +311,23 @@ export function compileFlow(session, options = {}) {
             ? { chapter: atom.chapter, verse: atom.verse }
             : null;
 
+        // TWO COORDINATE SPACES, AND THIS FILE KNEW ONE.
+        //
+        // Every consultation of the program below was gated on `coord`,
+        // which is chapter-and-verse — so a Journey, whose atoms carry a
+        // sourceId and no verse, never reached cueForAtom at all. Not one
+        // authored cue was read; the page fell through to the end of the
+        // loop with `program` set, which also skips the unscheduled
+        // fallback. That is why a Journey's page came out as bare text
+        // while an ordinary session's did not.
+        //
+        // cueForAtom already understands both spaces — it is the same
+        // oracle the Stream asks, and it was answering correctly. The
+        // question was never put to it.
+        const placeable = coord || (typeof atom.sourceId === 'string' && atom.sourceId
+            ? { sourceId: atom.sourceId }
+            : null);
+
         // A chapter opening is a structural mark (the drop cap moment).
         if (coord && coord.chapter !== lastChapter) {
             flushRun();
@@ -264,7 +341,7 @@ export function compileFlow(session, options = {}) {
         // silence never changes the scene — the scheduler's own law).
         let cueId = activeCueId;
         let cue = null;
-        if (program && coord) {
+        if (program && placeable) {
             const resolved = cueForAtom(program, atom);
             cueId = resolved.id;
             cue = resolved.cue;
@@ -272,7 +349,7 @@ export function compileFlow(session, options = {}) {
 
         // An episode boundary: close the run, mark the break, and place
         // the incoming episode's imagery at its head.
-        if (program && coord && cueId !== activeCueId) {
+        if (program && placeable && cueId !== activeCueId) {
             flushRun();
             if (activeCueId !== null) {
                 blocks.push({ kind: BLOCK.MARK, mark: MARK.EPISODE_BREAK, episodeId: cueId });
@@ -286,7 +363,9 @@ export function compileFlow(session, options = {}) {
                     // The head of an episode is its plate: the strongest
                     // placement. The compositor decides what that means.
                     emphasis: cueId === FALLBACK_CUE_ID ? 'inset' : 'plate',
-                    at: { chapter: coord.chapter, verse: coord.verse }
+                    // Scripture readings locate a plate by chapter and
+                    // verse; a Journey has neither and does not need one.
+                    ...(coord ? { at: { chapter: coord.chapter, verse: coord.verse } } : {})
                 });
             }
             // A works-less episode yields NO image block — stillness,
