@@ -45,11 +45,27 @@ export function cueForAtom(program, atom) {
         // atom field. A paragraph break inside a movement carries that
         // movement's sourceId and therefore HOLDS its cue; an authored
         // boundary carries a synthetic one and therefore changes it.
+        // NARROW SEGMENTS FIRST. A movement's whole-passage cue and its
+        // figures both name the same sourceId, so a linear scan that
+        // took the first match would hand every atom the broad cue and
+        // no figure would ever be reached. Ranged segments are tried
+        // before unranged ones, and the passage-wide cue becomes what it
+        // should be: what holds wherever nothing finer was authored.
+        let broad = null;
         for (const seg of program.segments) {
-            if (seg.match?.sourceIds?.includes(coord.sourceId)) {
+            if (!seg.match?.sourceIds?.includes(coord.sourceId)) continue;
+            if (seg.match.fromProgress === undefined) {
+                broad = broad || seg;
+                continue;
+            }
+            const at = coord.progress;
+            // Half-open, so adjacent figures cannot both claim the line
+            // they meet on.
+            if (at >= seg.match.fromProgress && at < seg.match.toProgress) {
                 return { id: seg.id, cue: seg.cue };
             }
         }
+        if (broad) return { id: broad.id, cue: broad.cue };
     }
     return { id: FALLBACK_ID, cue: program.fallback };
 }
@@ -62,7 +78,13 @@ function readCoordinate(space, atom) {
     }
     if (space === 'source') {
         const sourceId = atom?.sourceId;
-        if (typeof sourceId === 'string' && sourceId) return { sourceId };
+        if (typeof sourceId === 'string' && sourceId) {
+            const progress = Number(atom?.sourceProgress);
+            return {
+                sourceId,
+                progress: Number.isFinite(progress) ? progress : 0
+            };
+        }
     }
     return null;
 }

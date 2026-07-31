@@ -161,3 +161,55 @@ describe('it degrades reverently', () => {
         expect(host.querySelectorAll('canvas').length).toBe(0);
     });
 });
+
+describe('a figure names its engine', () => {
+    it('draws exactly the named engine and does not rotate', async () => {
+        const field = new WorkEngineField(host, {
+            families: ['fake-work'], only: ['b']
+        });
+        await field.start();
+        expect(field._engines.map(e => e.id)).toEqual(['b']);
+        // One engine is a figure, not a rotation: it holds.
+        const before = field._cursor;
+        frame(field, 1000);
+        frame(field, 999999);
+        expect(field._cursor).toBe(before);
+        field.destroy();
+    });
+
+    it('goes still rather than substituting when the engine is unknown', async () => {
+        // Falling back to the family would put a random engine at
+        // Michael's sword and look like it worked.
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const field = new WorkEngineField(host, {
+            families: ['fake-work'], only: ['no-such-engine']
+        });
+        await field.start();
+        expect(field.hasEngines()).toBe(false);
+        expect(renders).toBe(0);
+        expect(warn).toHaveBeenCalled();
+        warn.mockRestore();
+        field.destroy();
+    });
+
+    it('crosses to the next figure when the cue changes', async () => {
+        const field = new WorkEngineField(host, { families: ['fake-work'], only: ['a'] });
+        await field.start();
+        expect(field._engines.map(e => e.id)).toEqual(['a']);
+        await field.setFamilies(['fake-work'], ['b']);
+        expect(field._engines.map(e => e.id)).toEqual(['b']);
+        field.destroy();
+    });
+
+    it('ignores a cue that asks for what is already showing', async () => {
+        // setFamilies runs at every cue. If an identical one restarted
+        // the field, a movement would reset on every atom and the engine
+        // would never advance past its first frame.
+        const field = new WorkEngineField(host, { families: ['fake-work'], only: ['a'] });
+        await field.start();
+        const engine = field._planes[field._active].engine;
+        await field.setFamilies(['fake-work'], ['a']);
+        expect(field._planes[field._active].engine).toBe(engine);
+        field.destroy();
+    });
+});

@@ -1892,3 +1892,49 @@ describe('Continuous Field (Gallery) wiring', () => {
         cortex.destroy();
     });
 });
+
+describe('a figure survives the crossing into the cortex', () => {
+    // This exact seam — a vocabulary living in two files where only one
+    // copy learns a new word — has failed four times on this feature:
+    // the ingest/reader split over titled chapters, applyCue dropping
+    // procedural entirely, normalizeVisualProgram rejecting the source
+    // coordinate space, and the gallery's own procedural allowlist.
+    // Every one was silent. This is the fifth crossing.
+    it('carries the named engines onto the config', () => {
+        const cortex = new VisualCortex();
+        cortex.applyCue({
+            kind: 'procedural',
+            collections: ['paradise-lost'],
+            engines: ['flaming_sword']
+        });
+        expect(cortex.config.activeTypes).toEqual(['paradise-lost']);
+        expect(cortex.config.workEngines).toEqual(['flaming_sword']);
+    });
+
+    it('clears the engine when the next cue names none', () => {
+        // Otherwise the sword would hold through a stretch that asked
+        // for the family at large, and a gap would silently inherit the
+        // figure before it.
+        const cortex = new VisualCortex();
+        cortex.applyCue({
+            kind: 'procedural', collections: ['paradise-lost'], engines: ['flaming_sword']
+        });
+        cortex.applyCue({ kind: 'procedural', collections: ['paradise-lost'] });
+        expect(cortex.config.activeTypes).toEqual(['paradise-lost']);
+        expect(cortex.config.workEngines).toEqual([]);
+    });
+
+    it('clears the engine on leaving procedural entirely', () => {
+        const cortex = new VisualCortex();
+        cortex.applyCue({
+            kind: 'procedural', collections: ['paradise-lost'], engines: ['chariot_deity']
+        });
+        cortex.applyCue({ kind: 'sourced', collections: ['atr-attic-vases'] });
+        expect(cortex.config.workEngines).toEqual([]);
+        cortex.applyCue({
+            kind: 'procedural', collections: ['paradise-lost'], engines: ['chariot_deity']
+        });
+        cortex.applyCue({ kind: 'still' });
+        expect(cortex.config.workEngines).toEqual([]);
+    });
+});

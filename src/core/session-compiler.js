@@ -6,7 +6,7 @@
  */
 
 import { Atom, Session } from './models.js';
-import { chunkText } from './chunker.js';
+import { chunkText, countWords } from './chunker.js';
 import { prepareChunkText } from './chunk-profiles.js';
 import { PacingEngine, StateCurve } from './pacing.js';
 import { normalizeGlobalPoolSelection, normalizeVisualSelection } from './visual-selection.js';
@@ -340,8 +340,23 @@ export function compileSession(input = {}) {
                 ? createAuthoredBoundary(authored, atoms.length)
                 : createSourceBreak(config.wpm, atoms.length));
         }
-        for (const atom of sourceAtoms) {
+        // Where each atom falls INSIDE its own source, measured in words
+        // consumed. A visual program that changes figure at Milton's line
+        // 750 needs a coordinate the whole session cannot give it:
+        // `position` is an index into every atom of every work.
+        //
+        // Words rather than atoms, because chunking is uneven — one long
+        // sentence and twelve short ones are twelve atoms apart and a
+        // paragraph apart, and only the word count tracks the page.
+        const sourceWords = sourceAtoms.map(atom =>
+            countWords(typeof atom.content === 'string' ? atom.content : ''));
+        const totalWords = sourceWords.reduce((sum, n) => sum + n, 0);
+        let consumed = 0;
+        for (let i = 0; i < sourceAtoms.length; i += 1) {
+            const atom = sourceAtoms[i];
             atom.position = atoms.length;
+            atom.sourceProgress = totalWords > 0 ? consumed / totalWords : 0;
+            consumed += sourceWords[i];
             atoms.push(atom);
         }
         previousSourceId = source.id;

@@ -528,6 +528,8 @@ export class VisualCortex {
         // which is the difference between a diagnostic and a noise.
         const cueCollections = Array.isArray(cue.collections) && cue.collections.length
             ? `${cue.kind}: ${cue.collections.join(', ')}`
+            + (Array.isArray(cue.engines) && cue.engines.length
+                ? ` [${cue.engines.join(', ')}]` : '')
             : cue.kind;
         console.info(`[Visual Cortex] Cue activated: ${cueLabel} → ${cueCollections}`);
         // A PROCEDURAL CUE NAMES ENGINES, NOT A MUSEUM POOL. It fell
@@ -537,12 +539,22 @@ export class VisualCortex {
         // everything off. Procedural types ARE activeTypes; the
         // gallery already draws them, it was simply never told.
         if (cue.kind === 'procedural' && Array.isArray(cue.collections) && cue.collections.length) {
+            // A FIGURE NAMES ITS ENGINE. The family says "Milton"; the
+            // figure says the flaming sword, at the line where Michael's
+            // sword falls. Cleared to [] when a cue names none, or the
+            // previous figure's engine would hold through a stretch that
+            // asked for the family at large.
             this.updateConfig(
-                { activeTypes: [...cue.collections] },
+                {
+                    activeTypes: [...cue.collections],
+                    workEngines: Array.isArray(cue.engines) ? [...cue.engines] : []
+                },
                 { preservePresentation: true }
             );
             return;
         }
+        // Leaving a procedural cue leaves its figure behind with it.
+        this.updateConfig({ workEngines: [] }, { preservePresentation: true });
         if (cue.kind === 'sourced' && Array.isArray(cue.collections) && cue.collections.length) {
             // A cue boundary can arrive while the previous atom's visual is
             // already committed. Let that honest presentation finish; the
@@ -1242,6 +1254,7 @@ export class VisualCortex {
             const timings = galleryCadenceTimings(this.config.galleryCadence);
             this._workEngineField = new WorkEngineField(this._continuousFieldHost, {
                 families,
+                only: this.config.workEngines || [],
                 dwellMs: timings.dwellMs,
                 crossfadeMs: timings.crossfadeMs,
                 reducedMotion: this._continuousReducedMotion(),
@@ -1249,10 +1262,12 @@ export class VisualCortex {
             });
         }
         this._workEngineField.reducedMotion = this._continuousReducedMotion();
+        const engines = this.config.workEngines || [];
         if (this._workEngineField.running) {
-            this._workEngineField.setFamilies(families);
+            this._workEngineField.setFamilies(families, engines);
         } else {
             this._workEngineField.families = families;
+            this._workEngineField.only = engines;
             this._workEngineField.start().catch(error =>
                 console.warn('[Visual Cortex] Living field could not start:', error));
         }
@@ -1303,6 +1318,14 @@ export class VisualCortex {
         }
         if ('galleryCadence' in nextConfig) {
             nextConfig.galleryCadence = normalizeGalleryCadence(nextConfig.galleryCadence);
+        }
+        if ('workEngines' in nextConfig) {
+            nextConfig.workEngines = Array.isArray(nextConfig.workEngines)
+                ? nextConfig.workEngines
+                    .filter(id => typeof id === 'string' && id)
+                    .map(id => id.slice(0, 120))
+                    .slice(0, 32)
+                : [];
         }
         if ('renderLanguage' in nextConfig) {
             nextConfig.renderLanguage = nextConfig.renderLanguage === 'ascii' ? 'ascii' : 'native';

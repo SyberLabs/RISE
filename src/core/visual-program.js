@@ -36,6 +36,13 @@ function normalizeFocal(value) {
   return focal;
 }
 
+/** A 0-1 position inside a source, or null when unstated. */
+function unitInterval(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0 || n > 1) return null;
+  return n;
+}
+
 export function normalizeVisualCue(value) {
   if (!value || typeof value !== 'object') return { kind: 'still' };
   if (value.kind === 'sourced') {
@@ -59,9 +66,18 @@ export function normalizeVisualCue(value) {
         .map(id => boundedString(id))
         .filter(Boolean))].slice(0, MAX_COLLECTIONS)
       : [];
-    return collections.length
-      ? { kind: 'procedural', collections }
-      : { kind: 'still' };
+    if (!collections.length) return { kind: 'still' };
+    // A cue may name WHICH engines, not merely which family. That is the
+    // difference between "something of Milton's" and the flaming sword at
+    // the line where Michael's sword falls.
+    const engines = Array.isArray(value.engines)
+      ? [...new Set(value.engines
+        .map(id => boundedString(id))
+        .filter(Boolean))].slice(0, MAX_COLLECTIONS)
+      : [];
+    return engines.length
+      ? { kind: 'procedural', collections, engines }
+      : { kind: 'procedural', collections };
   }
   if (value.kind === 'focal') {
     return { kind: 'focal', focal: normalizeFocal(value.focal) };
@@ -100,7 +116,22 @@ export function normalizeVisualProgram(value) {
       const sourceIds = (Array.isArray(segment?.match?.sourceIds) ? segment.match.sourceIds : [])
         .map(v => boundedString(v)).filter(Boolean).slice(0, 64);
       if (!id || !sourceIds.length) continue;
-      segments.push({ id, match: { sourceIds }, cue: normalizeVisualCue(segment.cue) });
+      // A segment MAY narrow to part of its source. Milton's Book VI is
+      // one passage and nine figures: the sword, the sulphurous
+      // invention, the chariot, the fall. Without a sub-source
+      // coordinate the whole book gets one cue and the imagery is
+      // decoration rather than a reading.
+      const match = { sourceIds };
+      const from = unitInterval(segment?.match?.fromProgress);
+      const to = unitInterval(segment?.match?.toProgress);
+      if (from !== null || to !== null) {
+        match.fromProgress = from ?? 0;
+        match.toProgress = to ?? 1;
+        // An inverted range matches nothing and is an authoring error,
+        // not a cue: refuse the segment rather than silently widening it.
+        if (match.toProgress <= match.fromProgress) continue;
+      }
+      segments.push({ id, match, cue: normalizeVisualCue(segment.cue) });
     }
     if (!segments.length) return null;
     return {

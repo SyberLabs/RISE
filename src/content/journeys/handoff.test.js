@@ -209,3 +209,98 @@ describe('the opening field', () => {
         expect(visual.interlocution.sourced).toEqual([]);
     }, 240000);
 });
+
+describe('Book VI is read figure by figure', () => {
+    /**
+     * The point of the whole mechanism: an engine appears where the poem
+     * puts the thing it draws. These assertions are about MILTON, not
+     * about arithmetic — they check that the compiled range contains the
+     * line it was authored for and excludes the ones it was not.
+     */
+    const MILTON = 'pass-paradise-lost-war-heaven';
+
+    async function figures() {
+        const handoff = await createJourneyHandoff(WAR_JOURNEY, WAR_PASSAGES);
+        const passage = handoff.config.sources.find(s => s.id === MILTON);
+        const lines = passage.data.split(/\r?\n/);
+        const total = lines.reduce((n, l) => n + l.split(/\s+/).filter(Boolean).length, 0);
+        // Where a given printed line falls, as a fraction of the passage.
+        const progressOfLine = (line) => {
+            let words = 0;
+            for (let i = 0; i < line && i < lines.length; i += 1) {
+                words += lines[i].split(/\s+/).filter(Boolean).length;
+            }
+            return words / total;
+        };
+        const segments = handoff.config.visualProgram.segments
+            .filter(s => s.id.startsWith(`${MILTON}-figure-`));
+        const byName = new Map(segments.map(s =>
+            [s.id.replace(`${MILTON}-figure-`, ''), s]));
+        return { byName, progressOfLine, lines, segments };
+    }
+
+    it('puts each engine where the poem puts the thing it draws', async () => {
+        const { byName, progressOfLine, lines } = await figures();
+        const expected = [
+            // figure, engine, a line that must be inside it, the phrase there
+            ['michaels-sword', 'flaming_sword', 251, /sword of Michael smote/],
+            ['the-invention', 'sulfur_magma', 513, /sulphurous and nitrous/],
+            ['the-chariot', 'chariot_deity', 751, /chariot of Paternal Deity/],
+            ['the-expulsion', 'fall_hypercube', 865, /Headlong themselves they threw/],
+            ['nine-days-falling', 'dark_ocean_chaos', 872, /Nine days they fell/]
+        ];
+        for (const [name, engine, line, phrase] of expected) {
+            const segment = byName.get(name);
+            expect(segment, `no figure ${name}`).toBeTruthy();
+            expect(segment.cue.engines).toEqual([engine]);
+            // The line really does say what the figure claims it says.
+            expect(lines[line], `line ${line}`).toMatch(phrase);
+            const at = progressOfLine(line);
+            expect(at, `${name} excludes its own line`)
+                .toBeGreaterThanOrEqual(segment.match.fromProgress);
+            expect(at).toBeLessThan(segment.match.toProgress);
+        }
+    }, 240000);
+
+    it('does not let a figure spill onto the wrong event', async () => {
+        const { byName, progressOfLine } = await figures();
+        // The chariot must be gone before Chaos, and the sword must not
+        // still be running at the invention.
+        expect(progressOfLine(872))
+            .toBeGreaterThanOrEqual(byName.get('the-chariot').match.toProgress);
+        expect(progressOfLine(513))
+            .toBeGreaterThanOrEqual(byName.get('michaels-sword').match.toProgress);
+    }, 240000);
+
+    it('leaves the five unwritten figures as gaps, not as wrong engines', async () => {
+        // Milton's Book VI wants ten figures and five engines exist. The
+        // opening — heaven in order before the breach — is the largest
+        // of them, and it must fall through to the movement's own cue
+        // rather than borrowing the chariot or the sword.
+        const { byName, segments, progressOfLine } = await figures();
+        expect(segments).toHaveLength(5);
+        for (const gap of ['heaven-in-order', 'the-hosts-meet', 'the-rebel-night',
+            'the-cannonade', 'the-hills-uptorn']) {
+            expect(byName.has(gap), `${gap} should not be a segment`).toBe(false);
+        }
+        // Nothing claims the opening.
+        const opening = progressOfLine(20);
+        for (const segment of segments) {
+            expect(opening < segment.match.fromProgress
+                || opening >= segment.match.toProgress).toBe(true);
+        }
+    }, 240000);
+
+    it('every named engine exists in the family it belongs to', async () => {
+        // A figure naming an engine nothing provides would go still at
+        // exactly the moment it should be loudest.
+        const { PARADISE_LOST_ENGINES } = await import('../../visuals/paradise_lost/index.js');
+        const available = new Set(PARADISE_LOST_ENGINES.map(e => e.id));
+        const { segments } = await figures();
+        for (const segment of segments) {
+            for (const engine of segment.cue.engines) {
+                expect(available.has(engine), `unknown engine ${engine}`).toBe(true);
+            }
+        }
+    }, 240000);
+});

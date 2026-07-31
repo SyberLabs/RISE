@@ -59,6 +59,8 @@ export class WorkEngineField {
      * @param {HTMLElement} host positioned container the canvases fill
      * @param {Object} options
      * @param {string[]} options.families work-engine family ids to draw from
+     * @param {string[]} [options.only] specific engine ids — a figure. When
+     *   set, exactly these are drawn and the family is not rotated.
      * @param {number} [options.dwellMs] how long one engine holds
      * @param {number} [options.crossfadeMs] the fade between engines
      * @param {boolean} [options.reducedMotion] draw one frame and hold
@@ -68,6 +70,7 @@ export class WorkEngineField {
     constructor(host, options = {}) {
         this.host = host;
         this.families = (options.families || []).filter(isWorkEngineFamily);
+        this.only = Array.isArray(options.only) ? options.only : [];
         this.dwellMs = Math.max(4000, options.dwellMs ?? 20000);
         this.crossfadeMs = Math.max(0, options.crossfadeMs ?? 2400);
         this.reducedMotion = !!options.reducedMotion;
@@ -154,10 +157,32 @@ export class WorkEngineField {
                 const engines = await loadWorkEngines(familyId);
                 for (const entry of engines) collected.push({ ...entry, familyId });
             }
-            this._engines = collected;
-            return collected;
+            this._engines = this._narrow(collected);
+            return this._engines;
         })();
         return this._loading;
+    }
+
+    /**
+     * Keep only the engines a figure named, in the order it named them.
+     *
+     * A figure that names an engine nothing provides is an authoring
+     * error and must be audible: falling back to the whole family would
+     * put a random Milton engine at Michael's sword and look like it
+     * worked. The field goes still instead, which is the same answer
+     * this codebase gives everywhere else something will not resolve.
+     */
+    _narrow(all) {
+        if (!this.only.length) return all;
+        const found = this.only
+            .map(id => all.find(entry => entry.id === id))
+            .filter(Boolean);
+        if (found.length !== this.only.length) {
+            const missing = this.only.filter(id => !all.some(e => e.id === id));
+            console.warn('[WorkEngines] figure names engines that do not exist:',
+                missing.join(', '));
+        }
+        return found;
     }
 
     /**
@@ -245,6 +270,8 @@ export class WorkEngineField {
             this._draw(plane);
         }
 
+        // One engine is a figure, not a rotation: it holds for as long as
+        // the figure does.
         if (timestamp >= this._nextRotateAt && this._engines.length > 1) {
             this._rotate(false);
             this._nextRotateAt = timestamp + this.dwellMs;
@@ -290,13 +317,22 @@ export class WorkEngineField {
         }
     }
 
-    /** Change which families the field draws from, without remounting. */
-    async setFamilies(families) {
+    /**
+     * Change which families — or which figure — the field draws, without
+     * remounting. Called at every cue, so it must be a no-op when the
+     * cue asks for what is already on screen; otherwise the field would
+     * restart on every atom of a movement and never move at all.
+     */
+    async setFamilies(families, only = null) {
         const next = (families || []).filter(isWorkEngineFamily);
+        const nextOnly = Array.isArray(only) ? only : this.only;
         const same = next.length === this.families.length
-            && next.every((id, i) => id === this.families[i]);
+            && next.every((id, i) => id === this.families[i])
+            && nextOnly.length === this.only.length
+            && nextOnly.every((id, i) => id === this.only[i]);
         if (same) return;
         this.families = next;
+        this.only = nextOnly;
         this._loading = null;
         this._engines = [];
         if (!this.running) return;

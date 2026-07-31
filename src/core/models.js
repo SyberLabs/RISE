@@ -40,6 +40,11 @@ export class Atom {
    * @param {string} [config.source=''] - Provenance identifier
    * @param {string} [config.sourceId=''] - Source UUID for sequencing
    * @param {number} [config.position=0] - Order in original source
+   * @param {number} [config.sourceProgress=0] - How far through its own source
+   *   this atom sits, 0-1. `position` is the atom's index in the whole
+   *   session and says nothing about where it falls inside its work; a
+   *   visual program that wants to change figure at Milton's line 750
+   *   needs a coordinate INSIDE the passage, and this is it.
    * @param {string} [config.url=''] - URL for image/media atoms
    * @param {string} [config.phase=''] - Ritual phase assignment
    * @param {boolean} [config.timingLocked=false] - Preserve authored duration through pacing
@@ -54,6 +59,7 @@ export class Atom {
     source = '',
     sourceId = '',
     position = 0,
+    sourceProgress = 0,
     url = '',
     phase = '',
     timingLocked = false
@@ -71,6 +77,13 @@ export class Atom {
     this.source = typeof source === 'string' ? source : '';
     this.sourceId = typeof sourceId === 'string' ? sourceId : '';
     this.position = Number.isInteger(position) && position >= 0 ? position : 0;
+    // Not clamp01: its fallback for a non-number is 0.5, which is a
+    // sane default for "importance" and a wrong one for "where you are"
+    // — it would drop an unpositioned atom in the middle of its work.
+    const progress = Number(sourceProgress);
+    this.sourceProgress = Number.isFinite(progress)
+      ? Math.max(0, Math.min(1, progress))
+      : 0;
     this.url = typeof url === 'string' ? url : '';
     this.phase = typeof phase === 'string' ? phase : '';
     this.timingLocked = timingLocked === true;

@@ -120,7 +120,123 @@ export const WAR_JOURNEY = Object.freeze({
                 + 'contains the thing the third movement claims is new, and '
                 + 'refuses to let the descent look tidy.',
             segments: [
-                { passageId: 'pass-paradise-lost-war-heaven', role: 'proposition' }
+                {
+                    passageId: 'pass-paradise-lost-war-heaven',
+                    role: 'proposition',
+                    /**
+                     * BOOK VI, FIGURE BY FIGURE.
+                     *
+                     * `fromLine` is the line of the passage as the
+                     * edition prints it, and each figure holds until the
+                     * next one begins. They were placed by reading the
+                     * resolved text, not estimated: the sword smites at
+                     * 251, the foam is mingled at 513, the chariot is
+                     * mounted at 712, Chaos roars at 872.
+                     *
+                     * A figure with no engine is a GAP, declared rather
+                     * than filled with a wrong one. It draws nothing of
+                     * its own and the movement's family plays there, as
+                     * it did everywhere before figures existed. `wanted`
+                     * names the engine Book VI is asking for.
+                     *
+                     * Milton wants ten. Five exist.
+                     */
+                    figures: [
+                        {
+                            id: 'heaven-in-order',
+                            fromLine: 1,
+                            engines: [],
+                            wanted: 'heaven-in-order',
+                            note: 'Dawn over Heaven\'s champain, Abdiel returned, '
+                                + 'the war declared from a throne that was never in '
+                                + 'doubt. Order BEFORE the breach — the one state '
+                                + 'the whole Journey is measured against, and the '
+                                + 'only figure no other movement can supply.'
+                        },
+                        {
+                            id: 'the-hosts-meet',
+                            fromLine: 112,
+                            engines: [],
+                            wanted: 'adamant-array',
+                            note: 'Front to front in terrible array; Abdiel strikes '
+                                + 'first and the horrid shock joins. Ranked geometry '
+                                + 'colliding — not yet fire.'
+                        },
+                        {
+                            id: 'michaels-sword',
+                            fromLine: 251,
+                            engines: ['flaming_sword'],
+                            note: '"Saw where the sword of Michael smote, and felled" '
+                                + '— the duel, and the wound that proves an immortal '
+                                + 'can be hurt.'
+                        },
+                        {
+                            id: 'the-rebel-night',
+                            fromLine: 407,
+                            engines: [],
+                            wanted: 'council-in-darkness',
+                            note: '"Now Night her course began" — the first night in '
+                                + 'Heaven, and the council that meets inside it. '
+                                + 'Conspiracy, not combat.'
+                        },
+                        {
+                            id: 'the-invention',
+                            fromLine: 513,
+                            engines: ['sulfur_magma'],
+                            note: '"sulphurous and nitrous foam / They found, they '
+                                + 'mingled" — the originals of nature dug out of '
+                                + 'Heaven\'s own soil and made into a weapon.'
+                        },
+                        {
+                            id: 'the-cannonade',
+                            fromLine: 589,
+                            engines: [],
+                            wanted: 'deep-throated-engines',
+                            note: '"disgorging foul / Their devilish glut, chained '
+                                + 'thunderbolts and hail / Of iron globes." Milton\'s '
+                                + 'artillery — the movement\'s own counterpressure, '
+                                + 'and the figure the third movement will answer. '
+                                + 'It should not borrow Jünger\'s ballistics: the '
+                                + 'Journey\'s argument depends on these being the '
+                                + 'same event three hundred years apart, which only '
+                                + 'reads if each is drawn in its own book\'s hand.'
+                        },
+                        {
+                            id: 'the-hills-uptorn',
+                            fromLine: 664,
+                            engines: [],
+                            wanted: 'uprooted-mountains',
+                            note: '"So hills amid the air encountered hills" — the '
+                                + 'loyal answer to the guns. Landscape used as '
+                                + 'ammunition; the opposite gesture to the '
+                                + 'cannonade and it should not look like it.'
+                        },
+                        {
+                            id: 'the-chariot',
+                            fromLine: 712,
+                            engines: ['chariot_deity'],
+                            note: '"Ascend my chariot, guide the rapid wheels" — '
+                                + 'Ezekiel\'s wheels, and Book VI\'s climax. The '
+                                + 'power that ends the war was never contesting it.'
+                        },
+                        {
+                            id: 'the-expulsion',
+                            fromLine: 857,
+                            engines: ['fall_hypercube'],
+                            note: 'The crystal wall rolls inward, a spacious gap '
+                                + 'disclosed into the wasteful deep, and they throw '
+                                + 'themselves headlong from the verge of Heaven.'
+                        },
+                        {
+                            id: 'nine-days-falling',
+                            fromLine: 872,
+                            engines: ['dark_ocean_chaos'],
+                            note: '"Nine days they fell: Confounded Chaos roared" — '
+                                + 'the descent through unformed matter that the rest '
+                                + 'of the Journey re-enacts in history.'
+                        }
+                    ]
+                }
             ],
             presentation: {
                 // PROCEDURAL, like Jünger and for the mirrored reason.

@@ -58,6 +58,31 @@ function joinableBoundaries(boundaries) {
 }
 
 /**
+ * Where every line of a passage falls, measured in words.
+ *
+ * Words rather than characters because the reading is chunked and paced
+ * by words, so a word offset converts to the same coordinate an atom
+ * carries. Blank lines are kept in the index — an author counting lines
+ * in the text counts what is printed, and Milton's line 750 has to mean
+ * the line the edition prints as 750.
+ *
+ * @param {string} text
+ * @returns {{wordsBeforeLine: number[], totalWords: number}}
+ */
+export function passageLineMetrics(text) {
+    const lines = String(text ?? '').split(/\r?\n/);
+    const wordsBeforeLine = new Array(lines.length + 1);
+    let running = 0;
+    for (let i = 0; i < lines.length; i += 1) {
+        wordsBeforeLine[i] = running;
+        const words = lines[i].split(/\s+/).filter(Boolean).length;
+        running += words;
+    }
+    wordsBeforeLine[lines.length] = running;
+    return { wordsBeforeLine, totalWords: running };
+}
+
+/**
  * Assemble a Journey for launch.
  *
  * @param {object} journey an authored manifest
@@ -115,6 +140,28 @@ export async function createJourneyHandoff(journey, passages, options = {}) {
         throw new JourneyHandoffError('JOURNEY_PASSAGE_DRIFT',
             'A passage no longer matches the text this Journey was written about.',
             { journeyId: journey.id, drifted });
+    }
+
+    // RECOMPILE, NOW THAT THE TEXT IS HERE AND VERIFIED.
+    //
+    // A figure is authored at a line — the sword at Milton's 250, the
+    // chariot at 750 — and a line is only a place once you hold the
+    // passage. The first compile above is the gate: it refuses a broken
+    // manifest before anyone is sent to the network. This one places the
+    // figures.
+    //
+    // Deliberately after the checksum check. Line numbers are an
+    // assertion about a specific text, so measuring them against one
+    // that has drifted would put the chariot wherever the drift left it.
+    const passageMetrics = {};
+    for (const passage of resolved) {
+        passageMetrics[passage.id] = passageLineMetrics(passage.text);
+    }
+    try {
+        programs = compileJourney(journey, { passageMetrics });
+    } catch (error) {
+        throw new JourneyHandoffError('JOURNEY_COMPILE_FAILED', error.message,
+            { journeyId: journey.id, cause: error.code });
     }
 
     const sources = resolved.map(passage => ({

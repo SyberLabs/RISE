@@ -249,3 +249,89 @@ describe('a procedural cue names its engines', () => {
         expect(cueForSource(visualProgram, 'p1')).toEqual({ kind: 'still' });
     });
 });
+
+describe('figures lower a movement cue onto places in a passage', () => {
+    // Ten lines, one word each: line N begins at word N.
+    const metrics = { wordsBeforeLine: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], totalWords: 10 };
+    const manifest = (figures) => ({
+        id: 'j',
+        movements: [{
+            id: 'm',
+            segments: [{ passageId: 'p', figures }],
+            presentation: { visual: { kind: 'procedural', collections: ['paradise-lost'] } }
+        }]
+    });
+
+    it('runs each figure from its own line to the next', () => {
+        const { visualProgram } = compileJourney(manifest([
+            { id: 'a', fromLine: 2, engines: ['flaming_sword'] },
+            { id: 'b', fromLine: 6, engines: ['chariot_deity'] }
+        ]), { passageMetrics: { p: metrics } });
+
+        const figures = visualProgram.segments.filter(s => s.id.includes('figure'));
+        expect(figures).toHaveLength(2);
+        expect(figures[0].match).toEqual({ sourceIds: ['p'], fromProgress: 0.2, toProgress: 0.6 });
+        // The last runs to the end of the passage.
+        expect(figures[1].match.toProgress).toBe(1);
+        // The family is inherited, never restated.
+        expect(figures[0].cue).toEqual({
+            kind: 'procedural', collections: ['paradise-lost'], engines: ['flaming_sword']
+        });
+    });
+
+    it('keeps the movement-wide cue beside the figures', () => {
+        // It is what holds wherever nothing finer was authored.
+        const { visualProgram } = compileJourney(manifest([
+            { id: 'a', fromLine: 2, engines: ['flaming_sword'] }
+        ]), { passageMetrics: { p: metrics } });
+        const broad = visualProgram.segments.find(s => s.id === 'm-visual');
+        expect(broad.match.fromProgress).toBeUndefined();
+        expect(broad.cue.engines).toBeUndefined();
+    });
+
+    it('emits nothing for a declared gap', () => {
+        // A figure with no engine is Book VI asking for one that does not
+        // exist yet. It must not be filled with a wrong engine, and it
+        // must not silently become a range that draws nothing.
+        const { visualProgram } = compileJourney(manifest([
+            { id: 'gap', fromLine: 0, engines: [], wanted: 'heaven-in-order' },
+            { id: 'sword', fromLine: 5, engines: ['flaming_sword'] }
+        ]), { passageMetrics: { p: metrics } });
+        const figures = visualProgram.segments.filter(s => s.id.includes('figure'));
+        expect(figures).toHaveLength(1);
+        expect(figures[0].id).toContain('sword');
+        // And the gap's stretch is left to the movement cue.
+        expect(figures[0].match.fromProgress).toBe(0.5);
+    });
+
+    it('places no figure without metrics, and still compiles', () => {
+        // The compiler is pure; only the handoff holds the text. A line
+        // is not a place until someone has the passage.
+        const { visualProgram } = compileJourney(manifest([
+            { id: 'a', fromLine: 2, engines: ['flaming_sword'] }
+        ]));
+        expect(visualProgram.segments.filter(s => s.id.includes('figure'))).toHaveLength(0);
+        expect(visualProgram.segments.find(s => s.id === 'm-visual')).toBeTruthy();
+    });
+
+    it('sorts figures by line rather than trusting the author\'s order', () => {
+        const { visualProgram } = compileJourney(manifest([
+            { id: 'late', fromLine: 8, engines: ['dark_ocean_chaos'] },
+            { id: 'early', fromLine: 1, engines: ['flaming_sword'] }
+        ]), { passageMetrics: { p: metrics } });
+        const figures = visualProgram.segments.filter(s => s.id.includes('figure'));
+        expect(figures.map(f => f.match.fromProgress)).toEqual([0.1, 0.8]);
+    });
+
+    it('ignores figures on a movement whose cue is not procedural', () => {
+        const { visualProgram } = compileJourney({
+            id: 'j',
+            movements: [{
+                id: 'm',
+                segments: [{ passageId: 'p', figures: [{ id: 'a', fromLine: 2, engines: ['x'] }] }],
+                presentation: { visual: { kind: 'sourced', collections: ['atr-attic-vases'] } }
+            }]
+        }, { passageMetrics: { p: metrics } });
+        expect(visualProgram.segments.filter(s => s.id.includes('figure'))).toHaveLength(0);
+    });
+});

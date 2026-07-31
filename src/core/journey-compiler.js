@@ -128,6 +128,65 @@ function normalizeAudioCue(value) {
     return cue;
 }
 
+/** How many figures one passage may carry. */
+const MAX_FIGURES = 32;
+
+/**
+ * Lower one passage's authored figures into ranged visual segments.
+ *
+ * Each figure runs from its own line to the next figure's line, so an
+ * author states where a figure BEGINS and never has to keep two ends in
+ * sync. The last runs to the end of the passage.
+ *
+ * A figure that names no engine emits nothing. That is deliberate and is
+ * how a gap is expressed: Milton's opening — heaven in order, before the
+ * war — has no engine written for it yet, and rather than assign a wrong
+ * one it declares itself with `wanted` and falls through to the
+ * movement's own cue. What a reader sees there is the family in
+ * rotation, which is what they saw everywhere before figures existed.
+ *
+ * Without metrics (the compiler is pure; only the handoff has the text)
+ * no figure can be placed, and the movement keeps its single cue.
+ */
+function figureSegments(segment, passageId, movementCue, metrics) {
+    const figures = (Array.isArray(segment?.figures) ? segment.figures : [])
+        .slice(0, MAX_FIGURES)
+        .map(figure => ({
+            id: boundedId(figure?.id),
+            fromLine: Number(figure?.fromLine),
+            engines: (Array.isArray(figure?.engines) ? figure.engines : [])
+                .map(boundedId).filter(Boolean)
+        }))
+        .filter(figure => figure.id && Number.isInteger(figure.fromLine) && figure.fromLine >= 0)
+        .sort((a, b) => a.fromLine - b.fromLine);
+
+    if (!figures.length || movementCue.kind !== 'procedural') return [];
+    const totalWords = Number(metrics?.totalWords);
+    const offsets = Array.isArray(metrics?.wordsBeforeLine) ? metrics.wordsBeforeLine : null;
+    if (!offsets || !Number.isFinite(totalWords) || totalWords <= 0) return [];
+
+    const at = line => Math.max(0, Math.min(1,
+        (offsets[Math.min(line, offsets.length - 1)] ?? 0) / totalWords));
+
+    const out = [];
+    figures.forEach((figure, i) => {
+        if (!figure.engines.length) return;   // a declared gap
+        const from = at(figure.fromLine);
+        const to = i + 1 < figures.length ? at(figures[i + 1].fromLine) : 1;
+        if (to <= from) return;
+        out.push({
+            id: `${passageId}-figure-${figure.id}`,
+            match: { sourceIds: [passageId], fromProgress: from, toProgress: to },
+            // The family lives on the movement and is inherited. A figure
+            // names engines only — otherwise 'paradise-lost' would be
+            // written nine more times, and this codebase has already paid
+            // four times for a vocabulary kept in two places.
+            cue: { ...movementCue, engines: figure.engines }
+        });
+    });
+    return out;
+}
+
 /**
  * Lower an authored Journey into runtime programs.
  *
@@ -136,10 +195,15 @@ function normalizeAudioCue(value) {
  * quiet message, never a Journey with a movement quietly dropped.
  *
  * @param {object} journey an authored manifest
+ * @param {object} [options]
+ * @param {object} [options.passageMetrics] passageId -> {wordsBeforeLine,
+ *   totalWords}. Only the handoff has the resolved text, so only the
+ *   handoff can place a figure at a line; without this the compiler is
+ *   pure and each movement keeps its single cue.
  * @returns {{movementProgram: object, visualProgram: object,
  *            audioProgram: object, boundaries: object[]}}
  */
-export function compileJourney(journey) {
+export function compileJourney(journey, options = {}) {
     if (!journey || typeof journey !== 'object') {
         throw new JourneyCompileError('JOURNEY_MISSING', 'No Journey manifest was given.');
     }
@@ -194,10 +258,31 @@ export function compileJourney(journey) {
         });
 
         const presentation = movement.presentation || {};
+        const movementCue = normalizeVisualCue(presentation.visual);
         visualSegments.push({
             id: `${id}-visual`,
             match: { sourceIds },
-            cue: normalizeVisualCue(presentation.visual)
+            cue: movementCue
+        });
+        // FIGURES: the movement's cue, narrowed to places in the text.
+        //
+        // A movement-wide procedural cue says "something of Milton's"
+        // for six thousand words. Book VI is not one image — it is the
+        // sword at 250, the sulphurous invention at 512, the chariot at
+        // 750, the fall at 864 — and an engine that appears at random
+        // against any of them is decoration. A figure names a line and
+        // the engine that reads it.
+        //
+        // Figures are declared on the SEGMENT rather than the movement
+        // because a line number is a coordinate inside one passage, and
+        // a movement may hold several.
+        segments.forEach(segment => {
+            const passageId = boundedId(segment?.passageId);
+            if (!passageId) return;
+            for (const ranged of figureSegments(segment, passageId, movementCue,
+                options.passageMetrics?.[passageId])) {
+                visualSegments.push(ranged);
+            }
         });
         audioSegments.push({
             id: `${id}-audio`,

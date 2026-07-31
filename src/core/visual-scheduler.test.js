@@ -100,3 +100,58 @@ describe('VisualScheduleController', () => {
         expect(onCue).toHaveBeenCalledTimes(2);
     });
 });
+
+describe('a figure narrows a source-space cue to a place in the text', () => {
+    // Book VI is one passage and ten figures. Without a coordinate
+    // INSIDE the source, the whole book gets one cue and the imagery is
+    // decoration rather than a reading of it.
+    const program = {
+        coordinateSpace: 'source',
+        segments: [
+            // Declared FIRST, as the compiler emits it, so this also
+            // pins the ordering: a linear scan that took the first match
+            // would hand every atom the broad cue and no figure would
+            // ever be reached.
+            { id: 'movement', match: { sourceIds: ['book-vi'] },
+              cue: { kind: 'procedural', collections: ['paradise-lost'] } },
+            { id: 'sword', match: { sourceIds: ['book-vi'], fromProgress: 0.27, toProgress: 0.44 },
+              cue: { kind: 'procedural', collections: ['paradise-lost'], engines: ['flaming_sword'] } },
+            { id: 'chariot', match: { sourceIds: ['book-vi'], fromProgress: 0.77, toProgress: 0.93 },
+              cue: { kind: 'procedural', collections: ['paradise-lost'], engines: ['chariot_deity'] } }
+        ],
+        fallback: { kind: 'still' }
+    };
+    const at = (progress) => cueForAtom(program, { sourceId: 'book-vi', sourceProgress: progress });
+
+    it('gives the figure its own engine inside its range', () => {
+        expect(at(0.30).cue.engines).toEqual(['flaming_sword']);
+        expect(at(0.80).cue.engines).toEqual(['chariot_deity']);
+    });
+
+    it('falls back to the movement where no figure was authored', () => {
+        // A gap is not an error. Milton's opening has no engine written
+        // for it yet, and what plays there is the family at large.
+        expect(at(0.10).id).toBe('movement');
+        expect(at(0.10).cue.engines).toBeUndefined();
+        expect(at(0.60).id).toBe('movement');
+    });
+
+    it('changes exactly at the authored line, not near it', () => {
+        expect(at(0.2699).id).toBe('movement');
+        expect(at(0.27).id).toBe('sword');
+        // Half-open at the end, so two adjacent figures cannot both
+        // claim the line where they meet.
+        expect(at(0.4399).id).toBe('sword');
+        expect(at(0.44).id).toBe('movement');
+    });
+
+    it('reads an atom with no progress as the beginning of its source', () => {
+        const cue = cueForAtom(program, { sourceId: 'book-vi' });
+        expect(cue.id).toBe('movement');
+    });
+
+    it('leaves another source alone', () => {
+        expect(cueForAtom(program, { sourceId: 'iliad-vi', sourceProgress: 0.3 }).cue)
+            .toEqual({ kind: 'still' });
+    });
+});
