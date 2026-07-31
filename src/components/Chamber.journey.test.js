@@ -61,8 +61,13 @@ function makeHandler(programs, log) {
         programs.visualProgram,
         (cue) => log.push(`visual:${cue.kind}`));
     const audio = new AudioScheduleController(programs.audioProgram, {
-        setSoundscape: (id) => log.push(`audio:play:${id}`),
-        fadeSoundscapeOut: () => log.push('audio:silence')
+        // AudioEngine's real surface. These fakes previously carried
+        // `setSoundscape` and `fadeSoundscapeOut`, which the engine has
+        // never had — so they agreed with a caller that was talking to
+        // itself, and War read in silence with every test green.
+        startSoundscape: (id) => log.push(`audio:play:${id}`),
+        stopSoundscape: () => log.push('audio:silence'),
+        setLayerVolume: () => {}
     });
 
     return (atom) => {
@@ -167,29 +172,37 @@ describe('the Chamber interprets nothing', () => {
     });
 
     it('sends the engine commands it already understands', () => {
-        const engine = { setSoundscape: vi.fn(), fadeSoundscapeOut: vi.fn() };
+        const engine = {
+            startSoundscape: vi.fn(), stopSoundscape: vi.fn(), setLayerVolume: vi.fn()
+        };
         const controller = new AudioScheduleController(
             compileJourney(MANIFEST).audioProgram, engine);
         controller.observe(atom('p1', 'x'));
 
-        // A soundscape id and bounded numbers — no cue objects, no
-        // Journey vocabulary, nothing the engine would have to learn.
-        const [id, options] = engine.setSoundscape.mock.calls[0];
-        expect(typeof id).toBe('string');
-        expect(Object.keys(options).every(k => ['gain', 'fadeMs'].includes(k))).toBe(true);
+        // A soundscape id and nothing else — no cue objects, no Journey
+        // vocabulary, nothing the engine would have to learn.
+        expect(engine.startSoundscape).toHaveBeenCalledTimes(1);
+        const args = engine.startSoundscape.mock.calls[0];
+        expect(args).toHaveLength(1);
+        expect(typeof args[0]).toBe('string');
+        // Gain travels on the layer, which the engine already owns.
+        expect(engine.setLayerVolume)
+            .toHaveBeenCalledWith('soundscape', expect.any(Number), true);
     });
 });
 
 describe('nothing outlives the reading', () => {
     it('silences the score when the reading pauses', () => {
-        const engine = { setSoundscape: vi.fn(), fadeSoundscapeOut: vi.fn() };
+        const engine = {
+            startSoundscape: vi.fn(), stopSoundscape: vi.fn(), setLayerVolume: vi.fn()
+        };
         const controller = new AudioScheduleController(
             compileJourney(MANIFEST).audioProgram, engine);
         controller.observe(atom('p1', 'x'));
-        engine.fadeSoundscapeOut.mockClear();
+        engine.stopSoundscape.mockClear();
 
         controller.silence();   // what onStateChange('paused') calls
-        expect(engine.fadeSoundscapeOut).toHaveBeenCalled();
+        expect(engine.stopSoundscape).toHaveBeenCalled();
         expect(controller.activeCueId).toBeNull();
     });
 
@@ -197,14 +210,16 @@ describe('nothing outlives the reading', () => {
         // silence() clears the active cue id, so the next atom of the
         // same movement re-emits. Without that, resuming would leave a
         // Journey playing nothing for the rest of its movement.
-        const engine = { setSoundscape: vi.fn(), fadeSoundscapeOut: vi.fn() };
+        const engine = {
+            startSoundscape: vi.fn(), stopSoundscape: vi.fn(), setLayerVolume: vi.fn()
+        };
         const controller = new AudioScheduleController(
             compileJourney(MANIFEST).audioProgram, engine);
         controller.observe(atom('p1', 'x'));
         controller.silence();
-        engine.setSoundscape.mockClear();
+        engine.startSoundscape.mockClear();
 
         controller.observe(atom('p1', 'y'));
-        expect(engine.setSoundscape).toHaveBeenCalledWith('ordered-field', expect.anything());
+        expect(engine.startSoundscape).toHaveBeenCalledWith('ordered-field');
     });
 });

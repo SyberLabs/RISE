@@ -314,3 +314,35 @@ test("Milton's engines are alive, not photographs of themselves", async ({ page 
   expect(drift).toBeGreaterThan(0.0001);
   expect(drift, 'the field is moving too fast to read against').toBeLessThan(0.5);
 });
+
+test('a movement\'s soundscape cue actually reaches the audio engine', async ({ page }) => {
+  test.setTimeout(300000);
+  // War read in silence from the day it shipped, behind four stacked
+  // faults: the scheduler called setSoundscape (which AudioEngine has
+  // never had) through an optional chain that swallowed it; the unit
+  // tests mocked that invented name and passed; the Chamber built the
+  // controller disabled because a Journey never sets `audioPreset` and
+  // the default is 'silent'; and the app's hasAudio check did not
+  // consider an audioProgram at all.
+  //
+  // Every layer announced itself correctly in the log. Nothing measured
+  // whether a cue ever ARRIVED, which is the only thing that matters —
+  // so this test asserts arrival, by name, at the engine.
+  const delivered = [];
+  page.on('console', m => {
+    const t = m.text();
+    // Either the engine plays it, or it says it does not know it. Both
+    // prove delivery; only the second is a missing composition.
+    const hit = t.match(/\[AudioEngine\] (?:Unknown soundscape|Soundscape):\s*(\S+)/);
+    if (hit) delivered.push(hit[1]);
+  });
+
+  await openJourneys(page);
+  await expect(page.locator('.journey-credits')).toBeVisible({ timeout: 60000 });
+  await enterReading(page);
+  await page.waitForTimeout(10000);
+
+  console.log('DELIVERED ' + JSON.stringify([...new Set(delivered)]));
+  expect(delivered, 'no soundscape cue reached the engine').not.toEqual([]);
+  expect(delivered).toContain('war-ordered-field');
+});

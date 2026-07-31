@@ -158,9 +158,14 @@ describe('walking the compiled session', () => {
     it('scores the audio once per world', () => {
         const { session, audioProgram } = buildSession();
         const calls = [];
+        // AudioEngine's real method names. The previous fake used
+        // `setSoundscape`/`fadeSoundscapeOut`, which the engine has never
+        // had, so this test proved the controller consistent with an API
+        // nobody implemented.
         const engine = {
-            setSoundscape: (id) => calls.push(`play:${id}`),
-            fadeSoundscapeOut: () => calls.push('silence')
+            startSoundscape: (id) => calls.push(`play:${id}`),
+            stopSoundscape: () => calls.push('silence'),
+            setLayerVolume: () => {}
         };
         const controller = new AudioScheduleController(audioProgram, engine);
         for (const atom of session.atoms) controller.observe(atom);

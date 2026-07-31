@@ -139,13 +139,40 @@ export class AudioScheduleController {
     }
 
     /**
+     * Ask the engine for a method it actually has.
+     *
+     * THE `?.` WAS THE BUG, NOT A SAFETY NET. This controller called
+     * `setSoundscape` and `fadeSoundscapeOut`; the engine has
+     * `startSoundscape` and `stopSoundscape` and never had the others.
+     * Written as `engine.setSoundscape?.(…)`, that mismatch was not a
+     * crash, a warning, or a failing test — it was nothing at all, and
+     * War played in silence from the day it shipped while its audio
+     * schedule announced itself correctly in the log.
+     *
+     * That is the fifth time a vocabulary has lived in two places here
+     * with only one copy learning the word, and the first that was
+     * silent BY CONSTRUCTION rather than by accident. So the optional
+     * call is gone: a method this controller needs and cannot find is
+     * reported once, by name.
+     */
+    _command(name) {
+        const method = this.engine?.[name];
+        if (typeof method === 'function') return method.bind(this.engine);
+        if (this.engine && !this._warned?.has(name)) {
+            (this._warned ||= new Set()).add(name);
+            console.warn(`[Journey audio] The engine has no ${name}(). `
+                + 'This movement will be silent.');
+        }
+        return null;
+    }
+
+    /**
      * Bounded commands only. Anything the engine cannot do is a no-op
      * rather than an approximation — a missing soundscape degrades to
      * silence at runtime (§8.5), it does not substitute a different one.
      */
     _apply(cue, generation) {
-        const engine = this.engine;
-        if (!engine || !cue) return;
+        if (!this.engine || !cue) return;
         // A late command from a movement the reader has already left
         // must not publish into the one they are in.
         const current = () => generation === this._generation;
@@ -154,17 +181,29 @@ export class AudioScheduleController {
             case 'hold':
                 return;
             case 'silence':
-                if (current()) engine.fadeSoundscapeOut?.(cue.fadeMs ?? 500);
+                if (current()) this._command('stopSoundscape')?.(false);
                 return;
-            case 'soundscape':
-                if (current()) {
-                    engine.setSoundscape?.(cue.soundscapeId, {
-                        gain: cue.gain, fadeMs: cue.fadeMs
-                    });
+            case 'soundscape': {
+                if (!current()) return;
+                const start = this._command('startSoundscape');
+                if (!start) return;
+                // The engine warns by name on an id it does not know,
+                // and plays nothing — which is the right degradation. A
+                // soundscape that does not exist must not become a
+                // different soundscape.
+                start(cue.soundscapeId);
+                // Gain rides on the layer, because startSoundscape takes
+                // an id and nothing else. `fadeMs` has no engine control
+                // at all: one handle stops before the next starts, so a
+                // V1 boundary fades to silence and back (see the class
+                // comment) and there is no crossfade to time.
+                if (typeof cue.gain === 'number') {
+                    this._command('setLayerVolume')?.('soundscape', cue.gain, true);
                 }
                 return;
+            }
             case 'swell':
-                if (current()) engine.playSwell?.(cue.swellId);
+                if (current()) this._command('playSwell')?.(cue.swellId);
                 return;
             default:
                 return;
@@ -174,7 +213,7 @@ export class AudioScheduleController {
     /** Restore silence on stop and destroy (§8.3). */
     silence() {
         this._activeCueId = null;
-        this.engine?.fadeSoundscapeOut?.(300);
+        this._command('stopSoundscape')?.(false);
     }
 
     reset() {

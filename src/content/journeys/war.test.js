@@ -50,13 +50,23 @@ describe('the manifest states an argument, not a topic', () => {
 });
 
 describe('all three movements are bound', () => {
-    it('publishes, with nothing outstanding', () => {
+    it('publishes, and declares what is still outstanding', () => {
         // Blocked for one day, on the reading that Junger's unnumbered
         // chapters were not citable. True about ordinals, false about
         // the book: he titles them, and the edition prints the titles in
         // its own contents.
         expect(WAR_JOURNEY.status).toBe('publishable');
-        expect(WAR_JOURNEY.openRequirements).toEqual([]);
+
+        // This asserted an EMPTY list, and that was a falsehood the
+        // suite was holding in place: all three soundscapes are
+        // uncomposed and War reads in silence. Nothing said so, so
+        // nothing found it. A Journey may ship with a layer missing —
+        // the reading is whole and the imagery is scored — but it must
+        // say which.
+        expect(WAR_JOURNEY.openRequirements.length).toBe(3);
+        for (const id of ['war-ordered-field', 'war-mortal-pulse', 'war-pressure-field']) {
+            expect(WAR_JOURNEY.openRequirements.join(' ')).toContain(id);
+        }
     });
 
     it('keeps the descent whole — three movements, not two', () => {

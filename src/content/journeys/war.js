@@ -124,7 +124,25 @@ export const WAR_JOURNEY = Object.freeze({
     phraseFloor: true,
 
     status: 'publishable',
-    openRequirements: Object.freeze([]),
+    /**
+     * WHAT THIS JOURNEY NAMES AND DOES NOT YET HAVE.
+     *
+     * All three soundscapes below are unwritten, so War reads in
+     * silence. That is the correct degradation — a soundscape that does
+     * not exist must not become a different one, and Aurora is not the
+     * war in heaven — but it went unnoticed for as long as it did
+     * because nothing said so anywhere. It says so here now, and a test
+     * asserts that every unregistered soundscape a Journey names is
+     * declared in this list.
+     *
+     * `status` stays `publishable`: the reading itself is whole, and the
+     * imagery is scored. Silence is a missing layer, not a broken one.
+     */
+    openRequirements: Object.freeze([
+        'The soundscape war-ordered-field is not composed — Movement I reads in silence.',
+        'The soundscape war-mortal-pulse is not composed — Movement II reads in silence.',
+        'The soundscape war-pressure-field is not composed — Movement III reads in silence.'
+    ]),
 
     movements: Object.freeze([
         {

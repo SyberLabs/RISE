@@ -159,8 +159,20 @@ export class Chamber {
       this._audioSchedule = new AudioScheduleController(
         audioProgram,
         window.rise?.audioEngine || null,
-        // A reader may silence a Journey without rewriting it (§3.3).
-        { enabled: this.session?.audioPreset !== 'silent' }
+        // A JOURNEY'S AUDIO AUTHORITY IS ITS PROGRAM, NOT A PRESET.
+        //
+        // This asked `audioPreset !== 'silent'`, which is a question
+        // from the generic Session's vocabulary — the pure-tone bed a
+        // reader picks in the orbital. A Journey never sets it, so it
+        // defaulted to 'silent' and the controller was constructed
+        // DISABLED on every launch. Seven cues compiled, the schedule
+        // announced itself in the log, and not one of them was ever
+        // delivered.
+        //
+        // The absence of a preset is not a request for silence. §3.3's
+        // "a reader may silence a Journey" is an explicit act, and it
+        // has an explicit route: setEnabled(false).
+        { enabled: true }
       );
       console.info(
         `[Chamber] Audio schedule ready: ${audioProgram.segments.length} cues`

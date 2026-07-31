@@ -311,3 +311,59 @@ describe('Book VI is read figure by figure', () => {
         }
     }, 240000);
 });
+
+describe('a Journey may not name audio that does not exist without saying so', () => {
+    /**
+     * War played in silence from the day it shipped. Two independent
+     * faults stacked: the scheduler called `setSoundscape`, which the
+     * engine has never had, through an optional chain that swallowed
+     * it — and all three soundscape ids it named were unregistered.
+     *
+     * The first is fixed and guarded in journey-schedulers.test.js. This
+     * guards the second. A Journey is allowed to name a soundscape
+     * nobody has composed yet; it is not allowed to do so quietly.
+     */
+    async function validSoundscapeIds() {
+        const { SOUNDSCAPES } = await import('../../audio/soundscapes.js');
+        const { CHANT_BED_IDS } = await import('../../audio/chant.js');
+        return new Set([...Object.keys(SOUNDSCAPES), ...Object.keys(CHANT_BED_IDS || {})]);
+    }
+
+    function namedSoundscapes(journey) {
+        const ids = [];
+        for (const movement of journey.movements || []) {
+            const audio = movement.presentation?.audio;
+            if (audio?.soundscapeId) ids.push(audio.soundscapeId);
+            const out = movement.transitionOut?.audio;
+            if (out?.soundscapeId) ids.push(out.soundscapeId);
+        }
+        return [...new Set(ids)];
+    }
+
+    it('declares every soundscape it names but does not have', async () => {
+        const available = await validSoundscapeIds();
+        const declared = (WAR_JOURNEY.openRequirements || []).join(' ');
+        const missing = namedSoundscapes(WAR_JOURNEY).filter(id => !available.has(id));
+
+        for (const id of missing) {
+            expect(declared, `${id} is not composed and is not declared in openRequirements`)
+                .toContain(id);
+        }
+    });
+
+    it('still names its audio rather than deleting it', async () => {
+        // The temptation on discovering this was to strip the cues so
+        // the manifest matched reality. That would erase the score. A
+        // Journey states what it wants; the runtime degrades.
+        const named = namedSoundscapes(WAR_JOURNEY);
+        expect(named).toContain('war-ordered-field');
+        expect(named.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('compiles its audio program regardless', async () => {
+        // Silence is a missing layer, not a broken one: the Journey must
+        // still assemble and read.
+        const handoff = await createJourneyHandoff(WAR_JOURNEY, WAR_PASSAGES);
+        expect(handoff.config.audioProgram.segments.length).toBeGreaterThan(0);
+    }, 240000);
+});

@@ -98,23 +98,31 @@ describe('the movement controller announces once per movement', () => {
 });
 
 describe('the audio controller sends bounded commands', () => {
+    // THE ENGINE'S REAL SURFACE. The previous version of this fake had
+    // `setSoundscape` and `fadeSoundscapeOut` on it — methods AudioEngine
+    // has never had. A hand-written stub agrees with whatever the caller
+    // invented, so six passing tests proved the controller talked to
+    // itself while War played in silence.
     const engine = () => ({
-        setSoundscape: vi.fn(),
-        fadeSoundscapeOut: vi.fn(),
+        startSoundscape: vi.fn(),
+        stopSoundscape: vi.fn(),
+        setLayerVolume: vi.fn(),
         playSwell: vi.fn()
     });
 
-    it('activates a movement\'s soundscape once', () => {
+    it('activates the soundscape of a movement once', () => {
         const e = engine();
         const c = new AudioScheduleController(program().audioProgram, e);
         c.observe(atom('p1'));
         c.observe(atom('p1'));
-        expect(e.setSoundscape).toHaveBeenCalledTimes(1);
-        expect(e.setSoundscape).toHaveBeenCalledWith('ordered-field',
-            expect.objectContaining({ gain: 0.55, fadeMs: 1200 }));
+        expect(e.startSoundscape).toHaveBeenCalledTimes(1);
+        expect(e.startSoundscape).toHaveBeenCalledWith('ordered-field');
+        // Gain rides on the layer: startSoundscape takes an id and
+        // nothing else.
+        expect(e.setLayerVolume).toHaveBeenCalledWith('soundscape', 0.55, true);
     });
 
-    it('fades to silence at an authored boundary', () => {
+    it('stops the soundscape at an authored boundary', () => {
         // V1 boundaries fade to silence and back. The engine owns one
         // soundscape handle and stops it before starting another, so an
         // abrupt replacement is not called a crossfade.
@@ -122,10 +130,9 @@ describe('the audio controller sends bounded commands', () => {
         const c = new AudioScheduleController(program().audioProgram, e);
         c.observe(atom('p1'));
         c.observe(atom(boundarySourceId('to-hero')));
-        expect(e.fadeSoundscapeOut).toHaveBeenCalledWith(300);
+        expect(e.stopSoundscape).toHaveBeenCalled();
         c.observe(atom('p2'));
-        expect(e.setSoundscape).toHaveBeenLastCalledWith('mortal-pulse',
-            expect.objectContaining({ gain: 0.48 }));
+        expect(e.startSoundscape).toHaveBeenLastCalledWith('mortal-pulse');
     });
 
     it('holds rather than substituting when a cue names nothing', () => {
@@ -136,8 +143,8 @@ describe('the audio controller sends bounded commands', () => {
             fallback: { kind: 'silence', fadeMs: 500 }
         }, e);
         c.observe(atom('p1'));
-        expect(e.setSoundscape).not.toHaveBeenCalled();
-        expect(e.fadeSoundscapeOut).not.toHaveBeenCalled();
+        expect(e.startSoundscape).not.toHaveBeenCalled();
+        expect(e.stopSoundscape).not.toHaveBeenCalled();
     });
 
     it('lets a reader silence a Journey without rewriting it', () => {
@@ -147,18 +154,35 @@ describe('the audio controller sends bounded commands', () => {
         const c = new AudioScheduleController(program().audioProgram, e);
         c.observe(atom('p1'));
         c.setEnabled(false);
-        e.setSoundscape.mockClear();
+        e.startSoundscape.mockClear();
         c.observe(atom('p2'));
-        expect(e.setSoundscape).not.toHaveBeenCalled();
-        expect(e.fadeSoundscapeOut).toHaveBeenCalled();
+        expect(e.startSoundscape).not.toHaveBeenCalled();
+        expect(e.stopSoundscape).toHaveBeenCalled();
     });
 
     it('survives an engine that cannot do what was asked', () => {
         // A runtime playback failure degrades to silence (§8.5); it does
         // not throw into the reading.
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
         const c = new AudioScheduleController(program().audioProgram, {});
         expect(() => c.observe(atom('p1'))).not.toThrow();
         expect(() => c.silence()).not.toThrow();
+        // And it says so. Silence that nobody reported is what this
+        // whole exercise was about.
+        expect(warn).toHaveBeenCalled();
+        expect(warn.mock.calls.flat().join(' ')).toMatch(/startSoundscape/);
+        warn.mockRestore();
+    });
+
+    it('reports a missing engine method once, not once per atom', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const c = new AudioScheduleController(program().audioProgram, {});
+        for (let i = 0; i < 50; i += 1) {
+            c.observe(atom(i % 2 ? 'p1' : 'p2'));
+        }
+        const starts = warn.mock.calls.flat().join(' ').match(/startSoundscape/g) || [];
+        expect(starts).toHaveLength(1);
+        warn.mockRestore();
     });
 
     it('restores silence on stop', () => {
@@ -166,8 +190,47 @@ describe('the audio controller sends bounded commands', () => {
         const c = new AudioScheduleController(program().audioProgram, e);
         c.observe(atom('p1'));
         c.silence();
-        expect(e.fadeSoundscapeOut).toHaveBeenCalled();
+        expect(e.stopSoundscape).toHaveBeenCalled();
         expect(c.activeCueId).toBeNull();
+    });
+});
+
+describe('it only asks the engine for methods the engine has', () => {
+    /**
+     * THE GUARD THE LAST SIX TESTS COULD NOT BE.
+     *
+     * Every previous test here passed against a fake carrying
+     * `setSoundscape` and `fadeSoundscapeOut`. AudioEngine has neither,
+     * and never did. A stub cannot catch a name mismatch, because the
+     * stub is written by the same hand that invented the name.
+     *
+     * So this one does not stub. It records every property the
+     * controller reaches for and checks each against the REAL
+     * AudioEngine prototype.
+     */
+    it('checks every command against the real AudioEngine', async () => {
+        const { AudioEngine } = await import('../audio/engine.js');
+        const asked = new Set();
+        const spy = new Proxy({}, {
+            get(_, name) {
+                if (typeof name !== 'string') return undefined;
+                asked.add(name);
+                return () => {};
+            },
+            has: () => true
+        });
+
+        const c = new AudioScheduleController(program().audioProgram, spy);
+        c.observe(atom('p1'));
+        c.observe(atom(boundarySourceId('to-hero')));
+        c.observe(atom('p2'));
+        c.silence();
+
+        expect(asked.size).toBeGreaterThan(0);
+        const available = new Set(Object.getOwnPropertyNames(AudioEngine.prototype));
+        for (const name of asked) {
+            expect(available.has(name), `AudioEngine has no ${name}()`).toBe(true);
+        }
     });
 });
 

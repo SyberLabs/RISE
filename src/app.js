@@ -479,6 +479,12 @@ class App {
                     const hasAudio = (session.audioPreset && session.audioPreset !== 'silent')
                         || session.selectedSwellId
                         || hasSoundscape
+                        // A Journey scores its own audio and never sets
+                        // any of the above. Without this the engine's
+                        // session is never started for one, and the
+                        // schedule's commands arrive at a layer that is
+                        // not listening.
+                        || session.audioProgram?.segments?.length > 0
                         || session.recitation?.enabled === true;
 
                     if (hasAudio) {
