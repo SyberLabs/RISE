@@ -216,3 +216,55 @@ describe('a withheld engine is withheld everywhere', () => {
         expect(typeof storm.StormReactionDiffusionEngine).toBe('function');
     });
 });
+
+describe('the reel plays in order, and each movement opens on its own engine', () => {
+    /**
+     * Reported from a real reading: the Jünger movement opened on a
+     * Milton engine and the ASCII trench was never seen. The cause was
+     * in the field's load cache (see work-engine-field.test.js), but
+     * nothing here would have caught it either — so this walks the
+     * compiled session the way the runtime does and records what a
+     * reader is actually shown, in order.
+     */
+    it('opens Junger on the ASCII trench, not on Milton', async () => {
+        const { cueForAtom } = await import('../../core/visual-scheduler.js');
+        const handoff = await createJourneyHandoff(DEMO_JOURNEY, DEMO_PASSAGES);
+        const session = compileSession({ name: 'Demonstration', ...handoff.config });
+
+        const shown = [];
+        let last = null;
+        for (const atom of session.atoms) {
+            const { cue } = cueForAtom(handoff.config.visualProgram, atom);
+            const key = `${cue.kind}:${(cue.engines || []).join(',')}`;
+            if (key !== last) { shown.push(cue); last = key; }
+        }
+
+        const engines = shown.filter(c => c.kind === 'procedural')
+            .map(c => (c.engines || [])[0]);
+        console.log('REEL ' + JSON.stringify(engines));
+
+        // Milton's six, in his order.
+        expect(engines.slice(0, 6)).toEqual([
+            'heaven_in_order', 'flaming_sword', 'sulfur_magma',
+            'chariot_deity', 'fall_hypercube', 'dark_ocean_chaos'
+        ]);
+        // Then the boundary, then Jünger — opening on the trench.
+        expect(engines[6]).toBe('ascii_soldier');
+        // And the withheld engine appears nowhere in the reel.
+        expect(engines).not.toContain('turing_gas');
+    }, 240000);
+
+    it('scores the boundary as stillness between the two families', async () => {
+        // The movements must not touch. A `still` cue empties the
+        // families, which is what stops the field — and what exposed
+        // the stale-load bug in the first place.
+        const { cueForAtom } = await import('../../core/visual-scheduler.js');
+        const { isBoundarySource } = await import('../../core/journey-compiler.js');
+        const handoff = await createJourneyHandoff(DEMO_JOURNEY, DEMO_PASSAGES);
+        const session = compileSession({ name: 'Demonstration', ...handoff.config });
+
+        const boundary = session.atoms.find(a => isBoundarySource(a.sourceId));
+        expect(boundary).toBeTruthy();
+        expect(cueForAtom(handoff.config.visualProgram, boundary).cue.kind).toBe('still');
+    }, 240000);
+});

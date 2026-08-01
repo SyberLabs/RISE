@@ -19,13 +19,21 @@ class FakeEngine {
 }
 class OtherEngine extends FakeEngine {}
 
+class SecondFamilyEngine extends FakeEngine {}
+
 vi.mock('./work-engines.js', () => ({
-    isWorkEngineFamily: (id) => id === 'fake-work',
-    workEngineFamilies: () => ['fake-work'],
-    loadWorkEngines: async (id) => id === 'fake-work'
-        ? [{ id: 'a', name: 'A', engineClass: FakeEngine },
-           { id: 'b', name: 'B', engineClass: OtherEngine }]
-        : []
+    isWorkEngineFamily: (id) => id === 'fake-work' || id === 'other-work',
+    workEngineFamilies: () => ['fake-work', 'other-work'],
+    loadWorkEngines: async (id) => {
+        if (id === 'fake-work') {
+            return [{ id: 'a', name: 'A', engineClass: FakeEngine },
+                    { id: 'b', name: 'B', engineClass: OtherEngine }];
+        }
+        if (id === 'other-work') {
+            return [{ id: 'z', name: 'Z', engineClass: SecondFamilyEngine }];
+        }
+        return [];
+    }
 }));
 
 const { WorkEngineField, TIME_SCALE } = await import('./work-engine-field.js');
@@ -210,6 +218,64 @@ describe('a figure names its engine', () => {
         const engine = field._planes[field._active].engine;
         await field.setFamilies(['fake-work'], ['a']);
         expect(field._planes[field._active].engine).toBe(engine);
+        field.destroy();
+    });
+});
+
+
+describe('one movement never bleeds into the next', () => {
+    /**
+     * Reported from a real reading of the Demonstration: the Jünger
+     * movement opened on a MILTON engine, and the ASCII trench that
+     * should have opened it was never seen.
+     *
+     * A Journey stops the field at the boundary — the transition cue is
+     * `still`, so families go empty and the field stops — and starts it
+     * again on the next movement. The Chamber's sync assigns `families`
+     * and `only` directly and calls start(), which bypasses
+     * setFamilies() and therefore never invalidated the load. start()
+     * then awaited a promise cached for the PREVIOUS family and adopted
+     * its already-narrowed engine list.
+     *
+     * Nothing threw and nothing warned: the engines had resolved
+     * correctly, for the wrong movement.
+     */
+    it('reloads after a stop when the family changed underneath it', async () => {
+        const field = new WorkEngineField(host, { families: ['fake-work'], only: ['a'] });
+        await field.start();
+        expect(field._engines.map(e => e.id)).toEqual(['a']);
+
+        // What a movement boundary does.
+        field.stop();
+
+        // What the Chamber does on the next cue: assign, then start.
+        field.families = ['other-work'];
+        field.only = ['z'];
+        await field.start();
+
+        expect(field._engines.map(e => e.id)).toEqual(['z']);
+        expect(field._planes[field._active].entry.familyId).toBe('other-work');
+        field.destroy();
+    });
+
+    it('reloads when only the figure changed across a stop', async () => {
+        const field = new WorkEngineField(host, { families: ['fake-work'], only: ['a'] });
+        await field.start();
+        field.stop();
+        field.only = ['b'];
+        await field.start();
+        expect(field._engines.map(e => e.id)).toEqual(['b']);
+        field.destroy();
+    });
+
+    it('still caches when nothing changed', async () => {
+        // The guard must not turn every cue into a reload; a movement
+        // sends its cue on every atom.
+        const field = new WorkEngineField(host, { families: ['fake-work'], only: ['a'] });
+        await field.start();
+        const first = field._loading;
+        await field._loadEngines();
+        expect(field._loading).toBe(first);
         field.destroy();
     });
 });

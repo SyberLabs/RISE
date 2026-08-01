@@ -149,8 +149,32 @@ export class WorkEngineField {
         }
     }
 
+    /**
+     * KEYED ON WHAT IT LOADED, not on whether it has loaded.
+     *
+     * This was `if (this._loading) return this._loading` — a bare
+     * "already done" flag — and the Demonstration showed what that
+     * costs. A Journey stops the field at a movement boundary (the
+     * transition cue is `still`, so the families go empty) and starts it
+     * again on the next movement. The Chamber's sync assigns `families`
+     * and `only` directly and calls start(), which bypasses
+     * setFamilies() and so never invalidated the promise — and start()
+     * awaited a load cached for the PREVIOUS family, adopting its
+     * already-narrowed engines.
+     *
+     * Jünger's movement therefore opened on Milton, and the ASCII trench
+     * that should have opened it was never drawn. Nothing threw and
+     * nothing warned, because the engines had resolved perfectly well
+     * for the wrong movement.
+     *
+     * A key makes that unrepresentable: the cache answers "these
+     * families and this figure" rather than "something, once". Callers
+     * may assign the fields directly and it still cannot be wrong.
+     */
     async _loadEngines() {
-        if (this._loading) return this._loading;
+        const key = `${this.families.join(',')}|${this.only.join(',')}`;
+        if (this._loading && this._loadedKey === key) return this._loading;
+        this._loadedKey = key;
         this._loading = (async () => {
             const collected = [];
             for (const familyId of this.families) {
