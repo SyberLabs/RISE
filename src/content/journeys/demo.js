@@ -146,13 +146,18 @@ export const DEMO_JOURNEY = Object.freeze({
                     // BOOK-VI-PROCEDURAL-WORKS §4 and not done — so
                     // these are turns, not readings.
                     figures: [
+                        // Seven, not eight. Mustard Gas (#4) is withheld
+                        // in the registry for resolution — see
+                        // storm/index.js — so the reel does not show it.
+                        // The ASCII trench opens the movement: it is the
+                        // most legible of the eight at a glance, which
+                        // is what a demonstration wants first.
                         { id: 'demo-ascii', fromLine: 0, engines: ['ascii_soldier'] },
-                        { id: 'demo-flow', fromLine: 13, engines: ['flowfield'] },
-                        { id: 'demo-spirograph', fromLine: 26, engines: ['spirograph'] },
-                        { id: 'demo-flare', fromLine: 39, engines: ['flare_phosphene'] },
-                        { id: 'demo-incendiary', fromLine: 52, engines: ['incendiary_blast'] },
-                        { id: 'demo-turing', fromLine: 65, engines: ['turing_gas'] },
-                        { id: 'demo-voronoi', fromLine: 78, engines: ['voronoi'] },
+                        { id: 'demo-flow', fromLine: 15, engines: ['flowfield'] },
+                        { id: 'demo-spirograph', fromLine: 30, engines: ['spirograph'] },
+                        { id: 'demo-flare', fromLine: 45, engines: ['flare_phosphene'] },
+                        { id: 'demo-incendiary', fromLine: 61, engines: ['incendiary_blast'] },
+                        { id: 'demo-voronoi', fromLine: 76, engines: ['voronoi'] },
                         { id: 'demo-attractor', fromLine: 91, engines: ['attractor'] }
                     ]
                 }

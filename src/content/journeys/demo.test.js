@@ -139,10 +139,18 @@ describe('a demonstration is not a Journey', () => {
     });
 
     it('compiles to a real reading with every figure placed', async () => {
+        // Counted from the registries rather than written down, so
+        // withholding an engine cannot leave a stale number here.
+        const [{ PARADISE_LOST_ENGINES }, { STORM_OF_STEEL_ENGINES }] = await Promise.all([
+            import('../../visuals/paradise_lost/index.js'),
+            import('../../visuals/storm/index.js')
+        ]);
+        const published = PARADISE_LOST_ENGINES.length + STORM_OF_STEEL_ENGINES.length;
+
         const handoff = await createJourneyHandoff(DEMO_JOURNEY, DEMO_PASSAGES);
         const figures = handoff.config.visualProgram.segments
             .filter(s => s.id.includes('-figure-'));
-        expect(figures).toHaveLength(14);
+        expect(figures).toHaveLength(published);
         // Each figure owns a real stretch of the reading rather than an
         // instant.
         for (const figure of figures) {
@@ -152,4 +160,59 @@ describe('a demonstration is not a Journey', () => {
         const session = compileSession({ name: 'Demonstration', ...handoff.config });
         expect(session.atoms.length).toBeGreaterThan(100);
     }, 240000);
+});
+
+describe('a withheld engine is withheld everywhere', () => {
+    // Mustard Gas (#4) is held back for resolution: reaction-diffusion
+    // resolves at the grid it simulates on, and behind a full-bleed
+    // reading that grid reads as pixellation rather than as gas.
+    //
+    // Withheld in ONE place — the registry — because the living field,
+    // the gallery, Page mode, the Journey compiler and the
+    // Demonstration all take their vocabulary from it. An exclusion
+    // list beside the registry would be a seventh copy of a vocabulary
+    // this codebase has been bitten by six times, silently each time.
+    const WITHHELD = 'turing_gas';
+
+    it('is absent from the registry, which is the only place it lived', async () => {
+        const { STORM_OF_STEEL_ENGINES } = await import('../../visuals/storm/index.js');
+        expect(STORM_OF_STEEL_ENGINES.map(e => e.id)).not.toContain(WITHHELD);
+        expect(STORM_OF_STEEL_ENGINES).toHaveLength(7);
+    });
+
+    it('cannot be reached by the living field, which rotates the registry', async () => {
+        // War's Under Steel movement names no figures, so it rotates the
+        // whole family. That is exactly why removal had to happen in the
+        // registry rather than in the Demonstration's figure list.
+        const { loadWorkEngines } = await import('../../visuals/work-engines.js');
+        const engines = await loadWorkEngines('storm-of-steel');
+        expect(engines.map(e => e.id)).not.toContain(WITHHELD);
+        expect(engines.length).toBe(7);
+    });
+
+    it('is named by no figure in any published reading', async () => {
+        const named = [DEMO_JOURNEY, WAR_JOURNEY]
+            .flatMap(j => j.movements)
+            .flatMap(m => m.segments)
+            .flatMap(s => s.figures || [])
+            .flatMap(f => f.engines || []);
+        expect(named).not.toContain(WITHHELD);
+    });
+
+    it('keeps the ASCII trench, which is the most legible of the eight', async () => {
+        const { STORM_OF_STEEL_ENGINES } = await import('../../visuals/storm/index.js');
+        expect(STORM_OF_STEEL_ENGINES.map(e => e.id)).toContain('ascii_soldier');
+        // And it opens the Demonstration's second movement, because a
+        // demo wants its clearest image first.
+        const steel = DEMO_JOURNEY.movements.find(m => m.id === 'demo-steel');
+        const first = steel.segments[0].figures[0];
+        expect(first.fromLine).toBe(0);
+        expect(first.engines).toEqual(['ascii_soldier']);
+    });
+
+    it('leaves the class itself in place, so restoring it is one line', async () => {
+        // Withheld, not deleted. The engine is still exported.
+        const storm = await import('../../visuals/storm/index.js');
+        expect(typeof storm.StormReactionDiffusionEngine).toBe('function');
+    });
 });
