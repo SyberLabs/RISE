@@ -7,6 +7,7 @@
  * codebase is most prone to — something disappearing quietly.
  */
 import { describe, expect, it } from 'vitest';
+import { LITERATURE_WORKS } from './archive/literature-catalog.js';
 import { LIBRARY_TEXTS, LIBRARY_CATEGORIES } from './library.js';
 import { ARCHIVE_CURATION, curationFor, shelfFor } from './library-curation.js';
 import { PD_BASIS, RESONANCE_FUNCTIONS, DIVISIONS } from './library-constants.js';
@@ -97,8 +98,15 @@ describe('provenance — the public-domain invariant', () => {
         // a death-dated basis with nobody attached to it.
         for (const [id, entry] of Object.entries(ARCHIVE_CURATION)) {
             if (entry.provenance.basis !== PD_BASIS.AUTHOR_70) continue;
+            // The author is looked up from the CATALOG rather than the
+            // shelf. A withheld work still has provenance to answer for
+            // — withholding a bad edition of Hamlet does not stop
+            // Shakespeare having died in 1616 — and resolving this
+            // against the shelf alone made the invariant collapse the
+            // moment anything was held back.
             const named = entry.provenance.translator
-                || LIBRARY_TEXTS.find(t => t.id === id)?.author;
+                || LIBRARY_TEXTS.find(t => t.id === id)?.author
+                || LITERATURE_WORKS.find(w => w.meta.id === id)?.meta?.author;
             expect(named, `${id} claims author-death-70 with no person named`).toBeTruthy();
         }
     });

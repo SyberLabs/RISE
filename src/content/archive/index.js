@@ -240,7 +240,50 @@ const CORE_WORKS = [
     }
 ];
 
-const WORKS = [...CORE_WORKS, ...LEGACY_REINGESTED_WORKS, ...LITERATURE_WORKS];
+/**
+ * WITHHELD FROM THE SHELF — a wrong edition, not a broken file.
+ *
+ * `npm run audit:text` scored these three far above everything else in
+ * the Archive:
+ *
+ *     king-lear     39.0% of lines are critical apparatus
+ *     hamlet        32.3%
+ *     the-tempest   11.1%
+ *     next highest   2.9   (and that one is clean)
+ *
+ * All three are the Cambridge Shakespeare of Clark and Wright, 1863-66
+ * — and the catalog says so, in the edition statement, exactly as
+ * recorded. Nothing was mislabelled. That edition simply prints a full
+ * apparatus beneath every page, and the scan folded it into the play:
+ *
+ *     140. at] Ff. om. Qq.
+ *     63. smote] smot Q2Q3FIF2F3.
+ *
+ * A reader who opens Hamlet gets pages of sigla and a dramatis personae
+ * reading POLOXIUS before a line of verse. Hamlet and King Lear even
+ * share a sourceSha256 — both were cut from one volume file.
+ *
+ * Withheld rather than deleted, and withheld rather than left up. The
+ * Archive's own law is that a work which will not resolve is ABSENT,
+ * never a broken frame; a text that is 39% apparatus does not resolve
+ * as the work it claims to be. The payloads stay on disk so a
+ * re-ingest can be compared against them.
+ *
+ * The list is by ID and carries its reason, so restoring one is
+ * deleting a line — and so that nobody later wonders why Shakespeare is
+ * missing from a library that holds Marlowe and Webster.
+ */
+const WITHHELD = Object.freeze({
+    'hamlet': 'Cambridge 1863 variorum — 32.3% critical apparatus. Re-source.',
+    'king-lear': 'Cambridge 1863 variorum — 39.0% critical apparatus. Re-source.',
+    'the-tempest': 'Cambridge 1863 variorum — 11.1% critical apparatus. Re-source.'
+});
+
+/** Every work the Archive is prepared to serve. */
+export const WITHHELD_WORKS = WITHHELD;
+
+const WORKS = [...CORE_WORKS, ...LEGACY_REINGESTED_WORKS, ...LITERATURE_WORKS]
+    .filter(work => !Object.hasOwn(WITHHELD, work.meta?.id ?? work.id ?? ''));
 
 /**
  * A long work is not one reading, and its own sections are not its

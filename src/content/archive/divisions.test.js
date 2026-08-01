@@ -334,11 +334,26 @@ describe('the division index agrees with the works it describes', () => {
         //
         // They were removed on 2026-07-30. Git keeps them, so the
         // decision stays reversible; the shelf does not pretend.
+        //
+        // A WITHHELD work is the one permitted exception, and only
+        // because it is declared. The Cambridge Shakespeares are off the
+        // shelf on purpose — 39% critical apparatus — and their payloads
+        // stay on disk so a re-ingest can be compared against them. What
+        // this still forbids is a payload that is off the shelf and
+        // nobody said why.
         const { default: index } = await import('./division-index.json');
-        const { INGESTED_META } = await import('./index.js');
+        const { INGESTED_META, WITHHELD_WORKS } = await import('./index.js');
         const registered = new Set(INGESTED_META.map(m => m.id));
-        const unshelved = Object.keys(index).filter(id => !registered.has(id));
+        const unshelved = Object.keys(index)
+            .filter(id => !registered.has(id) && !Object.hasOwn(WITHHELD_WORKS, id));
         expect(unshelved, `${unshelved.join(', ')} are ingested but on no shelf`).toEqual([]);
+
+        // And every withholding states its reason, so the shelf never
+        // goes quiet about something it is holding back.
+        for (const [id, reason] of Object.entries(WITHHELD_WORKS)) {
+            expect(typeof reason === 'string' && reason.length > 20,
+                `${id} is withheld without a stated reason`).toBe(true);
+        }
     });
 });
 
