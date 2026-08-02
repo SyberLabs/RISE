@@ -383,6 +383,27 @@ small {
   border-radius: var(--radius-none);
   padding: var(--space-md);
   transition: all var(--transition-normal) var(--ease-default);
+
+  /* NOTHING LEAVES A CARD.
+   *
+   * A card is sized by its container and filled with text nobody here
+   * wrote: an edition statement, a translator's name, a URL that
+   * arrived with a scan. A single token longer than the card — and a
+   * Wikisource file URL is 96 characters without a break in it — pushed
+   * the Library's grid wider than the viewport.
+   *
+   * `anywhere` rather than `break-word`: break-word will not shrink the
+   * box's intrinsic minimum, so a grid track sized to max-content still
+   * blows out. `min-width: 0` is the other half — a flex or grid child
+   * defaults to min-width:auto and refuses to shrink below its content,
+   * which is what actually widens the row. */
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+/* Grid and flex children inside a card inherit the same refusal. */
+.card > * {
+  min-width: 0;
 }
 
 .card-interactive {

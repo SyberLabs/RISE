@@ -12,6 +12,47 @@ import { LIBRARY_TEXTS, LIBRARY_CATEGORIES, DIVISIONS } from '../content/library
 import { escapeHtml } from '../core/sanitize.js';
 import { MemoryCore } from '../core/memory.js';
 
+/**
+ * An edition statement, as a reader should see it.
+ *
+ * `tradition` carries the edition, and for two works it carries a
+ * SOURCING MEMO instead — written for a provenance ledger and shown on
+ * a card by accident:
+ *
+ *   trans. C. H. Brewitt-Taylor, Kelly & Walsh, Shanghai, 2 vols., 1925;
+ *   scan-backed Wikisource [vol. I](https://en.wikisource.org/wiki/File:
+ *   Romance_of_the_Three_Kingdoms_-_tr._Brewitt-Taylor_-_Volume_1.djvu)
+ *   and [vol. II](...); `author-death-70`
+ *
+ * The card printed all of it, markdown and URLs and rights vocabulary,
+ * because escapeHtml renders markup literally rather than resolving it.
+ *
+ * NOTHING TRUE IS REMOVED HERE. The link text stays and the URL goes;
+ * the rights basis goes because `author-death-70` is machine
+ * vocabulary that the provenance record already holds and a reader has
+ * no use for. What remains is the edition, which §"every text says
+ * which edition you are reading" requires and which was always the
+ * point of the field.
+ *
+ * Applied at DISPLAY rather than in the data: the catalog is generated
+ * and says so, and a statement arriving with a URL in it is a shape to
+ * survive rather than an incident to patch. Two works have one today.
+ */
+export function editionStatement(tradition) {
+    return String(tradition ?? '')
+        // [label](url) → label
+        .replace(/\[([^\]]+)\]\((?:[^)]*)\)/g, '$1')
+        // A bare URL with no link text has no label to keep.
+        .replace(/\bhttps?:\/\/\S+/g, '')
+        // `author-death-70` and friends: the rights basis lives in
+        // provenance, where it is checked. It is not a credit.
+        .replace(/`[^`]*`/g, '')
+        .replace(/\s*;\s*$/, '')
+        .replace(/\s{2,}/g, ' ')
+        .replace(/\s+([;,.])/g, '$1')
+        .trim();
+}
+
 export class Library {
   constructor(container, options = {}) {
     this.container = container;
@@ -268,7 +309,7 @@ export class Library {
           <span class="archive-type text-fog text-uppercase">${escapeHtml(shelf?.name || text.category)}</span>
         </div>
         <h3 class="archive-title text-light">${escapeHtml(text.title)}</h3>
-        <p class="archive-subtitle text-fog">${escapeHtml(text.author)} · ${escapeHtml(text.tradition)}</p>
+        <p class="archive-subtitle text-fog">${escapeHtml(text.author)} · ${escapeHtml(editionStatement(text.tradition))}</p>
         ${text.why
           ? `<p class="archive-why">${escapeHtml(text.why)}</p>`
           : `<p class="archive-description text-fog">${escapeHtml(text.description) || ''}</p>`}
