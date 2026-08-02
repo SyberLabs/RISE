@@ -2,11 +2,15 @@ import { test, expect } from '@playwright/test';
 
 const GATE = { code: 'rise2025', name: 'Journeys', vault: null, timestamp: Date.now() };
 
+// Journeys is reached through the Vault now, not from the Portal: a
+// Journey is a reading somebody published, and published readings are
+// what the Vault holds.
 async function openJourneys(page) {
   await page.addInitScript((g) => {
     localStorage.setItem('rise-beta-session', JSON.stringify(g));
   }, GATE);
   await page.goto('/');
+  await page.locator('[data-nav="vault"]').first().click();
   await page.locator('[data-nav="journeys"]').first().click();
   await expect(page.locator('.journeys-title')).toBeVisible({ timeout: 20000 });
 }
@@ -35,17 +39,30 @@ async function enterReading(page) {
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
 }
 
-test('the Portal offers Journeys beside the Chamber', async ({ page }) => {
+test('the Portal names one act, and the Vault opens the Journeys', async ({ page }) => {
   await page.addInitScript((g) => {
     localStorage.setItem('rise-beta-session', JSON.stringify(g));
   }, GATE);
   await page.goto('/');
   // The Portal fades its nav in; wait for it rather than racing it.
-  await expect(page.locator('[data-nav="journeys"]')).toBeVisible({ timeout: 20000 });
+  await expect(page.locator('[data-nav="chamber"]')).toBeVisible({ timeout: 20000 });
+
+  // ONE ACT AT THE FRONT DOOR. Chamber and Journeys stood here as a
+  // pair — the same act differently authored — and on a phone that read
+  // as two doors with nothing to choose between them.
   const primary = await page.evaluate(() =>
     [...document.querySelectorAll('.nav-primary .nav-item')].map(b => b.dataset.nav));
-  console.log('PRIMARY ' + JSON.stringify(primary));
-  expect(primary).toEqual(['chamber', 'journeys']);
+  expect(primary).toEqual(['chamber']);
+  await expect(page.locator('.portal [data-nav="journeys"]')).toHaveCount(0);
+
+  // And it is genuinely reachable, one room in.
+  await page.locator('[data-nav="vault"]').first().click();
+  const door = page.locator('.vault-journeys-door');
+  await expect(door).toBeVisible({ timeout: 20000 });
+  await door.click();
+  await expect(page.locator('.journeys-title')).toBeVisible({ timeout: 20000 });
+  // Back goes where it came from.
+  await expect(page.locator('.journeys-header [data-nav="vault"]')).toBeVisible();
 });
 
 test('War states its argument before asking for twenty minutes', async ({ page }) => {

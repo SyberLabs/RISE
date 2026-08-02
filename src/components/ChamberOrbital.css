@@ -1322,18 +1322,73 @@
   .orbital-stage {
     /* The radius the three nodes ride on. Everything below is derived
        from it, so the ring can be retuned by changing one number. */
-    --orb-r: 29vw;
+    /* 33 rather than 30: the anchor carries a white ring and an outer
+       glow well past its 108px box, so a gap computed from the boxes
+       alone still read as two discs touching. */
+    --orb-r: 33vw;
     /* Against the CONTAINER, not the viewport: it can then never be
        wider than the box it is being centred in. */
     width: min(100%, 400px);
     height: min(100%, 400px);
     aspect-ratio: 1;
-    margin: var(--space-lg) auto;
+    /* The stage carried 32px of margin above and below on a screen
+       with none to spare. (There were TWO of these rules in this one
+       media block, the second silently winning; the second is gone.) */
+    margin: var(--space-xs) auto;
   }
 
+
   .orbit-node {
-    width: 84px;
-    height: 84px;
+    width: 96px;
+    height: 96px;
+  }
+
+  /* ── 24px OF PADDING INSIDE AN 84px CIRCLE ──
+     Which left 36px for the word TEMPORAL, set at 11px with 0.15em of
+     tracking. It did not overflow — it BROKE, into TEM / POR / AL, and
+     VISUAL into VIS / UAL, and the status line spilled out of the disc
+     and into the centre orb beneath it.
+     A circle is not a box: its usable width at the text's height is
+     less than its diameter, so the padding has to be small and the
+     type smaller. */
+  .orbit-content {
+    padding: 4px;
+    max-width: 100%;
+  }
+
+  .orbit-label {
+    font-size: 8px;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+    /* A control's name is never broken mid-word. */
+    white-space: nowrap;
+  }
+
+  /* The anchor's own text. "The Iliad · Front matter" truncated to
+     "The Il…" in a 108px disc; a little more room and a little less
+     type gives it a readable fragment instead of two words. */
+  .text-name {
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  .text-meta {
+    font-size: 9px;
+  }
+
+  .orbit-status {
+    font-size: 10px;
+    line-height: 1.15;
+    /* "Rhythmic · Collections" is longer than any disc this size, so it
+       wraps BETWEEN words and stops at two lines. Wrapping anywhere
+       would give Collec/tions, which is the same damage in a new place. */
+    overflow-wrap: normal;
+    word-break: keep-all;
+    hyphens: none;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   /* 0.866 and 0.5 are cos30 and sin30: the two lower nodes sit at the
@@ -1355,32 +1410,114 @@
       translate(calc(0.866 * var(--orb-r)), calc(0.5 * var(--orb-r)));
   }
 
+  /* The anchor was 150px against 84px satellites — nearly twice their
+     diameter — and its top edge met the Temporal node's bottom edge.
+     Two discs that touch read as one broken shape. 108 leaves fifteen
+     pixels of air and restores the hierarchy: a centre, and three
+     things in orbit around it. */
   .orbit-center {
-    width: 150px;
-    height: 150px;
+    width: 128px;
+    height: 128px;
+  }
+
+  /* ── WHAT IS IN THE DISC HAS TO FIT THE DISC ──
+     The anchor's column is a 48px sigil, a title, a word count and a
+     clear button, authored for a 150px+ desktop circle. At phone size
+     that column was taller than the circle containing it, so 文 rode
+     up over the top edge and the ✕ hung out of the bottom — a shape
+     with two things falling out of it.
+     A circle is also narrower than its diameter everywhere but the
+     middle, so the column is held to 96px and the sigil comes down to
+     a mark rather than a display character: the title is what the
+     reader is here to read. */
+  /* 32px of padding a side inside a 128px circle leaves 64px, and the
+     circle itself only offers its full width at the equator. */
+  .text-source {
+    padding: var(--space-xs);
+  }
+
+  .text-loaded {
+    gap: 2px;
+    max-width: 88px;
+  }
+
+  .text-sigil {
+    font-size: 19px;
+    margin-bottom: 0;
+  }
+
+  .text-clear {
+    margin-top: 3px;
+    padding: 1px 7px;
+    font-size: 9px;
+    line-height: 1.4;
   }
 
   .choose-sigil {
-    font-size: 40px;
-  }
-
-  /* A LABEL MAY NOT LEAVE ITS ORB. "Collections" and "Rhythmic" are
-     longer than the disc they name, and an absolutely-centred label
-     simply grew past both sides of it. Bounded to the node and allowed
-     to wrap. */
-  .orbit-node .orbit-label,
-  .orbit-node .node-label,
-  .orbit-node .orbit-value {
-    max-width: 100%;
-    overflow-wrap: anywhere;
-    hyphens: auto;
-    line-height: 1.2;
+    font-size: 24px;
   }
 
   .orbital-back {
     left: var(--space-sm);
     top: var(--space-sm);
   }
+
+  /* BEGIN was a full-width slab under a delicate ring — the loudest
+     object on the screen answering a question the ring had already
+     asked. It is one control among several, and the ring is the
+     subject. */
+  /* ── AND THE HOLE UNDER THE RING ──
+     The stage is a SQUARE and the ring inside it is not: the three
+     nodes fill 289 of its 358 pixels, and the remaining 67 are empty
+     by construction — a gap between the lowest orb and Begin that
+     nothing on the screen explains. The box itself cannot shrink; the
+     nodes are positioned from its centre and moving that centre pushes
+     Temporal off the top. So the actions climb into the band instead,
+     and the 64px of bottom padding meant to clear a desktop fold comes
+     down to the phone's own margin. */
+  .orbital-actions {
+    /* A LITERAL, DELIBERATELY. This is not a spacing decision — it
+       cancels the 67px of empty stage the square box leaves under a
+       triangular ring — so it must not move when the spacing scale
+       steps down; that would silently reopen the gap it exists to
+       close. */
+    margin-top: -44px;
+    padding-bottom: var(--space-md);
+    width: 100%;
+  }
+
+  .orbital-actions .btn-large {
+    width: auto;
+    min-width: 0;
+    padding: 12px var(--space-lg);
+    font-size: 13px;
+    letter-spacing: 0.1em;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     THE PANELS, MEASURED
+     ═══════════════════════════════════════════════════════════
+
+     Each orb opens a configuration panel, and on an iPhone 12 they
+     measured:
+
+         Temporal    406px of body   — fits
+         Visual      467px of body   — fits
+         Audio     1 273px of body   — TWO AND A HALF SCREENS, with
+                                       four of its seven sections
+                                       starting below the fold
+
+     The cause is one shape used everywhere: an option is a PICTURE
+     TILE — a 28px glyph on its own line, a name beneath it, 24px of
+     padding around both — so three soundscapes cost 265px. Stacked
+     seven times that is the whole of the excess.
+
+     A tile is right on a desktop, where the panel is a board you look
+     over. On a phone the same choice is a LIST: glyph and name on one
+     line, at a touch target's height. Identical information, a third
+     of the room, and the panel becomes something a thumb reads down
+     instead of something it hunts through.
+     ═══════════════════════════════════════════════════════════ */
 
   /* A FIVE-WAY CHOICE IS NOT A PAGE. `1fr` put OFF, FOCALS, ATTRACTOR,
      GENESIS and RHYTHMIC on five rows of 82px — 410px, a whole phone,
@@ -1394,9 +1531,73 @@
     gap: var(--space-xs);
   }
 
-  .mode-option {
-    padding: var(--space-sm) var(--space-xs);
+  .orbital-modal .curve-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-xs);
+  }
+
+  /* THE TILE LIES DOWN — AND THERE ARE FIVE OF IT.
+     The same object is spelled `mode-option`, `audio-preset-option`,
+     `curve-option`, `audio-mode-option` and `audio-waveform-option`,
+     with its glyph spelled `mode-icon`, `preset-icon` and
+     `curve-icon`. Teaching one of those names to lie down left the
+     Audio panel at exactly the 1273px it started at, because the
+     rule and the markup were talking about different words for the
+     same button. They are all named here, together, for that reason.
+     Prefixed with .orbital-modal so every one of them outranks its
+     own base rule — .curve-option's is already written that way. */
+  .orbital-modal .mode-option,
+  .orbital-modal .audio-preset-option,
+  .orbital-modal .curve-option,
+  .orbital-modal .audio-mode-option,
+  .orbital-modal .audio-waveform-option {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 8px;
+    min-height: 40px;
     font-size: 10px;
+    line-height: 1.2;
+  }
+
+  .orbital-modal .mode-icon,
+  .orbital-modal .preset-icon,
+  .orbital-modal .curve-icon {
+    font-size: 15px;
+    line-height: 1;
+  }
+
+  .orbital-modal .preset-label {
+    font-size: 10px;
+  }
+
+  /* Seven sections at 20px of tail and 16px under each label is 250px
+     of pure separation — a third of the panel spent on gaps between
+     things that were never in danger of being confused. */
+  .orbital-modal .config-section {
+    margin-bottom: var(--space-sm);
+  }
+
+  .orbital-modal .config-label,
+  .orbital-modal .config-label-row {
+    margin-bottom: var(--space-xs);
+  }
+
+  /* The panel takes the screen it is on. 80vh left a fifth of the
+     glass dark on the one view that had nowhere to put its content,
+     and `vh` on iOS measures a viewport the toolbar is drawn over. */
+  .orbital-modal .modal-content {
+    max-height: 92dvh;
+  }
+
+  .orbital-modal .modal-header {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .orbital-modal .modal-header h2 {
+    font-size: 15px;
+    letter-spacing: 0.08em;
   }
 
   /* ── 164 PIXELS OF NESTED PADDING ──

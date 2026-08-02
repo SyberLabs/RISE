@@ -150,7 +150,7 @@ test('the Portal puts the marble away rather than shrinking it', async ({ page }
     // remains is what the arch was for: a door with its name on it.
     test.setTimeout(120000);
     await enter(page, 390, 844);
-    await expect(page.locator('[data-nav="journeys"]').first()).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('[data-nav="chamber"]').first()).toBeVisible({ timeout: 30000 });
     await page.waitForTimeout(2000);
 
     const arches = await page.evaluate(() =>
@@ -190,6 +190,7 @@ test('the Chamber reads as a band across the picture', async ({ page }) => {
     // the visual, and the reading is a thin band across the middle.
     test.setTimeout(300000);
     await enter(page, 390, 844);
+    await page.locator('[data-nav="vault"]').first().click();
     await page.locator('[data-nav="journeys"]').first().click();
     const DEMO = '[data-journey="demo-procedural"]';
     await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
@@ -238,7 +239,7 @@ test('the Portal is one viewport, and does not scroll', async ({ page }) => {
     // blocks (230px). Both are rows now.
     test.setTimeout(120000);
     await enter(page, 390, 844);
-    await expect(page.locator('[data-nav="journeys"]').first()).toBeVisible({ timeout: 30000 });
+    await expect(page.locator('[data-nav="chamber"]').first()).toBeVisible({ timeout: 30000 });
     await page.waitForTimeout(2500);
 
     const fit = await page.evaluate(() => ({
@@ -386,6 +387,7 @@ test('the Chamber control bar stays on the screen', async ({ page }) => {
     // labels whose reserved min-widths outlived them.
     test.setTimeout(300000);
     await enter(page, 390, 844);
+    await page.locator('[data-nav="vault"]').first().click();
     await page.locator('[data-nav="journeys"]').first().click();
     const DEMO = '[data-journey="demo-procedural"]';
     await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
@@ -416,4 +418,130 @@ test('the Chamber control bar stays on the screen', async ({ page }) => {
     // Every control reachable by a thumb, which is the whole point.
     expect(bar.worstLeft).toBeGreaterThanOrEqual(0);
     expect(bar.worstRight).toBeLessThanOrEqual(bar.viewport);
+});
+
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * DENSITY
+ * ═══════════════════════════════════════════════════════════════
+ *
+ * Every measurement in this app was authored against a 1440px desktop
+ * and then applied unchanged at 390px, because no stylesheet knew the
+ * difference. Nothing about that is visible in a screenshot of a
+ * component; it only shows up as an answer to "how much of the thing
+ * you came for can you actually see?" — which is what these ask.
+ *
+ * Before the density step in design-system.css:
+ *
+ *     the Vault      first archetype at y=573, 1 of 6 visible
+ *     the Library    first card at y=541, card height 401 — no book
+ *                    fit the first screen at all
+ *     Audio panel    1273px of body on a 664px phone, four of its
+ *                    seven sections starting below the fold
+ *
+ * These are thresholds, not pixel-perfect locks: they fail when a
+ * screen goes back to spending most of itself on chrome, and they do
+ * not care how the remaining room is arranged.
+ */
+
+test('a shelf shows books on the first screen', async ({ page }) => {
+    test.setTimeout(120000);
+    await enter(page, 390, 844);
+    await page.locator('[data-nav="library"]').first().click();
+    await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 30000 });
+
+    const shelf = await page.evaluate(() => {
+        const cards = [...document.querySelectorAll('.archive-card')];
+        return {
+            viewport: window.innerHeight,
+            firstCardTop: Math.round(cards[0].getBoundingClientRect().top),
+            cardHeight: Math.round(cards[0].getBoundingClientRect().height),
+            chromeShare: cards[0].getBoundingClientRect().top / window.innerHeight
+        };
+    });
+    console.log('SHELF ' + JSON.stringify(shelf));
+
+    // Header, tabs, preamble and two axes of filters are all real —
+    // but between them they may not own most of the glass.
+    expect(shelf.chromeShare).toBeLessThan(0.62);
+    // And a card is a card, not a page: one has to fit under the fold
+    // it starts at.
+    expect(shelf.firstCardTop + shelf.cardHeight).toBeLessThanOrEqual(shelf.viewport);
+});
+
+test('the Vault opens on its archetypes rather than on an explanation', async ({ page }) => {
+    test.setTimeout(120000);
+    await enter(page, 390, 844);
+    await page.locator('[data-nav="vault"]').first().click();
+    await expect(page.locator('.archetype-card').first()).toBeVisible({ timeout: 30000 });
+
+    const vault = await page.evaluate(() => {
+        const cards = [...document.querySelectorAll('.archetype-card')];
+        return {
+            total: cards.length,
+            visible: cards.filter(c => c.getBoundingClientRect().bottom <= window.innerHeight).length,
+            // The orientation blurb is desktop courtesy; on a phone it
+            // is the reason the shelf started below the fold.
+            introShown: (() => {
+                const el = document.querySelector('.vault-intro');
+                return el ? getComputedStyle(el).display !== 'none' : false;
+            })()
+        };
+    });
+    console.log('VAULT ' + JSON.stringify(vault));
+
+    expect(vault.introShown).toBe(false);
+    expect(vault.visible).toBeGreaterThanOrEqual(3);
+});
+
+test('the configuration panels are not several screens of picture tiles', async ({ page }) => {
+    // An option used to be a TILE: a 28px glyph on its own line, a name
+    // beneath it, 24px of padding around both — so three soundscapes
+    // cost 265px and the Audio panel ran to 1273. On a phone the same
+    // choice is a list: glyph and name on one line, at a touch target's
+    // height.
+    test.setTimeout(180000);
+    await enter(page, 390, 844);
+    await page.locator('[data-nav="library"]').first().click();
+    await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 30000 });
+    await page.locator('[data-text-id="the-iliad"] [data-action="select-text"]').click();
+    await page.waitForTimeout(1500);
+    const toc = page.locator('.toc-entry').first();
+    if (await toc.isVisible().catch(() => false)) { await toc.click(); }
+    await expect(page.locator('.orbital-stage')).toBeVisible({ timeout: 30000 });
+
+    const panels = [
+        ['.orbit-temporal', '#modal-temporal'],
+        ['.orbit-audio', '#modal-audio'],
+        ['.orbit-visual', '#modal-visual']
+    ];
+
+    for (const [node, modal] of panels) {
+        await page.locator(node).click();
+        await expect(page.locator(modal)).toBeVisible({ timeout: 15000 });
+        const m = await page.evaluate((sel) => {
+            const body = document.querySelector(`${sel} .modal-body`);
+            const opts = [...document.querySelectorAll(
+                `${sel} .mode-option, ${sel} .audio-preset-option, ${sel} .curve-option,`
+                + ` ${sel} .audio-mode-option, ${sel} .audio-waveform-option`
+            )].map(o => Math.round(o.getBoundingClientRect().height));
+            return {
+                id: sel,
+                body: body ? body.scrollHeight : 0,
+                viewport: window.innerHeight,
+                tallestOption: opts.length ? Math.max(...opts) : null
+            };
+        }, modal);
+        console.log('PANEL ' + JSON.stringify(m));
+
+        // Two screens of scrolling is a page, not a panel.
+        expect(m.body, `${m.id} body`).toBeLessThan(m.viewport * 2);
+        // A row, not a tile. Nothing here needs to be taller than a
+        // generous touch target.
+        if (m.tallestOption !== null) {
+            expect(m.tallestOption, `${m.id} tallest option`).toBeLessThanOrEqual(56);
+        }
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(400);
+    }
 });

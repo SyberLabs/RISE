@@ -67,8 +67,10 @@ export class Journeys {
         this.container.innerHTML = `
       <div class="journeys" role="main">
         <header class="journeys-header">
-          <button class="btn-ghost" data-nav="portal">
-            <span class="icon" aria-hidden="true">←</span> Portal
+          <!-- Journeys is reached from the Vault's first screen now,
+               so back is the Vault. -->
+          <button class="btn-ghost" data-nav="vault">
+            <span class="icon" aria-hidden="true">←</span> Vault
           </button>
           <h1 class="journeys-title text-light">Journeys</h1>
         </header>

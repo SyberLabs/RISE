@@ -8,7 +8,16 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* THE FRAME IS THE FRAME YOU CAN SEE.
+     `100vh` on iOS Safari is the LARGE viewport — the height the page
+     would have if the browser chrome were hidden — and the toolbar is
+     drawn over the bottom of it regardless. A column centred in that
+     box has its middle pushed below the middle of what the reader
+     actually sees: dead air at the top, the Solarium under the
+     toolbar. `dvh` is the box as it stands right now, which for a page
+     that never scrolls is simply the truth. */
   min-height: 100vh;
+  min-height: 100dvh;
   padding: var(--space-xl);
   background: var(--color-void);
   position: relative;
@@ -55,6 +64,20 @@
   object-fit: cover;
   transition: filter var(--transition-normal) var(--ease-default);
   filter: grayscale(80%) contrast(1.2) opacity(0.7);
+}
+
+/* THE SEAL IS NOT A PLAYER.
+   Until a video has started, iOS paints its own centred ▶ over it — a
+   control this element does not have, promising playback where the
+   tap actually opens the last session. On a phone in Low Power Mode
+   (where muted autoplay is refused outright) the glyph never goes
+   away, so the sigil read permanently as a broken play button. */
+.portal-sigil-vessel .vessel-video::-webkit-media-controls,
+.portal-sigil-vessel .vessel-video::-webkit-media-controls-start-playback-button,
+.portal-sigil-vessel .vessel-video::-webkit-media-controls-panel {
+  display: none !important;
+  -webkit-appearance: none;
+  opacity: 0;
 }
 
 .portal-sigil-vessel:hover {
@@ -755,70 +778,142 @@
    ─────────────────────────────────────────────────────────────── */
 
 @media (max-width: 640px) {
+  /* ═════════════════════════════════════════════════════════════
+     ONE ACT, THEN AN INDEX OF ROOMS
+     ═════════════════════════════════════════════════════════════
+
+     The phone was showing four rows of the same weight — two slate
+     tiles, three slate tiles, two marble doors, two footer links —
+     and nothing in that arrangement said which one you were meant to
+     touch. Four candidates for first place is the same as none.
+
+     A threshold has one act and a list of the places behind it. The
+     act is the Chamber, and it is the only raised object on the
+     screen. Everything else is a NAME on a hairline, which is how a
+     colophon lists rooms: Vault, Library, Workshop on one line;
+     Atrium and the Solarium (with its hour) on the next. Five rooms,
+     one idiom, one rule separating them from the act.
+
+     The whole composition is held to 320px so it reads as a plate
+     rather than a page — the sigil, the title, the act, the index —
+     rather than sprawling to both edges of the glass.
+     ───────────────────────────────────────────────────────────── */
+
   .portal {
     padding: var(--space-md) var(--space-md) var(--space-lg);
-    /* Centred, not crowded to the top. Once the two stacks became rows
-       there was 316px of slack, and a threshold should sit in the
-       middle of its frame rather than pile against the ceiling. */
     justify-content: center;
   }
 
   /* The vessel is the first thing seen and does not need to be the
-     largest. */
+     largest. Sized rather than scaled: `transform` left the original
+     100px box behind it, and that ghost was a quarter of the "empty
+     padding up top". */
   .portal-sigil-container {
-    margin-bottom: var(--space-md);
-    transform: scale(0.76);
+    margin-bottom: var(--space-sm);
+  }
+
+  .portal-sigil-vessel {
+    width: 76px;
+    height: 76px;
   }
 
   .portal-title {
-    font-size: 34px;
+    font-size: 32px;
   }
 
   .portal-title-container {
-    margin-bottom: var(--space-xs);
+    margin-bottom: var(--space-lg);
   }
 
   .portal-subtitle {
     font-size: 11px;
   }
 
-  /* THE ROW THAT WAS A STACK. Three equal doors across, which is both
-     smaller and a truer picture of them: Vault, Library and Workshop
-     are peers, and a column implied a ranking they do not have. */
-  .portal-nav .nav-secondary {
-    flex-direction: row;
-    gap: var(--space-xs);
+  /* ── The act ── */
+  .portal-nav {
     width: 100%;
-  }
-
-  .portal-nav .nav-secondary .nav-item {
-    flex: 1 1 0;
-    min-width: 0;
-    padding-left: var(--space-xs);
-    padding-right: var(--space-xs);
-    font-size: 11px;
-    letter-spacing: 0.06em;
+    max-width: 320px;
+    gap: var(--space-md);
+    margin-bottom: 0;
   }
 
   .portal-nav .nav-primary {
-    gap: var(--space-sm);
     width: 100%;
   }
 
+  /* The only tile left on the screen, and therefore unmistakable —
+     which also means it does not need bulk to be found. Full width at
+     a normal button's height reads as an act; full width at 65px read
+     as a slab. */
   .portal-nav .nav-primary .nav-item {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    padding: var(--space-sm) var(--space-lg);
+  }
+
+  /* ── The index: first line ── */
+  .portal-nav .nav-secondary {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 0;
+    width: 100%;
+    max-width: none;
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-shadow);
+  }
+
+  /* A room is a name, not a button. Same ink, same tracking and the
+     same hairline as the two marble doors below — so the five of them
+     read as one list instead of two unrelated inventions. */
+  .portal-nav .nav-secondary .nav-item {
     flex: 1 1 0;
     min-width: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-primary);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: var(--color-fog);
+    text-decoration: underline;
+    text-decoration-color: var(--color-shadow);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 4px;
   }
 
-  /* ── The two doors, as a pair ── */
-  /* Centred as a pair with a divider's worth of air between them,
-     rather than two blocks filling the width. */
+  .portal-nav .nav-secondary .nav-item::before {
+    content: none;
+  }
+
+  .portal-nav .nav-secondary .nav-item:active {
+    color: var(--color-glow);
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* ── The index: second line ── */
+  /* Sits directly under the first with no seam: the two lines are one
+     block of five rooms, not a list and an afterthought. */
+  /* Two equal cells rather than two centred words. The Solarium's hour
+     rides on its own line, so centring the PAIR centres the clock too
+     and pushes both names left of the column they sit under. */
   .portal-arches {
     display: flex;
-    gap: var(--space-lg);
+    gap: 0;
     justify-content: center;
     width: 100%;
-    margin-top: var(--space-xs);
+    max-width: 320px;
+    margin-top: 0;
   }
 
   .portal-arch .gazebo {
@@ -830,7 +925,7 @@
     transform: none;
     left: auto;
     right: auto;
-    flex: 0 1 auto;
+    flex: 1 1 0;
     min-width: 0;
     margin: 0;
     /* AS SMALL AS A DOOR CAN BE AND STILL BE A DOOR.
@@ -890,6 +985,27 @@
 
   .portal-arch-plinth {
     display: inline;
+  }
+
+  /* Clear of the home indicator and of Safari's own toolbar, which is
+     drawn over the bottom of the viewport whatever `dvh` reports —
+     and clear of the Curia's door, which keeps the same bottom-left
+     corner and was sitting underneath the Archive link. */
+  .portal-footer {
+    bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0px));
+    left: var(--space-md);
+    right: var(--space-md);
+  }
+
+  /* Curia.css is imported after this file, so its own rule would
+     otherwise win on source order at equal specificity. */
+  .portal .portal-curia-door {
+    bottom: calc(2px + env(safe-area-inset-bottom, 0px));
+    left: var(--space-xs);
+  }
+
+  .portal-util-link {
+    font-size: 10px;
   }
 
 }

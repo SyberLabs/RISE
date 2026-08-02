@@ -795,3 +795,121 @@
   .archive-card-foot { flex-direction: column; align-items: stretch; }
   .archive-open { width: 100%; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   THE SHELF ON A PHONE
+   ═══════════════════════════════════════════════════════════════
+
+   The density step in design-system.css moves everything expressed in
+   tokens. What it cannot reach is what was written in literal pixels,
+   and on this screen that is nearly all of the cost. Measured on an
+   iPhone 12 before this block:
+
+       the view title            32px
+       the archive preamble      four lines at 14px
+       two axes of filter chips  two wrapped rows each
+       FIRST CARD                y = 541
+       card height               401px
+
+   — which is to say a shelf on which no book fits the first screen.
+
+   Nothing here is hidden that a reader would miss: the card keeps its
+   title, its edition line and its editorial note, and the note is
+   clamped rather than cut, because the whole of it is what opening the
+   work is for. One mobile block, at the end of the file, so nothing
+   later in the cascade quietly wins — which is how the orbital ended
+   up with two contradictory stage rules in one media query.
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 640px) {
+  /* Set at 32px rather than the global h1's 48, so the root step in
+     design-system.css cannot reach it. */
+  .library-title-section h1 {
+    font-size: 21px;
+  }
+
+  /* ORIENTATION COPY IS FOR SOMEONE DECIDING AT LEISURE. This panel
+     says what the section heading directly beneath it already says.
+     On a wide screen it is a courtesy in the margin; on a phone it is
+     the reason the shelf starts below the fold. */
+  .library-intro-panel {
+    display: none;
+  }
+
+  .section-header h2 {
+    font-size: 17px;
+  }
+
+  .section-header {
+    margin-bottom: var(--space-md);
+  }
+
+  /* The Archive's preamble earns its place — it is where the shelf
+     states that every text is public domain and names its edition —
+     but not at four lines. */
+  .section-header p {
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+
+  .archive-axes {
+    gap: var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+
+  .archive-axis .section-filters {
+    gap: 5px;
+  }
+
+  .section-filters {
+    margin-bottom: var(--space-md);
+  }
+
+  .filter-btn {
+    padding: 5px 9px;
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── The card ── */
+  .archive-card {
+    gap: var(--space-xs);
+  }
+
+  .archive-title {
+    font-size: 15px;
+  }
+
+  /* An edition statement can run to three hundred characters — the
+     Romance of the Three Kingdoms card carries a sourcing memo — and
+     at full length it is taller than the book it describes. */
+  .archive-subtitle {
+    font-size: 12px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .archive-why {
+    font-size: 12.5px;
+    line-height: 1.45;
+    margin-top: var(--space-xs);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .archive-status {
+    font-size: 14px;
+  }
+
+  .archive-meta {
+    font-size: 0.72rem;
+  }
+
+  .archive-card-foot {
+    padding-top: var(--space-xs);
+  }
+}

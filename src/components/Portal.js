@@ -211,8 +211,18 @@ export class Portal {
             aria-label="Quick access to last session"
             title="Return to last session"
           >
-            <!-- Video src is deferred to prevent blocking initial render thread -->
-            <video class="vessel-video" loop muted autoplay playsinline preload="metadata" disablePictureInPicture></video>
+            <!-- Video src is deferred to prevent blocking initial render thread.
+                 NOT A PLAYER. iOS draws its own centred ▶ over any video
+                 it has not started, which on a phone made the sigil look
+                 like a control: tapping it "should" have played the loop
+                 and instead opened the Vault, because the sigil has
+                 always been the quick way back in. The glyph is
+                 suppressed in CSS (::-webkit-media-controls-start-playback-button)
+                 so the vessel reads as what it is — a seal, not a play
+                 button. preload="auto" so a device that refuses to
+                 autoplay (Low Power Mode) still has a first frame to
+                 hold rather than a black disc. -->
+            <video class="vessel-video" loop muted autoplay playsinline preload="auto" disablePictureInPicture></video>
           </button>
         </div>
 
@@ -231,16 +241,16 @@ export class Portal {
           style="opacity: 0;"
           aria-label="Main navigation"
         >
-          <!-- TWO WAYS TO READ. The Chamber is a reading you assemble;
-               a Journey is one someone else argued. They belong at the
-               same level because they are the same act, differently
-               authored — not a feature beside a utility. -->
+          <!-- ONE ACT AT THE FRONT DOOR. The Chamber is a reading you
+               assemble; a Journey is one someone else argued. They are
+               the same act differently authored, which is why they sat
+               here as a pair — but a Journey is a *published* reading,
+               and published readings are what the Vault holds. It now
+               opens from the Vault's first row, and the Portal names
+               the one thing a first-time reader can do: read. -->
           <div class="nav-primary">
             <button class="nav-item" data-nav="chamber" role="link">
               Chamber
-            </button>
-            <button class="nav-item" data-nav="journeys" role="link">
-              Journeys
             </button>
           </div>
 

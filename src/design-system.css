@@ -104,6 +104,59 @@
   --icon-lg: 32px;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   THE DENSITY STEP
+   ═══════════════════════════════════════════════════════════════
+
+   Every measurement above was authored against a 1440px desktop and
+   then applied unchanged at 390px, because nothing in this file knew
+   the difference. The result is not a phone layout that is slightly
+   loose — it is a desktop layout at desktop proportions on a screen a
+   quarter the size, and the arithmetic is brutal. Measured on an
+   iPhone 12 (390x664), the Vault's first screen spent:
+
+       25-63     the view title, at 32px
+       112-265   an orientation paragraph, 153px, restating the tab
+                 immediately beneath it
+       457-508   a tab bar, 51px, from 16px of padding on a 14px label
+       533       the content well begins, with 32px of its own padding
+       573       THE FIRST ARCHETYPE CARD
+
+   — 86% of the glass for a title, a paragraph, a door and four tabs,
+   and ONE of six archetypes visible. That is the whole of the
+   complaint, and it is not a bug in the Vault: every view inherits it.
+
+   So the scale itself steps down, once, here. A phone gets the same
+   design at phone proportions — roughly what the desktop looks like
+   zoomed out, which is exactly the density an iPhone interface is
+   built at. Doing it in the tokens means every view tightens at the
+   same moment and in the same ratio, instead of being patched one
+   screen at a time and drifting apart (which is what the last several
+   passes over this codebase were).
+
+   BODY TEXT DOES NOT SHRINK. The complaint is about chrome — padding,
+   headings, gutters, section breaks. Prose stays where it is; a
+   reading environment that makes its reading smaller has misunderstood
+   which part was in the way.
+   ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  :root {
+    --space-xs: 6px;
+    --space-sm: 12px;
+    --space-md: 16px;
+    --space-lg: 20px;
+    --space-xl: 28px;
+    --space-2xl: 36px;
+    --space-3xl: 52px;
+  }
+
+  h1 { font-size: 28px; }
+  h2 { font-size: 21px; }
+  h3 { font-size: 17px; }
+  h4 { font-size: 15px; }
+}
+
 /* ─────────────────────────────────────────────────────────────
    RESET & BASE
    Darkness first, stillness as default

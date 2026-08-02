@@ -247,6 +247,22 @@ export class Vault {
             </div>
           `}
 
+          <!-- JOURNEYS — the first thing in the Vault.
+               A Journey is a reading somebody else argued and then
+               published, which is what this room already holds; it
+               used to stand beside the Chamber on the Portal, where a
+               first-time reader met two doors and no way to tell them
+               apart. It is a threshold, not a section: the tabs below
+               sort what the Vault contains, and this opens somewhere
+               else, so it must not look like one of them. -->
+          <button class="vault-journeys-door" data-nav="journeys">
+            <span class="vjd-text">
+              <span class="vjd-name">Journeys</span>
+              <span class="vjd-line">Several works becoming movements in one argument</span>
+            </span>
+            <span class="vjd-chevron" aria-hidden="true">→</span>
+          </button>
+
           <!-- Section Navigation -->
           <nav class="library-nav nav" aria-label="Vault sections">
             ${isPersonalized ? `
@@ -564,6 +580,12 @@ export class Vault {
     this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
       window.rise?.audioEngine?.playClick();
       this.onNavigate('portal');
+    });
+
+    // The Journeys threshold — a door out of the Vault, not a tab
+    this.container.querySelector('[data-nav="journeys"]')?.addEventListener('click', () => {
+      window.rise?.audioEngine?.playClick();
+      this.onNavigate('journeys');
     });
 
     // Section navigation
