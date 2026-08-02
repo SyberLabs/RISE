@@ -164,7 +164,14 @@ export class Portal {
           <span class="gz-step gz-step-3"></span>
         </span>
       </span>
-      <span class="portal-arch-plinth">${plinthInner}</span>`;
+      <span class="portal-arch-plinth">
+        <!-- The carved name lives in the frieze, inside a decoration
+             marked aria-hidden. On a phone the decoration is not shown
+             at all, so the name needs somewhere outside it to be. Hidden
+             on desktop, where the marble already says it. -->
+        <span class="portal-arch-name">${name}</span>
+        ${plinthInner}
+      </span>`;
   }
 
   render() {

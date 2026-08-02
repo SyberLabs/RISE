@@ -714,3 +714,80 @@
 .portal-nav .nav-primary {
   gap: var(--space-2xl);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   ON A PHONE THE MARBLE IS NOT SHRUNK, IT IS PUT AWAY
+   ═══════════════════════════════════════════════════════════════
+
+   The flanking gazebos are architecture: dome, frieze, volutes,
+   engaged columns, three steps, and a niche holding either timeless
+   marble or the live Earth. At 960px they went `position: static` and
+   `--gz-scale: 0.6`, and at 480 to 0.5 — which is the same building at
+   half size, and a half-size building is not a smaller building, it is
+   an illegible one. Every carved detail lands under a pixel and the
+   whole thing reads as a smudge with a word on it.
+
+   So below 640 the ornament is not scaled — it is not drawn. What
+   remains is what the arch was always FOR: a door with its name on it.
+   The gazebo is decoration (`aria-hidden`), so nothing about the
+   accessible tree changes; the video in the Solarium's niche is never
+   displayed, which is a real saving on the device least able to afford
+   it.
+   ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .portal-arch .gazebo {
+    display: none;
+  }
+
+  /* A door, plainly. Full width so the two read as a pair of routes
+     rather than two small objects adrift. */
+  .portal-arch {
+    position: static;
+    transform: none;
+    left: auto;
+    right: auto;
+    display: block;
+    width: 100%;
+    margin: var(--space-xs) 0 0;
+    padding: var(--space-md) var(--space-sm);
+    border: 1px solid var(--color-shadow);
+    background: var(--color-abyss);
+    text-align: center;
+  }
+
+  .portal-arch:active {
+    background: var(--color-depth);
+    border-color: var(--color-fog);
+  }
+
+  /* Suppress the lift the marble had; there is nothing left to lift. */
+  .portal-arch:hover .gazebo {
+    transform: none;
+  }
+
+  .portal-arch .portal-arch-name {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 17px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-light);
+  }
+
+  .portal-arch .portal-arch-detail {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--color-fog);
+  }
+
+  .portal-arch-plinth {
+    display: block;
+  }
+}
+
+/* The name is carved into the frieze everywhere else. */
+.portal-arch-name {
+  display: none;
+}

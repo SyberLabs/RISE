@@ -1203,6 +1203,38 @@ export class Chamber {
     }
   }
 
+
+  /**
+   * How large the phrase is set — as a RATIO, not a pixel value.
+   *
+   * This wrote `style.fontSize = '40px'` directly, and an inline style
+   * beats every rule in every stylesheet. So the mobile composition
+   * could not size its own text: the media query specified 22px, the
+   * element received 40px from here, and a seven-word phrase ran off a
+   * 390px screen no matter what the CSS said.
+   *
+   * The intent was always right — a longer phrase wants a smaller face,
+   * or it wraps to a wall — and it is kept exactly. What changes is that
+   * the intent is published as a scale and the SIZE is decided in CSS,
+   * where the viewport is known. Desktop multiplies it against 72px and
+   * gets the same four steps it always had. The phone multiplies it
+   * against a clamp, and compresses the range: at 22px a 0.44 step
+   * would be ten pixels, so a long phrase there gains lines instead of
+   * losing legibility.
+   *
+   * Sized on what is SHOWN — emphasis marks are notation and would
+   * otherwise push a phrase into a smaller face than it needs.
+   */
+  sizeAtomText(atomDisplay, content) {
+    const shown = stripEmphasis(content).length;
+    let scale = 1;
+    if (shown > 20) scale = 56 / 72;
+    if (shown > 40) scale = 40 / 72;
+    if (shown > 60) scale = 32 / 72;
+    atomDisplay.style.removeProperty('font-size');
+    atomDisplay.style.setProperty('--atom-scale', String(scale));
+  }
+
   applyLivingText(atomDisplay, index) {
     if (!this.semanticTrack) return;
     const sig = this.semanticTrack[index];
@@ -1281,14 +1313,7 @@ export class Chamber {
         };
       }
 
-      // Size on what is SHOWN. Emphasis marks are notation and would
-      // otherwise push a phrase into a smaller face than it needs.
-      const shownLength = stripEmphasis(atom.content).length;
-      let fontSize = '72px';
-      if (shownLength > 20) fontSize = '56px';
-      if (shownLength > 40) fontSize = '40px';
-      if (shownLength > 60) fontSize = '32px';
-      atomDisplay.style.fontSize = fontSize;
+      this.sizeAtomText(atomDisplay, atom.content);
 
       this.applyLivingText(atomDisplay, index);
       atomDisplay.style.opacity = '1';
@@ -1312,14 +1337,7 @@ export class Chamber {
         : 0;
       const spans = this.paintAtomText(atomDisplay, atom.content, { reveal: budget > 0 });
 
-      // Size on what is SHOWN. Emphasis marks are notation and would
-      // otherwise push a phrase into a smaller face than it needs.
-      const shownLength = stripEmphasis(atom.content).length;
-      let fontSize = '72px';
-      if (shownLength > 20) fontSize = '56px';
-      if (shownLength > 40) fontSize = '40px';
-      if (shownLength > 60) fontSize = '32px';
-      atomDisplay.style.fontSize = fontSize;
+      this.sizeAtomText(atomDisplay, atom.content);
 
       this.applyLivingText(atomDisplay, index);
 

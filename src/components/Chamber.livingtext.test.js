@@ -159,7 +159,16 @@ describe('Chamber Living Text integration', () => {
         expect(el.textContent).toBe('Prepared next phrase.');
         expect(el.style.transition).toBe('none');
         expect(el.style.opacity).toBe('1');
-        expect(el.style.fontSize).toBe('56px');
+        // The concealed frame is laid out at the size it will be
+        // REVEALED at, so nothing reflows when it appears. That size is
+        // now published as a scale rather than written inline as pixels
+        // — an inline pixel value could not be answered by any
+        // stylesheet, which is what stopped the phone composition from
+        // sizing its own text. 56/72 is the same second step it always
+        // was.
+        expect(el.style.fontSize).toBe('');
+        expect(Number(el.style.getPropertyValue('--atom-scale')))
+            .toBeCloseTo(56 / 72, 5);
 
         chamber.destroy();
         container.remove();

@@ -141,3 +141,91 @@ test('a titled work opens its contents sheet', async ({ page }) => {
     expect(sheet.noun).toBe('entries');
     expect(sheet.first).toContain('Preface');
 });
+
+test('the Portal puts the marble away rather than shrinking it', async ({ page }) => {
+    // The flanking gazebos are architecture — dome, frieze, volutes,
+    // columns, three steps, a niche. They used to be scaled to 0.5 on a
+    // phone, and a half-size building is not a smaller building, it is
+    // an illegible one. Below 640 the ornament is not drawn and what
+    // remains is what the arch was for: a door with its name on it.
+    test.setTimeout(120000);
+    await enter(page, 390, 844);
+    await expect(page.locator('[data-nav="journeys"]').first()).toBeVisible({ timeout: 30000 });
+    await page.waitForTimeout(2000);
+
+    const arches = await page.evaluate(() =>
+        [...document.querySelectorAll('.portal-arch')].map(a => {
+            const gz = a.querySelector('.gazebo');
+            const nm = a.querySelector('.portal-arch-name');
+            return {
+                nav: a.dataset.nav,
+                name: nm?.textContent.trim() || '',
+                gazebo: gz ? getComputedStyle(gz).display : 'absent',
+                nameShown: nm ? getComputedStyle(nm).display !== 'none' : false,
+                label: a.getAttribute('aria-label')
+            };
+        }));
+    console.log('ARCHES ' + JSON.stringify(arches));
+
+    expect(arches.length).toBeGreaterThan(0);
+    for (const arch of arches) {
+        expect(arch.gazebo, `${arch.nav} still draws its gazebo`).toBe('none');
+        // The carved name lives inside the ornament, so it needs another
+        // home once the ornament is gone.
+        expect(arch.nameShown, `${arch.nav} shows no name`).toBe(true);
+        expect(arch.name.length).toBeGreaterThan(2);
+        // The decoration is aria-hidden; the accessible name is on the
+        // button and must survive untouched.
+        expect(arch.label).toBeTruthy();
+    }
+});
+
+test('the Chamber reads as a band across the picture', async ({ page }) => {
+    // The desktop composition is a lit stage with a column of text in
+    // the middle and 48px of air around it. On a 390px screen the air
+    // took 96 of them and `max-width: 80%` most of the rest, so a
+    // seven-word phrase wrapped to five lines of 36px type.
+    //
+    // The phone composition is the one Mateo asked for: the phone IS
+    // the visual, and the reading is a thin band across the middle.
+    test.setTimeout(300000);
+    await enter(page, 390, 844);
+    await page.locator('[data-nav="journeys"]').first().click();
+    const DEMO = '[data-journey="demo-procedural"]';
+    await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
+    await page.locator(`${DEMO} .journey-begin`).click();
+    const accept = page.locator('#safety-accept');
+    await accept.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
+    if (await accept.isVisible()) await accept.click();
+    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
+    await page.waitForTimeout(12000);
+
+    const band = await page.evaluate(() => {
+        const el = document.querySelector('.atom-display');
+        const box = el.getBoundingClientRect();
+        const cs = getComputedStyle(el);
+        return {
+            text: el.textContent.trim().slice(0, 48),
+            font: parseFloat(cs.fontSize),
+            radius: cs.borderTopLeftRadius,
+            width: Math.round(box.width),
+            heightPct: (100 * box.height) / window.innerHeight,
+            viewport: window.innerWidth,
+            right: Math.round(box.right)
+        };
+    });
+    console.log('BAND ' + JSON.stringify(band));
+
+    // Full bleed: a band that stops short of the edges is a card again.
+    expect(band.width).toBe(band.viewport);
+    expect(band.radius).toBe('0px');
+    // Thin. If the reading covers half the phone there is no picture.
+    expect(band.heightPct).toBeLessThan(30);
+    // Readable, and sized by the viewport rather than by a JS constant.
+    // The ladder used to be written inline as 72/56/40/32px, which no
+    // stylesheet could answer.
+    expect(band.font).toBeGreaterThan(16);
+    expect(band.font).toBeLessThan(30);
+    // And the phrase does not run off the side, which is where this began.
+    expect(band.right).toBeLessThanOrEqual(band.viewport);
+});

@@ -101,7 +101,11 @@
 
 .atom-display {
   font-family: var(--font-literary);
-  font-size: 72px;
+  /* The scale is published by sizeAtomText — a longer phrase gets a
+     smaller face — and the SIZE is decided here, where the viewport is
+     known. It used to be written inline as a pixel value, which no
+     stylesheet could answer. */
+  font-size: calc(72px * var(--atom-scale, 1));
   font-weight: var(--font-weight-regular);
   color: var(--color-light);
   text-align: center;
@@ -301,8 +305,13 @@
    ───────────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
+  /* A TABLET STILL READS AS A STAGE. Between 641 and 768 the desktop
+     composition holds and only the margin tightens; the phone
+     composition takes over at 640. See "THE PHONE IS THE FRAME".
+     The absolute `font-size: 48px` that used to live here overrode the
+     scale sizeAtomText publishes, so a long phrase and a short one were
+     set identically on a tablet. */
   .atom-display {
-    font-size: 48px;
     max-width: 90%;
   }
 
@@ -316,15 +325,6 @@
   }
 }
 
-@media (max-width: 480px) {
-  .atom-display {
-    font-size: 36px;
-  }
-
-  .chamber-field {
-    padding: var(--space-xl);
-  }
-}
 
 /* ─────────────────────────────────────────────────────────────
    VOLUME MODAL
@@ -1041,4 +1041,124 @@
 
 .chamber-continuous-field .continuous-field-layer {
   z-index: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THE PHONE IS THE FRAME
+   ═══════════════════════════════════════════════════════════════
+
+   On a desktop the Chamber is a stage: a lit field with a column of
+   text standing in the middle of it, and 48px of air on every side so
+   the reading never touches an edge. That composition does not survive
+   being 390 pixels wide. The air alone took 96 of them, `max-width:
+   80%` took another fifth of what was left, and a 36px serif on the
+   235px remaining fits about eight characters — so a seven-word phrase
+   wrapped to five lines and anything with a long word in it ran off
+   the side.
+
+   The answer is not smaller type in the same composition. It is a
+   different composition, and Mateo named it: the phone IS the visual,
+   and the reading is a thin band across the middle of it.
+
+   So the field goes edge to edge and the glass stops being a CARD IN
+   the screen and becomes a STRATUM ACROSS it — no radius, no side
+   borders, full bleed, only a top and bottom edge to separate the words
+   from the imagery they sit on. Cinema does this with subtitles for the
+   same reason: the picture is the whole rectangle and the text is a
+   register laid over it, not a window cut into it.
+   ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  /* The visual owns the phone. Nothing is inset from an edge. */
+  .chamber-field {
+    padding: 0;
+  }
+
+  /* THE BAND.
+     Full width, because a band that stops short of the edges is a card
+     again. Vertical padding only, so its height is the text's height
+     and it stays thin. */
+  .chamber-field .atom-display {
+    /* Sized to the band rather than the screen. At 390px this lands
+       near 22px, which fits ~26 characters per line — so a median
+       phrase-mode atom is two lines and the 16-word ceiling is four.
+       clamp keeps a 320px phone readable and stops a tablet inflating
+       it back into the desktop problem. */
+    /* The desktop ladder bottoms out at 0.44, which against a 22px
+       band would be ten pixels. Compressed with max(): a long phrase on
+       a phone gains lines rather than losing legibility. */
+    font-size: calc(clamp(20px, 6.1vw, 27px) * max(0.88, var(--atom-scale, 1)));
+    line-height: 1.45;
+    max-width: 100%;
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    /* The reading is never the thing that widens the page. */
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+
+  /* Glass as a stratum, not a tile. Both field variants use the same
+     grammar on desktop and must keep using one here. */
+  .chamber-field-stream .atom-display.glass-tile,
+  .chamber-field-genesis .atom-display.glass-tile {
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    border-top: 1px solid rgba(232, 232, 236, 0.06);
+    border-bottom: 1px solid rgba(232, 232, 236, 0.06);
+    padding: var(--space-sm) var(--space-md);
+    /* Darker and less blurred than the desktop tile: a full-width band
+       covers far more of the picture, so it has to hold the text on
+       less of it. */
+    background: rgba(8, 8, 11, 0.52);
+    backdrop-filter: blur(12px) saturate(1.1);
+    -webkit-backdrop-filter: blur(12px) saturate(1.1);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.34);
+  }
+
+  /* An empty atom is a scored pause. The band must vanish with it or a
+     reader watches an empty grey stripe hold for three beats. */
+  .chamber-field-stream .atom-display.glass-tile:empty,
+  .chamber-field-genesis .atom-display.glass-tile:empty {
+    border-top-color: transparent;
+    border-bottom-color: transparent;
+    padding: 0;
+  }
+
+  /* The title is a label, not a headline, once the screen is this
+     narrow — it was 28px and competed with the reading itself. */
+  .chamber-session-title {
+    font-size: 15px;
+    letter-spacing: 0.04em;
+  }
+}
+
+/* Landscape on a phone is mostly a strip of glass with no room above or
+   below it. The band gets thinner and the type smaller so the picture
+   still reads as a picture. */
+@media (max-width: 900px) and (max-height: 480px) and (orientation: landscape) {
+  .chamber-field {
+    padding: 0;
+  }
+
+  .chamber-field .atom-display {
+    font-size: calc(clamp(17px, 3.6vh, 23px) * max(0.88, var(--atom-scale, 1)));
+    line-height: 1.35;
+    /* Full bleed here too. Without this the base rule's `max-width:
+       80%` applies and the band stops short of both edges, which is a
+       card again. */
+    max-width: 100%;
+    width: 100%;
+    padding: var(--space-xs) var(--space-lg);
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+
+  .chamber-field-stream .atom-display.glass-tile,
+  .chamber-field-genesis .atom-display.glass-tile {
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    padding: var(--space-xs) var(--space-lg);
+  }
 }
