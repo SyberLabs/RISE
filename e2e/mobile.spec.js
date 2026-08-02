@@ -109,3 +109,35 @@ test('a card carrying a scan URL still fits the column', async ({ page }) => {
     expect(card.subtitle).not.toContain('http');
     expect(card.subtitle).toContain('Brewitt-Taylor');
 });
+
+test('a titled work opens its contents sheet', async ({ page }) => {
+    // `divisions.noun` is null for a titled scheme and the sheet threw on
+    // it, so eleven works could not be opened at all — Ross, Kandinsky,
+    // Okakura, the Cherokee myths, Marcus Aurelius, The Storm of Steel.
+    // A reader clicking any of them got a console error and no sheet.
+    test.setTimeout(120000);
+    const errors = [];
+    page.on('console', m => { if (m.type() === 'error') errors.push(m.text().slice(0, 160)); });
+
+    await enter(page, 390, 844);
+    await page.locator('[data-nav="library"]').first().click();
+    await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 30000 });
+
+    await page.locator('[data-text-id="ross-pure-design"] [data-action="select-text"]').click();
+    await expect(page.locator('.toc-sheet')).toBeVisible({ timeout: 30000 });
+
+    const sheet = await page.evaluate(() => ({
+        count: document.querySelector('.toc-weight-count')?.textContent.trim(),
+        noun: document.querySelector('.toc-weight-noun')?.textContent.trim(),
+        entries: document.querySelectorAll('.toc-entry').length,
+        first: document.querySelector('.toc-entry')?.textContent.replace(/\s+/g, ' ').trim().slice(0, 60)
+    }));
+    console.log('TOC ' + JSON.stringify(sheet));
+
+    expect(errors.filter(e => /toLowerCase|Could not open/.test(e))).toEqual([]);
+    expect(sheet.entries).toBeGreaterThan(0);
+    // It counts rows in our list rather than claiming a unit Ross never
+    // named.
+    expect(sheet.noun).toBe('entries');
+    expect(sheet.first).toContain('Preface');
+});

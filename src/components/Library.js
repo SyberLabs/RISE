@@ -53,6 +53,38 @@ export function editionStatement(tradition) {
         .trim();
 }
 
+/**
+ * What to call the things in a contents sheet.
+ *
+ * `divisions.noun` is null whenever a work divides by TITLE rather than
+ * by a counting word — Ross names his parts "The Order Of Harmony",
+ * Jünger names his "Orainville" — and that null is deliberate. The
+ * divider refuses to invent "Chapter" for a work that never said it,
+ * and the division index test states the rule outright: "demanding one
+ * would push the divider back into inventing Chapter for a work that
+ * never said it."
+ *
+ * The sheet then called `.toLowerCase()` on it and threw, so ELEVEN
+ * works could not be opened at all — Ross, Kandinsky, Okakura, the
+ * Cherokee myths, the Anansi stories, Marcus Aurelius, and The Storm of
+ * Steel among them. A reader clicking any of those got nothing and no
+ * explanation.
+ *
+ * The answer is not to invent a noun here either. It is to name what is
+ * actually being counted: rows in a list this Archive built, not units
+ * the author declared. "11 entries" claims nothing about Ross's
+ * structure; "11 chapters" would claim something false.
+ */
+export function contentsNoun(divisions) {
+    const noun = typeof divisions?.noun === 'string' ? divisions.noun.trim() : '';
+    if (noun) {
+        const lower = noun.toLowerCase();
+        return { one: lower, many: `${lower}s`, find: `Find a ${lower}…` };
+    }
+    // A titled scheme. The list is ours; the titles are the work's.
+    return { one: 'entry', many: 'entries', find: 'Find a title…' };
+}
+
 export class Library {
   constructor(container, options = {}) {
     this.container = container;
@@ -669,6 +701,10 @@ export class Library {
       document.body.appendChild(sheet);
     }
 
+    // A titled work has no counting word, and that null is the divider
+    // keeping faith with the text rather than an omission to paper over.
+    const noun = contentsNoun(divisions);
+
     sheet.innerHTML = `
       <div class="toc-sheet" role="dialog" aria-modal="true" aria-label="Contents of ${escapeHtml(text.title)}">
         <header class="toc-head">
@@ -681,7 +717,7 @@ export class Library {
           </div>
           <div class="toc-weight font-mono text-mist">
             <span class="toc-weight-count">${divisions.entries.length}</span>
-            <span class="toc-weight-noun">${escapeHtml(divisions.noun.toLowerCase())}${divisions.entries.length === 1 ? '' : 's'}</span>
+            <span class="toc-weight-noun">${escapeHtml(divisions.entries.length === 1 ? noun.one : noun.many)}</span>
             <span class="toc-weight-time">${this.contentsDuration(totalMin)}</span>
           </div>
         </header>
@@ -696,7 +732,7 @@ export class Library {
         ${searchable ? `
           <div class="toc-search">
             <input type="search" class="toc-search-input" data-toc="search"
-                   placeholder="Find a ${escapeHtml(divisions.noun.toLowerCase())}…"
+                   placeholder="${escapeHtml(noun.find)}"
                    value="${escapeHtml(query)}" aria-label="Filter contents">
             ${query ? `<span class="toc-search-count font-mono text-mist">${entries.length} of ${divisions.entries.length}</span>` : ''}
           </div>` : ''}
