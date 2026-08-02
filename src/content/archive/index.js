@@ -375,6 +375,24 @@ export function ingestedArchiveTexts() {
                 if (!divisions) divisions = divideSections(await load());
                 return divisions;
             },
+            /**
+             * WHAT WE HOLD, as opposed to what we show.
+             *
+             * `getDivisions` is a display selection: it drops a
+             * contents page, folds mis-cut fragments, and refuses a
+             * scheme it cannot verify. Every one of those is the right
+             * call for a reader and the wrong basis for an integrity
+             * check — the question "are these the right bytes?" is
+             * about the payload, and it must not be answerable
+             * differently because the shelf changed how it presents
+             * them.
+             *
+             * The identity invariant read the divisions and began
+             * failing for four works the moment the index stopped being
+             * offered as chapter one, which was a true statement about
+             * the display and a false one about the holding.
+             */
+            getSections: async () => load(),
             defaultCurve: 'flat',
             defaultWpm: 200,
             tags: ['archive', 'ingested', meta.shelf],

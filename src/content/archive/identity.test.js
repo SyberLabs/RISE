@@ -69,8 +69,26 @@ describe('a work names itself in its own pages', () => {
             // RISE's own compositions have no external identity to match.
             if (text.provider === 'local' || /^starter-/.test(text.id)) continue;
 
+            // THE PAYLOAD, NOT THE DISPLAY.
+            //
+            // `getSequences` is a reader-facing selection: it drops a
+            // work's contents page so nobody opens Tolstoy at the index,
+            // folds mis-cut fragments, and refuses a scheme it cannot
+            // verify. Identity is a question about the bytes we HOLD,
+            // and it must not become answerable differently because the
+            // shelf changed how it presents them.
+            //
+            // Reading the divisions made this invariant fail for
+            // Moby-Dick, Middlemarch, War and Peace and the Dhammapada
+            // on the day the index stopped being served — a true
+            // statement about the display and a false one about the
+            // holding. `getSections` is the unmodified payload.
             let sequences;
-            try { sequences = await text.getSequences(); } catch { continue; }
+            try {
+                sequences = typeof text.getSections === 'function'
+                    ? await text.getSections()
+                    : await text.getSequences();
+            } catch { continue; }
             // Folded the same way the tokens are, or "RÁMÁYAN" in the
             // text will never match "ramayan" from the title.
             const opening = sequences.map(s => s.content || '').join('\n')

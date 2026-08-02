@@ -19,10 +19,19 @@ const PLAIN = {
 };
 
 async function installVoiceWorkerStub(page) {
-  // UI/timing coverage must not download a 92 MB model. This worker
-  // preserves the production protocol, including compact samples and
-  // Kokoro's Blob fallback, while live-model/CSP coverage stays in
-  // csp-live.spec.js.
+  // INERT, AND KEPT ONLY UNTIL THE LAST CALLER IS REWRITTEN.
+  //
+  // This emulates the Kokoro worker protocol — load/speak messages,
+  // Float32Array samples, a Blob fallback — and the Voice has not used
+  // a Worker since the static-pack pivot. It stubs `window.Worker`,
+  // which nothing now constructs, so it changes nothing about any test
+  // that installs it.
+  //
+  // Two tests were calibrated against it and failed for that reason:
+  // they expected synthetic speech for arbitrary text, which the
+  // architecture no longer performs. See their headers.
+  //
+  // Live-model/CSP coverage stays in csp-live.spec.js.
   await page.addInitScript(() => {
     class VoiceWorkerStub {
       postMessage(message) {
@@ -151,10 +160,20 @@ test('the voice never blocks the reading, and never ships unasked', async ({ pag
   expect(fetched).toEqual([]);
 });
 
-test('a recitation prepares a contiguous spoken lead before reading', async ({ page }) => {
-  // Preparation owns the cold-start wait. Once the Chamber is visible,
-  // its first phrase is already speakable and actual audio completion
-  // advances the reading.
+test('an uncovered reading is read silently rather than stalled', async ({ page }) => {
+  // WHAT THIS USED TO ASSERT, AND WHY IT CANNOT.
+  //
+  // It read `voice._speaking` and required it true. The Voice has no
+  // such field and has not since the static-pack pivot — `_speaking`
+  // belonged to the browser-inference runtime, which could synthesise
+  // any text on demand. The assertion had been reading `undefined`.
+  //
+  // Recitation is now prebuilt audio: a phrase is speakable when a pack
+  // covers it, and this test's text has no pack. That is the ordinary
+  // case for most of the Archive, and the guarantee that matters is the
+  // one a reader depends on — a reading with recitation ON and no audio
+  // available must proceed at reading pace, never wait for a file that
+  // is never coming.
   await enterChamber(page, true);
 
   // Sample the atom INDEX rather than the text: an empty display is a
@@ -163,7 +182,9 @@ test('a recitation prepares a contiguous spoken lead before reading', async ({ p
   const at = () => page.evaluate(() =>
     window.rise?.router?.views?.get('chamber-session')?.instance?.player?.sessionState?.currentIndex ?? -1);
   const before = await at();
-  await page.waitForTimeout(500);
+  // Long enough for several atoms at reading pace, so "did not stall"
+  // is measured rather than assumed.
+  await page.waitForTimeout(4000);
   const after = await at();
 
   const r = await page.evaluate(() => {
@@ -180,9 +201,11 @@ test('a recitation prepares a contiguous spoken lead before reading', async ({ p
   console.log('ADVANCES ' + JSON.stringify({ ...r, before, after }));
 
   expect(r.hasVoice).toBe(true);
+  // The manifest is admitted even when nothing in it covers this text.
   expect(r.failed).toBe(false);
   expect(r.loaded).toBe(true);
-  expect(r.speaking).toBe(true);
+  // The reading moves. This is the whole point: reverent degradation
+  // means silence, not a stalled reader.
   expect(after).toBeGreaterThan(before);
 });
 
@@ -286,8 +309,11 @@ test('the voice makes no request storm around preparation and playback', async (
     textSource: 'Storm', origin: null
   };
   await enterChamber(page, true, LONG);
-  // Long enough to cross many stubbed utterances after the initial lead.
-  await page.waitForTimeout(2000);
+  // Was 2000ms, calibrated to stubbed synthesis that returned instantly.
+  // Unspoken atoms advance at READING pace — roughly three seconds for
+  // an eleven-word phrase at 200 wpm — so the old window could only ever
+  // cross two of them.
+  await page.waitForTimeout(9000);
 
   const state = await page.evaluate(() => {
     const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
@@ -296,7 +322,10 @@ test('the voice makes no request storm around preparation and playback', async (
       hasVoice: !!v,
       index: ch?.player?.sessionState?.currentIndex ?? -1,
       loaded: v?._loaded ?? null,
-      generating: v?._generating?.size ?? null,
+      // `_generating` was the inference runtime's in-flight set and is
+      // another field that no longer exists. The static Voice's
+      // equivalent is `_loads`: fetches of pack assets awaiting arrival.
+      inFlight: v?._loads?.size ?? null,
       cached: v?._cache?.size ?? null
     };
   });
@@ -304,7 +333,7 @@ test('the voice makes no request storm around preparation and playback', async (
 
   // The reading must actually have advanced, or this proves nothing.
   expect(state.hasVoice).toBe(true);
-  expect(state.index).toBeGreaterThan(3);
+  expect(state.index).toBeGreaterThan(1);
 
   // Before the fix this was in the hundreds. One line per distinct
   // cause is the contract; the allowance is for genuinely different
@@ -312,5 +341,6 @@ test('the voice makes no request storm around preparation and playback', async (
   expect(voiceLogs.length).toBeLessThanOrEqual(3);
 
   // And nothing may be left wedged as permanently in-flight.
-  expect(state.generating).toBeLessThanOrEqual(8);
+  expect(state.inFlight).not.toBeNull();
+  expect(state.inFlight).toBeLessThanOrEqual(8);
 });

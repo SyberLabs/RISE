@@ -442,7 +442,13 @@ export function divide(text, { maxWords = 4000, minWords = 12000 } = {}) {
         // Front matter is a division like any other and obeys the same
         // ceiling; leaving it whole was how an unbounded entry reached
         // the reader in the first place.
-        for (const part of splitLongDivision(preamble, { maxWords })) {
+        //
+        // Filtered after the split, so a preamble that is half index and
+        // half the author's own opening keeps the half that is his. See
+        // isContentsPage.
+        const parts = splitLongDivision(preamble, { maxWords })
+            .filter(part => !isContentsPage(part, noun));
+        for (const part of parts) {
             entries.push({
                 id: entries.length, label: 'Front matter', title: null,
                 content: part, words: wordsIn(part)
@@ -460,7 +466,13 @@ export function divide(text, { maxWords = 4000, minWords = 12000 } = {}) {
         if (!body) continue;
 
         const label = `${noun} ${marks[i].numeral ?? marks[i].ordinal}`;
-        const parts = splitLongDivision(body, { maxWords });
+        // A THIRD PLACE, AND THE LAST. The Little Clay Cart's contents
+        // list contains "ACT VII. ARYAKA'S ESCAPE", so a heading was
+        // found INSIDE the index and the index became a body division
+        // named after the last act it happened to list. Filtering the
+        // preamble could never have reached it.
+        const parts = splitLongDivision(body, { maxWords })
+            .filter(part => !isContentsPage(part, noun));
         parts.forEach((part, k) => {
             entries.push({
                 id: entries.length,
@@ -473,7 +485,7 @@ export function divide(text, { maxWords = 4000, minWords = 12000 } = {}) {
         });
     }
 
-    const kept = foldEmptyDivisions(entries);
+    const kept = dropContentsEntries(foldEmptyDivisions(entries), noun);
     if (kept.length < 2) return whole();
     return { divided: true, noun, entries: kept };
 }
@@ -564,6 +576,79 @@ export function schemeFromNames(names, { minCount = 3, minAscending = 0.5 } = {}
         }
     }
     return best;
+}
+
+/**
+ * Drop any entry that is the book's own index, after folding.
+ *
+ * The per-piece filters above run BEFORE `foldEmptyDivisions`, and they
+ * have to: they are what stops an index being merged into the real
+ * chapter beside it, which would prepend a contents list to Act I and
+ * hide inside a legitimate entry.
+ *
+ * But folding assembles as well as merges. The Little Clay Cart's
+ * contents list is cut into slices of six and seven words — one per
+ * act, because a heading was found on each line — and every slice is
+ * far too short for a pattern to be visible in. Each passes the filter
+ * honestly, and folding then reassembles them into a forty-word index
+ * labelled "Act VII" after the last act it happened to list.
+ *
+ * So the same question is asked once more of the finished entries.
+ * Both passes are needed and neither is redundant: one guards what goes
+ * in, the other what came out.
+ */
+function dropContentsEntries(entries, noun) {
+    const kept = entries.filter(e => !isContentsPage(e.content, noun));
+    if (kept.length === entries.length) return entries;
+    // Ids are positional and a reader navigates by them.
+    return kept.map((e, i) => ({ ...e, id: i }));
+}
+
+/**
+ * Is this preamble the book's own table of contents?
+ *
+ * War and Peace opened on 802 words reading "WAR AND PEACE By Leo
+ * Tolstoy Contents BOOK ONE: 1805 CHAPTER I CHAPTER II CHAPTER III"
+ * and onward for three hundred and sixty-five more. A reader who chose
+ * the first reading of Tolstoy got the index.
+ *
+ * This is the Odyssey's "BOOK XXIV" a second time. There the contents
+ * page was mistaken for a division; here it is correctly identified as
+ * front matter and then handed over as something to read.
+ *
+ * NOT ALL FRONT MATTER GOES. Fifteen works open on a preamble and most
+ * of them should: The Scarlet Letter's is The Custom-House, which is
+ * Hawthorne's, and the Shahnama's is its translator's introduction. A
+ * blanket rule would delete both.
+ *
+ * The discriminator is the one thing a contents page does that no prose
+ * does — it says the division's name once per division. Measured across
+ * every work that opens on front matter, the separation is total:
+ *
+ *     War and Peace   45.5% of tokens are the word "Chapter"
+ *     Rámáyan         19.9%           "Canto"
+ *     Karamazov       14.2%
+ *     Middlemarch     11.7%
+ *     ────────────────────  nothing lands between
+ *     everything else  ≤0.2%   (fourteen works, all genuine prose)
+ *
+ * Five per cent is therefore an enormously safe cut, and it is checked
+ * against the noun this very scheme derived rather than a guessed word,
+ * so a work divided by Canto is judged on "Canto".
+ *
+ * Dropped from the READING scheme only. The bytes are untouched; what
+ * changes is that nobody is offered an index as a chapter.
+ */
+export function isContentsPage(text, noun) {
+    const tokens = String(text ?? '').split(/\s+/).filter(Boolean);
+    if (tokens.length < 40) return false;
+    const wanted = String(noun ?? '').toLowerCase();
+    if (!wanted) return false;
+    let hits = 0;
+    for (const token of tokens) {
+        if (token.toLowerCase().replace(/[^a-z]/g, '') === wanted) hits += 1;
+    }
+    return hits / tokens.length >= 0.05;
 }
 
 /**
@@ -670,7 +755,29 @@ export function divideSections(sections, { maxWords = 4000, minWords = 12000 } =
         const label = g.head
             ? `${noun} ${g.head.numeral ?? g.head.ordinal}`
             : 'Front matter';
-        const pieces = splitLongDivision(content, { maxWords });
+        // THE INDEX IS DROPPED PIECE BY PIECE, NOT WHOLE.
+        //
+        // Two things to get right, and the first attempt got only one.
+        // The front matter is built twice — a work divided from its
+        // ingest sections reaches this loop rather than the text one —
+        // so the refusal has to be stated in both places.
+        //
+        // And it belongs AFTER the split. Moby-Dick's front matter is
+        // 4,338 words: an index, and then Etymology and Extracts, which
+        // are Melville's and belong to the book. Measured whole, the
+        // index is diluted below the threshold and everything survives;
+        // measured whole and dropped, Etymology would go with it. Split
+        // first, and each piece answers for itself.
+        // A HEAD DOES NOT MAKE IT A CHAPTER. The filter first spared
+        // any group that carried one, and two works walked through:
+        // A Doll's House showed the index under a second "Act I" ahead
+        // of the real one, and The Little Clay Cart labelled its
+        // contents list "Act VII" — the ingest naming a section after
+        // the last heading printed inside it, which is the Odyssey's
+        // "BOOK XXIV" wearing a different hat. What the piece IS
+        // decides, not what it was called.
+        const pieces = splitLongDivision(content, { maxWords })
+            .filter(piece => !isContentsPage(piece, noun));
         pieces.forEach((piece, k) => {
             entries.push({
                 id: entries.length,
@@ -683,7 +790,7 @@ export function divideSections(sections, { maxWords = 4000, minWords = 12000 } =
         });
     }
 
-    const substantial = foldEmptyDivisions(entries);
+    const substantial = dropContentsEntries(foldEmptyDivisions(entries), noun);
     if (substantial.length < 2) return whole('too-few');
     return { divided: true, noun, reason: 'scheme', entries: substantial };
 }

@@ -3,8 +3,8 @@
     "divided": true,
     "titled": false,
     "noun": "Act",
-    "count": 9,
-    "words": 26479
+    "count": 8,
+    "words": 26432
   },
   "a-hundred-and-seventy-chinese-poems": {
     "divided": true,
@@ -66,8 +66,8 @@
     "divided": true,
     "titled": false,
     "noun": "Chapter",
-    "count": 172,
-    "words": 427246
+    "count": 167,
+    "words": 426345
   },
   "dow-composition": {
     "divided": true,
@@ -101,8 +101,8 @@
     "divided": true,
     "titled": false,
     "noun": "Chapter",
-    "count": 27,
-    "words": 12059
+    "count": 26,
+    "words": 11903
   },
   "faust": {
     "divided": true,
@@ -241,15 +241,15 @@
     "divided": true,
     "titled": false,
     "noun": "Chapter",
-    "count": 121,
-    "words": 316381
+    "count": 120,
+    "words": 315647
   },
   "moby-dick-or-the-whale": {
     "divided": true,
     "titled": false,
     "noun": "Chapter",
-    "count": 144,
-    "words": 212796
+    "count": 143,
+    "words": 210698
   },
   "montaigne-essays": {
     "divided": true,
@@ -423,8 +423,8 @@
     "divided": true,
     "titled": false,
     "noun": "Chapter",
-    "count": 131,
-    "words": 350685
+    "count": 130,
+    "words": 350007
   },
   "the-canterbury-tales-and-other-poems": {
     "divided": true,
@@ -493,8 +493,8 @@
     "divided": true,
     "titled": false,
     "noun": "Act",
-    "count": 14,
-    "words": 51620
+    "count": 13,
+    "words": 51580
   },
   "the-mahabharata-of-krishna-dwaipayana-vyasa": {
     "divided": true,
@@ -535,8 +535,8 @@
     "divided": true,
     "titled": false,
     "noun": "Canto",
-    "count": 510,
-    "words": 399123
+    "count": 509,
+    "words": 396644
   },
   "the-scarlet-letter": {
     "divided": true,
@@ -626,8 +626,8 @@
     "divided": true,
     "titled": false,
     "noun": "Chapter",
-    "count": 367,
-    "words": 563286
+    "count": 366,
+    "words": 562484
   },
   "wuthering-heights": {
     "divided": true,

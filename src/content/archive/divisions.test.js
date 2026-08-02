@@ -9,8 +9,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-    romanValue, parseHeading, schemeFromNames, splitLongDivision, divideSections, headingVocabulary
-} from './divisions.js';
+    romanValue, parseHeading, schemeFromNames, splitLongDivision, divideSections, headingVocabulary, isContentsPage } from './divisions.js';
 
 describe('roman numerals', () => {
     it('reads the forms these editions actually use', () => {
@@ -487,4 +486,85 @@ describe('a heading with no body is a contents line', () => {
         const w = divideSections(sections, { minWords: 100 });
         expect(w.entries.map(e => e.content).join(' ')).toContain('A gloss.');
     });
+});
+
+describe('a contents page is not a reading', () => {
+    /**
+     * War and Peace opened on 802 words reading "WAR AND PEACE By Leo
+     * Tolstoy Contents BOOK ONE: 1805 CHAPTER I CHAPTER II" and onward
+     * for three hundred and sixty-five more. A reader who chose the
+     * first reading of Tolstoy got the index.
+     *
+     * This is the Odyssey's "BOOK XXIV" a second time: there the
+     * contents page was mistaken for a division, here it was correctly
+     * identified as front matter and then offered as something to read.
+     */
+    const contents = (noun, n) => `${noun.toUpperCase()} I `
+        + Array.from({ length: n }, (_, i) => `${noun.toUpperCase()} ${i + 2}`).join(' ');
+
+    it('knows an index by the one thing prose never does', () => {
+        // A contents page says the division's name once per division.
+        expect(isContentsPage(contents('chapter', 60), 'Chapter')).toBe(true);
+        expect(isContentsPage(contents('canto', 60), 'Canto')).toBe(true);
+    });
+
+    it('judges against the noun the scheme actually derived', () => {
+        // A work divided by Canto must be judged on "Canto". Guessing
+        // "chapter" would clear an index of cantos.
+        expect(isContentsPage(contents('canto', 60), 'Chapter')).toBe(false);
+        expect(isContentsPage(contents('canto', 60), 'Canto')).toBe(true);
+    });
+
+    it('leaves prose alone, however much front matter it is', () => {
+        // Fifteen works open on a preamble and most of them should: The
+        // Scarlet Letter's is The Custom-House, which is Hawthorne's,
+        // and the Shahnama's is its translator's introduction. Measured,
+        // no genuine preamble in the Archive exceeds 0.2%.
+        const prose = 'It is a truth universally acknowledged that a single man in '
+            + 'possession of a good fortune must be in want of a wife. However little '
+            + 'known the feelings or views of such a man may be on his first entering '
+            + 'a neighbourhood, this truth is so well fixed in the minds of the '
+            + 'surrounding families that he is considered as the rightful property.';
+        expect(isContentsPage(prose, 'Chapter')).toBe(false);
+        // Even when the word appears — a preface may discuss chapters.
+        expect(isContentsPage(`${prose} See Chapter I and Chapter II.`, 'Chapter')).toBe(false);
+    });
+
+    it('refuses to judge something too short to have a pattern', () => {
+        expect(isContentsPage('Chapter I Chapter II', 'Chapter')).toBe(false);
+        expect(isContentsPage('', 'Chapter')).toBe(false);
+        expect(isContentsPage(null, 'Chapter')).toBe(false);
+    });
+
+    it('needs a noun to judge against', () => {
+        expect(isContentsPage(contents('chapter', 60), null)).toBe(false);
+        expect(isContentsPage(contents('chapter', 60), '')).toBe(false);
+    });
+
+    it('no work on the shelf still opens on its own index', async () => {
+        const { ingestedArchiveTexts } = await import('./index.js');
+        const offenders = [];
+        for (const work of ingestedArchiveTexts()) {
+            const divisions = await work.getDivisions();
+            if (!divisions?.divided) continue;
+            const first = divisions.entries[0];
+            if (first && isContentsPage(first.content, divisions.noun)) {
+                offenders.push(work.id);
+            }
+        }
+        expect(offenders, `${offenders.join(', ')} open on a contents page`).toEqual([]);
+    }, 240000);
+
+    it('keeps front matter that is the author\u2019s own', async () => {
+        // Moby-Dick's preamble is 4,338 words: an index, and then
+        // Etymology and Extracts, which are Melville's and belong to the
+        // book. Measured whole the index is diluted below the threshold
+        // and nothing is dropped; measured whole and dropped, Etymology
+        // goes with it. Each split piece answers for itself.
+        const { ingestedArchiveTexts } = await import('./index.js');
+        const moby = ingestedArchiveTexts().find(w => w.id === 'moby-dick-or-the-whale');
+        const divisions = await moby.getDivisions();
+        expect(divisions.entries[0].label).toMatch(/front matter/i);
+        expect(divisions.entries[0].content).toMatch(/Jonas-in-the-Whale|set sail from the Elbe/);
+    }, 240000);
 });
