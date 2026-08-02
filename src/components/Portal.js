@@ -212,7 +212,7 @@ export class Portal {
             title="Return to last session"
           >
             <!-- Video src is deferred to prevent blocking initial render thread -->
-            <video class="vessel-video" loop muted playsinline preload="metadata" disablePictureInPicture></video>
+            <video class="vessel-video" loop muted autoplay playsinline preload="metadata" disablePictureInPicture></video>
           </button>
         </div>
 
@@ -264,6 +264,13 @@ export class Portal {
              niche, on a stepped base. The niche is the living window: a
              timeless marble (Atrium), the Earth of this hour (SOL). -->
 
+        <!-- A PAIR, AND WRAPPED SO A PHONE CAN SAY SO.
+             On desktop these are absolutely positioned to flank the
+             sigil and the wrapper is display:contents, so it has no
+             effect on layout at all. On a phone they become two small
+             doors side by side, which is also what they ARE: two
+             matched Latin rooms. -->
+        <div class="portal-arches">
         <!-- ATRIUM: the curated doorway — a featured sequence arrives
              lazily so the shrine is alive. -->
         <button class="portal-arch portal-arch-atrium" data-nav="atrium" style="opacity: 0;" aria-label="Enter the Atrium">
@@ -293,6 +300,7 @@ export class Portal {
             <span class="sol-strip-window" hidden></span>
           `)}
         </button>
+        </div>
 
         <!-- Portal Footer - Heritage & Onboarding -->
         <div class="portal-footer" style="opacity: 0;">
@@ -384,8 +392,21 @@ export class Portal {
       if (video) {
         // Use requestIdleCallback if available to avoid blocking main thread
         const startVideo = () => {
+            // PLAY WHEN IT CAN PLAY, NOT WHEN THE SRC IS SET.
+            //
+            // iOS permits a muted, inline video to start without a
+            // gesture — but not before it has data, and `play()` issued
+            // the instant `src` is assigned rejects with an AbortError
+            // that was being swallowed by the catch below. On desktop
+            // the file is cached fast enough that the race is invisible;
+            // on a phone it is the ordinary case, and the vessel simply
+            // never moved.
+            const attempt = () => video.play().catch(() => {});
+            video.addEventListener('canplay', attempt, { once: true });
+            video.addEventListener('loadeddata', attempt, { once: true });
             video.src = "/real_icon.mp4";
-            video.play().catch(e => console.warn('Portal video playback prevented', e));
+            video.load();
+            attempt();
         };
         
         if ('requestIdleCallback' in window) {

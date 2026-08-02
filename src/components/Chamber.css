@@ -1131,6 +1131,56 @@
     font-size: 15px;
     letter-spacing: 0.04em;
   }
+
+  /* ── THE CONTROL BAR RAN 525px WIDE ON A 390px SCREEN ──
+     From x=-68 to x=458: two buttons entirely off the left edge and
+     the exit button off the right, unreachable. Six controls at a
+     16px gap, two of them carrying text labels, is 475px of content
+     before padding.
+
+     The labels go and the icons stay. Every one of these buttons
+     already carries its own `aria-label` and `title` — the visible
+     word was a desktop convenience, not the control — so nothing is
+     lost to a screen reader or a long-press.
+
+     And it wraps. A conditional control (the kaleidoscope appears
+     only with an attractor field) would otherwise push the row back
+     over the edge, and a second row is a far better failure than an
+     unreachable button. */
+  .chamber-controls {
+    /* Spanning rather than shrink-to-fit. Positioned absolutely and
+       centred by transform, the bar sizes itself to its content — so
+       once it could wrap it wrapped into a narrow three-row column
+       instead of using the width available. Pinning both edges gives
+       it the screen to lay out in. */
+    left: var(--space-xs);
+    right: var(--space-xs);
+    transform: none;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-xs);
+    padding-left: var(--space-xs);
+    padding-right: var(--space-xs);
+  }
+
+  .chamber-controls .control-label {
+    display: none;
+  }
+
+  /* Those labels had room reserved for them — 5.75rem on the visuals
+     toggle, 7.5rem on the kaleidoscope — and a min-width outlives the
+     text it was sized for. Hiding the word without releasing the width
+     buys nothing. */
+  .chamber-controls .rhythmic-visuals-toggle,
+  .chamber-controls .kaleidoscope-toggle {
+    min-width: 0;
+    gap: 0;
+  }
+
+  .chamber-controls .time-display {
+    font-size: 11px;
+    min-width: 0;
+  }
 }
 
 /* Landscape on a phone is mostly a strip of glass with no room above or

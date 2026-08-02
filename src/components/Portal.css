@@ -715,79 +715,181 @@
   gap: var(--space-2xl);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ON A PHONE THE MARBLE IS NOT SHRUNK, IT IS PUT AWAY
-   ═══════════════════════════════════════════════════════════════
-
-   The flanking gazebos are architecture: dome, frieze, volutes,
-   engaged columns, three steps, and a niche holding either timeless
-   marble or the live Earth. At 960px they went `position: static` and
-   `--gz-scale: 0.6`, and at 480 to 0.5 — which is the same building at
-   half size, and a half-size building is not a smaller building, it is
-   an illegible one. Every carved detail lands under a pixel and the
-   whole thing reads as a smudge with a word on it.
-
-   So below 640 the ornament is not scaled — it is not drawn. What
-   remains is what the arch was always FOR: a door with its name on it.
-   The gazebo is decoration (`aria-hidden`), so nothing about the
-   accessible tree changes; the video in the Solarium's niche is never
-   displayed, which is a real saving on the device least able to afford
-   it.
-   ─────────────────────────────────────────────────────────────── */
-
-@media (max-width: 640px) {
-  .portal-arch .gazebo {
-    display: none;
-  }
-
-  /* A door, plainly. Full width so the two read as a pair of routes
-     rather than two small objects adrift. */
-  .portal-arch {
-    position: static;
-    transform: none;
-    left: auto;
-    right: auto;
-    display: block;
-    width: 100%;
-    margin: var(--space-xs) 0 0;
-    padding: var(--space-md) var(--space-sm);
-    border: 1px solid var(--color-shadow);
-    background: var(--color-abyss);
-    text-align: center;
-  }
-
-  .portal-arch:active {
-    background: var(--color-depth);
-    border-color: var(--color-fog);
-  }
-
-  /* Suppress the lift the marble had; there is nothing left to lift. */
-  .portal-arch:hover .gazebo {
-    transform: none;
-  }
-
-  .portal-arch .portal-arch-name {
-    display: block;
-    font-family: var(--font-display);
-    font-size: 17px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--color-light);
-  }
-
-  .portal-arch .portal-arch-detail {
-    display: block;
-    margin-top: 2px;
-    font-size: 12px;
-    color: var(--color-fog);
-  }
-
-  .portal-arch-plinth {
-    display: block;
-  }
+/* The pair wrapper is inert everywhere but the phone: the arches are
+   absolutely positioned to flank the sigil, and `contents` removes the
+   wrapper from layout entirely so nothing about that changes. */
+.portal-arches {
+  display: contents;
 }
 
 /* The name is carved into the frieze everywhere else. */
 .portal-arch-name {
   display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ONE VIEWPORT, AND THE MARBLE PUT AWAY
+   ═══════════════════════════════════════════════════════════════
+
+   The Portal is a threshold, not a page: it should be taken in at a
+   glance and it does not scroll. On a 390x844 phone it measured 913px
+   and the Solarium hung 21px off the bottom, unreachable.
+
+   Two costs dominated, and both were STACKS THAT SHOULD BE ROWS:
+
+     nav-secondary   192px   Vault/Library/Workshop, one per line
+     the two arches  230px   two full-width blocks, 95 and 119 tall
+
+   Turning each into a row recovers 300px, which is the whole overflow
+   and then some — so the rest of this can loosen rather than cram. The
+   flanking gazebos are architecture (dome, frieze, volutes, columns,
+   three steps, a niche) and were being scaled to 0.5; a half-size
+   building is not a smaller building, it is an illegible one, with
+   every carved detail under a pixel. Below 640 the ornament is not
+   drawn, and what remains is what an arch was always for: a door with
+   its name on it.
+
+   The gazebo is aria-hidden, so nothing in the accessible tree
+   changes, and the Solarium's niche video is never displayed — a real
+   saving on the device least able to afford it.
+   ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .portal {
+    padding: var(--space-md) var(--space-md) var(--space-lg);
+    /* Centred, not crowded to the top. Once the two stacks became rows
+       there was 316px of slack, and a threshold should sit in the
+       middle of its frame rather than pile against the ceiling. */
+    justify-content: center;
+  }
+
+  /* The vessel is the first thing seen and does not need to be the
+     largest. */
+  .portal-sigil-container {
+    margin-bottom: var(--space-md);
+    transform: scale(0.76);
+  }
+
+  .portal-title {
+    font-size: 34px;
+  }
+
+  .portal-title-container {
+    margin-bottom: var(--space-xs);
+  }
+
+  .portal-subtitle {
+    font-size: 11px;
+  }
+
+  /* THE ROW THAT WAS A STACK. Three equal doors across, which is both
+     smaller and a truer picture of them: Vault, Library and Workshop
+     are peers, and a column implied a ranking they do not have. */
+  .portal-nav .nav-secondary {
+    flex-direction: row;
+    gap: var(--space-xs);
+    width: 100%;
+  }
+
+  .portal-nav .nav-secondary .nav-item {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-left: var(--space-xs);
+    padding-right: var(--space-xs);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+
+  .portal-nav .nav-primary {
+    gap: var(--space-sm);
+    width: 100%;
+  }
+
+  .portal-nav .nav-primary .nav-item {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  /* ── The two doors, as a pair ── */
+  /* Centred as a pair with a divider's worth of air between them,
+     rather than two blocks filling the width. */
+  .portal-arches {
+    display: flex;
+    gap: var(--space-lg);
+    justify-content: center;
+    width: 100%;
+    margin-top: var(--space-xs);
+  }
+
+  .portal-arch .gazebo {
+    display: none;
+  }
+
+  .portal-arch {
+    position: static;
+    transform: none;
+    left: auto;
+    right: auto;
+    flex: 0 1 auto;
+    min-width: 0;
+    margin: 0;
+    /* AS SMALL AS A DOOR CAN BE AND STILL BE A DOOR.
+       These are rooms off the act, not the act. At 83px they matched
+       the primary nav; at 47 they still competed with it. A tile is
+       the wrong object — the right one is a quiet line of type with a
+       hairline under it, which is how a footer names a place. 44px of
+       height is the touch target; the ink is a fraction of it. */
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: center;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .portal-arch:active .portal-arch-name {
+    color: var(--color-glow);
+  }
+
+  /* Nothing left to lift. */
+  .portal-arch:hover .gazebo {
+    transform: none;
+  }
+
+  .portal-arch .portal-arch-name {
+    display: inline;
+    font-family: var(--font-primary);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-fog);
+    border-bottom: 1px solid var(--color-shadow);
+    padding-bottom: 3px;
+  }
+
+  /* The subtitle goes. "philosophy & history" is an orientation for
+     somebody deciding at leisure on a wide screen; on a phone it is a
+     second line of type under a word that already says it. */
+  .portal-arch .portal-arch-detail {
+    display: none;
+  }
+
+  /* The clock stays, and moves ONTO the line. The Solarium is a WHEN
+     rather than a place, so the hour is not a caption under the door —
+     it is what is behind it. A second line would double the height of
+     the smallest thing on the screen. */
+  .portal-arch .sol-strip-time {
+    display: inline;
+    margin-left: 5px;
+    font-size: 9px;
+    letter-spacing: 0.04em;
+    color: var(--color-mist);
+  }
+
+  .portal-arch-plinth {
+    display: inline;
+  }
+
 }

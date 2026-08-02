@@ -1594,3 +1594,58 @@
 .vi-program-hint {
   font-size: 11px;
 }
+
+/* THE MODE SELECTOR STAYS A GRID ON A PHONE.
+   ─────────────────────────────────────────
+   `grid-template-columns: 1fr` below 500 gave the five visual modes a
+   row each — icon above label, 82px apiece, 410px in total to answer a
+   single either/or. Three across puts the same five in two rows and
+   restores the panel to something that can be read without scrolling
+   past it. The five-mode variant keeps its own tighter type, as it
+   already does on desktop. */
+@media (max-width: 500px) {
+    /* FIVE ACROSS, NOT THREE WITH A HOLE. A 3-column grid puts the
+       five modes in two rows and leaves the sixth cell empty, which
+       reads as a missing option rather than a tidy grid. One row of
+       five is what the desktop does and what the choice actually is:
+       a single either/or, laid out once. */
+    .vi-mode-selector {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    /* A 2- 3- or 4-mode selector keeps its own count. */
+    .vi-mode-selector-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .vi-mode-selector-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .vi-mode-btn {
+        padding: var(--space-sm) 4px;
+    }
+
+    .vi-content {
+        padding-left: var(--space-sm);
+        padding-right: var(--space-sm);
+    }
+
+    /* NEVER BREAK A UI LABEL MID-WORD. `overflow-wrap: anywhere` is
+       right for an edition statement carrying a URL and wrong for the
+       name of a control: it produced ATTRA/CTOR, GENE/SIS, RHYT/HMIC,
+       which reads as damage rather than as layout. The type comes down
+       instead, and the panel was given back the width its nested
+       padding had taken. */
+    .vi-mode-name {
+        font-size: 7.5px;
+        letter-spacing: 0;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow-wrap: normal;
+    }
+
+    .vi-mode-icon {
+        font-size: 16px;
+    }
+
+    .vi-mode-btn {
+        padding: var(--space-sm) 2px;
+        gap: 3px;
+    }
+}

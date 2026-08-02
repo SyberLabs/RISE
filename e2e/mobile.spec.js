@@ -229,3 +229,191 @@ test('the Chamber reads as a band across the picture', async ({ page }) => {
     // And the phrase does not run off the side, which is where this began.
     expect(band.right).toBeLessThanOrEqual(band.viewport);
 });
+
+test('the Portal is one viewport, and does not scroll', async ({ page }) => {
+    // A threshold is taken in at a glance. It measured 913px on an
+    // 844px screen with the Solarium hanging 21px off the bottom,
+    // unreachable — and two stacks were most of it: Vault/Library/
+    // Workshop one per line (192px) and the two arches as full-width
+    // blocks (230px). Both are rows now.
+    test.setTimeout(120000);
+    await enter(page, 390, 844);
+    await expect(page.locator('[data-nav="journeys"]').first()).toBeVisible({ timeout: 30000 });
+    await page.waitForTimeout(2500);
+
+    const fit = await page.evaluate(() => ({
+        docHeight: document.documentElement.scrollHeight,
+        viewport: window.innerHeight,
+        below: [...document.querySelectorAll('body *')]
+            .filter(n => {
+                const r = n.getBoundingClientRect();
+                return r.height > 20 && r.bottom > window.innerHeight + 2;
+            })
+            .map(n => n.className.toString().slice(0, 34)).slice(0, 3),
+        // The two doors sit side by side rather than stacked.
+        archesSideBySide: (() => {
+            const a = [...document.querySelectorAll('.portal-arch')];
+            if (a.length < 2) return null;
+            const [one, two] = a.map(n => n.getBoundingClientRect());
+            return Math.abs(one.top - two.top) < 4 && one.right <= two.left + 4;
+        })()
+    }));
+    console.log('FIT ' + JSON.stringify(fit));
+
+    expect(fit.below, `hanging off the bottom: ${fit.below.join(', ')}`).toEqual([]);
+    expect(fit.docHeight).toBeLessThanOrEqual(fit.viewport + 1);
+    expect(fit.archesSideBySide).toBe(true);
+
+    // SECONDARY, AND SIZED LIKE IT. At 83px the two doors matched the
+    // primary nav and at 47 they still competed with it, because a
+    // bordered tile is the wrong object: the right one is a quiet line
+    // of type with a hairline under it. The Atrium and the Solarium
+    // are rooms off the act, not the act.
+    //
+    // Measured on the INK rather than the box. The box stays 44px
+    // because that is a thumb, and shrinking a touch target to match
+    // its type is the other way to get this wrong.
+    const doors = await page.evaluate(() => {
+        const primary = document.querySelector('.nav-primary .nav-item')
+            .getBoundingClientRect().height;
+        return {
+            primary: Math.round(primary),
+            ink: [...document.querySelectorAll('.portal-arch .portal-arch-name')]
+                .map(n => Math.round(n.getBoundingClientRect().height)),
+            tap: [...document.querySelectorAll('.portal-arch')]
+                .map(a => Math.round(a.getBoundingClientRect().height))
+        };
+    });
+    console.log('DOORS ' + JSON.stringify(doors));
+
+    expect(doors.ink.length).toBe(2);
+    for (const ink of doors.ink) {
+        expect(ink, 'a secondary door is as loud as the primary nav')
+            .toBeLessThan(doors.primary / 2);
+    }
+    for (const tap of doors.tap) {
+        expect(tap, 'a door is too small to hit').toBeGreaterThanOrEqual(40);
+    }
+});
+
+test('the mode selector is one row with no empty cell', async ({ page }) => {
+    // Three columns put the five visual modes in two rows and left the
+    // sixth cell empty, which reads as a missing option rather than a
+    // tidy grid. One row of five is what the choice actually is.
+    //
+    // Getting there needed width, not just columns: 164px of nested
+    // padding (modal 24, body 32, content 24, each side) left the
+    // selector 226px, and at 44px a cell ATTRACTOR could only break
+    // mid-word — ATTRA/CTOR, GENE/SIS. A UI label is never broken
+    // mid-word; the type comes down and the padding gives way.
+    test.setTimeout(240000);
+    await enter(page, 390, 844);
+    await page.locator('[data-nav="library"]').first().click();
+    await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 40000 });
+    await page.locator('[data-text-id="literary-meditations"] [data-action="select-text"]').click();
+    await page.waitForTimeout(2000);
+    const toc = page.locator('.toc-entry').first();
+    if (await toc.isVisible().catch(() => false)) { await toc.click(); await page.waitForTimeout(2500); }
+    await page.locator('.orbit-visual').click();
+    await page.waitForTimeout(1500);
+
+    const selector = await page.evaluate(() => {
+        const el = document.querySelector('.vi-mode-selector');
+        if (!el) return null;
+        const btns = [...el.querySelectorAll('.vi-mode-btn')];
+        return {
+            modes: btns.length,
+            columns: getComputedStyle(el).gridTemplateColumns.split(' ').length,
+            rows: new Set(btns.map(b => Math.round(b.getBoundingClientRect().top))).size,
+            height: Math.round(el.getBoundingClientRect().height),
+            clipped: btns.filter(b => {
+                const n = b.querySelector('.vi-mode-name');
+                return n && n.scrollWidth > n.clientWidth + 1;
+            }).map(b => b.textContent.trim().slice(0, 12))
+        };
+    });
+    console.log('SELECTOR ' + JSON.stringify(selector));
+
+    expect(selector, 'no mode selector found').not.toBeNull();
+    // A column per mode: five in, five across, no hole.
+    expect(selector.columns).toBe(selector.modes);
+    expect(selector.rows).toBe(1);
+    expect(selector.clipped, 'a mode label is cut off').toEqual([]);
+    // And it costs a strip rather than a screen. It was 410px.
+    expect(selector.height).toBeLessThan(110);
+});
+
+test('the orbit is centred in the phone rather than cropped by it', async ({ page }) => {
+    // The stage was a fixed 400px on a 390px screen, sitting at
+    // left:-5 / right:395. Worse, it overflowed its own padded
+    // container — and an overflowing flex child with `align-items:
+    // center` pins to the start edge instead of centring, which is why
+    // one orb touched the frame while the other looked padded.
+    test.setTimeout(180000);
+    await enter(page, 390, 844);
+    await page.locator('[data-nav="library"]').first().click();
+    await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 40000 });
+    await page.locator('[data-text-id="literary-meditations"] [data-action="select-text"]').click();
+    await page.waitForTimeout(2000);
+    const toc = page.locator('.toc-entry').first();
+    if (await toc.isVisible().catch(() => false)) { await toc.click(); await page.waitForTimeout(2500); }
+    await expect(page.locator('.orbital-stage')).toBeVisible({ timeout: 30000 });
+
+    const ring = await page.evaluate(() => {
+        const stage = document.querySelector('.orbital-stage').getBoundingClientRect();
+        const nodes = [...document.querySelectorAll('.orbit-node')]
+            .map(n => n.getBoundingClientRect());
+        return {
+            stageMid: Math.round(stage.left + stage.width / 2),
+            screenMid: Math.round(window.innerWidth / 2),
+            leftGap: Math.round(Math.min(...nodes.map(n => n.left))),
+            rightGap: Math.round(window.innerWidth - Math.max(...nodes.map(n => n.right)))
+        };
+    });
+    console.log('RING ' + JSON.stringify(ring));
+
+    // Centred on the screen, not merely inside it.
+    expect(Math.abs(ring.stageMid - ring.screenMid)).toBeLessThanOrEqual(2);
+    // And symmetric: this is the asymmetry that read as "too big".
+    expect(ring.leftGap).toBeGreaterThan(8);
+    expect(Math.abs(ring.leftGap - ring.rightGap)).toBeLessThanOrEqual(3);
+});
+
+test('the Chamber control bar stays on the screen', async ({ page }) => {
+    // It ran 525px wide on a 390px screen, from x=-68 to x=458: two
+    // buttons off the left edge and the exit button off the right,
+    // unreachable. Six controls at a 16px gap, two carrying text
+    // labels whose reserved min-widths outlived them.
+    test.setTimeout(300000);
+    await enter(page, 390, 844);
+    await page.locator('[data-nav="journeys"]').first().click();
+    const DEMO = '[data-journey="demo-procedural"]';
+    await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
+    await page.locator(`${DEMO} .journey-begin`).click();
+    const accept = page.locator('#safety-accept');
+    await accept.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
+    if (await accept.isVisible()) await accept.click();
+    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
+    await page.waitForTimeout(5000);
+    await page.mouse.move(195, 700);
+    await page.waitForTimeout(600);
+
+    const bar = await page.evaluate(() => {
+        const el = document.querySelector('.chamber-controls');
+        const r = el.getBoundingClientRect();
+        const kids = [...el.children].map(c => c.getBoundingClientRect());
+        return {
+            left: Math.round(r.left), right: Math.round(r.right),
+            viewport: window.innerWidth,
+            worstLeft: Math.round(Math.min(...kids.map(k => k.left))),
+            worstRight: Math.round(Math.max(...kids.map(k => k.right))),
+            controls: kids.length
+        };
+    });
+    console.log('BAR ' + JSON.stringify(bar));
+
+    expect(bar.controls).toBeGreaterThan(3);
+    // Every control reachable by a thumb, which is the whole point.
+    expect(bar.worstLeft).toBeGreaterThanOrEqual(0);
+    expect(bar.worstRight).toBeLessThanOrEqual(bar.viewport);
+});

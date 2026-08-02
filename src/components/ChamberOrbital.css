@@ -1287,3 +1287,128 @@
     transition: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   THE ORBIT FITS THE PHONE, RATHER THAN THE PHONE CROPPING THE ORBIT
+   ═══════════════════════════════════════════════════════════════
+
+   At 768 the stage drops from 600px to a FIXED 400, and a fixed 400 on
+   a 390px screen sits at left:-5 and right:395 — five pixels off each
+   edge. The Audio node landed at x=1 and the Visual node at x=389, so
+   one appeared to touch the frame while the other looked padded, and
+   the whole structure read as slightly too big and slightly off centre.
+   It was both, and for the same reason: nothing here was expressed in
+   terms of the viewport.
+
+   So below 640 the stage is `min(94vw, …)` and the orbit radius is a
+   vw, which makes the geometry proportional and the centring exact.
+   The node diameter comes down with it — the ring has to hold three
+   discs plus their labels inside a circle 24px narrower than the
+   screen, and that is an arithmetic constraint rather than a taste.
+   ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  /* The room the ring stands in. At 48px of padding a side there were
+     only 294px left, so a stage sized against the VIEWPORT overflowed
+     its own container — and an overflowing flex child with
+     `align-items: center` does not centre, it pins to the start edge.
+     That, and not the stage width, is why the left orb touched the
+     frame while the right looked padded. */
+  .chamber-orbital {
+    padding-left: var(--space-sm);
+    padding-right: var(--space-sm);
+  }
+
+  .orbital-stage {
+    /* The radius the three nodes ride on. Everything below is derived
+       from it, so the ring can be retuned by changing one number. */
+    --orb-r: 29vw;
+    /* Against the CONTAINER, not the viewport: it can then never be
+       wider than the box it is being centred in. */
+    width: min(100%, 400px);
+    height: min(100%, 400px);
+    aspect-ratio: 1;
+    margin: var(--space-lg) auto;
+  }
+
+  .orbit-node {
+    width: 84px;
+    height: 84px;
+  }
+
+  /* 0.866 and 0.5 are cos30 and sin30: the two lower nodes sit at the
+     base angles of an equilateral triangle whose apex is Temporal. */
+  .orbit-temporal,
+  .orbit-temporal:hover {
+    transform: translate(-50%, -50%) translateY(calc(-1 * var(--orb-r)));
+  }
+
+  .orbit-audio,
+  .orbit-audio:hover {
+    transform: translate(-50%, -50%)
+      translate(calc(-0.866 * var(--orb-r)), calc(0.5 * var(--orb-r)));
+  }
+
+  .orbit-visual,
+  .orbit-visual:hover {
+    transform: translate(-50%, -50%)
+      translate(calc(0.866 * var(--orb-r)), calc(0.5 * var(--orb-r)));
+  }
+
+  .orbit-center {
+    width: 150px;
+    height: 150px;
+  }
+
+  .choose-sigil {
+    font-size: 40px;
+  }
+
+  /* A LABEL MAY NOT LEAVE ITS ORB. "Collections" and "Rhythmic" are
+     longer than the disc they name, and an absolutely-centred label
+     simply grew past both sides of it. Bounded to the node and allowed
+     to wrap. */
+  .orbit-node .orbit-label,
+  .orbit-node .node-label,
+  .orbit-node .orbit-value {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+    line-height: 1.2;
+  }
+
+  .orbital-back {
+    left: var(--space-sm);
+    top: var(--space-sm);
+  }
+
+  /* A FIVE-WAY CHOICE IS NOT A PAGE. `1fr` put OFF, FOCALS, ATTRACTOR,
+     GENESIS and RHYTHMIC on five rows of 82px — 410px, a whole phone,
+     to answer one question. Two rows of a compact grid say the same
+     thing. */
+  .mode-options,
+  .audio-preset-options,
+  .audio-mode-options,
+  .audio-waveform-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-xs);
+  }
+
+  .mode-option {
+    padding: var(--space-sm) var(--space-xs);
+    font-size: 10px;
+  }
+
+  /* ── 164 PIXELS OF NESTED PADDING ──
+     390 screen → modal 24 → body 32 → panel content 24, each side, and
+     a five-way selector was left 226px to lay out in: 44px a cell, in
+     which ATTRACTOR could only break mid-word. The desktop insets are
+     right for a desktop; on a phone they are most of the screen. */
+  .orbital-modal {
+    padding: var(--space-xs);
+  }
+
+  .modal-body {
+    padding: var(--space-sm) var(--space-sm);
+  }
+}
