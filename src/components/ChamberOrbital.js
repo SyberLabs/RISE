@@ -58,6 +58,11 @@ const ORBITAL_TEXT_KEY = 'rise_orbital_text_v1';
 const AUDIO_PRESET_IDS = new Set([
   'silent', 'focus', 'deep', 'drift', 'gateway', 'personal'
 ]);
+/* The padlock drawn on a chunking mode Recitation has taken. Declared
+   once so the first render and the runtime toggle cannot disagree —
+   the gap after it is CSS, never a text node (see the toggle). */
+const LOCK_MARK = '<span class="chunk-lock" aria-hidden="true">🔒</span>';
+
 const STATIC_VOICE_PACKS = availableVoicePacks();
 const STATIC_VOICE_IDS = new Set(STATIC_VOICE_PACKS.map(pack => pack.id));
 const DEFAULT_STATIC_VOICE_ID = defaultVoicePackId();
@@ -886,14 +891,30 @@ export class ChamberOrbital {
               </div>
             </div>
 
-            <!-- Chunking -->
+            <!-- Chunking.
+                 A DISABLED CONTROL MUST SAY WHO DISABLED IT.
+                 Word and Sentence are unavailable while Recitation is
+                 on, and the reason was written down in the AUDIO panel
+                 — a different orb, behind a different tap. From here
+                 the two buttons simply did not respond, which is
+                 indistinguishable from broken. The lock is drawn on
+                 the control it applies to, and named. -->
             <div class="config-section">
               <label class="config-label">Chunking Mode</label>
               <div class="chunk-options">
-                <button class="chunk-option ${this.config.chunkMode === 'word' ? 'active' : ''}" data-chunk="word" ${recitationEnabled ? 'disabled' : ''}>Word</button>
+                <button class="chunk-option ${this.config.chunkMode === 'word' ? 'active' : ''} ${recitationEnabled ? 'is-locked' : ''}" data-chunk="word"
+                  ${recitationEnabled ? 'disabled title="Recitation is spoken in phrases"' : ''}>${recitationEnabled ? LOCK_MARK : ''}Word</button>
                 <button class="chunk-option ${this.config.chunkMode === 'phrase' ? 'active' : ''}" data-chunk="phrase">Phrase</button>
-                <button class="chunk-option ${this.config.chunkMode === 'sentence' ? 'active' : ''}" data-chunk="sentence" ${recitationEnabled ? 'disabled' : ''}>Sentence</button>
+                <button class="chunk-option ${this.config.chunkMode === 'sentence' ? 'active' : ''} ${recitationEnabled ? 'is-locked' : ''}" data-chunk="sentence"
+                  ${recitationEnabled ? 'disabled title="Recitation is spoken in phrases"' : ''}>${recitationEnabled ? LOCK_MARK : ''}Sentence</button>
               </div>
+              <p class="config-note text-mist" data-chunk-lock-note ${recitationEnabled ? '' : 'hidden'}>
+                Recitation locks Word and Sentence. The voice is a pack of
+                pre-recorded phrases built into this release — one audio
+                file per phrase — so a reading cut any other way has no
+                recording to play and would run silent. Turn Recitation
+                off to read by word or by sentence.
+              </p>
             </div>
 
           </div>
@@ -1361,6 +1382,7 @@ export class ChamberOrbital {
     // phrase mode is the asset identity used by the installed pack.
     const recitationOptions = this.container.querySelectorAll('[data-recitation]');
     const recitationNote = this.container.querySelector('[data-recitation-note]');
+    const chunkLockNote = this.container.querySelector('[data-chunk-lock-note]');
     const voiceSection = this.container.querySelector('#voice-select-section');
     recitationOptions.forEach(opt => {
       this._listen(opt, 'click', () => {
@@ -1373,9 +1395,30 @@ export class ChamberOrbital {
         opt.classList.add('active');
         chunkOptions.forEach(chunk => {
           chunk.classList.toggle('active', chunk.dataset.chunk === this.config.chunkMode);
-          chunk.disabled = enabled && chunk.dataset.chunk !== 'phrase';
+          const locked = enabled && chunk.dataset.chunk !== 'phrase';
+          chunk.disabled = locked;
+          // The lock is drawn where the reader is looking when they
+          // find the button dead — in the Temporal panel, on the
+          // button itself, not in the Audio panel behind another orb.
+          chunk.classList.toggle('is-locked', locked);
+          chunk.title = locked ? 'Recitation is spoken in phrases' : '';
+          // The mark is its own element and the gap after it is CSS.
+          // A text node for the space would have made the span's
+          // nextSibling " Word", and removing the mark would have
+          // taken the label with it.
+          const mark = chunk.querySelector('.chunk-lock');
+          if (locked && !mark) {
+            const lock = document.createElement('span');
+            lock.className = 'chunk-lock';
+            lock.setAttribute('aria-hidden', 'true');
+            lock.textContent = '🔒';
+            chunk.prepend(lock);
+          } else if (!locked && mark) {
+            mark.remove();
+          }
         });
         if (recitationNote) recitationNote.hidden = !enabled;
+        if (chunkLockNote) chunkLockNote.hidden = !enabled;
         // The voice picker is meaningless without a voice to pick for.
         if (voiceSection) voiceSection.hidden = !enabled;
       });

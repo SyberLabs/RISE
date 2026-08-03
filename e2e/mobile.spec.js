@@ -601,3 +601,80 @@ test('Begin Session can actually be pressed on a phone', async ({ page }) => {
     if (await accept.isVisible()) await accept.click();
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
 });
+
+test('the reading band holds steady through an empty atom', async ({ page }) => {
+    // THE SAME RULE, TWO DIFFERENT OBJECTS.
+    //
+    // On a desktop the glass HUGS the token, so dematerializing it on
+    // an empty atom reads as a scored pause — a small pane fading
+    // where a word was. Made full-bleed on a phone, that rule strobes:
+    // the background, the blur, the borders AND the padding all go, so
+    // a bar across the whole screen blanks and collapses to zero
+    // height. In Word chunking over a Gallery field, where empty atoms
+    // land between words at a couple of hundred milliseconds, it is a
+    // visible stutter — off and on again inside a second.
+    //
+    // The phone band is architecture, like a letterbox: it holds, and
+    // only the text observes the silence (it already goes to opacity
+    // 0). This drives the atom empty by hand rather than waiting to
+    // catch the flicker, because a race is not a test.
+    test.setTimeout(300000);
+    await enter(page, 390, 844);
+    await page.locator('[data-nav="vault"]').first().click();
+    await page.locator('[data-nav="journeys"]').first().click();
+    const DEMO = '[data-journey="demo-procedural"]';
+    await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
+    await page.locator(`${DEMO} .journey-begin`).click();
+    const accept = page.locator('#safety-accept');
+    await accept.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
+    if (await accept.isVisible()) await accept.click();
+    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
+
+    // The band only exists in the two field variants that carry glass.
+    await page.waitForFunction(() => {
+        const f = document.querySelector('#chamber-field');
+        const a = document.querySelector('#atom-display');
+        return f && a && a.classList.contains('glass-tile')
+            && (f.classList.contains('chamber-field-stream')
+                || f.classList.contains('chamber-field-genesis'));
+    }, { timeout: 150000 });
+
+    const band = await page.evaluate(async () => {
+        const el = document.querySelector('#atom-display');
+        const read = () => {
+            const cs = getComputedStyle(el);
+            const r = el.getBoundingClientRect();
+            return {
+                h: Math.round(r.height),
+                bg: cs.backgroundColor,
+                blur: (cs.backdropFilter || cs.webkitBackdropFilter || 'none'),
+                borderTop: cs.borderTopColor
+            };
+        };
+        const settle = () => new Promise(r =>
+            requestAnimationFrame(() => requestAnimationFrame(r)));
+
+        const saved = el.textContent;
+        el.textContent = 'a phrase of ordinary length';
+        await settle();
+        const withText = read();
+
+        el.textContent = '';
+        await settle();
+        const empty = read();
+
+        el.textContent = saved;
+        return { withText, empty };
+    });
+    console.log('BAND ' + JSON.stringify(band));
+
+    // The glass is still glass.
+    expect(band.empty.bg).toBe(band.withText.bg);
+    expect(band.empty.blur).not.toBe('none');
+    expect(band.empty.borderTop).toBe(band.withText.borderTop);
+    // And it does not collapse. A single-line phrase and an empty atom
+    // occupy the same stratum; the band may grow past it for a long
+    // phrase but never falls below one line.
+    expect(band.empty.h).toBe(band.withText.h);
+    expect(band.empty.h).toBeGreaterThan(24);
+});

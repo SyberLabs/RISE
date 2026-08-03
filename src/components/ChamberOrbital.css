@@ -1197,6 +1197,33 @@
   font-style: italic;
 }
 
+/* ─── A locked chunking mode ───
+   Word and Sentence are unavailable while Recitation is on. Until now
+   they were only `disabled`, which on a dark panel is a slightly
+   dimmer button — indistinguishable from a control that does not
+   work. The padlock says the state is deliberate; the note beneath
+   says who imposed it. */
+.chunk-option.is-locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+.chunk-option.is-locked:hover {
+  border-color: var(--color-shadow);
+  color: var(--color-cloud);
+  background: transparent;
+}
+
+.chunk-lock {
+  font-size: 0.85em;
+  margin-right: 5px;
+  /* The emoji's own colour would be the one bright thing in a panel
+     of hairlines. */
+  filter: grayscale(1);
+  opacity: 0.8;
+}
+
 /* ─── Responsive ─── */
 @media (max-width: 768px) {
   .orbital-stage {

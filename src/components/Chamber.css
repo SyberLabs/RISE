@@ -1116,13 +1116,49 @@
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.34);
   }
 
-  /* An empty atom is a scored pause. The band must vanish with it or a
-     reader watches an empty grey stripe hold for three beats. */
+  /* ── THE BAND DOES NOT BLINK ──
+     A tile and a stratum are not the same object, and the rule that
+     was right for one is wrong for the other.
+     On a desktop the glass HUGS the token: when an atom is empty it
+     dematerializes locally, a small pane fading where a word was, and
+     that reads as a scored pause. Made full-bleed on a phone, the same
+     rule strobes — every empty atom takes the background, the blur,
+     the borders AND the padding, so a bar across the whole screen
+     blanks and collapses to zero height, and the reading under it
+     jumps. In Word chunking against a Gallery field, where empty atoms
+     fall between words at a couple of hundred milliseconds, it is a
+     visible stutter: off and on again inside a second.
+     The mobile band is architecture — a fixed stratum the reading
+     lives in, like a letterbox — so it holds. Only the TEXT observes
+     the silence, which it already does by going to opacity 0. The
+     desktop tile is untouched; this overrides the inherited rule
+     rather than replacing it, which is why every property it sets is
+     named back. */
   .chamber-field-stream .atom-display.glass-tile:empty,
   .chamber-field-genesis .atom-display.glass-tile:empty {
-    border-top-color: transparent;
-    border-bottom-color: transparent;
-    padding: 0;
+    background: rgba(8, 8, 11, 0.52);
+    backdrop-filter: blur(12px) saturate(1.1);
+    -webkit-backdrop-filter: blur(12px) saturate(1.1);
+    border-top-color: rgba(232, 232, 236, 0.06);
+    border-bottom-color: rgba(232, 232, 236, 0.06);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.34);
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  /* Holding the glass on is only half of steady: with no text there is
+     no LINE BOX either, so the band still collapsed to its own padding
+     and the picture behind it jolted by the height of a line.
+     A zero-width space in generated content builds that line box out
+     of the element's own metrics — so an empty atom and a one-line
+     phrase are the same height by construction, at any font size,
+     rather than by a hand-tuned `min-height` that was three pixels
+     short the moment it met a real font.
+     `:empty` counts CHILD NODES, and generated content is not one, so
+     this rule cannot stop itself from matching — and Chamber.js still
+     writes a genuinely empty element, which the silence test checks. */
+  .chamber-field-stream .atom-display.glass-tile:empty::before,
+  .chamber-field-genesis .atom-display.glass-tile:empty::before {
+    content: "\200B";
   }
 
   /* The title is a label, not a headline, once the screen is this
