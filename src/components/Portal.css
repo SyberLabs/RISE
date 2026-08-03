@@ -987,12 +987,24 @@
     display: inline;
   }
 
-  /* Clear of the home indicator and of Safari's own toolbar, which is
-     drawn over the bottom of the viewport whatever `dvh` reports —
-     and clear of the Curia's door, which keeps the same bottom-left
-     corner and was sitting underneath the Archive link. */
+  /* Clear of the bottom edge, and clear of the Curia's door, which
+     keeps the same bottom-left corner and was sitting underneath the
+     Archive link.
+
+     NO SAFE-AREA INSET HERE, DELIBERATELY. Both of these offsets used
+     to read `calc(… + env(safe-area-inset-bottom, 0px))`, which looks
+     like it accounts for the home indicator and does not: this
+     document's viewport meta has no `viewport-fit=cover`, so every
+     safe-area inset in it resolves to ZERO. The calc computed exactly
+     the number in front of it and nothing else.
+     That is worse than omitting it. An inert guard stops you looking:
+     reading one of these as if it were doing work is how the Page Mode
+     control bar shipped 16px too low. If the document ever opts into
+     the full screen, these become real decisions to make on purpose —
+     with the fixed header and the side insets in landscape — not
+     leftovers that quietly start moving things. */
   .portal-footer {
-    bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0px));
+    bottom: var(--space-lg);
     left: var(--space-md);
     right: var(--space-md);
   }
@@ -1000,7 +1012,7 @@
   /* Curia.css is imported after this file, so its own rule would
      otherwise win on source order at equal specificity. */
   .portal .portal-curia-door {
-    bottom: calc(2px + env(safe-area-inset-bottom, 0px));
+    bottom: 2px;
     left: var(--space-xs);
   }
 
