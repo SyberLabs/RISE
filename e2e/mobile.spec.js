@@ -778,3 +778,77 @@ test('the reading stays above the imagery it is presented over', async ({ page }
     expect(verdict.bandPosition).not.toBe('static');
     expect(Number(verdict.bandZ)).toBeGreaterThanOrEqual(10);
 });
+
+test('Page Mode keeps the whole measure on the screen', async ({ page }) => {
+    // AN OPTICAL NUDGE THAT BECAME A NEGATIVE MARGIN.
+    //
+    // The measure is centred by hand rather than by `auto`, because the
+    // hanging verse marks sit outside it on the left and a
+    // mathematically centred column reads pushed left. That correction
+    // is `calc(50% - var(--page-measure) / 2 + 1.4rem)`, which is sound
+    // while the viewport is wider than the measure and vandalism as
+    // soon as it is not: at 390px it computes to MINUS 55px, and the
+    // reader clips its own overflow-x. The first 39px of every line —
+    // the title, the source, the opening of every paragraph — was cut
+    // off the left edge and could not be scrolled to.
+    //
+    // The bar is checked in the same breath because Page Mode is the
+    // one place it holds three controls instead of six, and it was
+    // still spanning the full width for them.
+    test.setTimeout(300000);
+    await enter(page, 390, 844);
+    await page.locator('[data-nav="vault"]').first().click();
+    await page.locator('[data-nav="journeys"]').first().click();
+    const DEMO = '[data-journey="demo-procedural"]';
+    await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
+    await page.locator(`${DEMO} .journey-begin`).click();
+    const accept = page.locator('#safety-accept');
+    await accept.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
+    if (await accept.isVisible()) await accept.click();
+    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
+    await page.waitForTimeout(2500);
+
+    // The bar fades on inactivity and goes pointer-events:none with it.
+    await page.mouse.move(195, 700);
+    await page.waitForTimeout(400);
+    await page.locator('#page-mode-btn').click({ timeout: 20000 });
+    await expect(page.locator('.page-reader')).toBeVisible({ timeout: 60000 });
+    await page.waitForTimeout(2000);
+
+    const m = await page.evaluate(() => {
+        const art = document.querySelector('.page-article').getBoundingClientRect();
+        // Anything whose ink begins left of the screen is unreachable:
+        // the reader clips overflow-x, so it cannot be scrolled to.
+        const clipped = [...document.querySelectorAll('.page-article *')]
+            .filter(n => {
+                const r = n.getBoundingClientRect();
+                return r.width > 0 && r.height > 0 && r.left < -1;
+            })
+            .slice(0, 4)
+            .map(n => ({
+                cls: n.className.toString().slice(0, 22),
+                left: Math.round(n.getBoundingClientRect().left),
+                txt: (n.textContent || '').trim().slice(0, 30)
+            }));
+
+        const bar = document.querySelector('.chamber-controls').getBoundingClientRect();
+        return {
+            vw: window.innerWidth,
+            article: { l: Math.round(art.left), r: Math.round(art.right) },
+            clipped,
+            bar: { l: Math.round(bar.left), r: Math.round(bar.right), w: Math.round(bar.width) }
+        };
+    });
+    console.log('PAGE ' + JSON.stringify(m));
+
+    expect(m.clipped,
+        `these begin off the left edge of the screen: ${JSON.stringify(m.clipped)}`)
+        .toEqual([]);
+    expect(m.article.l).toBeGreaterThanOrEqual(0);
+    expect(m.article.r).toBeLessThanOrEqual(m.vw);
+
+    // Three controls do not need the whole width, and cannot wrap.
+    expect(m.bar.w).toBeLessThan(m.vw * 0.75);
+    // Still centred on the screen it shrank inside.
+    expect(Math.abs((m.bar.l + m.bar.r) / 2 - m.vw / 2)).toBeLessThanOrEqual(2);
+});

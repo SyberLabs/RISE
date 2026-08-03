@@ -335,7 +335,26 @@
 
 /* ─── Responsive: the verse marks come inside on narrow screens ─── */
 @media (max-width: 640px) {
-  .page-article { padding-left: var(--space-md); padding-right: var(--space-md); }
+  /* ── AN OPTICAL NUDGE THAT BECAME A NEGATIVE MARGIN ──
+     The measure is centred by hand rather than by `auto`, because the
+     hanging verse marks sit outside it on the left and a
+     mathematically centred column reads pushed left. That nudge is
+     written as `calc(50% - var(--page-measure) / 2 + 1.4rem)`, which
+     is a sound correction while the viewport is wider than the
+     measure and an act of vandalism as soon as it is not: at 390px it
+     computes to MINUS 55px, and the reader clips its own overflow, so
+     the first 39px of every line — the title, the source, the opening
+     of every paragraph — was simply cut off the left edge of the
+     screen and could not be scrolled to.
+     A phone has no margin to hang anything in. The measure is the
+     screen, the gutters are padding, and centring is `auto` again. */
+  .page-article {
+    max-width: none;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+  }
   .page-verse {
     float: none;
     width: auto;

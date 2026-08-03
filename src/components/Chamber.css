@@ -1262,6 +1262,29 @@
     font-size: 11px;
     min-width: 0;
   }
+
+  /* ── AND IT SPANS BECAUSE THE STREAM NEEDS IT TO ──
+     Six controls that must be able to wrap need the whole screen to
+     lay out in. Page Mode has three — the toggle out, the soundscape,
+     the exit — and pinning both edges for three icons produced a
+     378px pill holding 148px of content, an empty rounded slab across
+     the foot of a page that is otherwise all reading. Nothing here
+     can wrap, so nothing here needs the width.
+     It shrinks to what it holds and centres again, and it sits clear
+     of the home indicator: a page is read with a thumb at the bottom
+     of the screen, which is exactly where this was. */
+  .chamber-display.page-mode-on .chamber-controls {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: auto;
+    max-width: calc(100% - 2 * var(--space-md));
+    flex-wrap: nowrap;
+    gap: var(--space-md);
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+    bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* Landscape on a phone is mostly a strip of glass with no room above or
