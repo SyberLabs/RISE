@@ -99,6 +99,15 @@
   position: relative;
 }
 
+/* The wrapper that holds the phone's glass band. It generates no box
+   at any other width, so every existing layout — the field's flex
+   centring, the focal and genesis hosts stacked behind the reading —
+   sees exactly the tree it saw before it existed. See the ≤640 block
+   for what it becomes and why it had to exist at all. */
+.atom-band {
+  display: contents;
+}
+
 .atom-display {
   font-family: var(--font-literary);
   /* The scale is published by sizeAtomText — a longer phrase gets a
@@ -1097,16 +1106,38 @@
     hyphens: auto;
   }
 
-  /* Glass as a stratum, not a tile. Both field variants use the same
-     grammar on desktop and must keep using one here. */
-  .chamber-field-stream .atom-display.glass-tile,
-  .chamber-field-genesis .atom-display.glass-tile {
-    border-radius: 0;
-    border-left: 0;
-    border-right: 0;
+  /* ═══════════════════════════════════════════════════════════
+     THE BAND DOES NOT BLINK
+     ═══════════════════════════════════════════════════════════
+
+     A tile and a stratum are not the same object, and the grammar
+     that is right for one is wrong for the other.
+
+     On a desktop the glass HUGS the token, so it is correct for it to
+     live on #atom-display and to share that element's fate: every
+     atom takes the display to opacity 0 and fades it back over 150ms,
+     and a small pane crossfading where a word was IS the effect.
+
+     Made full-bleed on a phone, the identical behaviour is a strobe.
+     `opacity` composites the whole subtree, so the fade meant for the
+     text took the background, the blur, the borders and the shadow
+     with it — a bar across the entire screen blinking off and on once
+     per atom. Word chunking over a Gallery field fires that three to
+     five times a second.
+
+     So the glass moves OFF the fading element and onto the band that
+     wraps it. The reading still crossfades; the architecture it sits
+     in does not move. The band is `display: contents` at every other
+     width, generating no box at all, so the desktop composition is
+     not merely unaffected — it cannot be affected.
+     ═══════════════════════════════════════════════════════════ */
+
+  .chamber-field-stream .atom-band:has(.atom-display.glass-tile),
+  .chamber-field-genesis .atom-band:has(.atom-display.glass-tile) {
+    display: block;
+    width: 100%;
     border-top: 1px solid rgba(232, 232, 236, 0.06);
     border-bottom: 1px solid rgba(232, 232, 236, 0.06);
-    padding: var(--space-sm) var(--space-md);
     /* Darker and less blurred than the desktop tile: a full-width band
        covers far more of the picture, so it has to hold the text on
        less of it. */
@@ -1116,49 +1147,47 @@
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.34);
   }
 
-  /* ── THE BAND DOES NOT BLINK ──
-     A tile and a stratum are not the same object, and the rule that
-     was right for one is wrong for the other.
-     On a desktop the glass HUGS the token: when an atom is empty it
-     dematerializes locally, a small pane fading where a word was, and
-     that reads as a scored pause. Made full-bleed on a phone, the same
-     rule strobes — every empty atom takes the background, the blur,
-     the borders AND the padding, so a bar across the whole screen
-     blanks and collapses to zero height, and the reading under it
-     jumps. In Word chunking against a Gallery field, where empty atoms
-     fall between words at a couple of hundred milliseconds, it is a
-     visible stutter: off and on again inside a second.
-     The mobile band is architecture — a fixed stratum the reading
-     lives in, like a letterbox — so it holds. Only the TEXT observes
-     the silence, which it already does by going to opacity 0. The
-     desktop tile is untouched; this overrides the inherited rule
-     rather than replacing it, which is why every property it sets is
-     named back. */
+  /* The reading keeps the band's padding and loses the band's skin —
+     it is the thing that fades, and it must have nothing to fade. */
+  .chamber-field-stream .atom-display.glass-tile,
+  .chamber-field-genesis .atom-display.glass-tile {
+    border: 0;
+    border-radius: 0;
+    padding: var(--space-sm) var(--space-md);
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+  }
+
+  /* An empty atom keeps the band's padding: the glass is on the band
+     now and cannot be taken by anything the display does, but the
+     display's own box still has to hold its share of the height. */
   .chamber-field-stream .atom-display.glass-tile:empty,
   .chamber-field-genesis .atom-display.glass-tile:empty {
-    background: rgba(8, 8, 11, 0.52);
-    backdrop-filter: blur(12px) saturate(1.1);
-    -webkit-backdrop-filter: blur(12px) saturate(1.1);
-    border-top-color: rgba(232, 232, 236, 0.06);
-    border-bottom-color: rgba(232, 232, 236, 0.06);
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.34);
     padding: var(--space-sm) var(--space-md);
   }
 
   /* Holding the glass on is only half of steady: with no text there is
      no LINE BOX either, so the band still collapsed to its own padding
      and the picture behind it jolted by the height of a line.
-     A zero-width space in generated content builds that line box out
+     A non-breaking space in generated content builds that line box out
      of the element's own metrics — so an empty atom and a one-line
      phrase are the same height by construction, at any font size,
      rather than by a hand-tuned `min-height` that was three pixels
-     short the moment it met a real font.
+     short the moment it met a real font. It is U+00A0 and not the
+     zero-width U+200B for a dull reason worth writing down: the
+     literary face has no glyph for ZWSP, so it fell back to another
+     font whose ascent and descent are not the same, and the line box
+     came out five pixels short — a height guess wearing the costume
+     of a measurement. A0 is an ordinary space in the same face, and
+     it carries no ink.
      `:empty` counts CHILD NODES, and generated content is not one, so
      this rule cannot stop itself from matching — and Chamber.js still
      writes a genuinely empty element, which the silence test checks. */
   .chamber-field-stream .atom-display.glass-tile:empty::before,
   .chamber-field-genesis .atom-display.glass-tile:empty::before {
-    content: "\200B";
+    content: "\00a0";
   }
 
   /* The title is a label, not a headline, once the screen is this

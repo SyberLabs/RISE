@@ -602,22 +602,22 @@ test('Begin Session can actually be pressed on a phone', async ({ page }) => {
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
 });
 
-test('the reading band holds steady through an empty atom', async ({ page }) => {
-    // THE SAME RULE, TWO DIFFERENT OBJECTS.
+test('the reading band holds steady while the reading fades', async ({ page }) => {
+    // THE BAND AND THE READING ARE NOT THE SAME OBJECT.
     //
-    // On a desktop the glass HUGS the token, so dematerializing it on
-    // an empty atom reads as a scored pause — a small pane fading
-    // where a word was. Made full-bleed on a phone, that rule strobes:
-    // the background, the blur, the borders AND the padding all go, so
-    // a bar across the whole screen blanks and collapses to zero
-    // height. In Word chunking over a Gallery field, where empty atoms
-    // land between words at a couple of hundred milliseconds, it is a
-    // visible stutter — off and on again inside a second.
+    // Every atom over 400ms takes #atom-display to opacity 0 and fades
+    // it back over 150ms. That is right for the text, and it was
+    // catastrophic for glass carried on the same element: `opacity`
+    // composites the whole subtree, so the fade meant for the words
+    // took the background, the blur, the borders and the shadow with
+    // it. On a desktop the pane hugs the token and that IS the effect;
+    // full-bleed on a phone it is a bar across the whole screen
+    // blinking off and on once per atom — three to five times a second
+    // in Word chunking over a Gallery field.
     //
-    // The phone band is architecture, like a letterbox: it holds, and
-    // only the text observes the silence (it already goes to opacity
-    // 0). This drives the atom empty by hand rather than waiting to
-    // catch the flicker, because a race is not a test.
+    // So the glass lives on a wrapper the fade cannot reach. This
+    // drives both failure modes by hand rather than waiting to catch a
+    // flicker, because a race is not a test.
     test.setTimeout(300000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="vault"]').first().click();
@@ -639,42 +639,71 @@ test('the reading band holds steady through an empty atom', async ({ page }) => 
                 || f.classList.contains('chamber-field-genesis'));
     }, { timeout: 150000 });
 
+    // FREEZE THE READING FIRST. The player keeps writing #atom-display
+    // on its own clock, so an unpaused measurement compares one atom's
+    // height against the next one's and reports a difference the band
+    // never had. The first version of this test did exactly that.
+    await page.evaluate(() => {
+        document.querySelector('#play-pause-btn')?.click();
+    });
+    await page.waitForTimeout(600);
+
     const band = await page.evaluate(async () => {
         const el = document.querySelector('#atom-display');
+        const bandEl = document.querySelector('#atom-band');
         const read = () => {
-            const cs = getComputedStyle(el);
-            const r = el.getBoundingClientRect();
+            const cs = getComputedStyle(bandEl);
+            const r = bandEl.getBoundingClientRect();
             return {
                 h: Math.round(r.height),
                 bg: cs.backgroundColor,
                 blur: (cs.backdropFilter || cs.webkitBackdropFilter || 'none'),
-                borderTop: cs.borderTopColor
+                borderTop: cs.borderTopColor,
+                opacity: cs.opacity
             };
         };
         const settle = () => new Promise(r =>
             requestAnimationFrame(() => requestAnimationFrame(r)));
 
         const saved = el.textContent;
-        el.textContent = 'a phrase of ordinary length';
-        await settle();
-        const withText = read();
+        const savedOpacity = el.style.opacity;
 
+        el.textContent = 'a phrase of ordinary length';
+        el.style.opacity = '1';
+        await settle();
+        const lit = read();
+
+        // What the player does on EVERY atom over 400ms.
+        el.style.opacity = '0';
+        await settle();
+        const faded = read();
+
+        // And what it does on a paragraph break.
         el.textContent = '';
         await settle();
         const empty = read();
 
         el.textContent = saved;
-        return { withText, empty };
+        el.style.opacity = savedOpacity;
+        return { hasBand: !!bandEl, lit, faded, empty };
     });
     console.log('BAND ' + JSON.stringify(band));
 
-    // The glass is still glass.
-    expect(band.empty.bg).toBe(band.withText.bg);
+    expect(band.hasBand).toBe(true);
+
+    // 1. The reading fading does not take the band with it. This is the
+    //    stutter, and it is the whole reason the wrapper exists.
+    expect(band.faded.bg).toBe(band.lit.bg);
+    expect(band.faded.blur).toBe(band.lit.blur);
+    expect(band.faded.borderTop).toBe(band.lit.borderTop);
+    expect(band.faded.opacity).toBe('1');
+    expect(band.faded.h).toBe(band.lit.h);
+
+    // 2. Nor does an empty atom.
+    expect(band.empty.bg).toBe(band.lit.bg);
     expect(band.empty.blur).not.toBe('none');
-    expect(band.empty.borderTop).toBe(band.withText.borderTop);
-    // And it does not collapse. A single-line phrase and an empty atom
-    // occupy the same stratum; the band may grow past it for a long
-    // phrase but never falls below one line.
-    expect(band.empty.h).toBe(band.withText.h);
+    expect(band.empty.borderTop).toBe(band.lit.borderTop);
+    // It may grow past one line for a long phrase; it never falls below.
+    expect(band.empty.h).toBe(band.lit.h);
     expect(band.empty.h).toBeGreaterThan(24);
 });

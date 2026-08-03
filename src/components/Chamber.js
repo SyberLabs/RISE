@@ -273,7 +273,20 @@ export class Chamber {
           <div class="chamber-field" id="chamber-field">
             <div class="movement-title" id="movement-title" role="status"
                  aria-live="polite" hidden></div>
-            <div class="atom-display" id="atom-display"></div>
+            <!-- THE BAND AND THE READING ARE NOT THE SAME OBJECT.
+                 Every atom takes #atom-display to opacity 0 and fades
+                 it back over 150ms, which is right for the text and
+                 catastrophic for glass carried on the same element:
+                 opacity composites the whole subtree, so the phone's
+                 full-bleed band strobed once per atom. The wrapper
+                 exists to hold the glass while the reading inside it
+                 fades. It is display:contents everywhere but the
+                 phone, so it generates no box and the desktop layout
+                 is not merely unaffected but incapable of being
+                 affected. -->
+            <div class="atom-band" id="atom-band">
+              <div class="atom-display" id="atom-display"></div>
+            </div>
           </div>
 
           <!-- PAGE MODE (PAGE-MODE-SPEC): the SPATIAL projection of this
@@ -885,11 +898,7 @@ export class Chamber {
     host.id = 'chamber-continuous-field';
 
     const atomDisplay = field.querySelector('#atom-display');
-    if (atomDisplay) {
-      field.insertBefore(host, atomDisplay);
-    } else {
-      field.appendChild(host);
-    }
+    this._insertBehindReading(field, host);
 
     // Glass tile on by default — the text must stay legible over imagery
     // (the field's whole reason to exist is a presence behind the reading).
@@ -940,11 +949,7 @@ export class Chamber {
     host.id = 'chamber-genesis';
 
     const atomDisplay = field.querySelector('#atom-display');
-    if (atomDisplay) {
-      field.insertBefore(host, atomDisplay);
-    } else {
-      field.appendChild(host);
-    }
+    this._insertBehindReading(field, host);
 
     // Glass tile is on by default; sparse compositions may prefer bare text
     if (atomDisplay && visualConfig.genesis?.glass !== false) {
@@ -974,11 +979,7 @@ export class Chamber {
 
     // Insert attractor before atom display so it sits behind the text
     const atomDisplay = field.querySelector('#atom-display');
-    if (atomDisplay) {
-      field.insertBefore(host, atomDisplay);
-    } else {
-      field.appendChild(host);
-    }
+    this._insertBehindReading(field, host);
 
     const attractor = visualConfig.attractor || {};
     const system = attractor.system || 'aizawa';
@@ -1050,11 +1051,7 @@ export class Chamber {
 
     // Insert focal before atom display so it's behind the text
     const atomDisplay = field.querySelector('#atom-display');
-    if (atomDisplay) {
-      field.insertBefore(focalContainer, atomDisplay);
-    } else {
-      field.appendChild(focalContainer);
-    }
+    this._insertBehindReading(field, focalContainer);
 
     console.log('[Chamber] Focal initialized:', focals);
   }
@@ -1160,6 +1157,32 @@ export class Chamber {
    * @returns {HTMLElement[]|null} the word spans, or null when the text
    *   was painted plainly and there is nothing to reveal.
    */
+  /**
+   * Put a visual layer into the field BEHIND the reading.
+   *
+   * Four call sites — the continuous field, genesis, the attractor and
+   * the focal — each carried its own copy of "insert before
+   * #atom-display, or append if it is missing", and each of those
+   * copies broke the day the reading gained a wrapper: #atom-display
+   * stopped being a child of the field, and insertBefore on a node
+   * that is not your child throws. One copy learning a new fact while
+   * three do not is the shape of bug this codebase keeps paying for,
+   * so there is now one copy.
+   *
+   * The anchor is the BAND rather than the display, because the band
+   * is what occupies the field; on desktop it is `display: contents`
+   * and the two are the same position anyway.
+   */
+  _insertBehindReading(field, node) {
+    const anchor = field.querySelector('#atom-band')
+      || field.querySelector('#atom-display');
+    if (anchor && anchor.parentNode === field) {
+      field.insertBefore(node, anchor);
+    } else {
+      field.appendChild(node);
+    }
+  }
+
   paintAtomText(atomDisplay, content, { reveal = false } = {}) {
     const words = splitWords(content);
     const marked = words.some(w => w.emphasised);
