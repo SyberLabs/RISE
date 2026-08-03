@@ -545,3 +545,59 @@ test('the configuration panels are not several screens of picture tiles', async 
         await page.waitForTimeout(400);
     }
 });
+
+test('Begin Session can actually be pressed on a phone', async ({ page }) => {
+    // A LAYOUT BUG THAT LOOKS LIKE NOTHING.
+    //
+    // On a phone the actions climb 44px into the stage's empty lower
+    // band, because a square stage around a triangular ring leaves 67
+    // pixels of nothing under it. But `.orbital-stage` is
+    // `position: relative`, and a positioned element hit-tests ABOVE a
+    // static sibling however the DOM is ordered — so the stage's own
+    // box took every tap and Begin Session could not be pressed at
+    // all. It rendered correctly, it was not disabled, it had a cursor
+    // and a hover state, and nothing about the screen said so.
+    //
+    // Rendering is not reachability, so this asks the DOM who actually
+    // receives the tap, and then takes it.
+    test.setTimeout(180000);
+    await enter(page, 390, 844);
+    await page.locator('[data-nav="library"]').first().click();
+    await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 30000 });
+    await page.locator('[data-text-id="the-iliad"] [data-action="select-text"]').click();
+    await page.waitForTimeout(1500);
+    const toc = page.locator('.toc-entry').first();
+    if (await toc.isVisible().catch(() => false)) { await toc.click(); }
+    await expect(page.locator('.orbital-stage')).toBeVisible({ timeout: 30000 });
+
+    const reach = await page.evaluate(() => {
+        const check = (sel) => {
+            const el = document.querySelector(sel);
+            if (!el) return { found: false };
+            const r = el.getBoundingClientRect();
+            const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+            return {
+                found: true,
+                disabled: !!el.disabled,
+                reachable: !!(top && (top === el || el.contains(top))),
+                intercepted: top ? `${top.tagName.toLowerCase()}.${top.className.toString().slice(0, 30)}` : 'null'
+            };
+        };
+        return { begin: check('#begin-btn'), reset: check('.orbital-reset') };
+    });
+    console.log('REACH ' + JSON.stringify(reach));
+
+    expect(reach.begin.found).toBe(true);
+    expect(reach.begin.disabled).toBe(false);
+    expect(reach.begin.reachable,
+        `Begin Session is covered by ${reach.begin.intercepted}`).toBe(true);
+    expect(reach.reset.reachable,
+        `Reset Settings is covered by ${reach.reset.intercepted}`).toBe(true);
+
+    // And the tap does what it says.
+    await page.locator('#begin-btn').click({ timeout: 10000 });
+    const accept = page.locator('#safety-accept');
+    await accept.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});
+    if (await accept.isVisible()) await accept.click();
+    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
+});

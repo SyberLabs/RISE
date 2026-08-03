@@ -98,6 +98,7 @@
   /* Slower, more meditative rotation */
 }
 
+
 /* ─── Orbit Nodes (Sacred Geometry Positioning) ─── */
 .orbit-node {
   position: absolute;
@@ -1484,6 +1485,18 @@
     margin-top: -44px;
     padding-bottom: var(--space-md);
     width: 100%;
+
+    /* AND THE PRICE OF CLIMBING INTO THE BAND.
+       The stage is `position: relative`, and a positioned element
+       hit-tests ABOVE a static sibling however the DOM is ordered —
+       so the moment Begin moved up into the stage's empty lower band,
+       the stage's own box took the tap and Begin could not be pressed
+       at all. Nothing looked wrong; elementFromPoint at the centre of
+       the button returned div.orbital-stage. Overlapping deliberately
+       means saying which one is on top. (6 clears .orbit-center's 5,
+       though the two do not in fact meet.) */
+    position: relative;
+    z-index: 6;
   }
 
   .orbital-actions .btn-large {
