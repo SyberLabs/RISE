@@ -811,6 +811,13 @@ test('Page Mode keeps the whole measure on the screen', async ({ page }) => {
     // The bar fades on inactivity and goes pointer-events:none with it.
     await page.mouse.move(195, 700);
     await page.waitForTimeout(400);
+
+    // Where the bar sits BEFORE the projection changes. Page Mode may
+    // reshape it; it may not push it closer to the bottom edge, which
+    // on a phone means into the home-indicator strip.
+    const streamBottom = await page.evaluate(() =>
+        Math.round(window.innerHeight - document.querySelector('.chamber-controls').getBoundingClientRect().bottom));
+
     await page.locator('#page-mode-btn').click({ timeout: 20000 });
     await expect(page.locator('.page-reader')).toBeVisible({ timeout: 60000 });
     await page.waitForTimeout(2000);
@@ -836,7 +843,8 @@ test('Page Mode keeps the whole measure on the screen', async ({ page }) => {
             vw: window.innerWidth,
             article: { l: Math.round(art.left), r: Math.round(art.right) },
             clipped,
-            bar: { l: Math.round(bar.left), r: Math.round(bar.right), w: Math.round(bar.width) }
+            bar: { l: Math.round(bar.left), r: Math.round(bar.right), w: Math.round(bar.width) },
+            barGap: Math.round(window.innerHeight - bar.bottom)
         };
     });
     console.log('PAGE ' + JSON.stringify(m));
@@ -851,4 +859,12 @@ test('Page Mode keeps the whole measure on the screen', async ({ page }) => {
     expect(m.bar.w).toBeLessThan(m.vw * 0.75);
     // Still centred on the screen it shrank inside.
     expect(Math.abs((m.bar.l + m.bar.r) / 2 - m.vw / 2)).toBeLessThanOrEqual(2);
+    // AND NO LOWER THAN IT WAS. A safe-area inset is worth nothing in a
+    // document with no `viewport-fit=cover` — every env() here resolves
+    // to zero — so a bottom offset that budgeted for one was simply a
+    // smaller number, and the bar dropped 16px into the indicator strip
+    // on entering Page Mode.
+    expect(m.barGap,
+        `the bar sits ${m.barGap}px from the bottom in Page Mode but ${streamBottom}px in the Stream`)
+        .toBeGreaterThanOrEqual(streamBottom);
 });

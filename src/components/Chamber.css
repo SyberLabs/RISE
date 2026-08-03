@@ -946,7 +946,14 @@
      positioning gives the reader a real, scrollable window. */
   position: fixed !important;   /* wins over .page-reader's own relative */
   inset: 0;
+  /* `100vh` on iOS is the LARGE viewport — the height the page would
+     have if the browser chrome were hidden — so a surface sized by it
+     runs its last stretch underneath the toolbar, where the Stream's
+     field (which is simply flex:1 inside the display) does not. That
+     is the difference the reader sees at the foot of a page and not
+     at the foot of a reading. `dvh` is the box as it stands. */
   height: 100vh;
+  height: 100dvh;
   z-index: 20;              /* above the field, below the controls */
   background: var(--color-void);
   animation: chamber-page-in 320ms var(--ease-out, ease-out) both;
@@ -1270,9 +1277,20 @@
      378px pill holding 148px of content, an empty rounded slab across
      the foot of a page that is otherwise all reading. Nothing here
      can wrap, so nothing here needs the width.
-     It shrinks to what it holds and centres again, and it sits clear
-     of the home indicator: a page is read with a thumb at the bottom
-     of the screen, which is exactly where this was. */
+     It shrinks to what it holds and centres again.
+
+     IT DOES NOT MOVE DOWN. The first version of this set
+     `bottom: calc(var(--space-sm) + env(safe-area-inset-bottom))`,
+     reasoning about the home indicator — but this document has no
+     `viewport-fit=cover`, so every safe-area inset resolves to ZERO,
+     and what the phone actually got was 12px where the Stream's bar
+     sits at 28. Toggling into Page Mode dropped the bar 16px into the
+     indicator strip, and the bottom of it went under the edge of the
+     screen. A guard that evaluates to nothing is not a guard; it is a
+     smaller number wearing the costume of a larger one.
+     The offset is the Stream's, so the bar does not move when the
+     projection changes, and the inset is kept purely additive in case
+     the document ever does opt into the full screen. */
   .chamber-display.page-mode-on .chamber-controls {
     left: 50%;
     right: auto;
@@ -1283,7 +1301,7 @@
     gap: var(--space-md);
     padding-left: var(--space-md);
     padding-right: var(--space-md);
-    bottom: calc(var(--space-sm) + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--space-xl) + env(safe-area-inset-bottom, 0px));
   }
 }
 

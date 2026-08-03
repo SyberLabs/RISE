@@ -22,7 +22,11 @@
   position: relative;
   width: 100%;
   height: 100%;
+  /* Bounded to the viewport as it actually stands: `vh` on iOS is the
+     chrome-hidden height, which would put the end of the scroll window
+     underneath the toolbar. */
   max-height: 100vh;
+  max-height: 100dvh;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
