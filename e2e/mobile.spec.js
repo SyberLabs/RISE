@@ -707,3 +707,74 @@ test('the reading band holds steady while the reading fades', async ({ page }) =
     expect(band.empty.h).toBe(band.lit.h);
     expect(band.empty.h).toBeGreaterThan(24);
 });
+
+test('the reading stays above the imagery it is presented over', async ({ page }) => {
+    // THE BUG A MODE-DEPENDENT TEST WOULD HAVE MISSED.
+    //
+    // .atom-display carries `position: relative; z-index: 10` for one
+    // reason: the reading must sit above the presenting imagery, which
+    // drops to z-index 2 in behind-stream. Wrapping it in a band with
+    // `backdrop-filter` made that wrapper a STACKING CONTEXT, so the 10
+    // stopped being measured against the imagery and started being
+    // measured against the band's own siblings — of which there are
+    // none. The band itself was static and auto: beneath everything
+    // positioned in the field. A gallery image arriving a few seconds
+    // into a reading painted over the text and the glass together, and
+    // never uncovered them.
+    //
+    // Watching a live Demo did not catch it, because whether imagery
+    // ever covers the centre depends on which engine is presenting and
+    // when. So this puts a layer exactly where the cortex puts one and
+    // asks the DOM who is on top — a condition, not a coincidence.
+    test.setTimeout(300000);
+    await enter(page, 390, 844);
+    await page.locator('[data-nav="vault"]').first().click();
+    await page.locator('[data-nav="journeys"]').first().click();
+    const DEMO = '[data-journey="demo-procedural"]';
+    await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
+    await page.locator(`${DEMO} .journey-begin`).click();
+    const accept = page.locator('#safety-accept');
+    await accept.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
+    if (await accept.isVisible()) await accept.click();
+    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
+    await page.waitForFunction(() => {
+        const f = document.querySelector('#chamber-field');
+        const a = document.querySelector('#atom-display');
+        return f && a && a.classList.contains('glass-tile')
+            && (f.classList.contains('chamber-field-stream')
+                || f.classList.contains('chamber-field-genesis'));
+    }, { timeout: 150000 });
+
+    const verdict = await page.evaluate(() => {
+        const field = document.querySelector('#chamber-field');
+        const band = document.querySelector('#atom-band');
+        const el = document.querySelector('#atom-display');
+        el.textContent = 'a phrase the reader must be able to see';
+
+        // Exactly what the cortex mounts behind the stream: an opaque
+        // full-field layer at the z-index the spec gives it.
+        const imagery = document.createElement('div');
+        imagery.id = 'probe-imagery';
+        imagery.style.cssText =
+            'position:absolute;inset:0;z-index:2;background:#fff;pointer-events:auto;';
+        field.insertBefore(imagery, field.firstChild);
+
+        const r = band.getBoundingClientRect();
+        const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        const result = {
+            top: top ? `${top.tagName.toLowerCase()}#${top.id}.${top.className.toString().slice(0, 24)}` : 'null',
+            readingOnTop: !!(top && (top === band || band.contains(top))),
+            bandZ: getComputedStyle(band).zIndex,
+            bandPosition: getComputedStyle(band).position
+        };
+        imagery.remove();
+        return result;
+    });
+    console.log('LAYER ' + JSON.stringify(verdict));
+
+    expect(verdict.readingOnTop,
+        `imagery at z-index 2 covers the reading — topmost is ${verdict.top}`).toBe(true);
+    // The band inherited the job along with the box.
+    expect(verdict.bandPosition).not.toBe('static');
+    expect(Number(verdict.bandZ)).toBeGreaterThanOrEqual(10);
+});

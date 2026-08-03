@@ -1136,6 +1136,22 @@
   .chamber-field-genesis .atom-band:has(.atom-display.glass-tile) {
     display: block;
     width: 100%;
+
+    /* ── AND THE READING MUST STILL BE ON TOP ──
+       `backdrop-filter` makes this element a STACKING CONTEXT, which
+       quietly took the reading's guarantee away. .atom-display carries
+       `position: relative; z-index: 10` for one reason — "the reading
+       text must sit above the presenting imagery", which drops to
+       z-index 2 in behind-stream — and the moment the band existed,
+       that 10 stopped being measured against the imagery and started
+       being measured against its own siblings inside the band, of
+       which there are none. The band was left static and auto, i.e.
+       beneath everything positioned in the field, so a gallery image
+       arriving a few seconds into a reading painted straight over the
+       text and the glass together and never uncovered them.
+       The wrapper has to inherit the job along with the box. */
+    position: relative;
+    z-index: 10;
     border-top: 1px solid rgba(232, 232, 236, 0.06);
     border-bottom: 1px solid rgba(232, 232, 236, 0.06);
     /* Darker and less blurred than the desktop tile: a full-width band
