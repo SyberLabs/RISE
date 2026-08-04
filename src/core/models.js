@@ -8,6 +8,14 @@ import {
   normalizeMovementProgram,
   normalizeAudioProgram
 } from './visual-program.js';
+import {
+  validateExperienceProgram,
+  lowerExperienceProgram
+} from './experience-program.js';
+import {
+  createSequenceVisualAsset,
+  validateSequenceAssetReferences
+} from './visual-score-lane.js';
 
 /**
  * Modality types for content atoms
@@ -45,6 +53,14 @@ export class Atom {
    *   session and says nothing about where it falls inside its work; a
    *   visual program that wants to change figure at Milton's line 750
    *   needs a coordinate INSIDE the passage, and this is it.
+   * @param {number|null} [config.sourceCharacterStart=null] - Inclusive UTF-16
+   *   source offset compiled from the durable text coordinate.
+   * @param {number|null} [config.sourceCharacterEnd=null] - Exclusive UTF-16
+   *   source offset.
+   * @param {number|null} [config.sourceTokenStart=null] - Inclusive source-token index.
+   * @param {number|null} [config.sourceTokenEnd=null] - Exclusive source-token index.
+   * @param {string[]} [config.sourceSpanIds=[]] - Runtime clip-span memberships;
+   *   derived during compilation and never used as authored coordinates.
    * @param {string} [config.url=''] - URL for image/media atoms
    * @param {string} [config.phase=''] - Ritual phase assignment
    * @param {boolean} [config.timingLocked=false] - Preserve authored duration through pacing
@@ -60,6 +76,11 @@ export class Atom {
     sourceId = '',
     position = 0,
     sourceProgress = 0,
+    sourceCharacterStart = null,
+    sourceCharacterEnd = null,
+    sourceTokenStart = null,
+    sourceTokenEnd = null,
+    sourceSpanIds = [],
     url = '',
     phase = '',
     timingLocked = false
@@ -84,6 +105,23 @@ export class Atom {
     this.sourceProgress = Number.isFinite(progress)
       ? Math.max(0, Math.min(1, progress))
       : 0;
+    this.sourceCharacterStart = Number.isInteger(sourceCharacterStart) && sourceCharacterStart >= 0
+      ? sourceCharacterStart
+      : null;
+    this.sourceCharacterEnd = this.sourceCharacterStart !== null && Number.isInteger(sourceCharacterEnd)
+      && sourceCharacterEnd >= (this.sourceCharacterStart ?? 0)
+      ? sourceCharacterEnd
+      : null;
+    this.sourceTokenStart = Number.isInteger(sourceTokenStart) && sourceTokenStart >= 0
+      ? sourceTokenStart
+      : null;
+    this.sourceTokenEnd = this.sourceTokenStart !== null && Number.isInteger(sourceTokenEnd)
+      && sourceTokenEnd >= (this.sourceTokenStart ?? 0)
+      ? sourceTokenEnd
+      : null;
+    this.sourceSpanIds = Array.isArray(sourceSpanIds)
+      ? [...new Set(sourceSpanIds.filter(id => typeof id === 'string' && id))].slice(0, 1_536)
+      : [];
     this.url = typeof url === 'string' ? url : '';
     this.phase = typeof phase === 'string' ? phase : '';
     this.timingLocked = timingLocked === true;
@@ -201,6 +239,7 @@ export class Session {
     origin = null,
     provenance = null,
     customVisuals = [],
+    sequenceVisualAssets = [],
     // Recitation is a TEXT presentation — the reveal, its emphasis, and
     // later its voice. Normalised by the session compiler, so the shape
     // arriving here is already validated; the default keeps a hand-built
@@ -222,6 +261,7 @@ export class Session {
     // survive the Chamber's destroy/recreate cycle, so they are stored
     // rather than rebuilt — a Journey that recompiled on every Chamber
     // construction would be a different Journey each time.
+    experienceProgram = null,
     movementProgram = null,
     audioProgram = null,
     // Which MEDIUM renders this reading (SPATIAL-CHAMBER-SPEC §3):
@@ -248,6 +288,17 @@ export class Session {
     this.origin = origin;
     this.provenance = provenance;
     this.customVisuals = customVisuals;
+    if (Array.isArray(sequenceVisualAssets) && sequenceVisualAssets.length > 24) {
+      throw new RangeError('A sequence may contain at most 24 visual assets.');
+    }
+    const normalizedSequenceVisualAssets = Array.isArray(sequenceVisualAssets)
+      ? sequenceVisualAssets.map(createSequenceVisualAsset)
+      : [];
+    if (new Set(normalizedSequenceVisualAssets.map(asset => asset.id)).size
+      !== normalizedSequenceVisualAssets.length) {
+      throw new TypeError('Sequence visual asset ids must be unique.');
+    }
+    this.sequenceVisualAssets = Object.freeze(normalizedSequenceVisualAssets);
     // Frozen so a consumer cannot flip a reading into recitation after
     // compilation — the same discipline the visual config follows.
     this.recitation = Object.freeze({ enabled: recitation?.enabled === true });
@@ -256,9 +307,22 @@ export class Session {
     this.voiceId = voiceId;
     this.selectedSwellId = selectedSwellId;
     this.shuttleExempt = shuttleExempt === true;
-    this.visualProgram = normalizeVisualProgram(visualProgram);
-    this.movementProgram = normalizeMovementProgram(movementProgram);
-    this.audioProgram = normalizeAudioProgram(audioProgram);
+    // A canonical score wins over every compatibility projection. Legacy
+    // sessions may still carry the three sibling schedules directly, but a
+    // new score is validated once and all of them are derived from it so a
+    // restore cannot preserve one lane while silently losing another.
+    this.experienceProgram = experienceProgram == null
+      ? null
+      : validateExperienceProgram(experienceProgram);
+    if (this.experienceProgram) {
+      validateSequenceAssetReferences(this.experienceProgram, this.sequenceVisualAssets);
+    }
+    const lowered = this.experienceProgram
+      ? lowerExperienceProgram(this.experienceProgram)
+      : null;
+    this.visualProgram = normalizeVisualProgram(lowered?.visualProgram ?? visualProgram);
+    this.movementProgram = normalizeMovementProgram(lowered?.movementProgram ?? movementProgram);
+    this.audioProgram = normalizeAudioProgram(lowered?.audioProgram ?? audioProgram);
     this.projection = projection === 'page' ? 'page' : 'stream';
     this.createdAt = new Date();
   }

@@ -13,6 +13,7 @@ import { compileJourney, boundarySourceId } from './journey-compiler.js';
 import { cueForAtom } from './visual-scheduler.js';
 
 const program = () => compileJourney({
+    schemaVersion: 'rise.journey.v1',
     id: 'journey-war',
     movements: [
         {
@@ -231,6 +232,70 @@ describe('it only asks the engine for methods the engine has', () => {
         for (const name of asked) {
             expect(available.has(name), `AudioEngine has no ${name}()`).toBe(true);
         }
+    });
+});
+
+describe('multi-lane audio runtime', () => {
+    const lanes = () => ({
+        coordinateSpace: 'source',
+        segments: [
+            { id: 'bed', match: { sourceIds: ['p1'] }, cue: { kind: 'tone', presetId: 'deep', fadeMs: 400 }, syncGroup: 'opening' },
+            { id: 'event', match: { sourceIds: ['p1'] }, cue: { kind: 'swell', swellId: 'bell', fadeMs: 200 }, syncGroup: 'opening' }
+        ],
+        fallback: { kind: 'hold', fadeMs: 500 },
+        lanes: {
+            bed: { coordinateSpace: 'source', segments: [
+                { id: 'bed', match: { sourceIds: ['p1'] }, cue: { kind: 'tone', presetId: 'deep', fadeMs: 400 }, syncGroup: 'opening' }
+            ], fallback: { kind: 'hold', fadeMs: 500 } },
+            swell: { coordinateSpace: 'source', segments: [
+                { id: 'event', match: { sourceIds: ['p1'] }, cue: { kind: 'swell', swellId: 'bell', fadeMs: 200 }, syncGroup: 'opening' }
+            ], fallback: { kind: 'hold' } }
+        }
+    });
+
+    it('starts a bed before its co-anchored swell and exposes their sync group', () => {
+        const calls = [];
+        const controller = new AudioScheduleController(lanes(), {
+            stopSoundscape: () => calls.push('stop-soundscape'),
+            applyPreset: id => calls.push(`tone:${id}`),
+            playSwell: id => calls.push(`swell:${id}`),
+            stopSwell: () => calls.push('stop-swell')
+        });
+        const result = controller.observe(atom('p1'));
+        expect(calls.slice(-2)).toEqual(['tone:deep', 'swell:bell']);
+        expect(result.syncGroups).toEqual(['opening']);
+    });
+
+    it('pauses both lanes, restores only the bed on resume, and cancels on stop', () => {
+        const calls = [];
+        const controller = new AudioScheduleController(lanes(), {
+            stopSoundscape: () => {},
+            applyPreset: id => calls.push(`tone:${id}`),
+            playSwell: id => calls.push(`swell:${id}`),
+            stopSwell: () => calls.push('stop-swell')
+        });
+        controller.observe(atom('p1'));
+        controller.pause();
+        controller.resume();
+        expect(calls.filter(call => call === 'swell:bell')).toHaveLength(1);
+        expect(calls.filter(call => call === 'tone:deep')).toHaveLength(2);
+        controller.stop();
+        expect(controller.activeBedId).toBeNull();
+        expect(controller.activeSwellId).toBeNull();
+    });
+
+    it('restores the project atmosphere after an authored bed loses authority', () => {
+        const calls = [];
+        const controller = new AudioScheduleController(lanes(), {
+            stopSoundscape: () => {},
+            applyPreset: id => calls.push(id),
+            playSwell: () => {},
+            stopSwell: () => {}
+        }, { defaultCue: { kind: 'tone', presetId: 'focus', fadeMs: 500 } });
+        controller.observe(atom('p1'));
+        controller.observe(atom('outside'));
+        expect(calls).toContain('focus');
+        expect(calls.at(-1)).toBe('focus');
     });
 });
 

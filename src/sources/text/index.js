@@ -5,6 +5,7 @@
 
 // Text Sources
 export * from './local.js';
+export * from './archive.js';
 export * from './gutenberg.js';
 export * from './sacred.js';
 export * from './arxiv.js';

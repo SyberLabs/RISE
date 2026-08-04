@@ -124,12 +124,34 @@ export function normalizeVisualProgram(value) {
       const match = { sourceIds };
       const from = unitInterval(segment?.match?.fromProgress);
       const to = unitInterval(segment?.match?.toProgress);
-      if (from !== null || to !== null) {
+      const fromCharacter = segment?.match?.fromCharacter;
+      const toCharacter = segment?.match?.toCharacter;
+      const fromToken = segment?.match?.fromToken;
+      const toToken = segment?.match?.toToken;
+      const hasProgress = from !== null || to !== null;
+      const hasCharacter = fromCharacter !== undefined || toCharacter !== undefined;
+      const hasToken = fromToken !== undefined || toToken !== undefined;
+      if ([hasProgress, hasCharacter, hasToken].filter(Boolean).length > 1) continue;
+      if (hasProgress) {
         match.fromProgress = from ?? 0;
         match.toProgress = to ?? 1;
         // An inverted range matches nothing and is an authoring error,
         // not a cue: refuse the segment rather than silently widening it.
         if (match.toProgress <= match.fromProgress) continue;
+      } else if (hasCharacter) {
+        if (!Number.isInteger(fromCharacter) || fromCharacter < 0
+          || !Number.isInteger(toCharacter) || toCharacter <= fromCharacter) continue;
+        const quoteStart = boundedString(segment?.match?.quoteStart, 500);
+        const quoteEnd = boundedString(segment?.match?.quoteEnd, 500);
+        if (!quoteStart || !quoteEnd) continue;
+        Object.assign(match, { fromCharacter, toCharacter, quoteStart, quoteEnd });
+      } else if (hasToken) {
+        if (!Number.isInteger(fromToken) || fromToken < 0
+          || !Number.isInteger(toToken) || toToken <= fromToken) continue;
+        const quoteStart = boundedString(segment?.match?.quoteStart, 500);
+        const quoteEnd = boundedString(segment?.match?.quoteEnd, 500);
+        if (!quoteStart || !quoteEnd) continue;
+        Object.assign(match, { fromToken, toToken, quoteStart, quoteEnd });
       }
       segments.push({ id, match, cue: normalizeVisualCue(segment.cue) });
     }
@@ -204,7 +226,10 @@ export function deserializeVisualProgram(value) {
  * arrives through this function.
  */
 const MAX_MOVEMENTS = 16;
-const MAX_BOUNDARIES = 16;
+// Aligned with the canonical Experience Program and the session compiler.
+// Divergent limits previously let a valid compiler result lose its later
+// transitions during persistence.
+const MAX_BOUNDARIES = 32;
 const MAX_SOURCE_IDS = 64;
 
 export function normalizeMovementProgram(value) {
@@ -240,6 +265,8 @@ export function normalizeMovementProgram(value) {
       sourceId,
       fromMovementId: boundedString(raw.fromMovementId) || null,
       toMovementId: boundedString(raw.toMovementId) || null,
+      afterSourceId: boundedString(raw.afterSourceId) || null,
+      beforeSourceId: boundedString(raw.beforeSourceId) || null,
       durationMs: Number.isFinite(durationMs) ? Math.min(Math.max(durationMs, 0), 60_000) : 1200
     });
   }
@@ -254,7 +281,7 @@ export function normalizeMovementProgram(value) {
 
 /** One audio cue, bounded. Unknown kinds hold rather than guess. */
 function normalizeAudioCue(value) {
-  const KINDS = new Set(['hold', 'silence', 'soundscape', 'swell']);
+  const KINDS = new Set(['hold', 'silence', 'soundscape', 'tone', 'swell']);
   if (!value || typeof value !== 'object' || !KINDS.has(value.kind)) return { kind: 'hold' };
   const cue = { kind: value.kind };
   const fadeMs = Number(value.fadeMs);
@@ -266,12 +293,60 @@ function normalizeAudioCue(value) {
     const gain = Number(value.gain);
     if (Number.isFinite(gain)) cue.gain = Math.min(Math.max(gain, 0), 1);
   }
+  if (value.kind === 'tone') {
+    const id = boundedString(value.presetId);
+    if (!id) return { kind: 'hold' };
+    cue.presetId = id;
+    const gain = Number(value.gain);
+    if (Number.isFinite(gain)) cue.gain = Math.min(Math.max(gain, 0), 1);
+  }
   if (value.kind === 'swell') {
     const id = boundedString(value.swellId);
     if (!id) return { kind: 'hold' };
     cue.swellId = id;
   }
   return cue;
+}
+
+function normalizeAudioSegment(raw) {
+  const id = boundedString(raw?.id);
+  const sourceIds = (Array.isArray(raw?.match?.sourceIds) ? raw.match.sourceIds : [])
+    .map(v => boundedString(v)).filter(Boolean).slice(0, MAX_SOURCE_IDS);
+  if (!id || !sourceIds.length) return null;
+  const match = { sourceIds };
+  const from = unitInterval(raw?.match?.fromProgress);
+  const to = unitInterval(raw?.match?.toProgress);
+  const fromCharacter = raw?.match?.fromCharacter;
+  const toCharacter = raw?.match?.toCharacter;
+  const fromToken = raw?.match?.fromToken;
+  const toToken = raw?.match?.toToken;
+  const hasProgress = from !== null || to !== null;
+  const hasCharacter = fromCharacter !== undefined || toCharacter !== undefined;
+  const hasToken = fromToken !== undefined || toToken !== undefined;
+  if ([hasProgress, hasCharacter, hasToken].filter(Boolean).length > 1) return null;
+  if (hasProgress) {
+    match.fromProgress = from ?? 0;
+    match.toProgress = to ?? 1;
+    if (match.toProgress <= match.fromProgress) return null;
+  } else if (hasCharacter) {
+    if (!Number.isInteger(fromCharacter) || fromCharacter < 0
+      || !Number.isInteger(toCharacter) || toCharacter <= fromCharacter) return null;
+    const quoteStart = boundedString(raw?.match?.quoteStart, 500);
+    const quoteEnd = boundedString(raw?.match?.quoteEnd, 500);
+    if (!quoteStart || !quoteEnd) return null;
+    Object.assign(match, { fromCharacter, toCharacter, quoteStart, quoteEnd });
+  } else if (hasToken) {
+    if (!Number.isInteger(fromToken) || fromToken < 0
+      || !Number.isInteger(toToken) || toToken <= fromToken) return null;
+    const quoteStart = boundedString(raw?.match?.quoteStart, 500);
+    const quoteEnd = boundedString(raw?.match?.quoteEnd, 500);
+    if (!quoteStart || !quoteEnd) return null;
+    Object.assign(match, { fromToken, toToken, quoteStart, quoteEnd });
+  }
+  const segment = { id, match, cue: normalizeAudioCue(raw.cue) };
+  const syncGroup = boundedString(raw?.syncGroup);
+  if (syncGroup) segment.syncGroup = syncGroup;
+  return segment;
 }
 
 export function normalizeAudioProgram(value) {
@@ -282,16 +357,34 @@ export function normalizeAudioProgram(value) {
   }
   const segments = [];
   for (const raw of value.segments.slice(0, MAX_SEGMENTS)) {
-    const id = boundedString(raw?.id);
-    const sourceIds = (Array.isArray(raw?.match?.sourceIds) ? raw.match.sourceIds : [])
-      .map(v => boundedString(v)).filter(Boolean).slice(0, MAX_SOURCE_IDS);
-    if (!id || !sourceIds.length) continue;
-    segments.push({ id, match: { sourceIds }, cue: normalizeAudioCue(raw.cue) });
+    const segment = normalizeAudioSegment(raw);
+    if (segment) segments.push(segment);
   }
   if (!segments.length) return null;
-  return {
+  const program = {
     coordinateSpace: 'source',
     segments,
     fallback: normalizeAudioCue(value.fallback) || { kind: 'silence', fadeMs: 500 }
   };
+  if (value.lanes && typeof value.lanes === 'object') {
+    const bedSegments = (Array.isArray(value.lanes.bed?.segments)
+      ? value.lanes.bed.segments : []).slice(0, MAX_SEGMENTS)
+      .map(normalizeAudioSegment).filter(Boolean);
+    const swellSegments = (Array.isArray(value.lanes.swell?.segments)
+      ? value.lanes.swell.segments : []).slice(0, MAX_SEGMENTS)
+      .map(normalizeAudioSegment).filter(Boolean);
+    program.lanes = {
+      bed: {
+        coordinateSpace: 'source',
+        segments: bedSegments,
+        fallback: normalizeAudioCue(value.lanes.bed?.fallback || value.fallback)
+      },
+      swell: {
+        coordinateSpace: 'source',
+        segments: swellSegments,
+        fallback: { kind: 'hold' }
+      }
+    };
+  }
+  return program;
 }

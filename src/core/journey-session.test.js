@@ -17,6 +17,7 @@ import { cueForAtom } from './visual-scheduler.js';
 import { MovementScheduleController, AudioScheduleController } from './journey-schedulers.js';
 
 const MANIFEST = {
+    schemaVersion: 'rise.journey.v1',
     id: 'journey-war',
     movements: [
         {
@@ -47,7 +48,7 @@ const MANIFEST = {
 const words = (n, w) => Array.from({ length: n }, () => w).join(' ');
 
 function buildSession() {
-    const { movementProgram, visualProgram, audioProgram, boundaries } = compileJourney(MANIFEST);
+    const programs = compileJourney(MANIFEST);
     const session = compileSession({
         name: 'War',
         wpm: 200,
@@ -56,16 +57,11 @@ function buildSession() {
             { id: 'pass-heaven', name: 'Paradise Lost VI', raw: words(120, 'heaven') + '.' },
             { id: 'pass-hector', name: 'Iliad XXII', raw: words(120, 'hector') + '.' }
         ],
-        sourceBoundaries: boundaries.map(b => ({
-            id: b.id,
-            sourceId: b.sourceId,
-            afterSourceId: 'pass-heaven',
-            beforeSourceId: 'pass-hector',
-            kind: 'movement',
-            durationMs: b.durationMs
-        }))
+        // The session compiler lowers the canonical score early enough to
+        // build its authored boundary atom. No sibling schedule is supplied.
+        experienceProgram: programs.experienceProgram
     });
-    return { session, movementProgram, visualProgram, audioProgram };
+    return { session, ...programs };
 }
 
 describe('an authored transition becomes an atom', () => {
@@ -184,6 +180,25 @@ describe('walking the compiled session', () => {
 });
 
 describe('the programs survive the Session', () => {
+    it('persists the canonical score and derives every runtime projection from it', async () => {
+        const { Session } = await import('./models.js');
+        const programs = compileJourney(MANIFEST);
+        const session = new Session({
+            name: 'War', atoms: [], sources: [],
+            experienceProgram: programs.experienceProgram,
+            // Deliberately contradictory compatibility values. A canonical
+            // score must win or the migration has created two authorities.
+            movementProgram: null,
+            visualProgram: null,
+            audioProgram: null
+        });
+
+        expect(session.experienceProgram).toEqual(programs.experienceProgram);
+        expect(session.movementProgram).toEqual(programs.movementProgram);
+        expect(session.visualProgram).toEqual(programs.visualProgram);
+        expect(session.audioProgram).toEqual(programs.audioProgram);
+    });
+
     it('carries a Journey\'s three programs as launch identity', async () => {
         // §7.5: they must survive the Chamber's destroy/recreate cycle.
         // A Journey that recompiled on every Chamber construction would
@@ -203,12 +218,14 @@ describe('the programs survive the Session', () => {
 
     it('serializes without executable values', async () => {
         const { Session } = await import('./models.js');
-        const { movementProgram, audioProgram } = compileJourney(MANIFEST);
-        const session = new Session({ name: 'War', atoms: [], sources: [], movementProgram, audioProgram });
+        const { experienceProgram } = compileJourney(MANIFEST);
+        const session = new Session({ name: 'War', atoms: [], sources: [], experienceProgram });
         const round = JSON.parse(JSON.stringify({
+            experienceProgram: session.experienceProgram,
             movementProgram: session.movementProgram,
             audioProgram: session.audioProgram
         }));
+        expect(round.experienceProgram).toEqual(session.experienceProgram);
         expect(round.movementProgram).toEqual(session.movementProgram);
         expect(round.audioProgram).toEqual(session.audioProgram);
     });
@@ -250,6 +267,7 @@ describe('the programs survive normalization, not only serialization', () => {
         // The fixture above is `sourced`; War's first movement is not,
         // so the procedural path needs a program of its own.
         const procedural = compileJourney({
+            schemaVersion: 'rise.journey.v1',
             id: 'j',
             movements: [
                 {

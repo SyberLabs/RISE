@@ -31,6 +31,20 @@ const journey = (movements, extra = {}) => ({
 });
 
 describe('lowering an argument into cues', () => {
+    it('authors one canonical Experience Program before lowering runtime schedules', () => {
+        const programs = compileJourney(journey([movement('war-heaven', ['p1'])]));
+        expect(programs.experienceProgram).toMatchObject({
+            schema: 'rise.experience-program.v1',
+            id: 'journey-war',
+            authority: 'published',
+            editable: false
+        });
+        expect(programs.experienceProgram.tracks.map(track => track.kind)).toEqual([
+            'movement', 'transition', 'visual', 'audio', 'swell'
+        ]);
+        expect(Object.isFrozen(programs.experienceProgram)).toBe(true);
+    });
+
     it('gives every movement its sources, in order', () => {
         const { movementProgram } = compileJourney(journey([
             movement('war-heaven', ['pass-paradise-lost-war-heaven']),
@@ -147,51 +161,101 @@ describe('it refuses rather than approximating', () => {
             .toThrow(/Unknown Journey schema/);
     });
 
+    it('rejects a missing schema on an authored Journey', () => {
+        expect(() => compileJourney({
+            id: 'authored',
+            movements: [movement('m1', ['p1'])]
+        })).toThrow(/schema.*missing/i);
+    });
+
     it('rejects a missing id', () => {
         expect(() => compileJourney({ movements: [movement('m1', ['p1'])] })).toThrow(/needs an id/);
         expect(() => compileJourney(null)).toThrow(JourneyCompileError);
     });
+
+    it('rejects movement and segment overflow instead of truncating the argument', () => {
+        const movements = Array.from({ length: 17 }, (_, index) =>
+            movement(`m-${index}`, [`p-${index}`]));
+        expect(() => compileJourney(journey(movements))).toThrow(/16 movements/);
+
+        const passages = Array.from({ length: 33 }, (_, index) => `p-${index}`);
+        expect(() => compileJourney(journey([movement('m', passages)])))
+            .toThrow(/32 passages/);
+    });
+
+    it('rejects more boundaries than the runtime can preserve', () => {
+        const movements = Array.from({ length: 2 }, (_, movementIndex) => ({
+            id: `m-${movementIndex}`,
+            title: `Movement ${movementIndex}`,
+            segments: Array.from({ length: 20 }, (_, segmentIndex) => ({
+                passageId: `p-${movementIndex}-${segmentIndex}`,
+                ...(segmentIndex < 19 ? {
+                    transitionOut: { id: `t-${movementIndex}-${segmentIndex}` }
+                } : {})
+            })),
+            ...(movementIndex === 0 ? { transitionOut: { id: 'between' } } : {})
+        }));
+        expect(() => compileJourney(journey(movements))).toThrow(/32 authored transitions/);
+    });
 });
 
-describe('cues are bounded before they reach the runtime', () => {
-    it('reads stillness for a sourced cue that names no pool', () => {
-        // Otherwise the cortex shows whatever was last loaded, which is
-        // the stale-pool failure the Chapel already paid for.
-        const { visualProgram } = compileJourney(journey([
+describe('authored cues fail closed before they reach the runtime', () => {
+    it('rejects a sourced cue that names no pool', () => {
+        expect(() => compileJourney(journey([
             movement('m1', ['p1'], { presentation: { visual: { kind: 'sourced', collections: [] } } })
-        ]));
-        expect(cueForSource(visualProgram, 'p1')).toEqual({ kind: 'still' });
+        ]))).toThrow(/at least one collection/);
     });
 
-    it('holds rather than substituting when a soundscape is unnamed', () => {
-        const { audioProgram } = compileJourney(journey([
+    it('rejects a soundscape that is unnamed', () => {
+        expect(() => compileJourney(journey([
             movement('m1', ['p1'], { presentation: { audio: { kind: 'soundscape' } } })
-        ]));
-        expect(cueForSource(audioProgram, 'p1')).toEqual({ kind: 'hold' });
+        ]))).toThrow(/soundscapeId/);
     });
 
-    it('clamps gain, fade, and duration', () => {
-        const { movementProgram, audioProgram } = compileJourney(journey([
+    it('rejects out-of-range gain, fade, and duration rather than clamping', () => {
+        expect(() => compileJourney(journey([
             movement('m1', ['p1'], {
-                presentation: { audio: { kind: 'soundscape', soundscapeId: 's', gain: 99, fadeMs: 1e9 } },
-                transitionOut: { id: 't', durationMs: 1e9 }
+                presentation: { audio: { kind: 'soundscape', soundscapeId: 's', gain: 99 } }
             }),
             movement('m2', ['p2'])
-        ]));
-        const cue = cueForSource(audioProgram, 'p1');
-        expect(cue.gain).toBe(1);
-        expect(cue.fadeMs).toBeLessThanOrEqual(10_000);
-        expect(movementProgram.boundaries[0].durationMs).toBeLessThanOrEqual(60_000);
+        ]))).toThrow(/gain.*between 0 and 1/i);
+        expect(() => compileJourney(journey([
+            movement('m1', ['p1'], {
+                presentation: { audio: { kind: 'silence', fadeMs: 1e9 } }
+            })
+        ]))).toThrow(/fadeMs.*between 0 and 10000/i);
+        expect(() => compileJourney(journey([
+            movement('m1', ['p1'], { transitionOut: { id: 't', durationMs: 1e9 } }),
+            movement('m2', ['p2'])
+        ]))).toThrow(/durationMs.*between 200 and 30000/i);
     });
 
-    it('rejects an unknown cue kind by falling to a safe one', () => {
-        const { visualProgram, audioProgram } = compileJourney(journey([
+    it('rejects imprecise timing and oversized titles rather than rewriting them', () => {
+        expect(() => compileJourney(journey([
+            movement('m1', ['p1'], {
+                presentation: { audio: { kind: 'silence', fadeMs: 12.5 } }
+            })
+        ]))).toThrow(/fadeMs.*integer/i);
+        expect(() => compileJourney(journey([
+            movement('m1', ['p1'], { transitionOut: { id: 't', durationMs: 199 } }),
+            movement('m2', ['p2'])
+        ]))).toThrow(/durationMs.*between 200 and 30000/i);
+        expect(() => compileJourney(journey([
+            movement('m1', ['p1'], { title: 'x'.repeat(201) })
+        ]))).toThrow(/title.*no longer than 200/i);
+    });
+
+    it('rejects unknown cue kinds instead of translating them to safe absence', () => {
+        expect(() => compileJourney(journey([
             movement('m1', ['p1'], {
                 presentation: { visual: { kind: 'explode' }, audio: { kind: 'airhorn' } }
             })
-        ]));
-        expect(cueForSource(visualProgram, 'p1')).toEqual({ kind: 'still' });
-        expect(cueForSource(audioProgram, 'p1')).toEqual({ kind: 'hold' });
+        ]))).toThrow(/Unknown visual cue kind explode/);
+        expect(() => compileJourney(journey([
+            movement('m1', ['p1'], {
+                presentation: { visual: { kind: 'still' }, audio: { kind: 'airhorn' } }
+            })
+        ]))).toThrow(/Unknown audio cue kind airhorn/);
     });
 
     it('falls back for a source it was never told about', () => {
@@ -242,11 +306,10 @@ describe('a procedural cue names its engines', () => {
             .toEqual({ kind: 'procedural', collections: ['paradise-lost'] });
     });
 
-    it('still falls to stillness when it names none', () => {
-        const { visualProgram } = compileJourney(journey([
+    it('rejects a procedural cue when it names no engine family', () => {
+        expect(() => compileJourney(journey([
             movement('m1', ['p1'], { presentation: { visual: { kind: 'procedural' } } })
-        ]));
-        expect(cueForSource(visualProgram, 'p1')).toEqual({ kind: 'still' });
+        ]))).toThrow(/at least one collection/);
     });
 });
 
@@ -254,6 +317,7 @@ describe('figures lower a movement cue onto places in a passage', () => {
     // Ten lines, one word each: line N begins at word N.
     const metrics = { wordsBeforeLine: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], totalWords: 10 };
     const manifest = (figures) => ({
+        schemaVersion: 'rise.journey.v1',
         id: 'j',
         movements: [{
             id: 'm',
@@ -325,6 +389,7 @@ describe('figures lower a movement cue onto places in a passage', () => {
 
     it('ignores figures on a movement whose cue is not procedural', () => {
         const { visualProgram } = compileJourney({
+            schemaVersion: 'rise.journey.v1',
             id: 'j',
             movements: [{
                 id: 'm',

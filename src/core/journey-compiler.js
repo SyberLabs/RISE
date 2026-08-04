@@ -3,9 +3,9 @@
  *
  * A Journey manifest is editorial: it states a thesis, orders movements,
  * and says what each movement does to the reader that no other movement
- * can. None of that is executable. This module turns it into the three
- * bounded programs the runtime already knows how to follow, and it is
- * the only place that understands both vocabularies.
+ * can. None of that is executable. This module authors one canonical
+ * `rise.experience-program.v1` score, then lowers it through the sole
+ * compatibility adapter into the schedules the current runtime follows.
  *
  * THE THREE-LAYER LAW (JOURNEYS-SPEC §5)
  * ──────────────────────────────────────
@@ -37,13 +37,21 @@
  */
 
 import { readJourneyMovements } from '../content/atrium/journey-segments.js';
+import {
+    createExperienceProgram,
+    lowerExperienceProgram,
+    EXPERIENCE_PROGRAM_LIMITS,
+    EXPERIENCE_PROGRAM_SCHEMA
+} from './experience-program.js';
 
 const SCHEMA = 'rise.journey.v1';
-const MAX_MOVEMENTS = 16;
+const MAX_MOVEMENTS = EXPERIENCE_PROGRAM_LIMITS.maxMovements;
 const MAX_SEGMENTS_PER_MOVEMENT = 32;
-const MAX_ID = 160;
-const MAX_DURATION_MS = 60_000;
-const MAX_FADE_MS = 10_000;
+const MAX_ID = EXPERIENCE_PROGRAM_LIMITS.maxIdLength;
+const MIN_DURATION_MS = EXPERIENCE_PROGRAM_LIMITS.minTransitionDurationMs;
+const MAX_DURATION_MS = EXPERIENCE_PROGRAM_LIMITS.maxTransitionDurationMs;
+const MAX_FADE_MS = EXPERIENCE_PROGRAM_LIMITS.maxFadeMs;
+const MAX_BOUNDARIES = EXPERIENCE_PROGRAM_LIMITS.maxTransitions;
 
 /** The prefix that marks a source as an authored transition, not a text. */
 export const BOUNDARY_SOURCE_PREFIX = 'journey-boundary:';
@@ -57,24 +65,60 @@ const VISUAL_KINDS = new Set(['sourced', 'still', 'focal', 'procedural']);
 const boundedId = (value) =>
     (typeof value === 'string' ? value.trim().slice(0, MAX_ID) : '');
 
-const boundedMs = (value, max, fallback = null) => {
-    const n = Number(value);
-    if (!Number.isFinite(n) || n < 0) return fallback;
-    return Math.min(Math.round(n), max);
-};
-
-const boundedGain = (value) => {
-    const n = Number(value);
-    if (!Number.isFinite(n)) return null;
-    return Math.min(Math.max(n, 0), 1);
-};
-
 export class JourneyCompileError extends Error {
     constructor(code, message, details = {}) {
         super(message);
         this.name = 'JourneyCompileError';
         this.code = code;
         this.details = details;
+    }
+}
+
+function authoredId(value, path) {
+    if (typeof value !== 'string' || !value || value !== value.trim()) {
+        throw new JourneyCompileError('JOURNEY_INVALID_ID',
+            `${path} must be a non-empty, trimmed string.`, { path });
+    }
+    if (value.length > MAX_ID) {
+        throw new JourneyCompileError('JOURNEY_ID_TOO_LONG',
+            `${path} exceeds ${MAX_ID} characters.`, { path, length: value.length });
+    }
+    return value;
+}
+
+function authoredMs(value, min, max, fallback, path) {
+    if (value === undefined || value === null) return fallback;
+    if (!Number.isInteger(value) || value < min || value > max) {
+        throw new JourneyCompileError('JOURNEY_DURATION_RANGE',
+            `${path} must be an integer between ${min} and ${max}.`, { path, value });
+    }
+    return value;
+}
+
+function authoredTitle(value, path) {
+    if (value === undefined || value === null || value === '') return null;
+    if (typeof value !== 'string' || value.length > 200) {
+        throw new JourneyCompileError('JOURNEY_INVALID_TITLE',
+            `${path} must be text no longer than 200 characters.`, { path });
+    }
+    return value;
+}
+
+function authoredGain(value, path) {
+    if (value === undefined || value === null) return null;
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) {
+        throw new JourneyCompileError('JOURNEY_GAIN_RANGE',
+            `${path} must be between 0 and 1.`, { path, value });
+    }
+    return value;
+}
+
+function assertCueFields(value, allowed, path) {
+    for (const key of Object.keys(value)) {
+        if (!allowed.has(key)) {
+            throw new JourneyCompileError('JOURNEY_UNKNOWN_CUE_FIELD',
+                `Unknown cue field ${key} at ${path}.`, { path: `${path}.${key}` });
+        }
     }
 }
 
@@ -88,42 +132,78 @@ export function isBoundarySource(sourceId) {
     return typeof sourceId === 'string' && sourceId.startsWith(BOUNDARY_SOURCE_PREFIX);
 }
 
-function normalizeVisualCue(value) {
-    if (!value || typeof value !== 'object') return { kind: 'still' };
-    const kind = VISUAL_KINDS.has(value.kind) ? value.kind : 'still';
+function normalizeVisualCue(value, path) {
+    if (value === undefined || value === null) return { kind: 'still' };
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new JourneyCompileError('JOURNEY_VISUAL_CUE',
+            `${path} must be a visual cue object.`, { path });
+    }
+    if (!VISUAL_KINDS.has(value.kind)) {
+        throw new JourneyCompileError('JOURNEY_VISUAL_KIND',
+            `Unknown visual cue kind ${String(value.kind)} at ${path}.`, { path, kind: value.kind });
+    }
+    const kind = value.kind;
+    const fields = new Set(['kind']);
+    if (kind === 'focal') fields.add('focal');
+    if (kind === 'sourced' || kind === 'procedural') fields.add('collections');
+    assertCueFields(value, fields, path);
     // `still` and `focal` name nothing to draw from; the other two do.
     // Procedural needs its collections as much as sourced does — they
     // name WHICH engine family renders, and dropping them left a
     // movement asking for "some procedural" and getting whatever the
     // cortex last had.
-    if (kind !== 'sourced' && kind !== 'procedural') return { kind };
+    if (kind === 'still') return { kind };
+    if (kind === 'focal') {
+        return value.focal && typeof value.focal === 'object' && !Array.isArray(value.focal)
+            ? { kind, focal: { ...value.focal } }
+            : { kind, focal: {} };
+    }
 
-    const collections = (Array.isArray(value.collections) ? value.collections : [])
-        .map(boundedId).filter(Boolean).slice(0, 32);
-    // A cue with no pool would show whatever happened to be loaded.
-    // Stillness is the honest reading of "no imagery named".
-    return collections.length ? { kind, collections } : { kind: 'still' };
+    if (!Array.isArray(value.collections) || value.collections.length === 0) {
+        throw new JourneyCompileError('JOURNEY_VISUAL_COLLECTIONS',
+            `${path} must name at least one collection.`, { path, kind });
+    }
+    if (value.collections.length > EXPERIENCE_PROGRAM_LIMITS.maxCollections) {
+        throw new JourneyCompileError('JOURNEY_VISUAL_COLLECTIONS',
+            `${path} names too many collections.`, { path, count: value.collections.length });
+    }
+    const collections = value.collections.map((id, index) =>
+        authoredId(id, `${path}.collections[${index}]`));
+    if (new Set(collections).size !== collections.length) {
+        throw new JourneyCompileError('JOURNEY_DUPLICATE_COLLECTION',
+            `${path} names the same collection more than once.`, { path });
+    }
+    return { kind, collections };
 }
 
-function normalizeAudioCue(value) {
-    if (!value || typeof value !== 'object') return { kind: 'hold' };
-    const kind = AUDIO_KINDS.has(value.kind) ? value.kind : 'hold';
+function normalizeAudioCue(value, path) {
+    if (value === undefined || value === null) return { kind: 'hold' };
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new JourneyCompileError('JOURNEY_AUDIO_CUE',
+            `${path} must be an audio cue object.`, { path });
+    }
+    if (!AUDIO_KINDS.has(value.kind)) {
+        throw new JourneyCompileError('JOURNEY_AUDIO_KIND',
+            `Unknown audio cue kind ${String(value.kind)} at ${path}.`, { path, kind: value.kind });
+    }
+    const kind = value.kind;
+    const fields = new Set(['kind', 'fadeMs']);
+    if (kind === 'soundscape') {
+        fields.add('soundscapeId');
+        fields.add('gain');
+    }
+    if (kind === 'swell') fields.add('swellId');
+    assertCueFields(value, fields, path);
     const cue = { kind };
-    const fadeMs = boundedMs(value.fadeMs, MAX_FADE_MS);
+    const fadeMs = authoredMs(value.fadeMs, 0, MAX_FADE_MS, null, `${path}.fadeMs`);
     if (fadeMs !== null) cue.fadeMs = fadeMs;
     if (kind === 'soundscape') {
-        const id = boundedId(value.soundscapeId);
-        // Named nothing to play: hold what is already sounding rather
-        // than silently substituting a different soundscape.
-        if (!id) return { kind: 'hold' };
-        cue.soundscapeId = id;
-        const gain = boundedGain(value.gain);
+        cue.soundscapeId = authoredId(value.soundscapeId, `${path}.soundscapeId`);
+        const gain = authoredGain(value.gain, `${path}.gain`);
         if (gain !== null) cue.gain = gain;
     }
     if (kind === 'swell') {
-        const id = boundedId(value.swellId);
-        if (!id) return { kind: 'hold' };
-        cue.swellId = id;
+        cue.swellId = authoredId(value.swellId, `${path}.swellId`);
     }
     return cue;
 }
@@ -148,17 +228,57 @@ const MAX_FIGURES = 32;
  * Without metrics (the compiler is pure; only the handoff has the text)
  * no figure can be placed, and the movement keeps its single cue.
  */
-function figureSegments(segment, passageId, movementCue, metrics) {
-    const figures = (Array.isArray(segment?.figures) ? segment.figures : [])
-        .slice(0, MAX_FIGURES)
-        .map(figure => ({
-            id: boundedId(figure?.id),
-            fromLine: Number(figure?.fromLine),
-            engines: (Array.isArray(figure?.engines) ? figure.engines : [])
-                .map(boundedId).filter(Boolean)
-        }))
-        .filter(figure => figure.id && Number.isInteger(figure.fromLine) && figure.fromLine >= 0)
-        .sort((a, b) => a.fromLine - b.fromLine);
+function figureSegments(segment, passageId, movementCue, metrics, path) {
+    const rawFigures = segment?.figures;
+    if (rawFigures === undefined || rawFigures === null) return [];
+    if (!Array.isArray(rawFigures)) {
+        throw new JourneyCompileError('JOURNEY_FIGURES',
+            `${path}.figures must be an array.`, { path: `${path}.figures` });
+    }
+    if (rawFigures.length > MAX_FIGURES) {
+        throw new JourneyCompileError('JOURNEY_TOO_MANY_FIGURES',
+            `${path} exceeds ${MAX_FIGURES} figures.`, { path, count: rawFigures.length });
+    }
+    const figures = rawFigures.map((figure, index) => {
+        const figurePath = `${path}.figures[${index}]`;
+        if (!figure || typeof figure !== 'object' || Array.isArray(figure)) {
+            throw new JourneyCompileError('JOURNEY_FIGURE',
+                `${figurePath} must be an object.`, { path: figurePath });
+        }
+        if (!Number.isInteger(figure.fromLine) || figure.fromLine < 0) {
+            throw new JourneyCompileError('JOURNEY_FIGURE_LINE',
+                `${figurePath}.fromLine must be a non-negative integer.`, { path: figurePath });
+        }
+        if (figure.engines !== undefined && !Array.isArray(figure.engines)) {
+            throw new JourneyCompileError('JOURNEY_FIGURE_ENGINES',
+                `${figurePath}.engines must be an array.`, { path: figurePath });
+        }
+        const rawEngines = figure.engines || [];
+        if (rawEngines.length > EXPERIENCE_PROGRAM_LIMITS.maxEngines) {
+            throw new JourneyCompileError('JOURNEY_FIGURE_ENGINES',
+                `${figurePath} names too many engines.`, { path: figurePath, count: rawEngines.length });
+        }
+        const engines = rawEngines.map((id, engineIndex) =>
+            authoredId(id, `${figurePath}.engines[${engineIndex}]`));
+        if (new Set(engines).size !== engines.length) {
+            throw new JourneyCompileError('JOURNEY_DUPLICATE_ENGINE',
+                `${figurePath} names the same engine more than once.`, { path: figurePath });
+        }
+        return {
+            id: authoredId(figure.id, `${figurePath}.id`),
+            fromLine: figure.fromLine,
+            engines
+        };
+    }).sort((a, b) => a.fromLine - b.fromLine);
+
+    if (new Set(figures.map(figure => figure.id)).size !== figures.length) {
+        throw new JourneyCompileError('JOURNEY_DUPLICATE_FIGURE',
+            `${path} contains duplicate figure ids.`, { path });
+    }
+    if (new Set(figures.map(figure => figure.fromLine)).size !== figures.length) {
+        throw new JourneyCompileError('JOURNEY_DUPLICATE_FIGURE_LINE',
+            `${path} starts two figures on the same line.`, { path });
+    }
 
     if (!figures.length || movementCue.kind !== 'procedural') return [];
     const totalWords = Number(metrics?.totalWords);
@@ -170,6 +290,11 @@ function figureSegments(segment, passageId, movementCue, metrics) {
 
     const out = [];
     figures.forEach((figure, i) => {
+        if (figure.fromLine >= offsets.length - 1) {
+            throw new JourneyCompileError('JOURNEY_FIGURE_OUT_OF_RANGE',
+                `${path} places figure ${figure.id} beyond the passage.`,
+                { path, figureId: figure.id, fromLine: figure.fromLine });
+        }
         if (!figure.engines.length) return;   // a declared gap
         const from = at(figure.fromLine);
         const to = i + 1 < figures.length ? at(figures[i + 1].fromLine) : 1;
@@ -200,26 +325,37 @@ function figureSegments(segment, passageId, movementCue, metrics) {
  *   totalWords}. Only the handoff has the resolved text, so only the
  *   handoff can place a figure at a line; without this the compiler is
  *   pure and each movement keeps its single cue.
- * @returns {{movementProgram: object, visualProgram: object,
- *            audioProgram: object, boundaries: object[]}}
+ * @returns {{experienceProgram: object, movementProgram: object,
+ *            visualProgram: object, audioProgram: object,
+ *            boundaries: object[], sourceBoundaries: object[]}}
  */
 export function compileJourney(journey, options = {}) {
     if (!journey || typeof journey !== 'object') {
         throw new JourneyCompileError('JOURNEY_MISSING', 'No Journey manifest was given.');
     }
-    const journeyId = boundedId(journey.id);
-    if (!journeyId) {
+    if (typeof journey.id !== 'string' || !journey.id.trim()) {
         throw new JourneyCompileError('JOURNEY_NO_ID', 'A Journey needs an id.');
     }
-    if (journey.schemaVersion && journey.schemaVersion !== SCHEMA) {
-        throw new JourneyCompileError('JOURNEY_SCHEMA',
-            `Unknown Journey schema: ${journey.schemaVersion}.`, { journeyId });
-    }
+    const journeyId = authoredId(journey.id, 'journey.id');
 
-    const authored = readJourneyMovements(journey).slice(0, MAX_MOVEMENTS);
+    const authored = readJourneyMovements(journey);
     if (!authored.length) {
         throw new JourneyCompileError('JOURNEY_NO_MOVEMENTS',
             'A Journey needs at least one movement.', { journeyId });
+    }
+    // Flat Atrium records predate authored Journeys and remain an explicit
+    // legacy input adapter. A manifest that declares movements is the new
+    // authored shape and must identify its schema; omission is not v1.
+    const declaresMovements = Array.isArray(journey.movements) && journey.movements.length > 0;
+    if ((declaresMovements && journey.schemaVersion !== SCHEMA)
+        || (!declaresMovements && journey.schemaVersion && journey.schemaVersion !== SCHEMA)) {
+        throw new JourneyCompileError('JOURNEY_SCHEMA',
+            `Unknown Journey schema: ${journey.schemaVersion || '(missing)'}.`, { journeyId });
+    }
+    if (authored.length > MAX_MOVEMENTS) {
+        throw new JourneyCompileError('JOURNEY_TOO_MANY_MOVEMENTS',
+            `A Journey may not exceed ${MAX_MOVEMENTS} movements.`,
+            { journeyId, count: authored.length });
     }
 
     const movements = [];
@@ -227,13 +363,19 @@ export function compileJourney(journey, options = {}) {
     const audioSegments = [];
     const boundaries = [];
     const seenMovementIds = new Set();
+    const seenSourceIds = new Set();
+    const seenBoundaryIds = new Set();
 
     authored.forEach((movement, index) => {
-        const id = boundedId(movement?.id);
-        if (!id) {
+        if (!movement || typeof movement !== 'object' || Array.isArray(movement)) {
+            throw new JourneyCompileError('MOVEMENT_INVALID',
+                `Movement ${index} must be an object.`, { journeyId, index });
+        }
+        if (typeof movement.id !== 'string' || !movement.id.trim()) {
             throw new JourneyCompileError('MOVEMENT_NO_ID',
                 `Movement ${index} has no id.`, { journeyId, index });
         }
+        const id = authoredId(movement.id, `movements[${index}].id`);
         if (seenMovementIds.has(id)) {
             // Two movements under one id would make the movement
             // program ambiguous and restart non-deterministic.
@@ -242,23 +384,47 @@ export function compileJourney(journey, options = {}) {
         }
         seenMovementIds.add(id);
 
-        const segments = (Array.isArray(movement.segments) ? movement.segments : [])
-            .slice(0, MAX_SEGMENTS_PER_MOVEMENT);
-        const sourceIds = segments.map(s => boundedId(s?.passageId)).filter(Boolean);
-        if (!sourceIds.length) {
+        if (!Array.isArray(movement.segments) || !movement.segments.length) {
             throw new JourneyCompileError('MOVEMENT_NO_SEGMENTS',
                 `Movement ${id} names no passages.`, { journeyId, id });
         }
+        if (movement.segments.length > MAX_SEGMENTS_PER_MOVEMENT) {
+            throw new JourneyCompileError('MOVEMENT_TOO_MANY_SEGMENTS',
+                `Movement ${id} may not exceed ${MAX_SEGMENTS_PER_MOVEMENT} passages.`,
+                { journeyId, id, count: movement.segments.length });
+        }
+        const segments = movement.segments;
+        const sourceIds = segments.map((segment, segmentIndex) => {
+            if (!segment || typeof segment !== 'object' || Array.isArray(segment)) {
+                throw new JourneyCompileError('SEGMENT_INVALID',
+                    `Movement ${id} segment ${segmentIndex} must be an object.`,
+                    { journeyId, id, segmentIndex });
+            }
+            const sourceId = authoredId(
+                segment.passageId,
+                `movements[${index}].segments[${segmentIndex}].passageId`
+            );
+            if (seenSourceIds.has(sourceId)) {
+                throw new JourneyCompileError('JOURNEY_DUPLICATE_PASSAGE',
+                    `Passage ${sourceId} appears more than once in the Journey.`,
+                    { journeyId, sourceId });
+            }
+            seenSourceIds.add(sourceId);
+            return sourceId;
+        });
 
         movements.push({
             id,
             index,
-            title: boundedId(movement.title) || null,
+            title: authoredTitle(movement.title, `movements[${index}].title`),
             sourceIds
         });
 
         const presentation = movement.presentation || {};
-        const movementCue = normalizeVisualCue(presentation.visual);
+        const movementCue = normalizeVisualCue(
+            presentation.visual,
+            `movements[${index}].presentation.visual`
+        );
         visualSegments.push({
             id: `${id}-visual`,
             match: { sourceIds },
@@ -276,18 +442,21 @@ export function compileJourney(journey, options = {}) {
         // Figures are declared on the SEGMENT rather than the movement
         // because a line number is a coordinate inside one passage, and
         // a movement may hold several.
-        segments.forEach(segment => {
-            const passageId = boundedId(segment?.passageId);
-            if (!passageId) return;
+        segments.forEach((segment, segmentIndex) => {
+            const passageId = sourceIds[segmentIndex];
             for (const ranged of figureSegments(segment, passageId, movementCue,
-                options.passageMetrics?.[passageId])) {
+                options.passageMetrics?.[passageId],
+                `movements[${index}].segments[${segmentIndex}]`)) {
                 visualSegments.push(ranged);
             }
         });
         audioSegments.push({
             id: `${id}-audio`,
             match: { sourceIds },
-            cue: normalizeAudioCue(presentation.audio)
+            cue: normalizeAudioCue(
+                presentation.audio,
+                `movements[${index}].presentation.audio`
+            )
         });
 
         // A boundary between ADJACENT PASSAGES inside this movement
@@ -300,7 +469,20 @@ export function compileJourney(journey, options = {}) {
             const out = segment?.transitionOut;
             const nextSource = sourceIds[s + 1];
             if (!out || !nextSource) return;
-            const tid = boundedId(out.id) || `${id}-seg-${s}`;
+            if (typeof out !== 'object' || Array.isArray(out)) {
+                throw new JourneyCompileError('JOURNEY_TRANSITION',
+                    `Movement ${id} segment ${s} transition must be an object.`,
+                    { journeyId, id, segmentIndex: s });
+            }
+            const transitionPath = `movements[${index}].segments[${s}].transitionOut`;
+            const tid = out.id === undefined
+                ? authoredId(`${id}-seg-${s}`, `${transitionPath}.id`)
+                : authoredId(out.id, `${transitionPath}.id`);
+            if (seenBoundaryIds.has(tid)) {
+                throw new JourneyCompileError('JOURNEY_DUPLICATE_TRANSITION',
+                    `Two transitions share the id ${tid}.`, { journeyId, id: tid });
+            }
+            seenBoundaryIds.add(tid);
             boundaries.push({
                 id: tid,
                 sourceId: boundarySourceId(tid),
@@ -308,17 +490,19 @@ export function compileJourney(journey, options = {}) {
                 toMovementId: id,
                 afterSourceId: sourceIds[s],
                 beforeSourceId: nextSource,
-                durationMs: boundedMs(out.durationMs, MAX_DURATION_MS, 1200)
+                durationMs: authoredMs(
+                    out.durationMs, MIN_DURATION_MS, MAX_DURATION_MS, 1200,
+                    `${transitionPath}.durationMs`)
             });
             visualSegments.push({
                 id: `${tid}-visual`,
                 match: { sourceIds: [boundarySourceId(tid)] },
-                cue: normalizeVisualCue(out.visual)
+                cue: normalizeVisualCue(out.visual, `${transitionPath}.visual`)
             });
             audioSegments.push({
                 id: `${tid}-audio`,
                 match: { sourceIds: [boundarySourceId(tid)] },
-                cue: normalizeAudioCue(out.audio)
+                cue: normalizeAudioCue(out.audio, `${transitionPath}.audio`)
             });
         });
 
@@ -327,7 +511,19 @@ export function compileJourney(journey, options = {}) {
         // it names no destination and joins nothing.
         const out = movement.transitionOut;
         if (!out) return;
-        const transitionId = boundedId(out.id) || `${id}-out`;
+        if (typeof out !== 'object' || Array.isArray(out)) {
+            throw new JourneyCompileError('JOURNEY_TRANSITION',
+                `Movement ${id} transition must be an object.`, { journeyId, id });
+        }
+        const transitionPath = `movements[${index}].transitionOut`;
+        const transitionId = out.id === undefined
+            ? authoredId(`${id}-out`, `${transitionPath}.id`)
+            : authoredId(out.id, `${transitionPath}.id`);
+        if (seenBoundaryIds.has(transitionId)) {
+            throw new JourneyCompileError('JOURNEY_DUPLICATE_TRANSITION',
+                `Two transitions share the id ${transitionId}.`, { journeyId, id: transitionId });
+        }
+        seenBoundaryIds.add(transitionId);
         const sourceId = boundarySourceId(transitionId);
         const next = authored[index + 1];
         // The compiler knows the reading order, so it knows which two
@@ -336,51 +532,112 @@ export function compileJourney(journey, options = {}) {
         // places had to agree about the same join.
         const nextSegments = Array.isArray(next?.segments) ? next.segments : [];
         const nextFirst = nextSegments
-            .map(seg => boundedId(seg?.passageId)).filter(Boolean)[0] || null;
+            .map(seg => typeof seg?.passageId === 'string' ? seg.passageId : '').filter(Boolean)[0] || null;
 
         boundaries.push({
             id: transitionId,
             sourceId,
             fromMovementId: id,
-            toMovementId: next ? boundedId(next.id) || null : null,
+            toMovementId: next ? authoredId(next.id, `movements[${index + 1}].id`) : null,
             afterSourceId: sourceIds[sourceIds.length - 1],
             beforeSourceId: nextFirst,
-            durationMs: boundedMs(out.durationMs, MAX_DURATION_MS, 1200)
+            durationMs: authoredMs(
+                out.durationMs, MIN_DURATION_MS, MAX_DURATION_MS, 1200,
+                `${transitionPath}.durationMs`)
         });
         visualSegments.push({
             id: `${transitionId}-visual`,
             match: { sourceIds: [sourceId] },
-            cue: normalizeVisualCue(out.visual)
+            cue: normalizeVisualCue(out.visual, `${transitionPath}.visual`)
         });
         audioSegments.push({
             id: `${transitionId}-audio`,
             match: { sourceIds: [sourceId] },
-            cue: normalizeAudioCue(out.audio)
+            cue: normalizeAudioCue(out.audio, `${transitionPath}.audio`)
         });
     });
 
-    return {
-        movementProgram: {
-            schema: 'rise.movement-program.v1',
-            journeyId,
-            movements,
-            boundaries
-        },
-        visualProgram: {
-            coordinateSpace: 'source',
-            segments: visualSegments,
-            fallback: { kind: 'still' }
-        },
-        audioProgram: {
-            coordinateSpace: 'source',
-            segments: audioSegments,
-            // Silence rather than hold: a reading that falls outside
-            // every authored cue should not inherit whatever the last
-            // movement happened to be playing.
-            fallback: { kind: 'silence', fadeMs: 500 }
-        },
-        boundaries
-    };
+    if (boundaries.length > MAX_BOUNDARIES) {
+        throw new JourneyCompileError('JOURNEY_TOO_MANY_BOUNDARIES',
+            `A Journey may not exceed ${MAX_BOUNDARIES} authored transitions.`,
+            { journeyId, count: boundaries.length });
+    }
+
+    // The Journey compiler now authors ONE score. The three runtime
+    // schedules returned beside it are compatibility projections made by
+    // one adapter, never independently maintained results.
+    const audioBed = audioSegments.filter(segment => segment.cue.kind !== 'swell');
+    const audioEvents = audioSegments.filter(segment => segment.cue.kind === 'swell');
+    const experienceProgram = createExperienceProgram({
+        schema: EXPERIENCE_PROGRAM_SCHEMA,
+        id: journeyId,
+        authority: 'published',
+        editable: false,
+        tracks: [
+            {
+                id: 'movements',
+                kind: 'movement',
+                clips: movements.map(movement => ({
+                    id: movement.id,
+                    anchor: { sourceIds: movement.sourceIds },
+                    data: { index: movement.index, title: movement.title }
+                }))
+            },
+            {
+                id: 'transitions',
+                kind: 'transition',
+                clips: boundaries.map(boundary => ({
+                    id: boundary.id,
+                    anchor: {
+                        sourceIds: [boundary.sourceId],
+                        afterSourceId: boundary.afterSourceId,
+                        beforeSourceId: boundary.beforeSourceId
+                    },
+                    data: {
+                        fromMovementId: boundary.fromMovementId,
+                        toMovementId: boundary.toMovementId
+                    },
+                    durationMs: boundary.durationMs
+                }))
+            },
+            {
+                id: 'visual-main',
+                kind: 'visual',
+                clips: visualSegments.map(segment => ({
+                    id: segment.id,
+                    anchor: segment.match,
+                    cue: segment.cue
+                })),
+                fallback: { kind: 'still' }
+            },
+            {
+                id: 'audio-bed',
+                kind: 'audio',
+                clips: audioBed.map(segment => ({
+                    id: segment.id,
+                    anchor: segment.match,
+                    cue: segment.cue
+                })),
+                // Silence rather than hold: a reading outside every
+                // authored clip must not inherit the previous session.
+                fallback: { kind: 'silence', fadeMs: 500 }
+            },
+            {
+                id: 'audio-events',
+                kind: 'swell',
+                clips: audioEvents.map(segment => ({
+                    id: segment.id,
+                    anchor: segment.match,
+                    cue: segment.cue
+                }))
+            }
+        ],
+        metadata: {
+            kind: 'journey',
+            journeySchema: declaresMovements ? SCHEMA : 'legacy-flat'
+        }
+    });
+    return lowerExperienceProgram(experienceProgram);
 }
 
 /**

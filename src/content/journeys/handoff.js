@@ -204,7 +204,16 @@ export async function createJourneyHandoff(journey, passages, options = {}) {
         }
     }));
 
-    const boundaries = joinableBoundaries(programs.movementProgram.boundaries);
+    // The canonical score owns the boundary order. Keep the former
+    // projection as a migration assertion so the adapter cannot drift
+    // while both runtime shapes still exist.
+    const boundaries = programs.sourceBoundaries;
+    const legacyBoundaryProjection = joinableBoundaries(programs.movementProgram.boundaries);
+    if (JSON.stringify(boundaries) !== JSON.stringify(legacyBoundaryProjection)) {
+        throw new JourneyHandoffError('JOURNEY_BOUNDARY_DRIFT',
+            'The canonical score and runtime boundary projection disagree.',
+            { journeyId: journey.id });
+    }
 
     // THE FIRST MOVEMENT'S CUE BECOMES THE OPENING FIELD (§7.2).
     //
@@ -237,6 +246,7 @@ export async function createJourneyHandoff(journey, passages, options = {}) {
             sourceBoundaries: boundaries,
             // Launch identity (§7.5). These travel with the Session and
             // survive the Chamber's destroy/recreate cycle.
+            experienceProgram: programs.experienceProgram,
             movementProgram: programs.movementProgram,
             visualProgram: programs.visualProgram,
             audioProgram: programs.audioProgram,

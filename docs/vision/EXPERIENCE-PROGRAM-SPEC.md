@@ -1,8 +1,11 @@
 # The Experience Program — V2's missing abstraction
 
-*Roadmap, 2026-07-31. Not implemented. This records a direction and the
-reasoning for it, so the build order below can be started, paused, and
-resumed without re-deriving the argument.*
+*Roadmap, 2026-07-31. Implementation began 2026-08-03. This records the
+direction and the delivered slices so the build order below can be started,
+paused, and resumed without re-deriving the argument.*
+
+Workshop implementation companion:
+[`WORKSHOP-COMPOSITION-STUDIO-SPEC.md`](./WORKSHOP-COMPOSITION-STUDIO-SPEC.md).
 
 ---
 
@@ -80,6 +83,55 @@ keep the sound. Where clips genuinely must move together, they share a
 
 A first-party Journey is simply a published program with stricter
 authorship. That is the whole difference.
+
+### Implementation status — 2026-08-03
+
+The foundation is now implemented in `src/core/experience-program.js`:
+
+- `rise.experience-program.v1` is a strict, immutable persistence boundary;
+- movement, transition, visual, audio-bed, and swell clips are independent
+  tracks with source-space anchors;
+- published, user, and proposed authority/editability combinations are
+  validated rather than inferred;
+- unknown vocabulary, malformed anchors, duplicate ownership, invalid
+  references, and every size/range overflow refuse with typed errors;
+- the Journey compiler authors this format first, and one compatibility
+  adapter derives the existing movement, visual, and audio schedules;
+- the Session persists the canonical score and treats those derived
+  schedules as runtime projections, not competing authorities.
+
+Stable source spans are now implemented. In addition to the compiled
+`fromProgress`/`toProgress` coordinates used by Journeys, a clip may author
+exactly one half-open range in either UTF-16 character offsets
+(`fromCharacter`/`toCharacter`) or non-whitespace source-token offsets
+(`fromToken`/`toToken`). Both `quoteStart` and `quoteEnd` are required.
+Compilation verifies those endpoint quotations against the supplied edition,
+then stamps character, token, and clip-membership coordinates onto the
+resulting atoms. It never rewrites the canonical anchor to an atom id.
+
+The first Workshop visual lane is also implemented. Sequence images now have
+stable asset ids and editor-only colours. A DOM selection becomes a
+quote-fingerprinted character span; assignments highlight the source, preview
+their exact image, erase independently, and reject overlaps until the author
+explicitly chooses replacement. Saving or launching compiles that editor state
+into the canonical user Experience Program, and both Rhythmic and Gallery
+presentation resolve the named sequence asset rather than sampling the old
+session-wide image pool.
+
+Whitespace inside a quote fingerprint is normalized for comparison; offsets
+are not searched or adjusted. An edition drift, missing source, out-of-bounds
+range, Unicode-surrogate split, or span that produces no playable atom is a
+typed refusal. Character, token, and progress coordinates cannot be mixed on
+one anchor.
+
+The audio runtime now executes the bed and swell tracks independently. One
+atom observation resolves both lanes as a transaction: bed authority changes
+first, then a co-anchored swell fires. A `syncGroup` records correspondence
+without merging the clips. Beds replace beds; swells never replace beds;
+explicit silence owns the bed lane; leaving an authored bed restores the
+project atmosphere default. Pause cancels both outputs, resume restores the
+bed without replaying a momentary swell, and stale asynchronous events are
+cancelled by generation.
 
 ---
 
@@ -386,13 +438,19 @@ User Media Score ──────┼────── Live Curator
 ## 11. Build order
 
 1. **Define `rise.experience-program.v1`** — unify visual, audio,
-   movement, transition, later video.
+   movement, transition, later video. *(Foundation implemented 2026-08-03;
+   video remains intentionally outside the current cue vocabulary.)*
 2. **Stable source-span anchors** — character/token ranges with quote
-   fingerprints, compiled to atoms. *(Half-built: `sourceProgress` and
-   ranged source-space segments exist.)*
+   fingerprints, compiled to atoms. *(Implemented 2026-08-03: strict
+   character/token anchors, edition-drift refusal, atom coordinates, and
+   chunk-mode-invariant runtime matching.)*
 3. **The visual score lane for images** — colour-coded assets, text
-   highlighting, preview, erase, overlap.
-4. **The audio lane and sync groups.**
+   highlighting, preview, erase, overlap. *(Implemented 2026-08-03 in the
+   Workshop: stable sequence-asset identity, selection authoring, explicit
+   overlap replacement, canonical compilation, and exact runtime lookup.)*
+4. **The audio lane and sync groups.** *(Implemented 2026-08-04: independent
+   bed/event lowering and execution, tone cues, sync-group preservation,
+   transport cancellation, and Workshop passage authoring.)*
 5. **MP4 as a first-class visual asset.**
 6. **Export/import Experience Program JSON** — this alone enables the
    manual Live Curator workflow.

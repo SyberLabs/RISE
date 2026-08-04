@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { MemoryCore } from './memory.js';
 
 const GLOBAL_KEY = 'rise_global_images_v1';
+const WORKSHOP_KEY = 'rise_workshop_v1';
 const IMAGE_A = 'data:image/png;base64,AAAA';
 const IMAGE_B = 'data:image/png;base64,BBBB';
 
@@ -52,5 +53,54 @@ describe('MemoryCore Global Image Pool assets', () => {
     expect(renamed.id).toBe(first.id);
     expect(renamed.name).toBe('Renamed');
     expect(MemoryCore.getGlobalImageAssets()).toHaveLength(1);
+  });
+});
+
+describe('MemoryCore Workshop Project boundary', () => {
+  afterEach(() => localStorage.removeItem(WORKSHOP_KEY));
+
+  it('migrates legacy storage to formal projects while returning a flat read model', () => {
+    localStorage.setItem(WORKSHOP_KEY, JSON.stringify([{
+      id: 'legacy-project',
+      title: 'Legacy',
+      sources: [{ id: 'source-1', name: 'Source', data: 'A source text.' }],
+      wpm: 200,
+      curve: 'wave',
+      chunkMode: 'phrase',
+      visualConfig: { visualMode: 'off' }
+    }]));
+
+    const [view] = MemoryCore.getWorkshopBlueprints();
+    const [stored] = JSON.parse(localStorage.getItem(WORKSHOP_KEY));
+
+    expect(view).toMatchObject({
+      schema: 'rise.workshop-project.v1',
+      id: 'legacy-project',
+      wpm: 290,
+      curve: 'wave'
+    });
+    expect(stored.schema).toBe('rise.workshop-project.v1');
+    expect(stored.defaults.reading).toMatchObject({ wpm: 290, chunkMode: 'phrase' });
+    expect(stored).not.toHaveProperty('wpm');
+  });
+
+  it('stores new editor data formally and preserves the compatibility view', () => {
+    const saved = MemoryCore.saveWorkshopBlueprint({
+      title: 'New project',
+      intent: 'custom',
+      sources: [{ id: 'source-1', name: 'Source', data: 'A source text.' }],
+      wpm: 220,
+      paceV2: true,
+      curve: 'flat',
+      chunkMode: 'word',
+      visualConfig: { visualMode: 'off' },
+      soundscape: 'aurora',
+      audioPreset: 'silent'
+    });
+    const [stored] = JSON.parse(localStorage.getItem(WORKSHOP_KEY));
+
+    expect(saved).toMatchObject({ wpm: 220, soundscape: 'aurora' });
+    expect(stored.schema).toBe('rise.workshop-project.v1');
+    expect(stored.defaults.audio.soundscape).toBe('aurora');
   });
 });

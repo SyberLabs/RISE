@@ -174,7 +174,14 @@ export class Chamber {
         // The absence of a preset is not a request for silence. §3.3's
         // "a reader may silence a Journey" is an explicit act, and it
         // has an explicit route: setEnabled(false).
-        { enabled: true }
+        {
+          enabled: true,
+          defaultCue: this.session.soundscape && this.session.soundscape !== 'none'
+            ? { kind: 'soundscape', soundscapeId: this.session.soundscape, fadeMs: 500 }
+            : this.session.audioPreset && this.session.audioPreset !== 'silent'
+              ? { kind: 'tone', presetId: this.session.audioPreset, fadeMs: 500 }
+              : null
+        }
       );
       console.info(
         `[Chamber] Audio schedule ready: ${audioProgram.segments.length} cues`
@@ -2088,7 +2095,9 @@ export class Chamber {
     // NO AUDIO OUTLIVES THE READING (§8.3). The engine owns its own
     // pause path for scheduled ramps; this stops the Journey's score
     // from continuing to mean something while nothing is being read.
-    if (state === 'paused' || state === 'idle') this._audioSchedule?.silence();
+    if (state === 'paused') this._audioSchedule?.pause();
+    else if (state === 'idle' || state === 'complete') this._audioSchedule?.stop();
+    else if (state === 'playing') this._audioSchedule?.resume();
 
     // The Genesis field breathes with the session: pausing the text
     // pauses the pen

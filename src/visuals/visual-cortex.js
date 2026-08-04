@@ -230,6 +230,7 @@ export class VisualCortex {
             // has no covered phase and no concealed-swap handoff at all.
             presentation: 'full-frame',
             customVisuals: [],
+            sequenceVisualAssets: [],
             // null preserves legacy direct callers; App session entry always
             // supplies an exact resolved array (including an intentional []).
             globalVisuals: null
@@ -596,6 +597,7 @@ export class VisualCortex {
             activeTypes: [],
             sourced: [],
             customVisuals: [],
+            sequenceVisualAssets: [],
             globalVisuals: [],
             semanticSignals: null,
             blueprintMechanism: null,
@@ -617,6 +619,7 @@ export class VisualCortex {
             activeTypes: [],
             sourced: [],
             customVisuals: [],
+            sequenceVisualAssets: [],
             globalVisuals: [],
             semanticSignals: null,
             blueprintMechanism: null,
@@ -627,6 +630,7 @@ export class VisualCortex {
 
     async _prewarmProviderPools(collectionIds) {
         for (const id of collectionIds) {
+            if (id.startsWith?.('sequence-asset:')) continue;
             try {
                 const provider = await this._getProviderForCategory(id);
                 // getImagesInCategory populates the provider's own cache;
@@ -919,9 +923,18 @@ export class VisualCortex {
         return workEngineFamilies().filter(type => active.includes(type));
     }
 
+    _activeSequenceAssets() {
+        const active = new Set((this.config.activeTypes || [])
+            .filter(type => type.startsWith?.('sequence-asset:'))
+            .map(type => type.slice('sequence-asset:'.length)));
+        return (this.config.sequenceVisualAssets || [])
+            .filter(asset => active.has(asset?.id) && asset?.uri);
+    }
+
     _continuousHasWorks() {
         return this._continuousProceduralTypes().length > 0
             || this._continuousWorkFamilies().length > 0
+            || this._activeSequenceAssets().length > 0
             || this._activePoolCategories().length > 0;
     }
 
@@ -935,6 +948,14 @@ export class VisualCortex {
         const categories = this._activePoolCategories();
         const works = [];
         const seen = new Set();
+        for (const asset of this._activeSequenceAssets()) {
+            seen.add(asset.uri);
+            works.push({
+                url: asset.uri,
+                title: asset.name || 'Sequence Visual',
+                artworkLabel: null
+            });
+        }
         for (const categoryId of categories) {
             const pool = this._assetPools.get(categoryId);
             if (!pool) continue;
@@ -1181,6 +1202,7 @@ export class VisualCortex {
         const identities = (this.config.activeTypes || [])
             .filter(type => GALLERY_PROCEDURAL_TYPES.includes(type)
                 || type === 'diagram'
+                || type.startsWith?.('sequence-asset:')
                 || this._isExternalCategory(type))
             .slice()
             .sort();
@@ -1747,6 +1769,7 @@ export class VisualCortex {
     _localVisualUris() {
         const types = this.config.activeTypes || [];
         const uris = [];
+        uris.push(...(this.config.sequenceVisualAssets || []).map(asset => asset?.uri));
         if (types.includes('custom')) uris.push(...(this.config.customVisuals || []));
         if (types.includes('global') || types.includes('global-pool')) {
             uris.push(...this._globalVisualUris());
@@ -2219,7 +2242,8 @@ export class VisualCortex {
             // Families authored for one work. Listed so selection does
             // not filter out a type the cortex can genuinely render.
             ...workEngineFamilies()];
-        if (coreTypes.includes(type) || type.startsWith('personal:')) return false;
+        if (coreTypes.includes(type) || type.startsWith('personal:')
+            || type.startsWith('sequence-asset:')) return false;
 
         // Otherwise assume it's a category for one of our external providers
         return true;
@@ -3127,6 +3151,22 @@ export class VisualCortex {
                 });
                 if (rendered !== false && kleeEl) kleeEl.hidden = false;
                 rendered = rendered !== false;
+            }
+        } else if (selectedType.startsWith?.('sequence-asset:') && this.customImageEl) {
+            const assetId = selectedType.slice('sequence-asset:'.length);
+            const asset = (this.config.sequenceVisualAssets || [])
+                .find(item => item?.id === assetId);
+            if (!asset?.uri) {
+                return this._presentationResult(duration, 'source-unavailable');
+            }
+            if (asciiMode) {
+                asciiFrame = this._localAsciiAssets.get(asset.uri) || null;
+            } else {
+                rendered = this._showAdaptiveImage(
+                    this.customImageEl,
+                    asset.uri,
+                    asset.name || 'Sequence Visual'
+                );
             }
         } else if (selectedType === 'custom' && this.customImageEl && this.config.customVisuals.length > 0) {
             const visuals = this.config.customVisuals;

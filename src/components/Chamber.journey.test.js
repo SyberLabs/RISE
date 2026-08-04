@@ -21,6 +21,7 @@ import {
 import { VisualScheduleController } from '../core/visual-scheduler.js';
 
 const MANIFEST = {
+    schemaVersion: 'rise.journey.v1',
     id: 'journey-war',
     movements: [
         {

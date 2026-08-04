@@ -9,7 +9,7 @@ export { SourceRegistry } from './registry.js';
 export { SourceCache } from './cache.js';
 
 // Text providers
-export { LocalTextProvider, GutenbergProvider, SacredTextProvider, ArxivProvider } from './text/index.js';
+export { ArchiveTextProvider, LocalTextProvider, GutenbergProvider, SacredTextProvider, ArxivProvider } from './text/index.js';
 export { GUTENBERG_CATALOG, SACRED_TEXTS, ARXIV_CATEGORIES } from './text/index.js';
 
 // Visual providers
@@ -19,7 +19,7 @@ export { WikimediaProvider, WIKIMEDIA_CATEGORIES } from './visual/index.js';
 // Initialization helper
 import { SourceRegistry } from './registry.js';
 import { SourceCache } from './cache.js';
-import { LocalTextProvider, GutenbergProvider, SacredTextProvider, ArxivProvider } from './text/index.js';
+import { ArchiveTextProvider, LocalTextProvider, GutenbergProvider, SacredTextProvider, ArxivProvider } from './text/index.js';
 import { GeneratedVisualProvider, WikimediaProvider } from './visual/index.js';
 
 /**
@@ -36,6 +36,7 @@ export async function initSourceSystem() {
     // Register defaults once. Repeated bootstrap calls retain provider
     // identity, cache state, and any in-flight provider initialization.
     const defaults = [
+        new ArchiveTextProvider(),
         new LocalTextProvider(),
         new GutenbergProvider(),
         new SacredTextProvider(),

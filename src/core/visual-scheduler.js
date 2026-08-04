@@ -54,20 +54,51 @@ export function cueForAtom(program, atom) {
         let broad = null;
         for (const seg of program.segments) {
             if (!seg.match?.sourceIds?.includes(coord.sourceId)) continue;
-            if (seg.match.fromProgress === undefined) {
+            const ranged = seg.match.fromProgress !== undefined
+                || seg.match.fromCharacter !== undefined
+                || seg.match.fromToken !== undefined;
+            if (!ranged) {
                 broad = broad || seg;
                 continue;
             }
-            const at = coord.progress;
-            // Half-open, so adjacent figures cannot both claim the line
-            // they meet on.
-            if (at >= seg.match.fromProgress && at < seg.match.toProgress) {
+            if (matchesSourceRange(seg.match, atom, coord.progress)) {
                 return { id: seg.id, cue: seg.cue };
             }
         }
         if (broad) return { id: broad.id, cue: broad.cue };
     }
     return { id: FALLBACK_ID, cue: program.fallback };
+}
+
+function halfOpenAtomOverlap(atomFrom, atomTo, rangeFrom, rangeTo) {
+    if (!Number.isInteger(atomFrom) || !Number.isInteger(atomTo)) return false;
+    // Structural pause atoms are zero-width points. They hold a cue only
+    // when the authored span actually crosses their source position.
+    return atomFrom === atomTo
+        ? atomFrom >= rangeFrom && atomFrom < rangeTo
+        : atomTo > rangeFrom && atomFrom < rangeTo;
+}
+
+function matchesSourceRange(match, atom, progress) {
+    if (match.fromCharacter !== undefined) {
+        return halfOpenAtomOverlap(
+            atom?.sourceCharacterStart,
+            atom?.sourceCharacterEnd,
+            match.fromCharacter,
+            match.toCharacter
+        );
+    }
+    if (match.fromToken !== undefined) {
+        return halfOpenAtomOverlap(
+            atom?.sourceTokenStart,
+            atom?.sourceTokenEnd,
+            match.fromToken,
+            match.toToken
+        );
+    }
+    // Progress remains half-open so adjacent Journey figures cannot both
+    // claim the point where they meet.
+    return progress >= match.fromProgress && progress < match.toProgress;
 }
 
 function readCoordinate(space, atom) {

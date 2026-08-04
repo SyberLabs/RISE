@@ -15,11 +15,14 @@ export class SourceBrowser {
 
         // Mode: 'all' shows both text and visual, 'text' shows only text providers
         this.browserMode = options.mode || 'all';
+        this.providerIds = Array.isArray(options.providerIds) ? new Set(options.providerIds) : null;
+        this.autoSelectProviderId = options.autoSelectProviderId || null;
 
         this.element = null;
         this.activeProvider = null;
         this.contentItems = [];
         this.searchQuery = '';
+        this.activeCategory = 'all';
         this.isLoading = false;
         this._requestVersion = 0;
         this._requestController = null;
@@ -31,8 +34,11 @@ export class SourceBrowser {
         // Track expanded visual categories for browsing individual images
         this.expandedCategory = null;
         this.categoryImages = [];
+        this.activeTextItem = null;
+        this.textContents = null;
+        this.contentsQuery = '';
 
-        // Mode: 'categories' or 'images' (for visual providers)
+        // Mode: provider items, visual-category images, or a work's contents
         this.viewMode = 'categories';
 
         this.create();
@@ -69,7 +75,9 @@ export class SourceBrowser {
                     <!-- Sidebar: Provider list -->
                     <aside class="sb-sidebar">
                         <div class="sb-search">
-                            <input type="text" class="sb-search-input" placeholder="Search...">
+                            <label class="sr-only" for="sb-source-search">Search the source library</label>
+                            <input type="search" id="sb-source-search" class="sb-search-input"
+                                   placeholder="Search titles, authors, ideasâ€¦">
                         </div>
                         <nav class="sb-providers">
                             <div class="sb-provider-group">
@@ -81,6 +89,7 @@ export class SourceBrowser {
                                 <ul class="sb-provider-list" data-type="visual"></ul>
                             </div>
                         </nav>
+                        <nav class="sb-library-navigation" aria-label="Archive shelves" hidden></nav>
                     </aside>
 
                     <!-- Content area -->
@@ -100,6 +109,10 @@ export class SourceBrowser {
         this.renderProviders();
         this.attachEvents();
 
+        if (this.autoSelectProviderId && SourceRegistry.get(this.autoSelectProviderId)) {
+            void this.loadProviderContent(this.autoSelectProviderId);
+        }
+
         // Animate in
         requestAnimationFrame(() => {
             this.element.classList.add('open');
@@ -111,14 +124,15 @@ export class SourceBrowser {
         const visualList = this.element.querySelector('[data-type="visual"]');
         const visualGroup = this.element.querySelector('.sb-provider-group:has([data-type="visual"])');
 
-        const textProviders = SourceRegistry.getTextProviders();
-        const visualProviders = SourceRegistry.getVisualProviders();
+        const includeProvider = provider => !this.providerIds || this.providerIds.has(provider.id);
+        const textProviders = SourceRegistry.getTextProviders().filter(includeProvider);
+        const visualProviders = SourceRegistry.getVisualProviders().filter(includeProvider);
 
         textList.innerHTML = textProviders.map(p => `
             <li>
                 <button class="sb-provider-btn" data-provider="${p.id}">
                     <span class="sb-provider-name">${p.name}</span>
-                    <span class="sb-provider-tier tier-${p.tier}">${p.tier}</span>
+                    <span class="sb-provider-tier tier-${p.tier}">${p.isLibraryRegistry ? p.count : p.tier}</span>
                 </button>
             </li>
         `).join('');
@@ -138,6 +152,40 @@ export class SourceBrowser {
         }
     }
 
+    renderLibraryNavigation(provider = this.activeProvider) {
+        const navigation = this.element.querySelector('.sb-library-navigation');
+        const providerNavigation = this.element.querySelector('.sb-providers');
+        if (!navigation) return;
+        if (!provider?.isLibraryRegistry || typeof provider.getFacets !== 'function') {
+            navigation.hidden = true;
+            if (providerNavigation) providerNavigation.hidden = false;
+            return;
+        }
+
+        const { shelves = [] } = provider.getFacets();
+        const renderShelf = shelf => `<button type="button"
+            class="sb-shelf-btn ${this.activeCategory === shelf.id ? 'active' : ''}"
+            data-library-category="${escapeHtml(shelf.id)}"
+            aria-pressed="${this.activeCategory === shelf.id}">
+              <span aria-hidden="true">${escapeHtml(shelf.icon || '◇')}</span>
+              <span><strong>${escapeHtml(shelf.name)}</strong><small>${escapeHtml(shelf.description || '')}</small></span>
+              <em>${shelf.count}</em>
+            </button>`;
+        navigation.innerHTML = `
+            <span class="sb-group-label">Browse the Archive</span>
+            <button type="button" class="sb-shelf-btn ${this.activeCategory === 'all' ? 'active' : ''}"
+                    data-library-category="all" aria-pressed="${this.activeCategory === 'all'}">
+              <span aria-hidden="true">◌</span><span><strong>All works</strong><small>The complete curated registry</small></span>
+              <em>${provider.count}</em>
+            </button>
+            <span class="sb-shelf-axis">By tradition</span>
+            ${shelves.filter(shelf => shelf.axis === 'tradition').map(renderShelf).join('')}
+            <span class="sb-shelf-axis">By subject</span>
+            ${shelves.filter(shelf => shelf.axis !== 'tradition').map(renderShelf).join('')}`;
+        navigation.hidden = false;
+        if (providerNavigation) providerNavigation.hidden = true;
+    }
+
     /**
      * Check if provider is visual type
      */
@@ -148,7 +196,9 @@ export class SourceBrowser {
     async loadProviderContent(providerId) {
         const provider = SourceRegistry.get(providerId);
         if (!provider || this._destroyed) return;
+        const providerChanged = provider !== this.activeProvider;
         this.activeProvider = provider;
+        if (providerChanged) this.activeCategory = 'all';
         const { version, signal } = this._beginRequest();
 
         // Reset view mode
@@ -167,6 +217,7 @@ export class SourceBrowser {
         this.element.querySelectorAll('.sb-provider-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.provider === providerId);
         });
+        this.renderLibraryNavigation(provider);
 
         // Load content
         const contentList = this.element.querySelector('.sb-content-list');
@@ -175,15 +226,25 @@ export class SourceBrowser {
 
         try {
             let items;
+            const libraryFilter = provider.isLibraryRegistry && this.activeCategory !== 'all'
+                ? { category: this.activeCategory }
+                : {};
             if (this.searchQuery && provider.supportsSearch) {
-                items = await provider.search(this.searchQuery, { signal });
+                items = await provider.search(this.searchQuery, { ...libraryFilter, signal });
             } else {
-                items = await provider.list({ limit: 50, signal });
+                items = await provider.list({
+                    ...libraryFilter,
+                    limit: provider.isLibraryRegistry ? 250 : 50,
+                    signal
+                });
             }
 
             if (!this._isCurrentRequest(version, provider)) return;
             this.contentItems = items;
             this.isLoading = false;
+            header.textContent = provider.isLibraryRegistry
+                ? `${provider.name} · ${items.length} work${items.length === 1 ? '' : 's'}`
+                : provider.name;
             this.renderContent();
         } catch (error) {
             if (isAbortError(error) || !this._isCurrentRequest(version, provider)) return;
@@ -241,6 +302,26 @@ export class SourceBrowser {
         this.renderContent();
     }
 
+    goBack() {
+        if (this.viewMode !== 'contents') {
+            this.goBackToCategories();
+            return;
+        }
+        this.viewMode = 'categories';
+        this.activeTextItem = null;
+        this.textContents = null;
+        this.contentsQuery = '';
+        const backBtn = this.element.querySelector('.sb-back-btn');
+        if (backBtn) backBtn.hidden = true;
+        const search = this.element.querySelector('.sb-search');
+        if (search) search.hidden = false;
+        const header = this.element.querySelector('.sb-content-title');
+        header.textContent = this.activeProvider?.isLibraryRegistry
+            ? `${this.activeProvider.name} · ${this.contentItems.length} work${this.contentItems.length === 1 ? '' : 's'}`
+            : this.activeProvider?.name || 'Select a provider';
+        this.renderContent();
+    }
+
     renderContent() {
         const contentList = this.element.querySelector('.sb-content-list');
 
@@ -261,21 +342,160 @@ export class SourceBrowser {
      * Render text-based content (books, articles, etc.)
      */
     renderTextContent() {
-        return this.contentItems.map((item, index) => `
-            <div class="sb-item sb-item-text" data-index="${index}">
+        return this.contentItems.map((item, index) => {
+            const metadata = item.metadata || {};
+            const holdings = metadata.holdings || (metadata.verseCount ? `${metadata.verseCount} verses` : '');
+            const opensContents = metadata.canBrowseParts
+                && typeof this.activeProvider?.getContents === 'function';
+            return `
+            <article class="sb-item sb-item-text ${metadata.rightsBasis ? 'is-verified-edition' : ''}" data-index="${index}">
                 <div class="sb-item-info">
                     <span class="sb-item-name">${escapeHtml(item.name)}</span>
-                    ${item.metadata?.author ? `<span class="sb-item-author">${escapeHtml(item.metadata.author)}</span>` : ''}
-                    ${item.metadata?.tradition ? `<span class="sb-item-category">${escapeHtml(item.metadata.tradition)}</span>` : ''}
-                    ${item.metadata?.category ? `<span class="sb-item-category">${escapeHtml(item.metadata.category)}</span>` : ''}
-                    ${item.metadata?.description ? `<span class="sb-item-desc">${escapeHtml(this.truncate(item.metadata.description, 80))}</span>` : ''}
-                    ${item.metadata?.verseCount ? `<span class="sb-item-count">${escapeHtml(item.metadata.verseCount)} verses</span>` : ''}
+                    ${metadata.author ? `<span class="sb-item-author">${escapeHtml(metadata.author)}</span>` : ''}
+                    <span class="sb-item-taxonomy">
+                      ${metadata.shelf ? `<span>${escapeHtml(metadata.shelfIcon || '◇')} ${escapeHtml(metadata.shelf)}</span>` : ''}
+                      ${metadata.division ? `<span>${escapeHtml(metadata.division)}</span>` : ''}
+                      ${holdings ? `<span>${escapeHtml(holdings)}</span>` : ''}
+                      ${!metadata.shelf && metadata.tradition ? `<span>${escapeHtml(metadata.tradition)}</span>` : ''}
+                      ${!metadata.shelf && metadata.category ? `<span>${escapeHtml(metadata.category)}</span>` : ''}
+                    </span>
+                    ${metadata.description ? `<span class="sb-item-desc">${escapeHtml(this.truncate(metadata.description, 130))}</span>` : ''}
+                    ${metadata.edition ? `<span class="sb-item-edition"><span aria-hidden="true">✓</span>${escapeHtml(metadata.edition)}</span>` : ''}
                 </div>
-                <button class="sb-item-add" type="button" data-index="${index}">
-                    Add
+                <button class="${opensContents ? 'sb-item-open' : 'sb-item-add'}" type="button" data-index="${index}"
+                        aria-label="${opensContents ? 'Open chapters of' : 'Add'} ${escapeHtml(item.name)}">
+                    ${opensContents ? 'Open' : 'Add'}
                 </button>
+            </article>`;
+        }).join('');
+    }
+
+    contentsDuration(words) {
+        const minutes = Math.max(1, Math.round((Number(words) || 0) / 200));
+        if (minutes < 60) return `${minutes} min`;
+        const hours = Math.floor(minutes / 60);
+        const remainder = minutes % 60;
+        return remainder ? `${hours}h ${remainder}m` : `${hours}h`;
+    }
+
+    filteredContentsEntries() {
+        const entries = this.textContents?.entries || [];
+        const query = this.contentsQuery.trim().toLocaleLowerCase();
+        if (!query) return entries;
+        return entries.filter(entry => [entry.label, entry.title]
+            .filter(Boolean).join(' ').toLocaleLowerCase().includes(query));
+    }
+
+    renderTextContents() {
+        const contentList = this.element.querySelector('.sb-content-list');
+        const header = this.element.querySelector('.sb-content-title');
+        const backBtn = this.element.querySelector('.sb-back-btn');
+        const search = this.element.querySelector('.sb-search');
+        const contents = this.textContents;
+        const item = this.activeTextItem;
+        if (!contentList || !contents || !item) return;
+
+        const entries = this.filteredContentsEntries();
+        const totalWords = contents.entries.reduce((sum, entry) => sum + (Number(entry.words) || 0), 0);
+        const metadata = item.metadata || {};
+        const noun = contents.noun || metadata.chapterNoun || 'section';
+        header.textContent = item.name;
+        if (backBtn) backBtn.hidden = false;
+        if (search) search.hidden = true;
+        contentList.className = 'sb-content-list';
+        contentList.innerHTML = `
+          <section class="sb-contents" aria-labelledby="sb-contents-title">
+            <header class="sb-contents-identity">
+              <span class="studio-kicker">Contents</span>
+              <h3 id="sb-contents-title">${escapeHtml(item.name)}</h3>
+              ${metadata.author ? `<p>${escapeHtml(metadata.author)}</p>` : ''}
+              <div class="sb-contents-weight">
+                <span>${contents.entries.length} ${escapeHtml(contents.entries.length === 1 ? noun : `${noun}s`)}</span>
+                <span>${this.contentsDuration(totalWords)}</span>
+                ${metadata.edition ? `<span>✓ ${escapeHtml(metadata.edition)}</span>` : ''}
+              </div>
+            </header>
+            ${contents.entries.length > 12 ? `
+              <label class="sb-contents-search">
+                <span class="sr-only">Filter chapters</span>
+                <input type="search" value="${escapeHtml(this.contentsQuery)}"
+                       placeholder="Find a chapter or section" data-contents-search>
+                ${this.contentsQuery ? `<small>${entries.length} of ${contents.entries.length}</small>` : ''}
+              </label>` : ''}
+            ${contents.reason === 'measured' ? `<p class="sb-contents-note">This edition has no verifiable named division scheme, so the Archive offers measured readings.</p>` : ''}
+            <div class="sb-chapter-list" role="list">
+              ${entries.length ? entries.map((entry, index) => `
+                <article class="sb-chapter-item" role="listitem">
+                  <span class="sb-chapter-mark" aria-hidden="true">${index + 1}</span>
+                  <span class="sb-chapter-copy"><strong>${escapeHtml(entry.label)}</strong>
+                    ${entry.title ? `<small>${escapeHtml(entry.title)}</small>` : ''}</span>
+                  <span class="sb-chapter-time">${this.contentsDuration(entry.words)}</span>
+                  <button type="button" class="sb-chapter-add" data-entry-id="${escapeHtml(String(entry.id))}"
+                          aria-label="Add ${escapeHtml(entry.title || entry.label)}">Add</button>
+                </article>`).join('') : '<p class="sb-empty">No chapters match this search.</p>'}
             </div>
-        `).join('');
+            <footer class="sb-contents-footer">
+              <button type="button" class="sb-whole-add">Add complete work · ${this.contentsDuration(totalWords)}</button>
+            </footer>
+          </section>`;
+
+        if (this.contentsQuery) {
+            requestAnimationFrame(() => {
+                const input = this.element.querySelector('[data-contents-search]');
+                input?.focus();
+                input?.setSelectionRange(this.contentsQuery.length, this.contentsQuery.length);
+            });
+        }
+    }
+
+    async openTextItem(index, button) {
+        const item = this.contentItems[index];
+        const provider = this.activeProvider;
+        if (!item || !provider || typeof provider.getContents !== 'function') return;
+        if (button) {
+            button.textContent = 'Opening…';
+            button.disabled = true;
+        }
+        try {
+            const contents = await provider.getContents(item.id);
+            if (this._destroyed) return;
+            if (!contents?.divided) {
+                await this.selectItem(index);
+                return;
+            }
+            this.activeTextItem = item;
+            this.textContents = contents;
+            this.contentsQuery = '';
+            this.viewMode = 'contents';
+            this.renderTextContents();
+        } catch (error) {
+            console.error('[SourceBrowser] Failed to open work contents:', error);
+            if (button) {
+                button.textContent = 'Retry';
+                button.disabled = false;
+            }
+        }
+    }
+
+    async selectTextEntry(entryId, button) {
+        const provider = this.activeProvider;
+        const item = this.activeTextItem;
+        if (!provider || !item || typeof provider.getEntry !== 'function') return;
+        if (button) {
+            button.textContent = 'Adding…';
+            button.disabled = true;
+        }
+        try {
+            const selected = await provider.getEntry(item.id, entryId);
+            if (this._destroyed || !selected) return;
+            this.onSelect(selected, provider);
+        } catch (error) {
+            console.error('[SourceBrowser] Failed to add chapter:', error);
+            if (button) {
+                button.textContent = 'Retry';
+                button.disabled = false;
+            }
+        }
     }
 
     /**
@@ -391,8 +611,8 @@ export class SourceBrowser {
         // Escape key
         this.keyHandler = (e) => {
             if (e.key === 'Escape') {
-                if (this.viewMode === 'images') {
-                    this.goBackToCategories();
+                if (this.viewMode === 'images' || this.viewMode === 'contents') {
+                    this.goBack();
                 } else {
                     this.close();
                 }
@@ -402,14 +622,41 @@ export class SourceBrowser {
 
         // Back button
         this.element.querySelector('.sb-back-btn')?.addEventListener('click', () => {
-            this.goBackToCategories();
+            this.goBack();
         });
 
         // Provider selection and item actions
         this.element.addEventListener('click', (e) => {
+            const shelfBtn = e.target.closest('[data-library-category]');
+            if (shelfBtn && this.activeProvider?.isLibraryRegistry) {
+                this.activeCategory = shelfBtn.dataset.libraryCategory || 'all';
+                this.renderLibraryNavigation();
+                void this.loadProviderContent(this.activeProvider.id);
+                return;
+            }
+
             const providerBtn = e.target.closest('[data-provider]');
             if (providerBtn) {
                 this.loadProviderContent(providerBtn.dataset.provider);
+                return;
+            }
+
+            const openBtn = e.target.closest('.sb-item-open');
+            if (openBtn) {
+                void this.openTextItem(parseInt(openBtn.dataset.index), openBtn);
+                return;
+            }
+
+            const chapterBtn = e.target.closest('.sb-chapter-add');
+            if (chapterBtn) {
+                void this.selectTextEntry(chapterBtn.dataset.entryId, chapterBtn);
+                return;
+            }
+
+            const wholeBtn = e.target.closest('.sb-whole-add');
+            if (wholeBtn && this.activeTextItem) {
+                const index = this.contentItems.indexOf(this.activeTextItem);
+                if (index >= 0) void this.selectItem(index);
                 return;
             }
 
@@ -457,6 +704,14 @@ export class SourceBrowser {
                     this.loadProviderContent(this.activeProvider.id);
                 }
             }, 300);
+        });
+
+        this.element.addEventListener('input', (e) => {
+            const input = e.target.closest('[data-contents-search]');
+            if (!input) return;
+            clearTimeout(this._searchTimer);
+            this.contentsQuery = input.value;
+            this._searchTimer = setTimeout(() => this.renderTextContents(), 120);
         });
     }
 

@@ -21,7 +21,13 @@ describe('War assembles for launch', () => {
         expect(handoff.config.sources).toHaveLength(4);
         expect(handoff.text.length).toBeGreaterThan(50_000);
 
-        // The three programs travel as launch identity.
+        // One canonical score travels as launch identity; the three legacy
+        // schedules beside it are projections for the current Chamber.
+        expect(handoff.config.experienceProgram).toMatchObject({
+            schema: 'rise.experience-program.v1',
+            authority: 'published',
+            editable: false
+        });
         expect(handoff.config.movementProgram.movements.map(m => m.id))
             .toEqual(['war-heaven', 'war-hero', 'war-steel']);
         expect(handoff.config.visualProgram.coordinateSpace).toBe('source');

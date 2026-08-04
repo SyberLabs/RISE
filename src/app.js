@@ -19,6 +19,10 @@ import {
     normalizePresentation
 } from './core/visual-presence.js';
 import { compileSession } from './core/session-compiler.js';
+import {
+    isWorkshopProject,
+    workshopProjectToSessionConfig
+} from './core/workshop-project.js';
 import { MemoryCore } from './core/memory.js';
 import { initSourceSystem } from './sources/index.js';
 import { BetaGate } from './components/BetaGate.js';
@@ -628,6 +632,7 @@ class App {
                                 blueprintMechanism: interlocution.blueprintMechanism ?? null,
                                 freedomRelation: interlocution.freedomRelation ?? null,
                                 customVisuals: session.customVisuals || [],
+                                sequenceVisualAssets: session.sequenceVisualAssets || [],
                                 // Resolve stable Global Pool IDs once at
                                 // session entry. The flash hot path receives a
                                 // pinned URI set and never rereads shared state.
@@ -1043,9 +1048,12 @@ class App {
      * Handle session creation from Workshop
      */
     handleCreateSession(sessionData) {
-        console.log('[R.I.S.E.] Compiling Custom Workshop Session:', sessionData);
+        const sessionInput = isWorkshopProject(sessionData)
+            ? workshopProjectToSessionConfig(sessionData)
+            : sessionData;
+        console.log('[R.I.S.E.] Compiling Custom Workshop Session:', sessionInput);
 
-        if (!sessionData || !sessionData.sources || sessionData.sources.length === 0) {
+        if (!sessionInput || !sessionInput.sources || sessionInput.sources.length === 0) {
             this.showToast('Cannot create session without sources', 3000);
             return;
         }
@@ -1055,8 +1063,8 @@ class App {
         let session;
         try {
             session = compileSession({
-                ...sessionData,
-                title: sessionData.title || `Custom Sequence (${sessionData.sources.length} sources)`,
+                ...sessionInput,
+                title: sessionInput.title || `Custom Sequence (${sessionInput.sources.length} sources)`,
                 isCustom: true
             });
         } catch (error) {
@@ -1071,7 +1079,7 @@ class App {
         this.currentSession = session;
 
         // Ensure that preview mode routing flag passes correctly if requested
-        if (sessionData.isPreview) {
+        if (sessionInput.isPreview) {
             session.isPreview = true;
         }
 

@@ -7,8 +7,92 @@ import {
   normalizeVisualConfig,
   SESSION_LIMITS
 } from './session-compiler.js';
+import { compileVisualScoreProgram } from './visual-score-lane.js';
+import { createEditorAsset } from './editor-asset.js';
 
 describe('session compiler', () => {
+  it('carries stable sequence assets through the canonical visual-score program', () => {
+    const source = { id: 'alpha', name: 'Alpha', text: 'Still water.' };
+    const asset = {
+      id: 'moon',
+      uri: 'data:image/png;base64,bW9vbg==',
+      name: 'Moon',
+      color: '#7fd4a4'
+    };
+    const experienceProgram = compileVisualScoreProgram({
+      programId: 'score-program',
+      sources: [source],
+      assets: [asset],
+      assignments: [{
+        id: 'visual-1',
+        sourceId: 'alpha',
+        assetId: 'moon',
+        fromCharacter: 0,
+        toCharacter: 5,
+        quoteStart: 'Still',
+        quoteEnd: 'Still'
+      }]
+    });
+
+    const session = compileSession({
+      sources: [{ id: 'alpha', name: 'Alpha', data: source.text }],
+      sequenceVisualAssets: [asset],
+      experienceProgram
+    });
+
+    expect(session.sequenceVisualAssets).toEqual([asset]);
+    expect(session.visualProgram.segments[0].cue.collections)
+      .toEqual(['sequence-asset:moon']);
+    expect(() => compileSession({
+      sources: [{ id: 'alpha', name: 'Alpha', data: source.text }],
+      sequenceVisualAssets: [],
+      experienceProgram
+    })).toThrow(/missing sequence image moon/i);
+  });
+
+  it('lowers mixed collection and procedural spans under every scored presentation', () => {
+    const source = { id: 'mixed', name: 'Mixed', text: 'Klee and masters.' };
+    const assets = [
+      createEditorAsset({
+        id: 'procedural:klee', lane: 'visual', kind: 'procedural', name: 'Klee',
+        capability: 'both', editor: { color: '#7fd4a4', preview: { kind: 'generator', ref: 'klee' } },
+        cueTemplate: { kind: 'procedural', collections: ['klee'] }
+      }),
+      createEditorAsset({
+        id: 'collection:aic-oldmasters', lane: 'visual', kind: 'sourced-collection',
+        name: 'Old Masters', capability: 'both',
+        editor: { color: '#d7a7ff', preview: { kind: 'sample', ref: 'aic-oldmasters' } },
+        cueTemplate: { kind: 'sourced', collections: ['aic-oldmasters'] }
+      })
+    ];
+    const experienceProgram = compileVisualScoreProgram({
+      programId: 'mixed-score', sources: [source], assets,
+      assignments: [
+        {
+          id: 'klee-clip', sourceId: 'mixed', assetId: 'procedural:klee',
+          fromCharacter: 0, toCharacter: 4, quoteStart: 'Klee', quoteEnd: 'Klee'
+        },
+        {
+          id: 'masters-clip', sourceId: 'mixed', assetId: 'collection:aic-oldmasters',
+          fromCharacter: 9, toCharacter: 16, quoteStart: 'masters', quoteEnd: 'masters'
+        }
+      ]
+    });
+
+    for (const presentation of ['full-frame', 'behind-stream', 'continuous']) {
+      const session = compileSession({
+        sources: [{ id: source.id, name: source.name, data: source.text }],
+        experienceProgram,
+        visualConfig: { visualMode: 'interlocution', interlocution: { presentation } }
+      });
+      expect(session.visualConfig.interlocution.presentation).toBe(presentation);
+      expect(session.visualProgram.segments.map(segment => segment.cue)).toEqual([
+        { kind: 'procedural', collections: ['klee'] },
+        { kind: 'sourced', collections: ['aic-oldmasters'] }
+      ]);
+    }
+  });
+
   it('preserves source provenance across a multi-source session', () => {
     const session = compileSession({
       title: 'Synthesis',

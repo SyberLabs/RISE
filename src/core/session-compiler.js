@@ -11,6 +11,16 @@ import { prepareChunkText } from './chunk-profiles.js';
 import { PacingEngine, StateCurve } from './pacing.js';
 import { normalizeGlobalPoolSelection, normalizeVisualSelection } from './visual-selection.js';
 import {
+    validateExperienceProgram,
+    lowerExperienceProgram,
+    EXPERIENCE_PROGRAM_LIMITS
+} from './experience-program.js';
+import { compileSourceSpans } from './source-span.js';
+import {
+    createSequenceVisualAsset,
+    validateSequenceAssetReferences
+} from './visual-score-lane.js';
+import {
     normalizeGalleryCadence,
     normalizeVisualPresence,
     normalizePresentation,
@@ -90,7 +100,7 @@ export function normalizeProvenance(value, depth = 0) {
  * boundary is an atom with a duration — the one field that can stall a
  * reading if it arrives wrong.
  */
-const MAX_SOURCE_BOUNDARIES = 32;
+const MAX_SOURCE_BOUNDARIES = EXPERIENCE_PROGRAM_LIMITS.maxTransitions;
 
 function normalizeSourceBoundaries(value) {
     if (!Array.isArray(value)) return [];
@@ -134,8 +144,39 @@ export function normalizeSessionConfig(input = {}) {
         enabled: input.recitation?.enabled === true
     });
 
-    return { ...input, wpm, chunkMode, curve, recitation,
-        sourceBoundaries: normalizeSourceBoundaries(input.sourceBoundaries) };
+    const experienceProgram = input.experienceProgram == null
+        ? null
+        : validateExperienceProgram(input.experienceProgram);
+    const rawSequenceAssets = Array.isArray(input.sequenceVisualAssets)
+        ? input.sequenceVisualAssets
+        : [];
+    if (rawSequenceAssets.length > 24) {
+        throw new RangeError('A sequence may contain at most 24 visual assets.');
+    }
+    const sequenceVisualAssets = rawSequenceAssets.map(createSequenceVisualAsset);
+    if (new Set(sequenceVisualAssets.map(asset => asset.id)).size !== sequenceVisualAssets.length) {
+        throw new TypeError('Sequence visual asset ids must be unique.');
+    }
+    if (experienceProgram) validateSequenceAssetReferences(experienceProgram, sequenceVisualAssets);
+    const lowered = experienceProgram ? lowerExperienceProgram(experienceProgram) : null;
+
+    return {
+        ...input,
+        wpm,
+        chunkMode,
+        curve,
+        recitation,
+        sequenceVisualAssets,
+        ...(experienceProgram ? {
+            experienceProgram,
+            movementProgram: lowered.movementProgram,
+            visualProgram: lowered.visualProgram,
+            audioProgram: lowered.audioProgram
+        } : {}),
+        sourceBoundaries: normalizeSourceBoundaries(
+            lowered?.sourceBoundaries ?? input.sourceBoundaries
+        )
+    };
 }
 
 export function normalizeVisualConfig(value = {}) {
@@ -374,6 +415,11 @@ export function compileSession(input = {}) {
     }
     if (atoms.length === 0) throw new TypeError('The supplied sources produced no playable content');
 
+    // Durable source spans are verified only after the exact edition text is
+    // present and atomization is complete. This stamps source coordinates on
+    // atoms without changing the canonical score or binding it to atom ids.
+    compileSourceSpans(config.experienceProgram, sources, atoms);
+
     const pacing = new PacingEngine({ baseWpm: config.wpm });
     pacing.setStateCurve(CURVES[config.curve]());
     const pacedAtoms = pacing.paceAtoms(atoms);
@@ -387,9 +433,10 @@ export function compileSession(input = {}) {
         visualConfig: normalizeVisualConfig(config.visualConfig),
         origin: normalizeProvenance(config.origin),
         provenance: normalizeProvenance(config.provenance),
-        customVisuals: Array.isArray(config.customVisuals)
-            ? config.customVisuals.filter(uri => typeof uri === 'string' && uri.startsWith('data:image/')).slice(0, 24)
-            : []
+        customVisuals: [...new Set([
+            ...(Array.isArray(config.customVisuals) ? config.customVisuals : []),
+            ...(config.sequenceVisualAssets || []).map(asset => asset.uri)
+        ].filter(uri => typeof uri === 'string' && uri.startsWith('data:image/')))].slice(0, 24)
     });
 }
 

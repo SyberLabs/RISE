@@ -1272,6 +1272,55 @@ describe('VisualCortex external asset hydration', () => {
     });
 });
 
+describe('VisualCortex sequence score assets', () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it('renders the exact stable asset named by a sequence-asset cue', async () => {
+        grantVisualInterlocutionConsent();
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.container = { hidden: true, style: {} };
+        cortex.customImageEl = { hidden: true, src: '', alt: '' };
+        cortex.config.sequenceVisualAssets = [
+            { id: 'moon', uri: 'data:image/png;base64,bW9vbg==', name: 'Moon' },
+            { id: 'reeds', uri: 'data:image/png;base64,cmVlZHM=', name: 'Reeds' }
+        ];
+        const show = vi.spyOn(cortex, '_showAdaptiveImage').mockReturnValue(true);
+        vi.spyOn(cortex, '_presentRenderedVisual').mockResolvedValue({
+            presented: true,
+            requestedDurationMs: 150,
+            presentedDurationMs: 150,
+            reason: 'presented'
+        });
+
+        const result = await cortex.flash(150, 'sequence-asset:reeds');
+
+        expect(show).toHaveBeenCalledWith(
+            cortex.customImageEl,
+            'data:image/png;base64,cmVlZHM=',
+            'Reeds'
+        );
+        expect(result).toMatchObject({ presented: true, reason: 'presented' });
+    });
+
+    it('exposes only the active stable asset to the continuous Gallery', () => {
+        const cortex = new VisualCortex();
+        cortex.config.activeTypes = ['sequence-asset:reeds'];
+        cortex.config.sequenceVisualAssets = [
+            { id: 'moon', uri: 'data:image/png;base64,bW9vbg==', name: 'Moon' },
+            { id: 'reeds', uri: 'data:image/png;base64,cmVlZHM=', name: 'Reeds' }
+        ];
+
+        expect(cortex._continuousHasWorks()).toBe(true);
+        expect(cortex._continuousPool()).toEqual([{
+            url: 'data:image/png;base64,cmVlZHM=',
+            title: 'Reeds',
+            artworkLabel: null
+        }]);
+        expect(cortex._continuousPoolKey()).toContain('sequence-asset:reeds');
+    });
+});
+
 describe('VisualCortex adaptive image wash', () => {
     it('uses the same uncropped foreground and ambient wash in Behind Stream', () => {
         const cortex = new VisualCortex();

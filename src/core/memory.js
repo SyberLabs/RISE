@@ -4,6 +4,14 @@
  * and sequence completion history to facilitate the Recursion stage.
  */
 
+import {
+  isWorkshopProject,
+  migrateWorkshopBlueprint,
+  validateWorkshopProject,
+  workshopEditorDataToProject,
+  workshopProjectToBlueprintView
+} from './workshop-project.js';
+
 const STORAGE_KEY = 'rise_recursions_v1';
 const WORKSHOP_KEY = 'rise_workshop_v1';
 const SOL_PLAN_KEY = 'rise_sol_plan_v1';
@@ -169,23 +177,30 @@ export class MemoryCore {
       // 1.4375× slowdown. Scale once (idempotent via paceV2) so the
       // delivered feel of every saved sequence is unchanged.
       let migrated = false;
-      for (const blueprint of blueprints) {
-        if (!blueprint.paceV2) {
-          if (Number.isFinite(Number(blueprint.wpm))) {
-            blueprint.wpm = Math.max(100, Math.min(500,
-              Math.round((Number(blueprint.wpm) * 1.4375) / 10) * 10));
-          }
-          blueprint.paceV2 = true;
-          migrated = true;
+      const stored = [];
+      const views = blueprints.map((blueprint) => {
+        try {
+          const project = isWorkshopProject(blueprint)
+            ? validateWorkshopProject(blueprint)
+            : migrateWorkshopBlueprint(blueprint);
+          stored.push(project);
+          migrated ||= !isWorkshopProject(blueprint);
+          return workshopProjectToBlueprintView(project);
+        } catch (error) {
+          // Opening the Vault may never become a destructive migration.
+          // Preserve malformed legacy work so the Studio can repair it.
+          console.warn('[Memory] Workshop project migration deferred:', error);
+          stored.push(blueprint);
+          return blueprint;
         }
-      }
+      });
       if (migrated) {
         try {
-          localStorage.setItem(WORKSHOP_KEY, JSON.stringify(blueprints));
+          localStorage.setItem(WORKSHOP_KEY, JSON.stringify(stored));
         } catch (e) { /* quota — migrated values still served this session */ }
       }
 
-      return blueprints;
+      return views;
     } catch (e) {
       console.error('[Memory] Fail read workshop data:', e);
       return [];
@@ -200,23 +215,28 @@ export class MemoryCore {
     try {
       if (!blueprint || typeof blueprint !== 'object') return null;
       const history = this.getWorkshopBlueprints();
-      const savedBlueprint = {
-        ...JSON.parse(JSON.stringify(blueprint)),
-        id: blueprint.id || `blueprint_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
-        updatedAt: Date.now()
-      };
+      const id = blueprint.id || `blueprint_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      const updatedAt = Date.now();
+      const formalInput = isWorkshopProject(blueprint)
+        && !Object.hasOwn(blueprint, 'wpm')
+        ? { ...blueprint, id, updatedAt }
+        : null;
+      const project = formalInput
+        ? validateWorkshopProject(formalInput)
+        : workshopEditorDataToProject(blueprint, { id, updatedAt });
+      const storedHistory = history.map(item => item.project || item);
 
       // Replace if exists, otherwise append.
-      const existingIndex = history.findIndex(b => b.id === savedBlueprint.id);
+      const existingIndex = storedHistory.findIndex(b => b.id === project.id);
       if (existingIndex >= 0) {
-        history[existingIndex] = savedBlueprint;
+        storedHistory[existingIndex] = project;
       } else {
-        history.unshift(savedBlueprint);
+        storedHistory.unshift(project);
       }
 
-      localStorage.setItem(WORKSHOP_KEY, JSON.stringify(history));
-      console.log('[Memory] Workshop Blueprint saved:', savedBlueprint.id);
-      return savedBlueprint;
+      localStorage.setItem(WORKSHOP_KEY, JSON.stringify(storedHistory));
+      console.log('[Memory] Workshop Project saved:', project.id);
+      return workshopProjectToBlueprintView(project);
     } catch (e) {
       console.error('[Memory] Fail save workshop blueprint:', e);
       return null;
@@ -228,7 +248,9 @@ export class MemoryCore {
    */
   static deleteWorkshopBlueprint(id) {
      try {
-       const history = this.getWorkshopBlueprints().filter(b => b.id !== id);
+       const history = this.getWorkshopBlueprints()
+         .filter(b => b.id !== id)
+         .map(item => item.project || item);
        localStorage.setItem(WORKSHOP_KEY, JSON.stringify(history));
        return true;
      } catch (e) {
