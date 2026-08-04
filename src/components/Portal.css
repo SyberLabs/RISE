@@ -117,6 +117,25 @@
 .act-verb,
 .act-go { display: none; }
 
+/* P4/P5 — a room's glyph and its supporting line. The NAME is not
+   listed: it is the word the desktop tile has always shown, and it
+   stays an ordinary inline span there. */
+.room-glyph,
+.room-line,
+.portal-arch-glyph { display: none; }
+
+/* The Solarium's orb and window name are computed every 30s and shown
+   only on the phone's card. They were `hidden` attributes; hiding them
+   in CSS instead lets one media query reveal them without JS having to
+   know which composition is on screen. */
+.sol-strip-orb,
+.sol-strip-window { display: none; }
+
+/* Wraps the arch's caption so the phone has a single box to lay out.
+   `contents` means the plinth's flex column sees exactly the children
+   it saw before this element existed. */
+.portal-arch-line { display: contents; }
+
 /* ─── Title ─── */
 .portal-title-container {
   text-align: center;
@@ -1046,29 +1065,35 @@
     border-top: 1px solid var(--color-shadow);
   }
 
-  /* A room is a name, not a button. Same ink, same tracking and the
-     same hairline as the two marble doors below — so the five of them
-     read as one list instead of two unrelated inventions. */
+  /* ── P4 · A ROOM INTRODUCES ITSELF ──
+     Five underlined words: VAULT, LIBRARY, WORKSHOP, ATRIUM,
+     SOLARIUM. Nothing distinguished a collection from a workspace
+     from a time-room, and nothing said what any of them held. A
+     reader who did not already know the product could not build a
+     model of it from this screen — and the Latin names, which are a
+     genuine part of this work's character, became an obstacle instead
+     of an invitation.
+     A card carries four things: a mark, a name, a line, and a surface
+     that says it is a place you can enter. */
   .portal-nav .nav-secondary .nav-item {
     flex: 1 1 0;
     min-width: 0;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: none;
-    box-shadow: none;
-    min-height: 44px;
-    display: inline-flex;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    font-family: var(--font-primary);
-    font-size: 10px;
-    letter-spacing: 0.16em;
+    justify-content: flex-start;
+    gap: 5px;
+    padding: 11px 6px 12px;
+    min-height: 0;
+    text-align: center;
+    text-decoration: none;
+    background: rgba(18, 18, 20, 0.55);
+    border: 1px solid rgba(42, 42, 48, 0.9);
+    border-radius: var(--radius-sm);
+    box-shadow: none;
     color: var(--color-fog);
-    text-decoration: underline;
-    text-decoration-color: var(--color-shadow);
-    text-decoration-thickness: 1px;
-    text-underline-offset: 4px;
+    letter-spacing: 0;
+    font-size: inherit;
   }
 
   .portal-nav .nav-secondary .nav-item::before {
@@ -1076,24 +1101,92 @@
   }
 
   .portal-nav .nav-secondary .nav-item:active {
-    color: var(--color-glow);
+    border-color: rgba(139, 127, 212, 0.4);
+    background: rgba(18, 18, 20, 0.8);
     transform: none;
     box-shadow: none;
+  }
+
+  .room-glyph,
+  .portal-arch-glyph {
+    display: block;
+    font-size: 17px;
+    line-height: 1;
+  }
+
+  .room-name,
+  .portal-arch .portal-arch-name {
+    /* The arch's name is `display: none` by default — it is carved
+       into the marble frieze on desktop and only needs its own box
+       once the marble is put away. Removing the old mobile rule that
+       said so is what made both cards render nameless. */
+    display: block;
+    font-family: var(--font-display);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-light);
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .room-line {
+    display: block;
+    /* The nav tile sets `text-transform: uppercase` for a one-word
+       label. A sentence is not a label: JOURNEYS AND ARCHETYPES reads
+       as shouting, and small caps at 8.5px are markedly harder to
+       read than lowercase. */
+    text-transform: none;
+    font-family: var(--font-primary);
+    font-size: 8.5px;
+    line-height: 1.35;
+    letter-spacing: 0.01em;
+    color: var(--color-mist);
+    /* Two lines, and it wraps between words. A room's description is
+       never broken mid-word — the same rule the orb labels learned. */
+    overflow-wrap: normal;
+    word-break: keep-all;
+    hyphens: none;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* ── P5 · HUE AS WAYFINDING ──
+     Colour appears ONLY in the mark. Never in the name, never in the
+     border, never as a fill — so the screen stays monochrome at a
+     glance and reveals its scheme on inspection, which is the register
+     this product works in. The palette already defined all of these
+     and the Portal was using none of them. */
+  [data-nav="vault"] .room-glyph    { color: var(--color-threshold); }
+  [data-nav="library"] .room-glyph  { color: rgba(139, 127, 212, 0.6); }
+  [data-nav="workshop"] .room-glyph { color: var(--color-ember); }
+  .portal-arch-atrium .portal-arch-glyph { color: var(--color-chamber); }
+  .portal-arch-sol .portal-arch-glyph    { color: var(--color-ember); }
+
+  /* The Solarium's mark is not a fixed glyph: it is the sun or the
+     moon of THIS hour, which updateSolStrip already writes every
+     thirty seconds. Revealing the wrapper was not enough — the orb
+     carries its own default of none. */
+  .portal-arch-sol .portal-arch-glyph .sol-strip-orb {
+    display: inline;
   }
 
   /* ── The index: second line ── */
   /* Sits directly under the first with no seam: the two lines are one
      block of five rooms, not a list and an afterthought. */
-  /* Two equal cells rather than two centred words. The Solarium's hour
-     rides on its own line, so centring the PAIR centres the clock too
-     and pushes both names left of the column they sit under. */
+  /* Two wider cards. The asymmetry with the row above is deliberate
+     and carries meaning: three collections, then two rooms. That these
+     are different KINDS of place is exactly what five identical
+     underlined words failed to say. */
   .portal-arches {
     display: flex;
-    gap: 0;
+    gap: var(--space-xs);
     justify-content: center;
     width: 100%;
     max-width: 320px;
-    margin-top: 0;
+    margin-top: var(--space-xs);
   }
 
   .portal-arch .gazebo {
@@ -1108,20 +1201,45 @@
     flex: 1 1 0;
     min-width: 0;
     margin: 0;
-    /* AS SMALL AS A DOOR CAN BE AND STILL BE A DOOR.
-       These are rooms off the act, not the act. At 83px they matched
-       the primary nav; at 47 they still competed with it. A tile is
-       the wrong object — the right one is a quiet line of type with a
-       hairline under it, which is how a footer names a place. 44px of
-       height is the touch target; the ink is a fraction of it. */
-    padding: 0;
-    border: 0;
-    background: none;
-    text-align: center;
-    min-height: 44px;
-    display: inline-flex;
+    /* The same card as the row above, laid out as a ROW rather than a
+       column because these two have the width for it: mark on the
+       left, name and line stacked beside it. */
+    display: flex;
+    flex-direction: row;
     align-items: center;
-    justify-content: center;
+    gap: 9px;
+    padding: 9px 10px;
+    min-height: 52px;
+    text-align: left;
+    background: rgba(18, 18, 20, 0.55);
+    border: 1px solid rgba(42, 42, 48, 0.9);
+    border-radius: var(--radius-sm);
+  }
+
+  .portal-arch:active {
+    border-color: rgba(139, 127, 212, 0.4);
+    background: rgba(18, 18, 20, 0.8);
+  }
+
+  .portal-arch .portal-arch-plinth {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+    margin-top: 0;
+    max-width: none;
+    text-align: left;
+  }
+
+  /* A real box now, not `contents`: the caption is the card's second
+     line and needs somewhere to be. */
+  .portal-arch .portal-arch-line {
+    display: block;
+    min-width: 0;
+    font-size: 8.5px;
+    line-height: 1.3;
+    color: var(--color-mist);
   }
 
   .portal-arch:active .portal-arch-name {
@@ -1133,38 +1251,48 @@
     transform: none;
   }
 
-  .portal-arch .portal-arch-name {
-    display: inline;
-    font-family: var(--font-primary);
-    font-size: 10px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--color-fog);
-    border-bottom: 1px solid var(--color-shadow);
-    padding-bottom: 3px;
-  }
-
-  /* The subtitle goes. "philosophy & history" is an orientation for
-     somebody deciding at leisure on a wide screen; on a phone it is a
-     second line of type under a word that already says it. */
+  /* THE SUBTITLE COMES BACK. It was cut when these were bare
+     underlined words and a second line would have doubled the height
+     of the smallest thing on the screen. A card has a place for it,
+     and "philosophy & history" is the only thing that tells a reader
+     what an Atrium is. */
   .portal-arch .portal-arch-detail {
-    display: none;
-  }
-
-  /* The clock stays, and moves ONTO the line. The Solarium is a WHEN
-     rather than a place, so the hour is not a caption under the door —
-     it is what is behind it. A second line would double the height of
-     the smallest thing on the screen. */
-  .portal-arch .sol-strip-time {
-    display: inline;
-    margin-left: 5px;
-    font-size: 9px;
-    letter-spacing: 0.04em;
+    display: block;
+    max-width: none;
+    white-space: normal;
+    overflow: visible;
+    font-family: var(--font-primary);
+    font-style: normal;
+    font-size: 8.5px;
+    line-height: 1.3;
+    letter-spacing: 0.01em;
     color: var(--color-mist);
   }
 
-  .portal-arch-plinth {
+  /* The Solarium is a WHEN rather than a place, so its line is the
+     hour AND the window that hour belongs to — a bare clock is a
+     widget; a named window is a state. Both are already computed
+     every thirty seconds; only the second was never shown. */
+  .portal-arch .sol-strip-detail {
+    display: none;
+  }
+
+  .portal-arch-sol .sol-strip-time,
+  .portal-arch-sol .sol-strip-window {
     display: inline;
+    font-size: 8.5px;
+    letter-spacing: 0.04em;
+    color: var(--color-mist);
+    margin: 0;
+  }
+
+  .portal-arch-sol .sol-strip-time {
+    font-family: var(--font-mono);
+  }
+
+  .portal-arch-sol .sol-strip-window::before {
+    content: ' · ';
+    color: var(--color-shadow);
   }
 
   /* Clear of the bottom edge, and clear of the Curia's door, which

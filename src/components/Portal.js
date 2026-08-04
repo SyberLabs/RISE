@@ -122,7 +122,7 @@ export class Portal {
    * (which holds `nicheInner` — the living window), on a stepped base.
    * `plinthInner` is the caption beneath.
    */
-  _gazeboMarkup(name, nicheInner, plinthInner) {
+  _gazeboMarkup(name, nicheInner, plinthInner, glyph = '') {
     return `
       <span class="gazebo" aria-hidden="true">
         <span class="gazebo-stage">
@@ -169,8 +169,12 @@ export class Portal {
              marked aria-hidden. On a phone the decoration is not shown
              at all, so the name needs somewhere outside it to be. Hidden
              on desktop, where the marble already says it. -->
+        <span class="portal-arch-glyph" aria-hidden="true">${glyph}</span>
         <span class="portal-arch-name">${name}</span>
-        ${plinthInner}
+        <!-- display:contents on desktop, so the plinth's flex column
+             sees exactly the children it always saw; a real box on the
+             phone, where it becomes the card's supporting line. -->
+        <span class="portal-arch-line">${plinthInner}</span>
       </span>`;
   }
 
@@ -276,15 +280,22 @@ export class Portal {
             </button>
           </div>
 
+          <!-- ROOMS THAT INTRODUCE THEMSELVES (P4/P5). Five
+               underlined words told a first-time reader nothing about
+               what any of them held, and the Latin names — a real part
+               of this work's character — became an obstacle rather
+               than an invitation. The glyph and the line are
+               display:none above 640, so the desktop tiles still read
+               as the single words they always did. -->
           <div class="nav-secondary">
             <button class="nav-item" data-nav="vault" role="link">
-              Vault
+              <span class="room-glyph" aria-hidden="true">◈</span><span class="room-name">Vault</span><span class="room-line">Journeys and archetypes</span>
             </button>
             <button class="nav-item" data-nav="library" role="link">
-              Library
+              <span class="room-glyph" aria-hidden="true">▤</span><span class="room-name">Library</span><span class="room-line">The public-domain Archive</span>
             </button>
             <button class="nav-item" data-nav="workshop" role="link">
-              Workshop
+              <span class="room-glyph" aria-hidden="true">✚</span><span class="room-name">Workshop</span><span class="room-line">Readings you compose</span>
             </button>
           </div>
         </nav>
@@ -311,7 +322,7 @@ export class Portal {
             <span class="gz-niche-shade"></span>
           `, `
             <span class="portal-arch-detail atrium-door-detail">philosophy &amp; history</span>
-          `)}
+          `, '⬡')}
         </button>
 
         <!-- SOLARIUM (the sundial-room): a *when*, not a place — the niche
@@ -328,9 +339,8 @@ export class Portal {
           `, `
             <span class="portal-arch-detail sol-strip-detail"></span>
             <span class="sol-strip-time font-mono"></span>
-            <span class="sol-strip-orb" hidden></span>
-            <span class="sol-strip-window" hidden></span>
-          `)}
+            <span class="sol-strip-window"></span>
+          `, '<span class="sol-strip-orb"></span>')}
         </button>
         </div>
 
