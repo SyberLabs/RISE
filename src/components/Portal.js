@@ -204,8 +204,23 @@ export class Portal {
           <span aria-hidden="true">▣</span>
         </button>
 
-        <!-- The Sigil - Center of attention -->
+        <!-- The Sigil - Center of attention.
+             THE STAGE (Premium_Mobile_Chamber P1) is decoration only:
+             two hairline rings and four cardinal marks that give the
+             vessel something to sit in. It is display:none at every
+             width above the phone, so the desktop composition — where
+             the vessel is flanked by marble and needs no help — never
+             renders or paints it. Static by rule: the vessel's own
+             loop is the only motion the Portal is allowed. -->
         <div class="portal-sigil-container" style="opacity: 0;">
+          <span class="sigil-stage" aria-hidden="true">
+            <span class="sigil-ring sigil-ring-outer"></span>
+            <span class="sigil-ring sigil-ring-inner"></span>
+            <span class="sigil-mark sigil-mark-n">⌐</span>
+            <span class="sigil-mark sigil-mark-e">◊</span>
+            <span class="sigil-mark sigil-mark-s">□</span>
+            <span class="sigil-mark sigil-mark-w">✛</span>
+          </span>
           <button
             class="portal-sigil-vessel"
             aria-label="Quick access to last session"
@@ -248,9 +263,16 @@ export class Portal {
                and published readings are what the Vault holds. It now
                opens from the Vault's first row, and the Portal names
                the one thing a first-time reader can do: read. -->
+          <!-- THE ACT IS A VERB, ON THE PHONE (P2). The mark, the word
+               "Enter" and the arrow are hidden at every width above
+               640, so the desktop tile still reads exactly "Chamber"
+               and its accessible name is unchanged. A threshold that
+               names a place tells you where you are; one that names an
+               action tells you what to do, and on a phone the reader
+               has one screen in which to work that out. -->
           <div class="nav-primary">
-            <button class="nav-item" data-nav="chamber" role="link">
-              Chamber
+            <button class="nav-item nav-act" data-nav="chamber" role="link">
+              <span class="act-mark" aria-hidden="true">✦</span><span class="act-label"><span class="act-verb">Enter </span>Chamber</span><span class="act-go" aria-hidden="true">→</span>
             </button>
           </div>
 

@@ -98,6 +98,25 @@
   outline-offset: 8px;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   PREMIUM MOBILE CHAMBER — parts that exist only on the phone
+   ═══════════════════════════════════════════════════════════════
+   Declared inert HERE, at the top of the cascade, rather than being
+   switched off inside the phone's own media block. The difference
+   matters: a rule that hides by default and reveals under one query
+   cannot leak upward, so no desktop width has to be tested to know
+   the desktop is unaffected — it renders nothing because nothing was
+   ever turned on for it.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* P1 — the sigil's stage */
+.sigil-stage { display: none; }
+
+/* P2 — the act's mark, verb and direction */
+.act-mark,
+.act-verb,
+.act-go { display: none; }
+
 /* ─── Title ─── */
 .portal-title-container {
   text-align: center;
@@ -808,14 +827,93 @@
      largest. Sized rather than scaled: `transform` left the original
      100px box behind it, and that ghost was a quarter of the "empty
      padding up top". */
+  /* ── P1 · THE STAGED SIGIL ──
+     The vessel was a 76px circle floating in a 136px void: the
+     identity of the product, and the only moving thing on the screen,
+     presented at the scale of a favicon with nothing around it to say
+     it mattered. It grows, and it gains an instrument's dial.
+
+     The rings are absolutely positioned and therefore cost NO layout
+     height — they occupy the void that was already there. The four
+     marks are the app's own glyph vocabulary, not new ornament. */
   .portal-sigil-container {
-    margin-bottom: var(--space-sm);
+    --sigil: 96px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--sigil);
+    height: var(--sigil);
+    margin-bottom: var(--space-lg);
   }
 
   .portal-sigil-vessel {
-    width: 76px;
-    height: 76px;
+    width: var(--sigil);
+    height: var(--sigil);
   }
+
+  .sigil-stage {
+    display: block;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .sigil-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+  }
+
+  .sigil-ring-inner {
+    width: calc(var(--sigil) * 1.34);
+    height: calc(var(--sigil) * 1.34);
+    border: 1px solid rgba(139, 127, 212, 0.14);
+  }
+
+  .sigil-ring-outer {
+    width: calc(var(--sigil) * 1.72);
+    height: calc(var(--sigil) * 1.72);
+    border: 1px solid rgba(139, 127, 212, 0.07);
+  }
+
+  /* A soft lift so the vessel is not a cut-out on flat black. */
+  .sigil-stage::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: calc(var(--sigil) * 2.1);
+    height: calc(var(--sigil) * 2.1);
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      rgba(139, 127, 212, 0.05) 0%,
+      rgba(139, 127, 212, 0.02) 45%,
+      transparent 70%
+    );
+    z-index: -1;
+  }
+
+  /* Set ON the inner ring, at the compass points. */
+  .sigil-mark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    font-size: 9px;
+    line-height: 1;
+    color: var(--color-ember);
+    opacity: 0.45;
+    --r: calc(var(--sigil) * 0.67);
+  }
+
+  .sigil-mark-n { transform: translate(-50%, -50%) translateY(calc(-1 * var(--r))); }
+  .sigil-mark-s { transform: translate(-50%, -50%) translateY(var(--r)); }
+  .sigil-mark-e { transform: translate(-50%, -50%) translateX(var(--r)); }
+  .sigil-mark-w { transform: translate(-50%, -50%) translateX(calc(-1 * var(--r))); }
 
   .portal-title {
     font-size: 32px;
@@ -841,18 +939,100 @@
     width: 100%;
   }
 
-  /* The only tile left on the screen, and therefore unmistakable —
-     which also means it does not need bulk to be found. Full width at
-     a normal button's height reads as an act; full width at 65px read
-     as a slab. */
+  /* ── P2 · THE ACT IS LIT ──
+     It was the single most important control on the screen and it was
+     styled exactly like the secondary tiles it replaced: grey fill,
+     grey border, grey type, no icon, no direction. A flat slate slab
+     reads as DISABLED, which is the opposite of the one thing this
+     screen has to say.
+     Exactly one object here carries light. Everything else on the
+     Portal is ink on void, so the glow needs no help to be found. */
   .portal-nav .nav-primary .nav-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
     flex: 1 1 auto;
     width: 100%;
     max-width: none;
     min-width: 0;
-    font-size: 13px;
-    letter-spacing: 0.2em;
+    min-height: 56px;
+    font-family: var(--font-display);
+    font-size: 14px;
+    letter-spacing: 0.22em;
+    color: var(--color-light);
     padding: var(--space-sm) var(--space-lg);
+    background: linear-gradient(
+      180deg,
+      rgba(139, 127, 212, 0.16) 0%,
+      rgba(139, 127, 212, 0.06) 100%
+    );
+    border: 1px solid rgba(139, 127, 212, 0.42);
+    box-shadow:
+      0 0 28px rgba(139, 127, 212, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  /* The glow contracts; the tile does not drop. A threshold does not
+     bounce. */
+  .portal-nav .nav-primary .nav-item:active {
+    transform: none;
+    box-shadow:
+      0 0 10px rgba(139, 127, 212, 0.10),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .act-mark,
+  .act-verb,
+  .act-go {
+    display: inline;
+  }
+
+  /* ONE FLEX ITEM, NOT TWO. The button is a flex container, and
+     whitespace BETWEEN flex items is discarded — so "Enter " and
+     "Chamber" as siblings rendered as ENTERCHAMBER. The label is a
+     single item whose inner space is ordinary inline text. On desktop
+     this wrapper is an unstyled inline span around the word the tile
+     has always shown. */
+  .act-label {
+    white-space: nowrap;
+  }
+
+  .act-mark {
+    color: var(--color-threshold);
+    font-size: 13px;
+    margin-right: auto;
+    padding-right: var(--space-sm);
+  }
+
+  .act-go {
+    color: var(--color-threshold);
+    font-size: 13px;
+    margin-left: auto;
+    padding-left: var(--space-sm);
+    letter-spacing: 0;
+  }
+
+  /* ── P3 · THE JEWELLED SEAM ──
+     A bare 1px rule is a division. A rule with a mark on it is a seam
+     — it says the two halves belong to one object. Cheapest gesture
+     in the whole composition, and it does the most work. */
+  .portal-nav .nav-secondary {
+    position: relative;
+  }
+
+  .portal-nav .nav-secondary::before {
+    content: '◊';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 0 10px;
+    background: var(--color-void);
+    font-size: 9px;
+    line-height: 1;
+    color: var(--color-threshold);
+    opacity: 0.5;
   }
 
   /* ── The index: first line ── */
