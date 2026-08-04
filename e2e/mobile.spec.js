@@ -868,3 +868,119 @@ test('Page Mode keeps the whole measure on the screen', async ({ page }) => {
         `the bar sits ${m.barGap}px from the bottom in Page Mode but ${streamBottom}px in the Stream`)
         .toBeGreaterThanOrEqual(streamBottom);
 });
+
+/**
+ * ═══════════════════════════════════════════════════════════════
+ * THE PREMIUM MOBILE THRESHOLD (Premium_Mobile_Chamber P1–P7)
+ * ═══════════════════════════════════════════════════════════════
+ */
+
+test('the phone-only threshold renders nothing on a desktop', async ({ page }) => {
+    // THE CONSTRAINT WAS "DO NOT TOUCH THE PC", so it is asserted rather
+    // than reasoned about. Every part added for the phone is declared
+    // `display: none` at the top of the cascade and revealed only under
+    // ≤640 — which means a desktop cannot be affected by construction,
+    // and this proves the construction holds.
+    test.setTimeout(120000);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.addInitScript((g) => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
+    await page.goto('/');
+    await expect(page.locator('[data-nav="chamber"]').first()).toBeVisible({ timeout: 40000 });
+    await page.waitForTimeout(2000);
+
+    const d = await page.evaluate(() => {
+        const show = (sel) => {
+            const el = document.querySelector(sel);
+            return el ? getComputedStyle(el).display : 'absent';
+        };
+        return {
+            // innerText respects rendering; textContent would report the
+            // hidden spans and tell us nothing about what is on screen.
+            actLabel: document.querySelector('.nav-act').innerText.replace(/\s+/g, ' ').trim(),
+            rooms: [...document.querySelectorAll('.nav-secondary .nav-item')]
+                .map(b => b.innerText.replace(/\s+/g, ' ').trim()),
+            vessel: Math.round(document.querySelector('.portal-sigil-vessel').getBoundingClientRect().width),
+            gazeboShown: getComputedStyle(document.querySelector('.gazebo')).display !== 'none',
+            phoneOnly: {
+                stage: show('.sigil-stage'), mark: show('.act-mark'), verb: show('.act-verb'),
+                go: show('.act-go'), roomGlyph: show('.room-glyph'), roomLine: show('.room-line'),
+                archGlyph: show('.portal-arch-glyph'), orb: show('.sol-strip-orb'),
+                win: show('.sol-strip-window'), cont: show('.portal-continue')
+            }
+        };
+    });
+    console.log('DESKTOP ' + JSON.stringify(d));
+
+    // The desktop tile still says the word it always said.
+    expect(d.actLabel).toBe('CHAMBER');
+    expect(d.rooms).toEqual(['VAULT', 'LIBRARY', 'WORKSHOP']);
+    expect(d.vessel).toBe(180);
+    expect(d.gazeboShown, 'the marble is still drawn').toBe(true);
+    for (const [part, display] of Object.entries(d.phoneOnly)) {
+        expect(display, `${part} is rendering on the desktop`).toBe('none');
+    }
+});
+
+test('the threshold fits the phone in its widest state', async ({ page }) => {
+    // 844 is the iPhone 12's LAYOUT height; 664 is what Safari leaves
+    // visible with its toolbar up, and it is the real budget. The widest
+    // state is the one with the Continue strip present — the layout that
+    // breaks first, and therefore the only one worth asserting.
+    test.setTimeout(300000);
+    await enter(page, 390, 664);
+    await expect(page.locator('[data-nav="chamber"]').first()).toBeVisible({ timeout: 40000 });
+    await page.waitForTimeout(2000);
+
+    // A cold visit has nothing to continue, and shows nothing.
+    const cold = await page.evaluate(() => ({
+        hidden: document.querySelector('.portal-continue').hidden,
+        display: getComputedStyle(document.querySelector('.portal-continue')).display
+    }));
+    console.log('COLD ' + JSON.stringify(cold));
+    expect(cold.display).toBe('none');
+
+    // Warm it the honest way: actually read something.
+    await page.locator('[data-nav="vault"]').first().click();
+    await page.locator('[data-nav="journeys"]').first().click();
+    const DEMO = '[data-journey="demo-procedural"]';
+    await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
+    await page.locator(`${DEMO} .journey-begin`).click();
+    const accept = page.locator('#safety-accept');
+    await accept.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
+    if (await accept.isVisible()) await accept.click();
+    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
+    await page.waitForTimeout(2000);
+    await page.evaluate(() => window.rise.router.navigate('portal'));
+    await page.waitForTimeout(2000);
+
+    const warm = await page.evaluate(() => ({
+        display: getComputedStyle(document.querySelector('.portal-continue')).display,
+        title: document.querySelector('.continue-title').textContent.trim(),
+        // Every card present and named.
+        cards: [...document.querySelectorAll('.nav-secondary .nav-item, .portal-arch')]
+            .map(c => c.innerText.replace(/\s+/g, ' ').trim()),
+        below: [...document.querySelectorAll('body *')]
+            .filter(n => { const r = n.getBoundingClientRect(); return r.height > 14 && r.bottom > window.innerHeight + 2; })
+            .map(n => n.className.toString().slice(0, 30)).slice(0, 4),
+        sideways: [...document.querySelectorAll('body *')]
+            .filter(n => n.getBoundingClientRect().right > window.innerWidth + 1)
+            .map(n => n.className.toString().slice(0, 30)).slice(0, 3),
+        docScroll: document.documentElement.scrollHeight,
+        vh: window.innerHeight
+    }));
+    console.log('WARM ' + JSON.stringify(warm));
+
+    // The session's name lives on `name`, not `title`; reading only
+    // `title` shipped this strip as dead code once already.
+    expect(warm.display).toBe('flex');
+    expect(warm.title.length).toBeGreaterThan(0);
+
+    // Each room says what it holds.
+    expect(warm.cards).toHaveLength(5);
+    for (const c of warm.cards) expect(c.length).toBeGreaterThan(8);
+
+    // And it still fits, with everything showing at once.
+    expect(warm.below, `these hang below the fold: ${JSON.stringify(warm.below)}`).toEqual([]);
+    expect(warm.sideways).toEqual([]);
+    expect(warm.docScroll).toBeLessThanOrEqual(warm.vh);
+});

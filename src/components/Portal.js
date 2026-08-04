@@ -24,6 +24,7 @@ export class Portal {
     this.sequentialReveal();
     this.startSolStrip();
     this.startAtriumDoor();
+    this.syncContinue();
   }
 
   /**
@@ -112,6 +113,48 @@ export class Portal {
     this.updateSolStrip();
     // The featured sequence rolls at midnight; module is cached by now
     this._populateAtriumDoor?.();
+    // Returning from a reading is precisely when this changes.
+    this.syncContinue();
+  }
+
+  /**
+   * Show the Continue strip only when there is genuinely something to
+   * continue (Premium_Mobile_Chamber P6).
+   *
+   * Read off `window.rise` rather than plumbed through a constructor
+   * option on purpose: the App already publishes itself there, and the
+   * Portal asking a question it can answer for itself is cheaper than
+   * a new prop every caller would have to remember to pass.
+   *
+   * The session is IN MEMORY ONLY. A cold load has none, so a first
+   * visit shows no strip — which is correct, because a first visit has
+   * nothing to resume, and is why the sigil sends that reader to the
+   * Vault instead.
+   */
+  syncContinue() {
+    const strip = this.container.querySelector('.portal-continue');
+    if (!strip) return;
+
+    // `title` OR `name`, in that order, because the two are both real:
+    // the Chamber's own session objects carry `title`, and the ones the
+    // session compiler builds carry `name` ("Journey · Demonstration").
+    // MemoryCore.saveSynthesis already resolves it this way; a second
+    // opinion about which field holds a reading's name is precisely how
+    // this codebase grows a vocabulary in two places.
+    //
+    // Reading only `title` is what made this strip dead on arrival: the
+    // session was there, the guard refused it, and nothing appeared.
+    const session = window.rise?.currentSession;
+    const named = session?.title || session?.name;
+    const title = typeof named === 'string' ? named.trim() : '';
+    if (!title) {
+      strip.hidden = true;
+      return;
+    }
+
+    strip.querySelector('.continue-title').textContent = title;
+    strip.setAttribute('aria-label', `Continue reading — ${title}`);
+    strip.hidden = false;
   }
 
   /**
@@ -344,6 +387,30 @@ export class Portal {
         </button>
         </div>
 
+        <!-- P6 · STATE, WHERE STATE EXISTS.
+             Tapping the sigil silently resumes the last session, and
+             nothing on the screen said so — on a first visit it opens
+             the Vault instead, which is why a tap on it once read as a
+             bug. This says it out loud.
+
+             IT CARRIES NO PROGRESS. The spec sketched "12 minutes in",
+             and nothing in this product records elapsed position:
+             currentSession lives in memory and is gone on reload.
+             Printing a figure nothing measures is the fabrication the
+             spec itself refuses, so the strip states the title it can
+             prove and stops there.
+
+             Absent, never empty — a cold visit has nothing to
+             continue, and shows nothing. -->
+        <button class="portal-continue" data-action="continue" hidden>
+          <span class="continue-mark" aria-hidden="true">↺</span>
+          <span class="continue-text">
+            <span class="continue-label">Continue</span>
+            <span class="continue-title"></span>
+          </span>
+          <span class="continue-go" aria-hidden="true">→</span>
+        </button>
+
         <!-- Portal Footer - Heritage & Onboarding -->
         <div class="portal-footer" style="opacity: 0;">
           <div class="footer-left">
@@ -385,6 +452,17 @@ export class Portal {
         if (window.rise?.audioEngine) {
           window.rise.audioEngine.playClick();
         }
+        this.onQuickAccess();
+      });
+    }
+
+    // The Continue strip is the sigil's hidden behaviour, made visible;
+    // it must therefore do the identical thing rather than a second
+    // implementation of it that can drift.
+    const cont = this.container.querySelector('.portal-continue');
+    if (cont) {
+      cont.addEventListener('click', () => {
+        window.rise?.audioEngine?.playClick();
         this.onQuickAccess();
       });
     }

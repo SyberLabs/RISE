@@ -136,6 +136,11 @@
    it saw before this element existed. */
 .portal-arch-line { display: contents; }
 
+/* P6 — the Continue strip. Two conditions, both required: the phone,
+   AND a session that actually exists. The `hidden` attribute carries
+   the second; this carries the first. */
+.portal-continue { display: none; }
+
 /* ─── Title ─── */
 .portal-title-container {
   text-align: center;
@@ -1295,6 +1300,94 @@
     color: var(--color-shadow);
   }
 
+  /* ── P6 · STATE, WHERE STATE EXISTS ──
+     The sigil has always resumed the last session in silence. Said
+     out loud it stops being a trick, and the screen stops knowing
+     something the reader does not.
+     Quieter than the act and louder than the footer: it is not the
+     way IN, it is the way BACK. */
+  .portal-continue:not([hidden]) {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 100%;
+    max-width: 320px;
+    margin-top: var(--space-md);
+    padding: 9px var(--space-sm);
+    text-align: left;
+    cursor: pointer;
+    background: rgba(18, 18, 20, 0.4);
+    border: 1px solid rgba(42, 42, 48, 0.7);
+    border-left: 2px solid rgba(139, 127, 212, 0.45);
+    border-radius: var(--radius-sm);
+  }
+
+  .portal-continue:active {
+    background: rgba(18, 18, 20, 0.75);
+  }
+
+  .continue-mark {
+    flex: 0 0 auto;
+    font-size: 12px;
+    line-height: 1;
+    color: var(--color-threshold);
+  }
+
+  .continue-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .continue-label {
+    font-family: var(--font-primary);
+    font-size: 8px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-mist);
+  }
+
+  /* One line, ellipsised. A reading's title is authored text and can
+     be any length; the strip is a pointer to it, not a place to read
+     it. */
+  .continue-title {
+    font-family: var(--font-literary);
+    font-size: 11px;
+    line-height: 1.25;
+    color: var(--color-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .continue-go {
+    flex: 0 0 auto;
+    font-size: 11px;
+    color: var(--color-threshold);
+  }
+
+  /* ── P7 · UTILITIES RECEDE ──
+     The footer sat at the same size and tracking as the room index, so
+     the screen carried three tiers of identical small caps and the
+     Archive read as a destination beside the Vault. It is a colophon.
+     The Curia's door rises from 14% to 22%: still discreet, no longer
+     indistinguishable from a rendering artefact. */
+  .portal-util-link {
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    color: var(--color-mist);
+  }
+
+  .portal-util-link .util-icon {
+    font-size: 9px;
+  }
+
+  .portal .portal-curia-door {
+    opacity: 0.22;
+  }
+
   /* Clear of the bottom edge, and clear of the Curia's door, which
      keeps the same bottom-left corner and was sitting underneath the
      Archive link.
@@ -1322,10 +1415,6 @@
   .portal .portal-curia-door {
     bottom: 2px;
     left: var(--space-xs);
-  }
-
-  .portal-util-link {
-    font-size: 10px;
   }
 
 }
