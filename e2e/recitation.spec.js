@@ -182,9 +182,27 @@ test('an uncovered reading is read silently rather than stalled', async ({ page 
   const at = () => page.evaluate(() =>
     window.rise?.router?.views?.get('chamber-session')?.instance?.player?.sessionState?.currentIndex ?? -1);
   const before = await at();
-  // Long enough for several atoms at reading pace, so "did not stall"
-  // is measured rather than assumed.
-  await page.waitForTimeout(4000);
+
+  // WALL TIME AND FRAME TIME ARE DIFFERENT CLOCKS.
+  //
+  // This used to sleep 4000ms and then assert the index had moved. The
+  // player advances on `requestAnimationFrame` (see player.js), and
+  // Chromium throttles frames to near-zero for a page that is not
+  // visible — so during a full parallel e2e run the sleep elapsed
+  // while almost no frames were delivered, the index stayed at 0, and
+  // the test failed against a reading that was working perfectly. It
+  // passed 3/3 alone, which is the signature of a clock mismatch
+  // rather than a defect.
+  //
+  // Polling for the condition measures the clock the assertion is
+  // actually about. It is not a weaker test: a reading that genuinely
+  // stalls never advances however long we wait, so the regression this
+  // exists to catch still fails it — by timeout instead of by sleep.
+  await expect.poll(at, {
+    timeout: 30000,
+    message: 'the reading never advanced — an uncovered reading stalled instead of reading silently'
+  }).toBeGreaterThan(before);
+
   const after = await at();
 
   const r = await page.evaluate(() => {

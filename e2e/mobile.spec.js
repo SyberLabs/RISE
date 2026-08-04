@@ -314,9 +314,15 @@ test('the mode selector is one row with no empty cell', async ({ page }) => {
     await page.locator('[data-text-id="literary-meditations"] [data-action="select-text"]').click();
     await page.waitForTimeout(2000);
     const toc = page.locator('.toc-entry').first();
-    if (await toc.isVisible().catch(() => false)) { await toc.click(); await page.waitForTimeout(2500); }
+    if (await toc.isVisible().catch(() => false)) { await toc.click(); }
+    // Wait for the ring, then for the panel. Every sleep here was a
+    // guess about machine speed standing where a condition belonged —
+    // the same defect that made the panel-density test wait out a
+    // three-minute timeout against a working screen.
+    await expect(page.locator('.orbital-stage')).toBeVisible({ timeout: 30000 });
     await page.locator('.orbit-visual').click();
-    await page.waitForTimeout(1500);
+    await expect(page.locator('#modal-visual')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.vi-mode-selector')).toBeVisible({ timeout: 15000 });
 
     const selector = await page.evaluate(() => {
         const el = document.querySelector('.vi-mode-selector');
@@ -357,7 +363,7 @@ test('the orbit is centred in the phone rather than cropped by it', async ({ pag
     await page.locator('[data-text-id="literary-meditations"] [data-action="select-text"]').click();
     await page.waitForTimeout(2000);
     const toc = page.locator('.toc-entry').first();
-    if (await toc.isVisible().catch(() => false)) { await toc.click(); await page.waitForTimeout(2500); }
+    if (await toc.isVisible().catch(() => false)) { await toc.click(); }
     await expect(page.locator('.orbital-stage')).toBeVisible({ timeout: 30000 });
 
     const ring = await page.evaluate(() => {
@@ -541,8 +547,28 @@ test('the configuration panels are not several screens of picture tiles', async 
         if (m.tallestOption !== null) {
             expect(m.tallestOption, `${m.id} tallest option`).toBeLessThanOrEqual(56);
         }
-        await page.keyboard.press('Escape');
-        await page.waitForTimeout(400);
+        // CLOSE IT THE WAY THE PANEL OFFERS, AND WAIT FOR IT TO GO.
+        //
+        // Two lessons are baked in here. The first: this used to sleep
+        // 400ms and then click the orb underneath a possibly-still-open
+        // overlay, so when the guess about machine speed was wrong the
+        // modal intercepted the click and Playwright waited out a full
+        // 180s actionability timeout against a working panel. Wait for
+        // the condition.
+        //
+        // The second: waiting revealed that ESCAPE itself did not close
+        // it once, under full-suite load, for 15s and 33 polls. It
+        // could not be reproduced in isolation — the router path is
+        // clean there (activeModal 'temporal' → null, hidden true) — and
+        // the likeliest mechanism is `router.handleKeydown` swallowing
+        // the press while `transitioning` is true, which loses it
+        // permanently because nothing presses again. That is worth
+        // chasing on its own; it is not what this test is for. This
+        // test measures panel density, so it uses the panel's own close
+        // control, which is deterministic and is also what a reader
+        // actually touches on a phone.
+        await page.locator(`${modal} [data-close]`).click();
+        await expect(page.locator(modal)).toBeHidden({ timeout: 15000 });
     }
 });
 
