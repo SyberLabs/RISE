@@ -32,22 +32,27 @@ work, and it is 1,551 passages.**
 
 ## Where the shelf stands today
 
-Run this any time to see it:
+**The running-head queue is empty.** Run this any time to confirm it:
 
 ```bash
-node scripts/corpus-review-jobs.mjs --out /tmp/queue.json | tail -5
+node scripts/corpus-review-jobs.mjs --out /tmp/queue.json | tail -3
+#   settled by position, no reviewer needed : 0
+#   jobs for review                         : 0
 ```
 
 | | count |
 |---|---|
-| removed by proof (path A) | 393 |
+| running heads removed | **1,863** |
+| illustration stubs removed | 205 |
 | foreign divisions withdrawn | 8 (403,208 words) |
+| reviewed and **kept** | 42 (18 division headings, 24 contents lines) |
 | surveyed and judged *not* defects | ~14,000 |
-| **open, needing path B** | **1,551** |
+| **open** | **0 — for this class** |
 
-Two thirds of that queue is one work: **the Shahnama, 1,055.**
-
----
+**A keep is a decision, not a deferral.** `cleanse-keeps.json` records every
+passage a reviewer judged part of the book, and the job builder excludes them.
+Without it the same 18 Mahābhārata `BOOK n` headings and 24 Shahnama contents
+lines return in every batch forever and the queue never reads zero.
 
 ## PATH A — the deterministic pass
 

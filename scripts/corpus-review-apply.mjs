@@ -27,6 +27,14 @@ import { execFileSync } from 'node:child_process';
 
 const WORKS_DIR = resolve('src/content/archive/works');
 const LOG = resolve('src/content/archive/cleanse-log.json');
+/**
+ * REVIEWED AND KEPT. Without this the queue never empties: a passage
+ * judged "keep" is still a candidate the detector cannot settle, so it
+ * comes back in the next batch and every batch after it, and the count
+ * of remaining work stays permanently wrong. A verdict of keep is a
+ * decision, and decisions are recorded.
+ */
+const KEEPS = resolve('src/content/archive/cleanse-keeps.json');
 
 const args = process.argv.slice(2);
 const apply = args.includes('--apply');
@@ -59,8 +67,15 @@ const keyOf = (j) => `${j.workId}|${j.locator?.division}|${j.locator?.charStart}
 const byKey = new Map(jobs.map(j => [keyOf(j), j]));
 
 const accepted = [];
+const kept = [];
 let unmatched = 0;
 for (const v of verdicts) {
+    if (v.disposition === 'keep' && !v.locator?.control) {
+        const job = byKey.get(keyOf(v));
+        if (job) kept.push({ workId: job.workId, passage: String(job.passage).replace(/\s+/g, ' ').trim(),
+            verdict: v.verdict, note: v.note, when: new Date().toISOString().slice(0, 10) });
+        continue;
+    }
     if (v.disposition !== 'trim') continue;
     if (v.locator?.control) continue;          // controls are never applied
     const job = byKey.get(keyOf(v));
@@ -70,6 +85,7 @@ for (const v of verdicts) {
 
 console.log(`verdicts        : ${verdicts.length}`);
 console.log(`trims accepted  : ${accepted.length}`);
+console.log(`keeps recorded  : ${kept.length}`);
 if (unmatched) console.log(`unmatched       : ${unmatched}  (verdict with no job — ignored)`);
 
 // ── Group by work, latest offset first ──────────────────────────────
@@ -93,7 +109,11 @@ for (const [workId, items] of byWork) {
     const cleaned = sections.map(s => ({ ...s }));
     const byDivision = new Map();
     for (const it of items) {
-        const d = it.job.locator.division;
+        // Keyed by section INDEX. A division NAME is not unique — the
+        // Shahnama repeats "Volume 3 — INDEX" eighteen times — and a job
+        // resolved to the wrong section carries offsets into another
+        // passage entirely.
+        const d = it.job.locator.section ?? it.job.locator.division;
         if (!byDivision.has(d)) byDivision.set(d, []);
         byDivision.get(d).push(it);
     }
@@ -102,8 +122,10 @@ for (const [workId, items] of byWork) {
     const removals = [];
 
     for (const [division, list] of byDivision) {
-        const section = cleaned.find(s => (s.name || null) === division);
-        if (!section) { stale = `division ${JSON.stringify(division)} not found`; break; }
+        const section = typeof division === 'number'
+            ? cleaned[division]
+            : cleaned.find(s => (s.name || null) === division);
+        if (!section) { stale = `section ${JSON.stringify(division)} not found`; break; }
 
         list.sort((a, b) => b.job.locator.charStart - a.job.locator.charStart);
         for (const { job } of list) {
@@ -152,6 +174,15 @@ for (const [workId, items] of byWork) {
 console.log('');
 console.log(`works skipped   : ${skippedWorks}`);
 console.log(`trims applied   : ${applied}`);
+
+if (apply && kept.length) {
+    let previous = [];
+    try { previous = JSON.parse(readFileSync(KEEPS, 'utf8')); } catch { /* first */ }
+    const seen = new Set(previous.map(k => `${k.workId}|${k.passage}`));
+    const fresh = kept.filter(k => !seen.has(`${k.workId}|${k.passage}`));
+    writeFileSync(KEEPS, JSON.stringify(previous.concat(fresh), null, 2), 'utf8');
+    console.log(`${fresh.length} keeps recorded in ${KEEPS}`);
+}
 
 if (apply && log.length) {
     let previous = [];

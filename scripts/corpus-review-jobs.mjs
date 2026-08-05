@@ -31,7 +31,7 @@
  * They are recorded in a separate answer key that the reviewer never
  * sees. A batch whose controls come back wrong is discarded whole.
  */
-import { readdirSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 // THE SHARED DETECTOR. This file kept its own copy for a day after
@@ -42,6 +42,18 @@ import { resolve } from 'node:path';
 import { stemsOf, furnitureIn, isProven } from '../src/content/archive/furniture.js';
 
 const WORKS_DIR = resolve('src/content/archive/works');
+
+/**
+ * Passages already reviewed and KEPT. A keep is a decision, not a
+ * deferral — without this record the same 42 division headings and
+ * contents lines return in every batch forever and the queue never
+ * reads zero.
+ */
+let KEPT = new Set();
+try {
+    KEPT = new Set(JSON.parse(readFileSync(resolve('src/content/archive/cleanse-keeps.json'), 'utf8'))
+        .map(k => `${k.workId}|${k.passage}`));
+} catch { /* nothing kept yet */ }
 
 /**
  * The control set, verbatim from CORPUS-REVIEWER-PROMPT.md §4. Their
@@ -109,17 +121,24 @@ const CONTEXT = 220;
 function candidatesIn(sections) {
     const stems = stemsOf(sections);
     const out = [];
-    for (const section of sections) {
+    sections.forEach((section, index) => {
         const content = String(section?.content || '');
         for (const f of furnitureIn(content, stems)) {
             out.push({
                 ...f,
+                // THE INDEX, NOT THE NAME. The Shahnama has 462 sections
+                // and 249 distinct names — "Volume 3 — INDEX" occurs
+                // eighteen times — so a name resolves a job to the wrong
+                // section and its offsets then point at another book's
+                // characters. The stale-offset gate caught it and refused
+                // the work; this stops it being asked.
+                section: index,
                 division: section.name || null,
                 before: content.slice(Math.max(0, f.start - CONTEXT), f.start).trim(),
                 after: content.slice(f.end, f.end + CONTEXT).trim()
             });
         }
-    }
+    });
     return out;
 }
 
@@ -127,11 +146,13 @@ function jobsFor(workId, edition, sections) {
     return candidatesIn(sections)
         // §2b settles these without a reviewer.
         .filter(c => !isProven(c))
+        .filter(c => !KEPT.has(`${workId}|${String(c.text).replace(/\s+/g, ' ').trim()}`))
         .map(c => ({
             workId,
             edition,
             locator: {
-                division: c.division, charStart: c.start, charEnd: c.end,
+                section: c.section, division: c.division,
+                charStart: c.start, charEnd: c.end,
                 // What replaces the span if it is trimmed. Carried in the
                 // locator rather than decided at apply time, so the
                 // verdict and the edit describe the same act.

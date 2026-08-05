@@ -11850,5 +11850,1355 @@
         "rejoined": "paragraph"
       }
     ]
+  },
+  {
+    "workId": "sacred-corpus-hermeticum",
+    "when": "2026-08-05",
+    "class": "running-head",
+    "basis": "ARCHIVE-CLEANSING-SPEC §4 reviewer verdict",
+    "reviewer": "see batch",
+    "count": 80,
+    "removals": [
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — xxii.  xv.  30  ;  ed.  V.  Gardthausen  (Leipzig,  1874),  p.  301.",
+        "removed": "THE MYTH OF MAN IN THE MYSTERIES 145",
+        "at": 52719,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — xxii.  xv.  30  ;  ed.  V.  Gardthausen  (Leipzig,  1874),  p.  301.",
+        "removed": "THE MYTH OP MAN IN THE MYSTERIES 143",
+        "at": 49095,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — xxii.  xv.  30  ;  ed.  V.  Gardthausen  (Leipzig,  1874),  p.  301.",
+        "removed": "THE MYTH OF MAN IN THE MYSTERIES 141",
+        "at": 45691,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — xxii.  xv.  30  ;  ed.  V.  Gardthausen  (Leipzig,  1874),  p.  301.",
+        "removed": "VOL. I. 8",
+        "at": 0,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — D.  From  the  Church  Fathers  we  obtain  many  refer-",
+        "removed": "REMAINS OF THE TRISMEGISTIC LITERATURE 11",
+        "at": 12055,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — D.  From  the  Church  Fathers  we  obtain  many  refer-",
+        "removed": "REMAINS OF THE TRISMEGISTIC LITERATURE 9",
+        "at": 8260,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  For  \"  God  (H.  he  says)  is  Spirit.\" 7",
+        "removed": "THE MYTH OF MAN IN THE MYSTERIES 185",
+        "at": 3066,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — I.  AN  INVOCATION  TO  HERMES  AS  THE  GOOD  MIND  l",
+        "removed": "THE POPULAR THEURGIC HERMES-CULT 85",
+        "at": 1913,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — xv.  Ibid.,  iv.  13,  2;  Brandt,  p.  316;  Fritzsche,  i.  190.",
+        "removed": "LACTANTIUS 243",
+        "at": 705,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — V.  AN  INVOCATION  TO  HERMES  AS  THE  SPIRITUAL  LIGHT",
+        "removed": "THE POPULAR THEURGIC HERMES-CULT 93",
+        "at": 4986,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — V.  AN  INVOCATION  TO  HERMES  AS  THE  SPIRITUAL  LIGHT",
+        "removed": "THE POPULAR THEURGIC HERMES-CULT 91",
+        "at": 948,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — viii.  Ibid.,  ii.  15,  6;  Brandt,  p.  166;  Fritzsche,  i.  106.",
+        "removed": "LACTANTIUS 239",
+        "at": 1284,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — M.  i.  342-352  ;  W.  i.  458-472.",
+        "removed": "VOL. III. 14",
+        "at": 29960,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 2 — Div.  Institt.,  iv.  6,  and  runs  as  follows  in  Fritzsche's  (0.  F.)  text",
+        "removed": "6 VOL. II. 22",
+        "at": 21511,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 2 — Div.  Institt.,  iv.  6,  and  runs  as  follows  in  Fritzsche's  (0.  F.)  text",
+        "removed": "VOL. II. 21",
+        "at": 694,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — iii.  Ibid.,  VI.  iv.  35 ;  Dind.,  iii.  156,  157.",
+        "removed": "VOL. III. 15",
+        "at": 6982,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — LXX.  gives  \"  The  place  where  the  God  of  Israel  stood.\"",
+        "removed": "VOL. I. 19",
+        "at": 100111,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — LXX.  gives  \"  The  place  where  the  God  of  Israel  stood.\"",
+        "removed": "VOL. I. 18",
+        "at": 69575,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — LXX.  gives  \"  The  place  where  the  God  of  Israel  stood.\"",
+        "removed": "PHILO OP ALEXANDRIA 247",
+        "at": 22191,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — LXX.  gives  \"  The  place  where  the  God  of  Israel  stood.\"",
+        "removed": "PHILO OP ALEXANDRIA 243",
+        "at": 15618,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  And  if  any  man  (H.  he  says)  is  \"  blind  from  birth,\" 3  and",
+        "removed": "VOL. I. 15",
+        "at": 65216,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  And  if  any  man  (H.  he  says)  is  \"  blind  from  birth,\" 3  and",
+        "removed": "PHILO OP ALEXANDRIA 211",
+        "at": 38689,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  Concerning  which  (H.  he  says)  the  Saviour  hath  said  :",
+        "removed": "THE MYTH OP MAN IN THE MYSTERIES 189",
+        "at": 364,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  Concerning  them  the  Scripture  saith :  \"  Awake  thou  that",
+        "removed": "THE MYTH OF MAN IN THE MYSTERIES 163",
+        "at": 4618,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  Concerning  them  the  Scripture  saith :  \"  Awake  thou  that",
+        "removed": "VOL. I. 11",
+        "at": 3004,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  Concerning  them  the  Scripture  saith :  \"  Awake  thou  that",
+        "removed": "THE MYTH OF MAN IN THE MYSTERIES 161",
+        "at": 1082,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — d.  k.  bayr.  Akad.  (1897),  p.  Ill,  where  other  references  are  given.",
+        "removed": "VOL. III. 12",
+        "at": 34756,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — d.  k.  bayr.  Akad.  (1897),  p.  Ill,  where  other  references  are  given.",
+        "removed": "VOL. III. 11",
+        "at": 5190,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  Thus  (H.  he  says)  the  knowledge  of  the  perfect  man  is",
+        "removed": "THE MYTH OF MAN IN THE MYSTERIES 183",
+        "at": 8605,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  Thus  (H.  he  says)  the  knowledge  of  the  perfect  man  is",
+        "removed": "THE MYTH OP MAN IN THE MYSTERIES 181",
+        "at": 4998,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  Thus  (H.  he  says)  the  knowledge  of  the  perfect  man  is",
+        "removed": "THE MYTH OP MAN IN THE MYSTERIES 179",
+        "at": 1200,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  for  the  Christian  Gnostic  final  overwriter,  the  \"  Naas-",
+        "removed": "THE MYTH OF MAN IN THE MYSTERIES 149",
+        "at": 6953,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  for  the  Christian  Gnostic  final  overwriter,  the  \"  Naas-",
+        "removed": "THE MYTH OF MAN IN THE MYSTERIES 147",
+        "at": 2547,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  for  the  Christian  Gnostic  final  overwriter,  the  \"  Naas-",
+        "removed": "VOL. I. 10",
+        "at": 592,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — C.  H.  (xviii.).— \"  The  Encomium  of  Kings.\"",
+        "removed": "CONCLUSION 325",
+        "at": 14305,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — xix.  below).    Cyril  then  knows  that  \"  Osiris  \"  was  understood  to",
+        "removed": "CYRIL OF ALEXANDRIA 257",
+        "at": 1379,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — C.  H.  vii.  (viii).— \"  Whither  stumble  ye.\"",
+        "removed": "CONCLUSION 311",
+        "at": 477,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — iii.  Ibid.,  i.  33 ;  Migne,  col.  552  D.",
+        "removed": "CYRIL OF ALEXANDRIA 255",
+        "at": 1081,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  For  \"  all  things  (H.  he  says)  were  made  through  Him,  and",
+        "removed": "THE MYTH OF MAN IN THE MYSTERIES 167",
+        "at": 1900,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  For  from  water  alone — that  is,  spirit — is  begotten  the",
+        "removed": "THE MYTH OF MAN IN THE MYSTERIES 165",
+        "at": 2926,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — III.  AN  INVOCATION  TO  LORD  HERMES",
+        "removed": "THE POPULAR THEURGIC HERMES-CULT 89",
+        "at": 2882,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 2 — xxx.  and  xxxi.",
+        "removed": "VOL. II. 16",
+        "at": 67456,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 2 — xxx.  and  xxxi.",
+        "removed": "VOL. II. 15",
+        "at": 44399,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  This  (H.  he  says)  is  what  is  said  :",
+        "removed": "THE MYTH OF MAN IN THE MYSTERIES 173",
+        "at": 864,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — xxii.  Ibid.,  vii.  18,  3;  Brandt,  p.  640;  Fritzsche,  ii.  99.",
+        "removed": "LACTANTIUS 247",
+        "at": 229,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — xi.  Ibid.  (?).",
+        "removed": "VOL. III. 19",
+        "at": 33628,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — xi.  Ibid.  (?).",
+        "removed": "CYRIL OF ALEXANDRIA 267",
+        "at": 612,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 2 — xi.  in  the  Prolegomena,  and  xxxii.  1  below.",
+        "removed": "VOL. II. 25",
+        "at": 24808,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — v.  Ibid.,  ii.  35 ;  Migne,  col.  556  A.",
+        "removed": "CYRIL OF ALEXANDRIA 259",
+        "at": 2088,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — v.  Ibid.,  ii.  35 ;  Migne,  col.  556  A.",
+        "removed": "VOL. III. 17",
+        "at": 690,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — D.  White's  recent  volumes 5  :",
+        "removed": "THE VIRGIN OF THE WORLD 185",
+        "at": 675,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — v.  Ibid.,  ii.  52 ;  Migne,  col.  580  B.",
+        "removed": "CYRIL OF ALEXANDRIA 261",
+        "at": 544,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — VI.  THE  MYSTIC  KITE  OF  THE  FLAME",
+        "removed": "THE POPULAR THEURGIC HERMES-CULT 97",
+        "at": 6956,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — VI.  THE  MYSTIC  KITE  OF  THE  FLAME",
+        "removed": "THE POPULAR THEURGIC HERMES-CULT 95",
+        "at": 2938,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  This  is  what  He  saith  (H.  he  says) :",
+        "removed": "THE MYTH OF MAN IN THE MYSTERIES 177",
+        "at": 3551,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — VII.  The  Later  \"  Poimandres\"  Document  (The  Prophet-",
+        "removed": "VOL. I. 4",
+        "at": 10185,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — xvii.  Books.  Translated  formerly  out  of  the  Ar abide  into",
+        "removed": "VOL. I. 3",
+        "at": 38011,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — xvii.  Books.  Translated  formerly  out  of  the  Ar abide  into",
+        "removed": "REMAINS OF THE TRISMEGISTIC LITERATURE 13",
+        "at": 792,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  And  concerning  this  was  spoken  what  was  said  by  the",
+        "removed": "THE MYTH OP MAN IN THE MYSTERIES 159",
+        "at": 3433,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  This  [Point]  (H.  he  says)  is  the  Kingdom  of  the  Heavens,",
+        "removed": "THE MYTH OF MAN IN THE MYSTERIES 187",
+        "at": 3640,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — XXXII.  I.4  The  above  [data]  then  afford  [us]  such",
+        "removed": "VOL. I. 28",
+        "at": 212914,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — viii.  Ibid.,  ii.  64 ;  Migne,  col.  598  D.",
+        "removed": "CYRIL OF ALEXANDRIA 265",
+        "at": 486,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 2 — C.  H.,  xi.  (xii.)  14  :  \"  For  that  indeed  He  hath  no  other",
+        "removed": "VOL. II. 18",
+        "at": 11564,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — xiv.  without  a  break.  The  subject  again  is  not  so  much",
+        "removed": "VOL. III. 6",
+        "at": 16130,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — xviii.  Ibid.,  v.  25,  11 ;  Brandt,  p.  579;  Fritzsche,  ii.  60.",
+        "removed": "LACTANTIUS 245",
+        "at": 1613,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  H.,  iv.  (v.)  4.",
+        "removed": "VOL. I. 31",
+        "at": 52112,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — C.  IT.,  xvi.,  \"  the  summing  up  and  digest,  as  it  were,  of",
+        "removed": "VOL. III. 4",
+        "at": 41578,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — C.  H.  vii.  (viii.).—\"  About  the  Common  Mind.\" 7",
+        "removed": "CONCLUSION 313",
+        "at": 727,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  And  [also]  of  the  regenerated  5  spiritual  [man],  in  all  things",
+        "removed": "THE MYTH OF MAN IN THE MYSTERIES 171",
+        "at": 4381,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  And  [also]  of  the  regenerated  5  spiritual  [man],  in  all  things",
+        "removed": "THE MYTH OF MAN IN THE MYSTERIES 169",
+        "at": 1056,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — v.  Ibid.,  ii.  10,  13;  Brandt,  p.  149;  Fritzsche,  i.  96.",
+        "removed": "LACTANTIUS 237",
+        "at": 1047,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — ii.  Ibid.,  i.  11,  61 ;  Brandt,  p.  47;  Fritzsche,  i.  29,  30.",
+        "removed": "LACTANTIUS 235",
+        "at": 912,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — C.  For  he  becomes  (H.  he  says)  God  when,  rising  from  the",
+        "removed": "THE MYTH OF MAN IN THE MYSTERIES 175",
+        "at": 3861,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — xii.  Ibid.,  iv.  7,  3  ;  Brandt,  p.  293  ;  Fritzsche,  i.  179,  180.",
+        "removed": "VOL. III. 16",
+        "at": 856,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 2 — LXX.  translation  already  we  have  to  take  into  account",
+        "removed": "VOL. II. 7",
+        "at": 22232,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — M.  W.  Blackden,  in  a  recent  article  on  \"  The  Mysteries",
+        "removed": "THE VIRGIN OF THE WORLD 187",
+        "at": 1431,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — xxxiv.  col.  2214  f.).",
+        "removed": "THE VIRGIN OF THE WORLD 183",
+        "at": 2545,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — x.  Ibid.,  iv.  6,  9;  Brandt,  p.  291 ;  Fritzsche,  i.  179.",
+        "removed": "LACTANTIUS 241",
+        "at": 418,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 3 — vi.  Ibid.,  ii.  55  ;  Migne,  col.  586  D.2",
+        "removed": "CYRIL OF ALEXANDRIA 263",
+        "at": 2297,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "Volume 1 — II.  AN  INVOCATION  TO  LORD  HERMES",
+        "removed": "THE POPULAR THEURGIC HERMES-CULT 87",
+        "at": 997,
+        "rejoined": "paragraph"
+      }
+    ]
+  },
+  {
+    "workId": "the-shahnama-of-firdausi",
+    "when": "2026-08-05",
+    "class": "running-head",
+    "basis": "ARCHIVE-CLEANSING-SPEC §4 reviewer verdict",
+    "reviewer": "see batch",
+    "count": 110,
+    "removals": [
+      {
+        "kind": "running-head",
+        "division": 246,
+        "removed": "SHAPUR SON OF URMUZD 361",
+        "at": 40806,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 246,
+        "removed": "SHAPUR SON OF URMUZD 359",
+        "at": 37154,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 246,
+        "removed": "SHAPUR SON OF URMUZD 343",
+        "at": 8923,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 246,
+        "removed": "SHAPUR SON OF URMUZD 341",
+        "at": 5191,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 95,
+        "removed": "KAI KHUSRAU 357",
+        "at": 5610,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 95,
+        "removed": "KAI KHUSRAU 355",
+        "at": 1906,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 305,
+        "removed": "NV SHIR WAN 321",
+        "at": 10582,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 305,
+        "removed": "NUSHIRWAN 319",
+        "at": 6961,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 91,
+        "removed": "KAI KHUSRAU 277",
+        "at": 10586,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 91,
+        "removed": "KAI KHUSRAU 275",
+        "at": 7247,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 78,
+        "removed": "KAI KHUSRAU 17",
+        "at": 9383,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 78,
+        "removed": "KAI KHUSRAU 15",
+        "at": 5145,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 133,
+        "removed": "KAI KHUSRAU 255",
+        "at": 23467,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 133,
+        "removed": "KAI KHUSRAU 243",
+        "at": 2042,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 245,
+        "removed": "SHAPUR SON OF URMUZD 337",
+        "at": 34980,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 245,
+        "removed": "SHAPUR SON OF URMUZD 333",
+        "at": 28189,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 245,
+        "removed": "SHAPUR SON OF URMUZD 323",
+        "at": 3247,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 85,
+        "removed": "KAI KHUSRAU 135",
+        "at": 9138,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 355,
+        "removed": "KHUSRAU PARWIZ 273",
+        "at": 26210,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 355,
+        "removed": "KHUSRAU PARWIZ 259",
+        "at": 1772,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 122,
+        "removed": "KAI KHUSRAU 15",
+        "at": 15192,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 122,
+        "removed": "KAI KHUSRAU 13",
+        "at": 11354,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 122,
+        "removed": "KAI KHUSRAU 9",
+        "at": 4317,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 304,
+        "removed": "NV SHIR WAN 315",
+        "at": 45048,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 304,
+        "removed": "NVSHIRWAN 309",
+        "at": 34230,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 304,
+        "removed": "NV SHIR WAN 307",
+        "at": 30813,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 301,
+        "removed": "NUSHIRWAN 253",
+        "at": 19457,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 301,
+        "removed": "NUSHIRWAN 249",
+        "at": 12296,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 301,
+        "removed": "NVSHIRWAN 247",
+        "at": 8905,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 301,
+        "removed": "NVSHIRWAN 243",
+        "at": 1810,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 353,
+        "removed": "KHUSRAU PARWIZ 235",
+        "at": 15639,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 242,
+        "removed": "ARDSHIR PAP A KAN 259",
+        "at": 34066,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 242,
+        "removed": "NOTE 253",
+        "at": 19218,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 242,
+        "removed": "NOTE 251",
+        "at": 12748,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 39,
+        "removed": "KAI KAUS 167",
+        "at": 9067,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 39,
+        "removed": "KAI KAUS 163",
+        "at": 1616,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 136,
+        "removed": "KAI KHUSRAU 303",
+        "at": 22646,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 46,
+        "removed": "KAI KAUS 323",
+        "at": 1854,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 124,
+        "removed": "KAI KHUSRAU 41",
+        "at": 12570,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 124,
+        "removed": "KAI KHUSRAU 37",
+        "at": 5200,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 35,
+        "removed": "NOTE 9",
+        "at": 6110,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 43,
+        "removed": "KAI KAUS 255",
+        "at": 23340,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 43,
+        "removed": "KAI KAUS 243",
+        "at": 1722,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 358,
+        "removed": "KHUSRAU PARWIZ 331",
+        "at": 16618,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 358,
+        "removed": "KHUSRAU PARWIZ 329",
+        "at": 12855,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 359,
+        "removed": "KHUSRAU PARWIZ 371",
+        "at": 29224,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 359,
+        "removed": "KHUSRAU PARWIZ 367",
+        "at": 22197,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 92,
+        "removed": "KAI KHUSRAU 289",
+        "at": 8778,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 92,
+        "removed": "KAI KHUSRAU 287",
+        "at": 4931,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 296,
+        "removed": "BAHRAM GUR 57",
+        "at": 12470,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 296,
+        "removed": "BAH RAM GUR 51",
+        "at": 1878,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 89,
+        "removed": "KAI KHUSRAU 225",
+        "at": 54663,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 89,
+        "removed": "KAI KHUSRAU 205",
+        "at": 19308,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 130,
+        "removed": "KAI KHUSRAU 171",
+        "at": 16272,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 49,
+        "removed": "KAI KAUS 393",
+        "at": 12302,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 303,
+        "removed": "NVSHIRWAN 289",
+        "at": 23726,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 303,
+        "removed": "NVSHIRWAN 287",
+        "at": 20053,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 303,
+        "removed": "NUSHIRWAN 283",
+        "at": 12919,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 303,
+        "removed": "NV SHIR WAN 281",
+        "at": 8640,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 297,
+        "removed": "KUBAD SON OF PIRUZ 185",
+        "at": 212693,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 297,
+        "removed": "BAHRAM GUR 137",
+        "at": 127271,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 297,
+        "removed": "BAH RAM GUR 131",
+        "at": 116780,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 297,
+        "removed": "BAH RAM GUR 99",
+        "at": 59517,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 80,
+        "removed": "KAI KHUSRAU 65",
+        "at": 26674,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 132,
+        "removed": "KAI KHUSRAU 237",
+        "at": 19861,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 132,
+        "removed": "KAI KHUSRAU 229",
+        "at": 5712,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 123,
+        "removed": "KAI KHUSRAU 27",
+        "at": 16238,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 300,
+        "removed": "NVSHIRWAN 229",
+        "at": 33631,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 443,
+        "removed": "CORRECTIONS AND ADDITIONS 183",
+        "at": 14551,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 443,
+        "removed": "CORRECTIONS AND ADDITIONS 179",
+        "at": 3032,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 81,
+        "removed": "KAI KHUSRAU 81",
+        "at": 26619,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 81,
+        "removed": "KAI KHUSRAU 67",
+        "at": 1698,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 48,
+        "removed": "KAI KAUS 377",
+        "at": 12844,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 48,
+        "removed": "KAI KAUS 371",
+        "at": 1857,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 306,
+        "removed": "NVSHIRWAN 335",
+        "at": 23166,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 306,
+        "removed": "NVSHIRWAN 327",
+        "at": 8641,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 36,
+        "removed": "KAI KAUS 81",
+        "at": 57223,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 36,
+        "removed": "KAI KAUS 53",
+        "at": 4706,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 298,
+        "removed": "KUBAD SON OF PIRUZ 189",
+        "at": 8683,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 298,
+        "removed": "KUBAD SON OF PIRUZ 187",
+        "at": 3083,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 243,
+        "removed": "ARDSHIR PAP A KAN 287",
+        "at": 24116,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 243,
+        "removed": "ARDSHIR PAP A KAN 285",
+        "at": 20611,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 294,
+        "removed": "BAH RAM GUR 27",
+        "at": 45620,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 294,
+        "removed": "BAH RAM GUR 9",
+        "at": 14138,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 295,
+        "removed": "BAHRAM GUR 49",
+        "at": 27035,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 351,
+        "removed": "KHUSRAU PARWIZ 201",
+        "at": 23444,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 351,
+        "removed": "KHUSRAU PARWIZ 199",
+        "at": 20042,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 50,
+        "removed": "KAI KAUS 407",
+        "at": 8585,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 50,
+        "removed": "KAI KAUS 403",
+        "at": 1753,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 87,
+        "removed": "KAI KHUSRAU 179",
+        "at": 30543,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 87,
+        "removed": "KAI KHUSRAU 163",
+        "at": 1963,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 302,
+        "removed": "NVSHIRWAN 275",
+        "at": 30616,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 302,
+        "removed": "NUSHIRWAN 261",
+        "at": 5433,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 302,
+        "removed": "NVSHIRWAN 259",
+        "at": 1905,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 448,
+        "removed": "CORRECTIONS AND ADDITIONS 187",
+        "at": 2220,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 352,
+        "removed": "KHUSRAU PARWIZ 223",
+        "at": 24512,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 83,
+        "removed": "KAI KHUSRAU 107",
+        "at": 16366,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 83,
+        "removed": "KAI KHUSRAU 105",
+        "at": 12673,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 83,
+        "removed": "KAI KHUSRAU 103",
+        "at": 9019,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 83,
+        "removed": "KAI KHUSRAU 101",
+        "at": 5411,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 127,
+        "removed": "KAI KHUSRAU 133",
+        "at": 5426,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 127,
+        "removed": "KAI KHUSRAU 131",
+        "at": 1908,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 129,
+        "removed": "KAI KHUSRAU 159",
+        "at": 23398,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 86,
+        "removed": "KAI KHUSRAU 161",
+        "at": 26762,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 86,
+        "removed": "KAI KHUSRAU 151",
+        "at": 9208,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": 41,
+        "removed": "KAI KAUS 205",
+        "at": 19263,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 134,
+        "removed": "KAI KHUSRAU 265",
+        "at": 12393,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 134,
+        "removed": "KAI KHUSRAU 263",
+        "at": 8854,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 446,
+        "removed": "CORRECTIONS AND ADDITIONS 185",
+        "at": 387,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": 77,
+        "removed": "NOTE 9",
+        "at": 6776,
+        "rejoined": "paragraph"
+      }
+    ]
   }
 ]
