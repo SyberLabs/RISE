@@ -227,6 +227,14 @@ Permitted dispositions are therefore a closed set:
   shelf says why (the Shakespeare precedent).
 - **`re-source`** — a better edition exists; withhold and queue the acquisition.
 
+**The prompt itself is written:** `CORPUS-REVIEWER-PROMPT.md`, with the system
+prompt to send verbatim, the job envelope, six worked examples drawn from the
+actual shelf, and the batch discipline. Two things there refine this section:
+the reviewer's vocabulary deliberately **excludes `withhold` and `re-source`**
+(those need a human, per §7.3), and it reports whether the proposed **span**
+is exact — an inexact span forces `keep`, so a bad boundary is reported rather
+than acted on.
+
 ### Why a cheaper model is the right instrument here
 
 The judgement is genuinely easy — *"is this line part of the book?"* — and the
