@@ -160,6 +160,44 @@ describe('paginate', () => {
         expect(chPage.items[0]).toBe(ch);
     });
 
+    it('R9 — never puts two plates on a page with nothing between them', () => {
+        const items = [text(200), figure('bleed'), figure('bleed'), text(200)];
+        const { pages } = paginate(composition(items));
+        for (const page of pages) {
+            const figs = page.items.filter(i => i.type === 'figure');
+            if (figs.length < 2) continue;
+            // If two share a page, prose stands between them.
+            const first = page.items.indexOf(figs[0]);
+            const second = page.items.indexOf(figs[1]);
+            const between = page.items.slice(first + 1, second);
+            expect(between.some(i => i.type === 'text'),
+                `page ${page.index} stacks plates`).toBe(true);
+        }
+        expect(allItems(pages)).toEqual(items);
+    });
+
+    it('R4 — does not leave one lonely paragraph on a page of its own', () => {
+        // The classic widow cannot occur — whole items move, so a
+        // paragraph is never split. This is its item-level cousin: a
+        // trailing block alone on a page reads as a reading that ran
+        // out rather than one that was composed.
+        const items = Array.from({ length: 13 }, () => text(330));
+        const { pages } = paginate(composition(items), { linesPerPage: 12 });
+        const last = pages[pages.length - 1];
+        if (pages.length > 1) {
+            expect(last.items.length, 'a page was left with one paragraph').toBeGreaterThan(1);
+        }
+        expect(allItems(pages)).toEqual(items);
+    });
+
+    it('R4 leaves a plate that earned its own page alone', () => {
+        const plate = figure('bleed');
+        const items = [text(200), plate, text(200)];
+        const { pages } = paginate(composition(items), { linesPerPage: 8 });
+        const platePage = pages.find(p => p.items.includes(plate));
+        expect(platePage.items).toHaveLength(1);
+    });
+
     it('reports a budget it can actually honour', () => {
         const { stats } = paginate(composition([text(100)]), { linesPerPage: 1, charsPerLine: 1 });
         // Absurd inputs are clamped rather than producing a page per word.

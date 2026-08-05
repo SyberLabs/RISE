@@ -180,8 +180,20 @@ export function paginate(composition, options = {}) {
             seal();
         }
 
+        // R9 — NO TWO PLATES WITHOUT PROSE BETWEEN THEM. The compositor
+        // limits consecutive bleeds in the COLUMN; a page is a second
+        // frame it cannot see, and two plates arriving on one with
+        // nothing between them read as a contact sheet rather than a
+        // reading. (Marked in the canon as my judgement, not book
+        // practice — a printed page happily carries two plates. A page
+        // this small, on a phone, does not.)
+        const lastOnPage = current.items[current.items.length - 1];
+        const plateOnPlate = unit.lead === 'figure'
+            && lastOnPage?.type === 'figure'
+            && current.items.length > 0;
+
         const fits = current.weight + unit.weight <= linesPerPage;
-        if (!fits && current.items.length) {
+        if ((!fits || plateOnPlate) && current.items.length) {
             seal();
         }
 
@@ -196,6 +208,53 @@ export function paginate(composition, options = {}) {
         }
     }
     seal();
+
+    // R4 — NO PAGE ALONE WITH ONE PARAGRAPH.
+    //
+    // The classic widow and orphan cannot occur here, and it is worth
+    // saying why: this paginator moves WHOLE items, so a paragraph is
+    // never split across a boundary and no single line is ever
+    // stranded. What can happen is the item-level cousin — a page
+    // carrying one short block, usually the tail of a reading, which
+    // reads as a page that ran out rather than one that was composed.
+    //
+    // The fix is the compositor's, not the cram: a lone page does not
+    // get merged upward (that overfills the page above it), it BORROWS
+    // the block above. Both pages end up with something to say and
+    // neither exceeds its budget — which is exactly what a compositor
+    // does when it pushes a line back to balance a spread.
+    for (let p = pages.length - 1; p > 0; p--) {
+        const page = pages[p];
+        if (page.items.length !== 1) continue;
+        // A plate given its own page earned it; leave it there.
+        if (page.items[0].type === 'figure') continue;
+
+        const prev = pages[p - 1];
+        if (prev.items.length < 2) continue;
+        const borrowed = prev.items[prev.items.length - 1];
+        // Never borrow a plate down onto a lone paragraph: that trades
+        // this fault for R9's.
+        if (borrowed.type === 'figure') continue;
+        // AND NEVER OUT OF A WRAP GROUP. A margin figure and the prose
+        // that flows beside it are one atom — the float only wraps text
+        // that follows it in the same containing block, so borrowing a
+        // paragraph out of the group unmakes the wrap upstairs to fix a
+        // thin page downstairs. Walk back through the run of prose: if
+        // it began at a wrapped figure, this block is spoken for.
+        let k = prev.items.length - 2;
+        while (k >= 0 && prev.items[k].type === 'text') k--;
+        const opener = k >= 0 ? prev.items[k] : null;
+        if (opener && opener.type === 'figure'
+            && opener.placement === 'margin' && Number(opener.wrapBlocks) > 0) {
+            continue;
+        }
+
+        prev.items.pop();
+        const w = weighItem(borrowed, charsPerLine);
+        prev.weight -= w;
+        page.items.unshift(borrowed);
+        page.weight += w;
+    }
 
     // NO PAGE ENDS ON A HEADING. A chapter opening or an episode break is
     // a promise about what follows; leaving it as the last thing on a

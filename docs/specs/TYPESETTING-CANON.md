@@ -1,6 +1,6 @@
 # The Typesetting Canon
 
-**Status:** living · rules 1–3 implemented
+**Status:** living · rules 1–4 and 9 implemented · R5 refused, R6 deferred
 **Scope:** the compositor (`src/page/compositor.js`) and the Page's CSS.
 **Purpose:** encode book-printing practice as rules a program can apply, so the
 Page composes rather than merely arranges.
@@ -60,30 +60,67 @@ not end on a raised chapter mark.
 
 ---
 
+### R4 — No page alone with one paragraph *(book practice, reframed)*
+
+**The classic widow and orphan cannot occur in this design, and that is worth
+knowing rather than guarding against.** The paginator moves WHOLE items, so a
+paragraph is never split across a boundary and no single line is ever stranded.
+The rule every book follows is structurally satisfied before it is written.
+
+Its item-level cousin does occur: a page carrying one short block — usually the
+tail of a reading — which reads as a page that ran out rather than one that was
+composed. The fix is the compositor's rather than the cram: the thin page
+**borrows the block above it** instead of being merged upward, so both pages
+have something to say and neither exceeds its budget. That is what a compositor
+does when it pushes a line back to balance a spread.
+
+Two things it will not do. It will not borrow a plate down onto a lone
+paragraph, which trades this fault for R9's. And it will not borrow prose out of
+a **wrap group**: a margin figure and the text flowing beside it are one atom,
+so taking a paragraph from the group unmakes the wrap upstairs to fix a thin
+page downstairs.
+
+### R9 — No two plates without prose between them *(my judgement, not canon)*
+
+The compositor limits consecutive bleeds in the COLUMN; a page is a second frame
+it cannot see. Two plates landing on one page with nothing between them read as
+a contact sheet. A printed page happily carries two plates; a page this small,
+on a phone, does not — which is why this is labelled judgement.
+
+---
+
 ## 2. Rules worth encoding next
 
 Ordered by how visible the defect is when the rule is missing.
 
-### R4 — Widow and orphan control *(book practice; the oldest rule there is)*
-
-No single line of a paragraph alone at the top of a page (a widow), and no
-single line alone at the foot (an orphan). The paginator already knows a
-paragraph's estimated line count, so it can refuse a break that leaves one line
-stranded and push the whole paragraph instead. This is the most conspicuous
-thing a paginated column can get wrong, and right now nothing prevents it.
-
-### R5 — A plate takes the head or the foot, not the middle *(book practice)*
+### R5 — A plate takes the head or the foot, not the middle — **REFUSED as written**
 
 Traditional composition puts a full-measure plate at the top or bottom of a
 page, never floating in the middle of running text where it cuts the column in
-half. The paginator knows where a figure lands within a page and could move it
-to the nearer edge.
+half. The paginator does know where a figure lands within a page and could move
+it to the nearer edge.
 
-### R6 — Facing rhythm across a turn *(book practice)*
+**It must not.** Moving a plate within a page reorders the reading, and the
+image↔passage binding is the thing this whole architecture exists to protect:
+the Page and the Stream share one binding so they "can never disagree about
+which image belongs to which verse" (`PAGE-MODE-SPEC` §8). A plate slid to the
+head of a page is a plate now sitting beside a passage that did not summon it.
+The standing constraint in §4 forbids exactly this, and the rule was queued
+without checking it against that constraint.
 
-A wrapped figure alternates sides so a chapter reads as a spread — the
-compositor already does this. Paginated, the alternation should reset per page
-rather than run continuously, or the "spread" is imaginary.
+The book gets away with it because a book's plates are decorative or
+positionally indifferent. Ours are bound. If the fault is ever worth addressing,
+the honest route is the reverse: let the PAGINATOR choose a break that puts the
+plate at an edge, rather than letting it move the plate.
+
+### R6 — Facing rhythm across a turn — **deferred, and here is the obstacle**
+
+The compositor alternates wrap sides so a chapter reads as a spread, and
+paginated, that alternation should reset per page or the "spread" is imaginary.
+The obstacle is ownership: `side` is assigned by the compositor, which runs
+before pagination and knows nothing of pages, and the paginator must not mutate
+the Composition it was handed. The clean route is for the RENDERER to derive
+`side` per page at build time. Small, but not free, and cosmetic next to R4.
 
 ### R7 — The measure is 45–75 characters *(canon; Bringhurst)*
 
@@ -96,11 +133,6 @@ ragged-right is calmer than the number alone suggests.
 The article's own comment already records this for the hanging verse marks. The
 same correction applies to centred headings when marginal numbers are present —
 untested, and possibly invisible.
-
-### R9 — No two plates without prose between them *(my judgement, not canon)*
-
-The compositor has a bleed-run limit; the paginator has none. Two plates that
-land on one page with nothing between them read as a contact sheet.
 
 ---
 
