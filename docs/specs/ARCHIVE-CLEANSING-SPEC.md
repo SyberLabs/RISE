@@ -401,6 +401,22 @@ does not.
 
 The residue is recorded rather than pursued.
 
+### Re-run with the corrected instrument, 2026-08-05
+
+The survey above was made with the broken sampler, so it was re-run once the
+sampling and bracket-state faults were fixed (§2c). **With samples spanning
+many works instead of one play, the large buckets hold up:** `caps-standalone`
+is `ACT I.`, `BEOWULF`, `ANNA KARENINA` — the works' own titles; `shout-short`
+is `IOU` and stage directions; `bracket-number` is footnote markers and their
+notes. No second Vitruvius was hiding in them.
+
+**What remains genuinely open is bounded and named:** 244 standalone orphaned-`]`
+lines across 12 shelved works whose lines have not been read — Crane 86, the
+Little Clay Cart 80, Pride and Prejudice 34, the Shahnama 21, and eight works
+with fewer than ten each. The machinery to close them exists and is verified;
+closing them is a reading task, not an engineering one. A work joins
+`ORPHAN_CAPTION_WORKS` after someone reads its lines, never before.
+
 ---
 
 ## 3. The detection ladder
