@@ -17,7 +17,7 @@ import './page.css';
 import { compileFlow, flowCollections, focalOf } from './flow.js';
 import { compose, PLACEMENT, RHYTHM } from './compositor.js';
 import { paginate, pageOfItem } from './paginator.js';
-import { normalizeArtworkLabel, displayedArtworkLabel } from '../visuals/artwork-label.js';
+import { normalizeArtworkLabel, displayedArtworkLabel, artworkMayBeShown } from '../visuals/artwork-label.js';
 
 const OBSERVER_MARGIN = '600px';   // begin resolving well before view
 
@@ -723,6 +723,15 @@ export class PageReader {
         fig.appendChild(img);
 
         const label = normalizeArtworkLabel(work);
+        // A credit is owed and none can be composed: the figure is
+        // ABSENT rather than shown bare. Same treatment as a work that
+        // will not resolve, for the same reason.
+        if (!artworkMayBeShown(label)) {
+            fig.replaceChildren();
+            fig.classList.remove('is-pending');
+            fig.classList.add('is-absent');
+            return;
+        }
         if (label) {
             const cap = document.createElement('figcaption');
             cap.className = 'page-figure-caption';

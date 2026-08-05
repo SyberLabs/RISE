@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { normalizeArtworkLabel, artworkMayBeShown } from '../visuals/artwork-label.js';
 import { PageReader } from './PageReader.js';
 
 /**
@@ -540,5 +541,45 @@ describe('PageReader pagination', () => {
         expect(shown).toBe(total);
         expect(host.querySelector('.page-pager')).toBeNull();
         reader.destroy();
+    });
+});
+
+describe('a work that cannot be credited is absent from the page', () => {
+    it('absents a CC-BY figure with no attributable credit', async () => {
+        // SOURCE-EXPANSION-SPEC §3 ruled this in words; the Page is where
+        // a reader would have seen it breached. The figure takes the same
+        // treatment as a work that will not load — absent, never a
+        // broken frame, and now never an uncredited one either.
+        const { reader, host } = mount({
+            session: {
+                atoms: Array.from({ length: 8 }, (_, i) =>
+                    atom(`Paragraph ${i} — ${'word '.repeat(40)}`, { chapter: 1, verse: i + 1 })),
+                visualProgram: null,
+                sourced: ['sky']
+            },
+            resolveCollection: async () => ([{
+                // A licence that owes a credit, and nobody to name.
+                name: '', data: { url: 'blob:cc-by-nobody' },
+                metadata: { license: 'CC BY 4.0' }
+            }])
+        });
+        reader.render();
+        await new Promise(r => setTimeout(r, 0));
+
+        for (const fig of host.querySelectorAll('.page-figure')) {
+            expect(fig.classList.contains('is-shown'),
+                'an uncreditable CC-BY work was shown').toBe(false);
+        }
+        reader.destroy();
+    });
+
+    it('still shows a public-domain figure by an unknown hand', () => {
+        // THE CASE THE GUARD MUST NOT REACH. Much of the museum corpus is
+        // anonymous and owes no attribution; withholding it would empty a
+        // shelf that was never at risk.
+        const label = normalizeArtworkLabel({
+            name: 'Woodcut of a hare', metadata: { rights: 'PUBLIC_DOMAIN' }
+        });
+        expect(artworkMayBeShown(label)).toBe(true);
     });
 });

@@ -39,7 +39,8 @@ import {
 import {
     applyArtworkLabelElement,
     displayedArtworkLabel,
-    normalizeArtworkLabel
+    normalizeArtworkLabel,
+    artworkMayBeShown
 } from './artwork-label.js';
 import { hasVisualInterlocutionConsent, VisualFlashGate } from '../core/visual-safety.js';
 import {
@@ -2081,6 +2082,17 @@ export class VisualCortex {
                 if (duplicate) return this._touchAsset(duplicate);
 
                 const artworkLabel = normalizeArtworkLabel(image);
+                // A WORK THAT CANNOT BE CREDITED IS ABSENT, NEVER
+                // UNCREDITED. The imagery's own law with one clause
+                // changed, and it reaches only credit-required licences:
+                // an open-licence work by an unknown hand is ordinary and
+                // still hydrates exactly as it always has.
+                if (!artworkMayBeShown(artworkLabel)) {
+                    this._recordExternalFailure(categoryId, 'rights',
+                        new Error(`${categoryId}: ${artworkLabel.licence} work has no attributable credit`),
+                        requestedUrl);
+                    return null;
+                }
                 const asset = await this._loadImage(
                     image.data.url,
                     image.name,

@@ -212,7 +212,7 @@ assumed otherwise.** Read against the code rather than the plan:
 
 So §3's ruling has a home. Three gaps remain, all narrow.
 
-### Gap 1 — the licence name is dropped exactly when a provider is helpful
+### Gap 1 — the licence name is dropped exactly when a provider is helpful — **CLOSED 2026-08-05**
 
 `requiredText` is composed as `attribution || [title, artist, sourceName,
 rightsBasis]`. The `||` short-circuits, so a work that supplies an
@@ -230,7 +230,7 @@ and it is the non-compliant one. The fix is composition rather than
 substitution: the provider's attribution replaces the *name* fields, not
 the licence.
 
-### Gap 2 — an uncreditable work is displayed rather than withheld
+### Gap 2 — an uncreditable work is displayed rather than withheld — **CLOSED 2026-08-05**
 
 `normalizeArtworkLabel` returns `null` when title, artist and attribution
 are all absent, and a null label renders nothing — **the image still
@@ -244,12 +244,51 @@ broken frame** → *a work that cannot be credited is absent, never
 uncredited.* This is the one load-bearing item; everything else here is
 polish.
 
-### Gap 3 — CC-BY-SA is not distinguished from CC-BY
+### Gap 3 — CC-BY-SA is not distinguished from CC-BY — **CLOSED 2026-08-05**
 
 The detector marks both credit-required, which is right, but they are not
 the same licence class. Wildlife imagery on Wikimedia and iNaturalist is
 a mixture of BY, BY-SA and CC0, so the ledger must record which — before
 harvest, not after.
+
+### How it was closed, and the shape that matters
+
+**The licence class is now determined from the RAW item, before any
+label is composed** — `licenceClassOf(item)` returning `open`, `cc-by`,
+`cc-by-sa` or `undeclared`. That separation is the whole fix. The
+obligation used to be discovered *inside* `normalizeArtworkLabel`, which
+returns `null` when there is nothing to display — so a work that REQUIRED
+credit and had none arrived at the presenter as `null`, indistinguishable
+from a work that needed none, and both were shown.
+
+**`artworkMayBeShown(label)` refuses exactly one case:** a credit-required
+work whose credit cannot be composed. The visual cortex refuses to
+hydrate it and records a `rights` failure; the Page absents the figure by
+the same path a work that will not load takes.
+
+**And it does not reach the CC0 corpus, which was the risk.** Tested
+explicitly, because much of the museum shelf is by an unknown hand and a
+blunt rule would have emptied it:
+
+| record | licence | shown |
+|---|---|---|
+| CC0 woodcut, unknown artist, title only | `open` | **yes** — "Woodcut of a hare" |
+| CC0 with no metadata whatever | — (`null` label) | **yes**, no chip |
+| Art Institute record as it arrives | `open` | **yes**, reader's preference governs |
+| undeclared rights | `undeclared` | **yes** — every existing provider keeps working |
+| CC BY with someone to name | `cc-by` | **yes**, credit always visible |
+| CC BY with nobody to name | `cc-by` | **no** |
+| CC BY-SA with nobody to name | `cc-by-sa` | **no** |
+
+The `undeclared` default is deliberately permissive. Tightening it would
+be the retroactive change this separation exists to avoid; a new
+witness-of source must DECLARE its licence, and that obligation belongs
+to the harvester, not to the presenter.
+
+**One case found while testing:** a licence name alone is not a credit.
+A record carrying only `CC BY 4.0` composes the non-empty string
+"CC BY 4.0", which names the licence and credits nobody — so the
+withholding test is on the NAMES, not on the composed text.
 
 ### Ruling: where the credit lives — decided 2026-08-05, Mateo
 
