@@ -197,6 +197,80 @@ witness-of source — the attribution pathway must exist first.
 
 ---
 
+## 3a. Audit of the attribution pathway — 2026-08-05
+
+**The pathway is largely BUILT, which was not obvious and had been
+assumed otherwise.** Read against the code rather than the plan:
+
+| piece | state |
+|---|---|
+| canonical metadata boundary that strips markup | `normalizeArtworkLabel` — **built** |
+| `creditRequired`, from `AttributionRequired` or a CC-BY licence string | **built** |
+| credit shown regardless of the reader's label preference | `displayedArtworkLabel` — **built** |
+| applied across Flash, Gallery and Page | **built** (`is-required-credit`) |
+| provider capture of licence, licence URL, attribution, source URL | **built** for Wikimedia |
+
+So §3's ruling has a home. Three gaps remain, all narrow.
+
+### Gap 1 — the licence name is dropped exactly when a provider is helpful
+
+`requiredText` is composed as `attribution || [title, artist, sourceName,
+rightsBasis]`. The `||` short-circuits, so a work that supplies an
+attribution string shows **only** that string and the licence is never
+named:
+
+```
+with an attribution string : "ESA/Webb, NASA & CSA, J. Lee"
+without one                : "Pillars… · NASA, ESA, CSA, STScI · ESA/Webb · CC BY 4.0"
+```
+
+CC BY 4.0 §3(a)(1) requires attribution **and** identification of the
+licence. The first line above is the one a real ESA/Webb record produces,
+and it is the non-compliant one. The fix is composition rather than
+substitution: the provider's attribution replaces the *name* fields, not
+the licence.
+
+### Gap 2 — an uncreditable work is displayed rather than withheld
+
+`normalizeArtworkLabel` returns `null` when title, artist and attribution
+are all absent, and a null label renders nothing — **the image still
+shows**. For PD/CC0 that is correct. For CC-BY it is a licence breach,
+and §3 already forbids it in words: *"A CC-BY work with no place to show
+its credit cannot be shown."*
+
+The rule needs to exist in code, and it is the same sentence the imagery
+already lives by: **a work that will not resolve is absent, never a
+broken frame** → *a work that cannot be credited is absent, never
+uncredited.* This is the one load-bearing item; everything else here is
+polish.
+
+### Gap 3 — CC-BY-SA is not distinguished from CC-BY
+
+The detector marks both credit-required, which is right, but they are not
+the same licence class. Wildlife imagery on Wikimedia and iNaturalist is
+a mixture of BY, BY-SA and CC0, so the ledger must record which — before
+harvest, not after.
+
+### Ruling: where the credit lives — decided 2026-08-05, Mateo
+
+> **The chip carries the credit as TEXT. The Curia carries the full
+> record with URLs.**
+
+CC BY 4.0 §3(a)(2) allows the conditions to be satisfied *"in any
+reasonable manner based on the medium, means, and context"*, and names a
+linked resource as an example. Naming the licence in text **identifies**
+it; the hyperlink is the "where practical" clause, and in a reading
+surface it is not practical — an earlier version put URLs in the chip and
+it threw off the visual coherence of the Chamber.
+
+This holds because **the Curia is reader-reachable** — it has its own
+door on the Portal and is a registered view, not a developer tool. A full
+attribution record there, with licence and source URLs, is a resource a
+reader can actually get to. Had the Curia been dev-only this ruling would
+not stand.
+
+---
+
 ## 4. How science intents reach the reader
 
 Three routes, reusing machinery that already exists:
