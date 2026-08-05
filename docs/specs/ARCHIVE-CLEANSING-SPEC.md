@@ -32,7 +32,80 @@ and OCR folds that apparatus into the prose. Three findings, all real:
   Ssŭma I.` So a reading finishes by announcing the next one, and the
   announcement is **duplicated verbatim** at the head of that next one.
 
+- **The Mahabharata is partly the First World War.** Found 2026-08-04 by the
+  reviewer's first adversarial batch. Its last five "volumes" are the *New York
+  Times Current History of the European War* (1915) — Kipling, Alfred Noyes,
+  Sir John French's dispatches, the Battle of the Suez Canal. See §1b. This is
+  the Hamlet fault again, and it is on the shelf right now.
+
 The rule this scope serves: **no such text in any book.**
+
+---
+
+## 1b. The Mahabharata — wrong work, in part
+
+**Status: found, measured, NOT fixed.** The disposition is `re-source`, which
+per §7.3 requires a human. Recorded here with its evidence so the decision can
+be made rather than rediscovered.
+
+### The measurement
+
+| volumes | sections | words | Mahābhārata proper nouns | war vocabulary |
+|---|---|---|---|---|
+| 1–4 | 1,901 | 2,550,173 | **17,583** | 10 |
+| 5–9 | 8 | **403,208** | **0** | 894 |
+
+Zero. Across four hundred thousand words presented as the Mahābhārata, not one
+occurrence of Bharata, Kuru, Pandava, Arjuna, Krishna, Yudhishthira, Parva,
+Rishi or Brahmana. What is there instead:
+
+> `CHAPTER I. / THE FRENCH SETBACKS IN AUGUST.`
+> `PART I. / THE CONDUCT OF THE GERMAN TROOPS IN BELGIUM.`
+> `MUSIC OF WAR — By Rudyard Kipling`
+
+That is **13.7% of the work**, and because those volumes were never divided,
+"Volume 5 — Front matter" is a single reading of 115,312 words. A reader
+entering there is handed a 1915 war periodical labelled as Vyasa.
+
+### The cause
+
+The provenance record declares nine artifacts, `#15474`–`#15482`, each labelled
+"Project Gutenberg Ganguli volume N". **The ingest assumed a contiguous
+identifier range.** Ganguli's Mahābhārata occupies `#15474`–`#15477`; what
+follows in Gutenberg's numbering is a different work entirely. The labels are
+the ingest's own assertion, not something read back from the files — so the
+dossier says "Ganguli volume 5" about a text that says "Kaiser".
+
+### Why nothing caught it
+
+`identity.test.js` asks whether **a work names itself in its own pages**, and
+the Mahābhārata does, seventeen thousand times, in volumes 1–4. The check is
+made of the WORK and the reading is served at the **DIVISION**. A work can pass
+its identity test while five of its divisions are a different book.
+
+**The guard this suggests** — and it is cheap, because the signal is not subtle:
+no division may be *devoid* of the vocabulary its work is dense in. Volumes 5–9
+score zero against a corpus averaging one proper noun per 145 words. A
+per-division identity check is rung 2 of §3 in its simplest possible form.
+
+### Scope, checked rather than assumed
+
+Eight shelved works are built from multiple artifacts; only two assume a
+sequential identifier range. The other is Le Morte d'Arthur (`#1251`–`#1252`),
+and both its volumes are genuinely Arthurian — 4,893 and 5,464 hits. **This is
+one work, not a class.**
+
+### The options, for the human this waits on
+
+1. **Trim volumes 5–9** and keep the 2.55M words of genuine Ganguli. The
+   deletion is well-evidenced and leaves the work honest but incomplete — and
+   the dossier must then say the edition is volumes 1–4.
+2. **Re-source** the true remaining volumes and keep the work whole. Correct,
+   and it is an acquisition, not an edit.
+3. **Withhold** entirely. Disproportionate: four volumes are sound.
+
+The recommendation is **2, with 1 as the interim** — a shelf should not serve
+the First World War as the Mahābhārata while an acquisition is pending.
 
 ---
 
