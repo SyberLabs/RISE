@@ -132,6 +132,22 @@ function toUnits(items, charsPerLine) {
     return units;
 }
 
+/**
+ * Does this item open a chapter?
+ *
+ * A raised chapter MARK already forces a page. An edition that carries
+ * its structure inline gives the same event as a text block, and
+ * without this it merely lands wherever the budget put it — which is
+ * how "CHAPTER II" and the first paragraph of chapter two arrived as
+ * the last lines of chapter one's page.
+ */
+function opensAChapter(item) {
+    if (!item) return false;
+    if (item.type === 'chapter') return true;
+    if (item.type !== 'text' || item.heading !== true) return false;
+    return /^(chapter|book|part|canto)/i.test(String(item.text || '').trim());
+}
+
 /** A heading with nothing under it is not a page. */
 function endsOnAHeading(page) {
     const last = page.items[page.items.length - 1];
@@ -176,7 +192,8 @@ export function paginate(composition, options = {}) {
         // A CHAPTER OPENS A PAGE. It is the one item in the vocabulary
         // that is a beginning, and a beginning at the foot of a page is a
         // widow with a drop cap.
-        if (unit.lead === 'chapter' && current.items.length) {
+        if ((unit.lead === 'chapter' || opensAChapter(unit.items[0]))
+            && current.items.length) {
             seal();
         }
 
@@ -188,9 +205,13 @@ export function paginate(composition, options = {}) {
         // practice — a printed page happily carries two plates. A page
         // this small, on a phone, does not.)
         const lastOnPage = current.items[current.items.length - 1];
+        // …but never at the cost of a proseless page. Three plates in a
+        // row cannot satisfy R9 without stranding one alone, and a page
+        // carrying only pictures is a worse fault than two plates
+        // sharing one. R9 is a preference; prose on every page is not.
         const plateOnPlate = unit.lead === 'figure'
             && lastOnPage?.type === 'figure'
-            && current.items.length > 0;
+            && current.items.some(i => i.type === 'text');
 
         const fits = current.weight + unit.weight <= linesPerPage;
         if ((!fits || plateOnPlate) && current.items.length) {
@@ -225,9 +246,18 @@ export function paginate(composition, options = {}) {
     // does when it pushes a line back to balance a spread.
     for (let p = pages.length - 1; p > 0; p--) {
         const page = pages[p];
-        if (page.items.length !== 1) continue;
-        // A plate given its own page earned it; leave it there.
-        if (page.items[0].type === 'figure') continue;
+        // A page with no PROSE on it at all is the fault R9 can create
+        // while preventing its own: sealing before a second plate can
+        // leave the first — or the second — standing alone. A plate that
+        // genuinely could not fit still earns its page (it is the only
+        // item and it overruns the budget); a plate merely sealed away
+        // from another does not.
+        const proseless = !page.items.some(i => i.type === 'text');
+        const oversize = page.items.length === 1
+            && page.weight >= linesPerPage;
+        if (page.items.length !== 1 && !(proseless && !oversize)) continue;
+        if (page.items.length === 1 && page.items[0].type === 'figure'
+            && oversize) continue;
 
         const prev = pages[p - 1];
         if (prev.items.length < 2) continue;
