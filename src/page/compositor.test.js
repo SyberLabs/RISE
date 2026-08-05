@@ -215,3 +215,34 @@ describe('compose', () => {
         expect(items[0]).toMatchObject({ chapter: 27, verse: 1 });
     });
 });
+
+describe('inline headings', () => {
+    const flowOf = (texts) => ({
+        blocks: texts.map((text, i) => ({ kind: 'text', text, weight: 0.5, tags: [], verse: i + 1 }))
+    });
+    const headings = (texts) => compose(flowOf(texts)).items
+        .filter(i => i.type === 'text' && i.heading)
+        .map(i => i.text);
+
+    it('recognises an edition that carries its structure inline', () => {
+        // Vitruvius has these as ordinary paragraphs; the flow has no
+        // chapter mark to raise, so they arrived crammed between prose.
+        expect(headings(['CHAPTER I', 'THE EDUCATION OF THE ARCHITECT']))
+            .toEqual(['CHAPTER I', 'THE EDUCATION OF THE ARCHITECT']);
+    });
+
+    it('refuses apparatus fragments, which is where this first went wrong', () => {
+        // Scanned editions leak marginalia and footnote tails as short
+        // all-caps scraps with orphaned brackets. Promoting one to a
+        // heading turns damage into structure.
+        expect(headings(['ATHENS]', 'ROME]', 'Giocondo, Venice, 1511)]', '(PLATE IV)'])).toEqual([]);
+    });
+
+    it('refuses prose that merely shouts, and single sigla', () => {
+        expect(headings(['I HAVE DRAWN UP DEFINITE RULES.', 'A', 'IV'])).toEqual([]);
+    });
+
+    it('leaves ordinary prose alone', () => {
+        expect(headings(['Owing to this favour I need have no fear of want.'])).toEqual([]);
+    });
+});

@@ -1334,3 +1334,23 @@
     padding: var(--space-xs) var(--space-lg);
   }
 }
+
+/* The page turn lives in the one control bar (Page Mode). */
+.page-turn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.page-turn[hidden] { display: none; }
+.page-turn-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--color-fog);
+  min-width: 4.5ch;
+  text-align: center;
+}
+.page-turn .control-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}

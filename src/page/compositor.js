@@ -95,6 +95,49 @@ function placementFor(block) {
  *     so a dense episode sequence does not become a slideshow (default 1)
  * @returns {{ items: Array, stats: Object }}
  */
+
+/**
+ * Does this paragraph read as a HEADING rather than as prose?
+ *
+ * Many public-domain editions carry their structure inline: Vitruvius
+ * has "CHAPTER I" and "THE EDUCATION OF THE ARCHITECT" as ordinary
+ * paragraphs, indistinguishable from the sentences around them once the
+ * text is atomised. The flow has no chapter mark to raise, so the
+ * compositor was setting them at prose rhythm and they arrived crammed
+ * between two paragraphs with nothing to breathe.
+ *
+ * The test is deliberately narrow, because a false positive puts a gulf
+ * in the middle of a sentence: short, no lowercase letters at all, and
+ * not punctuated as a sentence. "CHAPTER I" passes. "I HAVE DRAWN UP
+ * DEFINITE RULES." does not, because of the full stop; a shouted line
+ * of prose stays prose.
+ */
+function readsAsHeading(text) {
+    const t = String(text || '').trim();
+    if (!t || t.length > 64) return false;
+    if (/[a-z]/.test(t)) return false;
+    if (!/[A-Z]/.test(t)) return false;          // numerals or marks alone are not headings
+    if (/[.!?,;:]$/.test(t)) return false;       // a sentence, merely shouted
+
+    // AND NOT AN APPARATUS FRAGMENT. Public-domain scans carry the
+    // editorial apparatus inline — marginalia, sigla, footnote tails —
+    // and it arrives as short all-caps scraps with orphaned brackets:
+    // "ATHENS]", "ROME]", "Giocondo, Venice, 1511)]". Split one per
+    // atom, "ATHENS]" is indistinguishable from a heading by every test
+    // above, and Vitruvius Book I duly grew three of them.
+    //
+    // A heading does not carry a bracket. This does not repair the text
+    // — those fragments should not be in a reading at all, which is a
+    // separate matter for the text audit — but it stops the compositor
+    // from promoting damage into structure.
+    if (/[[\]()]/.test(t)) return false;
+    // Nor a bare siglum or numeral. A heading has at least one WORD in
+    // it; "IV" and "A" are references, and a Roman numeral alone is how
+    // a scan labels a plate.
+    if (!/[A-Z]{3}/.test(t)) return false;
+    return true;
+}
+
 export function compose(flow, options = {}) {
     const blocks = Array.isArray(flow?.blocks) ? flow.blocks : [];
     const maxBleedRun = Number.isFinite(options.maxBleedRun) ? options.maxBleedRun : 1;
@@ -230,6 +273,9 @@ export function compose(flow, options = {}) {
             push({
                 type: 'text',
                 text: block.text,
+                // Editions that carry their structure inline get the air a
+                // heading earns, even though the flow had no mark to raise.
+                heading: readsAsHeading(block.text),
                 chapter: block.chapter ?? null,
                 verse: block.verse ?? null,
                 weight: block.weight ?? 0,

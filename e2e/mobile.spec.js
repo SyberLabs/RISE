@@ -881,8 +881,12 @@ test('Page Mode keeps the whole measure on the screen', async ({ page }) => {
     expect(m.article.l).toBeGreaterThanOrEqual(0);
     expect(m.article.r).toBeLessThanOrEqual(m.vw);
 
-    // Three controls do not need the whole width, and cannot wrap.
-    expect(m.bar.w).toBeLessThan(m.vw * 0.75);
+    // It no longer holds three controls but five: the page turn moved
+    // INTO this bar rather than floating a second cluster above it,
+    // which is what caused the overlap on a short frame. It may take
+    // more width for that; it still must not span the screen the way
+    // the Stream's six-control bar does.
+    expect(m.bar.w).toBeLessThan(m.vw * 0.85);
     // Still centred on the screen it shrank inside.
     expect(Math.abs((m.bar.l + m.bar.r) / 2 - m.vw / 2)).toBeLessThanOrEqual(2);
     // AND NO LOWER THAN IT WAS. A safe-area inset is worth nothing in a

@@ -45,6 +45,8 @@ export class Chamber {
     // on demand. Null until the reader opens it; nothing is paid before.
     this.pageReader = null;
     this.pageModeActive = false;
+    // The reader's place in the Page, kept across a trip to the Stream.
+    this._lastPageIndex = 0;
 
     // Recitation (RECITATION-SPEC): text arrives over a short duration
     // rather than appearing whole. Off unless the reading asks for it,
@@ -335,6 +337,24 @@ export class Chamber {
               </button>
             ` : ''}
 
+            <!-- PAGE TURN, IN THE BAR THAT ALREADY EXISTS.
+                 The Page Reader used to float its own pager above this
+                 one. Two stacked control clusters at the foot of the
+                 screen overlapped on a short frame and, even apart,
+                 read as two competing objects rather than one place
+                 where the controls live. There is one bar. -->
+            <span class="page-turn" id="page-turn" hidden>
+              <button class="control-btn" id="page-prev" type="button"
+                aria-label="Previous page" title="Previous page">
+                <span class="icon" aria-hidden="true">&#8592;</span>
+              </button>
+              <span class="page-turn-count" id="page-turn-count" aria-live="polite"></span>
+              <button class="control-btn" id="page-next" type="button"
+                aria-label="Next page" title="Next page">
+                <span class="icon" aria-hidden="true">&#8594;</span>
+              </button>
+            </span>
+
             <!-- Stream ⇄ Page: the two projections of one reading -->
             <button class="control-btn page-mode-toggle" id="page-mode-btn"
               type="button" aria-pressed="false" aria-label="Read as a page"
@@ -483,6 +503,13 @@ export class Chamber {
       window.rise?.audioEngine?.playHiss();
       this.toggleVolume();
     });
+    this.container.querySelector('#page-prev')?.addEventListener('click', () => {
+      this.pageReader?.prevPage();
+    });
+    this.container.querySelector('#page-next')?.addEventListener('click', () => {
+      this.pageReader?.nextPage();
+    });
+
     const pageModeBtn = this.container.querySelector('#page-mode-btn');
     pageModeBtn?.addEventListener('click', () => {
       window.rise?.audioEngine?.playHiss();
@@ -1475,6 +1502,7 @@ export class Chamber {
     const next = typeof forceOn === 'boolean' ? forceOn : !this.pageModeActive;
     if (next === this.pageModeActive) return next;
     this.pageModeActive = next;
+    if (!next) this._syncPageTurn(0, 0);
 
     const btn = this.container.querySelector('#page-mode-btn');
     const display = this.container.querySelector('#chamber-display');
@@ -1544,6 +1572,9 @@ export class Chamber {
         return this.pageModeActive;
       }
       this.pageReader = new PageReader(host, {
+        // One bar: the Chamber owns the page turn (see #page-turn).
+        showPager: false,
+        onPageChange: (index, total) => this._syncPageTurn(index, total),
         session: this.session,
         // Session stores the compiled title as `name`; `title` is only an
         // input alias and is undefined on the model, which left every
@@ -1561,7 +1592,20 @@ export class Chamber {
         resolveCollection: (id, count) =>
           this._resolvePageCollection(id, count, abort.signal, visualCortex)
       });
+      // RETURN THE READER TO WHERE THEY WERE. Page Mode builds a fresh
+      // PageReader every time it opens, so leaving for the Stream and
+      // coming back landed on page one — the reading was held, and the
+      // reader's PLACE in it was not.
+      //
+      // READ THE MEMORY BEFORE RENDERING, NOT AFTER. The first attempt
+      // at this restored after render() and did nothing at all, because
+      // render() lands on page 0 and reports it through onPageChange —
+      // which is the same callback that RECORDS the position. The
+      // render erased the memory a line before it was consulted. A
+      // value read after the thing that writes it is not a memory.
+      const resume = this._lastPageIndex;
       this.pageReader.render();
+      if (resume > 0) this.pageReader.goToPage(resume);
     } catch (error) {
       console.warn('[Chamber] Page Mode unavailable:', error);
       if (generation !== this._pageGeneration) return this.pageModeActive;
@@ -1936,6 +1980,28 @@ export class Chamber {
    * a second press dismisses it and resumes. Never falls through to the
    * router's portal reset, which would strand a running player.
    */
+  /**
+   * Keep the bar's page turn honest about where the reader is.
+   * Hidden entirely when there is nothing to turn — a single-page
+   * reading should not carry disabled arrows.
+   */
+  _syncPageTurn(index = 0, total = 0) {
+    // Remembered here rather than read back on close: by the time Page
+    // Mode is torn down the reader is already gone.
+    if (total > 1) this._lastPageIndex = index;
+    const turn = this.container.querySelector('#page-turn');
+    if (!turn) return;
+    const many = this.pageModeActive && total > 1;
+    turn.hidden = !many;
+    if (!many) return;
+    const count = turn.querySelector('#page-turn-count');
+    if (count) count.textContent = `${index + 1} / ${total}`;
+    const prev = turn.querySelector('#page-prev');
+    const next = turn.querySelector('#page-next');
+    if (prev) prev.disabled = index === 0;
+    if (next) next.disabled = index >= total - 1;
+  }
+
   handleEscape() {
     const overlay = this.container.querySelector('#exit-confirm-overlay');
     const overlayVisible = overlay && overlay.style.display === 'flex' && !overlay.classList.contains('hidden');

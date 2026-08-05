@@ -75,6 +75,12 @@ export class PageReader {
         // caller that wants the whole column — printing, most obviously —
         // is asking for something specific and should say so.
         this.paginated = options.paginated !== false;
+        // The Chamber draws the turn in its own control bar, so the
+        // reader does not float a second one. Standalone callers keep it.
+        this.showPager = options.showPager !== false;
+        this.onPageChange = typeof options.onPageChange === 'function'
+            ? options.onPageChange
+            : null;
         this.linesPerPage = options.linesPerPage;
         this.pages = [];
         this.pageIndex = 0;
@@ -231,7 +237,10 @@ export class PageReader {
         }
 
         this.host.appendChild(article);
-        if (this.pages.length > 1) this.host.appendChild(this._buildPager());
+        if (this.showPager && this.pages.length > 1) {
+            this.host.appendChild(this._buildPager());
+        }
+        this.onPageChange?.(clamped, this.pages.length);
         this._armObserver();
         // A new page starts at its own beginning, not at the scroll
         // offset the previous one happened to leave behind.
@@ -433,7 +442,8 @@ export class PageReader {
 
     _buildText(item) {
         const p = document.createElement('p');
-        p.className = `page-text rhythm-${item.rhythm}`;
+        p.className = `page-text rhythm-${item.rhythm}`
+            + (item.heading ? ' is-heading' : '');
         if (Number.isInteger(item.verse)) {
             const mark = document.createElement('span');
             mark.className = 'page-verse';

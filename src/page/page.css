@@ -519,3 +519,26 @@
   }
   .page-pager-count { font-size: 9.5px; }
 }
+
+/* AN INLINE HEADING EARNS ITS AIR.
+   Many public-domain editions carry structure as ordinary paragraphs —
+   Vitruvius has "CHAPTER I" and "THE EDUCATION OF THE ARCHITECT" as
+   plain text — so the flow has no chapter mark to raise and they
+   arrived crammed between two paragraphs. The compositor recognises
+   them; this is what recognition buys. */
+.page-text.is-heading {
+  margin-top: 2.4em;
+  margin-bottom: 1em;
+  font-family: var(--font-display);
+  font-size: 0.82em;
+  letter-spacing: 0.14em;
+  color: var(--page-ink-strong);
+}
+
+/* Not after a chapter mark or a break — those already opened the space,
+   and two openings in a row is a hole. */
+.page-chapter + .page-text.is-heading,
+.page-break + .page-text.is-heading,
+.page-text.is-heading + .page-text.is-heading {
+  margin-top: 1.1em;
+}

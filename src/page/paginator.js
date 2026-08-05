@@ -79,6 +79,8 @@ function weighItem(item, charsPerLine) {
         case 'text': {
             const chars = String(item.text || '').length;
             const lines = Math.max(1, Math.ceil(chars / Math.max(1, charsPerLine)));
+            // An inline heading carries the air the CSS gives it.
+            if (item.heading) return lines + 3;
             return lines + (RHYTHM_EXTRA[item.rhythm] ?? 0);
         }
         default:
@@ -133,7 +135,12 @@ function toUnits(items, charsPerLine) {
 /** A heading with nothing under it is not a page. */
 function endsOnAHeading(page) {
     const last = page.items[page.items.length - 1];
-    return !!last && (last.type === 'chapter' || last.type === 'break');
+    if (!last) return false;
+    // A paragraph the compositor read AS a heading is one too: an
+    // edition that carries "CHAPTER I" inline should not have it
+    // stranded at the foot any more than a raised chapter mark.
+    return last.type === 'chapter' || last.type === 'break'
+        || (last.type === 'text' && last.heading === true);
 }
 
 /**
