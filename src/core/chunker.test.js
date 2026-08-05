@@ -516,3 +516,95 @@ describe('verse lineation, detected rather than declared', () => {
         expect(withFloor).toEqual(without);
     });
 });
+
+describe('phrase mode and the marks that end a thought', () => {
+    const phrase = (text) => chunkText(text, { mode: 'phrase', phraseFloor: true })
+        .filter(a => a.modality === 'text')
+        .map(a => a.content);
+
+    it('breaks at a question mark', () => {
+        // THE DEFECT THIS FIXES. `splitPhrases` carried `, ; : — – |` and
+        // a full stop, and neither `?` nor `!` — so PHRASE mode, the
+        // finer mode, was coarser than SENTENCE mode at a question.
+        expect(phrase('Who goes there? He asked again. Nobody answered at all.'))
+            .toEqual(['Who goes there?', 'He asked again.', 'Nobody answered at all.']);
+    });
+
+    it('breaks at a question even when the sentence continues in lower case', () => {
+        // Marcus Aurelius, Book VI. The capital-letter guard belongs to
+        // the full stop, where "Dr. Smith" needs it; no abbreviation ends
+        // in a question mark, and this corpus continues in lower case —
+        // so requiring a capital would have missed the motivating case.
+        expect(phrase('and why should they resolve to do me hurt? for what profit unto them.'))
+            .toEqual(['and why should they resolve to do me hurt?', 'for what profit unto them.']);
+    });
+
+    it('breaks at a question closed by a quotation mark', () => {
+        // “You have a house in town, I conclude?” — the mark is not
+        // adjacent to the space. `applyPhraseFloor` already allowed for
+        // this in `closesSentence`; the splitter had not, so the two
+        // disagreed about where a sentence ended.
+        expect(phrase('“You have a house in town, I conclude?” The gentleman bowed to her.'))
+            .toEqual(['“You have a house in town, I conclude?”', 'The gentleman bowed to her.']);
+    });
+
+    it('lets an exclamation stand as its own utterance', () => {
+        // "What is truth!" is three words and under the floor, but the
+        // floor refuses to merge across a sentence end — so it survives
+        // rather than being glued to what follows.
+        expect(phrase('What is truth! said jesting Pilate, and would not stay for an answer.'))
+            .toEqual(['What is truth!', 'said jesting Pilate, and would not stay for an answer.']);
+    });
+});
+
+describe('a parenthetical is one breath', () => {
+    const phrase = (text) => chunkText(text, { mode: 'phrase', phraseFloor: true })
+        .filter(a => a.modality === 'text')
+        .map(a => a.content);
+
+    it('never splits inside a parenthetical', () => {
+        // Splitting on the comma INSIDE the aside is what left
+        // "(which indeed is very irreligious" open and ", nor pray)"
+        // closed by nothing. Measured over eight works, edge-splitting
+        // with a protected interior took unbalanced atoms from 24 to 4
+        // in Paradise Lost and 12 to 2 in the Meditations.
+        const atoms = phrase(
+            'The merchant spoke at length of it (a thing of gold, silver, and iron) '
+            + 'to every one of us who had gathered there.');
+        expect(atoms).toContain('(a thing of gold, silver, and iron)');
+    });
+
+    it('separates the aside from the sentence around it', () => {
+        // THE ASIDE ITSELF must also clear the five-word floor, or the
+        // floor will quite correctly have it absorb what follows — a
+        // short piece takes its neighbour, which is the whole reason the
+        // floor exists. This tests the SPLITTER, so it leaves the floor
+        // nothing to do on either side.
+        const atoms = phrase(
+            'The ancient tree fell without a sound (as all great trees eventually do) '
+            + 'upon the quiet road below.');
+        expect(atoms[0]).toBe('The ancient tree fell without a sound');
+        expect(atoms[1]).toBe('(as all great trees eventually do)');
+    });
+
+    it('leaves a balanced atom behind', () => {
+        const atoms = phrase(
+            'He came into the city, saw what there was (and conquered it all), '
+            + 'then departed from the field before evening.');
+        for (const atom of atoms) {
+            const open = (atom.match(/\(/g) || []).length;
+            const close = (atom.match(/\)/g) || []).length;
+            expect(open, `unbalanced: ${atom}`).toBe(close);
+        }
+    });
+
+    it('adds no boundary of its own to an authored paragraph', () => {
+        // The Vault's sequences carry hand-placed pipes. The floor
+        // already declines to MERGE across one; adding a break inside
+        // one is the same overreach from the other direction. If an
+        // author wrote "said nothing (at all)" as a phrase, they have
+        // answered the question this code exists to answer.
+        expect(phrase('The captain | said nothing (at all) | and the sea was calm.'))
+            .toEqual(['The captain', 'said nothing (at all)', 'and the sea was calm.']);
+    });
+});

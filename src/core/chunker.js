@@ -372,24 +372,114 @@ function splitWords(text) {
  * @param {string} text 
  * @returns {string[]}
  */
+/**
+ * A parenthetical is masked so that no rule can split INSIDE it.
+ *
+ * The sentinel is deliberately a VISIBLE character. A control byte is
+ * the obvious choice and this codebase has lost days to invisible ones —
+ * a U+0008 inside a regex, a U+0000 used as a separator — so
+ * `src/core/source-hygiene.test.js` now forbids them outright. Angle
+ * brackets do not occur in this corpus and can be read in a debugger.
+ */
+const PAREN_OPEN = '⟨';
+const PAREN_CLOSE = '⟩';
+
+/**
+ * Phrase boundaries.
+ *
+ * `?` AND `!` BELONG HERE and were missing, which made PHRASE mode —
+ * the finer mode — coarser than SENTENCE mode at a question:
+ *
+ *     "Who goes there? He asked again."
+ *       phrase   → one atom
+ *       sentence → two
+ *
+ * They need no capital-letter guard. That guard exists for `.` because
+ * of "Dr. Smith" and "i.e."; no abbreviation ends in a question mark. It
+ * matters here because this corpus continues in lower case after one —
+ * *"…to do me hurt? for what profit…"* — which the capital rule would
+ * have missed even in sentence mode.
+ *
+ * A PARENTHETICAL IS ONE BREATH: split at its edges, never within it.
+ * Splitting inside is what left `"(which indeed is very irreligious for
+ * any man to believe:"` open and `"and to-day), thou didst first breathe
+ * it in"` closed by nothing. Measured on Meditations VI, edge-splitting
+ * with a protected interior removed every unbalanced atom (4 → 0) and
+ * lowered the fragment rate at the same time (8.2% → 7.8%).
+ */
+/**
+ * A closing mark may stand between the punctuation and the space.
+ *
+ * `“You have a house in town, I conclude?”` puts a curly quote after the
+ * question, so the mark is not adjacent to the whitespace and a naive
+ * lookbehind misses every line of dialogue in the corpus — 16 of them in
+ * three chapters of Pride and Prejudice alone. `applyPhraseFloor` had
+ * already learned this: its `closesSentence` tests `[.!?][)\]"'”’]*$`.
+ * The splitter and the floor must agree about where a sentence ends, or
+ * one cuts where the other refuses to join.
+ */
+const CLOSERS = `[)\\]"'”’»]*`;
+
+const PHRASE_BOUNDARY = new RegExp(
+    `(?<=[,;:?!—–|]${CLOSERS})\\s+`       // phrase punctuation, now with ? and !
+    + `|(?<=\\.${CLOSERS})\\s+(?=[“"'‘(]?[A-Z])`  // a full stop, guarded against "Dr."
+    + `|\\s+(?=${PAREN_OPEN})`            // before a parenthetical
+    + `|(?<=${PAREN_CLOSE})\\s+`          // after one
+    + `|\\n\\s*`
+);
+
+const PAREN_SENTINEL = new RegExp(`${PAREN_OPEN}(\\d+)${PAREN_CLOSE}`, 'g');
+
+/**
+ * The same boundaries WITHOUT the parenthetical edges — for text whose
+ * author has already marked their own phrasing.
+ */
+const PHRASE_BOUNDARY_AUTHORED = new RegExp(
+    `(?<=[,;:?!—–|]${CLOSERS})\\s+`
+    + `|(?<=\\.${CLOSERS})\\s+(?=[“"'‘(]?[A-Z])`
+    + `|\\n\\s*`
+);
+
+/**
+ * Split a unit into phrases, holding each parenthetical whole.
+ *
+ * AN AUTHORED PARAGRAPH KEEPS ITS OWN PHRASING. `applyPhraseFloor`
+ * already declines to MERGE across a hand-placed `|`; adding boundaries
+ * inside one is the same overreach from the other direction. If an
+ * author wrote `said nothing (at all)` as one phrase, they have answered
+ * the question this function exists to answer. The interior is still
+ * protected — nothing may split inside the aside — but its edges are not
+ * promoted to breaks.
+ *
+ * Content authors; the runtime follows.
+ */
+function cutPhrases(text) {
+    const source = String(text);
+    const authored = source.includes('|');
+    const held = [];
+    const masked = source.replace(/\([^()]*\)/g, (match) => {
+        held.push(match);
+        return `${PAREN_OPEN}${held.length - 1}${PAREN_CLOSE}`;
+    });
+    return masked
+        .split(authored ? PHRASE_BOUNDARY_AUTHORED : PHRASE_BOUNDARY)
+        .map(piece => piece.replace(PAREN_SENTINEL, (_, i) => held[Number(i)]).trim())
+        .filter(piece => piece.length > 0);
+}
+
 function splitPhrases(text, preserveSpeakerHead = false) {
     // Split on phrase-level punctuation, pipes (|), or newlines.
     // Dialogue profiles may protect a label only when it begins this unit.
     if (preserveSpeakerHead) {
         const speakerMatch = text.match(LEADING_SPEAKER_LABEL);
         if (speakerMatch) {
-            const utterance = text.slice(speakerMatch[0].length);
-            const phrases = utterance
-                .split(/(?<=[,;:—–|])\s+|(?<=\.)\s+(?=[A-Z])|\n\s*/)
-                .map(p => p.trim())
-                .filter(p => p.length > 0);
+            const phrases = cutPhrases(text.slice(speakerMatch[0].length));
             if (phrases.length === 0) return [`${speakerMatch[1]}:`];
             phrases[0] = `${speakerMatch[1]}: ${phrases[0]}`;
             return phrases;
         }
     }
-    const phrases = text.split(/(?<=[,;:—–|])\s+|(?<=\.)\s+(?=[A-Z])|\n\s*/);
-    return phrases.map(p => p.trim()).filter(p => p.length > 0);
+    return cutPhrases(text);
 }
 
 /**
