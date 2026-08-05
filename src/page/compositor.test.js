@@ -245,6 +245,36 @@ describe('inline headings', () => {
     it('leaves ordinary prose alone', () => {
         expect(headings(['Owing to this favour I need have no fear of want.'])).toEqual([]);
     });
+
+    it('refuses a running head dropped into the middle of a sentence', () => {
+        // JÜNGER, ON THE PAGE. "GUILLEMONT 101" is the printed page's
+        // running head — the chapter name and the recto page number,
+        // carried eight times through this scan as 93, 95, 97, 99, 101 —
+        // and OCR left it where the page turned, mid-clause. It passes
+        // every shape test: short, all capitals, unpunctuated, three
+        // consecutive capitals. Its POSITION is what gives it away.
+        expect(headings([
+            'the men were standing, rifle in hand, their eyes fixed on the ground. Now and',
+            'GUILLEMONT 101',
+            'then by the light of a rocket I saw the gleam of helmet after helmet'
+        ])).toEqual([]);
+    });
+
+    it('still recognises a title that follows a finished sentence', () => {
+        // Both halves of the rule are required, so this is the case the
+        // fix must not cost: a real heading between two proper sentences.
+        expect(headings([
+            'as regards the efficacy of the art, I shall show myself of considerable importance.',
+            'CHAPTER II',
+            'THE FUNDAMENTAL PRINCIPLES OF ARCHITECTURE',
+            'Architecture depends on Order, Arrangement and Eurythmy.'
+        ])).toEqual(['CHAPTER II', 'THE FUNDAMENTAL PRINCIPLES OF ARCHITECTURE']);
+    });
+
+    it('recognises a heading that opens a reading, with nothing before it', () => {
+        expect(headings(['GUILLEMONT', 'On the 23rd August we were transported to Le Mesnil.']))
+            .toEqual(['GUILLEMONT']);
+    });
 });
 
 describe('a figure beside a heading', () => {

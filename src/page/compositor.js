@@ -72,7 +72,7 @@ function proseAfter(blocks, index) {
             // past the title. The figure was never adjacent to a
             // heading; its wrap group had swallowed one, which is why
             // fixing adjacency changed nothing on screen.
-            if (readsAsHeading(b.text)) break;
+            if (isHeadingAt(blocks, i)) break;
             count += 1;
             chars += (b.text || '').length;
             continue;
@@ -148,6 +148,63 @@ function readsAsHeading(text) {
     return true;
 }
 
+/** A sentence that has finished says so. Closing quotes and brackets count. */
+const ENDS_A_SENTENCE = /[.!?…][")'\]]*$/;
+
+/**
+ * A HEADING DOES NOT INTERRUPT A SENTENCE.
+ *
+ * The last thing `readsAsHeading` cannot see on its own, and the reason
+ * a Jünger page carried "GUILLEMONT 101" centred as a title between
+ * "…the men were standing, rifle in hand … Now and" and "then by the
+ * light of a rocket I saw the gleam of helmet after helmet".
+ *
+ * "GUILLEMONT 101" is not a title. It is the RUNNING HEAD of the printed
+ * page — the chapter name and the recto page number, which this scan
+ * carries eight times over as 93, 95, 97, 99, 101 … — and OCR dropped it
+ * where the page turned, which was the middle of a sentence. Every test
+ * above passes it: short, all capitals, no terminal punctuation, three
+ * consecutive capitals.
+ *
+ * What gives it away is not its shape but its POSITION. A title follows
+ * a finished sentence and is followed by something that begins. This one
+ * stands between a clause that has not ended and a word that continues
+ * it in lower case. Both conditions are required, so a heading opening a
+ * reading, or one following a proper sentence, is untouched — and a
+ * genuine two-part title ("CHAPTER II" / "THE FUNDAMENTAL PRINCIPLES")
+ * survives, because what follows it does not begin in lower case.
+ *
+ * This does not repair the text. Those running heads should not be in a
+ * reading at all, which is the archive's business and is recorded in
+ * ARCHIVE-CLEANSING-SPEC. It stops the compositor from promoting damage
+ * into structure — the standing constraint the `ATHENS]` fault wrote.
+ */
+function interruptsASentence(blocks, index) {
+    let before = null;
+    for (let i = index - 1; i >= 0; i--) {
+        if (blocks[i].kind === BLOCK.TEXT) { before = blocks[i]; break; }
+        if (blocks[i].kind === BLOCK.MARK && blocks[i].mark === MARK.PAUSE) continue;
+        break;   // a figure or a structural mark is a boundary in its own right
+    }
+    if (!before || ENDS_A_SENTENCE.test(String(before.text || '').trim())) return false;
+    // …and the sentence resumes afterwards.
+    for (let i = index + 1; i < blocks.length; i++) {
+        if (blocks[i].kind === BLOCK.TEXT) {
+            return /^[a-z]/.test(String(blocks[i].text || '').trim());
+        }
+        if (blocks[i].kind === BLOCK.MARK && blocks[i].mark === MARK.PAUSE) continue;
+        return false;
+    }
+    return false;
+}
+
+/** The heading test, with the block's neighbours taken into account. */
+function isHeadingAt(blocks, index) {
+    const block = blocks?.[index];
+    if (!block || block.kind !== BLOCK.TEXT) return false;
+    return readsAsHeading(block.text) && !interruptsASentence(blocks, index);
+}
+
 /**
  * Is the block at `from` the continuation of a heading — i.e. does a
  * heading follow immediately, with nothing but marks between?
@@ -156,7 +213,7 @@ function headingRunAhead(blocks, from) {
     const next = blocks[from];
     if (!next) return false;
     if (next.kind === BLOCK.MARK && next.mark === MARK.CHAPTER_OPEN) return true;
-    if (next.kind === BLOCK.TEXT && readsAsHeading(next.text)) return true;
+    if (isHeadingAt(blocks, from)) return true;
     return false;
 }
 
@@ -302,8 +359,7 @@ export function compose(flow, options = {}) {
                     || (lastItem.type === 'text' && lastItem.heading === true)))
                 || (nextBlock && nextBlock.kind === BLOCK.MARK
                     && nextBlock.mark === MARK.CHAPTER_OPEN)
-                || (nextBlock && nextBlock.kind === BLOCK.TEXT
-                    && readsAsHeading(nextBlock.text));
+                || isHeadingAt(blocks, i + 1);
             if (nearAHeading && placement === PLACEMENT.MARGIN) {
                 placement = PLACEMENT.INSET;
                 wrapBlocks = 0;
@@ -375,7 +431,7 @@ export function compose(flow, options = {}) {
                 text: block.text,
                 // Editions that carry their structure inline get the air a
                 // heading earns, even though the flow had no mark to raise.
-                heading: readsAsHeading(block.text),
+                heading: isHeadingAt(blocks, i),
                 chapter: block.chapter ?? null,
                 verse: block.verse ?? null,
                 weight: block.weight ?? 0,
@@ -387,7 +443,7 @@ export function compose(flow, options = {}) {
             });
             // A title is complete when a heading block is not followed by
             // another; only then may a held figure appear beneath it.
-            if (readsAsHeading(block.text) && !headingRunAhead(blocks, i + 1)) {
+            if (isHeadingAt(blocks, i) && !headingRunAhead(blocks, i + 1)) {
                 releaseHeld();
             }
             stillPending = false;

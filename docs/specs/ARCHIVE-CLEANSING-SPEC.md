@@ -21,6 +21,15 @@ and OCR folds that apparatus into the prose. Three findings, all real:
   heuristic promoted two of them into section headings before it was tightened,
   which is what damage does when nothing filters it.
 
+- **Running heads mid-sentence.** The Storm of Steel carries `GUILLEMONT 93`,
+  `GUILLEMONT 95`, `GUILLEMONT 97` … `GUILLEMONT 109` — the chapter name and
+  the recto page number of the printed book — dropped wherever the page turned,
+  which is usually the middle of a clause: *"the men were standing … Now and /
+  GUILLEMONT 101 / then by the light of a rocket…"*. The compositor now refuses
+  to promote these into headings (canon R11), but **they are still in the
+  reading**, splitting sentences. This is the `Running heads` row of the table
+  below, with a named instance and a known count.
+
 - **Stranded running heads**, found 2026-08-04 while fixing a division
   boundary. Romance of the Three Kingdoms ends chapter CV with
   `DEFEAT AND DEATH OF KUNGSUN YUAN; PRETENDED ILLNESS OF SSUMA I` — the

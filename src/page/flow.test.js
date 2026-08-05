@@ -421,11 +421,11 @@ describe('a Journey has its authored imagery reach the page at all', () => {
         expect(seen).toContain('two');
     });
 
-    it('holds procedural figures until the Page paginates', () => {
-        // Not a defect: §1.5 names an unillustrated passage a valid
-        // scored state, and a 23,000-word reading is one continuous
-        // column until pagination divides it. The machinery exists and
-        // one constant turns it on.
+    it('illustrates a procedural cue with the engines its author named', () => {
+        // Held back until the Page paginated, on the grounds that a
+        // 23,000-word Journey was one continuous column and could not
+        // afford a sampled still at every figure. It paginates now, so
+        // the deferral is spent and the figures arrive.
         const flow = compileFlow({
             atoms: atoms(40, 'p1'),
             visualProgram: programWith({
@@ -434,7 +434,25 @@ describe('a Journey has its authored imagery reach the page at all', () => {
                 engines: ['flaming_sword']
             })
         });
-        expect(flow.blocks.filter(b => b.collections?.length)).toHaveLength(0);
+        const placed = flow.blocks.filter(b => b.collections?.length);
+        expect(placed.length).toBeGreaterThan(0);
+        // A figure names its own engine, so the resolver can sample the
+        // right one. The id format belongs to work-engines.js.
+        expect(placed[0].collections[0]).toMatch(/flaming_sword/);
+    });
+
+    it('names the family alone when a procedural cue names no engine', () => {
+        const flow = compileFlow({
+            atoms: atoms(40, 'p1'),
+            visualProgram: programWith({
+                kind: 'procedural',
+                collections: ['paradise-lost'],
+                engines: []
+            })
+        });
+        const placed = flow.blocks.filter(b => b.collections?.length);
+        expect(placed.length).toBeGreaterThan(0);
+        expect(placed[0].collections[0]).toContain('paradise-lost');
     });
 
     it('still places nothing for a still cue', () => {

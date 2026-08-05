@@ -17,6 +17,28 @@
  */
 
 /**
+ * Wait for a page's figures to STOP BEING PENDING, rather than for a
+ * fixed number of milliseconds.
+ *
+ * A blind sleep is the defect Phase 0 spent a session removing: it fails
+ * when the machine is slow and wastes time when it is fast. A figure
+ * resolves and decodes asynchronously, and it announces its own outcome
+ * — `is-shown` or `is-absent` — so that is what to wait on. The timeout
+ * is a ceiling, not the mechanism.
+ *
+ * Returns nothing; a page that never settles simply proceeds, because
+ * the assertion about it belongs to the test, not to the helper.
+ */
+async function settle(page, ceilingMs) {
+    await page.waitForFunction(() => {
+        const figures = document.querySelectorAll('.page-figure');
+        if (!figures.length) return true;
+        return [...figures].every(f =>
+            f.classList.contains('is-shown') || f.classList.contains('is-absent'));
+    }, null, { timeout: Math.max(4000, ceilingMs * 6) }).catch(() => {});
+}
+
+/**
  * Walk every page of an open Page Mode reader, accumulating counts.
  *
  * @param {import('@playwright/test').Page} page
@@ -44,11 +66,11 @@ export async function collectAcrossPages(page, options = {}) {
                 return true;
             }, i);
             if (!turned) break;
-            // Figures on a fresh page resolve and decode asynchronously;
-            // counting before they settle would undercount for the same
-            // reason printing before scrolling did (red-team #12).
-            await page.waitForTimeout(settleMs);
         }
+        // Page ZERO needs settling too. It was counted the instant the
+        // walk began, on the assumption the caller had already waited —
+        // which is an assumption, not a wait.
+        await settle(page, settleMs);
 
         const slice = await page.evaluate(() => ({
             texts: document.querySelectorAll('.page-text').length,
@@ -78,7 +100,7 @@ export async function collectAcrossPages(page, options = {}) {
             const r = window.rise?.router?.views?.get('chamber-session')?.instance?.pageReader;
             r?.goToPage(0);
         });
-        await page.waitForTimeout(settleMs);
+        await settle(page, settleMs);
     }
 
     return totals;

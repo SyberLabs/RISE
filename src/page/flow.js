@@ -68,28 +68,31 @@ function isSymbol(atom) {
 }
 
 /**
- * DEFERRED UNTIL THE PAGE PAGINATES (PAGE-MODE-SPEC v4).
+ * ON, since 2026-08-04. The condition it waited for has been met.
  *
- * The machinery is built and tested — `pageCollectionId` above,
- * `sampleWorkEngine` in work-engines.js, and the Chamber's resolver —
- * and turning it on is this one line. It is off because of what the
- * Page currently IS rather than anything wrong with it.
+ * It was deferred with a precise reason rather than a vague one, and the
+ * reason has been answered on its own terms: "§199 and §250 of the spec:
+ * v1 scrolls; pagination is v4. A Journey is 23,000 words, so its page
+ * is one continuous column of some 2,800 atoms, and adding a sampled
+ * engine still at every figure adds render cost to a document that is
+ * already the largest thing this projection has been asked to typeset.
+ * Pagination is what makes that tractable — it divides the reading into
+ * bounded units, and a bounded unit can afford its own imagery."
  *
- * §199 and §250 of the spec: "v1 scrolls; pagination is v4". A Journey
- * is 23,000 words, so its page is one continuous column of some 2,800
- * atoms, and adding a sampled engine still at every figure adds render
- * cost to a document that is already the largest thing this projection
- * has been asked to typeset. Pagination is what makes that tractable —
- * it divides the reading into bounded units, and a bounded unit can
- * afford its own imagery.
+ * The Page paginates now, and a Journey is long enough that it always
+ * will: the projection-by-length threshold cuts anything past four
+ * pages. Elongating is the one path back to a single column, and it is
+ * safe for a different reason — figures hydrate through an
+ * IntersectionObserver, so an elongated Journey builds its figure
+ * ELEMENTS but decodes only what the reader has actually reached.
  *
- * Until then a Journey's procedural movements typeset as text, which
- * §1.5 names explicitly: "an unillustrated passage is a valid scored
- * state." The Homeric movement's museum works are unaffected — they are
- * ordinary images on the ordinary path, and they arrive now that the
- * source coordinate space is read at all.
+ * What changes: a Journey's procedural movements are illustrated by the
+ * engines their author named, instead of typesetting as text. §1.5's
+ * "an unillustrated passage is a valid scored state" remains true and
+ * remains the fallback — an engine that will not resolve yields
+ * stillness, never a broken frame.
  */
-const PROCEDURAL_FIGURES = false;
+const PROCEDURAL_FIGURES = true;
 
 /**
  * A cue's sourced collections, or [] for stillness. A works-less episode

@@ -126,6 +126,28 @@ fault it prevents must yield.** R9 sealed a page whenever a plate followed a
 plate, and three consecutive plates cannot satisfy that without stranding one
 alone. R9 is a preference; prose on every page is not.
 
+### R11 — A heading does not interrupt a sentence *(book practice)*
+
+The heading heuristic reads SHAPE — short, all capitals, unpunctuated — and
+shape is not enough. A Jünger page carried `GUILLEMONT 101` centred as a title
+between "…the men were standing, rifle in hand … Now and" and "then by the
+light of a rocket". It is not a title: it is the printed page's **running
+head**, the chapter name and the recto page number, which that scan carries
+eight times over as 93, 95, 97, 99, 101 … OCR left it where the page turned,
+which was the middle of a sentence.
+
+What gives it away is POSITION, not shape. A title follows a finished sentence
+and is followed by something that begins. Both conditions are required, so a
+heading opening a reading survives, and so does a genuine two-part title —
+`THE FUNDAMENTAL PRINCIPLES` follows `CHAPTER II`, which ends no sentence, but
+what comes after it does not begin in lower case.
+
+This is the third time §4's standing constraint has had to be enforced in this
+one function (`ATHENS]`, then bare sigla, now running heads), which is worth
+noticing: **a scan's furniture is shaped like structure, and the compositor is
+the last place able to tell the difference.** It does not repair the text —
+that is `ARCHIVE-CLEANSING-SPEC`'s work — it only declines to promote damage.
+
 ### R9 — No two plates without prose between them *(my judgement, not canon)*
 
 The compositor limits consecutive bleeds in the COLUMN; a page is a second frame
