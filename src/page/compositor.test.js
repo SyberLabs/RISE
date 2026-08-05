@@ -246,3 +246,34 @@ describe('inline headings', () => {
         expect(headings(['Owing to this favour I need have no fear of want.'])).toEqual([]);
     });
 });
+
+describe('a figure beside a heading', () => {
+    const flowOf = (blocks) => ({ blocks });
+    const T = (text) => ({ kind: 'text', text, weight: 0.5, tags: [], verse: 1 });
+    const F = () => ({ kind: 'image', collections: ['c'], episodeId: 'e' });
+
+    const placementOf = (blocks) =>
+        compose(flowOf(blocks)).items.find(i => i.type === 'figure')?.placement;
+
+    it('centres rather than wraps when a heading follows it', () => {
+        // The Vitruvius fault: a wrapped plate sat level with CHAPTER I
+        // and pushed the section title into two lines.
+        const p = placementOf([T('Some prose.'), F(), T('THE EDUCATION OF THE ARCHITECT'), T('More prose.')]);
+        expect(p).not.toBe('margin');
+    });
+
+    it('centres rather than wraps when a heading precedes it', () => {
+        const p = placementOf([T('CHAPTER I'), F(), T('Prose.'), T('More prose.')]);
+        expect(p).not.toBe('margin');
+    });
+
+    it('leaves a figure in open prose alone', () => {
+        const long = 'Ordinary prose that runs on for a good while. '.repeat(6);
+        const items = compose(flowOf([T(long), T(long), F(), T(long), T(long), T(long)])).items;
+        const fig = items.find(i => i.type === 'figure');
+        expect(fig).toBeTruthy();
+        // Whatever the compositor chose, it was not overridden by a
+        // heading that is not there.
+        expect(['margin', 'inset', 'bleed']).toContain(fig.placement);
+    });
+});

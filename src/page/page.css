@@ -526,13 +526,26 @@
    plain text — so the flow has no chapter mark to raise and they
    arrived crammed between two paragraphs. The compositor recognises
    them; this is what recognition buys. */
+/* CENTRED, because a heading in a book is a symmetrical object. The
+   raised chapter mark has always been centred here; an inline heading
+   is the same object arriving through a different door, and setting
+   one flush-left beside the other reads as two systems in one page. */
 .page-text.is-heading {
   margin-top: 2.4em;
-  margin-bottom: 1em;
+  margin-bottom: 1.1em;
   font-family: var(--font-display);
   font-size: 0.82em;
   letter-spacing: 0.14em;
   color: var(--page-ink-strong);
+  text-align: center;
+  /* Balanced wrapping so a two-line heading breaks near its middle
+     rather than leaving one word alone on the second line — the widow
+     a centred heading shows most cruelly. Ignored where unsupported,
+     which costs nothing. */
+  text-wrap: balance;
+  max-width: 26em;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Not after a chapter mark or a break — those already opened the space,

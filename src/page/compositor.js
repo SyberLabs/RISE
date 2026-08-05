@@ -239,6 +239,32 @@ export function compose(flow, options = {}) {
                 }
             }
 
+            // ── A FIGURE BESIDE A TITLE DOES NOT WRAP ──
+            //
+            // Book practice: a heading is a symmetrical object on the
+            // page, and the space beneath it belongs to it. A figure
+            // floated into that space turns the opening into a
+            // shop-window — the Vitruvius page where a wrapped plate sat
+            // level with CHAPTER I and pushed "THE EDUCATION OF THE
+            // ARCHITECT" into two lines is exactly the fault.
+            //
+            // Adjacent to a heading, a figure becomes a CENTRED plate on
+            // the full measure. It keeps the symmetry the heading
+            // establishes instead of competing with it.
+            const lastItem = items[items.length - 1];
+            const nextBlock = blocks[i + 1];
+            const nearAHeading =
+                (lastItem && (lastItem.type === 'chapter'
+                    || (lastItem.type === 'text' && lastItem.heading === true)))
+                || (nextBlock && nextBlock.kind === BLOCK.MARK
+                    && nextBlock.mark === MARK.CHAPTER_OPEN)
+                || (nextBlock && nextBlock.kind === BLOCK.TEXT
+                    && readsAsHeading(nextBlock.text));
+            if (nearAHeading && placement === PLACEMENT.MARGIN) {
+                placement = PLACEMENT.INSET;
+                wrapBlocks = 0;
+            }
+
             push({
                 type: 'figure',
                 collections: block.collections,
