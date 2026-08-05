@@ -104,6 +104,28 @@ R10 moves it past the remaining half of a heading — the same juncture, the sam
 passage, on the far side of a title rather than inside one. The binding is
 unchanged; only the title is left whole.
 
+### The precedence between rules *(engineering, not typography)*
+
+The rules above are applied by two corrective passes over the cut, and the order
+between them is a decision rather than an accident — they were once separate
+patches that each assumed they ran last, and they undid one another three ways.
+Stated once, and written where the passes are:
+
+1. **Structure outranks balance.** A heading is a promise about what follows and
+   a chapter is a beginning. Neither is negotiable for the sake of an evenly
+   filled page.
+2. **Balance runs last, and may not violate structure.** Every move it makes is
+   checked against what the first pass established, rather than assumed to be
+   compatible with it.
+
+Nothing re-runs the first pass afterwards, because the second is constrained by
+construction. That is the difference between an ordering and a pile.
+
+A corollary worth keeping: **a rule that can only be satisfied by creating the
+fault it prevents must yield.** R9 sealed a page whenever a plate followed a
+plate, and three consecutive plates cannot satisfy that without stranding one
+alone. R9 is a preference; prose on every page is not.
+
 ### R9 — No two plates without prose between them *(my judgement, not canon)*
 
 The compositor limits consecutive bleeds in the COLUMN; a page is a second frame

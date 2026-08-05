@@ -1516,7 +1516,7 @@ export class Chamber {
     const next = typeof forceOn === 'boolean' ? forceOn : !this.pageModeActive;
     if (next === this.pageModeActive) return next;
     this.pageModeActive = next;
-    if (!next) this._syncPageTurn(0, 0, false, false);
+    if (!next) this._syncPageTurn();
 
     const btn = this.container.querySelector('#page-mode-btn');
     const display = this.container.querySelector('#chamber-display');
@@ -1588,7 +1588,7 @@ export class Chamber {
       this.pageReader = new PageReader(host, {
         // One bar: the Chamber owns the page turn (see #page-turn).
         showPager: false,
-        onPageChange: (index, total) => this._syncPageTurn(index, total),
+        onPageChange: (state) => this._syncPageTurn(state),
         session: this.session,
         // Session stores the compiled title as `name`; `title` is only an
         // input alias and is undefined on the model, which left every
@@ -1999,7 +1999,11 @@ export class Chamber {
    * Hidden entirely when there is nothing to turn — a single-page
    * reading should not carry disabled arrows.
    */
-  _syncPageTurn(index = 0, total = 0, isPaged = total > 1, canPage = total > 1) {
+  _syncPageTurn(state = {}) {
+    // The reader's own report, taken whole. Inferring `isPaged` and
+    // `canPage` from `total` is what made Elongate a one-way door: an
+    // elongated reading is ONE page and reads as "nothing to paginate".
+    const { index = 0, total = 0, isPaged = false, canPage = false } = state;
     // Remembered here rather than read back on close: by the time Page
     // Mode is torn down the reader is already gone.
     if (total > 1) this._lastPageIndex = index;

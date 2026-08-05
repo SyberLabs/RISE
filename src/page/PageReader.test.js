@@ -453,6 +453,57 @@ describe('PageReader pagination', () => {
         reader.destroy();
     });
 
+    it('tells the host it can still paginate while elongated', () => {
+        // THE ONE-WAY DOOR. The Chamber renders the projection toggle
+        // from this callback, and it was reading only the first two of
+        // four POSITIONAL arguments — so an elongated reading, which is
+        // ONE page, looked like a reading with nothing to paginate and
+        // the button that would have brought the pages back hid itself.
+        // The report is one object now, so a field cannot go missing the
+        // way a trailing argument can; this asserts the shape.
+        const seen = [];
+        const { reader } = paged({
+            session: longSession(80),
+            onPageChange: (state) => seen.push(state)
+        });
+        reader.setPaged(false);
+        const last = seen[seen.length - 1];
+        expect(last.total).toBe(1);
+        expect(last.isPaged).toBe(false);
+        expect(last.canPage, 'the reading can still be paginated').toBe(true);
+        reader.destroy();
+    });
+
+    it('Elongate keeps the reader where they were', () => {
+        // Changing how one reading is DRAWN must not move the reader,
+        // for the same reason the Page↔Stream toggle must not: two views
+        // of one reading that disagree about the reader's place.
+        const { reader, host } = paged({ session: longSession(80) });
+        reader.goToPage(4);
+        const anchor = reader.pages[4].items[0];
+        const at = reader._itemIndex.get(anchor);
+
+        reader.setPaged(false);
+        const el = host.querySelector(`.page-article > [data-item="${at}"]`);
+        expect(el, 'the anchor is findable in the elongated column').not.toBeNull();
+
+        // jsdom has no layout, so the scroll the reader would see is
+        // supplied here; the logic under test is which item that scroll
+        // position names.
+        const blocks = [...host.querySelectorAll('.page-article > [data-item]')];
+        blocks.forEach((node, i) => {
+            Object.defineProperty(node, 'offsetTop', { value: i * 100, configurable: true });
+            Object.defineProperty(node, 'offsetHeight', { value: 100, configurable: true });
+        });
+        Object.defineProperty(host, 'scrollTop', {
+            value: blocks.indexOf(el) * 100, writable: true, configurable: true
+        });
+
+        reader.setPaged(true);
+        expect(reader.pages[reader.pageIndex].items).toContain(anchor);
+        reader.destroy();
+    });
+
     it('Elongate is not offered where there is no choice to make', () => {
         // "No choice" means the cut yields ONE page, so the projections
         // are the same object. A reading that scrolls but WOULD cut into

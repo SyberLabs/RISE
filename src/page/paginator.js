@@ -145,7 +145,7 @@ function opensAChapter(item) {
     if (!item) return false;
     if (item.type === 'chapter') return true;
     if (item.type !== 'text' || item.heading !== true) return false;
-    return /^(chapter|book|part|canto)/i.test(String(item.text || '').trim());
+    return /^(chapter|book|part|canto)\b/i.test(String(item.text || '').trim());
 }
 
 /** A heading with nothing under it is not a page. */
@@ -230,7 +230,46 @@ export function paginate(composition, options = {}) {
     }
     seal();
 
-    // R4 — NO PAGE ALONE WITH ONE PARAGRAPH.
+    // ─────────────────────────────────────────────────────────────────
+    // THE CORRECTIVE PASSES, AND THEIR PRECEDENCE.
+    //
+    // The fill loop above establishes the cut. Two passes then correct
+    // it, and the ORDER between them is a decision, not an accident —
+    // they were previously written as separate patches that each assumed
+    // they ran last, and they undid one another three ways: the balance
+    // pass buried a chapter opening under borrowed prose, the heading
+    // pass stranded a page holding one item, and the balance pass's own
+    // cascade walked a thin page from the tail of a reading all the way
+    // to page one, where the reader meets it first.
+    //
+    // The precedence, stated once:
+    //
+    //   1. STRUCTURE outranks balance. A heading is a promise about what
+    //      follows and a chapter is a beginning; neither is negotiable
+    //      for the sake of an evenly filled page.
+    //   2. BALANCE runs last, and may not violate structure. Every move
+    //      it makes is checked against what pass 1 established rather
+    //      than assumed to be compatible with it.
+    //
+    // Nothing after pass 2 re-runs pass 1, because pass 2 is constrained
+    // by construction. That is the difference between an ordering and a
+    // pile of patches.
+    // ─────────────────────────────────────────────────────────────────
+
+    // PASS 1 — NO PAGE ENDS ON A HEADING. A chapter opening or an
+    // episode break is a promise about what follows; leaving it as the
+    // last thing on a page breaks the promise until the reader turns.
+    for (let p = 0; p < pages.length - 1; p++) {
+        const page = pages[p];
+        while (page.items.length > 1 && endsOnAHeading(page)) {
+            const moved = page.items.pop();
+            page.weight -= weighItem(moved, charsPerLine);
+            pages[p + 1].items.unshift(moved);
+            pages[p + 1].weight += weighItem(moved, charsPerLine);
+        }
+    }
+
+    // PASS 2 — NO PAGE ALONE WITH ONE PARAGRAPH.
     //
     // The classic widow and orphan cannot occur here, and it is worth
     // saying why: this paginator moves WHOLE items, so a paragraph is
@@ -239,11 +278,16 @@ export function paginate(composition, options = {}) {
     // carrying one short block, usually the tail of a reading, which
     // reads as a page that ran out rather than one that was composed.
     //
-    // The fix is the compositor's, not the cram: a lone page does not
-    // get merged upward (that overfills the page above it), it BORROWS
-    // the block above. Both pages end up with something to say and
-    // neither exceeds its budget — which is exactly what a compositor
-    // does when it pushes a line back to balance a spread.
+    // The preferred fix is the compositor's, not the cram: the thin page
+    // BORROWS the block above, so both pages have something to say and
+    // neither exceeds its budget — exactly what a compositor does when
+    // it pushes a line back to balance a spread. But a donor that cannot
+    // afford the loan must not give one, or the thin page simply moves
+    // upstream. Where borrowing would only relocate the fault, the thin
+    // page is absorbed instead, within a tolerance the frame already
+    // allows.
+    const MERGE_TOLERANCE = 1.25;
+
     for (let p = pages.length - 1; p > 0; p--) {
         const page = pages[p];
         // A page with no PROSE on it at all is the fault R9 can create
@@ -259,12 +303,24 @@ export function paginate(composition, options = {}) {
         if (page.items.length === 1 && page.items[0].type === 'figure'
             && oversize) continue;
 
+        // STRUCTURE FIRST: a chapter opens a page. Prose borrowed down
+        // onto it, or the page folded into the one above, both bury the
+        // beginning the fill loop deliberately sealed.
+        if (opensAChapter(page.items[0])) continue;
+
         const prev = pages[p - 1];
         if (prev.items.length < 2) continue;
+
         const borrowed = prev.items[prev.items.length - 1];
+        const remaining = prev.items[prev.items.length - 2];
         // Never borrow a plate down onto a lone paragraph: that trades
         // this fault for R9's.
-        if (borrowed.type === 'figure') continue;
+        const plate = borrowed.type === 'figure';
+        // A donor of two items becomes a thin page itself, and the
+        // descending walk then borrows from ITS donor, and so on — which
+        // is how a stranded page at the end of a reading arrived at page
+        // one instead. A loan needs a donor that can afford it.
+        const affordable = prev.items.length >= 3;
         // AND NEVER OUT OF A WRAP GROUP. A margin figure and the prose
         // that flows beside it are one atom — the float only wraps text
         // that follows it in the same containing block, so borrowing a
@@ -274,29 +330,33 @@ export function paginate(composition, options = {}) {
         let k = prev.items.length - 2;
         while (k >= 0 && prev.items[k].type === 'text') k--;
         const opener = k >= 0 ? prev.items[k] : null;
-        if (opener && opener.type === 'figure'
-            && opener.placement === 'margin' && Number(opener.wrapBlocks) > 0) {
+        const wrapped = opener && opener.type === 'figure'
+            && opener.placement === 'margin' && Number(opener.wrapBlocks) > 0;
+        // PASS 1's invariant, honoured rather than re-run: taking the
+        // last block off a page must not leave a heading standing at its
+        // foot.
+        const strands = endsOnAHeading({ items: [remaining] });
+
+        if (!plate && affordable && !wrapped && !strands) {
+            prev.items.pop();
+            const w = weighItem(borrowed, charsPerLine);
+            prev.weight -= w;
+            page.items.unshift(borrowed);
+            page.weight += w;
             continue;
         }
 
-        prev.items.pop();
-        const w = weighItem(borrowed, charsPerLine);
-        prev.weight -= w;
-        page.items.unshift(borrowed);
-        page.weight += w;
-    }
-
-    // NO PAGE ENDS ON A HEADING. A chapter opening or an episode break is
-    // a promise about what follows; leaving it as the last thing on a
-    // page breaks the promise until the reader turns. Push it forward.
-    for (let p = 0; p < pages.length - 1; p++) {
-        const page = pages[p];
-        while (page.items.length > 1 && endsOnAHeading(page)) {
-            const moved = page.items.pop();
-            page.weight -= weighItem(moved, charsPerLine);
-            pages[p + 1].items.unshift(moved);
-            pages[p + 1].weight += weighItem(moved, charsPerLine);
-        }
+        // Borrowing is unavailable or would only move the fault. Absorb
+        // the thin page upward instead, but only within a tolerance the
+        // frame genuinely has — the renderer already budgets for an
+        // overrun, and one slightly long page beats a page that ran out.
+        if (page.weight + prev.weight > linesPerPage * MERGE_TOLERANCE) continue;
+        // Merging puts this page's tail at the foot of the one above, so
+        // pass 1's invariant has to survive it too.
+        if (endsOnAHeading(page) && p < pages.length - 1) continue;
+        prev.items.push(...page.items);
+        prev.weight += page.weight;
+        pages.splice(p, 1);
     }
 
     // Indexes are assigned last so they always describe the final cut.

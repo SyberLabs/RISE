@@ -128,6 +128,13 @@ export class PageReader {
         this._cut = cut;
         this._wholeColumn = wholeColumn;
         this.canPage = this.paginated && cut.pages.length > 1;
+        // Item → position in the reading, built once. Used to stamp the
+        // DOM so a projection change can restore the reader; an
+        // indexOf() per element would be quadratic on a long book.
+        this._itemIndex = new Map();
+        this.composition.items.forEach((item, i) => {
+            if (!this._itemIndex.has(item)) this._itemIndex.set(item, i);
+        });
 
         this.isPaged = this.paginated && cut.pages.length > this.scrollUnderPages;
         const chosen = this.isPaged ? cut : wholeColumn();
@@ -232,6 +239,8 @@ export class PageReader {
             if (item.type === 'figure' && item.placement === PLACEMENT.MARGIN && item.wrapBlocks > 0) {
                 const group = document.createElement('div');
                 group.className = `page-wrap side-${item.side || 'right'}`;
+                const groupAt = this._itemIndex?.get(item);
+                if (groupAt !== undefined) group.dataset.item = String(groupAt);
                 const fig = this._buildItem(item);
                 if (fig) group.appendChild(fig);
                 // Gather the prose the compositor assigned. Non-text items
@@ -266,14 +275,32 @@ export class PageReader {
                 continue;
             }
             const el = this._buildItem(item);
-            if (el) article.appendChild(el);
+            if (el) {
+                // Stamped so a projection change can find its way back to
+                // the passage the reader was on. See setPaged().
+                const at = this._itemIndex?.get(item);
+                if (at !== undefined) el.dataset.item = String(at);
+                article.appendChild(el);
+            }
         }
 
         this.host.appendChild(article);
         if (this.showPager && this.pages.length > 1) {
             this.host.appendChild(this._buildPager());
         }
-        this.onPageChange?.(clamped, this.pages.length, this.isPaged, this.canPage);
+        // ONE OBJECT, NOT FOUR POSITIONS. The host renders its projection
+        // controls from this, and when it was a positional signature the
+        // Chamber took the first two arguments and inferred the rest —
+        // so an elongated reading (one page) looked like a reading with
+        // nothing to paginate, and the control that would have brought
+        // the pages back hid itself. A field cannot be silently dropped
+        // the way a trailing argument can.
+        this.onPageChange?.({
+            index: clamped,
+            total: this.pages.length,
+            isPaged: this.isPaged,
+            canPage: this.canPage
+        });
         this._armObserver();
         // A new page starts at its own beginning, not at the scroll
         // offset the previous one happened to leave behind.
@@ -288,17 +315,56 @@ export class PageReader {
      * already built, and pagination is only a view over them, so the
      * two projections are two ways of reading the same object rather
      * than two objects.
+     *
+     * AND IT KEEPS THE READER'S PLACE. Sending someone back to the first
+     * page for changing how the same reading is drawn is the same fault
+     * the Page↔Stream toggle already had: two views of one reading that
+     * disagree about where the reader is. The anchor is an ITEM, not an
+     * offset, because only the item means the same thing in both.
      */
     setPaged(next) {
         const wanted = !!next && this.canPage;
         if (wanted === this.isPaged) return this.isPaged;
+        const anchor = this._visibleItem();
         this.isPaged = wanted;
         const chosen = wanted ? this._cut : this._wholeColumn();
         this.pages = chosen.pages.length
             ? chosen.pages
             : [{ index: 0, items: [], weight: 0 }];
-        this._renderPage(0);
+        this._renderPage(wanted ? pageOfItem(this.pages, anchor) : 0);
+        if (!wanted) this._scrollToItem(anchor);
         return this.isPaged;
+    }
+
+    /**
+     * The item the reader is actually looking at: the first one whose
+     * foot is still below the top of the frame. In a paged projection
+     * that is the page's opening item; in a scroll it is wherever they
+     * scrolled to, which is the case that matters.
+     */
+    _visibleItem() {
+        const page = this.pages?.[this.pageIndex];
+        const first = page?.items?.[0] || null;
+        if (!this.host) return first;
+        const top = this.host.scrollTop || 0;
+        if (!top) return first;
+        const items = this.composition?.items;
+        if (!Array.isArray(items)) return first;
+        for (const el of this.host.querySelectorAll('.page-article > [data-item]')) {
+            if (el.offsetTop + el.offsetHeight <= top) continue;
+            const at = Number(el.dataset.item);
+            return Number.isInteger(at) && items[at] ? items[at] : first;
+        }
+        return first;
+    }
+
+    /** Bring an anchor item back under the reader's eye after a re-render. */
+    _scrollToItem(item) {
+        const at = this._itemIndex?.get(item);
+        if (at === undefined || !this.host) return;
+        const el = this.host.querySelector(`.page-article > [data-item="${at}"]`);
+        if (!el) return;
+        try { this.host.scrollTop = el.offsetTop; } catch { /* detached */ }
     }
 
     /** Move by pages. Out-of-range is a no-op, not an error. */

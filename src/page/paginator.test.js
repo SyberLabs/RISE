@@ -237,14 +237,18 @@ describe('pageOfItem', () => {
 });
 
 describe('regressions found by reading real pages', () => {
-    // KNOWN GAP, NOT YET FIXED. `opensAChapter` is reached and returns
-    // true for "CHAPTER II" — instrumented and confirmed — and the seal
-    // fires, yet the pages arrive merged. Something after the fill loop
-    // is undoing it and I have not found what. Skipped rather than
-    // deleted so the next session starts from the evidence instead of
-    // the symptom. See ROADMAP: Vitruvius shows "CHAPTER II" and the
-    // opening of chapter two as the last lines of chapter one's page.
-    it.skip('an inline CHAPTER heading opens a page, like a raised mark', () => {
+    // SOLVED, and the cause is worth keeping written down because every
+    // diagnostic lied. `opensAChapter` was reached and its inputs were
+    // correct, yet it returned false: the word-boundary in its regex had
+    // been written to disk as a literal BACKSPACE (U+0008) instead of the
+    // two characters backslash-b, so the pattern demanded a control
+    // character after "chapter". The byte is invisible in every editor,
+    // in `git diff`, and in the file as this test's own tooling printed
+    // it — which is why two sessions of reasoning about rule ordering
+    // found nothing. It was found by dumping char codes.
+    //
+    // Guard below: `sources are free of control characters`.
+    it('an inline CHAPTER heading opens a page, like a raised mark', () => {
         // "CHAPTER II" and the first paragraph of chapter two arrived as
         // the last lines of chapter one's page, because only a RAISED
         // chapter mark forced a break.
@@ -259,6 +263,19 @@ describe('regressions found by reading real pages', () => {
         expect(p.items[0].text).toBe('CHAPTER II');
     });
 
+    it('a chapter word must stand as a word, not as a prefix', () => {
+        // The word boundary is the whole reason the regex is not a bare
+        // prefix test: a heading may legitimately BEGIN with those
+        // letters without being a division.
+        const items = [
+            text(300),
+            { type: 'text', text: 'CANTONESE LACQUER', rhythm: 'normal', heading: true },
+            text(300)
+        ];
+        const { pages } = paginate(composition(items), { linesPerPage: 40 });
+        expect(pages).toHaveLength(1);
+    });
+
     it('a plain inline heading does NOT force a page — only a chapter does', () => {
         const items = [
             text(300),
@@ -267,6 +284,50 @@ describe('regressions found by reading real pages', () => {
         ];
         const { pages } = paginate(composition(items), { linesPerPage: 40 });
         expect(pages).toHaveLength(1);
+    });
+
+    it('the balance pass does not walk a thin page to the front of the reading', () => {
+        // FOUND BY READING THE OUTPUT, not by the R4 test above, which
+        // inspected only the LAST page and so watched the fault stroll
+        // past it. A tail page holding one paragraph borrowed from its
+        // donor, leaving the DONOR thin, which borrowed in turn — all
+        // the way to page one, where the reader meets it first.
+        const items = Array.from({ length: 13 }, () => text(330));
+        const { pages } = paginate(composition(items), { linesPerPage: 12 });
+        for (const page of pages) {
+            expect(page.items.length, `page ${page.index} holds one item`)
+                .toBeGreaterThan(1);
+        }
+        expect(allItems(pages)).toEqual(items);
+    });
+
+    it('the balance pass does not bury a chapter opening', () => {
+        // Structure outranks balance: a page that opens a chapter must
+        // not have prose borrowed down onto it, nor be folded into the
+        // page above, however thin it looks.
+        const items = [text(400), text(400), text(400), chapter('II'), text(2000)];
+        const { pages } = paginate(composition(items), { linesPerPage: 24 });
+        const chPage = pages.find(p => p.items.some(i => i.type === 'chapter'));
+        expect(chPage.items[0].type).toBe('chapter');
+        expect(allItems(pages)).toEqual(items);
+    });
+
+    it('the balance pass does not strand a heading at the foot of its donor', () => {
+        // Borrowing the block BELOW a heading leaves the heading last on
+        // the donor page — the exact fault pass 1 exists to remove, and
+        // pass 1 has already run by then.
+        const items = [
+            text(300), text(300),
+            { type: 'text', text: 'A NOTE ON MEASURE', rhythm: 'normal', heading: true },
+            text(300), text(300), text(300), text(300), text(300)
+        ];
+        const { pages } = paginate(composition(items), { linesPerPage: 14 });
+        for (const page of pages.slice(0, -1)) {
+            const last = page.items[page.items.length - 1];
+            expect(last.heading === true, `page ${page.index} ends on a heading`)
+                .toBe(false);
+        }
+        expect(allItems(pages)).toEqual(items);
     });
 
     it('R9 does not manufacture the lone plate it exists to prevent', () => {
