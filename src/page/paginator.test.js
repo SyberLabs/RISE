@@ -106,14 +106,37 @@ describe('paginate', () => {
         expect(figPage.items).toContain(c);
     });
 
-    it('gives an oversize plate its own page rather than splitting or dropping it', () => {
+    it('gives a genuinely oversize plate its own page rather than splitting or dropping it', () => {
+        // "Oversize" means larger than the whole budget — a short frame,
+        // not merely a big picture. A plate that FITS must not be
+        // isolated; see the next test.
         const plate = figure('bleed');
         const items = [text(200), plate, text(200)];
-        const { pages } = paginate(composition(items), { linesPerPage: 14 });
+        const { pages } = paginate(composition(items), { linesPerPage: 8 });
         const platePage = pages.find(p => p.items.includes(plate));
         expect(platePage.items).toHaveLength(1);
         // And it is still in the reading, in order.
         expect(allItems(pages)).toEqual(items);
+    });
+
+    it('consecutive plates share a page rather than each taking one', () => {
+        // THE ATTRACTOR FAULT. A reading with several procedural stills
+        // produced a page carrying nothing but one full-panel visual.
+        // A solo plate is a slide, and this is a reader.
+        const items = [text(400), figure('bleed'), text(400), figure('bleed'), text(400)];
+        const { pages } = paginate(composition(items));
+        for (const page of pages) {
+            const onlyAFigure = page.items.length === 1 && page.items[0].type === 'figure';
+            expect(onlyAFigure, `page ${page.index} is a lone plate`).toBe(false);
+        }
+    });
+
+    it('holds a useful amount of prose on one page', () => {
+        // A page that could carry more text and does not is a page turn
+        // the reader did not need.
+        const items = Array.from({ length: 40 }, () => text(280)); // ~5 lines each
+        const { pages } = paginate(composition(items));
+        expect(pages[0].items.length).toBeGreaterThanOrEqual(5);
     });
 
     it('a wrapped figure at the very end takes the prose that exists', () => {

@@ -384,6 +384,27 @@ describe('PageReader pagination', () => {
         reader.destroy();
     });
 
+    it('names the reading once past the opening — a running head, not a masthead', () => {
+        // Past page one nothing on screen said what was being read. The
+        // head is furniture: the focal and the source line still belong
+        // to the opening alone.
+        const { reader, host } = paged({ session: longSession(60), title: 'Matthew' });
+        expect(host.querySelector('.page-runner')).toBeNull();
+
+        reader.nextPage();
+        const runner = host.querySelector('.page-runner');
+        expect(runner).not.toBeNull();
+        expect(runner.textContent).toBe('Matthew');
+        expect(host.querySelector('.page-masthead')).toBeNull();
+        // The article is titled already; a reader should not meet the
+        // name twice on every page.
+        expect(runner.getAttribute('aria-hidden')).toBe('true');
+
+        reader.prevPage();
+        expect(host.querySelector('.page-runner')).toBeNull();
+        reader.destroy();
+    });
+
     it('a short reading gets no pager at all', () => {
         const { reader, host } = paged();
         expect(reader.pages).toHaveLength(1);

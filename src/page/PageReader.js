@@ -90,7 +90,7 @@ export class PageReader {
         this.host.classList.add('page-reader');
 
         const cut = this.paginated
-            ? paginate(this.composition, { linesPerPage: this.linesPerPage })
+            ? paginate(this.composition, this._budget())
             : { pages: [{ index: 0, items: this.composition.items, weight: 0 }] };
         // A reading with nothing in it still needs a page to be on.
         this.pages = cut.pages.length
@@ -100,6 +100,48 @@ export class PageReader {
         this._bindKeys();
         this._renderPage(0);
         return this.composition;
+    }
+
+    /**
+     * The budget, measured from the frame the reading is actually in.
+     *
+     * The paginator is pure and must stay that way, so the measuring
+     * happens here and is handed across as two numbers. It matters more
+     * than it looks: `charsPerLine: 66` is a DESKTOP measure, and using
+     * it on a phone — where the column fits nearer 40 — told the
+     * paginator each paragraph was two thirds its real height, so pages
+     * were cut over-full and overflowed their own frame by 250px.
+     */
+    _budget() {
+        const w = this.host?.clientWidth || 390;
+        const h = this.host?.clientHeight || 664;
+        const narrow = w < 640;
+
+        const font = narrow ? 18 : 20;
+        const measure = Math.min(544, Math.max(220, w - 32));
+        // ~0.5em average advance for this literary face.
+        const charsPerLine = Math.max(24, Math.round(measure / (font * 0.5)));
+
+        // What the frame leaves after the fixed furniture: the running
+        // head and the pager. The column's own padding is NOT subtracted
+        // again here — doing both is what cut the reading into 28 pages
+        // of one paragraph.
+        const furniture = narrow ? 130 : 170;
+        const lineHeight = font * 1.72;
+
+        // A PAGE MAY OVERRUN ITS FRAME A LITTLE, and should. Budgeting
+        // for a perfect fit produced pages holding a single paragraph on
+        // a phone, which is a page turn every few seconds; budgeting for
+        // a comfortable scroll holds a readable amount and still ends
+        // somewhere deliberate. The reader scrolls a page, then turns it.
+        const OVERRUN = 1.45;
+        const usable = Math.max(lineHeight * 8, (h - furniture) * OVERRUN);
+        const linesPerPage = Math.max(10, Math.floor(usable / lineHeight));
+
+        return {
+            charsPerLine,
+            linesPerPage: Number.isFinite(this.linesPerPage) ? this.linesPerPage : linesPerPage
+        };
     }
 
     /**
@@ -125,6 +167,19 @@ export class PageReader {
 
         if (clamped === 0 && (this.title || this.source || this.focal)) {
             article.appendChild(this._buildMasthead());
+        } else if (clamped > 0 && this.title) {
+            // A RUNNING HEAD, WHICH I PREVIOUSLY ARGUED AGAINST.
+            //
+            // The first cut of this said a title repeated at the head of
+            // every page is a running header, "a different typographic
+            // object and one this reader has not earned yet", and showed
+            // the masthead on page one alone. That was wrong in practice:
+            // past the first page a reader has nothing on screen naming
+            // what they are reading, and a book solves this with a
+            // running head for exactly that reason. It is small, quiet,
+            // set in the display face, and it is not the masthead — the
+            // focal and the source line still belong to the opening.
+            this.host.appendChild(this._buildRunningHead());
         }
 
         // A WRAPPED figure and the prose that flows beside it must share a
@@ -193,6 +248,14 @@ export class PageReader {
 
     nextPage() { return this.goToPage(this.pageIndex + 1); }
     prevPage() { return this.goToPage(this.pageIndex - 1); }
+
+    _buildRunningHead() {
+        const head = document.createElement('div');
+        head.className = 'page-runner';
+        head.setAttribute('aria-hidden', 'true'); // the article is titled already
+        head.textContent = this.title;
+        return head;
+    }
 
     _buildPager() {
         const nav = document.createElement('nav');

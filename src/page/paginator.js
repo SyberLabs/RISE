@@ -30,8 +30,11 @@
  * caption is a broken one. The rules below matter more than the numbers.
  */
 export const PAGE_DEFAULTS = Object.freeze({
-    /** Line units a page may hold before it must break. */
-    linesPerPage: 26,
+    /** Line units a page may hold before it must break.
+     *  Raised from 26 after reading real pages: 26 left a short column
+     *  in a tall frame, and a page that could hold more text and does
+     *  not is just a page turn the reader did not need. */
+    linesPerPage: 34,
     /** Characters the measure fits on one line, for estimating prose. */
     charsPerLine: 66
 });
@@ -42,9 +45,16 @@ const WEIGHT = Object.freeze({
     breakOpen: 2,
     pause: 1,
     symbol: 3,
-    figureBleed: 14, // a full plate
-    figureInset: 10,
-    figureMargin: 8  // wrapped: prose runs beside it, so it costs less
+    // FIGURES COST LESS THAN THEY DID, and the reason is a real fault
+    // seen in an Attractor reading: a page arrived carrying nothing but
+    // one full-panel still. At the old weights two consecutive plates
+    // (14 + 14) blew a 26-line budget, so the first was sealed onto a
+    // page by itself — a solo plate is a slide, and this is a reader,
+    // not a slideshow. At 10 against 34 they share a page with prose
+    // between them, which is what the compositor's rhythm intended.
+    figureBleed: 10, // a full plate
+    figureInset: 7,
+    figureMargin: 6  // wrapped: prose runs beside it, so it costs less
 });
 
 const RHYTHM_EXTRA = Object.freeze({ still: 2, open: 1, tight: 0, normal: 0 });

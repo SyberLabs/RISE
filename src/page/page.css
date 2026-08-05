@@ -399,64 +399,103 @@
 }
 
 /* ═══════════════════════════════════════════════════════════
-   The pager (PAGE-MODE-SPEC §9 — an alternate renderer over the
-   same Composition)
-   ═══════════════════════════════════════════════════════════
+   Paged furniture (PAGE-MODE-SPEC §9 — an alternate renderer over
+   the same Composition)
+   ═══════════════════════════════════════════════════════════ */
 
-   A page ends where the paginator cut it, so the long scroll tail
-   that let the last line rise clear of the fold is no longer doing
-   anything but hiding the turn. It shortens, and the controls sit
-   under the text where the reading actually stops.
-
-   In flow rather than fixed, deliberately: Page Mode already carries
-   a floating control pill at the foot of the screen, and a second
-   floating object beside it is how a quiet reader becomes a cockpit.
-   Arrow keys and PageUp/PageDown do the same job without reaching. */
-
+/* THE COLUMN SITS LOWER. A bounded page in a tall frame started its
+   text hard against the top with the remainder empty beneath, which
+   reads as a page that ran out rather than a page that was composed.
+   It begins nearer the middle now, and the foot is reserved for the
+   fixed furniture below. */
 .page-reader.is-paginated .page-article {
-  padding-bottom: clamp(1.5rem, 5vh, 2.5rem);
+  padding-top: clamp(3.5rem, 13vh, 8rem);
+  padding-bottom: clamp(7rem, 18vh, 10rem);
 }
 
+/* ── The running head ──
+   Once past the opening, nothing on screen named the reading. Small,
+   quiet, and fixed to the top of the frame rather than scrolling with
+   the column — it is furniture, not content, which is also why it is
+   aria-hidden: the article is titled already and a screen reader
+   should not meet the name twice per page. */
+.page-runner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  padding: clamp(0.7rem, 2.2vh, 1.1rem) var(--space-lg);
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--page-ink-quiet);
+  pointer-events: none;
+  /* The column passes underneath, so the head needs the ground to stay
+     legible without becoming a bar. */
+  background: linear-gradient(
+    180deg,
+    var(--color-void) 0%,
+    var(--color-void) 55%,
+    transparent 100%
+  );
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── The pager ──
+   FIXED, NOT IN FLOW. The first cut put it at the end of the article
+   so it could not collide with the Chamber's own control pill, which
+   meant its position moved with the length of the text — a control
+   that is somewhere different on every page is a control the reader
+   has to look for. It is pinned now, and it clears the pill by
+   sitting above it rather than beside it. */
 .page-pager {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--space-xl) + 58px);
+  z-index: 3;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-md);
-  padding: var(--space-sm) var(--space-lg) clamp(5rem, 14vh, 8rem);
-  /* The tail clears the Chamber's own control pill, which is fixed at
-     the foot of the screen — the pager must be reachable by scrolling
-     past it, never underneath it. */
+  padding: 6px 10px;
+  border-radius: 22px;
+  background: rgba(10, 10, 12, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--color-shadow);
 }
 
 .page-pager-btn {
   background: transparent;
-  border: 1px solid var(--color-shadow);
-  border-radius: var(--radius-sm, 2px);
+  border: 0;
   color: var(--page-ink-quiet);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1;
-  padding: 8px 14px;
-  min-width: 44px;
-  min-height: 36px;
+  padding: 8px 12px;
+  min-width: 40px;
+  min-height: 34px;
   cursor: pointer;
-  transition: color 200ms var(--ease-default), border-color 200ms var(--ease-default);
+  transition: color 200ms var(--ease-default);
 }
 
-.page-pager-btn:hover:not(:disabled) {
-  color: var(--page-ink-strong);
-  border-color: var(--color-fog);
-}
+.page-pager-btn:hover:not(:disabled) { color: var(--page-ink-strong); }
 
 /* A turn that cannot be taken is stated, not hidden: a reader at the
    last page should see that it is the last page. */
 .page-pager-btn:disabled {
-  opacity: 0.28;
+  opacity: 0.26;
   cursor: default;
 }
 
 .page-pager-count {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10px;
   letter-spacing: 0.12em;
   color: var(--page-ink-quiet);
   min-width: 5ch;
@@ -464,9 +503,19 @@
 }
 
 @media (max-width: 640px) {
-  .page-pager {
-    gap: var(--space-sm);
-    padding-bottom: clamp(4rem, 12vh, 6rem);
+  .page-reader.is-paginated .page-article {
+    padding-top: clamp(2.5rem, 8vh, 4rem);
+    /* Clears the fixed pager, and no more: the tail used to reserve
+       room for furniture that is no longer in the flow. */
+    padding-bottom: clamp(5rem, 14vh, 7rem);
   }
-  .page-pager-count { font-size: 10px; }
+  .page-runner { font-size: 9.5px; letter-spacing: 0.16em; }
+  .page-pager {
+    /* Measured: the Chamber's pill occupies the last 90px of the
+       frame on a phone. 72 clears it with air rather than by a
+       pixel. */
+    bottom: calc(var(--space-xl) + 72px);
+    gap: var(--space-sm);
+  }
+  .page-pager-count { font-size: 9.5px; }
 }
