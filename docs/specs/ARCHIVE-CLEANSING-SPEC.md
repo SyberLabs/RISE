@@ -1,6 +1,6 @@
 # Archive Cleansing — a scope
 
-**Status:** proposed · not started
+**Status:** proposed · not started · §2b decided 2026-08-04
 **Scale:** 107 shelved works
 **Prior art:** `scripts/audit-text-quality.mjs`, which already exists and already
 knows this defect class.
@@ -21,14 +21,8 @@ and OCR folds that apparatus into the prose. Three findings, all real:
   heuristic promoted two of them into section headings before it was tightened,
   which is what damage does when nothing filters it.
 
-- **Running heads mid-sentence.** The Storm of Steel carries `GUILLEMONT 93`,
-  `GUILLEMONT 95`, `GUILLEMONT 97` … `GUILLEMONT 109` — the chapter name and
-  the recto page number of the printed book — dropped wherever the page turned,
-  which is usually the middle of a clause: *"the men were standing … Now and /
-  GUILLEMONT 101 / then by the light of a rocket…"*. The compositor now refuses
-  to promote these into headings (canon R11), but **they are still in the
-  reading**, splitting sentences. This is the `Running heads` row of the table
-  below, with a named instance and a known count.
+- **Running heads mid-sentence — DECIDED: trim.** See §2b, which is the most
+  actionable finding in this document and the one with the clearest evidence.
 
 - **Stranded running heads**, found 2026-08-04 while fixing a division
   boundary. Romance of the Three Kingdoms ends chapter CV with
@@ -54,7 +48,7 @@ different disposition.
 | **Marginalia** | short all-caps scraps between paragraphs | `ROME]` |
 | **Imprint fragments** | printer, city, year, loose from a title page | `Giocondo, Venice, 1511)]` |
 | **Front/back matter** | contents, index, colophon, transcriber's notes | *(detector shipped)* |
-| **Running heads** | a page header repeated every N paragraphs | `THE TEN BOOKS` |
+| **Running heads** | a page header repeated every N paragraphs | `GUILLEMONT 101` — **decided, see §2b** |
 | **Page furniture** | bare numerals, catchwords, signature marks | `[Pg 41]`, `iv` |
 | **OCR corruption** | impossible letter runs, mojibake, broken ligatures | `tlie`, `Ã©` |
 | **Wrong work entirely** | the identity fault | *(detector shipped)* |
@@ -62,6 +56,101 @@ different disposition.
 The last two rows already have machinery: `identity.test.js` proves a work names
 itself in its own pages, and `divisions.js` drops contents pages. Everything
 above them is open.
+
+---
+
+## 2b. Running heads — the first trim, specified
+
+**Decided 2026-08-04, on Mateo's call: remove them.** This section exists
+because the class earns a decision the others do not yet have, and because it
+is the one place where deletion is provably safe rather than merely reasonable.
+
+### What it is
+
+A reader met this on the Page and read it, correctly, as a visual glitch:
+
+> …the men were standing, rifle in hand, their eyes fixed on the ground in front
+> of them. **Now and**
+> **GUILLEMONT 101**
+> **then** by the light of a rocket I saw the gleam of helmet after helmet…
+
+`GUILLEMONT 101` is not a heading, a title, or a seam between movements. It is
+the **running head of the printed page** — the chapter name and the recto page
+number — and OCR left it wherever the physical page turned, which is normally
+mid-clause. The Storm of Steel carries the sequence 93, 95, 97, 99, 101 … 109.
+
+The raw span in the payload shows both halves of the furniture, the verso
+numeral and the recto head:
+
+```
+…One could see that the man had been \n\n92 \n\n\nGUILLEMONT 93 \n\n\nthrough horror to the limit of despair…
+```
+
+Delete the whole span and the sentence is *restored*, not edited:
+"…the man had been through horror to the limit of despair…". That is the test
+this disposition must meet.
+
+### Scale, measured rather than assumed
+
+Swept over all shelved payloads, 2026-08-04:
+
+| | count |
+|---|---|
+| works carrying repeated running heads | **6** |
+| running heads total | **1,869** |
+| …of which land **mid-sentence** | **293** |
+| bare numeral lines (page furniture) | 4,531 |
+
+The heaviest carriers are the Shahnama (1,172 — `KAI KHUSRAU`×220,
+`GUSHTASP`×124), the Corpus Hermeticum (500), and the Storm of Steel (139, of
+which **110 are mid-sentence** — the worst ratio on the shelf, which is why it
+surfaced first).
+
+### The rule, and why only part of it is safe
+
+> **Trim a running head only where its POSITION proves it is furniture.**
+
+This is the same evidence canon R11 uses to refuse promoting one to a heading,
+applied one layer down to the text itself. A line qualifies when **all** hold:
+
+1. It is a short line of capitals ending in an arabic number, and its
+   capitalised stem **repeats** three or more times across the work with
+   *different* numbers.
+2. The preceding non-empty line does **not** end a sentence.
+3. The following non-empty line **resumes in lower case**.
+
+Conditions 2 and 3 are what make this a deletion rather than a guess. **The
+other 1,576 occurrences are suspicions, not verdicts**, and go to a reviewer —
+because a repeated capitalised stem followed by a number is *also* exactly the
+shape of a legitimate division heading. The sweep found `BOOK`×18 in the
+Mahabharata and `CH. III. INTRODUCTION.`×5 in the I Ching, and a rule that
+trimmed those would delete the work's own structure. That is the entire reason
+this section is narrow.
+
+**Bare numerals are explicitly NOT in scope for automatic trimming.** 4,531 of
+them exist and many are the work's own structure — a hundred verses from Old
+Japan numbers its poems, King Lear's scan numbers its lines. Only a bare
+numeral *inside* a qualifying furniture span (the `92` above, adjacent to the
+head it belongs with) is removed, and only as part of that span.
+
+### The span, and the sentence
+
+A trim removes the furniture **and the paragraph break it introduced**,
+collapsing to a single space, so the interrupted sentence rejoins. Deleting the
+line alone would leave the clause split in two, which fixes the appearance and
+not the reading.
+
+**The verification is a strict-deletion check**, not a diff review: the result
+must be the original text with only the identified spans removed — the
+remaining characters, in order, must equal the original minus those spans.
+Anything else is a rewrite, and a rewrite here means the edition no longer
+describes what is on the shelf (§4's hard rule).
+
+### Order of work
+
+Storm of Steel first: worst ratio, smallest volume, and it is the text a
+Journey reads, so the fix is visible immediately in the Demonstration. Then the
+Shahnama and the Corpus Hermeticum, which are the volume.
 
 ---
 
@@ -165,9 +254,13 @@ catalogue rather than to imagery.
 
 ## 6. Phases
 
+0. **Running heads** (§2b) — decided, specified, and independent of everything
+   below it. It has its own detector, its own verification, and 293 instances
+   that need no reviewer. Worth doing first precisely because it does not wait
+   on the ladder, the handoff, or any open decision.
 1. **Fixtures.** Harvest known-bad passages from Hamlet, the three Shakespeares,
-   and Vitruvius into a test corpus. Nothing is built before there is something
-   to fail against.
+   Vitruvius and the Storm of Steel into a test corpus. Nothing is built before
+   there is something to fail against.
 2. **Rung 1** detectors + unit tests. Report only; no mutation.
 3. **Run the report over all 107** and read the shape of it. The distribution
    decides how much of rung 2 is worth building.
