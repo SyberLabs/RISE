@@ -1151,10 +1151,21 @@ export class AudioEngine {
             let buffer = null;
 
             if (typeof idOrIndex === 'string') {
+                // A NAMED SWELL FAILS CLOSED. This used to warn and then
+                // play a RANDOM different swell, which is not graceful
+                // degradation but false execution: the score asks for
+                // funeral-bell and the runtime sounds a rising cosmic
+                // swell, with nothing on screen to say so.
+                //
+                // The standing law is the same one the imagery follows —
+                // a work that will not resolve is ABSENT, never a
+                // substitute. Silence is a valid scored state; the wrong
+                // sound is not. Asking for no particular swell (below)
+                // is a different request and still takes any of them.
                 buffer = this.personalPool ? this.personalPool.get(idOrIndex) : null;
                 if (!buffer) {
-                    console.warn('[AudioEngine] playSwell: ID ' + idOrIndex + ' not found in personal pool.');
-                    buffer = allSwells[Math.floor(Math.random() * allSwells.length)];
+                    console.warn('[AudioEngine] playSwell: "' + idOrIndex + '" is not in the pool; silence.');
+                    return;
                 }
             } else if (typeof idOrIndex === 'number' && idOrIndex !== null) {
                 buffer = allSwells[idOrIndex % allSwells.length];

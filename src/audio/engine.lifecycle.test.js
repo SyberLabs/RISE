@@ -212,3 +212,57 @@ describe('AudioEngine reading-clock entrainment', () => {
     expect(param.linearRampToValueAtTime).toHaveBeenCalled();
   });
 });
+
+describe('a named swell fails closed', () => {
+    // FOUND IN AN EXTERNAL REVIEW OF 0fb9c2b, and verified in the code:
+    // playSwell('funeral-bell') with nothing by that name warned and then
+    // played a RANDOM different swell. That is not degradation, it is
+    // false execution — the runtime sounding something the score never
+    // asked for, with nothing to say so.
+    //
+    // The observation is whether a buffer source was CREATED. playSwell
+    // wraps its body in try/catch, so a throwing stub proves nothing:
+    // the throw is swallowed and the test passes either way.
+    const engineWithPool = (pool) => {
+        const created = [];
+        const engine = Object.create(AudioEngine.prototype);
+        engine.isInitialized = true;
+        engine.isMuted = false;
+        engine.buffers = { swells: [{ id: 'a' }, { id: 'b' }], personalSwells: [{ id: 'c' }] };
+        engine.personalPool = pool;
+        engine.masterGain = {};
+        engine.layerGains = {};
+        engine.context = {
+            currentTime: 0,
+            createBufferSource: () => {
+                const node = { buffer: null, connect() {}, start() {}, stop() {}, onended: null };
+                created.push(node);
+                return node;
+            },
+            createGain: () => ({ gain: { value: 1, setValueAtTime() {}, linearRampToValueAtTime() {} }, connect() {} })
+        };
+        return { engine, created };
+    };
+
+    it('plays nothing when the named swell is absent', async () => {
+        const { engine, created } = engineWithPool(new Map());
+        await engine.playSwell('funeral-bell');
+        expect(created, 'a substitute was sounded').toHaveLength(0);
+    });
+
+    it('plays it when the name resolves', async () => {
+        const bell = { id: 'funeral-bell' };
+        const { engine, created } = engineWithPool(new Map([['funeral-bell', bell]]));
+        await engine.playSwell('funeral-bell');
+        expect(created).toHaveLength(1);
+        expect(created[0].buffer, 'the swell asked for is the swell played').toBe(bell);
+    });
+
+    it('an unnamed request still takes any swell', async () => {
+        // "Give me a swell" is a different request from "give me THIS
+        // swell", and only the second fails closed.
+        const { engine, created } = engineWithPool(new Map());
+        await engine.playSwell();
+        expect(created).toHaveLength(1);
+    });
+});
