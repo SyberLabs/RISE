@@ -11,7 +11,7 @@
     "titled": false,
     "noun": "Chapter",
     "count": 17,
-    "words": 33209
+    "words": 33208
   },
   "a-hundred-verses-from-old-japan": {
     "divided": true,
@@ -25,7 +25,7 @@
     "titled": false,
     "noun": "Chapter",
     "count": 239,
-    "words": 349763
+    "words": 349762
   },
   "beckwith-anansi-stories": {
     "divided": true,
@@ -305,7 +305,7 @@
     "titled": false,
     "noun": "Chapter",
     "count": 66,
-    "words": 127359
+    "words": 127273
   },
   "rasmussen-eskimo-tales": {
     "divided": true,
@@ -382,7 +382,7 @@
     "titled": false,
     "noun": "Essay",
     "count": 44,
-    "words": 137141
+    "words": 137140
   },
   "strange-stories-from-a-chinese-studio": {
     "divided": true,
@@ -410,14 +410,14 @@
     "titled": false,
     "noun": "Reading",
     "count": 5,
-    "words": 17074
+    "words": 17071
   },
   "the-book-of-the-thousand-nights-and-a-night": {
     "divided": true,
     "titled": false,
     "noun": "Volume",
     "count": 471,
-    "words": 1717949
+    "words": 1717847
   },
   "the-brothers-karamazov": {
     "divided": true,
@@ -438,7 +438,7 @@
     "titled": false,
     "noun": "Reading",
     "count": 86,
-    "words": 307765
+    "words": 307764
   },
   "the-divine-comedy": {
     "divided": true,
@@ -515,14 +515,14 @@
     "titled": false,
     "noun": "Chapter",
     "count": 21,
-    "words": 55862
+    "words": 55860
   },
   "the-odyssey": {
     "divided": true,
     "titled": false,
     "noun": "Book",
     "count": 48,
-    "words": 129571
+    "words": 129570
   },
   "the-oedipus-trilogy": {
     "divided": true,
@@ -606,14 +606,14 @@
     "titled": false,
     "noun": "Reading",
     "count": 12,
-    "words": 40132
+    "words": 40129
   },
   "ulysses": {
     "divided": true,
     "titled": false,
     "noun": "Reading",
     "count": 70,
-    "words": 265059
+    "words": 265055
   },
   "vitruvius-architecture": {
     "divided": true,

@@ -37,7 +37,8 @@ import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 // ONE VOCABULARY. The detector lives in src/content/archive/furniture.js
 // and is read by the job builder, the cleanser and the tests alike.
-import { stemsOf, furnitureIn, isStrictlyFurniture } from '../src/content/archive/furniture.js';
+import { stemsOf, furnitureIn, isStrictlyFurniture,
+         illustrationStubsIn, isIllustrationStub } from '../src/content/archive/furniture.js';
 
 const WORKS_DIR = resolve('src/content/archive/works');
 const LOG = resolve('src/content/archive/cleanse-log.json');
@@ -69,8 +70,12 @@ for (const file of files) {
 
     for (const section of sections) {
         const before = String(section.content || '');
-        // Latest first, so splicing cannot invalidate the offsets behind it.
-        const spans = furnitureIn(before, stems).filter(f => f.proven).reverse();
+        // Two classes, one pass. Latest first, so splicing cannot
+        // invalidate the offsets behind it.
+        const spans = [
+            ...furnitureIn(before, stems).filter(f => f.proven).map(f => ({ ...f, kind: 'running-head' })),
+            ...illustrationStubsIn(before).map(f => ({ ...f, kind: 'illustration-stub' }))
+        ].sort((a, b) => b.start - a.start);
         if (!spans.length) { cleaned.push(section); continue; }
 
         let after = before;
@@ -78,13 +83,15 @@ for (const file of files) {
             const taken = after.slice(span.start, span.end);
             // STRICT DELETION. Whatever this span covers, collapsed to one
             // line, must BE the furniture and nothing else.
-            if (!isStrictlyFurniture(taken)) {
+            const proves = span.kind === 'illustration-stub' ? isIllustrationStub : isStrictlyFurniture;
+            if (!proves(taken)) {
                 refused = `${section.name}: span would take ` +
                     JSON.stringify(taken.replace(/\s+/g, ' ').trim().slice(0, 70));
                 break;
             }
             after = after.slice(0, span.start) + span.rejoin + after.slice(span.end);
             removals.push({
+                kind: span.kind,
                 division: section.name || null,
                 removed: span.text.split('\n').join(' '),
                 at: span.start,
@@ -108,9 +115,12 @@ for (const file of files) {
     worksTouched++;
     totalRemoved += removals.length;
     totalChars += chars;
-    console.log(`${workId}: ${removals.length} running heads, ${chars} characters`);
-    log.push({ workId, when: new Date().toISOString().slice(0, 10), class: 'running-head',
-        basis: 'ARCHIVE-CLEANSING-SPEC §2b positional proof',
+    const heads = removals.filter(r => r.kind === 'running-head').length;
+    const stubs = removals.filter(r => r.kind === 'illustration-stub').length;
+    console.log(`${workId}: ${heads} running heads, ${stubs} illustration stubs, ${chars} characters`);
+    log.push({ workId, when: new Date().toISOString().slice(0, 10),
+        class: [heads && 'running-head', stubs && 'illustration-stub'].filter(Boolean).join('+'),
+        basis: 'ARCHIVE-CLEANSING-SPEC §2b positional proof; §2c illustration stub',
         count: removals.length, characters: chars, removals });
 
     if (!apply) continue;
@@ -123,14 +133,18 @@ for (const file of files) {
     const start = marker.index + marker[0].length - 1;
     const end = src.indexOf('\n];', start);
     if (end < 0) { console.log(`  ! ${workId}: unterminated SECTIONS array; not written`); continue; }
+    // The terminator is newline-bracket-semicolon, three characters, and
+    // JSON.stringify ends at the bracket — so the semicolon has to be put
+    // back. Losing it left five payloads relying on automatic semicolon
+    // insertion: valid JavaScript, and an unintended edit all the same.
     writeFileSync(path,
-        src.slice(0, start) + JSON.stringify(cleaned, null, 4) + src.slice(end + 3), 'utf8');
+        src.slice(0, start) + JSON.stringify(cleaned, null, 4) + ';' + src.slice(end + 3), 'utf8');
 }
 
 console.log('');
 console.log(`works cleansed  : ${worksTouched}`);
 console.log(`works skipped   : ${worksSkipped}`);
-console.log(`running heads   : ${totalRemoved}`);
+console.log(`removals        : ${totalRemoved}`);
 console.log(`characters      : ${totalChars}`);
 
 if (apply && log.length) {

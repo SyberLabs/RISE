@@ -257,6 +257,63 @@ Shahnama and the Corpus Hermeticum, which are the volume.
 
 ---
 
+## 2c. Shouting, punctuation, brackets — surveyed, and mostly innocent
+
+Asked for by Mateo, 2026-08-05: all-capital words, punctuation in series like
+`;;;....`, and brackets. Swept exhaustively over 1,710,281 lines of 91 works
+(`scripts/audit-text-artifacts.mjs`).
+
+**The headline is that the counts are misleading, and acting on them would have
+been the largest mistake of this pass.** Three of the four biggest buckets are
+the edition doing its job.
+
+| shape | count | works | what it actually is | disposition |
+|---|---|---|---|---|
+| `[1]` `[2]` | 13,013 | 25 | footnote markers **and their footnote bodies** | keep |
+| ALL-CAPS in prose | 9,267 | 62 | **stage directions** — `Enter NORA`, `gives to the MAID` | keep |
+| `[…]` unclassified | 7,752 | 52 | stage directions again — `_[calls out from his room]_` | keep |
+| unbalanced `]` | 7,223 | 39 | **the closing half of a multi-line stage direction** | keep — detector at fault |
+| `....` | 3,043 | 37 | four-dot ellipsis — `“But you must, really, Dolly....”` | keep |
+| ALL-CAPS ≥12 chars | 1,478 | 47 | `_[THE SAME SCENE.—` and errata lists | keep |
+| `[Footnote: …]` | 576 | 9 | the edition's own notes, inline | keep, flag |
+| **`[Illustration]` bare** | **205** | **11** | a plate this edition does not have | **trim** |
+| `[Illustration: caption]` | 44 | — | carries a caption | keep |
+| `[Greek: taxis]` | 224 | 6 | transcriber's script note | keep — see below |
+| `;;` `,,` `??` | 143 | 23 | mostly OCR, some genuine (`“No!!”`) | flag |
+| `;;;....` | 3 | 2 | pure OCR wreckage — **both works already withheld** | n/a |
+
+### What was trimmed, and why only that
+
+**205 bare `[Illustration]` markers.** They stand for a plate the printed
+edition had and this one does not; rendered, the reader is shown those
+characters. That is **a broken frame written in words**, and reverent
+degradation is the standing rule: a work that will not resolve is absent, never
+a broken frame.
+
+**Only the bare ones.** `[Illustration: “I'm the tallest”]` carries a caption.
+And `[Illustration] BUTTERFLY DANCE` has its caption *outside* the bracket —
+removing that marker would strand an all-capital line between two paragraphs,
+which the compositor then reads as a title. Removing furniture in a way that
+manufactures a heading is not an improvement; it is R11's fault arriving by
+another door.
+
+### Two findings worth keeping
+
+**The orphaned-bracket detector is wrong, and 7,223 counts prove it.** It
+balances brackets per LINE, and a stage direction spans lines — so every
+`mouth.]_ Come in here, Torvald` looked like `ATHENS]`. The real orphans are
+rare; the detector has to balance across a paragraph.
+
+**`[Greek: taxis]` is not removable by deletion.** It is the transcriber's
+substitute for Greek characters the plain-text format could not carry, and the
+Vitruvius page reads *"Order (in Greek [Greek: taxis])"*. Deleting the bracket
+leaves "in Greek )"; deleting the parenthetical removes the Greek term the
+translator put there. Turning it into `taxis` would be a **rewrite**, which §4
+forbids outright. This one is a rendering problem, not a text problem — the
+Page could present it as a gloss — and it is recorded here rather than acted on.
+
+---
+
 ## 3. The detection ladder
 
 Cheapest first, and **nothing reaches a reviewer that a regex could have

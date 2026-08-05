@@ -14,10 +14,11 @@
  * judgement no rule here can make.
  */
 import { describe, it, expect } from 'vitest';
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
-import { stemsOf, furnitureIn, isStrictlyFurniture, RUNNING_HEAD } from './furniture.js';
+import { stemsOf, furnitureIn, isStrictlyFurniture, RUNNING_HEAD,
+         illustrationStubsIn, isIllustrationStub } from './furniture.js';
 
 const WORKS_DIR = resolve('src/content/archive/works');
 
@@ -69,6 +70,48 @@ describe('page furniture', () => {
 
         const healed = content.slice(0, found[0].start) + found[0].rejoin + content.slice(found[0].end);
         expect(healed).toBe('One could see that the man had been through horror to the limit of despair and there had learnt');
+    });
+
+    it('removes a bare illustration stub but never one that carries a caption', () => {
+        // "[Illustration]" alone marks a plate this edition does not
+        // have; rendered, the reader is shown those characters, which is
+        // a broken frame written in words.
+        const bare = 'He went out.\n\n[Illustration]\n\nThe road was empty.';
+        const stubs = illustrationStubsIn(bare);
+        expect(stubs).toHaveLength(1);
+        expect(isIllustrationStub(bare.slice(stubs[0].start, stubs[0].end))).toBe(true);
+        expect(bare.slice(0, stubs[0].start) + stubs[0].rejoin + bare.slice(stubs[0].end))
+            .toBe('He went out.\n\nThe road was empty.');
+
+        // A caption OUTSIDE the bracket must stop it. Removing the marker
+        // would strand an all-capital line between two paragraphs, which
+        // the compositor then reads as a title — R11's fault arriving by
+        // another door.
+        expect(illustrationStubsIn('He went out.\n\n[Illustration] BUTTERFLY DANCE\n\nThe road was empty.'))
+            .toHaveLength(0);
+        // And a caption INSIDE it carries content.
+        expect(illustrationStubsIn('He went out.\n\n[Illustration: “I’m the tallest”]\n\nThe road.'))
+            .toHaveLength(0);
+    });
+
+    it('every payload still terminates its SECTIONS array', () => {
+        // The cleanser rewrites that array in place, and the first
+        // version dropped the semicolon — "\n];" is three characters and
+        // JSON.stringify ends at the bracket. Automatic semicolon
+        // insertion made the result valid JavaScript, so every test
+        // passed and five payloads were quietly edited in a way nobody
+        // asked for. A rewriter that can reach the file's syntax needs a
+        // check on the file's syntax.
+        const files = readdirSync(WORKS_DIR)
+            .filter(n => n.endsWith('.js') && !n.includes('.test.'));
+        const bad = [];
+        for (const file of files) {
+            const src = readFileSync(resolve(WORKS_DIR, file), 'utf8');
+            const meta = src.indexOf('_META');
+            if (meta < 0) continue;
+            if (!/\n\];\s*\n/.test(src.slice(0, meta))) bad.push(file);
+        }
+        expect(bad, bad.join(', ')).toEqual([]);
     });
 
     it('refuses a stem that is not a word', () => {

@@ -106,6 +106,53 @@ export function furnitureIn(content, stems) {
 }
 
 /**
+ * `[Illustration]` markers that carry NOTHING — the stub alone on its
+ * line, 205 of them across eleven works.
+ *
+ * These mark a plate the printed edition had and this one does not.
+ * Rendered, the reader is shown the literal text "[Illustration]", which
+ * is a broken frame written in words — the exact thing reverent
+ * degradation forbids. A work that will not resolve is absent, never a
+ * broken frame.
+ *
+ * ONLY THE BARE ONES. `[Illustration: “I'm the tallest”]` carries a
+ * caption, and `[Illustration] BUTTERFLY DANCE` has its caption sitting
+ * outside the bracket — deleting that marker would strand an all-capital
+ * line between two paragraphs, which the compositor would then read as a
+ * title. Removing furniture in a way that manufactures a heading is not
+ * an improvement; it is R11's fault arriving by another door.
+ */
+export function illustrationStubsIn(content) {
+    const lines = String(content || '').split('\n');
+    const at = [];
+    let cursor = 0;
+    for (const line of lines) { at.push(cursor); cursor += line.length + 1; }
+
+    const out = [];
+    for (let i = 0; i < lines.length; i++) {
+        if (lines[i].trim() !== '[Illustration]') continue;
+
+        let p = i - 1; while (p >= 0 && !lines[p].trim()) p--;
+        let n = i + 1; while (n < lines.length && !lines[n].trim()) n++;
+
+        out.push({
+            start: p >= 0 ? at[p] + lines[p].replace(/\s+$/, '').length : 0,
+            end: n < lines.length ? at[n] : String(content).length,
+            text: '[Illustration]',
+            // It stands BETWEEN paragraphs, never inside a sentence, so
+            // the break it sat in is the break that stays.
+            rejoin: '\n\n'
+        });
+    }
+    return out;
+}
+
+/** A span that is nothing but a bare illustration stub. */
+export function isIllustrationStub(span) {
+    return String(span || '').replace(/\s+/g, ' ').trim() === '[Illustration]';
+}
+
+/**
  * Is this span safe to delete? Whatever it covers, collapsed to one
  * line, must BE the furniture and nothing else.
  *

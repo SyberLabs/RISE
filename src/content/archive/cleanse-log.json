@@ -1197,5 +1197,1550 @@
       "Volume 9 — Front matter"
     ],
     "note": "source.sha256 still digests the original nine-artifact fetch and is kept as the record of what was ingested. Re-source is queued."
+  },
+  {
+    "workId": "a-hundred-and-seventy-chinese-poems",
+    "when": "2026-08-05",
+    "class": "illustration-stub",
+    "basis": "ARCHIVE-CLEANSING-SPEC §2b positional proof; §2c illustration stub",
+    "count": 1,
+    "characters": 20,
+    "removals": [
+      {
+        "kind": "illustration-stub",
+        "division": "Front matter",
+        "removed": "[Illustration]",
+        "at": 75,
+        "rejoined": "paragraph"
+      }
+    ]
+  },
+  {
+    "workId": "anna-karenina",
+    "when": "2026-08-05",
+    "class": "illustration-stub",
+    "basis": "ARCHIVE-CLEANSING-SPEC §2b positional proof; §2c illustration stub",
+    "count": 1,
+    "characters": 17,
+    "removals": [
+      {
+        "kind": "illustration-stub",
+        "division": "Chapter 1",
+        "removed": "[Illustration]",
+        "at": 0,
+        "rejoined": "paragraph"
+      }
+    ]
+  },
+  {
+    "workId": "pride-and-prejudice",
+    "when": "2026-08-05",
+    "class": "illustration-stub",
+    "basis": "ARCHIVE-CLEANSING-SPEC §2b positional proof; §2c illustration stub",
+    "count": 86,
+    "characters": 1461,
+    "removals": [
+      {
+        "kind": "illustration-stub",
+        "division": "Front matter",
+        "removed": "[Illustration]",
+        "at": 1550,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER II.",
+        "removed": "[Illustration]",
+        "at": 11,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER III.",
+        "removed": "[Illustration]",
+        "at": 9754,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER III.",
+        "removed": "[Illustration]",
+        "at": 12,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER IV.",
+        "removed": "[Illustration]",
+        "at": 11,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER V.",
+        "removed": "[Illustration]",
+        "at": 5403,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER V.",
+        "removed": "[Illustration]",
+        "at": 5387,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER V.",
+        "removed": "[Illustration]",
+        "at": 10,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER VI.",
+        "removed": "[Illustration]",
+        "at": 11,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER VII.",
+        "removed": "[Illustration]",
+        "at": 12,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER VIII.",
+        "removed": "[Illustration]",
+        "at": 13,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER IX.",
+        "removed": "[Illustration]",
+        "at": 9801,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER IX.",
+        "removed": "[Illustration]",
+        "at": 11,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER X.",
+        "removed": "[Illustration]",
+        "at": 10,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XI.",
+        "removed": "[Illustration]",
+        "at": 8979,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XI.",
+        "removed": "[Illustration]",
+        "at": 11,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XII.",
+        "removed": "[Illustration]",
+        "at": 3961,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XII.",
+        "removed": "[Illustration]",
+        "at": 12,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XIII",
+        "removed": "[Illustration]",
+        "at": 9512,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XIII",
+        "removed": "[Illustration]",
+        "at": 12,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XIV",
+        "removed": "[Illustration]",
+        "at": 6548,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XIV",
+        "removed": "[Illustration]",
+        "at": 11,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XV.",
+        "removed": "[Illustration]",
+        "at": 9822,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XV.",
+        "removed": "[Illustration]",
+        "at": 11,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XVI.",
+        "removed": "[Illustration]",
+        "at": 12,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XVII.",
+        "removed": "[Illustration]",
+        "at": 7310,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XVII.",
+        "removed": "[Illustration]",
+        "at": 13,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XVIII.",
+        "removed": "[Illustration]",
+        "at": 14,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XIX.",
+        "removed": "[Illustration]",
+        "at": 10702,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XIX.",
+        "removed": "[Illustration]",
+        "at": 12,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XX.",
+        "removed": "[Illustration]",
+        "at": 9276,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XX.",
+        "removed": "[Illustration]",
+        "at": 11,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXI.",
+        "removed": "[Illustration]",
+        "at": 11403,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXI.",
+        "removed": "[Illustration]",
+        "at": 12,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXII.",
+        "removed": "[Illustration]",
+        "at": 13,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXIII.",
+        "removed": "[Illustration]",
+        "at": 9418,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXIII.",
+        "removed": "[Illustration]",
+        "at": 14,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXIV.",
+        "removed": "[Illustration]",
+        "at": 10865,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXIV.",
+        "removed": "[Illustration]",
+        "at": 13,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXV.",
+        "removed": "[Illustration]",
+        "at": 12,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXVI.",
+        "removed": "[Illustration]",
+        "at": 13,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXVII.",
+        "removed": "[Illustration]",
+        "at": 14,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXVIII.",
+        "removed": "[Illustration]",
+        "at": 15,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXIX.",
+        "removed": "[Illustration]",
+        "at": 13720,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXIX.",
+        "removed": "[Illustration]",
+        "at": 13,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXX.",
+        "removed": "[Illustration]",
+        "at": 12,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXXI.",
+        "removed": "[Illustration]",
+        "at": 8782,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXXI.",
+        "removed": "[Illustration]",
+        "at": 13,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXXII.",
+        "removed": "[Illustration]",
+        "at": 14,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXXIII.",
+        "removed": "[Illustration]",
+        "at": 10422,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXXIII.",
+        "removed": "[Illustration]",
+        "at": 15,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXXIV.",
+        "removed": "[Illustration]",
+        "at": 14,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXXV.",
+        "removed": "[Illustration]",
+        "at": 17014,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXXV.",
+        "removed": "[Illustration]",
+        "at": 13,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXXVI.",
+        "removed": "[Illustration]",
+        "at": 14,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXXVII.",
+        "removed": "[Illustration]",
+        "at": 15,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXXVIII.",
+        "removed": "[Illustration]",
+        "at": 16,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXXIX.",
+        "removed": "[Illustration]",
+        "at": 8827,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XXXIX.",
+        "removed": "[Illustration]",
+        "at": 14,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XL.",
+        "removed": "[Illustration]",
+        "at": 11,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XLI.",
+        "removed": "[Illustration]",
+        "at": 12,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XLII.",
+        "removed": "[Illustration]",
+        "at": 13,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XLIII.",
+        "removed": "[Illustration]",
+        "at": 27555,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XLIII.",
+        "removed": "[Illustration]",
+        "at": 14,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XLIV.",
+        "removed": "[Illustration]",
+        "at": 13,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XLV.",
+        "removed": "[Illustration]",
+        "at": 10134,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XLV.",
+        "removed": "[Illustration]",
+        "at": 12,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Chapter XLVI.",
+        "removed": "[Illustration]",
+        "at": 13,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XLVII.",
+        "removed": "[Illustration]",
+        "at": 14,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XLVIII.",
+        "removed": "[Illustration]",
+        "at": 12871,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XLVIII.",
+        "removed": "[Illustration]",
+        "at": 15,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER XLIX.",
+        "removed": "[Illustration]",
+        "at": 13,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER L.",
+        "removed": "[Illustration]",
+        "at": 10,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER LI.",
+        "removed": "[Illustration]",
+        "at": 11,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER LII.",
+        "removed": "[Illustration]",
+        "at": 12,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER LIII.",
+        "removed": "[Illustration]",
+        "at": 13,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER LIV.",
+        "removed": "[Illustration]",
+        "at": 12,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER LV.",
+        "removed": "[Illustration]",
+        "at": 13030,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER LV.",
+        "removed": "[Illustration]",
+        "at": 11,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER LVI.",
+        "removed": "[Illustration]",
+        "at": 12,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER LVII.",
+        "removed": "[Illustration]",
+        "at": 13,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER LVIII.",
+        "removed": "[Illustration]",
+        "at": 14,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER LIX.",
+        "removed": "[Illustration]",
+        "at": 12,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER LX.",
+        "removed": "[Illustration]",
+        "at": 8769,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER LX.",
+        "removed": "[Illustration]",
+        "at": 11,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER LXI.",
+        "removed": "[Illustration]",
+        "at": 12,
+        "rejoined": "paragraph"
+      }
+    ]
+  },
+  {
+    "workId": "sacred-zen-koans",
+    "when": "2026-08-05",
+    "class": "illustration-stub",
+    "basis": "ARCHIVE-CLEANSING-SPEC §2b positional proof; §2c illustration stub",
+    "count": 1,
+    "characters": 16,
+    "removals": [
+      {
+        "kind": "illustration-stub",
+        "division": "Opening",
+        "removed": "[Illustration]",
+        "at": 152,
+        "rejoined": "paragraph"
+      }
+    ]
+  },
+  {
+    "workId": "the-bacchae",
+    "when": "2026-08-05",
+    "class": "illustration-stub",
+    "basis": "ARCHIVE-CLEANSING-SPEC §2b positional proof; §2c illustration stub",
+    "count": 3,
+    "characters": 59,
+    "removals": [
+      {
+        "kind": "illustration-stub",
+        "division": "Front matter",
+        "removed": "[Illustration]",
+        "at": 109260,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Front matter",
+        "removed": "[Illustration]",
+        "at": 90123,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Front matter",
+        "removed": "[Illustration]",
+        "at": 3049,
+        "rejoined": "paragraph"
+      }
+    ]
+  },
+  {
+    "workId": "the-book-of-the-thousand-nights-and-a-night",
+    "when": "2026-08-05",
+    "class": "illustration-stub",
+    "basis": "ARCHIVE-CLEANSING-SPEC §2b positional proof; §2c illustration stub",
+    "count": 102,
+    "characters": 1653,
+    "removals": [
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 1 — Front matter",
+        "removed": "[Illustration]",
+        "at": 963,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 1 — Front matter",
+        "removed": "[Illustration]",
+        "at": 14,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 1 — Front matter",
+        "removed": "[Illustration]",
+        "at": 0,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 1 — VOLUME I.",
+        "removed": "[Illustration]",
+        "at": 998328,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 1 — VOLUME I.",
+        "removed": "[Illustration]",
+        "at": 868421,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 1 — VOLUME I.",
+        "removed": "[Illustration]",
+        "at": 860036,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 1 — VOLUME I.",
+        "removed": "[Illustration]",
+        "at": 849120,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 1 — VOLUME I.",
+        "removed": "[Illustration]",
+        "at": 820858,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 1 — VOLUME I.",
+        "removed": "[Illustration]",
+        "at": 453765,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 1 — VOLUME I.",
+        "removed": "[Illustration]",
+        "at": 446044,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 1 — VOLUME I.",
+        "removed": "[Illustration]",
+        "at": 360951,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 1 — VOLUME I.",
+        "removed": "[Illustration]",
+        "at": 271529,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 1 — VOLUME I.",
+        "removed": "[Illustration]",
+        "at": 212166,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 1 — VOLUME I.",
+        "removed": "[Illustration]",
+        "at": 158985,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 1 — VOLUME I.",
+        "removed": "[Illustration]",
+        "at": 143743,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 1 — VOLUME I.",
+        "removed": "[Illustration]",
+        "at": 62358,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 1 — VOLUME I.",
+        "removed": "[Illustration]",
+        "at": 94,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 2 — Front matter",
+        "removed": "[Illustration]",
+        "at": 985,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 2 — Front matter",
+        "removed": "[Illustration]",
+        "at": 0,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 2 — VOLUME II.",
+        "removed": "[Illustration]",
+        "at": 738451,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 2 — VOLUME II.",
+        "removed": "[Illustration]",
+        "at": 533589,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 2 — VOLUME II.",
+        "removed": "[Illustration]",
+        "at": 494524,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 2 — VOLUME II.",
+        "removed": "[Illustration]",
+        "at": 302114,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 2 — VOLUME II.",
+        "removed": "[Illustration]",
+        "at": 234906,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 2 — VOLUME II.",
+        "removed": "[Illustration]",
+        "at": 152628,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 2 — VOLUME II.",
+        "removed": "[Illustration]",
+        "at": 14660,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 2 — VOLUME II.",
+        "removed": "[Illustration]",
+        "at": 95,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 3 — Front matter",
+        "removed": "[Illustration]",
+        "at": 985,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 3 — Front matter",
+        "removed": "[Illustration]",
+        "at": 0,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 3 — VOLUME III.",
+        "removed": "[Illustration]",
+        "at": 884184,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 3 — VOLUME III.",
+        "removed": "[Illustration]",
+        "at": 763866,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 3 — VOLUME III.",
+        "removed": "[Illustration]",
+        "at": 551452,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 3 — VOLUME III.",
+        "removed": "[Illustration]",
+        "at": 291930,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 3 — VOLUME III.",
+        "removed": "[Illustration]",
+        "at": 248998,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 3 — VOLUME III.",
+        "removed": "[Illustration]",
+        "at": 93861,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 3 — VOLUME III.",
+        "removed": "[Illustration]",
+        "at": 96,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 4 — Front matter",
+        "removed": "[Illustration]",
+        "at": 1133,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 4 — Front matter",
+        "removed": "[Illustration]",
+        "at": 0,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 4 — VOLUME IV.",
+        "removed": "[Illustration]",
+        "at": 756962,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 4 — VOLUME IV.",
+        "removed": "[Illustration]",
+        "at": 519337,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 4 — VOLUME IV.",
+        "removed": "[Illustration]",
+        "at": 448194,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 4 — VOLUME IV.",
+        "removed": "[Illustration]",
+        "at": 209489,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 4 — VOLUME IV.",
+        "removed": "[Illustration]",
+        "at": 161397,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 4 — VOLUME IV.",
+        "removed": "[Illustration]",
+        "at": 109584,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 4 — VOLUME IV.",
+        "removed": "[Illustration]",
+        "at": 95,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 5 — Front matter",
+        "removed": "[Illustration]",
+        "at": 1133,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 5 — Front matter",
+        "removed": "[Illustration]",
+        "at": 0,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 5 — VOLUME V.",
+        "removed": "[Illustration]",
+        "at": 993409,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 5 — VOLUME V.",
+        "removed": "[Illustration]",
+        "at": 909098,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 5 — VOLUME V.",
+        "removed": "[Illustration]",
+        "at": 894991,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 5 — VOLUME V.",
+        "removed": "[Illustration]",
+        "at": 761667,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 5 — VOLUME V.",
+        "removed": "[Illustration]",
+        "at": 737900,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 5 — VOLUME V.",
+        "removed": "[Illustration]",
+        "at": 239459,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 5 — VOLUME V.",
+        "removed": "[Illustration]",
+        "at": 76315,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 5 — VOLUME V.",
+        "removed": "[Illustration]",
+        "at": 62103,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 5 — VOLUME V.",
+        "removed": "[Illustration]",
+        "at": 19908,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 5 — VOLUME V.",
+        "removed": "[Illustration]",
+        "at": 94,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 6 — Front matter",
+        "removed": "[Illustration]",
+        "at": 1133,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 6 — Front matter",
+        "removed": "[Illustration]",
+        "at": 0,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 6 — VOLUME VI.",
+        "removed": "[Illustration]",
+        "at": 725942,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 6 — VOLUME VI.",
+        "removed": "[Illustration]",
+        "at": 575416,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 6 — VOLUME VI.",
+        "removed": "[Illustration]",
+        "at": 564744,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 6 — VOLUME VI.",
+        "removed": "[Illustration]",
+        "at": 276002,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 6 — VOLUME VI.",
+        "removed": "[Illustration]",
+        "at": 162059,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 6 — VOLUME VI.",
+        "removed": "[Illustration]",
+        "at": 135959,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 6 — VOLUME VI.",
+        "removed": "[Illustration]",
+        "at": 112307,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 6 — VOLUME VI.",
+        "removed": "[Illustration]",
+        "at": 95,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 7 — Front matter",
+        "removed": "[Illustration]",
+        "at": 1116,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 7 — Front matter",
+        "removed": "[Illustration]",
+        "at": 0,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 7 — VOLUME VII.",
+        "removed": "[Illustration]",
+        "at": 857359,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 7 — VOLUME VII.",
+        "removed": "[Illustration]",
+        "at": 678885,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 7 — VOLUME VII.",
+        "removed": "[Illustration]",
+        "at": 487273,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 7 — VOLUME VII.",
+        "removed": "[Illustration]",
+        "at": 193945,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 7 — VOLUME VII.",
+        "removed": "[Illustration]",
+        "at": 175464,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 7 — VOLUME VII.",
+        "removed": "[Illustration]",
+        "at": 83193,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 7 — VOLUME VII.",
+        "removed": "[Illustration]",
+        "at": 96,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 8 — Front matter",
+        "removed": "[Illustration]",
+        "at": 1116,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 8 — Front matter",
+        "removed": "[Illustration]",
+        "at": 0,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 8 — VOLUME VIII.",
+        "removed": "[Illustration]",
+        "at": 878980,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 8 — VOLUME VIII.",
+        "removed": "[Illustration]",
+        "at": 371641,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 8 — VOLUME VIII.",
+        "removed": "[Illustration]",
+        "at": 293116,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 8 — VOLUME VIII.",
+        "removed": "[Illustration]",
+        "at": 202128,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 8 — VOLUME VIII.",
+        "removed": "[Illustration]",
+        "at": 89101,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 8 — VOLUME VIII.",
+        "removed": "[Illustration]",
+        "at": 97,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 9 — Front matter",
+        "removed": "[Illustration]",
+        "at": 1133,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 9 — Front matter",
+        "removed": "[Illustration]",
+        "at": 0,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 9 — VOLUME IX.",
+        "removed": "[Illustration]",
+        "at": 839170,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 9 — VOLUME IX.",
+        "removed": "[Illustration]",
+        "at": 820135,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 9 — VOLUME IX.",
+        "removed": "[Illustration]",
+        "at": 678096,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 9 — VOLUME IX.",
+        "removed": "[Illustration]",
+        "at": 459483,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 9 — VOLUME IX.",
+        "removed": "[Illustration]",
+        "at": 428584,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 9 — VOLUME IX.",
+        "removed": "[Illustration]",
+        "at": 397300,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 9 — VOLUME IX.",
+        "removed": "[Illustration]",
+        "at": 95,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 10 — Front matter",
+        "removed": "[Illustration]",
+        "at": 1137,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 10 — Front matter",
+        "removed": "[Illustration]",
+        "at": 0,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 10 — VOLUME X.",
+        "removed": "[Illustration]",
+        "at": 517146,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 10 — VOLUME X.",
+        "removed": "[Illustration]",
+        "at": 100094,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 10 — VOLUME X.",
+        "removed": "[Illustration]",
+        "at": 63507,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 10 — VOLUME X.",
+        "removed": "[Illustration]",
+        "at": 33749,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 10 — VOLUME X.",
+        "removed": "[Illustration]",
+        "at": 23116,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 10 — VOLUME X.",
+        "removed": "[Illustration]",
+        "at": 94,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Volume 10 — Appendix",
+        "removed": "[Illustration]",
+        "at": 431805,
+        "rejoined": "paragraph"
+      }
+    ]
+  },
+  {
+    "workId": "the-decameron",
+    "when": "2026-08-05",
+    "class": "illustration-stub",
+    "basis": "ARCHIVE-CLEANSING-SPEC §2b positional proof; §2c illustration stub",
+    "count": 1,
+    "characters": 18,
+    "removals": [
+      {
+        "kind": "illustration-stub",
+        "division": "Front matter",
+        "removed": "[Illustration]",
+        "at": 78,
+        "rejoined": "paragraph"
+      }
+    ]
+  },
+  {
+    "workId": "the-no-plays-of-japan",
+    "when": "2026-08-05",
+    "class": "illustration-stub",
+    "basis": "ARCHIVE-CLEANSING-SPEC §2b positional proof; §2c illustration stub",
+    "count": 2,
+    "characters": 33,
+    "removals": [
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER VIII",
+        "removed": "[Illustration]",
+        "at": 2276,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "CHAPTER VIII",
+        "removed": "[Illustration]",
+        "at": 927,
+        "rejoined": "paragraph"
+      }
+    ]
+  },
+  {
+    "workId": "the-odyssey",
+    "when": "2026-08-05",
+    "class": "illustration-stub",
+    "basis": "ARCHIVE-CLEANSING-SPEC §2b positional proof; §2c illustration stub",
+    "count": 1,
+    "characters": 17,
+    "removals": [
+      {
+        "kind": "illustration-stub",
+        "division": "Front matter",
+        "removed": "[Illustration]",
+        "at": 0,
+        "rejoined": "paragraph"
+      }
+    ]
+  },
+  {
+    "workId": "twenty-two-goblins",
+    "when": "2026-08-05",
+    "class": "illustration-stub",
+    "basis": "ARCHIVE-CLEANSING-SPEC §2b positional proof; §2c illustration stub",
+    "count": 3,
+    "characters": 51,
+    "removals": [
+      {
+        "kind": "illustration-stub",
+        "division": "Front matter",
+        "removed": "[Illustration]",
+        "at": 208,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Front matter",
+        "removed": "[Illustration]",
+        "at": 0,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "INTRODUCTION",
+        "removed": "[Illustration]",
+        "at": 210358,
+        "rejoined": "paragraph"
+      }
+    ]
+  },
+  {
+    "workId": "ulysses",
+    "when": "2026-08-05",
+    "class": "illustration-stub",
+    "basis": "ARCHIVE-CLEANSING-SPEC §2b positional proof; §2c illustration stub",
+    "count": 4,
+    "characters": 65,
+    "removals": [
+      {
+        "kind": "illustration-stub",
+        "division": "Front matter",
+        "removed": "[Illustration]",
+        "at": 1306239,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Front matter",
+        "removed": "[Illustration]",
+        "at": 1305418,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Front matter",
+        "removed": "[Illustration]",
+        "at": 385390,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "illustration-stub",
+        "division": "Front matter",
+        "removed": "[Illustration]",
+        "at": 0,
+        "rejoined": "paragraph"
+      }
+    ]
   }
 ]
