@@ -116,7 +116,7 @@
     "titled": false,
     "noun": "Reading",
     "count": 33,
-    "words": 85169
+    "words": 85113
   },
   "jane-eyre": {
     "divided": true,
@@ -339,8 +339,8 @@
     "divided": true,
     "titled": true,
     "noun": null,
-    "count": 245,
-    "words": 369345
+    "count": 247,
+    "words": 367435
   },
   "sacred-emerald-tablet": {
     "divided": false,
@@ -354,7 +354,7 @@
     "titled": false,
     "noun": "Chapter",
     "count": 62,
-    "words": 170524
+    "words": 170491
   },
   "sacred-rumi": {
     "divided": true,
@@ -549,8 +549,8 @@
     "divided": true,
     "titled": false,
     "noun": "Volume",
-    "count": 416,
-    "words": 1112506
+    "count": 407,
+    "words": 1110230
   },
   "the-shih-king-or-book-of-poetry": {
     "divided": true,

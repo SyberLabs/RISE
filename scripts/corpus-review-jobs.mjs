@@ -39,7 +39,7 @@ import { resolve } from 'node:path';
 // otherwise — so the builder was still finding 73 "proven" candidates
 // with the loose stem the cleanser had already learned to refuse. The
 // comment asserting one vocabulary is not the same as having one.
-import { stemsOf, furnitureIn } from '../src/content/archive/furniture.js';
+import { stemsOf, furnitureIn, isProven } from '../src/content/archive/furniture.js';
 
 const WORKS_DIR = resolve('src/content/archive/works');
 
@@ -126,7 +126,7 @@ function candidatesIn(sections) {
 function jobsFor(workId, edition, sections) {
     return candidatesIn(sections)
         // §2b settles these without a reviewer.
-        .filter(c => !c.proven)
+        .filter(c => !isProven(c))
         .map(c => ({
             workId,
             edition,
@@ -193,7 +193,7 @@ for (const file of files) {
         : (e ? [e.translator, e.publisher, e.year].filter(Boolean).join(', ') : 'unrecorded');
 
     const all = candidatesIn(sections);
-    const proven = all.filter(c => c.proven).length;
+    const proven = all.filter(isProven).length;
     provenTotal += proven;
 
     const mine = jobsFor(workId, edition, sections);

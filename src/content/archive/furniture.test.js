@@ -17,7 +17,7 @@ import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
-import { stemsOf, furnitureIn, isStrictlyFurniture, RUNNING_HEAD,
+import { stemsOf, furnitureIn, isStrictlyFurniture, RUNNING_HEAD, isProven,
          illustrationStubsIn, isIllustrationStub } from './furniture.js';
 
 const WORKS_DIR = resolve('src/content/archive/works');
@@ -36,7 +36,7 @@ describe('page furniture', () => {
             const stems = stemsOf(sections);
             for (const section of sections) {
                 for (const f of furnitureIn(String(section.content || ''), stems)) {
-                    if (!f.proven) continue;
+                    if (!isProven(f)) continue;
                     offences.push(`${file.replace(/\.js$/, '')} / ${section.name}: ${JSON.stringify(f.text)}`);
                 }
             }
@@ -112,6 +112,50 @@ describe('page furniture', () => {
             if (!/\n\];\s*\n/.test(src.slice(0, meta))) bad.push(file);
         }
         expect(bad, bad.join(', ')).toEqual([]);
+    });
+
+    it('proves a running head by repetition when position cannot', () => {
+        // THE SHAHNAMA IS VERSE, and 74.2% of its lines begin with a
+        // capital because every line of poetry does. The positional
+        // proof needs a lower-case continuation, so not one of its 1,055
+        // candidates could be settled — while "KAI KHUSRAU" appeared 220
+        // times with 220 different page numbers.
+        const verse = [
+            'Quit thy land,', '', 'KAI KHUSRAU 65', '', 'Thy throne and country, and attend my court?',
+            '', 'KAI KHUSRAU 67', '', 'My court is more exalted than the sun,',
+            '', 'KAI KHUSRAU 69', '', 'And higher than the circling sky above.'
+        ].join('\n');
+        const found = furnitureIn(verse, new Map([['KAI KHUSRAU', 220]]));
+
+        expect(found).toHaveLength(3);
+        expect(found.every(f => f.proven), 'position cannot settle verse').toBe(false);
+        expect(found.every(f => f.provenByRepetition), 'repetition can').toBe(true);
+        expect(found.every(isProven)).toBe(true);
+    });
+
+    it('repetition never promotes a division heading', () => {
+        // THE CASE THIS MUST NOT BREAK. "BOOK 1" appears ONCE in its
+        // division; a running head appears on every page of one. Measured
+        // across the shelf the two do not overlap: the Mahabharata scores
+        // 1 per division, the Shahnama's MINUCHIHR scores 42.
+        const book = [
+            'Krishna-Dwaipayana Vyasa', '', 'BOOK 1', '', 'ADI PARVA',
+            '', 'Translated into English Prose from the Original Sanskrit Text.'
+        ].join('\n');
+        const found = furnitureIn(book, new Map([['BOOK', 18]]));
+        expect(found.every(f => !isProven(f)),
+            'a heading appearing once in its division is never provable').toBe(true);
+    });
+
+    it('two occurrences are not yet a pattern', () => {
+        // Three is the threshold. Two could be a work that numbers its
+        // parts, and the cost of being wrong is a deleted line of a book.
+        const twice = [
+            'The end of the matter.', '', 'APPENDIX 3', '', 'A further note follows.',
+            '', 'APPENDIX 4', '', 'And another after it.'
+        ].join('\n');
+        const found = furnitureIn(twice, new Map([['APPENDIX', 9]]));
+        expect(found.every(f => !f.provenByRepetition)).toBe(true);
     });
 
     it('refuses a stem that is not a word', () => {

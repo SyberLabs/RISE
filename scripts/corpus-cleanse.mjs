@@ -37,7 +37,7 @@ import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 // ONE VOCABULARY. The detector lives in src/content/archive/furniture.js
 // and is read by the job builder, the cleanser and the tests alike.
-import { stemsOf, furnitureIn, isStrictlyFurniture,
+import { stemsOf, furnitureIn, isStrictlyFurniture, isProven,
          illustrationStubsIn, isIllustrationStub } from '../src/content/archive/furniture.js';
 
 const WORKS_DIR = resolve('src/content/archive/works');
@@ -73,7 +73,7 @@ for (const file of files) {
         // Two classes, one pass. Latest first, so splicing cannot
         // invalidate the offsets behind it.
         const spans = [
-            ...furnitureIn(before, stems).filter(f => f.proven).map(f => ({ ...f, kind: 'running-head' })),
+            ...furnitureIn(before, stems).filter(isProven).map(f => ({ ...f, kind: 'running-head' })),
             ...illustrationStubsIn(before).map(f => ({ ...f, kind: 'illustration-stub' }))
         ].sort((a, b) => b.start - a.start);
         if (!spans.length) { cleaned.push(section); continue; }

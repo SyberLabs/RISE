@@ -33,6 +33,29 @@ export const ENDS_A_SENTENCE = /[.!?…][")'\]]*$/;
 export const MIN_REPEATS = 3;
 
 /**
+ * THE SECOND PROOF: repetition inside one division.
+ *
+ * The positional proof needs the text after the furniture to resume in
+ * LOWER CASE, and an entire genre cannot supply that. The Shahnama is
+ * verse — 74.2% of its lines begin with a capital because every line of
+ * poetry does — so not one of its 1,055 candidates was provable, while
+ * `KAI KHUSRAU` appeared 220 times with 220 different page numbers.
+ *
+ * What separates a header from a heading is not position but FREQUENCY
+ * WITHIN A DIVISION. A chapter title appears once, at the head of the
+ * division it names. A running head appears at the top of every page of
+ * it. Measured across the shelf, the two do not overlap at all:
+ *
+ *     Mahabharata   "BOOK"                      1 per division  → heading
+ *     I Ching       "APPENDIX III."             5               → header
+ *     Hermetica     "THE MYSTERIES OF ISIS…"   24               → header
+ *     Shahnama      "MINUCHIHR"                42               → header
+ *
+ * Three is the threshold, and the case it must protect scores one.
+ */
+export const MIN_REPEATS_IN_DIVISION = 3;
+
+/**
  * What a proven span may contain, and nothing else: an optional verso
  * numeral and one running head. The last gate before a deletion.
  */
@@ -99,11 +122,28 @@ export function furnitureIn(content, stems) {
             text: lines.slice(first, i + 1).map(l => l.trim()).filter(Boolean).join('\n'),
             stem: m[1],
             proven: unfinished && resumes,
+            // Filled in below, once the whole division has been read.
+            provenByRepetition: false,
             rejoin: unfinished ? ' ' : '\n\n'
         });
     }
+
+    // THE SECOND PROOF, applied once the division has been read whole:
+    // a stem carrying three or more DIFFERENT page numbers here is the
+    // header of these pages, not the title of this division.
+    const seen = new Map();
+    for (const f of out) {
+        if (!seen.has(f.stem)) seen.set(f.stem, new Set());
+        seen.get(f.stem).add(f.text);
+    }
+    for (const f of out) {
+        f.provenByRepetition = seen.get(f.stem).size >= MIN_REPEATS_IN_DIVISION;
+    }
     return out;
 }
+
+/** Either proof is enough to delete without a reviewer. */
+export const isProven = (f) => Boolean(f && (f.proven || f.provenByRepetition));
 
 /**
  * `[Illustration]` markers that carry NOTHING — the stub alone on its
