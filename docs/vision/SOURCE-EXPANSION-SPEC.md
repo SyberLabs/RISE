@@ -168,6 +168,99 @@ conceptually).
 
 ---
 
+## 2z. PROBED — 2026-08-05
+
+§2 was written from general knowledge and marked UNVERIFIED. This is the
+live probe it asked for. **Three of its assumptions did not survive**, and
+one of those changes the harvest plan.
+
+### NASA Image and Video Library — `images-api.nasa.gov`
+
+| | |
+|---|---|
+| keyless | **confirmed** — `/search?q=…&media_type=image` returns 200 |
+| second hop | **confirmed** — `/metadata/{nasa_id}` → an assets manifest, à la Rijks |
+| per-item rights | **THE ASSUMPTION FAILED** |
+
+§2 planned to read rights per item: *"absence of a copyright field is the
+PD signal, presence withholds."* **There is no such field.** Across 100
+items and four queries (`nebula`, `hubble`, `ESA`, `Webb telescope`) the
+only keys ever returned are `center, date_created, description,
+description_508, keywords, media_type, nasa_id, title, photographer,
+secondary_creator, album, location`. The metadata second hop yields 62
+fields of which exactly one is rights-adjacent — `XMP:Credit`, a credit
+line, not a licence.
+
+So the rule cannot be implemented as written: a test for the absence of a
+field that is *always* absent withholds nothing.
+
+**And the policy is not what §2 assumed either.** NASA's own guidance says
+content "generally are not subject to copyright in the United States" —
+but also that **attribution is required**: *"NASA should be acknowledged
+as the source of the material."* Third-party content exists and is
+"marked as copyright-protected with the holder's name" — **in prose, not
+in a field.** A scan of 100 galaxy descriptions for `copyright`, `©`,
+`courtesy of`, `all rights reserved` found one hit, and it was benign.
+
+**Consequences for the harvest.** NASA is not an unencumbered PD source;
+it is *credit-required*, and the credit is always composable —
+`secondary_creator || photographer || center || "NASA"` — which matters
+because **27 of 100 items carry no `secondary_creator` at all**. The
+undetectable third-party fraction is a residual risk that must be
+recorded in the ledger rather than pretended away, and it argues for
+harvesting from **curated NASA collections** rather than open search.
+
+### Smithsonian Open Access — `api.si.edu`
+
+| | |
+|---|---|
+| `DEMO_KEY` | **works** — 200 without registering |
+| per-item rights | **machine-readable**: `online_media.media[].usage.access === "CC0"` |
+| the catch | **only 1 of 40 search rows carried any media at all** |
+
+The cleanest rights story of the three, and `rowCount` badly overstates
+the yield — 5.2M rows is not 5.2M images. The harvest must filter on
+media presence and expect a small fraction.
+
+### ESA/Hubble and ESO — a feed, not an API
+
+§2 guessed "may be a scrape or a manifest, not a clean JSON API". Closer
+than that: both run Djangoplicity and expose the same endpoint.
+
+```
+https://esahubble.org/images/json/        → 100 entries, 652 KB
+https://www.eso.org/public/images/json/   → 100 entries, 552 KB
+```
+
+Each entry carries `Rights`, `Credit`, `Title`, `Description`, `Creator`,
+`ReferenceURL`, `ID`, `Type` — and `Rights` reads *"Creative Commons
+Attribution 4.0 International License"* with `Credit` a full attribution
+string. **This is the ideal shape for the machinery §3a just built**: a
+declared licence class and a composed credit, per item.
+
+Two quirks to handle rather than discover later:
+- values arrive as Python bytes-repr — `b'Creative Commons…'` — and must
+  be unwrapped;
+- `?page=2` returns byte-identical content, so **pagination is unsolved**.
+  100 entries is a start, not a corpus.
+
+### What this changes
+
+1. **Smithsonian first**, not NASA. It has the only per-item
+   machine-readable licence of the three, and CC0 clears the gate
+   identically to Cleveland.
+2. **ESA/Hubble and ESO second** — CC BY 4.0 with a credit line, which is
+   exactly the case §3a was built for, and the aesthetic heart of the
+   cosmos intent.
+3. **NASA third, and narrowed.** Curated collections rather than open
+   search, credit always composed, and the undetectable third-party
+   fraction written into the ledger as a known limit.
+4. **GBIF/iNaturalist stays deferred**, and the probe strengthens that:
+   with three sources offering per-item licences, there is no reason to
+   take on a corpus where CC-BY-NC and ARR coexist with CC0.
+
+---
+
 ## 3. The new rights obligation: **attribution** (witness-of)
 
 The museum sources cleared on PD/CC0 — **no attribution obligation**. The
