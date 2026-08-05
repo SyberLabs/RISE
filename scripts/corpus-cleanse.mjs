@@ -39,6 +39,8 @@ import { resolve } from 'node:path';
 // and is read by the job builder, the cleanser and the tests alike.
 import { stemsOf, furnitureIn, isStrictlyFurniture, isProven,
          illustrationStubsIn, isIllustrationStub } from '../src/content/archive/furniture.js';
+// ONE WRITER. See payload-writer.js for why this is not a local helper.
+import { rewriteSections } from '../src/content/archive/payload-writer.js';
 
 const WORKS_DIR = resolve('src/content/archive/works');
 const LOG = resolve('src/content/archive/cleanse-log.json');
@@ -125,20 +127,8 @@ for (const file of files) {
 
     if (!apply) continue;
 
-    // Rewrite the SECTIONS array in place, leaving the header, the META
-    // export and everything else exactly as the ingest wrote it.
-    const src = readFileSync(path, 'utf8');
-    const marker = src.match(/export const [A-Z0-9_]+_SECTIONS = \[/);
-    if (!marker) { console.log(`  ! ${workId}: no SECTIONS array found; not written`); continue; }
-    const start = marker.index + marker[0].length - 1;
-    const end = src.indexOf('\n];', start);
-    if (end < 0) { console.log(`  ! ${workId}: unterminated SECTIONS array; not written`); continue; }
-    // The terminator is newline-bracket-semicolon, three characters, and
-    // JSON.stringify ends at the bracket — so the semicolon has to be put
-    // back. Losing it left five payloads relying on automatic semicolon
-    // insertion: valid JavaScript, and an unintended edit all the same.
-    writeFileSync(path,
-        src.slice(0, start) + JSON.stringify(cleaned, null, 4) + ';' + src.slice(end + 3), 'utf8');
+    const written = rewriteSections(path, cleaned);
+    if (!written.ok) console.log(`  ! ${workId}: ${written.reason}; not written`);
 }
 
 console.log('');

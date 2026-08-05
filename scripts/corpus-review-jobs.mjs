@@ -40,6 +40,7 @@ import { resolve } from 'node:path';
 // with the loose stem the cleanser had already learned to refuse. The
 // comment asserting one vocabulary is not the same as having one.
 import { stemsOf, furnitureIn, isProven } from '../src/content/archive/furniture.js';
+import { keepIdentity } from '../src/content/archive/keep-identity.js';
 
 const WORKS_DIR = resolve('src/content/archive/works');
 
@@ -52,7 +53,7 @@ const WORKS_DIR = resolve('src/content/archive/works');
 let KEPT = new Set();
 try {
     KEPT = new Set(JSON.parse(readFileSync(resolve('src/content/archive/cleanse-keeps.json'), 'utf8'))
-        .map(k => `${k.workId}|${k.passage}`));
+        .map(k => k.id).filter(Boolean));
 } catch { /* nothing kept yet */ }
 
 /**
@@ -146,7 +147,8 @@ function jobsFor(workId, edition, sections) {
     return candidatesIn(sections)
         // §2b settles these without a reviewer.
         .filter(c => !isProven(c))
-        .filter(c => !KEPT.has(`${workId}|${String(c.text).replace(/\s+/g, ' ').trim()}`))
+        .filter(c => !KEPT.has(keepIdentity({ workId, section: c.section, passage: c.text,
+            before: c.before, after: c.after })))
         .map(c => ({
             workId,
             edition,

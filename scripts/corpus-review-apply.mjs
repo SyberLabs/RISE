@@ -21,6 +21,8 @@
  * touched, and a work with even one mismatch is skipped whole.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
+import { rewriteSections } from '../src/content/archive/payload-writer.js';
+import { keepIdentity } from '../src/content/archive/keep-identity.js';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -50,7 +52,8 @@ if (!jobsFile || !verdictsFile) {
 const keyFile = jobsFile.replace(/\.json$/, '') + '.key.json';
 try {
     execFileSync(process.execPath,
-        ['scripts/corpus-review-verdicts.mjs', verdictsFile, '--key', keyFile],
+        ['scripts/corpus-review-verdicts.mjs', verdictsFile,
+         '--key', keyFile, '--jobs', jobsFile],
         { stdio: 'pipe' });
 } catch (err) {
     console.error('The batch does not pass validation. Nothing applied.\n');
@@ -63,7 +66,15 @@ const jobs = JSON.parse(readFileSync(resolve(jobsFile), 'utf8'));
 const verdicts = JSON.parse(readFileSync(resolve(verdictsFile), 'utf8'));
 
 /** Pair each verdict with the job it answers, by locator. */
-const keyOf = (j) => `${j.workId}|${j.locator?.division}|${j.locator?.charStart}|${j.locator?.charEnd}`;
+// THE SECTION INDEX BELONGS IN THE MATCHING KEY, not only in the later
+// grouping. The builder learned that a division NAME is not unique — the
+// Shahnama repeats "Volume 3 — INDEX" eighteen times — and this key was
+// left on the old vocabulary, so two jobs from different sections with
+// the same name and offsets collide in the Map and one silently replaces
+// the other. Repairing the ambiguity in one layer while the lookup in
+// front of it still carries the bug is not a repair.
+const keyOf = (j) => [j.workId, j.locator?.section, j.locator?.division,
+    j.locator?.charStart, j.locator?.charEnd].join('|');
 const byKey = new Map(jobs.map(j => [keyOf(j), j]));
 
 const accepted = [];
@@ -72,8 +83,12 @@ let unmatched = 0;
 for (const v of verdicts) {
     if (v.disposition === 'keep' && !v.locator?.control) {
         const job = byKey.get(keyOf(v));
-        if (job) kept.push({ workId: job.workId, passage: String(job.passage).replace(/\s+/g, ' ').trim(),
-            verdict: v.verdict, note: v.note, when: new Date().toISOString().slice(0, 10) });
+        if (job) kept.push({
+            id: keepIdentity(job),
+            workId: job.workId, section: job.locator?.section ?? null,
+            passage: String(job.passage).replace(/\s+/g, ' ').trim(),
+            verdict: v.verdict, note: v.note, when: new Date().toISOString().slice(0, 10)
+        });
         continue;
     }
     if (v.disposition !== 'trim') continue;
@@ -163,12 +178,8 @@ for (const [workId, items] of byWork) {
 
     if (!apply) continue;
 
-    const src = readFileSync(path, 'utf8');
-    const marker = src.match(/export const [A-Z0-9_]+_SECTIONS = \[/);
-    const start = marker.index + marker[0].length - 1;
-    const end = src.indexOf('\n];', start);
-    writeFileSync(path,
-        src.slice(0, start) + JSON.stringify(cleaned, null, 4) + ';' + src.slice(end + 3), 'utf8');
+    const written = rewriteSections(path, cleaned);
+    if (!written.ok) console.log(`  ! ${workId}: ${written.reason}; not written`);
 }
 
 console.log('');
@@ -178,8 +189,8 @@ console.log(`trims applied   : ${applied}`);
 if (apply && kept.length) {
     let previous = [];
     try { previous = JSON.parse(readFileSync(KEEPS, 'utf8')); } catch { /* first */ }
-    const seen = new Set(previous.map(k => `${k.workId}|${k.passage}`));
-    const fresh = kept.filter(k => !seen.has(`${k.workId}|${k.passage}`));
+    const seen = new Set(previous.map(k => k.id));
+    const fresh = kept.filter(k => !seen.has(k.id));
     writeFileSync(KEEPS, JSON.stringify(previous.concat(fresh), null, 2), 'utf8');
     console.log(`${fresh.length} keeps recorded in ${KEEPS}`);
 }

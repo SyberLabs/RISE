@@ -25,6 +25,9 @@
  * written.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
+// ONE WRITER. This script had its own copy of the rewrite and had not
+// learned the terminator, so the Mahabharata lost its semicolon too.
+import { rewriteSections, rewriteMeta } from '../src/content/archive/payload-writer.js';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 
@@ -103,28 +106,20 @@ for (const c of CASES) {
 
     if (!apply) continue;
 
-    let src = readFileSync(path, 'utf8');
+    const wrote = rewriteSections(path, kept);
+    if (!wrote.ok) { console.log(`  ! ${c.workId}: ${wrote.reason}; not written`); continue; }
 
-    // 1 — the sections.
-    const marker = src.match(/export const [A-Z0-9_]+_SECTIONS = \[/);
-    const start = marker.index + marker[0].length - 1;
-    const end = src.indexOf('\n];', start);
-    src = src.slice(0, start) + JSON.stringify(kept, null, 4) + src.slice(end + 3);
-
-    // 2 — the provenance must follow the payload.
+    // The provenance must follow the payload.
     const meta = structuredClone(mod[metaKey]);
-    const gone = meta.source.artifacts.filter(a => c.artifacts.some(id => String(a.canonicalUrl || '').endsWith(String(id))));
+    const gone = meta.source.artifacts.filter(a =>
+        c.artifacts.some(id => String(a.canonicalUrl || '').endsWith(String(id))));
     meta.source.artifacts = meta.source.artifacts.filter(a => !gone.includes(a));
     meta.source.withdrawn = gone.map(a => ({ ...a, withdrawnOn: '2026-08-05', reason: c.reason }));
     meta.edition = { ...meta.edition, statement: c.edition };
     meta.rights = { ...meta.rights, evidence: c.evidence };
+    const wroteMeta = rewriteMeta(path, metaKey, meta);
+    if (!wroteMeta.ok) { console.log(`  ! ${c.workId}: ${wroteMeta.reason}`); continue; }
 
-    const mIndex = src.lastIndexOf(`export const ${metaKey} = Object.freeze(`);
-    const mStart = src.indexOf('{', mIndex);
-    const mEnd = src.lastIndexOf('});');
-    src = src.slice(0, mStart) + JSON.stringify(meta, null, 4) + src.slice(mEnd + 1);
-
-    writeFileSync(path, src, 'utf8');
     console.log(`  written — ${gone.length} artifacts withdrawn, edition and evidence corrected`);
 }
 

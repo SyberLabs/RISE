@@ -63,6 +63,8 @@ const args = process.argv.slice(2);
 const file = args.find(a => !a.startsWith('--'));
 const keyIndex = args.indexOf('--key');
 const keyFile = keyIndex >= 0 ? args[keyIndex + 1] : null;
+const jobsIndex = args.indexOf('--jobs');
+const jobsFile = jobsIndex >= 0 ? args[jobsIndex + 1] : null;
 const baseIndex = args.indexOf('--baseline');
 const baseline = baseIndex >= 0 ? Number(args[baseIndex + 1]) : null;
 
@@ -114,21 +116,66 @@ verdicts.forEach((v, i) => {
     else keeps++;
 });
 
-// ── Controls ────────────────────────────────────────────────────────
+// ── Controls, and the bijection ─────────────────────────────────────
+//
+// A BATCH IS ONLY CHECKED IF ITS SHAPE IS CHECKED. The first version
+// scored whichever controls happened to appear, so a verdict file that
+// simply OMITTED every control passed with `controlsSeen === 0` and no
+// failures — the reviewer grading its own exam by skipping the marked
+// questions. It also compared dispositions alone, so calling a variorum
+// collation a "running head" and returning trim passed the control while
+// getting the identity wrong.
+//
+// So: every job gets exactly one verdict, every verdict answers a known
+// job, every control is present exactly once, and a control must match
+// on BOTH verdict and disposition.
 const controlFailures = [];
+const shape = [];
 let controlsSeen = 0;
+
+const locatorKey = (o) => [o?.workId, o?.locator?.section, o?.locator?.division,
+    o?.locator?.charStart, o?.locator?.charEnd, o?.locator?.control].join('|');
+
+if (jobsFile) {
+    const jobs = JSON.parse(readFileSync(resolve(jobsFile), 'utf8'));
+    const jobKeys = new Map();
+    for (const j of jobs) jobKeys.set(locatorKey(j), (jobKeys.get(locatorKey(j)) || 0) + 1);
+
+    const answered = new Map();
+    for (const v of verdicts) answered.set(locatorKey(v), (answered.get(locatorKey(v)) || 0) + 1);
+
+    for (const [k, n] of answered) {
+        if (!jobKeys.has(k)) shape.push(`a verdict answers no job in this batch: ${k}`);
+        else if (n > 1) shape.push(`${n} verdicts for one job: ${k}`);
+    }
+    for (const [k] of jobKeys) {
+        if (!answered.has(k)) shape.push(`no verdict for job: ${k}`);
+    }
+} else {
+    shape.push('no --jobs given; the batch shape was not checked at all');
+}
+
 if (keyFile) {
     const key = JSON.parse(readFileSync(resolve(keyFile), 'utf8'));
     const byId = new Map(key.map(k => [k.id, k]));
+    const seenIds = new Map();
     for (const v of verdicts) {
         const id = v?.locator?.control;
-        if (!id || !byId.has(id)) continue;
+        if (!id) continue;
+        seenIds.set(id, (seenIds.get(id) || 0) + 1);
+        if (!byId.has(id)) { controlFailures.push(`${id}: not a control in this key`); continue; }
         controlsSeen++;
         const want = byId.get(id);
-        if (v.disposition !== want.disposition) {
+        if (v.disposition !== want.disposition || v.verdict !== want.verdict) {
             controlFailures.push(
-                `${id}: expected ${want.disposition} (${want.verdict}), got ${v.disposition} (${v.verdict}) — "${v.note}"`);
+                `${id}: expected ${want.verdict}/${want.disposition}, got ${v.verdict}/${v.disposition} — "${v.note}"`);
         }
+    }
+    // EVERY control must be answered, exactly once.
+    for (const k of key) {
+        const n = seenIds.get(k.id) || 0;
+        if (n === 0) controlFailures.push(`${k.id}: control omitted from the verdict file`);
+        else if (n > 1) controlFailures.push(`${k.id}: control answered ${n} times`);
     }
 }
 
@@ -152,6 +199,14 @@ if (malformed.length) {
     console.log(`SCHEMA — ${malformed.length} malformed:`);
     malformed.slice(0, 12).forEach(m => console.log('  ' + m));
     if (malformed.length > 12) console.log(`  …and ${malformed.length - 12} more`);
+    console.log('');
+}
+
+if (shape.length) {
+    fatal = true;
+    console.log(`SHAPE — ${shape.length} problems with the batch itself:`);
+    shape.slice(0, 10).forEach(m => console.log('  ' + m));
+    if (shape.length > 10) console.log(`  …and ${shape.length - 10} more`);
     console.log('');
 }
 
