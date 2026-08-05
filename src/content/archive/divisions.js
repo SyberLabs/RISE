@@ -292,7 +292,7 @@ const wordsIn = (s) => (s ? s.split(/\s+/).filter(Boolean).length : 0);
  * entirely in capitals, which is how this corpus's editions print a
  * chapter's name beneath its number.
  */
-function paragraphIsHeading(text) {
+export function paragraphIsHeading(text) {
     const raw = String(text || '').trim();
     if (!raw || raw.length > 90 || raw.includes('\n')) return false;
     if (NUMBERED.test(raw) || BARE_ORDINAL.test(raw) || MATTER.test(raw)) return true;

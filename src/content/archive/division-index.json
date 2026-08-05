@@ -10,14 +10,14 @@
     "divided": true,
     "titled": false,
     "noun": "Chapter",
-    "count": 15,
+    "count": 17,
     "words": 33209
   },
   "a-hundred-verses-from-old-japan": {
     "divided": true,
     "titled": false,
     "noun": "Reading",
-    "count": 5,
+    "count": 7,
     "words": 17315
   },
   "anna-karenina": {
@@ -45,7 +45,7 @@
     "divided": true,
     "titled": false,
     "noun": "Book",
-    "count": 12,
+    "count": 16,
     "words": 40974
   },
   "crane-line-and-form": {
@@ -66,14 +66,14 @@
     "divided": true,
     "titled": false,
     "noun": "Chapter",
-    "count": 167,
+    "count": 168,
     "words": 426345
   },
   "dow-composition": {
     "divided": true,
     "titled": false,
     "noun": "Reading",
-    "count": 6,
+    "count": 9,
     "words": 23426
   },
   "dresser-decorative-design": {
@@ -87,7 +87,7 @@
     "divided": true,
     "titled": false,
     "noun": "Reading",
-    "count": 17,
+    "count": 18,
     "words": 61805
   },
   "extended-bhagavad-gita-full": {
@@ -108,14 +108,14 @@
     "divided": true,
     "titled": false,
     "noun": "Act",
-    "count": 42,
+    "count": 45,
     "words": 145828
   },
   "hamlet": {
     "divided": true,
     "titled": false,
     "noun": "Reading",
-    "count": 22,
+    "count": 33,
     "words": 85173
   },
   "jane-eyre": {
@@ -150,21 +150,21 @@
     "divided": true,
     "titled": false,
     "noun": "Scene",
-    "count": 35,
+    "count": 39,
     "words": 64272
   },
   "kwaidan-stories-and-studies-of-strange-things": {
     "divided": true,
     "titled": false,
     "noun": "Reading",
-    "count": 10,
+    "count": 12,
     "words": 36610
   },
   "le-morte-darthur": {
     "divided": true,
     "titled": false,
     "noun": "Chapter",
-    "count": 507,
+    "count": 509,
     "words": 362068
   },
   "literary-essays-emerson": {
@@ -213,7 +213,7 @@
     "divided": true,
     "titled": false,
     "noun": "Part",
-    "count": 128,
+    "count": 130,
     "words": 110900
   },
   "literary-walden": {
@@ -304,7 +304,7 @@
     "divided": true,
     "titled": false,
     "noun": "Chapter",
-    "count": 65,
+    "count": 66,
     "words": 127359
   },
   "rasmussen-eskimo-tales": {
@@ -318,14 +318,14 @@
     "divided": true,
     "titled": false,
     "noun": "Chapter",
-    "count": 214,
+    "count": 216,
     "words": 569189
   },
   "ross-pure-design": {
     "divided": true,
     "titled": true,
     "noun": null,
-    "count": 11,
+    "count": 14,
     "words": 36336
   },
   "rubaiyat-of-omar-khayyam": {
@@ -339,7 +339,7 @@
     "divided": true,
     "titled": true,
     "noun": null,
-    "count": 199,
+    "count": 245,
     "words": 369634
   },
   "sacred-emerald-tablet": {
@@ -353,7 +353,7 @@
     "divided": true,
     "titled": false,
     "noun": "Chapter",
-    "count": 46,
+    "count": 62,
     "words": 170542
   },
   "sacred-rumi": {
@@ -381,14 +381,14 @@
     "divided": true,
     "titled": false,
     "noun": "Essay",
-    "count": 40,
+    "count": 44,
     "words": 137141
   },
   "strange-stories-from-a-chinese-studio": {
     "divided": true,
     "titled": true,
     "noun": null,
-    "count": 62,
+    "count": 71,
     "words": 217794
   },
   "swann-s-way": {
@@ -416,7 +416,7 @@
     "divided": true,
     "titled": false,
     "noun": "Volume",
-    "count": 467,
+    "count": 471,
     "words": 1717949
   },
   "the-brothers-karamazov": {
@@ -430,14 +430,14 @@
     "divided": true,
     "titled": false,
     "noun": "Reading",
-    "count": 73,
+    "count": 78,
     "words": 279774
   },
   "the-decameron": {
     "divided": true,
     "titled": false,
     "noun": "Reading",
-    "count": 82,
+    "count": 86,
     "words": 307765
   },
   "the-divine-comedy": {
@@ -458,14 +458,14 @@
     "divided": true,
     "titled": false,
     "noun": "Reading",
-    "count": 80,
+    "count": 122,
     "words": 313177
   },
   "the-gulistan-or-rose-garden-of-sa-di": {
     "divided": true,
     "titled": false,
     "noun": "Chapter",
-    "count": 16,
+    "count": 22,
     "words": 44002
   },
   "the-house-of-atreus": {
@@ -493,14 +493,14 @@
     "divided": true,
     "titled": false,
     "noun": "Act",
-    "count": 13,
+    "count": 14,
     "words": 51580
   },
   "the-mahabharata-of-krishna-dwaipayana-vyasa": {
     "divided": true,
     "titled": false,
     "noun": "Section",
-    "count": 2119,
+    "count": 2135,
     "words": 2953381
   },
   "the-nibelungenlied": {
@@ -514,7 +514,7 @@
     "divided": true,
     "titled": false,
     "noun": "Chapter",
-    "count": 17,
+    "count": 21,
     "words": 55862
   },
   "the-odyssey": {
@@ -549,7 +549,7 @@
     "divided": true,
     "titled": false,
     "noun": "Volume",
-    "count": 286,
+    "count": 415,
     "words": 1112558
   },
   "the-shih-king-or-book-of-poetry": {
@@ -570,14 +570,14 @@
     "divided": true,
     "titled": true,
     "noun": null,
-    "count": 34,
+    "count": 49,
     "words": 94660
   },
   "the-tempest": {
     "divided": true,
     "titled": false,
     "noun": "Scene",
-    "count": 11,
+    "count": 14,
     "words": 24022
   },
   "the-tragical-history-of-doctor-faustus": {
@@ -598,28 +598,28 @@
     "divided": true,
     "titled": false,
     "noun": "Act",
-    "count": 18,
+    "count": 19,
     "words": 65507
   },
   "twenty-two-goblins": {
     "divided": true,
     "titled": false,
     "noun": "Reading",
-    "count": 11,
+    "count": 12,
     "words": 40132
   },
   "ulysses": {
     "divided": true,
     "titled": false,
     "noun": "Reading",
-    "count": 69,
+    "count": 70,
     "words": 265059
   },
   "vitruvius-architecture": {
     "divided": true,
     "titled": false,
     "noun": "Book",
-    "count": 29,
+    "count": 37,
     "words": 93177
   },
   "war-and-peace": {

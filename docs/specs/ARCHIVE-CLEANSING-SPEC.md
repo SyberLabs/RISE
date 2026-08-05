@@ -21,6 +21,14 @@ and OCR folds that apparatus into the prose. Three findings, all real:
   heuristic promoted two of them into section headings before it was tightened,
   which is what damage does when nothing filters it.
 
+- **Stranded running heads**, found 2026-08-04 while fixing a division
+  boundary. Romance of the Three Kingdoms ends chapter CV with
+  `DEFEAT AND DEATH OF KUNGSUN YUAN; PRETENDED ILLNESS OF SSUMA I` — the
+  title of chapter CVI, which then opens correctly with its own
+  `CHAPTER CVI. / Defeat and Death of Kungsun Yüan; Pretended Illness of
+  Ssŭma I.` So a reading finishes by announcing the next one, and the
+  announcement is **duplicated verbatim** at the head of that next one.
+
 The rule this scope serves: **no such text in any book.**
 
 ---
@@ -164,6 +172,19 @@ catalogue rather than to imagery.
 ---
 
 ## 7. Open decisions
+
+0. **Stranded running heads — a trim with its own evidence.** The case above
+   is unusually safe to act on, and worth deciding separately from the rest.
+   The proposed detector: *a division's content ends with a heading run whose
+   normalised text is repeated as the opening heading of the NEXT division.*
+   Only the duplicate is dropped; nothing unique to the text is touched, and
+   the text itself supplies the proof by saying it twice. The precedent is
+   already in `divisions.js`, which refuses to serve a contents page as a
+   reading — this is the same act, smaller.
+
+   **It is still a deletion, so it is your call, not the splitter's.** It was
+   deliberately NOT bundled with the boundary fix: that fix only moves
+   material, and this one removes it.
 
 1. **The Shakespeare edition** — still blocking `re-source`. Moby remains the
    recommendation.

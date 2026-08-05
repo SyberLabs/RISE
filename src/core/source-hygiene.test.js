@@ -39,24 +39,34 @@ function sourceFiles(dir, out = []) {
     return out;
 }
 
+/** A byte-wise lookup, built once: 1 where a control byte is forbidden. */
+const FORBIDDEN = Uint8Array.from({ length: 256 }, (_, b) =>
+    (b < 32 && !ALLOWED.has(b)) ? 1 : 0);
+
 describe('source hygiene', () => {
+    // A WHOLE-REPO SWEEP IS GENUINELY LONG-RUNNING, and the default five
+    // seconds is a limit for a unit test rather than for ~45MB of I/O:
+    // this passed in 720ms alone and timed out under full-suite load,
+    // which is a flake I introduced. The timeout is raised because the
+    // work is real, and the scan reads BYTES rather than decoding each
+    // file to UTF-16 first, which is most of the cost removed.
     it('sources are free of control characters', () => {
         const offences = [];
         for (const path of sourceFiles(ROOT)) {
-            const text = readFileSync(path, 'utf8');
-            for (let i = 0; i < text.length; i++) {
-                const code = text.charCodeAt(i);
-                if (code >= 32 || ALLOWED.has(code)) continue;
+            const bytes = readFileSync(path);
+            for (let i = 0; i < bytes.length; i++) {
+                if (!FORBIDDEN[bytes[i]]) continue;
                 // Report where a human can find it: the line, and the
                 // codepoint, since the character itself will not print.
-                const line = text.slice(0, i).split('\n').length;
+                let line = 1;
+                for (let k = 0; k < i; k++) if (bytes[k] === 10) line++;
                 offences.push(
-                    `${relative(ROOT, path)}:${line} — U+${code.toString(16).padStart(4, '0').toUpperCase()}`
+                    `${relative(ROOT, path)}:${line} — U+${bytes[i].toString(16).padStart(4, '0').toUpperCase()}`
                 );
             }
         }
         expect(offences, offences.join('\n')).toEqual([]);
-    });
+    }, 60000);
 
     it('finds a control character when one is present', () => {
         // The guard above is only worth having if it can fail. Proven
