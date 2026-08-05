@@ -9,7 +9,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-    train, generate, tokenize, detokenize, entropyOf, genealogy, mulberry32, seedFrom
+    train, generate, tokenize, detokenize, entropyOf, genealogy, mulberry32, seedFrom,
+    PROFILES
 } from './markov.js';
 
 /** A corpus with one long deterministic spine, which is the hard case. */
@@ -186,5 +187,61 @@ describe('conditioning', () => {
             const result = generate(model, { seed: 6, length: 50, temperature });
             expect(result.tokens.length).toBe(50);
         }
+    });
+});
+
+describe('selection profiles', () => {
+    const long = () => [
+        { workId: 'moby-dick', text: MOBY.repeat(3) },
+        { workId: 'walden', text: WALDEN.repeat(3) }
+    ];
+
+    it('drop-top never takes the likeliest continuation', () => {
+        // The honest reading of "discard the top path": it keeps a
+        // DISTRIBUTION and merely excludes rank 0.
+        const model = train(long(), { order: 1 });
+        const entry = model.orders[1].get('to');
+        const ranked = [...entry.next.entries()]
+            .map(([token, n]) => ({ token, p: n / entry.total }))
+            .sort((a, b) => b.p - a.p);
+        const weights = PROFILES['drop-top'](ranked);
+        expect(weights[0]).toBe(0);
+        expect(weights.slice(1).some(w => w > 0)).toBe(true);
+    });
+
+    it('tail:k refuses the k-1 most probable and keeps the rest', () => {
+        const ranked = [0.5, 0.2, 0.15, 0.1, 0.05].map((p, i) => ({ token: `t${i}`, p }));
+        expect(PROFILES.tail(ranked, 3)).toEqual([0, 0, 0.15, 0.1, 0.05]);
+    });
+
+    it('a deterministic profile ENTERS A CYCLE, which is a theorem not a bug', () => {
+        // Choosing a POSITION rather than a distribution makes the next
+        // token a deterministic function of the context. A deterministic
+        // map on a finite state space must revisit a state and then
+        // repeat forever. No corpus is large enough to escape it.
+        const model = train(long(), { order: 2 });
+        const result = generate(model, { seed: 3, length: 200, profile: 'least' });
+        const tail = result.tokens.slice(-40);
+        const period = (() => {
+            for (let p = 1; p <= 12; p++) {
+                if (tail.every((t, i) => i < p || t === tail[i - p])) return p;
+            }
+            return 0;
+        })();
+        expect(period, 'least should have settled into a loop').toBeGreaterThan(0);
+    });
+
+    it('a stochastic profile does not', () => {
+        const model = train(long(), { order: 2 });
+        const result = generate(model, { seed: 3, length: 200, profile: 'tail:2' });
+        const tail = result.tokens.slice(-40);
+        const looped = [1, 2, 3, 4, 5].some(p => tail.every((t, i) => i < p || t === tail[i - p]));
+        expect(looped, 'tail:k keeps a distribution and keeps moving').toBe(false);
+    });
+
+    it('an unknown profile falls back to natural rather than failing', () => {
+        const model = train(long(), { order: 2 });
+        const result = generate(model, { seed: 1, length: 40, profile: 'nonsense' });
+        expect(result.tokens.length).toBe(40);
     });
 });

@@ -131,6 +131,119 @@ export function train(sources, { order = 3 } = {}) {
     return { orders, order, tokens, works };
 }
 
+/**
+ * SELECTION PROFILES — how a continuation is chosen once the context is
+ * settled. Mateo's proposal, 2026-08-05, and it needs one correction
+ * before it is useful.
+ *
+ * The proposal was: quoting is following the most probable path, so
+ * discard the top path. Half of that is right and the half that is not
+ * is the load-bearing half.
+ *
+ * **Where quoting actually happens there IS no second path.** A context
+ * that reproduces its source has ONE continuation at probability 1 —
+ * that is what makes it reproduce. Dropping the top leaves an empty
+ * draw. Nothing chosen at that context can help, which is why the
+ * entropy rule does not choose differently there: it backs off to a
+ * SHORTER context and draws from a different distribution entirely.
+ *
+ * So rank selection does not replace the entropy rule. What it is —
+ * and this is worth having for its own sake — is a different axis from
+ * temperature. Temperature FLATTENS a distribution, making every option
+ * more equal. Rank selection EXCLUDES BY POSITION, which is not the same
+ * shape at all: `second` on a distribution of [0.7, 0.1, 0.1, 0.05,
+ * 0.05] takes a 0.1 every time, where temperature 3 would still take the
+ * 0.7 most often. One is a change of confidence; the other is a change
+ * of intent — a deliberate refusal of the corpus's own grain.
+ *
+ * Each profile receives candidates sorted most-probable first and
+ * returns weights. Returning all zeros means "no opinion" and the
+ * natural distribution stands.
+ */
+export const PROFILES = {
+    /** The corpus's own grain: weighted by what it actually does. */
+    natural: (ranked) => ranked.map(c => c.p),
+
+    /** Never the likeliest. The nearest honest reading of "discard top". */
+    'drop-top': (ranked) => ranked.map((c, i) => (i === 0 && ranked.length > 1 ? 0 : c.p)),
+
+    /** Always the runner-up, where there is one. */
+    second: (ranked) => ranked.map((_, i) => (i === Math.min(1, ranked.length - 1) ? 1 : 0)),
+
+    /** A fixed rank, clamped. `rank:10` in the CLI. */
+    rank: (ranked, k = 2) => {
+        const at = Math.min(Math.max(1, k) - 1, ranked.length - 1);
+        return ranked.map((_, i) => (i === at ? 1 : 0));
+    },
+
+    /** Uniform over everything the context permits — probability ignored. */
+    shuffle: (ranked) => ranked.map(() => 1),
+
+    /** The least likely continuation the corpus ever made. */
+    least: (ranked) => ranked.map((_, i) => (i === ranked.length - 1 ? 1 : 0)),
+
+    /**
+     * Inverted: improbable continuations get the weight. Not the same as
+     * `least`, which is deterministic — this keeps a distribution and
+     * merely turns it upside down, so the walk still varies.
+     */
+    anti: (ranked) => ranked.map(c => 1 - c.p),
+
+    /** The middle of the distribution. Deterministic — see the warning. */
+    median: (ranked) => {
+        const at = Math.floor(ranked.length / 2);
+        return ranked.map((_, i) => (i === at ? 1 : 0));
+    },
+
+    /**
+     * SAMPLE FROM THE TAIL: everything from rank k downward, weighted
+     * naturally. `tail:2` is `drop-top`; `tail:5` refuses the four most
+     * probable continuations and lets the rest compete.
+     *
+     * THIS IS THE PROFILE THAT SURVIVES THE CYCLE PROBLEM, and it is the
+     * honest form of "discard the top path". It keeps a DISTRIBUTION
+     * rather than a position, so the walk stays stochastic and never
+     * settles into a loop, while still refusing the corpus's grain.
+     */
+    tail: (ranked, k = 2) => {
+        const from = Math.min(Math.max(1, k) - 1, ranked.length - 1);
+        return ranked.map((c, i) => (i < from ? 0 : c.p));
+    }
+};
+
+/**
+ * ⚠ EVERY DETERMINISTIC PROFILE CYCLES, AND THAT IS A THEOREM.
+ *
+ * `second`, `rank:k`, `median` and `least` choose a POSITION rather than
+ * a distribution, so the next token becomes a deterministic function of
+ * the context. A deterministic map on a finite state space must
+ * eventually revisit a state, and from there it repeats forever. It is
+ * not a tuning problem and no corpus is large enough to escape it.
+ *
+ * Measured on four works at order 3, the walks fell into their limit
+ * cycles within a few dozen tokens:
+ *
+ *     rank:5    "But this was thrilling." over and over
+ *     rank:10   "I would embrace you? If an arrow" over and over
+ *     least     "amours amours amours transgress amours"
+ *     median    "decaying decaying decaying noiselessly"
+ *
+ * They are kept because the result is worth being able to reproduce, and
+ * because a short deterministic run before the cycle closes is a
+ * legitimate texture. For anything longer than a phrase, use `tail:k`.
+ */
+export const CYCLES = new Set(['second', 'rank', 'median', 'least']);
+
+/** Resolve `'rank:10'`, a bare name, or a function. */
+export function resolveProfile(profile) {
+    if (typeof profile === 'function') return profile;
+    const name = String(profile || 'natural');
+    const [key, arg] = name.split(':');
+    const fn = PROFILES[key];
+    if (!fn) return PROFILES.natural;
+    return arg === undefined ? fn : (ranked) => fn(ranked, Number(arg));
+}
+
 /** Shannon entropy of a context's continuation distribution, in bits. */
 export function entropyOf(entry) {
     if (!entry || !entry.total) return 0;
@@ -165,8 +278,10 @@ export function generate(model, {
     minEntropy = 0.35,
     maxVerbatim = 7,
     bias = null,
+    profile = 'natural',
     start = null
 } = {}) {
+    const select = resolveProfile(profile);
     const numericSeed = typeof seed === 'number' ? seed : seedFrom(seed);
     const random = mulberry32(numericSeed);
     const { orders, order } = model;
@@ -174,6 +289,7 @@ export function generate(model, {
     const out = [];
     const attribution = [];          // per emitted token: the works it could have come from
     const backoffs = [];             // where the chain refused to be deterministic
+    const surprisal = [];
     let run = { workId: null, length: 0 };
     let longestRun = 0;
 
@@ -206,7 +322,7 @@ export function generate(model, {
             // When a work has held the pen too long, the tokens ONLY it
             // could have produced are excluded from the draw.
             const forbid = run.length >= maxVerbatim ? run.workId : null;
-            chosen = sample(entry, random, temperature, bias, context, forbid);
+            chosen = sample(entry, random, temperature, bias, context, forbid, select);
             if (!chosen) {
                 backoffs.push({ at: i, order: k, reason: 'verbatim' });
                 continue;
@@ -218,6 +334,10 @@ export function generate(model, {
         if (!chosen) break;
         out.push(chosen.token);
         attribution.push({ token: chosen.token, order: usedOrder, works: [...chosen.works] });
+        // Surprisal in bits: -log2 p under the model's OWN distribution,
+        // so a profile can be compared against the corpus's grain rather
+        // than against an opinion about it.
+        surprisal.push(chosen.p > 0 ? -Math.log2(chosen.p) : 0);
 
         // A run continues only while ONE work could have produced every
         // step of it. The moment two works could, it is no longer anyone's
@@ -238,6 +358,10 @@ export function generate(model, {
         attribution,
         backoffs,
         longestVerbatimRun: longestRun,
+        profile: typeof profile === 'function' ? 'custom' : String(profile),
+        /** Mean bits of surprise per token, under the model's own model. */
+        meanSurprisal: surprisal.length
+            ? surprisal.reduce((a, b) => a + b, 0) / surprisal.length : 0,
         /** §9's required boundary. Not optional, and not the caller's to compose. */
         notice: 'Generated from selected Archive sources. This text is a stochastic '
             + 'recomposition, not a quotation.'
@@ -257,7 +381,7 @@ export function generate(model, {
  * Returns null when nothing survives, so the caller can try a shorter
  * context rather than emit something it excluded.
  */
-function sample(entry, random, temperature, bias, context, forbid = null) {
+function sample(entry, random, temperature, bias, context, forbid = null, select = null) {
     let tokens = [...entry.next.keys()];
     if (forbid) {
         tokens = tokens.filter((token) => {
@@ -266,29 +390,45 @@ function sample(entry, random, temperature, bias, context, forbid = null) {
         });
         if (!tokens.length) return null;
     }
-    const weights = tokens.map((token) => {
-        const p = entry.next.get(token) / entry.total;
-        const shaped = temperature === 1 ? p : Math.pow(p, 1 / Math.max(0.01, temperature));
-        const factor = bias ? Math.max(0, Number(bias(token, context)) || 0) : 1;
+    // Ranked most-probable first, which is the order a profile expects.
+    const ranked = tokens
+        .map(token => ({ token, p: entry.next.get(token) / entry.total }))
+        .sort((a, b) => b.p - a.p);
+
+    // THE PROFILE CHOOSES THE SHAPE; temperature and bias then act on
+    // whatever it produced. The order matters: applying temperature
+    // first and a rank profile second would let temperature reorder the
+    // ranks it was about to select from.
+    let shape = select ? select(ranked) : ranked.map(c => c.p);
+    if (!Array.isArray(shape) || shape.length !== ranked.length) shape = ranked.map(c => c.p);
+    if (!shape.some(w => w > 0)) shape = ranked.map(c => c.p);
+
+    const weights = ranked.map((c, i) => {
+        const w = Math.max(0, Number(shape[i]) || 0);
+        const shaped = temperature === 1 ? w : Math.pow(w, 1 / Math.max(0.01, temperature));
+        const factor = bias ? Math.max(0, Number(bias(c.token, context)) || 0) : 1;
         return shaped * factor;
     });
 
     let total = weights.reduce((a, b) => a + b, 0);
     // A bias that zeroes everything is a bias that said nothing; fall
-    // back to the unbiased distribution rather than emitting silence.
+    // back to the natural distribution rather than emitting silence.
     if (!(total > 0)) {
-        for (let i = 0; i < tokens.length; i++) weights[i] = entry.next.get(tokens[i]) / entry.total;
+        for (let i = 0; i < ranked.length; i++) weights[i] = ranked[i].p;
         total = weights.reduce((a, b) => a + b, 0);
     }
     if (!(total > 0)) return null;
 
     let r = random() * total;
-    for (let i = 0; i < tokens.length; i++) {
+    for (let i = 0; i < ranked.length; i++) {
         r -= weights[i];
-        if (r <= 0) return { token: tokens[i], works: entry.works.get(tokens[i]) || new Set() };
+        if (r <= 0) {
+            const token = ranked[i].token;
+            return { token, works: entry.works.get(token) || new Set(), p: ranked[i].p };
+        }
     }
-    const last = tokens[tokens.length - 1];
-    return { token: last, works: entry.works.get(last) || new Set() };
+    const last = ranked[ranked.length - 1];
+    return { token: last.token, works: entry.works.get(last.token) || new Set(), p: last.p };
 }
 
 /** Rejoin tokens into readable prose. */
