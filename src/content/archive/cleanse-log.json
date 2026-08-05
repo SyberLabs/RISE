@@ -1176,5 +1176,26 @@
         "rejoined": "sentence"
       }
     ]
+  },
+  {
+    "workId": "the-mahabharata-of-krishna-dwaipayana-vyasa",
+    "when": "2026-08-05",
+    "class": "wrong-work",
+    "basis": "ARCHIVE-CLEANSING-SPEC §1b",
+    "disposition": "withdraw-divisions",
+    "sections": 8,
+    "words": 403208,
+    "reason": "Project Gutenberg #15478–#15482 are not Ganguli's Mahabharata. They carry the New York Times Current History of the European War (1915). The ingest assumed a contiguous identifier range; Ganguli occupies #15474–#15477.",
+    "withdrawn": [
+      "Volume 5 — Front matter",
+      "Volume 5 — CHAPTER I.",
+      "Volume 6 — Front matter",
+      "Volume 7 — Front matter",
+      "Volume 7 — PART I.",
+      "Volume 7 — PART II.",
+      "Volume 8 — Front matter",
+      "Volume 9 — Front matter"
+    ],
+    "note": "source.sha256 still digests the original nine-artifact fetch and is kept as the record of what was ingested. Re-source is queued."
   }
 ]
