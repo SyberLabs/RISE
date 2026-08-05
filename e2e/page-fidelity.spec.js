@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { collectAcrossPages } from './page-helpers.js';
 const GATE = { code: 'rise2025', name: 'Fidelity', vault: null, timestamp: Date.now() };
 const SEED = {
   text: Array.from({ length: 14 }, (_, i) =>
@@ -39,14 +40,14 @@ test('a PROCEDURAL reading with no program typesets rendered stills', async ({ p
   await expect(page.locator('.page-article')).toBeVisible({ timeout: 10000 });
   await page.waitForTimeout(7000);   // resolve + decode
 
-  const stats = await page.evaluate(() => ({
+  // The Page is paginated now, so one DOM snapshot is one page's worth.
+  // This assertion is about the READING, so it walks the reading.
+  const config = await page.evaluate(() => ({
     hasProgram: !!window.rise?.currentSession?.visualProgram,
     sourced: window.rise?.currentSession?.visualConfig?.interlocution?.sourced,
-    procedural: window.rise?.currentSession?.visualConfig?.interlocution?.procedural,
-    texts: document.querySelectorAll('.page-text').length,
-    figures: document.querySelectorAll('.page-figure').length,
-    shown: document.querySelectorAll('.page-figure.is-shown').length
+    procedural: window.rise?.currentSession?.visualConfig?.interlocution?.procedural
   }));
+  const stats = { ...config, ...(await collectAcrossPages(page)) };
   console.log('FIDELITY ' + JSON.stringify(stats));
 
   expect(stats.hasProgram).toBe(false);            // no authored schedule

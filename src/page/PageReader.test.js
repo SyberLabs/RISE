@@ -305,3 +305,102 @@ describe('PageReader', () => {
         expect(host.classList.contains('page-reader')).toBe(false);
     });
 });
+
+/**
+ * Pagination in the renderer (PAGE-MODE-SPEC §9).
+ *
+ * The cut itself is proven in paginator.test.js without a browser.
+ * These assert only what the renderer is responsible for: that one
+ * page's DOM is present at a time, that turning is possible and
+ * reversible, and that nothing is lost between the first page and the
+ * last.
+ */
+describe('PageReader pagination', () => {
+    /** mount() constructs; this suite needs it rendered. */
+    const paged = (options = {}) => {
+        const m = mount(options);
+        m.reader.render();
+        return m;
+    };
+
+    const longSession = (paragraphs) => ({
+        atoms: Array.from({ length: paragraphs }, (_, i) =>
+            atom(`Paragraph ${i} — ${'word '.repeat(60)}`, { chapter: 1, verse: i + 1 })),
+        visualProgram: null
+    });
+
+    it('renders one page and offers a way to the next', () => {
+        const { reader, host } = paged({ session: longSession(60) });
+        expect(reader.pages.length).toBeGreaterThan(1);
+
+        const shown = host.querySelectorAll('.page-text').length;
+        const total = reader.composition.items.filter(i => i.type === 'text').length;
+        expect(shown, 'the whole reading is still in the DOM at once').toBeLessThan(total);
+
+        expect(host.querySelector('.page-pager')).not.toBeNull();
+        expect(host.querySelector('[data-page-nav="prev"]').disabled).toBe(true);
+        expect(host.querySelector('[data-page-nav="next"]').disabled).toBe(false);
+        reader.destroy();
+    });
+
+    it('turns forward and back, and the DOM follows', () => {
+        const { reader, host } = paged({ session: longSession(60) });
+        const firstText = host.querySelector('.page-text').textContent;
+
+        reader.nextPage();
+        expect(reader.pageIndex).toBe(1);
+        expect(host.querySelector('.page-text').textContent).not.toBe(firstText);
+        expect(host.querySelector('[data-page-nav="prev"]').disabled).toBe(false);
+
+        reader.prevPage();
+        expect(reader.pageIndex).toBe(0);
+        expect(host.querySelector('.page-text').textContent).toBe(firstText);
+        reader.destroy();
+    });
+
+    it('refuses to turn past either end rather than erroring', () => {
+        const { reader } = paged({ session: longSession(60) });
+        expect(reader.prevPage()).toBe(0);
+        reader.goToPage(reader.pages.length - 1);
+        const last = reader.pageIndex;
+        expect(reader.nextPage()).toBe(last);
+        reader.destroy();
+    });
+
+    it('loses nothing across every page', () => {
+        const { reader } = paged({ session: longSession(60) });
+        const seen = reader.pages.flatMap(p => p.items);
+        expect(seen).toEqual(reader.composition.items);
+        reader.destroy();
+    });
+
+    it('shows the masthead on the first page only — a title is not a running header', () => {
+        const { reader, host } = paged({ session: longSession(60), title: 'A Reading' });
+        expect(host.querySelector('.page-masthead')).not.toBeNull();
+        reader.nextPage();
+        expect(host.querySelector('.page-masthead')).toBeNull();
+        reader.prevPage();
+        expect(host.querySelector('.page-masthead')).not.toBeNull();
+        reader.destroy();
+    });
+
+    it('a short reading gets no pager at all', () => {
+        const { reader, host } = paged();
+        expect(reader.pages).toHaveLength(1);
+        expect(host.querySelector('.page-pager')).toBeNull();
+        expect(host.classList.contains('is-paginated')).toBe(false);
+        reader.destroy();
+    });
+
+    it('paginated:false renders the whole column, for callers that need it', () => {
+        // Print is the caller this exists for: a paged DOM would emit one
+        // page and silently drop the rest of the reading.
+        const { reader, host } = paged({ session: longSession(60), paginated: false });
+        expect(reader.pages).toHaveLength(1);
+        const shown = host.querySelectorAll('.page-text').length;
+        const total = reader.composition.items.filter(i => i.type === 'text').length;
+        expect(shown).toBe(total);
+        expect(host.querySelector('.page-pager')).toBeNull();
+        reader.destroy();
+    });
+});

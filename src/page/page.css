@@ -397,3 +397,76 @@
   .page-figure-caption { color: #444; }
   .page-figure.is-pending, .page-figure.is-absent { display: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   The pager (PAGE-MODE-SPEC §9 — an alternate renderer over the
+   same Composition)
+   ═══════════════════════════════════════════════════════════
+
+   A page ends where the paginator cut it, so the long scroll tail
+   that let the last line rise clear of the fold is no longer doing
+   anything but hiding the turn. It shortens, and the controls sit
+   under the text where the reading actually stops.
+
+   In flow rather than fixed, deliberately: Page Mode already carries
+   a floating control pill at the foot of the screen, and a second
+   floating object beside it is how a quiet reader becomes a cockpit.
+   Arrow keys and PageUp/PageDown do the same job without reaching. */
+
+.page-reader.is-paginated .page-article {
+  padding-bottom: clamp(1.5rem, 5vh, 2.5rem);
+}
+
+.page-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-lg) clamp(5rem, 14vh, 8rem);
+  /* The tail clears the Chamber's own control pill, which is fixed at
+     the foot of the screen — the pager must be reachable by scrolling
+     past it, never underneath it. */
+}
+
+.page-pager-btn {
+  background: transparent;
+  border: 1px solid var(--color-shadow);
+  border-radius: var(--radius-sm, 2px);
+  color: var(--page-ink-quiet);
+  font-size: 13px;
+  line-height: 1;
+  padding: 8px 14px;
+  min-width: 44px;
+  min-height: 36px;
+  cursor: pointer;
+  transition: color 200ms var(--ease-default), border-color 200ms var(--ease-default);
+}
+
+.page-pager-btn:hover:not(:disabled) {
+  color: var(--page-ink-strong);
+  border-color: var(--color-fog);
+}
+
+/* A turn that cannot be taken is stated, not hidden: a reader at the
+   last page should see that it is the last page. */
+.page-pager-btn:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.page-pager-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--page-ink-quiet);
+  min-width: 5ch;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .page-pager {
+    gap: var(--space-sm);
+    padding-bottom: clamp(4rem, 12vh, 6rem);
+  }
+  .page-pager-count { font-size: 10px; }
+}

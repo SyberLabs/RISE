@@ -16,6 +16,7 @@
 import './page.css';
 import { compileFlow, flowCollections, focalOf } from './flow.js';
 import { compose, PLACEMENT, RHYTHM } from './compositor.js';
+import { paginate, pageOfItem } from './paginator.js';
 import { normalizeArtworkLabel, displayedArtworkLabel } from '../visuals/artwork-label.js';
 
 const OBSERVER_MARGIN = '600px';   // begin resolving well before view
@@ -66,21 +67,63 @@ export class PageReader {
         this._resolved = new Map();
 
         this.composition = null;
+
+        // PAGINATION (PAGE-MODE-SPEC §9, "an alternate renderer over the
+        // same Composition"). One unbounded column laid the whole reading
+        // out at once; paged, it arrives in divisible chunks and the DOM
+        // holds one page's worth. Opt OUT rather than in, because a
+        // caller that wants the whole column — printing, most obviously —
+        // is asking for something specific and should say so.
+        this.paginated = options.paginated !== false;
+        this.linesPerPage = options.linesPerPage;
+        this.pages = [];
+        this.pageIndex = 0;
+        this._onKey = null;
     }
 
-    /** Compile, compose, and render. Safe to call once. */
+    /** Compile, compose, cut into pages, and render the first. */
     render() {
         if (!this.host) return;
         const flow = compileFlow(this.session);
         this.composition = compose(flow);
 
         this.host.classList.add('page-reader');
+
+        const cut = this.paginated
+            ? paginate(this.composition, { linesPerPage: this.linesPerPage })
+            : { pages: [{ index: 0, items: this.composition.items, weight: 0 }] };
+        // A reading with nothing in it still needs a page to be on.
+        this.pages = cut.pages.length
+            ? cut.pages
+            : [{ index: 0, items: [], weight: 0 }];
+
+        this._bindKeys();
+        this._renderPage(0);
+        return this.composition;
+    }
+
+    /**
+     * Render one page's items. The masthead belongs to the first page
+     * only — a title repeated at the head of every page is a running
+     * header, which is a different typographic object and one this
+     * reader has not earned yet.
+     */
+    _renderPage(index) {
+        if (!this.host || !this.pages.length) return;
+        const clamped = Math.max(0, Math.min(this.pages.length - 1, index | 0));
+        this.pageIndex = clamped;
+
+        // The observer belongs to the page it armed; a new page gets a
+        // new one, or figures from the old DOM keep a detached observer
+        // alive and the next arm double-counts.
+        this._disarmObserver();
         this.host.replaceChildren();
+        this.host.classList.toggle('is-paginated', this.pages.length > 1);
 
         const article = document.createElement('article');
         article.className = 'page-article';
 
-        if (this.title || this.source || this.focal) {
+        if (clamped === 0 && (this.title || this.source || this.focal)) {
             article.appendChild(this._buildMasthead());
         }
 
@@ -89,7 +132,7 @@ export class PageReader {
         // same parent, and confining them together scopes the wrap so it
         // cannot leak down the rest of the column. Everything else is a
         // plain sibling in the article.
-        const items = this.composition.items;
+        const items = this.pages[clamped].items;
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             if (item.type === 'figure' && item.placement === PLACEMENT.MARGIN && item.wrapBlocks > 0) {
@@ -133,8 +176,84 @@ export class PageReader {
         }
 
         this.host.appendChild(article);
+        if (this.pages.length > 1) this.host.appendChild(this._buildPager());
         this._armObserver();
-        return this.composition;
+        // A new page starts at its own beginning, not at the scroll
+        // offset the previous one happened to leave behind.
+        try { this.host.scrollTop = 0; } catch { /* detached */ }
+    }
+
+    /** Move by pages. Out-of-range is a no-op, not an error. */
+    goToPage(index) {
+        if (index === this.pageIndex) return this.pageIndex;
+        if (index < 0 || index >= this.pages.length) return this.pageIndex;
+        this._renderPage(index);
+        return this.pageIndex;
+    }
+
+    nextPage() { return this.goToPage(this.pageIndex + 1); }
+    prevPage() { return this.goToPage(this.pageIndex - 1); }
+
+    _buildPager() {
+        const nav = document.createElement('nav');
+        nav.className = 'page-pager';
+        nav.setAttribute('aria-label', 'Pages');
+
+        const prev = document.createElement('button');
+        prev.type = 'button';
+        prev.className = 'page-pager-btn';
+        prev.dataset.pageNav = 'prev';
+        prev.textContent = '←';
+        prev.setAttribute('aria-label', 'Previous page');
+        prev.disabled = this.pageIndex === 0;
+        prev.addEventListener('click', () => this.prevPage());
+
+        const count = document.createElement('span');
+        count.className = 'page-pager-count';
+        // aria-live so a page turn is announced to a reader who cannot
+        // see the column change.
+        count.setAttribute('aria-live', 'polite');
+        count.textContent = `${this.pageIndex + 1} / ${this.pages.length}`;
+
+        const next = document.createElement('button');
+        next.type = 'button';
+        next.className = 'page-pager-btn';
+        next.dataset.pageNav = 'next';
+        next.textContent = '→';
+        next.setAttribute('aria-label', 'Next page');
+        next.disabled = this.pageIndex >= this.pages.length - 1;
+        next.addEventListener('click', () => this.nextPage());
+
+        nav.append(prev, count, next);
+        return nav;
+    }
+
+    /**
+     * Arrow keys turn pages. Escape is NOT taken: it belongs to the
+     * Chamber's exit flow and the router's dispatch, and a reader
+     * pressing it in Page Mode means to leave, not to turn back.
+     */
+    _bindKeys() {
+        if (this._onKey || typeof document === 'undefined') return;
+        this._onKey = (e) => {
+            if (this._destroyed || this.pages.length < 2) return;
+            if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+            if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+                e.preventDefault();
+                this.nextPage();
+            } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+                e.preventDefault();
+                this.prevPage();
+            }
+        };
+        document.addEventListener('keydown', this._onKey);
+    }
+
+    _disarmObserver() {
+        if (this._observer) {
+            try { this._observer.disconnect(); } catch { /* detached */ }
+            this._observer = null;
+        }
     }
 
     /**
@@ -310,6 +429,12 @@ export class PageReader {
     /** How many figures on this page reference a given collection. */
     _figureDemand(collectionId) {
         let n = 0;
+        // THE WHOLE READING, NOT THIS PAGE. Scoping demand to the current
+        // page looked like an optimisation and was a defect: demand tells
+        // the resolver how many DISTINCT works to draw, the pool is shared
+        // across every page, and asking for one per page handed all six
+        // figures the same image. Caught by the fields test asserting that
+        // each procedural sample is a different state.
         for (const item of this.composition?.items || []) {
             if (item.type === 'figure' && (item.collections || []).includes(collectionId)) n += 1;
         }
@@ -471,9 +596,10 @@ export class PageReader {
 
     destroy() {
         this._destroyed = true;
-        if (this._observer) {
-            try { this._observer.disconnect(); } catch { /* detached */ }
-            this._observer = null;
+        this._disarmObserver();
+        if (this._onKey) {
+            try { document.removeEventListener('keydown', this._onKey); } catch { /* detached */ }
+            this._onKey = null;
         }
         this._pending.clear();
         this._resolved.clear();

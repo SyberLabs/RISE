@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { collectAcrossPages } from './page-helpers.js';
 const GATE = { code: 'rise2025', name: 'Fields', vault: null, timestamp: Date.now() };
 const SEED = {
   text: Array.from({ length: 60 }, (_, i) =>
@@ -56,12 +57,12 @@ async function scrollThrough(page) {
 test('GENESIS samples itself at intervals, and pauses under the page', async ({ page }) => {
   await openPage(page, 'genesis');
   await scrollThrough(page);
+  // Paginated: figure counts belong to the reading, not to one page.
+  const walked = await collectAcrossPages(page);
   const r = await page.evaluate(() => {
     const ch = window.rise.router.views.get('chamber-session').instance;
     const imgs = [...document.querySelectorAll('.page-figure.is-shown img')];
     return {
-      figures: document.querySelectorAll('.page-figure').length,
-      shown: imgs.length,
       distinct: new Set(imgs.map(i => i.src)).size,
       kleePaused: ch.kleeField?.paused ?? null,
       allImgs: document.querySelectorAll('.page-figure img').length,
@@ -69,6 +70,10 @@ test('GENESIS samples itself at intervals, and pauses under the page', async ({ 
       states: [...document.querySelectorAll('.page-figure')].map(f => f.className.replace('page-figure ', '')),
       plates: document.querySelectorAll('.page-figure.placement-bleed').length
     };
+  });
+  Object.assign(r, {
+    figures: walked.figures, shown: walked.shown, allImgs: walked.figures,
+    distinct: walked.distinct, distinctAll: walked.distinct, pages: walked.pages
   });
   console.log('GENESIS ' + JSON.stringify(r));
   expect(r.shown).toBeGreaterThanOrEqual(1);
@@ -79,16 +84,20 @@ test('GENESIS samples itself at intervals, and pauses under the page', async ({ 
 test('ATTRACTOR samples itself, and its rAF is halted under the page', async ({ page }) => {
   await openPage(page, 'attractor');
   await scrollThrough(page);
+  const walked = await collectAcrossPages(page);
   const r = await page.evaluate(() => {
     const ch = window.rise.router.views.get('chamber-session').instance;
     const imgs = [...document.querySelectorAll('.page-figure.is-shown img')];
     return {
-      shown: imgs.length,
       distinct: new Set(imgs.map(i => i.src)).size,
       hasField: !!ch.attractorField,
       // null means paused; a number means still integrating.
       rafId: ch.attractorField ? ch.attractorField.rafId : 'no-field'
     };
+  });
+  Object.assign(r, {
+    figures: walked.figures, shown: walked.shown, allImgs: walked.figures,
+    distinct: walked.distinct, distinctAll: walked.distinct, pages: walked.pages
   });
   console.log('ATTRACTOR ' + JSON.stringify(r));
   expect(r.shown).toBeGreaterThanOrEqual(1);
