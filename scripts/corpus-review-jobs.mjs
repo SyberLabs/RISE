@@ -91,13 +91,33 @@ const CONTROLS = [
     }
 ];
 
-/** Every candidate in a work, from the one detector. */
+/** Characters of context on each side. Two paragraphs is too much to read. */
+const CONTEXT = 220;
+
+/**
+ * Every candidate in a work, from the one detector, WITH THE CONTEXT A
+ * REVIEWER NEEDS.
+ *
+ * `furnitureIn` returns spans; it does not return surroundings, because
+ * identifying furniture and presenting it are different jobs. Rewiring
+ * this file to the shared detector dropped `before` and `after` on the
+ * floor, and every job in the next batch carried `undefined` for both —
+ * which is the whole of the evidence the prompt asks the reviewer to
+ * judge by. Position is the entire question; a job without it is a
+ * question with no content.
+ */
 function candidatesIn(sections) {
     const stems = stemsOf(sections);
     const out = [];
     for (const section of sections) {
-        for (const f of furnitureIn(String(section?.content || ''), stems)) {
-            out.push({ ...f, division: section.name || null });
+        const content = String(section?.content || '');
+        for (const f of furnitureIn(content, stems)) {
+            out.push({
+                ...f,
+                division: section.name || null,
+                before: content.slice(Math.max(0, f.start - CONTEXT), f.start).trim(),
+                after: content.slice(f.end, f.end + CONTEXT).trim()
+            });
         }
     }
     return out;

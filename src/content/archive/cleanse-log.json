@@ -2742,5 +2742,113 @@
         "rejoined": "paragraph"
       }
     ]
+  },
+  {
+    "workId": "the-storm-of-steel",
+    "when": "2026-08-05",
+    "class": "running-head",
+    "basis": "ARCHIVE-CLEANSING-SPEC §4 reviewer verdict",
+    "reviewer": "see batch",
+    "count": 14,
+    "removals": [
+      {
+        "kind": "running-head",
+        "division": "LANGEMARCK",
+        "removed": "LANGEMARCK 185",
+        "at": 38445,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "LANGEMARCK",
+        "removed": "LANGEMARCK 181",
+        "at": 31963,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "LANGEMARCK",
+        "removed": "LANGEMARCK 177",
+        "at": 25433,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": "LANGEMARCK",
+        "removed": "LANGEMARCK 171",
+        "at": 15808,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "LANGEMARCK",
+        "removed": "LANGEMARCK 163",
+        "at": 3002,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "THE GREAT OFFENSIVE 277",
+        "at": 52826,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "THE GREAT OFFENSIVE 273",
+        "at": 46443,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "THE GREAT OFFENSIVE 269",
+        "at": 40147,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "THE GREAT OFFENSIVE 261",
+        "at": 27193,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "THE GREAT OFFENSIVE 257",
+        "at": 20671,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "244 THE GREAT OFFENSIVE 245",
+        "at": 1397,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "GUILLEMONT",
+        "removed": "GUILLEMONT 107",
+        "at": 24925,
+        "rejoined": "sentence"
+      },
+      {
+        "kind": "running-head",
+        "division": "GUILLEMONT",
+        "removed": "GUILLEMONT 103",
+        "at": 18102,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "running-head",
+        "division": "GUILLEMONT",
+        "removed": "GUILLEMONT 99",
+        "at": 11334,
+        "rejoined": "paragraph"
+      }
+    ]
   }
 ]
