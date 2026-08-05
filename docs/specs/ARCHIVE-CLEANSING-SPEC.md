@@ -135,10 +135,40 @@ head it belongs with) is removed, and only as part of that span.
 
 ### The span, and the sentence
 
-A trim removes the furniture **and the paragraph break it introduced**,
-collapsing to a single space, so the interrupted sentence rejoins. Deleting the
-line alone would leave the clause split in two, which fixes the appearance and
-not the reading.
+**The span is the whole furniture run, not the head alone.** A printed opening
+leaves *both* numbers behind — the verso page number and then the recto running
+head:
+
+```
+…set up an observation post. \n130\n\n\nIN THE VILLAGE OF FRESNOY 131\n\n\nI took a few men…
+```
+
+Spanning only `IN THE VILLAGE OF FRESNOY 131` deletes half the furniture and
+leaves a naked `130` standing in the prose, which looks exactly as broken as
+leaving all of it. The span therefore runs **from the end of the last real line
+of text to the start of the next one**, swallowing the blank lines and any
+adjacent bare numeral.
+
+*Found by the reviewer.* The first job builder spanned the head alone; the
+reviewer refused five of thirty with `span: "too_small"` and was right. This
+section had already said the numeral belongs in the span and the code had not.
+That is the span mechanism paying for itself on its first batch.
+
+**What replaces the span depends on whether a sentence was interrupted.**
+
+- The preceding text does **not** end a sentence → replace with a single space,
+  so the clause rejoins.
+- It does → replace with a paragraph break. We know the furniture was inserted;
+  we do **not** know that the paragraphs on either side of it were ever one, and
+  joining them would be an edit rather than a deletion.
+
+This test asks less than the positional *proof* does, deliberately. Proof
+requires a lower-case continuation because it licenses deletion with no reviewer
+at all. Rejoining only asks whether the sentence had ended — *"…furnished by the
+canteen at / 12 / FROM BAZANCOURT TO HATTONCHATEL 13 / Montcornet."* is plainly
+one sentence, and the capital is a place name, not a new paragraph.
+
+On Storm of Steel's thirty reviewable candidates: 7 rejoin, 23 keep the break.
 
 **The verification is a strict-deletion check**, not a diff review: the result
 must be the original text with only the identified spans removed — the

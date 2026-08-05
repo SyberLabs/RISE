@@ -94,7 +94,29 @@ const CONTROLS = [
     }
 ];
 
-/** Every heading-shaped line in a work, with the evidence around it. */
+/** A line that is nothing but a page number — the verso half of the furniture. */
+const BARE_NUMERAL = /^\d{1,4}$/;
+
+/**
+ * Every heading-shaped line in a work, with the evidence around it.
+ *
+ * THE SPAN IS THE WHOLE FURNITURE RUN, NOT THE HEAD ALONE, and this was
+ * wrong in the first version — caught by the reviewer, which is the loop
+ * working. A printed opening leaves BOTH numbers behind: the verso page
+ * number and then the recto running head, arriving as
+ *
+ *     …set up an observation post. \n130\n\n\nIN THE VILLAGE OF FRESNOY 131\n\n\nI took a few men…
+ *
+ * Spanning only the head would delete `IN THE VILLAGE OF FRESNOY 131`
+ * and leave a naked `130` sitting in the prose — furniture half-removed,
+ * which looks exactly as broken as furniture left alone. The reviewer
+ * refused all five of these with `span: "too_small"` and was right;
+ * ARCHIVE-CLEANSING-SPEC §2b had said so and the code had not.
+ *
+ * So the span runs from the end of the last real line of text to the
+ * start of the next one, swallowing the blank lines and any bare numeral
+ * between.
+ */
 function candidatesIn(sections) {
     const stems = new Map();
     const found = [];
@@ -102,31 +124,62 @@ function candidatesIn(sections) {
     for (const section of sections) {
         const content = String(section?.content || '');
         const lines = content.split('\n');
-        let offset = 0;
+        // Where each line begins in `content`.
+        const at = [];
+        let cursor = 0;
+        for (const line of lines) { at.push(cursor); cursor += line.length + 1; }
 
         for (let i = 0; i < lines.length; i++) {
             const raw = lines[i].trim();
-            const start = offset;
-            offset += lines[i].length + 1;
-
             const m = raw.match(HEAD);
             if (!m) continue;
 
-            let p = i - 1; while (p >= 0 && !lines[p].trim()) p--;
-            let n = i + 1; while (n < lines.length && !lines[n].trim()) n++;
+            // Walk back over blanks and an adjacent verso numeral.
+            let first = i;
+            let p = i - 1;
+            while (p >= 0 && !lines[p].trim()) p--;
+            if (p >= 0 && BARE_NUMERAL.test(lines[p].trim())) { first = p; p--; }
+            while (p >= 0 && !lines[p].trim()) p--;
+
+            let n = i + 1;
+            while (n < lines.length && !lines[n].trim()) n++;
+
             const unfinished = p >= 0 && !ENDS_A_SENTENCE.test(lines[p].trim());
             const resumes = n < lines.length && /^[a-z]/.test(lines[n].trim());
+
+            // From just after the previous real line to the start of the
+            // next one, so a trim takes the paragraph break the furniture
+            // introduced along with it.
+            const spanStart = p >= 0 ? at[p] + lines[p].replace(/\s+$/, '').length : 0;
+            const spanEnd = n < lines.length ? at[n] : content.length;
 
             stems.set(m[1], (stems.get(m[1]) || 0) + 1);
             found.push({
                 division: section.name || null,
                 line: raw, stem: m[1],
-                charStart: start + lines[i].indexOf(raw),
-                charEnd: start + lines[i].indexOf(raw) + raw.length,
+                charStart: spanStart,
+                charEnd: spanEnd,
+                // What the reviewer judges: the furniture as printed,
+                // both halves, without the surrounding whitespace.
+                passage: lines.slice(first, i + 1)
+                    .map(l => l.trim()).filter(Boolean).join('\n'),
                 // POSITIONAL PROOF, §2b. Both halves required.
                 proven: unfinished && resumes,
-                before: content.slice(Math.max(0, start - CONTEXT), start).trim(),
-                after: content.slice(start + lines[i].length, start + lines[i].length + CONTEXT).trim()
+                // A SENTENCE INTERRUPTED REJOINS WITH A SPACE; a break
+                // that was already there stays a break. We know the
+                // furniture was inserted — we do not know that the
+                // paragraphs around it were ever one.
+                //
+                // This asks LESS than `proven` does, on purpose. Proof
+                // requires a lower-case continuation because it licenses
+                // deletion with no reviewer, and it must be conservative.
+                // Rejoining only asks whether the sentence had ended —
+                // "…furnished by the canteen at / 12 / FROM BAZANCOURT TO
+                // HATTONCHATEL 13 / Montcornet." is plainly one sentence,
+                // and the capital is a place name, not a new paragraph.
+                rejoin: unfinished ? ' ' : '\n\n',
+                before: content.slice(Math.max(0, spanStart - CONTEXT), spanStart).trim(),
+                after: content.slice(spanEnd, spanEnd + CONTEXT).trim()
             });
         }
     }
@@ -141,9 +194,15 @@ function jobsFor(workId, edition, sections) {
         .map(c => ({
             workId,
             edition,
-            locator: { division: c.division, charStart: c.charStart, charEnd: c.charEnd },
+            locator: {
+                division: c.division, charStart: c.charStart, charEnd: c.charEnd,
+                // What replaces the span if it is trimmed. Carried in the
+                // locator rather than decided at apply time, so the
+                // verdict and the edit describe the same act.
+                rejoin: c.rejoin
+            },
             before: c.before,
-            passage: c.line,
+            passage: c.passage,
             after: c.after,
             suspicion: 'running-head'
         }));
