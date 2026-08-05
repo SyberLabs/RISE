@@ -405,6 +405,38 @@ describe('PageReader pagination', () => {
         reader.destroy();
     });
 
+    it('a reading short enough to scroll, scrolls', () => {
+        // PROJECTION BY LENGTH. A page boundary is a constraint the
+        // compositor does not model — it can put a margin figure beside
+        // a chapter opening, or wrap a heading where the column had room.
+        // In a short reading that is pure loss: there was nothing to
+        // bound. So it keeps its column.
+        const { reader, host } = paged({ session: longSession(6) });
+        expect(reader.isPaged).toBe(false);
+        expect(reader.pages).toHaveLength(1);
+        expect(host.querySelector('.page-pager')).toBeNull();
+        const shown = host.querySelectorAll('.page-text').length;
+        expect(shown).toBe(reader.composition.items.filter(i => i.type === 'text').length);
+        reader.destroy();
+    });
+
+    it('a reading long enough for its overhead to matter, pages', () => {
+        const { reader } = paged({ session: longSession(80) });
+        expect(reader.isPaged).toBe(true);
+        expect(reader.pages.length).toBeGreaterThan(4);
+        reader.destroy();
+    });
+
+    it('the threshold is a tunable, not a constant buried in a branch', () => {
+        const short = paged({ session: longSession(30), scrollUnderPages: 999 });
+        expect(short.reader.isPaged).toBe(false);
+        short.reader.destroy();
+
+        const eager = paged({ session: longSession(30), scrollUnderPages: 0 });
+        expect(eager.reader.isPaged).toBe(true);
+        eager.reader.destroy();
+    });
+
     it('a short reading gets no pager at all', () => {
         const { reader, host } = paged();
         expect(reader.pages).toHaveLength(1);

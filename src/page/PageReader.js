@@ -74,7 +74,13 @@ export class PageReader {
         // holds one page's worth. Opt OUT rather than in, because a
         // caller that wants the whole column — printing, most obviously —
         // is asking for something specific and should say so.
+        // PROJECTION BY LENGTH (see render()). `paginated: false` is a
+        // hard opt-out for callers that need the whole column — print,
+        // most obviously. Left alone, the reading's own length decides.
         this.paginated = options.paginated !== false;
+        this.scrollUnderPages = Number.isFinite(options.scrollUnderPages)
+            ? options.scrollUnderPages
+            : 4;
         // The Chamber draws the turn in its own control bar, so the
         // reader does not float a second one. Standalone callers keep it.
         this.showPager = options.showPager !== false;
@@ -95,12 +101,33 @@ export class PageReader {
 
         this.host.classList.add('page-reader');
 
+        // ══ PROJECTION BY LENGTH ══
+        //
+        // Pagination was made the only projection, and reading real
+        // pages showed the cost: a page boundary is a constraint the
+        // compositor does not model, so a margin figure can land beside
+        // a chapter opening and a heading can wrap where the column had
+        // room to breathe before. In a short reading that is pure loss —
+        // there was nothing to bound.
+        //
+        // So the length decides. A reading that scrolls comfortably
+        // scrolls, and one long enough that its overhead matters is cut.
+        // Both are the same Composition; §9's whole point is that the
+        // renderer may choose. The threshold is in PAGES rather than
+        // characters because the cut already knows the frame, the
+        // measure and the figures, and a page count is what "long"
+        // actually means to a reader.
         const cut = this.paginated
             ? paginate(this.composition, this._budget())
-            : { pages: [{ index: 0, items: this.composition.items, weight: 0 }] };
+            : { pages: [] };
+        const wholeColumn = () =>
+            ({ pages: [{ index: 0, items: this.composition.items, weight: 0 }] });
+
+        this.isPaged = this.paginated && cut.pages.length > this.scrollUnderPages;
+        const chosen = this.isPaged ? cut : wholeColumn();
         // A reading with nothing in it still needs a page to be on.
-        this.pages = cut.pages.length
-            ? cut.pages
+        this.pages = chosen.pages.length
+            ? chosen.pages
             : [{ index: 0, items: [], weight: 0 }];
 
         this._bindKeys();
