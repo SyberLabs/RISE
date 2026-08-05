@@ -1,0 +1,1180 @@
+[
+  {
+    "workId": "hamlet",
+    "when": "2026-08-05",
+    "class": "running-head",
+    "basis": "ARCHIVE-CLEANSING-SPEC §2b positional proof",
+    "count": 1,
+    "characters": 33,
+    "removals": [
+      {
+        "division": "VOL.  VIII.  1<",
+        "removed": "PRINCE   OF  DENMARKE.  245",
+        "at": 7448,
+        "rejoined": "sentence"
+      }
+    ]
+  },
+  {
+    "workId": "sacred-corpus-hermeticum",
+    "when": "2026-08-05",
+    "class": "running-head",
+    "basis": "ARCHIVE-CLEANSING-SPEC §2b positional proof",
+    "count": 55,
+    "characters": 1732,
+    "removals": [
+      {
+        "division": "Volume 1 — D.  From  the  Church  Fathers  we  obtain  many  refer-",
+        "removed": "REMAINS OF THE TRISMEGISTIC LITERATURE 5",
+        "at": 1258,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — xvii.  Books.  Translated  formerly  out  of  the  Ar abide  into",
+        "removed": "HISTORY OF THE EVOLUTION OF OPINION 43",
+        "at": 54233,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — xvii.  Books.  Translated  formerly  out  of  the  Ar abide  into",
+        "removed": "HISTORY OF THE EVOLUTION OF OPINION 19",
+        "at": 10932,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — VII.  The  Later  \"  Poimandres\"  Document  (The  Prophet-",
+        "removed": "82 THE POPULAR THEURGIC HERMES-CULT 83",
+        "at": 66313,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — VII.  The  Later  \"  Poimandres\"  Document  (The  Prophet-",
+        "removed": "THOTH THE MASTER OF WISDOM 65",
+        "at": 36340,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — VII.  The  Later  \"  Poimandres\"  Document  (The  Prophet-",
+        "removed": "THOTH THE MASTER OF WISDOM 59",
+        "at": 25706,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — VII.  The  Later  \"  Poimandres\"  Document  (The  Prophet-",
+        "removed": "THOTH THE MASTER OF WISDOM 55",
+        "at": 18748,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — VII.  A  PRAYER  OF  CONSECRATION",
+        "removed": "MAIN SOURCE OF TRISMEGISTIC LITERATURE 113",
+        "at": 25816,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — VII.  A  PRAYER  OF  CONSECRATION",
+        "removed": "MAIN SOURCE OF TRISMEGISTIC LITERATURE 109",
+        "at": 18656,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — xxii.  xv.  30  ;  ed.  V.  Gardthausen  (Leipzig,  1874),  p.  301.",
+        "removed": "MAIN SOURCE OF TRISMEGISTIC LITERATURE 123",
+        "at": 15638,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — xxii.  xv.  30  ;  ed.  V.  Gardthausen  (Leipzig,  1874),  p.  301.",
+        "removed": "MAIN SOURCE OF TRISMEGISTIC LITERATURE 119",
+        "at": 8865,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — C.  And  if  any  man  (H.  he  says)  is  \"  blind  from  birth,\" 3  and",
+        "removed": "PHILO OF ALEXANDRIA 201",
+        "at": 21385,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — C.  And  if  any  man  (H.  he  says)  is  \"  blind  from  birth,\" 3  and",
+        "removed": "THE MYTH OP MAN IN THE MYSTERIES 195",
+        "at": 10452,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — LXX.  gives  \"  The  place  where  the  God  of  Israel  stood.\"",
+        "removed": "THE MYSTERIES OF ISIS AND OSIRIS 275",
+        "at": 71852,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — LXX.  gives  \"  The  place  where  the  God  of  Israel  stood.\"",
+        "removed": "THE MYSTERIES OF ISIS AND OSIRIS 263",
+        "at": 49696,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — LXX.  gives  \"  The  place  where  the  God  of  Israel  stood.\"",
+        "removed": "THE MYSTERIES OP ISIS AND OSIRIS 257",
+        "at": 39160,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — XXXII.  I.4  The  above  [data]  then  afford  [us]  such",
+        "removed": "THE MYSTERIES OF ISIS AND OSIRIS 311",
+        "at": 6463,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — C.  H.,  iv.  (v.)  4.",
+        "removed": "450 CONCERNING THE CRATER OR CUP 451",
+        "at": 885,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — Opening",
+        "removed": "THE SACRED SERMON 79",
+        "at": 116719,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — Opening",
+        "removed": "TO ASCLEPIUS 69",
+        "at": 102739,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — Opening",
+        "removed": "PCEMANDRES, THE SHEPHERD OF MEN 49",
+        "at": 75660,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — Opening",
+        "removed": "PCEMANDRES, THE SHEPHERD OF MEN 47",
+        "at": 72182,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — Opening",
+        "removed": "PCEMANDRES, THE SHEPHERD OF MEN 37",
+        "at": 54581,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — Opening",
+        "removed": "PCEMANDRES, THE SHEPHERD OF MEN 35",
+        "at": 50992,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — Opening",
+        "removed": "PCEMANDRES, THE SHEPHERD OF MEN 23",
+        "at": 30710,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — Opening",
+        "removed": "PCEMANDRES, THE SHEPHERD OF MEN 21",
+        "at": 26992,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — Opening",
+        "removed": "PCEMANDRES, THE SHEPHERD OF MEN 15",
+        "at": 19196,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — LXX.  translation  already  we  have  to  take  into  account",
+        "removed": "THOUGH UNMANIFEST GOD IS MOST MANIFEST 107",
+        "at": 33767,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — LXX.  translation  already  we  have  to  take  into  account",
+        "removed": "THE CUP OR MONAD 95",
+        "at": 17095,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — C.  H.,  iii.  (iv.),  as  Reitzenstein  (p.  206,  1)  suggests,  as",
+        "removed": "THE KEY 167",
+        "at": 62289,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — xxx.  and  xxxi.",
+        "removed": "THE SECRET SERMON ON THE MOUNTAIN 251",
+        "at": 83066,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — xxx.  and  xxxi.",
+        "removed": "THE SECRET SERMON ON THE MOUNTAIN 235",
+        "at": 56087,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — C.  H.,  xi.  (xii.)  14  :  \"  For  that  indeed  He  hath  no  other",
+        "removed": "288 THE ENCOMIUM OF KINGS 289",
+        "at": 31899,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — C.  H.,  xi.  (xii.)  14  :  \"  For  that  indeed  He  hath  no  other",
+        "removed": "DEFINITIONS OF ASCLEPIUS TO KING AMMON 267",
+        "at": 2011,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — Div.  Institt.,  iv.  6,  and  runs  as  follows  in  Fritzsche's  (0.  F.)  text",
+        "removed": "THE PERFECT SERMON 351",
+        "at": 38251,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — xi.  in  the  Prolegomena,  and  xxxii.  1  below.",
+        "removed": "THE PERFECT SERMON 399",
+        "at": 45054,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — xi.  in  the  Prolegomena,  and  xxxii.  1  below.",
+        "removed": "THE PERFECT SERMON 395",
+        "at": 38125,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — C.  IT.,  xvi.,  \"  the  summing  up  and  digest,  as  it  were,  of",
+        "removed": "OF THE DECANS AND THE STARS 47",
+        "at": 37179,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — C.  IT.,  xvi.,  \"  the  summing  up  and  digest,  as  it  were,  of",
+        "removed": "OF ENERGY AND FEELING 41",
+        "at": 30753,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — xiv.  without  a  break.  The  subject  again  is  not  so  much",
+        "removed": "OF SOUL 71",
+        "at": 4509,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — M.  i.  265 ;  H.  iii.  467.",
+        "removed": "THE VIRGIN OF THE WORLD 115",
+        "at": 35650,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — M.  i.  265 ;  H.  iii.  467.",
+        "removed": "THE VIRGIN OF THE WORLD 101",
+        "at": 16644,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — M.  i.  265 ;  H.  iii.  467.",
+        "removed": "THE VIRGIN OF THE WORLD 99",
+        "at": 12963,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — d.  k.  bayr.  Akad.  (1897),  p.  Ill,  where  other  references  are  given.",
+        "removed": "THE VIRGIN OF THE WORLD 177",
+        "at": 33003,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — d.  k.  bayr.  Akad.  (1897),  p.  Ill,  where  other  references  are  given.",
+        "removed": "THE VIRGIN OF THE WORLD 169",
+        "at": 18723,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — M.  i.  342-352  ;  W.  i.  458-472.",
+        "removed": "FROM THE SERMON OF ISIS TO HORUS 191",
+        "at": 3427,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — i.  Divinx  Iwtitutiones,  i.  6,  1 ;  Brandt,  p.  18;  Fritzsche,",
+        "removed": "LACTANTIUS 233",
+        "at": 3670,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — xi.  Ibid.  (?).",
+        "removed": "JAMBLICHUS 295",
+        "at": 42517,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — xi.  Ibid.  (?).",
+        "removed": "JAMBLICHUS 287",
+        "at": 28136,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — C.  H.  xiv.  (xv.).—\"  A  Letter  to  Asclepius.\"  2",
+        "removed": "CONCLUSION 315",
+        "at": 2157,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — C.  H.  (xviii.).— \"  The  Encomium  of  Kings.\"",
+        "removed": "CONCLUSION 329",
+        "at": 21432,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — C.  H.  (xviii.).— \"  The  Encomium  of  Kings.\"",
+        "removed": "CONCLUSION 327",
+        "at": 17818,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — C.  H.  (xviii.).— \"  The  Encomium  of  Kings.\"",
+        "removed": "CONCLUSION 323",
+        "at": 10825,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — C.  H.  (xviii.).— \"  The  Encomium  of  Kings.\"",
+        "removed": "CONCLUSION 321",
+        "at": 7234,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 3 — C.  H.  (xviii.).— \"  The  Encomium  of  Kings.\"",
+        "removed": "CONCLUSION 319",
+        "at": 3612,
+        "rejoined": "sentence"
+      }
+    ]
+  },
+  {
+    "workId": "sacred-i-ching",
+    "when": "2026-08-05",
+    "class": "running-head",
+    "basis": "ARCHIVE-CLEANSING-SPEC §2b positional proof",
+    "count": 4,
+    "characters": 114,
+    "removals": [
+      {
+        "division": "Full text",
+        "removed": "SECT. II. APPENDIX VI. 439",
+        "at": 848604,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Full text",
+        "removed": "SECT. II. APPENDIX VI. 437",
+        "at": 845521,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Full text",
+        "removed": "CH. III. INTRODUCTION. 53",
+        "at": 135469,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Full text",
+        "removed": "CH. III. INTRODUCTION. 47",
+        "at": 121860,
+        "rejoined": "sentence"
+      }
+    ]
+  },
+  {
+    "workId": "the-shahnama-of-firdausi",
+    "when": "2026-08-05",
+    "class": "running-head",
+    "basis": "ARCHIVE-CLEANSING-SPEC §2b positional proof",
+    "count": 19,
+    "characters": 456,
+    "removals": [
+      {
+        "division": "Volume 1 — CHAPTER   I",
+        "removed": "INTRODUCTION  21",
+        "at": 39833,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — CHAPTER   I",
+        "removed": "INTRODUCTION  15",
+        "at": 26354,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — CHAPTER   I",
+        "removed": "INTRODUCTION  7",
+        "at": 8106,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — CHAPTER  II",
+        "removed": "INTRODUCTION  39",
+        "at": 32555,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — CHAPTER  II",
+        "removed": "INTRODUCTION  29",
+        "at": 11559,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — INTRODUCTION",
+        "removed": "INTRODUCTION  55",
+        "at": 29127,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — INTRODUCTION",
+        "removed": "INTRODUCTION  49",
+        "at": 15525,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — INTRODUCTION",
+        "removed": "INTRODUCTION  75",
+        "at": 22583,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 1 — CHAPTER    III",
+        "removed": "INTRODUCTION  79",
+        "at": 5931,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — VOL.  II.  I",
+        "removed": "KAI  KAUS  159",
+        "at": 52019,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — VOL.  II.  I",
+        "removed": "KAI  KAUS  137",
+        "at": 12513,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — VOL.  II.  M",
+        "removed": "KAI  KAUS  189",
+        "at": 19514,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 2 — VOL.  II.  R",
+        "removed": "KAI  KAUS  259",
+        "at": 1854,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 4 — VOL.  IV.  T",
+        "removed": "LUHRASP  315",
+        "at": 43863,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 5 — PART  III",
+        "removed": "GUSHTASP  167",
+        "at": 1986,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 6 — VOL.   VI.  2  A",
+        "removed": "YAZDAGIRD   SON   OF  SHAPUR  373",
+        "at": 5714,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 7 — VOL.   Vll  N",
+        "removed": "312 NV SHIR  WAN  213",
+        "at": 33457,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 7 — PART  III",
+        "removed": "316 NVSHIRWAN  317",
+        "at": 2162,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "Volume 9 — Part  VI.     Tiik  S  iah's  Last   Years  {conti)nied) —       Vol.  VIII",
+        "removed": "GENERAL    TABLE    OF    CONTENTS  175",
+        "at": 13312,
+        "rejoined": "sentence"
+      }
+    ]
+  },
+  {
+    "workId": "the-storm-of-steel",
+    "when": "2026-08-05",
+    "class": "running-head",
+    "basis": "ARCHIVE-CLEANSING-SPEC §2b positional proof",
+    "count": 109,
+    "characters": 2920,
+    "removals": [
+      {
+        "division": "ORAINVILLE",
+        "removed": "FROM BAZANCOURT TO HATTONCHATEL 17",
+        "at": 25552,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "ORAINVILLE",
+        "removed": "FROM BAZANCOURT TO HATTONCHATEL 15",
+        "at": 22216,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "ORAINVILLE",
+        "removed": "ORAINVILLE 9",
+        "at": 13139,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "ORAINVILLE",
+        "removed": "ORAINVILLE 7",
+        "at": 9776,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "ORAINVILLE",
+        "removed": "ORAINVILLE 5",
+        "at": 6463,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "ORAINVILLE",
+        "removed": "ORAINVILLE 3",
+        "at": 3141,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "LES EPARGES",
+        "removed": "LES EPARGES 27",
+        "at": 13176,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "LES EPARGES",
+        "removed": "LES EPARGES 25",
+        "at": 9869,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "LES EPARGES",
+        "removed": "LES EPARGES 21",
+        "at": 3042,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "DOUCHY AND MONCHY",
+        "removed": "DOUCHY AND MONCHY 43",
+        "at": 20036,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "DOUCHY AND MONCHY",
+        "removed": "DOUCHY AND MONCHY 41",
+        "at": 16698,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "DOUCHY AND MONCHY",
+        "removed": "DOUCHY AND MONCHY 39",
+        "at": 13409,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "DOUCHY AND MONCHY",
+        "removed": "DOUCHY AND MONCHY 37",
+        "at": 10104,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "DOUCHY AND MONCHY",
+        "removed": "DOUCHY AND MONCHY 33",
+        "at": 3171,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "TRENCH WARFARE DAY BY DAY",
+        "removed": "SOMME OFFENSIVE 89",
+        "at": 71807,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "TRENCH WARFARE DAY BY DAY",
+        "removed": "SOMME OFFENSIVE 87",
+        "at": 68369,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "TRENCH WARFARE DAY BY DAY",
+        "removed": "SOMME OFFENSIVE 83",
+        "at": 61608,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "TRENCH WARFARE DAY BY DAY",
+        "removed": "SOMME OFFENSIVE 81",
+        "at": 58212,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "TRENCH WARFARE DAY BY DAY",
+        "removed": "SOMME OFFENSIVE 77",
+        "at": 51591,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "TRENCH WARFARE DAY BY DAY",
+        "removed": "SOMME OFFENSIVE 73",
+        "at": 44865,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "TRENCH WARFARE DAY BY DAY",
+        "removed": "SOMME OFFENSIVE 71",
+        "at": 41493,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "TRENCH WARFARE DAY BY DAY",
+        "removed": "SOMME OFFENSIVE 69",
+        "at": 38174,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "TRENCH WARFARE DAY BY DAY",
+        "removed": "SOMME OFFENSIVE 67",
+        "at": 34885,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "TRENCH WARFARE DAY BY DAY",
+        "removed": "TRENCH WARFARE DAY BY DAY 63",
+        "at": 28817,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "TRENCH WARFARE DAY BY DAY",
+        "removed": "TRENCH WARFARE DAY BY DAY 61",
+        "at": 25349,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "TRENCH WARFARE DAY BY DAY",
+        "removed": "TRENCH WARFARE DAY BY DAY 57",
+        "at": 18465,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "TRENCH WARFARE DAY BY DAY",
+        "removed": "TRENCH WARFARE DAY BY DAY 55",
+        "at": 15085,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "TRENCH WARFARE DAY BY DAY",
+        "removed": "TRENCH WARFARE DAY BY DAY 53",
+        "at": 11717,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "TRENCH WARFARE DAY BY DAY",
+        "removed": "TRENCH WARFARE DAY BY DAY 49",
+        "at": 4890,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "TRENCH WARFARE DAY BY DAY",
+        "removed": "TRENCH WARFARE DAY BY DAY 47",
+        "at": 1548,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "GUILLEMONT",
+        "removed": "GUILLEMONT 109",
+        "at": 28290,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "GUILLEMONT",
+        "removed": "GUILLEMONT 105",
+        "at": 21610,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "GUILLEMONT",
+        "removed": "GUILLEMONT 97",
+        "at": 8203,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "GUILLEMONT",
+        "removed": "GUILLEMONT 95",
+        "at": 4798,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "GUILLEMONT",
+        "removed": "92 GUILLEMONT 93",
+        "at": 1458,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "AT ST. PIERRE VAAST",
+        "removed": "AT ST. PIERRE VAAST 119",
+        "at": 13169,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "AT ST. PIERRE VAAST",
+        "removed": "AT ST. PIERRE VAAST 117",
+        "at": 9869,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "AT ST. PIERRE VAAST",
+        "removed": "AT ST. PIERRE VAAST 113",
+        "at": 3159,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE SOMME RETREAT",
+        "removed": "THE SOMME RETREAT 129",
+        "at": 13092,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE SOMME RETREAT",
+        "removed": "THE SOMME RETREAT 127",
+        "at": 9692,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE SOMME RETREAT",
+        "removed": "THE SOMME RETREAT 125",
+        "at": 6376,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE SOMME RETREAT",
+        "removed": "THE SOMME RETREAT 123",
+        "at": 2976,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "IN THE VILLAGE OF FRESNOY",
+        "removed": "IN THE VILLAGE OF FRESNOY 141",
+        "at": 18404,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "IN THE VILLAGE OF FRESNOY",
+        "removed": "IN THE VILLAGE OF FRESNOY 135",
+        "at": 8323,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "IN THE VILLAGE OF FRESNOY",
+        "removed": "IN THE VILLAGE OF FRESNOY 133",
+        "at": 4902,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "AGAINST INDIANS",
+        "removed": "AGAINST INDIANS 159",
+        "at": 27097,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "AGAINST INDIANS",
+        "removed": "AGAINST INDIANS 155",
+        "at": 20619,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "AGAINST INDIANS",
+        "removed": "AGAINST INDIANS 153",
+        "at": 17377,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "AGAINST INDIANS",
+        "removed": "AGAINST INDIANS 151",
+        "at": 14391,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "AGAINST INDIANS",
+        "removed": "AGAINST INDIANS 149",
+        "at": 11122,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "AGAINST INDIANS",
+        "removed": "AGAINST INDIANS 147",
+        "at": 7838,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "AGAINST INDIANS",
+        "removed": "AGAINST INDIANS 145",
+        "at": 4767,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "LANGEMARCK",
+        "removed": "LANGEMARCK 187",
+        "at": 41716,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "LANGEMARCK",
+        "removed": "LANGEMARCK 183",
+        "at": 35438,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "LANGEMARCK",
+        "removed": "LANGEMARCK 179",
+        "at": 28754,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "LANGEMARCK",
+        "removed": "LANGEMARCK 175",
+        "at": 22237,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "LANGEMARCK",
+        "removed": "LANGEMARCK 173",
+        "at": 19021,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "LANGEMARCK",
+        "removed": "LANGEMARCK 167",
+        "at": 9439,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "LANGEMARCK",
+        "removed": "LANGEMARCK 165",
+        "at": 6100,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "REGNIEVILLE",
+        "removed": "REGNIEVILLE 203",
+        "at": 21204,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "REGNIEVILLE",
+        "removed": "REGNIEVILLE 201",
+        "at": 17940,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "REGNIEVILLE",
+        "removed": "REGNIEVILLE 199",
+        "at": 14707,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "REGNIEVILLE",
+        "removed": "REGNIEVILLE 195",
+        "at": 8097,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "REGNIEVILLE",
+        "removed": "190 REGNIEVILLE 191",
+        "at": 1455,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "FLANDERS AGAIN",
+        "removed": "FLANDERS AGAIN 219",
+        "at": 22615,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "FLANDERS AGAIN",
+        "removed": "FLANDERS AGAIN 217",
+        "at": 19372,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "FLANDERS AGAIN",
+        "removed": "FLANDERS AGAIN 215",
+        "at": 16083,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "FLANDERS AGAIN",
+        "removed": "FLANDERS AGAIN 213",
+        "at": 12875,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "FLANDERS AGAIN",
+        "removed": "FLANDERS AGAIN 211",
+        "at": 9581,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "FLANDERS AGAIN",
+        "removed": "FLANDERS AGAIN 207",
+        "at": 3011,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE BATTLE OF CAMBRAI",
+        "removed": "THE BATTLE OF CAMBRAI 235",
+        "at": 22699,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE BATTLE OF CAMBRAI",
+        "removed": "THE BATTLE OF CAMBRAI 233",
+        "at": 19522,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE BATTLE OF CAMBRAI",
+        "removed": "THE BATTLE OF CAMBRAI 231",
+        "at": 16273,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE BATTLE OF CAMBRAI",
+        "removed": "THE BATTLE OF CAMBRAI 229",
+        "at": 13108,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE BATTLE OF CAMBRAI",
+        "removed": "THE BATTLE OF CAMBRAI 227",
+        "at": 9754,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE BATTLE OF CAMBRAI",
+        "removed": "THE BATTLE OF CAMBRAI 225",
+        "at": 6459,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE BATTLE OF CAMBRAI",
+        "removed": "THE BATTLE OF CAMBRAI 223",
+        "at": 3135,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "AT THE COJEUL RIVER",
+        "removed": "AT THE COJEUL RIVER 243",
+        "at": 7745,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "AT THE COJEUL RIVER",
+        "removed": "AT THE COJEUL RIVER 241",
+        "at": 4605,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "THE GREAT OFFENSIVE 279",
+        "at": 56340,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "THE GREAT OFFENSIVE 275",
+        "at": 49946,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "THE GREAT OFFENSIVE 271",
+        "at": 43625,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "THE GREAT OFFENSIVE 267",
+        "at": 37114,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "THE GREAT OFFENSIVE 265",
+        "at": 33817,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "THE GREAT OFFENSIVE 263",
+        "at": 30612,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "THE GREAT OFFENSIVE 259",
+        "at": 24046,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "THE GREAT OFFENSIVE 255",
+        "at": 17569,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "THE GREAT OFFENSIVE 253",
+        "at": 14403,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "THE GREAT OFFENSIVE 251",
+        "at": 11148,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "THE GREAT OFFENSIVE 249",
+        "at": 7934,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "THE GREAT OFFENSIVE",
+        "removed": "THE GREAT OFFENSIVE 247",
+        "at": 4722,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "ENGLISH GAINS",
+        "removed": "ENGLISH GAINS 299",
+        "at": 28392,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "ENGLISH GAINS",
+        "removed": "ENGLISH GAINS 297",
+        "at": 25557,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "ENGLISH GAINS",
+        "removed": "ENGLISH GAINS 295",
+        "at": 22358,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "ENGLISH GAINS",
+        "removed": "ENGLISH GAINS 293",
+        "at": 19092,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "ENGLISH GAINS",
+        "removed": "ENGLISH GAINS 291",
+        "at": 15929,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "ENGLISH GAINS",
+        "removed": "ENGLISH GAINS 289",
+        "at": 12699,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "ENGLISH GAINS",
+        "removed": "ENGLISH GAINS 287",
+        "at": 9474,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "ENGLISH GAINS",
+        "removed": "ENGLISH GAINS 285",
+        "at": 6263,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "ENGLISH GAINS",
+        "removed": "ENGLISH GAINS 283",
+        "at": 2999,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "MY LAST STORM",
+        "removed": "MY LAST STORM 319",
+        "at": 29715,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "MY LAST STORM",
+        "removed": "MY LAST STORM 317",
+        "at": 26638,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "MY LAST STORM",
+        "removed": "MY LAST STORM 315",
+        "at": 23237,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "MY LAST STORM",
+        "removed": "MY LAST STORM 313",
+        "at": 20071,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "MY LAST STORM",
+        "removed": "MY LAST STORM 311",
+        "at": 17023,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "MY LAST STORM",
+        "removed": "MY LAST STORM 307",
+        "at": 11020,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "MY LAST STORM",
+        "removed": "MY LAST STORM 305",
+        "at": 7914,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "MY LAST STORM",
+        "removed": "MY LAST STORM 303",
+        "at": 4678,
+        "rejoined": "sentence"
+      },
+      {
+        "division": "MY LAST STORM",
+        "removed": "300 MY LAST STORM 301",
+        "at": 1440,
+        "rejoined": "sentence"
+      }
+    ]
+  }
+]
