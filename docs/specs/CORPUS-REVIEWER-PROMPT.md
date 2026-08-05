@@ -7,6 +7,73 @@ job at a time.
 
 ---
 
+## 0. How to run it — read this first
+
+**The §2 text is a SYSTEM prompt. It is not a task.** On its own it describes
+how to judge a passage and gives the model nothing to judge. Handed to an
+agentic tool it will do what any capable agent does with an instruction and no
+input: look around for one.
+
+That is exactly what happened on the first attempt. The reviewer listed the
+repository, searched for `workId`, read this file and the cleansing spec, and
+then answered:
+
+```json
+{"workId":"unknown","locator":null,"verdict":"book","span":"exact",
+ "confidence":"low","disposition":"keep","note":"No passage was provided in the job input."}
+```
+
+**That is the correct behaviour and worth noticing.** Given nothing, it invented
+nothing, took the low-confidence path, defaulted to `keep`, and said plainly
+what was missing. The prompt did its job. The harness did not exist yet.
+
+### The three rules of running it
+
+1. **§2 goes in the system slot. One job object is the entire user message.**
+   Nothing else. Not the batch, not this document.
+2. **No tools, no file access, no repository.** A reviewer that can read this
+   file can read the answer key, the worked examples, and the sentence telling
+   it which disposition each shape deserves — the precise priming §2 is built
+   to avoid. Give it a text box and nothing else.
+3. **Fresh context per job.** No conversation. A reviewer that remembers the
+   last twenty running heads has been primed by them.
+
+### The harness
+
+```bash
+# 1. Build a batch. Positionally-proven furniture is NOT sent (§2b settles it);
+#    what goes out is the ambiguous remainder, with ~10% hidden controls.
+node scripts/corpus-review-jobs.mjs --work the-storm-of-steel --out jobs.json
+#    → 139 candidates — 109 settled by position, 30 for review
+#    → wrote jobs.json and jobs.key.json   (the key is never sent)
+
+# 2. Run each job through the reviewer. Temperature 0, no tools, fresh context.
+#    Collect the verdicts into an array in verdicts.json.
+
+# 3. Check the batch before anything is applied.
+node scripts/corpus-review-verdicts.mjs verdicts.json --key jobs.key.json
+```
+
+The checker validates the schema, enforces the disposition rules as a check
+rather than a hope, scores the hidden controls, and flags notes that describe an
+*action* rather than an identity — the signature of a reviewer that has started
+editing. **It applies nothing.** Applying is a separate act with a dossier
+record (`ARCHIVE-CLEANSING-SPEC` §5), deliberately not reachable from a script
+whose job is to doubt.
+
+### On the trim rate
+
+The checker reports the rate and **judges it only against a `--baseline` you
+supply.** There is no default, for a reason worth keeping: the first version
+compared every batch against §2b's 16% and promptly rejected a batch of
+perfectly correct verdicts. That figure is over the wrong denominator — it
+describes *all* candidates, while the reviewer only ever sees the ones position
+could not settle. Storm of Steel is 109 settled against 30 sent. A number
+carried over from a different population is not a baseline; it is a coincidence
+waiting to fire.
+
+---
+
 ## 1. What this reviewer is for, and what it is not
 
 It answers one question about one short passage:
