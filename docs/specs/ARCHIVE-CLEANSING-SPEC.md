@@ -314,6 +314,52 @@ Page could present it as a gloss — and it is recorded here rather than acted o
 
 ---
 
+## 2d. The four remaining classes, scanned — there is no second Hamlet
+
+**Scanned 2026-08-05 with `npm run audit:text`, which already existed and is the
+instrument that found Hamlet.** The question was whether a large-grain defect is
+still on the shelf; the answer is no.
+
+```
+0 works score above 12 (likely wrong edition or bad scan)
+0 more between 6 and 12 (worth a human look)
+88 appear clean
+```
+
+Hamlet scored **32.3%** apparatus and is withheld. The worst work now on the
+shelf scores **2.8**, and its components are fine-grained OCR noise rather than
+a wrong edition:
+
+| work | score | apparatus | gibberish | furniture |
+|---|---|---|---|---|
+| sacred-i-ching | 2.8 | 0.0% | 1.0% | 7.1% |
+| literary-letters-young-poet | 2.7 | 0.0% | 3.5% | 0.0% |
+| doctor-faustus | 2.5 | **1.9%** | 1.0% | 0.0% |
+| a-hundred-verses-from-old-japan | 2.4 | 0.0% | 1.0% | 5.6% |
+
+**The one apparatus signal above 1% was checked and is not a defect.** Doctor
+Faustus's 35 apparatus-shaped lines are Alexander Dyce's own footnotes —
+`[Footnote 32: concise syllogisms-- Old ed. "Consissylogismes."]` — which is the
+edition doing its job, not OCR folding a variorum into the play. It is the
+`[Footnote: …]` class of §2c: keep, flag.
+
+### What this justifies, and what it does not
+
+**Justified:** stopping here. There is no Hamlet-scale problem hiding, so
+building detectors for apparatus, marginalia, imprint fragments and OCR
+corruption would be hunting a 1–3% residue that no reader has complained about,
+in preference to work that has been waiting.
+
+**Not justified:** calling those classes closed. They are **unscanned at the
+instance level** — this is a per-work score over a 240,000-character sample, not
+an exhaustive sweep. It answers "is a whole book wrong", which is the question
+that matters, and not "how many stray sigla exist", which is the question that
+does not.
+
+The residue is recorded rather than pursued.
+
+---
+
 ## 3. The detection ladder
 
 Cheapest first, and **nothing reaches a reviewer that a regex could have
