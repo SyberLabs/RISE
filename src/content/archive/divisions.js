@@ -283,6 +283,27 @@ export function schemesIn(text, { minCount = 3, minAscending = 0.6 } = {}) {
 const wordsIn = (s) => (s ? s.split(/\s+/).filter(Boolean).length : 0);
 
 /**
+ * Is this paragraph a heading in its own right?
+ *
+ * Used only to find a place to STOP, never to name anything — so it may
+ * be permissive about what looks like a title and must be conservative
+ * about length. A paragraph is a heading when it is one short line that
+ * either parses as a division ("CHAPTER II", "Preface") or is set
+ * entirely in capitals, which is how this corpus's editions print a
+ * chapter's name beneath its number.
+ */
+function paragraphIsHeading(text) {
+    const raw = String(text || '').trim();
+    if (!raw || raw.length > 90 || raw.includes('\n')) return false;
+    if (NUMBERED.test(raw) || BARE_ORDINAL.test(raw) || MATTER.test(raw)) return true;
+    // All capitals, no terminal punctuation: "THE FUNDAMENTAL
+    // PRINCIPLES OF ARCHITECTURE". Requires three consecutive capitals
+    // so an initialled line of prose cannot qualify.
+    return /[A-Z]{3}/.test(raw) && raw === raw.toUpperCase()
+        && /[A-Z]/.test(raw) && !/[.!?,;:]$/.test(raw);
+}
+
+/**
  * A division that outgrew its own heading is split at paragraph breaks.
  *
  * Montaigne's largest section is 82,000 words and Cherokee Myths' is
@@ -292,6 +313,16 @@ const wordsIn = (s) => (s ? s.split(/\s+/).filter(Boolean).length : 0);
  * named: inventing a title for a fragment its author never titled
  * would be a claim about the text, and the Archive does not make
  * claims about texts it has only measured.
+ *
+ * STRUCTURE OUTRANKS BALANCE, which is the whole of the fix below.
+ * Splitting purely on a word target is blind to the work's own joints,
+ * and it showed: Vitruvius's "Book I (1/3)" ended with "CHAPTER II",
+ * its subtitle, and the first paragraph of chapter two — a reading that
+ * finishes by starting something else — while "(2/3)" opened mid-chapter
+ * at "2. Order gives due measure". No page rule can repair that, because
+ * the reading itself ends there. So once a part has grown near its
+ * target, the next heading ENDS it, and a part never finishes on a
+ * heading run: a title belongs to what follows it.
  */
 export function splitLongDivision(content, { maxWords = 4000 } = {}) {
     const total = wordsIn(content);
@@ -314,24 +345,71 @@ export function splitLongDivision(content, { maxWords = 4000 } = {}) {
     // part is the general fix; merging the tail afterwards was only
     // ever the special case of it.
     const floor = Math.max(200, target / 3);
+    // How near the target a part must be before a heading may end it.
+    // Too low and every chapter becomes its own part, which is a
+    // different reading than the one asked for; too high and the joint
+    // is missed. Seven tenths leaves room to reach the next joint
+    // without abandoning the target.
+    const NEAR = 0.7;
+
+    const heading = paragraphs.map(paragraphIsHeading);
+    // A heading RUN is a number and the name beneath it. It opens at the
+    // first heading after prose, and a break inside one would separate
+    // "CHAPTER II" from what it is called.
+    const opensRun = heading.map((is, i) => is && !heading[i - 1]);
 
     const out = [];
     let buffer = [];
     let count = 0;
-    for (const paragraph of paragraphs) {
+    // How much of a new chapter a part may carry before that chapter is
+    // considered to have STARTED there, and therefore to belong to the
+    // next part rather than this one's last inch.
+    const SCRAP = 0.25;
+
+    const flush = () => {
+        // A PART NEVER ENDS ON A HEADING, NOR JUST AFTER ONE. This is
+        // the fault exactly as a reader met it: "Book I (1/3)" closed
+        // with "CHAPTER II", its subtitle, and one paragraph — a reading
+        // that finishes by starting something else. A title, and the
+        // little of its chapter that fits, travel forward to the part
+        // they introduce.
+        let cut = buffer.length;
+        while (cut > 0 && heading[buffer[cut - 1].at]) cut--;
+
+        // Walk back to the last chapter opening in this part. If only a
+        // scrap of that chapter is here, the chapter has not really
+        // started yet and the whole opening moves on.
+        let run = buffer.length - 1;
+        while (run >= 0 && !opensRun[buffer[run].at]) run--;
+        if (run > 0) {
+            const carriedWords = buffer.slice(run).reduce((n, b) => n + b.words, 0);
+            if (carriedWords < target * SCRAP) cut = Math.min(cut, run);
+        }
+
+        if (cut <= 0) return false;             // nothing but an opening; keep filling
+        const carried = buffer.slice(cut);
+        out.push(buffer.slice(0, cut).map(b => b.text).join('\n\n'));
+        buffer = carried;
+        count = carried.reduce((n, b) => n + b.words, 0);
+        return true;
+    };
+
+    for (let i = 0; i < paragraphs.length; i++) {
+        const paragraph = paragraphs[i];
         const w = wordsIn(paragraph);
+        // THE WORK'S OWN JOINT, PREFERRED. A heading arriving once the
+        // part is near its target ends it there — the reading stops
+        // where the author stopped rather than where the arithmetic did.
+        const atJoint = opensRun[i] && count >= Math.max(floor, target * NEAR);
         // Keep a paragraph whole even when it overshoots: an author's
         // unit survives intact, and a slightly long part reads better
         // than a sentence cut in half.
-        if (count >= floor && count + w > target) {
-            out.push(buffer.join('\n\n'));
-            buffer = [];
-            count = 0;
-        }
-        buffer.push(paragraph);
+        const overshoots = count >= floor && count + w > target;
+        if (atJoint || overshoots) flush();
+        buffer.push({ text: paragraph, words: w, at: i });
         count += w;
     }
-    if (buffer.length) out.push(buffer.join('\n\n'));
+    if (buffer.length) out.push(buffer.map(b => b.text).join('\n\n'));
 
     const parted = out.filter(part => part.trim());
     // The final part answers to no overshoot test, so it is the one

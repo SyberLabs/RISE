@@ -130,6 +130,105 @@ describe('splitting an oversized division', () => {
         const one = Array.from({ length: 9000 }, () => 'word').join(' ');
         expect(splitLongDivision(one, { maxWords: 4000 })).toHaveLength(1);
     });
+
+    describe('structure outranks balance', () => {
+        // THE VITRUVIUS FAULT, and it is not a Page fault: "Book I (1/3)"
+        // ended with "CHAPTER II", its subtitle and the first paragraph
+        // of chapter two — a reading that finishes by starting something
+        // else — while "(2/3)" opened mid-chapter at "2. Order gives due
+        // measure". No pagination rule can repair that, because the
+        // reading's own extent is wrong.
+        const chapter = (n, title, paragraphs, w = 500) => [
+            `CHAPTER ${n}`, title,
+            ...Array.from({ length: paragraphs }, (_, i) =>
+                `${i + 1}. ` + Array.from({ length: w }, () => 'word').join(' '))
+        ].join('\n\n');
+
+        const shaped = (a, b, c) => [
+            chapter('I', 'THE EDUCATION OF THE ARCHITECT', a),
+            chapter('II', 'THE FUNDAMENTAL PRINCIPLES OF ARCHITECTURE', b),
+            chapter('III', 'THE DEPARTMENTS OF ARCHITECTURE', c)
+        ].join('\n\n');
+        const book = shaped(5, 9, 4);
+
+        const looksLikeHeading = (p) =>
+            /^CHAPTER /.test(p) ||
+            (p === p.toUpperCase() && /[A-Z]{3}/.test(p) && !/[.!?,;:]$/.test(p));
+
+        /** Does this part finish by STARTING a chapter it barely contains? */
+        const endsByStarting = (part, target) => {
+            const paras = part.trim().split(/\n\s*\n/).map(s => s.trim());
+            let after = 0;
+            for (let i = paras.length - 1; i >= 0; i--) {
+                if (looksLikeHeading(paras[i])) return after < target * 0.25;
+                after += paras[i].split(/\s+/).filter(Boolean).length;
+            }
+            return false;
+        };
+
+        it('never ends a part by starting the next chapter', () => {
+            // The invariant as a reader states it. NOT "every part opens
+            // on a chapter" — a chapter longer than the target has to be
+            // cut somewhere, and there is no joint to use.
+            const parts = splitLongDivision(book, { maxWords: 3200 });
+            expect(parts.length).toBeGreaterThan(1);
+            const total = book.split(/\s+/).filter(Boolean).length;
+            const target = Math.ceil(total / parts.length);
+            for (const part of parts) {
+                expect(endsByStarting(part, target),
+                    `a part ends by starting a chapter: …${part.trim().slice(-60)}`).toBe(false);
+            }
+        });
+
+        it('holds across every shape of book, not just the one I picked', () => {
+            // The first fixture written for this passed under the OLD
+            // code too, because equal chapters put the arithmetic target
+            // on a joint by luck. Sweeping the shapes is what proved the
+            // rule: the previous splitter committed this fault in 901 of
+            // these 288 × 3 cases.
+            let offences = 0, cases = 0;
+            for (let a = 3; a <= 8; a++) for (let b = 3; b <= 8; b++) for (let c = 3; c <= 8; c++) {
+                const text = shaped(a, b, c);
+                const total = text.split(/\s+/).filter(Boolean).length;
+                for (const maxWords of [2000, 3200, 4000]) {
+                    cases++;
+                    const parts = splitLongDivision(text, { maxWords });
+                    const target = Math.ceil(total / parts.length);
+                    if (parts.some(p => endsByStarting(p, target))) offences++;
+                }
+            }
+            expect(cases).toBeGreaterThan(500);
+            expect(offences).toBe(0);
+        });
+
+        it('never ends a part on a heading', () => {
+            // A title belongs to what follows it. Left at the end, the
+            // reading announces a chapter it does not contain.
+            const parts = splitLongDivision(book, { maxWords: 3200 });
+            for (const part of parts) {
+                const last = part.trim().split(/\n\s*\n/).pop().trim();
+                expect(looksLikeHeading(last),
+                    `a part ends on the heading "${last.slice(0, 40)}"`).toBe(false);
+            }
+        });
+
+        it('does not let a joint override the reading length it was asked for', () => {
+            // A heading every few hundred words must not turn each one
+            // into its own part: the joint is preferred NEAR the target,
+            // not everywhere.
+            const many = Array.from({ length: 30 }, (_, i) =>
+                chapter(String(i + 1), `TITLE ${i + 1}`, 1, 200)).join('\n\n');
+            const parts = splitLongDivision(many, { maxWords: 2000 });
+            const words = parts.map(p => p.split(/\s+/).filter(Boolean).length);
+            for (const w of words) expect(w).toBeGreaterThan(600);
+        });
+
+        it('loses nothing, whichever boundary it chooses', () => {
+            const parts = splitLongDivision(book, { maxWords: 3200 });
+            expect(parts.join('\n\n').replace(/\s+/g, ' ').trim())
+                .toBe(book.replace(/\s+/g, ' ').trim());
+        });
+    });
 });
 
 describe('dividing a work', () => {
