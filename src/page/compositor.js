@@ -63,6 +63,16 @@ function proseAfter(blocks, index) {
     for (let i = index + 1; i < blocks.length; i++) {
         const b = blocks[i];
         if (b.kind === BLOCK.TEXT) {
+            // A TITLE IS NOT PROSE, and this is where the Vitruvius page
+            // actually went wrong. A raised chapter MARK ends the run
+            // below, but an edition that carries its headings inline
+            // presents them as ordinary text blocks — so the float
+            // counted "CHAPTER I" and "THE EDUCATION OF THE ARCHITECT"
+            // as two more paragraphs to wrap and ran its group straight
+            // past the title. The figure was never adjacent to a
+            // heading; its wrap group had swallowed one, which is why
+            // fixing adjacency changed nothing on screen.
+            if (readsAsHeading(b.text)) break;
             count += 1;
             chars += (b.text || '').length;
             continue;

@@ -322,3 +322,34 @@ describe('a figure inside a title', () => {
         expect(order).toEqual(['One.', 'figure', 'Two.']);
     });
 });
+
+describe('a float never wraps a title', () => {
+    const T = (text) => ({ kind: 'text', text, weight: 0.5, tags: [], verse: 1 });
+    const F = () => ({ kind: 'image', collections: ['c'], episodeId: 'e' });
+    const long = 'Ordinary prose that runs on for a good long while indeed. '.repeat(4);
+
+    it('stops the wrap group at an inline heading', () => {
+        // THE VITRUVIUS PAGE. A raised chapter MARK ends a wrap run, but
+        // an inline heading is a text block — so the float counted the
+        // title as two more paragraphs and wrapped straight past it.
+        const items = compose({ blocks: [
+            T(long), T(long), F(), T(long),
+            T('CHAPTER I'), T('THE EDUCATION OF THE ARCHITECT'), T(long)
+        ] }).items;
+        const fig = items.find(i => i.type === 'figure');
+        if (fig.placement === 'margin') {
+            // At most the one prose block before the title may wrap.
+            expect(fig.wrapBlocks).toBeLessThanOrEqual(1);
+        }
+    });
+
+    it('still wraps a healthy run of ordinary prose', () => {
+        const items = compose({ blocks: [
+            T(long), T(long), F(), T(long), T(long), T(long), T(long)
+        ] }).items;
+        const fig = items.find(i => i.type === 'figure');
+        if (fig.placement === 'margin') {
+            expect(fig.wrapBlocks).toBeGreaterThan(1);
+        }
+    });
+});

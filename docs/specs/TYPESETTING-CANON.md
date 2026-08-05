@@ -89,7 +89,16 @@ the chapter's name, which no book does. The heading group is atomic. A figure
 that falls inside one is held and emitted directly beneath the finished title,
 centred on the full measure.
 
-**This moves a figure, which R5 was refused for, and the difference is the
+**A float must also not WRAP a title.** This is where the Vitruvius page
+actually went wrong, and adjacency was the wrong diagnosis twice over. A raised
+chapter mark ends a wrap run, but an inline heading is an ordinary text block —
+so `proseAfter` counted "CHAPTER I" and "THE EDUCATION OF THE ARCHITECT" as two
+more paragraphs to wrap and ran the group straight past the title. The figure
+was never adjacent to a heading; its wrap group had swallowed one, which is
+exactly why two rounds of fixing adjacency changed nothing on screen. A title
+now ends a wrap run as firmly as a chapter mark does.
+
+**Moving a held figure, which R5 was refused for, differs in the
 distance.** R5 slid a plate past PROSE, to a passage that did not summon it.
 R10 moves it past the remaining half of a heading — the same juncture, the same
 passage, on the far side of a title rather than inside one. The binding is
