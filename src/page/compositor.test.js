@@ -277,3 +277,48 @@ describe('a figure beside a heading', () => {
         expect(['margin', 'inset', 'bleed']).toContain(fig.placement);
     });
 });
+
+describe('a figure inside a title', () => {
+    const T = (text) => ({ kind: 'text', text, weight: 0.5, tags: [], verse: 1 });
+    const F = () => ({ kind: 'image', collections: ['c'], episodeId: 'e' });
+    const types = (blocks) => compose({ blocks }).items.map(i => i.type);
+
+    it('waits for the title to finish and appears beneath it', () => {
+        // "CHAPTER I" and "THE EDUCATION OF THE ARCHITECT" are two
+        // blocks and one heading. A figure cued between them separated a
+        // chapter number from the chapter's name.
+        const items = compose({ blocks: [
+            T('Prose before.'),
+            T('CHAPTER I'), F(), T('THE EDUCATION OF THE ARCHITECT'),
+            T('Prose after.')
+        ] }).items;
+
+        const texts = items.filter(i => i.type === 'text').map(i => i.text);
+        expect(texts).toEqual(['Prose before.', 'CHAPTER I',
+            'THE EDUCATION OF THE ARCHITECT', 'Prose after.']);
+
+        // The figure follows the WHOLE title, not half of it.
+        const order = items.map(i => i.type === 'text' ? i.text : i.type);
+        expect(order.indexOf('figure')).toBe(order.indexOf('THE EDUCATION OF THE ARCHITECT') + 1);
+    });
+
+    it('centres the held figure on the full measure', () => {
+        const fig = compose({ blocks: [
+            T('CHAPTER I'), F(), T('THE SECOND PART'), T('Prose.')
+        ] }).items.find(i => i.type === 'figure');
+        expect(fig.placement).toBe('inset');
+        expect(fig.wrapBlocks).toBe(0);
+    });
+
+    it('never loses a figure held when the reading ends inside a title', () => {
+        expect(types([T('CHAPTER I'), F(), T('THE LAST WORD')]))
+            .toContain('figure');
+    });
+
+    it('leaves a figure between ordinary paragraphs where it was', () => {
+        const order = compose({ blocks: [
+            T('One.'), F(), T('Two.')
+        ] }).items.map(i => i.type === 'text' ? i.text : i.type);
+        expect(order).toEqual(['One.', 'figure', 'Two.']);
+    });
+});

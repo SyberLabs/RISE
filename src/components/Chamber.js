@@ -355,6 +355,16 @@ export class Chamber {
               </button>
             </span>
 
+            <!-- ELONGATE. The reading's length picks a projection; this
+                 lets the reader overrule it without leaving the Page.
+                 Shown only when there is genuinely a choice to make. -->
+            <button class="control-btn page-elongate" id="page-elongate" type="button" hidden
+              aria-pressed="false" aria-label="Elongate into one column"
+              title="Elongate — read as one continuous column">
+              <span class="icon" aria-hidden="true">&#8597;</span>
+              <span class="control-label">Elongate</span>
+            </button>
+
             <!-- Stream ⇄ Page: the two projections of one reading -->
             <button class="control-btn page-mode-toggle" id="page-mode-btn"
               type="button" aria-pressed="false" aria-label="Read as a page"
@@ -508,6 +518,10 @@ export class Chamber {
     });
     this.container.querySelector('#page-next')?.addEventListener('click', () => {
       this.pageReader?.nextPage();
+    });
+    this.container.querySelector('#page-elongate')?.addEventListener('click', () => {
+      const r = this.pageReader;
+      if (r) r.setPaged(!r.isPaged);
     });
 
     const pageModeBtn = this.container.querySelector('#page-mode-btn');
@@ -1502,7 +1516,7 @@ export class Chamber {
     const next = typeof forceOn === 'boolean' ? forceOn : !this.pageModeActive;
     if (next === this.pageModeActive) return next;
     this.pageModeActive = next;
-    if (!next) this._syncPageTurn(0, 0);
+    if (!next) this._syncPageTurn(0, 0, false, false);
 
     const btn = this.container.querySelector('#page-mode-btn');
     const display = this.container.querySelector('#chamber-display');
@@ -1985,10 +1999,24 @@ export class Chamber {
    * Hidden entirely when there is nothing to turn — a single-page
    * reading should not carry disabled arrows.
    */
-  _syncPageTurn(index = 0, total = 0) {
+  _syncPageTurn(index = 0, total = 0, isPaged = total > 1, canPage = total > 1) {
     // Remembered here rather than read back on close: by the time Page
     // Mode is torn down the reader is already gone.
     if (total > 1) this._lastPageIndex = index;
+
+    const elongate = this.container.querySelector('#page-elongate');
+    if (elongate) {
+      // Only offered when the reading is long enough for the two
+      // projections to differ.
+      elongate.hidden = !(this.pageModeActive && canPage);
+      elongate.setAttribute('aria-pressed', String(!isPaged));
+      elongate.classList.toggle('is-on', !isPaged);
+      const label = elongate.querySelector('.control-label');
+      if (label) label.textContent = isPaged ? 'Elongate' : 'Paginate';
+      elongate.title = isPaged
+        ? 'Elongate — read as one continuous column'
+        : 'Paginate — read in pages';
+    }
     const turn = this.container.querySelector('#page-turn');
     if (!turn) return;
     const many = this.pageModeActive && total > 1;

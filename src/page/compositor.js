@@ -138,6 +138,18 @@ function readsAsHeading(text) {
     return true;
 }
 
+/**
+ * Is the block at `from` the continuation of a heading — i.e. does a
+ * heading follow immediately, with nothing but marks between?
+ */
+function headingRunAhead(blocks, from) {
+    const next = blocks[from];
+    if (!next) return false;
+    if (next.kind === BLOCK.MARK && next.mark === MARK.CHAPTER_OPEN) return true;
+    if (next.kind === BLOCK.TEXT && readsAsHeading(next.text)) return true;
+    return false;
+}
+
 export function compose(flow, options = {}) {
     const blocks = Array.isArray(flow?.blocks) ? flow.blocks : [];
     const maxBleedRun = Number.isFinite(options.maxBleedRun) ? options.maxBleedRun : 1;
@@ -147,8 +159,29 @@ export function compose(flow, options = {}) {
     let sinceImageText = 0;   // text blocks since the last image
     let stillPending = false; // an episode break with no image followed
     let wrapSide = 'left';    // alternates, so wrapped figures read as a spread
+    let held = null;          // a figure waiting for a title to finish
 
     const push = (item) => items.push(item);
+
+    // A figure held out of a title is emitted the moment the title is
+    // complete: directly beneath it, centred on the full measure.
+    const releaseHeld = () => {
+        if (!held) return;
+        push({
+            type: 'figure',
+            collections: held.collections,
+            url: held.url,
+            title: held.title,
+            derived: held.derived,
+            episodeId: held.episodeId,
+            placement: PLACEMENT.INSET,
+            wrapBlocks: 0,
+            side: null,
+            at: held.at,
+            rhythm: RHYTHM.OPEN
+        });
+        held = null;
+    };
 
     for (let i = 0; i < blocks.length; i++) {
         const block = blocks[i];
@@ -161,6 +194,7 @@ export function compose(flow, options = {}) {
                     rhythm: RHYTHM.OPEN
                 });
                 bleedRun = 0;
+                releaseHeld();
                 continue;
             }
             if (block.mark === MARK.EPISODE_BREAK) {
@@ -265,6 +299,36 @@ export function compose(flow, options = {}) {
                 wrapBlocks = 0;
             }
 
+            // ── NOTHING STANDS INSIDE A TITLE ──
+            //
+            // "CHAPTER I" and "THE EDUCATION OF THE ARCHITECT" are two
+            // blocks and one heading. A figure cued between them lands
+            // in the middle of a title — centred or not, it separates a
+            // chapter number from the chapter's name, which no book
+            // does. The heading group is atomic; the figure waits and
+            // is emitted directly beneath it.
+            //
+            // This DOES move a figure, which R5 was refused for. The
+            // difference is what it moves across: R5 slid a plate past
+            // PROSE, to a passage that did not summon it. This moves it
+            // past the remaining half of a heading — the same juncture,
+            // the same passage, on the far side of a title rather than
+            // inside one. The binding is unchanged; only the title is
+            // left whole.
+            if (headingRunAhead(blocks, i + 1)) {
+                held = {
+                    collections: block.collections,
+                    url: block.url || null,
+                    title: block.title || '',
+                    derived: block.derived === true,
+                    episodeId: block.episodeId,
+                    at: block.at || null
+                };
+                sinceImageText = 0;
+                stillPending = false;
+                continue;
+            }
+
             push({
                 type: 'figure',
                 collections: block.collections,
@@ -311,6 +375,11 @@ export function compose(flow, options = {}) {
                     : stillPending ? RHYTHM.STILL
                         : RHYTHM.NORMAL
             });
+            // A title is complete when a heading block is not followed by
+            // another; only then may a held figure appear beneath it.
+            if (readsAsHeading(block.text) && !headingRunAhead(blocks, i + 1)) {
+                releaseHeld();
+            }
             stillPending = false;
             // Prose pays down the bleed debt: enough of it re-earns a
             // full-bleed plate, and clears the consecutive-bleed run.
@@ -330,6 +399,8 @@ export function compose(flow, options = {}) {
         if (last.type === 'text' || last.type === 'figure') break;
         items.pop();
     }
+
+    releaseHeld();
 
     return {
         items,

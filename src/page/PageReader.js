@@ -123,6 +123,12 @@ export class PageReader {
         const wholeColumn = () =>
             ({ pages: [{ index: 0, items: this.composition.items, weight: 0 }] });
 
+        // Kept so the projection can be changed on the fly without
+        // recompiling the flow or re-composing anything (see setPaged).
+        this._cut = cut;
+        this._wholeColumn = wholeColumn;
+        this.canPage = this.paginated && cut.pages.length > 1;
+
         this.isPaged = this.paginated && cut.pages.length > this.scrollUnderPages;
         const chosen = this.isPaged ? cut : wholeColumn();
         // A reading with nothing in it still needs a page to be on.
@@ -267,11 +273,32 @@ export class PageReader {
         if (this.showPager && this.pages.length > 1) {
             this.host.appendChild(this._buildPager());
         }
-        this.onPageChange?.(clamped, this.pages.length);
+        this.onPageChange?.(clamped, this.pages.length, this.isPaged, this.canPage);
         this._armObserver();
         // A new page starts at its own beginning, not at the scroll
         // offset the previous one happened to leave behind.
         try { this.host.scrollTop = 0; } catch { /* detached */ }
+    }
+
+    /**
+     * ELONGATE — change projection at runtime.
+     *
+     * The length rule picks a projection; the reader overrules it. This
+     * costs nothing but a re-render: the flow and the Composition are
+     * already built, and pagination is only a view over them, so the
+     * two projections are two ways of reading the same object rather
+     * than two objects.
+     */
+    setPaged(next) {
+        const wanted = !!next && this.canPage;
+        if (wanted === this.isPaged) return this.isPaged;
+        this.isPaged = wanted;
+        const chosen = wanted ? this._cut : this._wholeColumn();
+        this.pages = chosen.pages.length
+            ? chosen.pages
+            : [{ index: 0, items: [], weight: 0 }];
+        this._renderPage(0);
+        return this.isPaged;
     }
 
     /** Move by pages. Out-of-range is a no-op, not an error. */

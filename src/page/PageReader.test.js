@@ -437,6 +437,40 @@ describe('PageReader pagination', () => {
         eager.reader.destroy();
     });
 
+    it('Elongate turns a paged reading into one column, and back', () => {
+        const { reader, host } = paged({ session: longSession(80) });
+        expect(reader.isPaged).toBe(true);
+        const total = reader.composition.items.filter(i => i.type === 'text').length;
+
+        reader.setPaged(false);
+        expect(reader.isPaged).toBe(false);
+        expect(reader.pages).toHaveLength(1);
+        expect(host.querySelectorAll('.page-text').length).toBe(total);
+
+        reader.setPaged(true);
+        expect(reader.isPaged).toBe(true);
+        expect(host.querySelectorAll('.page-text').length).toBeLessThan(total);
+        reader.destroy();
+    });
+
+    it('Elongate is not offered where there is no choice to make', () => {
+        // "No choice" means the cut yields ONE page, so the projections
+        // are the same object. A reading that scrolls but WOULD cut into
+        // several still offers the choice — that is the point of it.
+        const { reader } = paged({ session: longSession(1) });
+        expect(reader.canPage).toBe(false);
+        expect(reader.setPaged(true)).toBe(false);
+        reader.destroy();
+    });
+
+    it('offers the choice on a reading that scrolls but could be paged', () => {
+        const { reader } = paged({ session: longSession(6) });
+        expect(reader.isPaged).toBe(false);   // short enough to scroll
+        expect(reader.canPage).toBe(true);    // …and long enough to cut
+        expect(reader.setPaged(true)).toBe(true);
+        reader.destroy();
+    });
+
     it('a short reading gets no pager at all', () => {
         const { reader, host } = paged();
         expect(reader.pages).toHaveLength(1);

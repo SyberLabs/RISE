@@ -1,6 +1,6 @@
 # The Typesetting Canon
 
-**Status:** living · rules 1–4 and 9 implemented · R5 refused, R6 deferred
+**Status:** living · rules 1–4, 9 and 10 implemented · R5 refused, R6 deferred
 **Scope:** the compositor (`src/page/compositor.js`) and the Page's CSS.
 **Purpose:** encode book-printing practice as rules a program can apply, so the
 Page composes rather than merely arranges.
@@ -79,6 +79,21 @@ paragraph, which trades this fault for R9's. And it will not borrow prose out of
 a **wrap group**: a margin figure and the text flowing beside it are one atom,
 so taking a paragraph from the group unmakes the wrap upstairs to fix a thin
 page downstairs.
+
+### R10 — Nothing stands inside a title *(book practice)*
+
+"CHAPTER I" and "THE EDUCATION OF THE ARCHITECT" are two blocks and one
+heading. R2 stopped a figure cued between them from WRAPPING, and centring it
+was not enough: centred or floated, it still separated a chapter number from
+the chapter's name, which no book does. The heading group is atomic. A figure
+that falls inside one is held and emitted directly beneath the finished title,
+centred on the full measure.
+
+**This moves a figure, which R5 was refused for, and the difference is the
+distance.** R5 slid a plate past PROSE, to a passage that did not summon it.
+R10 moves it past the remaining half of a heading — the same juncture, the same
+passage, on the far side of a title rather than inside one. The binding is
+unchanged; only the title is left whole.
 
 ### R9 — No two plates without prose between them *(my judgement, not canon)*
 

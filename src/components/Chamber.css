@@ -1298,9 +1298,14 @@
     width: auto;
     max-width: calc(100% - 2 * var(--space-md));
     flex-wrap: nowrap;
-    gap: var(--space-md);
-    padding-left: var(--space-md);
-    padding-right: var(--space-md);
+    /* SEVEN CONTROLS NOW: sound, back, count, forward, elongate, the
+       projection toggle, and the way out. At a 16px gap that is 96px of
+       air alone and the bar ran to 353 of 390. The gap closes rather
+       than the bar spreading — a crowded bar was the complaint that
+       moved the page turn in here in the first place. */
+    gap: var(--space-xs);
+    padding-left: var(--space-sm);
+    padding-right: var(--space-sm);
     bottom: calc(var(--space-xl) + env(safe-area-inset-bottom, 0px));
   }
 }
@@ -1353,4 +1358,13 @@
 .page-turn .control-btn:disabled {
   opacity: 0.25;
   cursor: default;
+}
+
+@media (max-width: 640px) {
+  /* The count is the widest non-button in the bar; it needs only
+     enough for "10 / 16". */
+  .page-turn-count { min-width: 3.6ch; font-size: 9px; letter-spacing: 0.04em; }
+  .page-turn { gap: 0; }
+  .chamber-display.page-mode-on .control-btn { padding: 4px; }
+  .chamber-display.page-mode-on .control-btn .icon { width: 20px; height: 20px; }
 }
