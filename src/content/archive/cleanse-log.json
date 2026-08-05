@@ -13200,5 +13200,246 @@
         "rejoined": "paragraph"
       }
     ]
+  },
+  {
+    "workId": "vitruvius-architecture",
+    "when": "2026-08-05",
+    "class": "",
+    "basis": "ARCHIVE-CLEANSING-SPEC §2b positional proof; §2c illustration stub",
+    "count": 33,
+    "characters": 968,
+    "removals": [
+      {
+        "kind": "orphan-caption",
+        "division": "Book I",
+        "removed": "Fra Giocondo, Venice, 1511)]",
+        "at": 48449,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book I",
+        "removed": "Giocondo, Venice, 1511)]",
+        "at": 6611,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book I",
+        "removed": "ROME]",
+        "at": 6604,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book I",
+        "removed": "ATHENS]",
+        "at": 6595,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book II",
+        "removed": "ADLER]",
+        "at": 39145,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book II",
+        "removed": "EXAMPLE OF OPUS INCERTUM. THE CIRCULAR TEMPLE AT TIVOLI]",
+        "at": 30201,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book III",
+        "removed": "(From his edition of Vitruvius, Venice, 1511)]",
+        "at": 25946,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book III",
+        "removed": "OF HEIGHT]",
+        "at": 21261,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book III",
+        "removed": "OF TEOS]",
+        "at": 17048,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book III",
+        "removed": "INTERCOLUMNIATION]",
+        "at": 14802,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book III",
+        "removed": "PARTHENON AND THE TEMPLE OF APOLLO NEAR MILETUS]",
+        "at": 13086,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book III",
+        "removed": "ARRANGEMENTS OF THE COLONNADES]",
+        "at": 13053,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book IV",
+        "removed": "THE CIRCULAR TEMPLE ACCORDING TO VITRUVIUS]",
+        "at": 35182,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book IV",
+        "removed": "PLAN OF THE TEMPLE OF VESTA AT ROME]",
+        "at": 34257,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book IV",
+        "removed": "THE CIRCULAR TEMPLE AT TIVOLI]",
+        "at": 34196,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book IV",
+        "removed": "AND THE DORIC ORDER OF THE THEATRE OF MARCELLUS]",
+        "at": 18177,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book IV",
+        "removed": "MONUMENTS]",
+        "at": 7219,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book IV",
+        "removed": "THE BASILICA AT POMPEII]",
+        "at": 7193,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book V",
+        "removed": "ACCORDING TO VITRUVIUS]",
+        "at": 50634,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book V",
+        "removed": "APODYTERIUM FOR WOMEN IN THE STABIAN BATHS AT POMPEII]",
+        "at": 44029,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book V",
+        "removed": "THE TEPIDARIUM OF THE STABIAN BATHS AT POMPEII]",
+        "at": 43980,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book V",
+        "removed": "THE THEATRE AT ASPENDUS]",
+        "at": 31524,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book V",
+        "removed": "PLAN OF THE BASILICA AT POMPEII]",
+        "at": 8232,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book VI",
+        "removed": "13. Prothyron. 7. Tablinum.]",
+        "at": 39954,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book VI",
+        "removed": "GREEK HOUSE AT DELOS]",
+        "at": 38957,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book VI",
+        "removed": "]",
+        "at": 31723,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book VI",
+        "removed": "PLAN OF THE HOUSE OF THE VETTII, POMPEII]",
+        "at": 23530,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book VI",
+        "removed": "THE PERISTYLE OF THE HOUSE OF THE VETTII AT POMPEII]",
+        "at": 22991,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book VI",
+        "removed": "PLAN OF A TYPICAL ROMAN HOUSE]",
+        "at": 22154,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book VI",
+        "removed": "]",
+        "at": 19970,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book VI",
+        "removed": "Illustrating Corinthian Atrium]",
+        "at": 19167,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book VI",
+        "removed": "]",
+        "at": 19129,
+        "rejoined": "paragraph"
+      },
+      {
+        "kind": "orphan-caption",
+        "division": "Book X",
+        "removed": "2. From a model made by A. A. Howard.]",
+        "at": 61679,
+        "rejoined": "paragraph"
+      }
+    ]
   }
 ]

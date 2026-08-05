@@ -193,6 +193,81 @@ export function isIllustrationStub(span) {
 }
 
 /**
+ * ORPHANED PLATE CAPTIONS — a short line standing alone between two
+ * paragraphs, ending in a `]` that nothing ever opened.
+ *
+ * Vitruvius carries 33: `ATHENS]`, `ROME]`, `EXAMPLE OF OPUS INCERTUM.
+ * THE CIRCULAR TEMPLE AT TIVOLI]`, `(From his edition of Vitruvius,
+ * Venice, 1511)]`. They are the illustration apparatus of the 1914
+ * Harvard edition — captions and credits for plates this text does not
+ * carry — and the scan folded them into Morgan's prose. It is §2c's
+ * `[Illustration]` case one step further along: not a marker for an
+ * absent plate but the plate's CAPTION, left behind.
+ *
+ * THREE CONSTRAINTS, EACH LOAD-BEARING.
+ *
+ * STANDING ALONE, because `in a]l` and `And al] the ground` in the
+ * Metamorphoses are OCR misreads of the letter l, sitting inside
+ * sentences. Removing that bracket would be a REPAIR, which §4 forbids
+ * outright.
+ *
+ * BUT THE STANDALONE RULE IS NOT WHAT PROTECTS THEM, and the first
+ * version of this comment said it was. A misread on a SHORT LINE OF ITS
+ * OWN would pass every test here — which a unit test demonstrated the
+ * moment it was written. What actually protects the Metamorphoses is
+ * that this class runs against an ALLOWLIST of works whose orphan lines
+ * have been read (`ORPHAN_CAPTION_WORKS` in corpus-cleanse.mjs). The
+ * shape rules narrow the question; the allowlist is the guarantee.
+ *
+ * NOTHING OPEN, because a stage direction spans lines and its closing
+ * line looks unbalanced while being perfectly matched.
+ *
+ * AND BY WORK, because the class is not one class. The Little Clay
+ * Cart's 80 are footnote anchors (`P. 4.7]`); Pride and Prejudice's are
+ * chapter marks and a copyright line. A rule that cannot tell those from
+ * a plate caption does not get to delete any of them.
+ */
+export function orphanCaptionsIn(content) {
+    const lines = String(content || '').split('\n');
+    const at = [];
+    let cursor = 0;
+    for (const line of lines) { at.push(cursor); cursor += line.length + 1; }
+
+    const out = [];
+    let depth = 0;
+    for (let i = 0; i < lines.length; i++) {
+        const t = lines[i].trim();
+        if (!t) { depth = 0; continue; }
+        const opens = (t.match(/\[/g) || []).length;
+        const closes = (t.match(/\]/g) || []).length;
+
+        const alone = (i === 0 || !lines[i - 1].trim())
+            && (i === lines.length - 1 || !lines[i + 1].trim());
+
+        if (alone && !depth && closes > opens && t.length <= 60) {
+            let p = i - 1; while (p >= 0 && !lines[p].trim()) p--;
+            let n = i + 1; while (n < lines.length && !lines[n].trim()) n++;
+            out.push({
+                start: p >= 0 ? at[p] + lines[p].replace(/\s+$/, '').length : 0,
+                end: n < lines.length ? at[n] : String(content).length,
+                text: t,
+                // It stands BETWEEN paragraphs; the break it sat in stays.
+                rejoin: '\n\n'
+            });
+        }
+        depth = Math.max(0, depth + opens - closes);
+    }
+    return out;
+}
+
+/** A span that is nothing but one orphaned caption line. */
+export function isOrphanCaption(span) {
+    const t = String(span || '').replace(/\s+/g, ' ').trim();
+    if (!t || t.length > 60) return false;
+    return (t.match(/\]/g) || []).length > (t.match(/\[/g) || []).length;
+}
+
+/**
  * Is this span safe to delete? Whatever it covers, collapsed to one
  * line, must BE the furniture and nothing else.
  *

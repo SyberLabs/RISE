@@ -38,7 +38,16 @@ import { resolve } from 'node:path';
 // ONE VOCABULARY. The detector lives in src/content/archive/furniture.js
 // and is read by the job builder, the cleanser and the tests alike.
 import { stemsOf, furnitureIn, isStrictlyFurniture, isProven,
-         illustrationStubsIn, isIllustrationStub } from '../src/content/archive/furniture.js';
+         illustrationStubsIn, isIllustrationStub,
+         orphanCaptionsIn, isOrphanCaption } from '../src/content/archive/furniture.js';
+
+/**
+ * Works whose orphaned `]` lines have been READ and found to be plate
+ * captions. By name, because the class is not one class — see
+ * furniture.js. A work is added here after its lines are looked at, not
+ * before.
+ */
+const ORPHAN_CAPTION_WORKS = new Set(['vitruvius-architecture']);
 // ONE WRITER. See payload-writer.js for why this is not a local helper.
 import { rewriteSections } from '../src/content/archive/payload-writer.js';
 
@@ -76,7 +85,10 @@ for (const file of files) {
         // invalidate the offsets behind it.
         const spans = [
             ...furnitureIn(before, stems).filter(isProven).map(f => ({ ...f, kind: 'running-head' })),
-            ...illustrationStubsIn(before).map(f => ({ ...f, kind: 'illustration-stub' }))
+            ...illustrationStubsIn(before).map(f => ({ ...f, kind: 'illustration-stub' })),
+            ...(ORPHAN_CAPTION_WORKS.has(workId)
+                ? orphanCaptionsIn(before).map(f => ({ ...f, kind: 'orphan-caption' }))
+                : [])
         ].sort((a, b) => b.start - a.start);
         if (!spans.length) { cleaned.push(section); continue; }
 
@@ -85,7 +97,9 @@ for (const file of files) {
             const taken = after.slice(span.start, span.end);
             // STRICT DELETION. Whatever this span covers, collapsed to one
             // line, must BE the furniture and nothing else.
-            const proves = span.kind === 'illustration-stub' ? isIllustrationStub : isStrictlyFurniture;
+            const proves = span.kind === 'illustration-stub' ? isIllustrationStub
+                : span.kind === 'orphan-caption' ? isOrphanCaption
+                : isStrictlyFurniture;
             if (!proves(taken)) {
                 refused = `${section.name}: span would take ` +
                     JSON.stringify(taken.replace(/\s+/g, ' ').trim().slice(0, 70));
@@ -119,7 +133,8 @@ for (const file of files) {
     totalChars += chars;
     const heads = removals.filter(r => r.kind === 'running-head').length;
     const stubs = removals.filter(r => r.kind === 'illustration-stub').length;
-    console.log(`${workId}: ${heads} running heads, ${stubs} illustration stubs, ${chars} characters`);
+    const caps = removals.filter(r => r.kind === 'orphan-caption').length;
+    console.log(`${workId}: ${heads} running heads, ${stubs} stubs, ${caps} orphan captions, ${chars} characters`);
     log.push({ workId, when: new Date().toISOString().slice(0, 10),
         class: [heads && 'running-head', stubs && 'illustration-stub'].filter(Boolean).join('+'),
         basis: 'ARCHIVE-CLEANSING-SPEC §2b positional proof; §2c illustration stub',

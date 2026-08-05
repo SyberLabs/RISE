@@ -18,7 +18,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { stemsOf, furnitureIn, isStrictlyFurniture, RUNNING_HEAD, isProven,
-         illustrationStubsIn, isIllustrationStub } from './furniture.js';
+         illustrationStubsIn, isIllustrationStub,
+         orphanCaptionsIn, isOrphanCaption } from './furniture.js';
 
 const WORKS_DIR = resolve('src/content/archive/works');
 
@@ -156,6 +157,53 @@ describe('page furniture', () => {
         ].join('\n');
         const found = furnitureIn(twice, new Map([['APPENDIX', 9]]));
         expect(found.every(f => !f.provenByRepetition)).toBe(true);
+    });
+
+    it('takes an orphaned plate caption standing alone', () => {
+        // MATEO'S CASE, and the one this pass missed twice. Vitruvius
+        // carries the 1914 Harvard edition's illustration apparatus —
+        // captions and credits for plates the text does not have —
+        // folded into Morgan's prose by the scan.
+        const content = [
+            'might be known and handed down even to posterity.', '',
+            'ATHENS]', '', 'ROME]', '', 'Giocondo, Venice, 1511)]', '',
+            '6. Likewise the Lacedaemonians under the leadership of Pausanias'
+        ].join('\n');
+        const found = orphanCaptionsIn(content);
+        expect(found.map(f => f.text)).toEqual(['ATHENS]', 'ROME]', 'Giocondo, Venice, 1511)]']);
+        for (const f of found) {
+            expect(isOrphanCaption(content.slice(f.start, f.end))).toBe(true);
+        }
+    });
+
+    it('never touches a bracket that is a misread letter, INSIDE a sentence', () => {
+        // THE TRAP. The Metamorphoses has "in a]l" and "And al] the
+        // ground shone white" — the ] is an OCR misread of an l, and
+        // removing it would be a REPAIR, which §4 forbids outright. In
+        // the payload they sit inside paragraphs, and the standalone rule
+        // excludes them there.
+        expect(orphanCaptionsIn(
+            'encouraged and instructed him in a]l things\nAnd al] the ground shone white'))
+            .toEqual([]);
+    });
+
+    it('and the standalone rule is NOT what protects them', () => {
+        // Worth asserting the limit rather than trusting the comment. A
+        // misread on a short line of its own passes every shape test
+        // here. What protects the Metamorphoses is that this class runs
+        // against an allowlist of works whose orphan lines have been
+        // read — the shape rules narrow the question, the allowlist is
+        // the guarantee. This test exists so that stays true on purpose.
+        const alone = 'He spoke.'+'\\n'+'\\n'+'in a]l'+'\\n'+'\\n'+'And went out.';
+        expect(orphanCaptionsIn(alone).length,
+            'shape alone cannot tell a misread from a caption').toBe(1);
+    });
+
+    it('never takes the closing line of a stage direction', () => {
+        // A bracket that was OPENED earlier is matched, however
+        // unbalanced its last line looks on its own.
+        const play = 'NORA _[calls out from his room,\nand takes her playfully by the ear.]_\n\nShe laughed.';
+        expect(orphanCaptionsIn(play)).toEqual([]);
     });
 
     it('refuses a stem that is not a word', () => {

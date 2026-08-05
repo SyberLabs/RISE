@@ -299,10 +299,53 @@ another door.
 
 ### Two findings worth keeping
 
-**The orphaned-bracket detector is wrong, and 7,223 counts prove it.** It
-balances brackets per LINE, and a stage direction spans lines — so every
-`mouth.]_ Come in here, Torvald` looked like `ATHENS]`. The real orphans are
-rare; the detector has to balance across a paragraph.
+**CORRECTED 2026-08-05, and the correction matters more than the finding.**
+
+The line above used to read: *"The orphaned-bracket detector is wrong, and 7,223
+counts prove it… The real orphans are rare."* **That was wrong, and `ATHENS]` —
+the case named in §1 from the very beginning, and pointed at twice — was sitting
+inside that dismissed bucket the whole time.**
+
+Two mistakes produced it, and both are about the instrument rather than the
+corpus:
+
+1. **The samples were not samples.** `readdirSync` returns alphabetical order
+   and the bucket kept the *first* N examples it saw, so **every illustration in
+   that survey came from `a-doll-s-house`** — a stage play, the worst possible
+   representative for a question about brackets. I read four lines from one work
+   and wrote off 7,223 findings across 39. A sample that cannot show you a second
+   work cannot tell you what a bucket holds.
+2. **The caps detector excluded the shape the question was about.** It returned
+   early on any line with no lower-case letter, reasoning that the compositor
+   already judges headings (canon R11). But R11 decides how to *set* a line, not
+   whether it belongs in the book. `ATHENS]` is a standalone all-capital line.
+
+Both are fixed: samples now spread one-per-work before any work gets a second,
+the bracket test carries **open-bracket state across lines** so a stage
+direction's closing line is no longer an orphan, and standalone capitals are
+counted rather than skipped.
+
+**The corrected measurement.** Standalone orphaned-`]` lines, nothing open,
+≤60 characters:
+
+| | count |
+|---|---|
+| total | 2,178 in 16 works |
+| …in works already **withheld** (the three Cambridge Shakespeares) | **1,901** |
+| **on the shelf** | **277 in 13 works** |
+
+The class is not one class, which is why no corpus-wide rule fits it:
+
+- **Vitruvius, 33** — plate captions and credits: `ATHENS]`, `ROME]`,
+  `EXAMPLE OF OPUS INCERTUM. THE CIRCULAR TEMPLE AT TIVOLI]`,
+  `(From his edition of Vitruvius, Venice, 1511)]`. **Trim** — see §2e.
+- **Crane 86, Dresser 1** — figure caption tails, same shape.
+- **The Little Clay Cart 80** — `P. 4.7]`, footnote anchors, not captions.
+- **Pride and Prejudice 34** — `Chapter I.]` and a repeated copyright line.
+- **And the trap:** `metamorphoses` has `in a]l` and `And al] the ground` — the
+  `]` is a **misread letter**. Those are excluded by the standalone rule, and
+  they must be: removing that bracket would be a *repair*, which §4 forbids
+  outright. Flag, never touch.
 
 **`[Greek: taxis]` is not removable by deletion.** It is the transcriber's
 substitute for Greek characters the plain-text format could not carry, and the

@@ -28,12 +28,41 @@ const flag = (n, d = null) => {
 const only = flag('class');
 const SAMPLES = Number(flag('samples', '8'));
 
-/** A bucket of findings that keeps a few examples and counts the rest. */
+/**
+ * A bucket of findings that keeps a few examples and counts the rest.
+ *
+ * SAMPLES SPREAD ACROSS WORKS, ONE EACH BEFORE ANY WORK GETS A SECOND.
+ * The first version kept the first N it saw, and `readdirSync` is
+ * alphabetical, so every bucket in the first survey was illustrated
+ * entirely from `a-doll-s-house` — a stage play, the worst possible
+ * representative for a survey about brackets and capitals. On four
+ * samples from one work I judged 7,223 findings across 39 works to be
+ * stage directions and wrote the detector off as wrong. `ATHENS]` was in
+ * that bucket the whole time.
+ *
+ * A sample that cannot show you a second work cannot tell you what a
+ * bucket contains.
+ */
 class Bucket {
-    constructor(label) { this.label = label; this.count = 0; this.works = new Set(); this.samples = []; }
+    constructor(label) {
+        this.label = label; this.count = 0; this.works = new Set();
+        this.byWork = new Map();
+    }
     add(work, sample) {
         this.count++; this.works.add(work);
-        if (this.samples.length < SAMPLES) this.samples.push(`${work}: ${sample}`);
+        if (!this.byWork.has(work)) this.byWork.set(work, []);
+        const mine = this.byWork.get(work);
+        if (mine.length < 2) mine.push(sample);
+    }
+    get samples() {
+        const out = [];
+        for (let round = 0; round < 2; round++) {
+            for (const [work, list] of this.byWork) {
+                if (list[round]) out.push(`${work}: ${list[round]}`);
+                if (out.length >= SAMPLES) return out;
+            }
+        }
+        return out;
     }
 }
 const buckets = new Map();
@@ -48,10 +77,17 @@ const bucket = (key, label) => {
 function shouted(work, line, prev, next) {
     const t = line.trim();
     if (!t || t.length > 200) return;
-    // A line that is entirely capitals is a heading candidate, and the
-    // compositor already judges those (canon R11). What is asked about
-    // here is capitals embedded in running prose.
-    if (!/[a-z]/.test(t)) return;
+    // STANDALONE ALL-CAPITAL LINES ARE NOT EXCLUDED ANY MORE. The first
+    // version returned early on them, reasoning that the compositor
+    // already judges headings (canon R11) — but R11 decides how to SET a
+    // line, not whether it belongs in the book. "ATHENS]" is a standalone
+    // all-capital line and it is marginalia. Excluding the shape the
+    // question was asked about is how the question went unanswered.
+    if (!/[a-z]/.test(t)) {
+        bucket('caps-standalone', 'a line that is entirely capitals, standing alone')
+            .add(work, JSON.stringify(t.slice(0, 80)));
+        return;
+    }
     for (const m of t.matchAll(/\b([A-Z]{2,}(?:[ '’-][A-Z]{2,})*)\b/g)) {
         const word = m[1];
         // Roman numerals and single initials are not shouting.
@@ -85,7 +121,7 @@ function punctuationRuns(work, line) {
 }
 
 /** Bracketed material, split by what the bracket actually holds. */
-function brackets(work, line) {
+function brackets(work, line, bracketDepth) {
     const t = line;
     for (const m of t.matchAll(/\[([^\]]{0,120})\]/g)) {
         const inside = m[1].trim();
@@ -99,11 +135,15 @@ function brackets(work, line) {
         else if (/^Sidenote/i.test(inside)) { key = 'bracket-sidenote'; label = '[Sidenote: …] — marginal gloss'; }
         bucket(key, label).add(work, JSON.stringify(t.trim().slice(0, 100)));
     }
-    // An unbalanced closing bracket — the ATHENS] shape.
-    const opens = (t.match(/\[/g) || []).length;
-    const closes = (t.match(/\]/g) || []).length;
-    if (closes > opens) {
-        bucket('bracket-orphan', 'unbalanced ] — the ATHENS] shape')
+    // TRULY ORPHANED, which needs the state of the bracket BEFORE this
+    // line. A stage direction spans lines, so its closing line looks
+    // unbalanced while being perfectly matched. What makes ATHENS]
+    // different is that nothing was ever opened.
+    if (!bracketDepth && (t.match(/\]/g) || []).length > (t.match(/\[/g) || []).length) {
+        const short = t.length <= 40;
+        bucket(short ? 'bracket-orphan-short' : 'bracket-orphan-long',
+            short ? 'orphaned ] on a short line, nothing open — the ATHENS] shape'
+                  : 'orphaned ] on a long line, nothing open')
             .add(work, JSON.stringify(t.trim().slice(0, 100)));
     }
 }
@@ -121,13 +161,16 @@ for (const file of files) {
 
     for (const section of sections) {
         const all = String(section.content || '').split('\n');
+        // Bracket state carried across lines, reset per section.
+        let depth = 0;
         for (let i = 0; i < all.length; i++) {
             lines++;
             const line = all[i];
-            if (!line.trim()) continue;
+            if (!line.trim()) { depth = 0; continue; }   // a blank line closes nothing legitimate
             if (!only || only === 'caps') shouted(work, line, all[i - 1], all[i + 1]);
             if (!only || only === 'punct') punctuationRuns(work, line);
-            if (!only || only === 'brackets') brackets(work, line);
+            if (!only || only === 'brackets') brackets(work, line, depth);
+            depth = Math.max(0, depth + (line.match(/\[/g) || []).length - (line.match(/\]/g) || []).length);
         }
     }
 }
