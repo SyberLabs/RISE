@@ -224,6 +224,36 @@ The cleanest rights story of the three, and `rowCount` badly overstates
 the yield — 5.2M rows is not 5.2M images. The harvest must filter on
 media presence and expect a small fraction.
 
+**Harvested with a real key, 2026-08-05.** 175 media across six terms →
+54 pinnable candidates, every one `usage.access === "CC0"`. Three things
+the first run got wrong, all of which the second run measures:
+
+- **A media manifest is a claim, not a guarantee.** 6 of the 60 delivery
+  URLs return 404, and they are not scattered: **all six are Smithsonian
+  Gardens** (6 of its 20), while NMNH Birds and Cooper Hewitt are clean.
+  The URL *form* is not the discriminator — the legacy
+  `deliveryService?id=` shape works 36 times and fails 6 — so nothing but
+  asking distinguishes a live image from a dead one. The harvester now
+  probes every delivery URL and drops what will not resolve, which is the
+  imagery's own law applied one stage earlier: a work that will not
+  resolve is absent, never a broken frame.
+- **Records share media.** 60 rows carried 60 distinct record URLs and
+  only **39 distinct images** — a third of the shelf was one photograph
+  under several accession numbers. Dedupe on the delivery URL, before the
+  limit is applied.
+- **The term budget must be round-robin.** Concatenating six terms and
+  cutting to 60 gave `bird` 54 of them — 54 hummingbird specimen trays
+  from one NMNH division — while `fossil` and `shell` contributed
+  nothing. Interleaved, the same limit yields butterfly 21, orchid 14,
+  bird 12, fossil 5, botanical 2. (`shell` returns nothing behind the
+  media filter and should be dropped from the term list.)
+
+Titles are Linnaean binomials — `Trochilidae`, `Psychopsis papilio` — so
+this is a **specimen catalogue**, and the contact sheet must judge
+whether specimen photography belongs in a chamber at all. The Cooper
+Hewitt and botanical-illustration rows are a different and more promising
+register than the NMNH trays.
+
 ### ESA/Hubble and ESO — a feed, not an API
 
 §2 guessed "may be a scrape or a manifest, not a clean JSON API". Closer
@@ -402,6 +432,51 @@ door on the Portal and is a registered view, not a developer tool. A full
 attribution record there, with licence and source URLs, is a resource a
 reader can actually get to. Had the Curia been dev-only this ruling would
 not stand.
+
+### Ruling: the API key never leaves the workstation — decided 2026-08-05
+
+Smithsonian is the first source that needs a key at all, which raised the
+question directly: does it belong in Netlify's secrets? **No — and the
+reason generalises to every keyed source we might add.**
+
+The split is **harvest time vs. runtime**, and only harvest time touches
+an API that wants a key. `scripts/harvest-science.mjs` is a by-hand
+script, not part of `npm run build`; its output is a reviewed, pinned
+list committed to the repo. Netlify builds that list and never queries
+the institution. This is not an accident of convenience — it is
+curation-only stated in infrastructure.
+
+Three ways a key *could* reach the deployment, all wrong:
+
+| route | why it fails |
+|---|---|
+| `VITE_SI_API_KEY` | Vite **inlines `VITE_*` into the client bundle**. That is not a secret, it is a published string sitting in the shipped JS. The most tempting option and the worst. |
+| Netlify build env var | only helps if the build calls the API. It does not. |
+| Netlify Function proxy | puts a server into a static site, needs a new `connect-src` entry, and buys nothing. |
+
+And a fourth, quieter route the harvester now guards: **a delivery URL
+that carries the key in its query string** would fetch perfectly from the
+workstation and then commit the secret into the pin file — publishing it
+exactly as a `VITE_` variable would, by a route no one would think to
+check. `CARRIES_SECRET` rejects any candidate whose delivery URL contains
+`api_key`, `token`, `signature`, or `auth`.
+
+`netlify.toml` already enforces the arrangement from the other side:
+`connect-src` is an allowlist and **does not include `api.si.edu`**, so
+the browser could not reach the search API even if something asked it to,
+while `img-src ... https:` already permits `ids.si.edu` to deliver
+pixels. No CSP change is required to serve Smithsonian imagery — which is
+the tell that the design is right.
+
+**One real consequence, and it is not cosmetic.** `museum-pins.js`
+records that the Cleveland and Rijksmuseum adapters *re-verify rights per
+object at resolution* — `share_license_status === 'CC0'` checked live,
+every time. Smithsonian **cannot** do that from the browser without the
+key and a CSP entry. Its rights verification is therefore **frozen at
+harvest**: true as of the date the harvest ran, not re-confirmed at
+render. That is a difference in kind from the other two institutions and
+must be recorded as such in the pin ledger and the Atlas, not left to
+look equivalent.
 
 ---
 

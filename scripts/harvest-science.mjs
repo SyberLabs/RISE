@@ -41,6 +41,7 @@ const flag = (n, d = null) => {
 const only = flag('source');
 const limit = Number(flag('limit', '60'));
 const out = flag('out', 'science-catalog.candidates.json');
+const verify = !args.includes('--no-verify');
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -65,6 +66,63 @@ const get = async (url, label, { retries = 2 } = {}) => {
         throw err;
     }
 };
+
+/**
+ * THE NO-SECRET DESIGN RESTS ON THIS, so it is verified rather than assumed.
+ *
+ * Nothing on Netlify holds an API key. The harvest runs here on a
+ * workstation, the reviewed pins are committed, and the deployed reader
+ * fetches the image directly — `img-src ... https:` in netlify.toml
+ * already permits any image host, while `connect-src` does NOT list
+ * api.si.edu, so the browser could not reach the search API even if
+ * something asked it to. That whole arrangement holds only if the
+ * delivery URL is publicly fetchable, and an unverified assumption there
+ * would surface as a missing figure in production rather than as an
+ * error at harvest time, which is the wrong end to find out.
+ *
+ * TWO things are checked, and the second matters more than it looks: the
+ * URL answers WITHOUT credentials, and it does not CARRY any. A delivery
+ * URL with the key in its query string would fetch perfectly well from
+ * this machine and then commit the secret into a pin file — publishing
+ * it exactly as a VITE_ variable would, just by a quieter route.
+ */
+const CARRIES_SECRET = /[?&](api_?key|access_?token|token|signature|sig|auth)=/i;
+
+async function verifyDelivery(url, kind) {
+    if (!url) return { ok: false, why: 'no delivery url' };
+    if (CARRIES_SECRET.test(url)) return { ok: false, why: 'url carries a credential' };
+    try {
+        // A one-byte range: enough to learn the status and the type
+        // without pulling a full plate from a museum for every candidate.
+        const res = await fetch(url, {
+            headers: { Range: 'bytes=0-0', 'User-Agent': 'RISE/harvest (curation)' },
+            redirect: 'follow'
+        });
+        if (!res.ok && res.status !== 206) return { ok: false, why: `HTTP ${res.status}` };
+        const type = (res.headers.get('content-type') || '').split(';')[0].trim();
+        // Only a hop DECLARED to be a direct image must prove it is one.
+        // ESA/ESO hops are listing pages and NASA's is an asset manifest;
+        // holding those to image/* would fail them for being what they are.
+        if (kind === 'image' && !/^image\//i.test(type)) {
+            return { ok: false, why: `not an image (${type || 'no content-type'})` };
+        }
+        return { ok: true, type };
+    } catch (err) {
+        return { ok: false, why: err.message };
+    }
+}
+
+/** Probe with a small concurrency; this is a by-hand script, not a service. */
+async function verifyAll(rows, lanes = 4) {
+    let next = 0;
+    const worker = async () => {
+        while (next < rows.length) {
+            const row = rows[next++];
+            row.delivery = await verifyDelivery(row.imageHop, row.deliveryKind);
+        }
+    };
+    await Promise.all(Array.from({ length: Math.min(lanes, rows.length) }, worker));
+}
 
 /**
  * Djangoplicity serves Python bytes-repr in its JSON — `b'CC BY 4.0'`.
@@ -104,7 +162,8 @@ async function djangoplicity({ id, sourceName, feed, sourceBase }) {
             kind: unbytes(row.Type),
             // The feed is a listing; the deliverable image is a second
             // hop, exactly as Rijks and NASA are. Recorded, not guessed.
-            imageHop: `${sourceBase}${workId}/`
+            imageHop: `${sourceBase}${workId}/`,
+            deliveryKind: 'page'
         };
     });
 }
@@ -119,9 +178,38 @@ async function djangoplicity({ id, sourceName, feed, sourceBase }) {
  * and it asks natural history rather than cosmos: this is a natural
  * history museum, and its nebula holdings are one image per sixty rows.
  */
+/**
+ * ROUND-ROBIN, NOT CONCATENATION — and this is not a nicety.
+ *
+ * The caller cuts to `--limit`, and a cut applied to a concatenated list
+ * hands the entire budget to whichever term ran first. The first harvest
+ * proved it: `bird` came first, and 54 of 60 candidates were hummingbird
+ * specimen trays from one NMNH division while `fossil` and `shell`
+ * contributed nothing at all. The result looked like a full shelf and was
+ * one query wearing six labels.
+ *
+ * This is the exact failure that made me judge 7,223 corpus findings from
+ * four samples that all came from `a-doll-s-house` — `readdirSync` is
+ * alphabetical, the bucket kept the first N, and the prefix was not the
+ * population. Interleaving fixes it at the source: any prefix of a
+ * round-robin list is balanced by construction, so the limit can be
+ * applied anywhere downstream without needing to know how the list was
+ * built.
+ */
+function interleave(groups) {
+    const out = [];
+    for (let i = 0; ; i++) {
+        let placed = false;
+        for (const group of groups) {
+            if (i < group.length) { out.push(group[i]); placed = true; }
+        }
+        if (!placed) return out;
+    }
+}
+
 async function smithsonian({ terms, rows }) {
     const key = process.env.SI_API_KEY || 'DEMO_KEY';
-    const out = [];
+    const groups = [];
     for (const term of terms) {
         const q = `online_media_type:Images AND ${term}`;
         const url = `https://api.si.edu/openaccess/api/v1.0/search`
@@ -137,12 +225,12 @@ async function smithsonian({ terms, rows }) {
             console.log(`  ! ${term}: ${err.message}`);
             continue;
         }
-        out.push(...harvestSmithsonianRows(body, term));
+        groups.push(harvestSmithsonianRows(body, term));
         // Polite pacing between terms; the museum harvests set this
         // precedent and nothing here is in a hurry.
         await sleep(400);
     }
-    return out;
+    return interleave(groups);
 }
 
 function harvestSmithsonianRows(body, term) {
@@ -165,8 +253,11 @@ function harvestSmithsonianRows(body, term) {
                 sourceName: d.data_source || 'Smithsonian',
                 sourceUrl: d.guid || d.record_link || '',
                 kind: media.type || 'Images',
-                imageHop: media.content || media.thumbnail || ''
-                , term });
+                // IDS delivers the pixels directly, so this hop must
+                // prove it is an image and that it needs no key.
+                imageHop: media.content || media.thumbnail || '',
+                deliveryKind: 'image',
+                term });
         }
     }
     return out;
@@ -213,7 +304,8 @@ async function nasa({ query, rows }) {
             sourceName: 'NASA Image and Video Library',
             sourceUrl: `https://images.nasa.gov/details/${d.nasa_id}`,
             kind: 'Images',
-            imageHop: `https://images-api.nasa.gov/asset/${d.nasa_id}`
+            imageHop: `https://images-api.nasa.gov/asset/${d.nasa_id}`,
+            deliveryKind: 'manifest'
         });
     }
     return out;
@@ -244,14 +336,30 @@ const report = [];
 for (const [name, run] of Object.entries(SOURCES)) {
     if (only && name !== only) continue;
     let rows = [];
+    const keptRows = [];
     try { rows = await run(); } catch (err) {
         report.push({ source: name, error: String(err.message) });
         console.log(`${name.padEnd(13)} FAILED — ${err.message}`);
         continue;
     }
 
+    // ONE IMAGE IS ONE CANDIDATE. Smithsonian records share media across
+    // catalogue entries — the first harvest returned 60 rows with 60
+    // distinct record URLs and only 39 distinct images, so a third of the
+    // shelf was the same photograph under different accession numbers.
+    // Deduping BEFORE the cut is what makes `--limit` mean what it says;
+    // after the cut it would silently return less than it was asked for.
+    const seen = new Set();
+    const distinct = rows.filter((row) => {
+        const key = row.imageHop || row.id;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+    const duplicates = rows.length - distinct.length;
+
     let kept = 0, dropped = 0, flagged = 0;
-    for (const row of rows.slice(0, limit)) {
+    for (const row of distinct.slice(0, limit)) {
         // THE PRESENTER'S OWN CHECK, not a copy of it. A candidate that
         // the Chamber would refuse to show has no business being pinned.
         const probe = {
@@ -271,15 +379,48 @@ for (const [name, run] of Object.entries(SOURCES)) {
             continue;
         }
         if (row.thirdPartyRisk) { flagged++; }
-        works.push({ ...row, licence, requiredCredit: label?.requiredText || '' });
+        keptRows.push({ ...row, licence, requiredCredit: label?.requiredText || '' });
         kept++;
     }
 
-    report.push({ source: name, fetched: rows.length, kept, dropped, flagged });
+    // A CANDIDATE THAT WILL NOT RESOLVE IS ABSENT. The imagery's own law,
+    // applied one stage earlier than usual: rather than let a reader meet
+    // a broken frame, the work never reaches the contact sheet. The
+    // Smithsonian API advertises media its delivery service does not
+    // serve — 6 of 20 Smithsonian Gardens items 404 while NMNH and Cooper
+    // Hewitt are clean — so a media manifest is a CLAIM, not a guarantee,
+    // and the only way to tell the difference is to ask.
+    let unreachable = 0;
+    if (verify) {
+        await verifyAll(keptRows);
+        const dead = keptRows.filter(r => !r.delivery?.ok);
+        unreachable = dead.length;
+        for (const r of dead) rejected.push({ id: r.id, why: `unreachable: ${r.delivery?.why}` });
+    }
+    const live = verify ? keptRows.filter(r => r.delivery?.ok) : keptRows;
+    works.push(...live);
+
+    report.push({ source: name, fetched: rows.length, duplicates,
+        considered: kept, dropped, flagged,
+        ...(verify ? { unreachable, kept: live.length } : { kept }) });
     console.log(`${name.padEnd(13)} fetched ${String(rows.length).padStart(4)}`
-        + `  kept ${String(kept).padStart(4)}`
-        + `  dropped ${String(dropped).padStart(3)}`
-        + `  third-party-flagged ${flagged}`);
+        + `  dup ${String(duplicates).padStart(3)}`
+        + `  uncreditable ${String(dropped).padStart(3)}`
+        + `  unreachable ${String(unreachable).padStart(3)}`
+        + `  third-party-flagged ${flagged}`
+        + `  → kept ${String(live.length).padStart(4)}`);
+
+    // Name the failures. A count alone would let a systematic problem —
+    // one collection's media links rotted through — read as attrition.
+    if (verify && unreachable) {
+        const why = {};
+        for (const r of keptRows) {
+            if (r.delivery?.ok) continue;
+            const at = `${r.delivery?.why} · ${r.sourceName}`;
+            why[at] = (why[at] || 0) + 1;
+        }
+        for (const [reason, n] of Object.entries(why)) console.log(`              ! ${n} × ${reason}`);
+    }
 }
 
 const byLicence = {};
@@ -299,7 +440,13 @@ writeFileSync(path, JSON.stringify({
 console.log('');
 console.log(`candidates : ${works.length}`);
 console.log(`by licence : ${JSON.stringify(byLicence)}`);
-console.log(`rejected   : ${rejected.length} (could not be credited)`);
+// Two rejections that must not read as one. "Could not be credited" is a
+// RIGHTS finding about the record; "unreachable" is a DELIVERY finding
+// about the file. Reporting a single total would let a rotted collection
+// masquerade as a licensing problem, and they call for opposite fixes.
+const uncreditable = rejected.filter(r => !r.why.startsWith('unreachable')).length;
+console.log(`rejected   : ${uncreditable} could not be credited`
+    + `, ${rejected.length - uncreditable} unreachable`);
 console.log(`wrote ${path}`);
 console.log('');
 console.log('CANDIDATES ONLY. Nothing here is on a shelf until it has been');
