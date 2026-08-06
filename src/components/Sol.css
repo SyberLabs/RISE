@@ -52,8 +52,14 @@
     font-family: var(--font-display);
     font-size: 28px;
     font-weight: var(--font-weight-light);
-    letter-spacing: 0.4em;
-    text-indent: 0.4em;
+    /* SOLARIUM, not S O L. The markup used to carry literal spaces AND
+       this 0.4em tracking, so the word was spaced twice over; the same
+       doubling the Portal title avoids. Eight letters need less air than
+       three did — 0.22em keeps it open without stretching it across the
+       header. text-indent restores the optical centre that the trailing
+       space after the final M would otherwise pull left. */
+    letter-spacing: 0.22em;
+    text-indent: 0.22em;
     color: var(--color-light);
     margin-bottom: var(--space-xs);
 }

@@ -38,8 +38,8 @@ beforeEach(() => {
 describe('SOL plan store', () => {
     it('round-trips entries and clears with null', () => {
         expect(MemoryCore.getSolPlan()).toEqual({});
-        MemoryCore.setSolPlanEntry('evening', { kind: 'sol', id: 'sol-sit-grief' });
-        expect(MemoryCore.getSolPlan()).toEqual({ evening: { kind: 'sol', id: 'sol-sit-grief' } });
+        MemoryCore.setSolPlanEntry('evening', { kind: 'sol', id: 'sol-sit-fidelity' });
+        expect(MemoryCore.getSolPlan()).toEqual({ evening: { kind: 'sol', id: 'sol-sit-fidelity' } });
         MemoryCore.setSolPlanEntry('evening', null);
         expect(MemoryCore.getSolPlan()).toEqual({});
     });
@@ -56,10 +56,10 @@ describe('My Day resolution', () => {
     });
 
     it('a curated reassignment resolves as custom', () => {
-        MemoryCore.setSolPlanEntry('evening', { kind: 'sol', id: 'sol-arch-cosmological' });
+        MemoryCore.setSolPlanEntry('evening', { kind: 'sol', id: 'sol-sit-resolution' });
         const { sol, container } = makeSol(19);
         const { suggestion } = sol.getSuggestedSequence();
-        expect(suggestion.id).toBe('sol-arch-cosmological');
+        expect(suggestion.id).toBe('sol-sit-resolution');
         expect(suggestion.isCustom).toBe(true);
         expect(suggestion.kind).toBe('sol');
         sol.destroy();

@@ -29,8 +29,7 @@ const SOL_WINDOWS = [
 const SOL_CATEGORIES = [
     { id: 'temporal', numeral: 'I', name: 'Temporal' },
     { id: 'situational', numeral: 'II', name: 'Situational' },
-    { id: 'archetypal', numeral: 'III', name: 'Archetypal' },
-    { id: 'myday', numeral: 'IV', name: 'My Day' }
+    { id: 'myday', numeral: 'III', name: 'My Day' }
 ];
 
 /**
@@ -309,7 +308,7 @@ export class Sol {
                 <header class="sol-header">
                     <button class="sol-back" aria-label="Back to Portal">‹ Return</button>
                     <div class="sol-title-block">
-                        <h1 class="sol-title">S O L</h1>
+                        <h1 class="sol-title">SOLARIUM</h1>
                         <p class="sol-subtitle">Functional content for lived time.</p>
                     </div>
                 </header>

@@ -11,30 +11,18 @@
  * time; durationEst remains as an authorial fallback only.
  */
 
-export const SOL_TAXONOMY = {
-  temporal: [
-    { id: 'temporal-dawn', name: 'Dawn', tags: ['temporal'] },
-    { id: 'temporal-morning', name: 'Morning', tags: ['temporal'] },
-    { id: 'temporal-midday', name: 'Midday', tags: ['temporal'] },
-    { id: 'temporal-afternoon', name: 'Afternoon', tags: ['temporal'] },
-    { id: 'temporal-evening', name: 'Evening', tags: ['temporal'] },
-    { id: 'temporal-night', name: 'Night', tags: ['temporal'] },
-    { id: 'temporal-deepnight', name: 'Deep Night', tags: ['temporal'] }
-  ],
-  situational: [
-    { id: 'sit-threshold', name: 'Before the Threshold', tags: ['situational'] },
-    { id: 'sit-storm', name: 'After the Storm', tags: ['situational'] },
-    { id: 'sit-resolution', name: 'Resolution', tags: ['situational'] },
-    { id: 'sit-fidelity', name: 'Fidelity', tags: ['situational'] },
-    { id: 'sit-grief', name: 'Grief Space', tags: ['situational'] }
-  ],
-  archetypal: [
-    { id: 'arch-cosmological', name: 'Cosmological Motivation', tags: ['archetypal'] },
-    { id: 'arch-warrior', name: 'Historical Warrior', tags: ['archetypal'] },
-    { id: 'arch-creator', name: 'The Creator', tags: ['archetypal'] },
-    { id: 'arch-microcosmic', name: 'Microcosmic Body', tags: ['archetypal'] }
-  ]
-};
+/**
+ * A SECOND VOCABULARY LIVED HERE AND NOBODY SPOKE IT.
+ *
+ * `SOL_TAXONOMY` was exported and imported by nothing. It listed the
+ * sequences under ids that had drifted — `sit-threshold` where the live
+ * data says `sol-sit-threshold` — and called their titles `name` where
+ * the live data says `title`. Two shapes for one set of things, only one
+ * of them read, and the unread one quietly wrong.
+ *
+ * It is deleted rather than corrected. SOL_SEQUENCES carries the
+ * category on each entry, which is all the grouping ever needed.
+ */
 
 export const SOL_SEQUENCES = [
   // ═══════════════════════════════════════════════
@@ -194,25 +182,6 @@ export const SOL_SEQUENCES = [
     content: "You are here. Your body is here.\nBring the mind to the same address.\n\nYou have prepared.\nThe preparation is in the muscles now, in the pathways.\nIt does not need your supervision anymore.\nTrying to hold all of it in your head at the door\nis like carrying water to a river.\n\nYou are capable.\nNot certain — capable.\nCertainty is for people who have stopped growing.\nCapability is what walks through doors.\n\nThe fear you feel is voltage.\nIt has no opinion about you.\nIt will power clarity or panic — your choice of circuit.\nChoose clarity.\n\nThe only moment is now.\nThe outcome is not yours to control.\nThe outcome was never yours to control.\nOnly the action is yours.\nThe next word. The next step. The first move.\n\nBreathe in once, slow, through the nose.\nOut slower.\nDrop the shoulders.\n\nStep forward."
   },
   {
-    id: "sol-sit-storm",
-    title: "After the Storm",
-    subtitle: "After the performance. After the thing.",
-    description: "The adrenaline is fading. What now?",
-    tone: "exhale, release, gentle return",
-    durationEst: "4-6 min",
-    category: "situational",
-    config: {
-      wpm: 230,
-      curve: "flat",
-      audioPreset: "silent",
-      visualConfig: {
-        visualMode: 'focals',
-        focals: { type: 'standard', standardGlyph: 'wave' }
-      }
-    },
-    content: "It is done.\nWhatever it was, it is now in the past tense.\nNotice that.\nThe thing you rehearsed for weeks is now a memory being filed.\n\nLet the tension go.\nThe body does not know the event is over.\nIt is still guarding the walls.\nTell it, muscle by muscle.\nJaw. Shoulders. Hands.\nStand down.\n\nThe adrenaline will drain on its own schedule.\nYou may feel hollow. That is not sadness.\nThat is the tide going out after carrying you.\n\nDo not replay it yet.\nThe mind will want to run the tape immediately,\nhunting for the flawed frame.\nThe tape will still exist tomorrow.\nReview is a daylight activity.\n\nWhat happens next is not yours to control.\nYou did the thing.\nThe world is deciding what to make of it,\nand the world does not accept edits.\n\nYou are still you.\nYou were you before the outcome existed.\nYou will be you after everyone has forgotten it.\n\nExhale.\nLonger than feels natural.\nAgain.\n\nReturn to baseline.\nBaseline is not nothing.\nBaseline is home."
-  },
-  {
     id: "sol-sit-resolution",
     title: "Resolution",
     subtitle: "After conflict. After rupture. After hard conversation.",
@@ -250,97 +219,5 @@ export const SOL_SEQUENCES = [
     },
     content: "What do you actually care about?\nNot what you say at dinners.\nNot what the profile claims.\nWhat you would keep if you could keep three things.\n\nName them.\nSlowly.\nNotice how few they are.\nNotice how quiet they are —\nthe things that matter rarely shout.\nThat is why they get drowned out.\n\nWhere have you drifted?\nDo not look away from the question.\nThe calendar does not lie.\nThe screen-time report does not lie.\nWhere the hours went is where the life went.\n\nDrifting is human.\nEvery ship drifts.\nThe stars were invented for exactly this reason —\nnot to prevent drift, but to make return possible.\n\nYou can return.\nNot by heroic overhaul.\nBy one degree of correction, held steadily.\nThe smallest honest adjustment, kept,\noutweighs the grand resolution, abandoned.\n\nWhat is the one degree?\nName the single change that realigns tomorrow\nwith what you said you loved.\nSmall enough to keep.\nReal enough to count.\n\nYou can begin again.\nThis is not a consolation prize.\nBeginning again is the entire practice.\nEveryone who ever stayed true\nis just someone who returned more times than they left.\n\nRecommit to the center.\nQuietly.\nNow."
   },
-  {
-    id: "sol-sit-grief",
-    title: "Grief Space",
-    subtitle: "Loss. Absence. The gone that will not return.",
-    description: "Not to fix. Just to be with.",
-    tone: "quiet, holding, no resolution offered",
-    durationEst: "10-15 min",
-    category: "situational",
-    config: {
-      wpm: 200,
-      curve: "flat",
-      audioPreset: "silent",
-      visualConfig: { visualMode: 'off' }
-    },
-    content: "You are allowed to feel this.\nAll of it.\nAt whatever size it arrives.\n\nThe grief is here, and you are here.\nTwo presences in one room.\nIt does not need to be managed.\nIt does not need to be understood today.\nIt needs what you need — room to exist.\n\nThere is nothing wrong with you.\nThis weight is not a malfunction.\nIt is the shape love takes\nwhen it has nowhere left to be delivered.\n\nLove does not end.\nIt loses its address.\nIt keeps arriving anyway —\nin habits, in reflexes,\nin reaching for the phone with news they will not hear.\nLet it arrive.\nDo not turn it away for being useless.\nIt was never useless. It was never about use.\n\nGrief has its own time.\nIt does not read calendars.\nIt does not respect the schedules of those who say\nyou should be past this by now.\nThere is no past this.\nThere is only carrying it differently,\nand that change cannot be forced or hurried.\n\nSome days the weight will be the whole sky.\nSome days it will be a stone in the pocket.\nBoth days are grief.\nBoth days are allowed.\n\nYou do not have to be strong here.\nNo one is watching.\nThis space asks nothing.\n\nBe with it.\nThat is all.\nThat is everything."
-  },
 
-  // ═══════════════════════════════════════════════
-  // ARCHETYPAL
-  // ═══════════════════════════════════════════════
-  {
-    id: "sol-arch-cosmological",
-    title: "Cosmological Motivation",
-    subtitle: "Zoom out. Way out. See the scale.",
-    description: "You are carbon. You are stellar ash. You are brief.",
-    tone: "awe, sobriety, urgency-without-panic",
-    durationEst: "8-12 min",
-    category: "archetypal",
-    config: {
-      wpm: 370,
-      curve: "climax",
-      audioPreset: "gateway",
-      visualConfig: {
-        visualMode: 'interlocution',
-        interlocution: { sourceFamily: 'procedural', frequency: 0.25, duration: 150, sourced: [], procedural: ['turrell'] }
-      }
-    },
-    content: "The universe is unimaginably vast.\nLight itself, the fastest thing there is,\nneeds a hundred thousand years just to cross this one galaxy.\nThere are two trillion galaxies.\nHold that number for one second.\nNow let it go. No one can hold it.\n\nAlmost all of it is silent.\nRock, ice, radiation, and the long dark between.\nNo witnesses.\nNo one to see any of it happen.\n\nConsciousness is incredibly rare.\nAs far as anyone can verify, it has happened once —\nhere, in a thin film of water and carbon,\non one stone circling one ordinary fire.\nYou are made of that stone and that fire.\nThe iron in your blood was forged in a dying star.\nYou are the universe, arranged briefly into a witness.\n\nAnd it is brief.\nFour thousand weeks, give or take.\nYou have already spent some of them.\nThis is not morbid.\nThis is the price tag, finally read.\n\nWhat will you do with this brief, improbable existence?\nNot in general. Today.\nThe cosmic scale does not make your work small.\nIt makes your work astonishing —\nthat anything gets built at all, by anyone,\nin the flicker between two darknesses.\n\nThe stars are not watching.\nNo one is coming to grade this.\nThe meaning is not out there waiting.\nThe meaning is made — by hands, today, or not at all.\n\nAct with urgency, without panic.\nPanic is for those who think they have no time.\nYou have today.\nThat is exactly enough."
-  },
-  {
-    id: "sol-arch-warrior",
-    title: "Historical Warrior",
-    subtitle: "Those who came before. Those who faced worse.",
-    description: "Those who continued anyway.",
-    tone: "steel, honor, quiet fire",
-    durationEst: "6-10 min",
-    category: "archetypal",
-    config: {
-      wpm: 350,
-      curve: "ascent",
-      audioPreset: "deep",
-      visualConfig: { visualMode: 'off' }
-    },
-    content: "Think of those who faced impossible odds.\nNot the ones in the paintings — the real ones.\nCold, outnumbered, badly fed,\ncarrying doubts exactly the size of yours.\n\nThey did not feel brave.\nRead the letters they left. They were afraid the whole time.\nCourage was never the absence of fear.\nIt was the decision that fear would not give the orders.\n\nThey faced terror and continued.\nOne more hour of watch.\nOne more winter.\nOne more attempt after the plan failed —\nafter every plan failed.\nContinuing was the whole art.\nEverything else was decoration.\n\nYou are in this lineage of human endurance.\nNot metaphorically.\nEvery ancestor in your line survived long enough\nto pass the torch, against odds that beggar belief —\nplague, famine, war, despair.\nYou are the current holder of an unbroken streak.\n\nTheir strength is available to you.\nIt is not magic. It is precedent.\nProof, written in ten thousand years of mornings,\nthat a human being can be tired, afraid, uncertain —\nand still hold the line.\n\nYour battle is quieter, but it is real.\nThe discipline no one sees.\nThe standard kept when keeping it costs.\nThe work continued when no one would notice if you stopped.\nThat is the same steel. It always was.\n\nFind the quiet fire.\nBank it. It does not need to roar.\nIt needs to last.\n\nContinue."
-  },
-  {
-    id: "sol-arch-creator",
-    title: "The Creator",
-    subtitle: "You make things. This is what you do.",
-    description: "You have always made things. You will continue.",
-    tone: "affirming, activating, unblocking",
-    durationEst: "5-8 min",
-    category: "archetypal",
-    config: {
-      wpm: 320,
-      curve: "wave",
-      audioPreset: "focus",
-      visualConfig: {
-        visualMode: 'interlocution',
-        interlocution: { sourceFamily: 'procedural', frequency: 0.2, duration: 150, sourced: [], procedural: ['klee'], kleePreset: 'architectural' }
-      }
-    },
-    content: "You are a maker.\nBefore anyone taught you anything,\nyou were already arranging, stacking, drawing, naming.\nNo one assigned this to you.\nIt is not a role. It is a metabolism.\n\nYou are allowed to make.\nNo permission is pending.\nNo credential is missing.\nThe blank page is not a judge.\nIt is raw material, and it is patient.\n\nMaking is how you think.\nYou do not figure it out and then build it.\nYou build it to figure it out.\nThe confusion you feel before starting is not a warning.\nIt is the actual starting condition of all work ever made.\n\nThe work knows more than you do.\nStart it, and it starts answering back.\nThe second sentence is easier than the first.\nThe sketch corrects the idea.\nThe prototype teaches the plan.\nNothing teaches while it is still in your head.\n\nThe doubt will come. Let it come.\nDoubt is a tax on making things that did not exist before.\nEveryone pays it.\nThe ones you admire paid it that same morning.\n\nDo not wait for the feeling of readiness.\nReadiness is a rumor.\nThere is only the material, the hands, and the hour.\n\nLower the stakes until starting is possible.\nOne bad draft. One crooked line. One honest attempt.\nThe standard comes later. The start comes now.\n\nLet the doubt exist, but make anyway.\nMake anyway.\nMake."
-  },
-  {
-    id: "sol-arch-microcosmic",
-    title: "Microcosmic Body",
-    subtitle: "The body is a cosmos. The cosmos is a body.",
-    description: "Your spine is a spiral staircase. Your crown is ablaze.",
-    tone: "luminous, embodied, sacred-material",
-    durationEst: "8-15 min",
-    category: "archetypal",
-    config: {
-      wpm: 230,
-      curve: "induction",
-      audioPreset: "gateway",
-      visualConfig: {
-        visualMode: 'attractor',
-        attractor: { system: 'aizawa' }
-      }
-    },
-    content: "You are not in a body.\nYou are a body.\nThere is no small passenger behind the eyes.\nThe eyes are you. The seeing is you.\n\nBegin at the base of the spine.\nFeel it as what it is —\na column of thirty-three stones,\nstacked by a million years of standing up.\nA spiral staircase, climbed by every breath.\n\nThe breath rises.\nFollow it.\nThrough the belly, where a fire is kept burning\nwithout your supervision, day and night, for decades.\nThrough the chest, where an ocean tide\ncomes in and goes out, fifteen times a minute,\nfaithful as the moon.\n\nThe heart is not a metaphor.\nIt is a drum that started before you had a name\nand has never once rested.\nListen to it now.\nThat rhythm is the oldest thing you own.\n\nAs above, so below.\nThe blood follows the same laws as the rivers.\nThe nerves branch like lightning, like roots, like deltas.\nThe same spiral in the galaxy is in the shell,\nis in the storm, is in the cochlea of your ear\nlistening to these words.\nThe pattern repeats at every scale\nbecause flesh and cosmos are one thing.\n\nThe vital river flows through you.\nUp the staircase of the spine,\nstation by station,\nuntil it reaches the crown.\n\nThe crown is ablaze.\nNot with anything supernatural —\nwith a hundred billion neurons, burning glucose,\nholding the image of the entire universe\ninside one warm skull.\nThat is the most concentrated light known to exist.\nYou are carrying it right now.\n\nBecome luminous.\nYou already are.\nThis is simply the remembering."
-  }
 ];

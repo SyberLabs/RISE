@@ -91,11 +91,11 @@ describe('Portal SOL strip', () => {
 
     it('reflects the My Day plan for the current window', () => {
         const window_ = getWindowAt(new Date());
-        MemoryCore.setSolPlanEntry(window_.key, { kind: 'sol', id: 'sol-arch-cosmological' });
+        MemoryCore.setSolPlanEntry(window_.key, { kind: 'sol', id: 'sol-sit-resolution' });
 
         const { portal, container } = makePortal();
         expect(container.querySelector('.sol-strip-detail').textContent)
-            .toContain('from your plan · Cosmological Motivation');
+            .toContain('from your plan · Resolution');
 
         portal.destroy();
         container.remove();
