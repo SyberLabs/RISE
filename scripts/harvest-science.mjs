@@ -88,7 +88,7 @@ const get = async (url, label, { retries = 2 } = {}) => {
  */
 const CARRIES_SECRET = /[?&](api_?key|access_?token|token|signature|sig|auth)=/i;
 
-async function verifyDelivery(url, kind) {
+async function verifyDelivery(url) {
     if (!url) return { ok: false, why: 'no delivery url' };
     if (CARRIES_SECRET.test(url)) return { ok: false, why: 'url carries a credential' };
     try {
@@ -100,10 +100,10 @@ async function verifyDelivery(url, kind) {
         });
         if (!res.ok && res.status !== 206) return { ok: false, why: `HTTP ${res.status}` };
         const type = (res.headers.get('content-type') || '').split(';')[0].trim();
-        // Only a hop DECLARED to be a direct image must prove it is one.
-        // ESA/ESO hops are listing pages and NASA's is an asset manifest;
-        // holding those to image/* would fail them for being what they are.
-        if (kind === 'image' && !/^image\//i.test(type)) {
+        // Every source now yields a direct image, so every one must prove
+        // it. An HTML error page returns 200 with text/html and would
+        // otherwise pass as a working plate.
+        if (!/^image\//i.test(type)) {
             return { ok: false, why: `not an image (${type || 'no content-type'})` };
         }
         return { ok: true, type };
@@ -118,7 +118,7 @@ async function verifyAll(rows, lanes = 4) {
     const worker = async () => {
         while (next < rows.length) {
             const row = rows[next++];
-            row.delivery = await verifyDelivery(row.imageHop, row.deliveryKind);
+            row.delivery = await verifyDelivery(row.image);
         }
     };
     await Promise.all(Array.from({ length: Math.min(lanes, rows.length) }, worker));
@@ -129,11 +129,37 @@ async function verifyAll(rows, lanes = 4) {
  * Recorded in SOURCE-EXPANSION-SPEC §2z so it is handled rather than
  * rediscovered.
  */
-const unbytes = (value) => String(value ?? '')
-    .replace(/^b'(.*)'$/s, '$1')
-    .replace(/^b"(.*)"$/s, '$1')
-    .replace(/\\'/g, "'")
-    .trim();
+const unbytes = (value) => {
+    const raw = String(value ?? '').trim();
+    const wrapped = /^b(['"])([\s\S]*)\1$/.exec(raw);
+    if (!wrapped) return raw;
+    const body = wrapped[2];
+
+    // STRIPPING THE WRAPPER IS NOT DECODING THE CONTENTS. The first pass
+    // did only the former, so an ESA/Hubble credit reached the sheet
+    // reading "Carol Christian (STScI/AURA)\xc2\xa0and Selma de Mink" —
+    // the escapes rendered literally, in a line we are legally obliged to
+    // display. `\xNN` here are raw UTF-8 BYTES, not code points, so
+    // \xe2\x80\x99 is one apostrophe and not three characters; they have
+    // to be gathered into a byte stream and decoded together.
+    const bytes = [];
+    const encoder = new TextEncoder();
+    for (let i = 0; i < body.length; i++) {
+        if (body[i] !== '\\') {
+            for (const b of encoder.encode(body[i])) bytes.push(b);
+            continue;
+        }
+        const next = body[i + 1];
+        if (next === 'x') {
+            const code = Number.parseInt(body.slice(i + 2, i + 4), 16);
+            if (Number.isFinite(code)) { bytes.push(code); i += 3; continue; }
+        }
+        const simple = { n: 10, r: 13, t: 9, '\\': 92, "'": 39, '"': 34 }[next];
+        if (simple !== undefined) { bytes.push(simple); i += 1; continue; }
+        bytes.push(92);
+    }
+    return new TextDecoder('utf-8').decode(Uint8Array.from(bytes)).trim();
+};
 
 // ── Sources ─────────────────────────────────────────────────────────
 
@@ -142,6 +168,28 @@ const unbytes = (value) => String(value ?? '')
  * expose the same feed. CC BY 4.0 with a per-item `Credit` line: the
  * case the attribution machinery was built for.
  */
+/**
+ * Pick a delivery image out of a djangoplicity `Resources` array.
+ *
+ * ENUMERATED, NOT GUESSED. Across 200 rows the types are exactly Small
+ * (jpg, ~1280px, 100/100), Thumbnail (jpg, 220×140, 100/100), Large (jpg,
+ * full resolution, 99/100), and Original — which is a **tif**, and in
+ * three cases a psb of 108199×81503 pixels. `ResourceURL`, the obvious
+ * top-level field, points at that Original: taking it would have pinned a
+ * multi-gigapixel Photoshop file as a reading-surface image.
+ *
+ * Small is the display copy and Thumbnail is the contact sheet's.
+ */
+const fromResources = (row, ...types) => {
+    for (const type of types) {
+        const hit = (row.Resources || []).find(r =>
+            r.ResourceType === type && r.MediaType === 'Image'
+            && /\.jpe?g$/i.test(String(r.URL || '')));
+        if (hit) return String(hit.URL);
+    }
+    return '';
+};
+
 async function djangoplicity({ id, sourceName, feed, sourceBase }) {
     const rows = await get(feed, sourceName);
     const list = Array.isArray(rows) ? rows : (rows.collection || []);
@@ -160,10 +208,9 @@ async function djangoplicity({ id, sourceName, feed, sourceBase }) {
             sourceName,
             sourceUrl: unbytes(row.ReferenceURL) || `${sourceBase}${workId}/`,
             kind: unbytes(row.Type),
-            // The feed is a listing; the deliverable image is a second
-            // hop, exactly as Rijks and NASA are. Recorded, not guessed.
-            imageHop: `${sourceBase}${workId}/`,
-            deliveryKind: 'page'
+            image: fromResources(row, 'Small', 'Large'),
+            thumb: fromResources(row, 'Thumbnail', 'Small'),
+            page: unbytes(row.ReferenceURL) || `${sourceBase}${workId}/`
         };
     });
 }
@@ -253,10 +300,12 @@ function harvestSmithsonianRows(body, term) {
                 sourceName: d.data_source || 'Smithsonian',
                 sourceUrl: d.guid || d.record_link || '',
                 kind: media.type || 'Images',
-                // IDS delivers the pixels directly, so this hop must
-                // prove it is an image and that it needs no key.
-                imageHop: media.content || media.thumbnail || '',
-                deliveryKind: 'image',
+                // IDS delivers the pixels directly and needs no key —
+                // which is the whole basis of the no-secret design, so it
+                // is verified rather than trusted.
+                image: media.content || media.thumbnail || '',
+                thumb: media.thumbnail || media.content || '',
+                page: d.record_link || d.guid || '',
                 term });
         }
     }
@@ -286,10 +335,22 @@ async function nasa({ query, rows }) {
     const out = [];
     for (const item of body.collection?.items || []) {
         const d = item.data?.[0] || {};
+        // THE IMAGES WERE IN THE SEARCH RESPONSE ALL ALONG. `item.links`
+        // carries ~thumb/~small/~medium/~orig jpgs, so the asset-manifest
+        // second hop this used to record was never needed.
+        const link = (suffix) => (item.links || [])
+            .map(l => String(l.href || ''))
+            .find(href => href.includes(suffix)) || '';
         const prose = [d.description, d.description_508, d.title].filter(Boolean).join(' ');
         // 27 of 100 items carry no secondary_creator (§2z), so the credit
-        // falls back through what NASA's policy actually asks for.
-        const credit = d.secondary_creator || d.photographer || d.center || 'NASA';
+        // falls back through what NASA's policy actually asks for — and
+        // then makes sure it actually says it. 33 of 60 records credited
+        // only a centre acronym, "GSFC" or "MSFC", which acknowledges
+        // nobody by that name; the obligation NASA states is that "NASA
+        // should be acknowledged as the source of the material", so the
+        // institution is named even when the record only names the lab.
+        const source = d.secondary_creator || d.photographer || d.center || '';
+        const credit = /\bNASA\b/i.test(source) ? source : (source ? `NASA/${source}` : 'NASA');
         out.push({
             id: `nasa:${d.nasa_id}`,
             title: d.title || '',
@@ -304,8 +365,9 @@ async function nasa({ query, rows }) {
             sourceName: 'NASA Image and Video Library',
             sourceUrl: `https://images.nasa.gov/details/${d.nasa_id}`,
             kind: 'Images',
-            imageHop: `https://images-api.nasa.gov/asset/${d.nasa_id}`,
-            deliveryKind: 'manifest'
+            image: link('~medium.jpg') || link('~small.jpg') || link('~orig.jpg'),
+            thumb: link('~thumb.jpg') || link('~small.jpg'),
+            page: `https://images.nasa.gov/details/${d.nasa_id}`
         });
     }
     return out;
@@ -351,7 +413,7 @@ for (const [name, run] of Object.entries(SOURCES)) {
     // after the cut it would silently return less than it was asked for.
     const seen = new Set();
     const distinct = rows.filter((row) => {
-        const key = row.imageHop || row.id;
+        const key = row.image || row.id;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;

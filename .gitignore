@@ -66,6 +66,9 @@ voice-samples/
 # Contact sheets are working files, not source
 met-*.html
 contact-sheet*.html
+science-sheet.html
+science*.candidates.json
+science.json
 
 # Corpus review batches — generated per run, and the answer key must
 # never travel with the jobs. See docs/specs/CORPUS-REVIEWER-PROMPT.md
