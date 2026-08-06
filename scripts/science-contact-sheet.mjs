@@ -66,6 +66,7 @@ function card(w) {
         <div class="dim">${esc(w.date)}${w.term ? ` · <span class="term">${esc(w.term)}</span>` : ''}</div>
         <div class="lic lic-${esc(w.licence)}">${esc(w.licence)} — ${esc(note)}</div>
         <div class="credit" title="exactly what the chip will show">${esc(w.requiredCredit) || '<em>no credit line</em>'}</div>
+        ${w.creditElided ? `<details class="elided"><summary>roster set aside → Curia</summary>${esc(w.fullCredit)}</details>` : ''}
         <div class="id">${esc(w.id)} · ${esc(dims)}</div>
       </div>
     </label>`;
@@ -133,6 +134,9 @@ function render(doc) {
  .lic{font:10px monospace;margin-top:6px}
  .credit{color:#b9b9c3;font-size:11px;margin-top:5px;padding:5px 7px;background:#0f0f13;
          border-left:2px solid #3a3a44;word-break:break-word}
+ .elided{margin-top:5px;font-size:11px;color:#8b8b95}
+ .elided summary{color:#d4a574;cursor:pointer;font:10px monospace}
+ .elided[open]{background:#0f0f13;padding:5px 7px;border-left:2px solid #d4a574}
  .id{color:#5b5b65;font:10px monospace;margin-top:6px}
  .warn{color:#d47f8b}
  .rej{color:#8b8b95;font-size:12px}

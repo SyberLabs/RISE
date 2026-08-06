@@ -433,6 +433,52 @@ attribution record there, with licence and source URLs, is a resource a
 reader can actually get to. Had the Curia been dev-only this ruling would
 not stand.
 
+### Ruling: an appended roster goes to the Curia — decided 2026-08-05, Mateo
+
+> **Cut at the roster marker. Never at a length.**
+
+The contact sheet made the problem visible: one ESA/Hubble credit ran
+**723 characters** — two full observing teams — which is not a chip, it
+is a paragraph floating over the passage.
+
+The cut is **structural**, and that is the legally load-bearing part.
+§3(a)(1)(A) requires retaining identification of the creators *and any
+others designated to receive attribution*, so shortening a list of
+designated names is the risky operation. Dropping a section the provider
+itself labelled as supplementary thanks is not — ESA/Hubble's own
+convention writes `Credit: … Acknowledgment: …`, and the second is
+courtesy. §3(a)(3) then permits satisfying the condition by link where the
+medium makes the full text impractical, and the Curia ruling above is
+what makes that available.
+
+**There is no length fallback.** Five of the twelve long credits are pure
+name lists with no marker; they top out at 155 characters and are left
+whole however long they run. A chip one line too tall is a smaller
+problem than a credit naming half a person.
+
+Two markers, both observed in the data: an `Acknowledg[e]ment(s):`
+section, and a run-on where the feed concatenated two fields with no
+separator at all (`…Westerlund 2 Science Team The original observations
+of…`). A leading `Image:` / `Credit:` field label is also dropped — it
+names the field, not the creator.
+
+Result across 234 candidates: **723 → 115 characters**, longest credit now
+181, none over 300, **14 genuinely elided**. Every elision carries
+`fullCredit` for the Curia and is flagged on the contact sheet, because a
+reviewer approving an elision must see that one happened.
+
+Alongside it, the licence is now **identified rather than quoted**:
+all 120 CC-BY candidates declared `Creative Commons Attribution 4.0
+International License` (54 characters) where §3(a)(1)(B) asks only that
+the licence be identified, and `CC BY 4.0` is the identification the deed
+itself uses. Share-alike is matched **first**, because
+"Attribution-ShareAlike" contains "Attribution" and the looser pattern
+would relabel a BY-SA work as BY.
+
+**None of this reaches the CC0 corpus.** Trimming applies only to
+`requiredText`; `labelText` — what an open-licence work displays — is
+composed exactly as before, and two tests hold that line.
+
 ### Ruling: the API key never leaves the workstation — decided 2026-08-05
 
 Smithsonian is the first source that needs a key at all, which raised the

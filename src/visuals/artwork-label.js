@@ -91,6 +91,95 @@ const OWES_CREDIT = new Set([LICENCE.BY, LICENCE.BY_SA, LICENCE.PD_CREDIT]);
 
 export const creditIsRequired = (item) => OWES_CREDIT.has(licenceClassOf(item));
 
+/**
+ * Identify the licence concisely.
+ *
+ * The djangoplicity feeds declare rights as the full legal title —
+ * "Creative Commons Attribution 4.0 International License", 54 characters
+ * — and all 120 CC-BY candidates carried it. CC BY 4.0 §3(a)(1)(B) asks
+ * that the licence be *identified*, not that its title be quoted in full,
+ * and "CC BY 4.0" is the identification the licence's own deed uses.
+ *
+ * SHARE-ALIKE IS MATCHED FIRST. "Attribution-ShareAlike" contains
+ * "Attribution", so the looser pattern would swallow it and relabel a
+ * BY-SA work as BY — the exact conflation `LICENCE.BY_SA` exists to stop.
+ */
+const LICENCE_SHORT = [
+    [/creative commons\s+attribution[\s-]*(?:share[\s-]*alike|sa)[\s-]*(\d+(?:\.\d+)?)?/i, 'CC BY-SA'],
+    [/creative commons\s+attribution[\s-]*(\d+(?:\.\d+)?)?/i, 'CC BY'],
+    [/creative commons\s+zero[\s\S]*?(\d+(?:\.\d+)?)?/i, 'CC0']
+];
+
+export function shortLicenceName(text) {
+    const value = String(text ?? '').trim();
+    for (const [pattern, short] of LICENCE_SHORT) {
+        const hit = pattern.exec(value);
+        if (hit) return hit[1] ? `${short} ${hit[1]}` : short;
+    }
+    return value;
+}
+
+/**
+ * The credit proper, with an appended roster set aside for the Curia.
+ *
+ * Observatory credits append supplementary sections, and the convention
+ * is explicit: ESA/Hubble writes "Credit: … Acknowledgment: …", where the
+ * first names those designated to receive attribution and the second
+ * thanks contributors. One Westerlund 2 credit ran 723 characters —
+ * two full observing teams — which is not a chip, it is a paragraph
+ * floating over the passage.
+ *
+ * THE CUT IS STRUCTURAL, AND THERE IS NO LENGTH FALLBACK. That is the
+ * legally load-bearing part. §3(a)(1)(A) requires retaining
+ * identification of the creators *and any others designated to receive
+ * attribution*, so shortening a list of designated names is the risky
+ * operation; dropping a section the provider itself labelled as
+ * supplementary thanks is not. Five of the twelve long credits are pure
+ * name lists with no marker, they top out at 155 characters, and they are
+ * left whole however long they run — a chip that is one line too tall is
+ * a smaller problem than a credit naming half a person.
+ *
+ * CC BY 4.0 §3(a)(3) permits satisfying the condition by link where the
+ * medium makes the full text impractical, and §3a already ruled the Curia
+ * reader-reachable, so the elided roster has somewhere real to live.
+ */
+// The marker may follow a closing paren — "(STScI/AURA). Acknowledgment:"
+// — and that paren belongs to the NAME. A leading character class here
+// swallowed it and shipped "(STScI/AURA" as the credit, so the trailing
+// punctuation is cleaned after the cut instead of matched before it.
+const ROSTER_MARKER = /\s*\b(?:acknowledge?ments?|acknowledgments?)\s*:/i;
+/** A run-on where a feed concatenated two fields with no separator. */
+const RUN_ON = /\s*\b(?:the original|follow-up|these)\s+observations\b/i;
+
+/**
+ * A field label the feed left on the front of its own value — "Image:
+ * European Space Agency & NASA". It names the field, not the creator.
+ */
+const LEADING_LABEL = /^(?:image|credit|copyright)\s*:\s*/i;
+
+export function creditProper(text) {
+    const value = String(text ?? '').trim();
+    let head = value.replace(LEADING_LABEL, '');
+
+    let cut = false;
+    for (const pattern of [ROSTER_MARKER, RUN_ON]) {
+        const hit = pattern.exec(head);
+        if (hit && hit.index > 0) { head = head.slice(0, hit.index); cut = true; }
+    }
+
+    // Only sentence punctuation left dangling by the cut, never a
+    // bracket: a trailing ")" is part of the last affiliation.
+    head = head.replace(/[\s.,;:]+$/, '').trim();
+    if (!head) return { text: value, elided: false };
+
+    // ELIDED MEANS A ROSTER WAS SET ASIDE — not that a full stop was
+    // tidied. Comparing the strings conflated the two, so a credit ending
+    // "…and the OPAL team." was flagged as having material in the Curia
+    // that does not exist, and a reviewer would have been shown a promise
+    // the record could not keep.
+    return { text: head, elided: cut };
+}
+
 const HTML_ENTITIES = Object.freeze({
     amp: '&',
     apos: "'",
@@ -178,11 +267,18 @@ export function normalizeArtworkLabel(item) {
     // a fully composed credit — "Nebula · Observatory · CC BY 4.0" — and
     // appending the licence again would read as a stutter.
     const names = attribution || [title, artist, sourceName].filter(Boolean).join(' · ');
-    const namesLicence = rightsBasis
-        && names.toLowerCase().includes(rightsBasis.toLowerCase());
+
+    // TRIMMING APPLIES ONLY TO THE REQUIRED CREDIT, and that boundary is
+    // deliberate: `labelText` is what an open-licence work shows, it is
+    // already short, and nothing here may reach the CC0 corpus. A work
+    // that owes nothing is composed exactly as it always was.
+    const proper = creditRequired ? creditProper(names) : { text: names, elided: false };
+    const shortLicence = creditRequired ? shortLicenceName(rightsBasis) : rightsBasis;
+    const namesLicence = shortLicence
+        && proper.text.toLowerCase().includes(shortLicence.toLowerCase());
     const requiredText = namesLicence
-        ? names
-        : [names, rightsBasis].filter(Boolean).join(' · ');
+        ? proper.text
+        : [proper.text, shortLicence].filter(Boolean).join(' · ');
 
     return Object.freeze({
         title,
@@ -196,6 +292,14 @@ export function normalizeArtworkLabel(item) {
         creditRequired,
         labelText,
         requiredText,
+        /**
+         * The credit as the provider gave it, kept whole. `requiredText`
+         * is the chip's line; this is what the Curia must show, and the
+         * reason the elision is permissible at all — §3(a)(3)'s "where
+         * practical" only holds if the full text is reachable somewhere.
+         */
+        fullCredit: names,
+        creditElided: proper.elided,
         /**
          * A credit is owed and none can be composed. The presenter must
          * WITHHOLD the work rather than show it bare — the imagery's own

@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
     applyArtworkLabelElement,
     artworkMayBeShown,
+    creditProper,
     displayedArtworkLabel,
     LICENCE,
     licenceClassOf,
     normalizeArtworkLabel,
-    plainArtworkText
+    plainArtworkText,
+    shortLicenceName
 } from './artwork-label.js';
 
 describe('artwork label metadata boundary', () => {
@@ -176,6 +178,146 @@ describe('a work that cannot be credited is not shown', () => {
         });
         expect(artworkMayBeShown(label)).toBe(true);
         expect(displayedArtworkLabel(label, false)).toBe('J. Lee · CC BY 4.0');
+    });
+});
+
+describe('the licence is identified concisely', () => {
+    it('shortens the full legal title the feeds actually declare', () => {
+        // All 120 CC-BY candidates arrived carrying this 54-character
+        // string. §3(a)(1)(B) asks the licence be identified, and this is
+        // the identification the deed itself uses.
+        expect(shortLicenceName('Creative Commons Attribution 4.0 International License'))
+            .toBe('CC BY 4.0');
+    });
+
+    it('matches share-alike BEFORE plain attribution', () => {
+        // "Attribution-ShareAlike" CONTAINS "Attribution", so the looser
+        // pattern would relabel a BY-SA work as BY — the precise
+        // conflation LICENCE.BY_SA exists to prevent.
+        expect(shortLicenceName('Creative Commons Attribution-ShareAlike 4.0 International License'))
+            .toBe('CC BY-SA 4.0');
+    });
+
+    it('leaves an unrecognised declaration exactly as it arrived', () => {
+        expect(shortLicenceName('Public domain (NASA) — acknowledgement required'))
+            .toBe('Public domain (NASA) — acknowledgement required');
+        expect(shortLicenceName('')).toBe('');
+    });
+});
+
+describe('an appended roster is set aside for the Curia', () => {
+    it('cuts at the acknowledgment marker, not at a length', () => {
+        const { text, elided } = creditProper(
+            'NASA, ESA and the Hubble Heritage Team (STScI/AURA). '
+            + 'Acknowledgment: J. Gallagher (University of Wisconsin), M. Mountain (STScI).');
+        expect(text).toBe('NASA, ESA and the Hubble Heritage Team (STScI/AURA)');
+        expect(elided).toBe(true);
+    });
+
+    it('handles the marker with no space before it', () => {
+        const { text } = creditProper(
+            'ESA/Hubble & NASA, J. C. Tan (Chalmers University), '
+            + 'R. Fedriani (Chalmers University)Acknowledgement: Judy Schmidt');
+        expect(text).toBe('ESA/Hubble & NASA, J. C. Tan (Chalmers University), R. Fedriani (Chalmers University)');
+    });
+
+    it('cuts a run-on where the feed concatenated two fields', () => {
+        // 723 characters of two observing teams, joined with no separator
+        // at all: "…Westerlund 2 Science Team The original observations…"
+        const { text, elided } = creditProper(
+            'NASA, ESA, the Hubble Heritage Team (STScI/AURA), A. Nota (ESA/STScI), '
+            + 'and the Westerlund 2 Science Team The original observations of Westerlund 2 '
+            + 'were obtained by the science team: Antonella Nota (ESA/STScI), Elena Sabbi.');
+        expect(text).toBe('NASA, ESA, the Hubble Heritage Team (STScI/AURA), '
+            + 'A. Nota (ESA/STScI), and the Westerlund 2 Science Team');
+        expect(elided).toBe(true);
+    });
+
+    // THE CASE THE CHARACTER-CEILING OPTION WOULD HAVE BROKEN. Five of
+    // the twelve long credits are pure name lists with no marker, and
+    // half a name credits a different person than the whole one does.
+    it('leaves a long pure name list whole', () => {
+        const names = 'NASA, ESA, Michael Wong (Space Telescope Science Institute, '
+            + 'Baltimore, MD), H. B. Hammel (Space Science Institute, Boulder, CO) '
+            + 'and the Jupiter Impact Team';
+        const { text, elided } = creditProper(names);
+        expect(text).toBe(names);
+        expect(elided).toBe(false);
+    });
+
+    it('never shortens a marker-less credit, however long it runs', () => {
+        // NO LENGTH FALLBACK, deliberately. §3(a)(1)(A) requires retaining
+        // identification of everyone designated to receive attribution, so
+        // shortening a name list is the legally risky operation and
+        // dropping a section the provider itself labelled supplementary is
+        // not. A chip one line too tall beats a credit naming half a
+        // person.
+        const names = Array.from({ length: 14 },
+            (_, i) => `Alexandra Konstantinopoulos-${i} (Some Long Institution Name)`).join(', ');
+        expect(names.length).toBeGreaterThan(700);
+        expect(creditProper(names)).toEqual({ text: names, elided: false });
+    });
+
+    it('drops a field label the feed left on its own value', () => {
+        // "Image:" names the field, not the creator.
+        const { text } = creditProper(
+            'Image: European Space Agency & NASA Acknowledgements: K.D. Kuntz (GSFC)');
+        expect(text).toBe('European Space Agency & NASA');
+    });
+
+    it('does not claim an elision when it only tidied a full stop', () => {
+        // "elided" promises the Curia holds more. Comparing before/after
+        // strings conflated a trimmed period with a dropped roster, and
+        // showed the reviewer a promise the record could not keep.
+        expect(creditProper('NASA, ESA, A. Simon (GSFC) and the OPAL team.'))
+            .toEqual({ text: 'NASA, ESA, A. Simon (GSFC) and the OPAL team', elided: false });
+    });
+
+    it('keeps the closing bracket that belongs to the last affiliation', () => {
+        // A leading character class matched the ")" before the marker and
+        // shipped "(STScI/AURA" as the credit — a bracket silently taken
+        // off a name.
+        const { text } = creditProper('NASA (STScI/AURA). Acknowledgment: someone else');
+        expect(text).toBe('NASA (STScI/AURA)');
+    });
+
+    it('keeps the full credit reachable even when the chip elides', () => {
+        const full = 'NASA, ESA and the Hubble Heritage Team (STScI/AURA). '
+            + 'Acknowledgment: J. Gallagher (University of Wisconsin).';
+        const label = normalizeArtworkLabel({
+            name: 'Nebula', metadata: { license: 'CC BY 4.0', attribution: full }
+        });
+        expect(label.creditElided).toBe(true);
+        expect(label.fullCredit).toBe(full);
+        expect(displayedArtworkLabel(label, false))
+            .toBe('NASA, ESA and the Hubble Heritage Team (STScI/AURA) · CC BY 4.0');
+    });
+});
+
+describe('trimming does not reach the CC0 corpus', () => {
+    // THE INVARIANT THIS WHOLE SEPARATION PROTECTS. Every rule added for
+    // CC-BY must leave an open-licence work composed exactly as before.
+
+    it('leaves an open work with an acknowledgment section untouched', () => {
+        const label = normalizeArtworkLabel({
+            name: 'Trochilidae',
+            metadata: {
+                rights: 'CC0',
+                attribution: 'Trochilidae · NMNH · Acknowledgment: a donor who owes nothing'
+            }
+        });
+        expect(label.creditRequired).toBe(false);
+        expect(label.creditElided).toBe(false);
+        expect(displayedArtworkLabel(label, true)).toBe('Trochilidae');
+    });
+
+    it('leaves an open work with a very long title untouched', () => {
+        // Under plainArtworkText's own 240-char title cap, which predates
+        // all of this and is not what is being tested here.
+        const long = 'A specimen sheet ' + 'x'.repeat(200);
+        const label = normalizeArtworkLabel({ name: long, metadata: { rights: 'PUBLIC_DOMAIN' } });
+        expect(label.labelText).toBe(long);
+        expect(label.creditElided).toBe(false);
     });
 });
 

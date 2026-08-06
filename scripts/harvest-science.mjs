@@ -441,7 +441,16 @@ for (const [name, run] of Object.entries(SOURCES)) {
             continue;
         }
         if (row.thirdPartyRisk) { flagged++; }
-        keptRows.push({ ...row, licence, requiredCredit: label?.requiredText || '' });
+        keptRows.push({
+            ...row, licence,
+            requiredCredit: label?.requiredText || '',
+            // Carried so the contact sheet can SHOW which credits were
+            // trimmed. A reviewer approving an elision needs to see that
+            // one happened and what it set aside, or the roster ruling is
+            // being applied behind their back.
+            creditElided: Boolean(label?.creditElided),
+            fullCredit: label?.creditElided ? label.fullCredit : ''
+        });
         kept++;
     }
 
