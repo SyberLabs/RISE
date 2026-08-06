@@ -5,15 +5,6 @@
 
 export const THE_LITTLE_CLAY_CART_SECTIONS = [
     {
-        "name": "Front matter",
-        "path": [
-            "Front matter"
-        ],
-        "startAnchor": "Front matter",
-        "endAnchor": "EPILOGUE",
-        "content": "HARVARD ORIENTAL SERIES\n\n               WITH THE COOePERATION OF VARIOUS SCHOLARS\n\n\n\n                                  BY\n\n                       CHARLES ROCKWELL LANMAN\n\n          WALES PROFESSOR OF SANSKRIT IN HARVARD UNIVERSITY\n\n\n                             Volume Nine\n\n\n\n\n                       CAMBRIDGE, MASSACHUSETTS\n\n                   Published by Harvard University\n\n                                 1905\n\n       *       *       *       *       *\n\n\n\n\n                         THE LITTLE CLAY CART\n\n                            [MRCCHAKATIKA]\n\n\n\n                            A Hindu Drama\n\n                     ATTRIBUTED TO KING SHUDRAKA\n\n\n\n          TRANSLATED FROM THE ORIGINAL SANSKRIT AND PRAKRITS\n\n                     INTO ENGLISH PROSE AND VERSE\n\n\n\n                                  BY\n\n                     ARTHUR WILLIAM RYDER, PH.D.\n\n             INSTRUCTOR IN SANSKRIT IN HARVARD UNIVERSITY\n\n\n\n\n\n                       CAMBRIDGE, MASSACHUSETTS\n\n                   Published by Harvard University\n\n                                 1905\n\n\n\n                COPYRIGHT, 1905, BY HARVARD UNIVERSITY\n\n       *       *       *       *       *\n\n\n\n\nTO MY FATHER\n\nWILLIAM HENRY RYDER\n\n       *       *       *       *       *\n\n\n\n\nCONTENTS\n\n\nNOTE BY THE EDITOR OF THE SERIES\n\nPREFACE BY THE TRANSLATOR\n\nINTRODUCTION\n\nTHE AUTHOR AND THE PLAY\n\nTHE TRANSLATION\n\nAN OUTLINE OF THE PLOT\n\nDRAMATIS PERSONAE\n\n\nTRANSLATION OF THE LITTLE CLAY CART\n\nPROLOGUE\n\nACT I.    THE GEMS ARE LEFT BEHIND\n\nACT II.   THE SHAMPOOER WHO GAMBLED\n\nACT III.  THE HOLE IN THE WALL\n\nACT IV.   MADANIKA AND SHARVILAKA\n\nACT V.    THE STORM\n\nACT VI.   THE SWAPPING OF THE BULLOCK-CARTS\n\nACT VII.  ARYAKA'S ESCAPE\n\nACT VIII. THE STRANGLING OF VASANTASENA\n\nACT IX.   THE TRIAL\n\nACT X.    THE END"
-    },
-    {
         "name": "EPILOGUE",
         "path": [
             "EPILOGUE"

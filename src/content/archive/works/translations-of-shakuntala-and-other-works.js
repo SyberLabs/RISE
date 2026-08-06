@@ -5,15 +5,6 @@
 
 export const TRANSLATIONS_OF_SHAKUNTALA_AND_OTHER_WORKS_SECTIONS = [
     {
-        "name": "Front matter",
-        "path": [
-            "Front matter"
-        ],
-        "startAnchor": "Front matter",
-        "endAnchor": "INTRODUCTION",
-        "content": "EVERYMAN'S LIBRARY\n  EDITED BY ERNEST RHYS\n\n\n\n\n  POETRY AND THE DRAMA\n\n\n\n\n  KALIDASA\n  Translations of Shakuntala & Other Works\n\n\n  BY ARTHUR W. RYDER\n\n\n\n\n  THIS IS NO. 629 OF _EVERYMAN'S\n  LIBRARY_. THE PUBLISHERS WILL\n  BE PLEASED TO SEND FREELY TO ALL\n  APPLICANTS A LIST OF THE PUBLISHED\n  AND PROJECTED VOLUMES ARRANGED\n  UNDER THE FOLLOWING SECTIONS:\n\n\n\n\n\n\n  TRAVEL · SCIENCE · FICTION\n  THEOLOGY & PHILOSOPHY\n  HISTORY · CLASSICAL\n  FOR YOUNG PEOPLE\n  ESSAYS · ORATORY\n  POETRY & DRAMA\n  BIOGRAPHY\n  REFERENCE\n  ROMANCE\n\n\n  THE ORDINARY EDITION IS BOUND\n  IN CLOTH WITH GILT DESIGN AND\n  COLOURED TOP. THERE IS ALSO A\n  LIBRARY EDITION IN REINFORCED CLOTH\n\n  LONDON: J.M. DENT & SONS LTD.\n  NEW YORK: E.P. DUTTON & CO.\n\n\n\n  [Illustration:\n  KALIDASA\n  TRANSLATIONS\n  _of_ SHAKUNTALA\n  AND OTHER\n  WORKS, BY\n  ARTHUR. W.\n  RYDER.\n  UNIVERSITY\n  _of_ CALIFORNIA\n\n  LONDON & TORONTO\n  PUBLISHED BY J.M. DENT\n  &. SONS LTD & IN NEW YORK\n  BY E.P. DUTTON &. CO]\n\n\n [Illustration: #Poets are the trumpets which sing to battle\n  poets are the unacknowledged legislators of the world# Shelley]\n\n\n  FIRST ISSUE OF THIS EDITION 1912\n  REPRINTED 1920, 1928\n\n  PRINTED IN GREAT BRITAIN"
-    },
-    {
         "name": "INTRODUCTION",
         "path": [
             "INTRODUCTION"

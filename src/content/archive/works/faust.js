@@ -14,15 +14,6 @@ export const FAUST_SECTIONS = [
         "content": "MediaWiki:Wsexport_about\n\nAbout this digital edition\n\nThis e-book comes from the online library Wikisource. This multilingual digital library, built by volunteers, is committed to developing a free accessible collection of publications of every kind: novels, poems, magazines, letters...\n\nWe distribute our books for free, starting from works not copyrighted or published under a free license. You are free to use our e-books for any purpose (including commercial exploitation), under the terms of the Creative Commons Attribution-ShareAlike 4.0 Unported license or, at your choice, those of the GNU FDL.\n\nWikisource is constantly looking for new members. During the transcription and proofreading of this book, it's possible that we made some errors. You can report them at this page.\n\nThe following users contributed to this book:\n\nShakespeareFan00\n\nIerdne\n\nQx3Jw\n\nBeardo\n\nEncycloPetey\n\nTeysaKarlov\n\nHendrikWBK\n\nSmasongarrison\n\nRocket000\n\nInductiveload\n\nAlien333\n\nSeahen\n\nSaibo\n\nBoris23\n\nKABALINI\n\nBromskloss\n\nTene~commonswiki\n\nAzaToth\n\nBender235\n\nPatríciaR\n\nFaust\n\nFAUST\n\nA Tragedy\n\nBY\n\nJOHANN WOLFGANG VON GOETHE\n\nTRANSLATED, IN THE ORIGINAL METRES, BY\n\nBAYARD TAYLOR\n\nTWO VOLUMES IN ONE"
     },
     {
-        "name": "VOL. I.",
-        "path": [
-            "VOL. I."
-        ],
-        "startAnchor": "VOL. I.",
-        "endAnchor": "Scene I.",
-        "content": "VOL. I.\n\nWer die Dichtkunst will verstehen,\nMuss ins Land der Dichtung gehen:\nWer den Dichter will verstehen,\nMuss in Dichters Lande gehen.\nGoethe\n\n \n\n \n\nBOSTON AND NEW YORK\n\nHOUGHTON MIFFLIN COMPANY\n\nThe Riverside Press Cambridge\n\nCOPYRIGHT, 1870, BY BAYARD TAYLOR\n\nCOPYRIGHT, 1898 AND 1912, BY MARIE HANSEN TAYLOR\n\nALL RIGHTS RESERVED\n\nContents.\n\nPage\n\nPreface\niii\n\nAn Goethe\nxxi\n\nDedication\n1\n\nPrelude on the Stage\n3\n\nPrologue in Heaven\n11\n\nFirst Part\n17"
-    },
-    {
         "name": "Scene I.",
         "path": [
             "Scene I."
@@ -39,15 +30,6 @@ export const FAUST_SECTIONS = [
         "startAnchor": "Notes",
         "endAnchor": "VOL. II.",
         "content": "Notes\n217\n\nAppendix.\n\nI.\nThe Faust-Legend\n337\n\nII.\nChronology of Faust\n345\n\nIII.\nScene from Marlowe's \"Faustus\"\n354\n\nFAUST\n\nA Tragedy\n\nBY\n\nJOHANN WOLFGANG VON GOETHE\n\nTRANSLATED, IN THE ORIGINAL METRES, BY\n\nBAYARD TAYLOR\n\nTWO VOLUMES IN ONE"
-    },
-    {
-        "name": "VOL. II.",
-        "path": [
-            "VOL. II."
-        ],
-        "startAnchor": "VOL. II.",
-        "endAnchor": "Act I.",
-        "content": "VOL. II.\n\nSein Ohr vernimmt den Einklang der Natur\nWas die Geschichte reicht, das Leben gibt,\nSein Bussen nimmt es gleich und willig auf:\nDas weit Zerstreute sammelt sein Gemüth\nUnd sein Gefühl belebt das Unbelebte.\nGoethe: Tasso.\n\n \n\n \n\nBOSTON AND NEW YORK\n\nHOUGHTON MIFFLIN COMPANY\n\nThe Riverside Press Cambridge\n\nCOPYRIGHT, 1871, BY BAYARD TAYLOR\n\nCOPYRIGHT, 1899, AND 1913, BY MARIE HANSEN TAYLOR\n\nALL RIGHTS RESERVED\n\nSecond Part of the Tragedy.\n\nIntroduction."
     },
     {
         "name": "Act I.",
