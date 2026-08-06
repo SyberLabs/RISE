@@ -31,6 +31,7 @@ import { mysteryWork, ROSARY_MYSTERY_WORKS } from '../content/chapel/liturgy/ros
 import { CHAPEL_ICONS, CHAPEL_ICON_DEFAULTS, findChapelIcon } from '../content/chapel/imagery/icons.js';
 import { RosaryStrand } from '../visuals/rosary-strand.js';
 import { escapeHtml } from '../core/sanitize.js';
+import { createRemoteImage } from '../visuals/remote-image.js';
 
 const MODE_KEY = 'rise_chapel_rosary_mode_v1';
 const SOUND_KEY = 'rise_rosarium_sound_v1';
@@ -360,7 +361,7 @@ export class Rosarium {
         if (generation !== this._visualGeneration) return;
         this._decadeWorkCache.set(key, work);
         // Also warm the browser's image cache
-        if (work?.imageUrl) { const img = new Image(); img.src = work.imageUrl; }
+        if (work?.imageUrl) { const img = createRemoteImage(); img.src = work.imageUrl; }
       }
     } catch (e) {
       console.warn('[Rosarium] Prewarm unavailable:', e);

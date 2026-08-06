@@ -20,7 +20,7 @@ import { compileLiturgy } from '../core/liturgy-runner.js';
 import { buildStationsDefinition } from '../content/chapel/liturgy/stations-liturgy.js';
 import { STATIONS, STATIONS_ATTRIBUTION, stationByNumber } from '../content/chapel/liturgy/stations.js';
 import { escapeHtml } from '../core/sanitize.js';
-import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
+import { REMOTE_IMAGE_ATTRS, createRemoteImage } from '../visuals/remote-image.js';
 
 const ADVANCE_KEY = 'rise_via_advance_v1';
 const SOUND_KEY = 'rise_via_sound_v1';
@@ -55,7 +55,7 @@ export class Via {
 
   _prewarmImages() {
     for (const station of STATIONS) {
-      const img = new Image();
+      const img = createRemoteImage();
       img.src = station.image;
     }
   }

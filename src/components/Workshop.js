@@ -58,6 +58,7 @@ import {
 } from './workshop/workshop-visual-assets.js';
 import { ATTRACTOR_PALETTES, ATTRACTOR_SYSTEMS } from '../visuals/attractor.js';
 import './SourceBrowser.css';
+import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
 
 const MAX_TEXT_FILE_BYTES = 4 * 1024 * 1024;
 const MAX_IMAGE_FILE_BYTES = 8 * 1024 * 1024;
@@ -1413,13 +1414,13 @@ export class Workshop {
     const asset = entry.asset;
     const preview = asset.editor.preview;
     if (preview.kind === 'image') {
-      return `<img src="${safeUrl(preview.ref)}" alt="${this.escapeHtml(alt)}" loading="lazy" />`;
+      return `<img src="${safeUrl(preview.ref)}" alt="${this.escapeHtml(alt)}" loading="lazy" ${REMOTE_IMAGE_ATTRS} />`;
     }
     const sample = preview.kind === 'sample'
       ? this.collectionPreviewCache.get(preview.ref)
       : null;
     if (sample?.status === 'ready' && sample.value?.url) {
-      return `<img src="${sample.value.url}" alt="${this.escapeHtml(sample.value.alt || alt)}"
+      return `<img src="${sample.value.url}" alt="${this.escapeHtml(sample.value.alt || alt)}" ${REMOTE_IMAGE_ATTRS}
         data-preview-ref="${this.escapeHtml(preview.ref)}" data-preview-status="ready" loading="lazy" />`;
     }
     const style = entry.previewStyle ? ` style="background:${entry.previewStyle}"` : '';
