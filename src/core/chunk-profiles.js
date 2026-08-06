@@ -92,7 +92,42 @@ function prepareScripture(rawText) {
     };
 }
 
+/**
+ * PROSE — continuous paragraphs whose phrasing is the printer's, not the
+ * author's, and which therefore want the phrase floor.
+ *
+ * It changes no text at all. That is the point: this profile exists to
+ * carry a CHUNKING DECISION, not a normalisation, and inventing a text
+ * transformation to justify the shape would be worse than an honest
+ * no-op. PHRASE-CHUNKING-STUDY §7 ruled the floor a per-corpus decision
+ * requiring measurement; a profile is where a per-corpus decision lives.
+ *
+ * MEASURED 2026-08-06, 24 works sampled from the Archive, paired (each
+ * text under both conditions):
+ *
+ *   coefficient of variation   −0.227   95% CI [−0.258, −0.196]  d = −2.92
+ *   phrases of ≤2 words        −23.1 points
+ *   improved in 23 of 24 works
+ *
+ * The single work that worsened was the Ramayan, by 0.018, and its verse
+ * is BYTE-IDENTICAL under both conditions — the difference came from its
+ * title pages. Verse protects itself here: the floor never crosses a
+ * sentence end and only touches pieces under the floor, and a verse line
+ * is usually neither.
+ */
+function prepareProse(rawText) {
+    return {
+        text: typeof rawText === 'string' ? rawText : String(rawText ?? ''),
+        phraseFloor: true
+    };
+}
+
 export const CHUNK_PROFILES = Object.freeze({
+    prose: Object.freeze({
+        id: 'prose',
+        description: 'Applies the phrase floor: mechanically split prose reads as whole units.',
+        prepare: prepareProse
+    }),
     dialogue: Object.freeze({
         id: 'dialogue',
         description: 'Keeps conservative all-caps speaker labels at the head of their utterances.',

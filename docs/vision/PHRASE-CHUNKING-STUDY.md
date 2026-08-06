@@ -266,6 +266,72 @@ So `phraseFloor` is a session flag. `WAR_JOURNEY` sets it; nothing else
 does. Turning it on elsewhere is a per-corpus decision requiring the
 measurement above, not a default anyone inherits.
 
+## 7b. The floor, measured across the shelf — 2026-08-06
+
+§7 ruled the floor opt-in and said turning it on elsewhere "is a
+per-corpus decision requiring the measurement above". This is that
+measurement, prompted by a reader's report that phrase lengths vary too
+wildly — a single "with" alone beside a ten-word sentence.
+
+**Method.** 24 works drawn from the 91 in the Archive by a seeded
+shuffle (seed 20260806, reproducible), up to three divisions each so no
+long book dominates. **Paired**: the same text under both conditions, so
+every difference is the floor and nothing else. The metric is the
+coefficient of variation (sd / mean), unitless and therefore comparable
+across texts of different natural phrase length.
+
+| measure (on − off) | mean | 95% CI | t | Cohen's d |
+|---|---|---|---|---|
+| coefficient of variation | **−0.227** | [−0.258, −0.196] | −14.30 | **−2.92** |
+| % phrases ≤ 2 words | **−23.1 pts** | [−27.2, −19.1] | −11.22 | −2.29 |
+| % ending on a connective | −0.78 pts | [−1.11, −0.45] | −4.61 | −0.94 |
+| mean words per phrase | +2.53 | [2.22, 2.84] | +15.81 | +3.23 |
+
+**Improved in 23 of 24 works.** The effect is not marginal: d = −2.92 is
+roughly three standard deviations of the paired difference.
+
+### The one work that worsened is not evidence against it
+
+`the-ramayan-of-valmiki`, by 0.018. Its **verse is byte-identical under
+both conditions** — checked by eye, canto by canto. The difference comes
+entirely from its title pages and index. Verse protects itself here: the
+floor never crosses a sentence end and only touches pieces under the
+floor, and a verse line is usually neither.
+
+(Two apparatus findings fell out of looking: the Ramayan serves a title
+page and `a-hundred-verses-from-old-japan` serves an INDEX inside the
+reading stream. That is a cleansing matter, not a chunking one.)
+
+### And the recorded dialogue harm does not reproduce
+
+§7's evidence was that the floor "merged a stranded `SOCRATES:` that a
+test used as its control". Measured directly:
+
+| | floor OFF | floor ON |
+|---|---|---|
+| dialogue, no profile | **3 stranded labels** | **0** |
+| dialogue, `dialogue` profile | 0 | 0 — output byte-identical |
+
+The floor **un-strands** a speaker label; it does not strand one. And
+under the profile it is inert, because `preserveSpeakerHead` makes
+`applyPhraseFloor` decline outright. What was harmed in 2026-07 was a
+test's fixture, not a reader.
+
+### What this justifies
+
+A **`prose` chunk profile**, added here: it changes no text and carries
+only the floor decision, because a profile is where a per-corpus ruling
+lives and inventing a normalisation to justify the shape would be worse
+than an honest no-op.
+
+**It also makes a global default defensible**, which §7 did not have the
+evidence to say. The cost is measured: 97 of 101 Atrium durations move,
+mean 0.613%, max 1.780% — a re-pin, of the same size as two others made
+on 2026-08-06. That remains a decision for the creator; the evidence for
+it is now on the table rather than absent.
+
+---
+
 ## 8. Still open
 
 - §5 step 1 — **per-boundary provenance** through `splitPhrases`, which

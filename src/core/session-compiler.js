@@ -375,10 +375,17 @@ export function compileSession(input = {}) {
             sourceId: source.id,
             hints: prepared.hints || null,
             // Phrase mode's floor: merges pieces below a word floor back
-            // into what they were cut from. Opt-in per session, because
-            // it improves mechanically-split prose and would damage text
-            // whose short phrases are authored (see PHRASE-CHUNKING-STUDY).
-            phraseFloor: config.phraseFloor === true,
+            // into what they were cut from. Opt-in, because it improves
+            // mechanically-split prose and could damage text whose short
+            // phrases are authored (see PHRASE-CHUNKING-STUDY §7).
+            //
+            // A SESSION MAY ASK FOR IT, AND SO MAY A SOURCE. The session
+            // flag is a reader's or a journey's choice about the whole
+            // reading; the `prose` chunk profile is a statement about ONE
+            // TEXT — that its phrasing is the printer's rather than the
+            // author's. A shelf of mixed registers needs the second: one
+            // flag cannot be right for both Proust and the Ramayan.
+            phraseFloor: config.phraseFloor === true || prepared.phraseFloor === true,
             verseLines: source.verseLines === true
         });
         if (sourceAtoms.length === 0) continue;
