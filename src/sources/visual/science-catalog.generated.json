@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-06T04:06:53.006Z",
+  "generatedAt": "2026-08-06T04:19:51.882Z",
   "rightsVerifiedAt": "2026-08-06",
   "collections": {
     "astronomy": {
@@ -66,6 +66,44 @@
         "esahubble:heic0411a",
         "esahubble:opo0123a",
         "esahubble:potw2110a",
+        "esahubble:potw1441a",
+        "esahubble:heic1406a",
+        "esahubble:heic1305a",
+        "esahubble:heic1110a",
+        "esahubble:heic0814a",
+        "esahubble:opo0010a",
+        "esahubble:opo9433a",
+        "esahubble:potw1933a",
+        "esahubble:potw1932a",
+        "esahubble:potw1847a",
+        "esahubble:potw1805a",
+        "esahubble:potw1542a",
+        "esahubble:potw2144a",
+        "esahubble:heic1914a",
+        "esahubble:potw1921a",
+        "esahubble:heic1907a",
+        "esahubble:potw1850a",
+        "esahubble:potw1849a",
+        "esahubble:heic1814a",
+        "esahubble:heic1811a",
+        "esahubble:potw1822a",
+        "esahubble:heic1806a",
+        "esahubble:potw1804a",
+        "esahubble:potw1751a",
+        "esahubble:heic1712a",
+        "esahubble:heic1520a",
+        "esahubble:heic1518a",
+        "esahubble:heic1503a",
+        "esahubble:heic1502a",
+        "esahubble:opo1438b",
+        "esahubble:heic1410a",
+        "esahubble:heic1323a",
+        "esahubble:heic0910e",
+        "esahubble:heic0814b",
+        "esahubble:potw2044a",
+        "esahubble:potw2006a",
+        "esahubble:potw1940a",
+        "esahubble:potw1924a",
         "nasa:GSFC_20171208_Archive_e000148",
         "nasa:PIA07902",
         "nasa:PIA14728",
@@ -116,52 +154,80 @@
         "nasa:PIA05266",
         "nasa:PIA20917",
         "nasa:GSFC_20171208_Archive_e002074",
-        "nasa:PIA19872"
+        "nasa:PIA19872",
+        "nasa:GSFC_20171208_Archive_e000679",
+        "nasa:PIA23402",
+        "nasa:hubble-observes-one-of-a-kind-star-nicknamed-nasty_17754652960_o",
+        "nasa:GSFC_20171208_Archive_e000436",
+        "nasa:PIA24579",
+        "nasa:GSFC_20171208_Archive_e002063",
+        "nasa:PIA05735",
+        "nasa:GSFC_20171208_Archive_e002049",
+        "nasa:GSFC_20171208_Archive_e000993",
+        "nasa:GSFC_20171208_Archive_e000720",
+        "nasa:GSFC_20171208_Archive_e000334",
+        "nasa:GSFC_20171208_Archive_e000332",
+        "nasa:PIA05517",
+        "eso:eso1322a",
+        "eso:eso1740a",
+        "eso:eso1238a",
+        "eso:eso1131a",
+        "eso:eso0934a",
+        "eso:eso0907a",
+        "eso:eso0846a",
+        "eso:eso0202a",
+        "eso:eso1625a",
+        "eso:eso1250a",
+        "eso:eso1221a",
+        "eso:eso1208a",
+        "eso:eso1119a",
+        "eso:eso1119b",
+        "eso:eso1105a",
+        "eso:eso0949a",
+        "eso:eso0925a",
+        "eso:eso0848a",
+        "eso:eso9845d",
+        "eso:eso1723a",
+        "eso:eso1027a",
+        "eso:eso0903a",
+        "eso:eso0839a",
+        "eso:eso1031b",
+        "eso:eso1137a",
+        "eso:eso1017a",
+        "eso:eso1006a",
+        "eso:eso0650a",
+        "eso:eso1422a",
+        "eso:eso1233a",
+        "eso:eso0926a",
+        "eso:eso0755a",
+        "eso:eso2008a",
+        "eso:eso1303a",
+        "eso:eso1302a",
+        "eso:eso0936a",
+        "eso:eso0930a",
+        "eso:eso0902c",
+        "eso:eso0840a",
+        "eso:potw1901a",
+        "eso:eso1719a",
+        "eso:eso1520a",
+        "eso:eso1503a",
+        "eso:eso1424a",
+        "eso:potw1346a",
+        "eso:eso1236a",
+        "eso:eso1005a",
+        "eso:eso0949b",
+        "eso:eso0931a",
+        "eso:eso1532a",
+        "eso:potw1444a",
+        "eso:eso1420a",
+        "eso:uhd_img_2528_cc",
+        "eso:eso1412a"
       ]
     }
   },
   "licences": {
-    "cc-by": 60,
-    "public-domain-credit": 51
-  },
-  "shortlisted": {
-    "eso": [
-      "eso:eso1322a",
-      "eso:eso1740a",
-      "eso:eso1238a",
-      "eso:eso0934a",
-      "eso:eso1131a",
-      "eso:eso0907a",
-      "eso:eso0846a",
-      "eso:eso0202a",
-      "eso:eso1625a",
-      "eso:eso1250a",
-      "eso:eso1221a",
-      "eso:eso1208a",
-      "eso:eso1119a",
-      "eso:eso1119b",
-      "eso:eso1105a",
-      "eso:eso0949a",
-      "eso:eso0925a",
-      "eso:eso0848a",
-      "eso:eso9845d",
-      "eso:eso1723a",
-      "eso:eso1027a",
-      "eso:eso0903a",
-      "eso:eso0839a",
-      "eso:eso1031b",
-      "eso:eso1137a",
-      "eso:eso1017a",
-      "eso:eso0650a",
-      "eso:eso1006a",
-      "eso:eso1422a",
-      "eso:eso1233a",
-      "eso:eso0926a",
-      "eso:eso0755a",
-      "eso:eso2008a",
-      "eso:eso1302a",
-      "eso:eso1303a"
-    ]
+    "cc-by": 152,
+    "public-domain-credit": 64
   },
   "retired": [
     {
@@ -1669,6 +1735,954 @@
       "sourceUrl": "https://esahubble.org/images/potw2110a/"
     },
     {
+      "id": "esahubble:potw1441a",
+      "title": "Turquoise-tinted plumes in the Large Magellanic Cloud",
+      "description": "The brightly glowing plumes seen in this image are reminiscent of an underwater scene, with turquoise-tinted currents and nebulous strands reaching out into the surroundings. However, this is no ocean. This image actually shows part of the Large Magellanic Cloud (LMC), a small nearby galaxy that orbits our galaxy, the Milky Way, and appears as a blurred blob in our skies. The NASA/ESA Hubble Space Telescope has peeked many times into this galaxy, releasing stunning images of the whirling clouds of gas and sparkling stars (opo9944a, heic1301, potw1408a). This image shows part of the Tarantula N",
+      "artist": "ESA/Hubble",
+      "date": "2014-10-13T10:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESA/Hubble & NASA · CC BY 4.0",
+      "fullCredit": "ESA/Hubble & NASA Acknowledgement: Josh Barrington",
+      "creditElided": true,
+      "subject": {
+        "codes": [
+          "C.5.1.6"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/potw1441a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw1441a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/potw1441a/"
+    },
+    {
+      "id": "esahubble:heic1406a",
+      "title": "New Hubble image of NGC 2174",
+      "description": "To celebrate its 24th year in orbit, the NASA/ESA Hubble Space Telescope has released this beautiful new image of part of NGC 2174, also known as the Monkey Head Nebula. NGC 2174 lies about 6400 light-years away in the constellation of Orion (The Hunter). Hubble previously viewed this part of the sky back in 2011 — the colourful region is filled with young stars embedded within bright wisps of cosmic gas and dust. This portion of the Monkey Head Nebula was imaged in the infrared using Hubble's Wide Field Camera 3.",
+      "artist": "ESA/Hubble",
+      "date": "2014-03-17T10:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA, ESA, and the Hubble Heritage Team (STScI/AURA) · CC BY 4.0",
+      "fullCredit": "NASA, ESA, and the Hubble Heritage Team (STScI/AURA)",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.2.1.1"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic1406a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1406a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic1406a/"
+    },
+    {
+      "id": "esahubble:heic1305a",
+      "title": "Hubble image of Messier 77",
+      "description": "The NASA/ESA Hubble Space Telescope has captured this vivid image of spiral galaxy Messier 77 — a galaxy in the constellation of Cetus, some 45 million light-years away from us. The streaks of red and blue in the image highlight pockets of star formation along the pinwheeling arms, with dark dust lanes stretching across the galaxy’s starry centre. The galaxy belongs to a class of galaxies known as Seyfert galaxies, which have highly ionised gas surrounding an intensely active centre.",
+      "artist": "ESA/Hubble",
+      "date": "2013-03-28T14:30:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA, ESA & A. van der Hoeven · CC BY 4.0",
+      "fullCredit": "NASA, ESA & A. van der Hoeven",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic1305a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1305a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic1305a/"
+    },
+    {
+      "id": "esahubble:heic1110a",
+      "title": "Spectacular Hubble view of Centaurus A",
+      "description": "Centaurus A, also known as NGC 5128, is well known for its dramatic dusty lanes of dark material. Hubble’s new observations, using its most advanced instrument, the Wide Field Camera 3, are the most detailed ever made of this galaxy. They have been combined here in a multi-wavelength image which reveals never-before-seen detail in the dusty portion of the galaxy. As well as features in the visible spectrum, this composite shows ultraviolet light, which comes from young stars, and near-infrared light, which lets us glimpse some of the detail otherwise obscured by the dust.",
+      "artist": "ESA/Hubble",
+      "date": "2011-06-16T15:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA, ESA, and the Hubble Heritage (STScI/AURA)-ESA/Hubble Collaboration · CC BY 4.0",
+      "fullCredit": "NASA, ESA, and the Hubble Heritage (STScI/AURA)-ESA/Hubble Collaboration. Acknowledgment: R. O’Connell (University of Virginia) and the WFC3 Scientific Oversight Committee",
+      "creditElided": true,
+      "subject": {
+        "codes": [
+          "C.5.4.6",
+          "C.5"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic1110a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1110a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic1110a/"
+    },
+    {
+      "id": "esahubble:heic0814a",
+      "title": "Abell 2218",
+      "description": "The picture shows Abell 2218, a rich galaxy cluster composed of thousands of individual galaxies. It sits about 2.1 billion light-years from the Earth (redshift 0.17) in the northern constellation of Draco. When used by astronomers as a powerful gravitational lens to magnify distant galaxies, the cluster allows them to peer far into the Universe. However, it not only magnifies the images of hidden galaxies, but also distorts them into long, thin arcs. Several arcs in the image can be studied in detail thanks to Hubble's sharp vision. Multiple distorted images of the same galaxies can be identi",
+      "artist": "ESA/Hubble",
+      "date": "2008-07-24T17:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA, ESA, and Johan Richard (Caltech, USA) · CC BY 4.0",
+      "fullCredit": "NASA, ESA, and Johan Richard (Caltech, USA)Acknowledgement: Davide de Martin & James Long (ESA/Hubble)",
+      "creditElided": true,
+      "subject": {
+        "codes": [
+          "D.5.5.3",
+          "D.5.1.8"
+        ],
+        "branches": [
+          "D"
+        ],
+        "label": "D · Cosmology"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic0814a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0814a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic0814a/"
+    },
+    {
+      "id": "esahubble:opo0010a",
+      "title": "A reflection nebula in Orion",
+      "description": "Just weeks after NASA astronauts repaired the Hubble Space Telescope in December 1999, the Hubble Heritage Project snapped this picture of NGC 1999, a nebula in the constellation Orion. The Heritage astronomers, in collaboration with scientists in Texas and Ireland, used Hubble's Wide Field Planetary Camera 2 (WFPC2) to obtain this colour image.",
+      "artist": "ESA/Hubble",
+      "date": "2000-03-02T07:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA/ESA and the Hubble Heritage Team (STScI) · CC BY 4.0",
+      "fullCredit": "NASA/ESA and the Hubble Heritage Team (STScI)",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.2.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/opo0010a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/opo0010a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/opo0010a/"
+    },
+    {
+      "id": "esahubble:opo9433a",
+      "title": "True colour image of impact zones D and G",
+      "description": "This true colour image of the giant planet Jupiter, by NASA and ESA's Hubble Space Telescope, reveals the impact sites of fragments 'D' and 'G' from Comet Shoemaker-Levy 9.",
+      "artist": "ESA/Hubble",
+      "date": "1994-07-21T06:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "H. Hammel, MIT and NASA/ESA · CC BY 4.0",
+      "fullCredit": "H. Hammel, MIT and NASA/ESA",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "A.1.2.1.4",
+          "A.1.1.2"
+        ],
+        "branches": [
+          "A"
+        ],
+        "label": "A · Solar system"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/opo9433a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/opo9433a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/opo9433a/"
+    },
+    {
+      "id": "esahubble:potw1933a",
+      "title": "The Death of a Star",
+      "description": "This atmospheric Picture of the Week, taken with the NASA/ESA Hubble Space Telescope, shows a dark, gloomy scene in the constellation of Gemini (The Twins). The subject of this image confused astronomers when it was first studied — rather than being classified as a single object, it was instead recorded as two objects, owing to its symmetrical lobed structure (known as NGC 2371 and NGC 2372, though sometimes referred to together as NGC 2371/2).  These two lobes are visible to the upper right and lower left of the frame, and together form something known as a planetary nebula. Despite the name,",
+      "artist": "ESA/Hubble",
+      "date": "2019-08-19T06:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESA/Hubble & NASA, R. Wade et al · CC BY 4.0",
+      "fullCredit": "ESA/Hubble & NASA, R. Wade et al.",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.3"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/potw1933a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw1933a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/potw1933a/"
+    },
+    {
+      "id": "esahubble:potw1932a",
+      "title": "The Inky Abyss",
+      "description": "Although it looks more like an entity seen through a microscope than a telescope, this rounded object, named NGC 2022, is certainly no alga or tiny, blobby jellyfish. Instead, it is a vast orb of gas in space, cast off by an ageing star. The star is visible in the orb's centre, shining through the gases it formerly held onto for most of its stellar life.  When stars like the Sun grow advanced in age, they expand and glow red. These so-called red giants then begin to lose their outer layers of material into space. More than half of such a star's mass can be shed in this manner, forming a shell ",
+      "artist": "ESA/Hubble",
+      "date": "2019-08-12T06:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESA/Hubble & NASA, R. Wade · CC BY 4.0",
+      "fullCredit": "ESA/Hubble & NASA, R. Wade",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.4.1.3"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/potw1932a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw1932a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/potw1932a/"
+    },
+    {
+      "id": "esahubble:potw1847a",
+      "title": "Different generations",
+      "description": "Star clusters are common structures throughout the Universe, each made up of hundreds of thousands of stars all bound together by gravity. This star-filled image, taken with the NASA/ESA Hubble Space Telescope’s Wide Field Camera 3 (WFC3), shows one of them: NGC 1866. NGC 1866 is found at the very edges of the Large Magellanic Cloud, a small galaxy located near to the Milky Way. The cluster was discovered in 1826 by Scottish astronomer James Dunlop, who catalogued thousands of stars and deep-sky objects during his career. However, NGC 1866 is no ordinary cluster. It is a surprisingly young glo",
+      "artist": "ESA/Hubble",
+      "date": "2018-11-19T06:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESA/Hubble & NASA · CC BY 4.0",
+      "fullCredit": "ESA/Hubble & NASA",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.3.6.4.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/potw1847a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw1847a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/potw1847a/"
+    },
+    {
+      "id": "esahubble:potw1805a",
+      "title": "Twins with differences",
+      "description": "This NASA/ESA Hubble Space Telescope image shows a spiral galaxy known as NGC 7331. First spotted by the prolific galaxy hunter William Herschel in 1784, NGC 7331 is located about 45 million light-years away in the constellation of Pegasus (The Winged Horse). Facing us partially edge-on, the galaxy showcases it’s beautiful arms which swirl like a whirlpool around its bright central region. Astronomers took this image using Hubble’s Wide Field Camera 3 (WFC3), as they were observing an extraordinary exploding star — a supernova — which can still be faintly seen as a tiny red dot near the galaxy",
+      "artist": "ESA/Hubble",
+      "date": "2018-01-29T06:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESA/Hubble & NASA/D. Milisavljevic (Purdue University) · CC BY 4.0",
+      "fullCredit": "ESA/Hubble & NASA/D. Milisavljevic (Purdue University)",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.5.2"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/potw1805a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw1805a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/potw1805a/"
+    },
+    {
+      "id": "esahubble:potw1542a",
+      "title": "Starburst galaxy Messier 94",
+      "description": "This image shows the galaxy Messier 94, which lies in the small northern constellation of the Hunting Dogs, about 16 million light-years away. Within the bright ring around Messier 94 new stars are forming at a high rate and many young, bright stars are present within it – thanks to this, this feature is called a starburst ring. The cause of this peculiarly shaped star-forming region is likely a pressure wave going outwards from the galactic centre, compressing the gas and dust in the outer region. The compression of material means the gas starts to collapse into denser clouds. Inside these de",
+      "artist": "ESA/Hubble",
+      "date": "2015-10-19T10:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESA/Hubble & NASA · CC BY 4.0",
+      "fullCredit": "ESA/Hubble & NASA",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.3.3"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/potw1542a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw1542a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/potw1542a/"
+    },
+    {
+      "id": "esahubble:potw2144a",
+      "title": "Cosmic Fireworks",
+      "description": "This NASA/ESA Hubble Space Telescope Picture of the Week features the galaxy NGC 6984, an elegant spiral galaxy in the constellation Indus roughly 200 million light-years away from Earth. The galaxy is a familiar sight for Hubble, having already been captured in 2013. The sweeping spiral arms are threaded through with a delicate tracery of dark lanes of gas and dust, and studded with bright stars and luminous star-forming regions. These new observations were made following an extremely rare astronomical event — a double supernova in NGC 6984. Supernovae are unimaginably violent explosions on a",
+      "artist": "ESA/Hubble",
+      "date": "2021-11-01T06:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESA/Hubble & NASA, D. Milisavljevic · CC BY 4.0",
+      "fullCredit": "ESA/Hubble & NASA, D. Milisavljevic",
+      "creditElided": false,
+      "image": "https://cdn.esahubble.org/archives/images/screen/potw2144a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw2144a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/potw2144a/"
+    },
+    {
+      "id": "esahubble:heic1914a",
+      "title": "Jupiter’s Colourful Palette",
+      "description": "The NASA/ESA Hubble Space Telescope reveals the intricate, detailed beauty of Jupiter’s clouds in this new image taken on 27 June 2019 by Hubble’s Wide Field Camera 3, when the planet was 644 million kilometres from Earth — its closest distance this year. The image features the planet’s trademark Great Red Spot and a more intense colour palette in the clouds swirling in the planet’s turbulent atmosphere than seen in previous years. The observations of Jupiter form part of the Outer Planet Atmospheres Legacy (OPAL) programme.",
+      "artist": "ESA/Hubble",
+      "date": "2019-08-08T16:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA, ESA, A. Simon (Goddard Space Flight Center), and M.H. Wong (University of California, Berkeley) · CC BY 4.0",
+      "fullCredit": "NASA, ESA, A. Simon (Goddard Space Flight Center), and M.H. Wong (University of California, Berkeley)",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.1.2.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic1914a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1914a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic1914a/"
+    },
+    {
+      "id": "esahubble:potw1921a",
+      "title": "Bucking the trend",
+      "description": "This luminous orb is the galaxy NGC 4621, better known as Messier 59. As this latter moniker indicates, the galaxy was listed in the famous catalogue of deep-sky objects compiled by French comet-hunter Charles Messier in 1779. However, German astronomer Johann Gottfried Koehler is credited with discovering the galaxy just days before Messier added it to his collection.    Modern observations show that Messier 59 is an elliptical galaxy, one of the three main kinds of galaxies along with spirals and irregulars. Ellipticals tend to be the most evolved of the trio, full of old, red stars and exhi",
+      "artist": "ESA/Hubble",
+      "date": "2019-05-27T06:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESA/Hubble & NASA, P. Cote · CC BY 4.0",
+      "fullCredit": "ESA/Hubble & NASA, P. Cote",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.4"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/potw1921a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw1921a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/potw1921a/"
+    },
+    {
+      "id": "esahubble:heic1907a",
+      "title": "The Crab of the Southern Sky",
+      "description": "The Southern Crab Nebula — Hubble’s 29th anniversary image.",
+      "artist": "ESA/Hubble",
+      "date": "2019-04-18T16:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA, ESA, and STScI · CC BY 4.0",
+      "fullCredit": "NASA, ESA, and STScI",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic1907a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1907a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic1907a/"
+    },
+    {
+      "id": "esahubble:potw1850a",
+      "title": "25 years of stunning definition",
+      "description": "This stunning spiral galaxy is Messier 100 in the constellation Coma Berenices, captured here by the NASA/ESA Hubble Space Telescope — not for the first time. Among Hubble’s most striking images of Messier 100 are a pair taken just over a month apart, before and after Servicing Mission 1, which took place 25 years ago in December 1993. After Hubble was launched, the astronomers and engineers operating the telescope found that the images it returned were fuzzy, as if it were out of focus. In fact, that was exactly what was happening. Hubble’s primary mirror functions like a satellite dish; its ",
+      "artist": "ESA/Hubble",
+      "date": "2018-12-10T06:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA, ESA · CC BY 4.0",
+      "fullCredit": "NASA, ESA",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/potw1850a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw1850a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/potw1850a/"
+    },
+    {
+      "id": "esahubble:potw1849a",
+      "title": "Clusters within clusters",
+      "description": "This image, from the NASA/ESA Hubble Space Telescope’s Advanced Camera for Surveys (ACS), reveals thousands of globular clusters lying at the core of a galaxy cluster. It was created by a Hubble survey that drew on data from three of the telescope’s separate observing programmes to explore the centre of the Coma cluster, a huge gathering of over 1000 galaxies, about 320 million light-years away, all bound together by gravity. Astronomers spotted over 22 000 globular clusters, some of which had formed a bridge connecting a pair of well-known interacting galaxies (NGC 4889 and NGC 4874). A globu",
+      "artist": "ESA/Hubble",
+      "date": "2018-12-03T06:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA, ESA, J. Mack, and J. Madrid et al · CC BY 4.0",
+      "fullCredit": "NASA, ESA, J. Mack, and J. Madrid et al.",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.5.3",
+          "C.3.6.4.2"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/potw1849a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw1849a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/potw1849a/"
+    },
+    {
+      "id": "esahubble:heic1814a",
+      "title": "Mars and Saturn close to opposition",
+      "description": "This image shows the recent observations of the planets Mars and Saturn made with the NASA/ESA Hubble Space Telescope. The observations of both objects were made in June and July 2018 and show the planets close to their opposition. Hubble’s high-resolution images of the planets and moons in our Solar System can only be surpassed by pictures taken from spacecraft that actually visit them. Hubble even has one advantage over these probes: it can look at these objects periodically and observe them over much longer periods than any passing probe could. Hubble’s first observations of Mars date back ",
+      "artist": "ESA/Hubble",
+      "date": "2018-07-26T16:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "Saturn: NASA, ESA, A. Simon (GSFC) and the OPAL Team, and J. DePasquale (STScI); Mars: NASA, ESA, and STScI · CC BY 4.0",
+      "fullCredit": "Saturn: NASA, ESA, A. Simon (GSFC) and the OPAL Team, and J. DePasquale (STScI); Mars: NASA, ESA, and STScI",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "A.1"
+        ],
+        "branches": [
+          "A"
+        ],
+        "label": "A · Solar system"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic1814a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1814a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic1814a/"
+    },
+    {
+      "id": "esahubble:heic1811a",
+      "title": "Peculiar galaxy NGC 3256",
+      "description": "This image, taken with the Wide Field Camera 3 (WFC3) and the Advanced Camera for Surveys (ACS), both installed on the NASA/ESA Hubble Space Telescope, shows the peculiar galaxy NGC 3256. The galaxy is about 100 million light-years from Earth and is the result of a past galactic merger, which created its distorted appearance. As such, NGC 3256 provides an ideal target to investigate starbursts that have been triggered by galaxy mergers. Another image of NGC 3256 was already released in 2008, as part of a collection of interacting galaxies, created for Hubble’s 18th birthday.",
+      "artist": "ESA/Hubble",
+      "date": "2018-05-31T16:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESA/Hubble, NASA · CC BY 4.0",
+      "fullCredit": "ESA/Hubble, NASA",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.7"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic1811a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1811a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic1811a/"
+    },
+    {
+      "id": "esahubble:potw1822a",
+      "title": "A green cosmic arc",
+      "description": "This NASA/ESA Hubble Space Telescope image shows a cluster of hundreds of galaxies located about 7.5 billion light-years from Earth. The brightest galaxy within this cluster named SDSS J1156+1911 and known as the Brightest Cluster Galaxy (BCG), is visible in the lower middle of the frame. It was discovered by the Sloan Giant Arcs Survey which studied data maps covering huge parts of the sky from the Sloan Digital Sky Survey: it found more than 70 galaxies that look to be significantly affected by a cosmic phenomenon known as gravitational lensing. Gravitational lensing is one of the prediction",
+      "artist": "ESA/Hubble",
+      "date": "2018-05-28T06:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESA/Hubble & NASA · CC BY 4.0",
+      "fullCredit": "ESA/Hubble & NASA Acknowledgement: Judy Schmidt (Geckzilla)",
+      "creditElided": true,
+      "subject": {
+        "codes": [
+          "D.5.5.3"
+        ],
+        "branches": [
+          "D"
+        ],
+        "label": "D · Cosmology"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/potw1822a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw1822a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/potw1822a/"
+    },
+    {
+      "id": "esahubble:heic1806a",
+      "title": "A ghostly galaxy lacking dark matter",
+      "description": "NGC 1052-DF2 resides about 65 million light-years away in the NGC 1052 Group, which is dominated by a massive elliptical galaxy called NGC 1052. This large, fuzzy-looking galaxy is so diffuse that astronomers can clearly see distant galaxies behind it. This ghostly galaxy is not well-formed. It does not look like a typical spiral galaxy, but it does not look like an elliptical galaxy either. Based on the colours of its globular clusters, the galaxy is about 10 billion years old. However, even the globular clusters are strange: they are twice as large as typical groups of stars. All of these od",
+      "artist": "ESA/Hubble",
+      "date": "2018-03-28T19:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA, ESA, and P. van Dokkum (Yale University) · CC BY 4.0",
+      "fullCredit": "NASA, ESA, and P. van Dokkum (Yale University)",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic1806a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1806a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic1806a/"
+    },
+    {
+      "id": "esahubble:potw1804a",
+      "title": "Standout stars",
+      "description": "This image from the NASA/ESA Hubble Space Telescope reveals a glistening and ancient globular cluster named NGC 3201 — a gathering of hundreds of thousands of stars bound together by gravity. NGC 3201 was discovered in 1826 by the Scottish astronomer James Dunlop, who described it as a “pretty large, pretty bright” object that becomes “rather irregular” towards its centre. Globular clusters are found around all large galaxies, but their origin and role in galaxy formation remain tantalisingly unclear. Astronomers recently discovered a black hole lurking at the heart of NGC 3201 — its position ",
+      "artist": "ESA/Hubble",
+      "date": "2018-01-22T06:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESA/Hubble & NASA · CC BY 4.0",
+      "fullCredit": "ESA/Hubble & NASA",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.3.6.4.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/potw1804a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw1804a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/potw1804a/"
+    },
+    {
+      "id": "esahubble:potw1751a",
+      "title": "A snowstorm of stars",
+      "description": "It’s beginning to look a lot like Christmas in this NASA/ESA Hubble Space Telescope image of a blizzard of stars, which resembles a swirling storm in a snow globe. These stars make up the globular cluster Messier 79, located about 40 000 light-years from Earth in the constellation of Lepus (The Hare). Globular clusters are gravitationally bound groupings of up to one million stars. These giant “star globes” contain some of the oldest stars in our galaxy. Messier 79 is no exception; it contains about 150 000 stars, packed into an area measuring just roughly 120 light-years across. This 11.7-bil",
+      "artist": "ESA/Hubble",
+      "date": "2017-12-18T06:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA and ESA · CC BY 4.0",
+      "fullCredit": "NASA and ESA Acknowledgement: S. Djorgovski (Caltech) and F. Ferraro (University of Bologna)",
+      "creditElided": true,
+      "subject": {
+        "codes": [
+          "B.3.6.4.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/potw1751a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw1751a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/potw1751a/"
+    },
+    {
+      "id": "esahubble:heic1712a",
+      "title": "NGC 1512 and NGC 1510",
+      "description": "This composite image, created out of two different pointings from Hubble, shows the barred spiral galaxy NGC 1512 (left) and the dwarf galaxy NGC 1510 (right). Both galaxies are about 30 million light-years away from Earth and currently in the process of merging. At the end of this process NGC 1512 will have cannibalised its smaller companion.",
+      "artist": "ESA/Hubble",
+      "date": "2017-07-27T14:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESA/Hubble, NASA · CC BY 4.0",
+      "fullCredit": "ESA/Hubble, NASA",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.7",
+          "C.5.2.2",
+          "C.5.1.2"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic1712a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1712a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic1712a/"
+    },
+    {
+      "id": "esahubble:heic1520a",
+      "title": "Revisiting the Veil Nebula",
+      "description": "This image shows a small section of the Veil Nebula, as it was observed by the NASA/ESA Hubble Space Telescope. This section of the outer shell of the famous supernova remnant is in a region known as NGC 6960 or — more colloquially — the Witch’s Broom Nebula.",
+      "artist": "ESA/Hubble",
+      "date": "2015-09-24T16:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA, ESA, Hubble Heritage Team · CC BY 4.0",
+      "fullCredit": "NASA, ESA, Hubble Heritage Team",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.4"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic1520a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1520a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic1520a/"
+    },
+    {
+      "id": "esahubble:heic1518a",
+      "title": "The Twin Jet Nebula",
+      "description": "The Twin Jet Nebula, or PN M2-9, is a striking example of a bipolar planetary nebula. Bipolar planetary nebulae are formed when the central object is not a single star, but a binary system, Studies have shown that the nebula’s size increases with time, and measurements of this rate of increase suggest that the stellar outburst that formed the lobes occurred just 1200 years ago.",
+      "artist": "ESA/Hubble",
+      "date": "2015-08-26T15:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESA/Hubble & NASA · CC BY 4.0",
+      "fullCredit": "ESA/Hubble & NASA Acknowledgement: Judy Schmidt",
+      "creditElided": true,
+      "subject": {
+        "codes": [
+          "B.4.1.3"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic1518a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1518a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic1518a/"
+    },
+    {
+      "id": "esahubble:heic1503a",
+      "title": "Hubble image of NGC 7714",
+      "description": "NGC 7714 is a spiral galaxy 100 million light-years from Earth — a relatively close neighbour in cosmic terms. The galaxy has witnessed some violent and dramatic events in its recent past. Tell-tale signs of this brutality can be seen in NGC 7714's strangely shaped arms, and in the smoky golden haze that stretches out from the galactic centre — caused by an ongoing merger with its smaller galactic companion NGC 7715, which is out of the frame of this image.",
+      "artist": "ESA/Hubble",
+      "date": "2015-01-29T16:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESA, NASA · CC BY 4.0",
+      "fullCredit": "ESA, NASA Acknowledgement: A. Gal-Yam (Weizmann Institute of Science)",
+      "creditElided": true,
+      "subject": {
+        "codes": [
+          "C.5.1.7"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic1503a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1503a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic1503a/"
+    },
+    {
+      "id": "esahubble:heic1502a",
+      "title": "Sharpest ever view of the Andromeda Galaxy",
+      "description": "This image, captured with the NASA/ESA Hubble Space Telescope, is the largest and sharpest image ever taken of the Andromeda galaxy — otherwise known as M31. This is a cropped version of the full image and has 1.5 billion pixels. You would need more than 600 HD television screens to display the whole image. It is the biggest Hubble image ever released and shows over 100 million stars and thousands of star clusters embedded in a section of the galaxy’s pancake-shaped disc stretching across over 40 000 light-years. This image is too large to be easily displayed at full resolution and is best app",
+      "artist": "ESA/Hubble",
+      "date": "2015-01-05T23:15:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA, ESA, J. Dalcanton (University of Washington, USA), B. F. Williams (University of Washington, USA), L. C. Johnson (University of Washington, USA), the PHAT team, and R. Gendler · CC BY 4.0",
+      "fullCredit": "NASA, ESA, J. Dalcanton (University of Washington, USA), B. F. Williams (University of Washington, USA), L. C. Johnson (University of Washington, USA), the PHAT team, and R. Gendler.",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic1502a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1502a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic1502a/"
+    },
+    {
+      "id": "esahubble:opo1438b",
+      "title": "Spiral galaxy M81",
+      "description": "This NASA/ESA Hubble Space Telescope photo shows the majestic spiral galaxy M81. In the midsts of this galaxy is the supernova 1993J which was recently found to have a companion star which had been hidden in the glow of the supernova for 21 years. The location of the supernova can be seen in the annotated version of this image. Links:  NASA Press release Artist's impression of supernova 1993J Supernova 1993J in spiral galaxy M81 Supernova 1993J Scenario for Type IIb supernova 1993J",
+      "artist": "ESA/Hubble",
+      "date": "2014-09-10T11:55:18",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA, ESA, A. Zezas (CfA), and A. Filippenko (UC Berkeley) · CC BY 4.0",
+      "fullCredit": "NASA, ESA, A. Zezas (CfA), and A. Filippenko (UC Berkeley) Acknowledgment: Hubble Heritage Team (STScI/AURA) & O. Fox (University of California, Berkeley)",
+      "creditElided": true,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/opo1438b.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/opo1438b.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/opo1438b/"
+    },
+    {
+      "id": "esahubble:heic1410a",
+      "title": "Jupiter and its shrunken Great Red Spot",
+      "description": "This full-disc image of Jupiter was taken on 21 April 2014 with Hubble's Wide Field Camera 3 (WFC3).",
+      "artist": "ESA/Hubble",
+      "date": "2014-05-15T16:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "Image Credit: NASA, ESA, and A. Simon (Goddard Space Flight Center) · CC BY 4.0",
+      "fullCredit": "Image Credit: NASA, ESA, and A. Simon (Goddard Space Flight Center) Acknowledgement: C. Go Science Credit: A. Simon (Goddard Space Flight Center), G. Orton (Jet Propulsion Laboratory), J. Rogers (University of Cambridge, UK), and M. Wong and I. de Pater (University of California, Berkeley)",
+      "creditElided": true,
+      "subject": {
+        "codes": [
+          "A.1"
+        ],
+        "branches": [
+          "A"
+        ],
+        "label": "A · Solar system"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic1410a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1410a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic1410a/"
+    },
+    {
+      "id": "esahubble:heic1323a",
+      "title": "Hubble image of variable star RS Puppis",
+      "description": "This Hubble image shows RS Puppis, a type of variable star known as a Cepheid variable. As variable stars go, Cepheids have comparatively long periods — RS Puppis, for example, varies in brightness by almost a factor of five every 40 or so days. RS Puppis is unusual; this variable star is shrouded by thick, dark clouds of dust enabling a phenomenon known as a light echo to be shown with stunning clarity. These Hubble observations show the ethereal object embedded in its dusty environment, set against a dark sky filled with background galaxies.",
+      "artist": "ESA/Hubble",
+      "date": "2013-12-17T16:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA, ESA, and the Hubble Heritage Team (STScI/AURA)-Hubble/Europe CollaborationAcknowledgment: H. Bond (STScI and Penn State University) · CC BY 4.0",
+      "fullCredit": "NASA, ESA, and the Hubble Heritage Team (STScI/AURA)-Hubble/Europe CollaborationAcknowledgment: H. Bond (STScI and Penn State University)",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.3.2.1.1",
+          "B.4.2.2.1"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic1323a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1323a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic1323a/"
+    },
+    {
+      "id": "esahubble:heic0910e",
+      "title": "WFC3 visible image of the Carina Nebula",
+      "description": "Composed of gas and dust, the pictured pillar resides in a tempestuous stellar nursery called the Carina Nebula, located 7500 light-years away in the southern constellation of Carina. Taken in visible light, the image shows the tip of the three-light-year-long pillar, bathed in the glow of light from hot, massive stars off the top of the image. Scorching radiation and fast winds (streams of charged particles) from these stars are sculpting the pillar and causing new stars to form within it. Streamers of gas and dust can be seen flowing off the top of the structure. Hubble's Wide Field Camera 3",
+      "artist": "ESA/Hubble",
+      "date": "2009-09-09T17:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA, ESA and the Hubble SM4 ERO Team · CC BY 4.0",
+      "fullCredit": "NASA, ESA and the Hubble SM4 ERO Team",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic0910e.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0910e.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic0910e/"
+    },
+    {
+      "id": "esahubble:heic0814b",
+      "title": "Abell 1703",
+      "description": "Located in the northern celestial hemisphere, Abell 1703 is composed of over one hundred different galaxies that act as a powerful cosmic telescope, or gravitational lens. The gravitational lens produced by the massive galaxy cluster in the foreground (the yellow mostly elliptical galaxies scattered across the image) bends the light rays in a way that can stretch the images and so amplify the brightness of the light rays from more distant galaxies. In the process it distorts their shapes and produces multiple banana-shaped images of the original galaxies. The result is the stunning image seen ",
+      "artist": "ESA/Hubble",
+      "date": "2008-07-24T17:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA, ESA, and Johan Richard (Caltech, USA) · CC BY 4.0",
+      "fullCredit": "NASA, ESA, and Johan Richard (Caltech, USA)Acknowledgement: Davide de Martin & James Long (ESA/Hubble)",
+      "creditElided": true,
+      "subject": {
+        "codes": [
+          "D.5.5.3"
+        ],
+        "branches": [
+          "D"
+        ],
+        "label": "D · Cosmology"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/heic0814b.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0814b.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/heic0814b/"
+    },
+    {
+      "id": "esahubble:potw2044a",
+      "title": "A Waterfall of Stars",
+      "description": "The galaxy UGCA 193, seen here by the NASA/ESA Hubble Space Telescope, is a galaxy in the constellation of Sextans (The Sextant). Looking rather like a waterfall, UGCA 193 appears to host many young stars, especially in its lower portion, creating a striking blue haze and the sense that the stars are falling from “above”. The blue colour of UGCA 193 indicates the stars that we see are hot —  some with temperatures exceeding 6 times that of our Sun. We know that cooler stars appear to our eyes more red, and hotter stars appear more blue. As the mass and surface temperature of a star, and theref",
+      "artist": "ESA/Hubble",
+      "date": "2020-11-02T06:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESA/Hubble & NASA, R. TullyAcknowledgement: Gagandeep Anand · CC BY 4.0",
+      "fullCredit": "ESA/Hubble & NASA, R. TullyAcknowledgement: Gagandeep Anand",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/potw2044a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw2044a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/potw2044a/"
+    },
+    {
+      "id": "esahubble:potw2006a",
+      "title": "Open Arms",
+      "description": "The spiral galaxy NGC 2008 sits centre stage, its ghostly spiral arms spreading out towards us, in this image captured by the NASA/ESA Hubble Space Telescope.  This galaxy is located about 425 million light-years from Earth in the constellation of Pictor (The Painter’s Easel). Discovered in 1834 by astronomer John Herschel, NGC 2008 is categorised as a type Sc galaxy in the Hubble sequence, a system used to describe and classify the various morphologies of galaxies. The “S” indicates that NGC 2008 is a spiral, while the “c” means it has a relatively small central bulge and more open spiral arm",
+      "artist": "ESA/Hubble",
+      "date": "2020-02-10T06:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESA/Hubble & NASA, A. Bellini · CC BY 4.0",
+      "fullCredit": "ESA/Hubble & NASA, A. Bellini",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/potw2006a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw2006a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/potw2006a/"
+    },
+    {
+      "id": "esahubble:potw1940a",
+      "title": "A Spiral in Profile",
+      "description": "The NASA/ESA Hubble Space Telescope sees galaxies of all shapes, sizes, brightnesses, and orientations in the cosmos. Sometimes, the telescope gazes at a galaxy oriented sideways — as shown here. The spiral galaxy featured in this Picture of the Week is called NGC 3717, and it is located about 60 million light-years away in the constellation of Hydra (The Sea Serpent).  Seeing a spiral almost in profile, as Hubble has here, can provide a vivid sense of its three-dimensional shape. Through most of their expanse, spiral galaxies are shaped like a thin pancake. At their cores, though, they have b",
+      "artist": "ESA/Hubble",
+      "date": "2019-10-07T06:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESA/Hubble & NASA, D. Rosario · CC BY 4.0",
+      "fullCredit": "ESA/Hubble & NASA, D. Rosario",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/potw1940a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw1940a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/potw1940a/"
+    },
+    {
+      "id": "esahubble:potw1924a",
+      "title": "Spiral, elliptical, irregular",
+      "description": "This image shows an irregular galaxy named IC 10, a member of the Local Group — a collectiongrouping of over 50 galaxies inwithin our cosmic neighbourhood that includes the Milky Way. IC 10 is a remarkable object. It is the closest-known starburst galaxy to us, meaning that it is undergoing a furious bout of star formation fueled by ample supplies of cool hydrogen gas. This gas condenses into vast molecular clouds, which then form into dense knots where pressures and temperatures reach a point sufficient to ignite nuclear fusion, thus giving rise to new generations of stars.   As an irregular ",
+      "artist": "ESA/Hubble",
+      "date": "2019-06-17T06:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "NASA, ESA and F. Bauer · CC BY 4.0",
+      "fullCredit": "NASA, ESA and F. Bauer",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.6"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.esahubble.org/archives/images/screen/potw1924a.jpg",
+      "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw1924a.jpg",
+      "sourceName": "ESA/Hubble",
+      "sourceUrl": "https://esahubble.org/images/potw1924a/"
+    },
+    {
       "id": "nasa:GSFC_20171208_Archive_e000148",
       "title": "Festive Nebulas Light Up Milky Way Galaxy Satellite",
       "description": "NASA’s Hubble Space Telescope captured two festive-looking nebulas, situated so as to appear as one. They reside in the Small Magellanic Cloud, a dwarf galaxy that is a satellite of our Milky Way galaxy. Intense radiation from the brilliant central stars is heating hydrogen in each of the nebulas, causing them to glow red.  The nebulas, together, are called NGC 248. They were discovered in 1834 by the astronomer Sir John Herschel. NGC 248 is about 60 light-years long and 20 light-years wide. It is among a number of glowing hydrogen nebulas in the dwarf satellite galaxy, which is located approx",
@@ -2483,6 +3497,1581 @@
       "thumb": "https://images-assets.nasa.gov/image/PIA19872/PIA19872~thumb.jpg",
       "sourceName": "NASA Image and Video Library",
       "sourceUrl": "https://images.nasa.gov/details/PIA19872"
+    },
+    {
+      "id": "nasa:GSFC_20171208_Archive_e000679",
+      "title": "Hubble Uncovering the Secrets of the Quintuplet Cluster",
+      "description": "Although this cluster of stars gained its name due to its five brightest stars, it is home to hundreds more. The huge number of massive young stars in the cluster is clearly captured in this NASA/ESA Hubble Space Telescope image.  The cluster is located close to the Arches Cluster and is just 100 light-years from the center of our galaxy. The cluster’s proximity to the dust at the center of the galaxy means that much of its visible light is blocked, which helped to keep the cluster unknown until its discovery in 1990, when it was revealed by infrared observations. Infrared images of the cluste",
+      "artist": "",
+      "date": "2017-12-08T00:00:00Z",
+      "licence": "public-domain-credit",
+      "rights": "Public domain (NASA) — acknowledgement required",
+      "requiredCredit": "NASA/GSFC · Public domain (NASA) — acknowledgement required",
+      "fullCredit": "NASA/GSFC",
+      "creditElided": false,
+      "image": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000679/GSFC_20171208_Archive_e000679~small.jpg",
+      "thumb": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000679/GSFC_20171208_Archive_e000679~thumb.jpg",
+      "sourceName": "NASA Image and Video Library",
+      "sourceUrl": "https://images.nasa.gov/details/GSFC_20171208_Archive_e000679"
+    },
+    {
+      "id": "nasa:PIA23402",
+      "title": "Spitzer Spots Bubbles and Bow Shocks",
+      "description": "This infrared image from NASA's Spitzer Space Telescope shows a cloud of gas and dust full of bubbles, which are inflated by wind and radiation from massive young stars. Each bubble is filled with hundreds to thousands of stars, which form from dense clouds of gas and dust.  The bubbles are estimated to be 10 to 30 light-years across, based on what astronomers know about them and other cosmic bubbles. However, determining the exact sizes of individual bubbles can be difficult, because their distance from Earth is challenging to measure and objects appear smaller the farther away they are.  Flo",
+      "artist": "",
+      "date": "2019-09-30T00:00:00Z",
+      "licence": "public-domain-credit",
+      "rights": "Public domain (NASA) — acknowledgement required",
+      "requiredCredit": "NASA/JPL-Caltech · Public domain (NASA) — acknowledgement required",
+      "fullCredit": "NASA/JPL-Caltech",
+      "creditElided": false,
+      "image": "https://images-assets.nasa.gov/image/PIA23402/PIA23402~medium.jpg",
+      "thumb": "https://images-assets.nasa.gov/image/PIA23402/PIA23402~thumb.jpg",
+      "sourceName": "NASA Image and Video Library",
+      "sourceUrl": "https://images.nasa.gov/details/PIA23402"
+    },
+    {
+      "id": "nasa:hubble-observes-one-of-a-kind-star-nicknamed-nasty_17754652960_o",
+      "title": "Hubble Observes One-of-a-Kind Star Nicknamed ‘Nasty’",
+      "description": "Astronomers using NASA’s Hubble Space Telescope have uncovered surprising new clues about a hefty, rapidly aging star whose behavior has never been seen before in our Milky Way galaxy. In fact, the star is so weird that astronomers have nicknamed it “Nasty 1,” a play on its catalog name of NaSt1. The star may represent a brief transitory stage in the evolution of extremely massive stars.  First discovered several decades ago, Nasty 1 was identified as a Wolf-Rayet star, a rapidly evolving star that is much more massive than our sun. The star loses its hydrogen-filled outer layers quickly, expo",
+      "artist": "",
+      "date": "2015-03-21T00:00:00Z",
+      "licence": "public-domain-credit",
+      "rights": "Public domain (NASA) — acknowledgement required",
+      "requiredCredit": "NASA/GSFC · Public domain (NASA) — acknowledgement required",
+      "fullCredit": "NASA/GSFC",
+      "creditElided": false,
+      "image": "https://images-assets.nasa.gov/image/hubble-observes-one-of-a-kind-star-nicknamed-nasty_17754652960_o/hubble-observes-one-of-a-kind-star-nicknamed-nasty_17754652960_o~medium.jpg",
+      "thumb": "https://images-assets.nasa.gov/image/hubble-observes-one-of-a-kind-star-nicknamed-nasty_17754652960_o/hubble-observes-one-of-a-kind-star-nicknamed-nasty_17754652960_o~thumb.jpg",
+      "sourceName": "NASA Image and Video Library",
+      "sourceUrl": "https://images.nasa.gov/details/hubble-observes-one-of-a-kind-star-nicknamed-nasty_17754652960_o"
+    },
+    {
+      "id": "nasa:GSFC_20171208_Archive_e000436",
+      "title": "Hubble Unveils a Tapestry of Dazzling Diamond-like Stars",
+      "description": "Resembling an opulent diamond tapestry, this image from NASA’s Hubble Space Telescope shows a glittering star cluster that contains a collection of some of the brightest stars seen in our Milky Way galaxy. Called Trumpler 14, it is located 8,000 light-years away in the Carina Nebula, a huge star-formation region. Because the cluster is only 500,000 years old, it has one of the highest concentrations of massive, luminous stars in the entire Milky Way. The small, dark knot left of center is a nodule of gas laced with dust, and seen in silhouette.  Credit: NASA/ESA/J. Maíz Apellániz (Institute of",
+      "artist": "",
+      "date": "2017-12-08T00:00:00Z",
+      "licence": "public-domain-credit",
+      "rights": "Public domain (NASA) — acknowledgement required",
+      "requiredCredit": "NASA/GSFC · Public domain (NASA) — acknowledgement required",
+      "fullCredit": "NASA/GSFC",
+      "creditElided": false,
+      "image": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000436/GSFC_20171208_Archive_e000436~small.jpg",
+      "thumb": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000436/GSFC_20171208_Archive_e000436~thumb.jpg",
+      "sourceName": "NASA Image and Video Library",
+      "sourceUrl": "https://images.nasa.gov/details/GSFC_20171208_Archive_e000436"
+    },
+    {
+      "id": "nasa:PIA24579",
+      "title": "Godzilla Nebula Imaged by Spitzer",
+      "description": "This colorful image shows a nebula – a cloud of gas and dust in space – captured by NASA's now-retired Spitzer Space Telescope located is in the constellation Sagittarius, along the plane of the Milky Way, which was as part of Spitzer's GLIMPSE Survey (short for Galactic Legacy Infrared Mid-Plane Survey Extraordinaire). With a little imagination, you might be able to see the outlines of Godzilla.  Stars in the upper right (where this cosmic Godzilla's eyes and snout would be) are an unknown distance from Earth but within our galaxy. Located about 7,800 light-years from Earth, the bright region",
+      "artist": "",
+      "date": "2021-10-25T00:00:00Z",
+      "licence": "public-domain-credit",
+      "rights": "Public domain (NASA) — acknowledgement required",
+      "requiredCredit": "NASA/JPL-Caltech · Public domain (NASA) — acknowledgement required",
+      "fullCredit": "NASA/JPL-Caltech",
+      "creditElided": false,
+      "image": "https://images-assets.nasa.gov/image/PIA24579/PIA24579~medium.jpg",
+      "thumb": "https://images-assets.nasa.gov/image/PIA24579/PIA24579~thumb.jpg",
+      "sourceName": "NASA Image and Video Library",
+      "sourceUrl": "https://images.nasa.gov/details/PIA24579"
+    },
+    {
+      "id": "nasa:GSFC_20171208_Archive_e002063",
+      "title": "Hubble Snaps Sharp Image Of Cosmic Concoction",
+      "description": "NASA image release July 13, 2010  To view a video of this image go to: <a href=\"http://www.flickr.com/photos/gsfc/4790394066/\">www.flickr.com/photos/gsfc/4790394066/</a> and here: <a href=\"http://www.flickr.com/photos/gsfc/4789786191/\">www.flickr.com/photos/gsfc/4789786191/</a>  A colourful star-forming region is featured in this stunning new NASA/ESA Hubble Space Telescope image of NGC 2467. Looking like a roiling cauldron of some exotic cosmic brew, huge clouds of gas and dust are sprinkled with bright blue hot young stars.  Strangely shaped dust clouds, resembling spilled liquids, are silho",
+      "artist": "",
+      "date": "2017-12-08T00:00:00Z",
+      "licence": "public-domain-credit",
+      "rights": "Public domain (NASA) — acknowledgement required",
+      "requiredCredit": "NASA/GSFC · Public domain (NASA) — acknowledgement required",
+      "fullCredit": "NASA/GSFC",
+      "creditElided": false,
+      "image": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e002063/GSFC_20171208_Archive_e002063~medium.jpg",
+      "thumb": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e002063/GSFC_20171208_Archive_e002063~thumb.jpg",
+      "sourceName": "NASA Image and Video Library",
+      "sourceUrl": "https://images.nasa.gov/details/GSFC_20171208_Archive_e002063"
+    },
+    {
+      "id": "nasa:PIA05735",
+      "title": "Star Formation in the DR21 Region A",
+      "description": "Hidden behind a shroud of dust in the constellation Cygnus is a stellar nursery called DR21, which is giving birth to some of the most massive stars in our galaxy. Visible light images reveal no trace of this interstellar cauldron because of heavy dust obscuration. In fact, visible light is attenuated in DR21 by a factor of more than 10,000,000,000,000,000,000,000,000,000,000,000,000,000 (ten thousand trillion heptillion).  New images from NASA's Spitzer Space Telescope allow us to peek behind the cosmic veil and pinpoint one of the most massive natal stars yet seen in our Milky Way galaxy. Th",
+      "artist": "",
+      "date": "2004-04-13T17:58:00Z",
+      "licence": "public-domain-credit",
+      "rights": "Public domain (NASA) — acknowledgement required",
+      "requiredCredit": "NASA/JPL-Caltech · Public domain (NASA) — acknowledgement required",
+      "fullCredit": "NASA/JPL-Caltech",
+      "creditElided": false,
+      "image": "https://images-assets.nasa.gov/image/PIA05735/PIA05735~medium.jpg",
+      "thumb": "https://images-assets.nasa.gov/image/PIA05735/PIA05735~thumb.jpg",
+      "sourceName": "NASA Image and Video Library",
+      "sourceUrl": "https://images.nasa.gov/details/PIA05735"
+    },
+    {
+      "id": "nasa:GSFC_20171208_Archive_e002049",
+      "title": "Starburst Cluster Shows Celestial Fireworks",
+      "description": "NASA image release June 6, 2010  Like a July 4 fireworks display a young, glittering collection of stars looks like an aerial burst. The cluster is surrounded by clouds of interstellar gas and dust - the raw material for new star formation. The nebula, located 20,000 light-years away in the constellation Carina, contains a central cluster of huge, hot stars, called NGC 3603.  This environment is not as peaceful as it looks. Ultraviolet radiation and violent stellar winds have blown out an enormous cavity in the gas and dust enveloping the cluster, providing an unobstructed view of the cluster.",
+      "artist": "",
+      "date": "2017-12-08T00:00:00Z",
+      "licence": "public-domain-credit",
+      "rights": "Public domain (NASA) — acknowledgement required",
+      "requiredCredit": "NASA/GSFC · Public domain (NASA) — acknowledgement required",
+      "fullCredit": "NASA/GSFC",
+      "creditElided": false,
+      "image": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e002049/GSFC_20171208_Archive_e002049~medium.jpg",
+      "thumb": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e002049/GSFC_20171208_Archive_e002049~thumb.jpg",
+      "sourceName": "NASA Image and Video Library",
+      "sourceUrl": "https://images.nasa.gov/details/GSFC_20171208_Archive_e002049"
+    },
+    {
+      "id": "nasa:GSFC_20171208_Archive_e000993",
+      "title": "Hubble Finds Supernova Companion Star after Two Decades of Searching",
+      "description": "This is an artist's impression of supernova 1993J, an exploding star in the galaxy M81 whose light reached us 21 years ago. The supernova originated in a double-star system where one member was a massive star that exploded after siphoning most of its hydrogen envelope to its companion star. After two decades, astronomers have at last identified the blue helium-burning companion star, seen at the center of the expanding nebula of debris from the supernova. The Hubble Space Telescope identified the ultraviolet glow of the surviving companion embedded in the fading glow of the supernova.  More in",
+      "artist": "",
+      "date": "2017-12-08T00:00:00Z",
+      "licence": "public-domain-credit",
+      "rights": "Public domain (NASA) — acknowledgement required",
+      "requiredCredit": "NASA/GSFC · Public domain (NASA) — acknowledgement required",
+      "fullCredit": "NASA/GSFC",
+      "creditElided": false,
+      "image": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000993/GSFC_20171208_Archive_e000993~orig.jpg",
+      "thumb": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000993/GSFC_20171208_Archive_e000993~thumb.jpg",
+      "sourceName": "NASA Image and Video Library",
+      "sourceUrl": "https://images.nasa.gov/details/GSFC_20171208_Archive_e000993"
+    },
+    {
+      "id": "nasa:GSFC_20171208_Archive_e000720",
+      "title": "Hubble Observes One-of-a-Kind Star Nicknamed ‘Nasty’",
+      "description": "Astronomers using NASA’s Hubble Space Telescope have uncovered surprising new clues about a hefty, rapidly aging star whose behavior has never been seen before in our Milky Way galaxy. In fact, the star is so weird that astronomers have nicknamed it “Nasty 1,” a play on its catalog name of NaSt1. The star may represent a brief transitory stage in the evolution of extremely massive stars.  First discovered several decades ago, Nasty 1 was identified as a Wolf-Rayet star, a rapidly evolving star that is much more massive than our sun. The star loses its hydrogen-filled outer layers quickly, expo",
+      "artist": "",
+      "date": "2017-12-08T00:00:00Z",
+      "licence": "public-domain-credit",
+      "rights": "Public domain (NASA) — acknowledgement required",
+      "requiredCredit": "NASA/GSFC · Public domain (NASA) — acknowledgement required",
+      "fullCredit": "NASA/GSFC",
+      "creditElided": false,
+      "image": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000720/GSFC_20171208_Archive_e000720~medium.jpg",
+      "thumb": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000720/GSFC_20171208_Archive_e000720~thumb.jpg",
+      "sourceName": "NASA Image and Video Library",
+      "sourceUrl": "https://images.nasa.gov/details/GSFC_20171208_Archive_e000720"
+    },
+    {
+      "id": "nasa:GSFC_20171208_Archive_e000334",
+      "title": "Hubble Takes Mars Portrait Near Close Approach",
+      "description": "Mars is looking mighty fine in this portrait nabbed by the Hubble Space Telescope on a near close approach!  Read more: <a href=\"http://go.nasa.gov/1rWYiBT\" rel=\"nofollow\">go.nasa.gov/1rWYiBT</a>  The Hubble Space Telescope is more well known for its picturesque views of nebulae and galaxies, but it's also useful for studying our own planets, including Mars.  Hubble imaged Mars on May 12, 2016 - ten days before Mars would be on the exact opposite side of the Earth from the Sun.  Bright, frosty polar caps, and clouds above a vivid, rust-colored landscape reveal Mars as a dynamic seasonal planet",
+      "artist": "",
+      "date": "2017-12-08T00:00:00Z",
+      "licence": "public-domain-credit",
+      "rights": "Public domain (NASA) — acknowledgement required",
+      "requiredCredit": "NASA/GSFC · Public domain (NASA) — acknowledgement required",
+      "fullCredit": "NASA/GSFC",
+      "creditElided": false,
+      "image": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000334/GSFC_20171208_Archive_e000334~small.jpg",
+      "thumb": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000334/GSFC_20171208_Archive_e000334~thumb.jpg",
+      "sourceName": "NASA Image and Video Library",
+      "sourceUrl": "https://images.nasa.gov/details/GSFC_20171208_Archive_e000334"
+    },
+    {
+      "id": "nasa:GSFC_20171208_Archive_e000332",
+      "title": "Hubble Takes Mars Portrait Near Close Approach",
+      "description": "Mars is looking mighty fine in this portrait nabbed by the Hubble Space Telescope on a near close approach!  Read more: <a href=\"http://go.nasa.gov/1rWYiBT\" rel=\"nofollow\">go.nasa.gov/1rWYiBT</a>  The Hubble Space Telescope is more well known for its picturesque views of nebulae and galaxies, but it's also useful for studying our own planets, including Mars.  Hubble imaged Mars on May 12, 2016 - ten days before Mars would be on the exact opposite side of the Earth from the Sun.  Bright, frosty polar caps, and clouds above a vivid, rust-colored landscape reveal Mars as a dynamic seasonal planet",
+      "artist": "",
+      "date": "2017-12-08T00:00:00Z",
+      "licence": "public-domain-credit",
+      "rights": "Public domain (NASA) — acknowledgement required",
+      "requiredCredit": "NASA/GSFC · Public domain (NASA) — acknowledgement required",
+      "fullCredit": "NASA/GSFC",
+      "creditElided": false,
+      "image": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000332/GSFC_20171208_Archive_e000332~medium.jpg",
+      "thumb": "https://images-assets.nasa.gov/image/GSFC_20171208_Archive_e000332/GSFC_20171208_Archive_e000332~thumb.jpg",
+      "sourceName": "NASA Image and Video Library",
+      "sourceUrl": "https://images.nasa.gov/details/GSFC_20171208_Archive_e000332"
+    },
+    {
+      "id": "nasa:PIA05517",
+      "title": "Star Formation in Henize 206",
+      "description": "This image from NASA Spitzer Space Telescope, shows the wispy filamentary structure of Henize 206, is a four-color composite mosaic created by combining data from an infrared array camera IRAC.  The LMC is a small satellite galaxy gravitationally bound to our own Milky Way. Yet the gravitational effects are tearing the companion to shreds in a long-playing drama of 'intergalactic cannibalism.' These disruptions lead to a recurring cycle of star birth and star death.  Astronomers are particularly interested in the LMC because its fractional content of heavy metals is two to five times lower tha",
+      "artist": "",
+      "date": "2004-03-08T17:14:55Z",
+      "licence": "public-domain-credit",
+      "rights": "Public domain (NASA) — acknowledgement required",
+      "requiredCredit": "NASA/JPL-Caltech · Public domain (NASA) — acknowledgement required",
+      "fullCredit": "NASA/JPL-Caltech",
+      "creditElided": false,
+      "image": "https://images-assets.nasa.gov/image/PIA05517/PIA05517~medium.jpg",
+      "thumb": "https://images-assets.nasa.gov/image/PIA05517/PIA05517~thumb.jpg",
+      "sourceName": "NASA Image and Video Library",
+      "sourceUrl": "https://images.nasa.gov/details/PIA05517"
+    },
+    {
+      "id": "eso:eso1322a",
+      "title": "The Very Large Telescope snaps a stellar nursery and celebrates fifteen years of operations",
+      "description": "This intriguing new view of a spectacular stellar nursery IC 2944 is being released to celebrate a milestone: 15 years of ESO’s Very Large Telescope. This image also shows a group of thick clouds of dust known as the Thackeray globules silhouetted against the pale pink glowing gas of the nebula. These globules are under fierce bombardment from the ultraviolet radiation from nearby hot young stars. They are both being eroded away and also fragmenting, rather like lumps of butter dropped onto a hot frying pan. It is likely that Thackeray’s globules will be destroyed before they can collapse and ",
+      "artist": "European Southern Observatory",
+      "date": "2013-05-23T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.2",
+          "B.3.6.4.1"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1322a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1322a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1322a/"
+    },
+    {
+      "id": "eso:eso1740a",
+      "title": "Stellar Nursery Blooms into View",
+      "description": "The OmegaCAM imager on ESO’s VLT Survey Telescope has captured this glittering view of the stellar nursery called Sharpless 29. Many astronomical phenomena can be seen in this giant image, including cosmic dust and gas clouds that reflect, absorb, and re-emit the light of hot young stars within the nebula.",
+      "artist": "European Southern Observatory",
+      "date": "2017-12-13T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.2.1.1"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1740a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1740a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1740a/"
+    },
+    {
+      "id": "eso:eso1238a",
+      "title": "Thor’s Helmet Nebula imaged on the occasion of ESO’s 50th anniversary",
+      "description": "This VLT image of the Thor’s Helmet Nebula was taken on the occasion of ESO’s 50th Anniversary, 5 October 2012, with the help of Brigitte Bailleul — winner of the Tweet Your Way to the VLT! competition. The observations were broadcast live over the internet from the Paranal Observatory in Chile. This object, also known as NGC 2359, lies in the constellation of Canis Major (The Great Dog). The helmet-shaped nebula is around 15 000 light-years away from Earth and is over 30 light-years across. The helmet is a cosmic bubble, blown as the wind from the bright, massive star near the bubble's centre",
+      "artist": "European Southern Observatory",
+      "date": "2012-10-05T16:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/B. Bailleul · CC BY 4.0",
+      "fullCredit": "ESO/B. Bailleul",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.2",
+          "B.3.2.4"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1238a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1238a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1238a/"
+    },
+    {
+      "id": "eso:eso1131a",
+      "title": "VLT looks into the eyes of the Virgin",
+      "description": "This  striking image, taken with the FORS2 instrument on the Very Large  Telescope, shows a beautiful yet peculiar pair of galaxies, NGC 4438 and  NGC 4435, nicknamed The Eyes. The larger of these, at the top of the picture, NGC 4438, is thought  to have once been a spiral galaxy that was strongly deformed by  collisions in the relatively recent past. The two galaxies belong to the  Virgo Cluster and are about 50 million light-years away.",
+      "artist": "European Southern Observatory",
+      "date": "2011-08-24T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.7"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1131a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1131a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1131a/"
+    },
+    {
+      "id": "eso:eso0934a",
+      "title": "A 340-million pixel starscape from Paranal",
+      "description": "The second of three images of ESO’s GigaGalaxy Zoom project is a new and wonderful 340-million-pixel vista of the central parts of our galactic home, a 34 by 20-degree wide image that provides us with a view as experienced by amateur astronomers around the world. Taken by Stéphane Guisard, an ESO engineer and world-renowned astrophotographer, from Cerro Paranal, home of ESO’s Very Large Telescope, this second image directly benefits from the quality of Paranal’s sky, one of the best on the planet. The image shows the region spanning the sky from the constellation of Sagittarius (the Archer) to",
+      "artist": "European Southern Observatory",
+      "date": "2009-09-21T00:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/S. Guisard (www.eso.org/~sguisard) · CC BY 4.0",
+      "fullCredit": "ESO/S. Guisard (www.eso.org/~sguisard)",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.7.1.3"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0934a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0934a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0934a/"
+    },
+    {
+      "id": "eso:eso0907a",
+      "title": "The Helix Nebula*",
+      "description": "This colour-composite image of the Helix Nebula (NGC 7293) was created from images obtained using the Wide Field Imager (WFI), an astronomical camera attached to the 2.2-metre Max-Planck Society/ESO telescope at the La Silla observatory in Chile. The blue-green glow in the centre of the Helix comes from oxygen atoms shining under effects of the intense ultraviolet radiation of the 120 000 degree Celsius central star and the hot gas. Further out from the star and beyond the ring of knots, the red colour from hydrogen and nitrogen is more prominent. A careful look at the central part of this obj",
+      "artist": "European Southern Observatory",
+      "date": "2009-02-25T00:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.3"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0907a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0907a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0907a/"
+    },
+    {
+      "id": "eso:eso0846a",
+      "title": "The centre of the Milky Way*",
+      "description": "The central parts of our Galaxy, the Milky Way, as observed in the near-infrared with the NACO instrument on ESO's Very Large Telescope. By following the motions of the most central stars over more than 16 years, astronomers were able to determine the mass of the supermassive black hole that lurks there.",
+      "artist": "European Southern Observatory",
+      "date": "2008-12-10T00:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/S. Gillessen et al · CC BY 4.0",
+      "fullCredit": "ESO/S. Gillessen et al.",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.5.4.9"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0846a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0846a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0846a/"
+    },
+    {
+      "id": "eso:eso0202a",
+      "title": "The Horsehead Nebula*",
+      "description": "A reproduction of a composite colour image of the Horsehead Nebula and its immediate surroundings. It is based on three exposures in the visual part of the spectrum with the FORS2 multi-mode instrument at the 8.2-m KUEYEN telescope, part of ESO's Very Large Telescope, at Paranal. It was produced from three images, obtained on February 1, 2000, with the FORS2 multi-mode instrument at the 8.2-m KUEYEN Unit Telescope and extracted from the VLT Science Archive Facility . The frames were obtained in the B-band (600 sec exposure; wavelength 429 nm; FWHM 88 nm; here rendered as blue), V-band (300 sec",
+      "artist": "European Southern Observatory",
+      "date": "2002-01-25T00:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.2.3"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0202a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0202a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0202a/"
+    },
+    {
+      "id": "eso:eso1625a",
+      "title": "A deep infrared view of the Orion Nebula from HAWK-I",
+      "description": "This spectacular image of the Orion Nebula star-formation region was obtained from multiple exposures using the HAWK-I infrared camera on ESO’s Very Large Telescope in Chile. This is the deepest view ever of this region and reveals more very faint planetary-mass objects than expected.",
+      "artist": "European Southern Observatory",
+      "date": "2016-07-12T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/H. Drass et al · CC BY 4.0",
+      "fullCredit": "ESO/H. Drass et al.",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.2.1.1"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1625a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1625a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1625a/"
+    },
+    {
+      "id": "eso:eso1250a",
+      "title": "The Carina Nebula imaged by the VLT Survey Telescope",
+      "description": "The spectacular star-forming Carina Nebula has been captured in great detail by the VLT Survey Telescope at ESO’s Paranal Observatory. This picture was taken with the help of Sebastián Piñera, President of Chile, during his visit to the observatory on 5 June 2012 and released on the occasion of the new telescope’s inauguration in Naples on 6 December 2012.",
+      "artist": "European Southern Observatory",
+      "date": "2012-12-06T16:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO. Acknowledgement: VPHAS+ Consortium/Cambridge Astronomical Survey Unit",
+      "creditElided": true,
+      "subject": {
+        "codes": [
+          "B.4.1.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1250a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1250a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1250a/"
+    },
+    {
+      "id": "eso:eso1221a",
+      "title": "A deep look at the strange galaxy Centaurus A",
+      "description": "The peculiar galaxy Centaurus A (NGC 5128) is pictured in this image taken with the Wide Field Imager attached to the MPG/ESO 2.2-metre telescope at the La Silla Observatory in Chile. With a total exposure time of more than 50 hours this is probably the deepest view of this peculiar and spectacular object ever created.",
+      "artist": "European Southern Observatory",
+      "date": "2012-05-16T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.4",
+          "C.5.3.2"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1221a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1221a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1221a/"
+    },
+    {
+      "id": "eso:eso1208a",
+      "title": "ESO’s VLT reveals the Carina Nebula's hidden secrets",
+      "description": "This broad image of the Carina Nebula, a region of massive star formation in the southern skies, was taken in infrared light using the HAWK-I camera on ESO’s Very Large Telescope. Many previously hidden features, scattered across a spectacular celestial landscape of gas, dust and young stars, have emerged. #L",
+      "artist": "European Southern Observatory",
+      "date": "2012-02-08T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/T. Preibisch · CC BY 4.0",
+      "fullCredit": "ESO/T. Preibisch",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1208a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1208a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1208a/"
+    },
+    {
+      "id": "eso:eso1119a",
+      "title": "VST image of the star-forming region Messier 17",
+      "description": "The first released VST image shows the spectacular star-forming region Messier 17, also known as the Omega Nebula or the Swan Nebula, as it has never been seen before. This vast region of gas, dust and hot young stars lies in the heart of the Milky Way in the constellation of Sagittarius (The Archer). The VST field of view is so large that the entire nebula, including its fainter outer parts, is captured — and retains its superb sharpness across the entire image. The data were processed using the Astro-WISE software system developed by E.A. Valentijn and collaborators at Groningen and elsewher",
+      "artist": "European Southern Observatory",
+      "date": "2011-06-08T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/INAF-VST/OmegaCAM · CC BY 4.0",
+      "fullCredit": "ESO/INAF-VST/OmegaCAM. Acknowledgement: OmegaCen/Astro-WISE/Kapteyn Institute",
+      "creditElided": true,
+      "subject": {
+        "codes": [
+          "B.4.1.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1119a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1119a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1119a/"
+    },
+    {
+      "id": "eso:eso1119b",
+      "title": "VST image of the giant globular cluster Omega Centauri*",
+      "description": "This VST image may be the best portrait of the globular star cluster Omega Centauri ever made. Omega Centauri, in the constellation of Centaurus (The Centaur), is the largest globular cluster in the sky, but the very wide field of view of VST and its powerful camera OmegaCAM can encompass even the faint outer regions of this spectacular object. This view includes about 300 000 stars. The data were processed using the VST-Tube system developed by A. Grado and collaborators at the INAF-Capodimonte Observatory.",
+      "artist": "European Southern Observatory",
+      "date": "2011-06-08T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/INAF-VST/OmegaCAM · CC BY 4.0",
+      "fullCredit": "ESO/INAF-VST/OmegaCAM. Acknowledgement: A. Grado, L. Limatola/INAF-Capodimonte Observatory",
+      "creditElided": true,
+      "subject": {
+        "codes": [
+          "B.3.6.4.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1119b.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1119b.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1119b/"
+    },
+    {
+      "id": "eso:eso1105a",
+      "title": "Messier 78: a reflection nebula in Orion",
+      "description": "This new image of the reflection nebula Messier 78 was captured using the Wide Field Imager camera on the MPG/ESO 2.2-metre telescope at the La Silla Observatory, Chile. This colour picture was created from many monochrome exposures taken through blue, yellow/green and red filters, supplemented by exposures through a filter that isolates light from glowing hydrogen gas. The total exposure times were 9, 9, 17.5 and 15.5 minutes per filter, respectively. #L",
+      "artist": "European Southern Observatory",
+      "date": "2011-02-16T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/Igor Chekalin · CC BY 4.0",
+      "fullCredit": "ESO/Igor Chekalin",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.2.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1105a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1105a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1105a/"
+    },
+    {
+      "id": "eso:eso0949a",
+      "title": "The hidden fires of the Flame Nebula*",
+      "description": "This image, the first to be released publicly from VISTA, the world’s largest survey telescope, shows the spectacular star-forming region known as the Flame Nebula, or NGC 2024, in the constellation of Orion (the Hunter) and its surroundings. In views of this evocative object in visible light the core of the nebula is completely hidden behind obscuring dust, but in this VISTA view, taken in infrared light, the cluster of very young stars at the object’s heart is revealed. The wide-field VISTA view also includes the glow of the reflection nebula NGC 2023, just below centre, and the ghostly outl",
+      "artist": "European Southern Observatory",
+      "date": "2009-12-11T11:30:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/J. Emerson/VISTA · CC BY 4.0",
+      "fullCredit": "ESO/J. Emerson/VISTA. Acknowledgment: Cambridge Astronomical Survey Unit",
+      "creditElided": true,
+      "subject": {
+        "codes": [
+          "B.4.1.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0949a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0949a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0949a/"
+    },
+    {
+      "id": "eso:eso0925a",
+      "title": "The Omega Nebula",
+      "description": "Three-colour composite image of the Omega Nebula (Messier 17, or NGC 6618), based on images obtained with the EMMI instrument on the ESO 3.58-metre New Technology Telescope at the La Silla Observatory. North is down and East is to the right in the image. It spans an angle equal to about one third the diameter of the Full Moon, corresponding to about 15 light-years at the distance of the Omega Nebula. The three filters used are B (blue), V (\"visual\", or green) and R (red). #L",
+      "artist": "European Southern Observatory",
+      "date": "2009-07-07T00:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.2",
+          "B.4.2.1"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0925a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0925a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0925a/"
+    },
+    {
+      "id": "eso:eso0848a",
+      "title": "NGC 2264 and the Christmas Tree cluster*",
+      "description": "This colour image of the region known as NGC 2264 — an area of sky that includes the sparkling blue baubles of the Christmas Tree star cluster and the Cone Nebula — was created from data taken through four different filters (B, V, R and H-alpha) with the Wide Field Imager at ESO's La Silla Observatory, 2400 m high in the Atacama Desert of Chile in the foothills of the Andes. The image shows a region of space about 30 light-years across. This image is available as a mounted image in the ESOshop. #L",
+      "artist": "European Southern Observatory",
+      "date": "2008-12-16T00:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.3.6.4.1",
+          "B.4"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0848a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0848a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0848a/"
+    },
+    {
+      "id": "eso:eso9845d",
+      "title": "Spiral galaxy NGC 1232",
+      "description": "This spectacular image of the large spiral galaxy NGC 1232 was obtained on September 21, 1998, during a period of good observing conditions. It is based on three exposures in ultra-violet, blue and red light, respectively. The colours of the different regions are well visible : the central areas contain older stars of reddish colour, while the spiral arms are populated by young, blue stars and many star-forming regions. Note the distorted companion galaxy on the left side, shaped like the greek letter \"theta\". NGC 1232 is located 20º south of the celestial equator, in the constellation Eridanu",
+      "artist": "European Southern Observatory",
+      "date": "1998-09-23T00:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso9845d.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso9845d.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso9845d/"
+    },
+    {
+      "id": "eso:eso1723a",
+      "title": "The Orion Nebula and cluster from the VLT Survey Telescope",
+      "description": "OmegaCAM — the wide-field optical camera on ESO’s VLT Survey Telescope (VST) — has captured the spectacular Orion Nebula and its associated cluster of young stars in great detail,  producing this beautiful new image. This famous object, the birthplace of many massive stars, is one of the closest stellar nurseries, at a distance of about 1350 light-years.",
+      "artist": "European Southern Observatory",
+      "date": "2017-07-27T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/G. Beccari · CC BY 4.0",
+      "fullCredit": "ESO/G. Beccari",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.2.1.1"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1723a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1723a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1723a/"
+    },
+    {
+      "id": "eso:eso1027a",
+      "title": "The R Coronae Australis region imaged with the Wide Field Imager at La Silla*",
+      "description": "The nearby star-forming region around the star R Coronae Australis imaged by the Wide Field Imager (WFI) on the MPG/ESO 2.2-metre telescope at ESO’s La Silla Observatory in Chile. This picture, which covers a field of 33.7 x 31.9 arcminutes (about the diameter of the full Moon), is a combination of twelve CCD frames, 67 megapixels each, taken through B, V and R filters, with four exposures of five minutes each. This image is available as a mounted image in the ESOshop. #L",
+      "artist": "European Southern Observatory",
+      "date": "2010-06-30T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.2.1.1",
+          "B.4.2.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1027a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1027a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1027a/"
+    },
+    {
+      "id": "eso:eso0903a",
+      "title": "Centaurus A",
+      "description": "Colour composite image of Centaurus A, revealing the lobes and jets emanating from the active galaxy’s central black hole. This is a composite of images obtained with three instruments, operating at very different wavelengths. The 870-micron submillimetre data, from LABOCA on APEX, are shown in orange. X-ray data from the Chandra X-ray Observatory are shown in blue. Visible light data from the Wide Field Imager (WFI) on the MPG/ESO 2.2 m telescope located at La Silla, Chile, show the stars and the galaxy’s characteristic dust lane in close to \"true colour\". #L",
+      "artist": "European Southern Observatory",
+      "date": "2009-01-28T00:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/WFI (Optical); MPIfR/ESO/APEX/A.Weiss et al. (Submillimetre); NASA/CXC/CfA/R.Kraft et al. (X-ray) · CC BY 4.0",
+      "fullCredit": "ESO/WFI (Optical); MPIfR/ESO/APEX/A.Weiss et al. (Submillimetre); NASA/CXC/CfA/R.Kraft et al. (X-ray)",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.4"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0903a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0903a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0903a/"
+    },
+    {
+      "id": "eso:eso0839a",
+      "title": "A pool of distant galaxies",
+      "description": "The Chandra Deep Field South, observed in the U-, B-, and R-bands with ESO''s VIMOS and WFI instruments. The U-band VIMOS observations were made over a period of 40 hours and constitute the deepest image ever taken from the ground in the U-band. The image covers a region of 14.1 x 21.6 arcminutes on the sky and shows galaxies that are 1 billion times fainter than can be seen by the unaided eye. The VIMOS R-band image was assembled by the ESO/GOODS team from archival data, while the WFI B-band image was produced by the GABODS team. #L",
+      "artist": "European Southern Observatory",
+      "date": "2008-11-07T00:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/ Mario Nonino, Piero Rosati and the ESO GOODS Team · CC BY 4.0",
+      "fullCredit": "ESO/ Mario Nonino, Piero Rosati and the ESO GOODS Team",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "D.5"
+        ],
+        "branches": [
+          "D"
+        ],
+        "label": "D · Cosmology"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0839a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0839a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0839a/"
+    },
+    {
+      "id": "eso:eso1031b",
+      "title": "Panoramic view of the WR 22 and Eta Carinae regions of the Carina Nebula*",
+      "description": "This spectacular panoramic view combines a new image of the field around the Wolf–Rayet star WR 22 in the Carina Nebula (right) with an earlier picture of the region around the unique star Eta Carinae in the heart of the nebula (left). The picture was created from images taken with the Wide Field Imager on the MPG/ESO 2.2-metre telescope at ESO’s La Silla Observatory in Chile. This image is available as a mounted image in the ESOshop. #L",
+      "artist": "European Southern Observatory",
+      "date": "2013-06-28T14:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.3.2.4",
+          "B.4"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1031b.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1031b.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1031b/"
+    },
+    {
+      "id": "eso:eso1137a",
+      "title": "Antennae Galaxies composite of ALMA and Hubble observations",
+      "description": "The  Antennae Galaxies (also known as NGC 4038 and 4039) are a pair of  distorted colliding spiral galaxies about 70 million light-years away,  in the constellation of Corvus (The Crow). This view combines ALMA  observations, made in two different wavelength ranges during the observatory’s early testing phase, with  visible-light observations from the NASA/ESA Hubble Space Telescope. The  Hubble image is the sharpest view of this object ever taken and serves  as the ultimate benchmark in terms of resolution. ALMA observes at much  longer wavelengths which makes it much harder to obtain compara",
+      "artist": "European Southern Observatory",
+      "date": "2011-10-03T11:30:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ALMA (ESO/NAOJ/NRAO). Visible light image: the NASA/ESA Hubble Space Telescope · CC BY 4.0",
+      "fullCredit": "ALMA (ESO/NAOJ/NRAO). Visible light image: the NASA/ESA Hubble Space Telescope",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.7"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1137a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1137a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1137a/"
+    },
+    {
+      "id": "eso:eso1017a",
+      "title": "VISTA’s infrared view of the Cat’s Paw Nebula*",
+      "description": "Infrared view of the Cat’s Paw Nebula (NGC 6334) taken by VISTA. NGC 6334 is a vast region of star formation about 5500 light-years from Earth in the constellation of Scorpius. The whole gas cloud is about 50 light-years across. NGC 6334 is one of the most active nurseries of young massive stars in our galaxy, some nearly ten times the mass of our Sun and most born in the last few million years. The images were taken through Y, J and Ks filters (shown as blue, green and red respectively) and the exposure time was five minutes per filter. The field of view is about one degree across.   This ima",
+      "artist": "European Southern Observatory",
+      "date": "2010-04-21T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/J. Emerson/VISTAAcknowledgment: Cambridge Astronomical Survey Unit · CC BY 4.0",
+      "fullCredit": "ESO/J. Emerson/VISTAAcknowledgment: Cambridge Astronomical Survey Unit",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1017a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1017a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1017a/"
+    },
+    {
+      "id": "eso:eso1006a",
+      "title": "VISTA's infrared view of the Orion Nebula*",
+      "description": "This wide-field view of the Orion Nebula (Messier 42), lying about 1350 light-years from Earth, was taken with the VISTA infrared survey telescope at ESO’s Paranal Observatory in Chile. The new telescope’s huge field of view allows the whole nebula and its surroundings to be imaged in a single picture and its infrared vision also means that it can peer deep into the normally hidden dusty regions and reveal the curious antics of the very active young stars buried there. This image was created from images taken through Z, J and Ks filters in the near-infrared part of the spectrum. The exposure t",
+      "artist": "European Southern Observatory",
+      "date": "2010-02-10T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/J. Emerson/VISTA · CC BY 4.0",
+      "fullCredit": "ESO/J. Emerson/VISTA. Acknowledgment: Cambridge Astronomical Survey Unit",
+      "creditElided": true,
+      "subject": {
+        "codes": [
+          "B.4.1.2",
+          "B.4.2.1.1"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1006a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1006a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1006a/"
+    },
+    {
+      "id": "eso:eso0650a",
+      "title": "Portrait of a dramatic stellar crib*",
+      "description": "One square degree image of the Tarantula Nebula and its surroundings. The spidery nebula is seen in the upper-centre of the image. Slightly to the lower-right, a web of filaments harbours the famous supernova SN 1987A. Many other reddish nebulae are visible in the image, as well as a cluster of young stars on the left, known as NGC 2100. Technical information: the image is based on observations carried out by Joao Alves (Calar Alto, Spain), Benoit Vandame and Yuri Beletsky (ESO) with the Wide Field Imager (WFI) at the 2.2-m telescope on La Silla. These data consist of a 2x2 WFI mosaic in the B",
+      "artist": "European Southern Observatory",
+      "date": "2006-12-21T00:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/R. Fosbury (ST-ECF) · CC BY 4.0",
+      "fullCredit": "ESO/R. Fosbury (ST-ECF)",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.4"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0650a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0650a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0650a/"
+    },
+    {
+      "id": "eso:eso1422a",
+      "title": "The star cluster NGC 3293",
+      "description": "In this image from the Wide Field Imager on the MPG/ESO 2.2-metre telescope at ESO’s La Silla Observatory in Chile young stars huddle together against a backdrop of clouds of glowing gas and lanes of dust. The star cluster, known as NGC 3293, would have been just a cloud of gas and dust itself about ten million years ago, but as stars began to form it became the bright group we see here. Clusters like this are celestial laboratories that allow astronomers to learn more about how stars evolve.",
+      "artist": "European Southern Observatory",
+      "date": "2014-07-23T16:48:15",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/G. Beccari · CC BY 4.0",
+      "fullCredit": "ESO/G. Beccari",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.3.6.4"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1422a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1422a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1422a/"
+    },
+    {
+      "id": "eso:eso1233a",
+      "title": "The mouthpiece of the Pipe Nebula",
+      "description": "This picture shows Barnard 59, part of a vast dark cloud of interstellar dust called the Pipe Nebula. This new and very detailed image of what is known as a dark nebula was captured by the Wide Field Imager on the MPG/ESO 2.2-metre telescope at ESO’s La Silla Observatory. This image is so large that it is strongly recommended to use the zoomable version to appreciate it fully.",
+      "artist": "European Southern Observatory",
+      "date": "2012-08-15T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.2.3"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1233a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1233a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1233a/"
+    },
+    {
+      "id": "eso:eso0926a",
+      "title": "The Eagle Nebula",
+      "description": "Three-colour composite mosaic image of the Eagle Nebula (Messier 16, or NGC 6611), based on images obtained with the Wide-Field Imager camera on the MPG/ESO 2.2-metre telescope at the La Silla Observatory. At the centre, the so-called “Pillars of Creation” can be seen. This wide-field  image shows not only the central pillars, but also several others in the same star-forming region, as well as a huge number of stars in front of, in, or behind the Eagle Nebula. The cluster of bright stars to the upper right is NGC 6611, home to the massive and hot stars that illuminate the pillars. The “Spire” ",
+      "artist": "European Southern Observatory",
+      "date": "2009-07-16T00:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.3.6.4.1",
+          "B.4"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0926a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0926a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0926a/"
+    },
+    {
+      "id": "eso:eso0755a",
+      "title": "The Tinker Bell triplet",
+      "description": "Using ESO's Very Large Telescope, an international team of astronomers has discovered a stunning rare case of a triple merger of galaxies. This system, which astronomers have dubbed 'The Bird' - although it also bears resemblance with a cosmic Tinker Bell - is composed of two massive spiral galaxies and a third irregular galaxy. In this image, a 30-min VLT/NACO K-band exposure has been combined with archive HST/ACS B and I-band images to produce a three-colour image of the 'Bird' interacting galaxy system. The NACO image has allowed astronomers to not only see the two previously known galaxies",
+      "artist": "European Southern Observatory",
+      "date": "2007-12-21T00:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.7"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0755a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0755a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0755a/"
+    },
+    {
+      "id": "eso:eso2008a",
+      "title": "SPHERE image of the disc around AB Aurigae",
+      "description": "This image shows the disc around the young AB Aurigae star, where ESO’s Very Large Telescope (VLT) has spotted signs of planet birth. Close to the centre of the image, in the inner region of the disc, we see the ‘twist’ (in very bright yellow) that scientists believe marks the spot where a planet is forming. This twist lies at about the same distance from the AB Aurigae star as Neptune from the Sun. The image was obtained with the VLT’s SPHERE instrument in polarised light.",
+      "artist": "European Southern Observatory",
+      "date": "2020-05-20T14:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/Boccaletti et al · CC BY 4.0",
+      "fullCredit": "ESO/Boccaletti et al.",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.3.2.1"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso2008a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso2008a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso2008a/"
+    },
+    {
+      "id": "eso:eso1303a",
+      "title": "The Lupus 3 dark cloud and associated hot young stars",
+      "description": "This evocative image shows a dark cloud where new stars are forming along with a cluster of brilliant stars that have already emerged from their dusty stellar nursery. This cloud is known as Lupus 3 and it lies about 600 light-years from Earth in the constellation of Scorpius (The Scorpion). It is likely that the Sun formed in a similar star formation region more than four billion years ago. This picture was taken with the MPG/ESO 2.2-metre telescope at the La Silla Observatory in Chile and is the best image ever taken of this little-known object.",
+      "artist": "European Southern Observatory",
+      "date": "2013-01-16T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/F. Comeron · CC BY 4.0",
+      "fullCredit": "ESO/F. Comeron",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.2.3"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1303a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1303a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1303a/"
+    },
+    {
+      "id": "eso:eso1302a",
+      "title": "The globular star cluster 47 Tucanae",
+      "description": "This bright cluster of stars is 47 Tucanae (NGC 104), shown here in an image taken by ESO’s VISTA (Visible and Infrared Survey Telescope for Astronomy) from the Paranal Observatory in Chile. This cluster is located around 15 000 light-years away from us and contains millions of stars, some of which are unusual and exotic. This image was taken as part of the VISTA Magellanic Cloud survey, a project that is scanning the region of the Magellanic Clouds, two small galaxies that are very close to our Milky Way.",
+      "artist": "European Southern Observatory",
+      "date": "2013-01-10T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/M.-R. Cioni/VISTA Magellanic Cloud survey · CC BY 4.0",
+      "fullCredit": "ESO/M.-R. Cioni/VISTA Magellanic Cloud survey.Acknowledgment: Cambridge Astronomical Survey Unit",
+      "creditElided": true,
+      "subject": {
+        "codes": [
+          "B.3.6.4.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1302a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1302a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1302a/"
+    },
+    {
+      "id": "eso:eso0936a",
+      "title": "370-million-pixel starscape of the Lagoon Nebula",
+      "description": "The third image of ESO’s GigaGalaxy Zoom project is an amazing vista of the Lagoon Nebula taken with the 67-million-pixel Wide Field Imager attached to the MPG/ESO 2.2-metre telescope at the La Silla Observatory in Chile. The image covers more than one and a half square degree — an area eight times larger than that of the Full Moon — with a total of about 370 million pixels. It is based on images acquired using three different broadband filters (B, V, R) and one narrow-band filter (H-alpha). #L",
+      "artist": "European Southern Observatory",
+      "date": "2009-09-28T00:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.1",
+          "B.4.2.1.1"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0936a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0936a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0936a/"
+    },
+    {
+      "id": "eso:eso0930a",
+      "title": "The Trifid Nebula",
+      "description": "The massive star factory known as the Trifid Nebula was captured in all its glory with the Wide-Field Imager camera attached to the MPG/ESO 2.2-metre telescope at ESO’s La Silla Observatory in northern Chile. So named for the dark dust bands that trisect its glowing heart, the Trifid Nebula is a rare combination of three nebulae types that reveal the fury of freshly formed stars and point to more star birth in the future. The field of view of the image is approximately 13 x 17 arcminutes. #L",
+      "artist": "European Southern Observatory",
+      "date": "2009-08-26T00:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0930a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0930a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0930a/"
+    },
+    {
+      "id": "eso:eso0902c",
+      "title": "Spiral galaxy NGC 253*",
+      "description": "Measuring 70 000 light-years across and laying 13 million light-years away, the nearly edge-on spiral galaxy NGC 253 is revealed here in an image from the Wide Field Imager (WFI) on the MPG/ESO 2.2-metre telescope at the La Silla Observatory. The image is based on data obtained through four different filters (R, V, H-alpha and OIII). North is up and East to the left. The field of view is 30 arcminutes.",
+      "artist": "European Southern Observatory",
+      "date": "2009-01-19T00:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0902c.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0902c.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0902c/"
+    },
+    {
+      "id": "eso:eso0840a",
+      "title": "Glowing stellar nurseries*",
+      "description": "Colour composite image of RCW120. It reveals how an expanding bubble of ionised gas about ten light-years across is causing the surrounding material to collapse into dense clumps where new stars are then formed. The 870-micron submillimetre-wavelength data were taken with the LABOCA camera on the 12-m Atacama Pathfinder Experiment (APEX) telescope. Here, the submillimetre emission is shown as the blue clouds surrounding the reddish glow of the ionised gas (shown with data from the SuperCosmos H-alpha survey). The image also contains data from the Second Generation Digitized Sky Survey (I-band ",
+      "artist": "European Southern Observatory",
+      "date": "2008-11-11T00:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/APEX/DSS2/ SuperCosmos/ Deharveng(LAM)/ Zavagno(LAM) · CC BY 4.0",
+      "fullCredit": "ESO/APEX/DSS2/ SuperCosmos/ Deharveng(LAM)/ Zavagno(LAM)",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.2",
+          "B.4.2.1.1"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0840a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0840a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0840a/"
+    },
+    {
+      "id": "eso:potw1901a",
+      "title": "A portrait of a beauty",
+      "description": "Nuzzled in the chest of the constellation Virgo (the Virgin) lies a beautiful cosmic gem — the galaxy Messier 61. This glittering spiral galaxy is aligned face-on towards Earth, thus presenting us with a breathtaking view of its structure. The gas and dust of the intricate spiral arms are studded with billions of stars. This galaxy is a bustling hub of activity with a rapid rate of star formation, and both a massive nuclear star cluster and a supermassive black hole buried at its heart. Messier 61 is one of the largest members of the Virgo Cluster, which is made up of more than a thousand gala",
+      "artist": "European Southern Observatory",
+      "date": "2019-01-07T06:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.eso.org/images/screen/potw1901a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/potw1901a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/potw1901a/"
+    },
+    {
+      "id": "eso:eso1719a",
+      "title": "The VST captures three spectacular nebulae in one image",
+      "description": "Two of the sky’s more famous residents share the stage with a lesser-known neighbour in this enormous three gigapixel image from ESO’s VLT Survey Telescope (VST). On the right lies the faint, glowing cloud of gas called Sharpless 2-54, the iconic Eagle Nebula (Messier 16) is in the centre, and the Omega Nebula (Messier 17) to the left. This cosmic trio makes up just a portion of a vast complex of gas and dust within which new stars are springing to life and illuminating their surroundings.",
+      "artist": "European Southern Observatory",
+      "date": "2017-06-14T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.2.1.1"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1719a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1719a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1719a/"
+    },
+    {
+      "id": "eso:eso1520a",
+      "title": "ESO’s Very Large Telescope images the Medusa Nebula",
+      "description": "ESO’s Very Large Telescope in Chile has captured the most detailed image ever taken of the Medusa Nebula (also known Abell 21 and Sharpless 2-274). As the star at the heart of this nebula made its final transition into retirement, it shed its outer layers into space, forming this colourful cloud. The image foreshadows the final fate of the Sun, which will eventually also become an object of this kind.",
+      "artist": "European Southern Observatory",
+      "date": "2015-05-20T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.3"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1520a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1520a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1520a/"
+    },
+    {
+      "id": "eso:eso1503a",
+      "title": "VLT image of the cometary globule CG4",
+      "description": "Like the gaping mouth of a gigantic celestial creature, the cometary globule CG4 glows menacingly in this image from ESO’s Very Large Telescope. Although it looks huge and bright in this image it is actually a faint nebula and not easy to observe. The exact nature of CG4 remains a mystery.",
+      "artist": "European Southern Observatory",
+      "date": "2015-01-28T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1503a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1503a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1503a/"
+    },
+    {
+      "id": "eso:eso1424a",
+      "title": "VST snaps a very detailed view of the Triangulum Galaxy",
+      "description": "The VLT Survey Telescope (VST) at ESO’s Paranal Observatory in Chile has captured this beautifully detailed image of the galaxy Messier 33, often called the Triangulum Galaxy. This nearby spiral, the second closest large galaxy to our own galaxy, the Milky Way, is packed with bright star clusters, and clouds of gas and dust. This picture is amongst the most detailed wide-field views of this object ever taken and shows the many glowing red gas clouds in the spiral arms with particular clarity.",
+      "artist": "European Southern Observatory",
+      "date": "2014-08-06T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1424a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1424a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1424a/"
+    },
+    {
+      "id": "eso:potw1346a",
+      "title": "New image of comet ISON",
+      "description": "This new view of Comet C/2012 S1 (ISON) was taken with the TRAPPIST–South national telescope at ESO's La Silla Observatory on the morning of Friday 15 November 2013. Comet ISON was first spotted in our skies in September 2012, and will make its closest approach to the Sun in late November 2013. TRAPPIST–South has been monitoring comet ISON since mid-October, using broad-band filters like those used in this image. It has also been using special narrow-band filters which isolate the emission of various gases, allowing astronomers to count how many molecules of each type are released by the comet",
+      "artist": "European Southern Observatory",
+      "date": "2013-11-18T11:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "TRAPPIST/E. Jehin/ESO · CC BY 4.0",
+      "fullCredit": "TRAPPIST/E. Jehin/ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "A.2.2"
+        ],
+        "branches": [
+          "A"
+        ],
+        "label": "A · Solar system"
+      },
+      "image": "https://cdn.eso.org/images/screen/potw1346a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/potw1346a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/potw1346a/"
+    },
+    {
+      "id": "eso:eso1236a",
+      "title": "The Pencil Nebula, a strangely shaped leftover from a vast explosion",
+      "description": "The  oddly shaped Pencil Nebula (NGC 2736) is pictured in this image from  ESO’s La Silla Observatory in Chile. This nebula is a small part of a  huge remnant left over after a supernova explosion that took place about  11 000 years ago. The image was produced by the Wide Field Imager on  the MPG/ESO 2.2-metre telescope at ESO’s La Silla Observatory in Chile. This image is available as a Mounted Image in the ESOshop. #L",
+      "artist": "European Southern Observatory",
+      "date": "2012-09-12T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.4"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1236a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1236a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1236a/"
+    },
+    {
+      "id": "eso:eso1005a",
+      "title": "Stellar nursery NGC 3603*",
+      "description": "NGC 3603 is a starburst region : a cosmic factory where stars form frantically from the nebula’s extended clouds of gas and dust. Located 22,000 light-years away from the Sun, it is the closest region of this kind known in our galaxy, providing astronomers with a local test bed for studying the intense star formation processes, very common in other galaxies, but hard to observe in detail because of their large distance. The newly released image, obtained with the FORS instrument attached to one of the four 8.2-metre VLT Unit Telescopes at Cerro Paranal, Chile, is a three-colour combination of ",
+      "artist": "European Southern Observatory",
+      "date": "2010-02-03T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.2",
+          "B.3.6.4.1"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1005a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1005a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1005a/"
+    },
+    {
+      "id": "eso:eso0949b",
+      "title": "One million stars — towards the dark heart of the Milky Way*",
+      "description": "With this remarkable VISTA mosaic we look deep into the dusty heart of our own Milky Way galaxy in the constellation of Sagittarius (the Archer). About one million stars are revealed in this picture, most of them not seen in visible light pictures. As well as absorbing light, the dust also scatters blue light from the distant stars and makes the central part of this huge starscape appear very red. This image is a mosaic created from VISTA images taken through Y, J and Ks filters in the near-infrared part of the spectrum. The image is about 2 degrees by 1.5 degrees in extent. The total exposure",
+      "artist": "European Southern Observatory",
+      "date": "2009-12-11T11:30:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/VISTA · CC BY 4.0",
+      "fullCredit": "ESO/VISTA. Acknowledgment: Cambridge Astronomical Survey Unit",
+      "creditElided": true,
+      "subject": {
+        "codes": [
+          "B.5",
+          "B.7.1.3",
+          "B.5.4.9"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0949b.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0949b.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0949b/"
+    },
+    {
+      "id": "eso:eso0931a",
+      "title": "Spiral galaxy NGC 4945",
+      "description": "Seen edge-on, observations of NGC 4945 suggest that this hive of stars is a spiral galaxy much like our own Milky Way, with swirling, luminous arms and a bar-shaped centre. Sites of active star formation, known as HII regions, are seen prominently in the image, appearing bright pink. These resemblances aside, NGC 4945 has a brighter centre that likely harbours a supermassive black hole, which is devouring reams of matter and blasting energy out into space. NGC 4945 is about 13 million light-years away in the constellation of Centaurus (the Centaur) and is beautifully revealed in this image tak",
+      "artist": "European Southern Observatory",
+      "date": "2009-09-02T00:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso0931a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso0931a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso0931a/"
+    },
+    {
+      "id": "eso:eso1532a",
+      "title": "The planetary nebula ESO 378-1",
+      "description": "This extraordinary bubble, glowing like the ghost of a star in the haunting darkness of space, may appear supernatural and mysterious, but it is a familiar astronomical object: a planetary nebula, the remnants of a dying star. This is the best view of the little-known object ESO 378-1 yet obtained and was captured by ESO’s Very Large Telescope in northern Chile.",
+      "artist": "European Southern Observatory",
+      "date": "2015-08-05T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.3"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1532a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1532a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1532a/"
+    },
+    {
+      "id": "eso:potw1444a",
+      "title": "Scarlet and smoke",
+      "description": "The smokey black silhouette in this new image is part of a large, sparse cloud of partially ionised hydrogen — an HII region — known as Gum 15. In wide-field images this nebula appears as a striking reddish purple clump dotted with stars and slashed by opaque, weaving dust lanes. This image homes in on one of these dust lanes, showing the central region of the nebula. These dark chunks of sky have seemingly few stars because lanes of dusty material are obscuring the bright, glowing regions of gas beyond. The occasional stars that do show up in these patches are actually between us and Gum 15, ",
+      "artist": "European Southern Observatory",
+      "date": "2014-11-03T10:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.2.1.1"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/potw1444a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/potw1444a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/potw1444a/"
+    },
+    {
+      "id": "eso:eso1420a",
+      "title": "The Gum 15 star formation region",
+      "description": "This richly detailed new view from the MPG/ESO 2.2-metre telescope at the La Silla Observatory in Chile shows the star formation region Gum 15. This little-known object is located in the constellation of Vela (The Sails), some 3000 light-years from Earth. The glowing cloud is a stunning example of an HII region. It also has a similarity to a more famous HII region, the Trifid Nebula (Messier 20).",
+      "artist": "European Southern Observatory",
+      "date": "2014-07-02T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.2",
+          "C.4.2.1"
+        ],
+        "branches": [
+          "B",
+          "C"
+        ],
+        "label": "B · Stars & nebulae | C · Galaxies"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1420a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1420a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1420a/"
+    },
+    {
+      "id": "eso:uhd_img_2528_cc",
+      "title": "The Milky Way glitters brightly over ALMA",
+      "description": "The Milky Way glitters brightly over ALMA antennas, in this image taken by the ESO Ultra High Definition Expedition team as they capture the site in 4K quality.",
+      "artist": "European Southern Observatory",
+      "date": "2014-05-09T16:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO/B. Tafreshi (twanight.org) · CC BY 4.0",
+      "fullCredit": "ESO/B. Tafreshi (twanight.org)",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "E.7.1.3",
+          "E.8.1"
+        ],
+        "branches": [
+          "E"
+        ],
+        "label": "E · Sky phenomena"
+      },
+      "image": "https://cdn.eso.org/images/screen/uhd_img_2528_cc.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/uhd_img_2528_cc.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/uhd_img_2528_cc/"
+    },
+    {
+      "id": "eso:eso1412a",
+      "title": "The planetary nebula Abell 33 captured using ESO's Very Large Telescope",
+      "description": "Astronomers using ESO’s Very Large Telescope in Chile have captured this eye-catching image of planetary nebula Abell 33. Created when an aging star blew off its outer layers, this beautiful blue bubble is, by chance, aligned with a foreground star, and bears an uncanny resemblance to a diamond engagement ring. This cosmic gem is unusually symmetric, appearing to be almost perfectly circular on the sky.",
+      "artist": "European Southern Observatory",
+      "date": "2014-04-09T12:00:00",
+      "licence": "cc-by",
+      "rights": "Creative Commons Attribution 4.0 International License",
+      "requiredCredit": "ESO · CC BY 4.0",
+      "fullCredit": "ESO",
+      "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.3"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
+      "image": "https://cdn.eso.org/images/screen/eso1412a.jpg",
+      "thumb": "https://www.eso.org/public/archives/images/potwmedium/eso1412a.jpg",
+      "sourceName": "ESO",
+      "sourceUrl": "https://www.eso.org/public/images/eso1412a/"
     }
   ]
 }

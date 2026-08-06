@@ -10,9 +10,8 @@
  * need that boundary more than Audubon does, because their rights CANNOT
  * be re-verified at render. Cleveland and Rijksmuseum re-check each
  * object's licence live; api.si.edu is not in `connect-src` and needs a
- * key, so a
- * science work's rights are true as of the date this ran and are stamped
- * with it (SOURCE-EXPANSION-SPEC §3a).
+ * key, so a science work's rights are true as of the date this ran and
+ * are stamped with it (SOURCE-EXPANSION-SPEC §3a).
  *
  * The verdicts come from `science-pins.js` — the human decision — and
  * this produces its result. Nothing is inferred here that a reviewer did
@@ -22,7 +21,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ASTRONOMY, ESO_SHORTLIST, RETIRED } from '../src/content/science/imagery/science-pins.js';
+import { ASTRONOMY, RETIRED } from '../src/content/science/imagery/science-pins.js';
 import { artworkMayBeShown, licenceClassOf, normalizeArtworkLabel }
     from '../src/visuals/artwork-label.js';
 
@@ -91,7 +90,7 @@ for (const w of kept) {
         // the provider today and kept because SOURCE-EXPANSION-SPEC §4
         // route 2 — a science concordance binding passages to images —
         // needs exactly this axis, and it is far cheaper to carry now
-        // than to re-harvest 111 works for later.
+        // than to re-harvest the whole collection for later.
         ...(w.subject?.branches?.length ? { subject: w.subject } : {}),
         image: w.image,
         thumb: w.thumb || w.image,
@@ -114,7 +113,6 @@ writeFileSync(OUT, JSON.stringify({
     rightsVerifiedAt: new Date().toISOString().slice(0, 10),
     collections: { astronomy: { name: ASTRONOMY.name, works: works.map(w => w.id) } },
     licences: byLicence,
-    shortlisted: { eso: ESO_SHORTLIST },
     retired: RETIRED,
     works
 }, null, 2) + '\n', 'utf8');
@@ -124,6 +122,5 @@ if (refused.length) {
     console.log(`refused     ${refused.length}`);
     for (const r of refused) console.log(`  ${r.id} — ${r.why}`);
 }
-console.log(`shortlisted ${ESO_SHORTLIST.length} ESO, pending a second review`);
 console.log(`retired     ${RETIRED.reduce((n, r) => n + r.reviewed, 0)} across ${RETIRED.length} ledger entries`);
 console.log(`\nwrote ${OUT}`);

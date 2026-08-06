@@ -472,11 +472,26 @@ because a number meaning "all of it" and a number meaning "as many as you
 asked for" cannot share a column without eventually being read as the
 wrong one.
 
-**Unreviewed remainders, 2026-08-05:** ESO 40, ESA/Hubble 40, NASA 15.
-(Smithsonian's 78 are moot — the source is retired.) The 100 per feed is
-still the djangoplicity pagination ceiling; `?page=2` returns
-byte-identical content, so 100 is everything those feeds will give until
-that is solved.
+**Both passes are now complete.** The remainder — ESO 40, ESA/Hubble 40,
+NASA 15 — went to two further sheets and was reviewed; Smithsonian's 78
+were moot, the source being retired. Astronomy closed at **216 works**:
+ESA/Hubble 98 of 100, NASA 64 of 75, ESO 54 of 100.
+
+The second pass cut four from the whole-collection sources. Two are not
+photographs of the sky at all (an Apollo 17 mission emblem, a Mars
+portrait) and two are planets — *Alien aurorae on Uranus*, *Jupiter's
+swirling colourful clouds* — a register the reader meets differently from
+deep field and nebula.
+
+**And ESO's shortlist is closed.** Holding it apart was correct while its
+status was undecided; it had 35 approvals from the first pass and gained
+19 from the second, so it is now simply part of the collection. The
+distinction it protected still stands in words: a shortlist filed as a
+pin is indistinguishable from an approval a week later.
+
+The 100 per feed remains the djangoplicity pagination ceiling; `?page=2`
+returns byte-identical content, so 100 is everything ESA/Hubble and ESO
+will give until that is solved.
 
 ### AVM subject codes: a hint that is NOT a filter — measured 2026-08-05
 
