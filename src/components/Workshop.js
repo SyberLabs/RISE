@@ -1585,11 +1585,6 @@ export class Workshop {
           <select class="input-select" id="studio-visual-presence" data-visual-setting="visual-presence">
             ${[150, 200, 300, 450, 700, 1000, 1400, 2000].map(ms => `<option value="${ms}" ${Number(interlocution.duration) === ms ? 'selected' : ''}>${ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`}</option>`).join('')}
           </select>`}
-        <label class="input-label">Render language</label>
-        <div class="studio-surface-options">${['native', 'ascii'].map(id => `<button type="button"
-          class="btn-secondary btn-compact ${(interlocution.renderLanguage || 'native') === id ? 'active' : ''}"
-          data-action="set-render-language" data-render-language="${id}"
-          aria-pressed="${(interlocution.renderLanguage || 'native') === id}">${id === 'native' ? 'Native' : 'ASCII'}</button>`).join('')}</div>
         <label class="studio-toggle"><input type="checkbox" data-visual-setting="responsive" ${interlocution.responsive ? 'checked' : ''} /> Respond to the reading</label>`;
     } else {
       controls = '<p class="input-note text-fog">The reading remains text-only. Authored clips are preserved but inactive.</p>';
@@ -2891,14 +2886,6 @@ export class Workshop {
         this.sessionData.visualConfig.interlocution = {
           ...(this.sessionData.visualConfig.interlocution || {}),
           presentation: target.dataset.presentation
-        };
-        this.markEditorDirty();
-        this.refreshVisualLibraryAndInspector();
-        this.updateSequencePicker();
-      } else if (action === 'set-render-language') {
-        this.sessionData.visualConfig.interlocution = {
-          ...(this.sessionData.visualConfig.interlocution || {}),
-          renderLanguage: target.dataset.renderLanguage === 'ascii' ? 'ascii' : 'native'
         };
         this.markEditorDirty();
         this.refreshVisualLibraryAndInspector();

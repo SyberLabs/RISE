@@ -230,6 +230,16 @@ export class VisualCortex {
             // 'behind-stream' keeps the reading text visible and presents the
             // imagery beneath it. Behind-stream never conceals text, so it
             // has no covered phase and no concealed-swap handoff at all.
+            //
+            // NOT THE READER'S DEFAULT — that lives in ChamberOrbital and is
+            // Gallery. This value is the fallback for a direct caller that
+            // configures nothing, and it is deliberately still full-frame:
+            // moving it to 'continuous' changed the FLASH SEMANTICS rather
+            // than a preference, and nine cortex tests said so — the ASCII
+            // adapter route, the presentation clock, and external asset
+            // hydration all read this field to decide what a flash is. A
+            // surface a reader picks and a surface the engine assumes are
+            // two different constants that happened to share a value.
             presentation: 'full-frame',
             customVisuals: [],
             sequenceVisualAssets: [],

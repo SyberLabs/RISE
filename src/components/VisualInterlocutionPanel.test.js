@@ -316,12 +316,16 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         container.remove();
     });
 
-    it('treats ASCII as a render language and preserves the selected source', () => {
+    it('retires ASCII without stranding a config that still names it', () => {
+        // The control is gone (a cool experiment that did not earn its
+        // place). A reader who once chose it must not be left in a mode
+        // with no control to leave by, so every saved config lands on
+        // native — the same migration met- ids got, for the same reason.
         let emitted = null;
         const { panel, container } = makePanel({
             visualMode: 'interlocution',
             interlocution: {
-                renderLanguage: 'native',
+                renderLanguage: 'ascii',
                 sourceFamily: 'procedural',
                 procedural: ['klee'],
                 sourced: []
@@ -329,13 +333,26 @@ describe('VisualInterlocutionPanel preset visibility', () => {
             onChange: config => { emitted = config; }
         });
 
-        container.querySelector('[data-render-language="ascii"]').click();
+        expect(container.querySelector('[data-render-language]')).toBeNull();
+        expect(panel.config.interlocution.renderLanguage).toBe('native');
 
-        expect(emitted.interlocution.renderLanguage).toBe('ascii');
+        // …and the rest of that config is untouched by the migration.
+        container.querySelector('[data-presentation="behind-stream"]').click();
+        expect(emitted.interlocution.renderLanguage).toBe('native');
         expect(emitted.interlocution.procedural).toEqual(['klee']);
-        expect(emitted.interlocution.sourced).toEqual([]);
-        expect(container.querySelector('[data-render-language="ascii"]').classList.contains('active')).toBe(true);
 
+        panel.destroy();
+        container.remove();
+    });
+
+    it('offers Gallery first among the presentation surfaces', () => {
+        // The order of a set of buttons is a recommendation whether or not
+        // it is meant as one, and Gallery is the surface that never
+        // flashes and never goes black.
+        const { panel, container } = makePanel({ ...SOL_DAWN_CONFIG });
+        const order = [...container.querySelectorAll('[data-presentation]')]
+            .map(b => b.dataset.presentation);
+        expect(order).toEqual(['continuous', 'behind-stream', 'full-frame']);
         panel.destroy();
         container.remove();
     });

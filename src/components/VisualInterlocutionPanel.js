@@ -218,9 +218,13 @@ export class VisualInterlocutionPanel {
                     ?? options.galleryCadence
                     ?? GALLERY_CADENCE_DEFAULT
                 ),
-                renderLanguage: (options.interlocution?.renderLanguage ?? options.renderLanguage) === 'ascii'
-                    ? 'ascii'
-                    : 'native',
+                // ASCII IS RETIRED FROM THE PANEL and every saved config
+                // that names it lands on `native`. A reader who once chose
+                // it must not be stranded in a mode with no control to
+                // leave by — the same migration `met-` ids got, and for the
+                // same reason: a retired option is only retired once the
+                // configs that still carry it are answered for.
+                renderLanguage: 'native',
                 // Presentation surface: behind-stream keeps the reading
                 // text visible beneath the imagery (no concealed swap);
                 // continuous (Gallery) is a persistent field behind it.
@@ -469,7 +473,7 @@ export class VisualInterlocutionPanel {
                 atriumCollections: nextAtriumCollections,
                 duration: normalizeVisualPresence(mergedInterlocution.duration),
                 galleryCadence: normalizeGalleryCadence(mergedInterlocution.galleryCadence),
-                renderLanguage: mergedInterlocution.renderLanguage === 'ascii' ? 'ascii' : 'native',
+                renderLanguage: 'native',   // retired; see the constructor
                 presentation: normalizePresentation(mergedInterlocution.presentation),
                 streamGlass: mergedInterlocution.streamGlass !== false,
                 globalPool: normalizeGlobalPoolSelection(mergedInterlocution.globalPool),
@@ -1119,9 +1123,14 @@ export class VisualInterlocutionPanel {
                             <div class="vi-source-family-label">Presentation</div>
                             <div class="vi-source-family-options">
                                 ${[
-                                    ['full-frame', 'Full frame'],
+                                    // GALLERY LEADS. The order of a set of
+                                    // buttons is a recommendation whether or
+                                    // not it is meant as one, and the reader
+                                    // who takes the first is taking the one
+                                    // that never flashes and never goes black.
+                                    ['continuous', 'Gallery'],
                                     ['behind-stream', 'Behind stream'],
-                                    ['continuous', 'Gallery']
+                                    ['full-frame', 'Full frame']
                                 ].map(([id, label]) => `
                                     <button type="button"
                                         class="vi-source-family-btn ${this.config.interlocution.presentation === id ? 'active' : ''}"
@@ -1146,28 +1155,6 @@ export class VisualInterlocutionPanel {
                                     <span>Glass tile behind the text</span>
                                 </label>
                             ` : ''}
-                        </div>
-
-                        <div class="vi-source-family vi-render-language" role="group" aria-label="Render language">
-                            <div class="vi-source-family-label">Render</div>
-                            <div class="vi-source-family-options">
-                                ${[
-                                    ['native', 'Native'],
-                                    ['ascii', 'ASCII']
-                                ].map(([id, label]) => `
-                                    <button type="button"
-                                        class="vi-source-family-btn ${this.config.interlocution.renderLanguage === id ? 'active' : ''}"
-                                        data-render-language="${id}"
-                                        aria-pressed="${this.config.interlocution.renderLanguage === id}">
-                                        ${label}
-                                    </button>
-                                `).join('')}
-                            </div>
-                            <p class="vi-source-family-hint text-mist">
-                                ${this.config.interlocution.renderLanguage === 'ascii'
-                                    ? 'Pure printable ASCII preserves the selected source, palette, and responsive timing.'
-                                    : 'Original procedural fields, canvases, and collection imagery.'}
-                            </p>
                         </div>
 
                         <div class="vi-source-family" role="group" aria-label="Rhythmic source family">
@@ -1577,18 +1564,6 @@ export class VisualInterlocutionPanel {
         this.container.querySelector('[data-presentation-glass]')?.addEventListener('change', event => {
             this.config.interlocution.streamGlass = event.target.checked;
             this.emitChange();
-        });
-
-        this.container.querySelectorAll('[data-render-language]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                this.config.interlocution.renderLanguage = btn.dataset.renderLanguage === 'ascii'
-                    ? 'ascii'
-                    : 'native';
-                if (window.rise?.audioEngine) window.rise.audioEngine.playHiss();
-                this.emitChange();
-                this.render();
-                this.attachEvents();
-            });
         });
 
         // 3-way mode selector (Off / Focals / Interlocution)

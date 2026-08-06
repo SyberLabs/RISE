@@ -229,8 +229,14 @@ describe('session compiler', () => {
     expect(config.duration).toBe(700);
   });
 
-  it('normalizes the orthogonal render language without changing source selection', () => {
-    const ascii = normalizeVisualConfig({
+  it('retires ASCII to native without disturbing source selection', () => {
+    // ASCII was retired 2026-08-06 — a cool experiment that did not earn
+    // its place. It is gone from every surface where it could be CHOSEN
+    // (the Visual panel and the Workshop), so a stored program that still
+    // names it must compile to native rather than request a surface no
+    // control can reach. What the language was orthogonal TO is unchanged:
+    // the source selection still survives normalisation untouched.
+    const stored = normalizeVisualConfig({
       visualMode: 'interlocution',
       interlocution: { renderLanguage: 'ascii', procedural: ['klee'], sourced: [] }
     });
@@ -239,8 +245,8 @@ describe('session compiler', () => {
       interlocution: { renderLanguage: 'ansi', procedural: ['klee'], sourced: [] }
     });
 
-    expect(ascii.interlocution.renderLanguage).toBe('ascii');
-    expect(ascii.interlocution.procedural).toEqual(['klee']);
+    expect(stored.interlocution.renderLanguage).toBe('native');
+    expect(stored.interlocution.procedural).toEqual(['klee']);
     expect(invalid.interlocution.renderLanguage).toBe('native');
   });
 

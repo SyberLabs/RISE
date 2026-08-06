@@ -134,7 +134,13 @@ function createDefaultConfig() {
         duration: VISUAL_PRESENCE_DEFAULT_MS,
         galleryCadence: GALLERY_CADENCE_DEFAULT,
         renderLanguage: 'native',
-        presentation: 'full-frame',
+        // GALLERY IS THE DEFAULT. It is the only surface that never
+        // flashes and never goes black, and it is what a reader who has
+        // expressed no preference should meet. This is the DEFAULT only —
+        // a domain that authors its own surface still wins, per the
+        // three-layer law: the Chapel asks for behind-stream and a Vault
+        // program for full-frame, and neither is overruled here.
+        presentation: 'continuous',
         streamGlass: true,
         kleePreset: 'random',
         harmonographClimate: 'auto',

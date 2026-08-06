@@ -225,7 +225,14 @@ export function normalizeVisualConfig(value = {}) {
                     ? VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS
                     : undefined
             ),
-            renderLanguage: raw.renderLanguage === 'ascii' ? 'ascii' : 'native',
+            // ASCII IS RETIRED (2026-08-06) — a cool experiment that did
+            // not earn its place. It is retired everywhere it could be
+            // CHOSEN, so the compiler normalises rather than preserves:
+            // a stored program that still names it compiles to native
+            // instead of asking for a surface no control can reach.
+            // (The engine itself is still in the tree; deleting it is a
+            // separate decision from retiring the setting.)
+            renderLanguage: 'native',
             presentation: normalizePresentation(raw.presentation),
             galleryCadence: normalizeGalleryCadence(raw.galleryCadence),
             streamGlass: raw.streamGlass !== false,

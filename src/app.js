@@ -617,7 +617,7 @@ class App {
                                 galleryCadence: normalizeGalleryCadence(
                                     interlocution.galleryCadence ?? GALLERY_CADENCE_DEFAULT
                                 ),
-                                renderLanguage: interlocution.renderLanguage === 'ascii' ? 'ascii' : 'native',
+                                renderLanguage: 'native',   // ASCII retired 2026-08-06
                                 presentation: normalizePresentation(interlocution.presentation),
                                 activeTypes: activeTypes,
                                 kleePreset: interlocution.kleePreset ?? 'random',
