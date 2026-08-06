@@ -110,3 +110,68 @@ describe('pericope schedule compilation', () => {
         }
     });
 });
+
+/**
+ * THE READER'S ACTUAL REQUIREMENT: as a chapter moves from one episode to
+ * the next, the imagery must move with it.
+ *
+ * Every test above this point checks that segments are disjoint IN VERSES.
+ * None of them checks that the segments differ IN IMAGERY — and a chapter
+ * that pinned the same painting to all seven of its episodes would pass
+ * every one of them while showing a reader the same picture from Pilate
+ * to the tomb. Verse disjointness is the mechanism; distinct imagery is
+ * the point, and only the point is worth guaranteeing.
+ */
+describe('each section of a chapter carries its own imagery', () => {
+    it('no work is pinned to two pericopes anywhere in the concordance', () => {
+        // Measured 2026-08-05: 108 distinct works across 50 pericopes with
+        // zero repeats. True by the curator's hand and, until now, by
+        // nothing else — a single copied pin would put the same painting
+        // in consecutive episodes and read as the program having stalled,
+        // which is exactly the failure Matthew 27 was once reported for.
+        const owners = new Map();
+        for (const pericope of GOSPEL_PERICOPES) {
+            for (const work of pericope.works) {
+                const key = `${work.source}:${work.id}`;
+                if (!owners.has(key)) owners.set(key, []);
+                owners.get(key).push(pericope.id);
+            }
+        }
+        const shared = [...owners.entries()]
+            .filter(([, pericopes]) => pericopes.length > 1)
+            .map(([work, pericopes]) => `${work} in ${pericopes.join(' + ')}`);
+        expect(shared).toEqual([]);
+    });
+
+    // Named chapters rather than only the corpus sweep: these two are the
+    // Nativity and the Passion, the most-read chapters in the building,
+    // and Matthew 27 carries a regression history of its own.
+    for (const [book, chapter, expected] of [['luke', 2, 6], ['matthew', 27, 7]]) {
+        it(`${book} ${chapter} gives each of its ${expected} episodes a distinct pool`, () => {
+            const program = compileVisualProgram(book, chapter, null, true);
+            const segments = program?.segments || [];
+            expect(segments).toHaveLength(expected);
+
+            const collections = allPericopeCollections();
+            const seen = [];
+            for (const segment of segments) {
+                const id = segment.cue.collections?.[0];
+                expect(id, `${segment.id} names no collection`).toBeTruthy();
+                // A collection named twice would show one pool across two
+                // episodes even with the pins all distinct.
+                expect(seen, `${id} is scheduled twice`).not.toContain(id);
+                seen.push(id);
+                expect(collections[id]?.works?.length,
+                    `${id} is an empty shelf`).toBeGreaterThan(0);
+            }
+
+            // …and consecutive episodes must not merely differ by id.
+            for (let i = 1; i < seen.length; i++) {
+                const previous = collections[seen[i - 1]].works.map(w => `${w.source}:${w.id}`);
+                const current = collections[seen[i]].works.map(w => `${w.source}:${w.id}`);
+                expect(current.filter(w => previous.includes(w)),
+                    `${seen[i - 1]} → ${seen[i]} repeats a work`).toEqual([]);
+            }
+        });
+    }
+});
