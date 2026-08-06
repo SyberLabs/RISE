@@ -67,11 +67,56 @@ export class Curia {
         }));
         this._pins = MUSEUM_CATEGORY_PINS;
         this._exclusions = CATEGORY_EXCLUSIONS;
+        await this._loadScience();
         this.renderBoard();
         // probe dev-write availability quietly
         fetch('/__curia/apply', { method: 'GET' })
             .then(r => { this._devWrite = r.status === 405; this.renderBar(); })
             .catch(() => { this._devWrite = false; this.renderBar(); });
+    }
+
+    /**
+     * The science collections, as an ATTRIBUTION RECORD rather than a
+     * governed canon — and the distinction is the whole design.
+     *
+     * SOURCE-EXPANSION-SPEC §3a ruled that the Chamber's chip carries a
+     * credit as text while "the Curia carries the full record with URLs",
+     * and the roster ruling leans on that: a 500-character observing-team
+     * credit is cut at its marker and the remainder is permitted to live
+     * elsewhere under CC BY 4.0 §3(a)(3), which allows the condition to be
+     * satisfied by link "where practical". THAT PERMISSION IS CONDITIONAL
+     * ON THE REMAINDER BEING REACHABLE. Twenty-five works currently carry
+     * an elided credit, so until this room shows them the elision has no
+     * ground to stand on. This is the second half of a ruling already
+     * shipped, not a new feature.
+     *
+     * NO VERBS. The Curia's exclude/pin/move rewrite `museum-pins.js`,
+     * which is machine-writable by design. The science canon is
+     * `science-pins.js` plus a rebuild through
+     * `scripts/build-science-catalog.mjs`, so an "unpin" button here would
+     * be a control that silently does nothing — worse than no control,
+     * because it would report an authority the room does not have.
+     */
+    async _loadScience() {
+        try {
+            const [pins, catalog] = await Promise.all([
+                import('../content/science/imagery/science-pins.js'),
+                import('../sources/visual/science-catalog.generated.json')
+            ]);
+            const doc = catalog.default || catalog;
+            this._science = doc;
+            this.scienceCategories = Object.entries(pins.SCIENCE_CATEGORIES || {})
+                .map(([id, cat]) => {
+                    const works = doc.collections?.[id]?.works || [];
+                    return {
+                        id, name: cat.name, works: works.length,
+                        elided: doc.works.filter(w => works.includes(w.id) && w.creditElided).length
+                    };
+                });
+        } catch (error) {
+            console.warn('[Curia] science catalog unavailable:', error);
+            this.scienceCategories = [];
+        }
     }
 
     async loadCategory(categoryId) {
@@ -222,6 +267,15 @@ export class Curia {
             .addEventListener('click', () => this.copyChangeset());
         this.container.querySelector('.curia-board')
             .addEventListener('click', (e) => {
+                const science = e.target.closest('[data-science]');
+                if (science) {
+                    this.openCategory = science.dataset.science;
+                    this.container.querySelector('.curia-board').hidden = true;
+                    const detail = this.container.querySelector('.curia-detail');
+                    detail.hidden = false;
+                    this.renderScienceDetail(science.dataset.science);
+                    return;
+                }
                 const card = e.target.closest('[data-category]');
                 if (card) this.openDetail(card.dataset.category);
             });
@@ -238,6 +292,22 @@ export class Curia {
                 <span class="curia-cat-mode ${c.mode === 'pinned-only' ? 'is-pinned' : 'is-live'}">${c.mode}</span>
                 <span class="curia-cat-stats">${c.pinCount} pins${c.exclusionCount ? ` · ${c.exclusionCount} excluded` : ''}</span>
             </button>`).join('');
+
+        if (this.scienceCategories?.length) {
+            board.insertAdjacentHTML('beforeend', `
+                <div class="curia-group-break">
+                    <h3>Science collections</h3>
+                    <p class="curia-group-note">Attribution record. Governed by
+                    <code>science-pins.js</code> and rebuilt, not edited here — so this
+                    room reads them and does not pretend to rule them.</p>
+                </div>
+                ${this.scienceCategories.map(c => `
+                <button class="curia-cat curia-cat-science" data-science="${escapeHtml(c.id)}">
+                    <span class="curia-cat-name">${escapeHtml(c.name)}</span>
+                    <span class="curia-cat-mode is-pinned">record</span>
+                    <span class="curia-cat-stats">${c.works} works${c.elided ? ` · ${c.elided} full credits held here` : ''}</span>
+                </button>`).join('')}`);
+        }
         this.renderBar();
     }
 
@@ -247,6 +317,68 @@ export class Curia {
             n ? `${n} pending edit${n === 1 ? '' : 's'}` : '';
         this.container.querySelector('.curia-apply').hidden = !(n && this._devWrite === true);
         this.container.querySelector('.curia-copy').hidden = !(n && this._devWrite !== true);
+    }
+
+    /**
+     * The full attribution record for one science collection.
+     *
+     * Every field the licence asks for, and the source URL as a real link
+     * — this is the "where practical" destination §3(a)(3) names, so it
+     * has to be a place a reader can actually arrive at and read.
+     */
+    renderScienceDetail(categoryId) {
+        const cat = this.scienceCategories.find(c => c.id === categoryId);
+        const detail = this.container.querySelector('.curia-detail');
+        if (!cat || !this._science) return;
+
+        const ids = new Set(this._science.collections?.[categoryId]?.works || []);
+        const works = this._science.works.filter(w => ids.has(w.id));
+        const licences = {};
+        for (const w of works) licences[w.licence] = (licences[w.licence] || 0) + 1;
+
+        const row = (w) => `
+            <div class="curia-work curia-work-record">
+                <img loading="lazy" ${REMOTE_IMAGE_ATTRS} src="${escapeHtml(w.thumb || w.image)}" alt="">
+                <div class="curia-work-meta">
+                    <div class="curia-work-title">${escapeHtml(w.title || '(untitled)')}</div>
+                    <div class="curia-work-src">${escapeHtml(w.sourceName || '')}${w.date ? ` · ${escapeHtml(w.date)}` : ''}</div>
+                    <div class="curia-credit" title="exactly what the Chamber chip shows">${escapeHtml(w.requiredCredit)}</div>
+                    ${w.creditElided ? `<details class="curia-full-credit">
+                        <summary>full credit as the provider gave it</summary>
+                        ${escapeHtml(w.fullCredit)}
+                    </details>` : ''}
+                    <div class="curia-work-links">
+                        <span class="curia-lic curia-lic-${escapeHtml(w.licence)}">${escapeHtml(w.licence)}</span>
+                        ${w.sourceUrl ? `<a href="${escapeHtml(w.sourceUrl)}" target="_blank"
+                            rel="noopener noreferrer">source record ↗</a>` : ''}
+                    </div>
+                </div>
+            </div>`;
+
+        detail.innerHTML = `
+            <div class="curia-detail-head">
+                <button class="curia-detail-back">← categories</button>
+                <h2>${escapeHtml(cat.name)}</h2>
+                <span class="curia-detail-stats">
+                    ${works.length} works ·
+                    ${Object.entries(licences).map(([k, n]) => `${n} ${escapeHtml(k)}`).join(' · ')}
+                    · rights verified ${escapeHtml(this._science.rightsVerifiedAt || '?')}
+                </span>
+            </div>
+            <p class="curia-group-note">
+                Rights here are <strong>frozen at harvest</strong>, not re-checked at render as
+                Cleveland's and the Rijksmuseum's are — these institutions cannot be queried from
+                the browser. Re-run <code>scripts/build-science-catalog.mjs</code> to refresh them.
+                ${cat.elided ? `<br>${cat.elided} credits are shortened in the Chamber chip;
+                their full text is here, which is what makes the shortening permissible.` : ''}
+            </p>
+            <div class="curia-grid curia-grid-records">${works.map(row).join('')}</div>`;
+
+        detail.querySelector('.curia-detail-back').addEventListener('click', () => {
+            this.openCategory = null;
+            detail.hidden = true;
+            this.container.querySelector('.curia-board').hidden = false;
+        });
     }
 
     async openDetail(categoryId) {

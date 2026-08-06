@@ -453,6 +453,22 @@ attribution record there, with licence and source URLs, is a resource a
 reader can actually get to. Had the Curia been dev-only this ruling would
 not stand.
 
+**Built 2026-08-05 — and it was the load-bearing half.** The roster
+ruling below shortens 25 credits and lets the remainder live "elsewhere"
+under §3(a)(3). Until the Curia actually listed the science collections,
+*elsewhere was nowhere*: the full text existed only in a generated JSON
+file no reader could reach, so the permission the shortening relies on
+had no ground. The Curia now carries the astronomy record — every credit
+as the chip renders it, every elided roster in full, the licence class,
+and the source URL as a real link.
+
+It carries **no governance verbs**, deliberately. The Curia's
+exclude/pin/move rewrite `museum-pins.js`, which is machine-writable by
+design; the science canon is `science-pins.js` plus a rebuild through
+`build-science-catalog.mjs`. A verb here would be a control that silently
+does nothing — worse than no control, because it would claim an authority
+the room does not have.
+
 ### `--limit` truncated the review, and the report called it a yield
 
 The first contact sheet ran at `--limit 60`. The harvest reported

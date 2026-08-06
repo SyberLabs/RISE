@@ -137,3 +137,48 @@
 }
 .curia-status { color: #8c8; font-size: 12.5px; }
 [hidden] { display: none !important; }
+
+/* ── Science collections: an attribution record, not a governed canon ──
+   The room reads these and does not rule them, so they carry no verbs.
+   The credit is the point of the card rather than a footnote on it —
+   this is the destination CC BY 4.0 §3(a)(3) means by "where practical",
+   and a credit nobody can read there is a credit nobody has given. */
+
+.curia-group-break { grid-column: 1 / -1; margin: 32px 0 4px; }
+.curia-group-break h3 {
+    color: #7fa8d4; border-bottom: 1px solid #26262e;
+    padding-bottom: 4px; margin: 0 0 6px; font-weight: 500;
+}
+.curia-group-note { color: #777; font-size: 11.5px; line-height: 1.5; margin: 0 0 8px; max-width: 76ch; }
+.curia-group-note code { color: #99a; font-size: 11px; }
+.curia-cat-science .curia-cat-name { color: #cfe0f2; }
+
+/* Records are wider than governance cards: a credit is a sentence, and a
+   sentence in a 210px column becomes a column of single words. */
+.curia-grid-records { grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); }
+.curia-work-record { flex-direction: row; align-items: flex-start; }
+.curia-work-record img { width: 118px; height: 118px; flex: 0 0 118px; }
+.curia-work-record .curia-work-meta { padding: 9px 11px; min-width: 0; }
+
+.curia-credit {
+    color: #c3c3cd; font-size: 11.5px; line-height: 1.45; margin-top: 6px;
+    padding: 5px 8px; background: #0f0f13; border-left: 2px solid #3a3a44;
+    word-break: break-word;
+}
+.curia-full-credit { margin-top: 5px; font-size: 11px; color: #8b8b95; }
+.curia-full-credit summary { color: #d4a574; cursor: pointer; font-size: 10px; }
+.curia-full-credit[open] {
+    background: #0f0f13; padding: 6px 8px; border-left: 2px solid #d4a574;
+    line-height: 1.5;
+}
+.curia-work-links {
+    display: flex; gap: 10px; align-items: center; margin-top: 7px; flex-wrap: wrap;
+}
+.curia-work-links a { color: #7fa8d4; font-size: 11px; text-decoration: none; }
+.curia-work-links a:hover { text-decoration: underline; }
+.curia-lic { font-size: 9.5px; letter-spacing: .05em; text-transform: uppercase; }
+.curia-lic-open { color: #7fb37f; }
+.curia-lic-cc-by { color: #d4a574; }
+.curia-lic-cc-by-sa { color: #c98fb0; }
+.curia-lic-public-domain-credit { color: #7fa8d4; }
+.curia-lic-undeclared { color: #d47f8b; }
