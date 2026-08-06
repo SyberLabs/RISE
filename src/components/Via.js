@@ -20,6 +20,7 @@ import { compileLiturgy } from '../core/liturgy-runner.js';
 import { buildStationsDefinition } from '../content/chapel/liturgy/stations-liturgy.js';
 import { STATIONS, STATIONS_ATTRIBUTION, stationByNumber } from '../content/chapel/liturgy/stations.js';
 import { escapeHtml } from '../core/sanitize.js';
+import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
 
 const ADVANCE_KEY = 'rise_via_advance_v1';
 const SOUND_KEY = 'rise_via_sound_v1';
@@ -98,7 +99,7 @@ export class Via {
   renderChoosing() {
     const frames = STATIONS.map(station => `
       <div class="via-nave-frame" title="${escapeHtml(`${station.number}. ${station.title}`)}">
-        <img src="${escapeHtml(station.image)}" alt="" loading="lazy" decoding="async" />
+        <img src="${escapeHtml(station.image)}" alt="" loading="lazy" decoding="async" ${REMOTE_IMAGE_ATTRS} />
       </div>
     `).join('');
     const sounds = SOUNDS.map(([id, label]) => `
@@ -137,7 +138,7 @@ export class Via {
       <div class="via-station${this.autoAdvance ? '' : ' via-station-byhand'}" data-action="${this.autoAdvance ? '' : 'advance'}">
         ${station ? `
           <div class="via-art${isSilence ? ' via-art-dimmed' : ''}">
-            <img src="${escapeHtml(station.image)}" alt="${escapeHtml(station.title)}"
+            <img src="${escapeHtml(station.image)}" alt="${escapeHtml(station.title)}" ${REMOTE_IMAGE_ATTRS}
               title="${escapeHtml(`Station ${station.number}: ${station.title} — Giandomenico Tiepolo (photograph © Didier Descouens, CC BY-SA 4.0)`)}" />
           </div>
         ` : ''}

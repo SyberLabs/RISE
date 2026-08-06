@@ -1,3 +1,4 @@
+
 /**
  * The Continuous Field — a persistent gallery behind the reading
  * (CONTINUOUS-FIELD-SPEC).
@@ -24,6 +25,7 @@ import {
     applyArtworkLabelElement,
     displayedArtworkLabel
 } from './artwork-label.js';
+import { createRemoteImage } from './remote-image.js';
 
 const DEFAULT_TIMINGS = galleryCadenceTimings(GALLERY_CADENCE_DEFAULT);
 const MIN_TICK_MS = 250;             // the advance clock's coarsest check
@@ -478,7 +480,7 @@ export class ContinuousField {
 
     async _defaultDecode(url) {
         try {
-            const img = new Image();
+            const img = createRemoteImage();
             img.decoding = 'async';
             img.src = url;
             await img.decode();

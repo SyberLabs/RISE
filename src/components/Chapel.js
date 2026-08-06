@@ -25,6 +25,7 @@ import {
   findChapelBook
 } from '../content/chapel/corpus/manifest.js';
 import { CHAPEL_ICONS } from '../content/chapel/imagery/icons.js';
+import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
 import { MYSTERY_SETS, mysterySetForDate } from '../content/chapel/liturgy/rosary.js';
 
 /** The reader's chosen icon focal, kept across visits. */
@@ -146,7 +147,7 @@ export class Chapel {
         aria-pressed="${this.iconId === id ? 'true' : 'false'}"
         title="${escapeHtml(icon.attribution)}"
       >
-        <img class="chapel-icon-thumb" src="${escapeHtml(icon.image)}" alt="" loading="lazy" decoding="async" />
+        <img class="chapel-icon-thumb" src="${escapeHtml(icon.image)}" alt="" loading="lazy" decoding="async" ${REMOTE_IMAGE_ATTRS} />
         <span class="chapel-icon-name">${escapeHtml(icon.name)}</span>
         <span class="chapel-icon-origin font-mono">${escapeHtml(icon.origin)} · ${escapeHtml(icon.date.split(',')[0])}</span>
       </button>

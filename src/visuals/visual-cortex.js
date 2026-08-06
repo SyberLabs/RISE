@@ -13,6 +13,7 @@ import { FractalFlame } from './fractal.js';
 import { RockGarden } from './rockgarden.js';
 import { NeuralNetwork } from './neural.js';
 import { Harmonograph } from './harmonograph.js';
+import { createRemoteImage } from './remote-image.js';
 import { Blueprint } from './blueprint.js';
 import { Freedom } from './freedom.js';
 import {
@@ -1611,7 +1612,7 @@ export class VisualCortex {
                 reject(createAbortError());
                 return;
             }
-            const img = new Image();
+            const img = createRemoteImage();
             img.decoding = 'async';
             img.fetchPriority = 'low';
             // Do NOT set crossOrigin = 'anonymous' — that forces CORS mode and will
@@ -1688,7 +1689,7 @@ export class VisualCortex {
                 reject(signal?.aborted ? createAbortError() : new Error('Readable image URL is empty'));
                 return;
             }
-            const img = new Image();
+            const img = createRemoteImage();
             img.decoding = 'async';
             img.fetchPriority = 'low';
             // A second, CORS-enabled element protects the native hydration

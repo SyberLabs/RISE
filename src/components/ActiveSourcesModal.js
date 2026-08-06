@@ -5,6 +5,7 @@
 
 import { WikimediaProvider, WIKIMEDIA_CATEGORIES } from '../sources/visual/wikimedia.js';
 import { escapeHtml, safeUrl } from '../core/sanitize.js';
+import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
 
 export class ActiveSourcesModal {
     constructor(options = {}) {
@@ -114,7 +115,7 @@ export class ActiveSourcesModal {
             <div class="asm-image-card ${this.excludedImages.has(img.title) ? 'excluded' : ''}" 
                  data-index="${idx}" data-title="${escapeHtml(img.title)}">
                 <div class="asm-image-thumb">
-                    <img src="${safeUrl(img.url)}" alt="${escapeHtml(img.name)}" loading="lazy">
+                    <img src="${safeUrl(img.url)}" alt="${escapeHtml(img.name)}" loading="lazy" ${REMOTE_IMAGE_ATTRS}>
                 </div>
                 <div class="asm-image-info">
                     <span class="asm-image-name">${escapeHtml(img.name)}</span>

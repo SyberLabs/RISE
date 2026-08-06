@@ -21,13 +21,15 @@
  *   - alt / title overrides
  * @returns {Promise<boolean>} true when the image was revealed
  */
+
+import { createRemoteImage } from '../../../visuals/remote-image.js';
 export async function mountSacredImage(slot, work, options = {}) {
     if (!slot || !work?.imageUrl) return false;
     const stillAlive = typeof options.stillAlive === 'function'
         ? options.stillAlive
         : () => true;
 
-    const img = new Image();
+    const img = createRemoteImage();
     img.decoding = 'async';
     img.alt = options.alt ?? work.title ?? '';
     const titleText = options.title

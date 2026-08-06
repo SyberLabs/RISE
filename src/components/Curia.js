@@ -21,6 +21,7 @@
  */
 
 import { escapeHtml } from '../core/sanitize.js';
+import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
 
 const VERB_LABELS = {
     exclude: 'exclude',
@@ -268,7 +269,7 @@ export class Curia {
         const moveTargets = this.categories.filter(c => c.id !== categoryId);
         const card = (w, origin) => `
             <div class="curia-work" data-key="${escapeHtml(w.key)}" data-origin="${origin}">
-                <img loading="lazy" src="${escapeHtml(w.img || '')}" alt="">
+                <img loading="lazy" ${REMOTE_IMAGE_ATTRS} src="${escapeHtml(w.img || '')}" alt="">
                 <div class="curia-work-meta">
                     <div class="curia-work-title">${escapeHtml(w.title || '(untitled)')}</div>
                     <div class="curia-work-artist">${escapeHtml((w.artist || '').split('\n')[0])}</div>

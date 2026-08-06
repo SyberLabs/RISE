@@ -18,6 +18,7 @@ import { compileFlow, flowCollections, focalOf } from './flow.js';
 import { compose, PLACEMENT, RHYTHM } from './compositor.js';
 import { paginate, pageOfItem } from './paginator.js';
 import { normalizeArtworkLabel, displayedArtworkLabel, artworkMayBeShown } from '../visuals/artwork-label.js';
+import { createRemoteImage } from '../visuals/remote-image.js';
 
 const OBSERVER_MARGIN = '600px';   // begin resolving well before view
 
@@ -781,7 +782,7 @@ export class PageReader {
     /** Decode-before-reveal (SacredImage's contract). */
     async _decode(url) {
         try {
-            const probe = new Image();
+            const probe = createRemoteImage();
             probe.decoding = 'async';
             probe.src = url;
             if (typeof probe.decode === 'function') await probe.decode();
