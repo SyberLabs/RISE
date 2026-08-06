@@ -137,32 +137,46 @@ export class BetaGate {
           <h1 class="beta-title">RISE</h1>
           <p class="beta-subtitle">Audiovisual Reader</p>
 
-          ${hasValidInvite ? this.renderPersonalizedWelcome(inviteData) : this.renderCodeEntry()}
+          ${hasValidInvite ? this.renderPersonalizedWelcome(inviteData) : this.renderOpenThreshold()}
         </div>
 
         <!-- Footer -->
         <div class="beta-footer">
-          <p>Closed Beta · v2.0</p>
+          <p>Open Beta · v2.0</p>
         </div>
       </div>
     `;
   }
 
-  renderCodeEntry() {
+  /**
+   * THE DOOR IS OPEN — 2026-08-06.
+   *
+   * The code prompt was raised while the creator was still deciding
+   * whether fast interlocution and a shelf of declassified psychotronic
+   * documents could be handed to a stranger. Those questions have since
+   * been answered in the work itself: the visual safety gate, the
+   * consent scope, reverent degradation, a corpus reviewed by hand. The
+   * gate was standing in for guarantees that now exist elsewhere.
+   *
+   * WHAT IS KEPT IS THE INVITE, NOT THE LOCK. A personalized code still
+   * resolves to its own welcome and its own vault, because that was never
+   * a barrier — it is a room prepared for someone. Removing the prompt
+   * opens the front door and leaves those rooms exactly as they were.
+   *
+   * The threshold itself stays. It is the first breath of the piece, and
+   * it is also where the audio context is unlocked by a real click.
+   */
+  renderOpenThreshold() {
     return `
-      <div class="beta-form">
-        <p class="beta-prompt">Enter access code to continue</p>
+      <div class="beta-welcome">
+        <div class="beta-welcome-text">
+          <p>An audiovisual reader: curated texts, paced to be entered rather than skimmed, with museum imagery and sound arranged around the words.</p>
+          <p>It runs entirely in your browser. Nothing you read is sent anywhere.</p>
+        </div>
 
-        <input
-          type="text"
-          id="beta-code-input"
-          class="beta-input"
-          placeholder="Access code"
-          autocomplete="off"
-          spellcheck="false"
-        />
-
-        <p id="beta-error" class="beta-error" hidden>Invalid access code</p>
+        <button id="beta-enter" class="beta-enter-btn">
+          Enter the Space
+        </button>
       </div>
     `;
   }
@@ -221,15 +235,17 @@ A space has been prepared for you.`;
       setTimeout(() => input.focus(), 100);
     }
 
-    // Personalized welcome entry
+    // Entry — for an invited reader and for anyone else. The `inviteCode`
+    // guard used to be on this handler, which is why removing the prompt
+    // needed this line changed too: without it the open door would render
+    // a button that did nothing.
     const enterBtn = this.container.querySelector('#beta-enter');
-    if (enterBtn && this.inviteCode) {
+    if (enterBtn) {
       enterBtn.addEventListener('click', () => {
-        const inviteData = this.validateCode(this.inviteCode);
-        if (inviteData) {
-          this.saveSession(inviteData, this.inviteCode.toLowerCase().trim());
-          this.onAccess(this.session);
-        }
+        const inviteData = (this.inviteCode && this.validateCode(this.inviteCode))
+          || { name: 'Reader', welcome: null };
+        this.saveSession(inviteData, this.inviteCode?.toLowerCase().trim() || 'open');
+        this.onAccess(this.session);
       });
     }
   }
