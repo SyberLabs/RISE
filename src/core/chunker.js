@@ -453,6 +453,55 @@ const PHRASE_BOUNDARY_AUTHORED = new RegExp(
  *
  * Content authors; the runtime follows.
  */
+/**
+ * An ENUMERATOR labels what follows; it is not a thought of its own.
+ *
+ * `I.`, `II.`, `1.`, `2.`, `(a)` — Vitruvius numbers every clause and the
+ * splitter was handing each number its own beat, so a reader met a lone
+ * "II." for four hundred milliseconds and then the sentence it belonged
+ * to. The mark is a pointer into the text, and a pointer shown apart from
+ * what it points at is just a noise.
+ *
+ * THE FLOOR CANNOT DO THIS, which is why it is a separate pass. The
+ * phrase floor merges a short piece BACKWARD into what it was cut from;
+ * an enumerator has to go FORWARD into what it introduces. It is also
+ * exempt from rescue in both directions — `closesSentence('1.')` is true,
+ * so nothing may merge into it — and it is usually the first piece of its
+ * paragraph, so there is nothing behind it anyway. Three reasons the
+ * existing machinery was never going to reach it.
+ *
+ * ROMAN NUMERALS ARE VALIDATED, NOT SPELLED FROM THEIR ALPHABET. A naive
+ * `[IVXLCDM]+` also matches CIVIL, DID and MIMIC, which in an all-capital
+ * heading would be swallowed into the following phrase. This is the
+ * standard-form pattern, so DID and CIVIL fail it and MIX — a real
+ * numeral, and a phrase nobody writes alone — passes.
+ */
+const ROMAN = 'M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})';
+const ENUMERATOR = new RegExp(
+    `^\\(?(?:${ROMAN}|${ROMAN.toLowerCase()}|\\d{1,3}|[A-Za-z])[.)]$`
+);
+
+/**
+ * Only a piece that is ENTIRELY an enumerator moves, and that constraint
+ * is what keeps a real sentence intact. "He was certain the culprit was
+ * I." ends in the same two characters and is a whole clause, so it stays
+ * where it is; only a piece with nothing else in it is a label.
+ */
+function leadWithEnumerator(pieces) {
+    const out = [];
+    for (let i = 0; i < pieces.length; i++) {
+        const piece = pieces[i].trim();
+        const next = pieces[i + 1];
+        if (next !== undefined && piece && ENUMERATOR.test(piece)) {
+            out.push(`${piece} ${next.trim()}`);
+            i += 1;
+            continue;
+        }
+        out.push(pieces[i]);
+    }
+    return out;
+}
+
 function cutPhrases(text) {
     const source = String(text);
     const authored = source.includes('|');
@@ -461,10 +510,13 @@ function cutPhrases(text) {
         held.push(match);
         return `${PAREN_OPEN}${held.length - 1}${PAREN_CLOSE}`;
     });
-    return masked
+    const pieces = masked
         .split(authored ? PHRASE_BOUNDARY_AUTHORED : PHRASE_BOUNDARY)
         .map(piece => piece.replace(PAREN_SENTINEL, (_, i) => held[Number(i)]).trim())
         .filter(piece => piece.length > 0);
+    // An author who marked their own phrasing has already decided where a
+    // numeral belongs — the same deference `applyPhraseFloor` shows.
+    return authored ? pieces : leadWithEnumerator(pieces);
 }
 
 function splitPhrases(text, preserveSpeakerHead = false) {

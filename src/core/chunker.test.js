@@ -608,3 +608,53 @@ describe('a parenthetical is one breath', () => {
             .toEqual(['The captain', 'said nothing (at all)', 'and the sea was calm.']);
     });
 });
+
+describe('an enumerator leads the phrase it labels', () => {
+    const phrases = text => chunkText(text, { mode: 'phrase' })
+        .filter(a => a.content).map(a => a.content);
+
+    it('joins a roman numeral to what follows it', () => {
+        // Vitruvius numbers every clause, and the splitter was handing each
+        // numeral its own beat: a reader met a lone "II." for four hundred
+        // milliseconds and then the sentence it belonged to.
+        expect(phrases('II. Of the choice of a site for the walls of a city.'))
+            .toEqual(['II. Of the choice of a site for the walls of a city.']);
+        expect(phrases('I. On the natural properties of the site, and the aspects proper to it.'))
+            .toEqual(['I. On the natural properties of the site,', 'and the aspects proper to it.']);
+    });
+
+    it('does the same for the arabic markers in the same texts', () => {
+        // Reported for roman numerals; the numeric clause markers beside
+        // them broke identically and would have been the next report.
+        expect(phrases('1. After insuring the healthfulness of the city, we come to the walls.'))
+            .toEqual(['1. After insuring the healthfulness of the city,', 'we come to the walls.']);
+    });
+
+    // THE CASE A NAIVE RULE BREAKS. "was I." ends in the same two
+    // characters and is a whole clause; only a piece with nothing else in
+    // it is a label.
+    it('leaves a real sentence ending in a numeral alone', () => {
+        expect(phrases('He was certain the culprit was I. Then the room fell silent.'))
+            .toEqual(['He was certain the culprit was I.', 'Then the room fell silent.']);
+    });
+
+    it('validates roman numerals rather than spelling them from the alphabet', () => {
+        // A naive [IVXLCDM]+ also matches CIVIL, DID and MIMIC — which in
+        // an all-capital heading would be swallowed into the next phrase.
+        expect(phrases('DID. The question stood unanswered.'))
+            .toEqual(['DID.', 'The question stood unanswered.']);
+        expect(phrases('CIVIL. The word had lost its meaning.'))
+            .toEqual(['CIVIL.', 'The word had lost its meaning.']);
+    });
+
+    it('does not overrule an author who marked their own phrasing', () => {
+        // The same deference applyPhraseFloor shows: a pipe means the
+        // phrasing was decided by a person.
+        expect(phrases('II. | Of the choice of a site.'))
+            .toEqual(['II.', 'Of the choice of a site.']);
+    });
+
+    it('never swallows the last piece, having nothing to lead', () => {
+        expect(phrases('The chapter ended. IV.')).toEqual(['The chapter ended.', 'IV.']);
+    });
+});

@@ -44,9 +44,16 @@ The rule this scope serves: **no such text in any book.**
 
 ## 1b. The Mahabharata — wrong work, in part
 
-**Status: found, measured, NOT fixed.** The disposition is `re-source`, which
-per §7.3 requires a human. Recorded here with its evidence so the decision can
-be made rather than rediscovered.
+**Status: TRIMMED 2026-08-05 (`e976c03`) — option 1, the interim.** The 403,208
+words are withdrawn: volumes 5–9 are gone, and the payload now holds volumes
+1–4 with zero war vocabulary and its own intact (2,948 Arjuna, 2,913 Pandava,
+2,067 Krishna). A reader can no longer be handed a 1915 war periodical labelled
+as Vyasa.
+
+**The acquisition is still open.** Option 2 — re-sourcing the true remaining
+volumes — remains the right end state and needs a human; until then the dossier
+must say the edition is volumes 1–4. Everything below is the evidence the trim
+was made on, kept so the decision is not rediscovered.
 
 ### The measurement
 
