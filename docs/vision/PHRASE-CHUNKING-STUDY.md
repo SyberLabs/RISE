@@ -254,7 +254,15 @@ absorbed into the first line. Dialogue with `preserveSpeakerHead`
 declines it outright — a speaker label is the strongest authored boundary
 there is.
 
-### It is OPT-IN, and that is the finding
+### It is OPT-IN, and that is the finding — **REVERSED 2026-08-06, see §7b**
+
+> The section below is kept as written because the reasoning is still
+> worth reading and the reversal is only legible beside it. Both of its
+> harms were checked directly in §7b and neither survived: verse comes out
+> **byte-identical**, and unprofiled dialogue goes from three stranded
+> speaker labels to **none** — the floor un-strands a label rather than
+> stranding one. What was damaged in 2026-07 was a test's fixture.
+
 
 Enabled globally, the floor rewrote the Atrium's pinned durations and
 merged a stranded `SOCRATES:` that a test used as its control. That is
@@ -324,11 +332,46 @@ only the floor decision, because a profile is where a per-corpus ruling
 lives and inventing a normalisation to justify the shape would be worse
 than an honest no-op.
 
-**It also makes a global default defensible**, which §7 did not have the
-evidence to say. The cost is measured: 97 of 101 Atrium durations move,
-mean 0.613%, max 1.780% — a re-pin, of the same size as two others made
-on 2026-08-06. That remains a decision for the creator; the evidence for
-it is now on the table rather than absent.
+**The floor is now the default** (2026-08-06, Mateo). `chunkText` takes
+`phraseFloor: true`, and the `prose` profile added that morning was
+replaced by its inverse, **`verse`** — while the floor was opt-in the
+useful statement was "floor this text"; now it is "leave this one alone",
+and a profile asking for what everything already gets is a control that
+does nothing. Precedence is **source → session → default**, written with
+`??` rather than `||` because the whole point of the inversion is that
+`false` must be sayable.
+
+Nothing in the corpus has needed `verse` yet. That is stated rather than
+fixed by applying it somewhere to look thorough: the measurement covered
+24 works and the shelf holds 91.
+
+### The cost, and the constant it moved
+
+97 of 101 Atrium durations moved — mean 0.613%, max 1.780% — and were
+re-pinned. Three point launches then fell under the three-minute
+editorial floor.
+
+**The floor was re-derived rather than widened**, and the distinction
+matters. It had been widened by 1s that same morning with an attached
+warning: *"if a future change puts several launches here, that is a
+signal about the change and not an invitation to widen again."* By the
+afternoon there were three, so the tolerance was removed instead of
+grown.
+
+The readings did not get shorter — **the estimate got honest.** A short
+atom carries a minimum duration larger than its share of the word count,
+and merging removes that padding along with the atom. The old bound was
+measured against a compiler that inflated every list and every fragment.
+Re-measured, the shelf spans 2.97m–6.88m with **words per minute flat at
+~131 across all of it**: nothing became thin, and `seven-years-war` was
+always the shortest text there at 371 words against a 544-word median.
+
+**And the guard changed kind.** A duration floor was only ever a proxy
+for "enough substance to be worth entering", and a bad one — it moves
+whenever the chunker learns something, which was twice in one day. The
+test now asserts on **words**, which do not move: no launch under 350,
+set below the shortest on the shelf so it fails on a NEW thin launch
+rather than re-litigating the existing three.
 
 ---
 

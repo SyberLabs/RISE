@@ -333,7 +333,10 @@ describe('the phrase floor', () => {
     // Book VI measured 27% fragments and 95 stutter runs before this.
     const floorOn = text => chunkText(text, { mode: 'phrase', wpm: 200, phraseFloor: true })
         .map(a => a.content);
-    const floorOff = text => chunkText(text, { mode: 'phrase', wpm: 200 })
+    // EXPLICIT `false` from 2026-08-06: the floor is the default now, so
+    // "off" has to be asked for. A helper that relied on the default to
+    // mean off would silently start testing the same thing twice.
+    const floorOff = text => chunkText(text, { mode: 'phrase', wpm: 200, phraseFloor: false })
         .map(a => a.content);
 
     it('rejoins fragments into the thought they were cut from', () => {
@@ -347,11 +350,16 @@ describe('the phrase floor', () => {
         }
     });
 
-    it('is off unless a caller asks', () => {
-        // It improves mechanically-split prose and damages text whose
-        // short phrases are authored, so it cannot be a default.
+    it('is ON unless a caller declines — reversed 2026-08-06', () => {
+        // It was opt-in on the reasoning that it "damages text whose short
+        // phrases are authored". Measured paired across 24 works, it does
+        // not: verse comes out byte-identical and unprofiled dialogue goes
+        // from three stranded speaker labels to none. CV falls 0.227,
+        // d = 2.92, 23 of 24 works improve. See PHRASE-CHUNKING-STUDY §7b.
         const text = 'One, two, three, four, five, six, seven, eight.';
-        expect(floorOff(text).length).toBeGreaterThan(floorOn(text).length);
+        const byDefault = chunkText(text, { mode: 'phrase', wpm: 200 }).map(a => a.content);
+        expect(byDefault).toEqual(floorOn(text));
+        expect(floorOff(text).length).toBeGreaterThan(byDefault.length);
     });
 
     it('never joins one sentence to the next', () => {
@@ -467,8 +475,11 @@ describe('verse lineation, detected rather than declared', () => {
             .map(a => a.content);
         expect(atoms).toHaveLength(10);
         expect(atoms[0]).toBe('All night the dreadless Angel, unpursued,');
-        // Without it, his commas are obeyed instead of his lines.
-        const split = chunkText(miltonic, { mode: 'phrase', wpm: 200 }).map(a => a.content);
+        // Without it, his commas are obeyed instead of his lines. The
+        // floor is declined here so the comparison is lines-vs-commas and
+        // not lines-vs-floored-commas.
+        const split = chunkText(miltonic, { mode: 'phrase', wpm: 200, phraseFloor: false })
+            .map(a => a.content);
         expect(split.length).toBeGreaterThan(atoms.length);
         expect(split).toContain('unpursued,');
     });

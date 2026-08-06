@@ -93,40 +93,40 @@ function prepareScripture(rawText) {
 }
 
 /**
- * PROSE — continuous paragraphs whose phrasing is the printer's, not the
- * author's, and which therefore want the phrase floor.
+ * VERSE — a work whose short phrases are the AUTHOR'S, not the printer's.
  *
- * It changes no text at all. That is the point: this profile exists to
- * carry a CHUNKING DECISION, not a normalisation, and inventing a text
- * transformation to justify the shape would be worse than an honest
- * no-op. PHRASE-CHUNKING-STUDY §7 ruled the floor a per-corpus decision
- * requiring measurement; a profile is where a per-corpus decision lives.
+ * THIS PROFILE IS THE INVERSE OF THE ONE THAT STOOD HERE THIS MORNING.
+ * A `prose` profile made sense while the phrase floor was opt-in: it
+ * said "floor this text". The floor is now the default
+ * (PHRASE-CHUNKING-STUDY §7b), so the statement worth being able to make
+ * is the opposite one — leave this text alone — and carrying a `prose`
+ * profile that asks for what everything already gets would be a control
+ * that does nothing, which this codebase retired an ASCII toggle over
+ * on the same day.
  *
- * MEASURED 2026-08-06, 24 works sampled from the Archive, paired (each
- * text under both conditions):
+ * It changes no text. That is the point: the profile exists to carry a
+ * CHUNKING DECISION, not a normalisation, and inventing a transformation
+ * to justify the shape would be worse than an honest no-op.
  *
- *   coefficient of variation   −0.227   95% CI [−0.258, −0.196]  d = −2.92
- *   phrases of ≤2 words        −23.1 points
- *   improved in 23 of 24 works
- *
- * The single work that worsened was the Ramayan, by 0.018, and its verse
- * is BYTE-IDENTICAL under both conditions — the difference came from its
- * title pages. Verse protects itself here: the floor never crosses a
- * sentence end and only touches pieces under the floor, and a verse line
- * is usually neither.
+ * NOTHING IN THE CORPUS HAS NEEDED IT YET, and that is worth stating
+ * plainly rather than applying it somewhere to look thorough. Verse came
+ * out BYTE-IDENTICAL under both conditions when measured — the floor
+ * never crosses a sentence end and only touches pieces under the floor,
+ * and a verse line is usually neither. The door is open because the
+ * measurement covered 24 works and the shelf holds 91.
  */
-function prepareProse(rawText) {
+function prepareVerse(rawText) {
     return {
         text: typeof rawText === 'string' ? rawText : String(rawText ?? ''),
-        phraseFloor: true
+        phraseFloor: false
     };
 }
 
 export const CHUNK_PROFILES = Object.freeze({
-    prose: Object.freeze({
-        id: 'prose',
-        description: 'Applies the phrase floor: mechanically split prose reads as whole units.',
-        prepare: prepareProse
+    verse: Object.freeze({
+        id: 'verse',
+        description: 'Declines the phrase floor: these short phrases are the author’s, not the printer’s.',
+        prepare: prepareVerse
     }),
     dialogue: Object.freeze({
         id: 'dialogue',

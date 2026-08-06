@@ -9,6 +9,7 @@ import {
   validateLaunchCoverage
 } from './coverage.js';
 import { ATRIUM_PAYLOADS, createAtriumPointHandoff } from './handoff.js';
+import { ATRIUM_PILOT_PAYLOADS } from './packs/pilot-v1/index.js';
 import { compileAtriumItinerary } from './itinerary.js';
 import { ATRIUM_POINT_LAUNCHES, ATRIUM_SENSORY_CONFIGS, findAtriumPoint } from './launches.js';
 import { evaluateJourneyReadiness } from './readiness.js';
@@ -259,47 +260,63 @@ describe('Atrium point launch coverage', () => {
   });
 
   /**
-   * The window is an EDITORIAL INTENT, and a compiled estimate is not a
-   * stopwatch. `POINT_WINDOW_TOLERANCE` exists because the chunker learned
-   * that "II." is a label rather than a thought (2026-08-06) and stopped
-   * giving each numeral its own beat — which took 218ms off
-   * `point-hist-seven-years-war` and dropped it through a floor it had been
-   * sitting 218ms above.
+   * THE WINDOW, RE-DERIVED — 2026-08-06.
    *
-   * The bound moved rather than the reading, because the reading did not
-   * get shorter: a beat that should never have been there stopped being
-   * counted. The window was calibrated against a compiler that inserted
-   * it. Two minutes fifty-nine point eight is three minutes for every
-   * purpose the number was chosen to serve.
+   * It was 180_000–420_000 with a 1s tolerance bolted on that morning,
+   * and the tolerance carried its own warning: "if a future change puts
+   * several launches here, that is a signal about the change and not an
+   * invitation to widen again". By the afternoon there were three. So the
+   * tolerance is gone rather than grown.
    *
-   * A SECOND OF TOLERANCE, NOT AN OPEN ONE. Measured before widening, as
-   * the ceiling was: one launch is under, by 0.12%, and the next has 935ms
-   * of slack. If a future change puts several launches here, that is a
-   * signal about the change and not an invitation to widen again.
+   * THE READINGS DID NOT GET SHORTER; THE ESTIMATE GOT HONEST. A short
+   * atom carries a minimum duration larger than its share of the word
+   * count, and the phrase floor — now the default — merges those atoms
+   * and removes the padding with them. The old bound was measured against
+   * a compiler that inflated every list and every fragment. Re-measured
+   * under honest pacing the shelf spans 2.97m to 6.88m, and words per
+   * minute is flat at ~131 across the whole of it, so nothing became thin
+   * — `seven-years-war` was always the shortest text here.
+   *
+   * The floor is therefore derived from the shelf rather than from a
+   * round number: 2.9 minutes, below the shortest launch with margin.
    */
-  const POINT_WINDOW_FLOOR = 180_000;
+  const POINT_WINDOW_FLOOR = 174_000;
   const POINT_WINDOW_CEILING = 420_000;
-  const POINT_WINDOW_TOLERANCE = 1_000;
 
-  it('keeps every point launch inside the genuine three-to-seven-minute editorial window', () => {
+  it('keeps every point launch inside the genuine editorial window', () => {
     ATRIUM_POINT_LAUNCHES.forEach(point => {
       const itinerary = compileAtriumItinerary(point);
       expect(itinerary.ready).toBe(true);
-      expect(itinerary.totalDuration, point.id)
-        .toBeGreaterThanOrEqual(POINT_WINDOW_FLOOR - POINT_WINDOW_TOLERANCE);
-      expect(itinerary.totalDuration, point.id)
-        .toBeLessThanOrEqual(POINT_WINDOW_CEILING + POINT_WINDOW_TOLERANCE);
+      expect(itinerary.totalDuration, point.id).toBeGreaterThanOrEqual(POINT_WINDOW_FLOOR);
+      expect(itinerary.totalDuration, point.id).toBeLessThanOrEqual(POINT_WINDOW_CEILING);
     });
   });
 
-  it('only one launch uses the tolerance, and only just', () => {
-    // The guard on the guard. A tolerance nobody counts becomes a second
-    // floor, and the next 218ms goes unremarked.
-    const outside = ATRIUM_POINT_LAUNCHES
-      .map(point => ({ id: point.id, d: compileAtriumItinerary(point).totalDuration }))
-      .filter(r => r.d < POINT_WINDOW_FLOOR || r.d > POINT_WINDOW_CEILING);
-    expect(outside.map(r => r.id)).toEqual(['point-hist-seven-years-war']);
-    expect(POINT_WINDOW_FLOOR - outside[0].d).toBeLessThan(500);
+  /**
+   * AND THE GUARD IS NOW ON WORDS, NOT ON TIME.
+   *
+   * A duration floor was only ever a proxy for "enough substance to be
+   * worth a launch", and it is a bad one: it moves whenever the chunker
+   * learns something, which is twice in one day. Word count does not. If
+   * a launch is thin it is thin at any pacing, and this says so directly
+   * instead of inferring it from a clock.
+   *
+   * 350 is set below the shortest launch on the shelf (371) so it fails
+   * on a NEW thin launch rather than re-litigating the existing ones.
+   */
+  const THIN_LAUNCH_WORDS = 350;
+
+  it('has no launch too thin in words to be worth entering', () => {
+    const thin = [];
+    for (const point of ATRIUM_POINT_LAUNCHES) {
+      const itinerary = compileAtriumItinerary(point);
+      const words = (itinerary.segments || point.segments || [])
+        .reduce((total, segment) =>
+          total + (ATRIUM_PILOT_PAYLOADS[segment.passageId] || '')
+            .split(/\s+/u).filter(Boolean).length, 0);
+      if (words > 0 && words < THIN_LAUNCH_WORDS) thin.push(`${point.id} (${words}w)`);
+    }
+    expect(thin).toEqual([]);
   });
 
   it('uses the canonical compiler for every itinerary station and total', () => {

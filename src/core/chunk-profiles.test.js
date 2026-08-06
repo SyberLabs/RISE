@@ -82,7 +82,11 @@ describe('chunk profiles', () => {
         });
         const unprofiled = compileSession({
             sources: [{ id: 'a', name: 'A', data: raw }],
-            chunkMode: 'phrase'
+            chunkMode: 'phrase',
+            // The floor is the default now and it UN-STRANDS a speaker
+            // label, so it is declined here to show what the profile is
+            // actually for: the label survives without it too.
+            phraseFloor: false
         });
 
         expect(profiled.atoms.some(atom => atom.content === 'SOCRATES: Answer.')).toBe(true);
@@ -151,37 +155,28 @@ describe('scripture profile', () => {
     });
 });
 
-describe('the prose profile', () => {
+describe('the verse profile', () => {
     it('changes no text — it carries a chunking decision, not a normalisation', () => {
-        const raw = 'The principles of art teaching here outlined might be illustrated\n\n'
-            + 'in other ways and with better examples for the reader to consider.';
-        const prepared = prepareChunkText(raw, 'prose');
+        const raw = 'Sugriva moved by wondering awe\nThe high-souled sons of Raghu saw,';
+        const prepared = prepareChunkText(raw, 'verse');
         expect(prepared.text).toBe(raw);
-        expect(prepared.phraseFloor).toBe(true);
+        expect(prepared.phraseFloor).toBe(false);
     });
 
-    it('makes a mechanically split paragraph read as whole units', () => {
-        // The reported case: "Design, Composition, Painting," each became
-        // its own beat. Measured across 24 sampled works the floor moves
-        // the coefficient of variation by −0.227 (d = −2.92).
-        const raw = 'The three structural elements are Line, Notan and Color. '
-            + 'Design, Composition, Painting, and the crafts all rest upon them.';
-        const short = (text, floor) => chunkText(text, { mode: 'phrase', phraseFloor: floor })
-            .filter(a => a.content).map(a => a.content.trim().split(/\s+/).length)
-            .filter(n => n <= 2).length;
-        expect(short(raw, true)).toBeLessThan(short(raw, false));
+    it('is the INVERSE of the profile that stood here this morning', () => {
+        // While the floor was opt-in, the useful statement was "floor this
+        // text". The floor is now the default, so the statement worth
+        // making is the opposite — and a `prose` profile asking for what
+        // everything already gets would be a control that does nothing.
+        expect(() => prepareChunkText('x', 'prose')).toThrow(RangeError);
     });
 
-    it('leaves a verse line alone, which is why it is safe to apply by work', () => {
-        // Verse protects itself: the floor never crosses a sentence end and
-        // only touches pieces under the floor, and a verse line is usually
-        // neither. Verified against the Ramayan, whose lines are identical
-        // under both conditions.
-        const verse = 'Sugríva moved by wondering awe\nThe high-souled sons of Raghu saw,\n'
-            + 'In all their glorious arms arrayed;\nAnd grief upon his spirit weighed.';
-        const of = floor => chunkText(verse, { mode: 'phrase', phraseFloor: floor })
-            .filter(a => a.content).map(a => a.content);
-        expect(of(true)).toEqual(of(false));
+    it('keeps a text unfloored when it asks to be', () => {
+        const raw = 'Line, Notan, Color, Design, Composition, Painting, and the crafts '
+            + 'alike rest upon them, as every teacher of the subject has always known.';
+        const pieces = floor => chunkText(raw, { mode: 'phrase', phraseFloor: floor })
+            .filter(a => a.content).length;
+        expect(pieces(false)).toBeGreaterThan(pieces(true));
     });
 
     it('is refused if it is not a profile anyone declared', () => {
