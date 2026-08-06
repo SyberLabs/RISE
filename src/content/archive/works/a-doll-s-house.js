@@ -5,13 +5,13 @@
 
 export const A_DOLL_S_HOUSE_SECTIONS = [
     {
-        "name": "ACT I.",
+        "name": "Dramatis Personae",
         "path": [
             "ACT I."
         ],
         "startAnchor": "Front matter",
         "endAnchor": "ACT I",
-        "content": "A Doll’s House\n\nby Henrik Ibsen\n\n\nContents\n\nACT I.\n ACT II.\n ACT III.\n\n\n DRAMATIS PERSONAE\n\nTorvald Helmer.\nNora, his wife.\nDoctor Rank.\nMrs Linde.\nNils Krogstad.\nHelmer’s three young children.\nAnne, their nurse.\nA Housemaid.\nA Porter.\n\n_[The action takes place in Helmer’s house.]_\n\n\n\n\nA DOLL’S HOUSE"
+        "content": "DRAMATIS PERSONAE\n\nTorvald Helmer.\nNora, his wife.\nDoctor Rank.\nMrs Linde.\nNils Krogstad.\nHelmer’s three young children.\nAnne, their nurse.\nA Housemaid.\nA Porter.\n\n_[The action takes place in Helmer’s house.]_\n\n\n\n\nA DOLL’S HOUSE"
     },
     {
         "name": "ACT I",

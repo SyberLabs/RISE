@@ -5,15 +5,6 @@
 
 export const THE_NO_PLAYS_OF_JAPAN_SECTIONS = [
     {
-        "name": "Front matter",
-        "path": [
-            "Front matter"
-        ],
-        "startAnchor": "Front matter",
-        "endAnchor": "CHAPTER VIII",
-        "content": "THE\n  NŌ PLAYS\n  OF JAPAN\n\n\n\n\n_TRANSLATIONS BY ARTHUR WALEY_\n\n\nA HUNDRED AND SEVENTY CHINESE POEMS\n\n    “No better translations have appeared of Chinese poetry. He\n    has given the real feeling of Chinese poetry, its clarity, its\n    suggestion, its perfect humanity.”\n\n  --AMY LOWELL.\n\n    “A magnificent volume.”\n\n  --JAMES L. FORD, _New York Herald_.\n\n\nMORE TRANSLATIONS FROM THE CHINESE\n\n    “To those fortunate people who could and did enjoy _A Hundred and\n    Seventy Chinese Poems_ I would recommend _More Translations from\n    the Chinese_.”\n\n  --_Baltimore Evening Sun._\n\n\n_At all booksellers’ or from the Publisher_\n\n_ALFRED A. KNOPF, New York_\n\n[Illustration: YOUNG WOMAN’S MASK]\n\n\n\n\n  THE NŌ PLAYS OF\n  JAPAN\n\n  BY\n  ARTHUR WALEY\n\n  NEW YORK\n  ALFRED · A · KNOPF\n  1922\n\n\n\n\n  COPYRIGHT, 1922\n  BY ARTHUR WALEY\n\n  _Published March, 1922_\n\n\n  _Set up and printed by the Vail-Ballou Co., Binghamton, N. Y._\n  _Paper furnished by W. F. Etherington & Co., New York, N. Y._\n  _Bound by the Plimpton Press, Norwood, Mass._\n\n\n  MANUFACTURED IN THE UNITED STATES OF AMERICA\n\n\n\n\n  TO\n  DŌAMI\n\n\n\n\nCONTENTS\n\n\n                             PAGE\n\n  KEY TO PLANS             12, 14\n  PLANS                    13, 15\n  INTRODUCTION              17-29\n  NOTE ON BUDDHISM          30-32\n\nCHAPTER I\n  ATSUMORI                  36-44\n  IKUTA                     45-50\n  TSUNEMASA                 51-56\n\nCHAPTER II\n  KUMASAKA                  60-68\n  EBOSHI-ORI                69-80\n  BENKEI ON THE BRIDGE      81-86\n\nCHAPTER III\n  KAGEKIYO                  89-99\n  HACHI NO KI             100-112\n  SOTOBA KOMACHI          113-124\n\nCHAPTER IV\n  UKAI                    127-133\n  AYA NO TSUZUMI          134-141\n  AOI NO UYE              142-151\n\nCHAPTER V\n  KANTAN                  155-164\n  THE HŌKA PRIESTS        165-175\n  HAGOROMO                176-184\n\nCHAPTER VI\n  TANIKŌ                  185-193\n  IKENIYE                 194-200\n  HATSUYUKI               201-204\n  HAKU RAKUTEN            205-213\n\nCHAPTER VII\n  SUMMARIES               217-249"
-    },
-    {
         "name": "CHAPTER VIII",
         "path": [
             "CHAPTER VIII"

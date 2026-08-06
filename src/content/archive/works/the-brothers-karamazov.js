@@ -5,15 +5,6 @@
 
 export const THE_BROTHERS_KARAMAZOV_SECTIONS = [
     {
-        "name": "Part I",
-        "path": [
-            "Part I"
-        ],
-        "startAnchor": "Front matter",
-        "endAnchor": "Part II",
-        "content": "The Brothers Karamazov\n\nTranslated from the Russian of\n\nFyodor Dostoyevsky\n\nby Constance Garnett\n\nThe Lowell Press\n\nNew York\n\n\nContents\n\nPart I\n Book I. The History Of A Family\n Chapter I. Fyodor Pavlovitch Karamazov\n Chapter II. He Gets Rid Of His Eldest Son\n Chapter III. The Second Marriage And The Second Family\n Chapter IV. The Third Son, Alyosha\n Chapter V. Elders\n Book II. An Unfortunate Gathering\n Chapter I. They Arrive At The Monastery\n Chapter II. The Old Buffoon\n Chapter III. Peasant Women Who Have Faith\n Chapter IV. A Lady Of Little Faith\n Chapter V. So Be It! So Be It!\n Chapter VI. Why Is Such A Man Alive?\n Chapter VII. A Young Man Bent On A Career\n Chapter VIII. The Scandalous Scene\n Book III. The Sensualists\n Chapter I. In The Servants’ Quarters\n Chapter II. Lizaveta\n Chapter III. The Confession Of A Passionate Heart—In Verse\n Chapter IV. The Confession Of A Passionate Heart—In Anecdote\n Chapter V. The Confession Of A Passionate Heart—“Heels Up”\n Chapter VI. Smerdyakov\n Chapter VII. The Controversy\n Chapter VIII. Over The Brandy\n Chapter IX. The Sensualists\n Chapter X. Both Together\n Chapter XI. Another Reputation Ruined"
-    },
-    {
         "name": "Part II",
         "path": [
             "Part II"

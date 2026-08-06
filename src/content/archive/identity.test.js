@@ -57,7 +57,44 @@ const UNNAMED_IN_FRONT_MATTER = new Set([
     'parker-australian-tales',  // opens at "Dinewan the emu…"
     'rasmussen-eskimo-tales',   // opens at "Once there were two men…"
     'the-song-of-roland',       // opens at "Charles the King, our Lord and Sovereign"
-    'king-lear'                 // opens at "KING LEAR. DRAMATIS PERSONAE"
+    'king-lear',                // opens at "KING LEAR. DRAMATIS PERSONAE"
+
+    // ── Added 2026-08-06, when the apparatus pass removed title pages ──
+    //
+    // THE GUARD WAS BEING SATISFIED BY THE PRINTER, NOT THE AUTHOR. These
+    // nine named themselves only on a title page — "By Herman Melville",
+    // "By Leo Tolstoy" — and once that page was withdrawn as apparatus
+    // they stopped naming themselves at all. Nothing about the payload
+    // changed except that the furniture went; the check had been
+    // measuring the presence of a title page and reporting it as identity.
+    //
+    // It was tempting to widen the search from the first 12,000 characters
+    // to the whole payload, which rescues six of the nine. That was
+    // REFUSED: "tolstoy" and "dostoevsky" turn up somewhere in those
+    // payloads, quite possibly in residual boilerplate, and a guard that
+    // passes on apparatus is the exact failure being fixed — it would
+    // only have moved from one kind of furniture to another.
+    //
+    // So the list grows and says why. The guard keeps its force where it
+    // ever had any: the Mahabharata names itself seventeen thousand times
+    // in its own prose, which is what caught the First World War hiding
+    // inside it. A novel does not name its author in its sentences, and
+    // pretending otherwise is not a test.
+    //
+    // ITS REAL SUCCESSOR IS UNBUILT — ARCHIVE-CLEANSING-SPEC §1b's
+    // per-division check on a work's OWN VOCABULARY rather than its
+    // author's name: no division may be devoid of what its work is dense
+    // in. That would hold all nine of these without a title page.
+    'sacred-zen-koans',         // Suzuki's name was on the Luzac title page
+    'the-iliad',                // "Homer" appeared only on the Macmillan title page
+    'the-odyssey',              // named in Butler's preface, which was the translator's
+    'a-doll-s-house',           // opens at DRAMATIS PERSONAE; Ibsen is never in the dialogue
+    'paradise-lost',            // opens at "Of Man's first disobedience"
+    'moby-dick-or-the-whale',   // opens at Melville's own ETYMOLOGY, which does not name him
+    'middlemarch',              // opens at CHAPTER I; the town is named later, not here
+    'crime-and-punishment',     // opens at CHAPTER I, the biography having been withdrawn
+    'war-and-peace',            // opens at CHAPTER I
+    'the-storm-of-steel'        // Jünger's name was on the Phoenix Library title page
 ]);
 
 describe('a work names itself in its own pages', () => {

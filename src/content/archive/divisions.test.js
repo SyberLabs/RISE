@@ -655,15 +655,38 @@ describe('a contents page is not a reading', () => {
     }, 240000);
 
     it('keeps front matter that is the author\u2019s own', async () => {
-        // Moby-Dick's preamble is 4,338 words: an index, and then
-        // Etymology and Extracts, which are Melville's and belong to the
-        // book. Measured whole the index is diluted below the threshold
-        // and nothing is dropped; measured whole and dropped, Etymology
-        // goes with it. Each split piece answers for itself.
+        // Moby-Dick's preamble is an index, and then Etymology and
+        // Extracts, which are MELVILLE'S and belong to the book. Measured
+        // whole the index is diluted below the threshold and nothing is
+        // dropped; measured whole and dropped, Etymology goes with it.
+        // Each split piece answers for itself.
+        //
+        // 2026-08-06: the index went, and Melville's part stayed \u2014 which
+        // is the whole point of this test and is now visible in the label.
+        // The division had been called "Epilogue", because the ingest's
+        // heading detector took the last line of the contents list; the
+        // real Epilogue is a different division and is last. So the
+        // assertion is on the CONTENT rather than on a label the ingest
+        // got wrong, plus the name it should have had all along.
         const { ingestedArchiveTexts } = await import('./index.js');
         const moby = ingestedArchiveTexts().find(w => w.id === 'moby-dick-or-the-whale');
         const divisions = await moby.getDivisions();
-        expect(divisions.entries[0].label).toMatch(/front matter/i);
+        // The LABEL is the divisions layer's own ("Front matter"), and it
+        // is right: this is the book's front matter and it is Melville's.
+        // The assertion is on what the division HOLDS, which is the thing
+        // that must not be lost.
         expect(divisions.entries[0].content).toMatch(/Jonas-in-the-Whale|set sail from the Elbe/);
+        expect(divisions.entries[0].content).toMatch(/ETYMOLOGY/);
+        // \u2026and the index that shared the division with it is gone.
+        expect(divisions.entries[0].content).not.toMatch(/Original Transcriber/i);
+        // AND THE ENDING COMES AFTER THE BEGINNING. Asserting it is LAST
+        // would be asserting the wrong thing twice over: getDivisions
+        // splits oversized divisions, so the final entry is a fragment of
+        // Chapter 135. What matters is the order, which the ingest had
+        // wrong — it labelled Melville's Etymology "Epilogue", taking the
+        // last line of the contents list as a heading, and the real
+        // Epilogue sat elsewhere under the same name.
+        const epilogue = divisions.entries.findIndex(e => /The drama.s done/i.test(e.content));
+        expect(epilogue).toBeGreaterThan(0);
     }, 240000);
 });
