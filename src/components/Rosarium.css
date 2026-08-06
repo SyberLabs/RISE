@@ -285,6 +285,15 @@
   .rosarium-gallery-grid { grid-template-columns: repeat(2, 1fr); overflow-y: auto; max-height: 86vh; }
 }
 
+/* Same hazard as the Chamber's pair, same clearance. This control sat at
+   24px — the exact offset the origin chip was reported colliding at — so
+   it was one screenshot away from the same complaint. */
+@media (max-width: 700px) {
+  .rosarium-back {
+    top: var(--top-control-clearance);
+  }
+}
+
 /* ── The strand between-space ── */
 
 .rosarium-advance-surface {

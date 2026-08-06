@@ -72,9 +72,19 @@
   color: var(--color-ember);
 }
 
+/* THE TWO TOP CONTROLS ARE A PAIR AND HAD DRIFTED APART. "← Portal" and
+   the origin chip flank the same edge, and on a phone they had reached
+   different heights by different routes — the back button carried an 8px
+   override from a 640px block, the chip 24px from a 700px one — so they
+   sat at 8px and 24px while iOS drew the clock and battery across both.
+   One breakpoint, one clearance, both controls. */
 @media (max-width: 700px) {
+  .orbital-back,
   .orbital-origin-slot {
-    top: var(--space-lg);
+    top: var(--top-control-clearance);
+  }
+
+  .orbital-origin-slot {
     right: var(--space-sm);
   }
 }
@@ -1485,9 +1495,10 @@
     font-size: 24px;
   }
 
+  /* `top` belongs to the pair rule at the 700px breakpoint — it lived
+     here at 8px, which put the control inside the status bar. */
   .orbital-back {
     left: var(--space-sm);
-    top: var(--space-sm);
   }
 
   /* BEGIN was a full-width slab under a delicate ring — the loudest

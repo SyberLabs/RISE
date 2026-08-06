@@ -74,6 +74,24 @@
   --space-2xl: 64px;
   /* Primary landmarks */
   --space-3xl: 96px;
+
+  /* How far a top-anchored control must sit from the top of the screen on
+     a phone, so it does not crowd the clock and battery iOS draws there.
+     (Reported on iPhone, 2026-08-06: "← Portal" and the origin chip both
+     collided with the native icons.)
+
+     A MEASURED CONSTANT, NOT A COMPUTED INSET, and deliberately so.
+     `env(safe-area-inset-top)` resolves to ZERO in this document because
+     the viewport meta has no `viewport-fit=cover` — Portal.css records
+     that decision and warns that an inert guard is worse than none, since
+     reading one as if it were working is how the Page Mode control bar
+     shipped 16px too low. So this is a number chosen by measurement and
+     named, which also means adopting `viewport-fit=cover` later is one
+     decision here rather than a hunt through three stylesheets.
+
+     Larger than the desktop offset on purpose: a desktop window has no
+     status bar to clear. */
+  --top-control-clearance: 40px;
   /* Screen-level spacing */
 
   /* ═══ TIMING ═══ */
