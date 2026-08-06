@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-06T03:06:24.006Z",
+  "generatedAt": "2026-08-06T04:06:53.006Z",
   "rightsVerifiedAt": "2026-08-06",
   "collections": {
     "astronomy": {
@@ -193,6 +193,15 @@
       "requiredCredit": "NASA, ESA, A. Simon (Goddard Space Flight Center), and M. H. Wong (University of California, Berkeley) and the OPAL team · CC BY 4.0",
       "fullCredit": "NASA, ESA, A. Simon (Goddard Space Flight Center), and M. H. Wong (University of California, Berkeley) and the OPAL team.",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "A.1"
+        ],
+        "branches": [
+          "A"
+        ],
+        "label": "A · Solar system"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic2017a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic2017a.jpg",
       "sourceName": "ESA/Hubble",
@@ -209,6 +218,15 @@
       "requiredCredit": "NASA, ESA, and STScI · CC BY 4.0",
       "fullCredit": "NASA, ESA, and STScI",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.4"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic2007a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic2007a.jpg",
       "sourceName": "ESA/Hubble",
@@ -225,6 +243,16 @@
       "requiredCredit": "NASA, ESA, the Hubble Heritage Team (STScI/AURA), A. Nota (ESA/STScI), and the Westerlund 2 Science Team · CC BY 4.0",
       "fullCredit": "NASA, ESA, the Hubble Heritage Team (STScI/AURA), A. Nota (ESA/STScI), and the Westerlund 2 Science Team The original observations of Westerlund 2 were obtained by the science team: Antonella Nota (ESA/STScI), Elena Sabbi (STScI), Eva Grebel and Peter Zeidler (Astronomisches Rechen-Institut Heidelberg), Monica Tosi (INAF, Osservatorio Astronomico di Bologna), Alceste Bonanos (National Observatory of Athens, Astronomical Institute), Carol Christian (STScI/AURA) and Selma de Mink (University of Am",
       "creditElided": true,
+      "subject": {
+        "codes": [
+          "B.3.6.4.1",
+          "B.4"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic1509a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1509a.jpg",
       "sourceName": "ESA/Hubble",
@@ -241,6 +269,15 @@
       "requiredCredit": "NASA, ESA/Hubble and the Hubble Heritage Team · CC BY 4.0",
       "fullCredit": "NASA, ESA/Hubble and the Hubble Heritage Team",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic1501a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1501a.jpg",
       "sourceName": "ESA/Hubble",
@@ -257,6 +294,15 @@
       "requiredCredit": "ESA/Hubble & NASA, S. JhaAcknowledgement: L. Shatz · CC BY 4.0",
       "fullCredit": "ESA/Hubble & NASA, S. JhaAcknowledgement: L. Shatz",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "D.5.1.8"
+        ],
+        "branches": [
+          "D"
+        ],
+        "label": "D · Cosmology"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/potw2050a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw2050a.jpg",
       "sourceName": "ESA/Hubble",
@@ -273,6 +319,16 @@
       "requiredCredit": "ESA/Hubble & NASA, A. Riess and the SH0ES teamAcknowledgment: Mahdi Zamani · CC BY 4.0",
       "fullCredit": "ESA/Hubble & NASA, A. Riess and the SH0ES teamAcknowledgment: Mahdi Zamani",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.2",
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic2018b.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic2018b.jpg",
       "sourceName": "ESA/Hubble",
@@ -289,6 +345,15 @@
       "requiredCredit": "NASA, ESA and the Hubble Heritage (STScI/AURA)-ESA/Hubble Collaboration · CC BY 4.0",
       "fullCredit": "NASA, ESA and the Hubble Heritage (STScI/AURA)-ESA/Hubble Collaboration",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.3.6.4.1"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0715a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0715a.jpg",
       "sourceName": "ESA/Hubble",
@@ -305,6 +370,15 @@
       "requiredCredit": "NASA, ESA, Hubble Heritage Team · CC BY 4.0",
       "fullCredit": "NASA, ESA, Hubble Heritage Team",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.2.1.1"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic1608a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1608a.jpg",
       "sourceName": "ESA/Hubble",
@@ -321,6 +395,15 @@
       "requiredCredit": "ESA/Hubble & NASA · CC BY 4.0",
       "fullCredit": "ESA/Hubble & NASA",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.7"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/potw1345a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw1345a.jpg",
       "sourceName": "ESA/Hubble",
@@ -337,6 +420,15 @@
       "requiredCredit": "NASA, ESA, and the Hubble Heritage Team (AURA/STScI) · CC BY 4.0",
       "fullCredit": "NASA, ESA, and the Hubble Heritage Team (AURA/STScI)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.2.3"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic1307a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1307a.jpg",
       "sourceName": "ESA/Hubble",
@@ -353,6 +445,15 @@
       "requiredCredit": "NASA, ESA and Andy Fabian (University of Cambridge, UK) · CC BY 4.0",
       "fullCredit": "NASA, ESA and Andy Fabian (University of Cambridge, UK)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.3.2.2"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0817a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0817a.jpg",
       "sourceName": "ESA/Hubble",
@@ -369,6 +470,15 @@
       "requiredCredit": "NASA, ESA, and S. Beckwith (STScI) and the HUDF Team · CC BY 4.0",
       "fullCredit": "NASA, ESA, and S. Beckwith (STScI) and the HUDF Team",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "D.5.5.3"
+        ],
+        "branches": [
+          "D"
+        ],
+        "label": "D · Cosmology"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0406a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0406a.jpg",
       "sourceName": "ESA/Hubble",
@@ -385,6 +495,16 @@
       "requiredCredit": "ESA/Hubble & NASA, J. LeeAcknowledgement: Leo Shatz · CC BY 4.0",
       "fullCredit": "ESA/Hubble & NASA, J. LeeAcknowledgement: Leo Shatz",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.1",
+          "C.5.3.3"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/potw2049a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw2049a.jpg",
       "sourceName": "ESA/Hubble",
@@ -401,6 +521,15 @@
       "requiredCredit": "NASA/ESA and The Hubble Heritage Team (STScI/AURA) · CC BY 4.0",
       "fullCredit": "NASA/ESA and The Hubble Heritage Team (STScI/AURA)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/opo0328a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/opo0328a.jpg",
       "sourceName": "ESA/Hubble",
@@ -417,6 +546,15 @@
       "requiredCredit": "NASA, ESA, A. Simon (Goddard Space Flight Center), and M.H. Wong (University of California, Berkeley) · CC BY 4.0",
       "fullCredit": "NASA, ESA, A. Simon (Goddard Space Flight Center), and M.H. Wong (University of California, Berkeley)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "A.1"
+        ],
+        "branches": [
+          "A"
+        ],
+        "label": "A · Solar system"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic1917a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1917a.jpg",
       "sourceName": "ESA/Hubble",
@@ -433,6 +571,16 @@
       "requiredCredit": "NASA, ESA and the Hubble Heritage Team (STScI/AURA)-ESA/Hubble Collaboration · CC BY 4.0",
       "fullCredit": "NASA, ESA and the Hubble Heritage Team (STScI/AURA)-ESA/Hubble Collaboration",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.4.1.2",
+          "C.3.6.4"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0702a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0702a.jpg",
       "sourceName": "ESA/Hubble",
@@ -449,6 +597,15 @@
       "requiredCredit": "NASA, ESA and Allison Loll/Jeff Hester (Arizona State University) · CC BY 4.0",
       "fullCredit": "NASA, ESA and Allison Loll/Jeff Hester (Arizona State University). Acknowledgement: Davide De Martin (ESA/Hubble)",
       "creditElided": true,
+      "subject": {
+        "codes": [
+          "B.4.1.4"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0515a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0515a.jpg",
       "sourceName": "ESA/Hubble",
@@ -465,6 +622,15 @@
       "requiredCredit": "NASA, ESA, STScI · CC BY 4.0",
       "fullCredit": "NASA, ESA, STScI",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic1808a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1808a.jpg",
       "sourceName": "ESA/Hubble",
@@ -481,6 +647,16 @@
       "requiredCredit": "ESA/Hubble & NASA, A. Riess (STScl/JHU) · CC BY 4.0",
       "fullCredit": "ESA/Hubble & NASA, A. Riess (STScl/JHU)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.1",
+          "C.5.1.2"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/potw1811a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw1811a.jpg",
       "sourceName": "ESA/Hubble",
@@ -497,6 +673,15 @@
       "requiredCredit": "NASA, ESA and the Hubble SM4 ERO Team · CC BY 4.0",
       "fullCredit": "NASA, ESA and the Hubble SM4 ERO Team",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.3"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0910h.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0910h.jpg",
       "sourceName": "ESA/Hubble",
@@ -513,6 +698,16 @@
       "requiredCredit": "NASA, ESA, M. Robberto ( Space Telescope Science Institute/ESA) and the Hubble Space Telescope Orion Treasury Project Team · CC BY 4.0",
       "fullCredit": "NASA, ESA, M. Robberto ( Space Telescope Science Institute/ESA) and the Hubble Space Telescope Orion Treasury Project Team",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.2",
+          "B.4.2.1.1"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0601a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0601a.jpg",
       "sourceName": "ESA/Hubble",
@@ -529,6 +724,16 @@
       "requiredCredit": "NASA, ESA and A. Nota (ESA/STScI, STScI/AURA) · CC BY 4.0",
       "fullCredit": "NASA, ESA and A. Nota (ESA/STScI, STScI/AURA)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.4.1.2",
+          "C.3.6.4"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0514a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0514a.jpg",
       "sourceName": "ESA/Hubble",
@@ -545,6 +750,15 @@
       "requiredCredit": "NASA, ESA, S. Beckwith (STScI), and The Hubble Heritage Team (STScI/AURA) · CC BY 4.0",
       "fullCredit": "NASA, ESA, S. Beckwith (STScI), and The Hubble Heritage Team (STScI/AURA)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0506a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0506a.jpg",
       "sourceName": "ESA/Hubble",
@@ -561,6 +775,15 @@
       "requiredCredit": "NASA, ESA, and The Hubble Heritage Team (STScI/AURA) · CC BY 4.0",
       "fullCredit": "NASA, ESA, and The Hubble Heritage Team (STScI/AURA)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0506b.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0506b.jpg",
       "sourceName": "ESA/Hubble",
@@ -577,6 +800,15 @@
       "requiredCredit": "NASA, ESA, and The Hubble Heritage Team (STScI/AURA) · CC BY 4.0",
       "fullCredit": "NASA, ESA, and The Hubble Heritage Team (STScI/AURA)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.4"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/opo0511a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/opo0511a.jpg",
       "sourceName": "ESA/Hubble",
@@ -593,6 +825,15 @@
       "requiredCredit": "NASA, ESA, and The Hubble Heritage Team (AURA/STScI) · CC BY 4.0",
       "fullCredit": "NASA, ESA, and The Hubble Heritage Team (AURA/STScI)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0503a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0503a.jpg",
       "sourceName": "ESA/Hubble",
@@ -609,6 +850,16 @@
       "requiredCredit": "NASA, ESA, and The Hubble Heritage Team (STScI/AURA) · CC BY 4.0",
       "fullCredit": "NASA, ESA, and The Hubble Heritage Team (STScI/AURA)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.2",
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/opo0501a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/opo0501a.jpg",
       "sourceName": "ESA/Hubble",
@@ -625,6 +876,16 @@
       "requiredCredit": "NASA, Holland Ford (JHU), the ACS Science Team and ESA · CC BY 4.0",
       "fullCredit": "NASA, Holland Ford (JHU), the ACS Science Team and ESA",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.2",
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0206a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0206a.jpg",
       "sourceName": "ESA/Hubble",
@@ -641,6 +902,15 @@
       "requiredCredit": "NASA, Holland Ford (JHU), the ACS Science Team and ESA · CC BY 4.0",
       "fullCredit": "NASA, Holland Ford (JHU), the ACS Science Team and ESA",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0206c.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0206c.jpg",
       "sourceName": "ESA/Hubble",
@@ -657,6 +927,15 @@
       "requiredCredit": "NASA, Holland Ford (JHU), the ACS Science Team and ESA · CC BY 4.0",
       "fullCredit": "NASA, Holland Ford (JHU), the ACS Science Team and ESA",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.7"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0206b.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0206b.jpg",
       "sourceName": "ESA/Hubble",
@@ -673,6 +952,15 @@
       "requiredCredit": "ESA & Garrelt Mellema (Leiden University, the Netherlands) · CC BY 4.0",
       "fullCredit": "ESA & Garrelt Mellema (Leiden University, the Netherlands)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.3"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0109a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0109a.jpg",
       "sourceName": "ESA/Hubble",
@@ -689,6 +977,15 @@
       "requiredCredit": "NASA/ESA, The Hubble Heritage Team (AURA/STScI) · CC BY 4.0",
       "fullCredit": "NASA/ESA, The Hubble Heritage Team (AURA/STScI)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/opo0006a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/opo0006a.jpg",
       "sourceName": "ESA/Hubble",
@@ -705,6 +1002,15 @@
       "requiredCredit": "Hubble Heritage Team (AURA/STScI/NASA/ESA) · CC BY 4.0",
       "fullCredit": "Hubble Heritage Team (AURA/STScI/NASA/ESA)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "A.1.1.2"
+        ],
+        "branches": [
+          "A"
+        ],
+        "label": "A · Solar system"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/opo9828c.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/opo9828c.jpg",
       "sourceName": "ESA/Hubble",
@@ -721,6 +1027,15 @@
       "requiredCredit": "NASA, ESA and STScI · CC BY 4.0",
       "fullCredit": "NASA, ESA and STScI",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.3.2.4"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic2105a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic2105a.jpg",
       "sourceName": "ESA/Hubble",
@@ -737,6 +1052,15 @@
       "requiredCredit": "NASA, ESA, the Hubble Heritage Team (STScI/AURA), and R. Gendler (for the Hubble Heritage Team) · CC BY 4.0",
       "fullCredit": "NASA, ESA, the Hubble Heritage Team (STScI/AURA), and R. Gendler (for the Hubble Heritage Team). Acknowledgment: J. GaBany",
       "creditElided": true,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic1302a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1302a.jpg",
       "sourceName": "ESA/Hubble",
@@ -753,6 +1077,15 @@
       "requiredCredit": "NASA, ESA · CC BY 4.0",
       "fullCredit": "NASA, ESA",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.4.1.2"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic1105a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1105a.jpg",
       "sourceName": "ESA/Hubble",
@@ -769,6 +1102,15 @@
       "requiredCredit": "NASA, ESA and the Hubble Heritage (STScI/AURA)-ESA/Hubble Collaboration · CC BY 4.0",
       "fullCredit": "NASA, ESA and the Hubble Heritage (STScI/AURA)-ESA/Hubble Collaboration Acknowledgment: M. Crockett and S. Kaviraj (Oxford University, UK), R. O'Connell (University of Virginia), B. Whitmore (STScI) and the WFC3 Scientific Oversight Committee.",
       "creditElided": true,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic1104a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1104a.jpg",
       "sourceName": "ESA/Hubble",
@@ -785,6 +1127,16 @@
       "requiredCredit": "NASA, ESA, M. Livio and the Hubble 20th Anniversary Team (STScI) · CC BY 4.0",
       "fullCredit": "NASA, ESA, M. Livio and the Hubble 20th Anniversary Team (STScI)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4",
+          "B.4.1.5"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic1007a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1007a.jpg",
       "sourceName": "ESA/Hubble",
@@ -801,6 +1153,16 @@
       "requiredCredit": "NASA, ESA and the Hubble SM4 ERO Team · CC BY 4.0",
       "fullCredit": "NASA, ESA and the Hubble SM4 ERO Team",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.2",
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0910s.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0910s.jpg",
       "sourceName": "ESA/Hubble",
@@ -817,6 +1179,15 @@
       "requiredCredit": "NASA, ESA and the Hubble SM4 ERO Team · CC BY 4.0",
       "fullCredit": "NASA, ESA and the Hubble SM4 ERO Team",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.5.3"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0910i.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0910i.jpg",
       "sourceName": "ESA/Hubble",
@@ -833,6 +1204,16 @@
       "requiredCredit": "NASA, ESA and W. Harris (McMaster University, Ontario, Canada) · CC BY 4.0",
       "fullCredit": "NASA, ESA and W. Harris (McMaster University, Ontario, Canada)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.1",
+          "C.5.1.4"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0905a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0905a.jpg",
       "sourceName": "ESA/Hubble",
@@ -849,6 +1230,15 @@
       "requiredCredit": "NASA, ESA, and The Hubble Heritage (STScI/AURA)-ESA/Hubble Collaboration · CC BY 4.0",
       "fullCredit": "NASA, ESA, and The Hubble Heritage (STScI/AURA)-ESA/Hubble Collaboration",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0719a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0719a.jpg",
       "sourceName": "ESA/Hubble",
@@ -865,6 +1255,15 @@
       "requiredCredit": "NASA, ESA, N. Smith (University of California, Berkeley), and The Hubble Heritage Team (STScI/AURA) · CC BY 4.0",
       "fullCredit": "NASA, ESA, N. Smith (University of California, Berkeley), and The Hubble Heritage Team (STScI/AURA)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0707a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0707a.jpg",
       "sourceName": "ESA/Hubble",
@@ -881,6 +1280,16 @@
       "requiredCredit": "NASA, ESA · CC BY 4.0",
       "fullCredit": "NASA, ESA",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.2",
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0706a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0706a.jpg",
       "sourceName": "ESA/Hubble",
@@ -897,6 +1306,15 @@
       "requiredCredit": "NASA, ESA, and The Hubble Heritage Team (STScI/AURA) · CC BY 4.0",
       "fullCredit": "NASA, ESA, and The Hubble Heritage Team (STScI/AURA)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "E.5.1.1"
+        ],
+        "branches": [
+          "E"
+        ],
+        "label": "E · Sky phenomena"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/opo0624a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/opo0624a.jpg",
       "sourceName": "ESA/Hubble",
@@ -913,6 +1331,15 @@
       "requiredCredit": "NASA, ESA and the Hubble Heritage Team (STScI/AURA) · CC BY 4.0",
       "fullCredit": "NASA, ESA and the Hubble Heritage Team (STScI/AURA). Acknowledgment: J. Gallagher (University of Wisconsin), M. Mountain (STScI) and P. Puxley (NSF).",
       "creditElided": true,
+      "subject": {
+        "codes": [
+          "C.5.3.3"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0604a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0604a.jpg",
       "sourceName": "ESA/Hubble",
@@ -929,6 +1356,15 @@
       "requiredCredit": "European Space Agency & NASA · CC BY 4.0",
       "fullCredit": "Image: European Space Agency & NASA Acknowledgements: Project Investigators for the original Hubble data: K.D. Kuntz (GSFC), F. Bresolin (University of Hawaii), J. Trauger (JPL), J. Mould (NOAO), and Y.-H. Chu (University of Illinois, Urbana) Image processing: Davide De Martin (ESA/Hubble) CFHT image: Canada-France-Hawaii Telescope/J.-C. Cuillandre/Coelum NOAO image: George Jacoby, Bruce Bohannan, Mark Hanna/NOAO/AURA/NSF",
       "creditElided": true,
+      "subject": {
+        "codes": [
+          "C.5.1.1"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0602a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0602a.jpg",
       "sourceName": "ESA/Hubble",
@@ -945,6 +1381,15 @@
       "requiredCredit": "NASA/ESA and The Hubble Heritage Team (STScI/AURA) · CC BY 4.0",
       "fullCredit": "NASA/ESA and The Hubble Heritage Team (STScI/AURA)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.3"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/opo0028a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/opo0028a.jpg",
       "sourceName": "ESA/Hubble",
@@ -961,6 +1406,15 @@
       "requiredCredit": "NASA/ESA and The Hubble Heritage Team (STScI) · CC BY 4.0",
       "fullCredit": "NASA/ESA and The Hubble Heritage Team (STScI)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.7"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/opo9941a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/opo9941a.jpg",
       "sourceName": "ESA/Hubble",
@@ -1009,6 +1463,15 @@
       "requiredCredit": "ESA/Hubble & NASA, J. Kalirai · CC BY 4.0",
       "fullCredit": "ESA/Hubble & NASA, J. Kalirai",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.3.6.4.2"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/potw2036a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/potw2036a.jpg",
       "sourceName": "ESA/Hubble",
@@ -1025,6 +1488,15 @@
       "requiredCredit": "NASA, ESA, and J. Kastner (RIT) · CC BY 4.0",
       "fullCredit": "NASA, ESA, and J. Kastner (RIT)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.3"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic2011a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic2011a.jpg",
       "sourceName": "ESA/Hubble",
@@ -1041,6 +1513,15 @@
       "requiredCredit": "NASA, ESA, A. Simon (GSFC) and the OPAL Team, and J. DePasquale (STScI) · CC BY 4.0",
       "fullCredit": "NASA, ESA, A. Simon (GSFC) and the OPAL Team, and J. DePasquale (STScI)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "A.1.5"
+        ],
+        "branches": [
+          "A"
+        ],
+        "label": "A · Solar system"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic1814b.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1814b.jpg",
       "sourceName": "ESA/Hubble",
@@ -1057,6 +1538,15 @@
       "requiredCredit": "NASA, ESA, P. Goudfrooij (STScI) · CC BY 4.0",
       "fullCredit": "NASA, ESA, P. Goudfrooij (STScI)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.3"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic1516a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1516a.jpg",
       "sourceName": "ESA/Hubble",
@@ -1073,6 +1563,15 @@
       "requiredCredit": "NASA, ESA, and C. Robert O’Dell (Vanderbilt University) · CC BY 4.0",
       "fullCredit": "NASA, ESA, and C. Robert O’Dell (Vanderbilt University).",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "B.4.1.3"
+        ],
+        "branches": [
+          "B"
+        ],
+        "label": "B · Stars & nebulae"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic1310a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic1310a.jpg",
       "sourceName": "ESA/Hubble",
@@ -1089,6 +1588,15 @@
       "requiredCredit": "NASA, ESA, Michael Wong (Space Telescope Science Institute, Baltimore, MD), H. B. Hammel (Space Science Institute, Boulder, CO) and the Jupiter Impact Team · CC BY 4.0",
       "fullCredit": "NASA, ESA, Michael Wong (Space Telescope Science Institute, Baltimore, MD), H. B. Hammel (Space Science Institute, Boulder, CO) and the Jupiter Impact Team",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "A.1.1.2"
+        ],
+        "branches": [
+          "A"
+        ],
+        "label": "A · Solar system"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0910q.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0910q.jpg",
       "sourceName": "ESA/Hubble",
@@ -1105,6 +1613,15 @@
       "requiredCredit": "NASA/ESA and the Hubble Heritage Team (AURA/STScI/HEIC) · CC BY 4.0",
       "fullCredit": "NASA/ESA and the Hubble Heritage Team (AURA/STScI/HEIC)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.4.1.2"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/heic0411a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/heic0411a.jpg",
       "sourceName": "ESA/Hubble",
@@ -1121,6 +1638,15 @@
       "requiredCredit": "NASA/ESA and The Hubble Heritage Team (STScI/AURA) · CC BY 4.0",
       "fullCredit": "NASA/ESA and The Hubble Heritage Team (STScI/AURA)",
       "creditElided": false,
+      "subject": {
+        "codes": [
+          "C.5.1.7"
+        ],
+        "branches": [
+          "C"
+        ],
+        "label": "C · Galaxies"
+      },
       "image": "https://cdn.esahubble.org/archives/images/screen/opo0123a.jpg",
       "thumb": "https://esahubble.org/media/archives/images/potwmedium/opo0123a.jpg",
       "sourceName": "ESA/Hubble",

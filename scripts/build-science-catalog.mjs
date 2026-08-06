@@ -87,6 +87,12 @@ for (const w of kept) {
         /** The whole provider credit, for the Curia — §3(a)(3)'s "where practical". */
         fullCredit: label?.fullCredit || '',
         creditElided: Boolean(label?.creditElided),
+        // The source's own AVM classification where it has one. Unused by
+        // the provider today and kept because SOURCE-EXPANSION-SPEC §4
+        // route 2 — a science concordance binding passages to images —
+        // needs exactly this axis, and it is far cheaper to carry now
+        // than to re-harvest 111 works for later.
+        ...(w.subject?.branches?.length ? { subject: w.subject } : {}),
         image: w.image,
         thumb: w.thumb || w.image,
         sourceName: w.sourceName,

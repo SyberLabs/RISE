@@ -180,6 +180,40 @@ const unbytes = (value) => {
  *
  * Small is the display copy and Thumbnail is the contact sheet's.
  */
+/**
+ * AVM subject codes — the source's OWN taxonomy, read rather than inferred.
+ *
+ * Astronomy Visualization Metadata classifies by what is depicted, and the
+ * top-level branch is the useful part: A solar system, B stars & nebulae,
+ * C galaxies, D cosmology, E sky phenomena, F photographic/facilities.
+ *
+ * This earns its place because of what the ESO first pass measured. Of 60
+ * reviewed works, every A and every E was cut — 20 of 25 rejections — and
+ * they are exactly the observatory-landscape shots ("ALMA's world at
+ * night", "Total solar eclipse, La Silla Observatory"). ESO files those
+ * under sky phenomena, so the field a reviewer needs was in the feed the
+ * whole time.
+ *
+ * It is carried to the CONTACT SHEET, not applied as a filter. A code that
+ * predicted one reviewer's 25 cuts is a hint worth showing, not a rule
+ * worth trusting — that distinction is the whole of curation-only.
+ */
+const AVM_BRANCH = Object.freeze({
+    A: 'Solar system', B: 'Stars & nebulae', C: 'Galaxies',
+    D: 'Cosmology', E: 'Sky phenomena', F: 'Photographic / facilities'
+});
+
+const avmSubject = (row) => {
+    const raw = row['Subject.Category'];
+    const codes = (Array.isArray(raw) ? raw : [raw]).map(unbytes).filter(Boolean);
+    const branches = [...new Set(codes.map(c => c[0]))];
+    return {
+        codes,
+        branches,
+        label: branches.map(b => `${b} · ${AVM_BRANCH[b] || 'unclassified'}`).join(' | ')
+    };
+};
+
 const fromResources = (row, ...types) => {
     for (const type of types) {
         const hit = (row.Resources || []).find(r =>
@@ -208,6 +242,7 @@ async function djangoplicity({ id, sourceName, feed, sourceBase }) {
             sourceName,
             sourceUrl: unbytes(row.ReferenceURL) || `${sourceBase}${workId}/`,
             kind: unbytes(row.Type),
+            subject: avmSubject(row),
             image: fromResources(row, 'Small', 'Large'),
             thumb: fromResources(row, 'Thumbnail', 'Small'),
             page: unbytes(row.ReferenceURL) || `${sourceBase}${workId}/`

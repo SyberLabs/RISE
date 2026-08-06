@@ -453,6 +453,50 @@ attribution record there, with licence and source URLs, is a resource a
 reader can actually get to. Had the Curia been dev-only this ruling would
 not stand.
 
+### AVM subject codes: a hint that is NOT a filter — measured 2026-08-05
+
+ESO's feed carries `Subject.Category`, the source's own **Astronomy
+Visualization Metadata** classification (A solar system, B stars &
+nebulae, C galaxies, D cosmology, E sky phenomena, F photographic and
+facilities). Reading it against the first ESO pass produced a strikingly
+clean correlation — and then a caution that matters more.
+
+| AVM branch | kept | cut |
+|---|---|---|
+| A · Solar system | 0 | **4** |
+| E · Sky phenomena | 0 | **16** |
+| B · Stars & nebulae | 27 | 8 |
+| C · Galaxies | 7 | 1 |
+| D · Cosmology | 1 | 0 |
+
+**Every A and every E was cut — 20 of the 25 rejections**, and they are
+exactly the observatory-landscape shots the reviewer described: *"ALMA's
+world at night"*, *"The southern Milky Way above ALMA"*, *"Total solar
+eclipse, La Silla Observatory"*, *"Three planets dance over La Silla"*.
+ESO files that photography under sky phenomena, so the field a reviewer
+needed was in the feed all along.
+
+**AND IT DOES NOT TRANSFER.** The astronomy catalog — ESA/Hubble,
+approved in full — contains five `A` works and one `E`. They are *Saturn
+in natural colours*, *Hubble's View of Jupiter and Europa*, *Collision
+leaves giant Jupiter bruised*. The same code that marked 100% rejections
+at ESO marks approvals at ESA/Hubble, because **the code describes the
+subject while the thing being judged is the vantage point** — and Hubble
+has no ground vantage to have.
+
+So the branch is carried to the **contact sheet** and warmed in colour for
+A/E/F, and it is deliberately *not* a harvest filter. A signal that
+predicted one reviewer's twenty-five cuts within one institution is worth
+showing and not worth trusting; treating it as a rule would have silently
+dropped Saturn. This is the same failure the Wikimedia botanical service
+committed — a query cannot promise what it has not seen — arriving in a
+better disguise.
+
+The codes are carried into the generated catalog too (57 of 111 works;
+NASA publishes no such field), because §4 route 2 — a science concordance
+binding passages to images — needs exactly this axis and it is far
+cheaper to keep now than to re-harvest for later.
+
 ### Ruling: an appended roster goes to the Curia — decided 2026-08-05, Mateo
 
 > **Cut at the roster marker. Never at a length.**

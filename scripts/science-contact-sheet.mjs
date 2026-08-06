@@ -35,6 +35,27 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /**
+ * A storage key derived from WHICH WORKS ARE ON THE SHEET.
+ *
+ * The key was a constant, so a second sheet inherited the first one's
+ * ticks — an ESO review would have opened with the astronomy pass already
+ * checked, and pre-checked boxes on a review sheet are worse than none:
+ * they read as decisions someone made about THESE works. Deriving it from
+ * the contents means a re-render of the same sheet resumes where the
+ * reviewer left off, while a different selection starts clean.
+ */
+function sheetKey(works) {
+    let hash = 0x811c9dc5;
+    for (const id of works.map(w => w.id).sort()) {
+        for (let i = 0; i < id.length; i++) {
+            hash ^= id.charCodeAt(i);
+            hash = Math.imul(hash, 0x01000193) >>> 0;
+        }
+    }
+    return `rise.science.contactsheet.${works.length}.${hash.toString(36)}`;
+}
+
+/**
  * Licence classes shown as themselves, never merged into "open".
  *
  * The whole point of `LICENCE` was that these obligations are opposite:
@@ -64,6 +85,7 @@ function card(w) {
         <strong>${esc(w.title) || '<em class="warn">untitled</em>'}</strong>
         <div class="dim">${esc(w.artist || w.credit || '—')}</div>
         <div class="dim">${esc(w.date)}${w.term ? ` · <span class="term">${esc(w.term)}</span>` : ''}</div>
+        ${w.subject?.label ? `<div class="avm avm-${esc(w.subject.branches?.[0] || 'x')}">${esc(w.subject.label)}</div>` : ''}
         <div class="lic lic-${esc(w.licence)}">${esc(w.licence)} — ${esc(note)}</div>
         <div class="credit" title="exactly what the chip will show">${esc(w.requiredCredit) || '<em>no credit line</em>'}</div>
         ${w.creditElided ? `<details class="elided"><summary>roster set aside → Curia</summary>${esc(w.fullCredit)}</details>` : ''}
@@ -134,6 +156,11 @@ function render(doc) {
  .lic{font:10px monospace;margin-top:6px}
  .credit{color:#b9b9c3;font-size:11px;margin-top:5px;padding:5px 7px;background:#0f0f13;
          border-left:2px solid #3a3a44;word-break:break-word}
+ /* The source's own subject taxonomy, shown as a HINT. A and E were 20 of
+    the ESO first pass's 25 cuts, so they are warmed rather than hidden —
+    but every card still has to be looked at. */
+ .avm{font:10px monospace;margin-top:5px;color:#6b6b75}
+ .avm-A,.avm-E,.avm-F{color:#d4a574}
  .elided{margin-top:5px;font-size:11px;color:#8b8b95}
  .elided summary{color:#d4a574;cursor:pointer;font:10px monospace}
  .elided[open]{background:#0f0f13;padding:5px 7px;border-left:2px solid #d4a574}
@@ -171,7 +198,7 @@ ${rejected}
 <pre id="out"></pre>
 
 <script>
-const KEY = 'rise.science.contactsheet';
+const KEY = ${JSON.stringify(sheetKey(works))};
 const picks = document.querySelectorAll('.pick');
 const state = new Set(JSON.parse(localStorage.getItem(KEY) || '[]'));
 
