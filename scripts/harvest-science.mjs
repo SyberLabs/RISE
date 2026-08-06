@@ -506,15 +506,23 @@ for (const [name, run] of Object.entries(SOURCES)) {
     const live = verify ? keptRows.filter(r => r.delivery?.ok) : keptRows;
     works.push(...live);
 
+    const unseen = distinct.length - Math.min(distinct.length, limit);
     report.push({ source: name, fetched: rows.length, duplicates,
-        considered: kept, dropped, flagged,
+        considered: kept, dropped, flagged, notShown: unseen,
         ...(verify ? { unreachable, kept: live.length } : { kept }) });
+    // NAME THE TRUNCATION. The report said "fetched 100 … kept 60" and
+    // read as a yield when it was a CUT: `--limit` had left 40 works
+    // unseen, and the reviewer approved a collection "in full" having
+    // been shown three fifths of it. A number that means "all of it" and
+    // a number that means "as many as you asked for" cannot share a
+    // column without eventually being read as the wrong one.
     console.log(`${name.padEnd(13)} fetched ${String(rows.length).padStart(4)}`
         + `  dup ${String(duplicates).padStart(3)}`
         + `  uncreditable ${String(dropped).padStart(3)}`
         + `  unreachable ${String(unreachable).padStart(3)}`
         + `  third-party-flagged ${flagged}`
-        + `  → kept ${String(live.length).padStart(4)}`);
+        + `  → kept ${String(live.length).padStart(4)}`
+        + (unseen ? `  ⚠ ${unseen} NOT SHOWN (--limit ${limit})` : ''));
 
     // Name the failures. A count alone would let a systematic problem —
     // one collection's media links rotted through — read as attrition.

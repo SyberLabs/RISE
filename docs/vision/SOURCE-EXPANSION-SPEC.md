@@ -453,6 +453,31 @@ attribution record there, with licence and source URLs, is a resource a
 reader can actually get to. Had the Curia been dev-only this ruling would
 not stand.
 
+### `--limit` truncated the review, and the report called it a yield
+
+The first contact sheet ran at `--limit 60`. The harvest reported
+*"fetched 100 … kept 60"* and that reads as a yield — works lost to
+duplicates, rights or dead links — when it was simply a **cut**. Forty
+ESA/Hubble works, forty ESO and fifteen NASA never reached the sheet.
+
+The cost was not hypothetical: the reviewer approved **ESA/Hubble "in
+full"** having been shown three fifths of it. A verdict on a truncated
+view was recorded in the canon as a verdict on a collection.
+
+Ordering is stable across runs — every previously reviewed id reappears
+in the full harvest — so the remainder is cleanly recoverable and nothing
+had to be re-reviewed. The report now names the truncation
+(`⚠ 40 NOT SHOWN (--limit 60)`) and `notShown` is in the JSON report,
+because a number meaning "all of it" and a number meaning "as many as you
+asked for" cannot share a column without eventually being read as the
+wrong one.
+
+**Unreviewed remainders, 2026-08-05:** ESO 40, ESA/Hubble 40, NASA 15.
+(Smithsonian's 78 are moot — the source is retired.) The 100 per feed is
+still the djangoplicity pagination ceiling; `?page=2` returns
+byte-identical content, so 100 is everything those feeds will give until
+that is solved.
+
 ### AVM subject codes: a hint that is NOT a filter — measured 2026-08-05
 
 ESO's feed carries `Subject.Category`, the source's own **Astronomy
