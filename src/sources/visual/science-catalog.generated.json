@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-06T02:51:30.258Z",
+  "generatedAt": "2026-08-06T03:06:24.006Z",
   "rightsVerifiedAt": "2026-08-06",
   "collections": {
     "astronomy": {
@@ -173,6 +173,12 @@
       "unit": "Smithsonian Gardens",
       "reviewed": 14,
       "why": "14 photographs of flora; retired with the rest of the specimen holdings"
+    },
+    {
+      "unit": "Cooper Hewitt, Smithsonian Design Museum",
+      "reviewed": 22,
+      "distinctWorks": 12,
+      "why": "decorative designs — a different register, and one that deserves its own harvest rather than surviving as a remnant of a natural-history one"
     }
   ],
   "works": [

@@ -225,7 +225,14 @@ writeFileSync(outPath, render(doc));
 const works = doc.works || [];
 const missing = works.filter(w => !w.thumb && !w.image).length;
 const noCredit = works.filter(w => !w.requiredCredit).length;
+// CANDIDATES ARE IMAGES; A COLLECTION IS OBJECTS. A Smithsonian record
+// can attach several media to one object, so Cooper Hewitt's 22
+// candidates were 12 works and a per-image count overstated the holdings
+// by nearly half. Multiple views are useful on the sheet — it is the
+// count that misleads, so both are reported.
+const objects = new Set(works.map(w => w.page || w.sourceUrl || w.id)).size;
 console.log(`${works.length} candidates → ${outPath}`);
+console.log(`  ${objects} distinct works${objects !== works.length ? ` (${works.length - objects} additional views)` : ''}`);
 console.log(`  by licence   ${JSON.stringify(doc.licences || {})}`);
 if (missing) console.log(`  ! ${missing} with no image to show`);
 if (noCredit) console.log(`  ! ${noCredit} with an empty credit line`);

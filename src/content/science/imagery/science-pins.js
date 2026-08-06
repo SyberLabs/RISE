@@ -90,6 +90,14 @@ export const ESO_SHORTLIST = Object.freeze([
  * reading passage. Nothing here is a fault in the harvester: the rights
  * were clean, the delivery URLs resolved, and the images were simply the
  * wrong thing — which is the only failure a contact sheet can catch.
+ *
+ * ALL 54 REVIEWED WORKS ARE RETIRED, Cooper Hewitt included, and its
+ * inclusion is the deliberate part. Those twelve are a genuinely
+ * different register — decorative designs, the art-of tradition rather
+ * than the witness-of one — and keeping them would have carried a design
+ * museum forward as a remnant of a natural-history harvest. A collection
+ * assembled that way is not curated, it is left over. If that register is
+ * wanted it gets its own harvest, chosen for what it is.
  */
 export const RETIRED = Object.freeze([
     Object.freeze({
@@ -101,6 +109,13 @@ export const RETIRED = Object.freeze([
         unit: 'Smithsonian Gardens',
         reviewed: 14,
         why: '14 photographs of flora; retired with the rest of the specimen holdings'
+    }),
+    Object.freeze({
+        unit: 'Cooper Hewitt, Smithsonian Design Museum',
+        reviewed: 22,
+        distinctWorks: 12,
+        why: 'decorative designs — a different register, and one that deserves its own '
+            + 'harvest rather than surviving as a remnant of a natural-history one'
     })
 ]);
 

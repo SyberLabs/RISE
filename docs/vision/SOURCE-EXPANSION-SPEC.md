@@ -254,6 +254,26 @@ whether specimen photography belongs in a chamber at all. The Cooper
 Hewitt and botanical-illustration rows are a different and more promising
 register than the NMNH trays.
 
+**VERDICT — retired entire, 2026-08-05, Mateo.** All 54 reviewed works
+refused: NMNH ×4 units (18, "low quality entry"), Smithsonian Gardens
+(14 photographs of flora), Cooper Hewitt (22). Nothing here was a
+harvester fault — the rights were clean, every delivery URL resolved, and
+the images were simply the wrong thing, which is the only failure a
+contact sheet can catch and the entire reason the step exists.
+
+Cooper Hewitt's inclusion is the deliberate part. Those twelve are a
+genuinely different register — decorative designs, art-of rather than
+witness-of — and keeping them would have carried a design museum forward
+as a *remnant* of a natural-history harvest. A collection assembled that
+way is not curated, it is left over.
+
+One measurement defect to carry forward: **22 candidates were 12 distinct
+objects.** The harvest dedupes on the delivery URL, and a Smithsonian
+record can attach several media (views, versions) to one object, so a
+per-image count overstates the holdings by nearly half. ESA/Hubble and
+NASA are 1:1 and were unaffected. Multiple views are useful *on the
+sheet*; it is the count that misleads, so the sheet reports both.
+
 ### ESA/Hubble and ESO — a feed, not an API
 
 §2 guessed "may be a scrape or a manifest, not a clean JSON API". Closer
