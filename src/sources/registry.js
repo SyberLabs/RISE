@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Source System
+ * RISE Source System
  * Provider Registry
  * 
  * Central registry for discovering and managing source providers.

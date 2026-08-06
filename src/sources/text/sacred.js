@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Source System
+ * RISE Source System
  * Sacred Text Provider
  * 
  * Provides curated verses and passages from sacred/wisdom texts.

@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Source System
+ * RISE Source System
  * Deep Sacred Text Registry
  * 
  * This file contains high-fidelity, structured versions of sacred texts.

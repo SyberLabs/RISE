@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Models Test Suite
+ * RISE Models Test Suite
  * Tests for Atom, Source, Session, and SessionState classes
  */
 

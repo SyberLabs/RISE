@@ -37,7 +37,7 @@ export const debug = {
    */
   log: (...args) => {
     if (isDebugEnabled()) {
-      console.log('[R.I.S.E.]', ...args);
+      console.log('[RISE]', ...args);
     }
   },
 
@@ -46,7 +46,7 @@ export const debug = {
    */
   warn: (...args) => {
     if (isDebugEnabled()) {
-      console.warn('[R.I.S.E.]', ...args);
+      console.warn('[RISE]', ...args);
     }
   },
 
@@ -54,7 +54,7 @@ export const debug = {
    * Log errors (ALWAYS logs - errors should never be silenced)
    */
   error: (...args) => {
-    console.error('[R.I.S.E.]', ...args);
+    console.error('[RISE]', ...args);
   },
 
   /**
@@ -71,7 +71,7 @@ export const debug = {
    */
   group: (label) => {
     if (isDebugEnabled()) {
-      console.group(`[R.I.S.E.] ${label}`);
+      console.group(`[RISE] ${label}`);
     }
   },
 
@@ -86,13 +86,13 @@ export const debug = {
    */
   time: (label) => {
     if (isDebugEnabled()) {
-      console.time(`[R.I.S.E.] ${label}`);
+      console.time(`[RISE] ${label}`);
     }
   },
 
   timeEnd: (label) => {
     if (isDebugEnabled()) {
-      console.timeEnd(`[R.I.S.E.] ${label}`);
+      console.timeEnd(`[RISE] ${label}`);
     }
   },
 
@@ -112,9 +112,9 @@ export const debug = {
   enable: () => {
     try {
       localStorage.setItem('RISE_DEBUG', 'true');
-      console.log('[R.I.S.E.] Debug mode enabled. Refresh to see logs.');
+      console.log('[RISE] Debug mode enabled. Refresh to see logs.');
     } catch (e) {
-      console.log('[R.I.S.E.] Could not enable debug mode:', e);
+      console.log('[RISE] Could not enable debug mode:', e);
     }
   },
 
@@ -125,9 +125,9 @@ export const debug = {
   disable: () => {
     try {
       localStorage.removeItem('RISE_DEBUG');
-      console.log('[R.I.S.E.] Debug mode disabled. Refresh to apply.');
+      console.log('[RISE] Debug mode disabled. Refresh to apply.');
     } catch (e) {
-      console.log('[R.I.S.E.] Could not disable debug mode:', e);
+      console.log('[RISE] Could not disable debug mode:', e);
     }
   },
 

@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Sequencer
+ * RISE Sequencer
  * Produces ordered atom sequences from sources using various strategies
  */
 

@@ -1,6 +1,6 @@
 /**
  * Portal Component
- * The launch screen - first encounter with R.I.S.E.
+ * The launch screen - first encounter with RISE.
  *
  * Design principles:
  * - Darkness first, light emerges
@@ -229,7 +229,7 @@ export class Portal {
           <div class="sl-header-brand">
             <span class="sl-wordmark">SyberLabs</span>
             <span class="sl-divider">·</span>
-            <span class="sl-product">R.I.S.E.</span>
+            <span class="sl-product">RISE</span>
           </div>
           <div class="sl-header-meta">
             <span class="sl-version">v2</span>
@@ -290,9 +290,9 @@ export class Portal {
 
         <!-- Title -->
         <div class="portal-title-container" style="opacity: 0;">
-          <h1 class="portal-title">R.I.S.E.</h1>
+          <h1 class="portal-title">RISE</h1>
           <p class="portal-subtitle text-fog">
-            Recursive Installation of Symbolic Experience
+            Audiovisual Reader
           </p>
         </div>
 

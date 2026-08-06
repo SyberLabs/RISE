@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Source System
+ * RISE Source System
  * Text Providers - Barrel Export
  */
 

@@ -151,7 +151,14 @@
   font-family: var(--font-display);
   font-size: 72px;
   font-weight: var(--font-weight-light);
-  letter-spacing: 0.1em;
+  /* R I S E — the separation is TYPOGRAPHY, not four characters with
+     spaces between them. Written as spaces a screen reader announces
+     "R, I, S, E" and a search engine indexes four words; written as
+     letter-spacing it stays one word that is merely set open.
+     text-indent restores the optical centre, which the trailing space
+     after the final E would otherwise pull left. */
+  letter-spacing: 0.32em;
+  text-indent: 0.32em;
   color: var(--color-light);
   margin-bottom: var(--space-sm);
   text-transform: uppercase;
@@ -538,8 +545,14 @@
   position: relative;
   transition: transform 0.35s var(--ease-out);
 }
-@media (min-width: 1600px) { .gazebo { --gz-scale: 0.5; } }
-@media (min-width: 1300px) and (max-width: 1599px) { .gazebo { --gz-scale: 0.46; } }
+/* DESKTOP ONLY, and the boundary matters. The base 0.42 and the mobile
+   rules below were measured against a 390×844 phone where the Solarium
+   once hung 21px off the bottom, unreachable; nothing here may reach
+   that. Every rule in this block starts at 1024px, where the pavilions
+   have room they were not being given. */
+@media (min-width: 1600px) { .gazebo { --gz-scale: 0.58; } }
+@media (min-width: 1300px) and (max-width: 1599px) { .gazebo { --gz-scale: 0.54; } }
+@media (min-width: 1024px) and (max-width: 1299px) { .gazebo { --gz-scale: 0.48; } }
 .gazebo-stage {
   position: absolute;
   left: 0;
@@ -557,6 +570,17 @@
    to the reading centre without crowding it. */
 .portal-arch-atrium { left: clamp(40px, 6vw, 132px); }
 .portal-arch-sol    { right: clamp(40px, 6vw, 132px); }
+
+/* …and further in on a desktop, where the margin was mostly void. At
+   1600px the pavilion is 244px wide and its inner edge lands ~410px
+   clear of centre, so the title and the reading column keep their air.
+   The inset is inside the same 1024px floor as the scale above: on a
+   phone the pavilions are already as close to the middle as the middle
+   can afford. */
+@media (min-width: 1024px) {
+  .portal-arch-atrium { left: clamp(72px, 9vw, 190px); }
+  .portal-arch-sol    { right: clamp(72px, 9vw, 190px); }
+}
 
 .portal-arch:hover .gazebo { transform: translateY(-5px); }
 .portal-arch:active .gazebo { transform: translateY(-1px); }

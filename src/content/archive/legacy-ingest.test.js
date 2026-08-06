@@ -76,10 +76,10 @@ describe('the legacy-classics replacement pass', () => {
             .not.toMatch(/M\.?\s*D\.?\s*Herter Norton/i);
     });
 
-    it('keeps the Descent as an attributed R.I.S.E. composition', () => {
+    it('keeps the Descent as an attributed RISE composition', () => {
         const descent = LIBRARY_TEXTS.find(text => text.id === 'starter-the-descent');
         expect(descent).toMatchObject({
-            author: 'R.I.S.E. Core',
+            author: 'RISE Core',
             provider: 'starters',
             category: 'composed'
         });

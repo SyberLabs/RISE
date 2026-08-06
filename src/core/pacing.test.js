@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Pacing Engine Test Suite
+ * RISE Pacing Engine Test Suite
  * Tests for StateCurve, PacingEngine, and Interleaver
  */
 

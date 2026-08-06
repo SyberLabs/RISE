@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Source System
+ * RISE Source System
  * Persistent Cache Layer
  * 
  * IndexedDB-based caching for source content.

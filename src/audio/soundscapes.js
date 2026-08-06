@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Soundscapes — living compositions synthesized in real time.
+ * RISE Soundscapes — living compositions synthesized in real time.
  *
  * Unlike the pure-tone layers (entrainment, harmonics, noise, drone),
  * a soundscape is a composed piece: several voices plus an autonomous

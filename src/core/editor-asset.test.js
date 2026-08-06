@@ -16,7 +16,7 @@ describe('Editor Asset v1', () => {
       name: 'Klee Lines',
       capability: 'both',
       editor: { color: '#7FD4A4', preview: { kind: 'generator', ref: 'klee' } },
-      provenance: { provider: 'R.I.S.E.' },
+      provenance: { provider: 'RISE' },
       cueTemplate: { kind: 'procedural', collections: ['klee'] }
     });
 

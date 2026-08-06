@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Source System
+ * RISE Source System
  * Wikimedia Commons Provider
  * 
  * Fetches images from Wikimedia Commons API.
@@ -17,7 +17,7 @@ const RANDOM_CANDIDATE_LIMIT = 250;
 const MIN_DISPLAY_AREA = 360_000;
 
 /**
- * Curated categories for R.I.S.E. visual content
+ * Curated categories for RISE visual content
  * Based on diagram.txt catalog
  */
 /**

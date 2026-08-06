@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Starter Sequences
+ * RISE Starter Sequences
  * Extracted from the Starter Sequences document
  * Curated pre-loaded content for different experiences
  *

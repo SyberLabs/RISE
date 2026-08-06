@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Global Error Boundary
+ * RISE Global Error Boundary
  * Catches and handles uncaught errors and promise rejections
  */
 
@@ -136,13 +136,13 @@ class ErrorBoundary {
     // Keep production failures observable in the browser console; development
     // adds the full structured context.
     if (import.meta.env?.DEV) {
-      console.group(`[R.I.S.E. Error] ${report.category}/${report.severity}`);
+      console.group(`[RISE Error] ${report.category}/${report.severity}`);
       console.error(error);
       console.log('Context:', context);
       console.log('Report:', report.toJSON());
       console.groupEnd();
     } else {
-      console.error(`[R.I.S.E.] ${report.category}/${report.severity}:`, error);
+      console.error(`[RISE] ${report.category}/${report.severity}:`, error);
     }
 
     // Show user notification for high/critical errors
@@ -210,7 +210,7 @@ class ErrorBoundary {
             this.notifyListeners(report);
           }).catch(error => {
             report.recovered = false;
-            console.error('[R.I.S.E.] Recovery failed:', error);
+            console.error('[RISE] Recovery failed:', error);
             this.notifyListeners(report);
           });
           return false;

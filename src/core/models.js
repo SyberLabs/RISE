@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Core Models
+ * RISE Core Models
  * Data structures for atoms, sources, and sessions
  */
 
@@ -33,7 +33,7 @@ import {
  */
 
 /**
- * An Atom is the fundamental unit of content in R.I.S.E.
+ * An Atom is the fundamental unit of content in RISE
  * Each atom represents a single displayable element with timing metadata.
  */
 export class Atom {

@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Source System
+ * RISE Source System
  * Generated Visual Provider
  *
  * Wraps the existing procedural generators (Klee, Turrell, Fractal)

@@ -1,6 +1,6 @@
 /*
- * R.I.S.E. — Main Application
- * Recursive Installation of Symbolic Experience
+ * RISE — Main Application
+ * An audiovisual reader
  *
  * Central orchestration module that initializes and coordinates:
  * - Router (view navigation)
@@ -76,7 +76,7 @@ window.addEventListener('vite:preloadError', (event) => {
     if (sessionStorage.getItem(STALE_BUILD_SENTINEL)) return;  // not a deploy: a real failure
     sessionStorage.setItem(STALE_BUILD_SENTINEL, '1');
     event.preventDefault();
-    console.warn('[R.I.S.E.] Build changed underneath this tab — reloading once.');
+    console.warn('[RISE] Build changed underneath this tab — reloading once.');
     window.location.reload();
 });
 
@@ -132,7 +132,7 @@ class App {
                     if (accessHandled) return; // Prevent double-handling
                     accessHandled = true;
 
-                    console.log('[R.I.S.E.] Beta access granted:', session.name);
+                    console.log('[RISE] Beta access granted:', session.name);
                     this.betaSession = session;
 
                     try {
@@ -143,13 +143,13 @@ class App {
                         resolve(true);
                     } catch (error) {
                         accessHandled = false;
-                        console.error('[R.I.S.E.] Application initialization failed:', error);
+                        console.error('[RISE] Application initialization failed:', error);
                         gateContainer.hidden = false;
                         gateContainer.replaceChildren();
                         const recovery = document.createElement('div');
                         recovery.className = 'beta-gate beta-gate-error';
                         const message = document.createElement('p');
-                        message.textContent = 'R.I.S.E. could not initialize in this browser session.';
+                        message.textContent = 'RISE could not initialize in this browser session.';
                         const retry = document.createElement('button');
                         retry.className = 'btn-primary';
                         retry.textContent = 'Retry';
@@ -171,7 +171,7 @@ class App {
      * Load a personalized vault for an invitee
      */
     loadPersonalizedVault(vaultId) {
-        console.log('[R.I.S.E.] Loading personalized vault:', vaultId);
+        console.log('[RISE] Loading personalized vault:', vaultId);
         // Navigate to vault view - the Vault component will handle personalized content
         this.router.navigate('vault', { data: { personalizedVault: vaultId } });
     }
@@ -201,7 +201,7 @@ class App {
         // Initialize router
         this.router = new Router({
             onViewChange: (view, data) => {
-                console.log(`[R.I.S.E.] View: ${view}`);
+                console.log(`[RISE] View: ${view}`);
             }
         });
 
@@ -227,10 +227,10 @@ class App {
 
         // Navigate to the recovered destination, personalized vault, or portal
         if (staleTarget && this.router.views.has(staleTarget)) {
-            console.log('[R.I.S.E.] Recovering navigation after stale build:', staleTarget);
+            console.log('[RISE] Recovering navigation after stale build:', staleTarget);
             await this.router.navigate(staleTarget, { data: staleData });
         } else if (options.personalizedVault) {
-            console.log('[R.I.S.E.] Navigating directly to personalized vault:', options.personalizedVault);
+            console.log('[RISE] Navigating directly to personalized vault:', options.personalizedVault);
             await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });
         } else {
             await this.router.navigate('portal');
@@ -247,7 +247,7 @@ class App {
         // the second one, the sentinel having been set by the first.
         sessionStorage.removeItem(STALE_BUILD_SENTINEL);
 
-        console.log('[R.I.S.E.] Application initialized');
+        console.log('[RISE] Application initialized');
     }
 
     /**
@@ -260,7 +260,7 @@ class App {
         const initAudio = async () => {
             try {
                 if (this.audioEngine) {
-                    console.log('[R.I.S.E.] First interaction - Initializing audio context');
+                    console.log('[RISE] First interaction - Initializing audio context');
                     await this.audioEngine.init();
                     await this.audioEngine.resume();
                     if (this.settings?.enableAmbient) {
@@ -268,7 +268,7 @@ class App {
                     }
                 }
             } catch (error) {
-                console.warn('[R.I.S.E.] Audio initialization unavailable:', error);
+                console.warn('[RISE] Audio initialization unavailable:', error);
             } finally {
                 this._audioInteractionController?.abort();
             }
@@ -346,7 +346,7 @@ class App {
                             const chamberData = await createAtriumJourneyHandoff(launch, { origin });
                             await this.router.navigate('chamber', { data: chamberData });
                         } catch (error) {
-                            console.error('[R.I.S.E.] Atrium handoff failed:', error);
+                            console.error('[RISE] Atrium handoff failed:', error);
                             this.showToast(
                                 error?.code === 'ATRIUM_JOURNEY_NOT_READY'
                                     ? 'This Atrium journey is still under editorial review.'
@@ -404,7 +404,7 @@ class App {
                 const session = sessionData || this.currentSession;
 
                 if (!session || !session.atoms || session.atoms.length === 0) {
-                    console.error('[R.I.S.E.] Cannot start chamber: no session data or atoms');
+                    console.error('[RISE] Cannot start chamber: no session data or atoms');
                     this.showToast('No content available for session', 3000);
                     this.router.back();
                     return { destroy: () => { } };
@@ -606,7 +606,7 @@ class App {
                             if (interlocution.responsiveMood ?? true) {
                                 semanticSignals = sampleTrackSignals(session.semanticTrack, 10);
                             }
-                            console.log('[R.I.S.E.] Responsive interlocutions: track scored,',
+                            console.log('[RISE] Responsive interlocutions: track scored,',
                                 semanticSignals ? `${semanticSignals.length} flame seed signals sampled` : 'mood off (no flame seeding)');
                         }
 
@@ -652,14 +652,14 @@ class App {
                     } else if (visualMode === 'focals') {
                         // Focals mode: persistent gentle focal point (handled by Chamber renderer)
                         // No visual cortex preloading needed - focals are persistent, not probabilistic
-                        console.log('[R.I.S.E.] Focals mode active:', session.visualConfig.focals);
+                        console.log('[RISE] Focals mode active:', session.visualConfig.focals);
                     } else if (visualMode === 'attractor') {
                         // Attractor mode: persistent strange-attractor field (handled by Chamber renderer)
                         // No visual cortex preloading needed - the field is continuous, not probabilistic
-                        console.log('[R.I.S.E.] Attractor mode active:', session.visualConfig.attractor);
+                        console.log('[RISE] Attractor mode active:', session.visualConfig.attractor);
                     } else if (visualMode === 'genesis') {
                         // Genesis mode: continuously growing Klee field (handled by Chamber renderer)
-                        console.log('[R.I.S.E.] Genesis mode active:', session.visualConfig.genesis);
+                        console.log('[RISE] Genesis mode active:', session.visualConfig.genesis);
                     }
 
 
@@ -711,7 +711,7 @@ class App {
                         }
                     });
                 } catch (error) {
-                    console.error('[R.I.S.E.] Session initialization failed:', error);
+                    console.error('[RISE] Session initialization failed:', error);
                     recitationVoice?.destroy();
                     endVisualInterlocutionSession();
                     visualCortex.updateConfig({ enabled: false });
@@ -861,7 +861,7 @@ class App {
                             });
                             await this.router.navigate('chamber', { data: chamberData });
                         } catch (error) {
-                            console.error('[R.I.S.E.] Chapel handoff failed:', error);
+                            console.error('[RISE] Chapel handoff failed:', error);
                             // Reverent degradation: a quiet message, never a
                             // substituted text and never an error surface
                             this.showToast(
@@ -890,7 +890,7 @@ class App {
      * @param {string} sequenceId - ID of the selected starter sequence
      */
     async handleSequenceSelection(sequenceId) {
-        console.log('[R.I.S.E.] Sequence selected:', sequenceId);
+        console.log('[RISE] Sequence selected:', sequenceId);
 
         // Import starter sequences
         const { STARTER_SEQUENCES } = await import('./content/starters.js');
@@ -898,7 +898,7 @@ class App {
         // Find the sequence
         const sequence = STARTER_SEQUENCES.find(s => s.id === sequenceId);
         if (!sequence) {
-            console.error('[R.I.S.E.] Sequence not found:', sequenceId);
+            console.error('[RISE] Sequence not found:', sequenceId);
             this.showToast('Sequence not found', 3000);
             return;
         }
@@ -925,7 +925,7 @@ class App {
      * @param {Object} data - { archetype, sequence, config }
      */
     handleArchetypeLaunch(data) {
-        console.log('[R.I.S.E.] Archetype launch:', data.archetype.name, 'with sequence:', data.sequence.name);
+        console.log('[RISE] Archetype launch:', data.archetype.name, 'with sequence:', data.sequence.name);
 
         const { archetype, sequence, config } = data;
 
@@ -956,7 +956,7 @@ class App {
      * @param {Object} data - { sequence, config }
      */
     handleSolLaunch(data) {
-        console.log('[R.I.S.E.] Sol launch:', data.sequence.title);
+        console.log('[RISE] Sol launch:', data.sequence.title);
 
         const { sequence, config } = data;
 
@@ -1022,7 +1022,7 @@ class App {
      * Convert orbital config into full session with atoms
      */
     async handleBeginSession(sessionConfig) {
-        console.log('[R.I.S.E.] Beginning session from orbital config:', sessionConfig);
+        console.log('[RISE] Beginning session from orbital config:', sessionConfig);
         let session;
         try {
             session = compileSession({
@@ -1030,14 +1030,14 @@ class App {
                 title: sessionConfig.source || sessionConfig.textSource || 'Session'
             });
         } catch (error) {
-            console.error('[R.I.S.E.] Session compilation failed:', error);
+            console.error('[RISE] Session compilation failed:', error);
             this.showToast(error.message || 'Unable to compile session', 4000);
             return;
         }
 
-        console.log('[R.I.S.E.] Created session:', session);
-        console.log('[R.I.S.E.] Session atoms:', session.atoms);
-        console.log('[R.I.S.E.] Session.atoms[0]:', session.atoms[0]);
+        console.log('[RISE] Created session:', session);
+        console.log('[RISE] Session atoms:', session.atoms);
+        console.log('[RISE] Session.atoms[0]:', session.atoms[0]);
 
         // Store and navigate to chamber-session (immersion)
         this.currentSession = session;
@@ -1051,7 +1051,7 @@ class App {
         const sessionInput = isWorkshopProject(sessionData)
             ? workshopProjectToSessionConfig(sessionData)
             : sessionData;
-        console.log('[R.I.S.E.] Compiling Custom Workshop Session:', sessionInput);
+        console.log('[RISE] Compiling Custom Workshop Session:', sessionInput);
 
         if (!sessionInput || !sessionInput.sources || sessionInput.sources.length === 0) {
             this.showToast('Cannot create session without sources', 3000);
@@ -1068,12 +1068,12 @@ class App {
                 isCustom: true
             });
         } catch (error) {
-            console.error('[R.I.S.E.] Workshop compilation failed:', error);
+            console.error('[RISE] Workshop compilation failed:', error);
             this.showToast(error.message || 'Unable to compile sequence', 4000);
             return;
         }
 
-        console.log(`[R.I.S.E.] Workshop compiler built ${session.atomCount} atoms across ${session.sources.length} sources.`);
+        console.log(`[RISE] Workshop compiler built ${session.atomCount} atoms across ${session.sources.length} sources.`);
 
         // 4. Route to player phase
         this.currentSession = session;
@@ -1157,7 +1157,7 @@ class App {
             };
             for (const key of booleanKeys) this.settings[key] = merged[key] === true;
         } catch (e) {
-            console.warn('[R.I.S.E.] Could not load settings:', e);
+            console.warn('[RISE] Could not load settings:', e);
             this.settings = defaultSettings;
         }
     }
@@ -1169,7 +1169,7 @@ class App {
         try {
             localStorage.setItem('rise-settings', JSON.stringify(this.settings));
         } catch (e) {
-            console.warn('[R.I.S.E.] Could not save settings:', e);
+            console.warn('[RISE] Could not save settings:', e);
         }
     }
 
@@ -1331,7 +1331,7 @@ class App {
             });
         } catch (error) {
             container.remove();
-            console.error('[R.I.S.E.] Guide failed to load:', error);
+            console.error('[RISE] Guide failed to load:', error);
             this.showToast('Guide unavailable', 3000);
         } finally {
             this._guideLoading = false;
@@ -1357,7 +1357,7 @@ class App {
 document.addEventListener('DOMContentLoaded', () => {
     window.rise = new App();
     window.rise.init().catch(err => {
-        console.error('[R.I.S.E.] Initialization failed:', err);
+        console.error('[RISE] Initialization failed:', err);
     });
 });
 

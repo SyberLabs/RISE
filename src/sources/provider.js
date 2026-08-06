@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Source System
+ * RISE Source System
  * Abstract SourceProvider base class
  * 
  * All content providers (text, visual, audio) implement this interface.

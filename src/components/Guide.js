@@ -26,13 +26,13 @@ export class Guide {
           <header class="guide-header">
             <div class="guide-sigil">◊</div>
             <h1 id="guide-title" class="guide-title">User Protocol</h1>
-            <p class="guide-subtitle">R.I.S.E. Operational Framework</p>
+            <p class="guide-subtitle">RISE Operational Framework</p>
           </header>
           
           <div class="guide-content">
             <section class="guide-section">
               <h2 class="section-title">01 / Philosophical Premise</h2>
-              <p>R.I.S.E. (Recursive Installation of Symbolic Experience) is an experimental reading environment for entering dense texts through pacing, sound, and procedural visuals.</p>
+              <p>RISE is an audiovisual reader: a reading environment for entering dense texts through pacing, sound, and curated imagery.</p>
               <p>The goal is not passive consumption, but a designed reading session. Audio, visual, and textual streams are coordinated to create a focused browser-based experience.</p>
             </section>
             

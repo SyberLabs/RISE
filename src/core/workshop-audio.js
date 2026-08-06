@@ -57,7 +57,7 @@ export function workshopAudioEditorAsset(assetOrId) {
       color: AUDIO_COLORS[asset.value] || (isSwell ? AUDIO_COLORS.swell : AUDIO_COLORS.deep),
       preview: { kind: 'audio', ref: asset.id }
     },
-    provenance: { provider: 'R.I.S.E. audio registry' },
+    provenance: { provider: 'RISE audio registry' },
     cueTemplate
   });
 }

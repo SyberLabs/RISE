@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Source System
+ * RISE Source System
  * Local Literary Deep Registry
  *
  * Curated passages from classic literature and philosophy.

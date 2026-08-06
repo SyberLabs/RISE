@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Source System
+ * RISE Source System
  * Local Text Provider
  * 
  * Wraps the existing curated starter sequences as a SourceProvider.

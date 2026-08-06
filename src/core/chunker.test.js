@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Chunker Test Suite
+ * RISE Chunker Test Suite
  * Tests for text chunking and atomization
  */
 

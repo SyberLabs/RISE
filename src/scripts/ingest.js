@@ -2,7 +2,7 @@
  * ArXiv Ingestion Script
  * 
  * Fetches real research papers from ArXiv API and saves them to a local JSON file.
- * Run this script to populate the R.I.S.E. library with real scientific data.
+ * Run this script to populate the RISE library with real scientific data.
  * 
  * Usage: node src/scripts/ingest.js
  */

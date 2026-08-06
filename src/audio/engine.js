@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Audio Engine
+ * RISE Audio Engine
  * Web Audio API integration for ambient soundscapes and entrainment
  * 
  * Phase 3 Enhancements:
@@ -38,7 +38,7 @@ export const SOLFEGGIO_FREQUENCIES = {
  * Carrier frequency options
  */
 export const CARRIER_TUNINGS = {
-    standard: 200,    // Original R.I.S.E. default
+    standard: 200,    // Original RISE default
     concert: 220,     // A3 in standard tuning
     verdi: 216,       // A3 in 432Hz tuning (432/2)
     sacred: 432       // Full 432Hz
@@ -96,7 +96,7 @@ import { createChantBed, isChantBedId, CHANT_BED_IDS } from './chant.js';
 
 
 /**
- * Audio Engine for R.I.S.E.
+ * Audio Engine for RISE
  * Handles ambient audio, binaural beats, and synchronized triggers
  */
 export class AudioEngine {

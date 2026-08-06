@@ -1,5 +1,5 @@
 /**
- * The canonical authored score boundary for R.I.S.E.
+ * The canonical authored score boundary for RISE
  *
  * An Experience Program is durable, domain-neutral data. Journeys, user
  * scores, and proposed Live Curator arrangements meet here; the Chamber

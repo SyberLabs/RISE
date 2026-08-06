@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Curated Archive provider.
+ * RISE Curated Archive provider.
  *
  * Workshop used to browse the source adapters that originally populated the
  * product (starter excerpts, a legacy sacred bundle, Gutenberg, and ArXiv).
@@ -62,7 +62,7 @@ export class ArchiveTextProvider extends SourceProvider {
             name: 'Curated Archive',
             contentType: 'text',
             tier: 1,
-            description: 'The complete curated, edition-verified R.I.S.E. text library',
+            description: 'The complete curated, edition-verified RISE text library',
             supportsSearch: true,
             supportsPreload: false
         });

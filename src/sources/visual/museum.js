@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Source System
+ * RISE Source System
  * Museum API Provider (Art Institute of Chicago)
  * 
  * Fetches high-resolution, public domain art and photography.

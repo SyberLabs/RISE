@@ -134,8 +134,8 @@ export class BetaGate {
           <div class="beta-sigil">◇</div>
 
           <!-- Title -->
-          <h1 class="beta-title">R.I.S.E.</h1>
-          <p class="beta-subtitle">Recursive Installation of Symbolic Experience</p>
+          <h1 class="beta-title">RISE</h1>
+          <p class="beta-subtitle">Audiovisual Reader</p>
 
           ${hasValidInvite ? this.renderPersonalizedWelcome(inviteData) : this.renderCodeEntry()}
         </div>
@@ -168,7 +168,7 @@ export class BetaGate {
   }
 
   renderPersonalizedWelcome(inviteData) {
-    const welcomeText = inviteData.welcome || `Welcome to R.I.S.E., ${inviteData.name}.
+    const welcomeText = inviteData.welcome || `Welcome to RISE, ${inviteData.name}.
 
 You have been invited to experience the closed beta of this audiovisual reading environment.
 

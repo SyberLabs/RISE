@@ -220,7 +220,7 @@ export class Settings {
             <h2 id="about-heading" class="settings-section-title text-fog">About</h2>
 
             <div class="about-content text-fog">
-              <p class="about-version font-mono">R.I.S.E. v2.0</p>
+              <p class="about-version font-mono">RISE v2.0</p>
               <p class="about-tagline">An experimental audiovisual reading interface.</p>
               <p class="about-attribution text-mist">SyberLabs · 2026</p>
             </div>
@@ -312,7 +312,7 @@ export class Settings {
     }
 
     async clearHistory() {
-        const confirm = window.confirm('Clear all personal R.I.S.E. data? This deletes journals, saved sequences, loaded text, uploaded images, personal audio, and cached sources. This cannot be undone.');
+        const confirm = window.confirm('Clear all personal RISE data? This deletes journals, saved sequences, loaded text, uploaded images, personal audio, and cached sources. This cannot be undone.');
         if (!confirm) return;
 
         try {

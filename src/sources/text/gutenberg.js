@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Source System
+ * RISE Source System
  * Project Gutenberg Provider
  * 
  * Fetches public domain literature from Project Gutenberg.

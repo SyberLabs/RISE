@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Player Engine
+ * RISE Player Engine
  * Controls playback of atom sequences with precise timing
  */
 

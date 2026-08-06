@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Pacing Engine
+ * RISE Pacing Engine
  * Computes atom durations based on type, complexity, weight, and state curves
  */
 

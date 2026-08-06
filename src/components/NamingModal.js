@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Premium Naming Modal
+ * RISE Premium Naming Modal
  * A glassmorphic, promise-based interface for asset labeling
  */
 export class NamingModal {

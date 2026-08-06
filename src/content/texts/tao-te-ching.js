@@ -1,7 +1,7 @@
 /**
  * Tao Te Ching - Lao Tzu
  * Translation: James Legge (1891) - Public Domain
- * Formatted for R.I.S.E. chamber delivery
+ * Formatted for RISE chamber delivery
  */
 
 import { registerText } from '../library.js';

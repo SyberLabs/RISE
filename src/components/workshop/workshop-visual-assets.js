@@ -101,7 +101,7 @@ function proceduralEntries(offset) {
       name,
       capability: 'both',
       editor: { color: colorAt(offset + index), preview: { kind: 'generator', ref: id } },
-      provenance: { provider: 'R.I.S.E. Visual Cortex', familyId: id },
+      provenance: { provider: 'RISE Visual Cortex', familyId: id },
       cueTemplate: { kind: 'procedural', collections: [id] }
     }),
     defaultValue: { surface: 'scored', sourceFamily: 'procedural' }
@@ -119,7 +119,7 @@ function surfaceEntries(offset) {
       name,
       capability: 'default',
       editor: { color: colorAt(offset + index), preview: { kind: 'surface', ref: surface } },
-      provenance: { provider: 'R.I.S.E. Reading Surface', surface }
+      provenance: { provider: 'RISE Reading Surface', surface }
     }),
     defaultValue: { surface }
   }));

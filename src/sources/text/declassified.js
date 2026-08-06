@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Source System
+ * RISE Source System
  * Declassified Documents Provider (CIA/DIA)
  * 
  * Curated collection of declassified documents focusing on:

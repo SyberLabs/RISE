@@ -376,7 +376,7 @@ export class Library {
         </div>
 
         <div class="personal-instructions text-fog">
-          Upload your own text files to experience them through R.I.S.E.'s
+          Upload your own text files to experience them through RISE's
           audiovisual reading interface. All processing happens locally.
         </div>
       </div>

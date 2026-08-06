@@ -99,7 +99,7 @@ describe('visual score lane', () => {
       id: 'procedural:klee', lane: 'visual', kind: 'procedural',
       name: 'Klee Lines', capability: 'both',
       editor: { color: '#f0bf72', preview: { kind: 'generator', ref: 'klee' } },
-      provenance: { provider: 'R.I.S.E. Visual Cortex' },
+      provenance: { provider: 'RISE Visual Cortex' },
       cueTemplate: { kind: 'procedural', collections: ['klee'] }
     });
     const first = paint(7, 25, [], 'reject', 'collection-clip').map(item => ({

@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Display Modes
+ * RISE Display Modes
  * Chamber, Orbital, and Focal display renderers
  */
 

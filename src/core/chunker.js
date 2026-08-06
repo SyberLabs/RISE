@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Text Chunker
+ * RISE Text Chunker
  * Transforms raw text into atoms based on chunking strategy
  */
 

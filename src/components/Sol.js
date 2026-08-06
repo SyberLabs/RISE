@@ -1,6 +1,6 @@
 /**
  * SOL Component
- * The pragmatic, diurnal temporal arm of R.I.S.E.
+ * The pragmatic, diurnal temporal arm of RISE
  *
  * Top of view: a live solar dial + the sequence aligned with this hour.
  * Below: the full catalog in three registers (Temporal / Situational / Archetypal).

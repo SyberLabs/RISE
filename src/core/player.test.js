@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Player Engine Test Suite
+ * RISE Player Engine Test Suite
  * Tests for playback control and event emission
  */
 

@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Source System
+ * RISE Source System
  * ArXiv Research Provider
  * 
  * Fetches research paper abstracts from ArXiv API.

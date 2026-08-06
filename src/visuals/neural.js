@@ -8,7 +8,7 @@
  * - Color gradients representing information flow
  * - Multiple network topologies (feedforward, recurrent, attention)
  *
- * Designed for R.I.S.E. visual interlocution - subliminal flashes
+ * Designed for RISE visual interlocution - subliminal flashes
  * of beautiful, contemplative network structures.
  */
 

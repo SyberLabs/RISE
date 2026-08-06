@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. — Application Router
+ * RISE — Application Router
  * View navigation with crossfade transitions
  *
  * Design principles (from UX spec):

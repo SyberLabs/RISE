@@ -1,5 +1,5 @@
 /**
- * R.I.S.E. Library System
+ * RISE Library System
  * Infrastructure for sacred texts and literary sources
  */
 
@@ -78,7 +78,7 @@ function registerStarterTexts() {
         registerText({
             id: textId,
             title: seq.name,
-            author: 'R.I.S.E. Core',
+            author: 'RISE Core',
             // Composed here, not inherited. Kept distinct from the found
             // works because provenance is the Archive's central promise:
             // a reader should always know which they are meeting.
@@ -396,7 +396,7 @@ registerIngestedWorks();         // Verified public-domain ingests
 registerDeepSacredTexts();       // Legacy high-fidelity excerpts
 registerExtendedSacredTexts();   // Legacy extended texts
 registerSimplifiedSacredTexts(); // Legacy fallback texts
-registerStarterTexts();          // Original R.I.S.E. compositions
+registerStarterTexts();          // Original RISE compositions
 registerLiteraryTexts();         // Legacy local literary excerpts
 
 // RETIRED (LIBRARY-SPEC §0). Two registrations are deliberately absent:
