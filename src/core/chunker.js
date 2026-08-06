@@ -302,10 +302,39 @@ function splitLongChunk(chunk, maxWords = MAX_CHUNK_WORDS) {
     const words = chunk.split(/\s+/).filter(Boolean);
     if (words.length <= maxWords) return [chunk];
 
-    // Stage 1: connective boundaries (noncapturing group — a capturing
-    // group here once duplicated the connective into its own atom)
+    // Stage 1: connective boundaries.
+    //
+    // A CONNECTIVE OPENS A CLAUSE; IT DOES NOT CLOSE ONE. This split used
+    // a lookBEHIND and cut after the word, so the hinge was stranded at
+    // the end of the phrase it was there to introduce — "The many
+    // different acts and" left a reader hanging, and two connectives in a
+    // row left a phrase that was one word long: "…in other ways and" /
+    // "with" / "better examples." That lone "with" is what a reader
+    // noticed, and it was this line.
+    //
+    // Cutting BEFORE the word puts the hinge at the head of what it
+    // hinges to, which is the same rule the enumerator pass follows: a
+    // token whose whole job is to point forward belongs with what it
+    // points at. `\b` so `android` and `organ` are not connectives.
+    //
+    // (The noncapturing group is load-bearing for a different reason — a
+    // capturing group here once duplicated the connective into its own
+    // atom.)
+    // …EXCEPT AFTER A COLON, which is a label and not a clause. Cutting
+    // before the connective in "SOCRATES: And what do you mean" strands
+    // the speaker on a line of his own — the label loses the utterance it
+    // introduces, which is the very thing `preserveSpeakerHead` exists to
+    // prevent one layer up. This is §4's warning arriving on schedule: a
+    // rule that improves mechanically split prose can misread deliberate
+    // phrasing as the same defect.
+    // …AND NOT BETWEEN TWO OF THEM. "in other ways and with better
+    // examples" holds two connectives in a row; cutting before each in
+    // turn leaves the first one alone, which is the exact one-word phrase
+    // that started this — the reader's "with". Adjacent hinges are one
+    // hinge and travel together.
+    const CONNECTIVE = 'and|but|or|that|with|which';
     const stage1 = chunk
-        .split(/(?<=\s(?:and|but|or|that|with|which))\s+/i)
+        .split(new RegExp(`(?<!:)(?<!\\b(?:${CONNECTIVE}))\\s+(?=(?:${CONNECTIVE})\\b)`, 'i'))
         .map(piece => piece.trim())
         .filter(Boolean);
 

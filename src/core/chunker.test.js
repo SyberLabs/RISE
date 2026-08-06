@@ -658,3 +658,44 @@ describe('an enumerator leads the phrase it labels', () => {
         expect(phrases('The chapter ended. IV.')).toEqual(['The chapter ended.', 'IV.']);
     });
 });
+
+describe('a connective opens a clause; it does not close one', () => {
+    const phrases = text => chunkText(text, { mode: 'phrase' })
+        .filter(a => a.content).map(a => a.content);
+
+    it('leads with the connective instead of stranding it', () => {
+        // splitLongChunk used a lookBEHIND and cut AFTER the word, so the
+        // hinge ended the phrase it was there to introduce. Measured on
+        // Dow's Composition: 21 of 171 phrases ended on a connective.
+        const long = 'The many different acts and processes combined in a work '
+            + 'of art may be attacked and subdued one at a time by the student.';
+        for (const piece of phrases(long)) {
+            expect(piece, 'a phrase ends on a connective').not.toMatch(/\b(and|but|or|that|with|which)$/i);
+        }
+    });
+
+    it('never leaves a connective alone, however many are adjacent', () => {
+        // Two in a row each got stranded, and the second was the whole
+        // phrase: "…in other ways and" / "with" / "better examples."
+        const text = 'The principles of art teaching here outlined might be '
+            + 'illustrated in other ways and with better examples for the reader.';
+        expect(phrases(text)).not.toContain('with');
+        expect(phrases(text)).not.toContain('and');
+    });
+
+    // THE REGRESSION THIS FIX CAUSED is guarded in chunk-profiles.test.js,
+    // where the dialogue profile actually runs — "puts every matching
+    // Protagoras speaker label at its utterance head". It belongs there
+    // and not here: a bare colon is ALREADY a phrase boundary in
+    // PHRASE_BOUNDARY, so a raw chunkText call splits "SOCRATES:" off
+    // whatever the connective rule does, and a test here would have been
+    // asserting the wrong layer while appearing to pass for the right
+    // reason. The guard in splitLongChunk is the `(?<!:)` lookbehind.
+
+    it('does not treat a word that merely begins with a connective as one', () => {
+        const text = 'The android walked past the organ and the orchard beyond '
+            + 'it, and nobody thought anything of the matter at all that day.';
+        expect(phrases(text).some(p => /^android/i.test(p.trim()))).toBe(false);
+        expect(phrases(text).some(p => /^organ\b/i.test(p.trim()))).toBe(false);
+    });
+});
