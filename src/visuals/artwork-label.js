@@ -32,6 +32,18 @@ export const LICENCE = Object.freeze({
     BY: 'cc-by',
     /** Credit required, and share-alike governs derivatives. */
     BY_SA: 'cc-by-sa',
+    /**
+     * Not copyrighted, but acknowledgement is asked for as a condition of
+     * use. NASA is the case: its own guidance says content "generally
+     * are not subject to copyright in the United States" AND that "NASA
+     * should be acknowledged as the source of the material".
+     *
+     * Calling that `cc-by` would be false — it is not a Creative Commons
+     * licence and carries none of its terms — and calling it `open` would
+     * drop an obligation the institution actually states. It behaves like
+     * BY for display and is labelled for what it is.
+     */
+    PD_CREDIT: 'public-domain-credit',
     /** Nothing was declared. Not the same as "open". */
     UNDECLARED: 'undeclared'
 });
@@ -64,16 +76,20 @@ export function licenceClassOf(item) {
     const explicit = data.creditRequired === true || metadata.creditRequired === true;
 
     if (SHARE_ALIKE.test(declared)) return LICENCE.BY_SA;
-    if (explicit || REQUIRED_CREDIT.test(declared)) return LICENCE.BY;
-    if (OPEN_RIGHTS.test(declared)) return LICENCE.OPEN;
+    if (REQUIRED_CREDIT.test(declared)) return LICENCE.BY;
+    // Public domain AND an asked-for acknowledgement is its own thing,
+    // and the order matters: this must be tested before plain OPEN or a
+    // NASA record would lose its obligation, and before the conservative
+    // BY fallback or it would gain terms it does not carry.
+    if (OPEN_RIGHTS.test(declared)) return explicit ? LICENCE.PD_CREDIT : LICENCE.OPEN;
+    if (explicit) return LICENCE.BY;
     return declared ? LICENCE.OPEN : LICENCE.UNDECLARED;
 }
 
 /** Does this record carry an attribution obligation? */
-export const creditIsRequired = (item) => {
-    const licence = licenceClassOf(item);
-    return licence === LICENCE.BY || licence === LICENCE.BY_SA;
-};
+const OWES_CREDIT = new Set([LICENCE.BY, LICENCE.BY_SA, LICENCE.PD_CREDIT]);
+
+export const creditIsRequired = (item) => OWES_CREDIT.has(licenceClassOf(item));
 
 const HTML_ENTITIES = Object.freeze({
     amp: '&',
@@ -142,7 +158,7 @@ export function normalizeArtworkLabel(item) {
         500
     );
     const licence = licenceClassOf(item);
-    const creditRequired = licence === LICENCE.BY || licence === LICENCE.BY_SA;
+    const creditRequired = OWES_CREDIT.has(licence);
 
     // NOTHING TO SAY AND NOTHING OWED. An open-licence work with no
     // metadata is ordinary — much of the museum corpus is by an unknown

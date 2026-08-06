@@ -214,9 +214,11 @@ harvesting from **curated NASA collections** rather than open search.
 
 | | |
 |---|---|
-| `DEMO_KEY` | **works** — 200 without registering |
+| `DEMO_KEY` | answers 200 — but **cannot harvest**: a handful of probes exhausted it and everything after returned 429. A free key from `api.data.gov/signup` is required. A silent 429 looks exactly like an empty collection, and "the source has nothing" and "we were throttled" are opposite facts, so the harvester raises rather than absorbing it. |
 | per-item rights | **machine-readable**: `online_media.media[].usage.access === "CC0"` |
 | the catch | **only 1 of 40 search rows carried any media at all** |
+| query syntax | narrow. `online_media_type:Images AND bird` → 60 rows, **55 media, every one CC0**. `unit_code:NMNH`, any multi-word phrase, and a bare `galaxy` all return **zero**. One word at a time, behind the media filter. |
+| subject fit | **natural history, not cosmos.** Its nebula holdings are one image per sixty rows; its bird holdings are 55 per sixty. §2 called it "best first natural-history source" and the probe agrees. |
 
 The cleanest rights story of the three, and `rowCount` badly overstates
 the yield — 5.2M rows is not 5.2M images. The harvest must filter on
