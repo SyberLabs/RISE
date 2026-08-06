@@ -73,6 +73,26 @@ export class Chamber {
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
     this.hasRhythmicVisuals = this.session?.visualConfig?.visualMode === 'interlocution';
     this.rhythmicVisualsEnabled = this.hasRhythmicVisuals;
+    /**
+     * WHETHER THE BAR OFFERS THE CONTROL, which in Gallery it should not.
+     *
+     * THE BUTTON ALREADY DID NOTHING THERE, and that is the argument for
+     * removing it rather than a risk in doing so. Disabling blocks the
+     * interlocution handler and calls `cancelPresentation` — both of
+     * which act on FLASHES. The Gallery is driven by the continuous-field
+     * host, mounted from `visualMode` and `presentation` in
+     * `initializeContinuousField`, and neither of those paths consults
+     * `rhythmicVisualsEnabled`. So a reader in Gallery could press it and
+     * watch nothing happen, in the width of a bar that is already tight
+     * on a phone.
+     *
+     * It stays a SEPARATE FLAG from `rhythmicVisualsEnabled` because they
+     * answer different questions — what the bar offers, and what the
+     * handler permits — and a value shared by coincidence is the thing
+     * that goes wrong later when only one of them needs to change.
+     */
+    this.offersVisualsToggle = this.hasRhythmicVisuals
+        && this.session?.visualConfig?.interlocution?.presentation !== 'continuous';
     this._spokenIndex = null;
     this._spokenPlayback = null;
     this._spokenMs = null;
@@ -328,7 +348,7 @@ export class Chamber {
               <span class="icon">♪</span>
             </button>
 
-            ${this.hasRhythmicVisuals ? `
+            ${this.offersVisualsToggle ? `
               <button class="control-btn rhythmic-visuals-toggle" id="visuals-toggle-btn"
                 type="button" aria-pressed="true" aria-label="Disable rhythmic visuals"
                 title="Disable rhythmic visuals">

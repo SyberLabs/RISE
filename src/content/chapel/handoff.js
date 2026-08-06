@@ -296,7 +296,13 @@ export function chapelSensoryConfig(bookId = null, iconId = null, chapter = null
       sourceFamily: 'collections',
       frequency: 0.12,
       duration: 1600,
-      presentation: 'behind-stream',
+      // GALLERY, from 2026-08-06. The Chapel authored behind-stream when
+      // that was the calmest surface available; Gallery is calmer still —
+      // it crossfades and never cuts, which is what sacred imagery behind
+      // a reading wanted in the first place. This is the domain changing
+      // its own mind, not the default overruling it: the three-layer law
+      // puts this choice here precisely so it can be made here.
+      presentation: 'continuous',
       procedural: [],
       sourced: [...(programInitialSourced || [])],
       atriumCollections: [...(programInitialSourced || [])],

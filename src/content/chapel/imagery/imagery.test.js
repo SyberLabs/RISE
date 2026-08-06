@@ -338,7 +338,11 @@ describe('Chapel handoff imagery (seam)', () => {
     expect(mt27.visualConfig.visualMode).toBe('interlocution');
     expect(mt27.visualConfig.interlocution.sourced).toEqual(['chapel-gospel-before-pilate']);
     expect(mt27.visualConfig.interlocution.duration).toBeGreaterThanOrEqual(1400);
-    expect(mt27.visualConfig.interlocution.presentation).toBe('behind-stream');
+    // GALLERY from 2026-08-06 — the Chapel changing its own mind, which
+    // is what the three-layer law puts this choice here to allow. Gallery
+    // crossfades and never cuts, which is what sacred imagery behind a
+    // reading wanted when behind-stream was the calmest thing available.
+    expect(mt27.visualConfig.interlocution.presentation).toBe('continuous');
     // John 19 opens at the flagellation (19:1), which now carries
     // admitted works — so it opens on that pool
     const john19 = chapelSensoryConfig('john', null, 19);
@@ -400,7 +404,7 @@ describe('Chapel handoff imagery (seam)', () => {
       focals: { type: 'icon', iconId: 'icon-pantocrator-sinai' },
       interlocution: {
         sourceFamily: 'collections',
-        presentation: 'behind-stream',
+        presentation: 'continuous',
         sourced: ['chapel-gospel-nicodemus']
       }
     });
