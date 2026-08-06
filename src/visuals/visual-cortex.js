@@ -1555,6 +1555,21 @@ export class VisualCortex {
         if (categoryId.startsWith('aic-')) {
             return this._getMuseumProvider();
         }
+        // Science collections — 'sci-' (panel-issued). The catalog is
+        // static and pre-verified, so this reaches no network at all; the
+        // import is lazy because a reader who never opens a science
+        // collection should not pay for 111 works of metadata.
+        if (categoryId.startsWith('sci-')) {
+            try {
+                const science = await import('../content/science/imagery/provider.js');
+                if (science.hasScienceCollection(categoryId)) {
+                    return science.getScienceCatalogProvider();
+                }
+            } catch (e) {
+                console.warn('[Visual Cortex] Science catalog unavailable:', e);
+            }
+            return null;
+        }
         // Defense in depth for direct provider calls. Normal configuration
         // paths migrate retired Met ids before hydration reaches this method.
         if (categoryId.startsWith('met-')) {

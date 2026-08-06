@@ -14,6 +14,8 @@ import { WIKIMEDIA_CATEGORIES } from '../sources/visual/wikimedia.js';
 import { MUSEUM_CATEGORIES } from '../sources/visual/museum.js';
 import { ATRIUM_CATEGORIES } from '../content/atrium/atrium-categories.js';
 import { ATRIUM_PINNED_COLLECTIONS } from '../content/atrium/imagery/collections.js';
+import { SCIENCE_CATEGORIES, SCIENCE_KIND_LABELS }
+    from '../content/science/imagery/science-pins.js';
 import { MemoryCore } from '../core/memory.js';
 import { ATTRACTOR_SYSTEMS, ATTRACTOR_PALETTES } from '../visuals/attractor.js';
 import { escapeHtml, safeUrl } from '../core/sanitize.js';
@@ -647,9 +649,24 @@ export class VisualInterlocutionPanel {
         const diagramCategories = Object.entries(WIKIMEDIA_CATEGORIES)
             .map(([id, cat]) => ({ id, name: cat.name }));
 
-        // Art Institute of Chicago — generated from the museum provider
+        // MUSEUM COLLECTIONS — generated from the museum provider
         // registry; ids namespaced 'aic-*' so they never collide with
         // Wikimedia category names.
+        //
+        // The `aic-` PREFIX IS HISTORY, NOT DESCRIPTION, and the heading no
+        // longer claims otherwise. This section was labelled "Art Institute
+        // Collection" while its pools had long since gone cross-institution:
+        // Landscapes is 178 Rijksmuseum works to 83 AIC, Ships 78 to 35,
+        // Animals is corpus-backed by Audubon plates held in Cincinnati and
+        // Michigan. The header named one of five institutions and was
+        // outvoted inside half its own categories.
+        //
+        // museum-pins.js states the law it was breaking: a category is a
+        // READER INTENT, and the museum is provenance on the work, never a
+        // browsing axis — "honored where it is true, not imposed where it
+        // is noise". The ids stay `aic-*` because renaming them would break
+        // every saved selection for no reader-visible gain (see
+        // migrateRetiredMetSelection for what that costs).
         //
         // Grouped by the registry's own `kind`, because a reader picking
         // imagery is asking one of two different questions: in what
@@ -666,6 +683,29 @@ export class VisualInterlocutionPanel {
             // panel; give it a home rather than lose it.
             { kind: 'other', label: 'Other', items: aicCategories.filter(c => c.kind !== 'style' && c.kind !== 'subject') }
         ].filter(g => g.items.length);
+
+        // SCIENCE COLLECTIONS — witness-of nature, kept in its own section
+        // rather than folded in beside the paintings.
+        //
+        // SOURCE-EXPANSION-SPEC §1 calls the art-of / witness-of split
+        // load-bearing, and it is a split in SOURCE TYPE, not subject: a
+        // Rembrandt and a Hubble deep field answer different questions and
+        // carry different rights (PD/CC0 against CC-BY and
+        // public-domain-with-acknowledgement). Merging them into one
+        // "Institute Collection" would bury the distinction the whole
+        // rights apparatus was built around.
+        const scienceCategories = Object.entries(SCIENCE_CATEGORIES)
+            .map(([id, cat]) => ({ id: `sci-${id}`, name: cat.name, kind: cat.kind }));
+        const scienceGroups = Object.entries(
+            scienceCategories.reduce((acc, c) => {
+                (acc[c.kind] ||= []).push(c);
+                return acc;
+            }, {})
+        ).map(([kind, items]) => ({
+            kind,
+            label: SCIENCE_KIND_LABELS[kind] || 'Other',
+            items
+        }));
 
         // (The Met section was retired: its public API serves ~750px
         // primaryImageSmall derivatives from pools too shallow to
@@ -997,6 +1037,9 @@ export class VisualInterlocutionPanel {
                                 if (id.startsWith('aic-')) {
                                     return MUSEUM_CATEGORIES[id.slice(4)]?.name || id;
                                 }
+                                if (id.startsWith('sci-')) {
+                                    return SCIENCE_CATEGORIES[id.slice(4)]?.name || id;
+                                }
                                 return WIKIMEDIA_CATEGORIES[id]?.name || id;
                             };
 
@@ -1221,11 +1264,11 @@ export class VisualInterlocutionPanel {
                             </div>
                         </div>
 
-                        <!-- 2b. Art Institute of Chicago -->
+                        <!-- 2b. Museum Collections (art-of) -->
                         <div class="vi-accordion ${this.activeAccordions.includes('aic') ? 'active' : ''}"
                             ${sourceFamily === 'collections' || sourceFamily === 'blend' ? '' : 'hidden'}>
                             <button type="button" class="vi-accordion-header" data-toggle="aic">
-                                <span>Art Institute Collection</span>
+                                <span>Museum Collections</span>
                                 <span class="vi-chevron">${this.activeAccordions.includes('aic') ? '▲' : '▼'}</span>
                             </button>
                             <div class="vi-accordion-body" ${this.activeAccordions.includes('aic') ? '' : 'hidden'}>
@@ -1239,6 +1282,32 @@ export class VisualInterlocutionPanel {
                                                         ${this.config.interlocution.sourced.includes(c.id) ? 'checked' : ''}
                                                         data-sourced="${c.id}">
                                                     <span class="vi-checkbox-label">${c.name}</span>
+                                                </label>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- 2c. Science Collections (witness-of) -->
+                        <div class="vi-accordion ${this.activeAccordions.includes('science') ? 'active' : ''}"
+                            ${scienceGroups.length && (sourceFamily === 'collections' || sourceFamily === 'blend') ? '' : 'hidden'}>
+                            <button type="button" class="vi-accordion-header" data-toggle="science">
+                                <span>Science Collections</span>
+                                <span class="vi-chevron">${this.activeAccordions.includes('science') ? '▲' : '▼'}</span>
+                            </button>
+                            <div class="vi-accordion-body" ${this.activeAccordions.includes('science') ? '' : 'hidden'}>
+                                ${scienceGroups.map(group => `
+                                    <div class="vi-collection-group" data-collection-group="${escapeHtml(group.kind)}">
+                                        <div class="vi-collection-group-label">${escapeHtml(group.label)}</div>
+                                        <div class="vi-checkbox-grid vi-checkbox-grid-2">
+                                            ${group.items.map(c => `
+                                                <label class="vi-checkbox">
+                                                    <input type="checkbox"
+                                                        ${this.config.interlocution.sourced.includes(c.id) ? 'checked' : ''}
+                                                        data-sourced="${escapeHtml(c.id)}">
+                                                    <span class="vi-checkbox-label">${escapeHtml(c.name)}</span>
                                                 </label>
                                             `).join('')}
                                         </div>

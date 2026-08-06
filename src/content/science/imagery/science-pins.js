@@ -57,6 +57,27 @@ export const ASTRONOMY = Object.freeze({
 });
 
 /**
+ * The panel's category list, derived from the verdicts above.
+ *
+ * Mirrors how `MUSEUM_CATEGORIES` feeds the museum section: the panel
+ * reads this rather than carrying its own copy, so a category added here
+ * appears in the UI without that file being touched. It deliberately does
+ * NOT import the generated catalog — the panel would then carry 111
+ * works' metadata in its bundle to render one checkbox.
+ *
+ * `kind` groups the list the way the museum section groups by manner and
+ * subject. One kind today; the split earns its keep when wildlife and
+ * Earth arrive and "what am I looking at" stops having one answer.
+ */
+export const SCIENCE_CATEGORIES = Object.freeze({
+    astronomy: Object.freeze({ name: ASTRONOMY.name, kind: 'cosmos' })
+});
+
+export const SCIENCE_KIND_LABELS = Object.freeze({
+    cosmos: 'The cosmos'
+});
+
+/**
  * ESO — SHORTLISTED, NOT PINNED. 35 kept from 60 reviewed.
  *
  * "ESO is beautiful but has some imagery of ground facilities and such,

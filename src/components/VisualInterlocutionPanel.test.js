@@ -374,7 +374,12 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         // panel can never drift from that taxonomy.
         const { panel, container } = makePanel({ ...SOL_DAWN_CONFIG });
 
-        const groups = [...container.querySelectorAll('[data-collection-group]')];
+        // SCOPED TO THE MUSEUM SECTION. This selector was panel-wide and
+        // passed only because one accordion used groups; Science
+        // Collections broke it by existing. The assertion is about the
+        // museum taxonomy, so it should name the section it means.
+        const museum = container.querySelector('[data-toggle="aic"]').closest('.vi-accordion');
+        const groups = [...museum.querySelectorAll('[data-collection-group]')];
         expect(groups.map(g => g.dataset.collectionGroup)).toEqual(['style', 'subject']);
         for (const group of groups) {
             expect(group.querySelector('.vi-collection-group-label').textContent.trim())
@@ -389,6 +394,44 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         expect(new Set(grouped).size).toBe(grouped.length);
         expect(new Set(grouped)).toEqual(
             new Set(Object.keys(MUSEUM_CATEGORIES).map(id => `aic-${id}`)));
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('keeps science collections in their own section, not among the paintings', () => {
+        // SOURCE-EXPANSION-SPEC §1 calls art-of vs witness-of load-bearing:
+        // a Rembrandt and a Hubble deep field answer different questions and
+        // carry different rights. Folding them into one list would bury the
+        // distinction the rights apparatus was built around.
+        const { panel, container } = makePanel({ ...SOL_DAWN_CONFIG });
+
+        const science = container.querySelector('[data-toggle="science"]').closest('.vi-accordion');
+        expect(container.querySelector('[data-toggle="science"]').textContent)
+            .toContain('Science Collections');
+        expect([...science.querySelectorAll('[data-sourced]')]
+            .map(b => b.getAttribute('data-sourced'))).toEqual(['sci-astronomy']);
+
+        // …and it is NOT inside the museum section.
+        const museum = container.querySelector('[data-toggle="aic"]').closest('.vi-accordion');
+        expect(museum.querySelector('[data-sourced="sci-astronomy"]')).toBeNull();
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('no longer names one institution for a cross-institution pool', () => {
+        // The header read "Art Institute Collection" while Landscapes was
+        // 178 Rijksmuseum works to 83 AIC and Animals was Audubon plates
+        // from Cincinnati and Michigan. The ids stay `aic-*` — renaming
+        // them would break every saved selection for no reader-visible
+        // gain — but the heading no longer claims what is not true.
+        const { panel, container } = makePanel({ ...SOL_DAWN_CONFIG });
+
+        const header = container.querySelector('[data-toggle="aic"]');
+        expect(header.textContent).toContain('Museum Collections');
+        expect(header.textContent).not.toContain('Art Institute');
+        expect(container.querySelector('[data-sourced="aic-landscapes"]')).toBeTruthy();
 
         panel.destroy();
         container.remove();
