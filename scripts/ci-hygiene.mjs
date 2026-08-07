@@ -162,8 +162,50 @@ if (!String(manifest.name || '').trim() || !String(manifest.short_name || '').tr
     fail('manifest ships without a name', `${manifestPath} — favicon.io leaves these empty`);
 }
 
+// ── 7. The share card is absolute, and it ships ──────────────────────
+//
+// A scraper has no page to resolve a relative path against, so a
+// relative og:image is simply no image — and the failure is invisible
+// from the site itself, which renders identically either way.
+const ogImage = indexHtml.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i)?.[1];
+if (!ogImage) {
+    fail('no og:image', 'a shared link would show a bare title-and-description row');
+} else if (!/^https?:\/\//i.test(ogImage)) {
+    fail('og:image is not absolute', `${ogImage} — scrapers cannot resolve it`);
+} else {
+    const onDisk = join('public', new URL(ogImage).pathname.slice(1));
+    try {
+        statSync(onDisk);
+    } catch {
+        fail('og:image does not ship', `${ogImage} → ${onDisk} missing`);
+    }
+}
+
+// ── 8. No retired name in anything a stranger reads ──────────────────
+//
+// The acronym's expansion lived in metadata nobody re-reads, so a shared
+// link kept showing it after the rename. It survives in docs/specs as
+// history, which is correct; what it may not do is greet a stranger.
+const RETIRED_VOCABULARY = [
+    /Recursive Installation/i,
+    /consciousness-first/i,
+    /content delivery system/i,
+    /\bR\.I\.S\.E\.?\b/,
+    /Symbolic Reading Environment/i
+];
+const GREETS_A_STRANGER = ['index.html', 'public/site.webmanifest', 'README.md', 'NOTICE'];
+
+for (const file of GREETS_A_STRANGER) {
+    let text;
+    try { text = read(file); } catch { continue; }
+    for (const pattern of RETIRED_VOCABULARY) {
+        const hit = text.match(pattern);
+        if (hit) fail('retired name in reader-facing metadata', `${file} — ${JSON.stringify(hit[0])}`);
+    }
+}
+
 // ── Report ───────────────────────────────────────────────────────────
-const CHECKS = 6;
+const CHECKS = 8;
 if (failures.length) {
     console.error(`\n✗ ${failures.length} hygiene failure(s):\n`);
     for (const { check, detail } of failures) console.error(`  ${check}\n      ${detail}`);
