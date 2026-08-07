@@ -37,11 +37,14 @@ running application displays.
   * Visual works are held by pinned reference — identifier, credit and
     rights basis — and are served from the institutions that hold them.
     Each carries its own licence: CC0 and public domain from the Art
-    Institute of Chicago, the Rijksmuseum, Cleveland and the Smithsonian;
-    CC BY 4.0 from ESA/Hubble and ESO; public domain with acknowledgement
-    from NASA.
+    Institute of Chicago, the Rijksmuseum, the Cleveland Museum of Art,
+    the Metropolitan Museum of Art, the Cincinnati & Hamilton County
+    Public Library and the University of Michigan Library; CC BY 4.0 from
+    ESA/Hubble and ESO; public domain with acknowledgement from NASA. A
+    small number of Chapel icons are used by written permission from the
+    holding institution.
 
   * Third-party dependencies retain their own licences.
 
-ASSET-LICENSES.md sets these out in full, work by work and institution by
-institution.
+ASSET-LICENSES.md summarises these layers and identifies the underlying
+catalogues and source records, which hold the per-work detail.

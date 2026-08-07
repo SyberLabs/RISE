@@ -62,18 +62,21 @@ const UNNAMED_IN_FRONT_MATTER = new Set([
     // ── Added 2026-08-06, when the apparatus pass removed title pages ──
     //
     // THE GUARD WAS BEING SATISFIED BY THE PRINTER, NOT THE AUTHOR. These
-    // nine named themselves only on a title page — "By Herman Melville",
+    // ten named themselves only on a title page — "By Herman Melville",
     // "By Leo Tolstoy" — and once that page was withdrawn as apparatus
     // they stopped naming themselves at all. Nothing about the payload
     // changed except that the furniture went; the check had been
     // measuring the presence of a title page and reporting it as identity.
     //
     // It was tempting to widen the search from the first 12,000 characters
-    // to the whole payload, which rescues six of the nine. That was
-    // REFUSED: "tolstoy" and "dostoevsky" turn up somewhere in those
+    // to the whole payload, which rescues EIGHT of the ten. That was
+    // REFUSED, and the size of the rescue is the argument against it, not
+    // for it: "tolstoy" and "dostoevsky" turn up somewhere in those
     // payloads, quite possibly in residual boilerplate, and a guard that
     // passes on apparatus is the exact failure being fixed — it would
-    // only have moved from one kind of furniture to another.
+    // only have moved from one kind of furniture to another. A test that
+    // recovers almost everything by looking almost everywhere has stopped
+    // asking a question.
     //
     // So the list grows and says why. The guard keeps its force where it
     // ever had any: the Mahabharata names itself seventeen thousand times
@@ -84,7 +87,7 @@ const UNNAMED_IN_FRONT_MATTER = new Set([
     // ITS REAL SUCCESSOR IS UNBUILT — ARCHIVE-CLEANSING-SPEC §1b's
     // per-division check on a work's OWN VOCABULARY rather than its
     // author's name: no division may be devoid of what its work is dense
-    // in. That would hold all nine of these without a title page.
+    // in. That would hold all ten of these without a title page.
     'sacred-zen-koans',         // Suzuki's name was on the Luzac title page
     'the-iliad',                // "Homer" appeared only on the Macmillan title page
     'the-odyssey',              // named in Butler's preface, which was the translator's

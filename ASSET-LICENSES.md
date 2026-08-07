@@ -14,41 +14,73 @@ estimated.
 
 ---
 
-## 1. Application code — Apache 2.0
+## 1. The line is drawn by what a thing is, not where it sits
 
-Everything under `src/`, `scripts/` and `e2e/` that is program code, together
-with the build and test configuration.
+An earlier version of this file drew it by directory, and the directories do
+not agree with the materials. It said all program code under `src/` was Apache
+2.0, and separately reserved `src/visuals/`, `src/content/atrium/` and
+`src/content/chapel/` as creative work. Those directories hold both. Anyone
+asking whether `src/visuals/fractal.js` was Apache-licensed code or reserved
+material got two answers, which is the same as getting none.
+
+So the boundary below follows the bytes.
+
+## 2. Application code — Apache 2.0
+
+**All program code in this repository**, wherever it sits — engines,
+schedulers, chunkers and parsers, providers and adapters, UI components,
+tests, build scripts and configuration. This includes the whole of
+`src/visuals/`, which is 41 files of rendering machinery and their tests, and
+the implementation modules inside `src/content/` — catalogues, handoffs,
+itineraries, policies, manifests.
 
 Apache 2.0 was chosen over MIT for three clauses that matter here: the express
 patent grant (§3), the requirement that a `NOTICE` file travels with any
 redistribution (§4d), and the explicit reservation of trade names and marks
 (§6).
 
-## 2. Names and marks — reserved
+Note that `NOTICE` is informational. Apache §4d requires it to travel; it does
+not itself modify the licence. This file, not `NOTICE`, is where the
+boundary is described.
+
+## 3. Names and marks — reserved
 
 **RISE** and **SyberLabs** are not licensed by the software licence. Apache 2.0
 §6 grants no rights in them beyond describing the origin of the work.
 
-## 3. Original creative material — © SyberLabs, all rights reserved
+## 4. Authored content — © SyberLabs, all rights reserved
 
 Copyright, not the software licence, governs these. They are authorship rather
 than program code, and a permissive software grant is not a licence to
 republish them.
 
+**Payload files** — authored text, carrying no implementation:
+
 | material | where |
 |---|---|
-| Journeys and their authored programs | `src/content/journeys/` |
-| Solarium sequences | `src/content/sol-sequences.js` |
 | Starter sequences | `src/content/starters.js` |
-| Atrium and Chapel editorial framing | `src/content/atrium/`, `src/content/chapel/` |
+| Solarium sequences | `src/content/sol-sequences.js` |
+| Journey definitions and their authored programs | `src/content/journeys/demo.js`, `src/content/journeys/war.js` |
+| Atrium editorial framing and passage selection | `src/content/atrium/packs/pilot-v1/`, `src/content/atrium/editorial-review.js` |
+| Chapel liturgical arrangement | `src/content/chapel/liturgy/`, `src/content/chapel/chants.js` |
 | Specifications and design documents | `docs/` |
-| Procedural visual systems as compositions | `src/visuals/` |
 
-The **selection and arrangement** of the collections below is also original
-editorial work — which pins were chosen, which were refused, and why. The works
-themselves are not SyberLabs'; the curation is.
+**Embedded content in a code file.** Some modules are implementation that
+carries an authored string table — `echoes.js` and the liturgy modules are the
+pattern. Where that happens: **the implementation is Apache 2.0 and the
+authored text it holds is reserved.** Running, modifying and redistributing the
+module is granted; lifting the prose out of it is not.
 
-## 4. Archive texts — public domain
+**Curation.** The **selection and arrangement** of the collections below is
+original editorial work — which pins were chosen, which were refused, and why.
+The works themselves are not SyberLabs'; the curation is.
+
+**What is not claimed.** The visual engines are Apache 2.0 without reservation,
+including their output. An earlier draft reserved "procedural visual systems as
+compositions" while licensing the code that produces them, which cannot both be
+true: a grant to run and modify the engine is a grant to the images it draws.
+
+## 5. Archive texts — public domain
 
 **91 works.** Public-domain texts, principally from Project Gutenberg, ingested
 with a recorded source digest and a payload digest so that what was fetched and
@@ -63,7 +95,7 @@ trimming — is described in `docs/specs/ARCHIVE-CLEANSING-SPEC.md`. Those
 decisions are recorded as editorial acts; they do not create a new claim over a
 public-domain text.
 
-## 5. Visual works — held by reference, each under its own licence
+## 6. Visual works — held by reference, each under its own licence
 
 **RISE does not redistribute image files.** A pinned work is an identifier, a
 credit and a rights basis; the pixels are fetched from the institution that
@@ -115,7 +147,7 @@ grant's stated conditions honoured verbatim in the attribution; five are public
 domain. A loaned work was deliberately not pinned: an `L` accession is a loan,
 and a lender's rights are not the museum's to grant.
 
-## 6. Dependencies
+## 7. Dependencies
 
 Third-party packages retain their own licences. See `package.json` and the
 installed packages' own licence files.

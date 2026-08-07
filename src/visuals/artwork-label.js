@@ -66,11 +66,43 @@ export const LICENCE = Object.freeze({
      * one error in this file that could not be undone by noticing later.
      */
     RESTRICTED: 'restricted',
+    /**
+     * SOMETHING WAS DECLARED AND THIS FILE DOES NOT UNDERSTAND IT.
+     *
+     * Distinct from UNDECLARED, and the distinction is the point: a
+     * provider that has never stated rights is a known, tolerated
+     * condition, while a provider that stated something unrecognised is a
+     * gap in this file's vocabulary. Reading the second as `open` is a
+     * guess in the permissive direction on the one question where
+     * guessing permissively is the unrecoverable error.
+     *
+     * It is safe to withhold on it only because the vocabulary below was
+     * measured against every rights string the corpus actually declares
+     * first — see the note on OPEN_RIGHTS, which was NOT recognising the
+     * commonest one of them.
+     */
+    UNKNOWN_DECLARED: 'unknown-declared',
     /** Nothing was declared. Not the same as "open". */
     UNDECLARED: 'undeclared'
 });
 
-const OPEN_RIGHTS = /\b(cc0|public[\s-]*domain|no known copyright|us[\s-]*gov)/i;
+/**
+ * The vocabulary of an open declaration.
+ *
+ * `PUBLIC_DOMAIN` IS THE COMMONEST RIGHTS STRING IN THE CORPUS AND THIS
+ * PATTERN DID NOT MATCH IT. The separator class was `[\s-]`, and an
+ * underscore is neither whitespace nor a hyphen — so every one of the 585
+ * Audubon plates, and the value the museum adapter normalises all 1,699
+ * museum pins to, fell through every branch of the classifier and came
+ * out `open` on the permissive fallback at the end. The right answer by
+ * the wrong route.
+ *
+ * That was invisible while the fallback was permissive, and it is the
+ * reason this pattern had to be fixed BEFORE the fallback was closed:
+ * closing it first would have withheld nearly the entire visual corpus,
+ * with every work's rights perfectly in order.
+ */
+const OPEN_RIGHTS = /\b(cc0|public[\s_-]*domain|no known copyright|us[\s_-]*gov|pd)\b/i;
 const SHARE_ALIKE = /\bCC[\s-]*BY[\s-]*SA\b|share[\s-]*alike/i;
 
 /** A grant from a holder, on conditions the grant states. */
@@ -128,7 +160,12 @@ export function licenceClassOf(item) {
     // BY fallback or it would gain terms it does not carry.
     if (OPEN_RIGHTS.test(declared)) return explicit ? LICENCE.PD_CREDIT : LICENCE.OPEN;
     if (explicit) return LICENCE.BY;
-    return declared ? LICENCE.OPEN : LICENCE.UNDECLARED;
+    // AN UNRECOGNISED DECLARATION IS NOT AN OPEN ONE. This used to return
+    // OPEN, so a rights string this file had no pattern for was shown as
+    // freely as CC0. Nothing declared stays tolerated — that is a known
+    // condition of several providers and always has been.
+    if (declared) return LICENCE.UNKNOWN_DECLARED;
+    return LICENCE.UNDECLARED;
 }
 
 /** Does this record carry an attribution obligation? */
@@ -376,7 +413,7 @@ export function normalizeArtworkLabel(item) {
          * Declared restrictive. Not a credit problem — a permission
          * problem, and no amount of attribution answers it.
          */
-        restricted: licence === LICENCE.RESTRICTED
+        restricted: licence === LICENCE.RESTRICTED || licence === LICENCE.UNKNOWN_DECLARED
     });
 }
 
@@ -405,10 +442,10 @@ export function artworkMayBeShown(label) {
     // because permission was never given, and a perfect credit would not
     // change that.
     //
-    // NOTHING IN THE CORPUS IS RESTRICTED TODAY — all five declared
-    // rights strings across every collection classify exactly as they did
-    // before this guard existed. It is here for the next harvest, which
-    // is the only time it can be added without argument.
+    // NOTHING IN THE CORPUS IS WITHHELD BY EITHER TODAY — all eight
+    // declared rights strings across every collection classify exactly as
+    // they did before these guards existed. They are here for the next
+    // harvest, which is the only time they can be added without argument.
     if (label?.restricted) return false;
     return !label?.creditUnsatisfied;
 }

@@ -70,8 +70,15 @@ const DEFAULT_STATIC_VOICE_ID = defaultVoicePackId();
 /**
  * Factory defaults for the orbital — one source of truth for the
  * constructor and the Reset button.
+ *
+ * Exported so the defaults a reader actually meets can be ASSERTED. When
+ * `presentation` moved to Gallery here, nothing in the unit suite noticed;
+ * an e2e test that had left the field unset and inherited it silently
+ * started asking a different question and failed on the answer. A default
+ * with no test is a decision that only announces itself by breaking
+ * something else.
  */
-function createDefaultConfig() {
+export function createDefaultConfig() {
   return {
     text: null,
     textSource: null, // 'drop', 'paste', 'library', 'starter'

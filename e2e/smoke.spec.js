@@ -257,7 +257,19 @@ test('9 - in-session Visuals control kills a live presence and keeps safety laye
                     sourced: [],
                     frequency: 1,
                     duration: 2000,
-                    responsive: false
+                    responsive: false,
+                    // NAME THE SURFACE. Every assertion below is about the
+                    // RHYTHMIC one — a cortex that appears and is killed, a
+                    // button whose class is `rhythmic-visuals-toggle`, a
+                    // z-order between that cortex and the controls. None of
+                    // it exists in Gallery, which never flashes and offers
+                    // no toggle because the toggle never governed it.
+                    //
+                    // This was left unset and inherited whatever the reader
+                    // default happened to be. When Gallery became that
+                    // default the test broke, having never meant to ask the
+                    // question it was suddenly asking.
+                    presentation: 'full-frame'
                 }
             }
         }

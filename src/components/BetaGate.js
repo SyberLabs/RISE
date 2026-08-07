@@ -182,9 +182,14 @@ export class BetaGate {
   }
 
   renderPersonalizedWelcome(inviteData) {
+    // NO STATE OF THE BETA IN THE FALLBACK. This said "the closed beta"
+    // while the footer said "Open Beta", so any invite without its own
+    // `welcome` greeted its reader with a contradiction. An invitation is
+    // still an invitation once the door is open — it just cannot be the
+    // thing that describes the door.
     const welcomeText = inviteData.welcome || `Welcome to RISE, ${inviteData.name}.
 
-You have been invited to experience the closed beta of this audiovisual reading environment.
+You have been invited into this audiovisual reading environment.
 
 A space has been prepared for you.`;
 

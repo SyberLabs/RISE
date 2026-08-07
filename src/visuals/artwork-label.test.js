@@ -411,3 +411,60 @@ describe('the guarantees are as strong as the words for them', () => {
         expect(licenceClassOf({ metadata: {} })).toBe(LICENCE.UNDECLARED);
     });
 });
+
+describe('an unrecognised declaration is not an open one', () => {
+    it('recognises PUBLIC_DOMAIN as public domain, by name and not by accident', () => {
+        // THE COMMONEST RIGHTS STRING IN THE CORPUS, and OPEN_RIGHTS did
+        // not match it: the separator class was `[\s-]` and an underscore
+        // is neither. It came out `open` on the permissive fallback — the
+        // right answer by the wrong route, which is invisible until the
+        // day the fallback stops being permissive.
+        expect(licenceClassOf({ metadata: { rights: 'PUBLIC_DOMAIN' } })).toBe(LICENCE.OPEN);
+        // …and proof it is no longer the FALLBACK answering: a fallback
+        // has no way to know an acknowledgement was asked for.
+        expect(licenceClassOf({ metadata: { rights: 'PUBLIC_DOMAIN', creditRequired: true } }))
+            .toBe(LICENCE.PD_CREDIT);
+        expect(licenceClassOf({ metadata: { rights: 'Commons extmetadata: License pd, Copyrighted False' } }))
+            .toBe(LICENCE.OPEN);
+    });
+
+    it('withholds a declaration it has no pattern for', () => {
+        const label = normalizeArtworkLabel({
+            name: 'A work', metadata: { rights: 'Terms of use per bilateral agreement, ref. 88/2', artist: 'An artist' }
+        });
+        expect(label.licence).toBe(LICENCE.UNKNOWN_DECLARED);
+        expect(artworkMayBeShown(label)).toBe(false);
+    });
+
+    it('still tolerates a provider that declares nothing at all', () => {
+        // The distinction the class exists for. Several providers have
+        // never declared rights; that is a known condition and closing on
+        // it would be a different, much larger change than this one.
+        const label = normalizeArtworkLabel({ name: 'Untitled', metadata: { artist: 'An artist' } });
+        expect(label.licence).toBe(LICENCE.UNDECLARED);
+        expect(artworkMayBeShown(label)).toBe(true);
+    });
+
+    it('shows every rights string the corpus declares — all eight of them', () => {
+        // THE CC0 FIREWALL, and the reason the recogniser was widened
+        // before the fallback was closed. Doing it in the other order
+        // would have withheld 585 Audubon plates and all 1,699 museum
+        // pins, every one of them with rights perfectly in order.
+        const CORPUS_RIGHTS = [
+            'PUBLIC_DOMAIN',
+            'PERMISSION',
+            'Creative Commons Attribution 4.0 International License',
+            'Public domain (NASA) — acknowledgement required',
+            'Written permission from the Registrar, 2026-07-22',
+            'Museum page states Public Domain with free-download invitation',
+            'Commons extmetadata: License Public domain, Copyrighted False',
+            'Commons extmetadata: License pd, Copyrighted False'
+        ];
+        for (const rights of CORPUS_RIGHTS) {
+            const label = normalizeArtworkLabel({
+                name: 'A work', metadata: { rights, artist: 'An artist' } });
+            expect(licenceClassOf({ metadata: { rights } }), rights).not.toBe(LICENCE.UNKNOWN_DECLARED);
+            expect(artworkMayBeShown(label), rights).toBe(true);
+        }
+    });
+});

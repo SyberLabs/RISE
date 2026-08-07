@@ -736,21 +736,23 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
                 chunks = verseLines
                     ? splitVerseLines(trimmed, speakerHead, phraseFloor)
                     : splitPhrases(trimmed, speakerHead);
-                // OPT-IN, AND THAT IS THE FINDING, NOT A HEDGE.
+                // ON BY DEFAULT, AND THE TWO REFUSALS BELOW ARE NOT A
+                // HEDGE — they are the study's finding about what the
+                // metrics cannot see.
                 //
-                // The floor measures beautifully on Book VI and clears
-                // every fragment and stutter run. Enabled globally it
-                // also rewrote the Atrium's pinned durations and merged
-                // a stranded `SOCRATES:` that a test was using as its
-                // control — which is the study's own warning arriving on
-                // schedule: the metrics detect a defect in text split
-                // MECHANICALLY on punctuation and misread deliberate
-                // phrasing as the same defect.
+                // The floor was ruled opt-in on evidence from one book,
+                // where enabling it globally rewrote pinned durations and
+                // merged a stranded `SOCRATES:`. The 24-work paired study
+                // reversed that: see the note on this function. What
+                // survived the reversal is the reason those two cases
+                // looked like harm — the metrics measure text split
+                // MECHANICALLY on punctuation, and where a human already
+                // set the boundary there is no defect to repair.
                 //
-                // So a caller asks for it. A speaker label is an
-                // authored boundary — the strongest kind, it says a
-                // different person is talking — so dialogue declines it
-                // even when asked.
+                // A speaker label is an authored boundary, and the
+                // strongest kind: it says a different person is talking.
+                // A verse line is the poet's own unit. Neither is a
+                // punctuation artifact, so neither is grown.
                 // The floor is for punctuation-split text. A verse line
                 // is already the author's unit and must not be grown
                 // into the next one.
