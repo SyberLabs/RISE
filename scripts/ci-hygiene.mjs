@@ -115,8 +115,55 @@ for (const path of CATALOGUES) {
     }
 }
 
+// ── 5. Every icon the page promises actually ships ───────────────────
+//
+// A missing favicon is invisible: no error, no broken image, just the
+// browser's blank default and a 404 nobody opens devtools to see. The
+// paths live in two files that are edited at different times, which is
+// the only reason this can go wrong.
+const indexHtml = read('index.html');
+const manifestPath = 'public/site.webmanifest';
+const manifest = json(manifestPath);
+
+const referencedIcons = new Set([
+    ...[...indexHtml.matchAll(/<link[^>]+rel="(?:icon|apple-touch-icon|manifest)"[^>]*href="([^"]+)"/g)]
+        .map(match => match[1]),
+    ...(manifest.icons || []).map(icon => icon.src)
+]);
+
+for (const href of referencedIcons) {
+    if (!href.startsWith('/')) continue;          // external or data: — not ours to ship
+    const onDisk = join('public', href.slice(1));
+    try {
+        statSync(onDisk);
+    } catch {
+        fail('page references an icon that does not ship', `${href} → ${onDisk} missing`);
+    }
+}
+
+// ── 6. The manifest's colours are the page's colour ──────────────────
+//
+// favicon.io ships `#ffffff` for both. On a product whose first paint is
+// #0A0A0C that is a white flash on every standalone launch — and the two
+// values live in two files, so nothing but this notices when one moves.
+const themeColor = indexHtml.match(/<meta\s+name="theme-color"\s+content="([^"]+)"/i)?.[1];
+if (!themeColor) {
+    fail('index.html declares no theme-color', 'the manifest has nothing to agree with');
+} else {
+    for (const key of ['theme_color', 'background_color']) {
+        if (String(manifest[key] || '').toLowerCase() !== themeColor.toLowerCase()) {
+            fail('manifest colour disagrees with the page',
+                `${manifestPath} ${key}=${manifest[key]} vs index.html theme-color=${themeColor}`);
+        }
+    }
+}
+
+if (!String(manifest.name || '').trim() || !String(manifest.short_name || '').trim()) {
+    fail('manifest ships without a name', `${manifestPath} — favicon.io leaves these empty`);
+}
+
 // ── Report ───────────────────────────────────────────────────────────
-const CHECKS = 4;
+const CHECKS = 6;
 if (failures.length) {
     console.error(`\n✗ ${failures.length} hygiene failure(s):\n`);
     for (const { check, detail } of failures) console.error(`  ${check}\n      ${detail}`);

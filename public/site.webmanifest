@@ -1,0 +1,21 @@
+{
+  "name": "RISE — Audiovisual Reader",
+  "short_name": "RISE",
+  "description": "An audiovisual reader. Curated texts, paced reading, and museum imagery arranged around the words.",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0A0A0C",
+  "background_color": "#0A0A0C",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
