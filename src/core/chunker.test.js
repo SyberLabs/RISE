@@ -710,3 +710,18 @@ describe('a connective opens a clause; it does not close one', () => {
         expect(phrases(text).some(p => /^organ\b/i.test(p.trim()))).toBe(false);
     });
 });
+
+describe('an enumerator must actually be one', () => {
+    it('does not accept an empty numeral', () => {
+        // Every group in the standard-form Roman pattern is optional, so
+        // the pattern matched the EMPTY string and the enumerator branch
+        // accepted a bare "." or ")" as a numeral with a terminator. The
+        // rule claimed only a genuine enumerator moves forward; it did
+        // not check that one was there.
+        const ROMAN = '(?=[MDCLXVI])M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})';
+        const re = new RegExp(`^${ROMAN}$`);
+        expect(re.test('')).toBe(false);
+        for (const good of ['I', 'II', 'IV', 'XIV', 'MIX']) expect(re.test(good), good).toBe(true);
+        for (const bad of ['DID', 'CIVIL', 'MIMIC']) expect(re.test(bad), bad).toBe(false);
+    });
+});

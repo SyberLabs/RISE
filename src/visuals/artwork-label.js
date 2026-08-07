@@ -44,12 +44,51 @@ export const LICENCE = Object.freeze({
      * BY for display and is labelled for what it is.
      */
     PD_CREDIT: 'public-domain-credit',
+    /**
+     * Used by written permission, on conditions the grant states.
+     *
+     * Nine Chapel icons are held this way, and they were classifying as
+     * OPEN — so the Icon Museum's stated condition, that its attribution
+     * name "Icon Museum and Study Center, Clinton MA", was honoured only
+     * because an attribution string happened to exist. A condition
+     * honoured by luck is not honoured. Permission behaves like BY.
+     */
+    PERMISSION: 'permission',
+    /**
+     * Declared, and declared RESTRICTIVE. NonCommercial, all rights
+     * reserved, an explicit copyright line.
+     *
+     * This class exists because the classifier used to end in
+     * `declared ? OPEN : UNDECLARED`, which made "All rights reserved"
+     * read as open — and worse, `CC BY-NC 4.0` matched the CC-BY test and
+     * came out as plain `cc-by`, dropping the NonCommercial term
+     * entirely. A restrictive licence mislabelled as permissive is the
+     * one error in this file that could not be undone by noticing later.
+     */
+    RESTRICTED: 'restricted',
     /** Nothing was declared. Not the same as "open". */
     UNDECLARED: 'undeclared'
 });
 
 const OPEN_RIGHTS = /\b(cc0|public[\s-]*domain|no known copyright|us[\s-]*gov)/i;
 const SHARE_ALIKE = /\bCC[\s-]*BY[\s-]*SA\b|share[\s-]*alike/i;
+
+/** A grant from a holder, on conditions the grant states. */
+const BY_PERMISSION = /\bpermission\b/i;
+
+/**
+ * Language that RESTRICTS.
+ *
+ * Tested before everything else, because every other pattern in this file
+ * is looking for a reason to SHOW a work and this is the only one looking
+ * for a reason not to.
+ *
+ * A BARE `nd` IS NOT EVIDENCE — two letters that occur inside ordinary
+ * prose cannot decide a licence. But `CC BY-ND` is unambiguous, and
+ * leaving it out let NoDerivatives classify as plain attribution, which
+ * the test for this rule caught immediately.
+ */
+const RESTRICTIVE = /\b(?:nc|non[\s-]*commercial|no[\s-]*derivatives?)\b|\bCC[\s-]*BY[\s-]*ND\b|\ball rights reserved\b|©|\(c\)\s*\d{4}|\beducational use only\b/i;
 
 /**
  * Which licence class a provider record declares — determined from the
@@ -75,8 +114,14 @@ export function licenceClassOf(item) {
 
     const explicit = data.creditRequired === true || metadata.creditRequired === true;
 
+    // RESTRICTION IS CHECKED FIRST. `CC BY-NC 4.0` satisfies the CC-BY
+    // test, so testing that first classified a NonCommercial licence as
+    // plain attribution and dropped the term that mattered.
+    if (RESTRICTIVE.test(declared)) return LICENCE.RESTRICTED;
     if (SHARE_ALIKE.test(declared)) return LICENCE.BY_SA;
     if (REQUIRED_CREDIT.test(declared)) return LICENCE.BY;
+    // A permission grant carries conditions and therefore owes a credit.
+    if (BY_PERMISSION.test(declared)) return LICENCE.PERMISSION;
     // Public domain AND an asked-for acknowledgement is its own thing,
     // and the order matters: this must be tested before plain OPEN or a
     // NASA record would lose its obligation, and before the conservative
@@ -87,7 +132,9 @@ export function licenceClassOf(item) {
 }
 
 /** Does this record carry an attribution obligation? */
-const OWES_CREDIT = new Set([LICENCE.BY, LICENCE.BY_SA, LICENCE.PD_CREDIT]);
+const OWES_CREDIT = new Set([
+    LICENCE.BY, LICENCE.BY_SA, LICENCE.PD_CREDIT, LICENCE.PERMISSION
+]);
 
 export const creditIsRequired = (item) => OWES_CREDIT.has(licenceClassOf(item));
 
@@ -242,9 +289,22 @@ export function normalizeArtworkLabel(item) {
         || metadata.license,
         120
     );
+    // SANITISED WITHOUT A LENGTH CAP, because this is the string the
+    // Curia promises to hold whole.
+    //
+    // It was capped at 500 characters and THEN assigned to `fullCredit`,
+    // so "the Curia carries the full record" — the sentence that makes
+    // the roster elision permissible under CC BY 4.0 §3(a)(3) — was false
+    // for exactly the credits long enough to need eliding. The science
+    // harvest found one of 723 characters. A 2,359-character credit
+    // arrived at the Curia as 500.
+    //
+    // The cap was doing a display job in a sanitising function. Sanitising
+    // strips markup and collapses whitespace; deciding how much fits on a
+    // chip is `creditProper`'s work, and it happens below.
     const attribution = plainArtworkText(
         data.attribution || metadata.attribution,
-        500
+        Number.MAX_SAFE_INTEGER
     );
     const licence = licenceClassOf(item);
     const creditRequired = OWES_CREDIT.has(licence);
@@ -311,7 +371,12 @@ export function normalizeArtworkLabel(item) {
          * non-empty and is not a credit: it names the licence and
          * credits nobody. Attribution means naming someone.
          */
-        creditUnsatisfied: creditRequired && !names
+        creditUnsatisfied: creditRequired && !names,
+        /**
+         * Declared restrictive. Not a credit problem — a permission
+         * problem, and no amount of attribution answers it.
+         */
+        restricted: licence === LICENCE.RESTRICTED
     });
 }
 
@@ -334,6 +399,17 @@ export function displayedArtworkLabel(label, showOptional = true) {
  * sentence in code.
  */
 export function artworkMayBeShown(label) {
+    // A RESTRICTIVE DECLARATION FAILS CLOSED, and it is a different
+    // refusal from the one below it. An uncreditable work is withheld
+    // because an obligation cannot be met; a restricted work is withheld
+    // because permission was never given, and a perfect credit would not
+    // change that.
+    //
+    // NOTHING IN THE CORPUS IS RESTRICTED TODAY — all five declared
+    // rights strings across every collection classify exactly as they did
+    // before this guard existed. It is here for the next harvest, which
+    // is the only time it can be added without argument.
+    if (label?.restricted) return false;
     return !label?.creditUnsatisfied;
 }
 

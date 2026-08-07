@@ -116,6 +116,7 @@ function createDefaultSessionData() {
         frequency: 0.3,
         duration: VISUAL_PRESENCE_DEFAULT_MS,
         galleryCadence: GALLERY_CADENCE_DEFAULT,
+        presentation: 'continuous',
         renderLanguage: 'native',
         kleePreset: 'random',
         responsive: false,
@@ -1568,12 +1569,19 @@ export class Workshop {
         </select>
         <label class="studio-toggle"><input type="checkbox" data-visual-setting="genesis-glass" ${config.genesis?.glass !== false ? 'checked' : ''} /> Glass behind text</label>`;
     } else if (surface === 'scored') {
-      const presentations = [['full-frame', 'Rhythmic'], ['behind-stream', 'Behind Stream'], ['continuous', 'Gallery']];
+      // GALLERY LEADS AND GALLERY IS THE DEFAULT, matching the reader's
+      // Visual panel. The Workshop had kept Gallery last and fallen back
+      // to full-frame when a composition named no surface — so an author
+      // starting a piece was handed the one surface that cuts to black,
+      // while a reader who expressed no preference was handed the one
+      // that never does. The same choice should not have two answers
+      // depending on which room you are standing in.
+      const presentations = [['continuous', 'Gallery'], ['behind-stream', 'Behind Stream'], ['full-frame', 'Rhythmic']];
       controls = `<label class="input-label">Presentation</label>
         <div class="studio-surface-options">${presentations.map(([id, label]) => `<button type="button"
-          class="btn-secondary btn-compact ${interlocution.presentation === id || (!interlocution.presentation && id === 'full-frame') ? 'active' : ''}"
+          class="btn-secondary btn-compact ${interlocution.presentation === id || (!interlocution.presentation && id === 'continuous') ? 'active' : ''}"
           data-action="set-scored-presentation" data-presentation="${id}"
-          aria-pressed="${interlocution.presentation === id || (!interlocution.presentation && id === 'full-frame')}">${label}</button>`).join('')}</div>
+          aria-pressed="${interlocution.presentation === id || (!interlocution.presentation && id === 'continuous')}">${label}</button>`).join('')}</div>
         <label class="input-label" for="studio-visual-frequency">Frequency · ${Math.round((interlocution.frequency ?? 0.3) * 100)}%</label>
         <input type="range" class="slider" id="studio-visual-frequency" data-visual-setting="visual-frequency"
                min="0.05" max="1" step="0.05" value="${interlocution.frequency ?? 0.3}" />

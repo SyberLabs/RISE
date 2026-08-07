@@ -36,7 +36,7 @@ export const ATRIUM_PILOT_PASSAGE_DURATIONS = Object.freeze({
   'pass-epictetus-control': 228949,
   'pass-seneca-inner-spirit': 254444,
   'pass-marcus-morning': 294044,
-  'pass-sextus-skeptical-way': 394841,
+  'pass-sextus-skeptical-way': 394969,
   'pass-cicero-academic': 246261,
   'pass-philo-creation': 298163,
   'pass-plotinus-beauty': 215531,

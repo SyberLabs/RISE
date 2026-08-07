@@ -505,7 +505,13 @@ const PHRASE_BOUNDARY_AUTHORED = new RegExp(
  * standard-form pattern, so DID and CIVIL fail it and MIX — a real
  * numeral, and a phrase nobody writes alone — passes.
  */
-const ROMAN = 'M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})';
+// A ROMAN NUMERAL MUST HAVE AT LEAST ONE CHARACTER. Every group in the
+// standard-form pattern is optional, so the whole of it matches the EMPTY
+// string — and the enumerator branch then accepted a bare "." or ")" as a
+// numeral with a terminator. The lookahead requires one numeral character
+// before the pattern is allowed to run, which costs nothing and closes
+// the gap between what the rule claims and what it matches.
+const ROMAN = '(?=[MDCLXVI])M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})';
 const ENUMERATOR = new RegExp(
     `^\\(?(?:${ROMAN}|${ROMAN.toLowerCase()}|\\d{1,3}|[A-Za-z])[.)]$`
 );

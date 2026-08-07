@@ -342,3 +342,72 @@ describe('the licence is named as well as the creator', () => {
         expect(displayedArtworkLabel(label, false)).toBe('Observatory · CC BY 4.0');
     });
 });
+
+describe('the guarantees are as strong as the words for them', () => {
+    // Four claims this file makes were stronger than what it did. Each is
+    // now a test rather than a sentence.
+
+    it('holds the FULL credit, not five hundred characters of it', () => {
+        // "The Curia carries the full record" is what makes the roster
+        // elision permissible under CC BY 4.0 §3(a)(3). The attribution
+        // was sanitised with a 500-character cap and THEN assigned to
+        // fullCredit, so the promise was false for exactly the credits
+        // long enough to need eliding — the science harvest found one of
+        // 723 characters.
+        const long = 'NASA, ESA, ' + Array.from({ length: 40 },
+            (_, i) => `Investigator ${i} (An Institution of Astrophysics)`).join(', ');
+        expect(long.length).toBeGreaterThan(1500);
+        const label = normalizeArtworkLabel({
+            name: 'X', metadata: { license: 'CC BY 4.0', attribution: long }
+        });
+        expect(label.fullCredit).toBe(long);
+    });
+
+    it('does not read a restrictive declaration as open', () => {
+        for (const declared of ['All rights reserved', '© 2024 Some Agency',
+            'Educational use only', 'CC BY-NC 4.0', 'CC BY-ND 4.0']) {
+            const item = { metadata: { rights: declared } };
+            expect(licenceClassOf(item), declared).toBe(LICENCE.RESTRICTED);
+            expect(artworkMayBeShown(normalizeArtworkLabel({ name: 'W', metadata: { rights: declared } })),
+                declared).toBe(false);
+        }
+    });
+
+    it('does not let NonCommercial pass as plain attribution', () => {
+        // The worst of the set: `CC BY-NC 4.0` satisfies the CC-BY test,
+        // so before restriction was checked first it came out as `cc-by`
+        // and the NonCommercial term vanished. A permissive misreading of
+        // a restrictive licence is the one error here that noticing later
+        // does not undo.
+        expect(licenceClassOf({ metadata: { rights: 'CC BY-NC 4.0' } })).not.toBe(LICENCE.BY);
+    });
+
+    it('treats a permission grant as owing its credit', () => {
+        // Nine Chapel icons are used by written permission with stated
+        // conditions, and they classified as OPEN — so the Icon Museum's
+        // required wording survived only because an attribution string
+        // happened to exist. A condition honoured by luck is not honoured.
+        const item = { metadata: {
+            rights: 'PERMISSION',
+            attribution: 'Icon Museum and Study Center, Clinton MA'
+        } };
+        expect(licenceClassOf(item)).toBe(LICENCE.PERMISSION);
+        const label = normalizeArtworkLabel({ name: 'An icon', metadata: item.metadata });
+        expect(label.creditRequired).toBe(true);
+        // …and so it survives the reader turning optional labels off.
+        expect(displayedArtworkLabel(label, false)).toContain('Icon Museum and Study Center');
+    });
+
+    it('leaves every rights string the corpus actually declares where it was', () => {
+        // THE CC0 FIREWALL. Five distinct rights strings exist across
+        // every collection; a guard added for future harvests must not
+        // move any of them.
+        expect(licenceClassOf({ metadata: { rights: 'PUBLIC_DOMAIN' } })).toBe(LICENCE.OPEN);
+        expect(licenceClassOf({ metadata: { rights: 'Creative Commons Attribution 4.0 International License' } }))
+            .toBe(LICENCE.BY);
+        expect(licenceClassOf({ metadata: {
+            rights: 'Public domain (NASA) — acknowledgement required', creditRequired: true
+        } })).toBe(LICENCE.PD_CREDIT);
+        expect(licenceClassOf({ metadata: {} })).toBe(LICENCE.UNDECLARED);
+    });
+});
