@@ -156,9 +156,19 @@
      "R, I, S, E" and a search engine indexes four words; written as
      letter-spacing it stays one word that is merely set open.
      text-indent restores the optical centre, which the trailing space
-     after the final E would otherwise pull left. */
-  letter-spacing: 0.32em;
-  text-indent: 0.32em;
+     after the final E would otherwise pull left.
+
+     ONE VALUE, BECAUSE THE PAIR MUST MOVE TOGETHER. The tracking and
+     the indent that re-centres it are the same measurement, and a
+     breakpoint that changed one without the other pushed the word off
+     its own centre. They were also separately overridable, which is how
+     the phone kept the acronym's tight setting for a month after the
+     product stopped being an acronym: `letter-spacing: 0.08em` was
+     written when the title was `R.I.S.E.`, and only the desktop rule
+     learned the new word. */
+  --title-tracking: 0.32em;
+  letter-spacing: var(--title-tracking);
+  text-indent: var(--title-tracking);
   color: var(--color-light);
   margin-bottom: var(--space-sm);
   text-transform: uppercase;
@@ -494,7 +504,10 @@
 @media (max-width: 480px) {
   .portal-title {
     font-size: 36px;
-    letter-spacing: 0.08em;
+    /* Set a little tighter than the desktop 0.32em because the word has
+       to sit inside a phone's width, but still OPEN — this is the same
+       title, not a different one. The indent follows automatically. */
+    --title-tracking: 0.24em;
   }
 
   .portal-subtitle {
@@ -1441,4 +1454,26 @@
     left: var(--space-xs);
   }
 
+}
+
+/* THE SEAL, ON A NARROW SCREEN.
+   Rendered as a `div` rather than a `button` (see Portal.prefersSealOnly),
+   so it must also stop LOOKING like something to press: no pointer, no
+   lift on hover, no depress on tap. The video inside it is still the
+   vessel's face; it is simply not an invitation. */
+.portal-sigil-vessel.is-seal {
+  cursor: default;
+}
+
+.portal-sigil-vessel.is-seal:hover {
+  transform: none;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.portal-sigil-vessel.is-seal:hover .vessel-video {
+  filter: grayscale(80%) contrast(1.2) opacity(0.7);
+}
+
+.portal-sigil-vessel.is-seal:active {
+  transform: none;
 }

@@ -221,7 +221,31 @@ export class Portal {
       </span>`;
   }
 
+  /**
+   * On a phone the sigil is a SEAL, not a control.
+   *
+   * It has always meant "return to the last session", and on a narrow
+   * screen it cannot say so: iOS paints its own ▶ over any video it has
+   * not started, so the vessel reads as a play button, and the tap
+   * neither plays anything nor — on a cold load — returns anywhere.
+   * `window.rise.currentSession` lives in memory and does not survive a
+   * reload, so EVERY fresh visit falls through to the Vault. A control
+   * whose promise is unkeepable on first sight is worse than no control.
+   *
+   * Nothing is lost by standing it down. The Continue strip below is the
+   * same action with a label and the reading's name on it, and it
+   * appears under exactly the condition that makes the sigil meaningful
+   * — a session actually being there. The pointer keeps the affordance
+   * where a hover and a title attribute can explain it.
+   */
+  prefersSealOnly() {
+    return typeof window.matchMedia === 'function'
+      && window.matchMedia('(max-width: 768px)').matches;
+  }
+
   render() {
+    const sealOnly = this.prefersSealOnly();
+    const sigilTag = sealOnly ? 'div' : 'button';
     this.container.innerHTML = `
       <div class="portal" role="main">
         <!-- SyberLabs Premium Header -->
@@ -268,10 +292,10 @@ export class Portal {
             <span class="sigil-mark sigil-mark-s">□</span>
             <span class="sigil-mark sigil-mark-w">✛</span>
           </span>
-          <button
-            class="portal-sigil-vessel"
-            aria-label="Quick access to last session"
-            title="Return to last session"
+          <${sigilTag}
+            class="portal-sigil-vessel${sealOnly ? ' is-seal' : ''}"
+            ${sealOnly ? 'aria-hidden="true"' : `aria-label="Quick access to last session"
+            title="Return to last session"`}
           >
             <!-- Video src is deferred to prevent blocking initial render thread.
                  NOT A PLAYER. iOS draws its own centred ▶ over any video
@@ -285,7 +309,7 @@ export class Portal {
                  autoplay (Low Power Mode) still has a first frame to
                  hold rather than a black disc. -->
             <video class="vessel-video" loop muted autoplay playsinline preload="auto" disablePictureInPicture></video>
-          </button>
+          </${sigilTag}>
         </div>
 
         <!-- Title -->
@@ -445,8 +469,11 @@ export class Portal {
       });
     });
 
-    // Quick access via sigil
-    const sigil = this.container.querySelector('.portal-sigil-vessel');
+    // Quick access via sigil — only where it is a control at all. On a
+    // narrow screen it renders as a `div` seal (see prefersSealOnly), and
+    // a click handler on decoration is the whole bug: something that
+    // looks like a play button and silently opens the Vault.
+    const sigil = this.container.querySelector('button.portal-sigil-vessel');
     if (sigil) {
       sigil.addEventListener('click', () => {
         if (window.rise?.audioEngine) {

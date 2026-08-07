@@ -1014,3 +1014,65 @@ test('the threshold fits the phone in its widest state', async ({ page }) => {
     expect(warm.sideways).toEqual([]);
     expect(warm.docScroll).toBeLessThanOrEqual(warm.vh);
 });
+
+/**
+ * The title is set OPEN on a phone, and the sigil is not a control.
+ *
+ * Both were caused by the same thing, a month apart. The tracking rule
+ * `letter-spacing: 0.08em` was written when the product was the acronym
+ * `R.I.S.E.`, where tight was right; when the name became `R I S E` only
+ * the desktop rule learned it, and the phone quietly kept showing the old
+ * product. That is this codebase's most repeated failure — one vocabulary
+ * in two places, one copy taught — and CSS is where it hides best,
+ * because no unit test can see a computed style.
+ */
+test('the phone sets R I S E open, like every other surface', async ({ page }) => {
+    await enter(page, 390, 844);
+    const title = page.locator('.portal-title');
+    await expect(title).toBeVisible();
+
+    const type = await title.evaluate((el) => {
+        const style = getComputedStyle(el);
+        return {
+            text: el.textContent.trim(),
+            fontSize: parseFloat(style.fontSize),
+            tracking: parseFloat(style.letterSpacing),
+            indent: parseFloat(style.textIndent)
+        };
+    });
+
+    // ONE WORD, SET OPEN — not four characters with spaces between them,
+    // which a screen reader would announce as "R, I, S, E".
+    expect(type.text).toBe('RISE');
+    // Open enough to read as separated letters. 0.08em at 36px is 2.9px
+    // and looks like ordinary tracking; the rule asks for a real gap.
+    expect(type.tracking / type.fontSize).toBeGreaterThan(0.15);
+    // And the indent that re-centres it must move WITH the tracking, or
+    // the word sits off its own centre.
+    expect(type.indent).toBeCloseTo(type.tracking, 1);
+});
+
+test('the sigil is a seal on a phone, not a play button that opens the Vault', async ({ page }) => {
+    await enter(page, 390, 844);
+    const vessel = page.locator('.portal-sigil-vessel');
+    await expect(vessel).toBeVisible();
+
+    // A div, not a button: iOS paints its own ▶ over an unstarted video,
+    // and a cold load has no session to return to, so the tap went to the
+    // Vault unannounced.
+    expect(await vessel.evaluate(el => el.tagName)).toBe('DIV');
+    expect(await vessel.getAttribute('aria-hidden')).toBe('true');
+
+    // Tapping it leaves the reader where they are.
+    await vessel.click({ force: true });
+    await page.waitForTimeout(400);
+    await expect(page.locator('.portal-title')).toBeVisible();
+});
+
+test('the sigil is still the quick way back on a pointer', async ({ page }) => {
+    await enter(page, 1280, 800);
+    const vessel = page.locator('.portal-sigil-vessel');
+    await expect(vessel).toBeVisible();
+    expect(await vessel.evaluate(el => el.tagName)).toBe('BUTTON');
+    expect(await vessel.getAttribute('aria-label')).toBe('Quick access to last session');
+});
