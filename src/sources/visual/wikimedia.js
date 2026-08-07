@@ -18,7 +18,8 @@ const MIN_DISPLAY_AREA = 360_000;
 
 /**
  * Curated categories for RISE visual content
- * Based on diagram.txt catalog
+ * Derived from an early working catalogue of open-access diagrammatic
+ * sources, since retired from the repository.
  */
 /**
  * RETIRED — the public registry is empty by design.

@@ -26,7 +26,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CACHE = resolve(ROOT, '.ingest-cache', 'legacy');
 const OUT = resolve(ROOT, 'src/content/archive/works');
 const CATALOG = resolve(ROOT, 'src/content/archive/legacy-catalog.js');
-const REPORT = resolve(ROOT, 'docs/reviews/SOL-LEGACY-CLASSICS-AUDIT-2026-07-30.json');
+const REPORT = resolve(ROOT, 'docs/ingest-records/SOL-LEGACY-CLASSICS-AUDIT-2026-07-30.json');
 const EXTENDED = JSON.parse(readFileSync(
     resolve(ROOT, 'src/sources/text/data/sacred_texts.json'),
     'utf8'

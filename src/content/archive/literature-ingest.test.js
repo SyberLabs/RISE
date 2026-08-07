@@ -10,7 +10,7 @@ import { LITERATURE_WORKS } from './literature-catalog.js';
 const ROOT = resolve(import.meta.dirname, '../../..');
 const dossier = assertDossier(parseLiteratureDossier());
 const report = JSON.parse(readFileSync(
-    resolve(ROOT, 'docs/reviews/SOL-LITERATURE-INGEST-REPORT.json'),
+    resolve(ROOT, 'docs/ingest-records/SOL-LITERATURE-INGEST-REPORT.json'),
     'utf8'
 ));
 

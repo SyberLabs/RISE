@@ -2,7 +2,8 @@
 
 *Written 2026-07-28. Implements North Star §5.2 (named journeys, editorial
 voice) at the surface where R.I.S.E. holds its texts. Draws its organizing
-principles from `oraculararchive.txt` and the Neorenaissance corpus.*
+principles from an early media-cluster note (since retired) and the
+Neorenaissance corpus.*
 
 ---
 
@@ -426,8 +427,8 @@ requirement, and SOL delivered exactly what was asked.
 simply also long — and length was never the constraint, since payloads
 load lazily.
 
-`docs/reviews/SOL-PD-BRIEF-2-IMAGINATIVE-LITERATURE.md` corrects it, and
-carries one instruction the first brief needed: *do not let a stated
+A second curation brief corrected it, and carried one instruction the
+first brief needed: *do not let a stated
 preference become an unstated exclusion — if something in this brief
 would narrow the result in a way we have not noticed, say so before
 beginning.*

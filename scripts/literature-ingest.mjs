@@ -33,7 +33,7 @@ const CACHE = resolve(ROOT, '.ingest-cache', 'literature');
 const OUT = resolve(ROOT, 'src/content/archive/works');
 const CATALOG = resolve(ROOT, 'src/content/archive/literature-catalog.js');
 const CURATION = resolve(ROOT, 'src/content/archive/literature-curation.js');
-const REPORT = resolve(ROOT, 'docs/reviews/SOL-LITERATURE-INGEST-REPORT.json');
+const REPORT = resolve(ROOT, 'docs/ingest-records/SOL-LITERATURE-INGEST-REPORT.json');
 const entries = assertDossier(parseLiteratureDossier()).map(entry => {
     if (entry.code !== 'W42') return entry;
     return {

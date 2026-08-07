@@ -6,7 +6,7 @@ import { LIBRARY_TEXTS } from '../library.js';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
 const report = JSON.parse(readFileSync(
-    resolve(ROOT, 'docs/reviews/SOL-LEGACY-CLASSICS-AUDIT-2026-07-30.json'),
+    resolve(ROOT, 'docs/ingest-records/SOL-LEGACY-CLASSICS-AUDIT-2026-07-30.json'),
     'utf8'
 ));
 

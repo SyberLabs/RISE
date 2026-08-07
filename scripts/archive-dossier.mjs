@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const DOSSIER_PATH = resolve(
     ROOT,
-    'docs/reviews/SOL-PD-ACQUISITIONS-DOSSIER-LITERATURE-2026-07-28.md'
+    'docs/ingest-records/SOL-PD-ACQUISITIONS-DOSSIER-LITERATURE-2026-07-28.md'
 );
 
 const FORM_CROSS_SHELF = new Set([
