@@ -3,7 +3,8 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "R.I.S.E. - Recursive Installation of Symbolic Experience",
+  "license": "Apache-2.0",
+  "description": "RISE - a browser-based audiovisual reader for text, procedural form, art, sound, and temporal composition",
   "engines": {
     "node": ">=20.19.0 || >=22.12.0"
   },
