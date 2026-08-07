@@ -15,6 +15,7 @@ import {
     lowerExperienceProgram,
     EXPERIENCE_PROGRAM_LIMITS
 } from './experience-program.js';
+import { READING_LIMITS } from './reading-limits.js';
 import { compileSourceSpans } from './source-span.js';
 import {
     createSequenceVisualAsset,
@@ -30,15 +31,20 @@ import {
 export const SESSION_LIMITS = Object.freeze({
     minWpm: 50,
     maxWpm: 1000,
-    maxTextCharacters: 2_000_000,
-    maxTotalChars: 2_000_000,
+    maxTextCharacters: READING_LIMITS.maxTextCharacters,
+    maxTotalChars: READING_LIMITS.maxTotalChars,
     maxAtoms: 120_000,
-    maxSources: 64,
+    maxSources: READING_LIMITS.maxSources,
     maxProvenanceString: 2_000,
     maxProvenanceKeys: 40,
     maxProvenanceArray: 64,
     maxProvenanceDepth: 4
 });
+
+function isSessionImageUri(uri) {
+    return typeof uri === 'string'
+        && (uri.startsWith('data:image/') || uri.startsWith('blob:'));
+}
 
 const CHUNK_MODES = new Set(['word', 'phrase', 'sentence', 'paragraph']);
 const CURVES = Object.freeze({
@@ -452,7 +458,7 @@ export function compileSession(input = {}) {
         customVisuals: [...new Set([
             ...(Array.isArray(config.customVisuals) ? config.customVisuals : []),
             ...(config.sequenceVisualAssets || []).map(asset => asset.uri)
-        ].filter(uri => typeof uri === 'string' && uri.startsWith('data:image/')))].slice(0, 24)
+        ].filter(isSessionImageUri))].slice(0, READING_LIMITS.maxSequenceAssets)
     });
 }
 

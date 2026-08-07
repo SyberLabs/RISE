@@ -3,7 +3,7 @@
  * shared shelves follow), the modern Atmosphere with soundscapes, and
  * exclusive-beds behavior matching the Chamber's audio panel.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
     endVisualInterlocutionSession,
     grantVisualInterlocutionConsent
@@ -14,7 +14,44 @@ if (typeof globalThis.indexedDB === 'undefined') {
     globalThis.indexedDB = { open: () => ({ onsuccess: null, onerror: null, onupgradeneeded: null }) };
 }
 
+if (typeof URL.createObjectURL !== 'function') {
+    const objectUrls = new Map();
+    let objectUrlSeq = 0;
+    URL.createObjectURL = (blob) => {
+        // `blob:<origin>/<uuid>`, as the real API mints them — safeUrl
+        // checks the origin before letting one reach the DOM.
+        const url = `blob:${location.origin}/workshop-test-${++objectUrlSeq}`;
+        objectUrls.set(url, blob);
+        return url;
+    };
+    URL.revokeObjectURL = (url) => {
+        objectUrls.delete(url);
+    };
+}
+
 const { Workshop } = await import('./Workshop.js');
+const { WorkshopMedia } = await import('../core/workshop-media.js');
+
+beforeEach(() => {
+    vi.spyOn(WorkshopMedia, 'put').mockImplementation(async ({ id, projectId, data, mimeType }) => ({
+        id,
+        projectId,
+        mimeType: mimeType || data.type || 'image/png',
+        byteLength: data.size,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+    }));
+    vi.spyOn(WorkshopMedia, 'has').mockResolvedValue(true);
+    vi.spyOn(WorkshopMedia, 'resolveObjectUrl').mockImplementation(async (id) => `blob:hydrated-${id}`);
+    vi.spyOn(WorkshopMedia, 'delete').mockResolvedValue(undefined);
+    vi.spyOn(WorkshopMedia, 'deleteByProject').mockResolvedValue(undefined);
+    vi.spyOn(WorkshopMedia, 'revokeObjectUrl').mockImplementation(() => {});
+});
+
+afterEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+});
 
 function makeWorkshop(onCreateSession = vi.fn(), options = {}) {
     const container = document.createElement('div');
@@ -435,7 +472,7 @@ describe('Workshop visual score lane', () => {
         container.remove();
     });
 
-    it('persists stable asset and span identities with the canonical score', () => {
+    it('persists stable asset and span identities with the canonical score', async () => {
         localStorage.removeItem('rise_workshop_v1');
         const { workshop, container } = makeWorkshop();
         const asset = addScoringFixture(workshop);
@@ -446,7 +483,7 @@ describe('Workshop visual score lane', () => {
         workshop.assignPendingVisualScore();
         const assignmentId = workshop.sessionData.visualScoreAssignments[0].id;
 
-        const saved = workshop.persistSequenceToVault();
+        const saved = await workshop.persistSequenceToVault();
 
         expect(saved.sequenceVisualAssets[0].id).toBe(asset.id);
         expect(saved.visualScoreAssignments[0]).toMatchObject({
@@ -621,7 +658,7 @@ describe('Workshop visual selection repair', () => {
 });
 
 describe('Workshop draft lifecycle', () => {
-    it('binds visual consent to the launched draft without persisting the scope', () => {
+    it('binds visual consent to the launched draft without persisting the scope', async () => {
         localStorage.removeItem('rise_workshop_v1');
         const { workshop, container, onCreateSession } = makeWorkshop();
         workshop.sessionData.title = 'Scoped visual session';
@@ -633,12 +670,13 @@ describe('Workshop draft lifecycle', () => {
         }, { id: 'local' });
         const expectedScope = workshop.visualConsentScope;
 
-        workshop.createSession();
+        await workshop.createSession();
 
         expect(onCreateSession).toHaveBeenCalledWith(expect.objectContaining({
             visualConfig: expect.objectContaining({ consentScope: expectedScope })
         }));
         const [saved] = JSON.parse(localStorage.getItem('rise_workshop_v1'));
+        expect(saved.defaults?.visual?.config?.consentScope).toBeUndefined();
         expect(saved.visualConfig?.consentScope).toBeUndefined();
 
         workshop.destroy();
@@ -679,7 +717,7 @@ describe('Workshop draft lifecycle', () => {
         container.remove();
     });
 
-    it('clears a saved sequence and reopens it for explicit editing without duplicating it', () => {
+    it('clears a saved sequence and reopens it for explicit editing without duplicating it', async () => {
         localStorage.removeItem('rise_workshop_v1');
         const { workshop, container } = makeWorkshop();
 
@@ -690,21 +728,19 @@ describe('Workshop draft lifecycle', () => {
             type: 'text/plain',
             data: 'one two three'
         }, { id: 'local' });
-        container.querySelector('[data-action="save-draft"]').click();
+        await workshop.saveSequenceToVault();
 
         const [saved] = JSON.parse(localStorage.getItem('rise_workshop_v1'));
         expect(workshop.sessionData.title).toBe('');
         expect(workshop.sessionData.sources).toHaveLength(0);
 
-        const picker = container.querySelector('#workshop-sequence-select');
-        picker.value = `saved:${saved.id}`;
-        picker.dispatchEvent(new Event('change', { bubbles: true }));
+        await workshop.openSavedBlueprintAsync(saved.id, { preserveCurrent: false });
         expect(workshop.sessionData.title).toBe('First form');
 
         const titleInput = container.querySelector('#session-title');
         titleInput.value = 'Revised form';
         titleInput.dispatchEvent(new Event('input', { bubbles: true }));
-        container.querySelector('[data-action="save-draft"]').click();
+        await workshop.saveSequenceToVault();
 
         const blueprints = JSON.parse(localStorage.getItem('rise_workshop_v1'));
         expect(blueprints).toHaveLength(1);
@@ -856,13 +892,13 @@ describe('Workshop atmosphere: exclusive beds', () => {
         container.remove();
     });
 
-    it('the soundscape rides the blueprint into the Vault', () => {
+    it('the soundscape rides the blueprint into the Vault', async () => {
         localStorage.removeItem('rise_workshop_v1');
         const { workshop, container } = makeWorkshop();
 
         chooseAudio(container, 'soundscape:aurora');
         workshop.sessionData.title = 'Aurora Session';
-        container.querySelector('[data-action="save-draft"]').click();
+        await workshop.saveSequenceToVault();
 
         const [saved] = JSON.parse(localStorage.getItem('rise_workshop_v1'));
         expect(saved.schema).toBe('rise.workshop-project.v1');
@@ -1024,7 +1060,8 @@ describe('Workshop Phase 5 responsive and accessibility contracts', () => {
             words: index === 0 ? 512 : 3, providerId: 'local'
         }));
         const assets = Array.from({ length: 24 }, (_, index) => workshop.addSequenceVisualAsset(
-            `data:image/png;base64,ZGVuc2Ut${index}`, `Dense image ${index + 1}`
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+            `Dense image ${index + 1}`
         ));
         workshop.sessionData.visualScoreAssignments = Array.from({ length: 512 }, (_, index) => ({
             id: `dense-${index}`, sourceId: 'dense-source', assetId: assets[index % assets.length].id,

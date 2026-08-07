@@ -3,6 +3,7 @@ import {
   EXPERIENCE_PROGRAM_LIMITS,
   EXPERIENCE_PROGRAM_SCHEMA
 } from './experience-program.js';
+import { READING_LIMITS } from './reading-limits.js';
 import { normalizeQuote, resolveSourceSpan } from './source-span.js';
 import {
   EDITOR_ASSET_SCHEMA,
@@ -11,7 +12,9 @@ import {
 } from './editor-asset.js';
 
 export const SEQUENCE_ASSET_PREFIX = 'sequence-asset:';
-const MAX_SEQUENCE_ASSET_URI_LENGTH = 12 * 1024 * 1024;
+export const SEQUENCE_ASSET_STORAGE_IDB = 'idb';
+export const SEQUENCE_ASSET_STORAGE_INLINE = 'inline';
+const MAX_SEQUENCE_ASSET_URI_LENGTH = READING_LIMITS.maxSequenceAssetUriChars;
 export const VISUAL_SCORE_COLORS = Object.freeze([
   '#7fd4a4', '#d7a7ff', '#f0bf72', '#78bde8', '#ed8f9d', '#b9ca6b', '#c6a38a', '#8fc8bd'
 ]);
@@ -50,6 +53,54 @@ function dataImage(value) {
   return value;
 }
 
+function runtimeImageUri(value) {
+  if (typeof value !== 'string' || value.length > MAX_SEQUENCE_ASSET_URI_LENGTH) {
+    fail('VISUAL_SCORE_INVALID_ASSET', 'Sequence images must be local image data.', {});
+  }
+  if (value.startsWith('data:image/') || value.startsWith('blob:')) return value;
+  fail('VISUAL_SCORE_INVALID_ASSET', 'Sequence images must be local image data.', {});
+}
+
+function imageMimeType(value) {
+  if (typeof value !== 'string' || !value.startsWith('image/') || value.length > 120) {
+    fail('VISUAL_SCORE_INVALID_ASSET', 'Durable sequence images need an image/* MIME type.', {});
+  }
+  return value.trim();
+}
+
+function byteLength(value) {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n <= 0 || n > READING_LIMITS.maxImageFileBytes) {
+    fail('VISUAL_SCORE_INVALID_ASSET', 'Durable sequence images need a valid byte length.', {});
+  }
+  return n;
+}
+
+/** True when the asset carries a DOM/cortex-resolvable URI. */
+export function sequenceAssetHasUri(asset) {
+  return typeof asset?.uri === 'string'
+    && (asset.uri.startsWith('data:image/') || asset.uri.startsWith('blob:'));
+}
+
+/**
+ * Strip transient runtime URIs before persisting a durable idb asset into
+ * rise.workshop-project.v1. Inline assets keep their data URI.
+ */
+export function sequenceAssetForPersistence(asset) {
+  const canonical = createSequenceVisualAsset(asset);
+  if (canonical.storage === SEQUENCE_ASSET_STORAGE_INLINE) return canonical;
+  const persisted = {
+    id: canonical.id,
+    name: canonical.name,
+    color: canonical.color,
+    storage: SEQUENCE_ASSET_STORAGE_IDB,
+    mimeType: canonical.mimeType,
+    byteLength: canonical.byteLength
+  };
+  if (canonical.provenance) persisted.provenance = canonical.provenance;
+  return Object.freeze(persisted);
+}
+
 function boundedProvenance(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const provenance = {};
@@ -84,14 +135,40 @@ export function scoreAssetIdFromCue(cue) {
   return null;
 }
 
-export function createSequenceVisualAsset({ id, uri, name, color, provenance }) {
-  const asset = {
-    id: exactId(id, 'Asset id'),
-    uri: dataImage(uri),
-    name: boundedName(name),
-    color: VISUAL_SCORE_COLORS.includes(color) ? color : VISUAL_SCORE_COLORS[0]
-  };
-  const canonicalProvenance = boundedProvenance(provenance);
+export function createSequenceVisualAsset(value = {}) {
+  const id = exactId(value.id, 'Asset id');
+  const name = boundedName(value.name);
+  const color = VISUAL_SCORE_COLORS.includes(value.color) ? value.color : VISUAL_SCORE_COLORS[0];
+  const storage = value.storage === SEQUENCE_ASSET_STORAGE_IDB
+    || (value.storage !== SEQUENCE_ASSET_STORAGE_INLINE
+      && !value.uri
+      && value.mimeType
+      && value.byteLength != null)
+    ? SEQUENCE_ASSET_STORAGE_IDB
+    : SEQUENCE_ASSET_STORAGE_INLINE;
+
+  let asset;
+  if (storage === SEQUENCE_ASSET_STORAGE_IDB) {
+    asset = {
+      id,
+      name,
+      color,
+      storage: SEQUENCE_ASSET_STORAGE_IDB,
+      mimeType: imageMimeType(value.mimeType),
+      byteLength: byteLength(value.byteLength)
+    };
+    if (value.uri != null) asset.uri = runtimeImageUri(value.uri);
+  } else {
+    asset = {
+      id,
+      name,
+      color,
+      storage: SEQUENCE_ASSET_STORAGE_INLINE,
+      uri: dataImage(value.uri)
+    };
+  }
+
+  const canonicalProvenance = boundedProvenance(value.provenance);
   if (canonicalProvenance) asset.provenance = canonicalProvenance;
   return Object.freeze(asset);
 }
@@ -335,7 +412,10 @@ export function compileVisualScoreProgram({ programId, sources, assets, assignme
 
 /** Validate that every canonical sequence-asset cue resolves locally. */
 export function validateSequenceAssetReferences(program, assets = []) {
-  const ids = new Set(assets.map(asset => createSequenceVisualAsset(asset).id));
+  const ids = new Set(assets.map(asset => exactId(
+    createSequenceVisualAsset(asset).id,
+    'Asset id'
+  )));
   for (const track of program?.tracks || []) {
     if (track.kind !== 'visual') continue;
     for (const clip of track.clips) {

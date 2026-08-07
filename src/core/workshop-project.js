@@ -1,8 +1,10 @@
 import { validateExperienceProgram } from './experience-program.js';
+import { READING_LIMITS } from './reading-limits.js';
 import {
   compileVisualScoreProgram,
   createSequenceVisualAsset,
   scoreAssetIdFromCue,
+  sequenceAssetForPersistence,
   validateSequenceAssetReferences
 } from './visual-score-lane.js';
 import { compileWorkshopScoreProgram } from './audio-score-lane.js';
@@ -11,9 +13,10 @@ import { audioScoreAssetFromId } from './workshop-audio.js';
 export const WORKSHOP_PROJECT_SCHEMA = 'rise.workshop-project.v1';
 
 export const WORKSHOP_PROJECT_LIMITS = Object.freeze({
-  maxSources: 64,
-  maxAssets: 24,
-  maxSourceCharacters: 4 * 1024 * 1024,
+  maxSources: READING_LIMITS.maxSources,
+  maxAssets: READING_LIMITS.maxSequenceAssets,
+  maxSourceCharacters: READING_LIMITS.maxTextCharacters,
+  maxTotalCharacters: READING_LIMITS.maxTotalChars,
   maxTitleLength: 200,
   maxIdLength: 160
 });
@@ -119,6 +122,13 @@ function normalizeSources(value, path = '$.sources') {
   if (new Set(sources.map(source => source.id)).size !== sources.length) {
     fail('WORKSHOP_PROJECT_DUPLICATE_SOURCE', 'Source ids must be unique', path);
   }
+  const totalChars = sources.reduce((sum, source) => sum + source.data.length, 0);
+  if (totalChars > WORKSHOP_PROJECT_LIMITS.maxTotalCharacters) {
+    fail('WORKSHOP_PROJECT_TOTAL_TEXT',
+      `Workshop sources may not exceed ${WORKSHOP_PROJECT_LIMITS.maxTotalCharacters} characters combined`,
+      path,
+      { totalChars, maxTotalCharacters: WORKSHOP_PROJECT_LIMITS.maxTotalCharacters });
+  }
   return sources;
 }
 
@@ -127,7 +137,22 @@ function normalizeAssets(value, path = '$.assets') {
     fail('WORKSHOP_PROJECT_ASSETS',
       `A Workshop project accepts at most ${WORKSHOP_PROJECT_LIMITS.maxAssets} local assets`, path);
   }
-  const assets = value.map(createSequenceVisualAsset);
+  const assets = value.map((raw, index) => {
+    const asset = sequenceAssetForPersistence(createSequenceVisualAsset(raw));
+    // Tiny inline fixtures remain legal for tests and legacy migration input.
+    // Anything approaching localStorage pressure must go through IndexedDB.
+    if (asset.storage === 'inline'
+      && typeof asset.uri === 'string'
+      && asset.uri.length > READING_LIMITS.maxInlineProjectImageUriChars) {
+      fail('WORKSHOP_PROJECT_INLINE_TOO_LARGE',
+        `Sequence images larger than ${
+          READING_LIMITS.maxInlineProjectImageUriChars / 1024
+        } KiB must use durable Workshop media storage`,
+        `${path}[${index}]`,
+        { id: asset.id, uriLength: asset.uri.length });
+    }
+    return asset;
+  });
   if (new Set(assets.map(asset => asset.id)).size !== assets.length) {
     fail('WORKSHOP_PROJECT_DUPLICATE_ASSET', 'Project asset ids must be unique', path);
   }
@@ -385,7 +410,10 @@ export function workshopProjectToSessionConfig(value) {
     projection: project.defaults.projection,
     recitation: plainClone(project.defaults.recitation),
     voiceId: project.defaults.voiceId,
-    customVisuals: project.assets.map(asset => asset.uri),
+    customVisuals: project.assets
+      .map(asset => asset.uri)
+      .filter(uri => typeof uri === 'string'
+        && (uri.startsWith('data:image/') || uri.startsWith('blob:'))),
     sequenceVisualAssets: plainClone(project.assets),
     visualScoreAssignments: visualAssignmentsFromProgram(project.experienceProgram),
     audioScoreAssignments: audioAssignmentsFromProgram(project.experienceProgram),

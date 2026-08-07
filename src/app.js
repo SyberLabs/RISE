@@ -1045,12 +1045,43 @@ class App {
     }
 
     /**
-     * Handle session creation from Workshop
+     * Handle session creation from Workshop / Vault / SOL blueprints.
+     * Hydrates durable sequence images before compileSession.
      */
-    handleCreateSession(sessionData) {
-        const sessionInput = isWorkshopProject(sessionData)
+    async handleCreateSession(sessionData) {
+        let sessionInput = isWorkshopProject(sessionData)
             ? workshopProjectToSessionConfig(sessionData)
             : sessionData;
+        try {
+            const { hydrateSessionSequenceAssets } = await import('./core/workshop-asset-durability.js');
+            sessionInput = await hydrateSessionSequenceAssets(sessionInput);
+            // A MISSING IMAGE IS NOT A REASON TO WITHHOLD THE TEXT. The
+            // reading opens; the reader is told what is not in it. This
+            // path used to return here, so one evicted blob cancelled the
+            // whole session — the opposite of the rule the imagery has
+            // followed everywhere else.
+            const missing = sessionInput?.missingSequenceAssets;
+            if (missing?.length) {
+                // Read and removed — the report is for the reader, not for
+                // the compiler, which should never see a key it does not
+                // define.
+                const { missingSequenceAssets, ...rest } = sessionInput;
+                sessionInput = rest;
+                console.warn('[RISE] Workshop media missing, reading proceeds without:', missing);
+                this.showToast(
+                    missing.length === 1
+                        ? 'One sequence image is no longer stored — reading without it'
+                        : `${missing.length} sequence images are no longer stored — reading without them`,
+                    4000
+                );
+            }
+        } catch (error) {
+            // Reserved for a payload that cannot be read at all. A missing
+            // image no longer reaches here.
+            console.error('[RISE] Workshop media hydrate failed:', error);
+            this.showToast(error.message || 'Sequence images could not be loaded', 4000);
+            return;
+        }
         console.log('[RISE] Compiling Custom Workshop Session:', sessionInput);
 
         if (!sessionInput || !sessionInput.sources || sessionInput.sources.length === 0) {

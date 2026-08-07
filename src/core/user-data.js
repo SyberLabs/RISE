@@ -1,5 +1,6 @@
 import { PersonalSwells } from './personal-swells.js';
 import { SourceCache } from '../sources/cache.js';
+import { WorkshopMedia, blobToDataUrl } from './workshop-media.js';
 import { endVisualInterlocutionSession } from './visual-safety.js';
 
 export const USER_DATA_KEYS = Object.freeze({
@@ -21,21 +22,13 @@ function parseStoredValue(raw) {
     }
 }
 
-function blobToDataUrl(blob) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(reader.error || new Error('Could not read uploaded audio'));
-        reader.readAsDataURL(blob);
-    });
-}
-
 export async function exportUserData(settings = null) {
     const data = {
-        schemaVersion: 3,
+        schemaVersion: 4,
         exportedAt: new Date().toISOString(),
         stores: {},
-        personalSwells: []
+        personalSwells: [],
+        workshopMedia: []
     };
 
     for (const [label, key] of Object.entries(USER_DATA_KEYS)) {
@@ -57,6 +50,23 @@ export async function exportUserData(settings = null) {
         data.warnings = [`Personal audio could not be exported: ${error.message || 'storage unavailable'}`];
     }
 
+    try {
+        await WorkshopMedia.init();
+        const records = await WorkshopMedia.getAllRecords();
+        data.workshopMedia = await Promise.all(records.map(async record => ({
+            id: record.id,
+            projectId: record.projectId,
+            mimeType: record.mimeType,
+            byteLength: record.byteLength,
+            createdAt: record.createdAt,
+            updatedAt: record.updatedAt,
+            data: await blobToDataUrl(record.data)
+        })));
+    } catch (error) {
+        const warning = `Workshop media could not be exported: ${error.message || 'storage unavailable'}`;
+        data.warnings = Array.isArray(data.warnings) ? [...data.warnings, warning] : [warning];
+    }
+
     return data;
 }
 
@@ -66,7 +76,8 @@ export async function clearUserData() {
 
     const results = await Promise.allSettled([
         PersonalSwells.clear(),
-        SourceCache.clear()
+        SourceCache.clear(),
+        WorkshopMedia.clear()
     ]);
     const failures = results.filter(result => result.status === 'rejected');
     if (failures.length) {

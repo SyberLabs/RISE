@@ -11,6 +11,11 @@ import {
   workshopEditorDataToProject,
   workshopProjectToBlueprintView
 } from './workshop-project.js';
+import {
+  ensureWorkshopAssetsDurable,
+  hydrateWorkshopProjectView
+} from './workshop-asset-durability.js';
+import { WorkshopMedia } from './workshop-media.js';
 
 const STORAGE_KEY = 'rise_recursions_v1';
 const WORKSHOP_KEY = 'rise_workshop_v1';
@@ -59,6 +64,9 @@ function normalizeGlobalImageAssets(values) {
 }
 
 export class MemoryCore {
+  /** @type {Map<string, object>|null} */
+  static _hydratedWorkshopViews = null;
+
   /**
    * Fetch all past session journals
    * @returns {Array} List of past synthesis objects
@@ -160,47 +168,26 @@ export class MemoryCore {
   }
 
   /**
-   * Fetch all saved workshop blueprints
+   * Fetch all saved workshop blueprints (sync metadata views).
+   * Durable idb assets may lack runtime URIs — use
+   * getWorkshopBlueprintsHydrated() before Preview / Run / cortex paint.
    * @returns {Array} List of saved session configs
    */
   static getWorkshopBlueprints() {
     try {
-      const data = localStorage.getItem(WORKSHOP_KEY);
-      if (!data) return [];
-      const parsed = JSON.parse(data);
-      const blueprints = Array.isArray(parsed)
-        ? parsed.filter(item => item && typeof item === 'object')
-        : [];
-
-      // TEMPORAL CONTRACT MIGRATION: blueprints saved before the
-      // honest-pacing repair carry WPMs calibrated under a hidden
-      // 1.4375× slowdown. Scale once (idempotent via paceV2) so the
-      // delivered feel of every saved sequence is unchanged.
-      let migrated = false;
-      const stored = [];
-      const views = blueprints.map((blueprint) => {
-        try {
-          const project = isWorkshopProject(blueprint)
-            ? validateWorkshopProject(blueprint)
-            : migrateWorkshopBlueprint(blueprint);
-          stored.push(project);
-          migrated ||= !isWorkshopProject(blueprint);
-          return workshopProjectToBlueprintView(project);
-        } catch (error) {
-          // Opening the Vault may never become a destructive migration.
-          // Preserve malformed legacy work so the Studio can repair it.
-          console.warn('[Memory] Workshop project migration deferred:', error);
-          stored.push(blueprint);
-          return blueprint;
-        }
+      const { views } = this._readWorkshopStore();
+      if (!this._hydratedWorkshopViews) return views;
+      return views.map((view) => {
+        const hydrated = this._hydratedWorkshopViews.get(view.id);
+        if (!hydrated) return view;
+        return {
+          ...view,
+          assets: hydrated.assets,
+          sequenceVisualAssets: hydrated.sequenceVisualAssets,
+          customVisuals: hydrated.customVisuals,
+          project: hydrated.project
+        };
       });
-      if (migrated) {
-        try {
-          localStorage.setItem(WORKSHOP_KEY, JSON.stringify(stored));
-        } catch (e) { /* quota — migrated values still served this session */ }
-      }
-
-      return views;
     } catch (e) {
       console.error('[Memory] Fail read workshop data:', e);
       return [];
@@ -208,13 +195,97 @@ export class MemoryCore {
   }
 
   /**
-   * Save a workshop blueprint
+   * Migrate inline image bytes into IndexedDB and return hydrated views with
+   * resolvable URIs for Workshop / Session / cortex consumers.
+   */
+  static async getWorkshopBlueprintsHydrated() {
+    try {
+      const { stored } = this._readWorkshopStore();
+      const nextStored = [];
+      const views = [];
+      let rewritten = false;
+
+      for (const entry of stored) {
+        try {
+          const formal = isWorkshopProject(entry)
+            ? validateWorkshopProject(entry)
+            : migrateWorkshopBlueprint(entry);
+          const durableAssets = await ensureWorkshopAssetsDurable(
+            formal.id,
+            formal.assets,
+            null
+          );
+          const assetsChanged = JSON.stringify(durableAssets) !== JSON.stringify(formal.assets);
+          const migrated = assetsChanged
+            ? validateWorkshopProject({ ...formal, assets: durableAssets })
+            : formal;
+          if (assetsChanged) rewritten = true;
+          nextStored.push(migrated);
+          views.push(await hydrateWorkshopProjectView(migrated));
+        } catch (error) {
+          console.warn('[Memory] Workshop hydrate deferred:', error);
+          nextStored.push(entry);
+          views.push(entry);
+        }
+      }
+
+      if (rewritten) {
+        try {
+          localStorage.setItem(WORKSHOP_KEY, JSON.stringify(nextStored));
+        } catch (e) { /* quota — hydrated values still served this session */ }
+      }
+
+      this._hydratedWorkshopViews = new Map(
+        views.filter(view => view?.id).map(view => [view.id, view])
+      );
+      return views;
+    } catch (e) {
+      console.error('[Memory] Fail hydrate workshop data:', e);
+      return [];
+    }
+  }
+
+  static _readWorkshopStore() {
+    const data = localStorage.getItem(WORKSHOP_KEY);
+    if (!data) return { stored: [], views: [] };
+    const parsed = JSON.parse(data);
+    const blueprints = Array.isArray(parsed)
+      ? parsed.filter(item => item && typeof item === 'object')
+      : [];
+
+    let migrated = false;
+    const stored = [];
+    const views = blueprints.map((blueprint) => {
+      try {
+        const project = isWorkshopProject(blueprint)
+          ? validateWorkshopProject(blueprint)
+          : migrateWorkshopBlueprint(blueprint);
+        stored.push(project);
+        migrated ||= !isWorkshopProject(blueprint);
+        return workshopProjectToBlueprintView(project);
+      } catch (error) {
+        console.warn('[Memory] Workshop project migration deferred:', error);
+        stored.push(blueprint);
+        return blueprint;
+      }
+    });
+    if (migrated) {
+      try {
+        localStorage.setItem(WORKSHOP_KEY, JSON.stringify(stored));
+      } catch (e) { /* quota — migrated values still served this session */ }
+    }
+    return { stored, views };
+  }
+
+  /**
+   * Save a workshop blueprint (sync). Accepts tiny inline fixtures and already
+   * durable idb metadata. Large images must use saveWorkshopBlueprintAsync.
    * @param {Object} blueprint The session config payload
    */
   static saveWorkshopBlueprint(blueprint) {
     try {
       if (!blueprint || typeof blueprint !== 'object') return null;
-      const history = this.getWorkshopBlueprints();
+      const { stored } = this._readWorkshopStore();
       const id = blueprint.id || `blueprint_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
       const updatedAt = Date.now();
       const formalInput = isWorkshopProject(blueprint)
@@ -224,9 +295,8 @@ export class MemoryCore {
       const project = formalInput
         ? validateWorkshopProject(formalInput)
         : workshopEditorDataToProject(blueprint, { id, updatedAt });
-      const storedHistory = history.map(item => item.project || item);
+      const storedHistory = [...stored];
 
-      // Replace if exists, otherwise append.
       const existingIndex = storedHistory.findIndex(b => b.id === project.id);
       if (existingIndex >= 0) {
         storedHistory[existingIndex] = project;
@@ -244,19 +314,81 @@ export class MemoryCore {
   }
 
   /**
-   * Delete a workshop blueprint
+   * Persist bytes to IndexedDB, then write metadata-only project JSON.
+   * @param {Object} blueprint editor or formal project payload
+   * @param {{ blobs?: Map<string, Blob>|Record<string, Blob> }} [options]
+   */
+  static async saveWorkshopBlueprintAsync(blueprint, options = {}) {
+    try {
+      if (!blueprint || typeof blueprint !== 'object') return null;
+      const { stored } = this._readWorkshopStore();
+      const id = blueprint.id || `blueprint_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      const updatedAt = Date.now();
+      const draft = isWorkshopProject(blueprint) && !Object.hasOwn(blueprint, 'wpm')
+        ? validateWorkshopProject({ ...blueprint, id, updatedAt })
+        : workshopEditorDataToProject(blueprint, { id, updatedAt });
+
+      const previous = stored.find(item => item.id === id);
+      const previousIds = new Set((previous?.assets || []).map(asset => asset.id));
+      const durableAssets = await ensureWorkshopAssetsDurable(
+        id,
+        draft.assets,
+        options.blobs || null
+      );
+      const project = validateWorkshopProject({
+        ...draft,
+        assets: durableAssets,
+        updatedAt
+      });
+
+      const nextIds = new Set(project.assets.map(asset => asset.id));
+      for (const assetId of previousIds) {
+        if (!nextIds.has(assetId)) {
+          try { await WorkshopMedia.delete(assetId); } catch { /* best effort */ }
+        }
+      }
+
+      const storedHistory = [...stored];
+      const existingIndex = storedHistory.findIndex(b => b.id === project.id);
+      if (existingIndex >= 0) storedHistory[existingIndex] = project;
+      else storedHistory.unshift(project);
+
+      localStorage.setItem(WORKSHOP_KEY, JSON.stringify(storedHistory));
+      console.log('[Memory] Workshop Project saved (durable):', project.id);
+      return hydrateWorkshopProjectView(project);
+    } catch (e) {
+      console.error('[Memory] Fail save durable workshop blueprint:', e);
+      throw e;
+    }
+  }
+
+  /**
+   * Delete a workshop blueprint and its durable media.
    */
   static deleteWorkshopBlueprint(id) {
      try {
-       const history = this.getWorkshopBlueprints()
-         .filter(b => b.id !== id)
-         .map(item => item.project || item);
+       const { stored } = this._readWorkshopStore();
+       const history = stored.filter(b => b.id !== id);
        localStorage.setItem(WORKSHOP_KEY, JSON.stringify(history));
+       void WorkshopMedia.deleteByProject(id).catch((error) => {
+         console.warn('[Memory] Workshop media delete deferred:', error);
+       });
        return true;
      } catch (e) {
        console.error('[Memory] Fail delete workshop blueprint:', e);
        return false;
      }
+  }
+
+  static async deleteWorkshopBlueprintAsync(id) {
+    const ok = this.deleteWorkshopBlueprint(id);
+    if (!ok) return false;
+    try {
+      await WorkshopMedia.deleteByProject(id);
+    } catch (error) {
+      console.warn('[Memory] Workshop media delete deferred:', error);
+    }
+    return true;
   }
 
   // ==========================================

@@ -40,7 +40,10 @@ describe('session compiler', () => {
       experienceProgram
     });
 
-    expect(session.sequenceVisualAssets).toEqual([asset]);
+    expect(session.sequenceVisualAssets).toEqual([{
+      ...asset,
+      storage: 'inline'
+    }]);
     expect(session.visualProgram.segments[0].cue.collections)
       .toEqual(['sequence-asset:moon']);
     expect(() => compileSession({

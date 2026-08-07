@@ -22,9 +22,15 @@ import {
   assignVisualSpan,
   createSequenceVisualAsset,
   eraseVisualSpan,
+  SEQUENCE_ASSET_STORAGE_IDB,
   VISUAL_SCORE_COLORS,
   VisualScoreLaneError
 } from '../core/visual-score-lane.js';
+import { READING_LIMITS } from '../core/reading-limits.js';
+import {
+  dataImageUriToBlob,
+  WorkshopMedia
+} from '../core/workshop-media.js';
 import { editorAssetSupports } from '../core/editor-asset.js';
 import {
   createVisualScoreHistory,
@@ -60,9 +66,9 @@ import { ATTRACTOR_PALETTES, ATTRACTOR_SYSTEMS } from '../visuals/attractor.js';
 import './SourceBrowser.css';
 import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
 
-const MAX_TEXT_FILE_BYTES = 4 * 1024 * 1024;
-const MAX_IMAGE_FILE_BYTES = 8 * 1024 * 1024;
-const MAX_CUSTOM_VISUALS = 24;
+const MAX_TEXT_FILE_BYTES = READING_LIMITS.maxTextCharacters;
+const MAX_IMAGE_FILE_BYTES = READING_LIMITS.maxImageFileBytes;
+const MAX_CUSTOM_VISUALS = READING_LIMITS.maxSequenceAssets;
 const MAX_RENDERED_LANE_CLIPS = 160;
 
 function studioViewportForWidth(width) {
@@ -170,7 +176,10 @@ function normalizeSessionData(data = {}) {
     experienceProgramId: typeof incoming.experienceProgramId === 'string'
       ? incoming.experienceProgramId
       : defaults.experienceProgramId,
-    customVisuals: sequenceVisualAssets.map(asset => asset.uri),
+    customVisuals: sequenceVisualAssets
+      .map(asset => asset.uri)
+      .filter(uri => typeof uri === 'string'
+        && (uri.startsWith('data:image/') || uri.startsWith('blob:'))),
     sequenceVisualAssets,
     visualScoreAssignments: Array.isArray(incoming.visualScoreAssignments)
       ? incoming.visualScoreAssignments.slice(0, 512)
@@ -205,6 +214,10 @@ export class Workshop {
     this.activeDraftKind = 'new';
     this.editorDirty = false;
     this.savedBlueprints = MemoryCore.getWorkshopBlueprints();
+    /** @type {Map<string, Blob>} */
+    this.pendingMediaBlobs = new Map();
+    /** @type {Set<string>} */
+    this.localObjectUrls = new Set();
     // Unsaved drafts are intentionally memory-only. They survive navigation
     // within this app instance, but are never written to browser storage.
     this.suspendedDrafts = [];
@@ -393,7 +406,12 @@ export class Workshop {
   }
 
   openSavedBlueprint(blueprintId, { preserveCurrent = true } = {}) {
-    this.savedBlueprints = MemoryCore.getWorkshopBlueprints();
+    void this.openSavedBlueprintAsync(blueprintId, { preserveCurrent });
+    return true;
+  }
+
+  async openSavedBlueprintAsync(blueprintId, { preserveCurrent = true } = {}) {
+    this.savedBlueprints = await MemoryCore.getWorkshopBlueprintsHydrated();
     const blueprint = this.savedBlueprints.find(item => item.id === blueprintId);
     if (!blueprint) {
       this.showToast('That sequence is no longer in the Vault');
@@ -402,6 +420,8 @@ export class Workshop {
     }
 
     if (preserveCurrent) this.suspendCurrentDraft();
+    this.revokeLocalMediaUrls();
+    this.pendingMediaBlobs.clear();
     const editable = normalizeSessionData(blueprint);
     delete editable.id;
     delete editable.updatedAt;
@@ -1661,8 +1681,20 @@ export class Workshop {
   materializeEditorAsset(assetId) {
     const entry = this.visualAssetEntries().find(item => item.asset.id === assetId);
     if (!entry?.materialization) return false;
-    const asset = this.addSequenceVisualAsset(
-      entry.materialization.uri,
+    const uri = entry.materialization.uri;
+    if (typeof uri !== 'string' || !uri.startsWith('data:image/')) {
+      this.showToast('Shared image could not be copied into this project');
+      return false;
+    }
+    let blob;
+    try {
+      blob = dataImageUriToBlob(uri);
+    } catch {
+      this.showToast('Shared image could not be copied into this project');
+      return false;
+    }
+    const asset = this.addSequenceVisualAssetFromBlob(
+      blob,
       entry.materialization.name || entry.asset.name,
       {
         origin: entry.asset.provenance.origin || 'shared-registry',
@@ -1776,7 +1808,55 @@ export class Workshop {
     return lookup;
   }
 
+  addSequenceVisualAssetFromBlob(blob, name = 'Sequence image', provenance = null) {
+    if (!(blob instanceof Blob) || !String(blob.type || '').startsWith('image/')) {
+      this.showToast('Sequence images must be image files');
+      return null;
+    }
+    if (blob.size <= 0 || blob.size > MAX_IMAGE_FILE_BYTES) {
+      this.showToast('Images must be 8 MB or smaller');
+      return null;
+    }
+    if (this.sessionData.sequenceVisualAssets.length >= MAX_CUSTOM_VISUALS) {
+      this.showToast(`A sequence can contain up to ${MAX_CUSTOM_VISUALS} personal visuals`);
+      return null;
+    }
+    const id = `asset-${crypto.randomUUID()}`;
+    const objectUrl = URL.createObjectURL(blob);
+    this.localObjectUrls.add(objectUrl);
+    const asset = createSequenceVisualAsset({
+      id,
+      name,
+      provenance,
+      storage: SEQUENCE_ASSET_STORAGE_IDB,
+      mimeType: blob.type,
+      byteLength: blob.size,
+      uri: objectUrl,
+      color: VISUAL_SCORE_COLORS[
+        this.sessionData.sequenceVisualAssets.length % VISUAL_SCORE_COLORS.length
+      ]
+    });
+    this.pendingMediaBlobs.set(id, blob);
+    this.sessionData.sequenceVisualAssets.push(asset);
+    this.sessionData.customVisuals = this.sessionData.sequenceVisualAssets
+      .map(item => item.uri)
+      .filter(Boolean);
+    this.selectedScoreAssetId = asset.id;
+    this.selectedEditorAssetId = `project-image:${asset.id}`;
+    this.markEditorDirty();
+    return asset;
+  }
+
+  /** @deprecated Prefer addSequenceVisualAssetFromBlob for new uploads. */
   addSequenceVisualAsset(uri, name = 'Sequence image', provenance = null) {
+    if (typeof uri === 'string' && uri.startsWith('data:image/')) {
+      try {
+        return this.addSequenceVisualAssetFromBlob(dataImageUriToBlob(uri), name, provenance);
+      } catch {
+        this.showToast('Could not read image data');
+        return null;
+      }
+    }
     if (this.sessionData.sequenceVisualAssets.length >= MAX_CUSTOM_VISUALS) {
       this.showToast(`A sequence can contain up to ${MAX_CUSTOM_VISUALS} personal visuals`);
       return null;
@@ -1791,7 +1871,9 @@ export class Workshop {
       ]
     });
     this.sessionData.sequenceVisualAssets.push(asset);
-    this.sessionData.customVisuals = this.sessionData.sequenceVisualAssets.map(item => item.uri);
+    this.sessionData.customVisuals = this.sessionData.sequenceVisualAssets
+      .map(item => item.uri)
+      .filter(Boolean);
     this.selectedScoreAssetId = asset.id;
     this.selectedEditorAssetId = `project-image:${asset.id}`;
     this.markEditorDirty();
@@ -1803,8 +1885,17 @@ export class Workshop {
     if (!asset) return;
     const removedAssignments = this.sessionData.visualScoreAssignments
       .filter(item => item.assetId === asset.id).length;
+    if (typeof asset.uri === 'string' && asset.uri.startsWith('blob:')
+      && this.localObjectUrls.has(asset.uri)) {
+      URL.revokeObjectURL(asset.uri);
+      this.localObjectUrls.delete(asset.uri);
+    }
+    this.pendingMediaBlobs.delete(asset.id);
+    WorkshopMedia.revokeObjectUrl(asset.id);
     this.sessionData.sequenceVisualAssets.splice(index, 1);
-    this.sessionData.customVisuals = this.sessionData.sequenceVisualAssets.map(item => item.uri);
+    this.sessionData.customVisuals = this.sessionData.sequenceVisualAssets
+      .map(item => item.uri)
+      .filter(Boolean);
     this.sessionData.visualScoreAssignments = this.sessionData.visualScoreAssignments
       .filter(item => item.assetId !== asset.id);
     if (this.selectedScoreAssetId === asset.id) {
@@ -2642,7 +2733,10 @@ export class Workshop {
 
   prepareSessionPayload(data = this.sessionData) {
     const payload = cloneSessionData(data);
-    payload.customVisuals = (payload.sequenceVisualAssets || []).map(asset => asset.uri);
+    payload.customVisuals = (payload.sequenceVisualAssets || [])
+      .map(asset => asset.uri)
+      .filter(uri => typeof uri === 'string'
+        && (uri.startsWith('data:image/') || uri.startsWith('blob:')));
     if ((payload.visualScoreAssignments || []).length > 0
       || (payload.audioScoreAssignments || []).length > 0) {
       const audioAssets = [...new Set((payload.audioScoreAssignments || []).map(item => item.assetId))]
@@ -2687,7 +2781,7 @@ export class Workshop {
     form?.addEventListener('submit', (e) => {
       e.preventDefault();
       window.rise?.audioEngine?.playClick();
-      this.createSession();
+      void this.createSession();
     });
     const syncSequenceManager = (event) => {
       const ephemeral = event.target?.matches?.('#visual-asset-search');
@@ -2973,7 +3067,7 @@ export class Workshop {
         this.removePersonalSwell(id);
       } else if (action === 'save-draft') {
         window.rise?.audioEngine?.playHiss();
-        this.saveSequenceToVault();
+        void this.saveSequenceToVault();
       } else if (action === 'reset-workshop') {
         window.rise?.audioEngine?.playHiss();
         this.armOrResetSequence();
@@ -3076,16 +3170,9 @@ export class Workshop {
       this.showToast(`A sequence can contain up to ${MAX_CUSTOM_VISUALS} personal visuals`);
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      this.addSequenceVisualAsset(e.target.result, file.name);
-      this.updateVisualAssetsList();
-      this.updateCreateButton();
-    };
-    reader.onerror = () => {
-      console.error('[Workshop] Failed to read dropped image:', file.name);
-    };
-    reader.readAsDataURL(file);
+    this.addSequenceVisualAssetFromBlob(file, file.name);
+    this.updateVisualAssetsList();
+    this.updateCreateButton();
   }
 
   handleStudioKeydown(event) {
@@ -3178,6 +3265,12 @@ export class Workshop {
     if (selected?.asset.editor.preview.kind === 'sample') {
       void this.ensureCollectionPreview(selected);
     }
+    void MemoryCore.getWorkshopBlueprintsHydrated().then((views) => {
+      if (!this._active) return;
+      this.savedBlueprints = views;
+      this.updateSequencePicker?.();
+      this.refreshVisualLibraryAndInspector?.();
+    });
   }
 
   deactivate() {
@@ -3206,8 +3299,6 @@ export class Workshop {
     const file = event.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-
     // Check if the file is an image
     if (file.type.startsWith('image/')) {
         if (file.size > MAX_IMAGE_FILE_BYTES) {
@@ -3220,21 +3311,20 @@ export class Workshop {
             event.target.value = '';
             return;
         }
-        reader.onload = (e) => {
-            this.addSequenceVisualAsset(e.target.result, file.name);
-            this.updateVisualAssetsList();
-            this.updateCreateButton();
-            event.target.value = '';
-        };
-        reader.readAsDataURL(file);
+        this.addSequenceVisualAssetFromBlob(file, file.name);
+        this.updateVisualAssetsList();
+        this.updateCreateButton();
+        event.target.value = '';
         return;
     }
 
     if (file.size > MAX_TEXT_FILE_BYTES) {
-      this.showToast('Text files must be 4 MB or smaller');
+      this.showToast('Text files must be 2 MB or smaller');
       event.target.value = '';
       return;
     }
+
+    const reader = new FileReader();
 
     // Handle text parsing
     reader.onload = (e) => {
@@ -3331,7 +3421,9 @@ export class Workshop {
 
   updateVisualAssetsList() {
     this.markEditorDirty();
-    this.sessionData.customVisuals = this.sessionData.sequenceVisualAssets.map(item => item.uri);
+    this.sessionData.customVisuals = this.sessionData.sequenceVisualAssets
+      .map(item => item.uri)
+      .filter(Boolean);
     this.refreshVisualLibraryAndInspector();
     this.updateSequencePicker();
     this.updateVisualScoreEditor();
@@ -3347,7 +3439,17 @@ export class Workshop {
 
   }
 
-  persistSequenceToVault() {
+  revokeLocalMediaUrls() {
+    for (const url of this.localObjectUrls) {
+      try { URL.revokeObjectURL(url); } catch { /* ignore */ }
+    }
+    this.localObjectUrls.clear();
+    for (const asset of this.sessionData?.sequenceVisualAssets || []) {
+      if (asset?.id) WorkshopMedia.revokeObjectUrl(asset.id);
+    }
+  }
+
+  async persistSequenceToVault() {
     const payload = this.prepareSessionPayload(this.sessionData);
     delete payload.updatedAt;
     if (this.activeBlueprintId) {
@@ -3356,21 +3458,24 @@ export class Workshop {
       delete payload.id;
     }
 
-    const saved = MemoryCore.saveWorkshopBlueprint(payload);
+    const saved = await MemoryCore.saveWorkshopBlueprintAsync(payload, {
+      blobs: this.pendingMediaBlobs
+    });
     if (!saved?.id) return null;
-    this.savedBlueprints = MemoryCore.getWorkshopBlueprints();
+    this.pendingMediaBlobs.clear();
+    this.savedBlueprints = await MemoryCore.getWorkshopBlueprintsHydrated();
 
     const vault = window.rise?.router?.getViewInstance('vault');
     vault?.refreshBlueprints?.();
     return saved;
   }
 
-  saveSequenceToVault() {
+  async saveSequenceToVault() {
     let saved;
     try {
-      saved = this.persistSequenceToVault();
+      saved = await this.persistSequenceToVault();
     } catch (error) {
-      this.showToast(error.message || 'Could not compile this visual score');
+      this.showToast(error.message || 'Could not save this sequence');
       return null;
     }
     if (!saved) {
@@ -3386,12 +3491,12 @@ export class Workshop {
     return saved;
   }
 
-  createSession() {
+  async createSession() {
     this.audioPreview.stop();
     let saved;
     let session;
     try {
-      saved = this.persistSequenceToVault();
+      saved = await this.persistSequenceToVault();
       session = cloneSessionData(saved || this.prepareSessionPayload(this.sessionData));
     } catch (error) {
       this.showToast(error.message || 'Could not compile this visual score');
@@ -3499,6 +3604,8 @@ export class Workshop {
     }
     this.collectionPreviewAbortController.abort();
     this.audioPreview.destroy();
+    this.revokeLocalMediaUrls();
+    this.pendingMediaBlobs.clear();
     if (this.boundContainerClickHandler) {
       this.container.removeEventListener('click', this.boundContainerClickHandler);
       this.boundContainerClickHandler = null;

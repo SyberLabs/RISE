@@ -740,6 +740,10 @@ export class Vault {
     if (this.currentSection === 'custom') {
       this.updateContent();
     }
+    void MemoryCore.getWorkshopBlueprintsHydrated().then((views) => {
+      this.blueprints = views;
+      if (this.currentSection === 'custom') this.updateContent();
+    });
   }
 
   activate() {

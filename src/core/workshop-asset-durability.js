@@ -1,0 +1,321 @@
+/**
+ * Workshop asset durability helpers — migrate inline data URIs into IndexedDB
+ * and hydrate idb metadata into runtime URIs for Session / cortex / Workshop UI.
+ */
+
+import {
+  assetIdFromCollection,
+  createSequenceVisualAsset,
+  SEQUENCE_ASSET_STORAGE_IDB,
+  SEQUENCE_ASSET_STORAGE_INLINE,
+  sequenceAssetForPersistence,
+  sequenceAssetHasUri
+} from './visual-score-lane.js';
+import {
+  dataImageUriToBlob,
+  WorkshopMedia,
+  WorkshopMediaError
+} from './workshop-media.js';
+import {
+  audioAssignmentsFromProgram,
+  isWorkshopProject,
+  validateWorkshopProject,
+  visualAssignmentsFromProgram
+} from './workshop-project.js';
+
+/**
+ * Ensure every asset's bytes are in IndexedDB and return persistence-safe
+ * metadata (no transient blob:/data: URIs on idb assets).
+ *
+ * @param {string} projectId
+ * @param {object[]} assets
+ * @param {Map<string, Blob>|Record<string, Blob>|null} pendingBlobs
+ */
+export async function ensureWorkshopAssetsDurable(projectId, assets = [], pendingBlobs = null) {
+  const pending = pendingBlobs instanceof Map
+    ? pendingBlobs
+    : new Map(Object.entries(pendingBlobs || {}));
+  const durable = [];
+
+  for (const raw of assets) {
+    const asset = createSequenceVisualAsset(raw);
+    const pendingBlob = pending.get(asset.id);
+
+    if (pendingBlob) {
+      const meta = await WorkshopMedia.put({
+        id: asset.id,
+        projectId,
+        data: pendingBlob,
+        mimeType: pendingBlob.type || asset.mimeType
+      });
+      durable.push(sequenceAssetForPersistence(createSequenceVisualAsset({
+        id: asset.id,
+        name: asset.name,
+        color: asset.color,
+        provenance: asset.provenance,
+        storage: SEQUENCE_ASSET_STORAGE_IDB,
+        mimeType: meta.mimeType,
+        byteLength: meta.byteLength
+      })));
+      continue;
+    }
+
+    if (asset.storage === SEQUENCE_ASSET_STORAGE_INLINE && asset.uri?.startsWith('data:image/')) {
+      const blob = dataImageUriToBlob(asset.uri);
+      const meta = await WorkshopMedia.put({
+        id: asset.id,
+        projectId,
+        data: blob,
+        mimeType: blob.type
+      });
+      durable.push(sequenceAssetForPersistence(createSequenceVisualAsset({
+        id: asset.id,
+        name: asset.name,
+        color: asset.color,
+        provenance: asset.provenance,
+        storage: SEQUENCE_ASSET_STORAGE_IDB,
+        mimeType: meta.mimeType,
+        byteLength: meta.byteLength
+      })));
+      continue;
+    }
+
+    if (asset.storage === SEQUENCE_ASSET_STORAGE_IDB) {
+      // A MISSING BLOB MUST NOT MAKE A PROJECT UNSAVEABLE. This threw,
+      // which meant an author whose bytes had been evicted could not save
+      // ANY of their work — and eviction is not hypothetical: Safari
+      // discards IndexedDB after seven days without a visit. The record is
+      // kept so the reference stays honest and the editor can show it as
+      // wanting attention; hydration is where absence is handled.
+      if (!(await WorkshopMedia.has(asset.id).catch(() => false))) {
+        console.warn(`[WorkshopMedia] bytes missing for ${asset.id}; saving the reference`);
+      }
+      durable.push(sequenceAssetForPersistence(asset));
+      continue;
+    }
+
+    durable.push(sequenceAssetForPersistence(asset));
+  }
+
+  return durable;
+}
+
+/**
+ * Attach runtime URIs to durable assets. Inline data URIs pass through.
+ * Object URLs are owned by WorkshopMedia and revoked on project delete/clear.
+ *
+ * AN IMAGE THAT WILL NOT RESOLVE IS ABSENT, NEVER A BROKEN FRAME — and
+ * never, as this used to be, a reading that refuses to open. Hydration
+ * threw on the first unresolvable asset, so one evicted blob out of
+ * twenty-four cancelled the whole session. The law this codebase states
+ * in five places is the opposite one, and it is stated about exactly this
+ * situation: the work is missing, the reading proceeds without it.
+ *
+ * `missing` collects what could not be resolved so the caller can say so
+ * — degrading quietly is not the same as degrading silently.
+ *
+ * @param {object[]} assets
+ * @param {{ onMissing?: 'omit'|'keep', missing?: object[] }} [options]
+ *   `omit` (reading path) drops the asset; `keep` (editor path) returns the
+ *   metadata without a URI so an author still sees the entry that needs
+ *   attention rather than watching it vanish.
+ */
+export async function hydrateWorkshopAssets(assets = [], options = {}) {
+  const { onMissing = 'omit', missing = [] } = options;
+  const hydrated = [];
+  for (const raw of assets) {
+    const asset = createSequenceVisualAsset(raw);
+    if (sequenceAssetHasUri(asset)) {
+      hydrated.push(asset);
+      continue;
+    }
+    let uri = null;
+    if (asset.storage === SEQUENCE_ASSET_STORAGE_IDB) {
+      try {
+        uri = await WorkshopMedia.resolveObjectUrl(asset.id);
+      } catch (error) {
+        // Covers both a record that is gone and IndexedDB being
+        // unavailable outright. Neither is a reason to withhold text.
+        uri = null;
+        if (!(error instanceof WorkshopMediaError)) throw error;
+      }
+    }
+    if (uri) {
+      hydrated.push(createSequenceVisualAsset({ ...asset, uri }));
+      continue;
+    }
+    missing.push(asset);
+    if (onMissing === 'keep') hydrated.push(asset);
+  }
+  return hydrated;
+}
+
+/**
+ * Drop visual clips that name an asset which is no longer present.
+ *
+ * WITHOUT THIS, OMITTING THE ASSET ONLY MOVES THE FAILURE. compileSession
+ * runs validateSequenceAssetReferences, which refuses a program whose clip
+ * names an asset the session does not carry — so a hydration that quietly
+ * dropped the image would still fail the compile, later and with a worse
+ * message. The clip and the image go together or neither goes.
+ */
+export function pruneProgramAssetReferences(program, missingIds) {
+  const gone = missingIds instanceof Set ? missingIds : new Set(missingIds || []);
+  if (!gone.size || !program || !Array.isArray(program.tracks)) return program;
+
+  const namesMissingAsset = (clip) => (clip?.cue?.collections || [])
+    .some(collection => {
+      const assetId = assetIdFromCollection(collection);
+      return assetId !== null && gone.has(assetId);
+    });
+
+  let changed = false;
+  const tracks = program.tracks.map((track) => {
+    if (track.kind !== 'visual' || !Array.isArray(track.clips)) return track;
+    const clips = track.clips.filter(clip => !namesMissingAsset(clip));
+    if (clips.length === track.clips.length) return track;
+    changed = true;
+    return { ...track, clips };
+  });
+  // A visual track emptied of every clip is dropped rather than left as an
+  // authority over nothing — lowering an empty track would hand the runtime
+  // a lane with no fallback to choose.
+  const kept = tracks.filter(track => track.kind !== 'visual'
+    || !Array.isArray(track.clips)
+    || track.clips.length > 0);
+  if (kept.length !== tracks.length) changed = true;
+  return changed ? { ...program, tracks: kept } : program;
+}
+
+/**
+ * Build a session/blueprint view that carries hydrated URIs without writing
+ * those URIs back through the persistence normalizer.
+ */
+export function workshopHydratedProjectToView(project) {
+  const formal = isWorkshopProject(project)
+    ? project
+    : validateWorkshopProject(project);
+  const assets = (formal.assets || []).map(createSequenceVisualAsset);
+  const reading = formal.defaults.reading;
+  const audio = formal.defaults.audio;
+  const visualConfig = {
+    ...(formal.defaults.visual.config || {}),
+    visualMode: formal.defaults.visual.surface === 'focal'
+      ? 'focals'
+      : formal.defaults.visual.surface === 'scored'
+        ? 'interlocution'
+        : formal.defaults.visual.surface
+  };
+
+  return {
+    id: formal.id,
+    title: formal.title,
+    intent: formal.intent,
+    sources: formal.sources,
+    wpm: reading.wpm,
+    curve: reading.curve,
+    chunkMode: reading.chunkMode,
+    displayMode: reading.displayMode,
+    visualConfig,
+    soundscape: audio.soundscape,
+    audioPreset: audio.audioPreset,
+    selectedSwellId: audio.selectedSwellId,
+    projection: formal.defaults.projection,
+    recitation: formal.defaults.recitation,
+    voiceId: formal.defaults.voiceId,
+    customVisuals: assets
+      .map(asset => asset.uri)
+      .filter(uri => typeof uri === 'string'
+        && (uri.startsWith('data:image/') || uri.startsWith('blob:'))),
+    sequenceVisualAssets: assets,
+    visualScoreAssignments: visualAssignmentsFromProgram(formal.experienceProgram),
+    audioScoreAssignments: audioAssignmentsFromProgram(formal.experienceProgram),
+    experienceProgram: formal.experienceProgram,
+    experienceProgramId: formal.experienceProgram?.id || `workshop-${formal.id}`,
+    provenance: formal.provenance,
+    paceV2: true,
+    updatedAt: formal.updatedAt,
+    schema: formal.schema,
+    defaults: formal.defaults,
+    assets,
+    project: {
+      ...formal,
+      assets
+    }
+  };
+}
+
+export async function hydrateWorkshopProjectView(project) {
+  const formal = isWorkshopProject(project)
+    ? validateWorkshopProject(project)
+    : project;
+  // KEEP, NOT OMIT — this is the authoring view. An author whose image
+  // went missing needs to see the entry that needs attention; silently
+  // shortening their asset list would present the loss as a tidy project.
+  const assets = await hydrateWorkshopAssets(formal.assets || [], { onMissing: 'keep' });
+  return workshopHydratedProjectToView({
+    ...formal,
+    assets
+  });
+}
+
+/**
+ * Hydrate a flat editor/session payload's sequenceVisualAssets in place.
+ *
+ * Returns the payload, and — on the same object — `missingSequenceAssets`,
+ * the assets that could not be resolved. The reading is never withheld for
+ * them; the caller is expected to tell the reader they are not there.
+ */
+export async function hydrateSessionSequenceAssets(sessionData) {
+  if (!sessionData || typeof sessionData !== 'object') return sessionData;
+  const assets = Array.isArray(sessionData.sequenceVisualAssets)
+    ? sessionData.sequenceVisualAssets
+    : [];
+  if (!assets.length) return sessionData;
+
+  const missing = [];
+  const hydrated = await hydrateWorkshopAssets(assets, { onMissing: 'omit', missing });
+  const missingIds = new Set(missing.map(asset => asset.id));
+
+  const next = {
+    ...sessionData,
+    sequenceVisualAssets: hydrated,
+    customVisuals: hydrated
+      .map(asset => asset.uri)
+      .filter(uri => typeof uri === 'string'
+        && (uri.startsWith('data:image/') || uri.startsWith('blob:')))
+  };
+
+  if (missingIds.size) {
+    // The clips that named them go with them — see
+    // pruneProgramAssetReferences. Both the canonical program and the
+    // editor's assignment list, because either one left dangling would
+    // refuse the compile.
+    if (next.experienceProgram) {
+      next.experienceProgram = pruneProgramAssetReferences(next.experienceProgram, missingIds);
+    }
+    if (Array.isArray(next.visualScoreAssignments)) {
+      next.visualScoreAssignments = next.visualScoreAssignments
+        .filter(assignment => !missingIds.has(assignment?.assetId));
+    }
+    next.missingSequenceAssets = missing;
+  }
+  return next;
+}
+
+export async function migrateAndHydrateWorkshopProject(project) {
+  const formal = validateWorkshopProject(
+    isWorkshopProject(project) ? project : project
+  );
+  const durableAssets = await ensureWorkshopAssetsDurable(
+    formal.id,
+    formal.assets,
+    null
+  );
+  const migrated = validateWorkshopProject({
+    ...formal,
+    assets: durableAssets
+  });
+  const view = await hydrateWorkshopProjectView(migrated);
+  return { project: migrated, view };
+}
