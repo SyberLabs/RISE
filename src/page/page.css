@@ -1,12 +1,5 @@
-/* ═══════════════════════════════════════════════════════════
-   Page Mode — the Illuminated Reader (PAGE-MODE-SPEC §3.3)
-
-   A SPATIAL projection: the whole reading present at once, typeset in
-   one column the reader moves through at their own pace. Nothing here
-   flashes, times out, or animates on a clock — the calm opposite of the
-   Stream. The aesthetic is the room's own: dim ground, literary serif,
-   imagery that arrives quietly and never breaks the measure.
-   ═══════════════════════════════════════════════════════════ */
+/* Page Mode — illuminated reader (PAGE-MODE-SPEC §3.3).
+   Spatial column: no flash clock; dim ground, literary serif. */
 
 .page-reader {
   --page-measure: 34rem;          /* ~62-70 characters: the readable line */
@@ -14,17 +7,11 @@
   --page-ink-strong: var(--color-light);
   --page-ink-quiet: var(--color-mist);
 
-  /* The reader owns a real scrollable window. Its host may live inside a
-     min-height:100vh column that grows with content, so `height:100%`
-     alone would make the element as tall as its own text and it could
-     never scroll (scrollHeight === clientHeight). Bounding it to the
-     viewport guarantees the overflow the reader scrolls through. */
+  /* Host may grow with content; bound to viewport so overflow can scroll.
+     Prefer dvh: vh on iOS is chrome-hidden height. */
   position: relative;
   width: 100%;
   height: 100%;
-  /* Bounded to the viewport as it actually stands: `vh` on iOS is the
-     chrome-hidden height, which would put the end of the scroll window
-     underneath the toolbar. */
   max-height: 100vh;
   max-height: 100dvh;
   overflow-y: auto;
@@ -46,9 +33,7 @@
 
 .page-article {
   max-width: var(--page-measure);
-  /* Optically centred: the hanging verse marks sit OUTSIDE the measure on
-     the left, so a mathematically centred column reads pushed left. Nudge
-     the block right by half the marginal gutter to restore balance. */
+  /* Optical nudge for hanging verse marks outside the measure. */
   margin: 0 auto 0 calc(50% - var(--page-measure) / 2 + 1.4rem);
   padding: clamp(2rem, 6vh, 3.5rem) var(--space-lg) clamp(6rem, 22vh, 12rem);
   color: var(--page-ink);
@@ -64,10 +49,7 @@
   margin-bottom: clamp(2.5rem, 6vh, 4rem);
   text-align: center;
 }
-/* ─── The held focal ───
-   Shown once above the title: the thing this reading rests on. It is
-   STATED, not animated — a spatial projection has no clock, so the
-   breath does not pulse and the eye does not drift. */
+/* Focal: stated once above the title (spatial projection has no clock). */
 .page-focal {
   display: flex;
   align-items: center;
@@ -140,10 +122,7 @@
   user-select: none;
 }
 
-/* ─── Authored symbols ───
-   A glyph or sigil the reading itself supplied (a symbol atom). It is
-   content, not decoration: the Stream would have played it, so the Page
-   carries it rather than dropping it. It stands alone, centred, quiet. */
+/* Authored symbol atoms: content, not decoration; Stream would play them. */
 .page-symbol {
   margin: clamp(1.2rem, 3vh, 2rem) 0;
   text-align: center;
@@ -218,43 +197,21 @@
     0 12px 32px rgba(0, 0, 0, 0.32);
 }
 
-/* ADAPTIVE SIZING for full plates.
-   A plate bounded only by WIDTH lets a tall portrait (a Dürer woodcut,
-   an altarpiece) run past the bottom of the window — the reader meets a
-   slice of the work instead of the composition. A plate is therefore
-   bounded in BOTH dimensions: it takes the width its band allows, but
-   never more height than the viewport can hold, and shrinks its own
-   width to keep the whole work in view. `object-fit: contain` means the
-   image is never cropped to achieve this — the composition is complete
-   or it is not shown. */
+/* Full plates bound by width and height; object-fit:contain, never crop. */
 .page-figure.placement-bleed .page-figure-image,
 .page-figure.placement-inset .page-figure-image {
   --plate-height: calc(100vh - var(--plate-headroom, 12rem));
   width: auto;
   max-width: 100%;
-  /* The floor keeps a plate from collapsing to a stamp on a shallow
-     window, but it can never itself exceed the window — otherwise the
-     minimum reintroduces the very overflow this rule exists to prevent.
-     Bounded by the viewport, always. */
+  /* Floor cannot exceed the viewport (would reintroduce overflow). */
   max-height: min(90vh, max(18rem, var(--plate-height)));
   margin-inline: auto;
   object-fit: contain;
 }
 
-/* Placement: the compositor's decision, rendered.
-   BLEED — the episode's plate, edge to edge beyond the measure. */
+/* Bleed: widen about the measure; anchor to article, not 50vw offset. */
 .page-figure.placement-bleed {
-  /* Break out of the measure and centre on the VIEWPORT.
-     `margin-left:50%; translateX(-50%)` centred on the ARTICLE instead —
-     and since the article is optically nudged right (for the hanging
-     verse marks), a wide plate overflowed the window by that offset.
-     Anchoring to 50vw removes the dependency on the parent's position,
-     and the width can never exceed the viewport minus its gutters. */
   --bleed-gutter: clamp(var(--space-md), 4vw, 4rem);
-  /* Anchored to the ARTICLE's own box (relative positioning), so the
-     plate widens symmetrically about the measure without ever needing to
-     know where the article sits in the window. Bounded so the total width
-     can never exceed the viewport minus its gutters. */
   position: relative;
   width: auto;
   margin-left: calc(-1 * var(--bleed-reach));
@@ -267,10 +224,7 @@
 }
 /* INSET — a figure that keeps the measure. */
 .page-figure.placement-inset { width: 100%; }
-/* MARGIN — a WRAPPED figure: prose flows down its side.
-   The group is the containing block, so the float can only affect the
-   paragraphs the compositor gave it, and `overflow` is NOT used (that
-   would suppress the wrap entirely). The clear element closes the band. */
+/* MARGIN wrap: group is containing block; do not use overflow (kills float). */
 .page-wrap {
   /* establishes the wrap band without creating a BFC on the paragraphs */
   display: block;
@@ -278,20 +232,12 @@
 .page-wrap-clear { clear: both; }
 
 .page-figure.placement-margin {
-  /* Sized as a FRACTION OF THE MEASURE and margin-collapsed inward, so it
-     can never push past the column edge (the overflow the reader caught).
-     Roughly a third of the line leaves a genuine, readable remainder. */
+  /* Fraction of measure so the float never overflows the column. */
   width: 38%;
   max-width: 13rem;
   margin: 0.35em 0 0.9em;
 }
-/* A wrapped figure must be SHORT ENOUGH that its assigned prose covers
-   it — otherwise the float outlives the text and leaves a ragged hole
-   below. It is bounded in height, but NEVER cropped to achieve that:
-   `contain` makes a tall work give up width instead, exactly as a full
-   plate does. Cropping here would contradict the rule the rest of this
-   sheet keeps — the composition arrives complete or it does not arrive —
-   and would silently cut sacred works. */
+/* Bound height so wrap prose covers the float; contain, never crop. */
 .page-wrap .page-figure.placement-margin .page-figure-image {
   max-height: 15rem;
   width: auto;
@@ -339,19 +285,8 @@
 
 /* ─── Responsive: the verse marks come inside on narrow screens ─── */
 @media (max-width: 640px) {
-  /* ── AN OPTICAL NUDGE THAT BECAME A NEGATIVE MARGIN ──
-     The measure is centred by hand rather than by `auto`, because the
-     hanging verse marks sit outside it on the left and a
-     mathematically centred column reads pushed left. That nudge is
-     written as `calc(50% - var(--page-measure) / 2 + 1.4rem)`, which
-     is a sound correction while the viewport is wider than the
-     measure and an act of vandalism as soon as it is not: at 390px it
-     computes to MINUS 55px, and the reader clips its own overflow, so
-     the first 39px of every line — the title, the source, the opening
-     of every paragraph — was simply cut off the left edge of the
-     screen and could not be scrolled to.
-     A phone has no margin to hang anything in. The measure is the
-     screen, the gutters are padding, and centring is `auto` again. */
+  /* Narrow: optical nudge becomes a negative margin and clips the column.
+     Phone has no hanging gutter — centre with auto. */
   .page-article {
     max-width: none;
     margin-left: auto;
@@ -398,27 +333,15 @@
   .page-figure.is-pending, .page-figure.is-absent { display: none; }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   Paged furniture (PAGE-MODE-SPEC §9 — an alternate renderer over
-   the same Composition)
-   ═══════════════════════════════════════════════════════════ */
+/* Paged furniture (PAGE-MODE-SPEC §9). */
 
-/* THE COLUMN SITS LOWER. A bounded page in a tall frame started its
-   text hard against the top with the remainder empty beneath, which
-   reads as a page that ran out rather than a page that was composed.
-   It begins nearer the middle now, and the foot is reserved for the
-   fixed furniture below. */
+/* Bounded pages start lower so text is not hard against the top. */
 .page-reader.is-paginated .page-article {
   padding-top: clamp(3.5rem, 13vh, 8rem);
   padding-bottom: clamp(7rem, 18vh, 10rem);
 }
 
-/* ── The running head ──
-   Once past the opening, nothing on screen named the reading. Small,
-   quiet, and fixed to the top of the frame rather than scrolling with
-   the column — it is furniture, not content, which is also why it is
-   aria-hidden: the article is titled already and a screen reader
-   should not meet the name twice per page. */
+/* Running head: fixed furniture after opening; aria-hidden (article titled). */
 .page-runner {
   position: fixed;
   top: 0;
@@ -446,13 +369,7 @@
   text-overflow: ellipsis;
 }
 
-/* ── The pager ──
-   FIXED, NOT IN FLOW. The first cut put it at the end of the article
-   so it could not collide with the Chamber's own control pill, which
-   meant its position moved with the length of the text — a control
-   that is somewhere different on every page is a control the reader
-   has to look for. It is pinned now, and it clears the pill by
-   sitting above it rather than beside it. */
+/* Pager: fixed above Chamber pill so controls do not wander with text length. */
 .page-pager {
   position: fixed;
   left: 50%;
@@ -520,16 +437,7 @@
   .page-pager-count { font-size: 9.5px; }
 }
 
-/* AN INLINE HEADING EARNS ITS AIR.
-   Many public-domain editions carry structure as ordinary paragraphs —
-   Vitruvius has "CHAPTER I" and "THE EDUCATION OF THE ARCHITECT" as
-   plain text — so the flow has no chapter mark to raise and they
-   arrived crammed between two paragraphs. The compositor recognises
-   them; this is what recognition buys. */
-/* CENTRED, because a heading in a book is a symmetrical object. The
-   raised chapter mark has always been centred here; an inline heading
-   is the same object arriving through a different door, and setting
-   one flush-left beside the other reads as two systems in one page. */
+/* Inline headings: centred air matching raised chapter marks. */
 .page-text.is-heading {
   margin-top: 2.4em;
   margin-bottom: 1.1em;

@@ -17,16 +17,10 @@
  *
  *     harvest  →  contact-sheet review  →  pin  →  probe
  *
- * RIGHTS ARE READ, NEVER ASSUMED — and read with the SAME vocabulary the
- * presenter uses. `licenceClassOf` and `artworkMayBeShown` are imported
- * from the label boundary rather than reimplemented here, because a
- * harvester that decides rights differently from the surface that shows
- * them is this codebase's oldest failure wearing a new hat: it would
- * admit works the Chamber then refuses, or worse, the reverse.
- *
- * Every candidate is therefore run through the exact check a figure
- * faces at render time, and one that cannot be credited is dropped here
- * rather than discovered later.
+ * Rights are read with the same `licenceClassOf` / `artworkMayBeShown`
+ * vocabulary the presenter uses (imported from artwork-label), so the
+ * harvester cannot admit what Chamber refuses or refuse what Chamber shows.
+ * Uncreditables are dropped here.
  */
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -370,20 +364,13 @@ async function nasa({ query, rows }) {
     const out = [];
     for (const item of body.collection?.items || []) {
         const d = item.data?.[0] || {};
-        // THE IMAGES WERE IN THE SEARCH RESPONSE ALL ALONG. `item.links`
-        // carries ~thumb/~small/~medium/~orig jpgs, so the asset-manifest
-        // second hop this used to record was never needed.
+        // Prefer jpgs from `item.links` (~thumb/~small/~medium/~orig);
+        // no second hop to the asset manifest.
         const link = (suffix) => (item.links || [])
             .map(l => String(l.href || ''))
             .find(href => href.includes(suffix)) || '';
         const prose = [d.description, d.description_508, d.title].filter(Boolean).join(' ');
-        // 27 of 100 items carry no secondary_creator (§2z), so the credit
-        // falls back through what NASA's policy actually asks for — and
-        // then makes sure it actually says it. 33 of 60 records credited
-        // only a centre acronym, "GSFC" or "MSFC", which acknowledges
-        // nobody by that name; the obligation NASA states is that "NASA
-        // should be acknowledged as the source of the material", so the
-        // institution is named even when the record only names the lab.
+        // Credit must name NASA even when the record only names a centre.
         const source = d.secondary_creator || d.photographer || d.center || '';
         const credit = /\bNASA\b/i.test(source) ? source : (source ? `NASA/${source}` : 'NASA');
         out.push({

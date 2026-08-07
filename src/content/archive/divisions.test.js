@@ -132,12 +132,7 @@ describe('splitting an oversized division', () => {
     });
 
     describe('structure outranks balance', () => {
-        // THE VITRUVIUS FAULT, and it is not a Page fault: "Book I (1/3)"
-        // ended with "CHAPTER II", its subtitle and the first paragraph
-        // of chapter two — a reading that finishes by starting something
-        // else — while "(2/3)" opened mid-chapter at "2. Order gives due
-        // measure". No pagination rule can repair that, because the
-        // reading's own extent is wrong.
+        // A part must not end by starting the next chapter.
         const chapter = (n, title, paragraphs, w = 500) => [
             `CHAPTER ${n}`, title,
             ...Array.from({ length: paragraphs }, (_, i) =>

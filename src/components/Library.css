@@ -828,10 +828,7 @@
     font-size: 21px;
   }
 
-  /* ORIENTATION COPY IS FOR SOMEONE DECIDING AT LEISURE. This panel
-     says what the section heading directly beneath it already says.
-     On a wide screen it is a courtesy in the margin; on a phone it is
-     the reason the shelf starts below the fold. */
+  /* Intro repeats the section heading; hide on phone so the shelf starts on-screen. */
   .library-intro-panel {
     display: none;
   }

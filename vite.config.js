@@ -81,48 +81,10 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.js'],
 
-    // ═══════════════════════════════════════════════════════════════
-    // WHY THE POOL IS BOUNDED
-    // ═══════════════════════════════════════════════════════════════
-    //
-    // At its default width this suite does not fail — it DIES. A
-    // worker process disappears and tinypool's next message to it
-    // raises `ERR_IPC_CHANNEL_CLOSED`, which vitest reports as an
-    // unhandled rejection and exits non-zero on. Every test that had
-    // run up to that point passed. An exit code that says "red" while
-    // the tests say "green" is worse than either, because it trains
-    // you to stop reading it.
-    //
-    // Measured on this machine (16 cores, ~6GB free):
-    //
-    //   default (~15)   dies
-    //   maxWorkers 6    dies at ~28s
-    //   maxWorkers 4    green 3/3 at 109 files... and DIED at 112,
-    //                   about forty seconds in, after two files were
-    //                   added by the pagination work
-    //   maxWorkers 3    green 2/2, 103s
-    //   maxWorkers 2    green 2/2, 132s
-    //   fileParallelism:false   green, 251s
-    //
-    // A CORRECTION I OWE THE NEXT READER. I first called this memory
-    // exhaustion, then talked myself out of it because the suite died
-    // 28 seconds in and that felt too early for a gradual leak. The
-    // evidence came back around: four workers each load jsdom, the
-    // visual engines and — in four separate test files — the entire
-    // 107-text Library. That is not a gradual leak, it is a spike, and
-    // it arrives exactly as fast as the heavy files are scheduled. The
-    // first instinct was right and the second-guessing was the error.
-    //
-    // 2 is chosen over the faster 3 deliberately. 4 was green three
-    // times for three and then broke on the very next commit that added
-    // files, which is what a ceiling one step below a cliff does. The
-    // suite will keep growing; 29 seconds is not worth being wrong
-    // about again in a week.
-    //
-    // THE REAL FIX IS FOOTPRINT, NOT COUNT. Four test files pull in the
-    // whole Library. If those grow a shared fixture, or the pool learns
-    // to schedule them apart, this ceiling can rise or go. Raising it
-    // without doing that is just moving back toward the cliff.
+    // Wider pools OOM / drop IPC when several workers each load jsdom,
+    // visual engines, and the full Library fixtures. Keep maxWorkers
+    // at 2 until those fixtures share a lighter setup; raising it alone
+    // just moves the crash later.
     pool: 'forks',
     maxWorkers: 2,
     minWorkers: 1,

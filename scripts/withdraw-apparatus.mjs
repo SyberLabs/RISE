@@ -4,29 +4,18 @@
  *   node scripts/withdraw-apparatus.mjs              # report
  *   node scripts/withdraw-apparatus.mjs --apply
  *
- * ARCHIVE-CLEANSING-SPEC, Phase 10. Two divisions turned up BY ACCIDENT
- * while sampling for the phrase-floor study: the Ramayan serving a title
- * page, `a-hundred-verses-from-old-japan` serving an INDEX. Nothing was
- * looking for them. This is what looking finds.
+ * ARCHIVE-CLEANSING-SPEC, Phase 10. Two defects, opposite acts:
  *
- * TWO DEFECTS, AND THEY WANT OPPOSITE ACTS.
+ *   A. The division is apparatus — index, glossary, contents page.
+ *      Withdrawn whole; none of it was a reading.
  *
- *   A. The division IS apparatus — an index, a glossary, a contents
- *      page. It is WITHDRAWN whole, because none of it was a reading.
+ *   B. An imprint sits at the head of a genuine division. Only the
+ *      preamble is trimmed; withdrawing would delete the book.
  *
- *   B. An imprint sits at the HEAD of a genuine division — "printed by",
- *      "Trübner & Co." above 177,675 words of Burton. Only the preamble
- *      is TRIMMED. Withdrawing these would delete the book.
- *
- * Conflating them is how a report of "104 divisions, 1,886,819 words"
- * gets written about work that is really 84 small removals and 20 small
- * trims. The counts are kept apart everywhere below.
- *
- * THE EVIDENCE IS CHECKED BEFORE THE CUT. Class A needs a name that
- * announces apparatus OR a body that is mostly index-shaped lines; class
- * B needs an imprint AND a body that is overwhelmingly not one, so a
- * genuine reading is never mistaken for its own title page. Anything
- * that fails its test is reported and left alone.
+ * Counts are kept apart everywhere below. Evidence is checked before the
+ * cut: class A needs a name that announces apparatus or a body mostly
+ * index-shaped; class B needs an imprint and a body that is overwhelmingly
+ * not one. Anything that fails its test is reported and left alone.
  */
 import { readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -35,57 +24,39 @@ import { rewriteSections } from '../src/content/archive/payload-writer.js';
 const DIR = fileURLToPath(new URL('../src/content/archive/works/', import.meta.url));
 const APPLY = process.argv.includes('--apply');
 
-/** A division whose NAME announces it is apparatus. */
+/** A division whose name announces it is apparatus. */
 const APPARATUS_NAME = /^(index|contents?|table of contents|errata|colophon|bibliograph|glossar|appendix|footnotes?|list of (illustrations|plates)|advertisement|transcriber)/i;
 
-/** "If I had made thy proffered arm,  67." — an index entry's shape. */
+/** Index-entry shape: short line ending in a page number. */
 const INDEX_LINE = /^.{4,60},\s*\d{1,4}\.?\s*$/;
 
 /**
- * A printer's imprint — SET PHRASES ONLY.
+ * A printer's imprint — set phrases only.
  *
- * The first version also matched publisher NAMES (Trübner, Longmans,
- * Macmillan), and a publisher's name appears in two places: on a title
- * page and inside a citation. It matched Burton's endnote — *"The Arabian
- * Nights' Entertainments (London: Longmans, 1811) by Jonathan Scott"* —
- * and would have trimmed 42 words of real annotation off 3,350 words of
- * scholarship. A name is evidence of a publisher; only a set phrase is
- * evidence of an imprint.
+ * Publisher names appear in citations as well as on title pages; only a
+ * set phrase is evidence of an imprint.
  */
 const IMPRINT = /\b(printed (by|for)\b|published by\b|all rights reserved\b|for private subscribers)/i;
 
 const words = (s) => s.split(/\s+/u).filter(Boolean).length;
 
 /**
- * An imprint IN IMPRINT POSITION, not merely the words somewhere.
+ * An imprint in imprint position, not merely the words somewhere.
  *
- * `the-no-plays-of-japan §CHAPTER VI` is a genuine editorial note on two
- * Nō plays, and it matched on *"though printed by both Ōwada and Haga,
- * has probably not been staged for many centuries"*. The phrase is
- * ordinary prose there. What distinguishes a colophon is not its words
- * but its TYPESETTING: it is set short and alone, while prose wraps to
- * the measure. So the line carrying the phrase must be a colophon line.
+ * What distinguishes a colophon is typesetting: short and alone, while
+ * prose wraps to the measure. The line carrying the phrase must be a
+ * colophon line.
  *
- * THE THRESHOLD IS MEASURED, AND ITS TWO BOUNDARY CASES ARE NAMED so a
- * later reader can judge it rather than trust it. It is not a principle;
- * it is the widest colophon seen against the narrowest prose line seen.
- *
- *   "PRINTED BY THE BURTON CLUB FOR PRIVATE SUBSCRIBERS ONLY"  55 — colophon
- *   "_Tanikō_ is still played; but _Ikeniye_, though printed…"  69 — prose
- *
- * At 45 the first was rejected and nine of Burton's ten title pages
- * vanished — a false negative produced by the fix for a false positive,
- * which is the ordinary way a filter goes wrong. Anything landing
- * between 56 and 68 deserves an eye rather than a verdict.
+ * Threshold is measured (widest colophon vs narrowest prose line seen):
+ *   ~55 chars — colophon
+ *   ~69 chars — prose
+ * Anything between 56 and 68 deserves an eye rather than a verdict.
  */
 const COLOPHON_LINE = 60;
 
 function imprintAt(text, limit = Infinity) {
-    // EVERY match within the limit, not just the first. Testing only the
-    // first let a later prose "printed by" mask a real colophon above it,
-    // and nine of Burton's ten title pages vanished from the report
-    // because of it — a false NEGATIVE produced by the fix for a false
-    // positive, which is the ordinary way a filter goes wrong.
+    // Every match within the limit, not just the first — a later prose
+    // hit must not mask a real colophon above it.
     const scan = new RegExp(IMPRINT.source, 'gi');
     for (const match of text.matchAll(scan)) {
         if (match.index > limit) break;
@@ -103,10 +74,9 @@ const TITLE_PAGE_WORDS = 250;
 /**
  * Class A — is this division apparatus entire?
  *
- * A NAME ALONE IS NOT ENOUGH FOR A LONG DIVISION. "Appendix" can head a
- * real essay; a 40,000-word appendix is a reading someone may want. The
- * name is trusted only while the division is small, and a large one must
- * prove itself by shape.
+ * A name alone is not enough for a long division: "Appendix" can head a
+ * real essay. Trust the name only while the division is small; a large
+ * one must prove itself by shape.
  */
 function isApparatus(name, text) {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
@@ -116,12 +86,9 @@ function isApparatus(name, text) {
     if (APPARATUS_NAME.test(name.trim()) && words(text) <= 4000) {
         return { yes: true, why: `name "${name.trim()}", ${words(text)}w` };
     }
-    // A SMALL DIVISION THAT IS ENTIRELY A TITLE PAGE. `faust §VOL. I.` is
-    // 72 words — an epigraph, "BOSTON AND NEW YORK", Houghton Mifflin, two
-    // copyright lines, ALL RIGHTS RESERVED, "Contents." Its NAME announces
-    // nothing, so the name test misses it, and it is too small for the
-    // preamble trim to leave a reading behind. It is not a reading with
-    // furniture on top; it is furniture.
+    // Small division that is entirely a title page (imprint + short body,
+    // name announces nothing). Furniture entire, not a reading with
+    // furniture on top.
     const colophon = imprintAt(text);
     if (colophon && words(text) <= TITLE_PAGE_WORDS) {
         return { yes: true, why: `title page entire, ${words(text)}w ("${colophon.line}")` };
@@ -140,9 +107,8 @@ function isApparatus(name, text) {
 const PREAMBLE_LIMIT = 900;
 
 function imprintPreamble(text) {
-    // The SAME colophon-position test class A uses. Testing only for the
-    // phrase here would trim Burton's endnote on a citation, and the two
-    // paths must not disagree about what an imprint is.
+    // Same colophon-position test as class A — the two paths must agree
+    // on what an imprint is.
     const match = imprintAt(text, PREAMBLE_LIMIT);
     if (!match) return null;
     // End of the paragraph the imprint sits in.
@@ -158,16 +124,8 @@ function imprintPreamble(text) {
 /**
  * A CONTENTS block — a `CONTENTS` heading over a run of short entries.
  *
- * This is REPORTED, NEVER CUT, and the reason is a pair of divisions with
- * the same name and opposite natures. `the-ramayan-of-valmiki §Front
- * matter` is a title page above "CONTENTS / Invocation. / Book I. / Canto
- * I. Nárad." — apparatus entire. `crime-and-punishment §Front matter` is
- * a critical introduction: "Dostoevsky was the son of a doctor. His
- * parents were very hard-working and deeply religious people…" — a
- * reading somebody may want.
- *
- * A name that means opposite things in two works is not evidence, so this
- * hands the pair to a human instead of guessing at 799 words.
+ * Reported, never cut: the same division name can hold apparatus in one
+ * work and a critical introduction in another. Hand the pair to a human.
  */
 function contentsBlock(text) {
     const at = text.search(/^\s*CONTENTS\s*$/mi);

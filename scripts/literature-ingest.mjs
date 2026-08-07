@@ -603,25 +603,15 @@ function compactSections(sections) {
 function sectionsForArtifact(artifact, volumeIndex, volumeCount, vocabulary = []) {
     const lines = unwrapArtifact(artifact.text);
 
-    // THE WORK'S OWN WORD, WHERE IT EARNS IT. Searching for one or two
-    // declared nouns instead of sixteen rejects most accidental matches
-    // — the Faerie Queene drops from 268 heading-shaped lines to 106
-    // real cantos — but a declaration is prose written for a human and
-    // is sometimes simply not the word the translator used. So both
-    // vocabularies are tried and the one that produces the better
-    // ASCENDING RUN wins; the loser is discarded rather than merged.
+    // Prefer the work's declared division words when they score a better
+    // ascending run than the global heading pattern; otherwise use global.
     const global = headingHits(lines, GLOBAL_HEADING);
     const declared = vocabulary.length
         ? headingHits(lines, headingPattern(vocabulary.map(w => w.toUpperCase())))
         : [];
     let hits = schemeScore(lines, declared) > schemeScore(lines, global) ? declared : global;
 
-    // A WORK MAY NAME ITS DIVISIONS INSTEAD OF NUMBERING THEM. Junger
-    // titles his chapters for the places they happened and numbers none,
-    // so every rule above finds nothing and the memoir arrives as
-    // readings of even length — our measurement of a book that had told
-    // us its own structure. Tried only where the numbered rules failed,
-    // and it must still verify before it is believed.
+    // Untitled numbered schemes failed: try titled (unnumbered) divisions.
     if (schemeScore(lines, hits) < 2) {
         const titled = titledSchemeIn(lines);
         if (titled.length) hits = titled.map(t => t.index);
@@ -632,14 +622,8 @@ function sectionsForArtifact(artifact, volumeIndex, volumeCount, vocabulary = []
     const sections = boundaries.map((from, i) => {
         const to = boundaries[i + 1] ?? lines.length;
         const heading = hits.includes(from) ? lines[from].trim() : 'Front matter';
-        // THE HEADING STAYS IN THE TEXT.
-        //
-        // It used to be dropped (`from + 1`), which left the section
-        // NAME as the only witness to where a division began — and that
-        // name is wrong a quarter of the time. Keeping the line makes
-        // the payload self-describing: a reader sees the chapter it
-        // announces, and anything deriving divisions can read the text
-        // instead of trusting a label.
+        // Keep the heading line in the section body so the payload is
+        // self-describing; do not rely on the section name alone.
         const contentFrom = from;
         return {
             name: volume ? `${volume} — ${heading}` : heading,

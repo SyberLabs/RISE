@@ -15,13 +15,9 @@
  *               archive rather than a list.
  *   provenance  translator, edition, year, and the public-domain basis
  *
- * PROVENANCE IS NOT DECORATION. Every text records why we may hold it,
- * exactly as pinned imagery records its accession. A translation carries
- * its own copyright — Marcus Aurelius is public domain; a 2003
- * translation of him is not — so the basis always describes the EDITION.
- * A work with no entry here is unshelved and unexplained, which a test
- * asserts against: silent absence is the failure this codebase is most
- * prone to.
+ * Provenance is required, not decoration. Translations carry their own
+ * copyright (e.g. Marcus Aurelius PD vs a modern translation). A work
+ * with no entry is unshelved; a test asserts against silent absence.
  */
 
 import { PD_BASIS, RESONANCE_FUNCTIONS as R } from './library-constants.js';

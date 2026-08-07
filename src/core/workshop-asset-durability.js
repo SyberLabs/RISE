@@ -81,12 +81,8 @@ export async function ensureWorkshopAssetsDurable(projectId, assets = [], pendin
     }
 
     if (asset.storage === SEQUENCE_ASSET_STORAGE_IDB) {
-      // A MISSING BLOB MUST NOT MAKE A PROJECT UNSAVEABLE. This threw,
-      // which meant an author whose bytes had been evicted could not save
-      // ANY of their work — and eviction is not hypothetical: Safari
-      // discards IndexedDB after seven days without a visit. The record is
-      // kept so the reference stays honest and the editor can show it as
-      // wanting attention; hydration is where absence is handled.
+      // Missing blob must not block save — keep the reference so the
+      // editor can flag it; hydration handles absence.
       if (!(await WorkshopMedia.has(asset.id).catch(() => false))) {
         console.warn(`[WorkshopMedia] bytes missing for ${asset.id}; saving the reference`);
       }
@@ -104,21 +100,14 @@ export async function ensureWorkshopAssetsDurable(projectId, assets = [], pendin
  * Attach runtime URIs to durable assets. Inline data URIs pass through.
  * Object URLs are owned by WorkshopMedia and revoked on project delete/clear.
  *
- * AN IMAGE THAT WILL NOT RESOLVE IS ABSENT, NEVER A BROKEN FRAME — and
- * never, as this used to be, a reading that refuses to open. Hydration
- * threw on the first unresolvable asset, so one evicted blob out of
- * twenty-four cancelled the whole session. The law this codebase states
- * in five places is the opposite one, and it is stated about exactly this
- * situation: the work is missing, the reading proceeds without it.
- *
- * `missing` collects what could not be resolved so the caller can say so
- * — degrading quietly is not the same as degrading silently.
+ * Unresolvable images are absent, never broken frames and never a reason
+ * to refuse the reading. `missing` collects failures so the caller can
+ * report them — quiet degradation is not silent.
  *
  * @param {object[]} assets
  * @param {{ onMissing?: 'omit'|'keep', missing?: object[] }} [options]
- *   `omit` (reading path) drops the asset; `keep` (editor path) returns the
- *   metadata without a URI so an author still sees the entry that needs
- *   attention rather than watching it vanish.
+ *   `omit` (reading) drops the asset; `keep` (editor) returns metadata
+ *   without a URI so the author still sees the entry that needs attention.
  */
 export async function hydrateWorkshopAssets(assets = [], options = {}) {
   const { onMissing = 'omit', missing = [] } = options;
@@ -153,11 +142,8 @@ export async function hydrateWorkshopAssets(assets = [], options = {}) {
 /**
  * Drop visual clips that name an asset which is no longer present.
  *
- * WITHOUT THIS, OMITTING THE ASSET ONLY MOVES THE FAILURE. compileSession
- * runs validateSequenceAssetReferences, which refuses a program whose clip
- * names an asset the session does not carry — so a hydration that quietly
- * dropped the image would still fail the compile, later and with a worse
- * message. The clip and the image go together or neither goes.
+ * Omitting the asset alone is not enough: compile still validates clip
+ * → asset references, so the clip must go with the image.
  */
 export function pruneProgramAssetReferences(program, missingIds) {
   const gone = missingIds instanceof Set ? missingIds : new Set(missingIds || []);
@@ -249,9 +235,7 @@ export async function hydrateWorkshopProjectView(project) {
   const formal = isWorkshopProject(project)
     ? validateWorkshopProject(project)
     : project;
-  // KEEP, NOT OMIT — this is the authoring view. An author whose image
-  // went missing needs to see the entry that needs attention; silently
-  // shortening their asset list would present the loss as a tidy project.
+  // keep: authoring view must still show missing entries.
   const assets = await hydrateWorkshopAssets(formal.assets || [], { onMissing: 'keep' });
   return workshopHydratedProjectToView({
     ...formal,

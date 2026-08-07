@@ -135,15 +135,7 @@ export class Portal {
     const strip = this.container.querySelector('.portal-continue');
     if (!strip) return;
 
-    // `title` OR `name`, in that order, because the two are both real:
-    // the Chamber's own session objects carry `title`, and the ones the
-    // session compiler builds carry `name` ("Journey · Demonstration").
-    // MemoryCore.saveSynthesis already resolves it this way; a second
-    // opinion about which field holds a reading's name is precisely how
-    // this codebase grows a vocabulary in two places.
-    //
-    // Reading only `title` is what made this strip dead on arrival: the
-    // session was there, the guard refused it, and nothing appeared.
+    // Session label: title || name (Chamber uses title; compiled journeys use name).
     const session = window.rise?.currentSession;
     const named = session?.title || session?.name;
     const title = typeof named === 'string' ? named.trim() : '';
@@ -222,21 +214,9 @@ export class Portal {
   }
 
   /**
-   * On a phone the sigil is a SEAL, not a control.
-   *
-   * It has always meant "return to the last session", and on a narrow
-   * screen it cannot say so: iOS paints its own ▶ over any video it has
-   * not started, so the vessel reads as a play button, and the tap
-   * neither plays anything nor — on a cold load — returns anywhere.
-   * `window.rise.currentSession` lives in memory and does not survive a
-   * reload, so EVERY fresh visit falls through to the Vault. A control
-   * whose promise is unkeepable on first sight is worse than no control.
-   *
-   * Nothing is lost by standing it down. The Continue strip below is the
-   * same action with a label and the reading's name on it, and it
-   * appears under exactly the condition that makes the sigil meaningful
-   * — a session actually being there. The pointer keeps the affordance
-   * where a hover and a title attribute can explain it.
+   * On a phone the sigil is a seal (div), not a control.
+   * iOS paints ▶ over unstarted video; cold loads have no session to resume.
+   * Continue strip is the labelled resume when a session exists; pointer keeps the button.
    */
   prefersSealOnly() {
     return typeof window.matchMedia === 'function'
@@ -297,17 +277,8 @@ export class Portal {
             ${sealOnly ? 'aria-hidden="true"' : `aria-label="Quick access to last session"
             title="Return to last session"`}
           >
-            <!-- Video src is deferred to prevent blocking initial render thread.
-                 NOT A PLAYER. iOS draws its own centred ▶ over any video
-                 it has not started, which on a phone made the sigil look
-                 like a control: tapping it "should" have played the loop
-                 and instead opened the Vault, because the sigil has
-                 always been the quick way back in. The glyph is
-                 suppressed in CSS (::-webkit-media-controls-start-playback-button)
-                 so the vessel reads as what it is — a seal, not a play
-                 button. preload="auto" so a device that refuses to
-                 autoplay (Low Power Mode) still has a first frame to
-                 hold rather than a black disc. -->
+            <!-- Video src deferred. Not a player: suppress iOS ▶ overlay;
+                 preload first frame for Low Power Mode. -->
             <video class="vessel-video" loop muted autoplay playsinline preload="auto" disablePictureInPicture></video>
           </${sigilTag}>
         </div>
@@ -327,33 +298,15 @@ export class Portal {
           style="opacity: 0;"
           aria-label="Main navigation"
         >
-          <!-- ONE ACT AT THE FRONT DOOR. The Chamber is a reading you
-               assemble; a Journey is one someone else argued. They are
-               the same act differently authored, which is why they sat
-               here as a pair — but a Journey is a *published* reading,
-               and published readings are what the Vault holds. It now
-               opens from the Vault's first row, and the Portal names
-               the one thing a first-time reader can do: read. -->
-          <!-- THE ACT IS A VERB, ON THE PHONE (P2). The mark, the word
-               "Enter" and the arrow are hidden at every width above
-               640, so the desktop tile still reads exactly "Chamber"
-               and its accessible name is unchanged. A threshold that
-               names a place tells you where you are; one that names an
-               action tells you what to do, and on a phone the reader
-               has one screen in which to work that out. -->
+          <!-- Primary act: enter Chamber. Phone-only mark/verb/arrow
+               are display:none above 640. -->
           <div class="nav-primary">
             <button class="nav-item nav-act" data-nav="chamber" role="link">
               <span class="act-mark" aria-hidden="true">✦</span><span class="act-label"><span class="act-verb">Enter </span>Chamber</span><span class="act-go" aria-hidden="true">→</span>
             </button>
           </div>
 
-          <!-- ROOMS THAT INTRODUCE THEMSELVES (P4/P5). Five
-               underlined words told a first-time reader nothing about
-               what any of them held, and the Latin names — a real part
-               of this work's character — became an obstacle rather
-               than an invitation. The glyph and the line are
-               display:none above 640, so the desktop tiles still read
-               as the single words they always did. -->
+          <!-- Room index. Glyph/line are display:none above 640. -->
           <div class="nav-secondary">
             <button class="nav-item" data-nav="vault" role="link">
               <span class="room-glyph" aria-hidden="true">◈</span><span class="room-name">Vault</span><span class="room-line">Journeys and archetypes</span>
@@ -367,22 +320,11 @@ export class Portal {
           </div>
         </nav>
 
-        <!-- THE TWO THRESHOLDS — classical marble pavilions (aediculae)
-             flanking the centre, each a lit shrine glowing against the
-             void. A domed roof and finial, an entablature bearing the
-             name, fluted columns with volute capitals framing an arched
-             niche, on a stepped base. The niche is the living window: a
-             timeless marble (Atrium), the Earth of this hour (SOL). -->
-
-        <!-- A PAIR, AND WRAPPED SO A PHONE CAN SAY SO.
-             On desktop these are absolutely positioned to flank the
-             sigil and the wrapper is display:contents, so it has no
-             effect on layout at all. On a phone they become two small
-             doors side by side, which is also what they ARE: two
-             matched Latin rooms. -->
+        <!-- Two thresholds: Atrium and Solarium, flanking the centre.
+             Desktop: absolute beside the sigil (wrapper is display:contents).
+             Phone: two matched doors side by side. -->
         <div class="portal-arches">
-        <!-- ATRIUM: the curated doorway — a featured sequence arrives
-             lazily so the shrine is alive. -->
+        <!-- Atrium niche: curated doorway; featured sequence loads lazily. -->
         <button class="portal-arch portal-arch-atrium" data-nav="atrium" style="opacity: 0;" aria-label="Enter the Atrium">
           ${this._gazeboMarkup('Atrium', `
             <span class="gz-marble"></span>
@@ -392,10 +334,8 @@ export class Portal {
           `, '⬡')}
         </button>
 
-        <!-- SOLARIUM (the sundial-room): a *when*, not a place — the niche
-             holds the Earth, daylit or lamplit by the real clock, in a
-             field of stars. The route/view remain 'sol'; only the carved
-             name pairs with ATRIUM as a matched Latin room. -->
+        <!-- Solarium: a when, not a place — Earth by the real clock.
+             Route/view remain 'sol'; the carved name pairs with Atrium. -->
         <button class="portal-arch portal-arch-sol" data-nav="sol" style="opacity: 0;" aria-label="Enter the Solarium">
           ${this._gazeboMarkup('Solarium', `
             <span class="gz-starfield"></span>
@@ -411,21 +351,8 @@ export class Portal {
         </button>
         </div>
 
-        <!-- P6 · STATE, WHERE STATE EXISTS.
-             Tapping the sigil silently resumes the last session, and
-             nothing on the screen said so — on a first visit it opens
-             the Vault instead, which is why a tap on it once read as a
-             bug. This says it out loud.
-
-             IT CARRIES NO PROGRESS. The spec sketched "12 minutes in",
-             and nothing in this product records elapsed position:
-             currentSession lives in memory and is gone on reload.
-             Printing a figure nothing measures is the fabrication the
-             spec itself refuses, so the strip states the title it can
-             prove and stops there.
-
-             Absent, never empty — a cold visit has nothing to
-             continue, and shows nothing. -->
+        <!-- Continue: title only (no elapsed progress — session is in-memory).
+             Hidden when there is nothing to resume. -->
         <button class="portal-continue" data-action="continue" hidden>
           <span class="continue-mark" aria-hidden="true">↺</span>
           <span class="continue-text">
@@ -469,10 +396,7 @@ export class Portal {
       });
     });
 
-    // Quick access via sigil — only where it is a control at all. On a
-    // narrow screen it renders as a `div` seal (see prefersSealOnly), and
-    // a click handler on decoration is the whole bug: something that
-    // looks like a play button and silently opens the Vault.
+    // Sigil click only when it is a button (see prefersSealOnly).
     const sigil = this.container.querySelector('button.portal-sigil-vessel');
     if (sigil) {
       sigil.addEventListener('click', () => {

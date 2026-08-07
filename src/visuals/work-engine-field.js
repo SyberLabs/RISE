@@ -1,37 +1,9 @@
 /**
  * A living field for the engines authored for a work.
  *
- * WHY THIS EXISTS
- * ───────────────
- * Every one of the thirteen engines has a `step(dt, signal)` beside its
- * `render(canvas, options)`. The chariot's wheels turn, the flare
- * phosphenes decay, the sulfur network creeps, the dark ocean flows.
- * The cortex was calling `render` once and handing the result to the
- * gallery as a WebP still, which is a photograph of the first frame —
- * so Milton's chariot was drawn mid-turn and then stopped there for
- * twenty seconds. Everything worked. Nothing moved.
- *
- * The gallery could not have fixed this itself. ContinuousField is
- * deliberately image-only: it crossfades immutable URLs and knows
- * nothing about canvases or generator lifecycles, which is what lets it
- * treat a Rembrandt and a procedural still identically. A turning wheel
- * is not an image, so it does not belong to that abstraction. It gets
- * its own layer underneath, on the model of AttractorField, which has
- * been running a persistent animated canvas behind readings all along.
- *
- * SLOWLY
- * ──────
- * This runs behind text a person is reading. The engines were authored
- * at demonstration speed — a rotSpeed tuned to look alive in a preview
- * pane is a distraction at paragraph four. Rather than retune thirteen
- * files and argue with each author's constants, the field scales the
- * only thing they all agree on: `dt`. At TIME_SCALE the chariot still
- * turns, but on the order of the reading rather than the frame, and one
- * number moves every engine together.
- *
- * That also means a work's own tuning is preserved in RELATIVE terms:
- * the flaming sword still moves faster than the dark ocean, because
- * their authors said so.
+ * Animated canvas behind readings for work engines with step(dt).
+ * ContinuousField is image-only; this layer advances engines at
+ * TIME_SCALE (reading pace, not demo pace) via dt.
  */
 
 import { loadWorkEngines, isWorkEngineFamily } from './work-engines.js';
@@ -188,13 +160,9 @@ export class WorkEngineField {
     }
 
     /**
-     * Keep only the engines a figure named, in the order it named them.
-     *
-     * A figure that names an engine nothing provides is an authoring
-     * error and must be audible: falling back to the whole family would
-     * put a random Milton engine at Michael's sword and look like it
-     * worked. The field goes still instead, which is the same answer
-     * this codebase gives everywhere else something will not resolve.
+     * Keep only the engines a figure named, in order. A missing engine
+     * is an authoring error: do not fall back to the whole family —
+     * leave the field still.
      */
     _narrow(all) {
         if (!this.only.length) return all;

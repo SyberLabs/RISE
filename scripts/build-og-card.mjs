@@ -1,16 +1,11 @@
 /**
  * The card a shared link shows.
  *
- * A link to RISE carried no image at all: LinkedIn, Slack, iMessage and
- * Discord all fell back to a bare title-and-description row. This draws a
- * 1200×630 card in the product's own tokens — #0A0A0C, Marcellus set
- * open at the same 0.32em tracking the Portal uses — so the preview is
- * the product rather than a cropped app icon.
+ * Draws a 1200×630 card in product tokens (#0A0A0C, Marcellus at the
+ * Portal's 0.32em tracking) so the preview matches the product.
  *
- * GENERATED, NOT DRAWN BY HAND, so the wordmark cannot drift from the
- * page the way the phone's tracking did: the values below are the same
- * ones design-system.css declares, and rerunning this is how the card
- * follows a change instead of being remembered.
+ * Generated, not hand-drawn: values below mirror design-system.css so
+ * rerunning follows a token change.
  *
  *   node scripts/build-og-card.mjs
  */
@@ -43,8 +38,7 @@ const card = `<!doctype html>
     align-items: center; justify-content: center;
     position: relative; overflow: hidden;
   }
-  /* The sigil's ring, echoed — the Portal's own geometry, held back so
-     it reads as ground rather than as a logo. */
+  /* Portal sigil ring, held back as ground rather than logo. */
   .ring {
     position: absolute; top: 50%; left: 50%;
     width: 460px; height: 460px; margin: -230px 0 0 -230px;
@@ -64,8 +58,7 @@ const card = `<!doctype html>
     font-size: 132px; font-weight: 400;
     color: ${LIGHT};
     text-transform: uppercase;
-    /* THE SAME SETTING THE PORTAL USES. Written as letter-spacing, not
-       as four characters with spaces between them. */
+    /* Same letter-spacing as the Portal wordmark. */
     letter-spacing: 0.32em; text-indent: 0.32em;
     position: relative; line-height: 1;
   }
@@ -104,8 +97,7 @@ const page = await browser.newPage({
     deviceScaleFactor: 1
 });
 await page.setContent(card, { waitUntil: 'networkidle' });
-// A screenshot taken before the webfont arrives ships the fallback, and
-// nothing about the file would say so.
+// Wait for webfonts; a shot taken early ships the fallback silently.
 await page.evaluate(() => document.fonts.ready);
 const shot = await page.screenshot({ type: 'png' });
 await browser.close();

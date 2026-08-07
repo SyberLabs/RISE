@@ -4,29 +4,21 @@
  *   node scripts/withdraw-foreign-divisions.mjs            # report
  *   node scripts/withdraw-foreign-divisions.mjs --apply
  *
- * ARCHIVE-CLEANSING-SPEC §1b. The Mahabharata's last five "volumes" are
- * the New York Times Current History of the European War (1915): the
- * ingest declared nine Gutenberg artifacts #15474–#15482 as "Ganguli
- * volume N" and assumed a contiguous identifier range. Ganguli occupies
- * #15474–#15477.
+ * ARCHIVE-CLEANSING-SPEC §1b. Case in point: the Mahabharata's last five
+ * "volumes" are the New York Times Current History of the European War
+ * (1915) — ingest assumed a contiguous Gutenberg range; Ganguli occupies
+ * #15474–#15477 only.
  *
- * THIS IS A DIFFERENT ACT FROM TRIMMING FURNITURE, and the difference is
- * worth stating. Furniture is removed from inside a reading; this removes
- * whole readings, and it changes what the work IS. So the provenance is
- * edited in the same breath: the artifact list loses the records that
- * were never this work, the rights evidence stops claiming nine, and the
- * edition statement says what is actually shelved. A payload trimmed
- * without its dossier following is a book presented under a name that no
- * longer describes it — the Hamlet failure from the other direction.
+ * Different from trimming furniture: this removes whole readings and
+ * changes what the work is. Provenance follows in the same breath
+ * (artifact list, rights evidence, edition statement).
  *
- * THE EVIDENCE IS CHECKED BEFORE THE CUT, not asserted. A division is
- * only withdrawn if it is DEVOID of the work's own vocabulary while the
- * work is dense in it. If any candidate fails that test, nothing is
- * written.
+ * Evidence is checked before the cut: a division is withdrawn only if it
+ * is devoid of the work's vocabulary while the kept remainder is dense
+ * in it. If any candidate fails that test, nothing is written.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-// ONE WRITER. This script had its own copy of the rewrite and had not
-// learned the terminator, so the Mahabharata lost its semicolon too.
+// Shared payload writer (see payload-writer.js).
 import { rewriteSections, rewriteMeta } from '../src/content/archive/payload-writer.js';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
@@ -34,9 +26,8 @@ import { resolve } from 'node:path';
 const LOG = resolve('src/content/archive/cleanse-log.json');
 
 /**
- * One case, stated explicitly rather than discovered by a rule. A tool
- * that hunts for foreign divisions across the shelf would be guessing;
- * this withdraws a thing that has been measured.
+ * One measured case, stated explicitly. This does not hunt across the
+ * shelf; it withdraws a thing already verified.
  */
 const CASES = [{
     workId: 'the-mahabharata-of-krishna-dwaipayana-vyasa',
@@ -81,8 +72,8 @@ for (const c of CASES) {
     console.log(`  keeping    ${String(kept.length).padStart(5)} sections  ${String(keptWords).padStart(9)} words  ${keptHits} of its own vocabulary`);
     console.log(`  withdrawing${String(doomed.length).padStart(5)} sections  ${String(doomedWords).padStart(9)} words  ${doomedHits} of its own vocabulary`);
 
-    // THE GATE. Withdraw only what is devoid of the work while the work
-    // is dense in it. Anything else is a judgement, not a measurement.
+    // Gate: withdraw only what is devoid of the work while the remainder
+    // is dense in it. Anything else is judgment, not measurement.
     if (!doomed.length) { console.log('  nothing to withdraw'); continue; }
     if (doomedHits !== 0) {
         console.log(`  REFUSED: a doomed division carries ${doomedHits} of the work's own words.`);

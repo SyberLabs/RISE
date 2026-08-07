@@ -167,11 +167,8 @@ describe('a withheld engine is withheld everywhere', () => {
     // resolves at the grid it simulates on, and behind a full-bleed
     // reading that grid reads as pixellation rather than as gas.
     //
-    // Withheld in ONE place — the registry — because the living field,
-    // the gallery, Page mode, the Journey compiler and the
-    // Demonstration all take their vocabulary from it. An exclusion
-    // list beside the registry would be a seventh copy of a vocabulary
-    // this codebase has been bitten by six times, silently each time.
+    // Withheld in the registry alone — field, gallery, Page, Journey,
+    // and Demonstration all take their vocabulary from it.
     const WITHHELD = 'turing_gas';
 
     it('is absent from the registry, which is the only place it lived', async () => {

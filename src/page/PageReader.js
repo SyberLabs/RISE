@@ -1,16 +1,7 @@
 /**
- * The Page Reader — Page Mode, Layer 3 (PAGE-MODE-SPEC §3.3).
- *
- * Composition → the illuminated scrolling column. The thinnest layer:
- * all typesetting decisions were already made upstream, so this file
- * only builds DOM, lazy-loads figures, and reveals them after decode.
- *
- * It is a SPATIAL projection and therefore has, by construction:
- *   • no flash economy, no VisualFlashGate, no advance clock (§4)
- *   • no new source machinery — figures resolve through an injected
- *     resolver backed by the cortex's own provider dispatch (§5)
- *   • reverent degradation — a work that will not resolve or decode is
- *     simply absent; the text composes without it, never a broken frame.
+ * Page Reader — Page Mode Layer 3 (PAGE-MODE-SPEC §3.3).
+ * Composition → DOM. No flash economy; figures resolve via injected
+ * resolver; unresolved/undecodable works are absent (reverent degradation).
  */
 
 import './page.css';
@@ -69,15 +60,8 @@ export class PageReader {
 
         this.composition = null;
 
-        // PAGINATION (PAGE-MODE-SPEC §9, "an alternate renderer over the
-        // same Composition"). One unbounded column laid the whole reading
-        // out at once; paged, it arrives in divisible chunks and the DOM
-        // holds one page's worth. Opt OUT rather than in, because a
-        // caller that wants the whole column — printing, most obviously —
-        // is asking for something specific and should say so.
-        // PROJECTION BY LENGTH (see render()). `paginated: false` is a
-        // hard opt-out for callers that need the whole column — print,
-        // most obviously. Left alone, the reading's own length decides.
+        // Pagination (§9): opt out for whole-column callers (e.g. print).
+        // Otherwise length decides (see render): scrollUnderPages threshold.
         this.paginated = options.paginated !== false;
         this.scrollUnderPages = Number.isFinite(options.scrollUnderPages)
             ? options.scrollUnderPages
@@ -102,22 +86,8 @@ export class PageReader {
 
         this.host.classList.add('page-reader');
 
-        // ══ PROJECTION BY LENGTH ══
-        //
-        // Pagination was made the only projection, and reading real
-        // pages showed the cost: a page boundary is a constraint the
-        // compositor does not model, so a margin figure can land beside
-        // a chapter opening and a heading can wrap where the column had
-        // room to breathe before. In a short reading that is pure loss —
-        // there was nothing to bound.
-        //
-        // So the length decides. A reading that scrolls comfortably
-        // scrolls, and one long enough that its overhead matters is cut.
-        // Both are the same Composition; §9's whole point is that the
-        // renderer may choose. The threshold is in PAGES rather than
-        // characters because the cut already knows the frame, the
-        // measure and the figures, and a page count is what "long"
-        // actually means to a reader.
+        // Projection by length: short readings scroll; longer ones page.
+        // Same Composition; threshold is page count (frame-aware), not chars.
         const cut = this.paginated
             ? paginate(this.composition, this._budget())
             : { pages: [] };
@@ -150,14 +120,10 @@ export class PageReader {
     }
 
     /**
-     * The budget, measured from the frame the reading is actually in.
-     *
-     * The paginator is pure and must stay that way, so the measuring
-     * happens here and is handed across as two numbers. It matters more
-     * than it looks: `charsPerLine: 66` is a DESKTOP measure, and using
-     * it on a phone — where the column fits nearer 40 — told the
-     * paginator each paragraph was two thirds its real height, so pages
-     * were cut over-full and overflowed their own frame by 250px.
+     * Budget from the live frame. Paginator stays pure; measure here.
+     * charsPerLine must reflect the actual column width (not a desktop
+     * constant), or pages overflow. Do not subtract column padding twice.
+     * Slight overrun is intentional — readable amount per turn.
      */
     _budget() {
         const w = this.host?.clientWidth || 390;
@@ -169,18 +135,11 @@ export class PageReader {
         // ~0.5em average advance for this literary face.
         const charsPerLine = Math.max(24, Math.round(measure / (font * 0.5)));
 
-        // What the frame leaves after the fixed furniture: the running
-        // head and the pager. The column's own padding is NOT subtracted
-        // again here — doing both is what cut the reading into 28 pages
-        // of one paragraph.
+        // Furniture only (running head + pager); column padding already in layout.
         const furniture = narrow ? 130 : 170;
         const lineHeight = font * 1.72;
 
-        // A PAGE MAY OVERRUN ITS FRAME A LITTLE, and should. Budgeting
-        // for a perfect fit produced pages holding a single paragraph on
-        // a phone, which is a page turn every few seconds; budgeting for
-        // a comfortable scroll holds a readable amount and still ends
-        // somewhere deliberate. The reader scrolls a page, then turns it.
+        // Slight overrun: readable amount per turn, still deliberate ends.
         const OVERRUN = 1.45;
         const usable = Math.max(lineHeight * 8, (h - furniture) * OVERRUN);
         const linesPerPage = Math.max(10, Math.floor(usable / lineHeight));
@@ -215,17 +174,8 @@ export class PageReader {
         if (clamped === 0 && (this.title || this.source || this.focal)) {
             article.appendChild(this._buildMasthead());
         } else if (clamped > 0 && this.title) {
-            // A RUNNING HEAD, WHICH I PREVIOUSLY ARGUED AGAINST.
-            //
-            // The first cut of this said a title repeated at the head of
-            // every page is a running header, "a different typographic
-            // object and one this reader has not earned yet", and showed
-            // the masthead on page one alone. That was wrong in practice:
-            // past the first page a reader has nothing on screen naming
-            // what they are reading, and a book solves this with a
-            // running head for exactly that reason. It is small, quiet,
-            // set in the display face, and it is not the masthead — the
-            // focal and the source line still belong to the opening.
+            // Running head after page 0: names the reading without repeating
+            // masthead (focal/source stay on the opening).
             this.host.appendChild(this._buildRunningHead());
         }
 
@@ -289,13 +239,7 @@ export class PageReader {
         if (this.showPager && this.pages.length > 1) {
             this.host.appendChild(this._buildPager());
         }
-        // ONE OBJECT, NOT FOUR POSITIONS. The host renders its projection
-        // controls from this, and when it was a positional signature the
-        // Chamber took the first two arguments and inferred the rest —
-        // so an elongated reading (one page) looked like a reading with
-        // nothing to paginate, and the control that would have brought
-        // the pages back hid itself. A field cannot be silently dropped
-        // the way a trailing argument can.
+        // Object report (not positional args) so hosts cannot drop fields.
         this.onPageChange?.({
             index: clamped,
             total: this.pages.length,
@@ -309,19 +253,8 @@ export class PageReader {
     }
 
     /**
-     * ELONGATE — change projection at runtime.
-     *
-     * The length rule picks a projection; the reader overrules it. This
-     * costs nothing but a re-render: the flow and the Composition are
-     * already built, and pagination is only a view over them, so the
-     * two projections are two ways of reading the same object rather
-     * than two objects.
-     *
-     * AND IT KEEPS THE READER'S PLACE. Sending someone back to the first
-     * page for changing how the same reading is drawn is the same fault
-     * the Page↔Stream toggle already had: two views of one reading that
-     * disagree about where the reader is. The anchor is an ITEM, not an
-     * offset, because only the item means the same thing in both.
+     * Switch projection at runtime over the same Composition.
+     * Preserves place by composition item, not scroll offset.
      */
     setPaged(next) {
         const wanted = !!next && this.canPage;
@@ -623,12 +556,8 @@ export class PageReader {
     /** How many figures on this page reference a given collection. */
     _figureDemand(collectionId) {
         let n = 0;
-        // THE WHOLE READING, NOT THIS PAGE. Scoping demand to the current
-        // page looked like an optimisation and was a defect: demand tells
-        // the resolver how many DISTINCT works to draw, the pool is shared
-        // across every page, and asking for one per page handed all six
-        // figures the same image. Caught by the fields test asserting that
-        // each procedural sample is a different state.
+        // Demand over the whole reading: pool is shared across pages;
+        // per-page demand would repeat the same work on every figure.
         for (const item of this.composition?.items || []) {
             if (item.type === 'figure' && (item.collections || []).includes(collectionId)) n += 1;
         }
@@ -699,13 +628,7 @@ export class PageReader {
             return;
         }
 
-        // DECODE-BEFORE-REVEAL, on the element that is actually shown.
-        // Decoding a detached probe and then creating a SECOND <img> only
-        // proves the URL was once decodable — the displayed element could
-        // still fail (a one-use/signed URL, an evicted cache, an engine
-        // without Image.decode), and a lazy-loaded image is not even
-        // fetched at that point. So the real element is built, decoded,
-        // and only then revealed.
+        // Decode the displayed element before reveal (not a detached probe).
         const img = document.createElement('img');
         img.className = 'page-figure-image';
         img.decoding = 'async';

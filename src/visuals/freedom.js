@@ -8,35 +8,9 @@
  * assembled by and for the colonizing powers. A procedural field can
  * give them what a Commons search never will.
  *
- * THE ARGUMENT THE ENGINE MAKES
- * ─────────────────────────────
- * The imperial power's colors are the GROUND: a soft, atmospheric wash
- * covering the whole field the way a flag covers a territory — total,
- * but insubstantial. Diffuse, because empire presents itself as the
- * natural condition of the air.
- *
- * The liberating people's colors are UNDERNEATH, and always were. Rough
- * inky brush strokes are thrown across the field, and wherever a stroke
- * lands it does not deposit paint — it STRIPS the wash away, revealing
- * the free flag's solid, saturated color beneath.
- *
- * So the gesture is subtractive. Liberation is not something added to
- * the colonized; it is what shows when the imposed surface is torn off.
- * The strokes are brash, wet, uneven — the opposite of the ground's
- * even atmosphere. That contrast carries the whole argument.
- *
- * HAITI, THE CASE THAT SHAPED THE ENGINE
- * ──────────────────────────────────────
- * The Haitian flag is the French tricolour with the white torn out —
- * Dessalines is said to have done exactly that. Blue and red are
- * inherited; the ABSENCE is the argument.
- *
- * The subtractive design answers this without a special case. France's
- * white washes over Haiti's blue-and-red, and every stroke that strips
- * the wash is literally the white being removed. The shared palette
- * stops being a collision to work around and becomes the point.
- *
- * House rules honored: still frames only, no shadowBlur, deterministic
+ * Imperial colours as atmospheric ground; liberating colours revealed
+ * by subtractive strokes (strip the wash, do not overpaint). Still
+ * frames only, no shadowBlur, deterministic under seed, null-ctx guard.
  * under a seed, null-ctx guard.
  */
 

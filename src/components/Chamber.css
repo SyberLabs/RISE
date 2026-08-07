@@ -972,17 +972,9 @@
   pointer-events: none;
 }
 
-/* ─── The control bar condenses in Page Mode ───
-   A page has no playback and no elapsed time, so the transport controls
-   are not merely inert here — they are noise, and a play button that
-   correctly refuses is worse than an absent one because it invites a
-   click that silently fails. Only what a reader actually needs remains:
-   the Page toggle (to leave), the music control (a soundscape is ambient
-   and clock-independent, so it legitimately plays on), and the exit,
-   which must always stay reachable.
-
-   Purely presentational and driven by the class the toggle already sets,
-   so restoration on return is automatic and cannot desync from state. */
+/* In Page Mode hide stream transport (play/time/visuals/kaleidoscope):
+   a page has no playback. Keep Page toggle, music, and exit. Driven by
+   the toggle's class so leave restores automatically. */
 .chamber-display.page-mode-on #play-pause-btn,
 .chamber-display.page-mode-on #time-display,
 .chamber-display.page-mode-on #visuals-toggle-btn,
@@ -1090,73 +1082,31 @@
     padding: 0;
   }
 
-  /* THE BAND.
-     Full width, because a band that stops short of the edges is a card
-     again. Vertical padding only, so its height is the text's height
-     and it stays thin. */
+  /* Full-width band; vertical padding only so height follows the text. */
   .chamber-field .atom-display {
-    /* Sized to the band rather than the screen. At 390px this lands
-       near 22px, which fits ~26 characters per line — so a median
-       phrase-mode atom is two lines and the 16-word ceiling is four.
-       clamp keeps a 320px phone readable and stops a tablet inflating
-       it back into the desktop problem. */
-    /* The desktop ladder bottoms out at 0.44, which against a 22px
-       band would be ten pixels. Compressed with max(): a long phrase on
-       a phone gains lines rather than losing legibility. */
+    /* ~22px at 390px (~26 chars/line); clamp for 320px–tablet. Scale
+       floor via max() so long phrases gain lines instead of shrinking. */
     font-size: calc(clamp(20px, 6.1vw, 27px) * max(0.88, var(--atom-scale, 1)));
     line-height: 1.45;
     max-width: 100%;
     width: 100%;
     padding: var(--space-sm) var(--space-md);
-    /* The reading is never the thing that widens the page. */
+    /* The reading must not widen the page. */
     overflow-wrap: anywhere;
     hyphens: auto;
   }
 
-  /* ═══════════════════════════════════════════════════════════
-     THE BAND DOES NOT BLINK
-     ═══════════════════════════════════════════════════════════
-
-     A tile and a stratum are not the same object, and the grammar
-     that is right for one is wrong for the other.
-
-     On a desktop the glass HUGS the token, so it is correct for it to
-     live on #atom-display and to share that element's fate: every
-     atom takes the display to opacity 0 and fades it back over 150ms,
-     and a small pane crossfading where a word was IS the effect.
-
-     Made full-bleed on a phone, the identical behaviour is a strobe.
-     `opacity` composites the whole subtree, so the fade meant for the
-     text took the background, the blur, the borders and the shadow
-     with it — a bar across the entire screen blinking off and on once
-     per atom. Word chunking over a Gallery field fires that three to
-     five times a second.
-
-     So the glass moves OFF the fading element and onto the band that
-     wraps it. The reading still crossfades; the architecture it sits
-     in does not move. The band is `display: contents` at every other
-     width, generating no box at all, so the desktop composition is
-     not merely unaffected — it cannot be affected.
-     ═══════════════════════════════════════════════════════════ */
-
+  /* Glass lives on the band, not on #atom-display. Opacity on the
+     display fades the whole subtree; full-bleed glass would strobe with
+     every atom. The band is `display: contents` elsewhere, so desktop
+     is unaffected. */
   .chamber-field-stream .atom-band:has(.atom-display.glass-tile),
   .chamber-field-genesis .atom-band:has(.atom-display.glass-tile) {
     display: block;
     width: 100%;
 
-    /* ── AND THE READING MUST STILL BE ON TOP ──
-       `backdrop-filter` makes this element a STACKING CONTEXT, which
-       quietly took the reading's guarantee away. .atom-display carries
-       `position: relative; z-index: 10` for one reason — "the reading
-       text must sit above the presenting imagery", which drops to
-       z-index 2 in behind-stream — and the moment the band existed,
-       that 10 stopped being measured against the imagery and started
-       being measured against its own siblings inside the band, of
-       which there are none. The band was left static and auto, i.e.
-       beneath everything positioned in the field, so a gallery image
-       arriving a few seconds into a reading painted straight over the
-       text and the glass together and never uncovered them.
-       The wrapper has to inherit the job along with the box. */
+    /* backdrop-filter creates a stacking context; without z-index the
+       band sits under field imagery and gallery paint covers the text. */
     position: relative;
     z-index: 10;
     border-top: 1px solid rgba(232, 232, 236, 0.06);
@@ -1191,56 +1141,26 @@
     padding: var(--space-sm) var(--space-md);
   }
 
-  /* Holding the glass on is only half of steady: with no text there is
-     no LINE BOX either, so the band still collapsed to its own padding
-     and the picture behind it jolted by the height of a line.
-     A non-breaking space in generated content builds that line box out
-     of the element's own metrics — so an empty atom and a one-line
-     phrase are the same height by construction, at any font size,
-     rather than by a hand-tuned `min-height` that was three pixels
-     short the moment it met a real font. It is U+00A0 and not the
-     zero-width U+200B for a dull reason worth writing down: the
-     literary face has no glyph for ZWSP, so it fell back to another
-     font whose ascent and descent are not the same, and the line box
-     came out five pixels short — a height guess wearing the costume
-     of a measurement. A0 is an ordinary space in the same face, and
-     it carries no ink.
-     `:empty` counts CHILD NODES, and generated content is not one, so
-     this rule cannot stop itself from matching — and Chamber.js still
-     writes a genuinely empty element, which the silence test checks. */
+  /* Empty atoms still need a line box or the band collapses and the
+     picture jolts. U+00A0 (not ZWSP): literary face has no ZWSP glyph,
+     so fallback metrics undersize the line. `:empty` ignores generated
+     content, so this does not clear the match; Chamber.js still writes
+     a truly empty element for the silence test. */
   .chamber-field-stream .atom-display.glass-tile:empty::before,
   .chamber-field-genesis .atom-display.glass-tile:empty::before {
     content: "\00a0";
   }
 
-  /* The title is a label, not a headline, once the screen is this
-     narrow — it was 28px and competed with the reading itself. */
+  /* Title is a label at this width, not a competing headline. */
   .chamber-session-title {
     font-size: 15px;
     letter-spacing: 0.04em;
   }
 
-  /* ── THE CONTROL BAR RAN 525px WIDE ON A 390px SCREEN ──
-     From x=-68 to x=458: two buttons entirely off the left edge and
-     the exit button off the right, unreachable. Six controls at a
-     16px gap, two of them carrying text labels, is 475px of content
-     before padding.
-
-     The labels go and the icons stay. Every one of these buttons
-     already carries its own `aria-label` and `title` — the visible
-     word was a desktop convenience, not the control — so nothing is
-     lost to a screen reader or a long-press.
-
-     And it wraps. A conditional control (the kaleidoscope appears
-     only with an attractor field) would otherwise push the row back
-     over the edge, and a second row is a far better failure than an
-     unreachable button. */
+  /* Icon-only controls (aria-label/title remain); wrap rather than
+     overflow. Pin left+right: absolute+transform shrink-to-fit wraps
+     into a narrow column instead of using available width. */
   .chamber-controls {
-    /* Spanning rather than shrink-to-fit. Positioned absolutely and
-       centred by transform, the bar sizes itself to its content — so
-       once it could wrap it wrapped into a narrow three-row column
-       instead of using the width available. Pinning both edges gives
-       it the screen to lay out in. */
     left: var(--space-xs);
     right: var(--space-xs);
     transform: none;
@@ -1255,10 +1175,7 @@
     display: none;
   }
 
-  /* Those labels had room reserved for them — 5.75rem on the visuals
-     toggle, 7.5rem on the kaleidoscope — and a min-width outlives the
-     text it was sized for. Hiding the word without releasing the width
-     buys nothing. */
+  /* Drop min-widths that reserved room for the now-hidden labels. */
   .chamber-controls .rhythmic-visuals-toggle,
   .chamber-controls .kaleidoscope-toggle {
     min-width: 0;
@@ -1270,27 +1187,9 @@
     min-width: 0;
   }
 
-  /* ── AND IT SPANS BECAUSE THE STREAM NEEDS IT TO ──
-     Six controls that must be able to wrap need the whole screen to
-     lay out in. Page Mode has three — the toggle out, the soundscape,
-     the exit — and pinning both edges for three icons produced a
-     378px pill holding 148px of content, an empty rounded slab across
-     the foot of a page that is otherwise all reading. Nothing here
-     can wrap, so nothing here needs the width.
-     It shrinks to what it holds and centres again.
-
-     IT DOES NOT MOVE DOWN. The first version of this set
-     `bottom: calc(var(--space-sm) + env(safe-area-inset-bottom))`,
-     reasoning about the home indicator — but this document has no
-     `viewport-fit=cover`, so every safe-area inset resolves to ZERO,
-     and what the phone actually got was 12px where the Stream's bar
-     sits at 28. Toggling into Page Mode dropped the bar 16px into the
-     indicator strip, and the bottom of it went under the edge of the
-     screen. A guard that evaluates to nothing is not a guard; it is a
-     smaller number wearing the costume of a larger one.
-     The offset is the Stream's, so the bar does not move when the
-     projection changes, and the inset is kept purely additive in case
-     the document ever does opt into the full screen. */
+  /* Page Mode: fewer controls — shrink-wrap and centre; keep the same
+     bottom offset as Stream so the bar does not jump. Do not rely on
+     safe-area alone for clearance without viewport-fit=cover (env is 0). */
   .chamber-display.page-mode-on .chamber-controls {
     left: 50%;
     right: auto;
@@ -1298,11 +1197,6 @@
     width: auto;
     max-width: calc(100% - 2 * var(--space-md));
     flex-wrap: nowrap;
-    /* SEVEN CONTROLS NOW: sound, back, count, forward, elongate, the
-       projection toggle, and the way out. At a 16px gap that is 96px of
-       air alone and the bar ran to 353 of 390. The gap closes rather
-       than the bar spreading — a crowded bar was the complaint that
-       moved the page turn in here in the first place. */
     gap: var(--space-xs);
     padding-left: var(--space-sm);
     padding-right: var(--space-sm);

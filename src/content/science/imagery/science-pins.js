@@ -13,12 +13,9 @@
  * SOURCE-EXPANSION-SPEC §3a, "the API key never leaves the workstation").
  * `scripts/build-science-catalog.mjs` is the controlled refresh.
  *
- * WHY WHOLE-COLLECTION VERDICTS ARE RECORDED, NOT JUST SURVIVORS. A pin
- * list says what was kept. It cannot say what was looked at and refused,
- * and that is the more expensive knowledge — without it a later harvest
- * re-proposes the same rejected works and the review is paid for twice.
- * The retirement ledger below is therefore part of the canon, not a
- * comment about it.
+ * Verdicts are whole collections (or per-work includes), not survivors
+ * alone: the retirement ledger records what was refused so later harvests
+ * do not re-propose it.
  */
 
 /**
@@ -173,20 +170,9 @@ export const RETIRED = Object.freeze([
 ]);
 
 /**
- * WHY THERE IS NO LIVE BOTANICAL SOURCE, and why one is not simply
- * switched back on.
- *
- * A Wikimedia botanical service existed once and was DISCONNECTED: its
- * live-search style introduced a stochastic chance of inappropriate
- * imagery. That is the founding case for curation-only — the failure was
- * not a bad query but the impossibility of a good one, because a query
- * cannot promise what it has not seen.
- *
- * So a future botanical register is a QUALITY problem, not an access
- * problem. The bar is a source whose holdings can be reviewed and pinned
- * whole: botanical illustration and photography of a register worth
- * meeting mid-passage. Cooper Hewitt's design drawings are the nearest
- * thing this harvest turned up.
+ * No live botanical source: live search cannot promise reviewed imagery.
+ * A future botanical register needs a reviewable, pinnable collection
+ * (illustration / photography), not a query switched back on.
  */
 export const BOTANICAL_DEFERRED = Object.freeze({
     why: 'Wikimedia botanical service disconnected — live search admits imagery nobody reviewed',

@@ -68,15 +68,8 @@ const STATIC_VOICE_IDS = new Set(STATIC_VOICE_PACKS.map(pack => pack.id));
 const DEFAULT_STATIC_VOICE_ID = defaultVoicePackId();
 
 /**
- * Factory defaults for the orbital — one source of truth for the
- * constructor and the Reset button.
- *
- * Exported so the defaults a reader actually meets can be ASSERTED. When
- * `presentation` moved to Gallery here, nothing in the unit suite noticed;
- * an e2e test that had left the field unset and inherited it silently
- * started asking a different question and failed on the answer. A default
- * with no test is a decision that only announces itself by breaking
- * something else.
+ * Factory defaults for the orbital — shared by constructor and Reset.
+ * Exported so defaults can be asserted; silent default drift breaks e2e.
  */
 export function createDefaultConfig() {
   return {
@@ -803,12 +796,7 @@ export class ChamberOrbital {
                 <button class="audio-waveform-option ${this.config.entrainmentWaveform === 'sawtooth' ? 'active' : ''}" data-waveform="sawtooth">Saw</button>
               </div>
             </div>
-            <!-- Recitation (RECITATION-SPEC). This replaced a
-                 "Text-to-Speech" toggle and a system-voice picker that
-                 configured window.speechSynthesis — a synthesiser
-                 nothing ever invoked. It was dead, and worse than dead:
-                 it sat exactly where a reader looks for speech and
-                 answered the question wrongly. -->
+            <!-- Recitation (RECITATION-SPEC): static voice packs, not speechSynthesis. -->
             <div class="config-section">
               <label class="config-label">Recitation</label>
               <div class="chunk-options">

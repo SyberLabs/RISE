@@ -176,21 +176,8 @@ export class AudioScheduleController {
     }
 
     /**
-     * Ask the engine for a method it actually has.
-     *
-     * THE `?.` WAS THE BUG, NOT A SAFETY NET. This controller called
-     * `setSoundscape` and `fadeSoundscapeOut`; the engine has
-     * `startSoundscape` and `stopSoundscape` and never had the others.
-     * Written as `engine.setSoundscape?.(…)`, that mismatch was not a
-     * crash, a warning, or a failing test — it was nothing at all, and
-     * War played in silence from the day it shipped while its audio
-     * schedule announced itself correctly in the log.
-     *
-     * That is the fifth time a vocabulary has lived in two places here
-     * with only one copy learning the word, and the first that was
-     * silent BY CONSTRUCTION rather than by accident. So the optional
-     * call is gone: a method this controller needs and cannot find is
-     * reported once, by name.
+     * Resolve an engine method by name. Missing methods warn once —
+     * optional chaining on a wrong name would silently no-op.
      */
     _command(name) {
         const method = this.engine?.[name];

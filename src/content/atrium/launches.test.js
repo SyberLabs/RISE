@@ -260,25 +260,8 @@ describe('Atrium point launch coverage', () => {
   });
 
   /**
-   * THE WINDOW, RE-DERIVED — 2026-08-06.
-   *
-   * It was 180_000–420_000 with a 1s tolerance bolted on that morning,
-   * and the tolerance carried its own warning: "if a future change puts
-   * several launches here, that is a signal about the change and not an
-   * invitation to widen again". By the afternoon there were three. So the
-   * tolerance is gone rather than grown.
-   *
-   * THE READINGS DID NOT GET SHORTER; THE ESTIMATE GOT HONEST. A short
-   * atom carries a minimum duration larger than its share of the word
-   * count, and the phrase floor — now the default — merges those atoms
-   * and removes the padding with them. The old bound was measured against
-   * a compiler that inflated every list and every fragment. Re-measured
-   * under honest pacing the shelf spans 2.97m to 6.88m, and words per
-   * minute is flat at ~131 across the whole of it, so nothing became thin
-   * — `seven-years-war` was always the shortest text here.
-   *
-   * The floor is therefore derived from the shelf rather than from a
-   * round number: 2.9 minutes, below the shortest launch with margin.
+   * Point-launch duration window: floor from the shortest shelf launch
+   * with margin; ceiling is editorial. Bound duration, not word count.
    */
   const POINT_WINDOW_FLOOR = 174_000;
   const POINT_WINDOW_CEILING = 420_000;
@@ -293,16 +276,9 @@ describe('Atrium point launch coverage', () => {
   });
 
   /**
-   * AND THE GUARD IS NOW ON WORDS, NOT ON TIME.
-   *
-   * A duration floor was only ever a proxy for "enough substance to be
-   * worth a launch", and it is a bad one: it moves whenever the chunker
-   * learns something, which is twice in one day. Word count does not. If
-   * a launch is thin it is thin at any pacing, and this says so directly
-   * instead of inferring it from a clock.
-   *
-   * 350 is set below the shortest launch on the shelf (371) so it fails
-   * on a NEW thin launch rather than re-litigating the existing ones.
+   * Thin-launch guard is on words, not duration (duration moves with
+   * pacing). Floor sits below the shortest shelf launch so only new
+   * thin launches fail.
    */
   const THIN_LAUNCH_WORDS = 350;
 

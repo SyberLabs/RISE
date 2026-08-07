@@ -120,9 +120,7 @@ describe('paginate', () => {
     });
 
     it('consecutive plates share a page rather than each taking one', () => {
-        // THE ATTRACTOR FAULT. A reading with several procedural stills
-        // produced a page carrying nothing but one full-panel visual.
-        // A solo plate is a slide, and this is a reader.
+        // Prefer sharing a page with prose over solo-plate pages.
         const items = [text(400), figure('bleed'), text(400), figure('bleed'), text(400)];
         const { pages } = paginate(composition(items));
         for (const page of pages) {
@@ -287,11 +285,7 @@ describe('regressions found by reading real pages', () => {
     });
 
     it('the balance pass does not walk a thin page to the front of the reading', () => {
-        // FOUND BY READING THE OUTPUT, not by the R4 test above, which
-        // inspected only the LAST page and so watched the fault stroll
-        // past it. A tail page holding one paragraph borrowed from its
-        // donor, leaving the DONOR thin, which borrowed in turn — all
-        // the way to page one, where the reader meets it first.
+        // Balance must not cascade thin pages toward the front of the reading.
         const items = Array.from({ length: 13 }, () => text(330));
         const { pages } = paginate(composition(items), { linesPerPage: 12 });
         for (const page of pages) {

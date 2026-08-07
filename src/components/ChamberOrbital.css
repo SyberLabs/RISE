@@ -72,12 +72,7 @@
   color: var(--color-ember);
 }
 
-/* THE TWO TOP CONTROLS ARE A PAIR AND HAD DRIFTED APART. "← Portal" and
-   the origin chip flank the same edge, and on a phone they had reached
-   different heights by different routes — the back button carried an 8px
-   override from a 640px block, the chip 24px from a 700px one — so they
-   sat at 8px and 24px while iOS drew the clock and battery across both.
-   One breakpoint, one clearance, both controls. */
+/* Share --top-control-clearance so back and origin chip align. */
 @media (max-width: 700px) {
   .orbital-back,
   .orbital-origin-slot {
@@ -1501,38 +1496,16 @@
     left: var(--space-sm);
   }
 
-  /* BEGIN was a full-width slab under a delicate ring — the loudest
-     object on the screen answering a question the ring had already
-     asked. It is one control among several, and the ring is the
-     subject. */
-  /* ── AND THE HOLE UNDER THE RING ──
-     The stage is a SQUARE and the ring inside it is not: the three
-     nodes fill 289 of its 358 pixels, and the remaining 67 are empty
-     by construction — a gap between the lowest orb and Begin that
-     nothing on the screen explains. The box itself cannot shrink; the
-     nodes are positioned from its centre and moving that centre pushes
-     Temporal off the top. So the actions climb into the band instead,
-     and the 64px of bottom padding meant to clear a desktop fold comes
-     down to the phone's own margin. */
+  /* Square stage leaves empty band under triangular ring; actions
+     climb into it with a fixed offset (not spacing-scale). Stage is
+     position:relative and would steal taps — actions need z-index above. */
   .orbital-actions {
-    /* A LITERAL, DELIBERATELY. This is not a spacing decision — it
-       cancels the 67px of empty stage the square box leaves under a
-       triangular ring — so it must not move when the spacing scale
-       steps down; that would silently reopen the gap it exists to
-       close. */
+    /* Cancels empty stage under the ring; do not tie to spacing scale. */
     margin-top: -44px;
     padding-bottom: var(--space-md);
     width: 100%;
 
-    /* AND THE PRICE OF CLIMBING INTO THE BAND.
-       The stage is `position: relative`, and a positioned element
-       hit-tests ABOVE a static sibling however the DOM is ordered —
-       so the moment Begin moved up into the stage's empty lower band,
-       the stage's own box took the tap and Begin could not be pressed
-       at all. Nothing looked wrong; elementFromPoint at the centre of
-       the button returned div.orbital-stage. Overlapping deliberately
-       means saying which one is on top. (6 clears .orbit-center's 5,
-       though the two do not in fact meet.) */
+    /* Above .orbital-stage so Begin/Reset remain hittable. */
     position: relative;
     z-index: 6;
   }
@@ -1545,35 +1518,9 @@
     letter-spacing: 0.1em;
   }
 
-  /* ═══════════════════════════════════════════════════════════
-     THE PANELS, MEASURED
-     ═══════════════════════════════════════════════════════════
+  /* Phone panels: list-style options (row), not picture tiles. */
 
-     Each orb opens a configuration panel, and on an iPhone 12 they
-     measured:
-
-         Temporal    406px of body   — fits
-         Visual      467px of body   — fits
-         Audio     1 273px of body   — TWO AND A HALF SCREENS, with
-                                       four of its seven sections
-                                       starting below the fold
-
-     The cause is one shape used everywhere: an option is a PICTURE
-     TILE — a 28px glyph on its own line, a name beneath it, 24px of
-     padding around both — so three soundscapes cost 265px. Stacked
-     seven times that is the whole of the excess.
-
-     A tile is right on a desktop, where the panel is a board you look
-     over. On a phone the same choice is a LIST: glyph and name on one
-     line, at a touch target's height. Identical information, a third
-     of the room, and the panel becomes something a thumb reads down
-     instead of something it hunts through.
-     ═══════════════════════════════════════════════════════════ */
-
-  /* A FIVE-WAY CHOICE IS NOT A PAGE. `1fr` put OFF, FOCALS, ATTRACTOR,
-     GENESIS and RHYTHMIC on five rows of 82px — 410px, a whole phone,
-     to answer one question. Two rows of a compact grid say the same
-     thing. */
+  /* Compact grids so mode/preset choices fit a phone panel. */
   .mode-options,
   .audio-preset-options,
   .audio-mode-options,
@@ -1587,16 +1534,7 @@
     gap: var(--space-xs);
   }
 
-  /* THE TILE LIES DOWN — AND THERE ARE FIVE OF IT.
-     The same object is spelled `mode-option`, `audio-preset-option`,
-     `curve-option`, `audio-mode-option` and `audio-waveform-option`,
-     with its glyph spelled `mode-icon`, `preset-icon` and
-     `curve-icon`. Teaching one of those names to lie down left the
-     Audio panel at exactly the 1273px it started at, because the
-     rule and the markup were talking about different words for the
-     same button. They are all named here, together, for that reason.
-     Prefixed with .orbital-modal so every one of them outranks its
-     own base rule — .curve-option's is already written that way. */
+  /* All option spellings: row layout under .orbital-modal. */
   .orbital-modal .mode-option,
   .orbital-modal .audio-preset-option,
   .orbital-modal .curve-option,

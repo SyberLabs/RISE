@@ -93,27 +93,9 @@ function prepareScripture(rawText) {
 }
 
 /**
- * VERSE — a work whose short phrases are the AUTHOR'S, not the printer's.
- *
- * THIS PROFILE IS THE INVERSE OF THE ONE THAT STOOD HERE THIS MORNING.
- * A `prose` profile made sense while the phrase floor was opt-in: it
- * said "floor this text". The floor is now the default
- * (PHRASE-CHUNKING-STUDY §7b), so the statement worth being able to make
- * is the opposite one — leave this text alone — and carrying a `prose`
- * profile that asks for what everything already gets would be a control
- * that does nothing, which this codebase retired an ASCII toggle over
- * on the same day.
- *
- * It changes no text. That is the point: the profile exists to carry a
- * CHUNKING DECISION, not a normalisation, and inventing a transformation
- * to justify the shape would be worse than an honest no-op.
- *
- * NOTHING IN THE CORPUS HAS NEEDED IT YET, and that is worth stating
- * plainly rather than applying it somewhere to look thorough. Verse came
- * out BYTE-IDENTICAL under both conditions when measured — the floor
- * never crosses a sentence end and only touches pieces under the floor,
- * and a verse line is usually neither. The door is open because the
- * measurement covered 24 works and the shelf holds 91.
+ * Verse: decline the phrase floor — short phrases are the author's, not
+ * the printer's. Text unchanged; carries a chunking decision only
+ * (PHRASE-CHUNKING-STUDY §7b).
  */
 function prepareVerse(rawText) {
     return {

@@ -2,9 +2,7 @@ import { test, expect } from '@playwright/test';
 
 const GATE = { code: 'rise2025', name: 'Journeys', vault: null, timestamp: Date.now() };
 
-// Journeys is reached through the Vault now, not from the Portal: a
-// Journey is a reading somebody published, and published readings are
-// what the Vault holds.
+  // Journeys live in the Vault (published readings), not on the Portal.
 async function openJourneys(page) {
   await page.addInitScript((g) => {
     localStorage.setItem('rise-beta-session', JSON.stringify(g));
@@ -16,23 +14,13 @@ async function openJourneys(page) {
 }
 
 
-/**
- * A Journey with imagery asks for photosensitivity consent before the
- * Chamber opens. That gate is correct and belongs to the reader, so a
- * test walks through it rather than around it.
- */
-/**
- * War specifically. The Demonstration now sits above it — it is the
- * shorter door and belongs first — so a bare `.journey-begin` picks the
- * wrong card, and every assertion below is about War's three movements.
- */
+/** Photosensitivity consent before Chamber when a Journey has imagery. */
+/** War card — Demonstration sits above it, so do not use bare `.journey-begin`. */
 const WAR = '[data-journey="journey-war"]';
 
 async function enterReading(page) {
   await page.locator(`${WAR} .journey-begin`).click();
-  // isVisible() does NOT auto-wait — it reports the state at that
-  // instant and ignores a timeout — so checking it straight after the
-  // click asked whether a modal that had not appeared yet was showing.
+  // waitFor, then isVisible — isVisible alone does not wait.
   const accept = page.locator('#safety-accept');
   await accept.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
   if (await accept.isVisible()) await accept.click();
@@ -47,9 +35,7 @@ test('the Portal names one act, and the Vault opens the Journeys', async ({ page
   // The Portal fades its nav in; wait for it rather than racing it.
   await expect(page.locator('[data-nav="chamber"]')).toBeVisible({ timeout: 20000 });
 
-  // ONE ACT AT THE FRONT DOOR. Chamber and Journeys stood here as a
-  // pair — the same act differently authored — and on a phone that read
-  // as two doors with nothing to choose between them.
+  // Portal primary act is Chamber only; Journeys open from Vault.
   const primary = await page.evaluate(() =>
     [...document.querySelectorAll('.nav-primary .nav-item')].map(b => b.dataset.nav));
   expect(primary).toEqual(['chamber']);
@@ -285,12 +271,7 @@ test('the door stays open when a reader declines the safety notice', async ({ pa
 
 test("Milton's engines are alive, not photographs of themselves", async ({ page }) => {
   test.setTimeout(300000);
-  // Two faults, in order. First the engines were filtered out of the
-  // gallery's own allowlist and nothing drew at all. Then they drew —
-  // once. Every one of the thirteen has step(dt) beside render(canvas),
-  // and the cortex called only render, handing the result to the gallery
-  // as a WebP still: the chariot photographed mid-turn and held there for
-  // twenty seconds. Everything worked and nothing moved.
+  // Engines must keep stepping (not a single still frame).
   const failures = [];
   page.on('console', m => { if (m.text().includes('[WorkEngines]')) failures.push(m.text()); });
 
@@ -300,15 +281,12 @@ test("Milton's engines are alive, not photographs of themselves", async ({ page 
   await expect(page.locator('.work-engine-plane')).toHaveCount(2, { timeout: 60000 });
   await page.waitForTimeout(4000);
 
-  // Sample the visible plane twice, seconds apart. A still is identical;
-  // a turning wheel is not.
+  // Sample centre twice; stills match, motion does not.
   const sample = () => page.evaluate(() => {
     const plane = [...document.querySelectorAll('.work-engine-plane')]
       .find(c => parseFloat(getComputedStyle(c).opacity) > 0.5);
     if (!plane) return null;
-    // The CENTRE. The first version of this test read the top-left
-    // 160x160, which on every one of these engines is flat background
-    // gradient — it reported a still field while the chariot turned.
+    // Centre crop — corners are flat background on these engines.
     const w = Math.min(240, plane.width);
     const h = Math.min(240, plane.height);
     if (!w || !h) return null;
@@ -344,17 +322,7 @@ test("Milton's engines are alive, not photographs of themselves", async ({ page 
 
 test('a movement\'s soundscape cue actually reaches the audio engine', async ({ page }) => {
   test.setTimeout(300000);
-  // War read in silence from the day it shipped, behind four stacked
-  // faults: the scheduler called setSoundscape (which AudioEngine has
-  // never had) through an optional chain that swallowed it; the unit
-  // tests mocked that invented name and passed; the Chamber built the
-  // controller disabled because a Journey never sets `audioPreset` and
-  // the default is 'silent'; and the app's hasAudio check did not
-  // consider an audioProgram at all.
-  //
-  // Every layer announced itself correctly in the log. Nothing measured
-  // whether a cue ever ARRIVED, which is the only thing that matters —
-  // so this test asserts arrival, by name, at the engine.
+  // Audio cues must reach the engine by name (not only appear in logs).
   const delivered = [];
   page.on('console', m => {
     const t = m.text();

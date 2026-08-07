@@ -1,19 +1,6 @@
 /**
- * THE INSTRUMENT THAT ACTUALLY FOUND THE FAULT.
- *
- * Two heading fixes shipped, each passing unit tests written to match my
- * own model of what was wrong, while the page on screen stayed visibly
- * wrong. What finally located it was not another fixture: it was walking
- * the real pages and asking a question about GEOMETRY — is a figure
- * sitting level with a title while standing off to one side of it? — the
- * signature of a float that has wrapped a heading.
- *
- * A measurement that agrees with your model is not a measurement. This
- * file measures the rendered page, so it can disagree.
- *
- * It reads Vitruvius because that is where the fault was seen: an
- * edition that carries its structure inline, as ordinary paragraphs, is
- * the case every heuristic here exists for.
+ * Page Mode geometry: figures must not float beside headings.
+ * Walks real pages (Vitruvius-style inline structure).
  */
 import { test, expect } from '@playwright/test';
 import { pageCount } from './page-helpers.js';
@@ -72,13 +59,8 @@ async function openThePage(page) {
 }
 
 /**
- * Geometry, read off the page itself.
- *
- * A figure WRAPS a heading when the two share vertical space while
- * standing apart horizontally — which is precisely what a float does and
- * precisely what a title must never receive. Overlapping boxes that also
- * overlap horizontally are the normal centred-plate-under-a-title case
- * and are fine.
+ * A figure wraps a heading when they share vertical space but sit apart
+ * horizontally (float beside title). Centred plate under a title is fine.
  */
 async function wrappedHeadings(page) {
     return page.evaluate(() => {
@@ -126,8 +108,7 @@ test('no figure stands beside a heading, on any page', async ({ page }) => {
 });
 
 test('an inline CHAPTER heading opens its page rather than closing the last one', async ({ page }) => {
-    // The fault, stated as a reader would: "CHAPTER II" and the opening
-    // of chapter two arrived as the last lines of chapter one's page.
+    // CHAPTER II must open a page, not close the previous one.
     await page.setViewportSize({ width: 1280, height: 900 });
     await openThePage(page);
 
@@ -164,8 +145,7 @@ test('the projection control survives elongating — Elongate is not a one-way d
     await btn.click();
     await page.waitForTimeout(700);
     await page.locator('#chamber-display').hover();
-    // THE FAULT: one page, so the bar inferred "nothing to paginate" and
-    // hid the only way back.
+    // Elongate must leave a way back to Paginate.
     await expect(btn, 'the way back to pages vanished').toBeVisible();
     await expect(btn.locator('.control-label')).toHaveText('Paginate');
 

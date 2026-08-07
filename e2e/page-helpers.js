@@ -1,33 +1,14 @@
 /**
- * Helpers for a PAGINATED Page Mode.
+ * Helpers for paginated Page Mode (PAGE-MODE-SPEC §9).
  *
- * Page Mode used to lay the whole reading out in one column, so a single
- * DOM snapshot answered "does this reading contain imagery?". It is now
- * cut into pages (PAGE-MODE-SPEC §9, an alternate renderer over the same
- * Composition), and one page's DOM is one page's worth — which is the
- * entire point of the change and also the reason four tests that counted
- * `.page-figure` began reporting zero.
- *
- * The assertions those tests make are about THE READING, not about one
- * screenful of it, so the instrument has to cover the reading: turn every
- * page and accumulate. That is also what a reader does.
- *
- * Not named `*.spec.js` on purpose — Playwright's testDir would collect
- * it as a suite with no tests in it.
+ * One page's DOM is one page; walk and accumulate when asserting about
+ * the whole reading. Not named `*.spec.js` so Playwright's testDir
+ * does not collect it as an empty suite.
  */
 
 /**
- * Wait for a page's figures to STOP BEING PENDING, rather than for a
- * fixed number of milliseconds.
- *
- * A blind sleep is the defect Phase 0 spent a session removing: it fails
- * when the machine is slow and wastes time when it is fast. A figure
- * resolves and decodes asynchronously, and it announces its own outcome
- * — `is-shown` or `is-absent` — so that is what to wait on. The timeout
- * is a ceiling, not the mechanism.
- *
- * Returns nothing; a page that never settles simply proceeds, because
- * the assertion about it belongs to the test, not to the helper.
+ * Wait until each `.page-figure` is `is-shown` or `is-absent`.
+ * Ceiling only; outcome assertions belong to the caller.
  */
 async function settle(page, ceilingMs) {
     await page.waitForFunction(() => {
@@ -67,9 +48,7 @@ export async function collectAcrossPages(page, options = {}) {
             }, i);
             if (!turned) break;
         }
-        // Page ZERO needs settling too. It was counted the instant the
-        // walk began, on the assumption the caller had already waited —
-        // which is an assumption, not a wait.
+        // Settle page 0 as well — the walk starts there immediately.
         await settle(page, settleMs);
 
         const slice = await page.evaluate(() => ({
@@ -77,9 +56,7 @@ export async function collectAcrossPages(page, options = {}) {
             figures: document.querySelectorAll('.page-figure').length,
             shown: document.querySelectorAll('.page-figure.is-shown').length,
             absent: document.querySelectorAll('.page-figure.is-absent').length,
-            // Gathered across pages so "each sample is a different state"
-            // can be asserted about the READING; a per-page Set would
-            // only ever see one page's worth.
+            // Distinct shown srcs across the whole reading, not one page.
             srcs: [...document.querySelectorAll('.page-figure.is-shown img')].map(i => i.src)
         }));
 
@@ -92,9 +69,7 @@ export async function collectAcrossPages(page, options = {}) {
 
     totals.distinct = new Set(srcs).size;
 
-    // PUT IT BACK. A walk that leaves the reader on the last page is not
-    // a measurement, it is an edit — and it silently broke the
-    // page-authority assertion that checks the reader has not moved.
+    // Restore page 0 so callers that check place are not left on the last page.
     if (total > 1) {
         await page.evaluate(() => {
             const r = window.rise?.router?.views?.get('chamber-session')?.instance?.pageReader;

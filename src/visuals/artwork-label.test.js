@@ -90,12 +90,7 @@ describe('artwork label metadata boundary', () => {
 });
 
 describe('licence classes are kept apart', () => {
-    // THE POINT OF THIS WHOLE SEPARATION. The museum corpus cleared on
-    // public domain and CC0, which owe no attribution at all, and many of
-    // those works are by an unknown hand. A withholding rule that did not
-    // ask WHICH LICENCE it was withholding under would empty shelves that
-    // were never at risk. These cases come first because they are the
-    // ones that must not move.
+    // Open / CC0 owe no credit; withholding must ask which class.
 
     it('shows a CC0 work by an unknown artist', () => {
         const label = normalizeArtworkLabel({
@@ -233,9 +228,7 @@ describe('an appended roster is set aside for the Curia', () => {
         expect(elided).toBe(true);
     });
 
-    // THE CASE THE CHARACTER-CEILING OPTION WOULD HAVE BROKEN. Five of
-    // the twelve long credits are pure name lists with no marker, and
-    // half a name credits a different person than the whole one does.
+    // Marker-less name lists stay whole — no length fallback.
     it('leaves a long pure name list whole', () => {
         const names = 'NASA, ESA, Michael Wong (Space Telescope Science Institute, '
             + 'Baltimore, MD), H. B. Hammel (Space Science Institute, Boulder, CO) '
@@ -295,8 +288,7 @@ describe('an appended roster is set aside for the Curia', () => {
 });
 
 describe('trimming does not reach the CC0 corpus', () => {
-    // THE INVARIANT THIS WHOLE SEPARATION PROTECTS. Every rule added for
-    // CC-BY must leave an open-licence work composed exactly as before.
+    // CC-BY rules must not change open-licence composition.
 
     it('leaves an open work with an acknowledgment section untouched', () => {
         const label = normalizeArtworkLabel({
@@ -383,10 +375,7 @@ describe('the guarantees are as strong as the words for them', () => {
     });
 
     it('treats a permission grant as owing its credit', () => {
-        // Nine Chapel icons are used by written permission with stated
-        // conditions, and they classified as OPEN — so the Icon Museum's
-        // required wording survived only because an attribution string
-        // happened to exist. A condition honoured by luck is not honoured.
+        // Permission grants owe credit by condition, not by luck.
         const item = { metadata: {
             rights: 'PERMISSION',
             attribution: 'Icon Museum and Study Center, Clinton MA'
@@ -399,9 +388,7 @@ describe('the guarantees are as strong as the words for them', () => {
     });
 
     it('leaves every rights string the corpus actually declares where it was', () => {
-        // THE CC0 FIREWALL. Five distinct rights strings exist across
-        // every collection; a guard added for future harvests must not
-        // move any of them.
+        // Corpus rights strings must stay in their classes.
         expect(licenceClassOf({ metadata: { rights: 'PUBLIC_DOMAIN' } })).toBe(LICENCE.OPEN);
         expect(licenceClassOf({ metadata: { rights: 'Creative Commons Attribution 4.0 International License' } }))
             .toBe(LICENCE.BY);
@@ -414,11 +401,7 @@ describe('the guarantees are as strong as the words for them', () => {
 
 describe('an unrecognised declaration is not an open one', () => {
     it('recognises PUBLIC_DOMAIN as public domain, by name and not by accident', () => {
-        // THE COMMONEST RIGHTS STRING IN THE CORPUS, and OPEN_RIGHTS did
-        // not match it: the separator class was `[\s-]` and an underscore
-        // is neither. It came out `open` on the permissive fallback — the
-        // right answer by the wrong route, which is invisible until the
-        // day the fallback stops being permissive.
+        // PUBLIC_DOMAIN matches by pattern (underscore), not fallback.
         expect(licenceClassOf({ metadata: { rights: 'PUBLIC_DOMAIN' } })).toBe(LICENCE.OPEN);
         // …and proof it is no longer the FALLBACK answering: a fallback
         // has no way to know an acknowledgement was asked for.
@@ -446,10 +429,7 @@ describe('an unrecognised declaration is not an open one', () => {
     });
 
     it('shows every rights string the corpus declares — all eight of them', () => {
-        // THE CC0 FIREWALL, and the reason the recogniser was widened
-        // before the fallback was closed. Doing it in the other order
-        // would have withheld 585 Audubon plates and all 1,699 museum
-        // pins, every one of them with rights perfectly in order.
+        // Every corpus rights string must classify; none as UNKNOWN_DECLARED.
         const CORPUS_RIGHTS = [
             'PUBLIC_DOMAIN',
             'PERMISSION',

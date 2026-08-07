@@ -1595,20 +1595,9 @@
   font-size: 11px;
 }
 
-/* THE MODE SELECTOR STAYS A GRID ON A PHONE.
-   ─────────────────────────────────────────
-   `grid-template-columns: 1fr` below 500 gave the five visual modes a
-   row each — icon above label, 82px apiece, 410px in total to answer a
-   single either/or. Three across puts the same five in two rows and
-   restores the panel to something that can be read without scrolling
-   past it. The five-mode variant keeps its own tighter type, as it
-   already does on desktop. */
+/* Phone: keep mode selector as a single-row grid. */
 @media (max-width: 500px) {
-    /* FIVE ACROSS, NOT THREE WITH A HOLE. A 3-column grid puts the
-       five modes in two rows and leaves the sixth cell empty, which
-       reads as a missing option rather than a tidy grid. One row of
-       five is what the desktop does and what the choice actually is:
-       a single either/or, laid out once. */
+    /* One column per mode — no empty sixth cell from a 3-column wrap. */
     .vi-mode-selector {
         grid-template-columns: repeat(5, minmax(0, 1fr));
     }
@@ -1626,12 +1615,7 @@
         padding-right: var(--space-sm);
     }
 
-    /* NEVER BREAK A UI LABEL MID-WORD. `overflow-wrap: anywhere` is
-       right for an edition statement carrying a URL and wrong for the
-       name of a control: it produced ATTRA/CTOR, GENE/SIS, RHYT/HMIC,
-       which reads as damage rather than as layout. The type comes down
-       instead, and the panel was given back the width its nested
-       padding had taken. */
+    /* UI labels: nowrap; shrink type instead of mid-word breaks. */
     .vi-mode-name {
         font-size: 7.5px;
         letter-spacing: 0;
@@ -1640,14 +1624,7 @@
         overflow-wrap: normal;
     }
 
-    /* FIVE EQUAL CELLS, FIVE UNEQUAL WORDS.
-       OFF is three letters and ATTRACTOR is nine, so one size for all
-       of them means the size is set by the longest — and at 7.5px the
-       three long ones still filled their cells edge to edge while OFF
-       and FOCALS sat in air. Naming them individually is not a special
-       case; it is the only way a grid of fixed cells can hold labels
-       of different lengths without either breaking a word or leaving
-       the short ones undersized. */
+    /* Longer mode names get a slightly smaller size in fixed cells. */
     .vi-mode-btn[data-visual-mode="attractor"] .vi-mode-name,
     .vi-mode-btn[data-visual-mode="genesis"] .vi-mode-name,
     .vi-mode-btn[data-visual-mode="interlocution"] .vi-mode-name {

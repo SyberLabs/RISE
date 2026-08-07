@@ -3,20 +3,14 @@
  *
  *   node scripts/corpus-review-verdicts.mjs verdicts.json --key jobs.key.json
  *
- * NOTHING FROM A REVIEWER IS TRUSTED ON ARRIVAL. This reads a batch,
- * validates every verdict against the schema and the disposition rules
- * in CORPUS-REVIEWER-PROMPT.md §2, scores the hidden controls, and
- * reports the trim rate against a baseline you supply.
+ * Validates every verdict against the schema and disposition rules in
+ * CORPUS-REVIEWER-PROMPT.md §2, scores hidden controls, and reports trim
+ * rate against an optional baseline. Applies nothing — applying is a
+ * separate act with a dossier record (ARCHIVE-CLEANSING-SPEC §5).
  *
- * It applies nothing. Applying is a separate act with a dossier record
- * (ARCHIVE-CLEANSING-SPEC §5), and it must not be reachable by accident
- * from a script whose job is to doubt.
- *
- * A BATCH FAILS WHOLE. If a control comes back wrong, the batch is
- * discarded rather than corrected — a reviewer that got a known answer
- * wrong has told you nothing reliable about the unknown ones, and
- * repairing its output is the same failure as the reviewer rewriting
- * prose: afterwards nobody can tell what was actually decided.
+ * A batch fails whole: if a control is wrong, discard rather than patch.
+ * A reviewer that missed a known answer has said nothing reliable about
+ * the unknowns.
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -32,25 +26,17 @@ const ALLOWED_KEYS = new Set([
 ]);
 
 /**
- * DRIFT IS MEASURED AGAINST A BASELINE YOU SUPPLY, AND THERE IS NO
- * DEFAULT ON PURPOSE.
+ * Drift is measured against a baseline you supply; there is no default.
  *
- * The first version of this compared every batch against §2b's 16% —
- * 293 positionally-proven running heads out of 1,869 candidates — and
- * promptly rejected a batch of perfectly correct verdicts. That figure
- * is over the WRONG DENOMINATOR: the 16% describes all candidates, and
- * the jobs a reviewer actually receives are the ones position could NOT
- * settle, a population whose true trim rate is unknown and certainly
- * higher. Storm of Steel alone is 109 settled against 30 sent.
- *
- * So a number carried over from a different population is not a
- * baseline, it is a coincidence waiting to fire. Until enough batches
- * exist to know the real rate, this REPORTS the rate and rejects
- * nothing on it. Pass `--baseline <0-1>` once that number is earned.
+ * §2b's ~16% is over all candidates (including positionally proven
+ * heads). Reviewer jobs are only the unsettled remainder, whose trim
+ * rate is unknown and higher. Until enough batches earn a real baseline,
+ * this reports the rate and rejects nothing on it. Pass `--baseline <0-1>`
+ * once that number is known.
  */
 const DRIFT_FACTOR = 1.6;
 
-/** The disposition rules, restated as a check rather than as a hope. */
+/** Disposition rules restated as a check. */
 function dispositionShouldBe(v) {
     if (v.verdict === 'book') return 'keep';
     if (v.span !== 'exact') return 'keep';
@@ -100,8 +86,8 @@ verdicts.forEach((v, i) => {
     if (!DISPOSITIONS.has(v.disposition)) malformed.push(`${where}: disposition "${v.disposition}"`);
     if (typeof v.note !== 'string' || !v.note.trim()) malformed.push(`${where}: no note`);
 
-    // A note that describes an ACTION rather than an identity is the
-    // signature of a reviewer that has started editing.
+    // A note that describes an action rather than an identity means the
+    // reviewer has started editing.
     if (typeof v.note === 'string' && /\b(remove|delete|should be|fix|correct|trim)\b/i.test(v.note)) {
         illegal.push(`${where}: note describes an action — "${v.note.slice(0, 60)}"`);
     }
@@ -116,19 +102,12 @@ verdicts.forEach((v, i) => {
     else keeps++;
 });
 
-// ── Controls, and the bijection ─────────────────────────────────────
+// ── Controls and batch shape ─────────────────────────────────────────
 //
-// A BATCH IS ONLY CHECKED IF ITS SHAPE IS CHECKED. The first version
-// scored whichever controls happened to appear, so a verdict file that
-// simply OMITTED every control passed with `controlsSeen === 0` and no
-// failures — the reviewer grading its own exam by skipping the marked
-// questions. It also compared dispositions alone, so calling a variorum
-// collation a "running head" and returning trim passed the control while
-// getting the identity wrong.
-//
-// So: every job gets exactly one verdict, every verdict answers a known
-// job, every control is present exactly once, and a control must match
-// on BOTH verdict and disposition.
+// Every job gets exactly one verdict; every verdict answers a known job;
+// every control is present exactly once and must match on both verdict
+// and disposition. Omitting controls or scoring disposition alone would
+// let a batch pass without a real check.
 const controlFailures = [];
 const shape = [];
 let controlsSeen = 0;
@@ -171,7 +150,7 @@ if (keyFile) {
                 `${id}: expected ${want.verdict}/${want.disposition}, got ${v.verdict}/${v.disposition} — "${v.note}"`);
         }
     }
-    // EVERY control must be answered, exactly once.
+    // Every control must be answered exactly once.
     for (const k of key) {
         const n = seenIds.get(k.id) || 0;
         if (n === 0) controlFailures.push(`${k.id}: control omitted from the verdict file`);

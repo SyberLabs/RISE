@@ -403,9 +403,8 @@ describe('VisualInterlocutionPanel preset visibility', () => {
                 .toBeTruthy();
         }
 
-        // Every category lands in exactly one group — a category with no
-        // `kind` would otherwise vanish from the UI silently, which is
-        // the failure mode this codebase is most prone to.
+        // Every category lands in exactly one group — untyped categories
+        // would vanish from the UI silently.
         const grouped = groups.flatMap(g =>
             [...g.querySelectorAll('[data-sourced]')].map(b => b.getAttribute('data-sourced')));
         expect(new Set(grouped).size).toBe(grouped.length);

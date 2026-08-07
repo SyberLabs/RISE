@@ -1,20 +1,6 @@
 /**
- * THE DEMONSTRATION: a Journey's authored procedural imagery, on the page.
- *
- * This is the item that was gated. `PROCEDURAL_FIGURES` in flow.js was
- * held false with a precise reason — a 23,000-word Journey was one
- * continuous column, and a sampled engine still at every figure was more
- * than that column could afford. Pagination answered it, so the flag is
- * on and this is the proof, walked in a browser rather than argued.
- *
- * What it should show: the Milton movement illustrated by the engines
- * its author NAMED per segment — `flaming_sword`, `chariot_deity`,
- * `fall_hypercube` — rather than typesetting as text. And the Homeric
- * movement's museum works still arriving on the ordinary path, since
- * they never depended on this.
- *
- * Reverent degradation is asserted alongside, not afterwards: an engine
- * that will not resolve must yield stillness, never a broken frame.
+ * Journey Page Mode: authored procedural figures per segment, plus
+ * museum path; unresolved engines yield is-absent, never a broken frame.
  */
 import { test, expect } from '@playwright/test';
 import { collectAcrossPages, pageCount } from './page-helpers.js';
@@ -52,8 +38,7 @@ test('a Journey pages, and its procedural movements are illustrated', async ({ p
     const pages = await pageCount(page);
     expect(pages, 'a 23,000-word Journey pages rather than scrolling').toBeGreaterThan(4);
 
-    // WHAT THE FLOW PLACED, read from the reader itself. The DOM shows
-    // one page at a time; this is the whole reading.
+    // Collect figure ids from the full reading (DOM is one page at a time).
     const placed = await page.evaluate(() => {
         const r = window.rise?.router?.views?.get('chamber-session')?.instance?.pageReader;
         const items = r?.composition?.items || [];
@@ -74,9 +59,7 @@ test('a Journey pages, and its procedural movements are illustrated', async ({ p
     expect(placed.engineNamed.length,
         "Milton's movement is illustrated by its own engines").toBeGreaterThan(0);
 
-    // REVERENT DEGRADATION, walked. Every page turned; a figure either
-    // resolves or is absent, and `is-absent` is the sanctioned state.
-    // There must be no figure stuck pending at the end of the walk.
+    // Every figure shown or absent; none left pending.
     const totals = await collectAcrossPages(page, { settleMs: 900 });
     console.log('WALK ' + JSON.stringify(totals));
     expect(totals.texts, 'the reading is still a reading').toBeGreaterThan(0);
@@ -87,10 +70,7 @@ test('a Journey pages, and its procedural movements are illustrated', async ({ p
         document.querySelectorAll('.page-figure img:not([src])').length);
     expect(broken, 'no figure frame stands empty').toBe(0);
 
-    // R11, ON THE READING RATHER THAN ON A FIXTURE. Jünger's scan carries
-    // its running heads — "GUILLEMONT 93 … 109" — dropped wherever the
-    // printed page turned, which is usually mid-clause. They must not be
-    // set as titles.
+    // Running heads mid-clause must not be typeset as titles.
     const promoted = await page.evaluate(() => {
         const r = window.rise?.router?.views?.get('chamber-session')?.instance?.pageReader;
         const items = r?.composition?.items || [];

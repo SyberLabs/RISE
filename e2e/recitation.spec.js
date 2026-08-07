@@ -19,19 +19,8 @@ const PLAIN = {
 };
 
 async function installVoiceWorkerStub(page) {
-  // INERT, AND KEPT ONLY UNTIL THE LAST CALLER IS REWRITTEN.
-  //
-  // This emulates the Kokoro worker protocol — load/speak messages,
-  // Float32Array samples, a Blob fallback — and the Voice has not used
-  // a Worker since the static-pack pivot. It stubs `window.Worker`,
-  // which nothing now constructs, so it changes nothing about any test
-  // that installs it.
-  //
-  // Two tests were calibrated against it and failed for that reason:
-  // they expected synthetic speech for arbitrary text, which the
-  // architecture no longer performs. See their headers.
-  //
-  // Live-model/CSP coverage stays in csp-live.spec.js.
+  // Legacy Worker stub — Voice no longer uses Workers; kept for callers not yet rewritten.
+  // Live-model/CSP coverage: csp-live.spec.js.
   await page.addInitScript(() => {
     class VoiceWorkerStub {
       postMessage(message) {
@@ -161,43 +150,15 @@ test('the voice never blocks the reading, and never ships unasked', async ({ pag
 });
 
 test('an uncovered reading is read silently rather than stalled', async ({ page }) => {
-  // WHAT THIS USED TO ASSERT, AND WHY IT CANNOT.
-  //
-  // It read `voice._speaking` and required it true. The Voice has no
-  // such field and has not since the static-pack pivot — `_speaking`
-  // belonged to the browser-inference runtime, which could synthesise
-  // any text on demand. The assertion had been reading `undefined`.
-  //
-  // Recitation is now prebuilt audio: a phrase is speakable when a pack
-  // covers it, and this test's text has no pack. That is the ordinary
-  // case for most of the Archive, and the guarantee that matters is the
-  // one a reader depends on — a reading with recitation ON and no audio
-  // available must proceed at reading pace, never wait for a file that
-  // is never coming.
+  // Recitation ON without pack coverage: advance at reading pace, never stall.
   await enterChamber(page, true);
 
-  // Sample the atom INDEX rather than the text: an empty display is a
-  // legitimate state — pause atoms render nothing — so text alone
-  // cannot tell a stalled reading from a resting one.
+  // Atom index (empty display is a valid pause atom).
   const at = () => page.evaluate(() =>
     window.rise?.router?.views?.get('chamber-session')?.instance?.player?.sessionState?.currentIndex ?? -1);
   const before = await at();
 
-  // WALL TIME AND FRAME TIME ARE DIFFERENT CLOCKS.
-  //
-  // This used to sleep 4000ms and then assert the index had moved. The
-  // player advances on `requestAnimationFrame` (see player.js), and
-  // Chromium throttles frames to near-zero for a page that is not
-  // visible — so during a full parallel e2e run the sleep elapsed
-  // while almost no frames were delivered, the index stayed at 0, and
-  // the test failed against a reading that was working perfectly. It
-  // passed 3/3 alone, which is the signature of a clock mismatch
-  // rather than a defect.
-  //
-  // Polling for the condition measures the clock the assertion is
-  // actually about. It is not a weaker test: a reading that genuinely
-  // stalls never advances however long we wait, so the regression this
-  // exists to catch still fails it — by timeout instead of by sleep.
+  // Poll rAF-driven progress; wall-clock sleep is the wrong clock when frames throttle.
   await expect.poll(at, {
     timeout: 30000,
     message: 'the reading never advanced — an uncovered reading stalled instead of reading silently'
@@ -219,11 +180,9 @@ test('an uncovered reading is read silently rather than stalled', async ({ page 
   console.log('ADVANCES ' + JSON.stringify({ ...r, before, after }));
 
   expect(r.hasVoice).toBe(true);
-  // The manifest is admitted even when nothing in it covers this text.
   expect(r.failed).toBe(false);
   expect(r.loaded).toBe(true);
-  // The reading moves. This is the whole point: reverent degradation
-  // means silence, not a stalled reader.
+  // Uncovered phrases: silence, not a stalled reader.
   expect(after).toBeGreaterThan(before);
 });
 
@@ -235,15 +194,10 @@ test('the control turns recitation on, and the choice survives a return', async 
   }, { gate: GATE, seed: SEED });
   await page.goto('/');
   await page.locator('[data-nav="chamber"]').first().click();
-  // Recitation lives in the AUDIO orbit. It began in Temporal on the
-  // argument that it presents TEXT — true, but a reader looking for a
-  // voice looks under Audio, and a dead "Text-to-Speech" toggle was
-  // already sitting there answering the question wrongly.
   await page.locator('.orbit-node[data-orbit="audio"]').click();
   await expect(page.locator('[data-recitation="on"]')).toBeVisible({ timeout: 15000 });
 
-  // The note explains the download BEFORE it happens, so enabling a
-  // voice is never a surprise.
+  // Note visible before enabling voice.
   const noteHiddenAtFirst = await page.locator('[data-recitation-note]').isHidden();
   await page.locator('[data-recitation="on"]').click();
 
@@ -294,22 +248,8 @@ test('the control turns recitation on, and the choice survives a return', async 
 });
 
 /**
- * The generation storm, in a real browser.
- *
- * A unit test can prove `prime()` makes no request before the model is
- * loaded. It cannot prove the Chamber does not CALL it in a way that
- * produces one anyway, and the failure was in exactly that seam: the
- * Chamber primes on every atom, the model takes tens of seconds to
- * fetch, and each doomed request cleared its own in-flight flag so the
- * next atom queued it again. Several a second, for the whole download.
- *
- * The reader never saw a voice error. They heard the drones tear into a
- * buzz — Web Audio underrunning behind a saturated main thread — and on
- * one occasion lost the tab.
- *
- * So this asserts a RATE across preparation and playback. Model-load
- * behavior itself is covered by the Voice unit suite; this browser test
- * preserves the full Chamber/Player call pattern without a 92 MB fetch.
+ * Chamber must not storm generation requests while the model loads.
+ * Assert request rate across prep/playback; Voice unit suite covers load itself.
  */
 test('the voice makes no request storm around preparation and playback', async ({ page }) => {
   const voiceLogs = [];

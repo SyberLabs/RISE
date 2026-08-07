@@ -2,11 +2,9 @@
  * Properties of the committed artifacts, checked where a unit test cannot
  * reach them.
  *
- * The unit suite tests the classifier. This tests the CATALOGUES — the
- * generated JSON that ships in the bundle — because a rights guarantee
- * that holds in `artwork-label.js` and fails in the file it reads is a
- * guarantee about nothing. Each check below is a promise made in
- * ASSET-LICENSES.md or in the harvester, restated as an assertion.
+ * The unit suite tests the classifier; this tests the catalogues (generated
+ * JSON in the bundle). Each check restates a promise from ASSET-LICENSES.md
+ * or the harvester as an assertion.
  *
  *   node scripts/ci-hygiene.mjs
  */
@@ -31,10 +29,8 @@ function walk(dir, exts, out = []) {
 
 // ── 1. No secret may travel in a delivery URL ────────────────────────
 //
-// The harvester refuses a candidate whose delivery URL carries a
-// credential, because a pinned URL is committed to the repository and
-// served to every reader. This is the same rule applied to what actually
-// landed, since the rule is only worth as much as the artifact obeying it.
+// Same rule as the harvester: a pinned URL is committed and served to
+// every reader, so credentials must not appear in what actually landed.
 const CARRIES_SECRET = /[?&](api_?key|access_?token|token|signature|sig|auth)=/i;
 
 const CATALOGUES = [
@@ -56,11 +52,8 @@ for (const path of CATALOGUES) {
 
 // ── 2. A key must never be inlined into the client bundle ────────────
 //
-// Vite substitutes anything named VITE_* into the shipped JavaScript. The
-// Smithsonian API key stayed on the workstation for exactly this reason;
-// the way that decision gets quietly undone is someone reaching for
-// `import.meta.env.VITE_SOMETHING_KEY` because it was the convenient
-// place to put it.
+// Vite substitutes VITE_* into shipped JavaScript. Secret-shaped names
+// must not appear as `import.meta.env.VITE_*KEY` (etc.) in src/.
 const SECRETISH_VITE = /import\.meta\.env\.VITE_[A-Z0-9_]*(KEY|TOKEN|SECRET|PASSWORD)[A-Z0-9_]*/;
 
 for (const file of walk('src', ['.js'])) {
@@ -70,9 +63,8 @@ for (const file of walk('src', ['.js'])) {
 
 // ── 3. Every work owing a credit has one ─────────────────────────────
 //
-// ASSET-LICENSES.md §6: "Every one of the 152 CC BY works carries a
-// composed credit naming both the creator and the licence." That sentence
-// is a claim about the catalogue, not about the code that reads it.
+// ASSET-LICENSES.md §6: every CC BY (etc.) work carries a composed credit.
+// That claim is about the catalogue, not the code that reads it.
 const OWES_CREDIT = new Set(['cc-by', 'cc-by-sa', 'public-domain-credit', 'permission']);
 
 for (const path of CATALOGUES) {
@@ -82,9 +74,8 @@ for (const path of CATALOGUES) {
         if (!String(work.requiredCredit || '').trim()) {
             fail('work owes a credit and has none', `${path} · ${work.id} · ${work.licence}`);
         }
-        // The elision is lawful under CC BY 4.0 §3(a)(3) only because the
-        // full text is retained. If it was shortened, the long form has
-        // to actually be there and actually be longer.
+        // Elision is lawful under CC BY 4.0 §3(a)(3) only if the full
+        // text is retained and actually longer.
         if (work.creditElided) {
             const full = String(work.fullCredit || '');
             if (full.length <= String(work.requiredCredit || '').length) {
@@ -97,11 +88,9 @@ for (const path of CATALOGUES) {
 
 // ── 4. No catalogue may declare rights the classifier cannot read ────
 //
-// `LICENCE.UNKNOWN_DECLARED` withholds a work whose rights string this
-// project has no pattern for. That is the correct behaviour and a silent
-// way to empty a shelf: the work vanishes from the reading surface with
-// its rights perfectly in order. Better to fail here, loudly, at the one
-// moment somebody can still fix the vocabulary.
+// `LICENCE.UNKNOWN_DECLARED` withholds unrecognized rights strings. Fail
+// here so an unknown vocabulary is fixed rather than silently emptying
+// a shelf.
 const { licenceClassOf, LICENCE } = await import('../src/visuals/artwork-label.js');
 
 for (const path of CATALOGUES) {
@@ -117,10 +106,8 @@ for (const path of CATALOGUES) {
 
 // ── 5. Every icon the page promises actually ships ───────────────────
 //
-// A missing favicon is invisible: no error, no broken image, just the
-// browser's blank default and a 404 nobody opens devtools to see. The
-// paths live in two files that are edited at different times, which is
-// the only reason this can go wrong.
+// Paths live in index.html and the manifest; a missing file is a quiet
+// 404 with the browser default icon.
 const indexHtml = read('index.html');
 const manifestPath = 'public/site.webmanifest';
 const manifest = json(manifestPath);
@@ -143,9 +130,8 @@ for (const href of referencedIcons) {
 
 // ── 6. The manifest's colours are the page's colour ──────────────────
 //
-// favicon.io ships `#ffffff` for both. On a product whose first paint is
-// #0A0A0C that is a white flash on every standalone launch — and the two
-// values live in two files, so nothing but this notices when one moves.
+// theme_color / background_color must match index.html theme-color so
+// standalone launch does not flash a mismatched chrome colour.
 const themeColor = indexHtml.match(/<meta\s+name="theme-color"\s+content="([^"]+)"/i)?.[1];
 if (!themeColor) {
     fail('index.html declares no theme-color', 'the manifest has nothing to agree with');
@@ -164,14 +150,13 @@ if (!String(manifest.name || '').trim() || !String(manifest.short_name || '').tr
 
 // ── 7. The share card is absolute, and it ships ──────────────────────
 //
-// A scraper has no page to resolve a relative path against, so a
-// relative og:image is simply no image — and the failure is invisible
-// from the site itself, which renders identically either way.
+// og:image must be an absolute URL for crawler/preview compatibility;
+// a relative path is not portable across share scrapers.
 const ogImage = indexHtml.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i)?.[1];
 if (!ogImage) {
     fail('no og:image', 'a shared link would show a bare title-and-description row');
 } else if (!/^https?:\/\//i.test(ogImage)) {
-    fail('og:image is not absolute', `${ogImage} — scrapers cannot resolve it`);
+    fail('og:image is not absolute', `${ogImage} — needs an absolute URL for preview compatibility`);
 } else {
     const onDisk = join('public', new URL(ogImage).pathname.slice(1));
     try {
@@ -181,11 +166,10 @@ if (!ogImage) {
     }
 }
 
-// ── 8. No retired name in anything a stranger reads ──────────────────
+// ── 8. No retired name in reader-facing metadata ─────────────────────
 //
-// The acronym's expansion lived in metadata nobody re-reads, so a shared
-// link kept showing it after the rename. It survives in docs/specs as
-// history, which is correct; what it may not do is greet a stranger.
+// Scans only index.html, the webmanifest, README.md, and NOTICE — the
+// files a stranger may see. Docs/specs may keep historical names.
 const RETIRED_VOCABULARY = [
     /Recursive Installation/i,
     /consciousness-first/i,

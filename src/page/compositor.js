@@ -1,13 +1,7 @@
 /**
- * The Compositor — Page Mode, Layer 2 (PAGE-MODE-SPEC §3.2).
- *
- * Flow → Composition. This is where the typesetting intelligence lives:
- * placement, rhythm, restraint. It is deliberately DOMAIN-AGNOSTIC — it
- * knows blocks, emphasis and aesthetics, never pericopes or verses. And
- * it is renderer-agnostic: the Composition is plain data, so the grid
- * engine (§9) can grow underneath it without a rewrite.
- *
- * Pure: no DOM, no fetch, no clock. Unit-testable with a fake flow.
+ * The Compositor — Page Mode Layer 2 (PAGE-MODE-SPEC §3.2).
+ * Flow → Composition: placement, rhythm, restraint. Domain-agnostic,
+ * renderer-agnostic plain data. Pure: no DOM, fetch, or clock.
  */
 
 import { BLOCK, MARK } from './flow.js';
@@ -43,11 +37,7 @@ const WIDOW_CHARS = 42;
 const BLEED_TEXT_DEBT = 4;
 
 /**
- * A wrapped (margin) figure only earns its place when there is enough
- * prose beside it to actually wrap. A float with one short verse next to
- * it leaves a ragged hole in the column and pushes the figure past the
- * measure — the failure the reader caught. These are the thresholds a
- * human typesetter applies by eye.
+ * A wrapped (margin) figure needs enough following prose to actually wrap.
  */
 const WRAP_MIN_BLOCKS = 3;     // paragraphs that must follow the figure
 const WRAP_MIN_CHARS = 340;    // and the prose they must amount to
@@ -63,15 +53,7 @@ function proseAfter(blocks, index) {
     for (let i = index + 1; i < blocks.length; i++) {
         const b = blocks[i];
         if (b.kind === BLOCK.TEXT) {
-            // A TITLE IS NOT PROSE, and this is where the Vitruvius page
-            // actually went wrong. A raised chapter MARK ends the run
-            // below, but an edition that carries its headings inline
-            // presents them as ordinary text blocks — so the float
-            // counted "CHAPTER I" and "THE EDUCATION OF THE ARCHITECT"
-            // as two more paragraphs to wrap and ran its group straight
-            // past the title. The figure was never adjacent to a
-            // heading; its wrap group had swallowed one, which is why
-            // fixing adjacency changed nothing on screen.
+            // Titles are not prose — stop wrap before an inline heading.
             if (isHeadingAt(blocks, i)) break;
             count += 1;
             chars += (b.text || '').length;
@@ -107,20 +89,9 @@ function placementFor(block) {
  */
 
 /**
- * Does this paragraph read as a HEADING rather than as prose?
- *
- * Many public-domain editions carry their structure inline: Vitruvius
- * has "CHAPTER I" and "THE EDUCATION OF THE ARCHITECT" as ordinary
- * paragraphs, indistinguishable from the sentences around them once the
- * text is atomised. The flow has no chapter mark to raise, so the
- * compositor was setting them at prose rhythm and they arrived crammed
- * between two paragraphs with nothing to breathe.
- *
- * The test is deliberately narrow, because a false positive puts a gulf
- * in the middle of a sentence: short, no lowercase letters at all, and
- * not punctuated as a sentence. "CHAPTER I" passes. "I HAVE DRAWN UP
- * DEFINITE RULES." does not, because of the full stop; a shouted line
- * of prose stays prose.
+ * Inline all-caps short runs that read as headings, not prose.
+ * Narrow: no lowercase, no sentence punctuation, ≥3 consecutive capitals,
+ * no brackets (apparatus scraps), not mid-sentence (see interruptsASentence).
  */
 function readsAsHeading(text) {
     const t = String(text || '').trim();
@@ -129,21 +100,9 @@ function readsAsHeading(text) {
     if (!/[A-Z]/.test(t)) return false;          // numerals or marks alone are not headings
     if (/[.!?,;:]$/.test(t)) return false;       // a sentence, merely shouted
 
-    // AND NOT AN APPARATUS FRAGMENT. Public-domain scans carry the
-    // editorial apparatus inline — marginalia, sigla, footnote tails —
-    // and it arrives as short all-caps scraps with orphaned brackets:
-    // "ATHENS]", "ROME]", "Giocondo, Venice, 1511)]". Split one per
-    // atom, "ATHENS]" is indistinguishable from a heading by every test
-    // above, and Vitruvius Book I duly grew three of them.
-    //
-    // A heading does not carry a bracket. This does not repair the text
-    // — those fragments should not be in a reading at all, which is a
-    // separate matter for the text audit — but it stops the compositor
-    // from promoting damage into structure.
+    // Apparatus scraps ("ATHENS]", footnote tails) are not headings.
     if (/[[\]()]/.test(t)) return false;
-    // Nor a bare siglum or numeral. A heading has at least one WORD in
-    // it; "IV" and "A" are references, and a Roman numeral alone is how
-    // a scan labels a plate.
+    // Need a word (≥3 capitals); bare sigla/numerals are plate labels.
     if (!/[A-Z]{3}/.test(t)) return false;
     return true;
 }
@@ -152,32 +111,11 @@ function readsAsHeading(text) {
 const ENDS_A_SENTENCE = /[.!?…][")'\]]*$/;
 
 /**
- * A HEADING DOES NOT INTERRUPT A SENTENCE.
+ * A heading does not interrupt a sentence.
  *
- * The last thing `readsAsHeading` cannot see on its own, and the reason
- * a Jünger page carried "GUILLEMONT 101" centred as a title between
- * "…the men were standing, rifle in hand … Now and" and "then by the
- * light of a rocket I saw the gleam of helmet after helmet".
- *
- * "GUILLEMONT 101" is not a title. It is the RUNNING HEAD of the printed
- * page — the chapter name and the recto page number, which this scan
- * carries eight times over as 93, 95, 97, 99, 101 … — and OCR dropped it
- * where the page turned, which was the middle of a sentence. Every test
- * above passes it: short, all capitals, no terminal punctuation, three
- * consecutive capitals.
- *
- * What gives it away is not its shape but its POSITION. A title follows
- * a finished sentence and is followed by something that begins. This one
- * stands between a clause that has not ended and a word that continues
- * it in lower case. Both conditions are required, so a heading opening a
- * reading, or one following a proper sentence, is untouched — and a
- * genuine two-part title ("CHAPTER II" / "THE FUNDAMENTAL PRINCIPLES")
- * survives, because what follows it does not begin in lower case.
- *
- * This does not repair the text. Those running heads should not be in a
- * reading at all, which is the archive's business and is recorded in
- * ARCHIVE-CLEANSING-SPEC. It stops the compositor from promoting damage
- * into structure — the standing constraint the `ATHENS]` fault wrote.
+ * Shape-passing OCR running heads mid-clause are rejected when the prior
+ * text has not ended a sentence and the next text resumes in lowercase.
+ * Does not repair the archive — only refuses to promote damage to structure.
  */
 function interruptsASentence(blocks, index) {
     let before = null;
@@ -310,10 +248,7 @@ export function compose(flow, options = {}) {
             // episodes (Matthew 27's seven Passion pericopes) would render
             // as seven stacked full-bleed plates — a reel, not a book.
             if (placement === PLACEMENT.BLEED) {
-                // "First" means no PROSE has run yet — not an empty
-                // composition. A real chapter opens with its numeral, so
-                // testing items.length silently demoted every opening
-                // plate (the chapter mark alone made it look owed).
+                // "First" = no prose yet (chapter mark alone is not owed).
                 const noProseYet = !items.some(it => it.type === 'text');
                 const earned = noProseYet || sinceImageText >= BLEED_TEXT_DEBT;
                 if (!earned || bleedRun >= maxBleedRun) placement = PLACEMENT.INSET;
@@ -340,18 +275,7 @@ export function compose(flow, options = {}) {
                 }
             }
 
-            // ── A FIGURE BESIDE A TITLE DOES NOT WRAP ──
-            //
-            // Book practice: a heading is a symmetrical object on the
-            // page, and the space beneath it belongs to it. A figure
-            // floated into that space turns the opening into a
-            // shop-window — the Vitruvius page where a wrapped plate sat
-            // level with CHAPTER I and pushed "THE EDUCATION OF THE
-            // ARCHITECT" into two lines is exactly the fault.
-            //
-            // Adjacent to a heading, a figure becomes a CENTRED plate on
-            // the full measure. It keeps the symmetry the heading
-            // establishes instead of competing with it.
+            // Adjacent to a heading → centred inset, not wrap (keep symmetry).
             const lastItem = items[items.length - 1];
             const nextBlock = blocks[i + 1];
             const nearAHeading =
@@ -365,22 +289,8 @@ export function compose(flow, options = {}) {
                 wrapBlocks = 0;
             }
 
-            // ── NOTHING STANDS INSIDE A TITLE ──
-            //
-            // "CHAPTER I" and "THE EDUCATION OF THE ARCHITECT" are two
-            // blocks and one heading. A figure cued between them lands
-            // in the middle of a title — centred or not, it separates a
-            // chapter number from the chapter's name, which no book
-            // does. The heading group is atomic; the figure waits and
-            // is emitted directly beneath it.
-            //
-            // This DOES move a figure, which R5 was refused for. The
-            // difference is what it moves across: R5 slid a plate past
-            // PROSE, to a passage that did not summon it. This moves it
-            // past the remaining half of a heading — the same juncture,
-            // the same passage, on the far side of a title rather than
-            // inside one. The binding is unchanged; only the title is
-            // left whole.
+            // Heading runs are atomic: hold a figure cued between title
+            // halves and emit it beneath the complete title (binding unchanged).
             if (headingRunAhead(blocks, i + 1)) {
                 held = {
                     collections: block.collections,

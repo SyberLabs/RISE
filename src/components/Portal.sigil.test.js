@@ -1,17 +1,6 @@
 /**
- * The sigil is a control on a pointer and a seal on a phone.
- *
- * It has always meant "return to the last session". On a narrow screen it
- * cannot say so — iOS paints its own ▶ over any video it has not started,
- * so the vessel reads as a play button — and on a cold load it has
- * nothing to return to, because `window.rise.currentSession` lives in
- * memory and does not survive a reload. Every fresh visit therefore fell
- * through to the Vault: a control that looks like playback, does not
- * play, and goes somewhere unannounced.
- *
- * Nothing is lost by standing it down. The Continue strip is the same
- * action with a label and the reading's name on it, and it appears under
- * exactly the condition that makes the sigil meaningful.
+ * Phone: sigil is a seal (div, aria-hidden). Pointer: button that resumes.
+ * Continue strip is the labelled resume affordance when a session exists.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Portal } from './Portal.js';
@@ -61,9 +50,7 @@ describe('on a phone the sigil is a seal', () => {
     });
 
     it('is not announced as an action', () => {
-        // A `button` with a label is a promise to assistive technology as
-        // much as to the eye, and the promise is the thing that is not
-        // keepable here.
+        // Seal: not announced as an actionable control.
         atWidth(true);
         const { container } = makePortal();
         const vessel = container.querySelector('.portal-sigil-vessel');
@@ -73,8 +60,7 @@ describe('on a phone the sigil is a seal', () => {
     });
 
     it('does nothing when tapped', () => {
-        // THE BUG ITSELF. A tap on what looked like a play control opened
-        // the Vault.
+        // Seal must not invoke onQuickAccess.
         atWidth(true);
         const { container, onQuickAccess } = makePortal();
         container.querySelector('.portal-sigil-vessel').click();
@@ -88,8 +74,7 @@ describe('on a phone the sigil is a seal', () => {
     });
 
     it('keeps the Continue strip, which is the labelled way back', () => {
-        // The affordance is not removed from the phone, it is moved to the
-        // element that can name what it does.
+        // Resume stays on Continue when the vessel is a seal.
         atWidth(true);
         const { container } = makePortal();
         expect(container.querySelector('.portal-continue')).not.toBeNull();
@@ -114,8 +99,7 @@ describe('on a pointer the sigil is still the quick way back', () => {
     });
 
     it('falls back to the control where matchMedia does not exist', () => {
-        // Any environment that cannot answer the question gets the
-        // historical behaviour rather than a silently disabled Portal.
+        // No matchMedia → keep historical button behaviour.
         delete window.matchMedia;
         const { container, onQuickAccess } = makePortal();
         expect(container.querySelector('.portal-sigil-vessel').tagName).toBe('BUTTON');

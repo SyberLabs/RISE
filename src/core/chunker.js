@@ -119,39 +119,9 @@ function getPunctuationPause(text, baseDuration) {
  * @returns {string[]}
  */
 /**
- * The floor. Phrase mode had a ceiling and nothing underneath it.
- *
- * `splitPhrases` cuts after every `, ; : — – |` and every sentence end,
- * and nothing ever put a short piece back. A comma-separated list — one
- * thought — became one screen per item, and Book VI measured 27%
- * fragments and 95 stutter runs: `"unpursued,"` alone on screen, then
- * `"till Morn,"` alone after it.
- *
- * Sentence mode is not the answer to that. It has no fragments, but
- * Milton's sentences run ten lines, so `splitLongChunk` windows them by
- * word count and 71.6% of atoms end mid-phrase — `"...Lodge and"`,
- * `"dislodge by turns, which"`. Phrase mode gets the BOUNDARIES right
- * and the LENGTHS wrong; this fixes the lengths and touches nothing
- * else.
- *
- * Three refusals, and the third is the important one:
- *
- *   1. Never past the ceiling — MAX_CHUNK_WORDS still governs.
- *   2. Never across a sentence end. A naive floor produces
- *      `"unsociable people. But all of this arises"`, which is two
- *      thoughts in one breath.
- *   3. NEVER ACROSS AN AUTHORED BOUNDARY. The Vault's sequences carry
- *      hand-placed `|` marks, and by every metric here they look like
- *      the defect — 19.5% fragments — because they are short BY DESIGN.
- *      That is the phrasing an author asked for. `splitPhrases` treats
- *      `|` and `,` identically and the provenance is gone by the time we
- *      see the pieces, so this checks the paragraph's own text: if a
- *      pipe was written anywhere in it, the floor declines to touch that
- *      paragraph at all.
- *
- * Coarse, and deliberately so. Content authors; the runtime follows.
- * The finer version is per-boundary provenance through `splitPhrases`,
- * which is the real Chunker V2 item.
+ * Phrase floor: merge short pieces after splitPhrases. Refusals: never
+ * past MAX_CHUNK_WORDS; never across a sentence end; never across an
+ * authored `|` (if the paragraph contains a pipe, leave it alone).
  *
  * @param {string[]} phrases pieces from splitPhrases, one paragraph's worth
  * @param {string} paragraph the text they came from, for authored marks
@@ -159,17 +129,8 @@ function getPunctuationPause(text, baseDuration) {
 /**
  * Is this text actually printed as verse lines?
  *
- * DERIVED, NEVER DECLARED — and the reason is Dickinson. Labelling a
- * work "verse" in a manifest describes the poem; it does not describe
- * the FILE. Measured, our Dickinson edition has a median line of 19
- * words with 66% of lines over the chunker's ceiling, because its poems
- * are set as running prose and the lineation is simply gone. Milton's
- * Book VI measures a median of 8 with nothing over the ceiling.
- *
- * A `structure: "verse"` flag would have been true about both and
- * useful for only one. So the question this asks is not "is this
- * poetry" but "does this text still carry its lines", which is the only
- * form of the question the chunker can act on.
+ * Derived from the file, not a manifest flag: does the text still carry
+ * its lines? Prose-set editions of poetry often do not.
  *
  * @returns {{lineated: boolean, lines: number, medianWords: number, overCeiling: number}}
  */
@@ -184,24 +145,7 @@ export function detectVerseLineation(text, { maxWords = MAX_CHUNK_WORDS } = {}) 
     const medianWords = sorted[sorted.length >> 1];
     const overCeiling = lengths.filter(n => n > maxWords).length / lengths.length;
 
-    // WRAPPED PROSE IS NOT VERSE, and by word count alone it looks
-    // exactly like it. Gutenberg wraps at a fixed column, so Moby-Dick,
-    // Karamazov, Swann's Way and the prose Odyssey all have short lines
-    // and none over the ceiling — and a wrap point is not an authored
-    // boundary, it is an artefact of plain-text typesetting from before
-    // any of this existed.
-    //
-    // The tell is character length, and the separation is total:
-    //
-    //   Milton         max 59 chars, 40% of lines near the maximum
-    //   Dante          max 58,       41%
-    //   Moby-Dick      max 71,       82%
-    //   Karamazov      max 71,       84%
-    //   Odyssey (prose) max 71,      86%
-    //   Swann's Way    max 73,       89%
-    //
-    // A wrapped file crowds its lines against the column because the
-    // wrapper filled each one. A poet's line ends where the line ends.
+    // Wrap crowding (chars near column max) is not authored verse.
     const chars = lines.map(l => l.length);
     const charsSorted = [...chars].sort((a, b) => a - b);
     const p90Chars = charsSorted[Math.floor(charsSorted.length * 0.9)] || 1;
@@ -302,36 +246,9 @@ function splitLongChunk(chunk, maxWords = MAX_CHUNK_WORDS) {
     const words = chunk.split(/\s+/).filter(Boolean);
     if (words.length <= maxWords) return [chunk];
 
-    // Stage 1: connective boundaries.
-    //
-    // A CONNECTIVE OPENS A CLAUSE; IT DOES NOT CLOSE ONE. This split used
-    // a lookBEHIND and cut after the word, so the hinge was stranded at
-    // the end of the phrase it was there to introduce — "The many
-    // different acts and" left a reader hanging, and two connectives in a
-    // row left a phrase that was one word long: "…in other ways and" /
-    // "with" / "better examples." That lone "with" is what a reader
-    // noticed, and it was this line.
-    //
-    // Cutting BEFORE the word puts the hinge at the head of what it
-    // hinges to, which is the same rule the enumerator pass follows: a
-    // token whose whole job is to point forward belongs with what it
-    // points at. `\b` so `android` and `organ` are not connectives.
-    //
-    // (The noncapturing group is load-bearing for a different reason — a
-    // capturing group here once duplicated the connective into its own
-    // atom.)
-    // …EXCEPT AFTER A COLON, which is a label and not a clause. Cutting
-    // before the connective in "SOCRATES: And what do you mean" strands
-    // the speaker on a line of his own — the label loses the utterance it
-    // introduces, which is the very thing `preserveSpeakerHead` exists to
-    // prevent one layer up. This is §4's warning arriving on schedule: a
-    // rule that improves mechanically split prose can misread deliberate
-    // phrasing as the same defect.
-    // …AND NOT BETWEEN TWO OF THEM. "in other ways and with better
-    // examples" holds two connectives in a row; cutting before each in
-    // turn leaves the first one alone, which is the exact one-word phrase
-    // that started this — the reader's "with". Adjacent hinges are one
-    // hinge and travel together.
+    // Stage 1: cut before connectives (hinge opens the next clause).
+    // Skip after colon (speaker labels) and between adjacent connectives.
+    // Noncapturing group — capturing would duplicate the connective.
     const CONNECTIVE = 'and|but|or|that|with|which';
     const stage1 = chunk
         .split(new RegExp(`(?<!:)(?<!\\b(?:${CONNECTIVE}))\\s+(?=(?:${CONNECTIVE})\\b)`, 'i'))
@@ -404,48 +321,17 @@ function splitWords(text) {
 /**
  * A parenthetical is masked so that no rule can split INSIDE it.
  *
- * The sentinel is deliberately a VISIBLE character. A control byte is
- * the obvious choice and this codebase has lost days to invisible ones —
- * a U+0008 inside a regex, a U+0000 used as a separator — so
- * `src/core/source-hygiene.test.js` now forbids them outright. Angle
- * brackets do not occur in this corpus and can be read in a debugger.
+ * Sentinel is a visible character; control bytes are forbidden by
+ * source-hygiene. Angle brackets do not occur in this corpus.
  */
 const PAREN_OPEN = '⟨';
 const PAREN_CLOSE = '⟩';
 
 /**
- * Phrase boundaries.
- *
- * `?` AND `!` BELONG HERE and were missing, which made PHRASE mode —
- * the finer mode — coarser than SENTENCE mode at a question:
- *
- *     "Who goes there? He asked again."
- *       phrase   → one atom
- *       sentence → two
- *
- * They need no capital-letter guard. That guard exists for `.` because
- * of "Dr. Smith" and "i.e."; no abbreviation ends in a question mark. It
- * matters here because this corpus continues in lower case after one —
- * *"…to do me hurt? for what profit…"* — which the capital rule would
- * have missed even in sentence mode.
- *
- * A PARENTHETICAL IS ONE BREATH: split at its edges, never within it.
- * Splitting inside is what left `"(which indeed is very irreligious for
- * any man to believe:"` open and `"and to-day), thou didst first breathe
- * it in"` closed by nothing. Measured on Meditations VI, edge-splitting
- * with a protected interior removed every unbalanced atom (4 → 0) and
- * lowered the fragment rate at the same time (8.2% → 7.8%).
- */
-/**
- * A closing mark may stand between the punctuation and the space.
- *
- * `“You have a house in town, I conclude?”` puts a curly quote after the
- * question, so the mark is not adjacent to the whitespace and a naive
- * lookbehind misses every line of dialogue in the corpus — 16 of them in
- * three chapters of Pride and Prejudice alone. `applyPhraseFloor` had
- * already learned this: its `closesSentence` tests `[.!?][)\]"'”’]*$`.
- * The splitter and the floor must agree about where a sentence ends, or
- * one cuts where the other refuses to join.
+ * Phrase boundaries. `?` and `!` belong here (no abbreviation guard).
+ * Parentheticals: split at edges, never within. Closers may sit between
+ * punctuation and space (dialogue quotes) — must agree with
+ * applyPhraseFloor's closesSentence.
  */
 const CLOSERS = `[)\\]"'”’»]*`;
 
@@ -470,47 +356,15 @@ const PHRASE_BOUNDARY_AUTHORED = new RegExp(
 );
 
 /**
- * Split a unit into phrases, holding each parenthetical whole.
- *
- * AN AUTHORED PARAGRAPH KEEPS ITS OWN PHRASING. `applyPhraseFloor`
- * already declines to MERGE across a hand-placed `|`; adding boundaries
- * inside one is the same overreach from the other direction. If an
- * author wrote `said nothing (at all)` as one phrase, they have answered
- * the question this function exists to answer. The interior is still
- * protected — nothing may split inside the aside — but its edges are not
- * promoted to breaks.
- *
- * Content authors; the runtime follows.
+ * Split into phrases, holding each parenthetical whole. Authored `|`
+ * paragraphs keep their own edges (interior still protected).
  */
 /**
- * An ENUMERATOR labels what follows; it is not a thought of its own.
- *
- * `I.`, `II.`, `1.`, `2.`, `(a)` — Vitruvius numbers every clause and the
- * splitter was handing each number its own beat, so a reader met a lone
- * "II." for four hundred milliseconds and then the sentence it belonged
- * to. The mark is a pointer into the text, and a pointer shown apart from
- * what it points at is just a noise.
- *
- * THE FLOOR CANNOT DO THIS, which is why it is a separate pass. The
- * phrase floor merges a short piece BACKWARD into what it was cut from;
- * an enumerator has to go FORWARD into what it introduces. It is also
- * exempt from rescue in both directions — `closesSentence('1.')` is true,
- * so nothing may merge into it — and it is usually the first piece of its
- * paragraph, so there is nothing behind it anyway. Three reasons the
- * existing machinery was never going to reach it.
- *
- * ROMAN NUMERALS ARE VALIDATED, NOT SPELLED FROM THEIR ALPHABET. A naive
- * `[IVXLCDM]+` also matches CIVIL, DID and MIMIC, which in an all-capital
- * heading would be swallowed into the following phrase. This is the
- * standard-form pattern, so DID and CIVIL fail it and MIX — a real
- * numeral, and a phrase nobody writes alone — passes.
+ * Enumerators (`I.`, `1.`, `(a)`) label what follows — join forward into
+ * the next piece (floor merges backward). Roman numerals use standard
+ * form, not a bare letter class.
  */
-// A ROMAN NUMERAL MUST HAVE AT LEAST ONE CHARACTER. Every group in the
-// standard-form pattern is optional, so the whole of it matches the EMPTY
-// string — and the enumerator branch then accepted a bare "." or ")" as a
-// numeral with a terminator. The lookahead requires one numeral character
-// before the pattern is allowed to run, which costs nothing and closes
-// the gap between what the rule claims and what it matches.
+// Lookahead requires ≥1 numeral char — all groups optional otherwise.
 const ROMAN = '(?=[MDCLXVI])M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})';
 const ENUMERATOR = new RegExp(
     `^\\(?(?:${ROMAN}|${ROMAN.toLowerCase()}|\\d{1,3}|[A-Za-z])[.)]$`
@@ -602,31 +456,14 @@ function splitParagraphs(text) {
  * @returns {Atom[]}
  */
 /**
- * THE PHRASE FLOOR IS ON BY DEFAULT from 2026-08-06, reversing the
- * opt-in ruling of PHRASE-CHUNKING-STUDY §7 on evidence §7 did not have.
- *
- * Measured paired across 24 works sampled from the Archive: the
- * coefficient of variation of phrase length falls 0.227 (95% CI [0.196,
- * 0.258], d = 2.92), phrases of two words or fewer fall 23 points, and 23
- * of 24 works improve. §7's recorded harms do not survive checking —
- * verse comes out BYTE-IDENTICAL, and unprofiled dialogue goes from three
- * stranded speaker labels to none, the floor un-stranding a label rather
- * than stranding one.
- *
- * Pass `phraseFloor: false` for a text whose short phrases are AUTHORED.
- * Nothing in the corpus has needed it yet; the door is open because the
- * measurement covers 24 works and the shelf holds 91.
+ * Phrase floor on by default (PHRASE-CHUNKING-STUDY §7b). Pass
+ * `phraseFloor: false` when short phrases are authored (verse profile).
  */
 export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceId = '', hints = null, phraseFloor = true, verseLines = false } = {}) {
     if (typeof text !== 'string') return [];
 
-    // STRUCTURAL TOKENIZATION: authored markers are choreography, not
-    // prose — they must survive every chunking mode. Promote each
-    // inline marker to its own paragraph BEFORE any linguistic
-    // splitting, so Phrase/Sentence/Paragraph logic only ever operates
-    // on the text spans between structural tokens. (Previously an
-    // inline [PAUSE] survived Word mode by luck of tokenization and
-    // was silently destroyed in every other mode.)
+    // Authored markers are choreography — promote each to its own
+    // paragraph before linguistic splitting so every mode preserves them.
     text = text.replace(/[ \t]*\|?[ \t]*(\[(?:PAUSE|FLASH|HOLD)\])[ \t]*\|?[ \t]*/gi, '\n\n$1\n\n');
 
     const baseDuration = getBaseDuration(wpm);
@@ -721,41 +558,11 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
                 break;
             case 'phrase': {
                 const speakerHead = dialogueHints?.preserveSpeakerHead === true;
-                // THE LINE IS THE UNIT, WHERE THERE ARE LINES.
-                //
-                // Milton wrote in lines. `splitPhrases` splits on his
-                // commas instead, and `splitLongChunk` windows what is
-                // left by word count — so the chunker had two opinions
-                // about where Book VI breathes and neither was Milton's.
-                // Measured, his lines are a median of 8 words with NONE
-                // over the ceiling: the poet already solved the problem
-                // this module exists to solve.
-                //
-                // Only where the lines survive in the file. See
-                // detectVerseLineation, and Dickinson.
+                // Line is the unit when lineation survives.
                 chunks = verseLines
                     ? splitVerseLines(trimmed, speakerHead, phraseFloor)
                     : splitPhrases(trimmed, speakerHead);
-                // ON BY DEFAULT, AND THE TWO REFUSALS BELOW ARE NOT A
-                // HEDGE — they are the study's finding about what the
-                // metrics cannot see.
-                //
-                // The floor was ruled opt-in on evidence from one book,
-                // where enabling it globally rewrote pinned durations and
-                // merged a stranded `SOCRATES:`. The 24-work paired study
-                // reversed that: see the note on this function. What
-                // survived the reversal is the reason those two cases
-                // looked like harm — the metrics measure text split
-                // MECHANICALLY on punctuation, and where a human already
-                // set the boundary there is no defect to repair.
-                //
-                // A speaker label is an authored boundary, and the
-                // strongest kind: it says a different person is talking.
-                // A verse line is the poet's own unit. Neither is a
-                // punctuation artifact, so neither is grown.
-                // The floor is for punctuation-split text. A verse line
-                // is already the author's unit and must not be grown
-                // into the next one.
+                // Floor for punctuation-split prose only (not speaker heads or verse).
                 if (phraseFloor && !speakerHead && !verseLines) {
                     chunks = applyPhraseFloor(chunks, trimmed);
                 }

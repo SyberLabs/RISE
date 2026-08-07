@@ -4,28 +4,10 @@
  *   node scripts/audit-division-identity.mjs
  *   node scripts/audit-division-identity.mjs --floor 0.1
  *
- * RUNG 2 OF ARCHIVE-CLEANSING-SPEC §3, and rung 2 "produces SUSPICIONS,
- * not verdicts". This is a report on purpose, and it was very nearly a
- * test — which would have been wrong.
- *
- * THE GAP IT EXISTS TO WATCH. `identity.test.js` asks whether a work
- * names itself in its own pages, and the reading is served at the
- * DIVISION. The Mahabharata passed that check seventeen thousand times
- * over while five of its divisions were the New York Times Current
- * History of the European War (§1b). Identity asserted of the work;
- * served at the division.
- *
- * WHY IT IS NOT A PASS/FAIL GATE. Measured on the real payload, the
- * foreign divisions scored 5.7–10.9 signature words per ten thousand
- * against genuine divisions at 25.4 and up — a wide gap in ONE work.
- * Across the shelf the distributions overlap: Don Quixote's interpolated
- * novel "The Ill-Advised Curiosity" runs a whole chapter without naming
- * Quixote, and Le Morte d'Arthur's glossary is an alphabetical word
- * list. Both are genuinely the work and both score lower than the
- * intruder did. There is no threshold that separates them, so a gate
- * here would either miss the intruder or condemn Cervantes.
- *
- * What it does instead is rank, so a person reads the top of the list.
+ * Rung 2 of ARCHIVE-CLEANSING-SPEC §3: suspicions, not verdicts. Work-
+ * level identity can pass while a foreign division is served. Across the
+ * shelf, score distributions overlap (genuine low-signal chapters vs
+ * intruders), so this ranks for a person — it is not a pass/fail gate.
  */
 import { readdirSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';

@@ -13,30 +13,9 @@ import { escapeHtml } from '../core/sanitize.js';
 import { MemoryCore } from '../core/memory.js';
 
 /**
- * An edition statement, as a reader should see it.
- *
- * `tradition` carries the edition, and for two works it carries a
- * SOURCING MEMO instead — written for a provenance ledger and shown on
- * a card by accident:
- *
- *   trans. C. H. Brewitt-Taylor, Kelly & Walsh, Shanghai, 2 vols., 1925;
- *   scan-backed Wikisource [vol. I](https://en.wikisource.org/wiki/File:
- *   Romance_of_the_Three_Kingdoms_-_tr._Brewitt-Taylor_-_Volume_1.djvu)
- *   and [vol. II](...); `author-death-70`
- *
- * The card printed all of it, markdown and URLs and rights vocabulary,
- * because escapeHtml renders markup literally rather than resolving it.
- *
- * NOTHING TRUE IS REMOVED HERE. The link text stays and the URL goes;
- * the rights basis goes because `author-death-70` is machine
- * vocabulary that the provenance record already holds and a reader has
- * no use for. What remains is the edition, which §"every text says
- * which edition you are reading" requires and which was always the
- * point of the field.
- *
- * Applied at DISPLAY rather than in the data: the catalog is generated
- * and says so, and a statement arriving with a URL in it is a shape to
- * survive rather than an incident to patch. Two works have one today.
+ * Edition statement for display: keep link labels, drop URLs and
+ * machine rights tokens (`author-death-70`); provenance already holds
+ * those. Applied at display, not in generated catalog data.
  */
 export function editionStatement(tradition) {
     return String(tradition ?? '')

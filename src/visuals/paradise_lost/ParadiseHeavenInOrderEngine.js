@@ -19,65 +19,16 @@
  *
  * THE DESIGN ARGUMENT
  * ───────────────────
- * This is the figure the whole Journey is measured against: order
- * BEFORE the breach. It is the only movement of Book VI in which
- * nothing is torn, and the engine has to earn that structurally rather
- * than by being pretty and calm.
+ * Order before the breach: every motion is rigid (rotate/translate only).
+ * No scatter, emit, decay, or independent velocity after generation —
+ * that contrast makes later rupture legible.
  *
- * So the rule this engine obeys, and the others deliberately do not:
- * EVERY MOTION IS RIGID. Things rotate and translate; nothing scatters,
- * nothing is emitted, nothing decays, and no element has a velocity of
- * its own. There is not one random event after generation — no spawned
- * arc as in the Chariot, no drifting particle as in the Dark Ocean.
- * Milton's line is that neither hill nor vale nor wood nor stream
- * DIVIDES their perfect ranks, and a lattice that visibly refuses to
- * deform says that where a lattice that merely looks orderly does not.
+ * Drawn as Milton's mechanism: a 24-Hour annulus (gates of light/dark),
+ * host as a perspective lattice that translates by whole cells. Brightest
+ * values at top and bottom; reading sits in the still centre of the round.
  *
- * That is also what makes the sword, the sulphurous invention and the
- * fall legible when they arrive. The contrast a reader feels is not a
- * change of palette; it is the moment things start moving on their own.
- *
- * WHAT IS DRAWN, AND WHY IT IS THAT
- * ─────────────────────────────────
- * Milton's dawn is not a sunrise over a landscape. It is a MECHANISM: a
- * two-doored cave inside the mount of God where light and darkness lodge
- * and dislodge by turns, turned by the circling Hours. So the middle of
- * the composition is a clock — an annulus of twenty-four Hours, light
- * issuing at one door and darkness entering the other, twelve minutes to
- * the revolution and never once hurrying.
- *
- * Below it the armed Saints, "high above the ground / Their march was":
- * a perspective lattice in exact ranks that translates by whole cells,
- * so the geometry is mathematically incapable of drifting out of true.
- * The points catch light — "Reflecting blaze on blaze" — but the grid
- * holds.
- *
- * LEGIBILITY IS PART OF THE DESIGN, NOT A CONCESSION
- * ──────────────────────────────────────────────────
- * This runs behind text somebody is reading, so the composition is
- * built around the words rather than dimmed for them. The three
- * registers — gates high, round in the middle, host low — put the
- * brightest values at top and bottom, and the round is an ANNULUS: the
- * reading sits inside the mechanism, in the one part of it that does
- * not turn.
- *
- * WHAT WAS TRIED AND REJECTED, so it is not tried again
- * ────────────────────────────────────────────────────
- * The gates were twice drawn as a filled rect tapered along its length.
- * At any size that reads as a rule someone drew, or worse a progress
- * bar; light has no ends, and the fix was a radial falloff flattened on
- * one axis.
- *
- * The Hours were drawn as filled annular sectors (a watch bezel: twenty-
- * four straight radial edges) and then as thick arcs with round caps (a
- * bracelet of beads, worse). The fault was never the edge treatment —
- * discrete SHAPES read as objects, and this is light in a cave. They are
- * two gradients now and no hard edge exists in the ring at all.
- *
- * The host was a uniform grid of resolvable dots, which is the
- * definition of a halftone screen. Perturbing the lattice would have
- * fixed the look and destroyed the meaning, so instead the far ranks
- * stopped resolving — which is only what distance does to a multitude.
+ * Rejected: hard-edged gate shapes (read as progress bars), discrete Hour
+ * sectors/beads (read as objects), uniform resolvable host dots (halftone).
  */
 
 import { createSeededRandom } from '../lib/klee-core.js';

@@ -75,22 +75,9 @@
   /* Primary landmarks */
   --space-3xl: 96px;
 
-  /* How far a top-anchored control must sit from the top of the screen on
-     a phone, so it does not crowd the clock and battery iOS draws there.
-     (Reported on iPhone, 2026-08-06: "← Portal" and the origin chip both
-     collided with the native icons.)
-
-     A MEASURED CONSTANT, NOT A COMPUTED INSET, and deliberately so.
-     `env(safe-area-inset-top)` resolves to ZERO in this document because
-     the viewport meta has no `viewport-fit=cover` — Portal.css records
-     that decision and warns that an inert guard is worse than none, since
-     reading one as if it were working is how the Page Mode control bar
-     shipped 16px too low. So this is a number chosen by measurement and
-     named, which also means adopting `viewport-fit=cover` later is one
-     decision here rather than a hunt through three stylesheets.
-
-     Larger than the desktop offset on purpose: a desktop window has no
-     status bar to clear. */
+  /* Phone top clearance for status icons. Measured constant — without
+     viewport-fit=cover, env(safe-area-inset-top) is 0 here. Larger than
+     desktop: a window has no status bar to clear. */
   --top-control-clearance: 40px;
   /* Screen-level spacing */
 
@@ -122,41 +109,9 @@
   --icon-lg: 32px;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   THE DENSITY STEP
-   ═══════════════════════════════════════════════════════════════
-
-   Every measurement above was authored against a 1440px desktop and
-   then applied unchanged at 390px, because nothing in this file knew
-   the difference. The result is not a phone layout that is slightly
-   loose — it is a desktop layout at desktop proportions on a screen a
-   quarter the size, and the arithmetic is brutal. Measured on an
-   iPhone 12 (390x664), the Vault's first screen spent:
-
-       25-63     the view title, at 32px
-       112-265   an orientation paragraph, 153px, restating the tab
-                 immediately beneath it
-       457-508   a tab bar, 51px, from 16px of padding on a 14px label
-       533       the content well begins, with 32px of its own padding
-       573       THE FIRST ARCHETYPE CARD
-
-   — 86% of the glass for a title, a paragraph, a door and four tabs,
-   and ONE of six archetypes visible. That is the whole of the
-   complaint, and it is not a bug in the Vault: every view inherits it.
-
-   So the scale itself steps down, once, here. A phone gets the same
-   design at phone proportions — roughly what the desktop looks like
-   zoomed out, which is exactly the density an iPhone interface is
-   built at. Doing it in the tokens means every view tightens at the
-   same moment and in the same ratio, instead of being patched one
-   screen at a time and drifting apart (which is what the last several
-   passes over this codebase were).
-
-   BODY TEXT DOES NOT SHRINK. The complaint is about chrome — padding,
-   headings, gutters, section breaks. Prose stays where it is; a
-   reading environment that makes its reading smaller has misunderstood
-   which part was in the way.
-   ─────────────────────────────────────────────────────────────── */
+/* Phone density step: scale chrome tokens once at ≤640px so every view
+   tightens together. Body text does not shrink — only padding, headings,
+   gutters, and section breaks. */
 
 @media (max-width: 640px) {
   :root {
@@ -455,19 +410,8 @@ small {
   padding: var(--space-md);
   transition: all var(--transition-normal) var(--ease-default);
 
-  /* NOTHING LEAVES A CARD.
-   *
-   * A card is sized by its container and filled with text nobody here
-   * wrote: an edition statement, a translator's name, a URL that
-   * arrived with a scan. A single token longer than the card — and a
-   * Wikisource file URL is 96 characters without a break in it — pushed
-   * the Library's grid wider than the viewport.
-   *
-   * `anywhere` rather than `break-word`: break-word will not shrink the
-   * box's intrinsic minimum, so a grid track sized to max-content still
-   * blows out. `min-width: 0` is the other half — a flex or grid child
-   * defaults to min-width:auto and refuses to shrink below its content,
-   * which is what actually widens the row. */
+  /* Cards must not widen their container: long tokens (URLs) wrap
+     (`anywhere`), and flex/grid children need `min-width: 0`. */
   overflow-wrap: anywhere;
   min-width: 0;
 }

@@ -10,20 +10,14 @@ const MAX_TEXT = 500;
 const REQUIRED_CREDIT = /\bCC[\s-]*BY\b|creative commons attribution/i;
 
 /**
- * LICENCE CLASSES, kept separate because their obligations are opposite.
+ * Licence classes, kept separate because obligations differ.
  *
- * The museum corpus cleared on public domain and CC0, which carry **no
- * attribution obligation at all**. Many of those works are by unknown
- * hands — that is ordinary for a 15th-century woodcut — and they are
- * perfectly displayable with a title alone, or with no label whatever.
- * Any rule that withholds an uncreditable work must therefore ask which
- * licence it is withholding under, or it would empty shelves that were
- * never at risk.
+ * Open / CC0 carry no attribution duty; many works have unknown hands
+ * and display with a title alone or no label. Withholding must ask which
+ * class applies, or open shelves would be emptied wrongly.
  *
- * `share-alike` is separated from plain `by` even though both require
- * credit: they are different licences, wildlife imagery is a mixture of
- * the two, and a ledger that cannot tell them apart cannot answer a
- * question about derivative works later.
+ * Share-alike is separate from plain BY: both require credit, but
+ * derivative obligations differ.
  */
 export const LICENCE = Object.freeze({
     /** No obligation. Public domain, CC0, US-government works. */
@@ -33,53 +27,27 @@ export const LICENCE = Object.freeze({
     /** Credit required, and share-alike governs derivatives. */
     BY_SA: 'cc-by-sa',
     /**
-     * Not copyrighted, but acknowledgement is asked for as a condition of
-     * use. NASA is the case: its own guidance says content "generally
-     * are not subject to copyright in the United States" AND that "NASA
-     * should be acknowledged as the source of the material".
-     *
-     * Calling that `cc-by` would be false — it is not a Creative Commons
-     * licence and carries none of its terms — and calling it `open` would
-     * drop an obligation the institution actually states. It behaves like
-     * BY for display and is labelled for what it is.
+     * Not copyrighted, but acknowledgement is asked for (e.g. NASA).
+     * Not CC-BY terms; not plain OPEN either. Behaves like BY for display.
      */
     PD_CREDIT: 'public-domain-credit',
     /**
-     * Used by written permission, on conditions the grant states.
-     *
-     * Nine Chapel icons are held this way, and they were classifying as
-     * OPEN — so the Icon Museum's stated condition, that its attribution
-     * name "Icon Museum and Study Center, Clinton MA", was honoured only
-     * because an attribution string happened to exist. A condition
-     * honoured by luck is not honoured. Permission behaves like BY.
+     * Written permission on stated conditions. Behaves like BY: credit
+     * is owed because the grant says so, not because a string happened
+     * to be present.
      */
     PERMISSION: 'permission',
     /**
-     * Declared, and declared RESTRICTIVE. NonCommercial, all rights
-     * reserved, an explicit copyright line.
-     *
-     * This class exists because the classifier used to end in
-     * `declared ? OPEN : UNDECLARED`, which made "All rights reserved"
-     * read as open — and worse, `CC BY-NC 4.0` matched the CC-BY test and
-     * came out as plain `cc-by`, dropping the NonCommercial term
-     * entirely. A restrictive licence mislabelled as permissive is the
-     * one error in this file that could not be undone by noticing later.
+     * Declared restrictive (NC, ND, all rights reserved, etc.).
+     * Mislabeling as permissive is fail-open on the one question that
+     * must fail closed.
      */
     RESTRICTED: 'restricted',
     /**
-     * SOMETHING WAS DECLARED AND THIS FILE DOES NOT UNDERSTAND IT.
-     *
-     * Distinct from UNDECLARED, and the distinction is the point: a
-     * provider that has never stated rights is a known, tolerated
-     * condition, while a provider that stated something unrecognised is a
-     * gap in this file's vocabulary. Reading the second as `open` is a
-     * guess in the permissive direction on the one question where
-     * guessing permissively is the unrecoverable error.
-     *
-     * It is safe to withhold on it only because the vocabulary below was
-     * measured against every rights string the corpus actually declares
-     * first — see the note on OPEN_RIGHTS, which was NOT recognising the
-     * commonest one of them.
+     * Something was declared and the vocabulary does not recognise it.
+     * Distinct from UNDECLARED (nothing stated — tolerated). Treating
+     * an unrecognised declaration as OPEN is a permissive guess; that
+     * fails closed instead.
      */
     UNKNOWN_DECLARED: 'unknown-declared',
     /** Nothing was declared. Not the same as "open". */
@@ -87,20 +55,8 @@ export const LICENCE = Object.freeze({
 });
 
 /**
- * The vocabulary of an open declaration.
- *
- * `PUBLIC_DOMAIN` IS THE COMMONEST RIGHTS STRING IN THE CORPUS AND THIS
- * PATTERN DID NOT MATCH IT. The separator class was `[\s-]`, and an
- * underscore is neither whitespace nor a hyphen — so every one of the 585
- * Audubon plates, and the value the museum adapter normalises all 1,699
- * museum pins to, fell through every branch of the classifier and came
- * out `open` on the permissive fallback at the end. The right answer by
- * the wrong route.
- *
- * That was invisible while the fallback was permissive, and it is the
- * reason this pattern had to be fixed BEFORE the fallback was closed:
- * closing it first would have withheld nearly the entire visual corpus,
- * with every work's rights perfectly in order.
+ * Open-declaration vocabulary. Underscore and hyphen both count so
+ * forms like `PUBLIC_DOMAIN` match, not only spaced/hyphenated prose.
  */
 const OPEN_RIGHTS = /\b(cc0|public[\s_-]*domain|no known copyright|us[\s_-]*gov|pd)\b/i;
 const SHARE_ALIKE = /\bCC[\s-]*BY[\s-]*SA\b|share[\s-]*alike/i;
@@ -109,30 +65,18 @@ const SHARE_ALIKE = /\bCC[\s-]*BY[\s-]*SA\b|share[\s-]*alike/i;
 const BY_PERMISSION = /\bpermission\b/i;
 
 /**
- * Language that RESTRICTS.
- *
- * Tested before everything else, because every other pattern in this file
- * is looking for a reason to SHOW a work and this is the only one looking
- * for a reason not to.
- *
- * A BARE `nd` IS NOT EVIDENCE — two letters that occur inside ordinary
- * prose cannot decide a licence. But `CC BY-ND` is unambiguous, and
- * leaving it out let NoDerivatives classify as plain attribution, which
- * the test for this rule caught immediately.
+ * Restrictive language — tested first. Every other pattern looks for a
+ * reason to show; this is the reason not to. Bare `nd` is not evidence;
+ * `CC BY-ND` is.
  */
 const RESTRICTIVE = /\b(?:nc|non[\s-]*commercial|no[\s-]*derivatives?)\b|\bCC[\s-]*BY[\s-]*ND\b|\ball rights reserved\b|©|\(c\)\s*\d{4}|\beducational use only\b/i;
 
 /**
- * Which licence class a provider record declares — determined from the
- * RAW item, before any label is composed.
+ * Licence class from the raw item, before any label is composed.
  *
- * This has to be separable, and that is the whole point. The obligation
- * was previously discovered inside `normalizeArtworkLabel`, which
- * returns `null` when there is nothing to display — so a work that
- * REQUIRED credit and had none arrived at the presenter as `null`,
- * indistinguishable from a work that needed none. The caller could not
- * tell "no metadata, no obligation" from "no metadata, obligation
- * unmet", and showed both.
+ * Separable from normalizeArtworkLabel (which returns null when there
+ * is nothing to display): obligation must be knowable even when there
+ * is no chip, so "no metadata, no duty" is not confused with "duty unmet".
  */
 export function licenceClassOf(item) {
     if (!item || typeof item !== 'object') return LICENCE.UNDECLARED;
@@ -146,24 +90,16 @@ export function licenceClassOf(item) {
 
     const explicit = data.creditRequired === true || metadata.creditRequired === true;
 
-    // RESTRICTION IS CHECKED FIRST. `CC BY-NC 4.0` satisfies the CC-BY
-    // test, so testing that first classified a NonCommercial licence as
-    // plain attribution and dropped the term that mattered.
+    // Restriction first: CC BY-NC also matches plain CC-BY.
     if (RESTRICTIVE.test(declared)) return LICENCE.RESTRICTED;
     if (SHARE_ALIKE.test(declared)) return LICENCE.BY_SA;
     if (REQUIRED_CREDIT.test(declared)) return LICENCE.BY;
-    // A permission grant carries conditions and therefore owes a credit.
+    // Permission grant carries conditions → owes credit.
     if (BY_PERMISSION.test(declared)) return LICENCE.PERMISSION;
-    // Public domain AND an asked-for acknowledgement is its own thing,
-    // and the order matters: this must be tested before plain OPEN or a
-    // NASA record would lose its obligation, and before the conservative
-    // BY fallback or it would gain terms it does not carry.
+    // PD + explicit acknowledgement before plain OPEN / BY fallback.
     if (OPEN_RIGHTS.test(declared)) return explicit ? LICENCE.PD_CREDIT : LICENCE.OPEN;
     if (explicit) return LICENCE.BY;
-    // AN UNRECOGNISED DECLARATION IS NOT AN OPEN ONE. This used to return
-    // OPEN, so a rights string this file had no pattern for was shown as
-    // freely as CC0. Nothing declared stays tolerated — that is a known
-    // condition of several providers and always has been.
+    // Unrecognised declaration is not open; undeclared stays tolerated.
     if (declared) return LICENCE.UNKNOWN_DECLARED;
     return LICENCE.UNDECLARED;
 }
@@ -176,17 +112,9 @@ const OWES_CREDIT = new Set([
 export const creditIsRequired = (item) => OWES_CREDIT.has(licenceClassOf(item));
 
 /**
- * Identify the licence concisely.
- *
- * The djangoplicity feeds declare rights as the full legal title —
- * "Creative Commons Attribution 4.0 International License", 54 characters
- * — and all 120 CC-BY candidates carried it. CC BY 4.0 §3(a)(1)(B) asks
- * that the licence be *identified*, not that its title be quoted in full,
- * and "CC BY 4.0" is the identification the licence's own deed uses.
- *
- * SHARE-ALIKE IS MATCHED FIRST. "Attribution-ShareAlike" contains
- * "Attribution", so the looser pattern would swallow it and relabel a
- * BY-SA work as BY — the exact conflation `LICENCE.BY_SA` exists to stop.
+ * Concise licence identification (deed short form, not full legal title).
+ * Share-alike matched first — "Attribution-ShareAlike" contains
+ * "Attribution".
  */
 const LICENCE_SHORT = [
     [/creative commons\s+attribution[\s-]*(?:share[\s-]*alike|sa)[\s-]*(\d+(?:\.\d+)?)?/i, 'CC BY-SA'],
@@ -204,33 +132,14 @@ export function shortLicenceName(text) {
 }
 
 /**
- * The credit proper, with an appended roster set aside for the Curia.
- *
- * Observatory credits append supplementary sections, and the convention
- * is explicit: ESA/Hubble writes "Credit: … Acknowledgment: …", where the
- * first names those designated to receive attribution and the second
- * thanks contributors. One Westerlund 2 credit ran 723 characters —
- * two full observing teams — which is not a chip, it is a paragraph
- * floating over the passage.
- *
- * THE CUT IS STRUCTURAL, AND THERE IS NO LENGTH FALLBACK. That is the
- * legally load-bearing part. §3(a)(1)(A) requires retaining
- * identification of the creators *and any others designated to receive
- * attribution*, so shortening a list of designated names is the risky
- * operation; dropping a section the provider itself labelled as
- * supplementary thanks is not. Five of the twelve long credits are pure
- * name lists with no marker, they top out at 155 characters, and they are
- * left whole however long they run — a chip that is one line too tall is
- * a smaller problem than a credit naming half a person.
- *
- * CC BY 4.0 §3(a)(3) permits satisfying the condition by link where the
- * medium makes the full text impractical, and §3a already ruled the Curia
- * reader-reachable, so the elided roster has somewhere real to live.
+ * Credit proper for the chip; supplementary "Acknowledgment:" roster
+ * set aside for the Curia. Cut is structural — no length fallback.
+ * Shortening designated names risks §3(a)(1)(A); dropping a provider-
+ * labelled thanks section does not. Marker-less name lists stay whole.
+ * Full text remains reachable via Curia (§3(a)(3)).
  */
-// The marker may follow a closing paren — "(STScI/AURA). Acknowledgment:"
-// — and that paren belongs to the NAME. A leading character class here
-// swallowed it and shipped "(STScI/AURA" as the credit, so the trailing
-// punctuation is cleaned after the cut instead of matched before it.
+// Trailing punctuation cleaned after the cut so a closing paren on the
+// last affiliation (e.g. "(STScI/AURA). Acknowledgment:") is kept.
 const ROSTER_MARKER = /\s*\b(?:acknowledge?ments?|acknowledgments?)\s*:/i;
 /** A run-on where a feed concatenated two fields with no separator. */
 const RUN_ON = /\s*\b(?:the original|follow-up|these)\s+observations\b/i;
@@ -251,16 +160,11 @@ export function creditProper(text) {
         if (hit && hit.index > 0) { head = head.slice(0, hit.index); cut = true; }
     }
 
-    // Only sentence punctuation left dangling by the cut, never a
-    // bracket: a trailing ")" is part of the last affiliation.
+    // Sentence punctuation only; trailing ")" stays with the affiliation.
     head = head.replace(/[\s.,;:]+$/, '').trim();
     if (!head) return { text: value, elided: false };
 
-    // ELIDED MEANS A ROSTER WAS SET ASIDE — not that a full stop was
-    // tidied. Comparing the strings conflated the two, so a credit ending
-    // "…and the OPAL team." was flagged as having material in the Curia
-    // that does not exist, and a reviewer would have been shown a promise
-    // the record could not keep.
+    // elided = roster set aside, not merely a trimmed full stop.
     return { text: head, elided: cut };
 }
 
@@ -326,19 +230,8 @@ export function normalizeArtworkLabel(item) {
         || metadata.license,
         120
     );
-    // SANITISED WITHOUT A LENGTH CAP, because this is the string the
-    // Curia promises to hold whole.
-    //
-    // It was capped at 500 characters and THEN assigned to `fullCredit`,
-    // so "the Curia carries the full record" — the sentence that makes
-    // the roster elision permissible under CC BY 4.0 §3(a)(3) — was false
-    // for exactly the credits long enough to need eliding. The science
-    // harvest found one of 723 characters. A 2,359-character credit
-    // arrived at the Curia as 500.
-    //
-    // The cap was doing a display job in a sanitising function. Sanitising
-    // strips markup and collapses whitespace; deciding how much fits on a
-    // chip is `creditProper`'s work, and it happens below.
+    // Uncapped: Curia must hold the full credit (§3(a)(3)); chip length
+    // is creditProper's job below.
     const attribution = plainArtworkText(
         data.attribution || metadata.attribution,
         Number.MAX_SAFE_INTEGER
@@ -346,29 +239,16 @@ export function normalizeArtworkLabel(item) {
     const licence = licenceClassOf(item);
     const creditRequired = OWES_CREDIT.has(licence);
 
-    // NOTHING TO SAY AND NOTHING OWED. An open-licence work with no
-    // metadata is ordinary — much of the museum corpus is by an unknown
-    // hand — and it shows without a chip, exactly as it always has.
+    // Open work, nothing to say → no chip.
     if (!title && !artist && !attribution && !creditRequired) return null;
 
     const labelText = [title, artist].filter(Boolean).join(' · ');
 
-    // COMPOSITION, NOT SUBSTITUTION. This was `attribution || [...]`, and
-    // the `||` short-circuited: a work that SUPPLIED an attribution
-    // string showed only that and never named its licence —
-    // "ESA/Webb, NASA & CSA, J. Lee" with no "CC BY 4.0" anywhere. CC BY
-    // 4.0 §3(a)(1) requires the attribution AND identification of the
-    // licence, so the provider's string replaces the NAME fields and the
-    // licence is still appended.
-    // …unless the provider's string already names it. Some records carry
-    // a fully composed credit — "Nebula · Observatory · CC BY 4.0" — and
-    // appending the licence again would read as a stutter.
+    // Attribution replaces name fields; licence still appended unless
+    // the provider string already names it (§3(a)(1)).
     const names = attribution || [title, artist, sourceName].filter(Boolean).join(' · ');
 
-    // TRIMMING APPLIES ONLY TO THE REQUIRED CREDIT, and that boundary is
-    // deliberate: `labelText` is what an open-licence work shows, it is
-    // already short, and nothing here may reach the CC0 corpus. A work
-    // that owes nothing is composed exactly as it always was.
+    // Trim only when credit is required; open / CC0 composition untouched.
     const proper = creditRequired ? creditProper(names) : { text: names, elided: false };
     const shortLicence = creditRequired ? shortLicenceName(rightsBasis) : rightsBasis;
     const namesLicence = shortLicence
@@ -398,20 +278,14 @@ export function normalizeArtworkLabel(item) {
         fullCredit: names,
         creditElided: proper.elided,
         /**
-         * A credit is owed and none can be composed. The presenter must
-         * WITHHOLD the work rather than show it bare — the imagery's own
-         * law, one clause changed: a work that cannot be credited is
-         * absent, never uncredited.
-         *
-         * The test is on the NAMES, not on `requiredText`. A record with
-         * a licence and nothing else composes "CC BY 4.0", which is
-         * non-empty and is not a credit: it names the licence and
-         * credits nobody. Attribution means naming someone.
+         * Credit owed but none composable → withhold (absent, never
+         * uncredited). Test is on names, not requiredText: a licence
+         * alone is not a credit.
          */
         creditUnsatisfied: creditRequired && !names,
         /**
-         * Declared restrictive. Not a credit problem — a permission
-         * problem, and no amount of attribution answers it.
+         * Restrictive or unrecognised declaration — permission problem,
+         * not a credit problem.
          */
         restricted: licence === LICENCE.RESTRICTED || licence === LICENCE.UNKNOWN_DECLARED
     });
@@ -424,28 +298,13 @@ export function displayedArtworkLabel(label, showOptional = true) {
 }
 
 /**
- * May this work be shown at all?
- *
- * The ONLY case that refuses is a credit-required work whose credit
- * cannot be composed. Everything else — open licences, undeclared
- * records, works with no metadata — displays exactly as before, which is
- * the point: this rule must not reach the CC0 corpus.
- *
- * `SOURCE-EXPANSION-SPEC` §3 already ruled it in words — "a CC-BY work
- * with no place to show its credit cannot be shown" — and this is that
- * sentence in code.
+ * May this work be shown? Refuse restricted / unknown-declared, and
+ * credit-required works whose credit cannot be composed. Open and
+ * undeclared records stay displayable (SOURCE-EXPANSION-SPEC §3).
  */
 export function artworkMayBeShown(label) {
-    // A RESTRICTIVE DECLARATION FAILS CLOSED, and it is a different
-    // refusal from the one below it. An uncreditable work is withheld
-    // because an obligation cannot be met; a restricted work is withheld
-    // because permission was never given, and a perfect credit would not
-    // change that.
-    //
-    // NOTHING IN THE CORPUS IS WITHHELD BY EITHER TODAY — all eight
-    // declared rights strings across every collection classify exactly as
-    // they did before these guards existed. They are here for the next
-    // harvest, which is the only time they can be added without argument.
+    // Restricted / unknown-declared fail closed (permission never given).
+    // Uncreditable credit-required works fail separately (duty unmet).
     if (label?.restricted) return false;
     return !label?.creditUnsatisfied;
 }

@@ -4,24 +4,20 @@
  *   node scripts/withdraw-apparatus-reviewed.mjs            # report
  *   node scripts/withdraw-apparatus-reviewed.mjs --apply
  *
- * `withdraw-apparatus.mjs` flagged these and cut none of them, because
- * the name "Front matter" holds a title page in one work and a critical
- * introduction in another. Mateo read all fifteen and ruled on 2026-08-06:
+ * `withdraw-apparatus.mjs` flagged these and cut none — the name "Front
+ * matter" can hold a title page or a critical introduction. Editorial
+ * rulings (2026-08-06):
  *
- *   1. Pure apparatus — WITHDRAW.
- *   2. Apparatus with the reading inside it — TRIM at the turn.
- *   3. "Scholarship is not the text the reader expects: fair to cut" —
- *      so a translator's preface, a critical introduction and a
- *      prefatory note all WITHDRAW, on the same footing as a contents
- *      page. This is the precedent the Dow header already stated and the
- *      first pass had not applied consistently.
- *   4. Moby-Dick's Epilogue at division 2 — REORDER.
+ *   1. Pure apparatus — withdraw.
+ *   2. Apparatus with the reading inside — trim at the turn.
+ *   3. Scholarship that is not the expected text (translator's preface,
+ *      critical introduction, prefatory note) — withdraw, same footing
+ *      as a contents page.
+ *   4. Moby-Dick's mislabelled Epilogue at division 2 — restore.
  *
- * EVERY BOUNDARY IS NAMED, not computed. A detector earned its cuts by
- * evidence; these are individual editorial judgments about fourteen
- * specific divisions, and a rule inferred from fourteen cases would be a
- * rule fitted to fourteen cases. The line each trim keeps is written
- * down so the cut can be checked without re-reading the work.
+ * Every boundary is named, not computed: these are individual judgments
+ * about specific divisions. Each trim's kept line is written down so the
+ * cut can be checked without re-reading the work.
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -56,12 +52,9 @@ const WITHDRAW = [
 const TRIM = [
     ['paradise-lost', 'Book I', 'Book I\n', null,
         'a contents list above the poem — kept from the Book I heading, matching Book II and Book III'],
-    // A TRIM CAN LEAVE A NAME DESCRIBING WHAT WAS REMOVED. Once the
-    // apparatus is gone, "Front matter" holds Válmíki's invocation and
-    // "ACT I." holds the dramatis personae — while the NEXT division is
-    // also called "ACT I". A division whose name outlives its contents is
-    // the Mahabharata's fault in miniature: a reading presented under a
-    // name that no longer describes it.
+    // After apparatus is gone, a name like "Front matter" or "ACT I." may
+    // describe what was removed; rename so the division matches what it
+    // now holds (and does not collide with the next division's name).
     ['the-ramayan-of-valmiki', 'Front matter', 'INVOCATION.(1)', 'Invocation',
         'title page and contents above Válmíki’s own invocation, which is the poem opening and stays'],
     ['a-doll-s-house', 'ACT I.', 'DRAMATIS PERSONAE', 'Dramatis Personae',
@@ -69,28 +62,18 @@ const TRIM = [
 ];
 
 /**
- * MOBY-DICK HAS TWO DIVISIONS NAMED "Epilogue" AND ONE OF THEM IS NOT.
+ * Moby-Dick: two divisions named "Epilogue"; division 2 is not one.
  *
- * I first read division 2 as the ending served second and moved it to the
- * back. It contains no epilogue. "The drama's done" and "another orphan"
- * are in division 152, which is the real one; division 2 is Gutenberg's
- * transcriber notes followed by ETYMOLOGY and EXTRACTS — Melville's own
- * opening apparatus, which belongs BEFORE Loomings and which the moving
- * had sent to the back of the book.
- *
- * The label came from the contents list, whose last entry is "Epilogue",
- * so the ingest's heading detector took the wrong line. The correction is
- * therefore three acts on one division and not a reorder at all: trim the
- * transcriber notes, restore the name the contents took away, and put it
- * where Melville put it.
+ * Division 152 holds the real epilogue. Division 2 is Gutenberg
+ * transcriber notes plus Melville's Etymology and Extracts — opening
+ * apparatus that belongs before Loomings. The ingest took the contents
+ * list's last "Epilogue" line as the heading. Correction: trim
+ * transcriber notes, restore the name, place at the front.
  */
 const RESTORE = [{
     file: 'moby-dick-or-the-whale',
-    // MATCHED ON CONTENT, NOT POSITION. An index is only true until an
-    // earlier step moves something: the withdrawal above removes division
-    // 1, so `i === 1` had already stopped meaning what it was written to
-    // mean by the time this ran. What identifies this division is that it
-    // holds Melville's Etymology, which no other division does.
+    // Match on content, not position: earlier withdrawals shift indices.
+    // This division is the one that holds Melville's Etymology.
     match: (s) => /ETYMOLOGY/.test(String(s.content)) && !/CHAPTER 1\./.test(String(s.content)),
     keepFrom: 'ETYMOLOGY',
     rename: 'Etymology and Extracts',

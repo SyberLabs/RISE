@@ -534,9 +534,7 @@ describe('phrase mode and the marks that end a thought', () => {
         .map(a => a.content);
 
     it('breaks at a question mark', () => {
-        // THE DEFECT THIS FIXES. `splitPhrases` carried `, ; : — – |` and
-        // a full stop, and neither `?` nor `!` — so PHRASE mode, the
-        // finer mode, was coarser than SENTENCE mode at a question.
+        // Phrase mode must break on `?` and `!`, not only `, ; : — – | .`.
         expect(phrase('Who goes there? He asked again. Nobody answered at all.'))
             .toEqual(['Who goes there?', 'He asked again.', 'Nobody answered at all.']);
     });
@@ -641,9 +639,7 @@ describe('an enumerator leads the phrase it labels', () => {
             .toEqual(['1. After insuring the healthfulness of the city,', 'we come to the walls.']);
     });
 
-    // THE CASE A NAIVE RULE BREAKS. "was I." ends in the same two
-    // characters and is a whole clause; only a piece with nothing else in
-    // it is a label.
+    // A clause ending in a numeral is not a label; only a bare ordinal is.
     it('leaves a real sentence ending in a numeral alone', () => {
         expect(phrases('He was certain the culprit was I. Then the room fell silent.'))
             .toEqual(['He was certain the culprit was I.', 'Then the room fell silent.']);
@@ -694,14 +690,9 @@ describe('a connective opens a clause; it does not close one', () => {
         expect(phrases(text)).not.toContain('and');
     });
 
-    // THE REGRESSION THIS FIX CAUSED is guarded in chunk-profiles.test.js,
-    // where the dialogue profile actually runs — "puts every matching
-    // Protagoras speaker label at its utterance head". It belongs there
-    // and not here: a bare colon is ALREADY a phrase boundary in
-    // PHRASE_BOUNDARY, so a raw chunkText call splits "SOCRATES:" off
-    // whatever the connective rule does, and a test here would have been
-    // asserting the wrong layer while appearing to pass for the right
-    // reason. The guard in splitLongChunk is the `(?<!:)` lookbehind.
+    // Speaker-label / colon boundary: see chunk-profiles.test.js
+    // (dialogue profile). A bare colon is already a PHRASE_BOUNDARY;
+    // the connective guard's `(?<!:)` lookbehind belongs there.
 
     it('does not treat a word that merely begins with a connective as one', () => {
         const text = 'The android walked past the organ and the orchard beyond '

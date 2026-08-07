@@ -1,21 +1,8 @@
 /**
- * The one way to rewrite a generated payload's SECTIONS array.
- *
- * WHY THIS IS A MODULE AND NOT A HELPER COPIED TWICE. The cleanser
- * learned that the array terminator is three characters — newline,
- * bracket, semicolon — and that `JSON.stringify` ends at the bracket, so
- * the semicolon has to be put back. Losing it left five payloads relying
- * on automatic semicolon insertion: valid JavaScript, and an unintended
- * edit all the same, invisible to 1,557 passing tests.
- *
- * The withdrawal script performed nearly the same rewrite and had NOT
- * learned it, so the Mahabharata lost its terminator too and turned up
- * in the repair list. One vocabulary in two places where only one copy
- * learned the new word — the failure this codebase is named for, arriving
- * again inside the work that was documenting it.
- *
- * So there is one writer. A script that rewrites a payload calls this or
- * it does not rewrite a payload.
+ * Single writer for generated payload SECTIONS arrays.
+ * Terminator is `\n];` — JSON.stringify ends at the bracket; the
+ * semicolon must be restored. One vocabulary; scripts call this or do
+ * not rewrite.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 

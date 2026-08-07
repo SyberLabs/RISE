@@ -1,25 +1,16 @@
 /**
  * Page furniture — what the printed page left behind in the text.
  *
- * ONE VOCABULARY, ONE PLACE. The detector was written twice within a day
- * — once to build reviewer jobs and once to apply trims — and the two
- * copies had already begun to disagree. That is this codebase's oldest
- * and most expensive failure shape: a word that only one copy learns.
- * The job builder, the cleanser and the tests all read from here.
- *
- * What this knows is defined in `docs/specs/ARCHIVE-CLEANSING-SPEC` §2b.
- * It identifies; it never edits. Deciding what to do with a span belongs
- * to the caller, and deletion belongs to the cleanser alone.
+ * Single detector vocabulary for job builder, cleanser, and tests.
+ * Spec: `docs/specs/ARCHIVE-CLEANSING-SPEC` §2b. Identifies only; never
+ * edits. Callers decide what to do with a span; only the cleanser deletes.
  */
 
 /**
  * A running head: a short line of capitals ending in a page number.
  *
- * The stem must carry three consecutive capitals. Without that the class
- * is met by things that are plainly not headings — Hamlet's `I  2` and
- * the Shahnama's `V, 82`, where the "stem" was two spaces and a comma —
- * and the strict-deletion check duly refused both works. Refusing was
- * correct; being asked at all was the defect.
+ * Stem must carry three consecutive capitals so shapes like Hamlet's
+ * `I  2` or Shahnama's `V, 82` are not treated as headings.
  */
 export const RUNNING_HEAD = /^(?=[A-Z'’ .,\-]*[A-Z]{3})([A-Z][A-Z'’ .,\-]{2,44}?)\s+(\d{1,4})$/;
 
@@ -29,29 +20,20 @@ export const BARE_NUMERAL = /^\d{1,4}$/;
 /** A finished sentence says so. Closing quotes and brackets count. */
 export const ENDS_A_SENTENCE = /[.!?…][")'\]]*$/;
 
-/** A stem seen once is not a header, it is a line. */
+/**
+ * A stem seen once is a line, not a header. Three work-wide repeats
+ * before a candidate is considered; the heading case scores one.
+ */
 export const MIN_REPEATS = 3;
 
 /**
- * THE SECOND PROOF: repetition inside one division.
+ * Repetition proof inside one division.
  *
- * The positional proof needs the text after the furniture to resume in
- * LOWER CASE, and an entire genre cannot supply that. The Shahnama is
- * verse — 74.2% of its lines begin with a capital because every line of
- * poetry does — so not one of its 1,055 candidates was provable, while
- * `KAI KHUSRAU` appeared 220 times with 220 different page numbers.
- *
- * What separates a header from a heading is not position but FREQUENCY
- * WITHIN A DIVISION. A chapter title appears once, at the head of the
- * division it names. A running head appears at the top of every page of
- * it. Measured across the shelf, the two do not overlap at all:
- *
- *     Mahabharata   "BOOK"                      1 per division  → heading
- *     I Ching       "APPENDIX III."             5               → header
- *     Hermetica     "THE MYSTERIES OF ISIS…"   24               → header
- *     Shahnama      "MINUCHIHR"                42               → header
- *
- * Three is the threshold, and the case it must protect scores one.
+ * Positional proof needs a lower-case continuation after the furniture;
+ * verse often cannot supply that. Frequency within a division separates
+ * header from heading: a chapter title appears once; a running head
+ * repeats with different page numbers. Threshold is three; a true
+ * heading scores one.
  */
 export const MIN_REPEATS_IN_DIVISION = 3;
 
@@ -78,15 +60,13 @@ export function stemsOf(sections) {
  * Every furniture candidate in one section's content.
  *
  * A candidate's SPAN runs from the end of the last real line of text to
- * the start of the next one, swallowing the blank lines and any adjacent
- * bare numeral — a printed opening leaves both numbers behind, and
- * removing half the furniture looks exactly as broken as removing none.
+ * the start of the next one, swallowing blank lines and any adjacent
+ * bare numeral — a printed opening leaves both numbers behind.
  *
- * `proven` is the §2b positional test and licenses deletion with no
- * reviewer: the clause before did not end and the word after continues
- * in lower case. `rejoin` asks less — only whether the sentence had
- * ended — because joining two paragraphs that were always separate would
- * be an edit rather than a deletion.
+ * `proven` is the §2b positional test (clause before unfinished; word
+ * after continues lower case) and licenses deletion without a reviewer.
+ * `rejoin` asks only whether the sentence had ended — joining separate
+ * paragraphs would be an edit, not a deletion.
  *
  * @param {string} content
  * @param {Map<string, number>} stems - from stemsOf(), work-wide
@@ -122,15 +102,14 @@ export function furnitureIn(content, stems) {
             text: lines.slice(first, i + 1).map(l => l.trim()).filter(Boolean).join('\n'),
             stem: m[1],
             proven: unfinished && resumes,
-            // Filled in below, once the whole division has been read.
+            // Filled once the whole division has been read.
             provenByRepetition: false,
             rejoin: unfinished ? ' ' : '\n\n'
         });
     }
 
-    // THE SECOND PROOF, applied once the division has been read whole:
-    // a stem carrying three or more DIFFERENT page numbers here is the
-    // header of these pages, not the title of this division.
+    // Repetition proof: a stem with three or more different page numbers
+    // in this division is a header of these pages, not the division title.
     const seen = new Map();
     for (const f of out) {
         if (!seen.has(f.stem)) seen.set(f.stem, new Set());
@@ -146,21 +125,14 @@ export function furnitureIn(content, stems) {
 export const isProven = (f) => Boolean(f && (f.proven || f.provenByRepetition));
 
 /**
- * `[Illustration]` markers that carry NOTHING — the stub alone on its
- * line, 205 of them across eleven works.
+ * Bare `[Illustration]` stubs — marker alone on its line.
  *
- * These mark a plate the printed edition had and this one does not.
- * Rendered, the reader is shown the literal text "[Illustration]", which
- * is a broken frame written in words — the exact thing reverent
- * degradation forbids. A work that will not resolve is absent, never a
- * broken frame.
+ * Marks a plate the printed edition had and this one does not. Showing
+ * the literal text is a broken frame; absent plates stay absent.
  *
- * ONLY THE BARE ONES. `[Illustration: “I'm the tallest”]` carries a
- * caption, and `[Illustration] BUTTERFLY DANCE` has its caption sitting
- * outside the bracket — deleting that marker would strand an all-capital
- * line between two paragraphs, which the compositor would then read as a
- * title. Removing furniture in a way that manufactures a heading is not
- * an improvement; it is R11's fault arriving by another door.
+ * Only bare stubs. Captioned forms (`[Illustration: …]` or a caption
+ * outside the bracket) must stay — removing the marker would strand an
+ * all-caps line the compositor would treat as a title.
  */
 export function illustrationStubsIn(content) {
     const lines = String(content || '').split('\n');
@@ -179,8 +151,7 @@ export function illustrationStubsIn(content) {
             start: p >= 0 ? at[p] + lines[p].replace(/\s+$/, '').length : 0,
             end: n < lines.length ? at[n] : String(content).length,
             text: '[Illustration]',
-            // It stands BETWEEN paragraphs, never inside a sentence, so
-            // the break it sat in is the break that stays.
+            // Between paragraphs; keep that break.
             rejoin: '\n\n'
         });
     }
@@ -193,39 +164,15 @@ export function isIllustrationStub(span) {
 }
 
 /**
- * ORPHANED PLATE CAPTIONS — a short line standing alone between two
- * paragraphs, ending in a `]` that nothing ever opened.
+ * Orphaned plate captions — a short standalone line ending in `]` with
+ * no matching open bracket (scan leftovers from absent plates).
  *
- * Vitruvius carries 33: `ATHENS]`, `ROME]`, `EXAMPLE OF OPUS INCERTUM.
- * THE CIRCULAR TEMPLE AT TIVOLI]`, `(From his edition of Vitruvius,
- * Venice, 1511)]`. They are the illustration apparatus of the 1914
- * Harvard edition — captions and credits for plates this text does not
- * carry — and the scan folded them into Morgan's prose. It is §2c's
- * `[Illustration]` case one step further along: not a marker for an
- * absent plate but the plate's CAPTION, left behind.
- *
- * THREE CONSTRAINTS, EACH LOAD-BEARING.
- *
- * STANDING ALONE, because `in a]l` and `And al] the ground` in the
- * Metamorphoses are OCR misreads of the letter l, sitting inside
- * sentences. Removing that bracket would be a REPAIR, which §4 forbids
- * outright.
- *
- * BUT THE STANDALONE RULE IS NOT WHAT PROTECTS THEM, and the first
- * version of this comment said it was. A misread on a SHORT LINE OF ITS
- * OWN would pass every test here — which a unit test demonstrated the
- * moment it was written. What actually protects the Metamorphoses is
- * that this class runs against an ALLOWLIST of works whose orphan lines
- * have been read (`ORPHAN_CAPTION_WORKS` in corpus-cleanse.mjs). The
- * shape rules narrow the question; the allowlist is the guarantee.
- *
- * NOTHING OPEN, because a stage direction spans lines and its closing
- * line looks unbalanced while being perfectly matched.
- *
- * AND BY WORK, because the class is not one class. The Little Clay
- * Cart's 80 are footnote anchors (`P. 4.7]`); Pride and Prejudice's are
- * chapter marks and a copyright line. A rule that cannot tell those from
- * a plate caption does not get to delete any of them.
+ * Shape rules (alone, nothing open, length ≤ 60) narrow candidates;
+ * deletion is gated by an allowlist of works whose orphan lines have
+ * been read (`ORPHAN_CAPTION_WORKS` in corpus-cleanse.mjs). Standalone
+ * alone is not enough — OCR misreads on short lines can match the shape.
+ * Per-work because the class is not one class (footnote anchors,
+ * chapter marks, etc. look similar).
  */
 export function orphanCaptionsIn(content) {
     const lines = String(content || '').split('\n');
@@ -251,7 +198,7 @@ export function orphanCaptionsIn(content) {
                 start: p >= 0 ? at[p] + lines[p].replace(/\s+$/, '').length : 0,
                 end: n < lines.length ? at[n] : String(content).length,
                 text: t,
-                // It stands BETWEEN paragraphs; the break it sat in stays.
+                // Between paragraphs; keep that break.
                 rejoin: '\n\n'
             });
         }
@@ -268,11 +215,8 @@ export function isOrphanCaption(span) {
 }
 
 /**
- * Is this span safe to delete? Whatever it covers, collapsed to one
- * line, must BE the furniture and nothing else.
- *
- * This is the last gate and it is deliberately blunt: a span it cannot
- * prove is a span nobody takes. It never narrows or repairs one.
+ * Is this span safe to delete? Collapsed to one line, it must be the
+ * furniture and nothing else. Last gate: unproven spans are never taken.
  */
 export function isStrictlyFurniture(span) {
     return FURNITURE_ONLY.test(String(span || '').replace(/\s+/g, ' ').trim());

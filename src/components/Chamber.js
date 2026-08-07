@@ -74,22 +74,9 @@ export class Chamber {
     this.hasRhythmicVisuals = this.session?.visualConfig?.visualMode === 'interlocution';
     this.rhythmicVisualsEnabled = this.hasRhythmicVisuals;
     /**
-     * WHETHER THE BAR OFFERS THE CONTROL, which in Gallery it should not.
-     *
-     * THE BUTTON ALREADY DID NOTHING THERE, and that is the argument for
-     * removing it rather than a risk in doing so. Disabling blocks the
-     * interlocution handler and calls `cancelPresentation` — both of
-     * which act on FLASHES. The Gallery is driven by the continuous-field
-     * host, mounted from `visualMode` and `presentation` in
-     * `initializeContinuousField`, and neither of those paths consults
-     * `rhythmicVisualsEnabled`. So a reader in Gallery could press it and
-     * watch nothing happen, in the width of a bar that is already tight
-     * on a phone.
-     *
-     * It stays a SEPARATE FLAG from `rhythmicVisualsEnabled` because they
-     * answer different questions — what the bar offers, and what the
-     * handler permits — and a value shared by coincidence is the thing
-     * that goes wrong later when only one of them needs to change.
+     * Whether the bar offers the visuals toggle (interlocution flashes
+     * only — not Gallery continuous-field). Separate from
+     * rhythmicVisualsEnabled: bar offer vs handler permission.
      */
     this.offersVisualsToggle = this.hasRhythmicVisuals
         && this.session?.visualConfig?.interlocution?.presentation !== 'continuous';
@@ -219,21 +206,9 @@ export class Chamber {
     this.attachEvents();
     this.initializeDisplay();
 
-    // A SPATIAL reading opens as a page rather than playing as a stream
-    // (SPATIAL-CHAMBER-SPEC §3). The session is identical in every other
-    // field; only the medium differs. The stream stays available behind
-    // it — the in-session toggle returns to it at any time.
-    //
-    // PARKED SEAM — read before changing the visual-init path. Nothing in
-    // the UI currently sets `projection` to 'page': the orbital's
-    // two-choice threshold was built, then withdrawn pending the real
-    // Spatial Chamber, so in production this branch never runs and every
-    // session is 'stream'. The plumbing is kept deliberately (config
-    // default → beginSession payload → Session model → here), normalized
-    // so an unknown value is always 'stream', and it is exercised only by
-    // e2e/page-suspend.spec.js. Treat that test as the contract: if you
-    // change how visuals initialise, run it, because it is the only thing
-    // guarding this path from silent rot.
+    // A spatial reading opens as a page (SPATIAL-CHAMBER-SPEC §3).
+    // projection === 'page' is parked in production UI; e2e/page-suspend.spec.js
+    // guards the path. Unknown values normalize to 'stream'.
     if (this.session?.projection === 'page') {
       // Tracked so a Chamber destroyed during the delay cannot mount a
       // reader into detached DOM.
@@ -302,17 +277,8 @@ export class Chamber {
           <div class="chamber-field" id="chamber-field">
             <div class="movement-title" id="movement-title" role="status"
                  aria-live="polite" hidden></div>
-            <!-- THE BAND AND THE READING ARE NOT THE SAME OBJECT.
-                 Every atom takes #atom-display to opacity 0 and fades
-                 it back over 150ms, which is right for the text and
-                 catastrophic for glass carried on the same element:
-                 opacity composites the whole subtree, so the phone's
-                 full-bleed band strobed once per atom. The wrapper
-                 exists to hold the glass while the reading inside it
-                 fades. It is display:contents everywhere but the
-                 phone, so it generates no box and the desktop layout
-                 is not merely unaffected but incapable of being
-                 affected. -->
+            <!-- #atom-band holds glass; #atom-display fades independently
+                 (display:contents except on phone). -->
             <div class="atom-band" id="atom-band">
               <div class="atom-display" id="atom-display"></div>
             </div>
@@ -1226,20 +1192,12 @@ export class Chamber {
    *   was painted plainly and there is nothing to reveal.
    */
   /**
-   * Put a visual layer into the field BEHIND the reading.
+   * Put a visual layer into the field behind the reading.
    *
-   * Four call sites — the continuous field, genesis, the attractor and
-   * the focal — each carried its own copy of "insert before
-   * #atom-display, or append if it is missing", and each of those
-   * copies broke the day the reading gained a wrapper: #atom-display
-   * stopped being a child of the field, and insertBefore on a node
-   * that is not your child throws. One copy learning a new fact while
-   * three do not is the shape of bug this codebase keeps paying for,
-   * so there is now one copy.
-   *
-   * The anchor is the BAND rather than the display, because the band
-   * is what occupies the field; on desktop it is `display: contents`
-   * and the two are the same position anyway.
+   * Single insert path for continuous field, genesis, attractor, and
+   * focal: insert before the band (or append if missing). Do not
+   * insertBefore relative to #atom-display — after the band wrapper,
+   * the display is no longer a direct field child.
    */
   _insertBehindReading(field, node) {
     const anchor = field.querySelector('#atom-band')
@@ -1486,13 +1444,7 @@ export class Chamber {
   togglePlayPause() {
     if (!this.player) return;
 
-    // PAGE AUTHORITY (PAGE-MODE-SPEC §4). While the Page is open it is
-    // the reading, and the Stream must not be startable behind it — by
-    // Space, by the Play button, or by anything else routed here. Without
-    // this the hidden stream advances atoms, resumes audio, fires visual
-    // cues over the page, and can complete the session while the reader
-    // is studying. Space is the sharpest case: on a page it should
-    // scroll, and it was instead starting an invisible stream.
+    // Page authority (PAGE-MODE-SPEC §4): while Page is open, do not start Stream.
     if (this.pageModeActive) return;
 
     // Debounce to prevent double-click issues (hardware or accidental)

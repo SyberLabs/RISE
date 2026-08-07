@@ -76,26 +76,10 @@ export class Curia {
     }
 
     /**
-     * The science collections, as an ATTRIBUTION RECORD rather than a
-     * governed canon — and the distinction is the whole design.
-     *
-     * SOURCE-EXPANSION-SPEC §3a ruled that the Chamber's chip carries a
-     * credit as text while "the Curia carries the full record with URLs",
-     * and the roster ruling leans on that: a 500-character observing-team
-     * credit is cut at its marker and the remainder is permitted to live
-     * elsewhere under CC BY 4.0 §3(a)(3), which allows the condition to be
-     * satisfied by link "where practical". THAT PERMISSION IS CONDITIONAL
-     * ON THE REMAINDER BEING REACHABLE. Twenty-five works currently carry
-     * an elided credit, so until this room shows them the elision has no
-     * ground to stand on. This is the second half of a ruling already
-     * shipped, not a new feature.
-     *
-     * NO VERBS. The Curia's exclude/pin/move rewrite `museum-pins.js`,
-     * which is machine-writable by design. The science canon is
-     * `science-pins.js` plus a rebuild through
-     * `scripts/build-science-catalog.mjs`, so an "unpin" button here would
-     * be a control that silently does nothing — worse than no control,
-     * because it would report an authority the room does not have.
+     * Science collections as attribution records (full credits with URLs
+     * for elided Chamber chips). Read-only here: pins live in
+     * `science-pins.js` + rebuild; no exclude/pin/move controls that
+     * would imply write authority the room lacks.
      */
     async _loadScience() {
         try {

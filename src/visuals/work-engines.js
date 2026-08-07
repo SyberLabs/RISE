@@ -8,18 +8,9 @@
  * Jünger's war is trench geometry, ballistic vectors, gas diffusion and
  * flare phosphenes. They are readings of a specific book.
  *
- * WHY THEY ARE A REGISTRY AND NOT THIRTEEN BRANCHES
- * ────────────────────────────────────────────────
- * Every one of them shares a single method — `render(canvas, options)` —
- * so the cortex needs to know that a family EXISTS, not what any member
- * of it draws. A new work arriving with its own engines adds a line
- * here and nothing anywhere else, which is what keeps the cortex
- * domain-blind while the imagery gets more specific.
- *
- * They are stills rather than loops. One render fills the field and the
- * gallery holds it behind the reading, which is what a procedural
- * accompaniment should be: a place the words happen in, not a thing
- * competing with them for motion.
+ * Registry of work-specific engine families (not cortex-general).
+ * Shared render(canvas, options); new work adds a loader line here.
+ * Stills held behind the reading.
  */
 
 /** family id → () => Promise<{id, name, engineClass}[]> */
@@ -95,13 +86,8 @@ export async function renderWorkEngine(familyId, canvas, index = 0, options = {}
 /**
  * PAGE MODE ASKS FOR ONE ENGINE, NOT A FAMILY.
  *
- * The Page resolves imagery by an opaque collection id, and a Journey's
- * figures each name their own engine — so "paradise-lost" alone is not
- * enough to put the flaming sword beside Michael's sword. The id
- * therefore carries both, and BOTH ENDS USE THESE FUNCTIONS rather than
- * writing the format by hand. That rule is not fussiness: a vocabulary
- * kept in two places has failed six times in this codebase, and every
- * time it was silent.
+ * The Page resolves imagery by opaque collection id; Journey figures name
+ * engines. Use these helpers at both ends — do not hand-format the id.
  */
 const PAGE_ID_SEPARATOR = '::';
 

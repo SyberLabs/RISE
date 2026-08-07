@@ -5,17 +5,11 @@
  * `share_license_status`. Strong in 18th–19th century European painting
  * and prints, which covers Atrium history subjects the Met is thin on.
  *
- * WHY THIS AND NOT RIJKSMUSEUM OR YALE (probed 2026-07-21):
- * - Rijksmuseum's public API returns 410 Gone; their replacement
- *   platform requires a key we do not hold.
- * - Yale's LUX API resolves objects and finds genuinely relevant
- *   material, but exposes an empty `subject_to` — no machine-readable
- *   rights — and its IIIF manifests return 401. Under the rights gate
- *   (ATRIUM-IMAGERY-SPEC.md §4) absence of a stated restriction is not
- *   permission, so an adapter would have to infer rights. It cannot.
+ * Chosen over Rijksmuseum (public API 410 Gone; replacement needs a key)
+ * and Yale LUX (no machine-readable rights; IIIF 401). Absence of a
+ * stated restriction is not permission (ATRIUM-IMAGERY-SPEC §4).
  *
- * PINNED IDS ONLY, for the same reason as the Met adapter: search ranks
- * rather than curates.
+ * Pinned ids only — search ranks rather than curates.
  */
 
 import { normalizeWork, RIGHTS } from '../works.js';

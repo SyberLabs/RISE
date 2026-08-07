@@ -149,22 +149,8 @@ export class BetaGate {
   }
 
   /**
-   * THE DOOR IS OPEN — 2026-08-06.
-   *
-   * The code prompt was raised while the creator was still deciding
-   * whether fast interlocution and a shelf of declassified psychotronic
-   * documents could be handed to a stranger. Those questions have since
-   * been answered in the work itself: the visual safety gate, the
-   * consent scope, reverent degradation, a corpus reviewed by hand. The
-   * gate was standing in for guarantees that now exist elsewhere.
-   *
-   * WHAT IS KEPT IS THE INVITE, NOT THE LOCK. A personalized code still
-   * resolves to its own welcome and its own vault, because that was never
-   * a barrier — it is a room prepared for someone. Removing the prompt
-   * opens the front door and leaves those rooms exactly as they were.
-   *
-   * The threshold itself stays. It is the first breath of the piece, and
-   * it is also where the audio context is unlocked by a real click.
+   * Open threshold: invite UX without a lock. Personalized codes still
+   * resolve to their welcome/vault; the gate unlocks audio via click.
    */
   renderOpenThreshold() {
     return `
@@ -182,11 +168,8 @@ export class BetaGate {
   }
 
   renderPersonalizedWelcome(inviteData) {
-    // NO STATE OF THE BETA IN THE FALLBACK. This said "the closed beta"
-    // while the footer said "Open Beta", so any invite without its own
-    // `welcome` greeted its reader with a contradiction. An invitation is
-    // still an invitation once the door is open — it just cannot be the
-    // thing that describes the door.
+    // Fallback welcome does not describe beta state — invite copy may,
+    // but the default greeting must not contradict the open door.
     const welcomeText = inviteData.welcome || `Welcome to RISE, ${inviteData.name}.
 
 You have been invited into this audiovisual reading environment.

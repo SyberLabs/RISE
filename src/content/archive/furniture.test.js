@@ -116,11 +116,7 @@ describe('page furniture', () => {
     });
 
     it('proves a running head by repetition when position cannot', () => {
-        // THE SHAHNAMA IS VERSE, and 74.2% of its lines begin with a
-        // capital because every line of poetry does. The positional
-        // proof needs a lower-case continuation, so not one of its 1,055
-        // candidates could be settled — while "KAI KHUSRAU" appeared 220
-        // times with 220 different page numbers.
+        // Verse often lacks lower-case continuation; repetition still proves.
         const verse = [
             'Quit thy land,', '', 'KAI KHUSRAU 65', '', 'Thy throne and country, and attend my court?',
             '', 'KAI KHUSRAU 67', '', 'My court is more exalted than the sun,',
@@ -135,10 +131,7 @@ describe('page furniture', () => {
     });
 
     it('repetition never promotes a division heading', () => {
-        // THE CASE THIS MUST NOT BREAK. "BOOK 1" appears ONCE in its
-        // division; a running head appears on every page of one. Measured
-        // across the shelf the two do not overlap: the Mahabharata scores
-        // 1 per division, the Shahnama's MINUCHIHR scores 42.
+        // A heading once per division must not become proven by work-wide repeats.
         const book = [
             'Krishna-Dwaipayana Vyasa', '', 'BOOK 1', '', 'ADI PARVA',
             '', 'Translated into English Prose from the Original Sanskrit Text.'
@@ -160,10 +153,7 @@ describe('page furniture', () => {
     });
 
     it('takes an orphaned plate caption standing alone', () => {
-        // MATEO'S CASE, and the one this pass missed twice. Vitruvius
-        // carries the 1914 Harvard edition's illustration apparatus —
-        // captions and credits for plates the text does not have —
-        // folded into Morgan's prose by the scan.
+        // Orphan plate captions left by an absent-illustration scan.
         const content = [
             'might be known and handed down even to posterity.', '',
             'ATHENS]', '', 'ROME]', '', 'Giocondo, Venice, 1511)]', '',
@@ -177,23 +167,14 @@ describe('page furniture', () => {
     });
 
     it('never touches a bracket that is a misread letter, INSIDE a sentence', () => {
-        // THE TRAP. The Metamorphoses has "in a]l" and "And al] the
-        // ground shone white" — the ] is an OCR misread of an l, and
-        // removing it would be a REPAIR, which §4 forbids outright. In
-        // the payload they sit inside paragraphs, and the standalone rule
-        // excludes them there.
+        // OCR misread inside a sentence must not match (§4 forbids repair).
         expect(orphanCaptionsIn(
             'encouraged and instructed him in a]l things\nAnd al] the ground shone white'))
             .toEqual([]);
     });
 
     it('and the standalone rule is NOT what protects them', () => {
-        // Worth asserting the limit rather than trusting the comment. A
-        // misread on a short line of its own passes every shape test
-        // here. What protects the Metamorphoses is that this class runs
-        // against an allowlist of works whose orphan lines have been
-        // read — the shape rules narrow the question, the allowlist is
-        // the guarantee. This test exists so that stays true on purpose.
+        // Shape alone is insufficient; allowlist is the deletion gate.
         const alone = 'He spoke.'+'\\n'+'\\n'+'in a]l'+'\\n'+'\\n'+'And went out.';
         expect(orphanCaptionsIn(alone).length,
             'shape alone cannot tell a misread from a caption').toBe(1);

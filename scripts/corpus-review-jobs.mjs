@@ -4,51 +4,31 @@
  *   node scripts/corpus-review-jobs.mjs --work the-storm-of-steel
  *   node scripts/corpus-review-jobs.mjs --all --limit 200 --out jobs.json
  *
- * WHAT THIS IS FOR
- * ────────────────
- * `CORPUS-REVIEWER-PROMPT.md` is a SYSTEM prompt. It is useless on its
- * own: it describes how to judge one passage, and something has to hand
- * it the passage. This is that something.
+ * Feeds passages to `CORPUS-REVIEWER-PROMPT.md` (the system prompt alone
+ * has nothing to judge).
  *
- * WHAT IT DELIBERATELY DOES NOT SEND
- * ──────────────────────────────────
- * The running heads that `ARCHIVE-CLEANSING-SPEC` §2b can prove from
- * POSITION — furniture standing between an unfinished clause and a
- * lower-case continuation — are settled deterministically and are not
- * jobs. §3's economy is that nothing reaches a reviewer a regex could
- * have settled, and there is a second reason here: a reviewer fed twenty
- * obvious running heads in a row learns to answer "trim" by reflex, and
- * the twenty-first is a chapter title.
+ * Omits running heads that `ARCHIVE-CLEANSING-SPEC` §2b settles from
+ * position — furniture between an unfinished clause and a lower-case
+ * continuation. Only the ambiguous remainder reaches a reviewer: the
+ * same shape can be a real division heading, and nothing a regex could
+ * settle should be delegated.
  *
- * So the jobs are the AMBIGUOUS remainder — the ~1,576 where the same
- * shape is also the shape of a real division heading. That is the work
- * only a reader can do, which is why it is the work being delegated.
- *
- * CONTROLS
- * ────────
- * Roughly one job in ten is a known-answer passage from the prompt's
- * worked examples, shuffled in and indistinguishable from real work.
- * They are recorded in a separate answer key that the reviewer never
- * sees. A batch whose controls come back wrong is discarded whole.
+ * Roughly one job in ten is a known-answer control from the prompt's
+ * worked examples, shuffled in and unlabelled. The answer key is
+ * separate; a batch whose controls fail is discarded whole.
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
-// THE SHARED DETECTOR. This file kept its own copy for a day after
-// furniture.js was extracted — and furniture.js's own header claimed
-// otherwise — so the builder was still finding 73 "proven" candidates
-// with the loose stem the cleanser had already learned to refuse. The
-// comment asserting one vocabulary is not the same as having one.
+// Shared detector — same module the cleanser and tests import.
 import { stemsOf, furnitureIn, isProven } from '../src/content/archive/furniture.js';
 import { keepIdentity } from '../src/content/archive/keep-identity.js';
 
 const WORKS_DIR = resolve('src/content/archive/works');
 
 /**
- * Passages already reviewed and KEPT. A keep is a decision, not a
- * deferral — without this record the same 42 division headings and
- * contents lines return in every batch forever and the queue never
- * reads zero.
+ * Passages already reviewed and kept. A keep is a decision: without this
+ * record, settled candidates reappear in every batch.
  */
 let KEPT = new Set();
 try {
@@ -57,9 +37,8 @@ try {
 } catch { /* nothing kept yet */ }
 
 /**
- * The control set, verbatim from CORPUS-REVIEWER-PROMPT.md §4. Their
- * whole value is that they are real passages from this shelf: an
- * invented control tests the reviewer against my imagination.
+ * Control set from CORPUS-REVIEWER-PROMPT.md §4. Real shelf passages,
+ * not invented ones — an invented control only tests the author.
  */
 const CONTROLS = [
     {
@@ -108,16 +87,11 @@ const CONTROLS = [
 const CONTEXT = 220;
 
 /**
- * Every candidate in a work, from the one detector, WITH THE CONTEXT A
- * REVIEWER NEEDS.
+ * Every candidate in a work, with the context a reviewer needs.
  *
- * `furnitureIn` returns spans; it does not return surroundings, because
- * identifying furniture and presenting it are different jobs. Rewiring
- * this file to the shared detector dropped `before` and `after` on the
- * floor, and every job in the next batch carried `undefined` for both —
- * which is the whole of the evidence the prompt asks the reviewer to
- * judge by. Position is the entire question; a job without it is a
- * question with no content.
+ * `furnitureIn` returns spans only; identifying furniture and presenting
+ * it are different jobs. `before`/`after` must be filled here — position
+ * is the evidence the prompt asks the reviewer to judge by.
  */
 function candidatesIn(sections) {
     const stems = stemsOf(sections);
@@ -127,12 +101,9 @@ function candidatesIn(sections) {
         for (const f of furnitureIn(content, stems)) {
             out.push({
                 ...f,
-                // THE INDEX, NOT THE NAME. The Shahnama has 462 sections
-                // and 249 distinct names — "Volume 3 — INDEX" occurs
-                // eighteen times — so a name resolves a job to the wrong
-                // section and its offsets then point at another book's
-                // characters. The stale-offset gate caught it and refused
-                // the work; this stops it being asked.
+                // Section index, not name: division names are not unique
+                // within a work, so a name-keyed locator can point offsets
+                // at the wrong section.
                 section: index,
                 division: section.name || null,
                 before: content.slice(Math.max(0, f.start - CONTEXT), f.start).trim(),

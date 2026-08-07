@@ -1,40 +1,19 @@
 /**
  * Met harvest → interactive contact sheet.
  *
- * The existing atrium-contact-sheet.mjs renders pins you already have.
- * This is the step before it: finding candidates, and letting a curator
- * throw most of them away.
+ * Find candidates, then discard most. Every candidate starts KEPT; a click
+ * discards. Done → paste-ready block for ATRIUM_PINNED_COLLECTIONS.
  *
  *   node scripts/met-harvest.mjs --dept 13 --q "Achilles" --out sheet.html
  *   node scripts/met-harvest.mjs --config harvest.json
  *
- * The output is a page where every candidate starts KEPT and a click
- * discards it. When you are done, one button copies the survivors as a
- * paste-ready block for ATRIUM_PINNED_COLLECTIONS — with the artist,
- * title and date already in the trailing comment, taken from the Met's
- * record rather than typed by hand.
+ * Discard-default (not select-to-keep): the eye rejects faster than it
+ * approves; an untouched kept work has been looked at, not missed.
  *
- * WHY DISCARD RATHER THAN SELECT
- * ──────────────────────────────
- * Selecting means the default is "no" and a curator's attention decides
- * what survives; discarding means the default is "yes" and attention
- * decides what dies. For a contact sheet the second is right: the eye
- * is fast at rejection and slow at approval, and a work that has been
- * LOOKED AT and left alone has been judged. A work never clicked in a
- * select-to-keep sheet has merely been missed.
- *
- * THE MET'S SEARCH IS A HINT (MUSEUM-ATLAS §4)
- * ────────────────────────────────────────────
- * Its index is unstable between identical calls — `artistOrCulture&q=`
- * returned total:10 and then total:0 moments later, verified 2026-07-22.
- * So every search is issued more than once and the object ids are
- * UNIONED across attempts, which is the only honest way to read a
- * source that disagrees with itself. Search returns ids only, so each
- * candidate then costs its own fetch.
- *
- * Rate: the documented courtesy limit is 80 req/s and the atlas says to
- * be far politer. This paces at roughly one request per second, retries
- * once after a long backoff, and never runs two requests at a time.
+ * Met search is unstable across identical calls — union object ids across
+ * repeated attempts (MUSEUM-ATLAS §4). Search returns ids only; each
+ * candidate needs its own fetch. Pace ~1 req/s, retry once after backoff,
+ * never concurrent.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -69,19 +48,8 @@ async function getJson(url, attempt = 0) {
  * curator's attention than one it mentioned once.
  */
 async function search(params) {
-    // NOTHING IS INJECTED. Measured 2026-07-30: the Met's search
-    // collapses on combinations rather than intersecting them.
-    //
-    //   q=Achilles                                 ->   674
-    //   q=Achilles&isPublicDomain=true             ->     7
-    //   q=Achilles&departmentId=13                 ->     3
-    //   departmentId=13&q=vase                     -> 21937  (q IGNORED)
-    //   q=Achilles&departmentId=13&hasImages=true  ->     0
-    //
-    // So `departmentId` is a standalone axis that returns the whole
-    // department, a third parameter tends to zero the result, and an
-    // adding a "helpful" default silently destroys a harvest. The axis
-    // is the caller's choice and this function passes it through.
+    // Pass params through unchanged: Met search does not intersect axes
+    // cleanly, and injected defaults can zero or ignore the query.
     const query = new URLSearchParams(params).toString();
     const seen = new Map();
     for (let attempt = 0; attempt < SEARCH_ATTEMPTS; attempt++) {

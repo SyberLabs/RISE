@@ -4,21 +4,14 @@
  *   node scripts/corpus-review-apply.mjs jobs.json verdicts.json        # report
  *   node scripts/corpus-review-apply.mjs jobs.json verdicts.json --apply
  *
- * THE STEP THAT CLOSES THE LOOP. Job generation and verdict validation
- * existed before this did, which meant the workflow had no end: batches
- * could be built and checked and then nothing could happen to them.
+ * Refuses to start unless every verdict passes `corpus-review-verdicts.mjs`
+ * (schema, disposition rules, controls). Applying is a separate act from
+ * judging and must not be reachable by accident.
  *
- * RUN THE VALIDATOR FIRST. This refuses to start unless every verdict
- * passes `corpus-review-verdicts.mjs` — schema, disposition rules,
- * controls. Applying is a separate act from judging, and it must not be
- * possible to reach it by accident.
- *
- * OFFSETS GO STALE, AND THAT IS THE MAIN HAZARD. A job records where its
- * passage sat when the batch was built. If the payload has changed since
- * — another class cleansed, an ingest re-run — those offsets now point
- * at different characters, and applying them blind would delete prose.
- * So every span is CHECKED AGAINST ITS RECORDED TEXT before it is
- * touched, and a work with even one mismatch is skipped whole.
+ * Offsets go stale: a job records where its passage sat when the batch
+ * was built. If the payload has changed since, those offsets point at
+ * different characters. Every span is checked against its recorded text
+ * before it is touched; a work with even one mismatch is skipped whole.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { rewriteSections } from '../src/content/archive/payload-writer.js';
@@ -30,11 +23,8 @@ import { execFileSync } from 'node:child_process';
 const WORKS_DIR = resolve('src/content/archive/works');
 const LOG = resolve('src/content/archive/cleanse-log.json');
 /**
- * REVIEWED AND KEPT. Without this the queue never empties: a passage
- * judged "keep" is still a candidate the detector cannot settle, so it
- * comes back in the next batch and every batch after it, and the count
- * of remaining work stays permanently wrong. A verdict of keep is a
- * decision, and decisions are recorded.
+ * Keep decisions for passages the detector cannot settle. Without this
+ * record, a "keep" returns in every later batch.
  */
 const KEEPS = resolve('src/content/archive/cleanse-keeps.json');
 
@@ -66,13 +56,8 @@ const jobs = JSON.parse(readFileSync(resolve(jobsFile), 'utf8'));
 const verdicts = JSON.parse(readFileSync(resolve(verdictsFile), 'utf8'));
 
 /** Pair each verdict with the job it answers, by locator. */
-// THE SECTION INDEX BELONGS IN THE MATCHING KEY, not only in the later
-// grouping. The builder learned that a division NAME is not unique — the
-// Shahnama repeats "Volume 3 — INDEX" eighteen times — and this key was
-// left on the old vocabulary, so two jobs from different sections with
-// the same name and offsets collide in the Map and one silently replaces
-// the other. Repairing the ambiguity in one layer while the lookup in
-// front of it still carries the bug is not a repair.
+// Matching key includes section index: division names are not unique
+// within a work, so name+offset alone can collide across sections.
 const keyOf = (j) => [j.workId, j.locator?.section, j.locator?.division,
     j.locator?.charStart, j.locator?.charEnd].join('|');
 const byKey = new Map(jobs.map(j => [keyOf(j), j]));
@@ -124,10 +109,7 @@ for (const [workId, items] of byWork) {
     const cleaned = sections.map(s => ({ ...s }));
     const byDivision = new Map();
     for (const it of items) {
-        // Keyed by section INDEX. A division NAME is not unique — the
-        // Shahnama repeats "Volume 3 — INDEX" eighteen times — and a job
-        // resolved to the wrong section carries offsets into another
-        // passage entirely.
+        // Keyed by section index; division names are not unique within a work.
         const d = it.job.locator.section ?? it.job.locator.division;
         if (!byDivision.has(d)) byDivision.set(d, []);
         byDivision.get(d).push(it);
@@ -146,8 +128,7 @@ for (const [workId, items] of byWork) {
         for (const { job } of list) {
             const { charStart, charEnd, rejoin } = job.locator;
             const span = String(section.content).slice(charStart, charEnd);
-            // THE STALE-OFFSET GATE. What is there now must be what the
-            // job said was there.
+            // Stale-offset gate: current text must match the job's recorded passage.
             const here = span.replace(/\s+/g, ' ').trim();
             const said = String(job.passage).replace(/\s+/g, ' ').trim();
             if (here !== said) {

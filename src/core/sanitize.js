@@ -26,21 +26,9 @@ export function escapeHtml(value) {
 }
 
 /**
- * A blob: URL belonging to THIS document.
- *
- * `URL.createObjectURL` mints `blob:<origin>/<uuid>`, so the origin is
- * checkable and the check is the difference between "we accept our own
- * object URLs" and "we accept any string beginning blob:". The comment
- * here used to claim same-document while the test was a bare `/^blob:/`;
- * a guarantee written down and not performed is the one that gets relied
- * on. An opaque origin (file://, sandboxed frame) mints `blob:null/`.
- *
- * THE MODEL LAYER STAYS PERMISSIVE ON PURPOSE. `sequenceAssetHasUri`,
- * `isSessionImageUri` and their neighbours still test a bare `blob:`
- * prefix, and that is not an oversight to reconcile: they answer "is this
- * a runtime URI at all" in code that runs without a document. This
- * function is the DOM boundary and the only place the question is about
- * trust. Classify broadly, emit narrowly.
+ * A blob: URL belonging to this document (`blob:<origin>/…`).
+ * Opaque origins mint `blob:null/`. Model-layer URI checks may stay
+ * permissive (`blob:` prefix only); this is the DOM trust boundary.
  */
 function isSameDocumentBlobUrl(value) {
     if (typeof location === 'undefined') return false;

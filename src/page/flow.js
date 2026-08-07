@@ -1,17 +1,9 @@
 /**
- * The Flow compiler — Page Mode, Layer 1 (PAGE-MODE-SPEC §3.1).
+ * Flow compiler — Page Mode Layer 1 (PAGE-MODE-SPEC §3.1).
  *
- * Turns a compiled session (atoms + visualProgram) into an ordered list
- * of BLOCKS: the "story" in InDesign's sense, before any layout decision
- * is made. This is the only Page stage that knows what a verse or a
- * pericope *means*.
- *
- * THE BINDING TRUTH IS SHARED. Image↔passage binding comes from
- * `cueForAtom` — the same function the Stream's scheduler uses — so the
- * Page and the Stream can never disagree about which work belongs to
- * which passage. One binding, two projections (§8).
- *
- * Pure: no DOM, no fetch, no clock. Unit-testable with fake atoms.
+ * Session → ordered blocks before layout. Image↔passage binding uses
+ * `cueForAtom` (same as Stream) — one binding, two projections (§8).
+ * Pure: no DOM, fetch, or clock.
  */
 
 import { cueForAtom } from '../core/visual-scheduler.js';
@@ -36,14 +28,8 @@ export const MARK = Object.freeze({
 const FALLBACK_CUE_ID = '__fallback__';
 
 /**
- * Is this atom structural silence (a pause/marker) rather than content?
- * The chunker mints marker atoms with empty content and a tag.
- *
- * NOTE: this asks about SILENCE, not about text. A non-text atom is
- * content the Page must carry, not something to drop — treating every
- * modality but text as silence is what once discarded image, symbol,
- * and composite atoms from the spatial projection while the Stream
- * played them (red-team #5).
+ * Structural silence (empty marker), not "non-text". Image/symbol/
+ * composite atoms are content the Page must carry.
  */
 function isStructuralSilence(atom) {
     if (!atom) return true;
@@ -68,29 +54,8 @@ function isSymbol(atom) {
 }
 
 /**
- * ON, since 2026-08-04. The condition it waited for has been met.
- *
- * It was deferred with a precise reason rather than a vague one, and the
- * reason has been answered on its own terms: "§199 and §250 of the spec:
- * v1 scrolls; pagination is v4. A Journey is 23,000 words, so its page
- * is one continuous column of some 2,800 atoms, and adding a sampled
- * engine still at every figure adds render cost to a document that is
- * already the largest thing this projection has been asked to typeset.
- * Pagination is what makes that tractable — it divides the reading into
- * bounded units, and a bounded unit can afford its own imagery."
- *
- * The Page paginates now, and a Journey is long enough that it always
- * will: the projection-by-length threshold cuts anything past four
- * pages. Elongating is the one path back to a single column, and it is
- * safe for a different reason — figures hydrate through an
- * IntersectionObserver, so an elongated Journey builds its figure
- * ELEMENTS but decodes only what the reader has actually reached.
- *
- * What changes: a Journey's procedural movements are illustrated by the
- * engines their author named, instead of typesetting as text. §1.5's
- * "an unillustrated passage is a valid scored state" remains true and
- * remains the fallback — an engine that will not resolve yields
- * stillness, never a broken frame.
+ * Procedural cues place figures when pagination makes the cost tractable.
+ * Unresolved engines yield stillness (§1.5), never a broken frame.
  */
 const PROCEDURAL_FIGURES = true;
 
@@ -104,30 +69,8 @@ function collectionsOf(cue) {
         ? cue.collections.filter(Boolean) : [];
     if (cue.kind === 'sourced') return collections;
 
-    // A PROCEDURAL CUE PLACES A FIGURE TOO — ON THE AUTHORED PATH.
-    //
-    // Worth being exact about the scope, because it is narrower than it
-    // looks. An UNSCHEDULED reading never reaches here: compileFlow
-    // sends it to placeCollectionFigures with its chosen collections,
-    // which is why an ordinary Chamber session has always been able to
-    // put Genesis and the attractor on a page. Only a reading with an
-    // authored program comes through this function, and that program is
-    // "never second-guessed" — so the fallback is deliberately skipped.
-    //
-    // Which made this Journey-specific. The Chapel's pericope cues are
-    // all `sourced`, so `kind !== 'sourced'` was true of nothing that
-    // existed until Journeys introduced procedural cues. The result was
-    // that the one kind of reading whose imagery is most deliberately
-    // placed got no figures at all, while a session that chose the same
-    // engines from the orbital got them.
-    //
-    // The SHAPE is still the one this codebase keeps paying for: a
-    // vocabulary that learned `sourced` and never learned the other
-    // word, silent when it failed. applyCue and the gallery allowlist
-    // were the same, and were also introduced by the same work.
-    //
-    // A figure names its own engine, so the id carries both. The format
-    // belongs to work-engines.js and is written by nobody else.
+    // Authored procedural cues only (unscheduled readings use
+    // placeCollectionFigures). Id format: pageCollectionId(family, engine).
     if (cue.kind === 'procedural' && collections.length && PROCEDURAL_FIGURES) {
         const engines = Array.isArray(cue.engines) ? cue.engines.filter(Boolean) : [];
         if (!engines.length) return collections.map(family => pageCollectionId(family));
@@ -139,38 +82,18 @@ function collectionsOf(cue) {
 }
 
 /**
- * Prose CHARACTERS below which a derived figure would overwhelm the page.
- * Measured in characters, not blocks: a coordinate-less reading merges
- * its whole body into one run, so counting blocks would see "1" for a
- * novel and place nothing.
+ * Min prose characters before derived figures; measured in chars, not
+ * blocks (a merged body is one run).
  */
 const MIN_PROSE_FOR_FIGURE = 700;
-/**
- * Roughly one derived figure per this much prose. Tuned against real
- * chunker output so an ILLUMINATED reader actually feels illuminated: at
- * ~1100 chars a short reading earns one or two plates and a long one is
- * illustrated throughout, while the ceiling still keeps it a book rather
- * than a gallery wall. (The first pass used 2400, which gave a
- * thirty-paragraph reading a single figure — too austere to read as
- * illustrated at all.)
- */
+/** Roughly one derived figure per this much prose. */
 const PROSE_PER_FIGURE = 1100;
-/** A ceiling so a very long reading stays a book, not a gallery wall. */
+/** Ceiling so a long reading stays a book, not a gallery. */
 const MAX_DERIVED_FIGURES = 14;
 
 /**
- * A reading with NO authored program but WITH chosen collections still
- * deserves its imagery: the reader picked those sources, and the Stream
- * would draw from them. Without this, a Gospel chapter typeset with
- * plates while an Atrium or Library reading with the very same
- * collections rendered as a bare column (red-team #5).
- *
- * The placement rule is deliberately modest, and deliberately NOT the
- * attunement compiler (TEXT-ATTUNED-IMAGERY-SPEC), which will supersede
- * it with real segmentation and scoring: figures are spaced evenly
- * through the prose on a density budget, so a long reading breathes and
- * a short one is not swamped. Restraint is the default — a book, not a
- * feed.
+ * Unscheduled readings with chosen collections: space derived figures
+ * evenly by prose volume (modest density; not the attunement compiler).
  *
  * @param {Array} blocks - the compiled flow blocks (mutated: figures inserted)
  * @param {Array<string>} collections - the reading's chosen sources
@@ -214,12 +137,7 @@ function placeCollectionFigures(blocks, collections) {
             kind: BLOCK.IMAGE,
             collections: [...collections],
             episodeId: null,
-            // Derived figures VARY in weight rather than all whispering.
-            // Hardcoding every one to 'inset' meant a derived page could
-            // never show a full plate, only small inline figures — timid,
-            // and visibly poorer than an authored page. The first asks to
-            // be a plate and they alternate from there; the compositor
-            // still has final say, and its bleed-debt rule stops stacking.
+            // Alternate plate/inset; compositor still applies bleed debt.
             emphasis: n % 2 === 0 ? 'plate' : 'inset',
             at: null,
             derived: true
@@ -278,9 +196,7 @@ export function compileFlow(session, options = {}) {
             continue;
         }
 
-        // An AUTHORED image: the reading supplied this work itself, so it
-        // needs no collection and no provider — its URL is already known.
-        // It is placed exactly where the author put it in the stream.
+        // Authored image: URL known, placed where the author put it.
         if (isAuthoredImage(atom)) {
             flushRun();
             pendingPause = false;
@@ -314,19 +230,7 @@ export function compileFlow(session, options = {}) {
             ? { chapter: atom.chapter, verse: atom.verse }
             : null;
 
-        // TWO COORDINATE SPACES, AND THIS FILE KNEW ONE.
-        //
-        // Every consultation of the program below was gated on `coord`,
-        // which is chapter-and-verse — so a Journey, whose atoms carry a
-        // sourceId and no verse, never reached cueForAtom at all. Not one
-        // authored cue was read; the page fell through to the end of the
-        // loop with `program` set, which also skips the unscheduled
-        // fallback. That is why a Journey's page came out as bare text
-        // while an ordinary session's did not.
-        //
-        // cueForAtom already understands both spaces — it is the same
-        // oracle the Stream asks, and it was answering correctly. The
-        // question was never put to it.
+        // Placeable in either coordinate space: verse coords or sourceId.
         const placeable = coord || (typeof atom.sourceId === 'string' && atom.sourceId
             ? { sourceId: atom.sourceId }
             : null);
@@ -339,9 +243,8 @@ export function compileFlow(session, options = {}) {
             pendingPause = false;
         }
 
-        // THE SHARED BINDING: ask the same oracle the Stream asks.
-        // A coordinate-less atom holds the active episode (structural
-        // silence never changes the scene — the scheduler's own law).
+        // Shared binding with Stream via cueForAtom. Coordinate-less atoms
+        // hold the active episode (silence does not change the scene).
         let cueId = activeCueId;
         let cue = null;
         if (program && placeable) {
@@ -407,9 +310,8 @@ export function compileFlow(session, options = {}) {
 
     flushRun();
 
-    // A reading whose imagery was AUTHORED (a pericope program) is never
-    // second-guessed: the domain already said where every plate belongs.
-    // Only an unscheduled reading falls back to its own chosen sources.
+    // Authored programs are never second-guessed; only unscheduled
+    // readings fall back to chosen sources.
     let derived = 0;
     if (!program) {
         const chosen = Array.isArray(options.collections)
@@ -436,28 +338,15 @@ function sourcedCollectionsOf(session) {
         ? list.filter(id => typeof id === 'string' && id.length > 0)
         : [];
 
-    // The reading's MODE decides what its imagery is. Reading only
-    // `interlocution` made a Genesis or attractor reading fall through to
-    // whatever happened to sit in interlocution.procedural — which is why
-    // both rendered fractal flame instead of themselves.
+    // Mode selects imagery; genesis/attractor are sequences, not one still.
     const mode = visual?.visualMode;
 
-    // A PERSISTENT FIELD is dynamic, so a single still would misrepresent
-    // it. Its honest translation into a spatial medium is a SEQUENCE:
-    // the same system sampled at successive states, the last being its
-    // settled form. The cortex renders those samples; the compositor
-    // places them like any other figures.
     if (mode === 'genesis') return ['genesis'];
     if (mode === 'attractor') return ['attractor'];
-    // A focal is a single held glyph, not a series — it is shown once at
-    // the head of the page (see focalOf), never placed through the body.
+    // Focal: shown once at head (focalOf), never placed through the body.
     if (mode === 'focals') return [];
 
-    // PROCEDURAL families count as chosen imagery too. A reading set to
-    // fractal or Klee selected its visuals just as deliberately as one
-    // that picked a museum collection — reading only `sourced` made the
-    // Page silently blank for every procedural reader. The cortex renders
-    // these as stills; the Page places them like any other figure.
+    // Both sourced and procedural families are chosen imagery.
     const interlocution = visual?.interlocution;
     return [...clean(interlocution?.sourced), ...clean(interlocution?.procedural)];
 }

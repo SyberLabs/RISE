@@ -60,10 +60,8 @@ export class WorkshopMediaStore {
     /** @type {Map<string, string>} */
     this._objectUrls = new Map();
     /**
-     * Running total of stored bytes, seeded once at init and maintained on
-     * every write. It replaces a full `getAll()` on EVERY put — which read
-     * every record in the store to add up numbers it had already been
-     * told, and grew more expensive with each image saved.
+     * Running total of stored bytes, seeded at init and updated on write.
+     * Avoids getAll() on every put just to re-sum sizes already known.
      * @type {number}
      */
     this._totalBytes = 0;
@@ -90,9 +88,8 @@ export class WorkshopMediaStore {
       request.onsuccess = () => {
         this.db = request.result;
         this._ready = true;
-        // Seed the running total with a cursor over byteLength. A cursor
-        // rather than getAll so the store's Blobs are never materialised
-        // just to add up their sizes.
+        // Seed with a cursor over byteLength — never materialise Blobs
+        // just to sum sizes.
         this._sumStoredBytes().then((total) => {
           this._totalBytes = total;
           resolve();
@@ -148,12 +145,8 @@ export class WorkshopMediaStore {
 
     await this.init();
 
-    // ONE TRANSACTION FOR READ, BUDGET AND WRITE. These were three
-    // separate transactions — get, then a full scan, then the put — so the
-    // budget was checked against a store that could have changed before
-    // the write landed. Another tab is enough. Inside one readwrite
-    // transaction the read the decision rests on and the write it
-    // authorises cannot be separated.
+    // One readwrite transaction for get, budget check, and put so the
+    // decision and the write cannot race across tabs.
     const record = {
       id: assetId,
       projectId: ownerId,

@@ -5,50 +5,37 @@
  *   node scripts/corpus-cleanse.mjs --apply         # write the payloads
  *   node scripts/corpus-cleanse.mjs --apply --work the-storm-of-steel
  *
- * WHAT IT REMOVES, AND ONLY THIS
- * ──────────────────────────────
- * Running heads with POSITIONAL PROOF, per ARCHIVE-CLEANSING-SPEC §2b: a
- * short line of capitals ending in a page number, whose stem repeats
- * across the work, standing between a clause that has not ended and a
- * word that continues it. Plus the verso numeral travelling with it,
- * because a printed opening leaves both numbers behind and removing half
- * the furniture looks exactly as broken as removing none.
+ * Removes only running heads with positional proof
+ * (`ARCHIVE-CLEANSING-SPEC` §2b): a short line of capitals ending in a
+ * page number, whose stem repeats across the work, standing between a
+ * clause that has not ended and a word that continues it — plus the
+ * verso numeral travelling with it.
  *
- * It does not touch the ambiguous remainder — the ones where the
- * sentence had ended, which are also the shape of a real chapter title.
- * Those go to a reviewer (`corpus-review-jobs.mjs`). A rule that cannot
- * tell "GUILLEMONT 101" from "BOOK 1" must not be trusted to delete.
+ * Does not touch the ambiguous remainder (ended sentences that may be
+ * real chapter titles); those go to a reviewer via
+ * `corpus-review-jobs.mjs`.
  *
- * THE SAFETY IS IN THE TOOL, NOT IN A REVIEWER
- * ────────────────────────────────────────────
- * Every removal is verified as a STRICT DELETION before anything is
- * written: each span, with its whitespace collapsed, must match the
- * furniture pattern exactly. If a single span would take a word that is
- * not a page number or a running head, the work is skipped whole and
- * says so. Nothing is repaired, narrowed, or approximated — a span this
- * cannot prove is a span it does not take.
- *
- * The record lands in cleanse-log.json: what was removed, from where,
- * and when. A trim with no record is indistinguishable from corruption
- * a year from now (§5).
+ * Safety is in the tool: every removal is verified as a strict deletion
+ * before write — collapsed whitespace must match the furniture pattern
+ * exactly. One bad span skips the work whole. Nothing is repaired,
+ * narrowed, or approximated. Removals are recorded in cleanse-log.json
+ * (§5); a trim with no record is indistinguishable from corruption later.
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
-// ONE VOCABULARY. The detector lives in src/content/archive/furniture.js
-// and is read by the job builder, the cleanser and the tests alike.
+// Detector shared with the job builder and tests.
 import { stemsOf, furnitureIn, isStrictlyFurniture, isProven,
          illustrationStubsIn, isIllustrationStub,
          orphanCaptionsIn, isOrphanCaption } from '../src/content/archive/furniture.js';
 
 /**
- * Works whose orphaned `]` lines have been READ and found to be plate
- * captions. By name, because the class is not one class — see
- * furniture.js. A work is added here after its lines are looked at, not
- * before.
+ * Works whose orphaned `]` lines have been read and found to be plate
+ * captions. By name — the class is not one class (see furniture.js).
+ * Add a work only after its lines have been inspected.
  */
 const ORPHAN_CAPTION_WORKS = new Set(['vitruvius-architecture']);
-// ONE WRITER. See payload-writer.js for why this is not a local helper.
+// Shared payload writer (see payload-writer.js).
 import { rewriteSections } from '../src/content/archive/payload-writer.js';
 
 const WORKS_DIR = resolve('src/content/archive/works');
@@ -95,8 +82,7 @@ for (const file of files) {
         let after = before;
         for (const span of spans) {
             const taken = after.slice(span.start, span.end);
-            // STRICT DELETION. Whatever this span covers, collapsed to one
-            // line, must BE the furniture and nothing else.
+            // Strict deletion: collapsed span must be furniture and nothing else.
             const proves = span.kind === 'illustration-stub' ? isIllustrationStub
                 : span.kind === 'orphan-caption' ? isOrphanCaption
                 : isStrictlyFurniture;

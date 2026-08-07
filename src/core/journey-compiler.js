@@ -9,31 +9,15 @@
  *
  * THE THREE-LAYER LAW (JOURNEYS-SPEC §5)
  * ──────────────────────────────────────
- * This compiler touches no DOM, no AudioContext, no cortex, and no
- * Player. It is a pure function from a manifest to data. The Chamber
- * receives movement labels and generic cues and never learns what
- * "metaphysical" or "industrial" means; the cortex never learns what a
- * movement is; the audio engine never learns what a Journey is.
+ * Pure function: manifest → data. No DOM, AudioContext, cortex, or
+ * Player. Chamber gets labels and generic cues; cortex never learns
+ * movements; audio never learns Journeys. Runtime validates an argument
+ * it cannot author.
  *
- * That separation is what keeps a Journey authored rather than
- * programmed. The runtime validates and follows an argument it cannot
- * make.
- *
- * WHY BOUNDARIES ARE SOURCES
- * ──────────────────────────
- * A movement change is not a gap between readings; it is a scored
- * event that owns time. So each authored transition becomes a synthetic
- * source — `journey-boundary:<id>` — that carries its own visual and
- * audio cue. Atoms already carry `sourceId`, so a boundary needs no new
- * coordinate model, and the Player keeps sole authority over the clock
- * (§4.3): nothing here schedules against wall time.
- *
- * The distinction that buys is exact. A paragraph break inside a
- * movement carries that movement's own sourceId and therefore holds its
- * cue — incidental whitespace changes nothing. An authored boundary
- * carries a different sourceId and therefore changes the cue
- * deliberately. Structural silence and scored transition stop being the
- * same event.
+ * Boundaries are sources: each authored transition is
+ * `journey-boundary:<id>` with its own cues. Paragraph breaks keep the
+ * movement's sourceId; authored boundaries change it. Player alone owns
+ * the clock (§4.3).
  */
 
 import { readJourneyMovements } from '../content/atrium/journey-segments.js';
@@ -302,10 +286,7 @@ function figureSegments(segment, passageId, movementCue, metrics, path) {
         out.push({
             id: `${passageId}-figure-${figure.id}`,
             match: { sourceIds: [passageId], fromProgress: from, toProgress: to },
-            // The family lives on the movement and is inherited. A figure
-            // names engines only — otherwise 'paradise-lost' would be
-            // written nine more times, and this codebase has already paid
-            // four times for a vocabulary kept in two places.
+            // Family is inherited from the movement; figures name engines only.
             cue: { ...movementCue, engines: figure.engines }
         });
     });

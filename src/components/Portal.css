@@ -8,14 +8,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  /* THE FRAME IS THE FRAME YOU CAN SEE.
-     `100vh` on iOS Safari is the LARGE viewport — the height the page
-     would have if the browser chrome were hidden — and the toolbar is
-     drawn over the bottom of it regardless. A column centred in that
-     box has its middle pushed below the middle of what the reader
-     actually sees: dead air at the top, the Solarium under the
-     toolbar. `dvh` is the box as it stands right now, which for a page
-     that never scrolls is simply the truth. */
+  /* Prefer dvh: on iOS Safari, 100vh is the large viewport and chrome
+     overlays the bottom, so a vh-centred column sits too low. */
   min-height: 100vh;
   min-height: 100dvh;
   padding: var(--space-xl);
@@ -66,12 +60,8 @@
   filter: grayscale(80%) contrast(1.2) opacity(0.7);
 }
 
-/* THE SEAL IS NOT A PLAYER.
-   Until a video has started, iOS paints its own centred ▶ over it — a
-   control this element does not have, promising playback where the
-   tap actually opens the last session. On a phone in Low Power Mode
-   (where muted autoplay is refused outright) the glyph never goes
-   away, so the sigil read permanently as a broken play button. */
+/* Hide native media controls: iOS draws a play glyph on unstarted
+   video; this vessel is not a player (tap opens the last session). */
 .portal-sigil-vessel .vessel-video::-webkit-media-controls,
 .portal-sigil-vessel .vessel-video::-webkit-media-controls-start-playback-button,
 .portal-sigil-vessel .vessel-video::-webkit-media-controls-panel {
@@ -98,16 +88,7 @@
   outline-offset: 8px;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   PREMIUM MOBILE CHAMBER — parts that exist only on the phone
-   ═══════════════════════════════════════════════════════════════
-   Declared inert HERE, at the top of the cascade, rather than being
-   switched off inside the phone's own media block. The difference
-   matters: a rule that hides by default and reveals under one query
-   cannot leak upward, so no desktop width has to be tested to know
-   the desktop is unaffected — it renders nothing because nothing was
-   ever turned on for it.
-   ═══════════════════════════════════════════════════════════════ */
+/* Phone-only Portal parts: hidden by default so they cannot leak to desktop. */
 
 /* P1 — the sigil's stage */
 .sigil-stage { display: none; }
@@ -151,21 +132,9 @@
   font-family: var(--font-display);
   font-size: 72px;
   font-weight: var(--font-weight-light);
-  /* R I S E — the separation is TYPOGRAPHY, not four characters with
-     spaces between them. Written as spaces a screen reader announces
-     "R, I, S, E" and a search engine indexes four words; written as
-     letter-spacing it stays one word that is merely set open.
-     text-indent restores the optical centre, which the trailing space
-     after the final E would otherwise pull left.
-
-     ONE VALUE, BECAUSE THE PAIR MUST MOVE TOGETHER. The tracking and
-     the indent that re-centres it are the same measurement, and a
-     breakpoint that changed one without the other pushed the word off
-     its own centre. They were also separately overridable, which is how
-     the phone kept the acronym's tight setting for a month after the
-     product stopped being an acronym: `letter-spacing: 0.08em` was
-     written when the title was `R.I.S.E.`, and only the desktop rule
-     learned the new word. */
+  /* Letter-spacing (not spaced characters) keeps one word for a11y /
+     indexing; text-indent recentres. Keep tracking and indent on the
+     same variable so breakpoints cannot desync them. */
   --title-tracking: 0.32em;
   letter-spacing: var(--title-tracking);
   text-indent: var(--title-tracking);
@@ -524,15 +493,7 @@
     padding: var(--space-sm) var(--space-lg);
   }
 }
-/* ═════════════════════════════════════════════════════════════
-   THE TWO THRESHOLDS — classical marble pavilions (aediculae)
-   Ported from the creator's Archway.dc: a domed roof + finial, an
-   entablature bearing the name, fluted columns with volute capitals
-   framing an arched niche, on a stepped base. Pale marble glowing
-   against the void — "darkness first, light emerges." The pavilion is
-   authored at its natural 420×560 (.gazebo-stage) and scaled to the
-   side margin; the niche is the living window (marble / Earth).
-   ═════════════════════════════════════════════════════════════ */
+/* Classical marble pavilions (aediculae): authored 420×560, scaled to margin. */
 
 .portal-arch {
   /* Reset the button */
@@ -558,11 +519,7 @@
   position: relative;
   transition: transform 0.35s var(--ease-out);
 }
-/* DESKTOP ONLY, and the boundary matters. The base 0.42 and the mobile
-   rules below were measured against a 390×844 phone where the Solarium
-   once hung 21px off the bottom, unreachable; nothing here may reach
-   that. Every rule in this block starts at 1024px, where the pavilions
-   have room they were not being given. */
+/* Desktop-only gazebo scale (≥1024). Mobile rules must not inherit these. */
 @media (min-width: 1600px) { .gazebo { --gz-scale: 0.58; } }
 @media (min-width: 1300px) and (max-width: 1599px) { .gazebo { --gz-scale: 0.54; } }
 @media (min-width: 1024px) and (max-width: 1299px) { .gazebo { --gz-scale: 0.48; } }
@@ -830,73 +787,18 @@
   display: none;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   ONE VIEWPORT, AND THE MARBLE PUT AWAY
-   ═══════════════════════════════════════════════════════════════
-
-   The Portal is a threshold, not a page: it should be taken in at a
-   glance and it does not scroll. On a 390x844 phone it measured 913px
-   and the Solarium hung 21px off the bottom, unreachable.
-
-   Two costs dominated, and both were STACKS THAT SHOULD BE ROWS:
-
-     nav-secondary   192px   Vault/Library/Workshop, one per line
-     the two arches  230px   two full-width blocks, 95 and 119 tall
-
-   Turning each into a row recovers 300px, which is the whole overflow
-   and then some — so the rest of this can loosen rather than cram. The
-   flanking gazebos are architecture (dome, frieze, volutes, columns,
-   three steps, a niche) and were being scaled to 0.5; a half-size
-   building is not a smaller building, it is an illegible one, with
-   every carved detail under a pixel. Below 640 the ornament is not
-   drawn, and what remains is what an arch was always for: a door with
-   its name on it.
-
-   The gazebo is aria-hidden, so nothing in the accessible tree
-   changes, and the Solarium's niche video is never displayed — a real
-   saving on the device least able to afford it.
-   ─────────────────────────────────────────────────────────────── */
+/* Phone Portal: one viewport, no scroll. Stacks become rows; gazebo
+   ornament hidden below 640 — door + name only. Gazebo is aria-hidden. */
 
 @media (max-width: 640px) {
-  /* ═════════════════════════════════════════════════════════════
-     ONE ACT, THEN AN INDEX OF ROOMS
-     ═════════════════════════════════════════════════════════════
-
-     The phone was showing four rows of the same weight — two slate
-     tiles, three slate tiles, two marble doors, two footer links —
-     and nothing in that arrangement said which one you were meant to
-     touch. Four candidates for first place is the same as none.
-
-     A threshold has one act and a list of the places behind it. The
-     act is the Chamber, and it is the only raised object on the
-     screen. Everything else is a NAME on a hairline, which is how a
-     colophon lists rooms: Vault, Library, Workshop on one line;
-     Atrium and the Solarium (with its hour) on the next. Five rooms,
-     one idiom, one rule separating them from the act.
-
-     The whole composition is held to 320px so it reads as a plate
-     rather than a page — the sigil, the title, the act, the index —
-     rather than sprawling to both edges of the glass.
-     ───────────────────────────────────────────────────────────── */
+  /* One lit act (Chamber), then an index of rooms. Composition ~320px. */
 
   .portal {
     padding: var(--space-md) var(--space-md) var(--space-lg);
     justify-content: center;
   }
 
-  /* The vessel is the first thing seen and does not need to be the
-     largest. Sized rather than scaled: `transform` left the original
-     100px box behind it, and that ghost was a quarter of the "empty
-     padding up top". */
-  /* ── P1 · THE STAGED SIGIL ──
-     The vessel was a 76px circle floating in a 136px void: the
-     identity of the product, and the only moving thing on the screen,
-     presented at the scale of a favicon with nothing around it to say
-     it mattered. It grows, and it gains an instrument's dial.
-
-     The rings are absolutely positioned and therefore cost NO layout
-     height — they occupy the void that was already there. The four
-     marks are the app's own glyph vocabulary, not new ornament. */
+  /* P1: staged sigil — sized (not transform-scaled); rings add no layout height. */
   .portal-sigil-container {
     --sigil: 96px;
     position: relative;
@@ -1000,14 +902,7 @@
     width: 100%;
   }
 
-  /* ── P2 · THE ACT IS LIT ──
-     It was the single most important control on the screen and it was
-     styled exactly like the secondary tiles it replaced: grey fill,
-     grey border, grey type, no icon, no direction. A flat slate slab
-     reads as DISABLED, which is the opposite of the one thing this
-     screen has to say.
-     Exactly one object here carries light. Everything else on the
-     Portal is ink on void, so the glow needs no help to be found. */
+  /* P2: the act is the only lit control. */
   .portal-nav .nav-primary .nav-item {
     display: flex;
     align-items: center;
@@ -1049,12 +944,8 @@
     display: inline;
   }
 
-  /* ONE FLEX ITEM, NOT TWO. The button is a flex container, and
-     whitespace BETWEEN flex items is discarded — so "Enter " and
-     "Chamber" as siblings rendered as ENTERCHAMBER. The label is a
-     single item whose inner space is ordinary inline text. On desktop
-     this wrapper is an unstyled inline span around the word the tile
-     has always shown. */
+  /* Single flex child: whitespace between flex items is discarded, so
+     split label nodes would collapse to ENTERCHAMBER. */
   .act-label {
     white-space: nowrap;
   }
@@ -1074,10 +965,7 @@
     letter-spacing: 0;
   }
 
-  /* ── P3 · THE JEWELLED SEAM ──
-     A bare 1px rule is a division. A rule with a mark on it is a seam
-     — it says the two halves belong to one object. Cheapest gesture
-     in the whole composition, and it does the most work. */
+  /* P3: marked seam between act and room index. */
   .portal-nav .nav-secondary {
     position: relative;
   }
@@ -1107,16 +995,7 @@
     border-top: 1px solid var(--color-shadow);
   }
 
-  /* ── P4 · A ROOM INTRODUCES ITSELF ──
-     Five underlined words: VAULT, LIBRARY, WORKSHOP, ATRIUM,
-     SOLARIUM. Nothing distinguished a collection from a workspace
-     from a time-room, and nothing said what any of them held. A
-     reader who did not already know the product could not build a
-     model of it from this screen — and the Latin names, which are a
-     genuine part of this work's character, became an obstacle instead
-     of an invitation.
-     A card carries four things: a mark, a name, a line, and a surface
-     that says it is a place you can enter. */
+  /* P4: room card — mark, name, line, enterable surface. */
   .portal-nav .nav-secondary .nav-item {
     flex: 1 1 0;
     min-width: 0;
@@ -1195,12 +1074,7 @@
     overflow: hidden;
   }
 
-  /* ── P5 · HUE AS WAYFINDING ──
-     Colour appears ONLY in the mark. Never in the name, never in the
-     border, never as a fill — so the screen stays monochrome at a
-     glance and reveals its scheme on inspection, which is the register
-     this product works in. The palette already defined all of these
-     and the Portal was using none of them. */
+  /* P5: hue only in marks — names/borders/fills stay monochrome. */
   [data-nav="vault"] .room-glyph    { color: var(--color-threshold); }
   [data-nav="library"] .room-glyph  { color: rgba(139, 127, 212, 0.6); }
   [data-nav="workshop"] .room-glyph { color: var(--color-ember); }
@@ -1293,11 +1167,7 @@
     transform: none;
   }
 
-  /* THE SUBTITLE COMES BACK. It was cut when these were bare
-     underlined words and a second line would have doubled the height
-     of the smallest thing on the screen. A card has a place for it,
-     and "philosophy & history" is the only thing that tells a reader
-     what an Atrium is. */
+  /* Arch detail is the only cue for what an Atrium contains. */
   .portal-arch .portal-arch-detail {
     display: block;
     max-width: none;
@@ -1337,12 +1207,7 @@
     color: var(--color-shadow);
   }
 
-  /* ── P6 · STATE, WHERE STATE EXISTS ──
-     The sigil has always resumed the last session in silence. Said
-     out loud it stops being a trick, and the screen stops knowing
-     something the reader does not.
-     Quieter than the act and louder than the footer: it is not the
-     way IN, it is the way BACK. */
+  /* P6: continue strip — resume last session, quieter than the act. */
   .portal-continue:not([hidden]) {
     display: flex;
     align-items: center;
@@ -1405,12 +1270,7 @@
     color: var(--color-threshold);
   }
 
-  /* ── P7 · UTILITIES RECEDE ──
-     The footer sat at the same size and tracking as the room index, so
-     the screen carried three tiers of identical small caps and the
-     Archive read as a destination beside the Vault. It is a colophon.
-     The Curia's door rises from 14% to 22%: still discreet, no longer
-     indistinguishable from a rendering artefact. */
+  /* P7: utilities as colophon — smaller than the room index. */
   .portal-util-link {
     font-size: 9px;
     letter-spacing: 0.14em;
@@ -1425,22 +1285,10 @@
     opacity: 0.22;
   }
 
-  /* Clear of the bottom edge, and clear of the Curia's door, which
-     keeps the same bottom-left corner and was sitting underneath the
-     Archive link.
-
-     NO SAFE-AREA INSET HERE, DELIBERATELY. Both of these offsets used
-     to read `calc(… + env(safe-area-inset-bottom, 0px))`, which looks
-     like it accounts for the home indicator and does not: this
-     document's viewport meta has no `viewport-fit=cover`, so every
-     safe-area inset in it resolves to ZERO. The calc computed exactly
-     the number in front of it and nothing else.
-     That is worse than omitting it. An inert guard stops you looking:
-     reading one of these as if it were doing work is how the Page Mode
-     control bar shipped 16px too low. If the document ever opts into
-     the full screen, these become real decisions to make on purpose —
-     with the fixed header and the side insets in landscape — not
-     leftovers that quietly start moving things. */
+  /* Clear of the bottom edge and of Curia's bottom-left door.
+     No safe-area inset: without viewport-fit=cover, env(safe-area-*)
+     is always 0, so adding it only looks protective. Revisit if the
+     document opts into cover. */
   .portal-footer {
     bottom: var(--space-lg);
     left: var(--space-md);
@@ -1456,11 +1304,7 @@
 
 }
 
-/* THE SEAL, ON A NARROW SCREEN.
-   Rendered as a `div` rather than a `button` (see Portal.prefersSealOnly),
-   so it must also stop LOOKING like something to press: no pointer, no
-   lift on hover, no depress on tap. The video inside it is still the
-   vessel's face; it is simply not an invitation. */
+/* Seal mode is a div (Portal.prefersSealOnly): strip button affordances. */
 .portal-sigil-vessel.is-seal {
   cursor: default;
 }

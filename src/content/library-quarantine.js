@@ -6,23 +6,9 @@
  * and deleting it would destroy that option along with the evidence of
  * what went wrong.
  *
- * WHY THIS EXISTS
- * ───────────────
- * The Archive's rights invariant (LIBRARY-SPEC §4) says every text is
- * public domain with the basis recorded. On 2026-07-28 that invariant
- * was written, enforced by a test, and violated in the same commit: the
- * curation table recorded `translator: 'Traditional'` for texts whose
- * own source files name twentieth-century translators. The provenance
- * was filled in from assumption rather than read from the source.
- *
- * SOL's acquisitions review caught it. The lesson is narrower and worse
- * than "check the rights": the checking was performed, the field was
- * populated, and the value was invented. A field that is required but
- * unverified is more dangerous than one left blank, because it satisfies
- * the test and silences the question.
- *
- * So the quarantine records, per work, what was CLAIMED and what the
- * source actually SAYS. That difference is the finding.
+ * Records per work what was claimed vs what the source says.
+ * A required-but-unverified rights field is worse than blank — it
+ * satisfies checks and silences the question (LIBRARY-SPEC §4).
  */
 
 /**

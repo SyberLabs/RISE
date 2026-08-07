@@ -112,26 +112,8 @@ export const MUSEUM_CATEGORIES = {
         ],
         tags: ['human', 'presence', 'cinematic']
     },
-    // `kind` makes the STYLISTIC vs SUBJECT distinction below into data
-    // rather than prose. It is what the Visual panel groups its
-    // Collections list by — a reader choosing imagery is asking either
-    // "in what manner was this painted" or "what is in the picture", and
-    // those are different questions. Deriving the grouping from here
-    // means the panel can never drift from the taxonomy the audit
-    // established; adding a category assigns its heading automatically.
-    //
-    // STYLISTIC vs SUBJECT — the 2026-07-24 audit finding. Stylistic
-    // categories (movement, roster, period, place) ride the museum
-    // tradition's own taxonomy: AIC's metadata is authoritative and
-    // live search curates well (the full audit cut 0 of Old Masters,
-    // 0 of Ukiyo-e, 3 of Impressionism). SUBJECT categories ask what
-    // is DEPICTED, and a subject tag is register-blind: `soldiers`
-    // tags the Passion, `flower` tags the Annunciation lily, `bird`
-    // the descending dove — the audit cut 79% of Flowers' and 90% of
-    // Animals' live surfaces. Subject categories therefore never use live
-    // search (clauses: null): Flowers, Ships, and Knights are pinned; Animals
-    // is corpus-backed by the rights-audited Audubon catalog, with its prior
-    // reviewed pins retained strictly as an operational fallback.
+    // `kind`: stylistic (manner/period — live search ok) vs subject
+    // (what is depicted — pinned/corpus only; subject tags are register-blind).
     'flowers': {
         name: 'Flowers',
         kind: 'subject',

@@ -386,9 +386,7 @@ describe('PageReader pagination', () => {
     });
 
     it('names the reading once past the opening — a running head, not a masthead', () => {
-        // Past page one nothing on screen said what was being read. The
-        // head is furniture: the focal and the source line still belong
-        // to the opening alone.
+        // Running head is furniture; focal/source stay on the opening.
         const { reader, host } = paged({ session: longSession(60), title: 'Matthew' });
         expect(host.querySelector('.page-runner')).toBeNull();
 
@@ -397,8 +395,7 @@ describe('PageReader pagination', () => {
         expect(runner).not.toBeNull();
         expect(runner.textContent).toBe('Matthew');
         expect(host.querySelector('.page-masthead')).toBeNull();
-        // The article is titled already; a reader should not meet the
-        // name twice on every page.
+        // Article already titled; do not announce the name twice.
         expect(runner.getAttribute('aria-hidden')).toBe('true');
 
         reader.prevPage();
@@ -407,11 +404,7 @@ describe('PageReader pagination', () => {
     });
 
     it('a reading short enough to scroll, scrolls', () => {
-        // PROJECTION BY LENGTH. A page boundary is a constraint the
-        // compositor does not model — it can put a margin figure beside
-        // a chapter opening, or wrap a heading where the column had room.
-        // In a short reading that is pure loss: there was nothing to
-        // bound. So it keeps its column.
+        // Short readings scroll; page boundaries are not free for short cuts.
         const { reader, host } = paged({ session: longSession(6) });
         expect(reader.isPaged).toBe(false);
         expect(reader.pages).toHaveLength(1);
@@ -455,13 +448,7 @@ describe('PageReader pagination', () => {
     });
 
     it('tells the host it can still paginate while elongated', () => {
-        // THE ONE-WAY DOOR. The Chamber renders the projection toggle
-        // from this callback, and it was reading only the first two of
-        // four POSITIONAL arguments — so an elongated reading, which is
-        // ONE page, looked like a reading with nothing to paginate and
-        // the button that would have brought the pages back hid itself.
-        // The report is one object now, so a field cannot go missing the
-        // way a trailing argument can; this asserts the shape.
+        // onPageChange is one object so canPage survives elongated (total=1).
         const seen = [];
         const { reader } = paged({
             session: longSession(80),
@@ -476,9 +463,7 @@ describe('PageReader pagination', () => {
     });
 
     it('Elongate keeps the reader where they were', () => {
-        // Changing how one reading is DRAWN must not move the reader,
-        // for the same reason the Page↔Stream toggle must not: two views
-        // of one reading that disagree about the reader's place.
+        // Projection change must keep the reader's place (item anchor).
         const { reader, host } = paged({ session: longSession(80) });
         reader.goToPage(4);
         const anchor = reader.pages[4].items[0];
@@ -546,10 +531,7 @@ describe('PageReader pagination', () => {
 
 describe('a work that cannot be credited is absent from the page', () => {
     it('absents a CC-BY figure with no attributable credit', async () => {
-        // SOURCE-EXPANSION-SPEC §3 ruled this in words; the Page is where
-        // a reader would have seen it breached. The figure takes the same
-        // treatment as a work that will not load — absent, never a
-        // broken frame, and now never an uncredited one either.
+        // Credit-required works with no credit: absent, same as unloadable.
         const { reader, host } = mount({
             session: {
                 atoms: Array.from({ length: 8 }, (_, i) =>
@@ -574,9 +556,7 @@ describe('a work that cannot be credited is absent from the page', () => {
     });
 
     it('still shows a public-domain figure by an unknown hand', () => {
-        // THE CASE THE GUARD MUST NOT REACH. Much of the museum corpus is
-        // anonymous and owes no attribution; withholding it would empty a
-        // shelf that was never at risk.
+        // Anonymous public-domain works need no credit and must still show.
         const label = normalizeArtworkLabel({
             name: 'Woodcut of a hare', metadata: { rights: 'PUBLIC_DOMAIN' }
         });

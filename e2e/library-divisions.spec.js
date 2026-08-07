@@ -50,14 +50,9 @@ test('a shelf shows its divisions in order; All stays flat', async ({ page }) =>
   console.log('INDIGENOUS ' + JSON.stringify(indigenous));
 
   expect(flat).toBe(0);
-  // The Library's expansion added 'imaginative' between the
-  // discursive and the esoteric — poetry and story are neither
-  // argument nor mystery, and had been filed as whichever fit worse.
+  // imaginative sits between literary and esoteric.
   expect(western.divisions).toEqual(['classical', 'literary', 'imaginative', 'esoteric']);
-  // A COUNT IS NOT THE INVARIANT. This asserted 14 cards and broke the
-  // moment the Library grew to 110 texts — punishing acquisition, which
-  // is the thing the shelf exists to permit. What must hold is that the
-  // shelf is populated and every work on it is filed.
+  // Shelf grows; assert populated and filed, not a fixed card count.
   expect(western.cards).toBeGreaterThan(10);
   // Nothing unplaced: every work is filed within its canon.
   expect(western.unplaced).toBe(0);
@@ -67,17 +62,8 @@ test('a shelf shows its divisions in order; All stays flat', async ({ page }) =>
 });
 
 /**
- * The table of contents.
- *
- * A long work is entered at a division, not at its first word. Before
- * this, choosing War and Peace handed the Chamber 560,000 words in one
- * reading, and choosing the Mahabharata handed it 2.9 million.
- *
- * The assertions that matter are the negative ones. The generated
- * sections this is derived from carry prose where their names should
- * be — 27% of the corpus — so what is being guarded is that no reader
- * is ever offered "part. Anna Pávlovna Schérer on the contrary,
- * despite her forty years," as the name of a chapter.
+ * TOC sheet: enter long works at a division; labels are division names,
+ * never prose snippets from the text.
  */
 async function openLibrary(page) {
   await page.addInitScript((g) => {
@@ -111,7 +97,7 @@ test('a long work opens at its contents, in its own division noun', async ({ pag
   expect(r.noun).toBe('chapters');
   expect(Number(r.total)).toBeGreaterThan(300);
   expect(r.first[0]).toMatch(/^Chapter /);
-  // THE CENTRAL GUARANTEE.
+  // Labels are division names, never prose.
   expect(r.prose).toEqual([]);
 });
 

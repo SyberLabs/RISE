@@ -99,11 +99,7 @@ describe('the movement controller announces once per movement', () => {
 });
 
 describe('the audio controller sends bounded commands', () => {
-    // THE ENGINE'S REAL SURFACE. The previous version of this fake had
-    // `setSoundscape` and `fadeSoundscapeOut` on it — methods AudioEngine
-    // has never had. A hand-written stub agrees with whatever the caller
-    // invented, so six passing tests proved the controller talked to
-    // itself while War played in silence.
+    // Stub only methods AudioEngine actually exposes.
     const engine = () => ({
         startSoundscape: vi.fn(),
         stopSoundscape: vi.fn(),
@@ -198,16 +194,9 @@ describe('the audio controller sends bounded commands', () => {
 
 describe('it only asks the engine for methods the engine has', () => {
     /**
-     * THE GUARD THE LAST SIX TESTS COULD NOT BE.
-     *
-     * Every previous test here passed against a fake carrying
-     * `setSoundscape` and `fadeSoundscapeOut`. AudioEngine has neither,
-     * and never did. A stub cannot catch a name mismatch, because the
-     * stub is written by the same hand that invented the name.
-     *
-     * So this one does not stub. It records every property the
-     * controller reaches for and checks each against the REAL
-     * AudioEngine prototype.
+     * Record every property the controller reaches for and check each
+     * against the real AudioEngine prototype (stubs cannot catch name
+     * mismatches they invent).
      */
     it('checks every command against the real AudioEngine', async () => {
         const { AudioEngine } = await import('../audio/engine.js');

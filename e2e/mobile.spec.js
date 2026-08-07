@@ -3,21 +3,9 @@ import { test, expect } from '@playwright/test';
 /**
  * Phone viewports.
  *
- * Nothing tested one until now, which is why the Library's cards could
- * push the page sideways: an edition statement arrived carrying a
- * 96-character Wikisource URL with no break in it, and no rule said a
- * card may not be wider than its column.
- *
- * THE ASSERTION IS ABOUT ELEMENTS, NOT scrollWidth, and that took a
- * verification run to learn. With the fix removed the card measured
- * `right: 464` on a 390px screen — 74px over — and document.scrollWidth
- * still read exactly 390, because `body { overflow: hidden }` clips the
- * page and hides its own overflow. A scrollWidth check would have
- * passed on a visibly broken layout, which is the shape of bug this
- * codebase keeps paying for: the measurement agreeing with itself.
- *
- * So the test asks every element whether it ends past the viewport, and
- * names the widest offender when one does.
+ * Assert element bounds, not document.scrollWidth: body overflow:hidden
+ * can clip sideways overflow while scrollWidth still matches the viewport.
+ * Failures name the widest offender past the right edge.
  */
 const GATE = { code: 'rise2025', name: 'M', vault: null, timestamp: Date.now() };
 
@@ -37,8 +25,7 @@ async function enter(page, width, height) {
 const overflow = (page) => page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     clientWidth: document.documentElement.clientWidth,
-    // The widest offender, so a failure names something rather than
-    // reporting a number nobody can act on.
+    // Widest past-edge element, for a useful failure message.
     widest: (() => {
         let worst = null;
         for (const el of document.querySelectorAll('body *')) {
@@ -62,7 +49,7 @@ for (const phone of PHONES) {
         await enter(page, phone.width, phone.height);
         await page.locator('[data-nav="library"]').first().click();
         await expect(page.locator('.library')).toBeVisible({ timeout: 30000 });
-        // Cards render from a registry; give the list a moment to fill.
+        // Wait until the registry has painted at least one card.
         await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 30000 });
 
         const measured = await overflow(page);
@@ -73,16 +60,13 @@ for (const phone of PHONES) {
                   + `${measured.widest.right}px on a ${measured.clientWidth}px screen`
                 : '')
             .toBeNull();
-        // Kept as a second opinion. It cannot fail alone while the body
-        // clips, but it would catch an overflow the element sweep missed.
+        // Secondary check; element sweep is the authoritative signal.
         expect(measured.scrollWidth).toBeLessThanOrEqual(measured.clientWidth + 1);
     });
 }
 
 test('a card carrying a scan URL still fits the column', async ({ page }) => {
-    // Romance of the Three Kingdoms is the specific card that broke:
-    // its edition statement is a 341-character sourcing memo with two
-    // Wikisource file URLs in it.
+    // Card with a long edition statement that once included raw URLs.
     test.setTimeout(120000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="library"]').first().click();
@@ -105,16 +89,13 @@ test('a card carrying a scan URL still fits the column', async ({ page }) => {
     expect(card, 'the card is not on the shelf').not.toBeNull();
     expect(card.width).toBeLessThanOrEqual(card.viewport);
     expect(card.subtitleRight).toBeLessThanOrEqual(card.viewport + 1);
-    // And the URL is gone from what a reader reads.
+    // Subtitle must not expose raw URLs.
     expect(card.subtitle).not.toContain('http');
     expect(card.subtitle).toContain('Brewitt-Taylor');
 });
 
 test('a titled work opens its contents sheet', async ({ page }) => {
-    // `divisions.noun` is null for a titled scheme and the sheet threw on
-    // it, so eleven works could not be opened at all — Ross, Kandinsky,
-    // Okakura, the Cherokee myths, Marcus Aurelius, The Storm of Steel.
-    // A reader clicking any of them got a console error and no sheet.
+    // Titled schemes use noun null; the sheet must still open and label rows.
     test.setTimeout(120000);
     const errors = [];
     page.on('console', m => { if (m.type() === 'error') errors.push(m.text().slice(0, 160)); });
@@ -136,18 +117,13 @@ test('a titled work opens its contents sheet', async ({ page }) => {
 
     expect(errors.filter(e => /toLowerCase|Could not open/.test(e))).toEqual([]);
     expect(sheet.entries).toBeGreaterThan(0);
-    // It counts rows in our list rather than claiming a unit Ross never
-    // named.
+    // Generic "entries" when the work never named a division unit.
     expect(sheet.noun).toBe('entries');
     expect(sheet.first).toContain('Preface');
 });
 
 test('the Portal puts the marble away rather than shrinking it', async ({ page }) => {
-    // The flanking gazebos are architecture — dome, frieze, volutes,
-    // columns, three steps, a niche. They used to be scaled to 0.5 on a
-    // phone, and a half-size building is not a smaller building, it is
-    // an illegible one. Below 640 the ornament is not drawn and what
-    // remains is what the arch was for: a door with its name on it.
+    // Below 640px: hide gazebo ornament; keep the arch name readable.
     test.setTimeout(120000);
     await enter(page, 390, 844);
     await expect(page.locator('[data-nav="chamber"]').first()).toBeVisible({ timeout: 30000 });
@@ -170,24 +146,16 @@ test('the Portal puts the marble away rather than shrinking it', async ({ page }
     expect(arches.length).toBeGreaterThan(0);
     for (const arch of arches) {
         expect(arch.gazebo, `${arch.nav} still draws its gazebo`).toBe('none');
-        // The carved name lives inside the ornament, so it needs another
-        // home once the ornament is gone.
+        // Name remains visible outside the hidden ornament.
         expect(arch.nameShown, `${arch.nav} shows no name`).toBe(true);
         expect(arch.name.length).toBeGreaterThan(2);
-        // The decoration is aria-hidden; the accessible name is on the
-        // button and must survive untouched.
+        // Accessible name stays on the button (decoration is aria-hidden).
         expect(arch.label).toBeTruthy();
     }
 });
 
 test('the Chamber reads as a band across the picture', async ({ page }) => {
-    // The desktop composition is a lit stage with a column of text in
-    // the middle and 48px of air around it. On a 390px screen the air
-    // took 96 of them and `max-width: 80%` most of the rest, so a
-    // seven-word phrase wrapped to five lines of 36px type.
-    //
-    // The phone composition is the one Mateo asked for: the phone IS
-    // the visual, and the reading is a thin band across the middle.
+    // Phone: full-bleed reading band across the middle; imagery fills the rest.
     test.setTimeout(300000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="vault"]').first().click();
@@ -217,26 +185,17 @@ test('the Chamber reads as a band across the picture', async ({ page }) => {
     });
     console.log('BAND ' + JSON.stringify(band));
 
-    // Full bleed: a band that stops short of the edges is a card again.
+    // Full bleed, thin, viewport-sized type, no sideways clip.
     expect(band.width).toBe(band.viewport);
     expect(band.radius).toBe('0px');
-    // Thin. If the reading covers half the phone there is no picture.
     expect(band.heightPct).toBeLessThan(30);
-    // Readable, and sized by the viewport rather than by a JS constant.
-    // The ladder used to be written inline as 72/56/40/32px, which no
-    // stylesheet could answer.
     expect(band.font).toBeGreaterThan(16);
     expect(band.font).toBeLessThan(30);
-    // And the phrase does not run off the side, which is where this began.
     expect(band.right).toBeLessThanOrEqual(band.viewport);
 });
 
 test('the Portal is one viewport, and does not scroll', async ({ page }) => {
-    // A threshold is taken in at a glance. It measured 913px on an
-    // 844px screen with the Solarium hanging 21px off the bottom,
-    // unreachable — and two stacks were most of it: Vault/Library/
-    // Workshop one per line (192px) and the two arches as full-width
-    // blocks (230px). Both are rows now.
+    // Portal must fit one viewport: no content hanging below the fold.
     test.setTimeout(120000);
     await enter(page, 390, 844);
     await expect(page.locator('[data-nav="chamber"]').first()).toBeVisible({ timeout: 30000 });
@@ -251,7 +210,7 @@ test('the Portal is one viewport, and does not scroll', async ({ page }) => {
                 return r.height > 20 && r.bottom > window.innerHeight + 2;
             })
             .map(n => n.className.toString().slice(0, 34)).slice(0, 3),
-        // The two doors sit side by side rather than stacked.
+        // Secondary arches sit side by side.
         archesSideBySide: (() => {
             const a = [...document.querySelectorAll('.portal-arch')];
             if (a.length < 2) return null;
@@ -265,15 +224,7 @@ test('the Portal is one viewport, and does not scroll', async ({ page }) => {
     expect(fit.docHeight).toBeLessThanOrEqual(fit.viewport + 1);
     expect(fit.archesSideBySide).toBe(true);
 
-    // SECONDARY, AND SIZED LIKE IT. At 83px the two doors matched the
-    // primary nav and at 47 they still competed with it, because a
-    // bordered tile is the wrong object: the right one is a quiet line
-    // of type with a hairline under it. The Atrium and the Solarium
-    // are rooms off the act, not the act.
-    //
-    // Measured on the INK rather than the box. The box stays 44px
-    // because that is a thumb, and shrinking a touch target to match
-    // its type is the other way to get this wrong.
+    // Secondary door ink quieter than primary nav; tap targets stay ≥40px.
     const doors = await page.evaluate(() => {
         const primary = document.querySelector('.nav-primary .nav-item')
             .getBoundingClientRect().height;
@@ -298,15 +249,7 @@ test('the Portal is one viewport, and does not scroll', async ({ page }) => {
 });
 
 test('the mode selector is one row with no empty cell', async ({ page }) => {
-    // Three columns put the five visual modes in two rows and left the
-    // sixth cell empty, which reads as a missing option rather than a
-    // tidy grid. One row of five is what the choice actually is.
-    //
-    // Getting there needed width, not just columns: 164px of nested
-    // padding (modal 24, body 32, content 24, each side) left the
-    // selector 226px, and at 44px a cell ATTRACTOR could only break
-    // mid-word — ATTRA/CTOR, GENE/SIS. A UI label is never broken
-    // mid-word; the type comes down and the padding gives way.
+    // Five modes in one row; labels must not clip or break mid-word.
     test.setTimeout(240000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="library"]').first().click();
@@ -315,10 +258,7 @@ test('the mode selector is one row with no empty cell', async ({ page }) => {
     await page.waitForTimeout(2000);
     const toc = page.locator('.toc-entry').first();
     if (await toc.isVisible().catch(() => false)) { await toc.click(); }
-    // Wait for the ring, then for the panel. Every sleep here was a
-    // guess about machine speed standing where a condition belonged —
-    // the same defect that made the panel-density test wait out a
-    // three-minute timeout against a working screen.
+    // Wait for stage, then panel visibility (conditions, not sleeps).
     await expect(page.locator('.orbital-stage')).toBeVisible({ timeout: 30000 });
     await page.locator('.orbit-visual').click();
     await expect(page.locator('#modal-visual')).toBeVisible({ timeout: 15000 });
@@ -342,20 +282,14 @@ test('the mode selector is one row with no empty cell', async ({ page }) => {
     console.log('SELECTOR ' + JSON.stringify(selector));
 
     expect(selector, 'no mode selector found').not.toBeNull();
-    // A column per mode: five in, five across, no hole.
     expect(selector.columns).toBe(selector.modes);
     expect(selector.rows).toBe(1);
     expect(selector.clipped, 'a mode label is cut off').toEqual([]);
-    // And it costs a strip rather than a screen. It was 410px.
     expect(selector.height).toBeLessThan(110);
 });
 
 test('the orbit is centred in the phone rather than cropped by it', async ({ page }) => {
-    // The stage was a fixed 400px on a 390px screen, sitting at
-    // left:-5 / right:395. Worse, it overflowed its own padded
-    // container — and an overflowing flex child with `align-items:
-    // center` pins to the start edge instead of centring, which is why
-    // one orb touched the frame while the other looked padded.
+    // Orbital stage centred and symmetric in the phone viewport.
     test.setTimeout(180000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="library"]').first().click();
@@ -379,18 +313,13 @@ test('the orbit is centred in the phone rather than cropped by it', async ({ pag
     });
     console.log('RING ' + JSON.stringify(ring));
 
-    // Centred on the screen, not merely inside it.
     expect(Math.abs(ring.stageMid - ring.screenMid)).toBeLessThanOrEqual(2);
-    // And symmetric: this is the asymmetry that read as "too big".
     expect(ring.leftGap).toBeGreaterThan(8);
     expect(Math.abs(ring.leftGap - ring.rightGap)).toBeLessThanOrEqual(3);
 });
 
 test('the Chamber control bar stays on the screen', async ({ page }) => {
-    // It ran 525px wide on a 390px screen, from x=-68 to x=458: two
-    // buttons off the left edge and the exit button off the right,
-    // unreachable. Six controls at a 16px gap, two carrying text
-    // labels whose reserved min-widths outlived them.
+    // Control bar and every child must stay within the viewport.
     test.setTimeout(300000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="vault"]').first().click();
@@ -421,33 +350,13 @@ test('the Chamber control bar stays on the screen', async ({ page }) => {
     console.log('BAR ' + JSON.stringify(bar));
 
     expect(bar.controls).toBeGreaterThan(3);
-    // Every control reachable by a thumb, which is the whole point.
     expect(bar.worstLeft).toBeGreaterThanOrEqual(0);
     expect(bar.worstRight).toBeLessThanOrEqual(bar.viewport);
 });
 
 /**
- * ═══════════════════════════════════════════════════════════════
- * DENSITY
- * ═══════════════════════════════════════════════════════════════
- *
- * Every measurement in this app was authored against a 1440px desktop
- * and then applied unchanged at 390px, because no stylesheet knew the
- * difference. Nothing about that is visible in a screenshot of a
- * component; it only shows up as an answer to "how much of the thing
- * you came for can you actually see?" — which is what these ask.
- *
- * Before the density step in design-system.css:
- *
- *     the Vault      first archetype at y=573, 1 of 6 visible
- *     the Library    first card at y=541, card height 401 — no book
- *                    fit the first screen at all
- *     Audio panel    1273px of body on a 664px phone, four of its
- *                    seven sections starting below the fold
- *
- * These are thresholds, not pixel-perfect locks: they fail when a
- * screen goes back to spending most of itself on chrome, and they do
- * not care how the remaining room is arranged.
+ * Density: chrome must not dominate the first screen; content fits
+ * under the fold. Thresholds, not pixel-perfect locks.
  */
 
 test('a shelf shows books on the first screen', async ({ page }) => {
@@ -467,11 +376,7 @@ test('a shelf shows books on the first screen', async ({ page }) => {
     });
     console.log('SHELF ' + JSON.stringify(shelf));
 
-    // Header, tabs, preamble and two axes of filters are all real —
-    // but between them they may not own most of the glass.
     expect(shelf.chromeShare).toBeLessThan(0.62);
-    // And a card is a card, not a page: one has to fit under the fold
-    // it starts at.
     expect(shelf.firstCardTop + shelf.cardHeight).toBeLessThanOrEqual(shelf.viewport);
 });
 
@@ -486,8 +391,7 @@ test('the Vault opens on its archetypes rather than on an explanation', async ({
         return {
             total: cards.length,
             visible: cards.filter(c => c.getBoundingClientRect().bottom <= window.innerHeight).length,
-            // The orientation blurb is desktop courtesy; on a phone it
-            // is the reason the shelf started below the fold.
+            // Intro copy is hidden on phone so archetypes start on-screen.
             introShown: (() => {
                 const el = document.querySelector('.vault-intro');
                 return el ? getComputedStyle(el).display !== 'none' : false;
@@ -501,11 +405,7 @@ test('the Vault opens on its archetypes rather than on an explanation', async ({
 });
 
 test('the configuration panels are not several screens of picture tiles', async ({ page }) => {
-    // An option used to be a TILE: a 28px glyph on its own line, a name
-    // beneath it, 24px of padding around both — so three soundscapes
-    // cost 265px and the Audio panel ran to 1273. On a phone the same
-    // choice is a list: glyph and name on one line, at a touch target's
-    // height.
+    // Phone panels: compact option rows; body under two viewports.
     test.setTimeout(180000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="library"]').first().click();
@@ -540,52 +440,18 @@ test('the configuration panels are not several screens of picture tiles', async 
         }, modal);
         console.log('PANEL ' + JSON.stringify(m));
 
-        // Two screens of scrolling is a page, not a panel.
         expect(m.body, `${m.id} body`).toBeLessThan(m.viewport * 2);
-        // A row, not a tile. Nothing here needs to be taller than a
-        // generous touch target.
         if (m.tallestOption !== null) {
             expect(m.tallestOption, `${m.id} tallest option`).toBeLessThanOrEqual(56);
         }
-        // CLOSE IT THE WAY THE PANEL OFFERS, AND WAIT FOR IT TO GO.
-        //
-        // Two lessons are baked in here. The first: this used to sleep
-        // 400ms and then click the orb underneath a possibly-still-open
-        // overlay, so when the guess about machine speed was wrong the
-        // modal intercepted the click and Playwright waited out a full
-        // 180s actionability timeout against a working panel. Wait for
-        // the condition.
-        //
-        // The second: waiting revealed that ESCAPE itself did not close
-        // it once, under full-suite load, for 15s and 33 polls. It
-        // could not be reproduced in isolation — the router path is
-        // clean there (activeModal 'temporal' → null, hidden true) — and
-        // the likeliest mechanism is `router.handleKeydown` swallowing
-        // the press while `transitioning` is true, which loses it
-        // permanently because nothing presses again. That is worth
-        // chasing on its own; it is not what this test is for. This
-        // test measures panel density, so it uses the panel's own close
-        // control, which is deterministic and is also what a reader
-        // actually touches on a phone.
+        // Close via the panel control; wait until hidden before the next orb.
         await page.locator(`${modal} [data-close]`).click();
         await expect(page.locator(modal)).toBeHidden({ timeout: 15000 });
     }
 });
 
 test('Begin Session can actually be pressed on a phone', async ({ page }) => {
-    // A LAYOUT BUG THAT LOOKS LIKE NOTHING.
-    //
-    // On a phone the actions climb 44px into the stage's empty lower
-    // band, because a square stage around a triangular ring leaves 67
-    // pixels of nothing under it. But `.orbital-stage` is
-    // `position: relative`, and a positioned element hit-tests ABOVE a
-    // static sibling however the DOM is ordered — so the stage's own
-    // box took every tap and Begin Session could not be pressed at
-    // all. It rendered correctly, it was not disabled, it had a cursor
-    // and a hover state, and nothing about the screen said so.
-    //
-    // Rendering is not reachability, so this asks the DOM who actually
-    // receives the tap, and then takes it.
+    // Begin/Reset must receive taps (not be covered by .orbital-stage).
     test.setTimeout(180000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="library"]').first().click();
@@ -620,7 +486,6 @@ test('Begin Session can actually be pressed on a phone', async ({ page }) => {
     expect(reach.reset.reachable,
         `Reset Settings is covered by ${reach.reset.intercepted}`).toBe(true);
 
-    // And the tap does what it says.
     await page.locator('#begin-btn').click({ timeout: 10000 });
     const accept = page.locator('#safety-accept');
     await accept.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});
@@ -629,21 +494,7 @@ test('Begin Session can actually be pressed on a phone', async ({ page }) => {
 });
 
 test('the reading band holds steady while the reading fades', async ({ page }) => {
-    // THE BAND AND THE READING ARE NOT THE SAME OBJECT.
-    //
-    // Every atom over 400ms takes #atom-display to opacity 0 and fades
-    // it back over 150ms. That is right for the text, and it was
-    // catastrophic for glass carried on the same element: `opacity`
-    // composites the whole subtree, so the fade meant for the words
-    // took the background, the blur, the borders and the shadow with
-    // it. On a desktop the pane hugs the token and that IS the effect;
-    // full-bleed on a phone it is a bar across the whole screen
-    // blinking off and on once per atom — three to five times a second
-    // in Word chunking over a Gallery field.
-    //
-    // So the glass lives on a wrapper the fade cannot reach. This
-    // drives both failure modes by hand rather than waiting to catch a
-    // flicker, because a race is not a test.
+    // Glass on #atom-band must stay lit while #atom-display fades or empties.
     test.setTimeout(300000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="vault"]').first().click();
@@ -656,7 +507,6 @@ test('the reading band holds steady while the reading fades', async ({ page }) =
     if (await accept.isVisible()) await accept.click();
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
 
-    // The band only exists in the two field variants that carry glass.
     await page.waitForFunction(() => {
         const f = document.querySelector('#chamber-field');
         const a = document.querySelector('#atom-display');
@@ -665,10 +515,7 @@ test('the reading band holds steady while the reading fades', async ({ page }) =
                 || f.classList.contains('chamber-field-genesis'));
     }, { timeout: 150000 });
 
-    // FREEZE THE READING FIRST. The player keeps writing #atom-display
-    // on its own clock, so an unpaused measurement compares one atom's
-    // height against the next one's and reports a difference the band
-    // never had. The first version of this test did exactly that.
+    // Pause so atom swaps do not change measured band height mid-check.
     await page.evaluate(() => {
         document.querySelector('#play-pause-btn')?.click();
     });
@@ -699,12 +546,10 @@ test('the reading band holds steady while the reading fades', async ({ page }) =
         await settle();
         const lit = read();
 
-        // What the player does on EVERY atom over 400ms.
         el.style.opacity = '0';
         await settle();
         const faded = read();
 
-        // And what it does on a paragraph break.
         el.textContent = '';
         await settle();
         const empty = read();
@@ -717,41 +562,21 @@ test('the reading band holds steady while the reading fades', async ({ page }) =
 
     expect(band.hasBand).toBe(true);
 
-    // 1. The reading fading does not take the band with it. This is the
-    //    stutter, and it is the whole reason the wrapper exists.
     expect(band.faded.bg).toBe(band.lit.bg);
     expect(band.faded.blur).toBe(band.lit.blur);
     expect(band.faded.borderTop).toBe(band.lit.borderTop);
     expect(band.faded.opacity).toBe('1');
     expect(band.faded.h).toBe(band.lit.h);
 
-    // 2. Nor does an empty atom.
     expect(band.empty.bg).toBe(band.lit.bg);
     expect(band.empty.blur).not.toBe('none');
     expect(band.empty.borderTop).toBe(band.lit.borderTop);
-    // It may grow past one line for a long phrase; it never falls below.
     expect(band.empty.h).toBe(band.lit.h);
     expect(band.empty.h).toBeGreaterThan(24);
 });
 
 test('the reading stays above the imagery it is presented over', async ({ page }) => {
-    // THE BUG A MODE-DEPENDENT TEST WOULD HAVE MISSED.
-    //
-    // .atom-display carries `position: relative; z-index: 10` for one
-    // reason: the reading must sit above the presenting imagery, which
-    // drops to z-index 2 in behind-stream. Wrapping it in a band with
-    // `backdrop-filter` made that wrapper a STACKING CONTEXT, so the 10
-    // stopped being measured against the imagery and started being
-    // measured against the band's own siblings — of which there are
-    // none. The band itself was static and auto: beneath everything
-    // positioned in the field. A gallery image arriving a few seconds
-    // into a reading painted over the text and the glass together, and
-    // never uncovered them.
-    //
-    // Watching a live Demo did not catch it, because whether imagery
-    // ever covers the centre depends on which engine is presenting and
-    // when. So this puts a layer exactly where the cortex puts one and
-    // asks the DOM who is on top — a condition, not a coincidence.
+    // #atom-band must stack above behind-stream imagery (z-index ≥ 10).
     test.setTimeout(300000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="vault"]').first().click();
@@ -777,8 +602,7 @@ test('the reading stays above the imagery it is presented over', async ({ page }
         const el = document.querySelector('#atom-display');
         el.textContent = 'a phrase the reader must be able to see';
 
-        // Exactly what the cortex mounts behind the stream: an opaque
-        // full-field layer at the z-index the spec gives it.
+        // Opaque probe at cortex imagery z-index 2.
         const imagery = document.createElement('div');
         imagery.id = 'probe-imagery';
         imagery.style.cssText =
@@ -800,27 +624,12 @@ test('the reading stays above the imagery it is presented over', async ({ page }
 
     expect(verdict.readingOnTop,
         `imagery at z-index 2 covers the reading — topmost is ${verdict.top}`).toBe(true);
-    // The band inherited the job along with the box.
     expect(verdict.bandPosition).not.toBe('static');
     expect(Number(verdict.bandZ)).toBeGreaterThanOrEqual(10);
 });
 
 test('Page Mode keeps the whole measure on the screen', async ({ page }) => {
-    // AN OPTICAL NUDGE THAT BECAME A NEGATIVE MARGIN.
-    //
-    // The measure is centred by hand rather than by `auto`, because the
-    // hanging verse marks sit outside it on the left and a
-    // mathematically centred column reads pushed left. That correction
-    // is `calc(50% - var(--page-measure) / 2 + 1.4rem)`, which is sound
-    // while the viewport is wider than the measure and vandalism as
-    // soon as it is not: at 390px it computes to MINUS 55px, and the
-    // reader clips its own overflow-x. The first 39px of every line —
-    // the title, the source, the opening of every paragraph — was cut
-    // off the left edge and could not be scrolled to.
-    //
-    // The bar is checked in the same breath because Page Mode is the
-    // one place it holds three controls instead of six, and it was
-    // still spanning the full width for them.
+    // Page measure and control bar must stay inside the phone viewport.
     test.setTimeout(300000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="vault"]').first().click();
@@ -834,13 +643,10 @@ test('Page Mode keeps the whole measure on the screen', async ({ page }) => {
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
     await page.waitForTimeout(2500);
 
-    // The bar fades on inactivity and goes pointer-events:none with it.
     await page.mouse.move(195, 700);
     await page.waitForTimeout(400);
 
-    // Where the bar sits BEFORE the projection changes. Page Mode may
-    // reshape it; it may not push it closer to the bottom edge, which
-    // on a phone means into the home-indicator strip.
+    // Baseline bottom gap before Page Mode (must not shrink afterward).
     const streamBottom = await page.evaluate(() =>
         Math.round(window.innerHeight - document.querySelector('.chamber-controls').getBoundingClientRect().bottom));
 
@@ -850,8 +656,6 @@ test('Page Mode keeps the whole measure on the screen', async ({ page }) => {
 
     const m = await page.evaluate(() => {
         const art = document.querySelector('.page-article').getBoundingClientRect();
-        // Anything whose ink begins left of the screen is unreachable:
-        // the reader clips overflow-x, so it cannot be scrolled to.
         const clipped = [...document.querySelectorAll('.page-article *')]
             .filter(n => {
                 const r = n.getBoundingClientRect();
@@ -881,36 +685,17 @@ test('Page Mode keeps the whole measure on the screen', async ({ page }) => {
     expect(m.article.l).toBeGreaterThanOrEqual(0);
     expect(m.article.r).toBeLessThanOrEqual(m.vw);
 
-    // It no longer holds three controls but five: the page turn moved
-    // INTO this bar rather than floating a second cluster above it,
-    // which is what caused the overlap on a short frame. It may take
-    // more width for that; it still must not span the screen the way
-    // the Stream's six-control bar does.
     expect(m.bar.w).toBeLessThan(m.vw * 0.85);
-    // Still centred on the screen it shrank inside.
     expect(Math.abs((m.bar.l + m.bar.r) / 2 - m.vw / 2)).toBeLessThanOrEqual(2);
-    // AND NO LOWER THAN IT WAS. A safe-area inset is worth nothing in a
-    // document with no `viewport-fit=cover` — every env() here resolves
-    // to zero — so a bottom offset that budgeted for one was simply a
-    // smaller number, and the bar dropped 16px into the indicator strip
-    // on entering Page Mode.
     expect(m.barGap,
         `the bar sits ${m.barGap}px from the bottom in Page Mode but ${streamBottom}px in the Stream`)
         .toBeGreaterThanOrEqual(streamBottom);
 });
 
-/**
- * ═══════════════════════════════════════════════════════════════
- * THE PREMIUM MOBILE THRESHOLD (Premium_Mobile_Chamber P1–P7)
- * ═══════════════════════════════════════════════════════════════
- */
+/** Premium mobile threshold (Premium_Mobile_Chamber P1–P7). */
 
 test('the phone-only threshold renders nothing on a desktop', async ({ page }) => {
-    // THE CONSTRAINT WAS "DO NOT TOUCH THE PC", so it is asserted rather
-    // than reasoned about. Every part added for the phone is declared
-    // `display: none` at the top of the cascade and revealed only under
-    // ≤640 — which means a desktop cannot be affected by construction,
-    // and this proves the construction holds.
+    // Phone-only portal chrome stays display:none on desktop.
     test.setTimeout(120000);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.addInitScript((g) => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
@@ -924,8 +709,7 @@ test('the phone-only threshold renders nothing on a desktop', async ({ page }) =
             return el ? getComputedStyle(el).display : 'absent';
         };
         return {
-            // innerText respects rendering; textContent would report the
-            // hidden spans and tell us nothing about what is on screen.
+            // innerText ignores display:none phone-only spans.
             actLabel: document.querySelector('.nav-act').innerText.replace(/\s+/g, ' ').trim(),
             rooms: [...document.querySelectorAll('.nav-secondary .nav-item')]
                 .map(b => b.innerText.replace(/\s+/g, ' ').trim()),
@@ -941,7 +725,6 @@ test('the phone-only threshold renders nothing on a desktop', async ({ page }) =
     });
     console.log('DESKTOP ' + JSON.stringify(d));
 
-    // The desktop tile still says the word it always said.
     expect(d.actLabel).toBe('CHAMBER');
     expect(d.rooms).toEqual(['VAULT', 'LIBRARY', 'WORKSHOP']);
     expect(d.vessel).toBe(180);
@@ -952,16 +735,12 @@ test('the phone-only threshold renders nothing on a desktop', async ({ page }) =
 });
 
 test('the threshold fits the phone in its widest state', async ({ page }) => {
-    // 844 is the iPhone 12's LAYOUT height; 664 is what Safari leaves
-    // visible with its toolbar up, and it is the real budget. The widest
-    // state is the one with the Continue strip present — the layout that
-    // breaks first, and therefore the only one worth asserting.
+    // Assert the tightest real budget (Safari toolbar) with Continue showing.
     test.setTimeout(300000);
     await enter(page, 390, 664);
     await expect(page.locator('[data-nav="chamber"]').first()).toBeVisible({ timeout: 40000 });
     await page.waitForTimeout(2000);
 
-    // A cold visit has nothing to continue, and shows nothing.
     const cold = await page.evaluate(() => ({
         hidden: document.querySelector('.portal-continue').hidden,
         display: getComputedStyle(document.querySelector('.portal-continue')).display
@@ -969,7 +748,6 @@ test('the threshold fits the phone in its widest state', async ({ page }) => {
     console.log('COLD ' + JSON.stringify(cold));
     expect(cold.display).toBe('none');
 
-    // Warm it the honest way: actually read something.
     await page.locator('[data-nav="vault"]').first().click();
     await page.locator('[data-nav="journeys"]').first().click();
     const DEMO = '[data-journey="demo-procedural"]';
@@ -986,7 +764,6 @@ test('the threshold fits the phone in its widest state', async ({ page }) => {
     const warm = await page.evaluate(() => ({
         display: getComputedStyle(document.querySelector('.portal-continue')).display,
         title: document.querySelector('.continue-title').textContent.trim(),
-        // Every card present and named.
         cards: [...document.querySelectorAll('.nav-secondary .nav-item, .portal-arch')]
             .map(c => c.innerText.replace(/\s+/g, ' ').trim()),
         below: [...document.querySelectorAll('body *')]
@@ -1000,31 +777,20 @@ test('the threshold fits the phone in its widest state', async ({ page }) => {
     }));
     console.log('WARM ' + JSON.stringify(warm));
 
-    // The session's name lives on `name`, not `title`; reading only
-    // `title` shipped this strip as dead code once already.
+    // Continue uses title || name; strip must show a non-empty label.
     expect(warm.display).toBe('flex');
     expect(warm.title.length).toBeGreaterThan(0);
 
-    // Each room says what it holds.
     expect(warm.cards).toHaveLength(5);
     for (const c of warm.cards) expect(c.length).toBeGreaterThan(8);
 
-    // And it still fits, with everything showing at once.
     expect(warm.below, `these hang below the fold: ${JSON.stringify(warm.below)}`).toEqual([]);
     expect(warm.sideways).toEqual([]);
     expect(warm.docScroll).toBeLessThanOrEqual(warm.vh);
 });
 
 /**
- * The title is set OPEN on a phone, and the sigil is not a control.
- *
- * Both were caused by the same thing, a month apart. The tracking rule
- * `letter-spacing: 0.08em` was written when the product was the acronym
- * `R.I.S.E.`, where tight was right; when the name became `R I S E` only
- * the desktop rule learned it, and the phone quietly kept showing the old
- * product. That is this codebase's most repeated failure — one vocabulary
- * in two places, one copy taught — and CSS is where it hides best,
- * because no unit test can see a computed style.
+ * Phone title tracking matches other surfaces; sigil is a seal, not a control.
  */
 test('the phone sets R I S E open, like every other surface', async ({ page }) => {
     await enter(page, 390, 844);
@@ -1041,14 +807,8 @@ test('the phone sets R I S E open, like every other surface', async ({ page }) =
         };
     });
 
-    // ONE WORD, SET OPEN — not four characters with spaces between them,
-    // which a screen reader would announce as "R, I, S, E".
     expect(type.text).toBe('RISE');
-    // Open enough to read as separated letters. 0.08em at 36px is 2.9px
-    // and looks like ordinary tracking; the rule asks for a real gap.
     expect(type.tracking / type.fontSize).toBeGreaterThan(0.15);
-    // And the indent that re-centres it must move WITH the tracking, or
-    // the word sits off its own centre.
     expect(type.indent).toBeCloseTo(type.tracking, 1);
 });
 
@@ -1057,13 +817,9 @@ test('the sigil is a seal on a phone, not a play button that opens the Vault', a
     const vessel = page.locator('.portal-sigil-vessel');
     await expect(vessel).toBeVisible();
 
-    // A div, not a button: iOS paints its own ▶ over an unstarted video,
-    // and a cold load has no session to return to, so the tap went to the
-    // Vault unannounced.
     expect(await vessel.evaluate(el => el.tagName)).toBe('DIV');
     expect(await vessel.getAttribute('aria-hidden')).toBe('true');
 
-    // Tapping it leaves the reader where they are.
     await vessel.click({ force: true });
     await page.waitForTimeout(400);
     await expect(page.locator('.portal-title')).toBeVisible();

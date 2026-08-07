@@ -225,16 +225,13 @@ describe('inline headings', () => {
         .map(i => i.text);
 
     it('recognises an edition that carries its structure inline', () => {
-        // Vitruvius has these as ordinary paragraphs; the flow has no
-        // chapter mark to raise, so they arrived crammed between prose.
+        // Editions carry structure as ordinary paragraphs; promote those.
         expect(headings(['CHAPTER I', 'THE EDUCATION OF THE ARCHITECT']))
             .toEqual(['CHAPTER I', 'THE EDUCATION OF THE ARCHITECT']);
     });
 
     it('refuses apparatus fragments, which is where this first went wrong', () => {
-        // Scanned editions leak marginalia and footnote tails as short
-        // all-caps scraps with orphaned brackets. Promoting one to a
-        // heading turns damage into structure.
+        // Bracketed apparatus scraps must not become headings.
         expect(headings(['ATHENS]', 'ROME]', 'Giocondo, Venice, 1511)]', '(PLATE IV)'])).toEqual([]);
     });
 
@@ -247,12 +244,7 @@ describe('inline headings', () => {
     });
 
     it('refuses a running head dropped into the middle of a sentence', () => {
-        // JÜNGER, ON THE PAGE. "GUILLEMONT 101" is the printed page's
-        // running head — the chapter name and the recto page number,
-        // carried eight times through this scan as 93, 95, 97, 99, 101 —
-        // and OCR left it where the page turned, mid-clause. It passes
-        // every shape test: short, all capitals, unpunctuated, three
-        // consecutive capitals. Its POSITION is what gives it away.
+        // Shape-passing OCR running heads mid-clause: reject by position.
         expect(headings([
             'the men were standing, rifle in hand, their eyes fixed on the ground. Now and',
             'GUILLEMONT 101',
@@ -286,8 +278,7 @@ describe('a figure beside a heading', () => {
         compose(flowOf(blocks)).items.find(i => i.type === 'figure')?.placement;
 
     it('centres rather than wraps when a heading follows it', () => {
-        // The Vitruvius fault: a wrapped plate sat level with CHAPTER I
-        // and pushed the section title into two lines.
+        // Adjacent heading → centre, do not wrap.
         const p = placementOf([T('Some prose.'), F(), T('THE EDUCATION OF THE ARCHITECT'), T('More prose.')]);
         expect(p).not.toBe('margin');
     });
@@ -314,9 +305,7 @@ describe('a figure inside a title', () => {
     const types = (blocks) => compose({ blocks }).items.map(i => i.type);
 
     it('waits for the title to finish and appears beneath it', () => {
-        // "CHAPTER I" and "THE EDUCATION OF THE ARCHITECT" are two
-        // blocks and one heading. A figure cued between them separated a
-        // chapter number from the chapter's name.
+        // Multi-block titles are atomic; figures wait beneath the whole.
         const items = compose({ blocks: [
             T('Prose before.'),
             T('CHAPTER I'), F(), T('THE EDUCATION OF THE ARCHITECT'),
@@ -359,9 +348,7 @@ describe('a float never wraps a title', () => {
     const long = 'Ordinary prose that runs on for a good long while indeed. '.repeat(4);
 
     it('stops the wrap group at an inline heading', () => {
-        // THE VITRUVIUS PAGE. A raised chapter MARK ends a wrap run, but
-        // an inline heading is a text block — so the float counted the
-        // title as two more paragraphs and wrapped straight past it.
+        // Inline headings end wrap groups the same way raised marks do.
         const items = compose({ blocks: [
             T(long), T(long), F(), T(long),
             T('CHAPTER I'), T('THE EDUCATION OF THE ARCHITECT'), T(long)

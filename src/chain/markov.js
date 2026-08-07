@@ -11,28 +11,9 @@
  *      coupled organism runs `… → alters transition probabilities →
  *      conditions the next phrase`.
  *
- * ─────────────────────────────────────────────────────────────────────
- * WHY VARIABLE ORDER, AND WHY THAT IS THE SAME THING AS NOT QUOTING
- * ─────────────────────────────────────────────────────────────────────
- * A fixed order-3 chain over a large corpus does not "sometimes" quote.
- * It quotes whenever the context is deterministic — and in natural text
- * most trigrams have exactly one continuation, so an order-3 walk spends
- * most of its life copying a source verbatim. Raising the order makes
- * this strictly worse: at order 5 the chain is a photocopier.
- *
- * That is not a filtering problem to solve after generation. It is the
- * model telling you something true: **a deterministic context carries no
- * information.** When the distribution over continuations has zero
- * entropy, following it is transcription, not composition.
- *
- * So the chain measures the entropy of the context it is standing in,
- * and BACKS OFF to a shorter context when the distribution collapses.
- * Shorter contexts have more continuations, so the walk diverges exactly
- * where it was about to copy. The ethical constraint and the information
- * theory are the same constraint, which is why it is implemented once.
- *
- * A hard verbatim ceiling backs it up — `maxVerbatim` — because backoff
- * is a tendency and a promise should be a bound.
+ * Variable order with entropy backoff: a deterministic context carries
+ * no information — following it is transcription. Back off to a shorter
+ * context when entropy collapses; maxVerbatim is the hard bound.
  */
 
 /**
@@ -77,12 +58,8 @@ export function tokenize(text) {
 /**
  * The separator that joins context tokens into a key.
  *
- * A NUL rather than a space, because a token can never contain one — a
- * space separator would let "the sea" and a hypothetical single token
- * "the sea" collide. WRITTEN AS AN ESCAPE, not as the byte: the raw
- * character is invisible in every editor and in git diff, which cost
- * this project two sessions once already (see src/core/source-hygiene).
- * The guard for that caught this line.
+ * NUL separator (written as escape — invisible raw bytes are forbidden
+ * by source-hygiene). Space would collide with multi-word tokens.
  */
 const KEY = '\u0000';
 
@@ -132,33 +109,9 @@ export function train(sources, { order = 3 } = {}) {
 }
 
 /**
- * SELECTION PROFILES — how a continuation is chosen once the context is
- * settled. Mateo's proposal, 2026-08-05, and it needs one correction
- * before it is useful.
- *
- * The proposal was: quoting is following the most probable path, so
- * discard the top path. Half of that is right and the half that is not
- * is the load-bearing half.
- *
- * **Where quoting actually happens there IS no second path.** A context
- * that reproduces its source has ONE continuation at probability 1 —
- * that is what makes it reproduce. Dropping the top leaves an empty
- * draw. Nothing chosen at that context can help, which is why the
- * entropy rule does not choose differently there: it backs off to a
- * SHORTER context and draws from a different distribution entirely.
- *
- * So rank selection does not replace the entropy rule. What it is —
- * and this is worth having for its own sake — is a different axis from
- * temperature. Temperature FLATTENS a distribution, making every option
- * more equal. Rank selection EXCLUDES BY POSITION, which is not the same
- * shape at all: `second` on a distribution of [0.7, 0.1, 0.1, 0.05,
- * 0.05] takes a 0.1 every time, where temperature 3 would still take the
- * 0.7 most often. One is a change of confidence; the other is a change
- * of intent — a deliberate refusal of the corpus's own grain.
- *
- * Each profile receives candidates sorted most-probable first and
- * returns weights. Returning all zeros means "no opinion" and the
- * natural distribution stands.
+ * Selection profiles — shape of the draw once context is settled.
+ * Rank selection excludes by position; temperature flattens. Rank does
+ * not replace entropy backoff (deterministic contexts have no second path).
  */
 export const PROFILES = {
     /** The corpus's own grain: weighted by what it actually does. */
@@ -212,25 +165,8 @@ export const PROFILES = {
 };
 
 /**
- * ⚠ EVERY DETERMINISTIC PROFILE CYCLES, AND THAT IS A THEOREM.
- *
- * `second`, `rank:k`, `median` and `least` choose a POSITION rather than
- * a distribution, so the next token becomes a deterministic function of
- * the context. A deterministic map on a finite state space must
- * eventually revisit a state, and from there it repeats forever. It is
- * not a tuning problem and no corpus is large enough to escape it.
- *
- * Measured on four works at order 3, the walks fell into their limit
- * cycles within a few dozen tokens:
- *
- *     rank:5    "But this was thrilling." over and over
- *     rank:10   "I would embrace you? If an arrow" over and over
- *     least     "amours amours amours transgress amours"
- *     median    "decaying decaying decaying noiselessly"
- *
- * They are kept because the result is worth being able to reproduce, and
- * because a short deterministic run before the cycle closes is a
- * legitimate texture. For anything longer than a phrase, use `tail:k`.
+ * Deterministic profiles (second, rank, median, least) cycle on a finite
+ * state space. Kept for short texture; prefer tail:k for longer walks.
  */
 export const CYCLES = new Set(['second', 'rank', 'median', 'least']);
 
@@ -305,22 +241,13 @@ export function generate(model, {
             const entry = orders[k].get(context);
             if (!entry || !entry.total) continue;
 
-            // A DETERMINISTIC CONTEXT IS A QUOTATION IN PROGRESS. Back off
-            // rather than follow it — unless we are already at order 0,
-            // where there is nowhere left to go.
+            // Deterministic context → quotation in progress; back off.
             if (k > 0 && entropyOf(entry) < minEntropy) {
                 backoffs.push({ at: i, order: k, reason: 'entropy' });
                 continue;
             }
 
-            // THE CEILING IS A CONSTRAINT ON THE TOKEN, NOT ON THE ORDER.
-            // Backing off to a shorter context was the first attempt and
-            // it does not bound anything: order 0 is unguarded by
-            // construction — there is nowhere below it — so the walk
-            // dropped to order 0 and carried the same work one token
-            // further. A bound enforced by preference is not a bound.
-            // When a work has held the pen too long, the tokens ONLY it
-            // could have produced are excluded from the draw.
+            // Verbatim ceiling excludes tokens only that work could produce.
             const forbid = run.length >= maxVerbatim ? run.workId : null;
             chosen = sample(entry, random, temperature, bias, context, forbid, select);
             if (!chosen) {

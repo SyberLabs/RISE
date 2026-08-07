@@ -1,58 +1,24 @@
 /**
  * Divisions — where a long work naturally breaks.
  *
- * A book is not one reading. The Mahabharata is 2.9 million words;
- * handed to the Chamber whole it is not a text but a wall. So a reader
- * enters at a division — a chapter, a canto, a night, an essay — and
- * the work presents itself the way its own tradition divides it.
- *
- * WHY THIS DOES NOT TRUST THE INGEST
- * ──────────────────────────────────
- * Each generated work already carries a `sections` array, and it would
- * be far less code to render those. They cannot be shown to a reader.
- * The ingest's heading detector fires on any line that looks vaguely
- * like a title, so 27% of the corpus's 9,212 section names are prose
- * caught mid-sentence — War and Peace alternates real chapters with
- * "part. Anna Pávlovna Schérer on the contrary, despite her forty
- * years," and the Divine Comedy has four Cantos followed by 36,331
- * words called "Day was departing, and the embrowned air".
- *
- * The discipline here is the Chapel's (handoff.js): a division is a
- * DISPLAY-SIDE SELECTION over the work's own text, and a boundary that
- * cannot be verified is refused rather than approximated. A work whose
- * divisions do not survive verification is offered whole, honestly,
- * instead of being cut at invented seams.
- *
- * WHAT MAKES A DIVISION SCHEME REAL
- * ─────────────────────────────────
- * One heading-shaped line proves nothing; a SCHEME proves itself. A
- * genuine one repeats, is numbered, and ascends. "CHAPTER I" followed
- * by "CHAPTER II" followed by "CHAPTER III" is a structure. A single
- * capitalised line in the middle of a paragraph is not, however much
- * it resembles a title. That is the test the ingest never applied and
- * the reason its output cannot be shown.
+ * A reader enters at a division (chapter, canto, night, essay) so the
+ * work presents itself the way its own tradition divides it. Ingest
+ * section names are not trusted: many are mid-sentence. A division is
+ * a display-side selection over verified boundaries; unverified schemes
+ * are refused and the work is offered whole. A scheme proves itself by
+ * repetition, numbering, and ascent — one capitalised line is not enough.
  */
 
 /**
- * Division vocabularies, in the tradition of the work itself.
- *
- * Dante has cantos, Scheherazade has nights, Montaigne has essays. A
- * reader browsing the Decameron should not be told it has "chapters" —
- * the word is part of the work, and flattening every division to the
- * same noun is the kind of small wrongness that accumulates into a
- * generic product.
+ * Division vocabularies from the work's own tradition (canto, night,
+ * essay, …). The noun is part of the work; do not flatten every scheme
+ * to "chapter".
  */
 const DIVISION_WORDS = [
     'chapter', 'canto', 'book', 'section', 'part', 'act', 'scene',
     'essay', 'tale', 'night', 'letter', 'psalm', 'hymn', 'ode',
     'fable', 'story', 'sonnet', 'idyll', 'fytte', 'lecture',
-    // THE INGEST KNEW THESE AND THE READER DID NOT. The acquisition
-    // list has always contained RUNE, ADVENTURE, POEM, DAY and VOLUME,
-    // so the Kalevala's fifty runes and the Nibelungenlied's thirty-nine
-    // adventures were found, cut, and named correctly in the payload —
-    // and then arrived on the shelf as anonymous "Readings", because
-    // THIS list could not parse the names the other one had written.
-    // Two vocabularies for one job, and only one of them was maintained.
+    // Must match ingest heading vocabulary (rune, adventure, …).
     'rune', 'runo', 'adventure', 'poem', 'day', 'volume'
 ];
 
@@ -334,16 +300,8 @@ export function splitLongDivision(content, { maxWords = 4000 } = {}) {
     const parts = Math.ceil(total / maxWords);
     const target = Math.ceil(total / parts);
 
-    // NO PART MAY BE A STUB, wherever it falls.
-    //
-    // A plain greedy fill flushes the moment the next paragraph would
-    // overshoot, which strands whatever happens to be in the buffer.
-    // That produced Vitruvius's "Book III (3 of 3)" at 164 characters
-    // — a runt at the tail — and then Paradise Lost's "Book I (1 of 2)"
-    // at 91, a runt at the HEAD, because the book opens with a short
-    // argument before its first long verse paragraph. A floor on every
-    // part is the general fix; merging the tail afterwards was only
-    // ever the special case of it.
+    // Every part meets a floor (not only the last): greedy fill alone
+    // can leave a runt at either end.
     const floor = Math.max(200, target / 3);
     // How near the target a part must be before a heading may end it.
     // Too low and every chapter becomes its own part, which is a
@@ -397,9 +355,7 @@ export function splitLongDivision(content, { maxWords = 4000 } = {}) {
     for (let i = 0; i < paragraphs.length; i++) {
         const paragraph = paragraphs[i];
         const w = wordsIn(paragraph);
-        // THE WORK'S OWN JOINT, PREFERRED. A heading arriving once the
-        // part is near its target ends it there — the reading stops
-        // where the author stopped rather than where the arithmetic did.
+        // Prefer the work's own joint: a heading near the target ends the part.
         const atJoint = opensRun[i] && count >= Math.max(floor, target * NEAR);
         // Keep a paragraph whole even when it overshoots: an author's
         // unit survives intact, and a slightly long part reads better
@@ -582,19 +538,9 @@ export function parseHeading(name) {
 
     const numbered = raw.match(NUMBERED);
     if (numbered) {
-        // THE LENGTH GUARD IS ABOUT PROSE, NOT ABOUT TITLES. Rejecting
-        // any name over 90 characters also rejected Malory, whose
-        // chapters are titled "CHAPTER XII. How King Pellinore rode
-        // after the lady and the knight" — so Le Morte d'Arthur's names
-        // parsed as nothing, the divider fell through to scanning the
-        // prose, and found all 507 chapters twice: once in the
-        // chapter-summary table Malory's edition prints before each
-        // book, and once in the book itself.
-        //
-        // A line that opens with a division word, an ordinal, and a
-        // capitalised title has already proved it is a heading. Length
-        // is the wrong thing to disqualify it on; the guard stays for
-        // the unnumbered forms below, where shape is all there is.
+        // Numbered headings already proved themselves; length is not a
+        // disqualifier (long titles are real). The 90-char guard applies
+        // only to unnumbered forms below.
         const ordinal = ordinalOf(numbered[2]);
         if (raw.length <= 200 && Number.isFinite(ordinal) && titleIsPlausible(numbered[3])) {
             return {
@@ -788,12 +734,7 @@ export function divideSections(sections, { maxWords = 4000, minWords = 12000 } =
             }
         }
 
-        // THE NAMES ARE NOT THE ONLY WITNESS. The ingest strips a
-        // heading only where it chose to cut, so every heading it
-        // MISSED is still sitting in the prose. Dante's names yield
-        // four cantos out of a hundred; his text yields twenty-three,
-        // which is a scheme, and twenty-three cantos read better than
-        // ten anonymous readings of equal length.
+        // Ingest names alone can miss a scheme; scan the prose for headings.
         const inline = divide(text, { maxWords, minWords });
         if (inline.divided) return { ...inline, reason: 'inline' };
 
@@ -833,27 +774,10 @@ export function divideSections(sections, { maxWords = 4000, minWords = 12000 } =
         const label = g.head
             ? `${noun} ${g.head.numeral ?? g.head.ordinal}`
             : 'Front matter';
-        // THE INDEX IS DROPPED PIECE BY PIECE, NOT WHOLE.
-        //
-        // Two things to get right, and the first attempt got only one.
-        // The front matter is built twice — a work divided from its
-        // ingest sections reaches this loop rather than the text one —
-        // so the refusal has to be stated in both places.
-        //
-        // And it belongs AFTER the split. Moby-Dick's front matter is
-        // 4,338 words: an index, and then Etymology and Extracts, which
-        // are Melville's and belong to the book. Measured whole, the
-        // index is diluted below the threshold and everything survives;
-        // measured whole and dropped, Etymology would go with it. Split
-        // first, and each piece answers for itself.
-        // A HEAD DOES NOT MAKE IT A CHAPTER. The filter first spared
-        // any group that carried one, and two works walked through:
-        // A Doll's House showed the index under a second "Act I" ahead
-        // of the real one, and The Little Clay Cart labelled its
-        // contents list "Act VII" — the ingest naming a section after
-        // the last heading printed inside it, which is the Odyssey's
-        // "BOOK XXIV" wearing a different hat. What the piece IS
-        // decides, not what it was called.
+        // Split first, then drop contents/index pieces individually —
+        // measuring whole can dilute an index or discard genuine front
+        // matter with it. A heading label does not prove the piece is
+        // a chapter; what the piece is decides.
         const pieces = splitLongDivision(content, { maxWords })
             .filter(piece => !isContentsPage(piece, noun));
         pieces.forEach((piece, k) => {
@@ -966,26 +890,9 @@ export function headingVocabulary(structure) {
  * arrived as twenty-five readings of even length: our measurement of a
  * book that had told us its own structure.
  *
- * THE RUNNING HEAD IS THE EVIDENCE, NOT THE NOISE.
- *
- * This is a page scan, so each chapter's title is reprinted at the top
- * of every page of that chapter, with the page number on one side or
- * the other:
- *
- *     ORAINVILLE          <- the chapter begins
- *     2 ORAINVILLE        <- a running head
- *     ORAINVILLE 3        <- a running head
- *
- * A title that repeats dozens of times beside a changing number is a
- * running head, and a running head names a chapter. Its BARE occurrence
- * — the one printed without a page number — is where that chapter
- * starts. Repetition is what proves it, exactly as an ascending run
- * proves a numbered scheme: one occurrence of a capitalised line means
- * nothing, forty mean the compositor was labelling pages.
- *
- * This is a second profile, and it is earned rather than assumed. It
- * fires only where the numbered rules found nothing, and it must still
- * verify — three distinct titles, in order — before it is believed.
+ * Running heads (title + changing page number) name chapters; the bare
+ * occurrence without a page number is the start. Fires only when numbered
+ * rules found nothing; still requires three distinct titles in order.
  */
 const PAGE_NUMBER = /^\s*(?:[IVXLCDM]+|\d{1,4})\s+|\s+(?:[IVXLCDM]+|\d{1,4})\s*$/g;
 const MIN_RUNNING_HEAD_PAGES = 3;

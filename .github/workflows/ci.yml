@@ -1,13 +1,7 @@
-# The tests run whether or not anyone remembers to run them.
+# CI: unit tests, production build, source hygiene, and browser smoke.
+# Jobs are separate so a red run names which promise broke.
 #
-# 1,679 tests and a clean build existed only because someone typed the
-# command. The session that added this workflow is the argument for it: a
-# 128ms drift in one of 101 pinned Atrium durations was caught by a test
-# that had no way to run on its own, and the fix that caused the drift
-# was in a file nobody would have thought to connect to it.
-#
-# Four jobs, and they are separate on purpose — a red build should say
-# WHICH promise broke without anyone opening a log.
+# Concurrency cancels superseded runs on the same ref.
 
 name: CI
 
@@ -17,8 +11,7 @@ on:
   pull_request:
   workflow_dispatch:
 
-# A second push supersedes the first. The suite is slow enough that
-# queueing every intermediate commit would mean reading stale results.
+# A second push supersedes the first.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
