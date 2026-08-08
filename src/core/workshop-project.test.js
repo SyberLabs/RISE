@@ -186,4 +186,24 @@ describe('Workshop Project v1', () => {
     expect(() => validateWorkshopProject({ ...project, assets: [] }))
       .toThrow(expect.objectContaining({ code: 'VISUAL_SCORE_ASSET_NOT_FOUND' }));
   });
+
+  it('refuses a pre-baked experience program with same-lane overlaps', () => {
+    const project = migrateWorkshopBlueprint(legacyBlueprint());
+    const program = JSON.parse(JSON.stringify(project.experienceProgram));
+    const visual = program.tracks.find(track => track.kind === 'visual');
+    visual.clips.push({
+      id: 'visual-overlap',
+      anchor: {
+        sourceIds: ['source-1'],
+        fromCharacter: 0,
+        toCharacter: 11,
+        quoteStart: 'Still water',
+        quoteEnd: 'Still water'
+      },
+      cue: { kind: 'sourced', collections: ['sequence-asset:moon'] }
+    });
+
+    expect(() => validateWorkshopProject({ ...project, experienceProgram: program }))
+      .toThrow(expect.objectContaining({ code: 'PROGRAM_LANE_OVERLAP' }));
+  });
 });

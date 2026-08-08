@@ -63,6 +63,22 @@ import {
   projectAssetIdFromEditorAsset
 } from './workshop/workshop-visual-assets.js';
 import { ATTRACTOR_PALETTES, ATTRACTOR_SYSTEMS } from '../visuals/attractor.js';
+import {
+  exportCuratorContext,
+  serializeCuratorContext
+} from '../core/curator-context.js';
+import {
+  downloadJsonFile,
+  ExperienceProgramIoError,
+  importExperienceProgram,
+  parseExperienceProgramJson,
+  serializeExperienceProgram,
+  workshopProjectFromImportedProgram
+} from '../core/experience-program-io.js';
+import {
+  workshopProjectToBlueprintView
+} from '../core/workshop-project.js';
+import { ExperienceProgramValidationError } from '../core/experience-program.js';
 import './SourceBrowser.css';
 import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
 
@@ -2737,6 +2753,11 @@ export class Workshop {
       .map(asset => asset.uri)
       .filter(uri => typeof uri === 'string'
         && (uri.startsWith('data:image/') || uri.startsWith('blob:')));
+    // Proposed Live Curator imports are score authority — do not recompile
+    // over them from editor assignments, and do not drop them when empty.
+    if (payload.experienceProgram?.authority === 'proposed') {
+      return payload;
+    }
     if ((payload.visualScoreAssignments || []).length > 0
       || (payload.audioScoreAssignments || []).length > 0) {
       const audioAssets = [...new Set((payload.audioScoreAssignments || []).map(item => item.assetId))]
@@ -2895,10 +2916,14 @@ export class Workshop {
     const fileInput = this.container.querySelector('#file-import-input');
     const imageInput = this.container.querySelector('#image-import-input');
     const globalInput = this.container.querySelector('#global-import-input');
+    const programInput = this.container.querySelector('#program-import-input');
     
     fileInput?.addEventListener('change', (e) => this.handleFileUpload(e));
     imageInput?.addEventListener('change', (e) => this.handleFileUpload(e));
     globalInput?.addEventListener('change', (e) => this.handleGlobalUpload(e));
+    programInput?.addEventListener('change', (e) => {
+      void this.handleProgramFileImport(e);
+    });
     const personalSwellInput = this.container.querySelector('#personal-swell-input');
     personalSwellInput?.addEventListener('change', (e) => this.handlePersonalSwellUpload(e));
 
@@ -2917,6 +2942,16 @@ export class Workshop {
         window.rise?.audioEngine?.playHiss();
         this.fileDialogReturnFocus = target;
         if (fileInput) fileInput.click();
+      } else if (action === 'export-curator-context') {
+        window.rise?.audioEngine?.playHiss();
+        this.exportCuratorContextFile();
+      } else if (action === 'export-experience-program') {
+        window.rise?.audioEngine?.playHiss();
+        this.exportExperienceProgramFile();
+      } else if (action === 'import-experience-program') {
+        window.rise?.audioEngine?.playHiss();
+        this.fileDialogReturnFocus = target;
+        void this.promptImportExperienceProgram(programInput);
       } else if (action === 'upload-image') {
         window.rise?.audioEngine?.playHiss();
         this.fileDialogReturnFocus = target;
@@ -3468,6 +3503,213 @@ export class Workshop {
     const vault = window.rise?.router?.getViewInstance('vault');
     vault?.refreshBlueprints?.();
     return saved;
+  }
+
+  buildCuratorContextFromSurface() {
+    return exportCuratorContext({
+      id: `workshop-${this.activeBlueprintId || this.sessionData.experienceProgramId || 'draft'}`,
+      sources: this.sessionData.sources || [],
+      assets: this.sessionData.sequenceVisualAssets || [],
+      swellIds: (this.personalSwells || []).map(swell => swell.id).filter(Boolean)
+    });
+  }
+
+  exportCuratorContextFile() {
+    try {
+      const context = this.buildCuratorContextFromSurface();
+      downloadJsonFile(
+        `${context.id || 'curator-context'}.curator-context.json`,
+        serializeCuratorContext(context)
+      );
+      this.showToast('Curator context exported');
+    } catch (error) {
+      this.showToast(error.message || 'Could not export curator context');
+    }
+  }
+
+  exportExperienceProgramFile() {
+    try {
+      const payload = this.prepareSessionPayload(this.sessionData);
+      if (!payload.experienceProgram) {
+        this.showToast('Score a passage before exporting a program');
+        return;
+      }
+      const text = serializeExperienceProgram(payload.experienceProgram);
+      const id = payload.experienceProgram.id || 'experience-program';
+      downloadJsonFile(`${id}.experience-program.json`, text);
+      this.showToast('Experience Program exported');
+    } catch (error) {
+      this.showToast(error.message || 'Could not export Experience Program');
+    }
+  }
+
+  formatProgramIoError(error) {
+    if (!error) return 'Import refused';
+    if (error.code) return `${error.code}: ${error.message}`;
+    return error.message || 'Import refused';
+  }
+
+  async promptImportExperienceProgram(programInput) {
+    const choice = await this.showProgramImportChooser();
+    if (choice === 'file') {
+      if (programInput) programInput.click();
+      return;
+    }
+    if (choice === 'paste') {
+      const text = await this.showProgramPasteModal();
+      if (text == null) return;
+      await this.importExperienceProgramText(text);
+    }
+  }
+
+  showProgramImportChooser() {
+    return new Promise(resolve => {
+      const overlay = document.createElement('div');
+      overlay.className = 'naming-modal-overlay';
+      overlay.innerHTML = `
+        <div class="naming-modal" role="dialog" aria-modal="true" aria-label="Import Experience Program">
+          <h2 class="naming-modal-title">Import score</h2>
+          <p class="naming-modal-subtitle">Paste or open a rise.experience-program.v1 JSON file. Imports land as proposed Vault drafts.</p>
+          <div class="naming-modal-actions" style="display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:flex-end">
+            <button type="button" class="btn-ghost" data-choice="cancel">Cancel</button>
+            <button type="button" class="btn-secondary" data-choice="paste">Paste JSON</button>
+            <button type="button" class="btn-primary" data-choice="file">Open file</button>
+          </div>
+        </div>`;
+      const finish = (value) => {
+        overlay.remove();
+        resolve(value);
+      };
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) finish(null);
+        const button = event.target.closest('[data-choice]');
+        if (!button) return;
+        const choice = button.dataset.choice;
+        finish(choice === 'cancel' ? null : choice);
+      });
+      document.body.appendChild(overlay);
+      overlay.querySelector('[data-choice="file"]')?.focus();
+    });
+  }
+
+  showProgramPasteModal() {
+    return new Promise(resolve => {
+      const overlay = document.createElement('div');
+      overlay.className = 'naming-modal-overlay';
+      overlay.innerHTML = `
+        <div class="naming-modal" role="dialog" aria-modal="true" aria-label="Paste Experience Program">
+          <h2 class="naming-modal-title">Paste Experience Program</h2>
+          <p class="naming-modal-subtitle">rise.experience-program.v1 JSON</p>
+          <textarea class="input" id="program-paste-input" rows="14"
+                    style="width:min(520px,80vw);max-width:100%;font-family:ui-monospace,monospace;font-size:0.8rem"
+                    spellcheck="false"></textarea>
+          <div class="naming-modal-actions" style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem">
+            <button type="button" class="btn-ghost" data-choice="cancel">Cancel</button>
+            <button type="button" class="btn-primary" data-choice="import">Import</button>
+          </div>
+        </div>`;
+      const textarea = overlay.querySelector('#program-paste-input');
+      const finish = (value) => {
+        overlay.remove();
+        resolve(value);
+      };
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) finish(null);
+        const button = event.target.closest('[data-choice]');
+        if (!button) return;
+        if (button.dataset.choice === 'cancel') finish(null);
+        else finish(textarea?.value || '');
+      });
+      document.body.appendChild(overlay);
+      textarea?.focus();
+    });
+  }
+
+  async handleProgramFileImport(event) {
+    const input = event.target;
+    const file = input?.files?.[0];
+    if (input) input.value = '';
+    if (!file) return;
+    try {
+      const text = await file.text();
+      await this.importExperienceProgramText(text);
+    } catch (error) {
+      this.showToast(this.formatProgramIoError(error));
+    }
+  }
+
+  async importExperienceProgramText(text) {
+    try {
+      const context = this.buildCuratorContextFromSurface();
+      const program = parseExperienceProgramJson(text, { context });
+
+      if (!(this.sessionData.sources || []).length) {
+        this.showToast('Add sources before importing a score that binds to them');
+        return;
+      }
+
+      const project = workshopProjectFromImportedProgram({
+        program,
+        context,
+        sources: this.sessionData.sources,
+        assets: this.sessionData.sequenceVisualAssets || [],
+        defaults: {
+          reading: {
+            wpm: this.sessionData.wpm,
+            chunkMode: this.sessionData.chunkMode,
+            curve: this.sessionData.curve,
+            displayMode: this.sessionData.displayMode
+          },
+          visual: {
+            surface: this.sessionData.visualConfig?.visualMode === 'interlocution'
+              ? 'scored'
+              : undefined,
+            config: this.sessionData.visualConfig
+          },
+          audio: {
+            soundscape: this.sessionData.soundscape,
+            audioPreset: this.sessionData.audioPreset,
+            selectedSwellId: this.sessionData.selectedSwellId
+          },
+          projection: this.sessionData.projection
+        },
+        title: this.sessionData.title || program.id,
+        intent: this.sessionData.intent || 'custom',
+        id: `curator-import-${Date.now()}`
+      });
+
+      const saved = await MemoryCore.saveWorkshopBlueprintAsync(project, {
+        blobs: this.pendingMediaBlobs
+      });
+      if (!saved?.id) {
+        this.showToast('Could not save the imported score to the Vault');
+        return;
+      }
+      this.pendingMediaBlobs.clear();
+      this.savedBlueprints = await MemoryCore.getWorkshopBlueprintsHydrated();
+      window.rise?.router?.getViewInstance('vault')?.refreshBlueprints?.();
+
+      const view = workshopProjectToBlueprintView(saved);
+      this.suspendCurrentDraft();
+      this.revokeLocalMediaUrls();
+      this.pendingMediaBlobs.clear();
+      const editable = normalizeSessionData(view);
+      delete editable.id;
+      delete editable.updatedAt;
+      this.replaceEditorData(editable, {
+        blueprintId: saved.id,
+        kind: 'saved',
+        dirty: false
+      });
+      this.showToast('Imported as proposed Vault draft');
+    } catch (error) {
+      if (error instanceof ExperienceProgramValidationError
+        || error instanceof ExperienceProgramIoError) {
+        this.showToast(this.formatProgramIoError(error));
+        return;
+      }
+      this.showToast(this.formatProgramIoError(error));
+    }
   }
 
   async saveSequenceToVault() {

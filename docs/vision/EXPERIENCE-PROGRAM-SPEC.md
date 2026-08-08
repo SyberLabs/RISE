@@ -308,6 +308,12 @@ That tests the real product idea with no provider keys, no API cost, no
 conversation storage, and no new network authority. Direct integration
 later uses the identical import boundary.
 
+**Manual loop (wired):** Workshop exports `rise.curator-context.v1` and
+`rise.experience-program.v1`; Import score accepts file or paste, runs
+`validateExperienceProgram` (including same-lane exclusivity), optional
+context membership checks, lands a Vault draft with
+`authority: "proposed"`, and never embeds media bytes in the interchange.
+
 ---
 
 ## 8. User engines — recipes before code

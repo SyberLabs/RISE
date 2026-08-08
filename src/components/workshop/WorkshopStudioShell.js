@@ -34,6 +34,12 @@ function renderStudioHeader(view) {
       <div class="workshop-actions studio-transport" role="toolbar" aria-label="Sequence actions">
         <button type="button" class="btn-ghost workshop-reset-btn"
                 data-action="reset-workshop" id="reset-workshop-btn">Reset</button>
+        <button type="button" class="btn-ghost" data-action="export-curator-context"
+                title="Export capability JSON for the Live Curator">Export context</button>
+        <button type="button" class="btn-ghost" data-action="export-experience-program"
+                title="Export rise.experience-program.v1">Export score</button>
+        <button type="button" class="btn-ghost" data-action="import-experience-program"
+                title="Import a proposed Experience Program">Import score</button>
         <button type="button" class="btn-ghost" data-action="save-draft" id="save-draft-btn">Save</button>
         <button type="button" class="btn-secondary" data-action="preview">Preview</button>
         <button type="submit" class="btn-primary" id="create-btn"
@@ -239,6 +245,7 @@ export function renderWorkshopStudioShell(view) {
           <input type="file" id="image-import-input" accept="image/jpeg,image/png,image/webp,image/gif" hidden />
           <input type="file" id="global-import-input" accept="image/jpeg,image/png,image/webp,image/gif" hidden />
           <input type="file" id="personal-swell-input" accept="audio/mpeg,audio/wav" hidden />
+          <input type="file" id="program-import-input" accept="application/json,.json" hidden />
         </form>
       </div>
       <div id="studio-selection-actions">${view.selectionActionHtml}</div>

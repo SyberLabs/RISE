@@ -260,6 +260,248 @@ describe('rise.experience-program.v1', () => {
     });
   });
 
+  it('refuses same-lane ranged clips that intersect on one source', () => {
+    const value = score();
+    value.tracks[2].clips = [
+      {
+        id: 'a',
+        anchor: {
+          sourceIds: ['milton'],
+          fromCharacter: 0,
+          toCharacter: 20,
+          quoteStart: 'Still',
+          quoteEnd: 'water'
+        },
+        cue: { kind: 'sourced', collections: ['sequence-asset:one'] }
+      },
+      {
+        id: 'b',
+        anchor: {
+          sourceIds: ['milton'],
+          fromCharacter: 10,
+          toCharacter: 30,
+          quoteStart: 'water',
+          quoteEnd: 'moon'
+        },
+        cue: { kind: 'sourced', collections: ['sequence-asset:two'] }
+      }
+    ];
+    expect(() => validateExperienceProgram(value)).toThrow(expect.objectContaining({
+      code: 'PROGRAM_LANE_OVERLAP',
+      details: expect.objectContaining({
+        trackKind: 'visual',
+        sourceId: 'milton',
+        coordinate: 'character',
+        clipIds: ['a', 'b']
+      })
+    }));
+  });
+
+  it('allows adjacent half-open ranges on the same lane', () => {
+    const value = score();
+    value.tracks[2].clips = [
+      {
+        id: 'a',
+        anchor: {
+          sourceIds: ['milton'],
+          fromCharacter: 0,
+          toCharacter: 20,
+          quoteStart: 'Still',
+          quoteEnd: 'water'
+        },
+        cue: { kind: 'sourced', collections: ['sequence-asset:one'] }
+      },
+      {
+        id: 'b',
+        anchor: {
+          sourceIds: ['milton'],
+          fromCharacter: 20,
+          toCharacter: 40,
+          quoteStart: 'reflects',
+          quoteEnd: 'moon'
+        },
+        cue: { kind: 'sourced', collections: ['sequence-asset:two'] }
+      }
+    ];
+    expect(() => validateExperienceProgram(value)).not.toThrow();
+  });
+
+  it('allows unranged movement-wide cues beside ranged figures on the same source', () => {
+    const value = score();
+    value.tracks[2].clips = [
+      {
+        id: 'movement-wide',
+        anchor: { sourceIds: ['milton'] },
+        cue: { kind: 'procedural', collections: ['paradise-lost'], engines: ['flaming_sword'] }
+      },
+      {
+        id: 'figure',
+        anchor: {
+          sourceIds: ['milton'],
+          fromProgress: 0.1,
+          toProgress: 0.4
+        },
+        cue: { kind: 'sourced', collections: ['journey-war-trench'] }
+      }
+    ];
+    expect(() => validateExperienceProgram(value)).not.toThrow();
+  });
+
+  it('refuses two ranged clips on one source in different coordinate systems', () => {
+    // Cannot map progress↔character without inventing a source length.
+    // Inability to prove overlap is not proof of non-overlap — refuse so
+    // array order cannot become the mix law at cueForAtom (JSON import).
+    const value = score();
+    value.tracks[2].clips = [
+      {
+        id: 'by-char',
+        anchor: {
+          sourceIds: ['milton'],
+          fromCharacter: 0,
+          toCharacter: 500,
+          quoteStart: 'Still',
+          quoteEnd: 'moon'
+        },
+        cue: { kind: 'sourced', collections: ['sequence-asset:one'] }
+      },
+      {
+        id: 'by-prog',
+        anchor: {
+          sourceIds: ['milton'],
+          fromProgress: 0,
+          toProgress: 1
+        },
+        cue: { kind: 'sourced', collections: ['sequence-asset:two'] }
+      }
+    ];
+    expect(() => validateExperienceProgram(value)).toThrow(expect.objectContaining({
+      code: 'PROGRAM_LANE_OVERLAP',
+      details: expect.objectContaining({
+        trackKind: 'visual',
+        sourceId: 'milton',
+        clipIds: ['by-char', 'by-prog']
+      })
+    }));
+  });
+
+  it('refuses two unranged clips on the same source in one lane', () => {
+    const value = score();
+    value.tracks[2].clips = [
+      {
+        id: 'first',
+        anchor: { sourceIds: ['milton'] },
+        cue: { kind: 'procedural', collections: ['paradise-lost'], engines: ['flaming_sword'] }
+      },
+      {
+        id: 'second',
+        anchor: { sourceIds: ['milton'] },
+        cue: { kind: 'sourced', collections: ['journey-war-trench'] }
+      }
+    ];
+    expect(() => validateExperienceProgram(value)).toThrow(expect.objectContaining({
+      code: 'PROGRAM_LANE_OVERLAP',
+      details: expect.objectContaining({
+        trackKind: 'visual',
+        coordinate: 'unranged',
+        clipIds: ['first', 'second']
+      })
+    }));
+  });
+
+  it('refuses overlapping progress ranges but permits abutment', () => {
+    const overlapping = score();
+    overlapping.tracks[2].clips = [
+      {
+        id: 'early',
+        anchor: { sourceIds: ['junger'], fromProgress: 0.1, toProgress: 0.5 },
+        cue: { kind: 'sourced', collections: ['a'] }
+      },
+      {
+        id: 'late',
+        anchor: { sourceIds: ['junger'], fromProgress: 0.4, toProgress: 0.8 },
+        cue: { kind: 'sourced', collections: ['b'] }
+      }
+    ];
+    expect(() => validateExperienceProgram(overlapping)).toThrow(expect.objectContaining({
+      code: 'PROGRAM_LANE_OVERLAP',
+      details: expect.objectContaining({ coordinate: 'progress' })
+    }));
+
+    const abutting = score();
+    abutting.tracks[2].clips = [
+      {
+        id: 'early',
+        anchor: { sourceIds: ['junger'], fromProgress: 0.1, toProgress: 0.5 },
+        cue: { kind: 'sourced', collections: ['a'] }
+      },
+      {
+        id: 'late',
+        anchor: { sourceIds: ['junger'], fromProgress: 0.5, toProgress: 0.9 },
+        cue: { kind: 'sourced', collections: ['b'] }
+      }
+    ];
+    expect(() => validateExperienceProgram(abutting)).not.toThrow();
+  });
+
+  it('refuses same-lane audio bed overlaps while permitting a co-anchored swell', () => {
+    const beds = score();
+    beds.tracks[3].clips = [
+      {
+        id: 'bed-a',
+        anchor: {
+          sourceIds: ['milton'],
+          fromCharacter: 0,
+          toCharacter: 20,
+          quoteStart: 'Still',
+          quoteEnd: 'water'
+        },
+        cue: { kind: 'soundscape', soundscapeId: 'aurora', gain: 0.4 }
+      },
+      {
+        id: 'bed-b',
+        anchor: {
+          sourceIds: ['milton'],
+          fromCharacter: 10,
+          toCharacter: 30,
+          quoteStart: 'water',
+          quoteEnd: 'moon'
+        },
+        cue: { kind: 'tone', presetId: 'deep', gain: 0.3 }
+      }
+    ];
+    expect(() => validateExperienceProgram(beds)).toThrow(expect.objectContaining({
+      code: 'PROGRAM_LANE_OVERLAP',
+      details: expect.objectContaining({ trackKind: 'audio' })
+    }));
+
+    const bedAndSwell = score();
+    bedAndSwell.tracks[3].clips = [{
+      id: 'bed-a',
+      anchor: {
+        sourceIds: ['milton'],
+        fromCharacter: 0,
+        toCharacter: 20,
+        quoteStart: 'Still',
+        quoteEnd: 'water'
+      },
+      cue: { kind: 'soundscape', soundscapeId: 'aurora', gain: 0.4 },
+      syncGroup: 'pair-1'
+    }];
+    bedAndSwell.tracks[4].clips = [{
+      id: 'swell-a',
+      anchor: {
+        sourceIds: ['milton'],
+        fromCharacter: 0,
+        toCharacter: 20,
+        quoteStart: 'Still',
+        quoteEnd: 'water'
+      },
+      cue: { kind: 'swell', swellId: 'pressure-hit' },
+      syncGroup: 'pair-1'
+    }];
+    expect(() => validateExperienceProgram(bedAndSwell)).not.toThrow();
+  });
+
   it('exposes typed validation failures', () => {
     expect(() => validateExperienceProgram(null)).toThrow(ExperienceProgramValidationError);
   });

@@ -492,6 +492,94 @@ function validateRelationships(tracks) {
       }
     }
   }
+
+  for (const track of tracks) {
+    // Exclusivity is the default for media lanes. Movement and transition
+    // have stronger ownership rules already enforced above; every other
+    // track kind — including ones added later — must demonstrate
+    // non-overlap or refuse (fail-closed, not an allowlist).
+    if (track.kind === 'movement' || track.kind === 'transition') continue;
+    assertSameLaneExclusivity(track, '$.tracks');
+  }
+}
+
+/**
+ * Half-open interval intersection — adjacent endpoints (a.to === b.from) do not
+ * conflict. Shared by the canonical program validator and Workshop score lanes
+ * so exclusivity is one vocabulary (ROADMAP Phase 0.4 finding #4).
+ */
+export function halfOpenRangesOverlap(fromA, toA, fromB, toB) {
+  return fromA < toB && fromB < toA;
+}
+
+/** @returns {'progress'|'character'|'token'|'unranged'} */
+export function anchorCoordinateSystem(anchor) {
+  if (!anchor || typeof anchor !== 'object') return 'unranged';
+  if (anchor.fromProgress !== undefined) return 'progress';
+  if (anchor.fromCharacter !== undefined) return 'character';
+  if (anchor.fromToken !== undefined) return 'token';
+  return 'unranged';
+}
+
+function rangeEndpoints(anchor, system) {
+  if (system === 'progress') return [anchor.fromProgress, anchor.toProgress];
+  if (system === 'character') return [anchor.fromCharacter, anchor.toCharacter];
+  if (system === 'token') return [anchor.fromToken, anchor.toToken];
+  return null;
+}
+
+/**
+ * True when two clips on the same track would make array order a silent mix law.
+ *
+ * Unranged + ranged nesting is allowed (Journey movement-wide cue beside
+ * figures) — runtime prefers the ranged match.
+ *
+ * Two ranged clips in different coordinate systems cannot demonstrate
+ * exclusivity without inventing a progress↔character↔token map. Inability to
+ * prove overlap is not proof of non-overlap: refuse, so JSON import cannot
+ * smuggle the ambiguity past the gate.
+ */
+export function sameLaneClipsConflict(left, right) {
+  if (!left?.anchor || !right?.anchor) return false;
+  const shared = (left.anchor.sourceIds || [])
+    .filter(id => (right.anchor.sourceIds || []).includes(id));
+  if (!shared.length) return false;
+
+  const systemLeft = anchorCoordinateSystem(left.anchor);
+  const systemRight = anchorCoordinateSystem(right.anchor);
+  if (systemLeft !== systemRight) {
+    if (systemLeft === 'unranged' || systemRight === 'unranged') return false;
+    return true;
+  }
+
+  if (systemLeft === 'unranged') return true;
+
+  const [fromA, toA] = rangeEndpoints(left.anchor, systemLeft);
+  const [fromB, toB] = rangeEndpoints(right.anchor, systemRight);
+  return halfOpenRangesOverlap(fromA, toA, fromB, toB);
+}
+
+function assertSameLaneExclusivity(track, path) {
+  const clips = track.clips || [];
+  for (let i = 0; i < clips.length; i += 1) {
+    for (let j = i + 1; j < clips.length; j += 1) {
+      if (!sameLaneClipsConflict(clips[i], clips[j])) continue;
+      const sourceId = clips[i].anchor.sourceIds
+        .find(id => clips[j].anchor.sourceIds.includes(id));
+      fail(
+        'PROGRAM_LANE_OVERLAP',
+        `Same-lane ${track.kind} clips ${clips[i].id} and ${clips[j].id} overlap`,
+        path,
+        {
+          trackKind: track.kind,
+          trackId: track.id,
+          sourceId,
+          coordinate: anchorCoordinateSystem(clips[i].anchor),
+          clipIds: [clips[i].id, clips[j].id]
+        }
+      );
+    }
+  }
 }
 
 function validateTrack(value, path) {

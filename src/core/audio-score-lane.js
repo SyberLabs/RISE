@@ -1,7 +1,8 @@
 import {
   createExperienceProgram,
   EXPERIENCE_PROGRAM_LIMITS,
-  EXPERIENCE_PROGRAM_SCHEMA
+  EXPERIENCE_PROGRAM_SCHEMA,
+  halfOpenRangesOverlap
 } from './experience-program.js';
 import { normalizeQuote, resolveSourceSpan } from './source-span.js';
 import { validateVisualScoreLane } from './visual-score-lane.js';
@@ -86,8 +87,10 @@ function fingerprint(text, edge) {
 function overlaps(left, right) {
   return left.lane === right.lane
     && left.sourceId === right.sourceId
-    && left.fromCharacter < right.toCharacter
-    && right.fromCharacter < left.toCharacter;
+    && halfOpenRangesOverlap(
+      left.fromCharacter, left.toCharacter,
+      right.fromCharacter, right.toCharacter
+    );
 }
 
 function strictAssignment(value, sources, assets) {
