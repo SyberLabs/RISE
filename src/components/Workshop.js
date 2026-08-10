@@ -67,8 +67,11 @@ import {
   exportCuratorContext,
   serializeCuratorContext
 } from '../core/curator-context.js';
+import { buildCuratorPrompt } from '../core/curator-prompt.js';
 import {
+  describeImportFailure,
   downloadJsonFile,
+  downloadTextFile,
   ExperienceProgramIoError,
   importExperienceProgram,
   parseExperienceProgramJson,
@@ -79,6 +82,10 @@ import {
   workshopProjectToBlueprintView
 } from '../core/workshop-project.js';
 import { ExperienceProgramValidationError } from '../core/experience-program.js';
+import {
+  assertQuotationAnchorsAgainstSources,
+  SourceSpanResolutionError
+} from '../core/source-span.js';
 import './SourceBrowser.css';
 import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
 
@@ -439,6 +446,14 @@ export class Workshop {
     this.revokeLocalMediaUrls();
     this.pendingMediaBlobs.clear();
     const editable = normalizeSessionData(blueprint);
+    // `schema` AND `id` LEAVE TOGETHER. A blueprint view carries
+    // `schema: rise.workshop-project.v1`, and dropping only the id leaves
+    // a payload that answers isWorkshopProject() and cannot pass
+    // validateWorkshopProject — which is what handleCreateSession calls
+    // when it sees the schema. An editor draft is a session config, not a
+    // project.
+    delete editable.schema;
+    delete editable.project;
     delete editable.id;
     delete editable.updatedAt;
     this.replaceEditorData(editable, {
@@ -2945,6 +2960,9 @@ export class Workshop {
       } else if (action === 'export-curator-context') {
         window.rise?.audioEngine?.playHiss();
         this.exportCuratorContextFile();
+      } else if (action === 'export-curator-prompt') {
+        window.rise?.audioEngine?.playHiss();
+        this.exportCuratorPromptFile();
       } else if (action === 'export-experience-program') {
         window.rise?.audioEngine?.playHiss();
         this.exportExperienceProgramFile();
@@ -3527,6 +3545,20 @@ export class Workshop {
     }
   }
 
+  exportCuratorPromptFile() {
+    try {
+      const context = this.buildCuratorContextFromSurface();
+      const prompt = buildCuratorPrompt({
+        intent: this.sessionData.title || '',
+        context
+      });
+      downloadTextFile('curator-prompt.txt', prompt);
+      this.showToast('Curator prompt exported');
+    } catch (error) {
+      this.showToast(error.message || 'Could not export curator prompt');
+    }
+  }
+
   exportExperienceProgramFile() {
     try {
       const payload = this.prepareSessionPayload(this.sessionData);
@@ -3543,9 +3575,15 @@ export class Workshop {
     }
   }
 
-  formatProgramIoError(error) {
+  formatProgramIoError(error, context = null) {
     if (!error) return 'Import refused';
-    if (error.code) return `${error.code}: ${error.message}`;
+    if (error.code) {
+      try {
+        return describeImportFailure(error, { context });
+      } catch {
+        return `${error.code}: ${error.message}`;
+      }
+    }
     return error.message || 'Import refused';
   }
 
@@ -3639,14 +3677,19 @@ export class Workshop {
   }
 
   async importExperienceProgramText(text) {
+    let context = null;
     try {
-      const context = this.buildCuratorContextFromSurface();
+      context = this.buildCuratorContextFromSurface();
       const program = parseExperienceProgramJson(text, { context });
 
       if (!(this.sessionData.sources || []).length) {
         this.showToast('Add sources before importing a score that binds to them');
         return;
       }
+
+      // Authoring gate: ambiguous quotes refuse here (curator can extend).
+      // Session compile omits them so a reader never loses the reading.
+      assertQuotationAnchorsAgainstSources(program, this.sessionData.sources);
 
       const project = workshopProjectFromImportedProgram({
         program,
@@ -3704,11 +3747,12 @@ export class Workshop {
       this.showToast('Imported as proposed Vault draft');
     } catch (error) {
       if (error instanceof ExperienceProgramValidationError
-        || error instanceof ExperienceProgramIoError) {
-        this.showToast(this.formatProgramIoError(error));
+        || error instanceof ExperienceProgramIoError
+        || error instanceof SourceSpanResolutionError) {
+        this.showToast(this.formatProgramIoError(error, context));
         return;
       }
-      this.showToast(this.formatProgramIoError(error));
+      this.showToast(this.formatProgramIoError(error, context));
     }
   }
 

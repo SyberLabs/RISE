@@ -184,8 +184,30 @@ describe('Chapel collection editing in the panel', () => {
     });
 });
 
+
+/**
+ * Grant the flash consent a reader would already hold.
+ *
+ * The notice now belongs to the PRESENTATION, not the mode: Rhythmic
+ * opens on Gallery and never flashes, so nothing is asked until behind
+ * stream or full frame is chosen. Tests about what those surfaces do
+ * afterwards should not each re-enact the prompt.
+ */
+async function grantFlashConsent(container, presentation = 'behind-stream') {
+    document.body.insertAdjacentHTML('beforeend', `
+      <div id="photosensitivity-modal" class="hidden">
+        <button id="safety-cancel">Cancel</button>
+        <button id="safety-accept">Accept</button>
+      </div>
+    `);
+    container.querySelector(`[data-presentation="${presentation}"]`).click();
+    document.querySelector('#safety-accept').click();
+    await Promise.resolve();
+    await Promise.resolve();
+}
+
 describe('VisualInterlocutionPanel preset visibility', () => {
-    it('emits Off when the safety warning is cancelled', async () => {
+    it('asks at the flash surface, not at the mode', async () => {
         endVisualInterlocutionSession();
         document.body.insertAdjacentHTML('beforeend', `
           <div id="photosensitivity-modal" class="hidden">
@@ -200,13 +222,24 @@ describe('VisualInterlocutionPanel preset visibility', () => {
             onChange
         });
 
+        // CHOOSING RHYTHMIC ASKS NOTHING. It opens on Gallery, which never
+        // flashes; the notice belongs to the surface that does.
         container.querySelector('[data-visual-mode="interlocution"]').click();
+        await Promise.resolve();
+        expect(document.querySelector('#photosensitivity-modal').classList.contains('hidden')).toBe(true);
+        expect(panel.getConfig().visualMode).toBe('interlocution');
+
+        // Declining at the flash surface leaves the reader where they were,
+        // never silently switched onto a presence they refused.
+        const before = panel.getConfig().interlocution.presentation;
+        container.querySelector('[data-presentation="full-frame"]').click();
         document.querySelector('#safety-cancel').click();
         await Promise.resolve();
+        await Promise.resolve();
 
-        expect(panel.getConfig().visualMode).toBe('off');
+        expect(panel.getConfig().interlocution.presentation).toBe(before);
         expect(onChange).toHaveBeenLastCalledWith(
-            expect.objectContaining({ visualMode: 'off' }),
+            expect.objectContaining({ visualMode: 'interlocution' }),
             expect.any(Array)
         );
 
@@ -216,7 +249,7 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         endVisualInterlocutionSession();
     });
 
-    it('keeps a Chapel focal when a requested Rhythmic switch is cancelled', async () => {
+    it('releases a Chapel focal when the reader leaves Focals', async () => {
         endVisualInterlocutionSession();
         document.body.insertAdjacentHTML('beforeend', `
           <div id="photosensitivity-modal" class="hidden">
@@ -232,19 +265,16 @@ describe('VisualInterlocutionPanel preset visibility', () => {
             onChange
         });
 
+        // A Chapel-held icon exists only in Focals, and leaving is the
+        // explicit release. There is no longer a prompt to cancel the
+        // switch with, so the click IS the explicit act.
         container.querySelector('[data-visual-mode="interlocution"]').click();
-        document.querySelector('#safety-cancel').click();
         await Promise.resolve();
 
-        expect(panel.getConfig()).toMatchObject({
-            visualMode: 'focals',
-            focals: { type: 'icon', iconId: 'icon-pantocrator-sinai' }
-        });
+        expect(panel.getConfig().visualMode).toBe('interlocution');
+        expect(panel.getConfig().focals?.iconId).toBeFalsy();
         expect(onChange).toHaveBeenLastCalledWith(
-            expect.objectContaining({
-                visualMode: 'focals',
-                focals: expect.objectContaining({ type: 'icon' })
-            }),
+            expect.objectContaining({ visualMode: 'interlocution' }),
             expect.any(Array)
         );
 
@@ -316,7 +346,7 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         container.remove();
     });
 
-    it('retires ASCII without stranding a config that still names it', () => {
+    it('retires ASCII without stranding a config that still names it', async () => {
         // The control is gone (a cool experiment that did not earn its
         // place). A reader who once chose it must not be left in a mode
         // with no control to leave by, so every saved config lands on
@@ -337,7 +367,7 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         expect(panel.config.interlocution.renderLanguage).toBe('native');
 
         // …and the rest of that config is untouched by the migration.
-        container.querySelector('[data-presentation="behind-stream"]').click();
+        await grantFlashConsent(container, 'behind-stream');
         expect(emitted.interlocution.renderLanguage).toBe('native');
         expect(emitted.interlocution.procedural).toEqual(['klee']);
 
@@ -792,7 +822,7 @@ describe('Stream-maintaining Rhythmic and Atrium collections', () => {
         container.remove();
     });
 
-    it('behind-stream reveals the glass toggle and emits both fields', () => {
+    it('behind-stream reveals the glass toggle and emits both fields', async () => {
         let emitted = null;
         const { panel, container } = makePanel({
             visualMode: 'interlocution',
@@ -802,7 +832,7 @@ describe('Stream-maintaining Rhythmic and Atrium collections', () => {
 
         expect(container.querySelector('[data-presentation-glass]')).toBeNull();
 
-        container.querySelector('[data-presentation="behind-stream"]').click();
+        await grantFlashConsent(container, 'behind-stream');
         expect(emitted.interlocution.presentation).toBe('behind-stream');
         // Glass tile is on by default and only offered for this surface
         const glass = container.querySelector('[data-presentation-glass]');
@@ -819,7 +849,7 @@ describe('Stream-maintaining Rhythmic and Atrium collections', () => {
         container.remove();
     });
 
-    it('Gallery replaces flash controls with independent cadence and restores them on return', () => {
+    it('Gallery replaces flash controls with independent cadence and restores them on return', async () => {
         let emitted = null;
         const { panel, container } = makePanel({
             visualMode: 'interlocution',
@@ -866,7 +896,7 @@ describe('Stream-maintaining Rhythmic and Atrium collections', () => {
         container.remove();
     });
 
-    it('seeds the surface-appropriate presence default, never an explicit choice', () => {
+    it('seeds the surface-appropriate presence default, never an explicit choice', async () => {
         // Behind-stream imagery is peripheral: it defaults to a full
         // 1s beat where a full-frame cut defaults to 200ms. The slider
         // follows the surface only while it sits on an untouched
@@ -877,7 +907,7 @@ describe('Stream-maintaining Rhythmic and Atrium collections', () => {
         });
         expect(untouched.panel.getConfig().interlocution.duration).toBe(200);
 
-        untouched.container.querySelector('[data-presentation="behind-stream"]').click();
+        await grantFlashConsent(untouched.container, 'behind-stream');
         expect(untouched.panel.getConfig().interlocution.duration).toBe(1000);
 
         untouched.container.querySelector('[data-presentation="full-frame"]').click();
@@ -1060,5 +1090,67 @@ describe('From-this-reading pill ownership across source changes (2026-07 leak f
         // (mode-only change), but any source-bearing config replaces them
         panel.setConfig(launch(['gutenberg'], undefined));
         expect(panel.config.interlocution.atriumCollections).toEqual([]);
+    });
+});
+
+describe('the photosensitivity notice belongs to the surface that flashes', () => {
+    // It used to guard the MODE. Rhythmic opens on Gallery — a field that
+    // crossfades and never goes black — so the warning described a risk
+    // the reader had not chosen yet, and accepting it dropped them onto
+    // full frame. One gate deeper: the presentation is where the flash is.
+    it('lets Gallery be chosen with no prompt at all', async () => {
+        endVisualInterlocutionSession();
+        document.body.insertAdjacentHTML('beforeend', `
+          <div id="photosensitivity-modal" class="hidden">
+            <button id="safety-cancel">Cancel</button><button id="safety-accept">Accept</button>
+          </div>
+        `);
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution', consentScope: 'gallery-scope',
+            interlocution: { sourceFamily: 'procedural', procedural: ['klee'], sourced: [] }
+        });
+
+        container.querySelector('[data-presentation="continuous"]').click();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(document.querySelector('#photosensitivity-modal').classList.contains('hidden')).toBe(true);
+        expect(panel.getConfig().interlocution.presentation).toBe('continuous');
+
+        panel.destroy();
+        container.remove();
+        document.querySelector('#photosensitivity-modal')?.remove();
+        endVisualInterlocutionSession();
+    });
+
+    it.each(['behind-stream', 'full-frame'])('asks before %s', async (surface) => {
+        endVisualInterlocutionSession();
+        document.body.insertAdjacentHTML('beforeend', `
+          <div id="photosensitivity-modal" class="hidden">
+            <button id="safety-cancel">Cancel</button><button id="safety-accept">Accept</button>
+          </div>
+        `);
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution', consentScope: `ask-${surface}`,
+            interlocution: {
+                sourceFamily: 'procedural', procedural: ['klee'], sourced: [],
+                presentation: 'continuous'
+            }
+        });
+
+        container.querySelector(`[data-presentation="${surface}"]`).click();
+        document.querySelector('#safety-cancel').click();
+        await Promise.resolve();
+        await Promise.resolve();
+        // Declined: still on the surface that never flashes.
+        expect(panel.getConfig().interlocution.presentation).toBe('continuous');
+
+        await grantFlashConsent(container, surface);
+        expect(panel.getConfig().interlocution.presentation).toBe(surface);
+
+        panel.destroy();
+        container.remove();
+        document.querySelector('#photosensitivity-modal')?.remove();
+        endVisualInterlocutionSession();
     });
 });

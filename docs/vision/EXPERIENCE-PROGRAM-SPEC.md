@@ -314,6 +314,11 @@ later uses the identical import boundary.
 context membership checks, lands a Vault draft with
 `authority: "proposed"`, and never embeds media bytes in the interchange.
 
+**Capability gate claim (Scriptorium):** when the context ships the Library
+catalogue, membership means *these works exist*, not *these are already
+loaded*. Accepting a proposal may load named works; loading is visible and
+refusable. Ids, titles, lengths only — never payloads in the context.
+
 ---
 
 ## 8. User engines — recipes before code

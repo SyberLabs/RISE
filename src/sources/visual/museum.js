@@ -39,6 +39,7 @@ export const MUSEUM_CATEGORIES = {
             { term: { artwork_type_id: TYPE_PAINTING } },
             { range: { date_start: { gte: 1400, lte: 1700 } } }
         ],
+        description: 'European painting from 1400 to 1700: religious and mythological scenes, dark grounds, modelled figures. Weighty and formal.',
         tags: ['classical', 'historical', 'cinematic']
     },
     'impressionism': {
@@ -56,6 +57,7 @@ export const MUSEUM_CATEGORIES = {
                 }
             }
         ],
+        description: 'Late-19th-century French painting of light and weather — loose visible brushwork, high-key colour, ordinary subjects.',
         tags: ['light', 'color', 'cinematic']
     },
     'postimpressionism': {
@@ -72,6 +74,7 @@ export const MUSEUM_CATEGORIES = {
                 }
             }
         ],
+        description: 'Van Gogh, Cezanne, Gauguin and after: saturated non-naturalistic colour and emphatic structure. More agitated than Impressionism.',
         tags: ['color', 'structure', 'cinematic']
     },
     'ukiyoe': {
@@ -88,6 +91,7 @@ export const MUSEUM_CATEGORIES = {
                 }
             }
         ],
+        description: 'Japanese woodblock prints — flat colour, strong outline, asymmetric composition. Linear and quiet, unlike any of the painting categories.',
         tags: ['japanese', 'contemplative', 'linear']
     },
     // AIC's subject vocabulary is uncontrolled (MUSEUM-ATLAS.md §1):
@@ -101,6 +105,7 @@ export const MUSEUM_CATEGORIES = {
             { term: { artwork_type_id: TYPE_PAINTING } },
             { terms: { 'subject_titles.keyword': ['landscape', 'landscapes'] } }
         ],
+        description: 'Land, sea and sky with figures small or absent. Open, horizontal and calm.',
         tags: ['nature', 'serene', 'cinematic']
     },
     'portraits': {
@@ -110,6 +115,7 @@ export const MUSEUM_CATEGORIES = {
             { term: { artwork_type_id: TYPE_PAINTING } },
             { terms: { 'subject_titles.keyword': ['portrait', 'portraits'] } }
         ],
+        description: 'A single person meeting the viewer. Human presence at close range, which draws attention more strongly than any other category here.',
         tags: ['human', 'presence', 'cinematic']
     },
     // `kind`: stylistic (manner/period — live search ok) vs subject
@@ -118,24 +124,28 @@ export const MUSEUM_CATEGORIES = {
         name: 'Flowers',
         kind: 'subject',
         clauses: null, // subject category — pinned-only
+        description: 'Botanical subjects and flower pieces — close, dense, and usually still.',
         tags: ['nature', 'still-life', 'contemplative']
     },
     'ships': {
         name: 'Ships',
         kind: 'subject',
         clauses: null, // subject category — pinned-only
+        description: 'Vessels at sea and in harbour; rigging, weather and open water.',
         tags: ['sea', 'voyage', 'cinematic']
     },
     'animals': {
         name: 'Animals',
         kind: 'subject',
         clauses: null, // subject category — Audubon corpus + pin fallback
+        description: 'Animals as subject, from studies to hunting and pastoral scenes.',
         tags: ['nature', 'creatures', 'contemplative']
     },
     'knights': {
         name: 'Knights',
         kind: 'subject',
         clauses: null, // subject category — pinned-only
+        description: 'Arms and armour, tournament and battle — metal, heraldry and horses.',
         tags: ['heraldic', 'historical', 'cinematic']
     }
 };

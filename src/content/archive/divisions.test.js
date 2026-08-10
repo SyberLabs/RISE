@@ -412,6 +412,9 @@ describe('the division index agrees with the works it describes', () => {
             // divider back into inventing "Chapter" for a work that
             // never said it.
             if (entry.divided) expect(entry.noun || entry.titled).toBeTruthy();
+            expect(typeof entry.reason === 'string' && entry.reason.length > 0,
+                `${meta.id} is missing division reason`).toBe(true);
+            expect(entry.authored).toBe(entry.reason !== 'measured');
         }
     });
 

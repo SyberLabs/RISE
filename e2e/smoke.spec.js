@@ -194,7 +194,12 @@ test('7 · restored flashes present an operable warning before loading, every se
                     procedural: ['klee'],
                     sourced: [],
                     frequency: 0.2,
-                    duration: 80
+                    duration: 80,
+                    // NAME THE SURFACE. These tests are about the warning
+                    // that precedes FLASHES; Gallery does not flash and is
+                    // no longer gated, so an unnamed presentation inherits
+                    // the reader default and asks a different question.
+                    presentation: 'full-frame'
                 }
             }
         }
@@ -227,7 +232,12 @@ test('8 · declining the warning enters the session with flashes disabled', asyn
                     procedural: ['klee'],
                     sourced: [],
                     frequency: 0.2,
-                    duration: 80
+                    duration: 80,
+                    // NAME THE SURFACE. These tests are about the warning
+                    // that precedes FLASHES; Gallery does not flash and is
+                    // no longer gated, so an unnamed presentation inherits
+                    // the reader default and asks a different question.
+                    presentation: 'full-frame'
                 }
             }
         }
@@ -412,10 +422,10 @@ test('12 · Gallery (Continuous Field) mounts behind the reading and reveals ima
     await enterChamber(page);
 
     await page.locator('#begin-btn').click();
-    // The field is imagery, so the safety warning still gates entry.
-    const warning = page.locator('#photosensitivity-modal');
-    await expect(warning).toBeVisible({ timeout: 10_000 });
-    await warning.locator('#safety-accept').click();
+    // GALLERY IS NOT GATED. The notice describes brief high-contrast
+    // exposures between moments of reading; the continuous field never
+    // flashes and never goes black, so it opens straight into the reading.
+    await expect(page.locator('#photosensitivity-modal')).toBeHidden();
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
     await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
 

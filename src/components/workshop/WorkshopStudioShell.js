@@ -36,6 +36,8 @@ function renderStudioHeader(view) {
                 data-action="reset-workshop" id="reset-workshop-btn">Reset</button>
         <button type="button" class="btn-ghost" data-action="export-curator-context"
                 title="Export capability JSON for the Live Curator">Export context</button>
+        <button type="button" class="btn-ghost" data-action="export-curator-prompt"
+                title="Export the generated Curator prompt (never inside context.json)">Export prompt</button>
         <button type="button" class="btn-ghost" data-action="export-experience-program"
                 title="Export rise.experience-program.v1">Export score</button>
         <button type="button" class="btn-ghost" data-action="import-experience-program"

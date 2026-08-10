@@ -1,0 +1,163 @@
+/* The Scriptorium — quiet specialist room, Curia-adjacent. */
+
+.scriptorium {
+  --scriptorium-ink: #e8e4dc;
+  --scriptorium-fog: #9a958c;
+  --scriptorium-rule: #2a2824;
+  --scriptorium-panel: #141311;
+  --scriptorium-accent: #c4a574;
+  /* THE ROOM IS TALLER THAN THE VIEWPORT AND MUST SCROLL. Six numbered
+     steps run past the fold, so a verdict rendered below it was
+     unreachable — the Examine button appeared to do nothing because its
+     answer was off-screen. `height` rather than `min-height`: a box that
+     only grows cannot own a scrollbar. */
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scriptorium-rule) transparent;
+  padding: 1.5rem 1.25rem 4rem;
+  color: var(--scriptorium-ink);
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(196, 165, 116, 0.08), transparent 45%),
+    linear-gradient(180deg, #0c0b0a 0%, #121110 40%, #0a0908 100%);
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+}
+
+.scriptorium-header h1 {
+  margin: 0.35rem 0 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+}
+
+.scriptorium-sub {
+  max-width: 62ch;
+  color: var(--scriptorium-fog);
+  line-height: 1.55;
+  margin: 0 0 1.75rem;
+}
+
+.scriptorium-back {
+  background: none;
+  border: none;
+  color: var(--scriptorium-fog);
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+.scriptorium-back:hover {
+  color: var(--scriptorium-ink);
+}
+
+.scriptorium-step {
+  border-top: 1px solid var(--scriptorium-rule);
+  padding: 1.15rem 0 0.4rem;
+  max-width: 52rem;
+}
+
+.scriptorium-step h2 {
+  margin: 0 0 0.55rem;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--scriptorium-accent);
+}
+
+.scriptorium-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--scriptorium-fog);
+  font-size: 0.92rem;
+}
+
+.scriptorium-intent,
+.scriptorium-paste {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--scriptorium-panel);
+  color: var(--scriptorium-ink);
+  border: 1px solid var(--scriptorium-rule);
+  border-radius: 2px;
+  padding: 0.75rem 0.85rem;
+  font: inherit;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.scriptorium-paste {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.82rem;
+}
+
+.scriptorium-note {
+  color: var(--scriptorium-fog);
+  margin: 0 0 0.75rem;
+  max-width: 62ch;
+  line-height: 1.45;
+}
+
+.scriptorium-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.scriptorium-ok {
+  color: #8fbf8f;
+}
+
+.scriptorium-refusal {
+  background: var(--scriptorium-panel);
+  border: 1px solid var(--scriptorium-rule);
+  padding: 0.85rem 1rem;
+  white-space: pre-wrap;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  max-width: 100%;
+  overflow: auto;
+}
+
+.scriptorium-source-list,
+.scriptorium-track-list {
+  margin: 0 0 1rem;
+  padding-left: 1.1rem;
+  color: var(--scriptorium-ink);
+}
+
+.scriptorium-meta {
+  display: block;
+  color: var(--scriptorium-fog);
+  font-size: 0.85rem;
+}
+
+.scriptorium-status {
+  margin-top: 1.25rem;
+  color: var(--scriptorium-accent);
+}
+
+.portal-scriptorium-door {
+  position: absolute;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid rgba(196, 165, 116, 0.35);
+  background: rgba(12, 11, 10, 0.55);
+  color: rgba(196, 165, 116, 0.85);
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  z-index: 3;
+}
+
+.portal-scriptorium-door:hover,
+.portal-scriptorium-door:focus-visible {
+  color: #e8e4dc;
+  border-color: rgba(196, 165, 116, 0.75);
+}

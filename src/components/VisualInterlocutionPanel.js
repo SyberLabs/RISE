@@ -16,6 +16,14 @@ import { ATRIUM_CATEGORIES } from '../content/atrium/atrium-categories.js';
 import { ATRIUM_PINNED_COLLECTIONS } from '../content/atrium/imagery/collections.js';
 import { SCIENCE_CATEGORIES, SCIENCE_KIND_LABELS }
     from '../content/science/imagery/science-pins.js';
+import { PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
+
+/**
+ * Presentations that interrupt the reading with a presence.
+ * Gallery is absent on purpose: it crossfades and never flashes, so it is
+ * the one surface the photosensitivity notice has nothing to say about.
+ */
+const FLASHING_PRESENTATIONS = new Set(['behind-stream', 'full-frame']);
 import { MemoryCore } from '../core/memory.js';
 import { ATTRACTOR_SYSTEMS, ATTRACTOR_PALETTES } from '../visuals/attractor.js';
 import { escapeHtml, safeUrl } from '../core/sanitize.js';
@@ -591,14 +599,7 @@ export class VisualInterlocutionPanel {
             return;
         }
 
-        const proceduralPatterns = [
-            { id: 'klee', name: 'Klee Lines', icon: '╱', hasPresets: true },
-            { id: 'turrell', name: 'Turrell Fields', icon: '◈' },
-            { id: 'fractal', name: 'Fractal Flames', icon: '✧' },
-            { id: 'neural', name: 'Neural Networks', icon: '◉' },
-            { id: 'rockgarden', name: 'Rock Garden', icon: '◯' },
-            { id: 'harmonograph', name: 'Harmonograph', icon: '∿' }
-        ];
+        const proceduralPatterns = PROCEDURAL_PATTERNS;
         // NOT LISTED: 'blueprint' and 'freedom'. Both are Atrium-exclusive
         // patterns — a blueprint plate belongs to a passage about a
         // mechanism, and the liberation field is meaningless without the
@@ -1534,9 +1535,25 @@ export class VisualInterlocutionPanel {
         if (this.locked) return;
 
         this.container.querySelectorAll('[data-presentation]').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', async () => {
                 const next = normalizePresentation(btn.dataset.presentation);
                 const previous = this.config.interlocution.presentation;
+
+                // Behind stream and full frame both interrupt the reading
+                // with a presence; Gallery does not. Ask here, once, and
+                // leave the reader on the surface they already had if they
+                // decline — never silently switch them onto a flash.
+                if (FLASHING_PRESENTATIONS.has(next) && !this.hasConsent) {
+                    const accepted = await requestVisualInterlocutionConsent(this.consentScope);
+                    if (this._destroyed) return;
+                    this.hasConsent = accepted || hasVisualInterlocutionConsent(this.consentScope);
+                    if (!this.hasConsent) {
+                        this.render();
+                        this.attachEvents();
+                        return;
+                    }
+                }
+
                 if (next !== previous) {
                     // The flash surfaces each carry a sensible presence
                     // default: a full-frame cut reads at 200ms, imagery
@@ -1570,23 +1587,17 @@ export class VisualInterlocutionPanel {
         this.container.querySelectorAll('[data-visual-mode]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const newMode = btn.dataset.visualMode;
-                if (newMode === 'interlocution' && !this.hasConsent) {
-                    this.showSafetyModal();
-                    return;
-                }
 
+                // THE NOTICE MOVED ONE GATE DEEPER. Choosing Rhythmic used
+                // to raise it, but Rhythmic opens on Gallery — a field that
+                // never flashes and never goes black — so the warning
+                // described a risk the reader had not yet chosen. It now
+                // belongs to the presentation, where the flash is.
                 if (window.rise?.audioEngine) {
                     window.rise.audioEngine.playClick();
                 }
 
                 this._transitionVisualMode(newMode);
-
-                // Clear procedural if switching from focals to interlocution for the first time
-                // to prevent unexpected flashes, but keep if user has explicitly selected them
-                if (newMode === 'interlocution' && !this.hasConsent) {
-                    this.showSafetyModal();
-                    return;
-                }
 
                 this.emitChange();
                 this.render();

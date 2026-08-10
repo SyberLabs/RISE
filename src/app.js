@@ -31,6 +31,7 @@ import './components/BetaGate.css';
 import { visualCortex } from './visuals/visual-cortex.js';
 import { errorBoundary, ErrorCategory, ErrorSeverity } from './core/error-boundary.js';
 import {
+    beginNonFlashingVisualSession,
     beginVisualInterlocutionSession,
     endVisualInterlocutionSession,
     requestVisualInterlocutionConsent
@@ -52,6 +53,7 @@ import './components/Chapel.css';
 import './components/Rosarium.css';
 import './components/Via.css';
 import './components/Curia.css';
+import './components/Scriptorium.css';
 import './components/Journeys.css';
 import './premium-additions.css';
 
@@ -441,7 +443,17 @@ class App {
                     // must resolve before the opaque preparation overlay can
                     // cover the page, and before audio or Player ownership
                     // begins. Acceptance becomes a one-session capability.
-                    if (visualMode === 'interlocution') {
+                    // GALLERY IS NOT A FLASH, SO IT IS NOT GATED. The
+                    // notice describes brief high-contrast exposures
+                    // between moments of reading; the continuous field
+                    // never flashes and never goes black, so raising the
+                    // photosensitivity warning over it asks a reader to
+                    // accept a risk this surface does not carry. An
+                    // unstated presentation is treated as flashing —
+                    // the cortex's own default is full-frame.
+                    const presentation = session.visualConfig?.interlocution?.presentation;
+                    const flashes = presentation !== 'continuous';
+                    if (visualMode === 'interlocution' && flashes) {
                         const consentScope = session.visualConfig?.consentScope;
                         const consented = await requestVisualInterlocutionConsent(consentScope);
                         const activated = consented && beginVisualInterlocutionSession(consentScope);
@@ -450,6 +462,12 @@ class App {
                             session.visualConfig = { ...session.visualConfig, visualMode: 'off' };
                             this.showToast('Visual flashes remain off until the safety notice is accepted.', 4000);
                         }
+                    } else if (visualMode === 'interlocution') {
+                        // Gallery: no notice, but the capability still has
+                        // to be granted or the cortex renders nothing —
+                        // skipping the whole block turned Gallery's imagery
+                        // off, which the browser suite caught.
+                        beginNonFlashingVisualSession(session.visualConfig?.consentScope);
                     } else {
                         endVisualInterlocutionSession();
                     }
@@ -823,6 +841,18 @@ class App {
             init: async (container) => {
                 const { Curia } = await import('./components/Curia.js');
                 return new Curia(container, { onNavigate: this.handleNavigate });
+            }
+        });
+
+        // The Scriptorium — Live Curator doorway (additive; Workshop
+        // buttons remain until this room is proven).
+        this.router.registerView('scriptorium', {
+            container: document.getElementById('view-scriptorium'),
+            init: async (container) => {
+                const { Scriptorium } = await import('./components/Scriptorium.js');
+                const room = new Scriptorium(container, { onNavigate: this.handleNavigate });
+                room.mount();
+                return room;
             }
         });
 

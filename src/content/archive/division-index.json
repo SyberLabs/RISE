@@ -2,13 +2,17 @@
   "a-doll-s-house": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Act",
-    "count": 8,
-    "words": 26432
+    "count": 9,
+    "words": 26466
   },
   "a-hundred-and-seventy-chinese-poems": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 17,
     "words": 33208
@@ -16,13 +20,17 @@
   "a-hundred-verses-from-old-japan": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 7,
-    "words": 17315
+    "words": 16344
   },
   "anna-karenina": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 239,
     "words": 349762
@@ -30,6 +38,8 @@
   "beckwith-anansi-stories": {
     "divided": true,
     "titled": true,
+    "reason": "titled",
+    "authored": true,
     "noun": null,
     "count": 132,
     "words": 77569
@@ -37,6 +47,8 @@
   "beowulf": {
     "divided": true,
     "titled": false,
+    "reason": "inline",
+    "authored": true,
     "noun": "Part",
     "count": 42,
     "words": 26116
@@ -44,6 +56,8 @@
   "boethius-consolation": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Book",
     "count": 16,
     "words": 40974
@@ -51,6 +65,8 @@
   "crane-line-and-form": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 14,
     "words": 40274
@@ -58,13 +74,17 @@
   "crime-and-punishment": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
-    "count": 76,
-    "words": 203505
+    "count": 75,
+    "words": 202706
   },
   "don-quixote": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 168,
     "words": 426345
@@ -72,6 +92,8 @@
   "dow-composition": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 9,
     "words": 23426
@@ -79,6 +101,8 @@
   "dresser-decorative-design": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 16,
     "words": 47778
@@ -86,6 +110,8 @@
   "epictetus-encheiridion": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 18,
     "words": 61805
@@ -93,6 +119,8 @@
   "extended-bhagavad-gita-full": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 16,
     "words": 20109
@@ -100,6 +128,8 @@
   "extended-dhammapada-full": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 26,
     "words": 11903
@@ -107,13 +137,17 @@
   "faust": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Act",
     "count": 45,
-    "words": 145828
+    "words": 145685
   },
   "hamlet": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 33,
     "words": 85113
@@ -121,6 +155,8 @@
   "jane-eyre": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 66,
     "words": 185390
@@ -128,6 +164,8 @@
   "julian-revelations": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 87,
     "words": 60573
@@ -135,6 +173,8 @@
   "kabir-songs": {
     "divided": false,
     "titled": false,
+    "reason": "short",
+    "authored": true,
     "noun": null,
     "count": 1,
     "words": 11515
@@ -142,6 +182,8 @@
   "kandinsky-spiritual-in-art": {
     "divided": true,
     "titled": true,
+    "reason": "titled",
+    "authored": true,
     "noun": null,
     "count": 11,
     "words": 22154
@@ -149,6 +191,8 @@
   "king-lear": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Scene",
     "count": 39,
     "words": 64272
@@ -156,6 +200,8 @@
   "kwaidan-stories-and-studies-of-strange-things": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 12,
     "words": 36610
@@ -163,6 +209,8 @@
   "le-morte-darthur": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 509,
     "words": 362068
@@ -170,6 +218,8 @@
   "literary-essays-emerson": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 20,
     "words": 74186
@@ -177,6 +227,8 @@
   "literary-leaves-of-grass": {
     "divided": true,
     "titled": false,
+    "reason": "inline",
+    "authored": true,
     "noun": "Book",
     "count": 41,
     "words": 110279
@@ -184,6 +236,8 @@
   "literary-letters-young-poet": {
     "divided": false,
     "titled": false,
+    "reason": "short",
+    "authored": true,
     "noun": null,
     "count": 1,
     "words": 10976
@@ -191,6 +245,8 @@
   "literary-meditations": {
     "divided": true,
     "titled": true,
+    "reason": "titled",
+    "authored": true,
     "noun": null,
     "count": 25,
     "words": 71921
@@ -198,6 +254,8 @@
   "literary-poems-blake": {
     "divided": false,
     "titled": false,
+    "reason": "short",
+    "authored": true,
     "noun": null,
     "count": 1,
     "words": 5539
@@ -205,6 +263,8 @@
   "literary-poems-dickinson": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Part",
     "count": 274,
     "words": 30208
@@ -212,6 +272,8 @@
   "literary-thus-spoke-zarathustra": {
     "divided": true,
     "titled": false,
+    "reason": "inline",
+    "authored": true,
     "noun": "Part",
     "count": 130,
     "words": 110900
@@ -219,6 +281,8 @@
   "literary-walden": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 31,
     "words": 115510
@@ -226,6 +290,8 @@
   "madame-bovary": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Part",
     "count": 31,
     "words": 115663
@@ -233,6 +299,8 @@
   "metamorphoses": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Book",
     "count": 50,
     "words": 135257
@@ -240,6 +308,8 @@
   "middlemarch": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 120,
     "words": 315647
@@ -247,13 +317,17 @@
   "moby-dick-or-the-whale": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 143,
-    "words": 210698
+    "words": 212058
   },
   "montaigne-essays": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Essay",
     "count": 187,
     "words": 504226
@@ -261,6 +335,8 @@
   "mooney-cherokee-myths": {
     "divided": true,
     "titled": true,
+    "reason": "titled",
+    "authored": true,
     "noun": null,
     "count": 121,
     "words": 150815
@@ -268,6 +344,8 @@
   "mrs-dalloway": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 16,
     "words": 63594
@@ -275,6 +353,8 @@
   "okakura-book-of-tea": {
     "divided": true,
     "titled": true,
+    "reason": "titled",
+    "authored": true,
     "noun": null,
     "count": 6,
     "words": 15596
@@ -282,13 +362,17 @@
   "paradise-lost": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Book",
     "count": 12,
-    "words": 79798
+    "words": 79763
   },
   "parker-australian-tales": {
     "divided": true,
     "titled": true,
+    "reason": "titled",
+    "authored": true,
     "noun": null,
     "count": 31,
     "words": 29479
@@ -296,6 +380,8 @@
   "phaedra": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Scene",
     "count": 31,
     "words": 14001
@@ -303,6 +389,8 @@
   "pride-and-prejudice": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 66,
     "words": 127273
@@ -310,6 +398,8 @@
   "rasmussen-eskimo-tales": {
     "divided": true,
     "titled": true,
+    "reason": "titled",
+    "authored": true,
     "noun": null,
     "count": 28,
     "words": 42993
@@ -317,6 +407,8 @@
   "romance-of-the-three-kingdoms": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 216,
     "words": 569189
@@ -324,6 +416,8 @@
   "ross-pure-design": {
     "divided": true,
     "titled": true,
+    "reason": "titled",
+    "authored": true,
     "noun": null,
     "count": 14,
     "words": 36336
@@ -331,6 +425,8 @@
   "rubaiyat-of-omar-khayyam": {
     "divided": false,
     "titled": false,
+    "reason": "short",
+    "authored": true,
     "noun": null,
     "count": 1,
     "words": 11719
@@ -338,13 +434,17 @@
   "sacred-corpus-hermeticum": {
     "divided": true,
     "titled": true,
+    "reason": "titled",
+    "authored": true,
     "noun": null,
-    "count": 246,
-    "words": 367057
+    "count": 244,
+    "words": 366039
   },
   "sacred-emerald-tablet": {
     "divided": false,
     "titled": false,
+    "reason": "short",
+    "authored": true,
     "noun": null,
     "count": 1,
     "words": 237
@@ -352,13 +452,17 @@
   "sacred-i-ching": {
     "divided": true,
     "titled": false,
+    "reason": "inline",
+    "authored": true,
     "noun": "Chapter",
-    "count": 62,
-    "words": 170491
+    "count": 60,
+    "words": 170419
   },
   "sacred-rumi": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 4,
     "words": 14110
@@ -366,6 +470,8 @@
   "sacred-tao-te-ching": {
     "divided": false,
     "titled": false,
+    "reason": "short",
+    "authored": true,
     "noun": null,
     "count": 1,
     "words": 10657
@@ -373,6 +479,8 @@
   "sacred-yoga-sutras": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Book",
     "count": 11,
     "words": 30313
@@ -380,20 +488,26 @@
   "sacred-zen-koans": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Essay",
-    "count": 44,
-    "words": 137140
+    "count": 43,
+    "words": 136120
   },
   "strange-stories-from-a-chinese-studio": {
     "divided": true,
-    "titled": true,
-    "noun": null,
-    "count": 71,
-    "words": 217794
+    "titled": false,
+    "reason": "inline",
+    "authored": true,
+    "noun": "Part",
+    "count": 173,
+    "words": 217703
   },
   "swann-s-way": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 52,
     "words": 195237
@@ -401,6 +515,8 @@
   "the-aeneid": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Book",
     "count": 33,
     "words": 107551
@@ -408,6 +524,8 @@
   "the-bacchae": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 5,
     "words": 17071
@@ -415,13 +533,17 @@
   "the-book-of-the-thousand-nights-and-a-night": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Volume",
-    "count": 471,
-    "words": 1717847
+    "count": 470,
+    "words": 1710281
   },
   "the-brothers-karamazov": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 130,
     "words": 350007
@@ -429,6 +551,8 @@
   "the-canterbury-tales-and-other-poems": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 78,
     "words": 279774
@@ -436,6 +560,8 @@
   "the-decameron": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 86,
     "words": 307764
@@ -443,6 +569,8 @@
   "the-divine-comedy": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 10,
     "words": 38044
@@ -450,6 +578,8 @@
   "the-duchess-of-malfi": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Scene",
     "count": 20,
     "words": 26520
@@ -457,6 +587,8 @@
   "the-faerie-queene": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 122,
     "words": 313177
@@ -464,6 +596,8 @@
   "the-gulistan-or-rose-garden-of-sa-di": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 22,
     "words": 44002
@@ -471,6 +605,8 @@
   "the-house-of-atreus": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 9,
     "words": 34709
@@ -478,27 +614,35 @@
   "the-iliad": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Book",
-    "count": 56,
-    "words": 157684
+    "count": 55,
+    "words": 157031
   },
   "the-kalevala": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Rune",
-    "count": 58,
-    "words": 137529
+    "count": 56,
+    "words": 136211
   },
   "the-little-clay-cart": {
     "divided": true,
     "titled": false,
-    "noun": "Act",
+    "reason": "measured",
+    "authored": false,
+    "noun": "Reading",
     "count": 14,
-    "words": 51580
+    "words": 51566
   },
   "the-mahabharata-of-krishna-dwaipayana-vyasa": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Section",
     "count": 2028,
     "words": 2550173
@@ -506,6 +650,8 @@
   "the-nibelungenlied": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Adventure",
     "count": 45,
     "words": 103023
@@ -513,34 +659,44 @@
   "the-no-plays-of-japan": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 21,
-    "words": 55860
+    "words": 55617
   },
   "the-odyssey": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Book",
-    "count": 48,
-    "words": 129570
+    "count": 47,
+    "words": 126737
   },
   "the-oedipus-trilogy": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 10,
-    "words": 37439
+    "words": 37390
   },
   "the-ramayan-of-valmiki": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Canto",
-    "count": 509,
-    "words": 396644
+    "count": 510,
+    "words": 396796
   },
   "the-scarlet-letter": {
     "divided": true,
     "titled": false,
+    "reason": "inline",
+    "authored": true,
     "noun": "Part",
     "count": 28,
     "words": 83020
@@ -548,13 +704,17 @@
   "the-shahnama-of-firdausi": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Volume",
-    "count": 405,
-    "words": 1109880
+    "count": 400,
+    "words": 1099111
   },
   "the-shih-king-or-book-of-poetry": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Ode",
     "count": 71,
     "words": 53673
@@ -562,6 +722,8 @@
   "the-song-of-roland": {
     "divided": true,
     "titled": false,
+    "reason": "inline",
+    "authored": true,
     "noun": "Part",
     "count": 291,
     "words": 32345
@@ -569,13 +731,17 @@
   "the-storm-of-steel": {
     "divided": true,
     "titled": true,
+    "reason": "titled",
+    "authored": true,
     "noun": null,
-    "count": 49,
-    "words": 94222
+    "count": 48,
+    "words": 92121
   },
   "the-tempest": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Scene",
     "count": 14,
     "words": 24022
@@ -583,6 +749,8 @@
   "the-tragical-history-of-doctor-faustus": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 5,
     "words": 19716
@@ -590,20 +758,26 @@
   "the-troubadours": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
-    "count": 22,
-    "words": 33459
+    "count": 21,
+    "words": 32492
   },
   "translations-of-shakuntala-and-other-works": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Act",
-    "count": 19,
-    "words": 65507
+    "count": 18,
+    "words": 59556
   },
   "twenty-two-goblins": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 12,
     "words": 40129
@@ -611,6 +785,8 @@
   "ulysses": {
     "divided": true,
     "titled": false,
+    "reason": "measured",
+    "authored": false,
     "noun": "Reading",
     "count": 70,
     "words": 265055
@@ -618,6 +794,8 @@
   "vitruvius-architecture": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Book",
     "count": 37,
     "words": 93024
@@ -625,6 +803,8 @@
   "war-and-peace": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 366,
     "words": 562484
@@ -632,6 +812,8 @@
   "wuthering-heights": {
     "divided": true,
     "titled": false,
+    "reason": "scheme",
+    "authored": true,
     "noun": "Chapter",
     "count": 46,
     "words": 115945

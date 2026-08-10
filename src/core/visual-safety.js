@@ -53,6 +53,27 @@ export function beginVisualInterlocutionSession(scope) {
     return true;
 }
 
+/**
+ * Grant the capability for a surface that does not flash.
+ *
+ * The photosensitivity notice describes brief high-contrast exposures
+ * between moments of reading. The continuous field has none: it never
+ * flashes and never goes black, so gating it asks a reader to accept a
+ * risk the surface does not carry — and refusing then leaves them with a
+ * blank chamber for no reason.
+ *
+ * SEPARATE FROM beginVisualInterlocutionSession ON PURPOSE. That one
+ * requires an accepted warning and consumes it; this one grants nothing
+ * that was ever gated. The caller must have established that the
+ * presentation is continuous — this function does not check, and must
+ * never be reached for a flashing surface.
+ */
+export function beginNonFlashingVisualSession(scope) {
+    activeSessionConsent = true;
+    activeSessionConsentScope = normalizeConsentScope(scope);
+    return true;
+}
+
 /** Revoke the session capability and cancel any orphaned visible prompt. */
 export function endVisualInterlocutionSession() {
     activeSessionConsent = false;

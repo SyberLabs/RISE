@@ -34,6 +34,11 @@ for (const file of readdirSync(WORKS_DIR).filter(f => f.endsWith('.js')).sort())
         // Titled schemes have no division noun (named places, not
         // numbered chapters) — record rather than invent.
         titled: reason === 'titled',
+        // titled | scheme | inline | measured | short | …
+        // `measured` means RISE cut the text; everything else is the
+        // author's (or the edition's) own scheme.
+        reason: reason || null,
+        authored: Boolean(reason) && reason !== 'measured',
         // The work's own word for its divisions ("chapters", "books", …).
         noun: noun || null,
         count: entries.length,

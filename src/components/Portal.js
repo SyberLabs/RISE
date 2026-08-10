@@ -254,6 +254,10 @@ export class Portal {
         <button class="portal-curia-door" data-nav="curia" title="The Curia" aria-label="The Curia">
           <span aria-hidden="true">▣</span>
         </button>
+        <button class="portal-scriptorium-door" data-nav="scriptorium" title="The Scriptorium"
+                aria-label="The Scriptorium">
+          <span aria-hidden="true">✎</span>
+        </button>
 
         <!-- The Sigil - Center of attention.
              THE STAGE (Premium_Mobile_Chamber P1) is decoration only:

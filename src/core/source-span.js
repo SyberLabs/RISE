@@ -41,6 +41,132 @@ export function normalizeQuote(value) {
   return typeof value === 'string' ? value.trim().replace(/\s+/gu, ' ') : '';
 }
 
+/**
+ * Build the whitespace-normalized search index for one source once.
+ * Quotation clips then only pay indexOf — same memo shape as `aligned`
+ * in compileSourceSpans (SCRIPTORIUM perf: do not rebuild per clip).
+ *
+ * @returns {{ text: string, normalized: string, map: number[] } | null}
+ */
+export function buildNormalizedSourceIndex(text) {
+  if (typeof text !== 'string') return null;
+  let normalized = '';
+  /** @type {number[]} original UTF-16 index for each normalized character */
+  const map = [];
+  let pendingSpace = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    if (ch === ' ' || ch === '\n' || ch === '\r' || ch === '\t' || /\s/u.test(ch)) {
+      if (normalized.length > 0) pendingSpace = true;
+      continue;
+    }
+    if (pendingSpace) {
+      normalized += ' ';
+      map.push(i);
+      pendingSpace = false;
+    }
+    normalized += ch;
+    map.push(i);
+  }
+  return { text, normalized, map };
+}
+
+/** First normalized offset whose original index is >= fromOriginal. */
+function normalizedOffsetAtOrAfter(map, fromOriginal) {
+  const startAt = Math.max(0, fromOriginal | 0);
+  if (startAt <= 0) return 0;
+  let lo = 0;
+  let hi = map.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (map[mid] < startAt) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+/**
+ * Locate a whitespace-normalized needle using a prebuilt source index.
+ * @returns {{ from: number, to: number } | null}
+ */
+export function findInNormalizedIndex(index, needle, fromOriginal = 0) {
+  const target = normalizeQuote(needle);
+  if (!target || !index?.normalized || !index?.map) return null;
+  const startAt = normalizedOffsetAtOrAfter(index.map, fromOriginal);
+  const at = index.normalized.indexOf(target, startAt);
+  if (at < 0) return null;
+  const from = index.map[at];
+  const last = index.map[at + target.length - 1];
+  if (from == null || last == null) return null;
+  return { from, to: last + 1 };
+}
+
+/** Count non-overlapping occurrences of a normalized needle in the index. */
+export function countInNormalizedIndex(index, needle) {
+  const target = normalizeQuote(needle);
+  if (!target || !index?.normalized) return 0;
+  let count = 0;
+  let from = 0;
+  while (from <= index.normalized.length - target.length) {
+    const at = index.normalized.indexOf(target, from);
+    if (at < 0) break;
+    count += 1;
+    from = at + target.length;
+  }
+  return count;
+}
+
+/**
+ * Find a whitespace-normalized needle inside original text; return the
+ * UTF-16 half-open range covering the matched region, or null.
+ * Prefer buildNormalizedSourceIndex + findInNormalizedIndex when scanning
+ * the same source more than once.
+ */
+export function findNormalizedSubstring(text, needle, fromIndex = 0) {
+  return findInNormalizedIndex(buildNormalizedSourceIndex(text), needle, fromIndex);
+}
+
+/**
+ * Derive a character span from quote fingerprints alone (Scriptorium /
+ * Live Curator). Returns null when either endpoint cannot be located —
+ * absence, never a substitute.
+ *
+ * If quoteStart occurs more than once, refuses with SOURCE_SPAN_QUOTE_AMBIGUOUS
+ * rather than silently binding the first hit (fail closed).
+ *
+ * @param {string} text
+ * @param {string} quoteStart
+ * @param {string} quoteEnd
+ * @param {{ text: string, normalized: string, map: number[] } | null} [index]
+ */
+export function locateQuoteSpan(text, quoteStart, quoteEnd, index = null) {
+  const start = normalizeQuote(quoteStart);
+  const end = normalizeQuote(quoteEnd);
+  if (!start || !end) return null;
+  const idx = index?.normalized ? index : buildNormalizedSourceIndex(text);
+  const occurrences = countInNormalizedIndex(idx, start);
+  if (occurrences > 1) {
+    fail('SOURCE_SPAN_QUOTE_AMBIGUOUS',
+      `Opening quote occurs ${occurrences} times in this source; quote a phrase that appears once`,
+      '$.anchor.quoteStart',
+      { quoteStart: start, occurrences });
+  }
+  const open = findInNormalizedIndex(idx, start, 0);
+  if (!open) return null;
+  const close = findInNormalizedIndex(idx, end, open.from);
+  if (!close) return null;
+  const fromCharacter = open.from;
+  const toCharacter = Math.max(close.to, open.to);
+  if (toCharacter <= fromCharacter) return null;
+  return Object.freeze({
+    kind: 'character',
+    fromCharacter,
+    toCharacter,
+    quoteStart: start,
+    quoteEnd: end
+  });
+}
+
 function isUtf16Boundary(text, offset) {
   if (offset <= 0 || offset >= text.length) return true;
   const before = text.charCodeAt(offset - 1);
@@ -49,12 +175,38 @@ function isUtf16Boundary(text, offset) {
 }
 
 /** Resolve and integrity-check one validated authored span. */
-export function resolveSourceSpan(anchor, text, path = '$.anchor') {
+export function resolveSourceSpan(anchor, text, path = '$.anchor', options = {}) {
   if (typeof text !== 'string') {
     fail('SOURCE_SPAN_TEXT_REQUIRED', 'A source span needs source text', path);
   }
   const hasCharacters = anchor?.fromCharacter !== undefined;
   const hasTokens = anchor?.fromToken !== undefined;
+  const quotationOnly = !hasCharacters && !hasTokens
+    && normalizeQuote(anchor?.quoteStart) && normalizeQuote(anchor?.quoteEnd);
+
+  if (quotationOnly) {
+    const located = locateQuoteSpan(
+      text,
+      anchor.quoteStart,
+      anchor.quoteEnd,
+      options.normalizedIndex || null
+    );
+    if (!located) {
+      fail('SOURCE_SPAN_QUOTE_NOT_FOUND',
+        'Quotation anchors must resolve against the supplied edition', path, {
+          quoteStart: normalizeQuote(anchor.quoteStart),
+          quoteEnd: normalizeQuote(anchor.quoteEnd)
+        });
+    }
+    return resolveSourceSpan({
+      ...anchor,
+      fromCharacter: located.fromCharacter,
+      toCharacter: located.toCharacter,
+      quoteStart: located.quoteStart,
+      quoteEnd: located.quoteEnd
+    }, text, path, options);
+  }
+
   if (!hasCharacters && !hasTokens) return null;
   if (hasCharacters && hasTokens) {
     fail('SOURCE_SPAN_AMBIGUOUS_RANGE',
@@ -237,11 +389,15 @@ function authoredSpanAnchors(program) {
   program?.tracks?.forEach((track, trackIndex) => {
     if (!['visual', 'audio', 'swell'].includes(track.kind)) return;
     track.clips.forEach((clip, clipIndex) => {
-      if (clip.anchor.fromCharacter === undefined && clip.anchor.fromToken === undefined) return;
+      const anchor = clip.anchor || {};
+      const hasOffsets = anchor.fromCharacter !== undefined || anchor.fromToken !== undefined;
+      const hasQuotes = normalizeQuote(anchor.quoteStart) && normalizeQuote(anchor.quoteEnd);
+      if (!hasOffsets && !hasQuotes) return;
       out.push({
         clip,
         trackId: track.id,
-        path: `$.tracks[${trackIndex}].clips[${clipIndex}].anchor`
+        path: `$.tracks[${trackIndex}].clips[${clipIndex}].anchor`,
+        quotationOnly: !hasOffsets && !!hasQuotes
       });
     });
   });
@@ -252,10 +408,17 @@ function authoredSpanAnchors(program) {
  * Verify every authored span against the supplied edition and compile its
  * coordinate space onto that source's atoms. Returns the resolved spans for
  * diagnostics and tests; the canonical program remains unchanged.
+ *
+ * Quotation-only anchors that cannot be located, or whose opening quote is
+ * ambiguous, are omitted (reverent degradation) and listed under `omitted`;
+ * character/token spans still refuse. Ambiguity is refused at import/accept
+ * (where the curator can extend the quote); the reading must not die on it.
  */
 export function compileSourceSpans(program, sources, atoms) {
   const authored = authoredSpanAnchors(program);
-  if (authored.length === 0) return [];
+  if (authored.length === 0) {
+    return Object.freeze({ resolutions: Object.freeze([]), omitted: Object.freeze([]) });
+  }
 
   const sourceMap = new Map();
   for (const source of sources) {
@@ -272,8 +435,11 @@ export function compileSourceSpans(program, sources, atoms) {
   }
 
   const aligned = new Set();
+  /** @type {Map<string, ReturnType<typeof buildNormalizedSourceIndex>>} */
+  const normalizedBySource = new Map();
   const resolutions = [];
-  for (const { clip, trackId, path } of authored) {
+  const omitted = [];
+  for (const { clip, trackId, path, quotationOnly } of authored) {
     const sourceId = clip.anchor.sourceIds[0];
     const source = sourceMap.get(sourceId);
     if (!source) {
@@ -285,16 +451,43 @@ export function compileSourceSpans(program, sources, atoms) {
       alignSourceAtoms(source.raw, sourceAtoms, `$.sources[${sourceId}]`);
       aligned.add(sourceId);
     }
-    const span = resolveSourceSpan(clip.anchor, source.raw, path);
+    if (quotationOnly && !normalizedBySource.has(sourceId)) {
+      normalizedBySource.set(sourceId, buildNormalizedSourceIndex(source.raw));
+    }
+
+    let span;
+    try {
+      span = resolveSourceSpan(clip.anchor, source.raw, path, {
+        normalizedIndex: normalizedBySource.get(sourceId) || null
+      });
+    } catch (error) {
+      // Reader path: omit unresolvable quotation clips. Authoring-time
+      // refusal of ambiguity lives in assertQuotationAnchorsAgainstSources.
+      if (quotationOnly && (
+        error?.code === 'SOURCE_SPAN_QUOTE_NOT_FOUND'
+        || error?.code === 'SOURCE_SPAN_QUOTE_AMBIGUOUS'
+      )) {
+        omitted.push(Object.freeze({
+          trackId, clipId: clip.id, sourceId, reason: error.code
+        }));
+        continue;
+      }
+      throw error;
+    }
+    if (!span) continue;
+
     const matchedAtoms = sourceAtoms.filter(atom => atomIntersects(atom, span));
     if (matchedAtoms.length === 0) {
+      if (quotationOnly) {
+        omitted.push(Object.freeze({
+          trackId, clipId: clip.id, sourceId, reason: 'SOURCE_SPAN_NO_ATOMS'
+        }));
+        continue;
+      }
       fail('SOURCE_SPAN_NO_ATOMS',
         `Span for ${clip.id} compiles to no playable atoms`, path,
         { sourceId, clipId: clip.id });
     }
-    // Runtime membership is compiled data, never a durable authoring
-    // coordinate. It is useful to editors/diagnostics and survives Session
-    // serialization without making the canonical score depend on atom ids.
     const spanId = `${trackId}:${clip.id}`;
     for (const atom of matchedAtoms) {
       atom.sourceSpanIds = [...new Set([...(atom.sourceSpanIds || []), spanId])]
@@ -310,5 +503,64 @@ export function compileSourceSpans(program, sources, atoms) {
       ...span
     }));
   }
-  return Object.freeze(resolutions);
+  return Object.freeze({
+    resolutions: Object.freeze(resolutions),
+    omitted: Object.freeze(omitted)
+  });
+}
+
+function sourceTextFromRecord(source) {
+  if (typeof source?.raw === 'string') return source.raw;
+  if (typeof source?.data === 'string') return source.data;
+  if (typeof source?.text === 'string') return source.text;
+  return null;
+}
+
+/**
+ * Authoring-time check: quotation-only anchors against loaded edition text.
+ * Ambiguous openings refuse so describeImportFailure can send "extend until
+ * unique" back to the curator. Call this at import/accept — not at session
+ * compile (compile omits instead; the reader is not the author).
+ */
+export function assertQuotationAnchorsAgainstSources(program, sources = []) {
+  const sourceMap = new Map();
+  for (const source of sources) {
+    if (!source?.id) continue;
+    const text = sourceTextFromRecord(source);
+    if (typeof text === 'string') sourceMap.set(source.id, text);
+  }
+  /** @type {Map<string, ReturnType<typeof buildNormalizedSourceIndex>>} */
+  const normalizedBySource = new Map();
+
+  for (const { clip, path, quotationOnly } of authoredSpanAnchors(program)) {
+    if (!quotationOnly) continue;
+    const sourceId = clip.anchor.sourceIds[0];
+    const text = sourceMap.get(sourceId);
+    if (typeof text !== 'string') continue;
+    if (!normalizedBySource.has(sourceId)) {
+      normalizedBySource.set(sourceId, buildNormalizedSourceIndex(text));
+    }
+    try {
+      locateQuoteSpan(
+        text,
+        clip.anchor.quoteStart,
+        clip.anchor.quoteEnd,
+        normalizedBySource.get(sourceId)
+      );
+    } catch (error) {
+      if (error?.code === 'SOURCE_SPAN_QUOTE_AMBIGUOUS') {
+        fail(
+          error.code,
+          `Opening quote occurs ${error.details.occurrences} times in this source; quote a phrase that appears once`,
+          path,
+          error.details
+        );
+      }
+      // Not-found stays soft: omit at compile. Only ambiguity refuses here —
+      // the curator can extend until unique; the reader cannot.
+      if (error?.code === 'SOURCE_SPAN_QUOTE_NOT_FOUND') continue;
+      throw error;
+    }
+  }
+  return true;
 }

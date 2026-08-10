@@ -193,7 +193,10 @@ function cueIdsFromProgram(program) {
 export function assertProgramWithinContext(program, contextValue) {
   const context = validateCuratorContext(contextValue);
 
-  const allowedSources = new Set(context.sources.map(item => item.id));
+  const allowedSources = new Set([
+    ...context.sources.map(item => item.id),
+    ...(context.library || []).map(item => item.id)
+  ]);
   const allowedCollections = new Set(context.visuals.collections);
   const allowedEngines = new Set(context.visuals.engines);
   const allowedSoundscapes = new Set(context.audio.soundscapes);
@@ -289,7 +292,7 @@ export function workshopProjectFromImportedProgram({
     sources,
     assets,
     experienceProgram,
-    defaults,
+    defaults: withVisualSurfaceForProgram(experienceProgram, defaults),
     provenance: {
       kind: 'live-curator-import',
       ...provenance
@@ -298,16 +301,177 @@ export function workshopProjectFromImportedProgram({
   });
 }
 
+/**
+ * A score with a visual track arrives with its surface already on.
+ *
+ * An imported program carried no reading defaults, so the project opened
+ * with visuals off and the score did nothing until someone found the
+ * Presentation control and chose Scored by hand — the one step a curator
+ * loop exists to remove.
+ *
+ * GALLERY IS THE PRESENTATION CHOSEN. It is the reader default, it is the
+ * only surface that never flashes, and it is therefore the only one that
+ * opens without a photosensitivity notice standing between an accepted
+ * score and its reading. A score cannot request a different surface: the
+ * program has no field for one, and inventing a default that flashes
+ * would put a safety prompt in a path the author never asked for.
+ */
+export function withVisualSurfaceForProgram(program, defaults = {}) {
+  const hasVisualTrack = (program?.tracks || [])
+    .some(track => track.kind === 'visual' && (track.clips || []).length);
+  if (!hasVisualTrack) return defaults;
+  // An explicit surface from the caller wins — this only fills a silence.
+  if (defaults?.visual?.surface) return defaults;
+
+  const config = defaults?.visual?.config || {};
+  return {
+    ...defaults,
+    visual: {
+      ...(defaults.visual || {}),
+      surface: 'scored',
+      config: {
+        ...config,
+        visualMode: 'interlocution',
+        interlocution: {
+          ...(config.interlocution || {}),
+          presentation: 'continuous'
+        }
+      }
+    }
+  };
+}
+
+/**
+ * What to say to whoever wrote the score that was refused.
+ *
+ * The typed errors already carry a code, a path and the offending ids;
+ * this turns them into a correction a curator can paste back without
+ * knowing anything about this codebase. Where the refusal is a
+ * membership failure the reply lists what WAS available, because "not in
+ * the context" is unactionable and "use one of these" is not.
+ *
+ * @returns {string} plain text, safe to put on a clipboard
+ */
+export function describeImportFailure(error, { context = null } = {}) {
+  const code = error?.code || 'UNKNOWN';
+  const path = error?.path && error.path !== '$' ? error.path : '';
+  const details = error?.details || {};
+  const lines = [];
+
+  const options = (label, ids) => {
+    const list = (ids || []).filter(Boolean);
+    if (!list.length) return;
+    const shown = list.slice(0, 40);
+    lines.push(`Available ${label}: ${shown.join(', ')}${list.length > shown.length ? ', …' : ''}`);
+  };
+
+  switch (code) {
+    case 'PROGRAM_LANE_OVERLAP':
+      lines.push(
+        `Two clips on the same ${details.trackKind || 'track'} lane cover overlapping ranges of source `
+        + `"${details.sourceId}": ${(details.clipIds || []).join(' and ')}.`,
+        'One lane may present one thing at a time. Give them ranges that do not intersect '
+        + '(ranges are half-open, so `to` may equal the next `from`), put one on a different '
+        + 'lane, or drop one.'
+      );
+      break;
+    case 'PROGRAM_IO_PUBLISHED_REFUSED':
+      lines.push(
+        'This score declares authority "published", which only RISE\'s own Journeys may claim.',
+        'Remove the authority field; an imported score is a proposal.'
+      );
+      break;
+    case 'PROGRAM_IO_UNKNOWN_SOURCE':
+      lines.push(`The score names source "${details.sourceId}", which this reader does not have.`);
+      options('sources', [
+        ...(context?.sources || []).map(item => item.id),
+        ...(context?.library || []).map(item => item.id)
+      ]);
+      break;
+    case 'PROGRAM_IO_UNKNOWN_COLLECTION':
+      lines.push(`The score names collection "${details.collectionId}", which is not offered.`);
+      options('collections', context?.visuals?.collections);
+      break;
+    case 'PROGRAM_IO_UNKNOWN_ENGINE':
+      lines.push(`The score names engine "${details.engineId}", which is not offered.`);
+      options('engines', context?.visuals?.engines);
+      break;
+    case 'PROGRAM_IO_UNKNOWN_SOUNDSCAPE':
+      lines.push(`The score names soundscape "${details.soundscapeId}", which is not offered.`);
+      options('soundscapes', context?.audio?.soundscapes);
+      break;
+    case 'PROGRAM_IO_UNKNOWN_TONE':
+      lines.push(`The score names tone "${details.presetId}", which is not offered.`);
+      options('tones', context?.audio?.tones);
+      break;
+    case 'PROGRAM_IO_UNKNOWN_SWELL':
+      lines.push(`The score names swell "${details.swellId}", which is not offered.`);
+      options('swells', context?.audio?.swells);
+      break;
+    case 'PROGRAM_IO_URI_REFUSED':
+      lines.push(
+        'The score embeds a URI. Scores name things by id only — no data:, blob: or http(s) values.',
+        'Replace it with an id drawn from the curator context.'
+      );
+      break;
+    case 'PROGRAM_IO_TOO_LARGE':
+      lines.push(
+        `The document is ${details.length} characters; the limit is ${details.maxBytes}.`,
+        'Send the score only — no source text, no images.'
+      );
+      break;
+    case 'PROGRAM_IO_JSON':
+      lines.push('The document is not valid JSON.', error.message);
+      break;
+    case 'SOURCE_SPAN_QUOTE_AMBIGUOUS':
+      lines.push(
+        `"${details.quoteStart}" occurs ${details.occurrences} times in this source.`,
+        'Quote a phrase that appears once, or extend it until it does.'
+      );
+      break;
+    case 'SOURCE_SPAN_QUOTE_NOT_FOUND':
+      lines.push(
+        'A quotation anchor could not be located in the edition.',
+        'Check the wording, or use a progress range instead.'
+      );
+      break;
+    case 'PROGRAM_INCOMPLETE_RANGE':
+      lines.push('A range carries only one endpoint. Give both `from` and `to` in the same coordinate system.');
+      break;
+    case 'PROGRAM_UNKNOWN_FIELD':
+      lines.push(
+        `${error.message}`,
+        'Unknown fields are refused rather than ignored, so a misspelling cannot pass as an omission.'
+      );
+      break;
+    default:
+      lines.push(error?.message || 'The score was refused.');
+  }
+
+  if (path) lines.push(`At: ${path}`);
+  lines.push(`(${code})`);
+  return lines.join('\n');
+}
+
 /** Trigger a browser download of a JSON document. */
 export function downloadJsonFile(filename, text) {
+  downloadTextFile(
+    filename.endsWith('.json') ? filename : `${filename}.json`,
+    text,
+    'application/json;charset=utf-8'
+  );
+}
+
+/** Trigger a browser download of plain text. */
+export function downloadTextFile(filename, text, mimeType = 'text/plain;charset=utf-8') {
   if (typeof document === 'undefined') {
-    fail('PROGRAM_IO_DOWNLOAD', 'downloadJsonFile requires a document', '$');
+    fail('PROGRAM_IO_DOWNLOAD', 'downloadTextFile requires a document', '$');
   }
-  const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+  const blob = new Blob([text], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = filename.endsWith('.json') ? filename : `${filename}.json`;
+  anchor.download = filename;
   anchor.rel = 'noopener';
   document.body.appendChild(anchor);
   anchor.click();

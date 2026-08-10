@@ -253,15 +253,21 @@ function validateAnchor(value, path, kind) {
   const authoredSpan = presentRanges[0] === 'character' || presentRanges[0] === 'token';
   const hasQuoteStart = source.quoteStart !== undefined;
   const hasQuoteEnd = source.quoteEnd !== undefined;
+  const quotationOnly = presentRanges.length === 0 && hasQuoteStart && hasQuoteEnd;
+
   if (authoredSpan && (!hasQuoteStart || !hasQuoteEnd)) {
     fail('PROGRAM_QUOTE_REQUIRED',
       'Character and token spans require opening and closing quote fingerprints', path);
   }
-  if (!authoredSpan && (hasQuoteStart || hasQuoteEnd)) {
+  if (presentRanges[0] === 'progress' && (hasQuoteStart || hasQuoteEnd)) {
     fail('PROGRAM_ORPHAN_QUOTE',
-      'Quote fingerprints are valid only on character or token spans', path);
+      'Quote fingerprints are valid only on character, token, or quotation-only anchors', path);
   }
-  if (authoredSpan) {
+  if (!authoredSpan && !quotationOnly && (hasQuoteStart || hasQuoteEnd)) {
+    fail('PROGRAM_ORPHAN_QUOTE',
+      'Quotation anchors need both quoteStart and quoteEnd, with no progress range', path);
+  }
+  if (authoredSpan || quotationOnly) {
     out.quoteStart = quoteFingerprint(source.quoteStart, `${path}.quoteStart`);
     out.quoteEnd = quoteFingerprint(source.quoteEnd, `${path}.quoteEnd`);
   }
@@ -512,12 +518,13 @@ export function halfOpenRangesOverlap(fromA, toA, fromB, toB) {
   return fromA < toB && fromB < toA;
 }
 
-/** @returns {'progress'|'character'|'token'|'unranged'} */
+/** @returns {'progress'|'character'|'token'|'quotation'|'unranged'} */
 export function anchorCoordinateSystem(anchor) {
   if (!anchor || typeof anchor !== 'object') return 'unranged';
   if (anchor.fromProgress !== undefined) return 'progress';
   if (anchor.fromCharacter !== undefined) return 'character';
   if (anchor.fromToken !== undefined) return 'token';
+  if (anchor.quoteStart !== undefined || anchor.quoteEnd !== undefined) return 'quotation';
   return 'unranged';
 }
 
@@ -538,6 +545,9 @@ function rangeEndpoints(anchor, system) {
  * exclusivity without inventing a progress↔character↔token map. Inability to
  * prove overlap is not proof of non-overlap: refuse, so JSON import cannot
  * smuggle the ambiguity past the gate.
+ *
+ * Quotation-only anchors are a coordinate system of their own: without the
+ * edition text, two quotes on one source cannot prove exclusivity.
  */
 export function sameLaneClipsConflict(left, right) {
   if (!left?.anchor || !right?.anchor) return false;
@@ -552,7 +562,7 @@ export function sameLaneClipsConflict(left, right) {
     return true;
   }
 
-  if (systemLeft === 'unranged') return true;
+  if (systemLeft === 'unranged' || systemLeft === 'quotation') return true;
 
   const [fromA, toA] = rangeEndpoints(left.anchor, systemLeft);
   const [fromB, toB] = rangeEndpoints(right.anchor, systemRight);

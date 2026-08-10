@@ -4,6 +4,11 @@ import { EXPERIENCE_PROGRAM_SCHEMA } from './experience-program.js';
 import { compileSession } from './session-compiler.js';
 import { Session } from './models.js';
 import {
+  assertQuotationAnchorsAgainstSources,
+  buildNormalizedSourceIndex,
+  compileSourceSpans,
+  findInNormalizedIndex,
+  locateQuoteSpan,
   resolveSourceSpan,
   sourceTokens,
   SourceSpanResolutionError
@@ -203,5 +208,83 @@ describe('stable source-span compilation', () => {
   it('exposes typed resolution failures', () => {
     expect(() => resolveSourceSpan(characterAnchor(), null))
       .toThrow(SourceSpanResolutionError);
+  });
+
+  it('reuses one normalized index for repeated quotation scans on a source', () => {
+    const index = buildNormalizedSourceIndex(TEXT);
+    const once = locateQuoteSpan(TEXT, 'The first few words', 'final few words');
+    const reused = locateQuoteSpan(TEXT, 'The first few words', 'final few words', index);
+    expect(reused).toEqual(once);
+    expect(once.fromCharacter).toBe(FROM);
+
+    const open = findInNormalizedIndex(index, 'The first few words', 0);
+    const close = findInNormalizedIndex(index, 'final few words', open.from);
+    expect(close.from).toBeGreaterThanOrEqual(open.from);
+    expect(TEXT.slice(open.from, close.to)).toMatch(/The first few words[\s\S]*final few words/);
+  });
+
+  it('refuses an ambiguous opening quote instead of binding the first hit', () => {
+    const text = 'alpha the mark beta gamma the mark delta';
+    expect(() => locateQuoteSpan(text, 'the mark', 'delta'))
+      .toThrow(expect.objectContaining({
+        code: 'SOURCE_SPAN_QUOTE_AMBIGUOUS',
+        details: expect.objectContaining({ quoteStart: 'the mark', occurrences: 2 })
+      }));
+  });
+
+  it('omits ambiguous quotation clips at compile (reader path)', () => {
+    const text = 'alpha the mark beta gamma the mark delta';
+    const program = {
+      tracks: [{
+        id: 'visual-main',
+        kind: 'visual',
+        clips: [{
+          id: 'v1',
+          anchor: {
+            sourceIds: ['s1'],
+            quoteStart: 'the mark',
+            quoteEnd: 'delta'
+          }
+        }]
+      }]
+    };
+    const { resolutions, omitted } = compileSourceSpans(
+      program,
+      [{ id: 's1', raw: text }],
+      [{ id: 'a0', sourceId: 's1', position: 0, text: 'alpha', comparable: 'alpha' }]
+    );
+    expect(resolutions).toHaveLength(0);
+    expect(omitted[0]).toMatchObject({
+      clipId: 'v1',
+      reason: 'SOURCE_SPAN_QUOTE_AMBIGUOUS'
+    });
+  });
+
+  it('assertQuotationAnchorsAgainstSources refuses only ambiguity', () => {
+    const text = 'alpha the mark beta gamma the mark delta';
+    const ambiguous = {
+      tracks: [{
+        id: 'visual-main',
+        kind: 'visual',
+        clips: [{
+          id: 'v1',
+          anchor: { sourceIds: ['s1'], quoteStart: 'the mark', quoteEnd: 'delta' }
+        }]
+      }]
+    };
+    expect(() => assertQuotationAnchorsAgainstSources(ambiguous, [{ id: 's1', data: text }]))
+      .toThrow(expect.objectContaining({ code: 'SOURCE_SPAN_QUOTE_AMBIGUOUS' }));
+
+    const missing = {
+      tracks: [{
+        id: 'visual-main',
+        kind: 'visual',
+        clips: [{
+          id: 'v1',
+          anchor: { sourceIds: ['s1'], quoteStart: 'absent phrase', quoteEnd: 'nowhere' }
+        }]
+      }]
+    };
+    expect(assertQuotationAnchorsAgainstSources(missing, [{ id: 's1', data: text }])).toBe(true);
   });
 });

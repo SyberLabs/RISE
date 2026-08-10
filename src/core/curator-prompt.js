@@ -1,0 +1,151 @@
+/**
+ * Live Curator / Scriptorium prompt — generated at export time, never
+ * stored inside rise.curator-context.v1 (SCRIPTORIUM-SPEC §5).
+ *
+ * Contexts are shareable; a prompt is an instruction. Keeping them apart
+ * prevents a received context file from carrying forged directions.
+ */
+
+import { CURATOR_CONTEXT_SCHEMA, validateCuratorContext } from './curator-context.js';
+import { EXPERIENCE_PROGRAM_SCHEMA } from './experience-program.js';
+
+const MAX_INTENT = 2_000;
+
+/**
+ * @param {object} options
+ * @param {string} [options.intent] reader wish
+ * @param {object} [options.context] validated or raw curator context
+ * @returns {string} plain text for the clipboard / a .txt download
+ */
+export function buildCuratorPrompt({ intent = '', context = null } = {}) {
+  const wish = typeof intent === 'string' ? intent.trim().slice(0, MAX_INTENT) : '';
+  const ctx = context
+    ? (context.schema === CURATOR_CONTEXT_SCHEMA
+      ? context
+      : validateCuratorContext(context))
+    : null;
+
+  const libraryCount = ctx?.library?.length ?? 0;
+  const collectionCount = ctx?.visuals?.collections?.length ?? 0;
+  const engineCount = ctx?.visuals?.engines?.length ?? 0;
+  const soundscapeCount = ctx?.audio?.soundscapes?.length ?? 0;
+
+  const lines = [
+    'You are arranging an audiovisual reading score for RISE.',
+    'Return ONLY a single JSON object. No markdown fences, no commentary.',
+    '',
+    `Schema: "${EXPERIENCE_PROGRAM_SCHEMA}"`,
+    'Authority: omit it, or use "proposed" / "user". Never "published".',
+    'editable: true',
+    '',
+    '',
+    'SHAPE — every field below is required where shown. Anchors live INSIDE',
+    'an `anchor` object; tracks and clips carry ids; movement clips carry',
+    '`data`; visual and audio tracks carry a `fallback`.',
+    '',
+    '{',
+    '  "schema": "rise.experience-program.v1",',
+    '  "id": "memory-and-loss",',
+    '  "authority": "proposed",',
+    '  "editable": true,',
+    '  "tracks": [',
+    '    { "id": "movements", "kind": "movement", "clips": [',
+    '      { "id": "m1", "anchor": { "sourceIds": ["literary-meditations"] },',
+    '        "data": { "index": 0, "title": "Stillness" } },',
+    '      { "id": "m2", "anchor": { "sourceIds": ["extended-dhammapada-full"] },',
+    '        "data": { "index": 1, "title": "Release" } }',
+    '    ] },',
+    '    { "id": "visuals", "kind": "visual", "fallback": { "kind": "still" }, "clips": [',
+    '      { "id": "v1", "cue": { "kind": "procedural", "collections": ["rockgarden"] },',
+    '        "anchor": { "sourceIds": ["literary-meditations"],',
+    '                    "fromProgress": 0, "toProgress": 0.6 } },',
+    '      { "id": "v2", "cue": { "kind": "sourced", "collections": ["aic-ukiyoe"] },',
+    '        "anchor": { "sourceIds": ["literary-meditations"],',
+    '                    "fromProgress": 0.6, "toProgress": 1 } }',
+    '    ] },',
+    '    { "id": "bed", "kind": "audio", "fallback": { "kind": "silence", "fadeMs": 500 },',
+    '      "clips": [',
+    '      { "id": "a1", "cue": { "kind": "soundscape", "soundscapeId": "aurora" },',
+    '        "anchor": { "sourceIds": ["literary-meditations"] } }',
+    '    ] }',
+    '  ]',
+    '}',
+    '',
+    'A movement clip anchored with no range covers its whole source.',
+    'Structure:',
+    '- Exactly one non-empty movement track (kind "movement").',
+    '- Optional transition, visual, audio (bed), and swell tracks.',
+    '- Each clip names sourceIds drawn from the companion context.json',
+    '  (library works and/or loaded sources). Ids only — no URLs, no data:,',
+    '  no blob:, no embedded text or images.',
+    '- Visual cues: still | focal | sourced { collections } | procedural { collections, engines? }',
+    '- Audio bed cues: silence | hold | soundscape { soundscapeId } | tone { presetId }',
+    '- Swell cues: { kind: "swell", swellId }',
+    '',
+    'Anchoring — three ways to point at a place in the text:',
+    '1. Progress (preferred for broad arcs). Half-open [fromProgress, toProgress)',
+    '   in 0–1, measured in reading words. Adjacent ranges may abut',
+    '   (to === next from) and must not overlap. Do NOT attach quote',
+    '   fingerprints to progress spans.',
+    '2. Quotation (preferred for remembered lines). quoteStart and quoteEnd',
+    '   only — no offsets. RISE will locate the lines in the edition or',
+    '   omit the clip if they are absent. quoteStart must appear exactly',
+    '   once in the source; a repeated phrase is refused — extend it until',
+    '   it is unique. Do not invent character offsets.',
+    '3. Character / token spans with quotes — Workshop authoring only;',
+    '   you have not been given the bytes, so do not use these.',
+    '',
+    'LENGTH — the reading has a hard ceiling of 120,000 atoms, and in word',
+    'chunking one word is one atom. Every library entry carries a `words`',
+    'count: keep the sum across the sources you name under about 100,000,',
+    'or the session will refuse to compile. Prefer a few works, or name',
+    'fewer movements, rather than a long list of whole books.',
+    '',
+    'Proportional thinking: if you would assign weights (e.g. 1:2:1),',
+    'emit contiguous progress ranges that sum to 1 instead',
+    '(e.g. [0,0.25), [0.25,0.75), [0.75,1)). The program has no weights field.',
+    '',
+    'Work-bound engines (flaming_sword, ascii_soldier, …) were authored for',
+    'specific books. Prefer them only when the chosen source matches their',
+    '`work` in the context catalogue; otherwise use procedural engines',
+    '(klee, turrell, fractal, …) or museum collections (aic-…).',
+    '',
+    'Library divisions: use `divisions.authored` and `divisions.reason`.',
+    'When authored is false (reason "measured"), RISE imposed the cuts —',
+    'name progress or quotations, not "Reading N". When titled is true,',
+    'divisions have real names; when titled is false but authored is true,',
+    'the author numbered them (Chapter / Book / Act) without titles.',
+  ];
+
+  if (wish) {
+    lines.push('', 'Reader intent:', wish);
+  } else {
+    lines.push('', 'Reader intent: (none supplied — choose a coherent audiovisual reading.)');
+  }
+
+  if (ctx) {
+    lines.push(
+      '',
+      `Capability document id: ${ctx.id}`,
+      `Library works offered: ${libraryCount}`,
+      `Visual collections: ${collectionCount}; engines: ${engineCount}`,
+      `Soundscapes: ${soundscapeCount}`,
+      'Use only ids listed in that document. Prefer catalogue descriptions',
+      'when choosing imagery and sound.'
+    );
+  } else {
+    lines.push(
+      '',
+      'A rise.curator-context.v1 document is supplied separately as context.json.',
+      'Name only ids that appear there.'
+    );
+  }
+
+  lines.push(
+    '',
+    'This arrangement decorates a reading whose pace the reader still sets;',
+    'do not invent wpm, chunkMode, or curve fields on the program.'
+  );
+
+  return `${lines.join('\n')}\n`;
+}
