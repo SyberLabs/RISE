@@ -23,9 +23,12 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
 
     await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 20_000 });
     await page.locator('#begin-btn').click();
+    // The notice appears only for a flashing presentation; Gallery opens
+    // straight into the reading. This test is not about the gate, so it
+    // accepts one if offered and proceeds if not.
     const warn = page.locator('#photosensitivity-modal');
-    await expect(warn).toBeVisible({ timeout: 15_000 });
-    await warn.locator('#safety-accept').click();
+    await warn.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
+    if (await warn.isVisible()) await warn.locator('#safety-accept').click();
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
     await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
     await page.waitForTimeout(2500);

@@ -237,18 +237,26 @@ test('the three reported faults are gone', async ({ page }) => {
   expect(visuals.procedural).toContain('paradise-lost');
 });
 
-test('the door stays open when a reader declines the safety notice', async ({ page }) => {
+test('the door stays open, and War asks nothing on the way in', async ({ page }) => {
   test.setTimeout(240000);
+  // WAR AUTHORS A CONTINUOUS SURFACE, so there is no notice to decline:
+  // the photosensitivity warning belongs to behind-stream and full-frame,
+  // and a field that crossfades has nothing to warn about. What this test
+  // still guards is the door — the Begin button once stayed disabled
+  // reading "Preparing…" for good, because the label was only restored on
+  // failure. Declining a notice is covered for a flashing surface by
+  // smoke 8.
   await openJourneys(page);
   await expect(page.locator(`${WAR} .journey-credits`)).toBeVisible({ timeout: 60000 });
 
   await page.locator(`${WAR} .journey-begin`).click();
-  const cancel = page.locator('#safety-cancel');
-  await cancel.waitFor({ state: 'visible', timeout: 60000 });
-  await cancel.click();
+  const warning = page.locator('#photosensitivity-modal');
+  await warning.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
+  expect(await warning.isVisible(), 'a continuous surface must not be gated').toBe(false);
+  await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
   await page.waitForTimeout(5000);
 
-  // Declining turns the imagery off and reads on — it does not abort.
+  // The reading runs, and the door it came through is still a door.
   const after = await page.evaluate(() => {
     const ch = window.rise?.router?.views?.get('chamber-session')?.instance;
     const b = document.querySelector('[data-journey="journey-war"] .journey-begin');
@@ -259,10 +267,10 @@ test('the door stays open when a reader declines the safety notice', async ({ pa
       beginDisabled: b?.disabled ?? null
     };
   });
-  console.log('DECLINED ' + JSON.stringify(after));
+  console.log('DOOR ' + JSON.stringify(after));
 
   expect(after.reading).toBe(true);
-  expect(after.visualMode).toBe('off');
+  expect(after.visualMode).toBe('interlocution');
   // And the door is still a door: it only ever restored the label on
   // failure, so declining left it disabled reading "Preparing…" for good.
   expect(after.beginLabel).toBe('Begin');
@@ -301,10 +309,20 @@ test("Milton's engines are alive, not photographs of themselves", async ({ page 
     return { lit, sum };
   });
 
+  // SAMPLE ACROSS A WINDOW, NOT ACROSS ONE GAP. `sum` is a global
+  // luminance total, and a rigid rotation very nearly preserves it — so a
+  // single fixed interval can land on the same phase of the engine's cycle
+  // and read as motionless while the field is plainly turning. Measured:
+  // the same reading drifts 0.0008% over 2.5s and 1.9% over 8.5s. Three
+  // samples, widest pair, so aliasing cannot pass for a still frame.
   const first = await sample();
   await page.waitForTimeout(2500);
   const second = await sample();
-  console.log('MOTION ' + JSON.stringify({ first, second, failures: failures.length }));
+  await page.waitForTimeout(6000);
+  const third = await sample();
+  const sums = [first, second, third].map(s => s.sum);
+  const spread = (Math.max(...sums) - Math.min(...sums)) / first.sum;
+  console.log('MOTION ' + JSON.stringify({ first, second, third, spread, failures: failures.length }));
 
   expect(failures, failures.join(' | ')).toEqual([]);
   expect(first, 'no visible engine plane').not.toBeNull();
@@ -314,10 +332,9 @@ test("Milton's engines are alive, not photographs of themselves", async ({ page 
   // And it moved — but gently. The engines were authored at demo speed;
   // behind a paragraph they run on a scaled dt, so this asserts both
   // that the field is alive and that it is not thrashing.
-  expect(second.sum).not.toBe(first.sum);
-  const drift = Math.abs(second.sum - first.sum) / first.sum;
-  expect(drift).toBeGreaterThan(0.0001);
-  expect(drift, 'the field is moving too fast to read against').toBeLessThan(0.5);
+  expect(sums.some(sum => sum !== first.sum), 'every sample identical — a still frame').toBe(true);
+  expect(spread).toBeGreaterThan(0.0001);
+  expect(spread, 'the field is moving too fast to read against').toBeLessThan(0.5);
 });
 
 test('a movement\'s soundscape cue actually reaches the audio engine', async ({ page }) => {

@@ -28,9 +28,12 @@ async function boot(page, prefs = PREFS) {
 test('opening the Page suspends the Gallery; leaving restores it', async ({ page }) => {
   await boot(page);
   await page.locator('#begin-btn').click();
+  // The notice appears only for a flashing presentation; Gallery opens
+  // straight into the reading. This test is not about the gate, so it
+  // accepts one if offered and proceeds if not.
   const warn = page.locator('#photosensitivity-modal');
-  await expect(warn).toBeVisible({ timeout: 15000 });
-  await warn.locator('#safety-accept').click();
+  await warn.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
+  if (await warn.isVisible()) await warn.locator('#safety-accept').click();
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20000 });
   await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
   await page.waitForTimeout(6000);   // let the Gallery mount + reveal

@@ -388,9 +388,12 @@ test('10 · Atrium point preserves origin, curated config, Begin, exit, and retu
     await page.locator('[data-close="visual"]').click();
 
     await page.locator('#begin-btn').click();
+    // The notice appears only for a flashing presentation; Gallery opens
+    // straight into the reading. This test is not about the gate, so it
+    // accepts one if offered and proceeds if not.
     const warning = page.locator('#photosensitivity-modal');
-    await expect(warning).toBeVisible({ timeout: 10_000 });
-    await warning.locator('#safety-accept').click();
+    await warning.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
+    if (await warning.isVisible()) await warning.locator('#safety-accept').click();
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
     await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
 
@@ -468,8 +471,12 @@ test('11 · Atrium dialogue keeps speaker labels at the head of Phrase atoms', a
     expect(chunkMode).toBe('phrase');
 
     await page.locator('#begin-btn').click();
-    const warning = page.locator('#photosensitivity-modal');
-    await expect(warning).toBeVisible({ timeout: 10_000 });
+    // The modal used to be the signal that compilation had finished.
+    // Gallery raises none, so wait for the thing actually being asserted.
+    await page.waitForFunction(
+        () => (window.rise?.currentSession?.atoms || []).length > 0,
+        { timeout: 20_000 }
+    );
 
     const dialogueAtoms = await page.evaluate(() => (
         (window.rise?.currentSession?.atoms || [])
@@ -482,8 +489,10 @@ test('11 · Atrium dialogue keeps speaker labels at the head of Phrase atoms', a
     expect(dialogueAtoms).toContain('THEAETETUS: O yes,');
     expect(dialogueAtoms.some(content => /\s(?:THEAETETUS|SOCRATES):$/.test(content))).toBe(false);
 
-    // The chunking assertion is independent of external-art hydration. Enter
-    // with flashes declined so this test remains a deterministic text-flow E2E.
-    await warning.locator('#safety-cancel').click();
+    // The chunking assertion is independent of external-art hydration, so
+    // decline flashes if offered and keep this a deterministic text-flow
+    // E2E. A continuous surface raises no notice and needs no declining.
+    const warning = page.locator('#photosensitivity-modal');
+    if (await warning.isVisible()) await warning.locator('#safety-cancel').click();
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
 });
