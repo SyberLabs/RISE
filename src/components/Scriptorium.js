@@ -1,9 +1,14 @@
 /**
  * The Scriptorium — a room where a score is written from dictation.
  *
- * Intent → take prompt + context → paste score → verdict → preview →
- * accept as a proposed Vault draft. RISE calls no model; the reader
- * carries documents by hand (SCRIPTORIUM-SPEC).
+ * Intent and length → take prompt + context → paste score → verdict →
+ * an account of what the score does → read it, or keep it. RISE calls no
+ * model; the reader carries documents by hand (SCRIPTORIUM-SPEC).
+ *
+ * The room does not hand off to the Workshop. A score arrives finished and
+ * bound in progress coordinates; the Workshop edits character spans by hand.
+ * Routing one through the other would convert the anchors to enable editing
+ * the room exists to make unnecessary (SCRIPTORIUM-SPEC §10b).
  */
 
 import { MemoryCore } from '../core/memory.js';
@@ -12,6 +17,7 @@ import {
   serializeCuratorContext
 } from '../core/curator-context.js';
 import { buildCuratorPrompt } from '../core/curator-prompt.js';
+import { describeProgramRundown, estimateRundownMinutes } from '../core/program-rundown.js';
 import { READING_LIMITS } from '../core/reading-limits.js';
 import {
   describeImportFailure,
@@ -58,8 +64,12 @@ function clampTargetWords(value) {
   return Math.max(TARGET_WORDS_MIN, Math.min(READING_LIMITS.maxAtoms, parsed));
 }
 
+function readerWpm() {
+  return Number(globalThis.rise?.settings?.wpm) || 320;
+}
+
 function describeLength(words) {
-  const wpm = Number(globalThis.rise?.settings?.wpm) || 320;
+  const wpm = readerWpm();
   const minutes = Math.round(words / wpm);
   const clock = minutes >= 60
     ? `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`
@@ -71,6 +81,7 @@ export class Scriptorium {
   constructor(container, options = {}) {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => {});
+    this.onCreateSession = options.onCreateSession || null;
     this.intent = '';
     this.targetWords = DEFAULT_TARGET_WORDS;
     this.context = null;
@@ -78,6 +89,7 @@ export class Scriptorium {
     this.pasted = '';
     this.program = null;
     this.preview = null;
+    this.rundown = null;
     this.verdict = null;
     this.status = '';
   }
@@ -100,8 +112,48 @@ export class Scriptorium {
     });
   }
 
+  renderRundown(rundown, preview) {
+    const minutes = estimateRundownMinutes(rundown, readerWpm());
+    const lane = (title, rows, empty) => `
+      <p class="scriptorium-note"><strong>${title}</strong></p>
+      ${rows.length ? `<ul class="scriptorium-track-list">${rows.map(row => `
+        <li>${escapeHtml(row.description)} <span class="scriptorium-meta">${escapeHtml(row.span)}</span></li>
+      `).join('')}</ul>` : `<p class="scriptorium-note">${empty}</p>`}`;
+
+    return `
+      <p class="scriptorium-note">
+        ${rundown.totals.words != null ? `${rundown.totals.words.toLocaleString()} words` : 'Length unknown'}${minutes ? ` · about ${minutes} min` : ''} ·
+        ${rundown.totals.movements} movement${rundown.totals.movements === 1 ? '' : 's'}
+      </p>
+
+      <p class="scriptorium-note"><strong>Movements</strong></p>
+      <ul class="scriptorium-source-list">
+        ${rundown.movements.map((movement, index) => `
+          <li>
+            <strong>${escapeHtml(movement.title || `Movement ${index + 1}`)}</strong>
+            <span class="scriptorium-meta">${movement.sources.map(source =>
+              escapeHtml(source.title) + (source.words != null ? ` · ${source.words.toLocaleString()} words` : '')
+            ).join(' · ')}</span>
+          </li>
+        `).join('')}
+      </ul>
+
+      ${lane('Pace', rundown.pace,
+        'Unscored — this reads at whatever pace you have set.')}
+      ${lane('Imagery', rundown.visuals, 'None — a still ground.')}
+      ${lane('Sound', rundown.audio, 'Silence.')}
+
+      ${preview?.sources?.some(source => source.divisionsAuthored === false) ? `
+        <p class="scriptorium-note scriptorium-meta">
+          Some divisions here were measured by RISE rather than authored by the
+          book.
+        </p>` : ''}
+    `;
+  }
+
   render() {
     const preview = this.preview;
+    const rundown = this.rundown;
     const verdict = this.verdict;
     this.container.innerHTML = `
       <div class="scriptorium" role="main">
@@ -169,32 +221,24 @@ export class Scriptorium {
         </section>
 
         <section class="scriptorium-step" aria-labelledby="scriptorium-preview-title">
-          <h2 id="scriptorium-preview-title">5. Preview</h2>
-          ${preview ? `
-            <p class="scriptorium-note">Sources the score asked for (loaded only if you accept):</p>
-            <ul class="scriptorium-source-list">
-              ${preview.sources.map(source => `
-                <li>
-                  <strong>${escapeHtml(source.title)}</strong>
-                  <span class="scriptorium-meta">${escapeHtml(source.id)}${source.author ? ` · ${escapeHtml(source.author)}` : ''}${source.words != null ? ` · ${source.words.toLocaleString()} words` : ''}${source.divisionsAuthored === false ? ' · RISE-measured divisions' : (source.divisionsTitled ? '' : (source.divisionsAuthored ? ' · numbered divisions' : ''))}</span>
-                </li>
-              `).join('')}
-            </ul>
-            <p class="scriptorium-note">Tracks:</p>
-            <ul class="scriptorium-track-list">
-              ${preview.tracks.map(track => `
-                <li>${escapeHtml(track.kind)} · ${track.clipCount} clip${track.clipCount === 1 ? '' : 's'}</li>
-              `).join('')}
-            </ul>
-          ` : `
-            <p class="scriptorium-note">Preview appears after a score is accepted at the gate.</p>
+          <h2 id="scriptorium-preview-title">5. The reading</h2>
+          ${rundown ? this.renderRundown(rundown, preview) : `
+            <p class="scriptorium-note">This appears after a score is accepted at the gate.</p>
           `}
         </section>
 
         <section class="scriptorium-step" aria-labelledby="scriptorium-accept-title">
-          <h2 id="scriptorium-accept-title">6. Accept</h2>
-          <p class="scriptorium-note">Loads chosen Library works, saves a proposed Vault draft, opens the Workshop.</p>
-          <button type="button" class="btn-primary" data-action="accept" ${this.program ? '' : 'disabled'}>Accept into Vault</button>
+          <h2 id="scriptorium-accept-title">6. Begin</h2>
+          <p class="scriptorium-note">
+            The score is complete as it stands. Reading it loads the works it
+            names; keeping it saves a Vault draft you can return to. Neither
+            passes through the Workshop, which is for readings you compose
+            yourself.
+          </p>
+          <div class="scriptorium-actions">
+            <button type="button" class="btn-primary" data-action="begin" ${this.program ? '' : 'disabled'}>Begin reading</button>
+            <button type="button" class="btn-secondary" data-action="keep" ${this.program ? '' : 'disabled'}>Keep in the Vault</button>
+          </div>
         </section>
 
         ${this.status ? `<p class="scriptorium-status" role="status">${escapeHtml(this.status)}</p>` : ''}
@@ -277,8 +321,11 @@ export class Scriptorium {
         this.render();
       });
 
-    this.container.querySelector('[data-action="accept"]')
-      ?.addEventListener('click', () => { void this.accept(); });
+    this.container.querySelector('[data-action="begin"]')
+      ?.addEventListener('click', () => { void this.begin(); });
+
+    this.container.querySelector('[data-action="keep"]')
+      ?.addEventListener('click', () => { void this.keep(); });
   }
 
   examine() {
@@ -295,11 +342,13 @@ export class Scriptorium {
       const program = parseExperienceProgramJson(text, { context: this.context });
       this.program = program;
       this.preview = previewProgramChoices(program, this.context);
+      this.rundown = describeProgramRundown(program, this.context);
       this.verdict = { ok: true, text: null };
-      this.status = 'Score accepted at the gate. Review the preview, then accept.';
+      this.status = 'Score accepted at the gate. Read what it does, then begin.';
     } catch (error) {
       this.program = null;
       this.preview = null;
+      this.rundown = null;
       const textOut = describeImportFailure(error, { context: this.context });
       this.verdict = { ok: false, text: textOut };
       this.status = (error instanceof ExperienceProgramValidationError
@@ -310,7 +359,8 @@ export class Scriptorium {
     this.render();
   }
 
-  async accept() {
+  /** Load the works the score names and build the project it compiles from. */
+  async resolveProject() {
     if (!this.program) return;
     this.status = 'Loading chosen works…';
     this.render();
@@ -329,7 +379,7 @@ export class Scriptorium {
 
       assertResolvedProgramQuotations(this.program, sources);
 
-      const project = workshopProjectFromImportedProgram({
+      return workshopProjectFromImportedProgram({
         program: this.program,
         context: this.context,
         sources,
@@ -339,15 +389,6 @@ export class Scriptorium {
         id: `scriptorium-${Date.now()}`,
         provenance: { kind: 'live-curator-import', room: 'scriptorium' }
       });
-
-      const saved = await MemoryCore.saveWorkshopBlueprintAsync(project);
-      if (!saved?.id) {
-        this.status = 'Could not save the Vault draft.';
-        this.render();
-        return;
-      }
-      this.status = 'Saved as a proposed Vault draft.';
-      this.onNavigate('workshop', { blueprintId: saved.id });
     } catch (error) {
       this.verdict = {
         ok: false,
@@ -357,8 +398,42 @@ export class Scriptorium {
         || error instanceof ExperienceProgramIoError
         || error instanceof SourceSpanResolutionError)
         ? 'Refused.'
-        : (error.message || 'Accept refused.');
+        : (error.message || 'Refused.');
       this.render();
+      return null;
     }
+  }
+
+  /**
+   * Read it now. The score carries its own imagery, sound and pace, so there
+   * is nothing left to configure — which is the room's whole argument for not
+   * routing through the Workshop.
+   *
+   * A project rather than a bare config because that is what carries the
+   * canonical program through to the compiler, and `handleCreateSession`
+   * already accepts either.
+   */
+  async begin() {
+    const project = await this.resolveProject();
+    if (!project) return;
+    if (!this.onCreateSession) {
+      this.status = 'This room cannot start a reading here.';
+      this.render();
+      return;
+    }
+    this.status = 'Opening the reading…';
+    this.render();
+    await this.onCreateSession(project);
+  }
+
+  /** Keep it without reading it, and stay in the room. */
+  async keep() {
+    const project = await this.resolveProject();
+    if (!project) return;
+    const saved = await MemoryCore.saveWorkshopBlueprintAsync(project);
+    this.status = saved?.id
+      ? 'Kept in the Vault. It opens from there whenever you want it.'
+      : 'Could not save the Vault draft.';
+    this.render();
   }
 }

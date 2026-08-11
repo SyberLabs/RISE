@@ -319,8 +319,53 @@ narrative stretch. Three properties matter to this room:
   refused. The export prompt states this.
 
 **Blocked on nothing.** The format, the gate, the catalogue, the correction
-path and the reading lane all ship. What remains is §11 — running the loop
-by hand against a real model.
+path and the reading lane all ship. §11 ran twice on 2026-08-11 against a real
+model: the first run found a contradiction in the export prompt, the second
+produced a score that passes the gate and reads — 237 words at 120 wpm in
+phrases, with imagery over three progress spans. The room now reads its own
+scores (§10b), so the Workshop's duplicate curator buttons can come out.
+
+### 10b. The room does not hand off to the Workshop ✦ *(2026-08-11)*
+
+**Ruled: an accepted score is read from here.** Accept used to save a Vault
+draft and then navigate to the Workshop. That was the wrong end for the
+reason §1 gives: the room exists so that a reading can be had *without*
+manual configuration, and delivering the reader into the configuration
+surface undoes the argument.
+
+**What the attempt to keep the Workshop in the path revealed.** Two gaps were
+reported and both are the same fault:
+
+- The Workshop's reading controls showed 320 wpm / word for a score that
+  scored 120 wpm / phrase, because import derives `defaults.reading` from the
+  project and never from the program.
+- The Workshop painted no highlights at all for an imported score.
+  `visualAssignmentsFromProgram` and `audioAssignmentsFromProgram` both open
+  `if (clip.anchor.fromCharacter === undefined) return []`, and the export
+  prompt teaches models to prefer **progress** anchors. Measured on a real
+  curator score: **3 visual clips → 0 assignments, 1 audio clip → 0.**
+
+**Those are not bugs to fix, they are the seam.** The Workshop is a
+character-space editor for readings a person composes by hand; a curator score
+is progress-space and arrives finished. Teaching the Workshop to read one
+would mean converting progress anchors to character spans on open — an
+approximate conversion promoted into an authored one — to enable editing
+nobody asked for.
+
+**So the room accounts for itself instead.** `program-rundown.js` says what a
+score will do in a reader's words: length, movements, pace, imagery and sound,
+each with the span it covers stated **in the coordinate its author used** — a
+progress range as a proportion, a quotation by its own words, neither
+converted into the other. Step 6 offers *Begin reading* and *Keep in the
+Vault*, and neither passes through the Workshop.
+
+**What is deliberately given up.** An accepted score cannot be hand-edited.
+That is the trade, and it is the right one: a score that needs editing should
+be refused or re-asked for, not repaired in a surface that speaks a different
+coordinate system. The Vault draft remains, so a reader who genuinely wants to
+take it apart can still open it there.
+
+---
 
 ### 10a. Length — the reader's one dial ✦ *(2026-08-11)*
 

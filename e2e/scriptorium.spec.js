@@ -87,3 +87,46 @@ test('the last step is reachable', async ({ page }) => {
     await last.scrollIntoViewIfNeeded();
     await expect(last).toBeInViewport();
 });
+
+const SCORE = JSON.stringify({
+    schema: 'rise.experience-program.v1',
+    id: 'self-transformation-great-work',
+    authority: 'proposed',
+    editable: true,
+    tracks: [
+        { id: 'movements', kind: 'movement', clips: [{ id: 'm1',
+            anchor: { sourceIds: ['sacred-emerald-tablet'] },
+            data: { index: 0, title: 'The Great Work' } }] },
+        { id: 'visuals', kind: 'visual', fallback: { kind: 'still' }, clips: [
+            { id: 'v1', cue: { kind: 'procedural', collections: ['rockgarden'] },
+              anchor: { sourceIds: ['sacred-emerald-tablet'], fromProgress: 0, toProgress: 0.3 } },
+            { id: 'v2', cue: { kind: 'procedural', collections: ['turrell'] },
+              anchor: { sourceIds: ['sacred-emerald-tablet'], fromProgress: 0.3, toProgress: 1 } }
+        ] },
+        { id: 'pace', kind: 'reading', clips: [{ id: 'p1',
+            cue: { kind: 'pace', wpm: 120, chunkMode: 'phrase' },
+            anchor: { sourceIds: ['sacred-emerald-tablet'] } }] }
+    ]
+});
+
+test('the room accounts for a score and reads it without the Workshop', async ({ page }) => {
+    test.setTimeout(120_000);
+    await openRoom(page, 1280, 800);
+
+    await page.locator('#scriptorium-paste').fill(SCORE);
+    await page.getByRole('button', { name: 'Examine' }).click();
+
+    // The rundown states what the Workshop could not: the pace, and imagery
+    // bound by progress rather than by character offsets.
+    const reading = page.getByRole('region', { name: 'The reading' });
+    await expect(reading).toContainText('The Great Work');
+    await expect(reading).toContainText('237 words');
+    await expect(reading).toContainText('120 words a minute, in phrases');
+    await expect(reading).toContainText('the first 30%');
+    await expect(reading).toContainText('the last 70%');
+
+    await page.getByRole('button', { name: 'Begin reading' }).click();
+    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 60_000 });
+    // Straight into the reading — the Workshop is never entered.
+    await expect(page.locator('.workshop-studio')).toHaveCount(0);
+});

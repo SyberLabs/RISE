@@ -851,7 +851,10 @@ class App {
             container: document.getElementById('view-scriptorium'),
             init: async (container) => {
                 const { Scriptorium } = await import('./components/Scriptorium.js');
-                const room = new Scriptorium(container, { onNavigate: this.handleNavigate });
+                const room = new Scriptorium(container, {
+                    onNavigate: this.handleNavigate,
+                    onCreateSession: this.handleCreateSession
+                });
                 room.mount();
                 return room;
             }
