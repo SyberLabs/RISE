@@ -264,7 +264,62 @@ export function assertProgramWithinContext(program, contextValue) {
         { swellId: id });
     }
   }
+  assertProgramWithinBudget(program, context);
   return true;
+}
+
+/**
+ * A reading is as long as the sources its MOVEMENTS name.
+ *
+ * Exactly, not approximately: a movement anchor carries only `sourceIds` —
+ * `validateAnchor` gives it no range — so a movement reads its sources whole.
+ * Visual, audio and reading clips bind inside territory the movements already
+ * own and add no words of their own.
+ *
+ * A source whose length is unknown makes the budget unprovable, and inability
+ * to prove is not proof: refuse, rather than admit an unmeasured work.
+ */
+function assertProgramWithinBudget(program, context) {
+  const budget = context.constraints?.targetWords;
+  if (!budget) return;
+
+  const wordsById = new Map();
+  for (const item of [...(context.sources || []), ...(context.library || [])]) {
+    if (Number.isInteger(item.words)) wordsById.set(item.id, item.words);
+  }
+
+  const named = [];
+  for (const track of program.tracks || []) {
+    if (track.kind !== 'movement') continue;
+    for (const clip of track.clips || []) {
+      for (const sourceId of clip.anchor?.sourceIds || []) {
+        if (!named.some(entry => entry.sourceId === sourceId)) {
+          named.push({ sourceId, words: wordsById.get(sourceId) });
+        }
+      }
+    }
+  }
+
+  const unmeasured = named.filter(entry => entry.words === undefined);
+  if (unmeasured.length) {
+    fail('PROGRAM_IO_BUDGET_UNMEASURED',
+      `Cannot measure this score against the ${budget}-word budget: `
+      + `${unmeasured.map(entry => entry.sourceId).join(', ')} declares no word count`,
+      '$.tracks',
+      { budget, sourceIds: unmeasured.map(entry => entry.sourceId) });
+  }
+
+  const total = named.reduce((sum, entry) => sum + entry.words, 0);
+  if (total > budget) {
+    fail('PROGRAM_IO_BUDGET_EXCEEDED',
+      `This score reads ${total.toLocaleString()} words against a budget of ${budget.toLocaleString()}`,
+      '$.tracks',
+      {
+        budget,
+        total,
+        sources: [...named].sort((left, right) => right.words - left.words)
+      });
+  }
 }
 
 /**
@@ -433,6 +488,31 @@ export function describeImportFailure(error, { context = null } = {}) {
       lines.push(
         'A quotation anchor could not be located in the edition.',
         'Check the wording, or use a progress range instead.'
+      );
+      break;
+    case 'PROGRAM_IO_BUDGET_EXCEEDED': {
+      lines.push(
+        `This score reads ${Number(details.total).toLocaleString()} words. `
+        + `You asked for ${Number(details.budget).toLocaleString()}.`,
+        '',
+        'Its movements name:'
+      );
+      for (const entry of (details.sources || []).slice(0, 8)) {
+        lines.push(`  ${entry.sourceId} — ${Number(entry.words).toLocaleString()} words`);
+      }
+      lines.push(
+        '',
+        'A movement reads its source whole, so the only ways down are to name '
+        + 'fewer works, name shorter ones, or raise the length before exporting again.'
+      );
+      break;
+    }
+    case 'PROGRAM_IO_BUDGET_UNMEASURED':
+      lines.push(
+        `${error.message}.`,
+        'A score is measured against the budget by adding up the sources its '
+        + 'movements name, so one source of unknown length makes the total '
+        + 'unknowable. Export the context again so every source carries its word count.'
       );
       break;
     case 'PROGRAM_READING_CHUNK_ANCHOR':

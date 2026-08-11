@@ -12,6 +12,7 @@ import {
   serializeCuratorContext
 } from '../core/curator-context.js';
 import { buildCuratorPrompt } from '../core/curator-prompt.js';
+import { READING_LIMITS } from '../core/reading-limits.js';
 import {
   describeImportFailure,
   downloadJsonFile,
@@ -38,11 +39,40 @@ async function copyText(text) {
   return false;
 }
 
+const DEFAULT_TARGET_WORDS = 20_000;
+const TARGET_WORDS_MIN = 1_000;
+const TARGET_WORDS_STEP = 1_000;
+
+/**
+ * Minutes are shown and words are sent.
+ *
+ * A model can add words up from the library it was handed; it cannot turn
+ * minutes back into words without a pace and a chunk mode. And a program can
+ * score its own pace now, so the minutes below are what this length comes to
+ * at the reader's CURRENT setting — a reading that slows itself will run
+ * longer, which is the score doing its job rather than the estimate failing.
+ */
+function clampTargetWords(value) {
+  const parsed = Math.round(Number(value));
+  if (!Number.isFinite(parsed)) return DEFAULT_TARGET_WORDS;
+  return Math.max(TARGET_WORDS_MIN, Math.min(READING_LIMITS.maxAtoms, parsed));
+}
+
+function describeLength(words) {
+  const wpm = Number(globalThis.rise?.settings?.wpm) || 320;
+  const minutes = Math.round(words / wpm);
+  const clock = minutes >= 60
+    ? `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`
+    : `${minutes} min`;
+  return `${words.toLocaleString()} words — about ${clock} at ${wpm} wpm`;
+}
+
 export class Scriptorium {
   constructor(container, options = {}) {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => {});
     this.intent = '';
+    this.targetWords = DEFAULT_TARGET_WORDS;
     this.context = null;
     this.promptText = '';
     this.pasted = '';
@@ -61,7 +91,8 @@ export class Scriptorium {
     this.context = exportCuratorContext({
       id: `scriptorium-${Date.now()}`,
       sources: [],
-      includeLibrary: true
+      includeLibrary: true,
+      constraints: { targetWords: this.targetWords }
     });
     this.promptText = buildCuratorPrompt({
       intent: this.intent,
@@ -78,10 +109,10 @@ export class Scriptorium {
           <button type="button" class="scriptorium-back" data-action="back">← Portal</button>
           <h1>The Scriptorium</h1>
           <p class="scriptorium-sub">
-            You state an intent. A hand outside the building writes a score.
-            RISE examines it before admitting it. This room is a
-            <em>decorator</em> today — imagery and sound over a reading whose
-            pace you still set.
+            You state an intent and a length. A hand outside the building writes
+            a score. RISE examines it before admitting it. A score may arrange
+            imagery and sound, and may set the reading's own pace — though what
+            it sets is a default, and your controls stay above it.
           </p>
         </header>
 
@@ -90,6 +121,17 @@ export class Scriptorium {
           <label class="scriptorium-label" for="scriptorium-intent">What should the reading be about?</label>
           <textarea id="scriptorium-intent" class="scriptorium-intent" rows="3"
             placeholder="A sequence about memory and loss.">${escapeHtml(this.intent)}</textarea>
+
+          <label class="scriptorium-label" for="scriptorium-length">How long should it be?</label>
+          <input id="scriptorium-length" class="scriptorium-length" type="range"
+            min="${TARGET_WORDS_MIN}" max="${READING_LIMITS.maxAtoms}" step="${TARGET_WORDS_STEP}"
+            value="${this.targetWords}"
+            aria-describedby="scriptorium-length-readout">
+          <p class="scriptorium-note" id="scriptorium-length-readout">${escapeHtml(describeLength(this.targetWords))}</p>
+          <p class="scriptorium-note">
+            A movement reads its source whole, so this is the sum of the works the
+            score names. A score longer than this is refused, not trimmed.
+          </p>
         </section>
 
         <section class="scriptorium-step" aria-labelledby="scriptorium-take-title">
@@ -168,6 +210,15 @@ export class Scriptorium {
     this.container.querySelector('#scriptorium-intent')
       ?.addEventListener('input', (event) => {
         this.intent = event.target.value.slice(0, 2000);
+      });
+
+    this.container.querySelector('#scriptorium-length')
+      ?.addEventListener('input', (event) => {
+        this.targetWords = clampTargetWords(event.target.value);
+        // The readout alone, not a re-render: this room rebuilds its whole
+        // DOM, which would take the slider's focus away mid-drag.
+        const readout = this.container.querySelector('#scriptorium-length-readout');
+        if (readout) readout.textContent = describeLength(this.targetWords);
       });
 
     this.container.querySelector('[data-action="prepare-take"]')

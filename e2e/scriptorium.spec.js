@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 
 /**
  * The Scriptorium is six numbered steps tall and must scroll.
@@ -42,6 +43,41 @@ for (const [label, w, h] of [['a phone', 390, 844], ['a desktop', 1280, 800]]) {
         expect(scrolled, 'the room refused to scroll').toBeGreaterThan(0);
     });
 }
+
+async function readDownload(page, action) {
+    const [download] = await Promise.all([
+        page.waitForEvent('download'),
+        page.locator(`[data-action="${action}"]`).click()
+    ]);
+    return readFileSync(await download.path(), 'utf8');
+}
+
+test('the length control reaches the exported prompt and context', async ({ page }) => {
+    await openRoom(page, 1280, 800);
+    const slider = page.locator('#scriptorium-length');
+    await expect(slider).toBeVisible();
+
+    // Words are what travels; minutes are shown because that is what a reader
+    // thinks in. Both must move together or the readout is decoration.
+    const before = await page.locator('#scriptorium-length-readout').textContent();
+    await slider.fill('6000');
+    const after = await page.locator('#scriptorium-length-readout').textContent();
+    expect(after).not.toBe(before);
+    expect(after).toContain('6,000 words');
+    expect(after).toMatch(/about .+ at \d+ wpm/);
+
+    await page.locator('[data-action="prepare-take"]').click();
+
+    const promptText = await readDownload(page, 'download-prompt');
+    expect(promptText).toContain('6,000 words');
+    expect(promptText).toContain('HARD LIMIT');
+
+    const context = JSON.parse(await readDownload(page, 'download-context'));
+    expect(context.constraints.targetWords).toBe(6000);
+    // Minutes are a view, never the stored value — a scored pace would make
+    // them a function of the score.
+    expect(context.constraints).not.toHaveProperty('targetMinutes');
+});
 
 test('the last step is reachable', async ({ page }) => {
     // The verdict and everything after it live past the fold on a phone.

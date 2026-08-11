@@ -12,6 +12,32 @@ import { EXPERIENCE_PROGRAM_SCHEMA } from './experience-program.js';
 const MAX_INTENT = 2_000;
 
 /**
+ * A budget the reader set is a refusal, not advice, so it is stated as one.
+ * Without it the ceiling is the compiler's and the only honest guidance is
+ * approximate.
+ */
+function lengthLines(ctx) {
+  const budget = ctx?.constraints?.targetWords;
+  if (!budget) {
+    return [
+      'LENGTH — the reading has a hard ceiling of 120,000 atoms, and in word',
+      'chunking one word is one atom. Every library entry carries a `words`',
+      'count: keep the sum across the sources you name under about 100,000,',
+      'or the session will refuse to compile. Prefer a few works, or name',
+      'fewer movements, rather than a long list of whole books.'
+    ];
+  }
+  return [
+    `LENGTH — the reader asked for about ${budget.toLocaleString()} words, and this is a`,
+    'HARD LIMIT: a score over it is refused, not trimmed.',
+    'A movement reads its source WHOLE — there is no way to take part of a',
+    'work — so the length of your score is exactly the sum of `words` over',
+    'the sources your movement clips name. Add them up before you answer.',
+    'Prefer fewer works, or shorter ones, over a long list of whole books.'
+  ];
+}
+
+/**
  * @param {object} options
  * @param {string} [options.intent] reader wish
  * @param {object} [options.context] validated or raw curator context
@@ -117,11 +143,7 @@ export function buildCuratorPrompt({ intent = '', context = null } = {}) {
     '3. Character / token spans with quotes — Workshop authoring only;',
     '   you have not been given the bytes, so do not use these.',
     '',
-    'LENGTH — the reading has a hard ceiling of 120,000 atoms, and in word',
-    'chunking one word is one atom. Every library entry carries a `words`',
-    'count: keep the sum across the sources you name under about 100,000,',
-    'or the session will refuse to compile. Prefer a few works, or name',
-    'fewer movements, rather than a long list of whole books.',
+    ...lengthLines(ctx),
     '',
     'Proportional thinking: if you would assign weights (e.g. 1:2:1),',
     'emit contiguous progress ranges that sum to 1 instead',

@@ -12,6 +12,8 @@ import { WORK_ENGINE_MANIFEST, workEngineFamilies } from '../visuals/work-engine
 import { PROCEDURAL_PATTERNS, PROCEDURAL_PATTERN_IDS } from './visual-registry.js';
 import { WORKSHOP_AUDIO_ASSETS } from './workshop-audio.js';
 import { EXPERIENCE_PROGRAM_LIMITS } from './experience-program.js';
+import { READING_LIMITS } from './reading-limits.js';
+import { countWords } from './chunker.js';
 import { INGESTED_META } from '../content/archive/index.js';
 import DIVISION_INDEX from '../content/archive/division-index.json';
 
@@ -138,10 +140,20 @@ function deepFreeze(value) {
 
 function normalizeSource(value, path) {
   const source = record(value, path);
-  onlyKeys(source, new Set(['id', 'title', 'characterLength']), path);
+  onlyKeys(source, new Set(['id', 'title', 'characterLength', 'words']), path);
   const out = { id: exactId(source.id, `${path}.id`) };
   const title = optionalTitle(source.title, `${path}.title`);
   if (title != null) out.title = title;
+  // The unit the length budget is measured in. Library entries have always
+  // carried it; a loaded source carried only characters, and converting one
+  // to the other would need a ratio nobody can defend.
+  if (source.words != null) {
+    if (!Number.isInteger(source.words) || source.words < 0) {
+      fail('CURATOR_CONTEXT_SOURCE_WORDS',
+        'Expected a non-negative whole number of words', `${path}.words`);
+    }
+    out.words = source.words;
+  }
   if (source.characterLength != null) {
     if (!Number.isInteger(source.characterLength) || source.characterLength < 0
       || source.characterLength > EXPERIENCE_PROGRAM_LIMITS.maxSourceCharacters) {
@@ -193,15 +205,34 @@ function normalizeAudio(value, path) {
   };
 }
 
+/**
+ * How long the reader wants the reading to be, in WORDS.
+ *
+ * Words rather than minutes, for two reasons that outlived the field this
+ * replaces. A word count is something a model can add up from the library it
+ * was handed, where minutes would need a pace and a chunk mode it has not
+ * been given. And since a program can now score its own pace, minutes are a
+ * function of the score — so a minute budget could not be checked until after
+ * the thing being budgeted had already been composed.
+ */
+function targetWordsConstraint(value, path) {
+  if (value == null) return undefined;
+  if (!Number.isInteger(value) || value < 1 || value > READING_LIMITS.maxAtoms) {
+    fail('CURATOR_CONTEXT_TARGET_WORDS',
+      `Expected a whole number of words from 1 to ${READING_LIMITS.maxAtoms}`, path);
+  }
+  return value;
+}
+
 function normalizeConstraints(value, path) {
   if (value == null) return undefined;
   const constraints = record(value, path);
-  onlyKeys(constraints, new Set(['targetMinutes', 'maxMovements', 'maxVisualClips']), path);
+  onlyKeys(constraints, new Set(['targetWords', 'maxMovements', 'maxVisualClips']), path);
   const out = {};
-  const targetMinutes = optionalConstraint(constraints.targetMinutes, `${path}.targetMinutes`);
+  const targetWords = targetWordsConstraint(constraints.targetWords, `${path}.targetWords`);
   const maxMovements = optionalConstraint(constraints.maxMovements, `${path}.maxMovements`);
   const maxVisualClips = optionalConstraint(constraints.maxVisualClips, `${path}.maxVisualClips`);
-  if (targetMinutes !== undefined) out.targetMinutes = targetMinutes;
+  if (targetWords !== undefined) out.targetWords = targetWords;
   if (maxMovements !== undefined) out.maxMovements = maxMovements;
   if (maxVisualClips !== undefined) out.maxVisualClips = maxVisualClips;
   return out;
@@ -432,7 +463,10 @@ export function exportCuratorContext(surface = {}) {
             ? source.title.slice(0, CURATOR_CONTEXT_LIMITS.maxTitleLength)
             : undefined)
       };
-      if (text) entry.characterLength = text.length;
+      if (text) {
+        entry.characterLength = text.length;
+        entry.words = countWords(text);
+      }
       return entry;
     });
 

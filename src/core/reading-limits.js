@@ -14,6 +14,12 @@ export const READING_LIMITS = Object.freeze({
   maxTotalChars: 2_000_000,
   maxSources: 64,
   maxSequenceAssets: 24,
+
+  /**
+   * In word chunking one word is one atom, so this is also the ceiling on a
+   * curator's word budget: a budget above it is one no session can honour.
+   */
+  maxAtoms: 120_000,
   maxImageFileBytes: 8 * 1024 * 1024,
 
   /**

@@ -322,6 +322,46 @@ narrative stretch. Three properties matter to this room:
 path and the reading lane all ship. What remains is §11 — running the loop
 by hand against a real model.
 
+### 10a. Length — the reader's one dial ✦ *(2026-08-11)*
+
+The room's second control, beside intent: **how long the reading should be,
+in words.** It travels as `constraints.targetWords` and is a **hard limit** —
+a score over it is refused at the gate, not trimmed.
+
+**Words, not minutes**, and the field it replaces was `targetMinutes` — dead
+since it was written, populated by nothing, read by nothing. Three reasons it
+stays dead:
+
+- A model can add words up from the library it was handed. It cannot turn
+  minutes into words without a pace and a chunk mode it was never given.
+- The ceiling that actually refuses is `maxAtoms`, and in word chunking one
+  word is one atom. Words sit on the real limit; minutes are a proxy for it.
+- **A program can score its own pace now** (ROADMAP Phase 13). Duration is a
+  function of the score, so a minute budget could not be checked until after
+  the thing being budgeted had been composed. Words are invariant to pace.
+
+Minutes are still shown under the slider, because that is what a reader
+thinks in — derived at the reader's current wpm, never stored. Same shape as
+the reading band: the durable value is the one that survives a change of
+device or of pace.
+
+**The measurement is exact, not estimated.** A movement anchor carries only
+`sourceIds` — `validateAnchor` gives it no range — so a movement reads its
+source whole and a score's length is precisely the sum of `words` over the
+sources its movements name. Visual, audio and reading clips bind inside
+territory the movements already own and add nothing.
+
+**A source of unknown length refuses the score.** Inability to prove the
+budget is not proof of it. All 88 library works carry `words`; loaded sources
+now carry it too, counted at export rather than converted from characters —
+a characters-to-words ratio is exactly the kind of invention this boundary
+exists to refuse.
+
+**Why it is at the gate and not at Run.** It already failed at Run once: a
+score naming more than 120,000 atoms compiled, refused, and did so after the
+reader had accepted it. The refusal now names the budget, the total, and the
+works that make it up, and says the only three things that reduce it.
+
 ---
 
 ## 11. How we will know

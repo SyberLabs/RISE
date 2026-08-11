@@ -38,7 +38,7 @@ export const SESSION_LIMITS = Object.freeze({
     maxWpm: 1000,
     maxTextCharacters: READING_LIMITS.maxTextCharacters,
     maxTotalChars: READING_LIMITS.maxTotalChars,
-    maxAtoms: 120_000,
+    maxAtoms: READING_LIMITS.maxAtoms,
     maxSources: READING_LIMITS.maxSources,
     maxProvenanceString: 2_000,
     maxProvenanceKeys: 40,

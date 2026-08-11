@@ -90,6 +90,21 @@
   font-size: 0.82rem;
 }
 
+.scriptorium-length {
+  width: 100%;
+  max-width: 32rem;
+  margin: 0.15rem 0 0.5rem;
+  accent-color: var(--scriptorium-accent);
+  /* A thumb small enough to miss on a phone makes the one control in this
+     step the hardest thing in the room to use. */
+  height: 1.75rem;
+}
+
+#scriptorium-length-readout {
+  color: var(--scriptorium-ink);
+  margin-bottom: 0.35rem;
+}
+
 .scriptorium-note {
   color: var(--scriptorium-fog);
   margin: 0 0 0.75rem;
