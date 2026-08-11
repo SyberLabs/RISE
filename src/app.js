@@ -36,6 +36,7 @@ import {
     endVisualInterlocutionSession,
     requestVisualInterlocutionConsent
 } from './core/visual-safety.js';
+import { clampBandFraction } from './core/band-offset.js';
 import { normalizeVisualSelection } from './core/visual-selection.js';
 
 // Import styles
@@ -1180,6 +1181,10 @@ class App {
             photosensitivityMode: false,
             reducedMotion: false,
 
+            // Where the reading band sits, as a fraction of the travel
+            // it has inside the field. Zero is centred.
+            bandOffset: 0,
+
             // Session defaults
             defaultWpm: 220,
             defaultCurve: 'flat',
@@ -1191,6 +1196,7 @@ class App {
             const parsed = stored ? JSON.parse(stored) : {};
             const candidate = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
             const merged = { ...defaultSettings, ...candidate };
+            merged.bandOffset = clampBandFraction(merged.bandOffset);
             const fontSizes = new Set(['small', 'medium', 'large']);
             const curves = new Set(['flat', 'induction', 'ascent', 'wave', 'climax']);
             const booleanKeys = [

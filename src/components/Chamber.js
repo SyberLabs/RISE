@@ -1,3 +1,9 @@
+import {
+  bandTravelPx,
+  clampBandFraction,
+  readBandOffsetSetting,
+  writeBandOffsetSetting
+} from '../core/band-offset.js';
 import { visualCortex } from '../visuals/visual-cortex.js';
 import { parsePageCollectionId, sampleWorkEngine } from '../visuals/work-engines.js';
 import { TIME_SCALE as WORK_ENGINE_TIME_SCALE } from '../visuals/work-engine-field.js';
@@ -576,6 +582,8 @@ export class Chamber {
     // Mouse movement for hidden controls
     const display = this.container.querySelector('#chamber-display');
     display?.addEventListener('mousemove', () => this.showControls());
+
+    this.attachBandMove();
 
     // Player events
     if (this.player) {
@@ -1889,6 +1897,121 @@ export class Chamber {
     }
   }
 
+  /**
+   * The reading band can be moved out of the picture's way.
+   *
+   * On a phone the text sits over the centre of the screen, which is
+   * exactly where a visualiser puts its subject; the two contend for the
+   * same pixels and the text wins because it must. This lets a reader
+   * say where the words should sit instead.
+   *
+   * IT IS A PREFERENCE, NOT A PROPERTY OF THE READING. No content domain
+   * authors a band position — the Experience Program has no field for
+   * one — so there is nothing here for a reader's choice to overrule.
+   * When a domain wants to place its own band, that precedence gets
+   * decided with a real case in hand rather than in advance.
+   *
+   * SELECT, THEN MOVE. A press that lands on the text selects it and
+   * shows a frame; only a selected band follows the pointer. The reading
+   * surface takes no other input — its one listener reveals the control
+   * bar on mousemove — so there is no tap to disambiguate a drag from,
+   * but a reader should still not shift the words by brushing them.
+   */
+  attachBandMove() {
+    const field = this.container.querySelector('#chamber-field');
+    const band = this.container.querySelector('#atom-display');
+    if (!field || !band) return;
+
+    this._bandOffsetFraction = readBandOffsetSetting();
+    this.applyBandOffset();
+
+    const DRAG_THRESHOLD_PX = 4;
+    let pointerId = null;
+    let startY = 0;
+    let startFraction = 0;
+    let moved = false;
+
+    const selected = () => band.classList.contains('is-band-movable');
+
+    const onDown = (event) => {
+      if (event.button != null && event.button !== 0) return;
+      if (!selected()) {
+        // First press selects and shows the frame; it does not move.
+        this.setBandMovable(true);
+        return;
+      }
+      pointerId = event.pointerId;
+      startY = event.clientY;
+      startFraction = this._bandOffsetFraction;
+      moved = false;
+      band.classList.add('is-band-moving');
+      band.setPointerCapture?.(pointerId);
+    };
+
+    const onMove = (event) => {
+      if (pointerId === null || event.pointerId !== pointerId) return;
+      const travel = bandTravelPx(field, band);
+      if (travel <= 0) return;
+      const delta = event.clientY - startY;
+      if (!moved && Math.abs(delta) < DRAG_THRESHOLD_PX) return;
+      moved = true;
+      // The pointer moves in px; the setting is a fraction of the travel
+      // available, so a phone and a monitor keep the same intent.
+      this._bandOffsetFraction = clampBandFraction(startFraction + delta / travel);
+      this.applyBandOffset();
+      event.preventDefault();
+    };
+
+    const onUp = (event) => {
+      if (pointerId === null || event.pointerId !== pointerId) return;
+      band.releasePointerCapture?.(pointerId);
+      pointerId = null;
+      band.classList.remove('is-band-moving');
+      if (moved) writeBandOffsetSetting(this._bandOffsetFraction);
+    };
+
+    // Pressing away from the band puts it down again.
+    const onDismiss = (event) => {
+      if (!selected() || band.contains(event.target)) return;
+      this.setBandMovable(false);
+    };
+    const onKey = (event) => {
+      if (event.key === 'Escape' && selected()) this.setBandMovable(false);
+    };
+
+    band.addEventListener('pointerdown', onDown);
+    band.addEventListener('pointermove', onMove);
+    band.addEventListener('pointerup', onUp);
+    band.addEventListener('pointercancel', onUp);
+    this.container.addEventListener('pointerdown', onDismiss, true);
+    document.addEventListener('keydown', onKey);
+
+    this._bandMoveCleanup = () => {
+      this.container.removeEventListener('pointerdown', onDismiss, true);
+      document.removeEventListener('keydown', onKey);
+    };
+
+    // Recomputed on resize: the fraction is stable, the pixels are not.
+    this._bandResize = () => this.applyBandOffset();
+    window.addEventListener('resize', this._bandResize);
+  }
+
+  setBandMovable(on) {
+    const band = this.container.querySelector('#atom-display');
+    if (!band) return;
+    band.classList.toggle('is-band-movable', !!on);
+    if (!on) band.classList.remove('is-band-moving');
+  }
+
+  applyBandOffset() {
+    const field = this.container.querySelector('#chamber-field');
+    const band = this.container.querySelector('#atom-display');
+    if (!field || !band) return;
+    const travel = bandTravelPx(field, band);
+    const px = clampBandFraction(this._bandOffsetFraction ?? 0) * travel;
+    field.style.setProperty('--band-offset', `${Math.round(px)}px`);
+  }
+
   showControls() {
     const controls = this.container.querySelector('#chamber-controls');
     if (!controls) return;
@@ -2236,6 +2359,12 @@ export class Chamber {
   }
 
   destroy() {
+    this._bandMoveCleanup?.();
+    this._bandMoveCleanup = null;
+    if (this._bandResize) {
+      window.removeEventListener('resize', this._bandResize);
+      this._bandResize = null;
+    }
     this.deactivate();
     // A reveal in flight would otherwise fire into a torn-down DOM.
     this.cancelReveal();

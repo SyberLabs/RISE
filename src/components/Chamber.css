@@ -121,6 +121,30 @@
   max-width: 80%;
   line-height: 1.4;
   transition: opacity 150ms var(--ease-out);
+
+  /* THE BAND MOVES BY TRANSFORM, NOT BY LAYOUT. The field centres its
+     child with flexbox; a reader who wants the picture uncovered shifts
+     that child rather than re-flowing the field, so nothing below the
+     band (control bar, page host) is disturbed. `--band-offset` is set
+     in px by the Chamber, which is the only place the field's height is
+     known. */
+  transform: translateY(var(--band-offset, 0px));
+}
+
+/* Selected for moving. An outline rather than a border so the frame
+   costs no layout and cannot shift the text it is drawn around. */
+.atom-display.is-band-movable {
+  outline: 2px solid rgba(122, 178, 255, 0.55);
+  outline-offset: 14px;
+  border-radius: 4px;
+  cursor: grab;
+}
+
+.atom-display.is-band-moving {
+  cursor: grabbing;
+  /* No easing while a finger is on it: the band must track the pointer,
+     not chase it. */
+  transition: none;
 }
 
 /* ── Recitation (RECITATION-SPEC) ──────────────────────────────
@@ -1105,6 +1129,14 @@
     display: block;
     width: 100%;
 
+    /* ON A PHONE THE BAND IS THE BOX THAT MOVES. Elsewhere it is
+       `display: contents` and cannot be transformed at all, so the
+       offset lives on the display; here the glass is on the band, and
+       moving the text out of its own tile would be worse than not
+       moving it. The inner transform is cancelled just below so the
+       two do not compound. */
+    transform: translateY(var(--band-offset, 0px));
+
     /* backdrop-filter creates a stacking context; without z-index the
        band sits under field imagery and gallery paint covers the text. */
     position: relative;
@@ -1118,6 +1150,11 @@
     backdrop-filter: blur(12px) saturate(1.1);
     -webkit-backdrop-filter: blur(12px) saturate(1.1);
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.34);
+  }
+
+  .chamber-field-stream .atom-band:has(.atom-display.glass-tile) .atom-display,
+  .chamber-field-genesis .atom-band:has(.atom-display.glass-tile) .atom-display {
+    transform: none;
   }
 
   /* The reading keeps the band's padding and loses the band's skin —
