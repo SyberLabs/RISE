@@ -666,3 +666,72 @@ everywhere has stopped asking a question.* Instead commit the measured
 inventory above and assert the corpus still matches it, the same shape as
 `division-index.json`: a new symbol in a future ingest fails loudly, and no
 judgement about beauty is encoded anywhere.
+
+---
+
+## 2f. Chapters that are contents pages — 2026-08-11
+
+**Reported from reading:** *"Chapter II of A Hundred and Seventy Chinese Poems
+is no more than a table of contents, which starts with the text 'Chapter II'
+but contains no text."* Exactly right, and it is three divisions, not one.
+
+### The work, measured
+
+`a-hundred-and-seventy-chinese-poems` serves 17 divisions. The first four are
+front matter, and three of those are contents blocks wearing chapter names:
+
+| row | name | words | what it is |
+|---|---|---|---|
+| 0 | Front matter | 212 | front matter |
+| 1 | **Chapter I** | **106** | contents — 26 of 27 lines are `title … page` |
+| 2 | **Chapter II** | **81** | contents — 17 of 19 lines |
+| 3 | **Chapter IV** | **95** | contents — 21 of 24 lines |
+| 9 | Chapter II | 2,636 | the real one |
+
+```
+CHAPTER II:
+
+      Satire on Paying Calls in August         57
+      On the Death of his Father               58
+      The Campaign against Wu                  59
+```
+
+**Two defects, and the second is the one that hides the first.**
+
+1. **282 words of contents served as three readings.** Small, and wholly
+   removable — nothing is lost, because none of it was a reading.
+2. **Every one of those names is served twice.** `Chapter I`, `Chapter II` and
+   `Chapter IV` each appear again later carrying the actual poems. This is the
+   Shahnama keying shape — 462 sections resolving to 249 distinct names — where
+   a duplicate name is the visible symptom of a division that should not exist.
+   Note also that no contents block is named `Chapter III`: the numbering comes
+   from the page being *listed*, not from what the division holds.
+
+### The detector, and its precision
+
+*A division at least five lines long, where half or more of its non-empty lines
+end in a page number after run-out spacing:*
+
+```
+/\S\s{2,}\d{1,4}(\s*[-–]\s*\d{1,4})?\s*$/
+```
+
+Swept across all 91 works: **5 divisions, 5,732 words. It is right twice and
+wrong once, and the wrong one is the largest.**
+
+| work | division | words | verdict |
+|---|---|---|---|
+| `a-hundred-and-seventy-chinese-poems` | ×3 | 282 | **contents. Confirmed.** |
+| `pride-and-prejudice` | ×1 | 1,450 | **A List of Illustrations** — `Dedication … vii`, `"He came down to see the place" … 2`. Genuine apparatus, correctly found. |
+| `strange-stories-from-a-chinese-studio` | ×1 | 4,000 | **FALSE POSITIVE — do not act.** It opens `[729] I know of few more pathetic passages throughout all the exquisite imagery of the Divine Comedy…`: Giles's endnotes, which are scholarship. |
+
+**Stated plainly because the ratio matters more than the hits:** 4,000 of the
+5,732 words this detector proposes are a translator's commentary. Run at this
+threshold and applied without review it would delete the most valuable text it
+found. It is a *reporting* instrument, not a trimming one — the same conclusion
+§2b reached about running heads, and the same one the imprint detector reached
+after being wrong three times.
+
+**Disposition.** The three Chinese-poems divisions are the Phase 10 class A
+case and are safe to withdraw on the evidence above. The other two are flagged
+for a human and nothing else. Removing text remains a decision, not a pass.
