@@ -108,3 +108,62 @@ test('touch selection opens the passage palette and assigns without a synthetic 
     await expect(page.locator('.audio-score-lane')).toBeVisible();
     await expect(page.locator('[aria-label="Visual assignments"]')).toBeVisible();
 });
+
+async function selectFirstWords(page, cdp, chars = 20) {
+    const box = await page.locator('#visual-score-text').boundingBox();
+    await cdp.send('Input.dispatchTouchEvent', {
+        type: 'touchStart', touchPoints: [{ x: box.x + 24, y: box.y + 28 }]
+    });
+    await page.evaluate((n) => {
+        const root = document.querySelector('#visual-score-text');
+        const node = document.createTreeWalker(root, NodeFilter.SHOW_TEXT).nextNode();
+        const range = document.createRange();
+        range.setStart(node, 0);
+        range.setEnd(node, Math.min(n, node.nodeValue.length));
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }, chars);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+}
+
+test('the audio lane offers a passage picker on selection, as the visual lane does', async ({ page }) => {
+    test.setTimeout(90_000);
+    await openWorkshopWithSource(page);
+    await page.getByRole('button', { name: 'Score', exact: true }).click();
+    await page.getByRole('tab', { name: 'Audio', exact: true }).click();
+
+    const cdp = await page.context().newCDPSession(page);
+    await selectFirstWords(page, cdp);
+
+    // The point: choosing what to assign is possible from the selection itself.
+    // Before this, the audio popover offered only "Browse audio", so the lane
+    // could not be scored without first visiting the Assets panel.
+    const palette = page.locator('.audio-passage-popover');
+    await expect(palette).toBeVisible({ timeout: 5_000 });
+    const picker = palette.locator('[data-passage-audio-picker]');
+    await expect(picker).toBeVisible();
+    await picker.selectOption({ index: 1 });
+    await palette.getByRole('button', { name: 'Assign audio' }).click();
+    await expect(page.locator('.audio-score-mark')).toHaveCount(1);
+});
+
+test('choosing from the passage picker does not leave the Combined view', async ({ page }) => {
+    test.setTimeout(90_000);
+    await openWorkshopWithSource(page);
+    await page.getByRole('button', { name: 'Score', exact: true }).click();
+    await page.getByRole('tab', { name: 'Combined', exact: true }).click();
+
+    const cdp = await page.context().newCDPSession(page);
+    await selectFirstWords(page, cdp);
+
+    const palette = page.locator('.studio-passage-popover');
+    await expect(palette).toBeVisible({ timeout: 5_000 });
+    await palette.locator('[data-passage-asset-picker], [data-passage-audio-picker]')
+        .first().selectOption({ index: 1 });
+
+    // Picking what to assign is not a request to change tab; it used to move
+    // the reader to Visual mid-selection.
+    await expect(page.getByRole('tab', { name: 'Combined', exact: true }))
+        .toHaveAttribute('aria-selected', 'true');
+});

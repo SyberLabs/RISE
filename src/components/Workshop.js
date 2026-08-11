@@ -695,6 +695,24 @@ export class Workshop {
       .join('')}`;
   }
 
+  /** The audio lane's counterpart to `renderPassageAssetOptions`. */
+  renderPassageAudioOptions() {
+    const assets = this.audioScoreAssets();
+    return `<option value="" ${this.selectedAudioAssetId ? '' : 'selected'} disabled>Choose passage audio</option>${assets
+      .map(asset => `<option value="${this.escapeHtml(asset.id)}"
+        ${asset.id === this.selectedAudioAssetId ? 'selected' : ''}>${this.escapeHtml(asset.name)}</option>`)
+      .join('')}`;
+  }
+
+  /** Choose what to assign without leaving the tab the reader is working in. */
+  selectPassageAudioAsset(assetId) {
+    const asset = this.audioScoreAssets().find(item => item.id === assetId);
+    if (!asset) return false;
+    this.selectedAudioAssetId = asset.id;
+    this.refreshScoreSelectionUi();
+    return true;
+  }
+
   renderScoreSelectionPopover() {
     if (this.scoreAuthoringLane() === 'audio') return this.renderAudioSelectionPopover();
     const entries = this.visualAssetEntries();
@@ -788,6 +806,11 @@ export class Workshop {
           <strong>${this.escapeHtml(active?.name || `“${excerpt}${excerpt.length === 72 ? '…' : ''}”`)}</strong>
           <small>${assignment ? `“${this.escapeHtml(excerpt)}${excerpt.length === 72 ? '…' : ''}”` : active ? `Ready for ${this.escapeHtml(active.name)}` : 'Choose passage audio'}</small></p>
       </div>
+      <label class="studio-passage-picker"><span>${assignment ? 'Replace with' : 'Passage audio'}</span>
+        <select class="input-select" data-passage-audio-picker data-focus-key="passage-audio-picker">
+          ${this.renderPassageAudioOptions()}
+        </select>
+      </label>
       <div class="studio-passage-actions">
         ${assignment ? `<button type="button" class="btn-ghost btn-compact" data-action="preview-audio-score-asset">Preview</button>
           <button type="button" class="btn-secondary btn-compact" data-action="replace-active-score-asset">Replace</button>
@@ -1692,11 +1715,16 @@ export class Workshop {
     });
   }
 
-  selectEditorAsset(assetId) {
+  /**
+   * `navigate: false` for the picker inside the passage popover. Choosing what
+   * to assign is not a request to change tab, and in the Combined view it moved
+   * the reader to Visual mid-selection.
+   */
+  selectEditorAsset(assetId, { navigate = true } = {}) {
     const entry = this.visualAssetEntries().find(item => item.asset.id === assetId);
     if (!entry) return false;
     this.selectedEditorAssetId = entry.asset.id;
-    this.scoreView = 'visual';
+    if (navigate) this.scoreView = 'visual';
     if (!entry.materialization && editorAssetSupports(entry.asset, 'span')) {
       this.selectedScoreAssetId = this.scoreAssetReference(entry);
       this.updateVisualScoreEditor();
@@ -2845,7 +2873,11 @@ export class Workshop {
     }
     this.boundVisualAssetInputHandler = (event) => {
       if (event.type === 'change' && event.target.matches('[data-passage-asset-picker]')) {
-        this.selectEditorAsset(event.target.value);
+        this.selectEditorAsset(event.target.value, { navigate: false });
+        return;
+      }
+      if (event.type === 'change' && event.target.matches('[data-passage-audio-picker]')) {
+        this.selectPassageAudioAsset(event.target.value);
         return;
       }
       if (event.target.matches('#visual-asset-search')) {
