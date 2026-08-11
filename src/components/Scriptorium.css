@@ -6,12 +6,11 @@
   --scriptorium-rule: #2a2824;
   --scriptorium-panel: #141311;
   --scriptorium-accent: #c4a574;
-  /* THE ROOM IS TALLER THAN THE VIEWPORT AND MUST SCROLL. Six numbered
-     steps run past the fold, so a verdict rendered below it was
-     unreachable — the Examine button appeared to do nothing because its
-     answer was off-screen. `height` rather than `min-height`: a box that
-     only grows cannot own a scrollbar. */
-  height: 100%;
+  /* A viewport height, not a percentage: `body` is `overflow: hidden` and
+     `.view-container` sets no height, so `height: 100%` resolves against
+     an auto-height parent and establishes no scroll context at all. `dvh`
+     rather than `vh` because iOS draws its toolbar over `100vh`. */
+  height: 100dvh;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--scriptorium-rule) transparent;

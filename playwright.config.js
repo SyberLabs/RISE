@@ -26,7 +26,10 @@ export default defineConfig({
     webServer: {
         command: 'npm run build && npx vite preview --port 4317 --strictPort',
         url: 'http://localhost:4317',
-        reuseExistingServer: true,
+        // Reusing a listener on 4317 also skips `command` — so a leftover
+        // preview server serves an old `dist` and the whole suite silently
+        // tests stale code. Refusing the port instead fails loudly.
+        reuseExistingServer: false,
         timeout: 120_000
     }
 });
