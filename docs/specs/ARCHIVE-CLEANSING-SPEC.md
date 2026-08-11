@@ -131,6 +131,7 @@ different disposition.
 | **Running heads** | a page header repeated every N paragraphs | `GUILLEMONT 101` — **decided, see §2b** |
 | **Page furniture** | bare numerals, catchwords, signature marks | `[Pg 41]`, `iv` |
 | **OCR corruption** | impossible letter runs, mojibake, broken ligatures | `tlie`, `Ã©` |
+| **Non-letter symbols** | emoji, box rules, replacement chars in the payload | `2v📄`, `Dr�ckende` — **swept, see §2e** |
 | **Wrong work entirely** | the identity fault | *(detector shipped)* |
 
 The last two rows already have machinery: `identity.test.js` proves a work names
@@ -575,3 +576,93 @@ catalogue rather than to imagery.
    would notice*, and let rung 1 report the rest without acting.
 3. **Who ratifies a `withhold`** — a model's verdict alone should not empty a
    shelf. Suggest: `withhold` and `re-source` always require a human.
+
+---
+
+## 2e. Symbols that are not letters — swept 2026-08-11
+
+**Found by a reader, from one character.** A hermetic text served
+`2v📄` mid-page: a page image in the source scan had been transcribed as
+U+1F4C4 PAGE FACING UP. The question "how many more of these are there"
+turned out to have a bounded, useful answer.
+
+**The sweep:** every codepoint above U+2100 in Unicode category `So`, `Sk`,
+`Cn` or `Co`, across all 91 work payloads. **22 distinct codepoints.** They
+sort into three dispositions and the sorting is the whole finding — a single
+"strip non-letters" pass would destroy scholarship.
+
+### A · Genuine content — do not touch
+
+| codepoint | count | works | what it is |
+|---|---|---|---|
+| U+2720 MALTESE CROSS | 1 | `ulysses` | *"Letter from His Grace. William ✠."* — the archiepiscopal cross, Joyce's own text |
+| U+23D1 / U+23D2 / U+23D3 metrical marks | 368 | `the-book-of-the-thousand-nights-and-a-night` | Burton's prosody: *"iambic dipodia (⏑ – ⏑ –)"* — scansion, not decoration |
+| U+2341 / U+2342 APL quad slash | 17 | `ross-pure-design` | *"the Sequences of the Left Mode (Sign ⍂)"* — Ross NAMES the sign; the glyph is the referent |
+
+The Ross case is the Dresser case from ROADMAP Phase 9 in miniature: the mark
+is **deictic**, and deleting it turns a definition into a sentence pointing at
+nothing.
+
+### B · Typography and apparatus — a disposition question, not damage
+
+| codepoint | count | works | what it is |
+|---|---|---|---|
+| U+2502 and five other box-drawing marks | 26,119 | `the-book-of-the-thousand-nights-and-a-night` | An edition-concordance TABLE (Galland / Perceval / Gauttier / MS) rendered in rules |
+| U+273F BLACK FLORETTE | 4,985 | same | Ornamental separators: *"PRAISE BE TO ALLAH ✿ THE BENEFICENT KING ✿"* |
+
+**26,119 rule characters are a table, and a table read aloud one atom at a
+time is noise.** This is the §2 apparatus class, not a symbol problem — it
+belongs with the Phase 10 pass that withdrew 49 divisions, and it was missed
+there because that detector reasoned about WORDS. Worth measuring which
+divisions carry it before deciding: if it is confined to front matter the
+disposition is obvious, and if it is threaded through the reading it is not.
+
+### C · Scan damage — the class the reader actually found
+
+| codepoint | count | works | what it is |
+|---|---|---|---|
+| **U+FFFD REPLACEMENT CHARACTER** | **14** | `literary-letters-young-poet` | **Every one is a destroyed German umlaut or ß** |
+| U+25A0 BLACK SQUARE | 451 | 7 works | OCR noise beside scan furniture: `Digitized by Google … ■3 ■` |
+| U+2122 TRADE MARK SIGN | 12 | 5 works | `Google™ books` — scan header that survived the Phase 10 imprint trim |
+| U+1F4C4 PAGE FACING UP | 1 | `sacred-emerald-tablet` | A page image transcribed as an emoji |
+| U+2666, U+25A1, U+25BA, U+25BC, U+274C | 12 | 5 works | Scattered OCR noise |
+
+**The Rilke letters are the serious one, and they are not cosmetic.** All 14
+sit inside German words a reader is currently served broken:
+
+```
+Dr?ckende      persönliche → pers?nliche      lebensf?hig
+da?            öffentlich  → ?ffentlich       ?bereinkommen
+gel?st         k?nnen      → bed?rfen         versch?tteten
+```
+
+`Drückende`, `persönliche`, `lebensfähig`, `daß`, `öffentlich`,
+`Übereinkommen`, `gelöst`, `können`, `bedürfen`, `verschütteten`. **Every one
+is recoverable by hand from context** — this is an editorial repair, not a
+loss.
+
+**It is the third payload-damage site recorded.** Sextus carries stripped
+Greek (`imperturbability, . We`), the Emerald Tablet carries this emoji, and
+the Rilke letters carry these. The standing note that correcting a
+checksummed payload *"is an editorial act needing a ruling, not a fix"*
+applies to all three, and they should be ruled on together rather than one at
+a time.
+
+It is also the same family as ROADMAP 12.2, where the Chain tokenizer shreds
+accented Latin — **non-ASCII Latin failing to survive a pipeline**, once on
+the way in and once on the way out.
+
+### Why nothing caught it
+
+`source-hygiene.test.js` sweeps every source file for **control** characters,
+and was written after a literal U+0008 hid inside a regex for two sessions.
+It does exactly what it says, and a printable symbol is invisible to it.
+
+**The guard that would catch the next one is an inventory, not a rule.** An
+allowlist of "permitted symbols" would need a judgement per codepoint and
+would drift toward permitting everything — the failure already named in
+ROADMAP 12.4, where *a test that recovers almost everything by looking almost
+everywhere has stopped asking a question.* Instead commit the measured
+inventory above and assert the corpus still matches it, the same shape as
+`division-index.json`: a new symbol in a future ingest fails loudly, and no
+judgement about beauty is encoded anywhere.
