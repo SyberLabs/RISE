@@ -8,10 +8,10 @@ Status: **ROOM STARTED (additive).** `rise.experience-program.v1` and
 `rise.curator-context.v1` remain canonical. Shipped: capability catalogue,
 copyable refusals (`describeImportFailure`), generated export prompt
 (separate from context.json), Library catalogue in context, quotation-only
-anchors, and the Scriptorium door beside the Curia. Workshop curator
-buttons remain until the room is proven. Still blocked on Phase 13 pacing
-for composer (vs decorator) status. Rulings by the creator are marked ✦;
-open questions ⁇.
+anchors, the Scriptorium door beside the Curia, and — 2026-08-10 — the
+reading track, which makes the room a **composer**. Workshop curator
+buttons remain until the room is proven by a hand-run loop. Rulings by the
+creator are marked ✦; open questions ⁇.
 
 ---
 
@@ -280,8 +280,8 @@ the same program. The reader never sends the text in any of them.
 
 Finer binding is real progress and it does not change the room's kind. A model
 placing imagery at a tenth's granularity is still arranging pictures over a
-reading whose pace it cannot touch. §10 remains the thing that decides whether
-this is a composer or a decorator.
+reading whose pace it cannot touch. What changed the room's kind was §10 —
+the reading lane — not the granularity of the visual one.
 
 ---
 
@@ -302,15 +302,25 @@ this is a composer or a decorator.
 
 ## 10. Blocked on, and blocking
 
-**Blocked on Phase 13 (pacing).** `experience-program.js` contains no `wpm`,
-no `chunkMode`, no `curve`. Until a program can score the reading itself, a
-curated sequence arranges imagery and sound over a text at a pace the reader
-set — the room is a **decorator**, not a **composer**. That is a legitimate
-smaller feature, but it must be described as what it is. The decision changes
-what the room is for and therefore what it should show.
+**Pacing shipped 2026-08-10 (ROADMAP Phase 13), and the room is a composer.**
+A `reading` track carries `{ kind: 'pace', wpm?, chunkMode? }`, so a proposal
+can slow into a passage, hold a section in whole phrases, and quicken a
+narrative stretch. Three properties matter to this room:
 
-**Blocked on nothing else.** The format, the gate, the catalogue and the
-correction path all ship.
+- **A scored pace is a default, not a seizure.** The track has no fallback,
+  so outside a scored span the reader's own pace governs; and pace is baked
+  into atom durations, so the Chamber's speed control still scales the whole
+  reading. A curator sets a contour; the reader sets the tempo.
+- **A scored `chunkMode` needs a quotation anchor** (or none, meaning the
+  whole source). Progress is a fraction of the atom stream, so it cannot
+  locate a cut it is asking to change. `wpm` is unrestricted.
+- **Within one source, all pace clips share one coordinate system.** Two
+  ranged clips in different systems cannot be shown not to overlap and are
+  refused. The export prompt states this.
+
+**Blocked on nothing.** The format, the gate, the catalogue, the correction
+path and the reading lane all ship. What remains is §11 — running the loop
+by hand against a real model.
 
 ---
 
@@ -342,7 +352,7 @@ Only then build the room.
    quotation, and Workshop character/token systems.
 4. **Run the loop by hand** — §11
 5. ~~Quotation anchoring~~ ✅ — resolve quotes against the edition; omit when absent
-6. Decide pacing — §10
+6. ~~Decide pacing~~ ✅ — the reading track; §10
 7. ~~Build the room~~ ✅ — additive; Workshop buttons left in place
 8. Remove the Workshop's curator buttons — separate, verified commit
 

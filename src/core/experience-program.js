@@ -30,6 +30,8 @@ export const EXPERIENCE_PROGRAM_LIMITS = Object.freeze({
   minTransitionDurationMs: 200,
   maxTransitionDurationMs: 30_000,
   maxFadeMs: 10_000,
+  minWpm: 50,
+  maxWpm: 1000,
   maxMetadataDepth: 4,
   maxMetadataKeys: 40,
   maxMetadataArray: 64,
@@ -37,16 +39,22 @@ export const EXPERIENCE_PROGRAM_LIMITS = Object.freeze({
 });
 
 const AUTHORITIES = new Set(['published', 'user', 'proposed']);
-const TRACK_KINDS = new Set(['movement', 'transition', 'visual', 'audio', 'swell']);
+const TRACK_KINDS = new Set(['movement', 'transition', 'visual', 'audio', 'swell', 'reading']);
 const VISUAL_KINDS = new Set(['still', 'focal', 'sourced', 'procedural']);
 const AUDIO_KINDS = new Set(['hold', 'silence', 'soundscape', 'tone']);
+const READING_KINDS = new Set(['pace']);
+
+/** Mirrors `models.js`; a score may not ask for a cut the chunker cannot make. */
+export const READING_CHUNK_MODES = Object.freeze(['word', 'phrase', 'sentence', 'paragraph']);
+const READING_CHUNK_MODE_SET = new Set(READING_CHUNK_MODES);
 
 const TRACK_LIMITS = Object.freeze({
   movement: EXPERIENCE_PROGRAM_LIMITS.maxMovements,
   transition: EXPERIENCE_PROGRAM_LIMITS.maxTransitions,
   visual: EXPERIENCE_PROGRAM_LIMITS.maxClipsPerTrack,
   audio: EXPERIENCE_PROGRAM_LIMITS.maxClipsPerTrack,
-  swell: EXPERIENCE_PROGRAM_LIMITS.maxClipsPerTrack
+  swell: EXPERIENCE_PROGRAM_LIMITS.maxClipsPerTrack,
+  reading: EXPERIENCE_PROGRAM_LIMITS.maxClipsPerTrack
 });
 
 export class ExperienceProgramValidationError extends Error {
@@ -361,6 +369,59 @@ function validateSwellCue(value, path) {
   return out;
 }
 
+/**
+ * A pace cue. At least one of `wpm` or `chunkMode` must be present: a clip
+ * that changes neither occupies its span exclusively while saying nothing,
+ * which would silence a later cue for no scored reason.
+ */
+function validateReadingCue(value, path) {
+  const source = record(value, path);
+  onlyKeys(source, new Set(['kind', 'wpm', 'chunkMode']), path);
+  if (!READING_KINDS.has(source.kind)) {
+    fail('PROGRAM_READING_KIND', `Unknown reading cue kind: ${String(source.kind)}`, `${path}.kind`);
+  }
+  const out = { kind: 'pace' };
+  if (source.wpm !== undefined) {
+    out.wpm = integerRange(
+      source.wpm,
+      EXPERIENCE_PROGRAM_LIMITS.minWpm,
+      EXPERIENCE_PROGRAM_LIMITS.maxWpm,
+      `${path}.wpm`
+    );
+  }
+  if (source.chunkMode !== undefined) {
+    if (!READING_CHUNK_MODE_SET.has(source.chunkMode)) {
+      fail('PROGRAM_READING_CHUNK_MODE',
+        `Unknown chunk mode: ${String(source.chunkMode)}`, `${path}.chunkMode`);
+    }
+    out.chunkMode = source.chunkMode;
+  }
+  if (out.wpm === undefined && out.chunkMode === undefined) {
+    fail('PROGRAM_READING_EMPTY_CUE', 'A pace cue must set wpm, chunkMode, or both', path);
+  }
+  return out;
+}
+
+/**
+ * A scored `chunkMode` decides where the text is CUT, and cutting happens
+ * before any atom exists. A progress anchor is a fraction OF the atom stream,
+ * so asking to re-cut a progress range is circular — the range cannot be
+ * located until the cut it is asking for has already been made. Character,
+ * token and quotation anchors resolve against the raw edition text, and an
+ * unranged clip is the whole source; neither has that dependency.
+ *
+ * `wpm` is unrestricted because it retimes atoms that already exist.
+ */
+function assertReadingAnchorSupportsCue(clip, path) {
+  if (clip.cue.chunkMode === undefined) return;
+  const system = anchorCoordinateSystem(clip.anchor);
+  if (system !== 'progress') return;
+  fail('PROGRAM_READING_CHUNK_ANCHOR',
+    'A scored chunkMode needs a character, token, or quotation anchor; progress coordinates are derived from the cut it would change',
+    `${path}.anchor`,
+    { clipId: clip.id, coordinate: system });
+}
+
 function validateClip(value, path, kind, index) {
   const source = record(value, path);
   const clipFields = new Set(['id', 'anchor', 'syncGroup', 'metadata']);
@@ -369,7 +430,9 @@ function validateClip(value, path, kind, index) {
     clipFields.add('data');
     clipFields.add('durationMs');
   }
-  if (kind === 'visual' || kind === 'audio' || kind === 'swell') clipFields.add('cue');
+  if (kind === 'visual' || kind === 'audio' || kind === 'swell' || kind === 'reading') {
+    clipFields.add('cue');
+  }
   onlyKeys(source, clipFields, path);
   const clip = {
     id: exactId(source.id, `${path}.id`),
@@ -411,6 +474,9 @@ function validateClip(value, path, kind, index) {
     clip.cue = validateAudioCue(source.cue, `${path}.cue`);
   } else if (kind === 'swell') {
     clip.cue = validateSwellCue(source.cue, `${path}.cue`);
+  } else if (kind === 'reading') {
+    clip.cue = validateReadingCue(source.cue, `${path}.cue`);
+    assertReadingAnchorSupportsCue(clip, path);
   }
   return clip;
 }
@@ -481,7 +547,8 @@ function validateRelationships(tracks) {
 
   const knownAnchors = new Set([...sourceOwners.keys(), ...transitionSources]);
   for (const track of tracks.filter(item =>
-    item.kind === 'visual' || item.kind === 'audio' || item.kind === 'swell')) {
+    item.kind === 'visual' || item.kind === 'audio' || item.kind === 'swell'
+    || item.kind === 'reading')) {
     for (const clip of track.clips) {
       const ranged = clip.anchor.fromProgress !== undefined
         || clip.anchor.fromCharacter !== undefined
@@ -699,6 +766,7 @@ export function lowerExperienceProgram(value) {
   const visualTracks = byKind('visual');
   const audioTracks = byKind('audio');
   const swellTracks = byKind('swell');
+  const readingTracks = byKind('reading');
 
   const movements = movementTrack.clips.map(clip => ({
     id: clip.id,
@@ -724,6 +792,7 @@ export function lowerExperienceProgram(value) {
   const visualSegments = segmentsFor(visualTracks);
   const audioSegments = segmentsFor(audioTracks);
   const swellSegments = segmentsFor(swellTracks);
+  const readingSegments = segmentsFor(readingTracks);
 
   const visualFallback = visualTracks[0]?.fallback || { kind: 'still' };
   const audioFallback = audioTracks[0]?.fallback || { kind: 'silence', fadeMs: 500 };
@@ -756,11 +825,20 @@ export function lowerExperienceProgram(value) {
     }
   } : null;
 
+  // No fallback: outside a scored span the reader's own pace governs, which
+  // is what "a scored pace is a default" means. A fallback here would be a
+  // second authority over the whole reading and would overrule them silently.
+  const readingProgram = readingSegments.length ? {
+    coordinateSpace: 'source',
+    segments: readingSegments
+  } : null;
+
   return {
     experienceProgram: program,
     movementProgram,
     visualProgram,
     audioProgram,
+    readingProgram,
     swellProgram: swellSegments.length ? {
       coordinateSpace: 'source',
       segments: swellSegments,

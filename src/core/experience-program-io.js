@@ -435,6 +435,28 @@ export function describeImportFailure(error, { context = null } = {}) {
         'Check the wording, or use a progress range instead.'
       );
       break;
+    case 'PROGRAM_READING_CHUNK_ANCHOR':
+      lines.push(
+        `Pace clip "${details.clipId}" sets a chunkMode on a ${details.coordinate} anchor.`,
+        'A chunk mode decides where the text is cut into atoms, and a progress range is '
+        + 'measured in those same atoms — it cannot locate the cut it is asking to change. '
+        + 'Anchor it with quoteStart/quoteEnd, or drop the range to score the whole source. '
+        + 'A wpm cue has no such limit and may use progress.'
+      );
+      break;
+    case 'PROGRAM_READING_EMPTY_CUE':
+      lines.push(
+        'A pace cue sets neither wpm nor chunkMode, so it occupies its span without '
+        + 'changing anything — and one lane presents one thing at a time, so it would '
+        + 'silence any later cue there. Give it a wpm, a chunkMode, or both.'
+      );
+      break;
+    case 'PROGRAM_READING_CHUNK_MODE':
+      lines.push(
+        `${error.message}`,
+        'Chunk modes are: word, phrase, sentence, paragraph.'
+      );
+      break;
     case 'PROGRAM_INCOMPLETE_RANGE':
       lines.push('A range carries only one endpoint. Give both `from` and `to` in the same coordinate system.');
       break;

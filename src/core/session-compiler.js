@@ -18,6 +18,11 @@ import {
 import { READING_LIMITS } from './reading-limits.js';
 import { compileSourceSpans } from './source-span.js';
 import {
+    applyProgressPace,
+    assertChunkProfileAllowsRecut,
+    buildReadingPlan
+} from './reading-score.js';
+import {
     createSequenceVisualAsset,
     validateSequenceAssetReferences
 } from './visual-score-lane.js';
@@ -177,7 +182,8 @@ export function normalizeSessionConfig(input = {}) {
             experienceProgram,
             movementProgram: lowered.movementProgram,
             visualProgram: lowered.visualProgram,
-            audioProgram: lowered.audioProgram
+            audioProgram: lowered.audioProgram,
+            readingProgram: lowered.readingProgram
         } : {}),
         sourceBoundaries: normalizeSourceBoundaries(
             lowered?.sourceBoundaries ?? input.sourceBoundaries
@@ -373,29 +379,48 @@ export function compileSession(input = {}) {
     const atoms = [];
     let previousSourceId = null;
     for (const source of sources) {
-        const prepared = prepareChunkText(source.raw, source.chunkProfile ?? null);
-        const sourceAtoms = chunkText(prepared.text, {
-            mode: config.chunkMode,
-            wpm: config.wpm,
-            source: source.name,
-            sourceId: source.id,
-            hints: prepared.hints || null,
-            // Phrase mode's floor, ON by default from 2026-08-06 — see
-            // PHRASE-CHUNKING-STUDY §7b for the measurement that reversed
-            // §7's opt-in ruling.
-            //
-            // THREE VOICES, MOST SPECIFIC WINS. A SOURCE speaks about one
-            // text and is heard first: the `verse` profile is a statement
-            // that this work's short phrases are the author's. A SESSION
-            // speaks for a whole reading. The default speaks for a shelf
-            // of 91 works measured across 24.
-            //
-            // `??` and not `||`, deliberately: the point of the inversion
-            // is that FALSE must be sayable, and `||` cannot hear it.
-            phraseFloor: prepared.phraseFloor
-                ?? (typeof config.phraseFloor === 'boolean' ? config.phraseFloor : true),
-            verseLines: source.verseLines === true
+        // A pace scored over this source, if any. With no reading track this
+        // is one piece carrying the session's own mode and wpm, so the call
+        // below is byte-for-byte the call that has always been made.
+        const plan = buildReadingPlan(config.readingProgram, source, {
+            chunkMode: config.chunkMode,
+            wpm: config.wpm
         });
+        assertChunkProfileAllowsRecut(source, plan);
+        const sourceAtoms = [];
+        for (const piece of plan.pieces) {
+            // Only an uncut source may carry a profile, so a piece boundary
+            // never splits a preparation (see assertChunkProfileAllowsRecut).
+            const pieceText = plan.pieces.length === 1
+                ? source.raw
+                : source.raw.slice(piece.fromCharacter, piece.toCharacter);
+            const prepared = prepareChunkText(
+                pieceText,
+                plan.pieces.length === 1 ? (source.chunkProfile ?? null) : null
+            );
+            sourceAtoms.push(...chunkText(prepared.text, {
+                mode: piece.mode,
+                wpm: piece.wpm,
+                source: source.name,
+                sourceId: source.id,
+                hints: prepared.hints || null,
+                // Phrase mode's floor, ON by default from 2026-08-06 — see
+                // PHRASE-CHUNKING-STUDY §7b for the measurement that reversed
+                // §7's opt-in ruling.
+                //
+                // THREE VOICES, MOST SPECIFIC WINS. A SOURCE speaks about one
+                // text and is heard first: the `verse` profile is a statement
+                // that this work's short phrases are the author's. A SESSION
+                // speaks for a whole reading. The default speaks for a shelf
+                // of 91 works measured across 24.
+                //
+                // `??` and not `||`, deliberately: the point of the inversion
+                // is that FALSE must be sayable, and `||` cannot hear it.
+                phraseFloor: prepared.phraseFloor
+                    ?? (typeof config.phraseFloor === 'boolean' ? config.phraseFloor : true),
+                verseLines: source.verseLines === true
+            }));
+        }
         if (sourceAtoms.length === 0) continue;
         const projectedAtomCount = atoms.length + sourceAtoms.length + (atoms.length > 0 ? 1 : 0);
         if (projectedAtomCount > SESSION_LIMITS.maxAtoms) {
@@ -433,6 +458,12 @@ export function compileSession(input = {}) {
             consumed += sourceWords[i];
             atoms.push(atom);
         }
+        // Progress cues are written in the coordinate `sourceProgress` just
+        // supplied, so they are applied here rather than at cut time. A source
+        // carrying them has exactly one piece: the canonical validator refuses
+        // ranged clips in two coordinate systems on one lane and source.
+        const uniformWpm = plan.pieces.length === 1 ? plan.pieces[0].wpm : config.wpm;
+        applyProgressPace(sourceAtoms, plan.progressPace, () => uniformWpm);
         previousSourceId = source.id;
     }
     if (atoms.length === 0) throw new TypeError('The supplied sources produced no playable content');
