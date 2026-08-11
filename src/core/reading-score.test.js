@@ -303,6 +303,61 @@ describe('a scored pace survives the Scriptorium loop', () => {
         expect(refusal).toMatch(/PROGRAM_READING_CHUNK_ANCHOR/);
     });
 
+    it('never forbids a capability it also teaches', () => {
+        // The prompt taught the reading track and, fifty lines later, still
+        // carried its pre-pace instruction not to set wpm or chunkMode. A real
+        // curator run resolved the contradiction the only way it could: it
+        // emitted the track with `{ kind: 'pace' }` and no fields at all.
+        const prompt = buildCuratorPrompt({ context: curatorContext() });
+        const contradictions = prompt.split('\n').filter(line =>
+            /\b(do not|don't|never)\b/i.test(line) && /\b(wpm|chunkMode)\b/.test(line));
+        expect(contradictions).toEqual([]);
+    });
+
+    it('tells a curator to omit the track rather than empty the cue', () => {
+        const prompt = buildCuratorPrompt({ context: curatorContext() });
+        expect(prompt).toMatch(/READING TRACK IS OPTIONAL/);
+        expect(prompt).toMatch(/Leave it out entirely/);
+    });
+
+    it('refuses the empty pace cue a real curator run produced', () => {
+        // Verbatim from the first hand-run of the loop (2026-08-11).
+        const fromTheWild = {
+            schema: EXPERIENCE_PROGRAM_SCHEMA,
+            id: 'self-transformation',
+            authority: 'proposed',
+            editable: true,
+            tracks: [
+                {
+                    id: 'movements',
+                    kind: 'movement',
+                    clips: [{
+                        id: 'm1',
+                        anchor: { sourceIds: ['sacred-emerald-tablet'] },
+                        data: { index: 0, title: 'Transmutation' }
+                    }]
+                },
+                {
+                    id: 'pace',
+                    kind: 'reading',
+                    clips: [{
+                        id: 'p1',
+                        cue: { kind: 'pace' },
+                        anchor: { sourceIds: ['sacred-emerald-tablet'] }
+                    }]
+                }
+            ]
+        };
+        let refusal = '';
+        try {
+            validateExperienceProgram(fromTheWild);
+        } catch (error) {
+            refusal = describeImportFailure(error);
+        }
+        expect(refusal).toMatch(/sets neither wpm nor chunkMode/);
+        expect(refusal).toMatch(/Give it a wpm, a chunkMode, or both/);
+    });
+
     it('offers pace to the curator with its one restriction stated', () => {
         const prompt = buildCuratorPrompt({ context: curatorContext() });
         expect(prompt).toMatch(/"kind": "reading"/);

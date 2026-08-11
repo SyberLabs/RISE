@@ -187,8 +187,14 @@ export function buildCuratorPrompt({ intent = '', context = null } = {}) {
 
   lines.push(
     '',
-    'This arrangement decorates a reading whose pace the reader still sets;',
-    'do not invent wpm, chunkMode, or curve fields on the program.'
+    'Pace belongs on the reading track and nowhere else: `wpm` and `chunkMode`',
+    'are fields of a pace CUE, never of the program, a track, or a movement.',
+    'There is no `curve` anywhere — do not invent one.',
+    '',
+    'THE READING TRACK IS OPTIONAL. Leave it out entirely if the reader\'s own',
+    'pace is right for this arrangement — that is the common case. Do not emit',
+    'a pace cue that sets neither wpm nor chunkMode: an empty cue occupies its',
+    'span while saying nothing, and is refused.'
   );
 
   return `${lines.join('\n')}\n`;

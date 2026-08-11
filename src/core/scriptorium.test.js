@@ -15,7 +15,9 @@ describe('buildCuratorPrompt', () => {
     expect(prompt).toMatch(/fromProgress/);
     expect(prompt).toMatch(/quoteStart/);
     expect(prompt).toMatch(/memory and loss/);
-    expect(prompt).toMatch(/decorat/);
+    // The room stopped being a decorator when the reading track shipped; this
+    // line used to pin the word, which is why the prompt kept saying it.
+    expect(prompt).toMatch(/"kind": "reading"/);
     expect(JSON.stringify(context)).not.toContain('You are arranging');
   });
 });
