@@ -960,3 +960,71 @@ Withheld works keep their payload files, so an early run reported King Lear's
 Cambridge variorum apparatus as a finding — a text withdrawn for precisely
 that, in 2026-07. The audit now reads the `WITHHELD` map out of `index.js`
 rather than restating it, and skips those three.
+
+---
+
+## 3d. The defect registry — cleansing becomes recursive *(2026-08-12)*
+
+**Mateo's ruling: every defect we find must be logged as something that can be
+looked for again.** Don Quixote served `bookcover.jpg`, `spine.jpg (152K)` and
+`Full Size` as if they were Cervantes — and the moment that is written down as
+a *pattern* rather than repaired as an *instance*, it becomes a question the
+whole shelf can be asked, today and at every future acquisition.
+
+`src/content/archive/defect-signatures.js` holds them;
+`scripts/audit-defect-signatures.mjs` asks all 88 works all of them.
+
+**Provenance is required.** Each entry records the work that taught it and the
+date. A signature without provenance is a guess; with it, a later reader can
+open the thing itself and judge whether the pattern still describes it.
+
+**Disposition is not severity.** `withdraw` — the division was never a reading.
+`trim` — a genuine reading carries something in a line. `review` — evidence for
+a human, and nothing may be cut on it alone. **Nothing in the module applies
+itself.**
+
+### What the first sweep found
+
+| signature | lines | works | from |
+|---|---|---|---|
+| `contents-run-out` | 20,454 | 11 | chinese poems |
+| **`transcriber-image-file`** | **366** | 1 | don-quixote |
+| **`file-size-annotation`** | **365** | 1 | don-quixote |
+| **`full-size-link`** | **260** | 1 | don-quixote |
+| **`scan-provider-header`** | **137** | 1 | a-hundred-verses |
+| **`html-entity`** | **89** | 1 | rilke letters |
+| `transcriber-note` | 21 | 11 | don-quixote |
+| `replacement-character` | 1 | 1 | rilke letters |
+| `page-image-emoji` | 1 | 1 | emerald tablet |
+| `variorum-sigla` | **0** | 0 | hamlet |
+| `gutenberg-boilerplate` | 0 | 0 | don-quixote |
+
+**Don Quixote is far worse than the five head divisions suggested.** Roughly
+**990 lines of image furniture run through the whole work**, not a preamble:
+`p003.jpg (307K)` and `Full Size` recur for hundreds of plates. The §3c runt
+measure saw only the short divisions at the front; this saw the shape of it.
+
+**The loop closed on its own first output.** The sweep printed a Rilke line as
+evidence for `replacement-character` — and that line also read
+`Zwar f&uuml;hlen viele junge Menschen`. Undecoded HTML entities became the
+eleventh signature within the minute, and found **89 lines**. So those letters
+carry two encoding failures, not one: fourteen characters destroyed outright
+and eighty-nine lines never decoded.
+
+**A signature at zero is not a signature to delete.** `variorum-sigla` finds
+nothing, because the three works it describes were withdrawn in July. It is
+kept, and asserted at zero, precisely so the next acquisition cannot repeat
+Hamlet unseen. A guard retained only while it fires is not a guard.
+
+### The instruments, and which question each answers
+
+| | asks | misses |
+|---|---|---|
+| §3b identity | is this division the wrong book? | anything under 5,000 words |
+| §3c runts | is it too small to be a reading? | full-length divisions |
+| §3d signatures | does it contain a thing we have seen before? | anything nobody has met yet |
+| §2g / §2b | is the right book carrying apparatus at its head? | — |
+
+Rung 3 — a model reading — belongs on the neighbourhoods these produce, not on
+whole books. **The registry is the targeting system**, and it is what makes the
+cleansing recursive rather than repetitive.

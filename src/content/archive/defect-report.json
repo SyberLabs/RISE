@@ -1,0 +1,120 @@
+{
+  "generatedBy": "scripts/audit-defect-signatures.mjs",
+  "signatures": [
+    {
+      "id": "contents-run-out",
+      "disposition": "review",
+      "lines": 20454,
+      "works": [
+        "a-hundred-verses-from-old-japan",
+        "pride-and-prejudice",
+        "sacred-corpus-hermeticum",
+        "strange-stories-from-a-chinese-studio",
+        "the-book-of-the-thousand-nights-and-a-night",
+        "the-faerie-queene",
+        "the-little-clay-cart",
+        "the-no-plays-of-japan",
+        "the-shahnama-of-firdausi",
+        "twenty-two-goblins",
+        "war-and-peace"
+      ],
+      "discoveredIn": "a-hundred-and-seventy-chinese-poems"
+    },
+    {
+      "id": "transcriber-image-file",
+      "disposition": "trim",
+      "lines": 366,
+      "works": [
+        "don-quixote"
+      ],
+      "discoveredIn": "don-quixote"
+    },
+    {
+      "id": "file-size-annotation",
+      "disposition": "trim",
+      "lines": 365,
+      "works": [
+        "don-quixote"
+      ],
+      "discoveredIn": "don-quixote"
+    },
+    {
+      "id": "full-size-link",
+      "disposition": "trim",
+      "lines": 260,
+      "works": [
+        "don-quixote"
+      ],
+      "discoveredIn": "don-quixote"
+    },
+    {
+      "id": "scan-provider-header",
+      "disposition": "trim",
+      "lines": 137,
+      "works": [
+        "a-hundred-verses-from-old-japan"
+      ],
+      "discoveredIn": "a-hundred-verses-from-old-japan"
+    },
+    {
+      "id": "html-entity",
+      "disposition": "review",
+      "lines": 89,
+      "works": [
+        "literary-letters-young-poet"
+      ],
+      "discoveredIn": "literary-letters-young-poet"
+    },
+    {
+      "id": "transcriber-note",
+      "disposition": "review",
+      "lines": 21,
+      "works": [
+        "a-hundred-and-seventy-chinese-poems",
+        "don-quixote",
+        "mrs-dalloway",
+        "sacred-zen-koans",
+        "strange-stories-from-a-chinese-studio",
+        "the-bacchae",
+        "the-book-of-the-thousand-nights-and-a-night",
+        "the-canterbury-tales-and-other-poems",
+        "the-duchess-of-malfi",
+        "the-no-plays-of-japan",
+        "twenty-two-goblins"
+      ],
+      "discoveredIn": "don-quixote"
+    },
+    {
+      "id": "replacement-character",
+      "disposition": "review",
+      "lines": 1,
+      "works": [
+        "literary-letters-young-poet"
+      ],
+      "discoveredIn": "literary-letters-young-poet"
+    },
+    {
+      "id": "page-image-emoji",
+      "disposition": "trim",
+      "lines": 1,
+      "works": [
+        "sacred-emerald-tablet"
+      ],
+      "discoveredIn": "sacred-emerald-tablet"
+    },
+    {
+      "id": "variorum-sigla",
+      "disposition": "review",
+      "lines": 0,
+      "works": [],
+      "discoveredIn": "hamlet"
+    },
+    {
+      "id": "gutenberg-boilerplate",
+      "disposition": "trim",
+      "lines": 0,
+      "works": [],
+      "discoveredIn": "don-quixote"
+    }
+  ]
+}
