@@ -19,7 +19,10 @@ import {
   validateWorkshopProject
 } from './workshop-project.js';
 import { isBoundarySource } from './journey-compiler.js';
-import { SEQUENCE_ASSET_PREFIX } from './visual-score-lane.js';
+import {
+  SEQUENCE_ASSET_PREFIX,
+  sequenceAssetReferencesFromCue
+} from './visual-score-lane.js';
 
 /** Refuse multi-hundred-megabyte pastes before JSON.parse allocates. */
 export const PROGRAM_IO_MAX_JSON_BYTES = 2_000_000;
@@ -163,7 +166,7 @@ function cueIdsFromProgram(program) {
   const soundscapes = new Set();
   const swells = new Set();
   const tones = new Set();
-  const assets = new Set();
+  const assets = new Map();
   /** @type {Array<{ sourceId: string, trackKind: string }>} */
   const sourceRefs = [];
 
@@ -179,7 +182,9 @@ function cueIdsFromProgram(program) {
       if (cue.soundscapeId) soundscapes.add(cue.soundscapeId);
       if (cue.swellId) swells.add(cue.swellId);
       if (cue.kind === 'tone' && cue.presetId) tones.add(cue.presetId);
-      if (cue.kind === 'video' && cue.assetId) assets.add(cue.assetId);
+      for (const reference of sequenceAssetReferencesFromCue(cue)) {
+        if (!assets.has(reference.id)) assets.set(reference.id, reference);
+      }
     }
   }
   return { collections, engines, soundscapes, swells, tones, assets, sourceRefs };
@@ -273,12 +278,16 @@ export function assertProgramWithinContext(program, contextValue) {
   // this is the whole of the check — and a context carrying no assets (the
   // Scriptorium exports none, because no bytes leave) refuses every video by
   // the same rule rather than by a special case.
-  for (const id of used.assets) {
-    if (!allowedCollections.has(`${SEQUENCE_ASSET_PREFIX}${id}`)) {
+  for (const reference of used.assets.values()) {
+    if (!allowedCollections.has(`${SEQUENCE_ASSET_PREFIX}${reference.id}`)) {
       fail('PROGRAM_IO_UNKNOWN_ASSET',
-        `Program names sequence asset ${id} absent from curator context`,
+        `Program names ${reference.role} asset ${reference.id} absent from curator context`,
         '$.tracks',
-        { assetId: id });
+        {
+          assetId: reference.id,
+          assetRole: reference.role,
+          expectedKind: reference.expectedKind
+        });
     }
   }
   assertProgramWithinBudget(program, context);
@@ -509,18 +518,21 @@ export function describeImportFailure(error, { context = null } = {}) {
       break;
     case 'PROGRAM_IO_UNKNOWN_ASSET':
       lines.push(
-        `This score plays a video from sequence asset "${details.assetId}", which this `
-        + 'reading does not have.',
-        'Assets are files someone added by hand, and none travel in a capability '
-        + 'document — so a score written from one cannot name a video at all. '
-        + 'Use a procedural engine or a museum collection instead.'
+        `This score requires ${details.assetRole === 'personal-focal' ? 'personal focal' : 'project media'} `
+        + `asset "${details.assetId}", which this reading does not have.`,
+        'Capability documents carry available asset ids, never the media bytes. '
+        + 'Add the matching file to this project before importing the score, or '
+        + 'replace the cue with a procedural engine or a museum collection.'
       );
+      options('project media', (context?.visuals?.collections || [])
+        .filter(id => id.startsWith(SEQUENCE_ASSET_PREFIX))
+        .map(id => id.slice(SEQUENCE_ASSET_PREFIX.length)));
       break;
     case 'VISUAL_SCORE_ASSET_NOT_FOUND':
       lines.push(
         `${error.message}`,
-        'The id exists but is not the kind of asset the clip needs — a video clip '
-        + 'needs a video, and a focal needs an image.'
+        'The required project file is missing or incompatible — a video clip '
+        + 'needs a video file (MP4), while a focal or sequence image needs an image.'
       );
       break;
     case 'PROGRAM_IO_BUDGET_EXCEEDED': {

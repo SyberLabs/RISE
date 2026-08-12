@@ -298,13 +298,22 @@ export class Settings {
             // Create download
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
+            const revokeObjectURL = URL.revokeObjectURL.bind(URL);
             const a = document.createElement('a');
             a.href = url;
             a.download = `rise-export-${new Date().toISOString().split('T')[0]}.json`;
             a.click();
-            window.setTimeout(() => URL.revokeObjectURL(url), 0);
+            window.setTimeout(() => revokeObjectURL(url), 0);
 
-            this.showToast('Data exported successfully');
+            const withheld = Number(data.exportSummary?.withheldMedia) || 0;
+            const warnings = Array.isArray(data.warnings) ? data.warnings.length : 0;
+            if (withheld > 0) {
+                this.showToast(`Data exported with omissions: ${withheld} media file${withheld === 1 ? '' : 's'} listed but not included`);
+            } else if (warnings > 0) {
+                this.showToast(`Data exported with ${warnings} warning${warnings === 1 ? '' : 's'}; review the downloaded file`);
+            } else {
+                this.showToast('Data exported successfully');
+            }
         } catch (e) {
             console.error('[Settings] Export failed:', e);
             this.showToast('Export failed');

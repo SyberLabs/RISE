@@ -143,6 +143,45 @@ export function assetIdFromCollection(collectionId) {
     : null;
 }
 
+/**
+ * Every durable project-media reference carried by one canonical visual cue.
+ *
+ * Keep discovery here beside the sequence-asset vocabulary and reuse it at
+ * both trust boundaries: the curator gate asks whether an id was offered,
+ * while project validation asks whether the local bytes have the right kind.
+ * Adding another id-bearing cue must therefore update one exhaustive switch,
+ * not two unrelated scans.
+ */
+export function sequenceAssetReferencesFromCue(cue) {
+  if (!cue || typeof cue !== 'object') return Object.freeze([]);
+  const personalFocalId = personalFocalAssetIdFromCue(cue);
+  if (personalFocalId) {
+    return Object.freeze([Object.freeze({
+      id: personalFocalId,
+      role: 'personal-focal',
+      expectedKind: 'image'
+    })]);
+  }
+  if (cue.kind === 'video' && typeof cue.assetId === 'string' && cue.assetId) {
+    return Object.freeze([Object.freeze({
+      id: cue.assetId,
+      role: 'sequence-video',
+      expectedKind: 'video'
+    })]);
+  }
+  const references = [];
+  for (const collectionId of cue.collections || []) {
+    const id = assetIdFromCollection(collectionId);
+    if (!id || references.some(reference => reference.id === id)) continue;
+    references.push(Object.freeze({
+      id,
+      role: 'sequence-image',
+      expectedKind: 'image'
+    }));
+  }
+  return Object.freeze(references);
+}
+
 /** Rebuild the deterministic editor reference stored implicitly by a cue. */
 export function scoreAssetIdFromCue(cue) {
   if (cue?.kind === 'video') return cue.assetId || null;
@@ -510,36 +549,30 @@ export function compileVisualScoreProgram({
 /** Validate that every canonical sequence-asset cue resolves locally. */
 export function validateSequenceAssetReferences(program, assets = []) {
   const canonicalAssets = assets.map(createSequenceVisualAsset);
-  const ids = new Set(canonicalAssets.map(asset => exactId(asset.id, 'Asset id')));
-  const videos = new Set(canonicalAssets.filter(asset => asset.kind === 'video').map(asset => asset.id));
+  const assetsById = new Map(canonicalAssets
+    .map(asset => [exactId(asset.id, 'Asset id'), asset]));
   for (const track of program?.tracks || []) {
     if (track.kind !== 'visual') continue;
     for (const clip of track.clips) {
-      const focalAssetId = personalFocalAssetIdFromCue(clip.cue);
-      if (focalAssetId) {
-        const focalAsset = canonicalAssets.find(asset =>
-          asset.id === focalAssetId && asset.kind !== 'video');
-        if (!focalAsset) {
+      for (const reference of sequenceAssetReferencesFromCue(clip.cue)) {
+        const asset = assetsById.get(reference.id);
+        const kindMatches = reference.expectedKind === 'video'
+          ? asset?.kind === 'video'
+          : asset != null && asset.kind !== 'video';
+        if (!kindMatches) {
+          const assetLabel = reference.role === 'personal-focal'
+            ? 'personal focal'
+            : reference.role === 'sequence-video' ? 'sequence video' : 'sequence image';
           fail('VISUAL_SCORE_ASSET_NOT_FOUND',
-            `Visual clip ${clip.id} names missing personal focal ${focalAssetId}.`,
-            { clipId: clip.id, assetId: focalAssetId });
-        }
-        continue;
-      }
-      if (clip.cue?.kind === 'video') {
-        if (!videos.has(clip.cue.assetId)) {
-          fail('VISUAL_SCORE_ASSET_NOT_FOUND',
-            `Visual clip ${clip.id} names missing sequence video ${clip.cue.assetId}.`,
-            { clipId: clip.id, assetId: clip.cue.assetId });
-        }
-        continue;
-      }
-      for (const collection of clip.cue?.collections || []) {
-        const assetId = assetIdFromCollection(collection);
-        if (assetId && !ids.has(assetId)) {
-          fail('VISUAL_SCORE_ASSET_NOT_FOUND',
-            `Visual clip ${clip.id} names missing sequence image ${assetId}.`,
-            { clipId: clip.id, assetId });
+            `Visual clip ${clip.id} names missing ${assetLabel} ${reference.id}, `
+              + 'or the project media has the wrong kind.',
+            {
+              clipId: clip.id,
+              assetId: reference.id,
+              assetRole: reference.role,
+              expectedKind: reference.expectedKind,
+              actualKind: asset?.kind || null
+            });
         }
       }
     }

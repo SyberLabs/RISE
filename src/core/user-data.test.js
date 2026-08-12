@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PersonalSwells } from './personal-swells.js';
 import { SourceCache } from '../sources/cache.js';
 import { WorkshopMedia } from './workshop-media.js';
-import { clearUserData, exportUserData, USER_DATA_KEYS } from './user-data.js';
+import {
+    clearUserData,
+    exportUserData,
+    USER_DATA_EXPORT_LIMITS,
+    USER_DATA_KEYS
+} from './user-data.js';
 import { VISUAL_CONSENT_KEY } from './visual-safety.js';
 
 describe('personal data inventory', () => {
@@ -25,6 +30,11 @@ describe('personal data inventory', () => {
         expect(data.stores.journals).toEqual([{ id: 'entry' }]);
         expect(data.workshopMedia).toEqual([]);
         expect(data).not.toHaveProperty('sourceCache');
+        expect(data.exportSummary).toEqual({
+            inlineBinaryBytes: 0,
+            maxInlineBinaryBytes: USER_DATA_EXPORT_LIMITS.maxInlineBinaryBytes,
+            withheldMedia: 0
+        });
     });
 
     it('lists a video without inlining it, and says so', async () => {
@@ -62,6 +72,33 @@ describe('personal data inventory', () => {
 
         expect(data.warnings.join(' ')).toMatch(/1 video file .* not included/);
         expect(data.warnings.join(' ')).toMatch(/reel/);
+        expect(data.exportSummary.withheldMedia).toBe(1);
+    });
+
+    it('bounds all inlined binary across personal audio and project images', async () => {
+        vi.spyOn(PersonalSwells, 'getAll').mockResolvedValue([{
+            id: 'voice', name: 'Voice', timestamp: 1, type: 'audio/wav',
+            data: new Blob(['abc'], { type: 'audio/wav' })
+        }]);
+        vi.spyOn(WorkshopMedia, 'init').mockResolvedValue(undefined);
+        vi.spyOn(WorkshopMedia, 'getAllRecords').mockResolvedValue([{
+            id: 'plate', projectId: 'p1', mimeType: 'image/png',
+            byteLength: 2, createdAt: 1, updatedAt: 2,
+            data: new Blob(['de'], { type: 'image/png' })
+        }]);
+
+        const data = await exportUserData(null, { maxInlineBinaryBytes: 4 });
+
+        expect(data.personalSwells[0].data).toMatch(/^data:audio\/wav/);
+        expect(data.workshopMedia[0]).toMatchObject({
+            id: 'plate', data: null, withheld: 'budget', byteLength: 2
+        });
+        expect(data.exportSummary).toEqual({
+            inlineBinaryBytes: 3,
+            maxInlineBinaryBytes: 4,
+            withheldMedia: 1
+        });
+        expect(data.warnings.join(' ')).toMatch(/reached its .* binary budget/);
     });
 
     it('clears local stores, visual consent, personal audio, workshop media, and source caches', async () => {

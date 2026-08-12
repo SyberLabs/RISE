@@ -46,6 +46,16 @@ const scoreWithVideo = (assetId) => ({
     ]
 });
 
+const scoreWithPersonalFocal = (assetId) => {
+    const score = scoreWithVideo('placeholder');
+    score.id = 'uses-a-personal-focal';
+    score.tracks[1].clips[0].cue = {
+        kind: 'field', renderer: 'focal',
+        config: { type: 'personal', personalAssetId: assetId }
+    };
+    return score;
+};
+
 const context = (collections = []) => validateCuratorContext({
     schema: CURATOR_CONTEXT_SCHEMA,
     id: 'asset-gate',
@@ -57,7 +67,7 @@ const context = (collections = []) => validateCuratorContext({
 describe('a video cue is checked like every other named capability', () => {
     it('refuses one the context does not list', () => {
         expect(() => assertProgramWithinContext(scoreWithVideo('missing'), context()))
-            .toThrow(/sequence asset missing absent from curator context/);
+            .toThrow(/sequence-video asset missing absent from curator context/);
     });
 
     it('accepts one the context does list', () => {
@@ -66,6 +76,17 @@ describe('a video cue is checked like every other named capability', () => {
         expect(assertProgramWithinContext(
             scoreWithVideo('reel'),
             context([`${SEQUENCE_ASSET_PREFIX}reel`])
+        )).toBe(true);
+    });
+
+    it('applies the same membership gate to a personal focal image', () => {
+        expect(() => assertProgramWithinContext(
+            scoreWithPersonalFocal('portrait'), context()
+        )).toThrow(/personal-focal asset portrait absent from curator context/);
+
+        expect(assertProgramWithinContext(
+            scoreWithPersonalFocal('portrait'),
+            context([`${SEQUENCE_ASSET_PREFIX}portrait`])
         )).toBe(true);
     });
 
@@ -84,10 +105,22 @@ describe('a video cue is checked like every other named capability', () => {
         } catch (error) {
             refusal = describeImportFailure(error);
         }
-        expect(refusal).toMatch(/plays a video from sequence asset "missing"/);
-        expect(refusal).toMatch(/none travel in a capability document/);
+        expect(refusal).toMatch(/requires project media asset "missing"/);
+        expect(refusal).toMatch(/carry available asset ids, never the media bytes/);
         expect(refusal).toMatch(/procedural engine or a museum collection/);
         expect(refusal).toMatch(/PROGRAM_IO_UNKNOWN_ASSET/);
+    });
+
+    it('lists compatible project-media ids without claiming their bytes travel', () => {
+        let refusal = '';
+        const available = context([`${SEQUENCE_ASSET_PREFIX}available`]);
+        try {
+            assertProgramWithinContext(scoreWithVideo('missing'), available);
+        } catch (error) {
+            refusal = describeImportFailure(error, { context: available });
+        }
+        expect(refusal).toMatch(/Available project media: available/);
+        expect(refusal).not.toMatch(/none travel/);
     });
 
     it('still explains the compile-time refusal, which remains reachable', () => {

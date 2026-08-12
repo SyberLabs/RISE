@@ -85,6 +85,13 @@ describe('visual score lane', () => {
     expect(() => validateSequenceAssetReferences(program, [])).toThrow(expect.objectContaining({
       code: 'VISUAL_SCORE_ASSET_NOT_FOUND'
     }));
+    expect(() => validateSequenceAssetReferences(program, [{
+      id: asset.id, kind: 'video', storage: 'idb', mimeType: 'video/mp4',
+      byteLength: 4096, durationMs: 1000, name: 'Wrong kind'
+    }])).toThrow(expect.objectContaining({
+      code: 'VISUAL_SCORE_ASSET_NOT_FOUND',
+      details: expect.objectContaining({ expectedKind: 'image', actualKind: 'video' })
+    }));
   });
 
   it('compiles collection and procedural editor assets to their canonical cue kinds', () => {

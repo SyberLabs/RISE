@@ -38,7 +38,14 @@ test('touch selection opens the passage palette and assigns without a synthetic 
     await presentation.scrollIntoViewIfNeeded();
     await expect(presentation).toBeVisible();
     await expect(presentation).toContainText('Presentation');
-    await expect(page.locator('#studio-visual-inspector')).not.toContainText('Presentation');
+    // Presentation belongs to its own panel, not to the Inspector. The check
+    // used to name #studio-visual-inspector, which the contextual Inspector
+    // now renders only while a visual is selected — so the assertion was
+    // passing through an element that was simply absent. The claim is about
+    // markup rather than sight: on a phone the Inspector is a surface the
+    // reader opens, so it is legitimately hidden here.
+    await expect(page.locator('#studio-contextual-inspector')).toHaveCount(1);
+    await expect(page.locator('#studio-contextual-inspector')).not.toContainText('Presentation');
     await page.getByRole('button', { name: 'Score', exact: true }).click();
 
     const text = page.locator('#visual-score-text');
