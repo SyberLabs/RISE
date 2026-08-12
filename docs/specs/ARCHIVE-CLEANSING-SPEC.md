@@ -902,3 +902,61 @@ The coverage assertion. **A work added to the shelf without re-running the
 audit fails here**, and the failure names the command. That is the
 *acquisitions cannot bypass the gate* requirement, and it is why the artifact
 lists every work rather than only the offending ones.
+
+---
+
+## 3c. Runts — a division far below its own work's norm *(2026-08-12)*
+
+**Mateo's tactic, and it works on the text he had in mind.** *A division with a
+very low word count compared to its siblings.* Measured as: under a fifth of
+its own work's median division, and under 400 words absolute.
+
+It found the Chinese poems contents-as-chapters independently of §2f, which is
+the useful part — two instruments built from different signals agreeing on the
+same four divisions:
+
+```
+a-hundred-and-seventy-chinese-poems [0]  212w vs median 2248  (0.09)
+a-hundred-and-seventy-chinese-poems [1]  106w vs median 2248  (0.05)
+a-hundred-and-seventy-chinese-poems [2]   81w vs median 2248  (0.04)
+a-hundred-and-seventy-chinese-poems [3]   95w vs median 2248  (0.04)
+```
+
+**Report-only, and it must stay that way.** 123 runts across 88 works, and the
+list plainly mixes defects with genuine short chapters — Moby-Dick's *The
+Lamp.* (242w) and *Midnight Aloft.—Thunder and Lightning.* (50w) are Melville
+writing short chapters on purpose. This is rung 2 doing exactly what §3 says
+rung 2 does: **producing suspicions, not verdicts.**
+
+New suspicions worth a human, beyond those already recorded:
+
+- `don-quixote` [1–5] — 85w, 250w, 49w, 43w, 106w against a 2,512 median, with
+  names that read as truncated headings: `OF THE INTERVIEW THE CURATE AND`,
+  `OF WHAT BEFELL DON`.
+- `faust` [0–2], `madame-bovary` [0], `metamorphoses` [0], `a-doll-s-house` [0]
+  — front matter at the head of the work.
+
+### It does NOT find the Karenina defect, and the reason is worth keeping
+
+Checked directly. Anna Karenina's first division is **982 words against a
+1,428-word median — a ratio of 0.69, entirely unremarkable**, and divisions
+2, 3 and 4 open cleanly at `Chapter 2`, `Chapter 3`, `Chapter 4`. Only the
+first carries apparatus, and only about forty words of it, fused ahead of
+genuine Tolstoy.
+
+That is what §2g already says: a contents preamble welded onto the front of a
+real prose division. **No division-level size or content measure can see it**,
+because the division is the right size and is mostly the right book. It needs a
+head-of-division trim, which is the §2b shape and Phase 10's class B — trim the
+opening, never withdraw the division.
+
+Two defects, two instruments, and the distinction is worth holding: **§3b asks
+whether a division is the wrong book; §3c asks whether it is too small to be a
+reading; §2g is neither, and needs the opening trimmed.**
+
+### The instrument audits the live shelf only
+
+Withheld works keep their payload files, so an early run reported King Lear's
+Cambridge variorum apparatus as a finding — a text withdrawn for precisely
+that, in 2026-07. The audit now reads the `WITHHELD` map out of `index.js`
+rather than restating it, and skips those three.

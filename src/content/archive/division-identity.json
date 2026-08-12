@@ -66,10 +66,6 @@
       "divisions": 45,
       "checkable": true
     },
-    "hamlet": {
-      "divisions": 33,
-      "checkable": true
-    },
     "jane-eyre": {
       "divisions": 66,
       "checkable": true
@@ -85,10 +81,6 @@
     "kandinsky-spiritual-in-art": {
       "divisions": 11,
       "checkable": false
-    },
-    "king-lear": {
-      "divisions": 39,
-      "checkable": true
     },
     "kwaidan-stories-and-studies-of-strange-things": {
       "divisions": 12,
@@ -328,10 +320,6 @@
     },
     "the-storm-of-steel": {
       "divisions": 48,
-      "checkable": true
-    },
-    "the-tempest": {
-      "divisions": 14,
       "checkable": true
     },
     "the-tragical-history-of-doctor-faustus": {

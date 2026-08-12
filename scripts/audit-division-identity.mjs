@@ -18,7 +18,7 @@
  *   node scripts/audit-division-identity.mjs --write   commit the artifact
  */
 
-import { readdirSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { divideSections } from '../src/content/archive/divisions.js';
@@ -71,14 +71,32 @@ function sectionsToText(sections) {
     : (typeof section?.content === 'string' ? section.content : ''))).join('\n\n');
 }
 
+/**
+ * Withheld works still have payload files, and auditing them mixes retired
+ * texts into a report about the live shelf — King Lear's variorum apparatus
+ * reads as a finding until you remember it was withdrawn for exactly that.
+ * Read from `index.js` rather than restated here: a second copy of this list
+ * would drift, and drifting toward over-reporting is the safe direction.
+ */
+function withheldIds() {
+  const source = readFileSync(
+    join(HERE, '..', 'src', 'content', 'archive', 'index.js'), 'utf8');
+  const block = /const WITHHELD = Object\.freeze\(\{([\s\S]*?)\}\)/u.exec(source);
+  if (!block) return new Set();
+  return new Set([...block[1].matchAll(/'([^']+)'\s*:/gu)].map(match => match[1]));
+}
+
 async function loadWorks() {
+  const withheld = withheldIds();
   const files = readdirSync(WORKS_DIR).filter(name => name.endsWith('.js'));
   const works = [];
   for (const file of files) {
     const module = await import(pathToFileURL(join(WORKS_DIR, file)).href);
     const sections = Object.values(module).find(value => Array.isArray(value));
     if (!sections) continue;
-    works.push({ id: file.replace(/\.js$/u, ''), sections });
+    const id = file.replace(/\.js$/u, '');
+    if (withheld.has(id)) continue;
+    works.push({ id, sections });
   }
   return works;
 }
@@ -99,7 +117,7 @@ function main(works) {
   }
 
   const maxDocuments = Math.max(1, Math.floor(works.length * MAX_DOCUMENT_SHARE));
-  const report = { works: {}, violations: [] };
+  const report = { works: {}, violations: [], runts: [] };
 
   for (const work of works) {
     const counts = perWork.get(work.id);
@@ -114,6 +132,7 @@ function main(works) {
     const entries = divided?.entries || [];
     const terms = new Set(characteristic);
     const divisions = [];
+    const allWords = [];
 
     for (const entry of entries) {
       const text = String(entry.text ?? entry.content ?? entry.body ?? '');
@@ -122,6 +141,7 @@ function main(works) {
       let hits = 0;
       for (const token of tokens) if (terms.has(token)) hits += 1;
       divisions.push({ name: entry.name ?? entry.title ?? '', words, hits });
+      allWords.push(words);
       // A work with no characteristic vocabulary scores zero everywhere, so
       // every division would 'violate'. That is a statement about the
       // instrument, not the text.
@@ -130,6 +150,22 @@ function main(works) {
           work: work.id, division: entry.name ?? entry.title ?? '', words
         });
       }
+    }
+
+    // A division far below its own work's norm is the OTHER shape: apparatus
+    // wearing a chapter's name. Measured here because the payloads are already
+    // loaded; reported separately because it answers a different question.
+    const sorted = [...allWords].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)] || 0;
+    if (median > 0) {
+      divisions.forEach((division, index) => {
+        if (division.words > 0 && division.words < median * 0.2 && division.words < 400) {
+          report.runts.push({
+            work: work.id, index, division: division.name,
+            words: division.words, median, ratio: Number((division.words / median).toFixed(3))
+          });
+        }
+      });
     }
 
     report.works[work.id] = {
@@ -162,6 +198,12 @@ for (const floor of [400, 1000, 2000, 5000, 10000, 20000]) {
 }
 for (const violation of report.violations.filter(v => v.words >= 2000).slice(0, 25)) {
   console.log(`  ! ${violation.work} | ${JSON.stringify(violation.division)} | ${violation.words}w`);
+}
+
+console.log(`
+runts (under 20% of their work's median AND under 400 words): ${report.runts.length}`);
+for (const runt of report.runts.slice(0, 30)) {
+  console.log(`  ~ ${runt.work} [${runt.index}] ${JSON.stringify(runt.division)} | ${runt.words}w vs median ${runt.median} (${runt.ratio})`);
 }
 
 if (process.argv.includes('--write')) {
