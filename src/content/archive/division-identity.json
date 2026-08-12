@@ -1,0 +1,371 @@
+{
+  "generatedBy": "scripts/audit-division-identity.mjs",
+  "minDivisionWords": 5000,
+  "works": {
+    "a-doll-s-house": {
+      "divisions": 9,
+      "checkable": true
+    },
+    "a-hundred-and-seventy-chinese-poems": {
+      "divisions": 17,
+      "checkable": true
+    },
+    "a-hundred-verses-from-old-japan": {
+      "divisions": 7,
+      "checkable": true
+    },
+    "anna-karenina": {
+      "divisions": 239,
+      "checkable": true
+    },
+    "beckwith-anansi-stories": {
+      "divisions": 132,
+      "checkable": true
+    },
+    "beowulf": {
+      "divisions": 42,
+      "checkable": true
+    },
+    "boethius-consolation": {
+      "divisions": 16,
+      "checkable": true
+    },
+    "crane-line-and-form": {
+      "divisions": 14,
+      "checkable": true
+    },
+    "crime-and-punishment": {
+      "divisions": 75,
+      "checkable": true
+    },
+    "don-quixote": {
+      "divisions": 168,
+      "checkable": true
+    },
+    "dow-composition": {
+      "divisions": 9,
+      "checkable": true
+    },
+    "dresser-decorative-design": {
+      "divisions": 16,
+      "checkable": true
+    },
+    "epictetus-encheiridion": {
+      "divisions": 18,
+      "checkable": true
+    },
+    "extended-bhagavad-gita-full": {
+      "divisions": 16,
+      "checkable": true
+    },
+    "extended-dhammapada-full": {
+      "divisions": 26,
+      "checkable": true
+    },
+    "faust": {
+      "divisions": 45,
+      "checkable": true
+    },
+    "hamlet": {
+      "divisions": 33,
+      "checkable": true
+    },
+    "jane-eyre": {
+      "divisions": 66,
+      "checkable": true
+    },
+    "julian-revelations": {
+      "divisions": 87,
+      "checkable": true
+    },
+    "kabir-songs": {
+      "divisions": 1,
+      "checkable": true
+    },
+    "kandinsky-spiritual-in-art": {
+      "divisions": 11,
+      "checkable": false
+    },
+    "king-lear": {
+      "divisions": 39,
+      "checkable": true
+    },
+    "kwaidan-stories-and-studies-of-strange-things": {
+      "divisions": 12,
+      "checkable": true
+    },
+    "le-morte-darthur": {
+      "divisions": 509,
+      "checkable": true
+    },
+    "literary-essays-emerson": {
+      "divisions": 20,
+      "checkable": false
+    },
+    "literary-leaves-of-grass": {
+      "divisions": 41,
+      "checkable": true
+    },
+    "literary-letters-young-poet": {
+      "divisions": 1,
+      "checkable": true
+    },
+    "literary-meditations": {
+      "divisions": 25,
+      "checkable": true
+    },
+    "literary-poems-blake": {
+      "divisions": 1,
+      "checkable": false
+    },
+    "literary-poems-dickinson": {
+      "divisions": 274,
+      "checkable": false
+    },
+    "literary-thus-spoke-zarathustra": {
+      "divisions": 130,
+      "checkable": true
+    },
+    "literary-walden": {
+      "divisions": 31,
+      "checkable": true
+    },
+    "madame-bovary": {
+      "divisions": 31,
+      "checkable": true
+    },
+    "metamorphoses": {
+      "divisions": 50,
+      "checkable": true
+    },
+    "middlemarch": {
+      "divisions": 120,
+      "checkable": true
+    },
+    "moby-dick-or-the-whale": {
+      "divisions": 143,
+      "checkable": true
+    },
+    "montaigne-essays": {
+      "divisions": 187,
+      "checkable": true
+    },
+    "mooney-cherokee-myths": {
+      "divisions": 121,
+      "checkable": true
+    },
+    "mrs-dalloway": {
+      "divisions": 16,
+      "checkable": true
+    },
+    "okakura-book-of-tea": {
+      "divisions": 6,
+      "checkable": true
+    },
+    "paradise-lost": {
+      "divisions": 12,
+      "checkable": false
+    },
+    "parker-australian-tales": {
+      "divisions": 31,
+      "checkable": true
+    },
+    "phaedra": {
+      "divisions": 31,
+      "checkable": true
+    },
+    "pride-and-prejudice": {
+      "divisions": 66,
+      "checkable": true
+    },
+    "rasmussen-eskimo-tales": {
+      "divisions": 28,
+      "checkable": true
+    },
+    "romance-of-the-three-kingdoms": {
+      "divisions": 216,
+      "checkable": true
+    },
+    "ross-pure-design": {
+      "divisions": 14,
+      "checkable": true
+    },
+    "rubaiyat-of-omar-khayyam": {
+      "divisions": 1,
+      "checkable": true
+    },
+    "sacred-corpus-hermeticum": {
+      "divisions": 244,
+      "checkable": true
+    },
+    "sacred-emerald-tablet": {
+      "divisions": 1,
+      "checkable": false
+    },
+    "sacred-i-ching": {
+      "divisions": 60,
+      "checkable": true
+    },
+    "sacred-rumi": {
+      "divisions": 4,
+      "checkable": false
+    },
+    "sacred-tao-te-ching": {
+      "divisions": 1,
+      "checkable": false
+    },
+    "sacred-yoga-sutras": {
+      "divisions": 11,
+      "checkable": true
+    },
+    "sacred-zen-koans": {
+      "divisions": 43,
+      "checkable": true
+    },
+    "strange-stories-from-a-chinese-studio": {
+      "divisions": 173,
+      "checkable": true
+    },
+    "swann-s-way": {
+      "divisions": 52,
+      "checkable": true
+    },
+    "the-aeneid": {
+      "divisions": 33,
+      "checkable": true
+    },
+    "the-bacchae": {
+      "divisions": 5,
+      "checkable": true
+    },
+    "the-book-of-the-thousand-nights-and-a-night": {
+      "divisions": 470,
+      "checkable": true
+    },
+    "the-brothers-karamazov": {
+      "divisions": 130,
+      "checkable": true
+    },
+    "the-canterbury-tales-and-other-poems": {
+      "divisions": 78,
+      "checkable": true
+    },
+    "the-decameron": {
+      "divisions": 86,
+      "checkable": true
+    },
+    "the-divine-comedy": {
+      "divisions": 10,
+      "checkable": true
+    },
+    "the-duchess-of-malfi": {
+      "divisions": 20,
+      "checkable": true
+    },
+    "the-faerie-queene": {
+      "divisions": 122,
+      "checkable": true
+    },
+    "the-gulistan-or-rose-garden-of-sa-di": {
+      "divisions": 22,
+      "checkable": true
+    },
+    "the-house-of-atreus": {
+      "divisions": 9,
+      "checkable": true
+    },
+    "the-iliad": {
+      "divisions": 55,
+      "checkable": true
+    },
+    "the-kalevala": {
+      "divisions": 56,
+      "checkable": true
+    },
+    "the-little-clay-cart": {
+      "divisions": 14,
+      "checkable": true
+    },
+    "the-mahabharata-of-krishna-dwaipayana-vyasa": {
+      "divisions": 2028,
+      "checkable": true
+    },
+    "the-nibelungenlied": {
+      "divisions": 45,
+      "checkable": true
+    },
+    "the-no-plays-of-japan": {
+      "divisions": 21,
+      "checkable": true
+    },
+    "the-odyssey": {
+      "divisions": 47,
+      "checkable": true
+    },
+    "the-oedipus-trilogy": {
+      "divisions": 10,
+      "checkable": true
+    },
+    "the-ramayan-of-valmiki": {
+      "divisions": 510,
+      "checkable": true
+    },
+    "the-scarlet-letter": {
+      "divisions": 28,
+      "checkable": true
+    },
+    "the-shahnama-of-firdausi": {
+      "divisions": 400,
+      "checkable": true
+    },
+    "the-shih-king-or-book-of-poetry": {
+      "divisions": 71,
+      "checkable": true
+    },
+    "the-song-of-roland": {
+      "divisions": 291,
+      "checkable": true
+    },
+    "the-storm-of-steel": {
+      "divisions": 48,
+      "checkable": true
+    },
+    "the-tempest": {
+      "divisions": 14,
+      "checkable": true
+    },
+    "the-tragical-history-of-doctor-faustus": {
+      "divisions": 5,
+      "checkable": true
+    },
+    "the-troubadours": {
+      "divisions": 21,
+      "checkable": true
+    },
+    "translations-of-shakuntala-and-other-works": {
+      "divisions": 18,
+      "checkable": true
+    },
+    "twenty-two-goblins": {
+      "divisions": 12,
+      "checkable": true
+    },
+    "ulysses": {
+      "divisions": 70,
+      "checkable": true
+    },
+    "vitruvius-architecture": {
+      "divisions": 37,
+      "checkable": true
+    },
+    "war-and-peace": {
+      "divisions": 366,
+      "checkable": true
+    },
+    "wuthering-heights": {
+      "divisions": 46,
+      "checkable": true
+    }
+  },
+  "violations": []
+}

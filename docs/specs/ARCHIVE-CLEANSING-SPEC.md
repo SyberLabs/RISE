@@ -102,6 +102,9 @@ no division may be *devoid* of the vocabulary its work is dense in. Volumes 5–
 score zero against a corpus averaging one proper noun per 145 words. A
 per-division identity check is rung 2 of §3 in its simplest possible form.
 
+> **BUILT 2026-08-12.** `scripts/audit-division-identity.mjs` derives it and
+> `src/content/archive/division-identity.test.js` holds it. See §3b.
+
 ### Scope, checked rather than assumed
 
 Eight shelved works are built from multiple artifacts; only two assume a
@@ -832,3 +835,70 @@ position without being disposable.
 
 The likely disposition is a bounded front-matter trim, but removal remains a
 cleansing decision until this verification is complete.
+
+---
+
+## 3b. Per-division identity — BUILT 2026-08-12
+
+The guard §1b asked for, and the successor `identity.test.js` names inside its
+own exemption list. That list had grown to **eighteen works** — legitimate
+books whose opening pages do not name themselves — which is the shape ROADMAP
+12.4 warns about: *a test that recovers almost everything by looking almost
+everywhere has stopped asking a question.* This one carries **no exemptions**.
+
+**The invariant:** *no division may be devoid of the vocabulary its own work is
+dense in.*
+
+### The measure, and why it is not word frequency
+
+Every division of every English book is dense in `said` and `great`, and so
+were the war volumes. What separates a work is vocabulary common **inside** it
+and rare **across** the rest of the shelf — Pandava, Yudhishthira, Parva. So a
+work's characteristic terms are its most frequent tokens that appear in no more
+than 15% of the other ninety works, capped at 120 terms. A division's score is
+how many of those it uses.
+
+### The floor was swept, not chosen
+
+| floor | divisions scoring zero |
+|---|---|
+| 400 words | 107 |
+| 1,000 | 66 |
+| 2,000 | 52 |
+| **5,000** | **0** |
+| 10,000 | 0 |
+
+Below 5,000 the instrument refuses Epictetus, Boethius, Kwaidan and Leaves of
+Grass for being aphoristic — chapters that genuinely do not use their book's
+distinctive nouns. **At 5,000 the corpus is clean with no exemptions**, and the
+defect the guard exists to catch was 115,312 words with zero hits: a
+twenty-three-fold margin.
+
+Contents pages and printer's apparatus are a different class at a smaller
+scale, with their own detectors (§2e, §2f). This one is for a whole division
+that is a different book.
+
+### An artifact, not a live sweep
+
+Measuring needs all 16.3M words tokenised. `identity.test.js` already pays 22
+seconds to load the payloads once, and a second full pass would put the unit
+suite past four minutes for a corpus that changes on acquisition days only. So
+it is derived offline, committed, and asserted — the `division-index.json`
+shape, for the `division-index.json` reason. The test costs 1.2 seconds.
+
+### What it refuses to claim
+
+**Eight of ninety-one works cannot be checked by this measure** and are named
+in the artifact rather than passed quietly: `kandinsky-spiritual-in-art`,
+`literary-essays-emerson`, `literary-poems-blake`, `literary-poems-dickinson`,
+`paradise-lost`, `sacred-emerald-tablet`, `sacred-rumi`,
+`sacred-tao-te-ching`. Their vocabulary is not distinctive against the shelf,
+so there is nothing for the measure to hold. A guard that quietly passed them
+would be claiming a coverage it does not have.
+
+### The half that matters most
+
+The coverage assertion. **A work added to the shelf without re-running the
+audit fails here**, and the failure names the command. That is the
+*acquisitions cannot bypass the gate* requirement, and it is why the artifact
+lists every work rather than only the offending ones.

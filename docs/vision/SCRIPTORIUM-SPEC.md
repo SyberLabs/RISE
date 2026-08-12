@@ -4,6 +4,9 @@
 it before admitting it. The Workshop is where you compose from materials you
 gathered; this is where you say what you want and receive a proposal.**
 
+Agent composition and deterministic distribution companion:
+[`AGENT-COMPOSITION-AND-RENDER-SPEC.md`](./AGENT-COMPOSITION-AND-RENDER-SPEC.md).
+
 Status: **ROOM STARTED (additive).** `rise.experience-program.v1` and
 `rise.curator-context.v1` remain canonical. Shipped: capability catalogue,
 copyable refusals (`describeImportFailure`), generated export prompt

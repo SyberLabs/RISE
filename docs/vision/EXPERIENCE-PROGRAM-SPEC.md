@@ -7,6 +7,9 @@ paused, and resumed without re-deriving the argument.*
 Workshop implementation companion:
 [`WORKSHOP-COMPOSITION-STUDIO-SPEC.md`](./WORKSHOP-COMPOSITION-STUDIO-SPEC.md).
 
+Agent composition and deterministic distribution companion:
+[`AGENT-COMPOSITION-AND-RENDER-SPEC.md`](./AGENT-COMPOSITION-AND-RENDER-SPEC.md).
+
 ---
 
 ## 0. The finding
