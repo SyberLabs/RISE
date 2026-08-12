@@ -52,6 +52,7 @@ export function describeSpan(anchor) {
 function describeVisualCue(cue, context) {
   if (cue.kind === 'still') return 'nothing — a still ground';
   if (cue.kind === 'focal') return 'a focal image';
+  if (cue.kind === 'field') return `the ${cue.renderer} field`;
   const names = (cue.collections || []).map(id => catalogName(context, 'collections', id));
   const engines = (cue.engines || []).map(id => catalogName(context, 'engines', id));
   const shown = engines.length ? engines : names;

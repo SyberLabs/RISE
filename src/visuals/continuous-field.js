@@ -277,6 +277,7 @@ export class ContinuousField {
         this.crossfadeMs = Number.isFinite(options.crossfadeMs)
             ? options.crossfadeMs
             : DEFAULT_TIMINGS.crossfadeMs;
+        this._nextCrossfadeMs = null;
         this.reducedMotion = !!options.reducedMotion;
         this.showArtworkLabels = options.showArtworkLabels !== false;
 
@@ -289,8 +290,11 @@ export class ContinuousField {
         this._front = 0;          // index of the visible layer
         this._currentUrl = null;
         this._running = false;
+        this._paused = false;
         this._rafId = null;
         this._nextAdvanceAt = 0;
+        this._remainingDwellMs = 0;
+        this._pendingPoolChange = null;
         this._advanceInFlight = false;
         this._resizeObserver = null;
         this._boundRefreshLayers = () => this._refreshLayerGeometry();
@@ -316,7 +320,8 @@ export class ContinuousField {
             }
         }
         if (this._running && !this.reducedMotion) {
-            this._nextAdvanceAt = this._now() + this.dwellMs;
+            if (this._paused) this._remainingDwellMs = this.dwellMs;
+            else this._nextAdvanceAt = this._now() + this.dwellMs;
         }
     }
 
@@ -495,6 +500,9 @@ export class ContinuousField {
         if (this._running) return;
         this._ensureLayers();
         this._running = true;
+        this._paused = false;
+        this._remainingDwellMs = this.dwellMs;
+        this._pendingPoolChange = null;
         this._generation += 1;
         // First work appears immediately (fades in from transparent —
         // the one benign fade, since there is nothing to dissolve from).
@@ -507,7 +515,7 @@ export class ContinuousField {
 
     _loop() {
         const tick = () => {
-            if (!this._running) return;
+            if (!this._running || this._paused) return;
             const t = this._now();
             if (t >= this._nextAdvanceAt && !this._advanceInFlight) {
                 this._nextAdvanceAt = t + this.dwellMs;
@@ -554,7 +562,7 @@ export class ContinuousField {
             work = null;
         }
 
-        if (!this._running || generation !== this._generation) {
+        if (!this._running || this._paused || generation !== this._generation) {
             this._advanceInFlight = false;
             return;
         }
@@ -568,7 +576,7 @@ export class ContinuousField {
         const ok = await this.decode(url);
         // The moment that requested this must still exist, and nothing
         // newer must have superseded it.
-        if (!ok || !this._running || generation !== this._generation) {
+        if (!ok || !this._running || this._paused || generation !== this._generation) {
             this._advanceInFlight = false;
             // a decode failure holds the current work; the next tick retries
             return;
@@ -591,15 +599,17 @@ export class ContinuousField {
         }
         const incoming = this._layers[1 - this._front];
         const outgoing = this._layers[this._front];
+        const crossfadeMs = this._nextCrossfadeMs ?? this.crossfadeMs;
+        this._nextCrossfadeMs = null;
         this._setLayerWork(incoming, work);
         // Rise the incoming and (unless first) fall the outgoing over the
         // same window — the double-buffer never passes through black.
         // Force a style flush so the transition runs from opacity 0.
-        incoming.root.style.transition = `opacity ${this.crossfadeMs}ms ease-in-out`;
+        incoming.root.style.transition = `opacity ${crossfadeMs}ms ease-in-out`;
         void incoming.root.offsetWidth;
         incoming.root.style.opacity = '1';
         if (!first) {
-            outgoing.root.style.transition = `opacity ${this.crossfadeMs}ms ease-in-out`;
+            outgoing.root.style.transition = `opacity ${crossfadeMs}ms ease-in-out`;
             outgoing.root.style.opacity = '0';
         }
         this._front = 1 - this._front;
@@ -631,6 +641,17 @@ export class ContinuousField {
      */
     poolChanged(opts = {}) {
         if (!this._running) return;
+        if (Number.isFinite(opts.transitionMs) && opts.transitionMs >= 0) {
+            this._nextCrossfadeMs = opts.transitionMs;
+        }
+        if (this._paused) {
+            // A schedule may cross an identity boundary while the player is
+            // settling. Remember it, but never alter the authored wall until
+            // the reading resumes.
+            this._pendingPoolChange = { ...opts };
+            this._generation += 1;
+            return;
+        }
         this._generation += 1;
         if (!this.hasWorks()) {
             if (opts.stillness) {
@@ -654,9 +675,39 @@ export class ContinuousField {
         }
     }
 
+    /** Freeze cadence and in-flight publication without discarding the wall. */
+    pause() {
+        if (!this._running || this._paused) return false;
+        this._paused = true;
+        this._remainingDwellMs = Math.max(0, this._nextAdvanceAt - this._now());
+        // Invalidate async generation/decode begun before the pause. It may
+        // finish, but it can no longer publish into the held presentation.
+        this._generation += 1;
+        if (this._rafId != null) {
+            this._caf(this._rafId);
+            this._rafId = null;
+        }
+        return true;
+    }
+
+    /** Continue from the held wall and the remaining dwell interval. */
+    resume() {
+        if (!this._running || !this._paused) return false;
+        this._paused = false;
+        this._nextAdvanceAt = this._now() + this._remainingDwellMs;
+        const pending = this._pendingPoolChange;
+        this._pendingPoolChange = null;
+        if (pending) this.poolChanged(pending);
+        if (!this.reducedMotion && this._rafId == null) this._loop();
+        return true;
+    }
+
     /** Stop the field and clear its layers. */
     stop() {
         this._running = false;
+        this._paused = false;
+        this._remainingDwellMs = 0;
+        this._pendingPoolChange = null;
         this._generation += 1;
         if (this._rafId != null) { this._caf(this._rafId); this._rafId = null; }
         this._resizeObserver?.disconnect();
@@ -685,5 +736,9 @@ export class ContinuousField {
 
     get running() {
         return this._running;
+    }
+
+    get paused() {
+        return this._paused;
     }
 }

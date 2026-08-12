@@ -432,7 +432,8 @@ describe('Chapel handoff imagery (seam)', () => {
     expect(reduced).toMatch(/prefers-reduced-motion[\s\S]*focal-icon-frame[\s\S]*animation:\s*none/);
 
     const chamber = readFileSync(resolve('src/components/Chamber.js'), 'utf8');
-    expect(chamber).toContain("focals.type === 'icon'");
+    expect(chamber).toContain("cue.renderer === 'focal'");
+    expect(chamber).toContain("config.type === 'icon'");
     expect(chamber).toContain('initializeIconFocal');
   });
 });

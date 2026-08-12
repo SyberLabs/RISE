@@ -4,7 +4,11 @@ import {
   EXPERIENCE_PROGRAM_SCHEMA,
   halfOpenRangesOverlap
 } from './experience-program.js';
-import { normalizeQuote, resolveSourceSpan } from './source-span.js';
+import {
+  normalizeQuote,
+  resolveSourceSpan,
+  snapCharacterRangeToTokens
+} from './source-span.js';
 import { validateVisualScoreLane } from './visual-score-lane.js';
 import {
   EDITOR_ASSET_SCHEMA,
@@ -109,12 +113,16 @@ function strictAssignment(value, sources, assets) {
     quoteEnd: value.quoteEnd
   };
   resolveSourceSpan(anchor, source.text, `audioScore.assignments.${id}`);
+  const snapped = snapCharacterRangeToTokens(
+    source.text, anchor.fromCharacter, anchor.toCharacter);
+  if (!snapped) fail('AUDIO_SCORE_EMPTY_SELECTION', 'Select visible source text first.');
+  const snappedText = source.text.slice(snapped.fromCharacter, snapped.toCharacter);
   const assignment = {
     id, sourceId, assetId, lane: asset.lane,
-    fromCharacter: anchor.fromCharacter,
-    toCharacter: anchor.toCharacter,
-    quoteStart: anchor.quoteStart,
-    quoteEnd: anchor.quoteEnd
+    fromCharacter: snapped.fromCharacter,
+    toCharacter: snapped.toCharacter,
+    quoteStart: fingerprint(snappedText, 'start'),
+    quoteEnd: fingerprint(snappedText, 'end')
   };
   if (value.syncGroup !== undefined) assignment.syncGroup = exactId(value.syncGroup, 'Sync group');
   return Object.freeze(assignment);
@@ -163,8 +171,11 @@ export function assignAudioSpan({
   if (!asset) fail('AUDIO_SCORE_ASSET_NOT_FOUND', `Audio asset ${assetId} is unavailable.`, { assetId });
   const sourceId = exactId(source?.id, 'Source id');
   const text = typeof source?.text === 'string' ? source.text : '';
-  const selected = Number.isInteger(fromCharacter) && Number.isInteger(toCharacter)
-    ? text.slice(fromCharacter, toCharacter) : '';
+  const snapped = snapCharacterRangeToTokens(text, fromCharacter, toCharacter);
+  if (!snapped) fail('AUDIO_SCORE_EMPTY_SELECTION', 'Select visible source text first.');
+  fromCharacter = snapped.fromCharacter;
+  toCharacter = snapped.toCharacter;
+  const selected = text.slice(fromCharacter, toCharacter);
   const candidate = {
     id: exactId(assignmentId, 'Audio assignment id'), sourceId,
     assetId: asset.id, lane: asset.lane, fromCharacter, toCharacter,
@@ -206,7 +217,7 @@ function clipFromAssignment(assignment, asset) {
       quoteStart: assignment.quoteStart,
       quoteEnd: assignment.quoteEnd
     },
-    cue: asset.cue
+    cue: assignment.cue || asset.cue
   };
   if (assignment.syncGroup) clip.syncGroup = assignment.syncGroup;
   return clip;
@@ -215,7 +226,7 @@ function clipFromAssignment(assignment, asset) {
 /** Compile every authored media lane into one canonical Experience Program. */
 export function compileWorkshopScoreProgram({
   programId, sources, visualAssets = [], visualAssignments = [],
-  audioAssets = [], audioAssignments = []
+  audioAssets = [], audioAssignments = [], visualFallback = { kind: 'still' }
 }) {
   const visual = validateVisualScoreLane({
     sources, assets: visualAssets, assignments: visualAssignments
@@ -234,7 +245,7 @@ export function compileWorkshopScoreProgram({
   }];
   if (visual.assignments.length) {
     tracks.push({
-      id: 'visual-main', kind: 'visual', fallback: { kind: 'still' },
+      id: 'visual-main', kind: 'visual', fallback: visualFallback,
       clips: visual.assignments.map(assignment => clipFromAssignment(
         assignment, visual.assets.find(asset => asset.id === assignment.assetId)))
     });

@@ -119,7 +119,7 @@ describe('Chamber Living Text integration', () => {
         session.visualConfig.genesis = { preset: 'harmonic' };
         const { chamber, container } = makeChamber(session);
 
-        const host = container.querySelector('#chamber-genesis');
+        const host = container.querySelector('.chamber-genesis');
         expect(host).not.toBeNull();
         expect(container.querySelector('.klee-field-canvas')).not.toBeNull();
         expect(container.querySelector('#chamber-field').classList.contains('chamber-field-genesis')).toBe(true);

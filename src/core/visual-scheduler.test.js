@@ -99,6 +99,21 @@ describe('VisualScheduleController', () => {
         ctrl.observe(atom(1, 3)); // re-emits after reset
         expect(onCue).toHaveBeenCalledTimes(2);
     });
+
+    it('reports the complete contiguous cue duration including structural silence', () => {
+        const onCue = vi.fn();
+        const atoms = [
+            { ...atom(1, 1), duration: 400 },
+            { content: '', duration: 200, tags: ['paragraph-break'] },
+            { ...atom(1, 2), duration: 600 },
+            { ...atom(1, 6), duration: 300 }
+        ];
+        const ctrl = new VisualScheduleController(program, onCue, { atoms });
+        ctrl.observe(atoms[0]);
+        ctrl.observe(atoms[3]);
+        expect(onCue.mock.calls[0][1].durationMs).toBe(1200);
+        expect(onCue.mock.calls[1][1].durationMs).toBe(300);
+    });
 });
 
 describe('a figure narrows a source-space cue to a place in the text', () => {

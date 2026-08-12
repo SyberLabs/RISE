@@ -27,16 +27,38 @@ describe('Editor Asset v1', () => {
     expect(Object.isFrozen(asset.editor.preview)).toBe(true);
   });
 
-  it('keeps project surfaces out of canonical clip cues', () => {
-    expect(() => createEditorAsset({
+  it('keeps only canonical per-passage procedural configuration', () => {
+    const klee = createEditorAsset({
+      id: 'procedural:klee', lane: 'visual', kind: 'procedural',
+      name: 'Klee Lines', capability: 'both',
+      editor: { preview: { kind: 'generator', ref: 'klee' } },
+      cueTemplate: {
+        kind: 'procedural', collections: ['klee'],
+        config: { preset: 'harmonic', injected: 'discard me' }
+      }
+    });
+    expect(klee.cueTemplate.config).toEqual({ preset: 'harmonic' });
+  });
+
+  it('admits only canonical schedulable cues on project surfaces', () => {
+    const field = createEditorAsset({
       id: 'surface:focal',
       lane: 'visual',
       kind: 'project-surface',
       name: 'Focal',
-      capability: 'default',
+      capability: 'both',
       editor: { preview: { kind: 'surface', ref: 'focal' } },
+      cueTemplate: { kind: 'field', renderer: 'focal', config: { standardGlyph: 'star' } }
+    });
+    expect(field.cueTemplate).toEqual({
+      kind: 'field', renderer: 'focal', config: { standardGlyph: 'star' }
+    });
+    expect(editorAssetSupports(field, 'span')).toBe(true);
+
+    expect(() => createEditorAsset({
+      ...field,
       cueTemplate: { kind: 'sourced', collections: ['focal'] }
-    })).toThrow(expect.objectContaining({ code: 'EDITOR_ASSET_SURFACE_CUE' }));
+    })).toThrow(expect.objectContaining({ code: 'EDITOR_ASSET_CUE_KIND' }));
   });
 
   it('rejects wrong cue kinds, unknown fields, and prototype pollution', () => {
@@ -64,5 +86,27 @@ describe('Editor Asset v1', () => {
     expect({}.polluted).toBeUndefined();
     expect(() => validateEditorAsset({ ...valid, componentState: true }))
       .toThrow(expect.objectContaining({ code: 'EDITOR_ASSET_FIELD' }));
+  });
+
+  it('models sequence MP4s as span-capable, muted visual assets', () => {
+    const video = createEditorAsset({
+      id: 'project-video:one', lane: 'visual', kind: 'sequence-video',
+      name: 'One', capability: 'span',
+      editor: { preview: { kind: 'video', ref: 'blob:https://rise.test/one' } },
+      cueTemplate: {
+        kind: 'video', assetId: 'one', timeMode: 'loop',
+        audioPolicy: 'muted', reducedMotion: 'poster'
+      }
+    });
+
+    expect(video.cueTemplate).toEqual({
+      kind: 'video', assetId: 'one', timeMode: 'loop',
+      audioPolicy: 'muted', reducedMotion: 'poster'
+    });
+    expect(editorAssetSupports(video, 'span')).toBe(true);
+    expect(() => createEditorAsset({
+      ...video,
+      cueTemplate: { ...video.cueTemplate, audioPolicy: 'source' }
+    })).toThrow(expect.objectContaining({ code: 'EDITOR_ASSET_VIDEO_AUDIO' }));
   });
 });

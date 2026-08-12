@@ -30,6 +30,7 @@ export class SourceBrowser {
         this._searchTimer = null;
         this._closeTimer = null;
         this._destroyed = false;
+        this.returnFocus = document.activeElement;
 
         // Track expanded visual categories for browsing individual images
         this.expandedCategory = null;
@@ -65,9 +66,9 @@ export class SourceBrowser {
         this.element = document.createElement('div');
         this.element.className = 'source-browser-overlay';
         this.element.innerHTML = `
-            <div class="source-browser">
+            <div class="source-browser" role="dialog" aria-modal="true" aria-labelledby="source-browser-title">
                 <header class="sb-header">
-                    <h2 class="sb-title">Source Library</h2>
+                    <h2 class="sb-title" id="source-browser-title">Source Library</h2>
                     <button class="sb-close" type="button" aria-label="Close">✕</button>
                 </header>
 
@@ -116,6 +117,7 @@ export class SourceBrowser {
         // Animate in
         requestAnimationFrame(() => {
             this.element.classList.add('open');
+            this.element.querySelector('.sb-search-input, .sb-close')?.focus({ preventScroll: true });
         });
     }
 
@@ -610,6 +612,21 @@ export class SourceBrowser {
 
         // Escape key
         this.keyHandler = (e) => {
+            if (e.key === 'Tab') {
+                const focusable = [...this.element.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+                    .filter(node => !node.hidden && node.getClientRects().length);
+                if (!focusable.length) return;
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+                return;
+            }
             if (e.key === 'Escape') {
                 if (this.viewMode === 'images' || this.viewMode === 'contents') {
                     this.goBack();
@@ -844,6 +861,9 @@ export class SourceBrowser {
         this._closeTimer = setTimeout(() => {
             this.element.remove();
             this.onClose();
+            if (this.returnFocus?.isConnected && document.activeElement === document.body) {
+                this.returnFocus.focus?.({ preventScroll: true });
+            }
         }, 300);
     }
 

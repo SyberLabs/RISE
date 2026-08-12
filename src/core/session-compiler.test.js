@@ -53,6 +53,35 @@ describe('session compiler', () => {
     })).toThrow(/missing sequence image moon/i);
   });
 
+  it('carries durable MP4 metadata and excludes it from the legacy image pool', () => {
+    const source = { id: 'video-source', name: 'Video source', text: 'Moving water.' };
+    const asset = {
+      id: 'video-1', kind: 'video', name: 'Moving water', color: '#7fd4a4',
+      storage: 'idb', mimeType: 'video/mp4', byteLength: 2048,
+      durationMs: 9000, timeMode: 'loop', audioPolicy: 'muted',
+      uri: 'blob:https://rise.test/video-1'
+    };
+    const experienceProgram = compileVisualScoreProgram({
+      programId: 'video-program', sources: [source], assets: [asset],
+      assignments: [{
+        id: 'video-clip', sourceId: source.id, assetId: asset.id,
+        fromCharacter: 0, toCharacter: 6, quoteStart: 'Moving', quoteEnd: 'Moving'
+      }]
+    });
+    const session = compileSession({
+      sources: [{ id: source.id, name: source.name, data: source.text }],
+      sequenceVisualAssets: [asset], experienceProgram
+    });
+
+    expect(session.sequenceVisualAssets[0]).toMatchObject({
+      id: 'video-1', kind: 'video', mimeType: 'video/mp4', audioPolicy: 'muted'
+    });
+    expect(session.customVisuals).toEqual([]);
+    expect(session.visualProgram.segments[0].cue).toMatchObject({
+      kind: 'video', assetId: 'video-1'
+    });
+  });
+
   it('lowers mixed collection and procedural spans under every scored presentation', () => {
     const source = { id: 'mixed', name: 'Mixed', text: 'Klee and masters.' };
     const assets = [
@@ -90,7 +119,7 @@ describe('session compiler', () => {
       });
       expect(session.visualConfig.interlocution.presentation).toBe(presentation);
       expect(session.visualProgram.segments.map(segment => segment.cue)).toEqual([
-        { kind: 'procedural', collections: ['klee'] },
+        { kind: 'procedural', collections: ['klee'], config: { preset: 'random' } },
         { kind: 'sourced', collections: ['aic-oldmasters'] }
       ]);
     }

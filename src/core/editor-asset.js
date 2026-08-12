@@ -1,13 +1,16 @@
 export const EDITOR_ASSET_SCHEMA = 'rise.editor-asset.v1';
 
+import { normalizeProceduralStyle } from './visual-style-definitions.js';
+
 const LANES = new Set(['visual', 'audio', 'swell']);
 const KINDS = new Set([
-  'sequence-image', 'sourced-collection', 'procedural',
+  'sequence-image', 'sequence-video', 'sourced-collection', 'procedural',
   'audio-bed', 'audio-swell', 'project-surface'
 ]);
 const CAPABILITIES = new Set(['span', 'default', 'both']);
-const PREVIEW_KINDS = new Set(['image', 'sample', 'generator', 'audio', 'surface']);
+const PREVIEW_KINDS = new Set(['image', 'video', 'sample', 'generator', 'audio', 'surface']);
 const AVAILABILITY = new Set(['ready', 'loading', 'unavailable']);
+const FIELD_RENDERERS = new Set(['focal', 'attractor', 'genesis']);
 const COLORS = /^#[0-9a-f]{6}$/iu;
 
 export class EditorAssetError extends Error {
@@ -103,6 +106,39 @@ function normalizeCue(value, kind, path) {
     }
     return cue;
   }
+  if (kind === 'sequence-video') {
+    if (value.kind !== 'video') {
+      fail('EDITOR_ASSET_CUE_KIND', 'Expected a video cue', `${path}.kind`);
+    }
+    const timeModes = new Set(['cue', 'fit-span', 'loop', 'hold-final']);
+    if (!timeModes.has(value.timeMode)) {
+      fail('EDITOR_ASSET_VIDEO_TIME', 'Unsupported video time mode', `${path}.timeMode`);
+    }
+    if (value.audioPolicy !== 'muted') {
+      fail('EDITOR_ASSET_VIDEO_AUDIO', 'V1 video audio must be muted', `${path}.audioPolicy`);
+    }
+    if (value.reducedMotion !== 'poster') {
+      fail('EDITOR_ASSET_VIDEO_MOTION', 'V1 video must use its poster under reduced motion', `${path}.reducedMotion`);
+    }
+    return {
+      kind: 'video',
+      assetId: exactString(value.assetId, `${path}.assetId`, 160),
+      timeMode: value.timeMode,
+      audioPolicy: 'muted',
+      reducedMotion: 'poster'
+    };
+  }
+  if (kind === 'project-surface') {
+    if (value.kind === 'still') return { kind: 'still' };
+    if (value.kind !== 'field' || !FIELD_RENDERERS.has(value.renderer)) {
+      fail('EDITOR_ASSET_CUE_KIND', 'Expected a supported visual field cue', `${path}.kind`);
+    }
+    return {
+      kind: 'field',
+      renderer: value.renderer,
+      config: plainClone(value.config) || {}
+    };
+  }
   const expectedKind = kind === 'procedural' ? 'procedural' : 'sourced';
   if (value.kind !== expectedKind) {
     fail('EDITOR_ASSET_CUE_KIND', `Expected a ${expectedKind} cue`, `${path}.kind`);
@@ -121,6 +157,10 @@ function normalizeCue(value, kind, path) {
     }
     cue.engines = value.engines.map((engine, index) =>
       exactString(engine, `${path}.engines[${index}]`, 160));
+  }
+  if (expectedKind === 'procedural' && value.config !== undefined) {
+    const config = normalizeProceduralStyle(cue.collections, value.config);
+    if (Object.keys(config).length) cue.config = config;
   }
   return cue;
 }
@@ -158,9 +198,6 @@ export function validateEditorAsset(value) {
     fail('EDITOR_ASSET_AVAILABILITY', 'Unsupported availability state', '$.availability.state');
   }
   const cueTemplate = normalizeCue(value.cueTemplate, value.kind, '$.cueTemplate');
-  if (value.kind === 'project-surface' && cueTemplate) {
-    fail('EDITOR_ASSET_SURFACE_CUE', 'Project surfaces cannot define clip cues', '$.cueTemplate');
-  }
   if ((value.kind === 'sourced-collection' || value.kind === 'procedural'
     || value.kind === 'audio-bed' || value.kind === 'audio-swell') && !cueTemplate) {
     fail('EDITOR_ASSET_CUE_REQUIRED', 'This asset kind requires a cue template', '$.cueTemplate');

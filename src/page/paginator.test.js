@@ -22,6 +22,18 @@ const composition = (items) => ({ items, stats: {} });
 const allItems = (pages) => pages.flatMap(p => p.items);
 
 describe('paginate', () => {
+    it('keeps a passage focal with the prose it introduces', () => {
+        const focal = {
+            type: 'focal', focal: { type: 'standard', glyph: 'star' }, rhythm: 'open'
+        };
+        const passage = text(240);
+        const items = [text(600), focal, passage, text(600)];
+        const { pages } = paginate(composition(items), { linesPerPage: 10 });
+        const focalPage = pages.find(page => page.items.includes(focal));
+        expect(focalPage.items).toContain(passage);
+        expect(allItems(pages)).toEqual(items);
+    });
+
     it('returns nothing for an empty composition rather than one empty page', () => {
         const { pages, stats } = paginate(composition([]));
         expect(pages).toEqual([]);

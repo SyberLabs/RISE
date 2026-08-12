@@ -63,6 +63,41 @@ afterEach(() => {
 const settle = async () => { await new Promise(r => setTimeout(r, 0)); await new Promise(r => setTimeout(r, 0)); };
 
 describe('PageReader', () => {
+    it('renders a scored passage focal inline and keeps the fallback focal in the masthead', () => {
+        const scored = {
+            atoms: [
+                atom('Before', { sourceId: 's', sourceCharacterStart: 0, sourceCharacterEnd: 6 }),
+                atom('Here', { sourceId: 's', sourceCharacterStart: 7, sourceCharacterEnd: 11 })
+            ],
+            visualConfig: { visualMode: 'interlocution' },
+            visualProgram: {
+                coordinateSpace: 'source', enabled: true,
+                fallback: {
+                    kind: 'field', renderer: 'focal',
+                    config: { type: 'standard', standardGlyph: 'anchor' }
+                },
+                segments: [{
+                    id: 'local', match: {
+                        sourceIds: ['s'], fromCharacter: 7, toCharacter: 11
+                    },
+                    cue: {
+                        kind: 'field', renderer: 'focal',
+                        config: { type: 'standard', standardGlyph: 'star' }
+                    }
+                }]
+            }
+        };
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+        const reader = new PageReader(host, { session: scored, title: 'Scored reading' });
+        reader.render();
+
+        expect(host.querySelector('.page-masthead .page-focal')?.textContent).toBe('⚓');
+        expect(host.querySelector('.page-passage-focal')?.textContent).toBe('✦');
+        expect(host.querySelector('.page-passage-focal')?.dataset.episode).toBe('local');
+        reader.destroy();
+    });
+
     it('renders the typeset column: text in the measure, verse marks in the margin', () => {
         const { reader, host } = mount({ resolveCollection: async () => [] });
         reader.render();
@@ -526,6 +561,47 @@ describe('PageReader pagination', () => {
         expect(shown).toBe(total);
         expect(host.querySelector('.page-pager')).toBeNull();
         reader.destroy();
+    });
+
+    it('hydrates the complete reading for print and restores the exact page', async () => {
+        // A non-intersecting observer reproduces the browser state where
+        // offscreen figures have never been decoded before Print is chosen.
+        const OriginalObserver = globalThis.IntersectionObserver;
+        globalThis.IntersectionObserver = class {
+            observe() {}
+            unobserve() {}
+            disconnect() {}
+        };
+        try {
+            const visualSession = longSession(80);
+            visualSession.atoms.splice(8, 0, atom('print.jpg', {
+                modality: 'image', url: 'print.jpg', name: 'Print plate'
+            }));
+            const { reader, host } = paged({
+                session: visualSession,
+                resolveCollection: async () => []
+            });
+            reader.goToPage(3);
+            const interactivePages = reader.pages;
+            expect(host.querySelector('.page-figure img')).toBeNull();
+
+            await reader.prepareForPrint();
+            expect(reader.pages).toHaveLength(1);
+            expect(host.querySelectorAll('.page-text').length)
+                .toBe(reader.composition.items.filter(i => i.type === 'text').length);
+            const figures = [...host.querySelectorAll('.page-figure')];
+            expect(figures.length).toBeGreaterThan(0);
+            expect(figures.every(fig => fig.classList.contains('is-shown'))).toBe(true);
+
+            expect(reader.restoreAfterPrint()).toBe(true);
+            expect(reader.pages).toBe(interactivePages);
+            expect(reader.pageIndex).toBe(3);
+            expect(reader.isPaged).toBe(true);
+            reader.destroy();
+        } finally {
+            if (OriginalObserver === undefined) delete globalThis.IntersectionObserver;
+            else globalThis.IntersectionObserver = OriginalObserver;
+        }
     });
 });
 

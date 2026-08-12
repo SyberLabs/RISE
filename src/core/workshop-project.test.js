@@ -187,6 +187,26 @@ describe('Workshop Project v1', () => {
       .toThrow(expect.objectContaining({ code: 'VISUAL_SCORE_ASSET_NOT_FOUND' }));
   });
 
+  it('persists a personal focal by project asset id without a transient blob URL', () => {
+    const project = workshopEditorDataToProject(legacyBlueprint({
+      visualConfig: {
+        visualMode: 'focals',
+        focals: {
+          type: 'personal', personalAssetId: 'moon',
+          personalImage: 'blob:http://localhost/transient'
+        }
+      },
+      visualScoreAssignments: []
+    }), { id: 'personal-focal' });
+
+    expect(project.defaults.visual).toMatchObject({
+      surface: 'focal',
+      config: {
+        focals: { type: 'personal', personalAssetId: 'moon', personalImage: null }
+      }
+    });
+  });
+
   it('refuses a pre-baked experience program with same-lane overlaps', () => {
     const project = migrateWorkshopBlueprint(legacyBlueprint());
     const program = JSON.parse(JSON.stringify(project.experienceProgram));

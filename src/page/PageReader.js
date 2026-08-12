@@ -76,6 +76,14 @@ export class PageReader {
         this.pages = [];
         this.pageIndex = 0;
         this._onKey = null;
+        this._printState = null;
+        this._printPreparation = null;
+        this._onBeforePrint = () => { void this.prepareForPrint(); };
+        this._onAfterPrint = () => { this.restoreAfterPrint(); };
+        if (typeof window !== 'undefined') {
+            window.addEventListener('beforeprint', this._onBeforePrint);
+            window.addEventListener('afterprint', this._onAfterPrint);
+        }
     }
 
     /** Compile, compose, cut into pages, and render the first. */
@@ -451,6 +459,7 @@ export class PageReader {
             case 'break': return this._buildBreak(item);
             case 'pause': return this._buildPause(item);
             case 'figure': return this._buildFigure(item);
+            case 'focal': return this._buildPassageFocal(item);
             case 'symbol': return this._buildSymbol(item);
             case 'text': return this._buildText(item);
             default: return null;
@@ -479,6 +488,15 @@ export class PageReader {
         const el = document.createElement('div');
         el.className = `page-pause rhythm-${item.rhythm}`;
         el.setAttribute('aria-hidden', 'true');
+        return el;
+    }
+
+    /** A scored focal held at its passage rather than at the book opening. */
+    _buildPassageFocal(item) {
+        const el = this._buildFocal(item.focal);
+        if (!el) return null;
+        el.classList.add('page-passage-focal', `rhythm-${item.rhythm}`);
+        if (item.episodeId) el.dataset.episode = item.episodeId;
         return el;
     }
 
@@ -720,6 +738,61 @@ export class PageReader {
         return flowCollections(compileFlow(this.session));
     }
 
+    /**
+     * Materialize the complete reading and eagerly decode every figure for
+     * print. Pagination deliberately keeps only one page in the live DOM;
+     * print is the inverse contract and must contain the whole composition.
+     *
+     * The returned promise lets explicit print commands await hydration.
+     * Native `beforeprint` cannot await it, but beginning the work there is
+     * still the earliest portable opportunity and cached assets settle fast.
+     */
+    prepareForPrint() {
+        if (this._destroyed || !this.host || !this.composition) {
+            return Promise.resolve(false);
+        }
+        if (this._printPreparation) return this._printPreparation;
+
+        if (!this._printState) {
+            this._printState = {
+                isPaged: this.isPaged,
+                pages: this.pages,
+                pageIndex: this.pageIndex,
+                scrollTop: this.host.scrollTop || 0
+            };
+        }
+
+        this.isPaged = false;
+        const whole = this._wholeColumn?.();
+        this.pages = whole?.pages?.length
+            ? whole.pages
+            : [{ index: 0, items: this.composition.items || [], weight: 0 }];
+        this._renderPage(0);
+        this.host.classList.add('is-print-ready');
+
+        const figures = [...this.host.querySelectorAll('[data-page-figure]')];
+        this._disarmObserver();
+        this._printPreparation = Promise.all(figures.map(fig => this._fillFigure(fig)))
+            .then(() => true)
+            .finally(() => { this._printPreparation = null; });
+        return this._printPreparation;
+    }
+
+    /** Restore the exact interactive projection and page after printing. */
+    restoreAfterPrint() {
+        const state = this._printState;
+        if (!state || this._destroyed || !this.host) return false;
+        this._printState = null;
+        this.host.classList.remove('is-print-ready');
+        this.isPaged = state.isPaged;
+        this.pages = state.pages;
+        this._renderPage(state.pageIndex);
+        if (!state.isPaged) {
+            try { this.host.scrollTop = state.scrollTop; } catch { /* detached */ }
+        }
+        return true;
+    }
+
     destroy() {
         this._destroyed = true;
         this._disarmObserver();
@@ -727,6 +800,12 @@ export class PageReader {
             try { document.removeEventListener('keydown', this._onKey); } catch { /* detached */ }
             this._onKey = null;
         }
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('beforeprint', this._onBeforePrint);
+            window.removeEventListener('afterprint', this._onAfterPrint);
+        }
+        this._printState = null;
+        this._printPreparation = null;
         this._pending.clear();
         this._resolved.clear();
         if (this.host) {

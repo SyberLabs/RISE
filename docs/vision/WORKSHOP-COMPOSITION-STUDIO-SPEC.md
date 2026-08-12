@@ -2,7 +2,7 @@
 
 **Implementation specification, 2026-08-03.**
 
-Status: **IMPLEMENTATION IN PROGRESS — PHASE 6 IMPLEMENTED; REAL-DEVICE CERTIFICATION PENDING.** This specification
+Status: **IMPLEMENTATION IN PROGRESS — PHASE 7 HARDENING IMPLEMENTED; REAL-DEVICE CERTIFICATION PENDING.** This specification
 turns the Workshop from a stack of session-configuration panels into a
 responsive, score-first composition studio. It preserves the shipped
 Experience Program, stable source-span, visual-score, Session, Vault, and
@@ -37,6 +37,23 @@ Implementation ledger, 2026-08-03:
 - replaced Workshop's legacy text-provider browser with the authoritative
   107-work Library registry, including its two-axis shelves, current holdings,
   edition attribution, rights basis, search metadata, and lazy full-text load.
+- shipped Visual, Audio, and Combined score views over one selection model,
+  with lane-distinct highlights and a dual-route Combined assignment surface;
+- turned the Inspector into the persistent, source-ordered composition map and
+  removed the redundant text-side preview rail; text and Inspector selection
+  now scroll to and activate one another;
+- shipped sequence-local MP4 import, durability, canonical muted cues,
+  authority-bound playback, and adaptive cover/contain full-frame sizing;
+- promoted Focal, Attractor, and Genesis to configurable passage +
+  whole-reading assets backed by canonical field cues and one lifecycle
+  director; `Off` remains hidden internal stillness rather than assignable
+  media;
+- shipped hierarchical visual-style configuration for Focal, Genesis,
+  Attractor, Klee, and Harmonograph, including project-media and direct-upload
+  personal Focals that retain focal composition;
+- made media endpoints hard atomization boundaries, snapped partial-word DOM
+  selections to complete tokens, and pinned the Anna Karenina adjacent-cue
+  regression so phrase chunking cannot supersede authored media authority.
 
 ---
 
@@ -72,10 +89,10 @@ different views of the same composition:
 
 - uploaded sequence images are selected in one section and assigned in
   another;
-- procedural visuals and sourced collections live in Visual Settings but
-  cannot be assigned in the visual score;
-- Visual Settings also owns persistent surfaces such as Focals, Attractor,
-  and Genesis, which are not span clips;
+- procedural visuals and sourced collections lived in Visual Settings but
+  could not be assigned in the visual score;
+- Visual Settings also owned persistent surfaces such as Focals, Attractor,
+  and Genesis, which were not represented as schedulable span clips;
 - pacing is separated from the source and movement it controls;
 - soundscapes, pure tones, and entry swells appear together even though they
   have different temporal roles;
@@ -120,13 +137,13 @@ The Composition Studio must:
 The first Composition Studio release does **not**:
 
 - introduce a second Experience Program or visual-program format;
-- add free-position canvas editing, arbitrary layers, or video compositing;
-- make Focals, Attractor, or Genesis span-assignable before the runtime can
-  execute them as bounded clips;
+- add free-position canvas editing, arbitrary layers, or multi-video
+  compositing;
+- split one lexical token between two media assignments;
 - allow overlapping visual clips in one visual lane;
-- implement the audio lane before the audio/swell multi-lane runtime contract
-  is complete;
-- implement MP4 import;
+- export an Experience Program as MP4;
+- project cue-specific dynamic Genesis/Attractor samples or extracted MP4
+  posters into Page before those static projection contracts exist;
 - provide collaborative editing, cloud sync, or remote analytics;
 - expose internal terms such as `sourceFamily`, `activeTypes`, or
   `sequence-asset:` to users;
@@ -300,9 +317,9 @@ actions and focus the relevant clip or project issue.
 
 ### 6.2 Unified asset library
 
-The library has top-level Visual and Audio tabs. V1 ships the complete Visual
-tab; Audio may initially show the existing defaults until its score lane is
-implemented.
+The library has top-level Visual and Audio tabs. Both expose whole-reading
+defaults and passage-capable assets; Combined is a score-canvas view and
+assignment route rather than a third copy of the registry.
 
 Visual filters:
 
@@ -310,7 +327,8 @@ Visual filters:
 - **Collections** — curated sourced pools;
 - **Procedural** — supported generator families and specific work engines;
 - **Shared** — Global Pool images and visuals from saved personal sequences;
-- **Surfaces** — Focal, Attractor, and Genesis project-level choices.
+- **Fields** — Focal, Attractor, and Genesis as configurable passage +
+  whole-reading choices.
 
 Each card communicates:
 
@@ -321,10 +339,12 @@ Each card communicates:
 - selected, unavailable, loading, and referenced states;
 - provenance or source attribution where applicable.
 
-Selecting an assignable visual arms it for painting. Selecting a project-only
-surface opens the Project Visual Inspector instead. Dragging an image file over
-the library imports it; dragging it over selected text imports and assigns it
-after validation.
+Selecting an assignable visual arms it for painting. Selecting **Set whole
+reading** on a default-capable asset updates the project fallback instead.
+Dragging an image file over the library imports it; dragging it over selected
+text imports and assigns it after validation. Personal Focal also offers direct
+upload from its configuration; that route imports into the same project media
+registry before creating the focal config.
 
 #### Shared-image durability
 
@@ -382,7 +402,7 @@ There is exactly one Inspector region. Its contents depend on selection:
 |---|---|
 | Nothing | Project summary, unresolved issues, next useful action. |
 | Source | Name, provenance, word count, order, replace/remove. |
-| Visual asset | Preview, kind, availability, editor colour, Set Default, Assign instructions. |
+| Visual asset | Preview, kind, availability, editor colour, Set whole reading, Assign instructions. |
 | Visual clip | Exact preview, source excerpt, cue controls, presentation override where supported, Replace Asset, Erase. |
 | Reading Surface | Off/Focal/Attractor/Genesis/Scored configuration. |
 | Pacing | WPM, chunk mode, curve, duration estimate. |
@@ -414,19 +434,22 @@ When Scored is active, Presentation is one of:
 - **Behind Stream** — imagery appears without concealing the text;
 - **Gallery** — the currently scored cue becomes the persistent field.
 
-Frequency, presence, Gallery cadence, render language, and responsive behavior
-are Scored defaults in the Project Visual Inspector. A clip may override only
+Rhythmic frequency/presence, Gallery cadence, render language, and responsive
+behavior are Scored defaults in the Project Visual Inspector. Gallery exposes
+cadence only; it has no second frequency control. A clip may override only
 fields formally supported by the Experience Program; v1 does not invent
 unserialized per-clip controls.
 
-Creating the first visual clip offers to switch the Reading Surface to Scored
-and explains the effect before consent. Switching away from Scored preserves
-the visual lane but marks it **Not active with this surface**. It never deletes
-clips or silently executes them in another mode.
+Creating the first visual clip activates Scored and explains the change in an
+undoable inline notification. Switching away from Scored preserves the visual
+lane but marks it **Not active with this surface**. It never deletes clips or
+silently executes them in another mode.
 
-Focal, Attractor, and Genesis appear in the library’s Surfaces section because
-they are visual choices, but they are not paint tools. This resolves the
-present UI contradiction without promising unsupported compositing.
+Focal, Attractor, and Genesis appear in the library's Fields section with
+`both` capability. **Set whole reading** preserves their legacy surface meaning;
+passage assignment captures the validated field configuration in a bounded cue
+and activates Scored. The runtime executes one field at a time, so this expands
+source-span authorship without promising arbitrary visual compositing.
 
 ---
 
@@ -441,16 +464,16 @@ objects or raw Visual Settings state between surfaces.
 {
   id: "editor-asset-id",
   lane: "visual" | "audio" | "swell",
-  kind: "sequence-image" | "sourced-collection" | "procedural" |
+  kind: "sequence-image" | "sequence-video" | "sourced-collection" | "procedural" |
         "audio-bed" | "audio-swell" | "project-surface",
   name: "Human label",
   capability: "span" | "default" | "both",
   editor: {
     color: "#7fd4a4",
-    preview: { kind: "image" | "sample" | "generator" | "audio", ref: "..." }
+    preview: { kind: "image" | "video" | "sample" | "generator" | "audio" | "surface", ref: "..." }
   },
   provenance: { /* bounded attribution and origin */ },
-  cueTemplate: { /* absent for project-surface */ }
+  cueTemplate: { /* canonical cue template for passage-capable assets */ }
 }
 ```
 
@@ -465,6 +488,8 @@ not permission for arbitrary metadata.
 | Sourced collection | `{ kind:"sourced", collections:["<collection-id>"] }` |
 | Procedural family | `{ kind:"procedural", collections:["<family-id>"] }` |
 | Specific work engine | `{ kind:"procedural", collections:["<family-id>"], engines:["<engine-id>"] }` |
+| Project MP4 | `{ kind:"video", assetId:"<id>", timeMode:"loop", audioPolicy:"muted", reducedMotion:"poster" }` |
+| Configured field | `{ kind:"field", renderer:<field-id>, config:{…} }` |
 
 Editor colour, thumbnail state, search rank, and open/closed library groups do
 not enter the cue. Sequence image identity resolves through the project asset
@@ -473,10 +498,12 @@ registries.
 
 ### 8.3 Project surfaces
 
-Focal, Attractor, and Genesis use `capability:"default"` and no clip
-`cueTemplate`. Selecting them changes validated project visual defaults. They
-may acquire clip mappings only after the Experience Program and runtime define
-their bounded lifecycle.
+Focal, Attractor, and Genesis use `capability:"both"`. Their default action
+changes validated project visual defaults; their clip template carries a
+validated `field` cue. The generic scheduler decides authority and one
+`VisualFieldDirector` owns mount, crossfade, pause/resume, cancellation, and
+destruction. A passage field supersedes the Scored fallback only for its
+half-open range.
 
 ### 8.4 Availability
 
@@ -951,6 +978,37 @@ Implemented 2026-08-04.
 - An audio clip whose source span exactly matches a visual clip receives the
   same stable sync-group identity automatically.
 
+### Phase 7 — sequence-map, field, video, and authority hardening
+
+Implemented 2026-08-11.
+
+- Combined selection raises coordinated Visual and Audio assignment routes.
+- Project health and next-action guidance react immediately to source state.
+- The Inspector is the complete source-ordered sequence map; the former narrow
+  preview rail is removed, and passage/clip navigation is bidirectional.
+- Workshop layouts obey Even Design. Gallery exposes cadence alone, with its
+  numeric value/range, and no duplicate frequency control.
+- The visual asset surface is hierarchical and shares bounded substyle
+  definitions with runtime configuration. Focal, Genesis, Attractor, Klee, and
+  Harmonograph retain their meaningful variants.
+- Focal, Genesis, and Attractor compile as passage `field` cues. A single field
+  director preserves fallback authority, pause/resume, crossfade, replacement,
+  cancellation, and teardown.
+- Personal Focal supports project-media reuse and direct upload while retaining
+  the focal's compact rectangular placement rather than becoming a full-frame
+  sequence image.
+- Sequence-local MP4 is durable, muted, reduced-motion safe, and owned by
+  active score authority. Adaptive layout uses cover only when the crop retains
+  enough of the authored frame.
+- Source-span endpoints cut atomization. User selections snap to complete
+  tokens; one atom cannot silently inherit two clips from one lane.
+
+**Exit:** the Workshop presents one coherent score-first workflow, all
+supported visual families are passage-authorable through one canonical score,
+and phrase chunking cannot override media authorship. Remaining work is
+real-device/accessibility certification and the explicitly separate dynamic
+Page projection phase.
+
 ---
 
 ## 15. Acceptance criteria
@@ -1004,17 +1062,25 @@ Implemented 2026-08-04.
       clips.
 - [x] Rhythmic and Gallery resolve the exact active project image.
 - [x] Sourced and procedural clips compile to their canonical cue kinds.
+- [x] Focal, Attractor, and Genesis compile as bounded configurable field cues.
+- [x] Project MP4 imports, persists, previews, compiles, and executes only
+      under active passage authority.
+- [x] Passage endpoints constrain atomization and partial-word selections snap
+      to complete tokens.
 
 ### 15.4 Reading surfaces
 
 - [x] Off, Focal, Attractor, Genesis, and Scored preserve existing runtime
       meaning.
-- [x] Span authoring is enabled only for Scored-compatible visual assets.
+- [x] Passage assignment of a configured field activates Scored while retaining
+      the previous whole-reading field as fallback.
 - [x] Switching away from Scored preserves clips and explains that they are
       inactive.
 - [x] Scored exposes Rhythmic, Behind Stream, and Gallery presentation.
-- [x] No persistent surface is presented as span-assignable before runtime
-      support exists.
+- [x] `Off` is not exposed as assignable media; stillness remains an internal
+      fallback/erase semantic.
+- [x] Page preserves static focal meaning without claiming cue-specific dynamic
+      field sampling or MP4 poster extraction.
 
 ### 15.5 Audio authoring
 
@@ -1080,7 +1146,8 @@ Implemented 2026-08-04.
 1. Asset-first and selection-first assignment.
 2. Selection persistence across library/inspector drawers.
 3. Clip synchronization among highlight, lane card, and Inspector.
-4. Project-only surfaces never show Assign.
+4. `Off` never appears as an asset; configured fields distinguish Assign from
+   Set whole reading.
 5. Dirty state changes only for project mutations.
 6. Keyboard and focus behavior for dialogs, sheets, and destructive actions.
 7. Responsive DOM states at desktop, tablet, and phone breakpoints.
@@ -1118,18 +1185,21 @@ Implemented 2026-08-04.
 | Audio UI promises a lane the runtime cannot execute. | Audio defaults move first; lanes wait for Experience Program item 4. |
 | Procedural preview becomes expensive or unsafe. | Bounded still/sample previews, abort ownership, no unconsented autoplay. |
 | Rich editor metadata leaks into runtime cues. | Asset adapters compile only validated canonical cue fields. |
+| A phrase atom is wider than a passage assignment. | Resolve media endpoints before chunking and treat them as hard, non-rendering cut points. |
+| A configurable field becomes a stitched child reading. | Keep one Session clock; schedule a bounded field cue and restore the fallback afterward. |
+| Full-screen video destroys a portrait frame. | Measure media/stage aspect and choose cover or contain from a retained-frame threshold. |
 
 Rulings fixed by this specification:
 
 1. The public product remains **Workshop**; “Composition Studio” describes its
    architecture and may appear as supporting copy, not a required rename.
 2. The production route never presents Legacy versus Studio choices.
-3. Visual surface is mutually exclusive in v1; compositing is deferred.
+3. One visual cue owns a passage at a time; arbitrary compositing remains
+   deferred, but persistent fields are valid bounded cues.
 4. The score canvas is document-anchored, not a fake character-width timeline.
 5. Audio defaults integrate before audio clips.
-6. The next implementation objective is the unified visual asset registry,
-   followed by procedural and sourced-collection clip parity in the score
-   canvas.
+6. Dynamic Page projection for cue-specific Genesis/Attractor configurations
+   and MP4 posters is a separate deferred phase, not Workshop runtime work.
 
 ---
 

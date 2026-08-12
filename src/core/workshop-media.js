@@ -1,5 +1,5 @@
 /**
- * Durable Workshop sequence-image store.
+ * Durable Workshop sequence-media store (images and sequence-local MP4).
  *
  * Authored score media must not live as base64 inside localStorage (ROADMAP
  * Phase 0.4 finding #3). Blobs live here; project JSON keeps metadata + ids.
@@ -31,20 +31,23 @@ function exactId(value, label) {
   return value;
 }
 
-function requireImageBlob(blob) {
+function requireMediaBlob(blob) {
   if (!(blob instanceof Blob)) {
-    throw new WorkshopMediaError('WORKSHOP_MEDIA_BLOB', 'Sequence images must be Blob data.');
+    throw new WorkshopMediaError('WORKSHOP_MEDIA_BLOB', 'Sequence media must be Blob data.');
   }
   const mimeType = String(blob.type || '').trim();
-  if (!mimeType.startsWith('image/')) {
-    throw new WorkshopMediaError('WORKSHOP_MEDIA_MIME', 'Sequence images must be image/* blobs.', {
+  const isImage = mimeType.startsWith('image/');
+  const isVideo = mimeType === 'video/mp4';
+  if (!isImage && !isVideo) {
+    throw new WorkshopMediaError('WORKSHOP_MEDIA_MIME', 'Sequence media must be image/* or video/mp4.', {
       mimeType
     });
   }
-  if (blob.size <= 0 || blob.size > READING_LIMITS.maxImageFileBytes) {
+  const maxBytes = isVideo ? READING_LIMITS.maxVideoFileBytes : READING_LIMITS.maxImageFileBytes;
+  if (blob.size <= 0 || blob.size > maxBytes) {
     throw new WorkshopMediaError(
       'WORKSHOP_MEDIA_SIZE',
-      `Sequence images must be between 1 byte and ${READING_LIMITS.maxImageFileBytes} bytes.`,
+      `Sequence media must be between 1 byte and ${maxBytes} bytes.`,
       { byteLength: blob.size }
     );
   }
@@ -138,8 +141,9 @@ export class WorkshopMediaStore {
   async put({ id, projectId, data, mimeType = null }) {
     const assetId = exactId(id, 'Asset id');
     const ownerId = exactId(projectId, 'Project id');
-    const normalized = requireImageBlob(data);
-    const type = typeof mimeType === 'string' && mimeType.startsWith('image/')
+    const normalized = requireMediaBlob(data);
+    const type = typeof mimeType === 'string'
+      && (mimeType.startsWith('image/') || mimeType === 'video/mp4')
       ? mimeType.trim()
       : normalized.mimeType;
 

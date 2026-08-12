@@ -1,6 +1,11 @@
 import { createEditorAsset, validateEditorAsset } from '../../core/editor-asset.js';
 import { VISUAL_SCORE_COLORS } from '../../core/visual-score-lane.js';
+import { visualFallbackCueFromConfig } from '../../core/visual-program.js';
 import { MUSEUM_CATEGORIES } from '../../sources/visual/museum.js';
+import {
+  normalizeFieldStyle,
+  normalizeProceduralStyle
+} from '../../core/visual-style-definitions.js';
 
 const PROCEDURAL = Object.freeze([
   ['klee', 'Klee Lines', '╱'],
@@ -27,16 +32,36 @@ function collectionPreview(index) {
 }
 
 const SURFACES = Object.freeze([
-  ['off', 'Off', '○'],
   ['focal', 'Focal', '◎'],
   ['attractor', 'Attractor', '∮'],
-  ['genesis', 'Genesis', '✣'],
-  ['scored', 'Scored', '▥']
+  ['genesis', 'Genesis', '✣']
 ]);
 
 const colorAt = index => VISUAL_SCORE_COLORS[index % VISUAL_SCORE_COLORS.length];
 
 function projectImageEntry(asset, index) {
+  if (asset.kind === 'video') {
+    return {
+      group: 'project',
+      asset: createEditorAsset({
+        id: `project-video:${asset.id}`,
+        lane: 'visual',
+        kind: 'sequence-video',
+        name: asset.name || `Project video ${index + 1}`,
+        capability: 'span',
+        editor: { color: asset.color || colorAt(index), preview: { kind: 'video', ref: asset.uri } },
+        provenance: {
+          scope: 'project', projectOwned: true, projectAssetId: asset.id,
+          durationMs: asset.durationMs,
+          ...(asset.provenance ? { source: asset.provenance } : {})
+        },
+        cueTemplate: {
+          kind: 'video', assetId: asset.id, timeMode: asset.timeMode || 'loop',
+          audioPolicy: 'muted', reducedMotion: 'poster'
+        }
+      })
+    };
+  }
   return {
     group: 'project',
     asset: createEditorAsset({
@@ -102,27 +127,58 @@ function proceduralEntries(offset) {
       capability: 'both',
       editor: { color: colorAt(offset + index), preview: { kind: 'generator', ref: id } },
       provenance: { provider: 'RISE Visual Cortex', familyId: id },
-      cueTemplate: { kind: 'procedural', collections: [id] }
+      cueTemplate: {
+        kind: 'procedural', collections: [id],
+        ...(['klee', 'harmonograph'].includes(id)
+          ? { config: normalizeProceduralStyle([id], {}) }
+          : {})
+      }
     }),
     defaultValue: { surface: 'scored', sourceFamily: 'procedural' }
   }));
 }
 
-function surfaceEntries(offset) {
-  return SURFACES.map(([surface, name, symbol], index) => ({
-    group: 'surfaces',
+function surfaceEntries(offset, visualConfig = {}) {
+  const fields = SURFACES.map(([surface, name, symbol], index) => ({
+    group: 'fields',
     symbol,
     asset: createEditorAsset({
       id: `surface:${surface}`,
       lane: 'visual',
       kind: 'project-surface',
       name,
-      capability: 'default',
+      capability: 'both',
       editor: { color: colorAt(offset + index), preview: { kind: 'surface', ref: surface } },
-      provenance: { provider: 'RISE Reading Surface', surface }
+      provenance: { provider: 'RISE Reading Surface', surface },
+      cueTemplate: {
+        kind: 'field', renderer: surface,
+        config: normalizeFieldStyle(surface,
+          surface === 'focal' ? visualConfig.focals
+            : surface === 'attractor' ? visualConfig.attractor : visualConfig.genesis)
+      }
     }),
     defaultValue: { surface }
   }));
+  // Stillness is an authoring operation, not an asset. Keep its cue in the
+  // internal registry so saved assignments remain resolvable, but never
+  // expose it in browsing, search, or the passage picker.
+  fields.push({
+    group: 'internal',
+    hidden: true,
+    symbol: '○',
+    asset: createEditorAsset({
+      id: 'surface:off',
+      lane: 'visual',
+      kind: 'project-surface',
+      name: 'Intentional stillness',
+      capability: 'both',
+      editor: { color: colorAt(offset + fields.length), preview: { kind: 'surface', ref: 'off' } },
+      provenance: { provider: 'RISE Reading Surface', surface: 'off' },
+      cueTemplate: { kind: 'still' }
+    }),
+    defaultValue: { surface: 'off' }
+  });
+  return fields;
 }
 
 function sharedImageEntry({ id, uri, name, origin, projectId, projectAssetId }, index) {
@@ -146,7 +202,7 @@ function sharedImageEntry({ id, uri, name, origin, projectId, projectAssetId }, 
 }
 
 export function buildWorkshopVisualAssetRegistry({
-  projectAssets = [], globalAssets = [], savedBlueprints = []
+  projectAssets = [], globalAssets = [], savedBlueprints = [], visualConfig = {}
 } = {}) {
   const entries = projectAssets.map(projectImageEntry);
   const shared = globalAssets.map((asset, index) => sharedImageEntry({
@@ -154,7 +210,7 @@ export function buildWorkshopVisualAssetRegistry({
   }, index));
   for (const blueprint of savedBlueprints) {
     for (const [index, asset] of (blueprint.sequenceVisualAssets || []).entries()) {
-      if (!asset?.uri || blueprint.id == null) continue;
+      if (!asset?.uri || asset.kind === 'video' || blueprint.id == null) continue;
       shared.push(sharedImageEntry({
         id: `project:${blueprint.id}:${asset.id || index}`,
         uri: asset.uri,
@@ -168,7 +224,7 @@ export function buildWorkshopVisualAssetRegistry({
   entries.push(...shared);
   entries.push(...collectionEntries(entries.length));
   entries.push(...proceduralEntries(entries.length));
-  entries.push(...surfaceEntries(entries.length));
+  entries.push(...surfaceEntries(entries.length, visualConfig));
   const ids = new Set();
   return Object.freeze(entries.filter(entry => {
     validateEditorAsset(entry.asset);
@@ -189,10 +245,17 @@ export function applyEditorAssetDefault(visualConfig, entry) {
   const asset = validateEditorAsset(entry.asset);
   const next = JSON.parse(JSON.stringify(visualConfig || {}));
   const surface = entry.defaultValue?.surface;
+  if (!surface) return next;
   const mode = surface === 'focal' ? 'focals'
     : surface === 'scored' ? 'interlocution'
       : surface || 'off';
   next.visualMode = mode;
+  if (surface === 'scored' && visualConfig?.visualMode !== 'interlocution') {
+    next.interlocution = {
+      ...(next.interlocution || {}),
+      fallbackCue: visualFallbackCueFromConfig(visualConfig)
+    };
+  }
   if (asset.kind === 'sourced-collection') {
     next.interlocution = {
       ...(next.interlocution || {}),
@@ -205,7 +268,12 @@ export function applyEditorAssetDefault(visualConfig, entry) {
       ...(next.interlocution || {}),
       sourceFamily: 'procedural',
       procedural: [...asset.cueTemplate.collections],
-      sourced: []
+      sourced: [],
+      ...(asset.cueTemplate.collections[0] === 'klee'
+        ? { kleePreset: asset.cueTemplate.config?.preset || 'random' }
+        : asset.cueTemplate.collections[0] === 'harmonograph'
+          ? { harmonographClimate: asset.cueTemplate.config?.climate || 'auto' }
+          : {})
     };
   }
   return next;

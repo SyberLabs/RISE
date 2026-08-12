@@ -143,6 +143,44 @@ describe('rise.experience-program.v1', () => {
     }));
   });
 
+  it('validates and lowers muted sequence-video cues without translation', () => {
+    const value = score();
+    value.tracks[2].clips[0].cue = {
+      kind: 'video', assetId: 'sequence-video-1', timeMode: 'loop',
+      audioPolicy: 'muted', reducedMotion: 'poster'
+    };
+
+    const canonical = validateExperienceProgram(value);
+    expect(canonical.tracks[2].clips[0].cue).toEqual(value.tracks[2].clips[0].cue);
+    expect(lowerExperienceProgram(value).visualProgram.segments[0].cue)
+      .toEqual(value.tracks[2].clips[0].cue);
+
+    value.tracks[2].clips[0].cue.audioPolicy = 'source';
+    expect(() => validateExperienceProgram(value)).toThrow(expect.objectContaining({
+      code: 'PROGRAM_VIDEO_AUDIO_POLICY'
+    }));
+  });
+
+  it('validates and lowers schedulable visual fields without widening metadata', () => {
+    const value = score();
+    value.tracks[2].clips[0].cue = {
+      kind: 'field', renderer: 'attractor',
+      config: { system: 'thomas', palette: 'gold', form: 'mirror' }
+    };
+    value.tracks[2].fallback = {
+      kind: 'field', renderer: 'genesis', config: { preset: 'harmonic', glass: true }
+    };
+
+    const lowered = lowerExperienceProgram(value).visualProgram;
+    expect(lowered.segments[0].cue).toEqual(value.tracks[2].clips[0].cue);
+    expect(lowered.fallback).toEqual(value.tracks[2].fallback);
+
+    value.tracks[2].clips[0].cue.renderer = 'unknown';
+    expect(() => validateExperienceProgram(value)).toThrow(expect.objectContaining({
+      code: 'PROGRAM_VISUAL_FIELD_RENDERER'
+    }));
+  });
+
   it('rejects unknown fields rather than dropping a likely misspelling', () => {
     const value = score();
     value.tracks[2].clips[0].synchGroup = 'descent-1';

@@ -1,4 +1,5 @@
 import { PersonalSwells } from './personal-swells.js';
+import { READING_LIMITS } from './reading-limits.js';
 import { SourceCache } from '../sources/cache.js';
 import { WorkshopMedia, blobToDataUrl } from './workshop-media.js';
 import { endVisualInterlocutionSession } from './visual-safety.js';
@@ -12,6 +13,10 @@ export const USER_DATA_KEYS = Object.freeze({
     orbitalPreferences: 'rise_orbital_prefs_v1',
     orbitalText: 'rise_orbital_text_v1'
 });
+
+function addWarning(data, warning) {
+    data.warnings = Array.isArray(data.warnings) ? [...data.warnings, warning] : [warning];
+}
 
 function parseStoredValue(raw) {
     if (raw === null) return null;
@@ -47,24 +52,43 @@ export async function exportUserData(settings = null) {
             data: await blobToDataUrl(swell.data)
         })));
     } catch (error) {
-        data.warnings = [`Personal audio could not be exported: ${error.message || 'storage unavailable'}`];
+        addWarning(data, `Personal audio could not be exported: ${error.message || 'storage unavailable'}`);
     }
 
     try {
         await WorkshopMedia.init();
         const records = await WorkshopMedia.getAllRecords();
-        data.workshopMedia = await Promise.all(records.map(async record => ({
-            id: record.id,
-            projectId: record.projectId,
-            mimeType: record.mimeType,
-            byteLength: record.byteLength,
-            createdAt: record.createdAt,
-            updatedAt: record.updatedAt,
-            data: await blobToDataUrl(record.data)
-        })));
+        const withheld = [];
+        data.workshopMedia = await Promise.all(records.map(async record => {
+            const entry = {
+                id: record.id,
+                projectId: record.projectId,
+                mimeType: record.mimeType,
+                byteLength: record.byteLength,
+                createdAt: record.createdAt,
+                updatedAt: record.updatedAt
+            };
+            // VIDEO IS INVENTORIED, NEVER INLINED. Everything here is base64'd
+            // into a single JSON string, which inflates it by a third, and one
+            // MP4 may be maxVideoFileBytes — so a single asset would build a
+            // document larger than this export was ever sized for. The record's
+            // identity and size still travel, so the file says what it is not
+            // carrying instead of omitting it silently.
+            if (record.mimeType === 'video/mp4') {
+                withheld.push(record.id);
+                return { ...entry, data: null, withheld: 'video' };
+            }
+            return { ...entry, data: await blobToDataUrl(record.data) };
+        }));
+        if (withheld.length) {
+            addWarning(data,
+                `${withheld.length} video file${withheld.length === 1 ? '' : 's'} `
+                + `(up to ${Math.round(READING_LIMITS.maxVideoFileBytes / 1024 / 1024)} MB each) `
+                + 'are listed but not included: video is too large to carry inside a JSON export. '
+                + `Ids: ${withheld.join(', ')}`);
+        }
     } catch (error) {
-        const warning = `Workshop media could not be exported: ${error.message || 'storage unavailable'}`;
-        data.warnings = Array.isArray(data.warnings) ? [...data.warnings, warning] : [warning];
+        addWarning(data, `Workshop media could not be exported: ${error.message || 'storage unavailable'}`);
     }
 
     return data;

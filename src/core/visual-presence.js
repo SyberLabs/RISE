@@ -152,6 +152,15 @@ export function visualPresenceTransition(value) {
     return Object.freeze({ enterMs: 96, exitMs: 96 });
 }
 
+/** One cue must never spend most of its authored life dissolving. */
+export function authoredVisualTransition(durationMs, ceilingMs = 320) {
+    const ceiling = Math.max(0, Number(ceilingMs) || 0);
+    const parsed = Number(durationMs);
+    if (!Number.isFinite(parsed) || parsed <= 0) return Math.round(ceiling);
+    const duration = Math.max(0, parsed);
+    return Math.round(Math.min(ceiling, duration * 0.2));
+}
+
 export function minimumVisualPresenceRest(value) {
     const duration = normalizeVisualPresence(value);
     return Math.max(

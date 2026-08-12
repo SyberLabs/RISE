@@ -130,11 +130,37 @@ function readCoordinate(space, atom) {
  * still exist.
  */
 export class VisualScheduleController {
-    constructor(program, onCue) {
+    constructor(program, onCue, { atoms = [] } = {}) {
         this.program = program || null;
         this.onCue = typeof onCue === 'function' ? onCue : () => {};
         this._activeCueId = null;
         this._generation = 0;
+        this._cueDurations = this._indexCueDurations(atoms);
+    }
+
+    _indexCueDurations(atoms) {
+        const durations = new Map();
+        if (!this.program || !Array.isArray(atoms)) return durations;
+        let activeId = null;
+        let runMs = 0;
+        const commit = () => {
+            if (activeId != null) {
+                durations.set(activeId, Math.max(durations.get(activeId) || 0, runMs));
+            }
+        };
+        for (const atom of atoms) {
+            const coordinated = readCoordinate(this.program.coordinateSpace, atom) !== null;
+            const id = coordinated ? cueForAtom(this.program, atom).id : activeId;
+            if (id == null) continue;
+            if (id !== activeId) {
+                commit();
+                activeId = id;
+                runMs = 0;
+            }
+            runMs += Math.max(0, Number(atom?.duration) || 0);
+        }
+        commit();
+        return durations;
     }
 
     /** True when there is a program that is enabled. */
@@ -174,7 +200,12 @@ export class VisualScheduleController {
             // its provider pool warm before the reader arrives
             // (PERICOPE-IMAGERY-SPEC §6.3).
             const prefetch = this._upcomingSourcedCollections(atom);
-            this.onCue(cue, { cueId: id, generation: this._generation, prefetch });
+            this.onCue(cue, {
+                cueId: id,
+                generation: this._generation,
+                prefetch,
+                durationMs: this._cueDurations.get(id) || 0
+            });
         }
         return { id, cue };
     }

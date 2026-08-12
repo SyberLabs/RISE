@@ -54,6 +54,8 @@ async function freshStore() {
 
 const imageBlob = (bytes = 8, type = 'image/png') =>
     new Blob([new Uint8Array(bytes).fill(7)], { type });
+const videoBlob = (bytes = 8) =>
+    new Blob([new Uint8Array(bytes).fill(9)], { type: 'video/mp4' });
 
 describe('the durable store round-trips real bytes', () => {
     it('returns what it was given', async () => {
@@ -70,6 +72,16 @@ describe('the durable store round-trips real bytes', () => {
         expect(record.data.size).toBe(32);
         // THE BYTES, not the metadata about the bytes.
         expect(new Uint8Array(await record.data.arrayBuffer())).toEqual(new Uint8Array(32).fill(7));
+    });
+
+    it('round-trips MP4 bytes through the same project-scoped media store', async () => {
+        const store = await freshStore();
+        const meta = await store.put({ id: 'video-1', projectId: 'p', data: videoBlob(24) });
+        const record = await store.get('video-1');
+
+        expect(meta).toMatchObject({ mimeType: 'video/mp4', byteLength: 24 });
+        expect(new Uint8Array(await record.data.arrayBuffer()))
+            .toEqual(new Uint8Array(24).fill(9));
     });
 
     it('survives a reopen — that is the whole point of durability', async () => {

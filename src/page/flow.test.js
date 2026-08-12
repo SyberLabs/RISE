@@ -338,6 +338,59 @@ describe('compileFlow', () => {
         expect(focalOf(null)).toBeNull();
     });
 
+    it('resolves a durable personal focal for the Page without requiring a transient config URL', () => {
+        expect(focalOf({
+            visualConfig: {
+                visualMode: 'focals',
+                focals: { type: 'personal', personalAssetId: 'portrait' }
+            },
+            sequenceVisualAssets: [{
+                id: 'portrait', kind: 'image', uri: 'blob:http://localhost/portrait'
+            }]
+        })).toEqual({ type: 'personal', image: 'blob:http://localhost/portrait' });
+    });
+
+    it('holds a scored fallback focal once and lowers a segment focal at its source boundary', () => {
+        const session = {
+            atoms: [
+                atom('Before', {
+                    sourceId: 'source-1', sourceCharacterStart: 0, sourceCharacterEnd: 6
+                }),
+                atom('Passage', {
+                    sourceId: 'source-1', sourceCharacterStart: 7, sourceCharacterEnd: 14
+                }),
+                atom('After', {
+                    sourceId: 'source-1', sourceCharacterStart: 15, sourceCharacterEnd: 20
+                })
+            ],
+            visualConfig: { visualMode: 'interlocution' },
+            visualProgram: {
+                coordinateSpace: 'source', enabled: true,
+                fallback: {
+                    kind: 'field', renderer: 'focal',
+                    config: { type: 'standard', standardGlyph: 'anchor' }
+                },
+                segments: [{
+                    id: 'passage-focal',
+                    match: { sourceIds: ['source-1'], fromCharacter: 7, toCharacter: 14 },
+                    cue: {
+                        kind: 'field', renderer: 'focal',
+                        config: { type: 'standard', standardGlyph: 'star' }
+                    }
+                }]
+            }
+        };
+
+        const flow = compileFlow(session);
+        const focals = flow.blocks.filter(block => block.kind === BLOCK.FOCAL);
+        expect(focalOf(session)).toMatchObject({ type: 'standard', glyph: 'anchor' });
+        expect(focals).toHaveLength(1);
+        expect(focals[0]).toMatchObject({
+            episodeId: 'passage-focal',
+            focal: { type: 'standard', glyph: 'star' }
+        });
+    });
+
     it('no chosen collections means no derived figures', () => {
         const atoms = [];
         for (let i = 0; i < 40; i++) { atoms.push(atom(`Paragraph ${i} here with prose.`)); atoms.push(silence()); }

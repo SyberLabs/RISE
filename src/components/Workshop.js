@@ -14,8 +14,12 @@ import { PersonalSwells } from '../core/personal-swells.js';
 import { namingModal } from './NamingModal.js';
 import { safeUrl } from '../core/sanitize.js';
 import { requestVisualInterlocutionConsent } from '../core/visual-safety.js';
+import { snapCharacterRangeToTokens } from '../core/source-span.js';
 import {
+  formatGalleryCadence,
   GALLERY_CADENCE_DEFAULT,
+  galleryCadenceValueText,
+  normalizeGalleryCadence,
   VISUAL_PRESENCE_DEFAULT_MS
 } from '../core/visual-presence.js';
 import {
@@ -57,21 +61,38 @@ import {
   eraseAudioSpan
 } from '../core/audio-score-lane.js';
 import { renderWorkshopStudioShell } from './workshop/WorkshopStudioShell.js';
+import { renderCombinedPassageAssignment } from './workshop/PassageAssignmentCard.js';
+import { buildSequenceMapGroups } from './workshop/sequence-map.js';
+import {
+  inspectorContextLabel,
+  normalizeInspectorContext
+} from './workshop/workshop-ui-state.js';
 import {
   applyEditorAssetDefault,
   buildWorkshopVisualAssetRegistry,
   projectAssetIdFromEditorAsset
 } from './workshop/workshop-visual-assets.js';
-import { ATTRACTOR_PALETTES, ATTRACTOR_SYSTEMS } from '../visuals/attractor.js';
 import {
-  exportCuratorContext,
-  serializeCuratorContext
+  ATTRACTOR_FORMS,
+  ATTRACTOR_PALETTES,
+  ATTRACTOR_SYSTEMS,
+  FOCAL_GLYPHS,
+  HARMONOGRAPH_CLIMATES,
+  KLEE_PRESETS,
+  normalizeConfigurableVisualCue,
+  normalizeFieldStyle,
+  normalizeProceduralStyle,
+  personalFocalAssetIdFromCue,
+  ROSE_MODES,
+  visualCueIsConfigurable,
+  visualCueStyleSummary
+} from '../core/visual-style-definitions.js';
+import {
+  exportCuratorContext
 } from '../core/curator-context.js';
-import { buildCuratorPrompt } from '../core/curator-prompt.js';
 import {
   describeImportFailure,
   downloadJsonFile,
-  downloadTextFile,
   ExperienceProgramIoError,
   importExperienceProgram,
   parseExperienceProgramJson,
@@ -82,6 +103,7 @@ import {
   workshopProjectToBlueprintView
 } from '../core/workshop-project.js';
 import { ExperienceProgramValidationError } from '../core/experience-program.js';
+import { visualFallbackCueFromConfig } from '../core/visual-program.js';
 import {
   assertQuotationAnchorsAgainstSources,
   SourceSpanResolutionError
@@ -91,6 +113,7 @@ import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
 
 const MAX_TEXT_FILE_BYTES = READING_LIMITS.maxTextCharacters;
 const MAX_IMAGE_FILE_BYTES = READING_LIMITS.maxImageFileBytes;
+const MAX_VIDEO_FILE_BYTES = READING_LIMITS.maxVideoFileBytes;
 const MAX_CUSTOM_VISUALS = READING_LIMITS.maxSequenceAssets;
 const MAX_RENDERED_LANE_CLIPS = 160;
 
@@ -102,6 +125,39 @@ function studioViewportForWidth(width) {
 
 function validStudioSurface(surface) {
   return ['score', 'sources', 'assets', 'inspector'].includes(surface) ? surface : 'score';
+}
+
+function projectEditorAssetId(asset) {
+  return `${asset?.kind === 'video' ? 'project-video' : 'project-image'}:${asset?.id}`;
+}
+
+/** Read MP4 metadata without beginning playback or retaining an object URL. */
+function probeVideoDurationMs(blob) {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    const url = URL.createObjectURL(blob);
+    let settled = false;
+    const finish = (value, error = null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      video.removeAttribute('src');
+      try { video.load(); } catch { /* detached */ }
+      URL.revokeObjectURL(url);
+      if (error) reject(error); else resolve(value);
+    };
+    const timeout = setTimeout(() => finish(null, new Error('Video metadata timed out')), 10000);
+    video.preload = 'metadata';
+    video.muted = true;
+    video.onloadedmetadata = () => {
+      const durationMs = Math.round(Number(video.duration) * 1000);
+      if (!Number.isInteger(durationMs) || durationMs <= 0) {
+        finish(null, new Error('Video duration is unavailable'));
+      } else finish(durationMs);
+    };
+    video.onerror = () => finish(null, new Error('Video metadata could not be decoded'));
+    video.src = url;
+  });
 }
 
 function createDefaultSessionData() {
@@ -148,6 +204,7 @@ function createDefaultSessionData() {
         presentation: 'continuous',
         renderLanguage: 'native',
         kleePreset: 'random',
+        harmonographClimate: 'auto',
         responsive: false,
         responsiveMood: true,
         responsiveRhythm: true
@@ -191,6 +248,15 @@ function normalizeSessionData(data = {}) {
       }
     })
     .filter(Boolean);
+  const focals = { ...defaults.visualConfig.focals, ...(visualConfig.focals || {}) };
+  if (typeof focals.personalAssetId === 'string') {
+    const personalAsset = sequenceVisualAssets.find(asset =>
+      asset.id === focals.personalAssetId && asset.kind !== 'video' && asset.uri);
+    if (personalAsset) {
+      focals.type = 'personal';
+      focals.personalImage = personalAsset.uri;
+    }
+  }
 
   return {
     ...defaults,
@@ -200,6 +266,7 @@ function normalizeSessionData(data = {}) {
       ? incoming.experienceProgramId
       : defaults.experienceProgramId,
     customVisuals: sequenceVisualAssets
+      .filter(asset => asset.kind !== 'video')
       .map(asset => asset.uri)
       .filter(uri => typeof uri === 'string'
         && (uri.startsWith('data:image/') || uri.startsWith('blob:'))),
@@ -213,7 +280,7 @@ function normalizeSessionData(data = {}) {
     visualConfig: {
       ...defaults.visualConfig,
       ...visualConfig,
-      focals: { ...defaults.visualConfig.focals, ...(visualConfig.focals || {}) },
+      focals,
       attractor: { ...defaults.visualConfig.attractor, ...(visualConfig.attractor || {}) },
       genesis: { ...defaults.visualConfig.genesis, ...(visualConfig.genesis || {}) },
       livingText: { ...defaults.visualConfig.livingText, ...(visualConfig.livingText || {}) },
@@ -248,6 +315,8 @@ export class Workshop {
     this.resetTimer = null;
     this.assetRemovalArmedId = null;
     this.assetRemovalTimer = null;
+    this.sourceRemovalArmedId = null;
+    this.sourceRemovalTimer = null;
     this.announcementTimer = null;
 
     this.sourceBrowser = null;
@@ -265,8 +334,14 @@ export class Workshop {
     this.selectedEditorAssetId = null;
     this.visualAssetGroup = 'all';
     this.visualAssetSearch = '';
+    this.visualAssetStyleDrafts = new Map();
+    this.personalFocalChooser = null;
+    this.pendingPersonalFocalUploadTarget = null;
     this.selectedScoreAssignmentId = null;
     this.selectedAudioAssignmentId = null;
+    this.inspectorContext = normalizeInspectorContext({ kind: 'project' });
+    this.workshopIssue = null;
+    this.lastScoreMutationLane = 'visual';
     this.pendingScoreSelection = null;
     this.pendingScoreConflict = null;
     this.scoreConfirmationAssignmentId = null;
@@ -382,6 +457,9 @@ export class Workshop {
     if (this.assetRemovalTimer) clearTimeout(this.assetRemovalTimer);
     this.assetRemovalTimer = null;
     this.assetRemovalArmedId = null;
+    if (this.sourceRemovalTimer) clearTimeout(this.sourceRemovalTimer);
+    this.sourceRemovalTimer = null;
+    this.sourceRemovalArmedId = null;
     this.sourceBrowser?.destroy?.();
     this.sourceBrowser = null;
     this.visualConsentScope = crypto.randomUUID();
@@ -400,8 +478,14 @@ export class Workshop {
       : null;
     this.visualAssetGroup = 'all';
     this.visualAssetSearch = '';
+    this.visualAssetStyleDrafts = new Map();
+    this.personalFocalChooser = null;
+    this.pendingPersonalFocalUploadTarget = null;
     this.selectedScoreAssignmentId = null;
     this.selectedAudioAssignmentId = null;
+    this.inspectorContext = normalizeInspectorContext({ kind: 'project' });
+    this.workshopIssue = null;
+    this.lastScoreMutationLane = 'visual';
     this.pendingScoreSelection = null;
     this.pendingScoreConflict = null;
     this.scoreConfirmationAssignmentId = null;
@@ -589,7 +673,9 @@ export class Workshop {
       assetFiltersHtml: this.renderVisualAssetFilters(visualAssets),
       assetsHtml: this.renderVisualAssetRegistry(visualAssets),
       visualPresentationHtml: this.renderVisualPresentationPanel(),
-      visualInspectorHtml: this.renderVisualInspector(visualAssets),
+      inspectorKind: this.inspectorContext.kind,
+      inspectorLabel: inspectorContextLabel(this.inspectorContext),
+      inspectorHtml: this.renderContextualInspector(visualAssets),
       scoreHtml: this.renderMediaScoreEditor(),
       activeAssetLane: this.activeAssetLane,
       audioAssetsHtml: this.renderAudioAssetRegistry(),
@@ -615,6 +701,313 @@ export class Workshop {
     this.updateCreateButton();
     this.updatePersonalSwellList();
     this.populatePersonalSwellSelect();
+  }
+
+  setInspectorContext(context, { navigate = false, focus = false } = {}) {
+    this.inspectorContext = normalizeInspectorContext(context);
+    this.refreshContextualInspector();
+    if (navigate && this.studioViewport !== 'desktop') {
+      this.setStudioSurface('inspector', { focus: false });
+    }
+    if (focus) {
+      requestAnimationFrame(() => this.container.querySelector('#studio-contextual-inspector [data-inspector-focus], #studio-contextual-inspector summary, #studio-contextual-inspector button, #studio-contextual-inspector input')
+        ?.focus?.({ preventScroll: true }));
+    }
+    return this.inspectorContext;
+  }
+
+  refreshContextualInspector() {
+    const host = this.container.querySelector('#studio-contextual-inspector');
+    if (!host) return false;
+    this.withFocusPreserved(() => {
+      host.dataset.inspectorKind = this.inspectorContext.kind;
+      host.innerHTML = this.renderContextualInspector();
+      const label = this.container.querySelector('.studio-inspector > .studio-pane-title strong');
+      if (label) label.textContent = inspectorContextLabel(this.inspectorContext);
+    });
+    if (this.inspectorContext.kind === 'audioAsset') void this.populatePersonalSwellSelect();
+    return true;
+  }
+
+  setWorkshopIssue(code, message, recovery = {}) {
+    this.workshopIssue = {
+      code: String(code || 'WORKSHOP_ERROR'),
+      message: String(message || 'The requested Workshop operation could not be completed.'),
+      action: recovery.action || 'show-score-surface',
+      label: recovery.label || 'Return to Score'
+    };
+    this.inspectorContext = normalizeInspectorContext({ kind: 'issue', code: this.workshopIssue.code });
+    this.refreshContextualInspector();
+    if (this.studioViewport !== 'desktop') this.setStudioSurface('inspector', { focus: false });
+    this.announce(this.workshopIssue.message);
+  }
+
+  renderIssueInspector() {
+    const issue = this.workshopIssue;
+    if (!issue) return this.renderProjectInspector();
+    return `<section class="studio-context-card studio-issue-inspector" id="studio-issue-inspector" role="alert">
+      <span class="studio-kicker">Needs attention · ${this.escapeHtml(issue.code)}</span>
+      <h3>Workshop could not complete that action</h3>
+      <p>${this.escapeHtml(issue.message)}</p>
+      <div class="studio-selected-actions studio-choice-grid studio-choice-grid-2">
+        <button type="button" class="btn-primary btn-compact" data-action="${this.escapeHtml(issue.action)}">${this.escapeHtml(issue.label)}</button>
+        <button type="button" class="btn-ghost btn-compact" data-action="dismiss-workshop-issue">Dismiss</button>
+      </div>
+    </section>`;
+  }
+
+  renderProjectInspector() {
+    const issueCount = this.projectIssueCount();
+    return `<details class="studio-inspector-section studio-project-section" id="studio-project-inspector" open>
+      <summary><span>Project</span><span data-studio-source-count="label">${this.sessionData.sources.length} source${this.sessionData.sources.length === 1 ? '' : 's'}</span></summary>
+      <div class="studio-inspector-body">
+        <div class="studio-project-health ${issueCount ? 'has-issues' : ''}">
+          <span class="studio-kicker">Sequence health</span>
+          <strong>${issueCount ? `${issueCount} issue${issueCount === 1 ? '' : 's'} to resolve` : this.sessionData.sources.length ? 'Ready to compose' : 'Add a source to begin'}</strong>
+          <small>${this.editorDirty ? 'Unsaved changes' : 'No unsaved changes'}</small>
+        </div>
+        <div class="input-group">
+          <label class="input-label" for="session-title">Sequence title</label>
+          <input type="text" id="session-title" class="input" placeholder="Untitled Sequence" value="${this.escapeHtml(this.sessionData.title)}" />
+        </div>
+        <div class="input-group"><span class="input-label">Category</span>
+          <div class="intent-options studio-choice-grid studio-choice-grid-5">
+            ${['focus', 'learning', 'exploration', 'reflection', 'custom'].map(intent => `<label class="radio">
+              <input type="radio" name="intent" value="${intent}" ${this.sessionData.intent === intent ? 'checked' : ''} />
+              <span class="radio-label text-capitalize">${intent}</span></label>`).join('')}
+          </div>
+        </div>
+        <div class="studio-next-action">
+          <span class="studio-kicker">Next useful action</span>
+          <p>${this.sessionData.sources.length ? 'Highlight the source text in the Visual, Audio, or Combined tab to assign character assets.' : 'Browse the Archive or import a text source.'}</p>
+          <button type="button" class="btn-secondary btn-compact" data-action="${this.sessionData.sources.length ? 'show-score-surface' : 'open-browser'}">${this.sessionData.sources.length ? 'Open Score' : 'Browse sources'}</button>
+        </div>
+      </div>
+    </details>`;
+  }
+
+  renderPacingInspector() {
+    return `<details class="studio-inspector-section" id="studio-reading-inspector" open>
+      <summary><span>Reading conductor</span><span class="font-mono" data-reading-inspector-summary>${this.sessionData.wpm} WPM</span></summary>
+      <div class="studio-inspector-body">
+        <div class="studio-reading-metrics">
+          <span><small>Material</small><strong data-reading-word-count>${this.readingWordCount()} words</strong></span>
+          <span><small>Estimate</small><strong data-reading-duration>${this.escapeHtml(this.readingDurationLabel())}</strong></span>
+        </div>
+        <div class="input-group"><label class="input-label" for="wpm-slider"><span>Pacing</span><span class="input-label-value font-mono" id="wpm-value">${this.sessionData.wpm} WPM</span></label>
+          <div class="slider-container"><input type="range" id="wpm-slider" class="slider" min="100" max="500" value="${this.sessionData.wpm}" step="10" aria-describedby="wpm-chamber-note" /></div>
+          <div class="config-notice text-fog font-mono" id="wpm-chamber-note">◇ Adjustable in Chamber</div></div>
+        <div class="input-group"><span class="input-label">Pacing curve</span>
+          <div class="curve-options studio-compact-options studio-choice-grid studio-choice-grid-5">
+            ${['flat', 'induction', 'ascent', 'wave', 'climax'].map(curve => `<button type="button" class="curve-btn ${this.sessionData.curve === curve ? 'active' : ''}" data-action="set-reading-curve" data-curve="${curve}" aria-pressed="${this.sessionData.curve === curve}"><span class="curve-icon">${this.getCurveIcon(curve)}</span><span class="curve-label text-capitalize">${curve}</span></button>`).join('')}
+          </div></div>
+        <div class="input-group"><span class="input-label">Chunking</span>
+          <div class="chunk-options studio-choice-grid studio-choice-grid-3">
+            ${['word', 'phrase', 'sentence'].map(mode => `<button type="button" class="chunk-btn ${this.sessionData.chunkMode === mode ? 'active' : ''}" data-action="set-reading-chunk" data-chunk="${mode}" aria-pressed="${this.sessionData.chunkMode === mode}">${mode[0].toUpperCase()}${mode.slice(1)}</button>`).join('')}
+          </div></div>
+      </div>
+    </details>`;
+  }
+
+  renderAudioAssetInspector() {
+    return `<details class="studio-inspector-section" id="studio-audio-inspector" open>
+      <summary><span>Atmosphere</span><span class="text-capitalize" data-audio-summary>${this.escapeHtml(this.audioSummary())}</span></summary>
+      <div class="studio-inspector-body">
+        <div class="studio-atmosphere-summary">
+          <span><small>Continuous bed</small><strong data-audio-bed>${this.escapeHtml(this.audioBedLabel())}</strong></span>
+          <span><small>Entry event</small><strong data-audio-entry>${this.escapeHtml(this.audioEntryLabel())}</strong></span>
+        </div>
+        <div id="studio-audio-selection">${this.renderSelectedAudioAsset()}</div>
+      </div>
+    </details>`;
+  }
+
+  renderSourceInspector(sourceId = this.inspectorContext.id) {
+    const index = this.sessionData.sources.findIndex(source => String(source.id) === sourceId);
+    const source = this.sessionData.sources[index];
+    if (!source) return this.renderProjectInspector();
+    const wordCount = (source.data || '').trim().split(/\s+/u).filter(Boolean).length;
+    return `<section class="studio-context-card" id="studio-source-inspector">
+      <span class="studio-kicker">Source ${index + 1} of ${this.sessionData.sources.length}</span>
+      <h3>${this.escapeHtml(source.name)}</h3>
+      <p>${wordCount.toLocaleString()} words · ${this.escapeHtml(source.metadata?.provider || source.metadata?.source || 'Project source')}</p>
+      <div class="studio-selected-actions studio-choice-grid studio-choice-grid-3">
+        <button type="button" class="btn-secondary btn-compact" data-action="preview-source" data-index="${index}">Preview</button>
+        <button type="button" class="btn-ghost btn-compact" data-action="move-up" data-index="${index}" ${index === 0 ? 'disabled' : ''}>Move up</button>
+        <button type="button" class="btn-ghost btn-compact" data-action="move-down" data-index="${index}" ${index === this.sessionData.sources.length - 1 ? 'disabled' : ''}>Move down</button>
+      </div>
+      <button type="button" class="btn-ghost btn-compact is-destructive" data-action="remove-source" data-index="${index}">Remove source and its clips</button>
+    </section>`;
+  }
+
+  renderVisualClipInspector(assignmentId = this.inspectorContext.id) {
+    const assignment = this.sessionData.visualScoreAssignments.find(item => item.id === assignmentId);
+    if (!assignment) return this.renderProjectInspector();
+    const source = this.scoreSources().find(item => item.id === assignment.sourceId);
+    const asset = this.scoreAsset(assignment.assetId, assignment);
+    const excerpt = source?.text.slice(assignment.fromCharacter, assignment.toCharacter).replace(/\s+/gu, ' ').trim() || '';
+    return `<section class="studio-context-card studio-clip-inspector" id="studio-visual-clip-inspector">
+      <span class="studio-kicker">Passage visual</span><h3>${this.escapeHtml(asset?.name || 'Missing visual')}</h3>
+      <blockquote>“${this.escapeHtml(excerpt.slice(0, 220))}${excerpt.length > 220 ? '…' : ''}”</blockquote>
+      <p class="font-mono">Characters ${assignment.fromCharacter}–${assignment.toCharacter}</p>
+      ${asset?.entry ? this.renderVisualStyleControls(asset.entry) : ''}
+      <div class="studio-selected-actions studio-choice-grid studio-choice-grid-3">
+        <button type="button" class="btn-secondary btn-compact" data-action="preview-score-assignment" data-assignment-id="${this.escapeHtml(assignment.id)}">Preview</button>
+        <button type="button" class="btn-secondary btn-compact" data-action="choose-score-asset" data-score-lane="visual">Replace</button>
+        <button type="button" class="btn-ghost btn-compact" data-action="erase-score-assignment" data-assignment-id="${this.escapeHtml(assignment.id)}">Erase</button>
+      </div>
+    </section>`;
+  }
+
+  renderAudioClipInspector(assignmentId = this.inspectorContext.id) {
+    const assignment = this.sessionData.audioScoreAssignments.find(item => item.id === assignmentId);
+    if (!assignment) return this.renderProjectInspector();
+    const source = this.scoreSources().find(item => item.id === assignment.sourceId);
+    const asset = this.audioScoreAssets().find(item => item.id === assignment.assetId);
+    const excerpt = source?.text.slice(assignment.fromCharacter, assignment.toCharacter).replace(/\s+/gu, ' ').trim() || '';
+    return `<section class="studio-context-card studio-clip-inspector" id="studio-audio-clip-inspector">
+      <span class="studio-kicker">${assignment.lane === 'swell' ? 'Swell event' : 'Audio bed clip'}</span><h3>${this.escapeHtml(asset?.name || 'Missing audio')}</h3>
+      <blockquote>“${this.escapeHtml(excerpt.slice(0, 220))}${excerpt.length > 220 ? '…' : ''}”</blockquote>
+      <p class="font-mono">Characters ${assignment.fromCharacter}–${assignment.toCharacter}</p>
+      <div class="studio-selected-actions studio-choice-grid studio-choice-grid-3">
+        <button type="button" class="btn-secondary btn-compact" data-action="preview-audio-score-asset">Preview</button>
+        <button type="button" class="btn-secondary btn-compact" data-action="choose-score-asset" data-score-lane="audio">Replace</button>
+        <button type="button" class="btn-ghost btn-compact" data-action="erase-audio-assignment" data-assignment-id="${this.escapeHtml(assignment.id)}">Erase</button>
+      </div>
+    </section>`;
+  }
+
+  renderCombinedClipInspector() {
+    const visualId = this.inspectorContext.visualId || this.selectedScoreAssignmentId;
+    const audioId = this.inspectorContext.audioId || this.selectedAudioAssignmentId;
+    return `<section class="studio-context-card studio-combined-clip-inspector" id="studio-combined-clip-inspector">
+      <span class="studio-kicker">Synchronized passage</span><h3>Visual + audio</h3>
+      <div class="studio-combined-inspector-grid">
+        <div>${this.renderVisualClipInspector(visualId)}</div>
+        <div>${this.renderAudioClipInspector(audioId)}</div>
+      </div>
+    </section>`;
+  }
+
+  sequenceMapGroups() {
+    return buildSequenceMapGroups({
+      sources: this.scoreSources(),
+      visualAssignments: this.sessionData.visualScoreAssignments,
+      audioAssignments: this.sessionData.audioScoreAssignments
+    });
+  }
+
+  renderSequenceMapEntryDetail(entry, source) {
+    const visual = entry.visual;
+    const selectedAudio = entry.audio.find(item => item.id === this.selectedAudioAssignmentId)
+      || entry.audio[0] || null;
+    const visualAsset = visual ? this.scoreAsset(visual.assetId, visual) : null;
+    const audioAssets = new Map(this.audioScoreAssets().map(asset => [asset.id, asset]));
+    const excerpt = source.text.slice(entry.fromCharacter, entry.toCharacter)
+      .replace(/\s+/gu, ' ').trim();
+    const visualMedia = visualAsset
+      ? `<div class="studio-sequence-map-thumbnail is-visual" style="--sequence-visual-color:${visualAsset.color}">
+          ${this.renderEditorAssetPreview(visualAsset.entry, { alt: visualAsset.name, selected: true })}
+          <span>${this.escapeHtml(visualAsset.name)}</span></div>`
+      : '';
+    const audioMedia = entry.audio.map(audio => {
+      const asset = audioAssets.get(audio.assetId);
+      return `<div class="studio-sequence-map-thumbnail is-audio" style="--sequence-audio-color:${asset?.editor?.color || AUDIO_SCORE_COLORS[0]}">
+        <span class="studio-sequence-audio-glyph" aria-hidden="true">${audio.lane === 'swell' ? '✦' : '◉'}</span>
+        <span>${this.escapeHtml(asset?.name || 'Missing audio')}</span></div>`;
+    }).join('');
+    const visualActions = visual ? `<div class="studio-sequence-map-lane-actions">
+      <span><i class="is-visual" aria-hidden="true"></i>Visual</span>
+      <div class="studio-choice-grid studio-choice-grid-3">
+        <button type="button" class="btn-secondary btn-compact" data-action="preview-score-assignment" data-assignment-id="${this.escapeHtml(visual.id)}">Preview</button>
+        <button type="button" class="btn-secondary btn-compact" data-action="choose-score-asset" data-score-lane="visual">Replace</button>
+        <button type="button" class="btn-ghost btn-compact" data-action="erase-score-assignment" data-assignment-id="${this.escapeHtml(visual.id)}">Erase</button>
+      </div></div>` : '';
+    const audioActions = entry.audio.map(audio => `<div class="studio-sequence-map-lane-actions">
+      <span><i class="is-audio" aria-hidden="true"></i>${audio.lane === 'swell' ? 'Swell' : 'Audio bed'}</span>
+      <div class="studio-choice-grid studio-choice-grid-3">
+        <button type="button" class="btn-secondary btn-compact" data-action="preview-audio-assignment" data-assignment-id="${this.escapeHtml(audio.id)}">Preview</button>
+        <button type="button" class="btn-secondary btn-compact" data-action="choose-score-asset" data-score-lane="audio">Replace</button>
+        <button type="button" class="btn-ghost btn-compact" data-action="erase-audio-assignment" data-assignment-id="${this.escapeHtml(audio.id)}">Erase</button>
+      </div></div>`).join('');
+    return `<div class="studio-sequence-map-detail" tabindex="-1" data-inspector-focus>
+      <div class="studio-sequence-map-media">${visualMedia}${audioMedia}</div>
+      <blockquote>“${this.escapeHtml(excerpt.slice(0, 240))}${excerpt.length > 240 ? '…' : ''}”</blockquote>
+      <p class="font-mono">Characters ${entry.fromCharacter}–${entry.toCharacter}${visual && selectedAudio ? ' · synchronized media' : ''}</p>
+      ${visualAsset?.entry ? this.renderVisualStyleControls(visualAsset.entry) : ''}
+      ${visualActions}${audioActions}
+    </div>`;
+  }
+
+  renderSequenceMap() {
+    const groups = this.sequenceMapGroups();
+    const totalClips = this.sessionData.visualScoreAssignments.length
+      + this.sessionData.audioScoreAssignments.length;
+    return `<section class="studio-sequence-map" aria-labelledby="studio-sequence-map-title">
+      <header><div><span class="studio-kicker">Whole reading</span><h3 id="studio-sequence-map-title">Composition map</h3></div>
+        <span class="studio-sequence-map-count">${totalClips} clip${totalClips === 1 ? '' : 's'}</span></header>
+      ${groups.length ? groups.map(group => {
+        const activeSource = group.sourceId === String(this.activeScoreSourceId);
+        return `<section class="studio-sequence-source ${activeSource ? 'is-active-source' : ''}" data-sequence-source-id="${this.escapeHtml(group.sourceId)}">
+          <button type="button" class="studio-sequence-source-heading" data-action="select-sequence-map-source" data-source-id="${this.escapeHtml(group.sourceId)}"
+            aria-pressed="${activeSource}"><span><small>Source ${group.sourceIndex + 1}</small><strong>${this.escapeHtml(group.source.name)}</strong></span>
+            <em>${group.entries.length} passage${group.entries.length === 1 ? '' : 's'}</em></button>
+          ${group.entries.length ? `<ol>${group.entries.map(entry => {
+            const selected = entry.visual?.id === this.selectedScoreAssignmentId
+              || entry.audio.some(item => item.id === this.selectedAudioAssignmentId);
+            const visualAsset = entry.visual
+              ? this.scoreAsset(entry.visual.assetId, entry.visual)
+              : null;
+            const audioAssets = new Map(this.audioScoreAssets().map(asset => [asset.id, asset]));
+            const selectedAudio = entry.audio.find(item => item.id === this.selectedAudioAssignmentId) || entry.audio[0];
+            const excerpt = group.source.text.slice(entry.fromCharacter, entry.toCharacter).replace(/\s+/gu, ' ').trim().slice(0, 92);
+            const labels = [visualAsset?.name, ...entry.audio.map(audio => audioAssets.get(audio.assetId)?.name)].filter(Boolean);
+            return `<li class="studio-sequence-map-entry ${selected ? 'is-selected' : ''} ${entry.visual ? 'has-visual' : ''} ${entry.audio.length ? 'has-audio' : ''} ${entry.visual && entry.audio.length ? 'is-synchronized' : ''}"
+                data-sequence-entry-key="${this.escapeHtml(entry.key)}"
+                ${entry.visual ? `data-sequence-visual-id="${this.escapeHtml(entry.visual.id)}"` : ''}
+                data-sequence-audio-ids="${this.escapeHtml(entry.audio.map(item => item.id).join(' '))}"
+                style="--sequence-visual-color:${visualAsset?.color || VISUAL_SCORE_COLORS[0]};--sequence-audio-color:${audioAssets.get(selectedAudio?.assetId)?.editor?.color || AUDIO_SCORE_COLORS[0]}">
+              <button type="button" class="studio-sequence-map-entry-main" data-action="select-sequence-map-entry"
+                ${entry.visual ? `data-visual-assignment-id="${this.escapeHtml(entry.visual.id)}"` : ''}
+                ${selectedAudio ? `data-audio-assignment-id="${this.escapeHtml(selectedAudio.id)}"` : ''}
+                aria-expanded="${selected}" aria-pressed="${selected}" data-focus-key="sequence-entry:${this.escapeHtml(entry.key)}">
+                <span class="studio-sequence-map-rail" aria-hidden="true"><i class="is-visual"></i><i class="is-audio"></i></span>
+                <span><small>${entry.fromCharacter}–${entry.toCharacter} · ${entry.visual && entry.audio.length ? 'Visual + audio' : entry.visual ? 'Visual' : entry.audio[0]?.lane === 'swell' ? 'Swell' : 'Audio'}</small>
+                  <strong>${this.escapeHtml(labels.join(' + ') || 'Missing media')}</strong>
+                  <span>“${this.escapeHtml(excerpt)}${excerpt.length === 92 ? '…' : ''}”</span></span>
+              </button>
+              ${selected ? this.renderSequenceMapEntryDetail(entry, group.source) : ''}
+            </li>`;
+          }).join('')}</ol>` : '<p class="studio-sequence-source-empty">No passage media assigned yet.</p>'}
+        </section>`;
+      }).join('') : `<div class="studio-sequence-map-empty"><span aria-hidden="true">◇</span>
+        <p>Add a source to begin building the composition map.</p></div>`}
+    </section>`;
+  }
+
+  projectIssueCount() {
+    let count = this.workshopIssue ? 1 : 0;
+    const visualAssets = new Set(this.scoreAssetLookup().keys());
+    count += this.sessionData.visualScoreAssignments.filter(item => !visualAssets.has(item.assetId)).length;
+    const audioAssets = new Set(this.audioScoreAssets().map(item => item.id));
+    count += this.sessionData.audioScoreAssignments.filter(item => !audioAssets.has(item.assetId)).length;
+    return count;
+  }
+
+  renderContextualInspector(entries = this.visualAssetEntries()) {
+    let contextHtml = '';
+    switch (this.inspectorContext.kind) {
+      case 'pacing': contextHtml = this.renderPacingInspector(); break;
+      case 'visualAsset': contextHtml = this.renderVisualInspector(entries); break;
+      case 'audioAsset': contextHtml = this.renderAudioAssetInspector(); break;
+      case 'source': contextHtml = this.renderSourceInspector(); break;
+      case 'issue': contextHtml = this.renderIssueInspector(); break;
+      case 'visualClip':
+      case 'audioClip':
+      case 'combinedClip': break;
+      default: contextHtml = this.renderProjectInspector();
+    }
+    return `<div class="studio-inspector-stack">${contextHtml}${this.renderSequenceMap()}</div>`;
   }
 
   captureFocusKey() {
@@ -658,6 +1051,25 @@ export class Workshop {
     const selection = this.pendingScoreConflict?.selection || this.pendingScoreSelection;
     if (!selection) return '';
     const source = this.scoreSources().find(item => item.id === selection.sourceId);
+    if (this.scoreView === 'combined') {
+      const visualAsset = this.scoreAsset(this.selectedScoreAssetId);
+      const audioAsset = this.selectedAudioScoreAsset();
+      const canAssignVisual = Boolean(source && visualAsset && !this.pendingScoreConflict);
+      const canAssignAudio = Boolean(source && audioAsset && !this.pendingScoreConflict);
+      const excerpt = source?.text.slice(selection.fromCharacter, selection.toCharacter)
+        .replace(/\s+/gu, ' ').trim().slice(0, 72) || 'Selected passage';
+      return `<section class="studio-selection-bar is-combined" aria-label="Selected passage media actions">
+        <p><span class="studio-kicker">Selected passage</span><strong>â€œ${this.escapeHtml(excerpt)}${excerpt.length === 72 ? 'â€¦' : ''}â€</strong>
+          <small>Visual: ${this.escapeHtml(visualAsset?.name || 'not chosen')} Â· Audio: ${this.escapeHtml(audioAsset?.name || 'not chosen')}</small></p>
+        <div>
+          <button type="button" class="btn-ghost btn-compact" data-action="cancel-score-selection">Cancel</button>
+          <button type="button" class="btn-secondary btn-compact" data-action="assign-score-lane" data-score-lane="visual"
+                  ${canAssignVisual ? '' : 'disabled'}>Assign visual</button>
+          <button type="button" class="btn-secondary btn-compact" data-action="assign-score-lane" data-score-lane="audio"
+                  ${canAssignAudio ? '' : 'disabled'}>Assign audio</button>
+        </div>
+      </section>`;
+    }
     const lane = this.scoreAuthoringLane();
     const asset = lane === 'audio' ? this.selectedAudioScoreAsset() : this.scoreAsset(this.selectedScoreAssetId);
     const canAssign = Boolean(source && asset && !this.pendingScoreConflict);
@@ -688,11 +1100,158 @@ export class Workshop {
 
   renderPassageAssetOptions(entries = this.visualAssetEntries()) {
     const available = entries.filter(entry => !entry.materialization
-      && editorAssetSupports(entry.asset, 'span'));
-    return `<option value="" ${this.selectedScoreAssetId ? '' : 'selected'} disabled>Choose a passage visual</option>${available
-      .map(entry => `<option value="${this.escapeHtml(entry.asset.id)}"
-        ${this.scoreAssetReference(entry) === this.selectedScoreAssetId ? 'selected' : ''}>${this.escapeHtml(entry.asset.name)}</option>`)
-      .join('')}`;
+      && !entry.hidden && editorAssetSupports(entry.asset, 'span'));
+    const groups = [
+      ['fields', 'Fields'], ['procedural', 'Procedural'], ['collections', 'Collections'],
+      ['project', 'Project media'], ['shared', 'Shared media']
+    ];
+    const selectedAvailable = available.some(entry =>
+      this.scoreAssetReference(entry) === this.selectedScoreAssetId);
+    return `<option value="" ${selectedAvailable ? '' : 'selected'} disabled>Choose a passage visual</option>${groups
+      .map(([group, label]) => {
+        const items = available.filter(entry => entry.group === group);
+        if (!items.length) return '';
+        return `<optgroup label="${label}">${items.map(entry => {
+          const summary = visualCueStyleSummary(this.visualCueForEntry(entry));
+          return `<option value="${this.escapeHtml(entry.asset.id)}"
+            ${this.scoreAssetReference(entry) === this.selectedScoreAssetId ? 'selected' : ''}>${this.escapeHtml(entry.asset.name)}${summary ? ` · ${this.escapeHtml(summary)}` : ''}</option>`;
+        }).join('')}</optgroup>`;
+      }).join('')}`;
+  }
+
+  personalFocalImages() {
+    return this.sessionData.sequenceVisualAssets.filter(asset => asset.kind !== 'video');
+  }
+
+  inferPersonalFocalTarget() {
+    const assignmentId = this.selectedScoreAssignmentId || this.scoreConfirmationAssignmentId;
+    if (this.sessionData.visualScoreAssignments.some(item => item.id === assignmentId)) return 'clip';
+    if (this.pendingScoreSelection || this.pendingScoreConflict) return 'passage';
+    return 'whole-reading';
+  }
+
+  openPersonalFocalChooser(assetId = 'surface:focal', target = this.inferPersonalFocalTarget()) {
+    const boundedTarget = ['passage', 'clip', 'whole-reading'].includes(target)
+      ? target
+      : this.inferPersonalFocalTarget();
+    this.personalFocalChooser = { assetId, target: boundedTarget, expanded: false };
+    this.refreshVisualLibraryAndInspector();
+    this.refreshScoreSelectionUi();
+    return boundedTarget;
+  }
+
+  renderPersonalFocalPicker({ target = 'whole-reading', compact = false } = {}) {
+    const images = this.personalFocalImages();
+    const activeId = this.personalFocalAssetIdForTarget(target);
+    const active = images.find(asset => asset.id === activeId) || null;
+    const expanded = this.personalFocalChooser?.target === target
+      && this.personalFocalChooser.expanded === true;
+    const actionCount = active ? 3 : 2;
+    return `<section class="studio-personal-focal ${compact ? 'is-compact' : ''}" data-personal-focal-picker="${target}">
+      ${active ? `<div class="studio-personal-focal-current">
+        <img src="${safeUrl(active.uri)}" alt="" ${REMOTE_IMAGE_ATTRS} />
+        <span><small>Current personal focal</small><strong>${this.escapeHtml(active.name)}</strong></span>
+      </div>` : '<p>Use a durable project image as this focal.</p>'}
+      <div class="studio-choice-grid studio-choice-grid-${actionCount} studio-personal-focal-actions">
+        <button type="button" class="btn-secondary btn-compact" data-action="toggle-personal-focal-projects"
+          data-focal-target="${target}" ${images.length ? '' : 'disabled'}>Choose Project Media</button>
+        <button type="button" class="btn-secondary btn-compact" data-action="upload-personal-focal"
+          data-focal-target="${target}">Upload New</button>
+        ${active ? '<button type="button" class="btn-ghost btn-compact" data-action="remove-personal-focal-default">Remove</button>' : ''}
+      </div>
+      ${expanded ? `<div class="studio-personal-focal-projects" role="listbox" aria-label="Project images">
+        ${images.map(asset => `<button type="button" role="option" class="studio-personal-focal-option"
+          data-action="choose-personal-focal" data-focal-target="${target}" data-project-asset-id="${this.escapeHtml(asset.id)}"
+          aria-selected="${asset.id === activeId}" ${asset.uri ? '' : 'disabled'}>
+          ${asset.uri ? `<img src="${safeUrl(asset.uri)}" alt="" ${REMOTE_IMAGE_ATTRS} />` : '<span aria-hidden="true">◇</span>'}
+          <strong>${this.escapeHtml(asset.name)}</strong>
+        </button>`).join('')}
+      </div>` : ''}
+    </section>`;
+  }
+
+  personalFocalAssetIdForTarget(target = 'whole-reading') {
+    if (target === 'whole-reading') {
+      return this.sessionData.visualConfig?.focals?.personalAssetId || null;
+    }
+    if (target === 'clip') {
+      const assignmentId = this.selectedScoreAssignmentId || this.scoreConfirmationAssignmentId;
+      const assignment = this.sessionData.visualScoreAssignments
+        .find(item => item.id === assignmentId);
+      if (assignment?.cue?.kind === 'field' && assignment.cue.renderer === 'focal') {
+        return normalizeFieldStyle('focal', assignment.cue.config).personalAssetId || null;
+      }
+    }
+    const draft = this.visualAssetStyleDrafts.get('surface:focal');
+    return draft?.kind === 'field' && draft.renderer === 'focal'
+      ? normalizeFieldStyle('focal', draft.config).personalAssetId || null
+      : null;
+  }
+
+  renderVisualStyleControls(entry, { compact = false } = {}) {
+    const cue = this.visualCueForEntry(entry);
+    if (!visualCueIsConfigurable(cue)) return '';
+    const options = (values, selected) => values.map(item => {
+      const id = typeof item === 'string' ? item : item.id;
+      const name = typeof item === 'string'
+        ? item.charAt(0).toUpperCase() + item.slice(1)
+        : item.name;
+      return `<option value="${this.escapeHtml(id)}" ${id === selected ? 'selected' : ''}>${this.escapeHtml(name)}</option>`;
+    }).join('');
+    let controls = '';
+    let supplement = '';
+    let styleSummary = visualCueStyleSummary(cue);
+    if (cue.kind === 'field' && cue.renderer === 'focal') {
+      const config = normalizeFieldStyle('focal', cue.config);
+      const chooser = this.personalFocalChooser?.assetId === entry.asset.id
+        ? this.personalFocalChooser
+        : null;
+      const wholeReadingPersonal = !chooser
+        && this.inferPersonalFocalTarget() === 'whole-reading'
+        && this.sessionData.visualConfig?.focals?.type === 'personal';
+      const personal = Boolean(chooser || wholeReadingPersonal || config.type === 'personal');
+      const target = chooser?.target || this.inferPersonalFocalTarget();
+      styleSummary = personal
+        ? this.personalFocalImages().find(asset =>
+          asset.id === (config.personalAssetId
+            || this.personalFocalAssetIdForTarget(target)))?.name || 'Personal image'
+        : styleSummary;
+      controls = `<label><span>Focal form</span><select class="input-select" data-visual-style-setting="focal-glyph">
+          ${options(FOCAL_GLYPHS, personal ? null : config.standardGlyph)}
+          <option value="personal" ${personal ? 'selected' : ''}>Personal image</option></select></label>
+        ${!personal && config.standardGlyph === 'rose' ? `<label><span>Rose rendering</span><select class="input-select" data-visual-style-setting="focal-rose-mode">
+          ${options(ROSE_MODES, config.roseMode)}</select></label>` : ''}`;
+      if (personal) supplement = this.renderPersonalFocalPicker({ target, compact });
+    } else if (cue.kind === 'field' && cue.renderer === 'attractor') {
+      const config = normalizeFieldStyle('attractor', cue.config);
+      controls = `<label><span>System</span><select class="input-select" data-visual-style-setting="attractor-system">
+          ${options(ATTRACTOR_SYSTEMS, config.system)}</select></label>
+        <label><span>Filament</span><select class="input-select" data-visual-style-setting="attractor-palette">
+          ${options(ATTRACTOR_PALETTES, config.palette)}</select></label>
+        <label><span>Form</span><select class="input-select" data-visual-style-setting="attractor-form">
+          ${options(ATTRACTOR_FORMS, config.form)}</select></label>`;
+    } else if (cue.kind === 'field' && cue.renderer === 'genesis') {
+      const config = normalizeFieldStyle('genesis', cue.config);
+      controls = `<label><span>Climate</span><select class="input-select" data-visual-style-setting="genesis-preset">
+          ${options(KLEE_PRESETS, config.preset)}</select></label>
+        <label class="studio-style-toggle"><input type="checkbox" data-visual-style-setting="genesis-glass" ${config.glass ? 'checked' : ''}><span>Glass behind text</span></label>`;
+    } else if (cue.kind === 'procedural' && cue.collections?.[0] === 'klee') {
+      const config = normalizeProceduralStyle(cue.collections, cue.config);
+      controls = `<label><span>Klee climate</span><select class="input-select" data-visual-style-setting="klee-preset">
+        ${options(KLEE_PRESETS, config.preset)}</select></label>`;
+    } else if (cue.kind === 'procedural' && cue.collections?.[0] === 'harmonograph') {
+      const config = normalizeProceduralStyle(cue.collections, cue.config);
+      controls = `<label><span>Harmonograph climate</span><select class="input-select" data-visual-style-setting="harmonograph-climate">
+        ${options(HARMONOGRAPH_CLIMATES, config.climate)}</select></label>`;
+    }
+    if (!controls) return '';
+    return `<section class="studio-visual-style ${compact ? 'is-compact' : ''}" data-style-asset-id="${this.escapeHtml(entry.asset.id)}">
+      <div class="studio-visual-style-heading"><span>Passage style</span><strong>${this.escapeHtml(styleSummary)}</strong></div>
+      <div class="studio-visual-style-controls">${controls}</div>
+      ${supplement}
+      ${cue.kind === 'field' && cue.renderer === 'focal' && !supplement
+        ? '<p>Choose Personal image to use or upload durable Project Media.</p>' : ''}
+    </section>`;
   }
 
   /** The audio lane's counterpart to `renderPassageAssetOptions`. */
@@ -714,13 +1273,19 @@ export class Workshop {
   }
 
   renderScoreSelectionPopover() {
+    if (this.scoreView === 'combined' && (this.pendingScoreSelection || this.pendingScoreConflict)) {
+      return this.renderCombinedSelectionPopover();
+    }
+    if (this.sessionData.audioScoreAssignments.some(item => item.id === this.scoreConfirmationAssignmentId)) {
+      return this.renderAudioSelectionPopover();
+    }
     if (this.scoreAuthoringLane() === 'audio') return this.renderAudioSelectionPopover();
     const entries = this.visualAssetEntries();
     const assignment = this.sessionData.visualScoreAssignments
       .find(item => item.id === this.scoreConfirmationAssignmentId);
     if (assignment) {
       const source = this.scoreSources().find(item => item.id === assignment.sourceId);
-      const assignedAsset = this.scoreAsset(assignment.assetId);
+      const assignedAsset = this.scoreAsset(assignment.assetId, assignment);
       const candidate = this.scoreAsset(this.selectedScoreAssetId);
       const candidateEntry = this.selectedScoreAssetEntry(entries);
       const excerpt = source?.text.slice(assignment.fromCharacter, assignment.toCharacter)
@@ -738,6 +1303,7 @@ export class Workshop {
             ${this.renderPassageAssetOptions(entries)}
           </select>
         </label>
+        ${candidateEntry ? this.renderVisualStyleControls(candidateEntry, { compact: true }) : ''}
         <div class="studio-passage-actions">
           <button type="button" class="btn-ghost btn-compact" data-action="preview-score-assignment"
             data-assignment-id="${this.escapeHtml(assignment.id)}">Preview</button>
@@ -772,15 +1338,54 @@ export class Workshop {
           ${this.renderPassageAssetOptions(entries)}
         </select>
       </label>
+      ${entry ? this.renderVisualStyleControls(entry, { compact: true }) : ''}
       <div class="studio-passage-actions">
         <button type="button" class="btn-ghost btn-compact" data-action="cancel-score-selection">Cancel</button>
         <button type="button" class="btn-secondary btn-compact" data-action="choose-score-asset">Browse all</button>
+        ${this.canAuthorIntentionalStillness() && !this.pendingScoreConflict
+          ? '<button type="button" class="btn-secondary btn-compact" data-action="assign-score-stillness">Intentional stillness</button>'
+          : ''}
         ${this.pendingScoreConflict
           ? '<button type="button" class="btn-primary btn-compact" data-action="replace-score-overlap">Replace overlap</button>'
           : `<button type="button" class="btn-primary btn-compact" data-action="assign-score-selection"
               ${canAssign ? '' : 'disabled'}>Assign visual</button>`}
       </div>
     </section>`;
+  }
+
+  renderCombinedSelectionPopover() {
+    const selection = this.pendingScoreConflict?.selection || this.pendingScoreSelection;
+    if (!selection) return '';
+    const source = this.scoreSources().find(item => item.id === selection.sourceId);
+    const visualEntries = this.visualAssetEntries();
+    const visualAsset = this.scoreAsset(this.selectedScoreAssetId);
+    const visualEntry = this.selectedScoreAssetEntry(visualEntries);
+    const audioAsset = this.selectedAudioScoreAsset();
+    const exactVisual = this.sessionData.visualScoreAssignments.find(item => item.sourceId === selection.sourceId
+      && item.fromCharacter === selection.fromCharacter && item.toCharacter === selection.toCharacter);
+    const exactAudio = this.sessionData.audioScoreAssignments.find(item => item.sourceId === selection.sourceId
+      && item.fromCharacter === selection.fromCharacter && item.toCharacter === selection.toCharacter
+      && (!audioAsset || item.lane === audioAsset.lane));
+    const conflictLane = this.pendingScoreConflict?.scoreLane || null;
+    const excerpt = source?.text.slice(selection.fromCharacter, selection.toCharacter)
+      .replace(/\s+/gu, ' ').trim().slice(0, 72) || 'Selected passage';
+    const canAssignVisual = Boolean(source && visualAsset && visualEntry && !exactVisual && !this.pendingScoreConflict);
+    const canAssignAudio = Boolean(source && audioAsset && !exactAudio && !this.pendingScoreConflict);
+    return renderCombinedPassageAssignment({
+      hasConflict: Boolean(this.pendingScoreConflict),
+      conflictLane,
+      excerpt,
+      excerptTruncated: excerpt.length === 72,
+      visualOptionsHtml: this.renderPassageAssetOptions(visualEntries),
+      visualStyleHtml: visualEntry ? this.renderVisualStyleControls(visualEntry, { compact: true }) : '',
+      canAuthorStillness: this.canAuthorIntentionalStillness(),
+      audioOptionsHtml: this.renderPassageAudioOptions(),
+      canAssignVisual,
+      canAssignAudio,
+      exactVisual: Boolean(exactVisual),
+      exactAudio: Boolean(exactAudio),
+      defaultLane: this.activeAssetLane
+    });
   }
 
   renderAudioSelectionPopover() {
@@ -829,12 +1434,27 @@ export class Workshop {
     this.withFocusPreserved(() => {
       this.refreshSelectionActionBar();
       const canAssign = Boolean((this.pendingScoreSelection || this.pendingScoreConflict)
-        && (this.scoreAuthoringLane() === 'audio'
-          ? this.selectedAudioScoreAsset()
-          : this.scoreAsset(this.selectedScoreAssetId))
+        && (this.scoreView === 'combined'
+          ? this.scoreAsset(this.selectedScoreAssetId) || this.selectedAudioScoreAsset()
+          : this.scoreAuthoringLane() === 'audio'
+            ? this.selectedAudioScoreAsset()
+            : this.scoreAsset(this.selectedScoreAssetId))
         && !this.pendingScoreConflict);
       this.container.querySelectorAll('.visual-score-toolbar [data-action="assign-score-selection"]')
         .forEach(button => { button.disabled = !canAssign; });
+      this.container.querySelectorAll('.visual-score-toolbar [data-action="assign-score-lane"]')
+        .forEach(button => {
+          const selection = this.pendingScoreSelection;
+          const audio = button.dataset.scoreLane === 'audio';
+          const asset = audio ? this.selectedAudioScoreAsset() : this.scoreAsset(this.selectedScoreAssetId);
+          const assignments = audio
+            ? this.sessionData.audioScoreAssignments
+            : this.sessionData.visualScoreAssignments;
+          const alreadyAssigned = Boolean(selection && assignments.some(item => item.sourceId === selection.sourceId
+            && item.fromCharacter === selection.fromCharacter && item.toCharacter === selection.toCharacter
+            && (!audio || !asset || item.lane === asset.lane)));
+          button.disabled = !selection || !asset || alreadyAssigned || Boolean(this.pendingScoreConflict);
+        });
       const host = this.container.querySelector('#studio-selection-popover');
       if (host) host.innerHTML = this.renderScoreSelectionPopover();
     });
@@ -892,14 +1512,13 @@ export class Workshop {
     const next = validStudioSurface(surface);
     if (origin && next !== 'score') this.responsiveFocusOrigin = origin;
     this.studioSurface = next;
-    if (next === 'assets') this.setAssetLane('visual');
     this.syncStudioSurface();
     if (!focus) return true;
     const targets = {
       score: '#visual-score-text, #studio-score-title',
       sources: '[data-action="open-browser"], #studio-sources-title',
       assets: '#visual-asset-search, #studio-assets-title',
-      inspector: '#studio-visual-inspector summary, #studio-project-inspector summary, #studio-reading-inspector summary'
+      inspector: '#studio-contextual-inspector summary, #studio-contextual-inspector [data-inspector-focus], #studio-contextual-inspector button'
     };
     requestAnimationFrame(() => this.container.querySelector(targets[next])?.focus?.({ preventScroll: true }));
     return true;
@@ -914,6 +1533,42 @@ export class Workshop {
       if (origin?.isConnected) origin.focus({ preventScroll: true });
       else this.container.querySelector('#visual-score-text')?.focus({ preventScroll: true });
     });
+  }
+
+  scrollInspectorClipIntoView(assignmentId, { focus = false } = {}) {
+    if (!assignmentId) return;
+    requestAnimationFrame(() => {
+      const entry = [...this.container.querySelectorAll('.studio-sequence-map-entry')]
+        .find(node => node.dataset.sequenceVisualId === assignmentId
+          || node.dataset.sequenceAudioIds?.split(/\s+/u).includes(assignmentId));
+      if (!entry) return;
+      entry.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+      if (focus) entry.querySelector('.studio-sequence-map-detail')?.focus?.({ preventScroll: true });
+    });
+  }
+
+  scrollScoreClipIntoView({ visualId = null, audioId = null } = {}) {
+    requestAnimationFrame(() => {
+      const mark = [...this.container.querySelectorAll('#visual-score-text .media-score-mark')]
+        .find(node => node.dataset.assignmentId === visualId
+          || node.dataset.assignmentId === audioId
+          || node.dataset.visualAssignmentId === visualId
+          || node.dataset.audioAssignmentId === audioId);
+      if (!mark) return;
+      mark.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+      this.container.querySelector('#visual-score-text')?.focus?.({ preventScroll: true });
+    });
+  }
+
+  selectSequenceMapEntry(visualId = null, audioId = null) {
+    let selected = false;
+    if (visualId && audioId) selected = this.selectCombinedAssignments(visualId, audioId);
+    else if (visualId) selected = this.selectScoreAssignment(visualId);
+    else if (audioId) selected = this.selectAudioAssignment(audioId);
+    if (selected === false) return false;
+    this.scrollScoreClipIntoView({ visualId, audioId });
+    if (this.studioViewport !== 'desktop') this.setStudioSurface('score', { focus: false });
+    return true;
   }
 
   cancelPendingScoreSelection({ announce = true } = {}) {
@@ -1106,10 +1761,12 @@ export class Workshop {
   selectAudioAsset(assetId) {
     if (!workshopAudioAsset(assetId) && !audioScoreAssetFromId(assetId, this.personalSwells)) return false;
     this.selectedAudioAssetId = assetId;
-    this.scoreView = 'audio';
+    this.inspectorContext = normalizeInspectorContext({ kind: 'audioAsset', id: assetId });
+    if (!(this.scoreView === 'combined' && (this.pendingScoreSelection || this.pendingScoreConflict))) {
+      this.scoreView = 'audio';
+    }
     this.setAssetLane('audio');
-    const inspector = this.container.querySelector('#studio-audio-inspector');
-    if (inspector) inspector.open = true;
+    this.refreshContextualInspector();
     this.refreshAudioStudio();
     this.updateVisualScoreEditor();
     return true;
@@ -1238,7 +1895,7 @@ export class Workshop {
       return `
         <div class="source-item card" data-source-index="${index + 1}">
           <div class="source-item-header">
-            <span class="source-name text-light">${this.escapeHtml(source.name)}</span>
+            <button type="button" class="source-name text-light" data-action="inspect-source" data-source-id="${this.escapeHtml(String(source.id))}">${this.escapeHtml(source.name)}</button>
             <div class="source-actions-mini">
               <button type="button" class="btn-icon" data-action="preview-source" data-index="${index}" title="Preview content">
                 ◎
@@ -1362,20 +2019,46 @@ export class Workshop {
     return buildWorkshopVisualAssetRegistry({
       projectAssets: this.sessionData.sequenceVisualAssets,
       globalAssets: MemoryCore.getGlobalImageAssets(),
-      savedBlueprints: this.savedBlueprints.filter(item => item.id !== this.activeBlueprintId)
+      savedBlueprints: this.savedBlueprints.filter(item => item.id !== this.activeBlueprintId),
+      visualConfig: this.sessionData.visualConfig
     });
+  }
+
+  visualCueForEntry(entry, assignment = null) {
+    if (!entry?.asset?.cueTemplate) return null;
+    const reference = this.scoreAssetReference(entry);
+    const activeAssignment = assignment || this.sessionData.visualScoreAssignments
+      .find(item => item.id === (this.selectedScoreAssignmentId || this.scoreConfirmationAssignmentId));
+    if (activeAssignment?.assetId === reference && activeAssignment.cue) {
+      return normalizeConfigurableVisualCue(activeAssignment.cue);
+    }
+    return this.visualAssetStyleDrafts.get(entry.asset.id)
+      || normalizeConfigurableVisualCue(entry.asset.cueTemplate);
+  }
+
+  configuredVisualEntry(entry) {
+    const cueTemplate = this.visualCueForEntry(entry);
+    return cueTemplate ? { ...entry, asset: { ...entry.asset, cueTemplate } } : entry;
+  }
+
+  canAuthorIntentionalStillness() {
+    return visualFallbackCueFromConfig(this.sessionData.visualConfig).kind !== 'still';
   }
 
   visualScoreReferenceCounts() {
     const counts = new Map();
     for (const assignment of this.sessionData.visualScoreAssignments) {
       counts.set(assignment.assetId, (counts.get(assignment.assetId) || 0) + 1);
+      const personalFocalAssetId = personalFocalAssetIdFromCue(assignment.cue);
+      if (personalFocalAssetId) {
+        counts.set(personalFocalAssetId, (counts.get(personalFocalAssetId) || 0) + 1);
+      }
     }
     return counts;
   }
 
   selectedVisualAssetEntry(entries = this.visualAssetEntries()) {
-    return entries.find(entry => entry.asset.id === this.selectedEditorAssetId) || null;
+    return entries.find(entry => !entry.hidden && entry.asset.id === this.selectedEditorAssetId) || null;
   }
 
   scoreAssetReference(entry) {
@@ -1383,9 +2066,8 @@ export class Workshop {
   }
 
   editorAssetIdForScoreAsset(assetId) {
-    return this.sessionData.sequenceVisualAssets.some(asset => asset.id === assetId)
-      ? `project-image:${assetId}`
-      : assetId;
+    const projectAsset = this.sessionData.sequenceVisualAssets.find(asset => asset.id === assetId);
+    return projectAsset ? projectEditorAssetId(projectAsset) : assetId;
   }
 
   visualScoreAssets(entries = this.visualAssetEntries()) {
@@ -1462,6 +2144,11 @@ export class Workshop {
     if (asset.kind === 'project-surface') {
       return asset.provenance.surface === this.visualSurface();
     }
+    if (asset.kind === 'sequence-image' && asset.provenance.projectOwned === true) {
+      return config.visualMode === 'focals'
+        && config.focals?.type === 'personal'
+        && config.focals?.personalAssetId === asset.provenance.projectAssetId;
+    }
     if (config.visualMode !== 'interlocution') return false;
     if (asset.kind === 'procedural') {
       return config.interlocution?.procedural?.includes(asset.cueTemplate.collections[0]) === true;
@@ -1473,12 +2160,14 @@ export class Workshop {
   }
 
   renderVisualAssetFilters(entries = this.visualAssetEntries()) {
+    const visibleEntries = entries.filter(entry => !entry.hidden);
     const groups = [
       ['all', 'All'], ['project', 'Project'], ['collections', 'Collections'],
-      ['procedural', 'Procedural'], ['shared', 'Shared'], ['surfaces', 'Surfaces']
+      ['procedural', 'Procedural'], ['shared', 'Shared'], ['fields', 'Fields']
     ];
     return groups.map(([id, label]) => {
-      const count = id === 'all' ? entries.length : entries.filter(entry => entry.group === id).length;
+      const count = id === 'all' ? visibleEntries.length
+        : visibleEntries.filter(entry => entry.group === id).length;
       return `<button type="button" class="studio-asset-filter ${this.visualAssetGroup === id ? 'active' : ''}"
           data-action="filter-visual-assets" data-asset-group="${id}"
           aria-pressed="${this.visualAssetGroup === id}">${label}<span>${count}</span></button>`;
@@ -1490,6 +2179,10 @@ export class Workshop {
     const preview = asset.editor.preview;
     if (preview.kind === 'image') {
       return `<img src="${safeUrl(preview.ref)}" alt="${this.escapeHtml(alt)}" loading="lazy" ${REMOTE_IMAGE_ATTRS} />`;
+    }
+    if (preview.kind === 'video') {
+      return `<video src="${safeUrl(preview.ref)}" aria-label="${this.escapeHtml(alt)}"
+        muted playsinline preload="metadata"></video>`;
     }
     const sample = preview.kind === 'sample'
       ? this.collectionPreviewCache.get(preview.ref)
@@ -1512,6 +2205,7 @@ export class Workshop {
   renderVisualAssetRegistry(entries = this.visualAssetEntries()) {
     const query = this.visualAssetSearch.trim().toLowerCase();
     const visible = entries.filter(entry => {
+      if (entry.hidden) return false;
       if (this.visualAssetGroup !== 'all' && entry.group !== this.visualAssetGroup) return false;
       const searchText = [entry.asset.name, entry.asset.kind, entry.group,
         entry.asset.provenance.provider].filter(Boolean).join(' ').toLowerCase();
@@ -1536,13 +2230,14 @@ export class Workshop {
         : 0;
       const capability = asset.capability === 'span' ? 'Passage visual'
         : asset.capability === 'default' ? 'Whole-reading visual' : 'Passage + whole reading';
-      const image = asset.editor.preview.kind === 'image';
+      const image = asset.editor.preview.kind === 'image' || asset.editor.preview.kind === 'video';
       const globalId = entry.materialization?.originId?.startsWith('global:')
         ? entry.materialization.originId.slice('global:'.length)
         : null;
       const projectIndex = projectAssetId
         ? this.sessionData.sequenceVisualAssets.findIndex(item => item.id === projectAssetId)
         : -1;
+      const styleSummary = visualCueStyleSummary(this.visualCueForEntry(entry));
       return `<article class="studio-asset-card ${selected ? 'selected' : ''} ${defaulted ? 'is-default' : ''}"
           style="--asset-color:${asset.editor.color}">
         <button type="button" class="studio-asset-card-main" data-action="select-editor-asset"
@@ -1555,7 +2250,7 @@ export class Workshop {
           </span>
           <span class="studio-asset-copy">
             <strong>${this.escapeHtml(asset.name)}</strong>
-            <small>${this.escapeHtml(asset.kind.replaceAll('-', ' '))}</small>
+            <small>${this.escapeHtml(styleSummary || asset.kind.replaceAll('-', ' '))}</small>
           </span>
           <span class="studio-asset-badges">
             <span>${capability}</span>
@@ -1579,12 +2274,14 @@ export class Workshop {
       </div>`;
     }
     const asset = entry.asset;
-    const image = asset.editor.preview.kind === 'image';
+    const image = asset.editor.preview.kind === 'image' || asset.editor.preview.kind === 'video';
     const capability = asset.capability === 'span' ? 'Passage visual'
       : asset.capability === 'default' ? 'Whole-reading visual' : 'Passage and whole-reading visual';
     const assignment = this.sessionData.visualScoreAssignments
       .find(item => item.id === this.selectedScoreAssignmentId);
     const scoreReference = this.scoreAssetReference(entry);
+    const choosingPersonalFocal = entry.asset.id === 'surface:focal'
+      && this.personalFocalChooser?.assetId === entry.asset.id;
     const actions = [];
     if (entry.materialization) {
       actions.push(`<button type="button" class="btn-primary btn-compact" data-action="materialize-editor-asset"
@@ -1599,7 +2296,7 @@ export class Workshop {
         actions.push('<p class="studio-asset-ready"><span></span>Ready for a selected passage</p>');
       }
     }
-    if (!entry.materialization && editorAssetSupports(asset, 'default')) {
+    if (!entry.materialization && editorAssetSupports(asset, 'default') && !choosingPersonalFocal) {
       actions.push(`<button type="button" class="btn-secondary btn-compact" data-action="set-editor-asset-default"
           data-editor-asset-id="${this.escapeHtml(asset.id)}"
           ${this.isVisualAssetDefault(entry) ? 'disabled' : ''}>${this.isVisualAssetDefault(entry) ? 'Used for whole reading' : 'Use for whole reading'}</button>`);
@@ -1611,6 +2308,7 @@ export class Workshop {
       <div><span class="studio-kicker">${this.escapeHtml(asset.kind.replaceAll('-', ' '))}</span>
         <h3>${this.escapeHtml(asset.name)}</h3></div>
       <p class="input-note text-fog">${capability} · ${this.escapeHtml(asset.provenance.provider || 'Project asset')}</p>
+      ${this.renderVisualStyleControls(entry)}
       <div class="studio-selected-actions">${actions.join('')}</div>
     </div>`;
   }
@@ -1619,14 +2317,20 @@ export class Workshop {
     const config = this.sessionData.visualConfig;
     const surface = this.visualSurface();
     const interlocution = config.interlocution || {};
-    const focalGlyphs = ['breath', 'anchor', 'lotus', 'eye', 'star', 'wave', 'void', 'rose'];
-    const kleePresets = ['random', 'architectural', 'chaotic', 'harmonic', 'gravitational', 'twittering'];
     let controls = '';
     if (surface === 'focal') {
+      const personal = this.sessionData.visualConfig?.focals?.type === 'personal'
+        || this.personalFocalChooser?.target === 'whole-reading';
       controls = `<label class="input-label" for="studio-focal-glyph">Focal form</label>
         <select class="input-select" id="studio-focal-glyph" data-visual-setting="focal-glyph">
-          ${focalGlyphs.map(id => `<option value="${id}" ${config.focals?.standardGlyph === id ? 'selected' : ''}>${id[0].toUpperCase()}${id.slice(1)}</option>`).join('')}
-        </select>`;
+          ${FOCAL_GLYPHS.map(item => `<option value="${item.id}" ${!personal && config.focals?.standardGlyph === item.id ? 'selected' : ''}>${item.name}</option>`).join('')}
+          <option value="personal" ${personal ? 'selected' : ''}>Personal image</option>
+        </select>
+        ${!personal && config.focals?.standardGlyph === 'rose' ? `<label class="input-label" for="studio-focal-rose-mode">Rose rendering</label>
+          <select class="input-select" id="studio-focal-rose-mode" data-visual-setting="focal-rose-mode">
+            ${ROSE_MODES.map(item => `<option value="${item.id}" ${(config.focals?.roseMode || 'vitrum') === item.id ? 'selected' : ''}>${item.name}</option>`).join('')}
+          </select>` : ''}
+        ${personal ? this.renderPersonalFocalPicker({ target: 'whole-reading' }) : ''}`;
     } else if (surface === 'attractor') {
       controls = `<label class="input-label" for="studio-attractor-system">System</label>
         <select class="input-select" id="studio-attractor-system" data-visual-setting="attractor-system">
@@ -1635,11 +2339,15 @@ export class Workshop {
         <label class="input-label" for="studio-attractor-palette">Filament</label>
         <select class="input-select" id="studio-attractor-palette" data-visual-setting="attractor-palette">
           ${ATTRACTOR_PALETTES.map(item => `<option value="${item.id}" ${config.attractor?.palette === item.id ? 'selected' : ''}>${item.name}</option>`).join('')}
+        </select>
+        <label class="input-label" for="studio-attractor-form">Form</label>
+        <select class="input-select" id="studio-attractor-form" data-visual-setting="attractor-form">
+          ${ATTRACTOR_FORMS.map(id => `<option value="${id}" ${(config.attractor?.form || 'mirror') === id ? 'selected' : ''}>${id[0].toUpperCase()}${id.slice(1)}</option>`).join('')}
         </select>`;
     } else if (surface === 'genesis') {
       controls = `<label class="input-label" for="studio-genesis-preset">Climate</label>
         <select class="input-select" id="studio-genesis-preset" data-visual-setting="genesis-preset">
-          ${kleePresets.map(id => `<option value="${id}" ${config.genesis?.preset === id ? 'selected' : ''}>${id[0].toUpperCase()}${id.slice(1)}</option>`).join('')}
+          ${KLEE_PRESETS.map(item => `<option value="${item.id}" ${config.genesis?.preset === item.id ? 'selected' : ''}>${item.name}</option>`).join('')}
         </select>
         <label class="studio-toggle"><input type="checkbox" data-visual-setting="genesis-glass" ${config.genesis?.glass !== false ? 'checked' : ''} /> Glass behind text</label>`;
     } else if (surface === 'scored') {
@@ -1652,18 +2360,23 @@ export class Workshop {
       // depending on which room you are standing in.
       const presentations = [['continuous', 'Gallery'], ['behind-stream', 'Behind Stream'], ['full-frame', 'Rhythmic']];
       controls = `<label class="input-label">Presentation</label>
-        <div class="studio-surface-options">${presentations.map(([id, label]) => `<button type="button"
+        <div class="studio-surface-options studio-presentation-options">${presentations.map(([id, label]) => `<button type="button"
           class="btn-secondary btn-compact ${interlocution.presentation === id || (!interlocution.presentation && id === 'continuous') ? 'active' : ''}"
           data-action="set-scored-presentation" data-presentation="${id}"
           aria-pressed="${interlocution.presentation === id || (!interlocution.presentation && id === 'continuous')}">${label}</button>`).join('')}</div>
-        <label class="input-label" for="studio-visual-frequency">Frequency · ${Math.round((interlocution.frequency ?? 0.3) * 100)}%</label>
-        <input type="range" class="slider" id="studio-visual-frequency" data-visual-setting="visual-frequency"
-               min="0.05" max="1" step="0.05" value="${interlocution.frequency ?? 0.3}" />
         ${interlocution.presentation === 'continuous' ? `
           <label class="input-label" for="studio-gallery-cadence">Gallery cadence</label>
-          <input type="range" class="slider" id="studio-gallery-cadence" data-visual-setting="gallery-cadence"
-                 min="0" max="1" step="0.05" value="${interlocution.galleryCadence ?? GALLERY_CADENCE_DEFAULT}" />`
-          : `<label class="input-label" for="studio-visual-presence">Presence</label>
+          <div class="studio-cadence-control">
+            <input type="range" class="slider" id="studio-gallery-cadence" data-visual-setting="gallery-cadence"
+                   min="0" max="1" step="0.05" value="${interlocution.galleryCadence ?? GALLERY_CADENCE_DEFAULT}"
+                   aria-valuetext="${this.escapeHtml(galleryCadenceValueText(interlocution.galleryCadence ?? GALLERY_CADENCE_DEFAULT))}" />
+            <strong data-gallery-cadence-value>${formatGalleryCadence(interlocution.galleryCadence ?? GALLERY_CADENCE_DEFAULT)}</strong>
+            <div class="studio-cadence-scale" aria-hidden="true"><span>Contemplative · 30 s</span><span>Lively · 8 s</span></div>
+          </div>`
+          : `<label class="input-label" for="studio-visual-frequency">Frequency · ${Math.round((interlocution.frequency ?? 0.3) * 100)}%</label>
+          <input type="range" class="slider" id="studio-visual-frequency" data-visual-setting="visual-frequency"
+                 min="0.05" max="1" step="0.05" value="${interlocution.frequency ?? 0.3}" />
+          <label class="input-label" for="studio-visual-presence">Presence</label>
           <select class="input-select" id="studio-visual-presence" data-visual-setting="visual-presence">
             ${[150, 200, 300, 450, 700, 1000, 1400, 2000].map(ms => `<option value="${ms}" ${Number(interlocution.duration) === ms ? 'selected' : ''}>${ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`}</option>`).join('')}
           </select>`}
@@ -1672,7 +2385,7 @@ export class Workshop {
       controls = '<p class="input-note text-fog">The reading remains text-only. Authored clips are preserved but inactive.</p>';
     }
     const surfaces = [['off', 'Off'], ['focal', 'Focal'], ['attractor', 'Attractor'], ['genesis', 'Genesis'], ['scored', 'Scored']];
-    return `<div class="studio-surface-options">${surfaces.map(([id, label]) => `<button type="button"
+    return `<div class="studio-surface-options studio-reading-surface-options">${surfaces.map(([id, label]) => `<button type="button"
         class="btn-secondary btn-compact ${surface === id ? 'active' : ''}" data-action="set-visual-surface"
         data-visual-surface="${id}" aria-pressed="${surface === id}">${label}</button>`).join('')}</div>
       <div class="studio-surface-config">${controls}</div>`;
@@ -1707,11 +2420,10 @@ export class Workshop {
       const filters = this.container.querySelector('.studio-asset-filters');
       const registry = this.container.querySelector('#visual-assets-list');
       const presentation = this.container.querySelector('#studio-visual-presentation');
-      const inspector = this.container.querySelector('#studio-visual-inspector');
       if (filters) filters.innerHTML = this.renderVisualAssetFilters(entries);
       if (registry) registry.innerHTML = this.renderVisualAssetRegistry(entries);
       if (presentation) presentation.innerHTML = this.renderVisualPresentationPanel();
-      if (inspector) inspector.outerHTML = this.renderVisualInspector(entries);
+      this.refreshContextualInspector();
     });
   }
 
@@ -1724,7 +2436,10 @@ export class Workshop {
     const entry = this.visualAssetEntries().find(item => item.asset.id === assetId);
     if (!entry) return false;
     this.selectedEditorAssetId = entry.asset.id;
-    if (navigate) this.scoreView = 'visual';
+    this.inspectorContext = normalizeInspectorContext({ kind: 'visualAsset', id: entry.asset.id });
+    if (navigate && !(this.scoreView === 'combined' && (this.pendingScoreSelection || this.pendingScoreConflict))) {
+      this.scoreView = 'visual';
+    }
     if (!entry.materialization && editorAssetSupports(entry.asset, 'span')) {
       this.selectedScoreAssetId = this.scoreAssetReference(entry);
       this.updateVisualScoreEditor();
@@ -1771,7 +2486,14 @@ export class Workshop {
   async setEditorAssetDefault(assetId) {
     const entry = this.visualAssetEntries().find(item => item.asset.id === assetId);
     if (!entry || entry.asset.capability === 'span') return false;
-    const next = applyEditorAssetDefault(this.sessionData.visualConfig, entry);
+    const configuredEntry = this.configuredVisualEntry(entry);
+    const next = applyEditorAssetDefault(this.sessionData.visualConfig, configuredEntry);
+    const configuredCue = configuredEntry.asset.cueTemplate;
+    if (configuredCue?.kind === 'field') {
+      if (configuredCue.renderer === 'focal') next.focals = { ...configuredCue.config };
+      if (configuredCue.renderer === 'attractor') next.attractor = { ...configuredCue.config };
+      if (configuredCue.renderer === 'genesis') next.genesis = { ...configuredCue.config };
+    }
     if (next.visualMode === 'interlocution') {
       const accepted = await requestVisualInterlocutionConsent(this.visualConsentScope);
       if (!accepted) return false;
@@ -1786,7 +2508,94 @@ export class Workshop {
     return true;
   }
 
+  async applyPersonalFocalAsset(assetId, target = this.inferPersonalFocalTarget()) {
+    const asset = this.sessionData.sequenceVisualAssets
+      .find(item => item.id === assetId && item.kind !== 'video');
+    if (!asset) return false;
+    const boundedTarget = ['passage', 'clip', 'whole-reading'].includes(target)
+      ? target
+      : this.inferPersonalFocalTarget();
+    this.personalFocalChooser = null;
+    const focalCue = normalizeConfigurableVisualCue({
+      kind: 'field', renderer: 'focal',
+      config: { type: 'personal', personalAssetId: asset.id }
+    });
+    this.visualAssetStyleDrafts.set('surface:focal', focalCue);
+    this.selectedScoreAssetId = 'surface:focal';
+    this.selectedEditorAssetId = 'surface:focal';
+
+    if (boundedTarget === 'whole-reading') {
+      this.sessionData.visualConfig = {
+        ...(this.sessionData.visualConfig || {}),
+        visualMode: 'focals',
+        focals: {
+          type: 'personal', personalAssetId: asset.id, personalImage: asset.uri
+        }
+      };
+      this.scoredActivationUndo = null;
+      this.container.querySelector('.visual-score-activation-notice')?.remove();
+      this.markEditorDirty();
+      this.refreshVisualLibraryAndInspector();
+      this.updateSequencePicker();
+      this.announce(`${asset.name} is now the whole-reading focal.`);
+      return true;
+    }
+
+    if (boundedTarget === 'clip') {
+      const assignmentId = this.selectedScoreAssignmentId || this.scoreConfirmationAssignmentId;
+      const replaced = this.replaceScoreAssignmentAsset(assignmentId, 'surface:focal', focalCue);
+      if (replaced) this.announce(`${asset.name} replaced the selected passage focal.`);
+      return replaced;
+    }
+
+    this.inspectorContext = normalizeInspectorContext({
+      kind: 'visualAsset', id: 'surface:focal'
+    });
+    this.refreshVisualLibraryAndInspector();
+    this.refreshScoreSelectionUi();
+    this.updateVisualScoreEditor();
+    this.announce(`${asset.name} is ready to assign to the selected passage.`);
+    return true;
+  }
+
+  removePersonalFocalDefault() {
+    const config = this.sessionData.visualConfig || {};
+    if (config.focals?.type !== 'personal' && !config.focals?.personalAssetId) return false;
+    this.sessionData.visualConfig = {
+      ...config,
+      visualMode: 'focals',
+      focals: {
+        ...(config.focals || {}),
+        type: 'standard',
+        standardGlyph: config.focals?.standardGlyph || 'breath',
+        personalAssetId: null,
+        personalImage: null
+      }
+    };
+    this.personalFocalChooser = null;
+    this.visualAssetStyleDrafts.set('surface:focal', normalizeConfigurableVisualCue({
+      kind: 'field', renderer: 'focal',
+      config: { type: 'standard', standardGlyph: config.focals?.standardGlyph || 'breath' }
+    }));
+    this.selectedEditorAssetId = 'surface:focal';
+    this.markEditorDirty();
+    this.refreshVisualLibraryAndInspector();
+    this.updateSequencePicker();
+    this.announce('Personal focal removed. The reading now uses the standard focal.');
+    return true;
+  }
+
   async setVisualSurface(surface) {
+    if (surface === 'scored') {
+      const accepted = await requestVisualInterlocutionConsent(this.visualConsentScope);
+      if (!accepted) return false;
+      this.activateScoredVisualSurface();
+      this.scoredActivationUndo = null;
+      this.markEditorDirty();
+      this.refreshVisualLibraryAndInspector();
+      this.updateSequencePicker();
+      return true;
+    }
     const assetId = `surface:${surface}`;
     return this.setEditorAssetDefault(assetId);
   }
@@ -1794,11 +2603,19 @@ export class Workshop {
   updateVisualSetting(setting, value, checked = false) {
     const config = this.sessionData.visualConfig;
     if (setting === 'focal-glyph') {
-      config.focals = { ...(config.focals || {}), type: 'standard', standardGlyph: value };
+      config.focals = {
+        ...(config.focals || {}), type: 'standard', standardGlyph: value,
+        personalAssetId: null, personalImage: null
+      };
+      this.personalFocalChooser = null;
+    } else if (setting === 'focal-rose-mode') {
+      config.focals = { ...(config.focals || {}), roseMode: value };
     } else if (setting === 'attractor-system') {
       config.attractor = { ...(config.attractor || {}), system: value };
     } else if (setting === 'attractor-palette') {
       config.attractor = { ...(config.attractor || {}), palette: value };
+    } else if (setting === 'attractor-form') {
+      config.attractor = { ...(config.attractor || {}), form: value };
     } else if (setting === 'genesis-preset') {
       config.genesis = { ...(config.genesis || {}), preset: value };
     } else if (setting === 'genesis-glass') {
@@ -1832,19 +2649,34 @@ export class Workshop {
     return sources.find(source => source.id === this.activeScoreSourceId) || sources[0] || null;
   }
 
-  scoreAsset(assetId) {
+  scoreAsset(assetId, assignment = null) {
     const editorAssetId = this.editorAssetIdForScoreAsset(assetId);
     const entry = this.visualAssetEntries().find(item => item.asset.id === editorAssetId);
     if (!entry) return null;
-    const asset = entry.asset;
+    let resolvedEntry = entry;
+    let asset = entry.asset;
+    const personalFocalAssetId = personalFocalAssetIdFromCue(
+      assignment?.cue || this.visualCueForEntry(entry, assignment));
+    const personalFocal = personalFocalAssetId
+      ? this.sessionData.sequenceVisualAssets.find(item =>
+        item.id === personalFocalAssetId && item.kind !== 'video')
+      : null;
+    if (personalFocal?.uri) {
+      asset = {
+        ...asset,
+        name: `Focal · ${personalFocal.name}`,
+        editor: { ...asset.editor, preview: { kind: 'image', ref: personalFocal.uri } }
+      };
+      resolvedEntry = { ...entry, asset };
+    }
     return {
       id: assetId,
       editorAssetId,
       name: asset.name,
       color: asset.editor.color,
       preview: asset.editor.preview,
-      uri: asset.editor.preview.kind === 'image' ? asset.editor.preview.ref : null,
-      entry
+      uri: ['image', 'video'].includes(asset.editor.preview.kind) ? asset.editor.preview.ref : null,
+      entry: resolvedEntry
     };
   }
 
@@ -1860,7 +2692,7 @@ export class Workshop {
         name: asset.name,
         color: asset.editor.color,
         preview: asset.editor.preview,
-        uri: asset.editor.preview.kind === 'image' ? asset.editor.preview.ref : null,
+        uri: ['image', 'video'].includes(asset.editor.preview.kind) ? asset.editor.preview.ref : null,
         entry
       });
     }
@@ -1898,10 +2730,44 @@ export class Workshop {
     this.pendingMediaBlobs.set(id, blob);
     this.sessionData.sequenceVisualAssets.push(asset);
     this.sessionData.customVisuals = this.sessionData.sequenceVisualAssets
+      .filter(item => item.kind !== 'video')
       .map(item => item.uri)
       .filter(Boolean);
     this.selectedScoreAssetId = asset.id;
     this.selectedEditorAssetId = `project-image:${asset.id}`;
+    this.markEditorDirty();
+    return asset;
+  }
+
+  addSequenceVideoAssetFromBlob(blob, name, durationMs, provenance = null) {
+    if (!(blob instanceof Blob) || String(blob.type || '') !== 'video/mp4') {
+      this.showToast('Sequence video must be an MP4 file');
+      return null;
+    }
+    if (blob.size <= 0 || blob.size > MAX_VIDEO_FILE_BYTES) {
+      this.showToast('MP4 files must be 96 MB or smaller');
+      return null;
+    }
+    if (this.sessionData.sequenceVisualAssets.length >= MAX_CUSTOM_VISUALS) {
+      this.showToast(`A sequence can contain up to ${MAX_CUSTOM_VISUALS} personal visuals`);
+      return null;
+    }
+    const id = `asset-${crypto.randomUUID()}`;
+    const objectUrl = URL.createObjectURL(blob);
+    this.localObjectUrls.add(objectUrl);
+    const asset = createSequenceVisualAsset({
+      id, kind: 'video', name: name || 'Sequence video', provenance,
+      storage: SEQUENCE_ASSET_STORAGE_IDB,
+      mimeType: 'video/mp4', byteLength: blob.size, durationMs,
+      audioPolicy: 'muted', timeMode: 'loop', uri: objectUrl,
+      color: VISUAL_SCORE_COLORS[
+        this.sessionData.sequenceVisualAssets.length % VISUAL_SCORE_COLORS.length
+      ]
+    });
+    this.pendingMediaBlobs.set(id, blob);
+    this.sessionData.sequenceVisualAssets.push(asset);
+    this.selectedScoreAssetId = asset.id;
+    this.selectedEditorAssetId = projectEditorAssetId(asset);
     this.markEditorDirty();
     return asset;
   }
@@ -1931,6 +2797,7 @@ export class Workshop {
     });
     this.sessionData.sequenceVisualAssets.push(asset);
     this.sessionData.customVisuals = this.sessionData.sequenceVisualAssets
+      .filter(item => item.kind !== 'video')
       .map(item => item.uri)
       .filter(Boolean);
     this.selectedScoreAssetId = asset.id;
@@ -1942,8 +2809,12 @@ export class Workshop {
   removeSequenceVisualAsset(index) {
     const asset = this.sessionData.sequenceVisualAssets[index];
     if (!asset) return;
+    const removesWholeReadingFocal = this.sessionData.visualConfig?.focals?.personalAssetId === asset.id;
+    const removesDraftFocal = personalFocalAssetIdFromCue(
+      this.visualAssetStyleDrafts.get('surface:focal')) === asset.id;
     const removedAssignments = this.sessionData.visualScoreAssignments
-      .filter(item => item.assetId === asset.id).length;
+      .filter(item => item.assetId === asset.id
+        || personalFocalAssetIdFromCue(item.cue) === asset.id).length;
     if (typeof asset.uri === 'string' && asset.uri.startsWith('blob:')
       && this.localObjectUrls.has(asset.uri)) {
       URL.revokeObjectURL(asset.uri);
@@ -1953,16 +2824,30 @@ export class Workshop {
     WorkshopMedia.revokeObjectUrl(asset.id);
     this.sessionData.sequenceVisualAssets.splice(index, 1);
     this.sessionData.customVisuals = this.sessionData.sequenceVisualAssets
+      .filter(item => item.kind !== 'video')
       .map(item => item.uri)
       .filter(Boolean);
     this.sessionData.visualScoreAssignments = this.sessionData.visualScoreAssignments
-      .filter(item => item.assetId !== asset.id);
+      .filter(item => item.assetId !== asset.id
+        && personalFocalAssetIdFromCue(item.cue) !== asset.id);
+    if (removesDraftFocal) this.visualAssetStyleDrafts.delete('surface:focal');
+    if (removesWholeReadingFocal) {
+      const focals = this.sessionData.visualConfig.focals || {};
+      this.sessionData.visualConfig = {
+        ...this.sessionData.visualConfig,
+        visualMode: 'focals',
+        focals: {
+          ...focals, type: 'standard', standardGlyph: focals.standardGlyph || 'breath',
+          personalAssetId: null, personalImage: null
+        }
+      };
+    }
     if (this.selectedScoreAssetId === asset.id) {
       this.selectedScoreAssetId = this.sessionData.sequenceVisualAssets[0]?.id || null;
     }
-    if (this.selectedEditorAssetId === `project-image:${asset.id}`) {
+    if (this.selectedEditorAssetId === projectEditorAssetId(asset)) {
       this.selectedEditorAssetId = this.selectedScoreAssetId
-        ? `project-image:${this.selectedScoreAssetId}`
+        ? this.editorAssetIdForScoreAsset(this.selectedScoreAssetId)
         : null;
     }
     if (removedAssignments) {
@@ -2062,10 +2947,14 @@ export class Workshop {
       const selected = visualClip?.id === this.selectedScoreAssignmentId
         || audioClip?.id === this.selectedAudioAssignmentId;
       const target = this.scoreAuthoringLane() === 'audio' && audioClip ? audioClip : visualClip || audioClip;
+      const action = visualClip && audioClip && this.scoreView === 'combined'
+        ? 'select-combined-assignment'
+        : target?.lane ? 'select-audio-assignment' : 'select-score-assignment';
       const names = [visualAsset?.name, audioAsset?.name].filter(Boolean).join(' + ');
       fragments.push(`<mark class="visual-score-mark media-score-mark ${audioClip ? 'audio-score-mark' : ''} ${visualClip && audioClip ? 'combined-score-mark' : ''} ${selected ? 'active' : ''}"
-        data-action="${target?.lane ? 'select-audio-assignment' : 'select-score-assignment'}"
-        data-assignment-id="${this.escapeHtml(target?.id || '')}" tabindex="0" role="button"
+        data-action="${action}" data-assignment-id="${this.escapeHtml(target?.id || '')}"
+        ${visualClip && audioClip ? `data-visual-assignment-id="${this.escapeHtml(visualClip.id)}" data-audio-assignment-id="${this.escapeHtml(audioClip.id)}"` : ''}
+        tabindex="0" role="button"
         aria-pressed="${selected}" aria-label="${this.escapeHtml(names || 'Assigned media')}"
         style="--score-color:${visualAsset?.color || VISUAL_SCORE_COLORS[0]};--audio-score-color:${audioAsset?.editor?.color || AUDIO_SCORE_COLORS[0]}"
         title="${this.escapeHtml(names || 'Assigned media')}">${text}</mark>`);
@@ -2149,14 +3038,8 @@ export class Workshop {
     const pending = (this.pendingScoreConflict?.selection || this.pendingScoreSelection)?.sourceId === source.id
       ? (this.pendingScoreConflict?.selection || this.pendingScoreSelection) : null;
     const canAssign = Boolean(pending && selectedAsset && !this.pendingScoreConflict);
-    const selectedAudio = this.sessionData.audioScoreAssignments
-      .find(item => item.id === this.selectedAudioAssignmentId);
-    const selectedVisual = this.sessionData.visualScoreAssignments
-      .find(item => item.id === this.selectedScoreAssignmentId);
-    const selected = lane === 'audio' ? selectedAudio : selectedVisual;
-    const selectedName = lane === 'audio'
-      ? this.audioScoreAssets().find(asset => asset.id === selected?.assetId)?.name
-      : visualAssets.get(selected?.assetId)?.name;
+    const canAssignVisual = Boolean(pending && visualAsset && !this.pendingScoreConflict);
+    const canAssignAudio = Boolean(pending && audioAsset && !this.pendingScoreConflict);
     return `<section class="visual-score-editor media-score-editor" aria-labelledby="media-score-title" data-score-view="${this.scoreView}">
       <div class="media-score-view-tabs" role="tablist" aria-label="Score view">
         ${['visual', 'audio', 'combined'].map(view => `<button type="button" role="tab"
@@ -2165,14 +3048,21 @@ export class Workshop {
       </div>
       <div class="visual-score-header">
         <div><h3 id="media-score-title">${this.scoreView === 'combined' ? 'Combined Score' : `${lane === 'audio' ? 'Audio' : 'Visual'} Score`}</h3>
-          <p class="input-note text-fog">${lane === 'audio'
+          <p class="input-note text-fog">${this.scoreView === 'combined'
+            ? 'Select one passage, then assign its visual and audio independently from the combined passage card.'
+            : lane === 'audio'
             ? 'Choose an audio bed or swell, select its passage, then assign. Audio uses underlines; visuals use filled highlights.'
             : 'Choose a visual, select its passage, then assign. Colours are editor guides only.'}</p></div>
         <div class="visual-score-header-actions">
-          <div class="visual-score-history" aria-label="${lane} score history">
-            <button type="button" class="btn-ghost btn-compact" data-action="undo-active-score" ${history.canUndo ? '' : 'disabled'}>Undo</button>
-            <button type="button" class="btn-ghost btn-compact" data-action="redo-active-score" ${history.canRedo ? '' : 'disabled'}>Redo</button>
-          </div>
+          ${this.scoreView === 'combined' ? `<div class="visual-score-history studio-combined-history studio-choice-grid studio-choice-grid-4" aria-label="Visual and audio score histories">
+              <button type="button" class="btn-ghost btn-compact" data-action="undo-score-lane" data-score-lane="visual" ${visualHistory.canUndo ? '' : 'disabled'}>Undo visual</button>
+              <button type="button" class="btn-ghost btn-compact" data-action="redo-score-lane" data-score-lane="visual" ${visualHistory.canRedo ? '' : 'disabled'}>Redo visual</button>
+              <button type="button" class="btn-ghost btn-compact" data-action="undo-score-lane" data-score-lane="audio" ${audioHistory.canUndo ? '' : 'disabled'}>Undo audio</button>
+              <button type="button" class="btn-ghost btn-compact" data-action="redo-score-lane" data-score-lane="audio" ${audioHistory.canRedo ? '' : 'disabled'}>Redo audio</button>
+            </div>` : `<div class="visual-score-history" aria-label="${lane} score history">
+              <button type="button" class="btn-ghost btn-compact" data-action="undo-active-score" ${history.canUndo ? '' : 'disabled'}>Undo</button>
+              <button type="button" class="btn-ghost btn-compact" data-action="redo-active-score" ${history.canRedo ? '' : 'disabled'}>Redo</button>
+            </div>`}
           <select id="visual-score-source" class="input-select" aria-label="Source to score">
             ${this.scoreSources().map(item => `<option value="${this.escapeHtml(item.id)}" ${item.id === source.id ? 'selected' : ''}>${this.escapeHtml(item.name)}</option>`).join('')}
           </select>
@@ -2181,25 +3071,19 @@ export class Workshop {
       <div class="visual-score-workspace">
         <div class="visual-score-text-column">
           <div id="visual-score-text" class="visual-score-text" tabindex="0" role="textbox"
-            aria-label="Selectable source text for ${lane} scoring" aria-multiline="true"
+            aria-label="Selectable source text for ${this.scoreView === 'combined' ? 'combined media' : lane} scoring" aria-multiline="true"
             data-source-id="${this.escapeHtml(source.id)}">${this.renderHighlightedScoreText(source, visualAssets)}</div>
           <div class="visual-score-toolbar">
             <span id="visual-score-selection" class="text-fog" aria-live="polite">${this.pendingScoreConflict
               ? `This passage overlaps an existing ${lane} clip. Replace it deliberately.`
               : pending ? 'Passage selected.' : `Select a passage for ${lane} authoring.`}</span>
-            <button type="button" class="btn-secondary btn-compact" data-action="assign-score-selection" ${canAssign ? '' : 'disabled'}>Assign ${lane}</button>
+            ${this.scoreView === 'combined'
+              ? `<button type="button" class="btn-secondary btn-compact" data-action="assign-score-lane" data-score-lane="visual" ${canAssignVisual ? '' : 'disabled'}>Assign visual</button>
+                <button type="button" class="btn-secondary btn-compact" data-action="assign-score-lane" data-score-lane="audio" ${canAssignAudio ? '' : 'disabled'}>Assign audio</button>`
+              : `<button type="button" class="btn-secondary btn-compact" data-action="assign-score-selection" ${canAssign ? '' : 'disabled'}>Assign ${lane}</button>`}
             <button type="button" class="btn-secondary btn-compact ${this.pendingScoreConflict ? '' : 'hidden'}" id="replace-score-overlap" data-action="replace-score-overlap">Replace overlap</button>
           </div>
         </div>
-        <aside class="visual-score-preview" aria-live="polite" tabindex="-1">
-          ${selected ? `<span class="studio-kicker">${lane === 'audio' ? (selected.lane === 'swell' ? 'Swell event' : 'Audio bed') : 'Passage visual'}</span>
-            <strong>${this.escapeHtml(selectedName || `Missing ${lane}`)}</strong>
-            <span>${this.escapeHtml(selected.quoteStart)} … ${this.escapeHtml(selected.quoteEnd)}</span>
-            <div class="studio-selected-actions">${lane === 'audio' ? '<button type="button" class="btn-ghost btn-compact" data-action="preview-audio-score-asset">Preview</button>' : ''}
-              <button type="button" class="btn-secondary btn-compact" data-action="replace-active-score-asset" ${selectedAsset && selectedAsset.id !== selected.assetId ? '' : 'disabled'}>Replace</button>
-              <button type="button" class="btn-ghost btn-compact" data-action="erase-active-score-assignment">Erase</button></div>`
-            : `<span class="text-fog">Select ${lane === 'audio' ? 'an' : 'a'} ${lane} clip to inspect, preview, replace, or erase it.</span>`}
-        </aside>
       </div>
       ${this.scoreView !== 'audio' ? `<div class="visual-score-lane" role="region" aria-label="Visual assignments">
         <span class="studio-kicker">Visual lane</span>${this.renderVisualScoreAssignments(source, visualAssets)}</div>` : ''}
@@ -2217,9 +3101,6 @@ export class Workshop {
       </section>`;
     }
     const assetsById = this.scoreAssetLookup();
-    const assignment = this.sessionData.visualScoreAssignments
-      .find(item => item.id === this.selectedScoreAssignmentId);
-    const previewAsset = assignment ? assetsById.get(assignment.assetId) : null;
     const history = visualScoreHistoryStatus(this.visualScoreHistory);
     const pending = (this.pendingScoreConflict?.selection || this.pendingScoreSelection)?.sourceId === source.id
       ? (this.pendingScoreConflict?.selection || this.pendingScoreSelection)
@@ -2274,14 +3155,6 @@ export class Workshop {
                     data-action="replace-score-overlap">Replace overlap</button>
           </div>
         </div>
-        <aside class="visual-score-preview" aria-live="polite" tabindex="-1">
-          ${previewAsset ? `<div class="visual-score-preview-media ${previewAsset.preview.kind === 'image' ? 'is-image' : ''}">
-              ${this.renderEditorAssetPreview(previewAsset.entry, { alt: previewAsset.name, selected: true })}
-            </div>
-            <strong>${this.escapeHtml(previewAsset.name)}</strong>
-            <span>${this.escapeHtml(assignment.quoteStart)} … ${this.escapeHtml(assignment.quoteEnd)}</span>`
-            : '<span class="text-fog">Select a scored passage to preview its visual.</span>'}
-        </aside>
       </div>
       <div class="visual-score-lane" id="visual-score-lane" role="region" aria-label="Visual assignments">
         ${this.renderVisualScoreAssignments(source, assetsById)}
@@ -2370,9 +3243,11 @@ export class Workshop {
     this.container.querySelector('#visual-score-source')?.addEventListener('change', event => {
       this.activeScoreSourceId = event.target.value;
       this.selectedScoreAssignmentId = null;
+      this.selectedAudioAssignmentId = null;
       this.pendingScoreSelection = null;
       this.pendingScoreConflict = null;
       this.updateVisualScoreEditor();
+      this.setInspectorContext({ kind: 'source', id: event.target.value });
     });
     const text = this.container.querySelector('#visual-score-text');
     if (!text) return;
@@ -2472,6 +3347,12 @@ export class Workshop {
     while (fromCharacter < toCharacter && /\s/u.test(source.text[fromCharacter])) fromCharacter += 1;
     while (toCharacter > fromCharacter && /\s/u.test(source.text[toCharacter - 1])) toCharacter -= 1;
     if (toCharacter <= fromCharacter) return false;
+    const snapped = snapCharacterRangeToTokens(source.text, fromCharacter, toCharacter);
+    if (!snapped) return false;
+    const expanded = snapped.fromCharacter !== fromCharacter
+      || snapped.toCharacter !== toCharacter;
+    fromCharacter = snapped.fromCharacter;
+    toCharacter = snapped.toCharacter;
 
     const unchanged = this.pendingScoreSelection?.sourceId === source.id
       && this.pendingScoreSelection.fromCharacter === fromCharacter
@@ -2488,7 +3369,9 @@ export class Workshop {
       status.textContent = `Selected “${excerpt}${excerpt.length === 80 ? '…' : ''}”`;
     }
     this.refreshScoreSelectionUi();
-    if (!unchanged) this.announce(`Passage selected. Choose passage ${this.scoreAuthoringLane() === 'audio' ? 'audio' : 'visual'} and assign it.`);
+    if (!unchanged) this.announce(`${expanded ? 'Selection expanded to complete words. ' : ''}${this.scoreView === 'combined'
+      ? 'Passage selected. Choose passage visual and audio, then assign either lane.'
+      : `Passage selected. Choose passage ${this.scoreAuthoringLane() === 'audio' ? 'audio' : 'visual'} and assign it.`}`);
     return true;
   }
 
@@ -2502,6 +3385,7 @@ export class Workshop {
     });
     this.sessionData.visualScoreAssignments = [...assignments];
     this.selectedScoreAssignmentId = selectedAfter;
+    this.lastScoreMutationLane = 'visual';
     this.markEditorDirty();
   }
 
@@ -2541,14 +3425,31 @@ export class Workshop {
     );
   }
 
-  replaceScoreAssignmentAsset(assignmentId, assetId = this.selectedScoreAssetId) {
+  replaceScoreAssignmentAsset(
+    assignmentId,
+    assetId = this.selectedScoreAssetId,
+    cueOverride = null
+  ) {
     const assignment = this.sessionData.visualScoreAssignments
       .find(item => item.id === assignmentId);
-    if (!assignment || !this.scoreAsset(assetId) || assignment.assetId === assetId) return false;
-    const assignments = this.sessionData.visualScoreAssignments.map(item =>
-      item.id === assignmentId ? Object.freeze({ ...item, assetId }) : item);
+    const replacement = this.scoreAsset(assetId);
+    if (!assignment || !replacement) return false;
+    const replacementCue = this.visualCueForEntry(replacement.entry);
+    const configurableCue = cueOverride
+      ? normalizeConfigurableVisualCue(cueOverride)
+      : visualCueIsConfigurable(replacementCue) ? replacementCue : null;
+    const sameCue = JSON.stringify(assignment.cue || null)
+      === JSON.stringify(configurableCue || null);
+    if (assignment.assetId === assetId && sameCue) return false;
+    const assignments = this.sessionData.visualScoreAssignments.map(item => {
+      if (item.id !== assignmentId) return item;
+      const next = { ...item, assetId };
+      delete next.cue;
+      if (configurableCue) next.cue = configurableCue;
+      return Object.freeze(next);
+    });
     this.commitVisualScoreCommand('replace-asset', assignments, assignmentId);
-    this.sessionData.visualConfig.visualMode = 'interlocution';
+    this.activateScoredVisualSurface();
     this.pendingScoreSelection = null;
     this.pendingScoreConflict = null;
     this.scoreConfirmationAssignmentId = assignment.id;
@@ -2557,10 +3458,79 @@ export class Workshop {
     return true;
   }
 
-  assignPendingVisualScore(overlap = 'reject') {
+  updateVisualStyleSetting(assetId, setting, value, checked = false) {
+    const entry = this.visualAssetEntries().find(item => item.asset.id === assetId && !item.hidden);
+    if (!entry) return false;
+    if (setting === 'focal-glyph' && value === 'personal'
+      && entry.asset.cueTemplate?.kind === 'field'
+      && entry.asset.cueTemplate.renderer === 'focal') {
+      this.openPersonalFocalChooser(assetId);
+      return true;
+    }
+    const current = this.visualCueForEntry(entry);
+    if (!visualCueIsConfigurable(current)) return false;
+    let next = null;
+    if (current.kind === 'field' && current.renderer === 'focal') {
+      const config = { ...normalizeFieldStyle('focal', current.config) };
+      if (setting === 'focal-glyph') config.standardGlyph = value;
+      else if (setting === 'focal-rose-mode') config.roseMode = value;
+      else return false;
+      next = { kind: 'field', renderer: 'focal', config: normalizeFieldStyle('focal', config) };
+    } else if (current.kind === 'field' && current.renderer === 'attractor') {
+      const config = { ...normalizeFieldStyle('attractor', current.config) };
+      if (setting === 'attractor-system') config.system = value;
+      else if (setting === 'attractor-palette') config.palette = value;
+      else if (setting === 'attractor-form') config.form = value;
+      else return false;
+      next = { kind: 'field', renderer: 'attractor', config: normalizeFieldStyle('attractor', config) };
+    } else if (current.kind === 'field' && current.renderer === 'genesis') {
+      const config = { ...normalizeFieldStyle('genesis', current.config) };
+      if (setting === 'genesis-preset') config.preset = value;
+      else if (setting === 'genesis-glass') config.glass = checked;
+      else return false;
+      next = { kind: 'field', renderer: 'genesis', config: normalizeFieldStyle('genesis', config) };
+    } else if (current.kind === 'procedural' && current.collections?.[0] === 'klee'
+      && setting === 'klee-preset') {
+      next = { ...current, config: normalizeProceduralStyle(current.collections, { preset: value }) };
+    } else if (current.kind === 'procedural' && current.collections?.[0] === 'harmonograph'
+      && setting === 'harmonograph-climate') {
+      next = { ...current, config: normalizeProceduralStyle(current.collections, { climate: value }) };
+    } else return false;
+    next = normalizeConfigurableVisualCue(next);
+    this.visualAssetStyleDrafts.set(entry.asset.id, next);
+
+    const assignmentId = this.selectedScoreAssignmentId || this.scoreConfirmationAssignmentId;
+    const assignment = this.sessionData.visualScoreAssignments.find(item => item.id === assignmentId);
+    if (assignment?.assetId === this.scoreAssetReference(entry)) {
+      const assignments = this.sessionData.visualScoreAssignments.map(item => item.id === assignment.id
+        ? Object.freeze({ ...item, cue: next }) : item);
+      this.commitVisualScoreCommand('configure-visual', assignments, assignment.id);
+      this.scoreConfirmationAssignmentId = assignment.id;
+    }
+    this.refreshVisualLibraryAndInspector();
+    this.refreshScoreSelectionUi();
+    this.updateSequencePicker();
+    return true;
+  }
+
+  activateScoredVisualSurface() {
+    const config = this.sessionData.visualConfig || { visualMode: 'off' };
+    if (config.visualMode === 'interlocution') return false;
+    this.sessionData.visualConfig = {
+      ...config,
+      visualMode: 'interlocution',
+      interlocution: {
+        ...(config.interlocution || {}),
+        fallbackCue: visualFallbackCueFromConfig(config)
+      }
+    };
+    return true;
+  }
+
+  assignPendingVisualScore(overlap = 'reject', assetId = this.selectedScoreAssetId) {
     const selection = this.pendingScoreConflict?.selection || this.pendingScoreSelection;
     const source = this.scoreSources().find(item => item.id === selection?.sourceId);
-    const asset = this.scoreAsset(this.selectedScoreAssetId);
+    const asset = this.scoreAsset(assetId);
     const status = this.container.querySelector('#visual-score-selection');
     if (!source || !selection) {
       if (status) status.textContent = 'Select a passage in the source text first.';
@@ -2583,7 +3553,10 @@ export class Workshop {
         assignmentId: `visual-${crypto.randomUUID()}`,
         fromCharacter: selection.fromCharacter,
         toCharacter: selection.toCharacter,
-        overlap
+        overlap,
+        cue: visualCueIsConfigurable(this.visualCueForEntry(asset.entry))
+          ? this.visualCueForEntry(asset.entry)
+          : null
       });
       const added = assignments[assignments.length - 1];
       this.commitVisualScoreCommand(
@@ -2593,8 +3566,10 @@ export class Workshop {
       );
       this.pendingScoreSelection = null;
       this.pendingScoreConflict = null;
-      this.sessionData.visualConfig.visualMode = 'interlocution';
+      this.activateScoredVisualSurface();
       this.scoreConfirmationAssignmentId = added.id;
+      this.workshopIssue = null;
+      this.inspectorContext = normalizeInspectorContext({ kind: 'visualClip', id: added.id });
       if (activatesScoredSurface) {
         this.scoredActivationUndo = {
           assignmentId: added.id,
@@ -2610,7 +3585,7 @@ export class Workshop {
       return true;
     } catch (error) {
       if (error instanceof VisualScoreLaneError && error.code === 'VISUAL_SCORE_OVERLAP') {
-        this.pendingScoreConflict = { selection, conflicts: error.details.conflicts };
+        this.pendingScoreConflict = { selection, conflicts: error.details.conflicts, scoreLane: 'visual' };
         this.container.querySelector('#replace-score-overlap')?.classList.remove('hidden');
         if (status) status.textContent = 'This passage overlaps an existing visual. Replace it deliberately or select another passage.';
         this.refreshScoreSelectionUi();
@@ -2618,6 +3593,9 @@ export class Workshop {
         return false;
       }
       if (status) status.textContent = error.message || 'Unable to assign that passage.';
+      this.setWorkshopIssue(error.code || 'VISUAL_ASSIGNMENT_FAILED', error.message || 'Unable to assign that passage.', {
+        action: 'show-score-surface', label: 'Choose another passage'
+      });
       return false;
     }
   }
@@ -2632,6 +3610,7 @@ export class Workshop {
     });
     this.sessionData.audioScoreAssignments = [...assignments];
     this.selectedAudioAssignmentId = selectedAfter;
+    this.lastScoreMutationLane = 'audio';
     this.markEditorDirty();
   }
 
@@ -2690,6 +3669,8 @@ export class Workshop {
       this.pendingScoreSelection = null;
       this.pendingScoreConflict = null;
       this.scoreConfirmationAssignmentId = added.id;
+      this.workshopIssue = null;
+      this.inspectorContext = normalizeInspectorContext({ kind: 'audioClip', id: added.id });
       window.getSelection?.()?.removeAllRanges?.();
       this.refreshVisualScoreView();
       this.refreshScoreSelectionUi();
@@ -2698,14 +3679,45 @@ export class Workshop {
       return true;
     } catch (error) {
       if (error instanceof AudioScoreLaneError && error.code === 'AUDIO_SCORE_OVERLAP') {
-        this.pendingScoreConflict = { selection, conflicts: error.details.conflicts, lane: asset.lane };
+        this.pendingScoreConflict = { selection, conflicts: error.details.conflicts, lane: asset.lane, scoreLane: 'audio' };
         this.refreshScoreSelectionUi();
         this.announce(`The selected passage overlaps an existing ${asset.lane} clip.`);
         return false;
       }
       this.showToast(error.message || 'Unable to assign that passage audio');
+      this.setWorkshopIssue(error.code || 'AUDIO_ASSIGNMENT_FAILED', error.message || 'Unable to assign that passage audio', {
+        action: 'show-score-surface', label: 'Choose another passage'
+      });
       return false;
     }
+  }
+
+  /**
+   * Combined authoring keeps one stable passage active while each media lane
+   * commits through its own transactional history. This avoids forcing the
+   * author to reconstruct the same browser selection for the second lane.
+   */
+  assignPendingCombinedLane(lane, overlap = 'reject') {
+    if (!['visual', 'audio'].includes(lane)) return false;
+    const active = this.pendingScoreConflict?.selection || this.pendingScoreSelection;
+    if (!active) return false;
+    const selection = { ...active };
+    this.activeAssetLane = lane;
+    const assigned = lane === 'audio'
+      ? this.assignPendingAudioScore(overlap)
+      : this.assignPendingVisualScore(overlap);
+    this.scoreView = 'combined';
+    if (!assigned) {
+      this.refreshScoreSelectionUi();
+      return false;
+    }
+    this.pendingScoreSelection = selection;
+    this.pendingScoreConflict = null;
+    this.scoreConfirmationAssignmentId = null;
+    this.updateVisualScoreEditor();
+    this.refreshScoreSelectionUi();
+    requestAnimationFrame(() => this.restorePendingDomSelection());
+    return true;
   }
 
   selectAudioAssignment(assignmentId) {
@@ -2717,8 +3729,78 @@ export class Workshop {
     this.selectedAudioAssignmentId = assignment.id;
     this.selectedScoreAssignmentId = null;
     this.scoreConfirmationAssignmentId = null;
+    this.inspectorContext = normalizeInspectorContext({ kind: 'audioClip', id: assignment.id });
     this.refreshVisualScoreView();
+    this.scrollInspectorClipIntoView(assignment.id);
     this.announce('Audio clip selected. Preview, Replace, and Erase are available.');
+    if (this.studioViewport !== 'desktop') this.setStudioSurface('inspector');
+    return true;
+  }
+
+  assignIntentionalStillness() {
+    if (!this.canAuthorIntentionalStillness()) return false;
+    return this.assignPendingVisualScore('reject', 'surface:off');
+  }
+
+  requestSourceRemoval(index, button = null) {
+    const source = this.sessionData.sources[index];
+    if (!source) return false;
+    const visualReferences = this.sessionData.visualScoreAssignments
+      .filter(item => item.sourceId === source.id).length;
+    const audioReferences = this.sessionData.audioScoreAssignments
+      .filter(item => item.sourceId === source.id).length;
+    const references = visualReferences + audioReferences;
+    if (references > 0 && this.sourceRemovalArmedId !== source.id) {
+      this.sourceRemovalArmedId = source.id;
+      if (this.sourceRemovalTimer) clearTimeout(this.sourceRemovalTimer);
+      if (button) {
+        button.textContent = 'Confirm';
+        button.setAttribute('aria-label', `Confirm removal of ${source.name} and ${references} media clips`);
+        button.focus({ preventScroll: true });
+      }
+      const breakdown = [
+        visualReferences ? `${visualReferences} visual` : '',
+        audioReferences ? `${audioReferences} audio` : ''
+      ].filter(Boolean).join(' and ');
+      this.announce(`${source.name} is used by ${breakdown} clip${references === 1 ? '' : 's'}. Activate Confirm to remove the source and those clips.`);
+      this.sourceRemovalTimer = setTimeout(() => {
+        this.sourceRemovalArmedId = null;
+        this.sourceRemovalTimer = null;
+        if (button?.isConnected) {
+          button.textContent = button.closest('#studio-source-inspector') ? 'Remove source and its clips' : '✕';
+          button.setAttribute('aria-label', `Remove ${source.name}`);
+        }
+      }, 5000);
+      return false;
+    }
+    if (this.sourceRemovalTimer) clearTimeout(this.sourceRemovalTimer);
+    this.sourceRemovalTimer = null;
+    this.sourceRemovalArmedId = null;
+    this.removeSource(index);
+    this.announce(`${source.name} removed${references ? ` with ${visualReferences} visual and ${audioReferences} audio clip${references === 1 ? '' : 's'}` : ''}.`);
+    return true;
+  }
+
+  selectCombinedAssignments(visualId, audioId) {
+    if (this.pendingScoreSelection) return false;
+    const visual = this.sessionData.visualScoreAssignments.find(item => item.id === visualId);
+    const audio = this.sessionData.audioScoreAssignments.find(item => item.id === audioId);
+    if (!visual || !audio || visual.sourceId !== audio.sourceId) return false;
+    this.activeScoreSourceId = visual.sourceId;
+    this.selectedScoreAssignmentId = visual.id;
+    this.selectedAudioAssignmentId = audio.id;
+    this.selectedScoreAssetId = visual.assetId;
+    this.selectedAudioAssetId = audio.assetId;
+    this.selectedEditorAssetId = this.editorAssetIdForScoreAsset(visual.assetId);
+    this.pendingScoreConflict = null;
+    this.scoreConfirmationAssignmentId = null;
+    this.inspectorContext = normalizeInspectorContext({
+      kind: 'combinedClip', visualId: visual.id, audioId: audio.id
+    });
+    this.refreshVisualScoreView();
+    this.scrollInspectorClipIntoView(visual.id);
+    this.announce('Synchronized visual and audio clips selected. Both are available in the Inspector.');
+    if (this.studioViewport !== 'desktop') this.setStudioSurface('inspector');
     return true;
   }
 
@@ -2769,10 +3851,13 @@ export class Workshop {
     this.pendingScoreSelection = null;
     this.pendingScoreConflict = null;
     this.scoreConfirmationAssignmentId = null;
+    this.inspectorContext = normalizeInspectorContext({ kind: 'visualClip', id: assignment.id });
     this.refreshVisualScoreView();
     this.refreshSelectionActionBar();
+    this.scrollInspectorClipIntoView(assignment.id);
     this.announce('Visual clip selected. Its asset and passage are available in the Inspector.');
     if (this.studioViewport !== 'desktop') this.setStudioSurface('inspector');
+    return true;
   }
 
   eraseScoreAssignment(assignmentId) {
@@ -2793,6 +3878,7 @@ export class Workshop {
   prepareSessionPayload(data = this.sessionData) {
     const payload = cloneSessionData(data);
     payload.customVisuals = (payload.sequenceVisualAssets || [])
+      .filter(asset => asset.kind !== 'video')
       .map(asset => asset.uri)
       .filter(uri => typeof uri === 'string'
         && (uri.startsWith('data:image/') || uri.startsWith('blob:')));
@@ -2811,7 +3897,8 @@ export class Workshop {
         visualAssets: this.visualScoreAssets(),
         visualAssignments: payload.visualScoreAssignments || [],
         audioAssets,
-        audioAssignments: payload.audioScoreAssignments || []
+        audioAssignments: payload.audioScoreAssignments || [],
+        visualFallback: visualFallbackCueFromConfig(payload.visualConfig)
       });
       const assignedKinds = new Set(payload.visualScoreAssignments.map(item =>
         this.scoreAsset(item.assetId)?.entry.asset.kind).filter(Boolean));
@@ -2872,6 +3959,20 @@ export class Workshop {
       this.container.removeEventListener('change', this.boundVisualAssetInputHandler);
     }
     this.boundVisualAssetInputHandler = (event) => {
+      if (event.target.matches('#session-title')) {
+        this.sessionData.title = event.target.value;
+        this.updateCreateButton();
+        return;
+      }
+      if (event.type === 'change' && event.target.matches('input[name="intent"]')) {
+        this.sessionData.intent = event.target.value;
+        return;
+      }
+      if (event.target.matches('#wpm-slider')) {
+        this.sessionData.wpm = Number.parseInt(event.target.value, 10);
+        this.refreshReadingStudio();
+        return;
+      }
       if (event.type === 'change' && event.target.matches('[data-passage-asset-picker]')) {
         this.selectEditorAsset(event.target.value, { navigate: false });
         return;
@@ -2893,9 +3994,32 @@ export class Workshop {
         this.updateSequencePicker();
         return;
       }
+      const styleSetting = event.target.dataset.visualStyleSetting;
+      if (styleSetting) {
+        if (event.type !== 'change') return;
+        const assetId = event.target.closest('[data-style-asset-id]')?.dataset.styleAssetId;
+        if (assetId) {
+          this.updateVisualStyleSetting(assetId, styleSetting, event.target.value, event.target.checked);
+        }
+        return;
+      }
       const setting = event.target.dataset.visualSetting;
       if (!setting) return;
+      if (setting === 'focal-glyph' && event.target.value === 'personal') {
+        this.openPersonalFocalChooser('surface:focal', 'whole-reading');
+        return;
+      }
       this.updateVisualSetting(setting, event.target.value, event.target.checked);
+      if (setting === 'gallery-cadence') {
+        const cadence = normalizeGalleryCadence(event.target.value);
+        event.target.setAttribute('aria-valuetext', galleryCadenceValueText(cadence));
+        const value = this.container.querySelector('[data-gallery-cadence-value]');
+        if (value) value.textContent = formatGalleryCadence(cadence);
+      }
+      if (event.type === 'change' && ['focal-glyph', 'focal-rose-mode', 'attractor-system',
+        'attractor-palette', 'attractor-form', 'genesis-preset', 'genesis-glass'].includes(setting)) {
+        this.refreshVisualLibraryAndInspector();
+      }
     };
     this.container.addEventListener('input', this.boundVisualAssetInputHandler);
     this.container.addEventListener('change', this.boundVisualAssetInputHandler);
@@ -2962,11 +4086,13 @@ export class Workshop {
     // Source actions and Import
     const fileInput = this.container.querySelector('#file-import-input');
     const imageInput = this.container.querySelector('#image-import-input');
+    const personalFocalInput = this.container.querySelector('#personal-focal-import-input');
     const globalInput = this.container.querySelector('#global-import-input');
     const programInput = this.container.querySelector('#program-import-input');
     
     fileInput?.addEventListener('change', (e) => this.handleFileUpload(e));
     imageInput?.addEventListener('change', (e) => this.handleFileUpload(e));
+    personalFocalInput?.addEventListener('change', (e) => this.handlePersonalFocalUpload(e));
     globalInput?.addEventListener('change', (e) => this.handleGlobalUpload(e));
     programInput?.addEventListener('change', (e) => {
       void this.handleProgramFileImport(e);
@@ -2978,8 +4104,14 @@ export class Workshop {
       this.container.removeEventListener('click', this.boundContainerClickHandler);
     }
     this.boundContainerClickHandler = (e) => {
+      const openProjectMenu = this.container.querySelector('.studio-project-menu[open]');
+      if (openProjectMenu && !e.target.closest('.studio-project-menu')) {
+        openProjectMenu.removeAttribute('open');
+      }
       const target = e.target.closest('[data-action]');
       if (!target) return;
+
+      target.closest('.studio-project-menu')?.removeAttribute('open');
 
       const action = target.dataset.action;
       if (action === 'open-browser') {
@@ -2989,12 +4121,6 @@ export class Workshop {
         window.rise?.audioEngine?.playHiss();
         this.fileDialogReturnFocus = target;
         if (fileInput) fileInput.click();
-      } else if (action === 'export-curator-context') {
-        window.rise?.audioEngine?.playHiss();
-        this.exportCuratorContextFile();
-      } else if (action === 'export-curator-prompt') {
-        window.rise?.audioEngine?.playHiss();
-        this.exportCuratorPromptFile();
       } else if (action === 'export-experience-program') {
         window.rise?.audioEngine?.playHiss();
         this.exportExperienceProgramFile();
@@ -3006,6 +4132,31 @@ export class Workshop {
         window.rise?.audioEngine?.playHiss();
         this.fileDialogReturnFocus = target;
         if (imageInput) imageInput.click();
+      } else if (action === 'upload-personal-focal') {
+        window.rise?.audioEngine?.playHiss();
+        this.fileDialogReturnFocus = target;
+        this.pendingPersonalFocalUploadTarget = target.dataset.focalTarget
+          || this.inferPersonalFocalTarget();
+        if (personalFocalInput) personalFocalInput.click();
+      } else if (action === 'toggle-personal-focal-projects') {
+        const targetKind = target.dataset.focalTarget || this.inferPersonalFocalTarget();
+        const current = this.personalFocalChooser || {
+          assetId: 'surface:focal', target: targetKind, expanded: false
+        };
+        this.personalFocalChooser = {
+          assetId: current.assetId || 'surface:focal',
+          target: targetKind,
+          expanded: !(current.target === targetKind && current.expanded)
+        };
+        this.refreshVisualLibraryAndInspector();
+        this.refreshScoreSelectionUi();
+      } else if (action === 'choose-personal-focal') {
+        void this.applyPersonalFocalAsset(
+          target.dataset.projectAssetId,
+          target.dataset.focalTarget || this.inferPersonalFocalTarget()
+        );
+      } else if (action === 'remove-personal-focal-default') {
+        this.removePersonalFocalDefault();
       } else if (action === 'upload-global-image') {
         window.rise?.audioEngine?.playHiss();
         this.fileDialogReturnFocus = target;
@@ -3016,10 +4167,46 @@ export class Workshop {
         if (personalSwellInput) personalSwellInput.click();
       } else if (action === 'show-studio-surface') {
         this.setStudioSurface(target.dataset.studioSurfaceTarget, { origin: target });
+      } else if (action === 'show-score-surface') {
+        this.setStudioSurface('score', { origin: target });
+      } else if (action === 'show-project-inspector') {
+        this.setInspectorContext({ kind: 'project' }, { navigate: true, focus: true });
+      } else if (action === 'dismiss-workshop-issue') {
+        this.workshopIssue = null;
+        this.setInspectorContext({ kind: 'project' }, { navigate: true, focus: true });
+      } else if (action === 'inspect-source') {
+        this.activeScoreSourceId = target.dataset.sourceId;
+        this.selectedScoreAssignmentId = null;
+        this.selectedAudioAssignmentId = null;
+        this.pendingScoreSelection = null;
+        this.pendingScoreConflict = null;
+        this.updateVisualScoreEditor();
+        this.setInspectorContext({ kind: 'source', id: target.dataset.sourceId }, { navigate: true, focus: true });
+      } else if (action === 'select-sequence-map-source') {
+        this.activeScoreSourceId = target.dataset.sourceId;
+        this.selectedScoreAssignmentId = null;
+        this.selectedAudioAssignmentId = null;
+        this.pendingScoreSelection = null;
+        this.pendingScoreConflict = null;
+        this.updateVisualScoreEditor();
+        this.setInspectorContext({ kind: 'source', id: target.dataset.sourceId });
+        if (this.studioViewport !== 'desktop') this.setStudioSurface('score', { focus: false });
+      } else if (action === 'select-sequence-map-entry') {
+        this.selectSequenceMapEntry(target.dataset.visualAssignmentId || null, target.dataset.audioAssignmentId || null);
+      } else if (action === 'set-reading-curve') {
+        this.sessionData.curve = target.dataset.curve;
+        this.markEditorDirty();
+        this.refreshReadingStudio();
+        this.updateSequencePicker();
+      } else if (action === 'set-reading-chunk') {
+        this.sessionData.chunkMode = target.dataset.chunk;
+        this.markEditorDirty();
+        this.refreshReadingStudio();
+        this.updateSequencePicker();
       } else if (action === 'close-studio-surface') {
         this.closeStudioSurface();
       } else if (action === 'choose-score-asset') {
-        this.setAssetLane(this.scoreAuthoringLane());
+        this.setAssetLane(target.dataset.scoreLane || this.scoreAuthoringLane());
         this.setStudioSurface('assets', { origin: target });
       } else if (action === 'cancel-score-selection') {
         this.cancelPendingScoreSelection();
@@ -3045,7 +4232,7 @@ export class Workshop {
       } else if (action === 'remove-source') {
         window.rise?.audioEngine?.playHiss();
         const index = parseInt(target.dataset.index);
-        this.removeSource(index);
+        this.requestSourceRemoval(index, target);
       } else if (action === 'remove-visual') {
         window.rise?.audioEngine?.playHiss();
         const index = parseInt(target.dataset.index);
@@ -3084,8 +4271,14 @@ export class Workshop {
       } else if (action === 'assign-score-selection') {
         if (this.scoreAuthoringLane() === 'audio') this.assignPendingAudioScore('reject');
         else this.assignPendingVisualScore('reject');
+      } else if (action === 'assign-score-stillness') {
+        this.assignIntentionalStillness();
+      } else if (action === 'assign-score-lane') {
+        this.assignPendingCombinedLane(target.dataset.scoreLane, 'reject');
       } else if (action === 'replace-score-overlap') {
-        if (this.scoreAuthoringLane() === 'audio') this.assignPendingAudioScore('replace');
+        const conflictLane = target.dataset.scoreLane || this.pendingScoreConflict?.scoreLane || this.scoreAuthoringLane();
+        if (this.scoreView === 'combined') this.assignPendingCombinedLane(conflictLane, 'replace');
+        else if (conflictLane === 'audio') this.assignPendingAudioScore('replace');
         else this.assignPendingVisualScore('replace');
       } else if (action === 'replace-score-confirmation') {
         this.replaceScoreAssignmentAsset(target.dataset.assignmentId);
@@ -3094,7 +4287,13 @@ export class Workshop {
         this.selectScoreAssignment(assignmentId);
         this.scoreConfirmationAssignmentId = assignmentId;
         this.refreshScoreSelectionUi();
-        requestAnimationFrame(() => this.container.querySelector('.visual-score-preview')?.focus({ preventScroll: true }));
+        this.scrollInspectorClipIntoView(assignmentId, { focus: true });
+      } else if (action === 'preview-audio-assignment') {
+        const assignmentId = target.dataset.assignmentId;
+        if (this.selectAudioAssignment(assignmentId)) {
+          this.scrollInspectorClipIntoView(assignmentId, { focus: true });
+          void this.previewSelectedAudioDefault();
+        }
       } else if (action === 'dismiss-score-confirmation') {
         this.scoreConfirmationAssignmentId = null;
         this.refreshScoreSelectionUi();
@@ -3110,10 +4309,18 @@ export class Workshop {
       } else if (action === 'redo-active-score') {
         if (this.scoreAuthoringLane() === 'audio') this.redoAudioScore();
         else this.redoVisualScore();
+      } else if (action === 'undo-score-lane') {
+        if (target.dataset.scoreLane === 'audio') this.undoAudioScore();
+        else this.undoVisualScore();
+      } else if (action === 'redo-score-lane') {
+        if (target.dataset.scoreLane === 'audio') this.redoAudioScore();
+        else this.redoVisualScore();
       } else if (action === 'select-score-assignment') {
         this.selectScoreAssignment(target.dataset.assignmentId);
       } else if (action === 'select-audio-assignment') {
         this.selectAudioAssignment(target.dataset.assignmentId);
+      } else if (action === 'select-combined-assignment') {
+        this.selectCombinedAssignments(target.dataset.visualAssignmentId, target.dataset.audioAssignmentId);
       } else if (action === 'erase-score-assignment') {
         this.eraseScoreAssignment(target.dataset.assignmentId);
       } else if (action === 'erase-audio-assignment') {
@@ -3166,14 +4373,16 @@ export class Workshop {
             ...preview.visualConfig,
             consentScope: this.visualConsentScope
           };
+          this.workshopIssue = null;
           this.onCreateSession(preview);
         } catch (error) {
           this.showToast(error.message || 'Unable to compile the visual score');
+          this.setWorkshopIssue(error.code || 'PREVIEW_COMPILE_FAILED', error.message || 'Unable to compile the media score', {
+            action: 'show-project-inspector', label: 'Review project'
+          });
         }
       } else if (action === 'focus-reading-inspector') {
-        const inspector = this.container.querySelector('#studio-reading-inspector');
-        if (inspector) inspector.open = true;
-        this.container.querySelector('#wpm-slider')?.focus();
+        this.setInspectorContext({ kind: 'pacing' }, { navigate: true, focus: true });
       }
     };
     this.container.addEventListener('click', this.boundContainerClickHandler);
@@ -3238,6 +4447,8 @@ export class Workshop {
       Array.from(files).forEach(file => {
         if (file.type.startsWith('image/')) {
           this.processDroppedImage(file);
+        } else if (file.type === 'video/mp4') {
+          void this.processDroppedVideo(file);
         }
       });
     });
@@ -3258,6 +4469,22 @@ export class Workshop {
     this.addSequenceVisualAssetFromBlob(file, file.name);
     this.updateVisualAssetsList();
     this.updateCreateButton();
+  }
+
+  async processDroppedVideo(file) {
+    if (file.size > MAX_VIDEO_FILE_BYTES) {
+      this.showToast('MP4 files must be 96 MB or smaller');
+      return;
+    }
+    try {
+      const durationMs = await probeVideoDurationMs(file);
+      if (this.addSequenceVideoAssetFromBlob(file, file.name, durationMs)) {
+        this.updateVisualAssetsList();
+        this.updateCreateButton();
+      }
+    } catch {
+      this.showToast('Could not read MP4 metadata');
+    }
   }
 
   handleStudioKeydown(event) {
@@ -3305,7 +4532,8 @@ export class Workshop {
     if ((e.ctrlKey || e.metaKey) && !e.altKey && !editingText
       && e.key.toLowerCase() === 'z') {
       e.preventDefault();
-      if (this.scoreAuthoringLane() === 'audio') {
+      const keyboardLane = this.scoreView === 'combined' ? this.lastScoreMutationLane : this.scoreAuthoringLane();
+      if (keyboardLane === 'audio') {
         if (e.shiftKey) this.redoAudioScore();
         else this.undoAudioScore();
       } else if (e.shiftKey) this.redoVisualScore();
@@ -3379,7 +4607,30 @@ export class Workshop {
     });
   }
 
-  handleFileUpload(event) {
+  async handlePersonalFocalUpload(event) {
+    this.restoreFileDialogFocus();
+    const input = event.target;
+    const file = input?.files?.[0];
+    if (input) input.value = '';
+    if (!file) {
+      this.pendingPersonalFocalUploadTarget = null;
+      return false;
+    }
+    const target = this.pendingPersonalFocalUploadTarget || this.inferPersonalFocalTarget();
+    this.pendingPersonalFocalUploadTarget = null;
+    const asset = this.addSequenceVisualAssetFromBlob(file, file.name, {
+      origin: 'personal-focal-upload',
+      provider: 'Project Media'
+    });
+    if (!asset) return false;
+    this.updateVisualAssetsList();
+    this.updateCreateButton();
+    await this.applyPersonalFocalAsset(asset.id, target);
+    this.showToast(`${asset.name} added to Project Media`);
+    return true;
+  }
+
+  async handleFileUpload(event) {
     this.restoreFileDialogFocus();
     const file = event.target.files[0];
     if (!file) return;
@@ -3401,6 +4652,29 @@ export class Workshop {
         this.updateCreateButton();
         event.target.value = '';
         return;
+    }
+
+    if (file.type === 'video/mp4' || file.name.toLowerCase().endsWith('.mp4')) {
+      if (file.type !== 'video/mp4') {
+        this.showToast('Sequence video must be an MP4 file');
+        event.target.value = '';
+        return;
+      }
+      if (file.size > MAX_VIDEO_FILE_BYTES) {
+        this.showToast('MP4 files must be 96 MB or smaller');
+        event.target.value = '';
+        return;
+      }
+      try {
+        const durationMs = await probeVideoDurationMs(file);
+        this.addSequenceVideoAssetFromBlob(file, file.name, durationMs);
+        this.updateVisualAssetsList();
+        this.updateCreateButton();
+      } catch {
+        this.showToast('Could not read MP4 metadata');
+      }
+      event.target.value = '';
+      return;
     }
 
     if (file.size > MAX_TEXT_FILE_BYTES) {
@@ -3469,9 +4743,15 @@ export class Workshop {
       this.selectedAudioAssignmentId = null;
       this.pendingScoreSelection = null;
       this.pendingScoreConflict = null;
+      if (this.inspectorContext.kind === 'source' && this.inspectorContext.id === String(removed.id)) {
+        this.inspectorContext = normalizeInspectorContext({ kind: 'project' });
+      }
+      this.markEditorDirty();
     }
     this.updateSourcesList();
     this.updateCreateButton();
+    this.refreshContextualInspector();
+    this.updateSequencePicker();
   }
 
   swapSources(indexA, indexB) {
@@ -3497,6 +4777,7 @@ export class Workshop {
     });
     this.refreshReadingStudio();
     this.updateVisualScoreEditor();
+    this.refreshContextualInspector();
   }
 
   refreshVisualScoreView() {
@@ -3507,6 +4788,7 @@ export class Workshop {
   updateVisualAssetsList() {
     this.markEditorDirty();
     this.sessionData.customVisuals = this.sessionData.sequenceVisualAssets
+      .filter(item => item.kind !== 'video')
       .map(item => item.uri)
       .filter(Boolean);
     this.refreshVisualLibraryAndInspector();
@@ -3555,6 +4837,12 @@ export class Workshop {
     return saved;
   }
 
+  /**
+   * The capability document an imported score is checked against — what this
+   * Workshop can actually name. It is no longer exported from here; the
+   * Scriptorium owns the curator loop (SCRIPTORIUM-SPEC §1), and this is only
+   * the gate for Import score.
+   */
   buildCuratorContextFromSurface() {
     return exportCuratorContext({
       id: `workshop-${this.activeBlueprintId || this.sessionData.experienceProgramId || 'draft'}`,
@@ -3562,33 +4850,6 @@ export class Workshop {
       assets: this.sessionData.sequenceVisualAssets || [],
       swellIds: (this.personalSwells || []).map(swell => swell.id).filter(Boolean)
     });
-  }
-
-  exportCuratorContextFile() {
-    try {
-      const context = this.buildCuratorContextFromSurface();
-      downloadJsonFile(
-        `${context.id || 'curator-context'}.curator-context.json`,
-        serializeCuratorContext(context)
-      );
-      this.showToast('Curator context exported');
-    } catch (error) {
-      this.showToast(error.message || 'Could not export curator context');
-    }
-  }
-
-  exportCuratorPromptFile() {
-    try {
-      const context = this.buildCuratorContextFromSurface();
-      const prompt = buildCuratorPrompt({
-        intent: this.sessionData.title || '',
-        context
-      });
-      downloadTextFile('curator-prompt.txt', prompt);
-      this.showToast('Curator prompt exported');
-    } catch (error) {
-      this.showToast(error.message || 'Could not export curator prompt');
-    }
   }
 
   exportExperienceProgramFile() {
@@ -3908,6 +5169,10 @@ export class Workshop {
     if (this.assetRemovalTimer) {
       clearTimeout(this.assetRemovalTimer);
       this.assetRemovalTimer = null;
+    }
+    if (this.sourceRemovalTimer) {
+      clearTimeout(this.sourceRemovalTimer);
+      this.sourceRemovalTimer = null;
     }
     this.sourceBrowser?.destroy?.();
     this.sourceBrowser = null;

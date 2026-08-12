@@ -10,6 +10,7 @@ import { TIME_SCALE as WORK_ENGINE_TIME_SCALE } from '../visuals/work-engine-fie
 import { MemoryCore } from '../core/memory.js';
 import { AttractorField } from '../visuals/attractor.js';
 import { KleeField } from '../visuals/klee-field.js';
+import { VisualFieldDirector } from '../visuals/visual-field-director.js';
 import { escapeHtml } from '../core/sanitize.js';
 // The reveal and its emphasis notation are pure logic — no DOM, no
 // audio — so they live in core and are tested without a browser.
@@ -19,6 +20,7 @@ import {
 import { Voice } from '../audio/voice.js';
 import { scoreAtoms, planInterlocution } from '../core/conductor.js';
 import { VisualScheduleController } from '../core/visual-scheduler.js';
+import { authoredVisualTransition } from '../core/visual-presence.js';
 import {
   MovementScheduleController,
   AudioScheduleController
@@ -42,11 +44,15 @@ export class Chamber {
     this.player = options.player;
     this.autoStart = options.autoStart !== undefined ? options.autoStart : false;
     this.onExit = options.onExit || (() => { });
+    this.onEnterStream = typeof options.onEnterStream === 'function'
+      ? options.onEnterStream : async () => true;
 
     this.controlsTimeout = null;
     this.controlsVisible = false;
     this.attractorField = null;
     this.kleeField = null;
+    this._visualFieldDirector = null;
+    this._scheduledVisualGeneration = 0;
     // Page Mode (PAGE-MODE-SPEC): the spatial projection, mounted lazily
     // on demand. Null until the reader opens it; nothing is paid before.
     this.pageReader = null;
@@ -135,11 +141,13 @@ export class Chamber {
     // regression the reader caught in the live app). The module is
     // tiny; a static import costs nothing and removes the race.
     this._visualSchedule = null;
+    this._authoredGalleryPaused = false;
     const program = this.session?.visualProgram;
     if (program && Array.isArray(program.segments) && program.segments.length) {
       this._visualSchedule = new VisualScheduleController(
         program,
-        (cue, meta) => visualCortex.applyCue(cue, meta)
+        (cue, meta) => this.applyScheduledVisualCue(cue, meta),
+        { atoms: this.session.atoms }
       );
       console.info(
         `[Chamber] Visual schedule ready: ${program.segments.length} episodes`
@@ -896,6 +904,34 @@ export class Chamber {
     if (!field) return;
 
     field.classList.add(`chamber-field-focal`);
+    this._visualFieldDirector = new VisualFieldDirector({
+      mount: (cue, meta) => this.mountVisualFieldCue(cue, meta)
+    });
+
+    // A direct Page launch consumes the same authored session but must not
+    // start a hidden temporal presenter during the brief lazy-mount window.
+    // The configuration remains intact for PageReader; Stream presenters
+    // are initialized only if the reader later returns to the Stream.
+    this._temporalVisualsDeferred = this.session?.projection === 'page';
+    if (this._temporalVisualsDeferred) {
+      // Whole-reading dynamic fields already have an honest Page contract:
+      // the resolver samples their parameter space. Build only that sampler
+      // and pause it synchronously; no field clock advances under the Page.
+      if (this.session?.visualConfig?.visualMode === 'genesis') this.initializeGenesis();
+      if (this.session?.visualConfig?.visualMode === 'attractor') this.initializeAttractor();
+      this._visualFieldDirector.pause();
+      return;
+    }
+
+    this._initializeTemporalVisuals(field);
+  }
+
+  _initializeTemporalVisuals(field = this.container.querySelector('#chamber-field')) {
+    if (!field) return;
+    this._temporalVisualsDeferred = false;
+    // Video is a scored visual work, not a Gallery image. Its host belongs
+    // to Stream execution and therefore is not installed for Page-only use.
+    visualCortex.setSequenceVideoHost(field);
 
     // Initialize focal point if in focals mode
     this.initializeFocal();
@@ -914,6 +950,47 @@ export class Chamber {
     // Gallery (Continuous Field): a persistent crossfading gallery behind
     // the reading, a third interlocution presentation beside behind-stream.
     this.initializeContinuousField();
+  }
+
+  /** One scheduled cue owns the complete visual presentation transition. */
+  applyScheduledVisualCue(cue, meta = {}) {
+    const fieldCue = cue?.kind === 'focal'
+      ? { kind: 'field', renderer: 'focal', config: cue.focal || {} }
+      : cue;
+    const transitionMs = authoredVisualTransition(meta.durationMs, 320);
+    const authority = (Number.isInteger(this._scheduledVisualGeneration)
+      ? this._scheduledVisualGeneration : 0) + 1;
+    this._scheduledVisualGeneration = authority;
+    const commit = () => {
+      if (authority !== this._scheduledVisualGeneration) return false;
+      if (fieldCue?.kind === 'field') {
+        // Mount the incoming field before retiring any cortex presenter.
+        this._visualFieldDirector?.applyCue(fieldCue, { transitionMs });
+        visualCortex.applyCue(cue, { ...meta, transitionMs });
+      } else {
+        // The successor is admitted before the outgoing field is retired.
+        visualCortex.applyCue(cue, { ...meta, transitionMs });
+        this._visualFieldDirector?.applyCue(fieldCue, { transitionMs });
+      }
+      return true;
+    };
+    if (fieldCue?.kind === 'field') {
+      return commit();
+    }
+    // Cue authority changes synchronously. A cold Gallery already holds its
+    // committed work, while an outgoing field is retired only after the new
+    // cue has a decoded/generated first frame.
+    visualCortex.applyCue(cue, { ...meta, transitionMs });
+    if (visualCortex.isCuePrepared(cue)) {
+      this._visualFieldDirector?.applyCue(fieldCue, { transitionMs });
+      return true;
+    }
+    void visualCortex.prepareCue(cue).then((ready) => {
+      if (!ready || authority !== this._scheduledVisualGeneration) return;
+      visualCortex.presentPreparedCue(cue, { ...meta, transitionMs });
+      this._visualFieldDirector?.applyCue(fieldCue, { transitionMs });
+    });
+    return false;
   }
 
   /**
@@ -972,6 +1049,93 @@ export class Chamber {
     }
   }
 
+  mountVisualFieldCue(cue) {
+    const field = this.container.querySelector('#chamber-field');
+    if (!field || cue?.kind !== 'field') return null;
+    const config = cue.config && typeof cue.config === 'object' ? cue.config : {};
+    const atomDisplay = field.querySelector('#atom-display');
+    let controller = null;
+    let destroyed = false;
+    const host = document.createElement('div');
+
+    if (cue.renderer === 'genesis') {
+      host.className = 'chamber-genesis';
+      field.classList.add('chamber-field-genesis');
+      if (atomDisplay && config.glass !== false) atomDisplay.classList.add('glass-tile');
+      this._insertBehindReading(field, host);
+      controller = new KleeField(host, { preset: config.preset || 'random' });
+      this.kleeField = controller;
+    } else if (cue.renderer === 'attractor') {
+      host.className = 'chamber-attractor';
+      this._insertBehindReading(field, host);
+      controller = new AttractorField(host, {
+        system: config.system || 'aizawa',
+        palette: config.palette,
+        form: config.form
+      });
+      this.attractorField = controller;
+    } else if (cue.renderer === 'focal') {
+      host.className = 'chamber-focal';
+      const personalImage = config.type === 'personal'
+        ? (config.personalImage || this.session?.sequenceVisualAssets?.find(asset =>
+          asset.id === config.personalAssetId && asset.kind !== 'video')?.uri)
+        : null;
+      if (config.type === 'rose' || config.standardGlyph === 'rose') {
+        const roseConfig = config.type === 'rose' ? config : {
+          petala: config.petala || 12, seed: config.seed, roseMode: config.roseMode
+        };
+        void this.initializeRoseFocal(host, roseConfig, { assign: false }).then(instance => {
+          if (!instance) return;
+          if (destroyed || !host.isConnected) instance.destroy();
+          else { controller = instance; this.rosaField = instance; }
+        });
+      } else if (config.type === 'icon' && config.iconId) {
+        void this.initializeIconFocal(host, config.iconId);
+      } else if (config.type === 'personal' && personalImage) {
+        const image = document.createElement('img');
+        image.src = personalImage;
+        image.alt = 'Personal focal';
+        image.className = 'focal-image';
+        const frame = document.createElement('div');
+        frame.className = 'focal-personal';
+        frame.appendChild(image);
+        host.appendChild(frame);
+      } else {
+        const glyphData = this.getFocalGlyph(config.standardGlyph || 'breath');
+        const glyph = document.createElement('div');
+        glyph.className = `focal-glyph ${glyphData.dynamic ? 'focal-dynamic' : ''}`;
+        const icon = document.createElement('span');
+        icon.className = 'focal-icon';
+        icon.textContent = glyphData.icon;
+        glyph.appendChild(icon);
+        host.appendChild(glyph);
+      }
+      this._insertBehindReading(field, host);
+    } else {
+      return null;
+    }
+
+    return {
+      node: host,
+      pause: () => controller?.pause?.(),
+      resume: () => controller?.resume?.(),
+      destroy: () => {
+        destroyed = true;
+        controller?.destroy?.();
+        if (this.kleeField === controller) this.kleeField = null;
+        if (this.attractorField === controller) this.attractorField = null;
+        if (this.rosaField === controller) this.rosaField = null;
+        host.remove();
+        if (!field.querySelector('.chamber-genesis')) {
+          field.classList.remove('chamber-field-genesis');
+          if (!field.classList.contains('chamber-field-stream')) {
+            atomDisplay?.classList.remove('glass-tile');
+          }
+        }
+      }
+    };
+  }
+
   /**
    * Genesis ("Motion Klee"): a Klee composition grows continuously around
    * the constant token stream — no flashes, no interruption. The text sits
@@ -980,28 +1144,9 @@ export class Chamber {
   initializeGenesis() {
     const visualConfig = this.session?.visualConfig;
     if (!visualConfig || visualConfig.visualMode !== 'genesis') return;
-
-    const field = this.container.querySelector('#chamber-field');
-    if (!field) return;
-
-    field.classList.add('chamber-field-genesis');
-
-    const host = document.createElement('div');
-    host.className = 'chamber-genesis';
-    host.id = 'chamber-genesis';
-
-    const atomDisplay = field.querySelector('#atom-display');
-    this._insertBehindReading(field, host);
-
-    // Glass tile is on by default; sparse compositions may prefer bare text
-    if (atomDisplay && visualConfig.genesis?.glass !== false) {
-      atomDisplay.classList.add('glass-tile');
-    }
-
-    const preset = visualConfig.genesis?.preset || 'random';
-    this.kleeField = new KleeField(host, { preset });
-
-    console.log('[Chamber] Genesis field initialized:', preset);
+    this._visualFieldDirector?.applyCue({
+      kind: 'field', renderer: 'genesis', config: visualConfig.genesis || {}
+    });
   }
 
   /**
@@ -1011,27 +1156,9 @@ export class Chamber {
   initializeAttractor() {
     const visualConfig = this.session?.visualConfig;
     if (!visualConfig || visualConfig.visualMode !== 'attractor') return;
-
-    const field = this.container.querySelector('#chamber-field');
-    if (!field) return;
-
-    const host = document.createElement('div');
-    host.className = 'chamber-attractor';
-    host.id = 'chamber-attractor';
-
-    // Insert attractor before atom display so it sits behind the text
-    const atomDisplay = field.querySelector('#atom-display');
-    this._insertBehindReading(field, host);
-
-    const attractor = visualConfig.attractor || {};
-    const system = attractor.system || 'aizawa';
-    this.attractorField = new AttractorField(host, {
-      system,
-      palette: attractor.palette,
-      form: attractor.form
+    this._visualFieldDirector?.applyCue({
+      kind: 'field', renderer: 'attractor', config: visualConfig.attractor || {}
     });
-
-    console.log('[Chamber] Attractor initialized:', system, attractor.palette || 'white');
   }
 
   /**
@@ -1040,62 +1167,9 @@ export class Chamber {
   initializeFocal() {
     const visualConfig = this.session?.visualConfig;
     if (!visualConfig || visualConfig.visualMode !== 'focals') return;
-
-    const focals = visualConfig.focals || {};
-    const field = this.container.querySelector('#chamber-field');
-    if (!field) return;
-
-    // Create focal container
-    const focalContainer = document.createElement('div');
-    focalContainer.className = 'chamber-focal';
-    focalContainer.id = 'chamber-focal';
-
-    if (focals.type === 'rose') {
-      // ROSA MYSTICA — the Chapel's procedural rose window, held as a
-      // persistent field behind the reading (the attractor's
-      // precedent). Deterministic under its seed; shimmer stills
-      // under reduced-motion; a lost GL context yields stillness.
-      this.initializeRoseFocal(focalContainer, focals);
-    } else if (focals.type === 'icon' && focals.iconId) {
-      // Chapel icon focal — a pinned, attributed sacred image rendered
-      // as an icon is displayed: centered, unhurried, warm low
-      // vignette. No semantic response, no motion on the image itself
-      // (an icon is written, not animated). If the image fails to
-      // load, the focal falls back to stillness — the container stays
-      // empty rather than showing anything else.
-      this.initializeIconFocal(focalContainer, focals.iconId);
-    } else if (focals.type === 'personal' && focals.personalImage) {
-      // Personal image focal
-      focalContainer.innerHTML = `
-        <div class="focal-personal">
-          <img src="${focals.personalImage}" alt="Personal focal" class="focal-image" />
-        </div>
-      `;
-    } else if (focals.standardGlyph === 'rose') {
-      // ROSA MYSTICA as a standard focal — the rose left the Chapel
-      // and joined the glyph grid. Outside chapel launches (which
-      // carry deterministic per-book seeds) each session draws its
-      // own window; the substyle (vitrum/verbum) rides on roseMode.
-      this.initializeRoseFocal(focalContainer, {
-        petala: focals.petala || 12,
-        seed: focals.seed, // undefined → the engine seeds itself
-        roseMode: focals.roseMode
-      });
-    } else {
-      // Standard glyph focal
-      const glyphData = this.getFocalGlyph(focals.standardGlyph || 'breath');
-      focalContainer.innerHTML = `
-        <div class="focal-glyph ${glyphData.dynamic ? 'focal-dynamic' : ''}">
-          <span class="focal-icon">${glyphData.icon}</span>
-        </div>
-      `;
-    }
-
-    // Insert focal before atom display so it's behind the text
-    const atomDisplay = field.querySelector('#atom-display');
-    this._insertBehindReading(field, focalContainer);
-
-    console.log('[Chamber] Focal initialized:', focals);
+    this._visualFieldDirector?.applyCue({
+      kind: 'field', renderer: 'focal', config: visualConfig.focals || {}
+    });
   }
 
   /**
@@ -1103,22 +1177,25 @@ export class Chamber {
    * Lazy import keeps the engine out of non-Chapel graphs; any
    * failure yields stillness.
    */
-  async initializeRoseFocal(focalContainer, focals) {
+  async initializeRoseFocal(focalContainer, focals, { assign = true } = {}) {
     try {
       const { RosaMystica } = await import('../visuals/rosa-mystica.js');
       if (!this.container.contains(focalContainer)) return;
       const host = document.createElement('div');
       host.className = 'focal-rose';
       focalContainer.appendChild(host);
-      this.rosaField = new RosaMystica(host, {
+      const instance = new RosaMystica(host, {
         petala: focals.petala,
         seed: focals.seed,
         mode: focals.roseMode
       });
-      console.log('[Chamber] Rosa Mystica initialized:', this.rosaField.petala, 'petala,',
-        this.rosaField.mode, '· OPVS', this.rosaField.seed.toString(16).toUpperCase());
+      if (assign) this.rosaField = instance;
+      console.log('[Chamber] Rosa Mystica initialized:', instance.petala, 'petala,',
+        instance.mode, '· OPVS', instance.seed.toString(16).toUpperCase());
+      return instance;
     } catch (e) {
       console.warn('[Chamber] Rosa Mystica unavailable:', e);
+      return null;
     }
   }
 
@@ -1522,7 +1599,17 @@ export class Chamber {
       this._pageAbort = null;
       this.pageReader?.destroy();
       this.pageReader = null;
-      this._resumeTemporalVisuals();
+      if (this._temporalVisualsDeferred) {
+        // The Page was the initial projection, so there is nothing to resume:
+        // construct the Stream presenters now, from the still-intact config.
+        const activated = await this.onEnterStream();
+        if (activated !== false && !this.pageModeActive) {
+          this._initializeTemporalVisuals();
+          this._visualFieldDirector?.resume();
+        }
+      } else {
+        this._resumeTemporalVisuals();
+      }
       return false;
     }
 
@@ -1531,7 +1618,7 @@ export class Chamber {
     // the attractor's rAF keep running behind the page, contradicting the
     // Page's "no advance clock" principle and burning CPU/GPU/network for
     // imagery no one can see (red-team #4).
-    this._suspendTemporalVisuals();
+    if (!this._temporalVisualsDeferred) this._suspendTemporalVisuals();
     // Speech is temporal too: a page is read at the reader's pace, and
     // a voice narrating over it would be reading something else.
     this.voice?.stop();
@@ -1629,6 +1716,16 @@ export class Chamber {
   async _resolvePageCollection(id, count, signal, visualCortex) {
     const wanted = Math.max(1, Math.min(Number.isFinite(count) ? count : 3, 6));
 
+    if (id.startsWith?.('sequence-asset:')) {
+      const assetId = id.slice('sequence-asset:'.length);
+      const asset = (this.session?.sequenceVisualAssets || []).find(item =>
+        item?.id === assetId && item.kind !== 'video' && item.uri);
+      return asset ? [{
+        name: asset.name || 'Project image',
+        data: { url: asset.uri, title: asset.name || 'Project image' }
+      }] : [];
+    }
+
     if (id === 'genesis' && this.kleeField?.sampleAt) {
       // Growth is parameterised 0..1, so the samples are evenly spaced
       // through the composition's life and the LAST is the settled work.
@@ -1702,6 +1799,7 @@ export class Chamber {
     if (this._temporalSuspended) return;
     this._temporalSuspended = {
       gallery: false,
+      video: false,
       klee: false,
       attractor: false
     };
@@ -1711,6 +1809,14 @@ export class Chamber {
       this._galleryHost = this.container.querySelector('#chamber-continuous-field');
       visualCortex.setContinuousFieldHost(null);
       this._temporalSuspended.gallery = true;
+    }
+    // Sequence-local MP4 cues are temporal even when holding a decoded
+    // frame. Relinquishing the host cancels decode/playback while Page owns
+    // the reading, and restores the current authoritative cue on return.
+    if (visualCortex.hasSequenceVideoHost?.()) {
+      this._sequenceVideoHost = this.container.querySelector('#chamber-field');
+      visualCortex.setSequenceVideoHost(null);
+      this._temporalSuspended.video = true;
     }
     // Genesis grows on its own loop.
     if (this.kleeField?.pause) {
@@ -1738,6 +1844,10 @@ export class Chamber {
       visualCortex.setContinuousFieldHost(this._galleryHost);
     }
     this._galleryHost = null;
+    if (suspended.video && this._sequenceVideoHost?.isConnected) {
+      visualCortex.setSequenceVideoHost(this._sequenceVideoHost);
+    }
+    this._sequenceVideoHost = null;
     if (suspended.klee && this.kleeField?.resume) this.kleeField.resume();
     if (suspended.attractor && this.attractorField?.resume) this.attractorField.resume();
   }
@@ -2300,9 +2410,17 @@ export class Chamber {
     // the ducked music, which would otherwise stay down while paused.
     if (state === 'paused' || state === 'idle') this.voice?.stop();
 
-    if (this.kleeField) {
-      if (state === 'paused') this.kleeField.pause();
-      else if (state === 'playing') this.kleeField.resume();
+    if (state === 'paused') this._visualFieldDirector?.pause();
+    else if (state === 'playing') this._visualFieldDirector?.resume();
+
+    // Authored imagery is bound to the reading clock: pause holds the exact
+    // Gallery frame and living-engine state. An unscored ambient Gallery is
+    // deliberately independent and continues drifting while text is paused.
+    if (state === 'paused' && this._visualSchedule && !this._authoredGalleryPaused) {
+      this._authoredGalleryPaused = visualCortex.pauseContinuousField() === true;
+    } else if (state === 'playing' && this._authoredGalleryPaused) {
+      visualCortex.resumeContinuousField();
+      this._authoredGalleryPaused = false;
     }
 
     const playIcon = this.container.querySelector('#play-icon');
@@ -2380,6 +2498,8 @@ export class Chamber {
     if (this.controlsTimeout) {
       clearTimeout(this.controlsTimeout);
     }
+    this._visualFieldDirector?.destroy();
+    this._visualFieldDirector = null;
     if (this.attractorField) {
       this.attractorField.destroy();
       this.attractorField = null;
@@ -2414,5 +2534,6 @@ export class Chamber {
     // Chamber; releasing the host stops it and drops its layers before the
     // Chamber DOM (and the host with it) is torn down.
     visualCortex.setContinuousFieldHost(null);
+    visualCortex.setSequenceVideoHost(null);
   }
 }

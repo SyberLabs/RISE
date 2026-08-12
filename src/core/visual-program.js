@@ -8,11 +8,14 @@
  * Infinity for "through the end of the chapter".
  */
 
+import { normalizeProceduralStyle } from './visual-style-definitions.js';
+
 const INFINITY_TOKEN = '__rise_infinity__';
 const MAX_SEGMENTS = 512;
 const MAX_COLLECTIONS = 32;
 const MAX_ID_LENGTH = 160;
 const MAX_FOCAL_FIELDS = 32;
+const FIELD_RENDERERS = new Set(['focal', 'attractor', 'genesis']);
 
 function boundedString(value, max = MAX_ID_LENGTH) {
   return typeof value === 'string' ? value.slice(0, max) : '';
@@ -34,6 +37,32 @@ function normalizeFocal(value) {
     else if (typeof rawValue === 'number' && Number.isFinite(rawValue)) focal[key] = rawValue;
   }
   return focal;
+}
+
+function normalizeFieldConfig(value) {
+  return normalizeFocal(value);
+}
+
+/**
+ * Lower the legacy whole-reading visual configuration to the same cue
+ * vocabulary used by authored spans. A scored reading may retain the cue
+ * captured when Scored was first activated as its program fallback.
+ */
+export function visualFallbackCueFromConfig(value = {}) {
+  const config = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  if (config.visualMode === 'interlocution' && config.interlocution?.fallbackCue) {
+    return normalizeVisualCue(config.interlocution.fallbackCue);
+  }
+  if (config.visualMode === 'focals') {
+    return { kind: 'field', renderer: 'focal', config: normalizeFieldConfig(config.focals) };
+  }
+  if (config.visualMode === 'attractor') {
+    return { kind: 'field', renderer: 'attractor', config: normalizeFieldConfig(config.attractor) };
+  }
+  if (config.visualMode === 'genesis') {
+    return { kind: 'field', renderer: 'genesis', config: normalizeFieldConfig(config.genesis) };
+  }
+  return { kind: 'still' };
 }
 
 /** A 0-1 position inside a source, or null when unstated. */
@@ -75,12 +104,32 @@ export function normalizeVisualCue(value) {
         .map(id => boundedString(id))
         .filter(Boolean))].slice(0, MAX_COLLECTIONS)
       : [];
-    return engines.length
+    const cue = engines.length
       ? { kind: 'procedural', collections, engines }
       : { kind: 'procedural', collections };
+    const config = normalizeProceduralStyle(collections, value.config);
+    if (Object.keys(config).length) cue.config = config;
+    return cue;
   }
   if (value.kind === 'focal') {
     return { kind: 'focal', focal: normalizeFocal(value.focal) };
+  }
+  if (value.kind === 'field') {
+    return FIELD_RENDERERS.has(value.renderer)
+      ? { kind: 'field', renderer: value.renderer, config: normalizeFieldConfig(value.config) }
+      : { kind: 'still' };
+  }
+  if (value.kind === 'video') {
+    const assetId = boundedString(value.assetId);
+    const modes = new Set(['cue', 'fit-span', 'loop', 'hold-final']);
+    if (!assetId || value.audioPolicy !== 'muted' || value.reducedMotion !== 'poster') {
+      return { kind: 'still' };
+    }
+    return {
+      kind: 'video', assetId,
+      timeMode: modes.has(value.timeMode) ? value.timeMode : 'loop',
+      audioPolicy: 'muted', reducedMotion: 'poster'
+    };
   }
   return { kind: 'still' };
 }

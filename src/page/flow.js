@@ -13,6 +13,8 @@ import { pageCollectionId } from '../visuals/work-engines.js';
 export const BLOCK = Object.freeze({
     TEXT: 'text',
     IMAGE: 'image',
+    /** A static Page projection of a passage-scored focal field. */
+    FOCAL: 'focal',
     /** A glyph or sigil the reading itself authored (a symbol atom). */
     SYMBOL: 'symbol',
     MARK: 'mark'
@@ -79,6 +81,60 @@ function collectionsOf(cue) {
             engines.map(engine => pageCollectionId(family, engine)));
     }
     return [];
+}
+
+/** A Page-safe static focal descriptor, or null when its backing work is absent. */
+function focalFromConfig(config, session) {
+    const source = config && typeof config === 'object' ? config : {};
+    if (source.type === 'personal') {
+        const asset = (session?.sequenceVisualAssets || []).find(item =>
+            item?.id === source.personalAssetId && item.kind !== 'video' && item.uri);
+        const image = source.personalImage || asset?.uri || null;
+        return image ? { type: 'personal', image } : null;
+    }
+    if (source.type === 'icon') {
+        return { type: 'icon', iconId: source.iconId || null };
+    }
+    if (source.type === 'rose') {
+        return { type: 'rose', roseMode: source.roseMode || null };
+    }
+    return {
+        type: 'standard',
+        glyph: source.standardGlyph || 'breath',
+        roseMode: source.roseMode || null
+    };
+}
+
+/** Accept the current field vocabulary and its legacy focal cue alias. */
+function focalFromCue(cue, session) {
+    if (cue?.kind === 'field' && cue.renderer === 'focal') {
+        return focalFromConfig(cue.config, session);
+    }
+    if (cue?.kind === 'focal') return focalFromConfig(cue.focal, session);
+    return null;
+}
+
+/**
+ * Lower one scheduled cue into static Page blocks. Collection resolution,
+ * including sequence-local project assets, remains the Chamber's boundary.
+ */
+function pageVisualBlocks(cue, session, episodeId, coord) {
+    const focal = focalFromCue(cue, session);
+    if (focal) return [{
+        kind: BLOCK.FOCAL,
+        focal,
+        episodeId,
+        ...(coord ? { at: { chapter: coord.chapter, verse: coord.verse } } : {})
+    }];
+
+    const collections = collectionsOf(cue);
+    return collections.length ? [{
+        kind: BLOCK.IMAGE,
+        collections,
+        episodeId,
+        emphasis: episodeId === FALLBACK_CUE_ID ? 'inset' : 'plate',
+        ...(coord ? { at: { chapter: coord.chapter, verse: coord.verse } } : {})
+    }] : [];
 }
 
 /**
@@ -258,22 +314,20 @@ export function compileFlow(session, options = {}) {
         if (program && placeable && cueId !== activeCueId) {
             flushRun();
             if (activeCueId !== null) {
-                blocks.push({ kind: BLOCK.MARK, mark: MARK.EPISODE_BREAK, episodeId: cueId });
-            }
-            const collections = collectionsOf(cue);
-            if (collections.length) {
                 blocks.push({
-                    kind: BLOCK.IMAGE,
-                    collections,
+                    kind: BLOCK.MARK,
+                    mark: MARK.EPISODE_BREAK,
                     episodeId: cueId,
-                    // The head of an episode is its plate: the strongest
-                    // placement. The compositor decides what that means.
-                    emphasis: cueId === FALLBACK_CUE_ID ? 'inset' : 'plate',
-                    // Scripture readings locate a plate by chapter and
-                    // verse; a Journey has neither and does not need one.
-                    ...(coord ? { at: { chapter: coord.chapter, verse: coord.verse } } : {})
+                    heldVisual: cueId === FALLBACK_CUE_ID && !!focalFromCue(cue, session)
                 });
             }
+            // A fallback focal is held once in the masthead (focalOf), not
+            // serialized at every return to fallback authority. Segment
+            // focals remain local to the passage that authored them.
+            const visualBlocks = cueId === FALLBACK_CUE_ID && focalFromCue(cue, session)
+                ? []
+                : pageVisualBlocks(cue, session, cueId, coord);
+            blocks.push(...visualBlocks);
             // A works-less episode yields NO image block — stillness,
             // never a substitute (§5).
             activeCueId = cueId;
@@ -358,15 +412,13 @@ function sourcedCollectionsOf(session) {
  */
 export function focalOf(session) {
     const visual = session?.visualConfig;
-    if (visual?.visualMode !== 'focals') return null;
-    const focals = visual.focals || {};
-    return {
-        type: focals.type || 'standard',
-        glyph: focals.standardGlyph || null,
-        iconId: focals.iconId || null,
-        image: focals.personalImage || null,
-        roseMode: focals.roseMode || null
-    };
+    if (visual?.visualMode === 'focals') {
+        return focalFromConfig(visual.focals, session);
+    }
+    // Activating Scored moves the former whole-reading surface into program
+    // fallback authority. Page holds that focal once, just as it did before
+    // the first passage was scored.
+    return focalFromCue(session?.visualProgram?.fallback, session);
 }
 
 /**

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   deserializeVisualProgram,
   normalizeVisualProgram,
-  serializeVisualProgram
+  serializeVisualProgram,
+  visualFallbackCueFromConfig
 } from './visual-program.js';
 import { compileSession } from './session-compiler.js';
 import { VisualScheduleController } from './visual-scheduler.js';
@@ -34,6 +35,44 @@ describe('visual program persistence boundary', () => {
       coordinateSpace: 'scripture',
       segments: [{ id: 'bad', match: { chapter: 27, verseStart: 5, verseEnd: 2 } }]
     })).toBeNull();
+  });
+
+  it('persists visual fields and lowers legacy whole-reading defaults to cues', () => {
+    const fieldProgram = {
+      coordinateSpace: 'source',
+      segments: [{
+        id: 'genesis', match: { sourceIds: ['source-1'] },
+        cue: { kind: 'field', renderer: 'genesis', config: { preset: 'harmonic', glass: false } }
+      }],
+      fallback: { kind: 'field', renderer: 'attractor', config: { system: 'thomas' } }
+    };
+    expect(deserializeVisualProgram(JSON.parse(JSON.stringify(
+      serializeVisualProgram(fieldProgram)
+    )))).toEqual(fieldProgram);
+    expect(visualFallbackCueFromConfig({
+      visualMode: 'focals', focals: { standardGlyph: 'star' }
+    })).toEqual({
+      kind: 'field', renderer: 'focal', config: { standardGlyph: 'star' }
+    });
+  });
+
+  it('round-trips bounded procedural styles without carrying unknown fields', () => {
+    const styled = {
+      coordinateSpace: 'source',
+      segments: [{
+        id: 'klee-harmonic', match: { sourceIds: ['source-1'] },
+        cue: {
+          kind: 'procedural', collections: ['klee'],
+          config: { preset: 'harmonic', injected: true }
+        }
+      }],
+      fallback: { kind: 'still' }
+    };
+    expect(deserializeVisualProgram(JSON.parse(JSON.stringify(
+      serializeVisualProgram(styled)
+    ))).segments[0].cue).toEqual({
+      kind: 'procedural', collections: ['klee'], config: { preset: 'harmonic' }
+    });
   });
 
   it('continues through compilation and activates the restored final episode', () => {

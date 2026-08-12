@@ -320,6 +320,7 @@ export class ChamberOrbital {
       origin,
       sources,
       provenance,
+      projection,
       visualProgram,
       readingVisualIdentity
     } = this.config;
@@ -330,6 +331,7 @@ export class ChamberOrbital {
       origin,
       sources,
       provenance,
+      projection,
       visualProgram,
       readingVisualIdentity
     };
@@ -376,6 +378,11 @@ export class ChamberOrbital {
           .filter(Boolean)
           .join('\n\n');
         this.config.textSource = saved.textSource || null;
+        // Projection belongs to the loaded reading, not the reusable
+        // preference bundle. A Page reading must survive an Orbital rebuild,
+        // while older records (which predate this field) safely reopen in
+        // Stream.
+        this.config.projection = saved.projection === 'page' ? 'page' : 'stream';
         this.config.origin = saved.origin || null;
         this.config.provenance = saved.provenance || null;
         const persistedProgram = deserializeVisualProgram(saved.visualProgram);
@@ -443,6 +450,7 @@ export class ChamberOrbital {
           // segments already contain the same payload.
           text: sources ? null : this.config.text,
           textSource: this.config.textSource,
+          projection: this.config.projection === 'page' ? 'page' : 'stream',
           origin: this.config.origin,
           sources,
           provenance: this.config.provenance,
@@ -1552,6 +1560,9 @@ export class ChamberOrbital {
     });
     this.config.text = text;
     this.config.textSource = source;
+    // Every load establishes its own projection identity. In particular, a
+    // plain Stream reading must not inherit Page from the text it replaces.
+    this.config.projection = config.projection === 'page' ? 'page' : 'stream';
     this.config.sources = Array.isArray(config.sources) && config.sources.length
       ? config.sources.slice(0, 64)
       : null;

@@ -7,6 +7,7 @@ import {
   sequenceAssetForPersistence,
   validateSequenceAssetReferences
 } from './visual-score-lane.js';
+import { visualFallbackCueFromConfig } from './visual-program.js';
 import { compileWorkshopScoreProgram } from './audio-score-lane.js';
 import { audioScoreAssetFromId } from './workshop-audio.js';
 
@@ -185,6 +186,11 @@ function modeFromSurface(surface) {
 function normalizeVisual(value = {}) {
   const input = value && typeof value === 'object' ? value : {};
   const config = plainClone(input.config) || {};
+  // Object URLs belong to a single document lifetime. A personal focal is
+  // persisted by its project asset id and rehydrated at authoring/launch.
+  if (typeof config.focals?.personalAssetId === 'string') {
+    config.focals.personalImage = null;
+  }
   const surface = VISUAL_SURFACES.has(input.surface)
     ? input.surface
     : surfaceFromMode(config.visualMode);
@@ -265,7 +271,7 @@ function legacyAssets(blueprint) {
     }));
 }
 
-function programFromLegacy(blueprint, sources, assets) {
+function programFromLegacy(blueprint, sources, assets, visualConfig = {}) {
   if (blueprint.experienceProgram) return blueprint.experienceProgram;
   const visualAssignments = Array.isArray(blueprint.visualScoreAssignments)
     ? blueprint.visualScoreAssignments : [];
@@ -278,7 +284,8 @@ function programFromLegacy(blueprint, sources, assets) {
       : `workshop-${exactId(blueprint.id, '$.id')}`,
     sources: sources.map(source => ({ id: source.id, name: source.name, text: source.data })),
     assets,
-    assignments: visualAssignments
+    assignments: visualAssignments,
+    visualFallback: visualFallbackCueFromConfig(visualConfig)
   });
   const audioAssets = [...new Set(audioAssignments.map(item => item.assetId))]
     .map(audioScoreAssetFromId).filter(Boolean);
@@ -290,7 +297,8 @@ function programFromLegacy(blueprint, sources, assets) {
     visualAssets: assets,
     visualAssignments,
     audioAssets,
-    audioAssignments
+    audioAssignments,
+    visualFallback: visualFallbackCueFromConfig(visualConfig)
   });
 }
 
@@ -307,7 +315,7 @@ export function migrateWorkshopBlueprint(value) {
     intent: text(legacy.intent, 'custom', 80),
     sources,
     assets,
-    experienceProgram: programFromLegacy(legacy, sources, assets),
+    experienceProgram: programFromLegacy(legacy, sources, assets, visualConfig),
     defaults: {
       reading: {
         wpm: migratedWpm(legacy),
@@ -351,7 +359,10 @@ export function visualAssignmentsFromProgram(program) {
       fromCharacter: clip.anchor.fromCharacter,
       toCharacter: clip.anchor.toCharacter,
       quoteStart: clip.anchor.quoteStart,
-      quoteEnd: clip.anchor.quoteEnd
+      quoteEnd: clip.anchor.quoteEnd,
+      ...(['field', 'procedural'].includes(clip.cue.kind) && clip.cue.config
+        ? { cue: clip.cue }
+        : clip.cue.kind === 'field' ? { cue: clip.cue } : {})
     }];
   });
 }
@@ -411,6 +422,7 @@ export function workshopProjectToSessionConfig(value) {
     recitation: plainClone(project.defaults.recitation),
     voiceId: project.defaults.voiceId,
     customVisuals: project.assets
+      .filter(asset => asset.kind !== 'video')
       .map(asset => asset.uri)
       .filter(uri => typeof uri === 'string'
         && (uri.startsWith('data:image/') || uri.startsWith('blob:'))),

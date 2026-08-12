@@ -32,6 +32,7 @@ import {
     workEngineFamilies
 } from './work-engines.js';
 import { WorkEngineField } from './work-engine-field.js';
+import { SequenceVideoField } from './sequence-video-field.js';
 import { ShuffleBag } from '../sources/visual/shuffle-bag.js';
 import {
     ContinuousField,
@@ -83,6 +84,7 @@ const IMAGE_LOAD_TIMEOUT_MS = 8000;
 const BACKGROUND_RETRY_BASE_MS = 1000;
 const BACKGROUND_RETRY_MAX_MS = 30000;
 const WARM_LOAD_SPACING_MS = 100;
+const MAX_ADMITTED_CUE_IDENTITIES = 32;
 // CSS opacity starts on the next animation frame. Waiting one additional frame
 // after enterMs ensures the overlay is truly opaque before concealed text is
 // replaced behind it.
@@ -200,11 +202,21 @@ export class VisualCortex {
         // They step and redraw every frame rather than being snapshotted,
         // so they share the host but not the gallery's image abstraction.
         this._workEngineField = null;
+        this._sequenceVideoField = null;
+        this._sequenceVideoHost = null;
+        this._activeVideoCue = null;
         // Gallery draws families and procedural types without replacement.
         // This prevents a large museum pool from suppressing a selected
         // procedural signature and keeps multiple generators in rotation.
         this._continuousWorkBag = new ShuffleBag();
         this._continuousSignalCursor = 0;
+        // First-frame admission for authored passage cues. A prepared work is
+        // decoded before playback and consumed at the exact pool boundary.
+        this._admittedWorks = new Map();
+        this._cueAdmissionTasks = new Map();
+        this._nextAdmittedPoolKey = null;
+        this._nextCueTransitionMs = null;
+        this._admissionGeneration = 0;
         this.showArtworkLabels = true;
         this._flashArtworkLabel = null;
         // Invalidates work that was already rendering when a stop request
@@ -527,14 +539,20 @@ export class VisualCortex {
      *               never publish into the new one.
      *   'still'   → suspend sourced imagery (the field goes dark;
      *               any focal persists).
-     *   'focal'   → a persistent focal field (handled by the Chamber's
-     *               focal init, not here); the cortex simply stills its
-     *               rhythmic pool.
+     *   'focal' / 'field' → a persistent field handled by the Chamber's
+     *               lifecycle director; the cortex stills its own pool.
      * The `meta` (cueId, generation) is diagnostic; the cortex's own
      * generation rotation is the authority on staleness.
      */
     applyCue(cue, meta = {}) {
         if (!cue || typeof cue !== 'object') return;
+        this._nextCueTransitionMs = Number.isFinite(meta.transitionMs)
+            ? Math.max(0, meta.transitionMs)
+            : null;
+        const admissionKey = this._admissionKeyForCue(cue);
+        this._nextAdmittedPoolKey = admissionKey && this._admittedWorks.has(admissionKey)
+            ? admissionKey
+            : null;
         const cueLabel = meta.cueId || cue.kind || 'unknown';
         // Name the pool for EVERY kind that has one. Logging just
         // "procedural" said a cue arrived and not what it asked for,
@@ -545,6 +563,20 @@ export class VisualCortex {
                 ? ` [${cue.engines.join(', ')}]` : '')
             : cue.kind;
         console.info(`[Visual Cortex] Cue activated: ${cueLabel} → ${cueCollections}`);
+        if (cue.kind === 'video') {
+            this._activeVideoCue = { ...cue };
+            this.updateConfig(
+                { activeTypes: [], workEngines: [] },
+                { preservePresentation: true }
+            );
+            this._syncSequenceVideoCue();
+            return;
+        }
+        // Any successor cue revokes video authority before establishing its
+        // own visual identity.
+        this._activeVideoCue = null;
+        this._sequenceVideoField?.hide();
+
         // A PROCEDURAL CUE NAMES ENGINES, NOT A MUSEUM POOL. It fell
         // into the else below and cleared activeTypes, so a movement
         // that asked for Milton's chariot and flaming sword got an
@@ -557,13 +589,33 @@ export class VisualCortex {
             // sword falls. Cleared to [] when a cue names none, or the
             // previous figure's engine would hold through a stretch that
             // asked for the family at large.
+            const proceduralConfig = {};
+            if (cue.collections.includes('klee')) {
+                proceduralConfig.kleePreset = cue.config?.preset || 'random';
+            }
+            if (cue.collections.includes('harmonograph')) {
+                proceduralConfig.harmonographClimate = cue.config?.climate || 'auto';
+            }
+            const styleChanged = ('kleePreset' in proceduralConfig
+                && proceduralConfig.kleePreset !== this.config.kleePreset)
+                || ('harmonographClimate' in proceduralConfig
+                    && proceduralConfig.harmonographClimate !== this.config.harmonographClimate);
+            const poolUnchanged = cue.collections.length === this.config.activeTypes.length
+                && cue.collections.every((collection, index) => collection === this.config.activeTypes[index]);
             this.updateConfig(
                 {
                     activeTypes: [...cue.collections],
-                    workEngines: Array.isArray(cue.engines) ? [...cue.engines] : []
+                    workEngines: Array.isArray(cue.engines) ? [...cue.engines] : [],
+                    ...proceduralConfig
                 },
                 { preservePresentation: true }
             );
+            // A pool change already advances the continuous field inside
+            // updateConfig. Advance explicitly only when the engine is the
+            // same and its authored style changed, avoiding a double skip.
+            if (styleChanged && poolUnchanged && this._continuousField?.running) {
+                this._notifyContinuousPoolChanged();
+            }
             return;
         }
         // Leaving a procedural cue leaves its figure behind with it.
@@ -604,6 +656,12 @@ export class VisualCortex {
      * but they cannot survive assignment to a different reading by omission.
      */
     resetSessionVisualIdentity() {
+        this._admissionGeneration += 1;
+        this._admittedWorks.clear();
+        this._cueAdmissionTasks.clear();
+        this._nextAdmittedPoolKey = null;
+        this._activeVideoCue = null;
+        this._sequenceVideoField?.hide();
         this.updateConfig({
             enabled: false,
             activeTypes: [],
@@ -626,6 +684,12 @@ export class VisualCortex {
      * identity, so returning to the same reading remains warm.
      */
     beginSessionVisualIdentity(config = {}) {
+        this._activeVideoCue = null;
+        this._sequenceVideoField?.hide();
+        this._admissionGeneration += 1;
+        this._admittedWorks.clear();
+        this._cueAdmissionTasks.clear();
+        this._nextAdmittedPoolKey = null;
         this.updateConfig({
             enabled: false,
             activeTypes: [],
@@ -638,6 +702,119 @@ export class VisualCortex {
             freedomRelation: null,
             ...config
         }, { sessionBoundary: true });
+    }
+
+    _admissionKeyForCue(cue) {
+        if (!['sourced', 'procedural'].includes(cue?.kind)
+            || !Array.isArray(cue.collections) || !cue.collections.length) return null;
+        const identities = [...new Set(cue.collections.filter(id =>
+            typeof id === 'string' && id))].sort();
+        return identities.length
+            ? `${this.config.renderLanguage || 'native'}:${identities.join('|')}`
+            : null;
+    }
+
+    isCuePrepared(cue) {
+        if (!cue || ['still', 'field', 'focal', 'video'].includes(cue.kind)) return true;
+        const key = this._admissionKeyForCue(cue);
+        if (!key) return true;
+        if (cue.collections.every(id => id.startsWith?.('sequence-asset:')
+            || isWorkEngineFamily(id))) return true;
+        return this._admittedWorks.has(key);
+    }
+
+    /** Wake the active Gallery after a deferred cue admission completes. */
+    presentPreparedCue(cue, meta = {}) {
+        const key = this._admissionKeyForCue(cue);
+        if (!key || !this._admittedWorks.has(key)) return false;
+        this._nextAdmittedPoolKey = key;
+        this._nextCueTransitionMs = Number.isFinite(meta.transitionMs)
+            ? Math.max(0, meta.transitionMs)
+            : null;
+        this._notifyContinuousPoolChanged();
+        return true;
+    }
+
+    /** Decode or generate a cue's first presentable work without activating it. */
+    prepareCue(cue) {
+        const key = this._admissionKeyForCue(cue);
+        if (!key || this.isCuePrepared(cue)) return Promise.resolve(true);
+        if (this._cueAdmissionTasks.has(key)) return this._cueAdmissionTasks.get(key);
+        const generation = this._admissionGeneration;
+        let task;
+        task = (async () => {
+            const works = [];
+            for (const collectionId of cue.collections) {
+                if (collectionId.startsWith?.('sequence-asset:')
+                    || isWorkEngineFamily(collectionId)) continue;
+                const resolved = await this.resolveCollectionWorks(collectionId, {
+                    limit: 1,
+                    timeoutMs: 5000
+                });
+                const item = resolved[0];
+                const url = item?.data?.url || item?.url || '';
+                if (!url) continue;
+                try {
+                    const image = createRemoteImage();
+                    image.decoding = 'async';
+                    image.src = url;
+                    await image.decode();
+                    works.push({
+                        url,
+                        title: item?.name || item?.title || '',
+                        artworkLabel: normalizeArtworkLabel(item)
+                    });
+                } catch { /* an unready work is never admitted */ }
+            }
+            if (works.length && generation === this._admissionGeneration) {
+                if (!this._admittedWorks.has(key)
+                    && this._admittedWorks.size >= MAX_ADMITTED_CUE_IDENTITIES) {
+                    this._admittedWorks.delete(this._admittedWorks.keys().next().value);
+                }
+                this._admittedWorks.set(key, Object.freeze(works));
+            }
+            return works.length > 0;
+        })().finally(() => {
+            if (this._cueAdmissionTasks.get(key) === task) {
+                this._cueAdmissionTasks.delete(key);
+            }
+        });
+        this._cueAdmissionTasks.set(key, task);
+        return task;
+    }
+
+    /** Admit all distinct authored cue identities before the reading clock starts. */
+    async preloadProgram(program) {
+        const cues = [
+            ...(Array.isArray(program?.segments) ? program.segments.map(segment => segment.cue) : []),
+            program?.fallback
+        ].filter(Boolean);
+        const seen = new Set();
+        const procedural = [];
+        const sourced = [];
+        for (const cue of cues) {
+            const key = this._admissionKeyForCue(cue);
+            if (!key || seen.has(key)) continue;
+            seen.add(key);
+            (cue.kind === 'procedural' ? procedural : sourced).push(cue);
+            if (seen.size >= MAX_ADMITTED_CUE_IDENTITIES) break;
+        }
+        // Procedural engines share render canvases and therefore serialize.
+        // Provider-backed cues are independent and use three bounded workers.
+        let sourcedCursor = 0;
+        const providerWorker = async () => {
+            while (sourcedCursor < sourced.length) {
+                const cue = sourced[sourcedCursor++];
+                await this.prepareCue(cue);
+            }
+        };
+        await Promise.all([
+            (async () => {
+                for (const cue of procedural) await this.prepareCue(cue);
+            })(),
+            ...Array.from({ length: Math.min(3, sourced.length) }, providerWorker)
+        ]);
+        return Object.freeze({ requested: seen.size, ready: this._admittedWorks.size });
     }
 
     async _prewarmProviderPools(collectionIds) {
@@ -868,6 +1045,68 @@ export class VisualCortex {
      */
     hasContinuousFieldHost() {
         return !!this._continuousFieldHost;
+    }
+
+    /** Chamber-owned stage for sequence-local MP4 cues. */
+    setSequenceVideoHost(el) {
+        if (this._sequenceVideoHost === el) return;
+        this._sequenceVideoField?.destroy();
+        this._sequenceVideoField = null;
+        this._sequenceVideoHost = el || null;
+        this._syncSequenceVideoCue();
+    }
+
+    /** Whether the Chamber currently owns a mounted MP4 stage. */
+    hasSequenceVideoHost() {
+        return !!this._sequenceVideoHost;
+    }
+
+    _syncSequenceVideoCue() {
+        const cue = this._activeVideoCue;
+        const asset = cue
+            ? (this.config.sequenceVisualAssets || [])
+                .find(item => item?.id === cue.assetId && item?.kind === 'video')
+            : null;
+        const allowed = !!asset?.uri
+            && !!this._sequenceVideoHost
+            && !this._continuousPhotosensitive()
+            && hasVisualInterlocutionConsent();
+        if (!allowed) {
+            this._sequenceVideoField?.hide();
+            return false;
+        }
+        if (!this._sequenceVideoField) {
+            this._sequenceVideoField = new SequenceVideoField(this._sequenceVideoHost, {
+                reducedMotion: this._continuousReducedMotion(),
+                presentation: this.config.presentation
+            });
+        }
+        this._sequenceVideoField.reducedMotion = this._continuousReducedMotion();
+        this._sequenceVideoField.setPresentation(this.config.presentation);
+        return this._sequenceVideoField.show(asset, {
+            ...cue,
+            presentation: this.config.presentation
+        });
+    }
+
+    /**
+     * Pause both Gallery presenters without relinquishing their authored
+     * identity. The Chamber invokes this only for a bound visual schedule;
+     * an unbound ambient Gallery intentionally keeps drifting.
+     */
+    pauseContinuousField() {
+        const imagePaused = this._continuousField?.pause?.() === true;
+        const enginePaused = this._workEngineField?.pause?.() === true;
+        const videoPaused = this._sequenceVideoField?.pause?.() === true;
+        return imagePaused || enginePaused || videoPaused;
+    }
+
+    /** Resume exactly the Gallery presenters paused at the player boundary. */
+    resumeContinuousField() {
+        const imageResumed = this._continuousField?.resume?.() === true;
+        const engineResumed = this._workEngineField?.resume?.() === true;
+        const videoResumed = this._sequenceVideoField?.resume?.() === true;
+        return imageResumed || engineResumed || videoResumed;
     }
 
     /**
@@ -1166,6 +1405,13 @@ export class VisualCortex {
      * selected procedural or a ready sourced work without blanking the wall.
      */
     async _nextContinuousWork({ currentUrl = null } = {}) {
+        const poolKey = this._continuousPoolKey();
+        if (this._nextAdmittedPoolKey === poolKey) {
+            this._nextAdmittedPoolKey = null;
+            const admitted = this._admittedWorks.get(poolKey) || [];
+            const first = admitted.find(work => work.url !== currentUrl) || admitted[0];
+            if (first) return first;
+        }
         const procedural = this._continuousProceduralTypes();
         const sourcedWorks = this._continuousPool();
         const families = [];
@@ -1173,7 +1419,6 @@ export class VisualCortex {
         if (sourcedWorks.length) families.push('sourced');
         if (!families.length) return null;
 
-        const poolKey = this._continuousPoolKey();
         const firstFamily = this._continuousWorkBag.draw(
             `gallery:families:${poolKey}`,
             families
@@ -1254,6 +1499,7 @@ export class VisualCortex {
         const shouldRun = this._isContinuousMode()
             && !!this._continuousFieldHost
             && !this._continuousPhotosensitive()
+            && !this._activeVideoCue
             && hasVisualInterlocutionConsent();
         if (shouldRun) {
             this._ensureContinuousField();
@@ -1315,6 +1561,7 @@ export class VisualCortex {
      */
     syncSafety() {
         this._syncContinuousField();
+        this._syncSequenceVideoCue();
     }
 
     /** A pericope/cue pool change: the field crossfades to the new pool. */
@@ -1324,7 +1571,12 @@ export class VisualCortex {
             // works-less pericope); an empty pool WITH active categories is
             // merely cold and warming, and must not fade the field to black.
             const stillness = !this._continuousHasWorks();
-            this._continuousField.poolChanged({ stillness });
+            const transitionMs = this._nextCueTransitionMs;
+            this._nextCueTransitionMs = null;
+            this._continuousField.poolChanged({
+                stillness,
+                ...(Number.isFinite(transitionMs) ? { transitionMs } : {})
+            });
         }
     }
 
@@ -1410,6 +1662,10 @@ export class VisualCortex {
         const prevPresentation = this.config.presentation;
         const prevPoolKey = this._continuousPoolKey();
         this.config = { ...this.config, ...nextConfig };
+        if (('sequenceVisualAssets' in nextConfig || 'presentation' in nextConfig)
+            && this._activeVideoCue) {
+            this._syncSequenceVideoCue();
+        }
         if ('galleryCadence' in nextConfig && this._workEngineField) {
             this._workEngineField.setCadence(
                 galleryCadenceTimings(this.config.galleryCadence));
@@ -3289,7 +3545,13 @@ export class VisualCortex {
             this._workEngineField.destroy();
             this._workEngineField = null;
         }
+        if (this._sequenceVideoField) {
+            this._sequenceVideoField.destroy();
+            this._sequenceVideoField = null;
+        }
         this._continuousFieldHost = null;
+        this._sequenceVideoHost = null;
+        this._activeVideoCue = null;
         this._assetAbortController.abort(createAbortError('Visual Cortex destroyed'));
         this._configVersion++;
         clearTimeout(this._backgroundWarmTimer);

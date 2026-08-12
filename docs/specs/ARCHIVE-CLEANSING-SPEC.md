@@ -38,6 +38,13 @@ and OCR folds that apparatus into the prose. Three findings, all real:
   Sir John French's dispatches, the Battle of the Suez Canal. See §1b. This is
   the Hamlet fault again, and it is on the shelf right now.
 
+- **Anna Karenina, Chapter 1 begins with the book's navigation apparatus.**
+  Found 2026-08-11 while testing adjacent Workshop visual spans. The served
+  chapter begins with title/author/translator matter, a literal `Contents`, and
+  links for `PART ONE` through `PART EIGHT` before the genuine `PART ONE /
+  Chapter 1` opening. See §2g. This is a cleansing defect even though the
+  runtime boundary failure it exposed was corrected independently.
+
 The rule this scope serves: **no such text in any book.**
 
 ---
@@ -735,3 +742,93 @@ after being wrong three times.
 **Disposition.** The three Chinese-poems divisions are the Phase 10 class A
 case and are safe to withdraw on the evidence above. The other two are flagged
 for a human and nothing else. Removing text remains a decision, not a pass.
+
+---
+
+## 2g. Embedded contents preamble in Anna Karenina — 2026-08-11
+
+**Status: observed and specified; not yet applied.** This finding came from a
+real Workshop composition rather than a corpus detector. That origin matters:
+the media score was correct enough to expose both a runtime boundary defect and
+an archive defect in the same thirty lines.
+
+### The served payload
+
+The first division is named `Chapter 1`, but its `startAnchor` is `Front
+matter`. Its content begins:
+
+```text
+ANNA KARENINA
+by Leo Tolstoy
+Translated by Constance Garnett
+
+Contents
+
+PART ONE
+PART TWO
+PART THREE
+PART FOUR
+PART FIVE
+PART SIX
+PART SEVEN
+PART EIGHT
+
+PART ONE
+Chapter 1
+
+Happy families are all alike …
+```
+
+The first `PART ONE` through `PART EIGHT` run is navigation apparatus. The
+second `PART ONE` and `Chapter 1` are genuine structural headings and must be
+preserved. The clean reading therefore begins at the **last `PART ONE` before
+`Chapter 1`**, not at the first occurrence of either string.
+
+This is not the §2f shape. It is not a contents page mistakenly served as a
+whole division; it is a contents preamble fused into the first genuine prose
+division. A division-level contents detector can therefore pass while the
+reader still receives apparatus.
+
+### What the Workshop revealed, and what it did not
+
+Adjacent visual clips were assigned across this material. Before the runtime
+correction, phrase mode could build one atom across several media endpoints:
+the first field remained active through `PART EIGHT`, the intervening visual
+was never authoritative, and the Chapter 1 visual began only at the next prose
+phrase. That defect is now guarded in `source-span.test.js`: score endpoints
+become hard atomization cuts, the phrase floor cannot merge across them, and a
+single atom cannot compile to two clips on the same track.
+
+That runtime fix does **not** cleanse Anna Karenina. Conversely, removing the
+preamble must never be treated as the runtime fix. The standing rule is:
+
+> Archive cleansing improves what the reader receives; Session compilation
+> remains correct even when a dirty source reaches it.
+
+### Report-only detector
+
+Report the first served division when all of the following are true:
+
+1. it is named as a prose division but begins from a front-matter anchor;
+2. a literal contents marker occurs before its first genuine prose;
+3. a run of top-level division labels occurs before a repeated first label;
+4. the repeated label is immediately followed by the division's own heading;
+5. prose follows that second structural opening.
+
+The candidate removal is the bounded prefix before the repeated structural
+opening. The report must include both occurrences and the proposed retained
+boundary. It must not mutate automatically: an epigraph, dedication, dramatis
+personae, translator's preface, or a legitimate Part heading can have similar
+position without being disposable.
+
+### Required verification before apply
+
+1. Compare the proposed boundary with the pinned Constance Garnett artifact.
+2. Prove that `PART ONE / Chapter 1` survives byte-for-byte after the trim.
+3. Add this exact preamble to the known-bad fixture corpus.
+4. Sweep the same report across every first division; read every hit.
+5. Record the applied span, checksum change, basis, and date in the work's
+   cleanse log and acquisition dossier.
+
+The likely disposition is a bounded front-matter trim, but removal remains a
+cleansing decision until this verification is complete.

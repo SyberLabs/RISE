@@ -221,6 +221,27 @@ describe('VisualCortex Klee delegation', () => {
         // Chamber's concern, not the cortex's flash pool)
         cortex.applyCue({ kind: 'focal', focal: { type: 'rose' } });
         expect(cortex.config.activeTypes).toEqual([]);
+        cortex.applyCue({ kind: 'field', renderer: 'attractor', config: { system: 'thomas' } });
+        expect(cortex.config.activeTypes).toEqual([]);
+    });
+
+    it('applies authored procedural styles independently at cue boundaries', () => {
+        const cortex = new VisualCortex();
+        cortex.kleeFlashes = new KleeFlashes(mockEngine());
+        const configure = vi.spyOn(cortex.kleeFlashes, 'configure');
+
+        cortex.applyCue({
+            kind: 'procedural', collections: ['klee'], config: { preset: 'harmonic' }
+        });
+        expect(cortex.config).toMatchObject({ activeTypes: ['klee'], kleePreset: 'harmonic' });
+        expect(configure).toHaveBeenCalledWith({ preset: 'harmonic', signals: undefined });
+
+        cortex.applyCue({
+            kind: 'procedural', collections: ['harmonograph'], config: { climate: 'jadeVeil' }
+        });
+        expect(cortex.config).toMatchObject({
+            activeTypes: ['harmonograph'], harmonographClimate: 'jadeVeil'
+        });
     });
 
     it('re-arms current-pool hydration on every sourced cue activation', async () => {
@@ -1808,6 +1829,34 @@ describe('Continuous Field (Gallery) wiring', () => {
         expect(cortex._continuousField.currentUrl)
             .toBe('data:image/webp;base64,flame');
         expect(cortex._continuousField.running).toBe(true);
+        cortex.destroy();
+    });
+
+    it('admits and decodes an authored first frame before activating its cue', async () => {
+        const { cortex } = hostedContinuousCortex();
+        const originalDecode = HTMLImageElement.prototype.decode;
+        HTMLImageElement.prototype.decode = vi.fn().mockResolvedValue(true);
+        vi.spyOn(cortex, 'resolveCollectionWorks').mockResolvedValue([{
+            name: 'Prepared work',
+            data: { url: 'prepared.jpg' }
+        }]);
+        const cue = { kind: 'sourced', collections: ['prepared-collection'] };
+        const program = {
+            segments: [{ id: 'prepared', cue }],
+            fallback: { kind: 'still' }
+        };
+
+        const admission = await cortex.preloadProgram(program);
+        expect(admission).toEqual({ requested: 1, ready: 1 });
+        expect(cortex.isCuePrepared(cue)).toBe(true);
+
+        cortex.config.activeTypes = ['prepared-collection'];
+        cortex.applyCue(cue, { transitionMs: 140 });
+        const work = await cortex._nextContinuousWork();
+        expect(work).toMatchObject({ url: 'prepared.jpg', title: 'Prepared work' });
+
+        if (originalDecode) HTMLImageElement.prototype.decode = originalDecode;
+        else delete HTMLImageElement.prototype.decode;
         cortex.destroy();
     });
 

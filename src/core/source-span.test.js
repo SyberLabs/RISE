@@ -10,6 +10,7 @@ import {
   findInNormalizedIndex,
   locateQuoteSpan,
   resolveSourceSpan,
+  snapCharacterRangeToTokens,
   sourceTokens,
   SourceSpanResolutionError
 } from './source-span.js';
@@ -208,6 +209,68 @@ describe('stable source-span compilation', () => {
   it('exposes typed resolution failures', () => {
     expect(() => resolveSourceSpan(characterAnchor(), null))
       .toThrow(SourceSpanResolutionError);
+  });
+
+  it('snaps partial DOM selections outward to complete words', () => {
+    const text = 'alpha revelation omega';
+    const from = text.indexOf('revelation') + 2;
+    const to = text.indexOf('revelation') + 6;
+    expect(snapCharacterRangeToTokens(text, from, to)).toMatchObject({
+      fromCharacter: text.indexOf('revelation'),
+      toCharacter: text.indexOf('revelation') + 'revelation'.length
+    });
+  });
+
+  it('cuts phrase atoms at every adjacent visual authority boundary', () => {
+    const text = [
+      'PART ONE PART TWO PART THREE PART FOUR PART FIVE PART SIX PART SEVEN PART EIGHT',
+      'PART ONE',
+      'Chapter 1 Happy families are all alike; every unhappy family is unhappy in its own way.',
+      'Everything was in confusion in the Oblonskys house.'
+    ].join('\n\n');
+    const tokens = sourceTokens(text);
+    const makeClip = (id, fromToken, toToken) => {
+      const fromCharacter = tokens[fromToken].start;
+      const toCharacter = tokens[toToken - 1].end;
+      const selected = text.slice(fromCharacter, toCharacter).replace(/\s+/gu, ' ');
+      return {
+        id,
+        anchor: {
+          sourceIds: ['source-1'], fromCharacter, toCharacter,
+          quoteStart: selected, quoteEnd: selected
+        },
+        cue: { kind: 'sourced', collections: [id] }
+      };
+    };
+    const scored = {
+      schema: EXPERIENCE_PROGRAM_SCHEMA,
+      id: 'adjacent-authorities', authority: 'user', editable: true,
+      tracks: [{
+        id: 'movements', kind: 'movement',
+        clips: [{ id: 'reading', anchor: { sourceIds: ['source-1'] }, data: { index: 0 } }]
+      }, {
+        id: 'visual-main', kind: 'visual', fallback: { kind: 'still' },
+        clips: [
+          makeClip('genesis', 0, 12),
+          makeClip('fractal', 12, 18),
+          makeClip('animals', 18, tokens.length)
+        ]
+      }]
+    };
+    const session = compileSession({
+      sources: [{ id: 'source-1', name: 'Anna edge', data: text }],
+      experienceProgram: scored,
+      chunkMode: 'phrase', wpm: 240
+    });
+    const playable = session.atoms.filter(atom => atom.content);
+    expect(playable.every(atom => (atom.sourceSpanIds || [])
+      .filter(id => id.startsWith('visual-main:')).length === 1)).toBe(true);
+    expect(playable.map(atom => cueForAtom(session.visualProgram, atom).id))
+      .toEqual(expect.arrayContaining(['genesis', 'fractal', 'animals']));
+    expect(playable.find(atom => atom.content.includes('PART SEVEN'))
+      .sourceSpanIds).toEqual(['visual-main:fractal']);
+    expect(playable.find(atom => atom.content.includes('Chapter 1'))
+      .sourceSpanIds).toEqual(['visual-main:animals']);
   });
 
   it('reuses one normalized index for repeated quotation scans on a source', () => {

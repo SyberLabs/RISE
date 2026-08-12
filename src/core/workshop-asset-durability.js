@@ -22,6 +22,32 @@ import {
   validateWorkshopProject,
   visualAssignmentsFromProgram
 } from './workshop-project.js';
+import { personalFocalAssetIdFromCue } from './visual-style-definitions.js';
+
+function resolvePersonalFocal(visualConfig, assets = []) {
+  const config = visualConfig && typeof visualConfig === 'object'
+    ? visualConfig
+    : {};
+  const focals = config.focals && typeof config.focals === 'object'
+    ? config.focals
+    : {};
+  const assetId = typeof focals.personalAssetId === 'string'
+    ? focals.personalAssetId
+    : null;
+  if (!assetId) return config;
+  const asset = assets.find(item => item.id === assetId && item.kind !== 'video' && item.uri);
+  return {
+    ...config,
+    focals: asset
+      ? { ...focals, type: 'personal', personalImage: asset.uri }
+      : {
+          ...focals,
+          type: 'standard',
+          standardGlyph: focals.standardGlyph || 'breath',
+          personalImage: null
+        }
+  };
+}
 
 /**
  * Ensure every asset's bytes are in IndexedDB and return persistence-safe
@@ -53,6 +79,10 @@ export async function ensureWorkshopAssetsDurable(projectId, assets = [], pendin
         name: asset.name,
         color: asset.color,
         provenance: asset.provenance,
+        ...(asset.kind === 'video' ? {
+          kind: 'video', durationMs: asset.durationMs, audioPolicy: 'muted',
+          timeMode: asset.timeMode, posterAssetId: asset.posterAssetId
+        } : {}),
         storage: SEQUENCE_ASSET_STORAGE_IDB,
         mimeType: meta.mimeType,
         byteLength: meta.byteLength
@@ -154,11 +184,15 @@ export function pruneProgramAssetReferences(program, missingIds) {
       const assetId = assetIdFromCollection(collection);
       return assetId !== null && gone.has(assetId);
     });
+  const namesMissingVideo = (clip) => clip?.cue?.kind === 'video'
+    && gone.has(clip.cue.assetId);
+  const namesMissingFocal = (clip) => gone.has(personalFocalAssetIdFromCue(clip?.cue));
 
   let changed = false;
   const tracks = program.tracks.map((track) => {
     if (track.kind !== 'visual' || !Array.isArray(track.clips)) return track;
-    const clips = track.clips.filter(clip => !namesMissingAsset(clip));
+    const clips = track.clips.filter(clip => !namesMissingAsset(clip)
+      && !namesMissingVideo(clip) && !namesMissingFocal(clip));
     if (clips.length === track.clips.length) return track;
     changed = true;
     return { ...track, clips };
@@ -184,14 +218,14 @@ export function workshopHydratedProjectToView(project) {
   const assets = (formal.assets || []).map(createSequenceVisualAsset);
   const reading = formal.defaults.reading;
   const audio = formal.defaults.audio;
-  const visualConfig = {
+  const visualConfig = resolvePersonalFocal({
     ...(formal.defaults.visual.config || {}),
     visualMode: formal.defaults.visual.surface === 'focal'
       ? 'focals'
       : formal.defaults.visual.surface === 'scored'
         ? 'interlocution'
         : formal.defaults.visual.surface
-  };
+  }, assets);
 
   return {
     id: formal.id,
@@ -210,6 +244,7 @@ export function workshopHydratedProjectToView(project) {
     recitation: formal.defaults.recitation,
     voiceId: formal.defaults.voiceId,
     customVisuals: assets
+      .filter(asset => asset.kind !== 'video')
       .map(asset => asset.uri)
       .filter(uri => typeof uri === 'string'
         && (uri.startsWith('data:image/') || uri.startsWith('blob:'))),
@@ -255,7 +290,8 @@ export async function hydrateSessionSequenceAssets(sessionData) {
   const assets = Array.isArray(sessionData.sequenceVisualAssets)
     ? sessionData.sequenceVisualAssets
     : [];
-  if (!assets.length) return sessionData;
+  const personalAssetId = sessionData.visualConfig?.focals?.personalAssetId;
+  if (!assets.length && !personalAssetId) return sessionData;
 
   const missing = [];
   const hydrated = await hydrateWorkshopAssets(assets, { onMissing: 'omit', missing });
@@ -264,7 +300,9 @@ export async function hydrateSessionSequenceAssets(sessionData) {
   const next = {
     ...sessionData,
     sequenceVisualAssets: hydrated,
+    visualConfig: resolvePersonalFocal(sessionData.visualConfig, hydrated),
     customVisuals: hydrated
+      .filter(asset => asset.kind !== 'video')
       .map(asset => asset.uri)
       .filter(uri => typeof uri === 'string'
         && (uri.startsWith('data:image/') || uri.startsWith('blob:')))
@@ -280,7 +318,8 @@ export async function hydrateSessionSequenceAssets(sessionData) {
     }
     if (Array.isArray(next.visualScoreAssignments)) {
       next.visualScoreAssignments = next.visualScoreAssignments
-        .filter(assignment => !missingIds.has(assignment?.assetId));
+        .filter(assignment => !missingIds.has(assignment?.assetId)
+          && !missingIds.has(personalFocalAssetIdFromCue(assignment?.cue)));
     }
     next.missingSequenceAssets = missing;
   }

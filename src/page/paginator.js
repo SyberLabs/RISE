@@ -22,6 +22,7 @@ const WEIGHT = Object.freeze({
     breakOpen: 2,
     pause: 1,
     symbol: 3,
+    focal: 5,
     // Leave room for prose beside plates; solo-plate pages read as slides.
     figureBleed: 10, // a full plate
     figureInset: 7,
@@ -42,6 +43,8 @@ function weighItem(item, charsPerLine) {
             return WEIGHT.pause;
         case 'symbol':
             return WEIGHT.symbol;
+        case 'focal':
+            return WEIGHT.focal;
         case 'figure': {
             if (item.placement === 'bleed') return WEIGHT.figureBleed;
             if (item.placement === 'margin') return WEIGHT.figureMargin;
@@ -69,6 +72,18 @@ function toUnits(items, charsPerLine) {
     const units = [];
     for (let i = 0; i < items.length; i++) {
         const item = items[i];
+        // A passage focal names the prose that follows it. Treat the focal
+        // and the first corresponding text block as one pagination unit so
+        // a page turn cannot strand the mark/image at the foot of a page.
+        if (item.type === 'focal' && items[i + 1]?.type === 'text') {
+            const prose = items[++i];
+            units.push({
+                items: [item, prose],
+                weight: weighItem(item, charsPerLine) + weighItem(prose, charsPerLine),
+                lead: 'focal'
+            });
+            continue;
+        }
         const isWrap = item.type === 'figure'
             && item.placement === 'margin'
             && Number(item.wrapBlocks) > 0;

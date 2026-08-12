@@ -14,6 +14,12 @@
  * Systems: 'aizawa' | 'thomas' | 'halvorsen'
  */
 
+import {
+    ATTRACTOR_FORMS,
+    ATTRACTOR_PALETTES,
+    ATTRACTOR_SYSTEMS
+} from '../core/visual-style-definitions.js';
+
 const SYSTEMS = {
     aizawa: {
         name: 'Aizawa',
@@ -118,7 +124,7 @@ const DEFAULT_PALETTE = 'white';
  * others are symmetry operations applied to the same projected points,
  * so switching between them costs nothing but a different draw pass.
  */
-const FORMS = ['mirror', 'kaleido', 'bilateral'];
+const FORMS = ATTRACTOR_FORMS;
 
 // Kaleidoscope: dihedral rosette. Each of M sectors is drawn twice,
 // reflected, which is what closes the rosette into a seamless mandala.
@@ -563,27 +569,5 @@ export class AttractorField {
     }
 }
 
-/**
- * Selectable systems, for settings UI
- */
-export const ATTRACTOR_SYSTEMS = [
-    { id: 'aizawa', name: 'Aizawa', icon: '∮', description: 'Toroidal bloom — orbits folding through a luminous sphere' },
-    { id: 'thomas', name: 'Thomas', icon: '∿', description: 'Cyclically symmetric weave — slow, looping lattice' },
-    { id: 'halvorsen', name: 'Halvorsen', icon: '❋', description: 'Threefold sweep — spiral arms in rotational symmetry' }
-];
-
-/**
- * Selectable filament colors, for settings UI. `swatch` is the color the
- * chip shows — the bright core, since that is what the eye reads as the
- * filament's identity.
- */
-export const ATTRACTOR_PALETTES = [
-    { id: 'white', name: 'White', swatch: '#ffffff' },
-    { id: 'red', name: 'Red', swatch: '#ffc4aa' },
-    { id: 'blue', name: 'Blue', swatch: '#c6e2ff' },
-    { id: 'gold', name: 'Gold', swatch: '#ffe8b0' },
-    { id: 'purple', name: 'Purple', swatch: '#e0ccff' }
-];
-
 export const ATTRACTOR_PALETTE_IDS = ATTRACTOR_PALETTES.map(p => p.id);
-export const ATTRACTOR_FORMS = FORMS;
+export { ATTRACTOR_FORMS, ATTRACTOR_PALETTES, ATTRACTOR_SYSTEMS };

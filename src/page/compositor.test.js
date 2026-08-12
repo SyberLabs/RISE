@@ -14,6 +14,19 @@ const image = (emphasis = 'plate', collections = ['c1']) =>
 const mark = (m, extra = {}) => ({ kind: BLOCK.MARK, mark: m, ...extra });
 
 describe('compose', () => {
+    it('carries a passage focal as visual presence rather than stillness', () => {
+        const { items } = compose({ blocks: [
+            text('Before.'),
+            mark(MARK.EPISODE_BREAK, { episodeId: 'focal' }),
+            { kind: BLOCK.FOCAL, focal: { type: 'standard', glyph: 'star' }, episodeId: 'focal' },
+            text('The focal passage.')
+        ] });
+        expect(items.find(item => item.type === 'break')?.rhythm).toBe(RHYTHM.OPEN);
+        expect(items.find(item => item.type === 'focal')).toMatchObject({
+            episodeId: 'focal', focal: { glyph: 'star' }
+        });
+    });
+
     it('the OPENING plate of a real chapter is full-bleed, not demoted', () => {
         // Regression (red-team #10): a real scripture flow begins with a
         // chapter mark, so testing `items.length === 0` made the very

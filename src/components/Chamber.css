@@ -99,6 +99,61 @@
   position: relative;
 }
 
+.sequence-video-field {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(42, 45, 54, 0.48), transparent 68%),
+    #050507;
+}
+
+.sequence-video-field[hidden] { display: none; }
+
+.sequence-video-work {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: 50% 50%;
+  background: #050507;
+  transform: scale(1.002);
+  transform-origin: center;
+  transition: opacity 180ms ease-out;
+}
+
+/* A near-matched frame owns the entire stage. The tiny overscan prevents
+   fractional-pixel seams during mobile browser-bar and orientation changes. */
+.sequence-video-field[data-fit="cover"] .sequence-video-work {
+  object-fit: cover;
+}
+
+/* A severe portrait/landscape mismatch keeps the authored frame whole. The
+   stage remains full-screen and dark rather than destroying most of the work
+   merely to remove letterboxing. */
+.sequence-video-field[data-fit="contain"] .sequence-video-work {
+  object-fit: contain;
+  transform: none;
+  filter: drop-shadow(0 0 48px rgba(0, 0, 0, 0.62));
+}
+
+/* Behind Stream protects more of the frame because text already occupies the
+   visual plane. Full-frame and Gallery can accept a more cinematic crop. */
+.sequence-video-field[data-presentation="behind-stream"] .sequence-video-work {
+  object-position: 50% 50%;
+}
+
+.chamber-field:has(.sequence-video-field:not([hidden])) .atom-display {
+  position: relative;
+  z-index: 10;
+  background: rgba(10, 10, 12, 0.36);
+  backdrop-filter: blur(16px) saturate(1.12);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12);
+}
+
 /* The wrapper that holds the phone's glass band. It generates no box
    at any other width, so every existing layout — the field's flex
    centring, the focal and genesis hosts stacked behind the reading —
@@ -501,6 +556,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  width: clamp(180px, 28vw, 360px);
+  height: clamp(72px, 16vh, 144px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 4px;
+  background: rgba(7, 8, 11, 0.72);
+  box-shadow: 0 12px 44px rgba(0, 0, 0, 0.42);
+}
+
+/* A personal focal is held above the reading as a bounded work. It never
+   enters the full-frame media plane used by sourced project imagery. */
+.chamber-focal:has(.focal-personal) {
+  top: 22%;
 }
 
 /* ─── ROSA MYSTICA — the procedural rose window ───
@@ -598,14 +666,14 @@
 }
 
 .focal-image {
-  width: 200px;
-  height: 200px;
-  border-radius: 50%;
-  object-fit: cover;
-  opacity: 0.5;
-  box-shadow: 0 0 80px rgba(139, 127, 212, 0.2);
-  animation: focal-glow 8s ease-in-out infinite;
-}
+    width: 100%;
+    height: 100%;
+    border-radius: 2px;
+    object-fit: contain;
+    opacity: 0.88;
+    box-shadow: 0 0 48px rgba(139, 127, 212, 0.16);
+    animation: focal-glow 8s ease-in-out infinite;
+  }
 
 @keyframes focal-glow {
 
@@ -633,6 +701,29 @@
   /* Behind atom text (z-index: 10) */
   pointer-events: none;
   overflow: hidden;
+}
+
+/* Authored field cues share one lifecycle grammar. A successor is mounted
+   before its predecessor retires, so passage boundaries crossfade without
+   restarting the reading or exposing the empty Chamber ground. */
+.chamber-scheduled-field {
+  opacity: 0;
+  transition: opacity 320ms ease;
+  will-change: opacity;
+}
+
+.chamber-scheduled-field.is-active {
+  opacity: 1;
+}
+
+.chamber-scheduled-field.is-leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+:root.reduced-motion .chamber-scheduled-field,
+:root.photosensitivity-mode .chamber-scheduled-field {
+  transition-duration: 0ms;
 }
 
 .chamber-attractor .attractor-canvas {

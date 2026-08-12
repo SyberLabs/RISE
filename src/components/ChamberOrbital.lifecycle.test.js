@@ -75,6 +75,7 @@ function loadIdentityBearingText(orbital) {
         sources: [...SOURCES],
         provenance: { ...PROVENANCE },
         origin: { ...ORIGIN },
+        projection: 'page',
         visualProgram: PROGRAM
     });
 }
@@ -114,6 +115,7 @@ describe('orbital lifecycle round trip', () => {
         expect(c.origin?.view).toBe('journeys');
         expect(c.provenance?.journeyId).toBe('journey-war');
         expect(c.sources?.[0]?.id).toBe('paradise-lost-vi');
+        expect(c.projection).toBe('page');
         // The text itself may be reconstituted from the sources rather
         // than stored twice — either way a reader must get one.
         expect(String(c.text || c.sources?.[0]?.content || '')).toContain('So spake the Son');
@@ -134,6 +136,7 @@ describe('orbital lifecycle round trip', () => {
         expect(orbital.config.text).toBeTruthy();
         expect(orbital.config.origin?.view).toBe('journeys');
         expect(orbital.config.provenance?.journeyId).toBe('journey-war');
+        expect(orbital.config.projection).toBe('page');
 
         unmount({ orbital, container });
     });
@@ -182,6 +185,16 @@ describe('orbital lifecycle round trip', () => {
         expect(second.orbital.config.visualProgram).toBeFalsy();
         expect(second.orbital.config.textSource).toBe('Pasted');
         unmount(second);
+    });
+
+    it('a new text resets Page projection instead of inheriting it', () => {
+        const { orbital, container } = mount();
+        loadIdentityBearingText(orbital);
+        expect(orbital.config.projection).toBe('page');
+
+        orbital.loadText('A new unscored reading.', 'Pasted', {});
+        expect(orbital.config.projection).toBe('stream');
+        unmount({ orbital, container });
     });
 
     it('a corrupt saved program is refused rather than half-restored', () => {

@@ -40,7 +40,8 @@ export const EXPERIENCE_PROGRAM_LIMITS = Object.freeze({
 
 const AUTHORITIES = new Set(['published', 'user', 'proposed']);
 const TRACK_KINDS = new Set(['movement', 'transition', 'visual', 'audio', 'swell', 'reading']);
-const VISUAL_KINDS = new Set(['still', 'focal', 'sourced', 'procedural']);
+const VISUAL_KINDS = new Set(['still', 'focal', 'field', 'sourced', 'procedural', 'video']);
+const VISUAL_FIELD_RENDERERS = new Set(['focal', 'attractor', 'genesis']);
 const AUDIO_KINDS = new Set(['hold', 'silence', 'soundscape', 'tone']);
 const READING_KINDS = new Set(['pace']);
 
@@ -297,14 +298,58 @@ function validateVisualCue(value, path) {
   }
   const cueFields = new Set(['kind']);
   if (source.kind === 'focal') cueFields.add('focal');
+  if (source.kind === 'field') {
+    cueFields.add('renderer');
+    cueFields.add('config');
+  }
   if (source.kind === 'sourced' || source.kind === 'procedural') cueFields.add('collections');
-  if (source.kind === 'procedural') cueFields.add('engines');
+  if (source.kind === 'procedural') {
+    cueFields.add('engines');
+    cueFields.add('config');
+  }
+  if (source.kind === 'video') {
+    cueFields.add('assetId');
+    cueFields.add('timeMode');
+    cueFields.add('audioPolicy');
+    cueFields.add('reducedMotion');
+  }
   onlyKeys(source, cueFields, path);
   if (source.kind === 'still') return { kind: 'still' };
   if (source.kind === 'focal') {
     return {
       kind: 'focal',
       focal: source.focal == null ? {} : cloneMetadata(source.focal, `${path}.focal`)
+    };
+  }
+  if (source.kind === 'field') {
+    if (!VISUAL_FIELD_RENDERERS.has(source.renderer)) {
+      fail('PROGRAM_VISUAL_FIELD_RENDERER',
+        `Unknown visual field renderer: ${String(source.renderer)}`,
+        `${path}.renderer`);
+    }
+    return {
+      kind: 'field',
+      renderer: source.renderer,
+      config: source.config == null ? {} : cloneMetadata(source.config, `${path}.config`)
+    };
+  }
+  if (source.kind === 'video') {
+    const timeModes = new Set(['cue', 'fit-span', 'loop', 'hold-final']);
+    if (!timeModes.has(source.timeMode)) {
+      fail('PROGRAM_VIDEO_TIME_MODE', 'Unknown video time mode', `${path}.timeMode`);
+    }
+    if (source.audioPolicy !== 'muted') {
+      fail('PROGRAM_VIDEO_AUDIO_POLICY', 'V1 video audio must be muted', `${path}.audioPolicy`);
+    }
+    if (source.reducedMotion !== 'poster') {
+      fail('PROGRAM_VIDEO_REDUCED_MOTION', 'V1 video must use its poster under reduced motion', `${path}.reducedMotion`);
+    }
+    return {
+      kind: 'video',
+      assetId: exactId(source.assetId, `${path}.assetId`),
+      timeMode: source.timeMode,
+      audioPolicy: 'muted',
+      reducedMotion: 'poster'
     };
   }
   const collections = uniqueIds(
@@ -320,6 +365,10 @@ function validateVisualCue(value, path) {
       `${path}.engines`,
       EXPERIENCE_PROGRAM_LIMITS.maxEngines
     );
+  }
+  if (source.config !== undefined) {
+    const config = normalizeProceduralStyle(collections, source.config);
+    if (Object.keys(config).length) out.config = { ...config };
   }
   return out;
 }
@@ -857,3 +906,4 @@ export function lowerExperienceProgram(value) {
       }))
   };
 }
+import { normalizeProceduralStyle } from './visual-style-definitions.js';

@@ -6,7 +6,7 @@
  */
 
 import { Atom, Session } from './models.js';
-import { chunkText, countWords } from './chunker.js';
+import { chunkText, countWords, insertSourceScoreCuts } from './chunker.js';
 import { prepareChunkText } from './chunk-profiles.js';
 import { PacingEngine, StateCurve } from './pacing.js';
 import { normalizeGlobalPoolSelection, normalizeVisualSelection } from './visual-selection.js';
@@ -16,7 +16,7 @@ import {
     EXPERIENCE_PROGRAM_LIMITS
 } from './experience-program.js';
 import { READING_LIMITS } from './reading-limits.js';
-import { compileSourceSpans } from './source-span.js';
+import { compileSourceSpans, sourceSpanCutPoints } from './source-span.js';
 import {
     applyProgressPace,
     assertChunkProfileAllowsRecut,
@@ -387,13 +387,18 @@ export function compileSession(input = {}) {
             wpm: config.wpm
         });
         assertChunkProfileAllowsRecut(source, plan);
+        const mediaCutPoints = sourceSpanCutPoints(config.experienceProgram, source);
         const sourceAtoms = [];
         for (const piece of plan.pieces) {
             // Only an uncut source may carry a profile, so a piece boundary
             // never splits a preparation (see assertChunkProfileAllowsRecut).
-            const pieceText = plan.pieces.length === 1
+            const rawPieceText = plan.pieces.length === 1
                 ? source.raw
                 : source.raw.slice(piece.fromCharacter, piece.toCharacter);
+            const pieceStart = plan.pieces.length === 1 ? 0 : piece.fromCharacter;
+            const pieceText = insertSourceScoreCuts(rawPieceText, mediaCutPoints
+                .filter(offset => offset > pieceStart && offset < piece.toCharacter)
+                .map(offset => offset - pieceStart));
             const prepared = prepareChunkText(
                 pieceText,
                 plan.pieces.length === 1 ? (source.chunkProfile ?? null) : null
@@ -488,7 +493,9 @@ export function compileSession(input = {}) {
         provenance: normalizeProvenance(config.provenance),
         customVisuals: [...new Set([
             ...(Array.isArray(config.customVisuals) ? config.customVisuals : []),
-            ...(config.sequenceVisualAssets || []).map(asset => asset.uri)
+            ...(config.sequenceVisualAssets || [])
+                .filter(asset => asset.kind !== 'video')
+                .map(asset => asset.uri)
         ].filter(isSessionImageUri))].slice(0, READING_LIMITS.maxSequenceAssets)
     });
 }

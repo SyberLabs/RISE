@@ -134,6 +134,28 @@ describe('reduced motion is honoured, not approximated', () => {
     });
 });
 
+describe('the reading clock may hold a bound field', () => {
+    it('pauses without discarding engines and resumes without catch-up', async () => {
+        const field = new WorkEngineField(host, { families: ['fake-work'] });
+        await field.start();
+        const engine = field._planes[field._active].engine;
+        frame(field, 1000);
+        const before = steps.length;
+
+        expect(field.pause()).toBe(true);
+        frame(field, 9000); // a queued callback may still arrive after cancel
+        expect(steps.length).toBe(before);
+        expect(field._planes[field._active].engine).toBe(engine);
+
+        expect(field.resume()).toBe(true);
+        frame(field, 10000); // establishes a fresh baseline, no catch-up step
+        expect(steps.length).toBe(before);
+        frame(field, 10016);
+        expect(steps.length).toBeGreaterThan(before);
+        field.destroy();
+    });
+});
+
 describe('it degrades reverently', () => {
     it('stays dark for a family that does not exist', async () => {
         const field = new WorkEngineField(host, { families: ['not-a-work'] });

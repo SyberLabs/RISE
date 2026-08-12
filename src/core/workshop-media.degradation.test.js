@@ -62,6 +62,32 @@ describe('a missing image is absent, and the reading opens', () => {
         });
     });
 
+    it('resolves a durable personal focal id to the hydrated runtime URL', async () => {
+        missingOnly('asset-evicted');
+        const session = sessionWithTwoAssets();
+        session.visualConfig = {
+            visualMode: 'focals',
+            focals: { type: 'personal', personalAssetId: 'asset-present', personalImage: null }
+        };
+        const hydrated = await hydrateSessionSequenceAssets(session);
+        expect(hydrated.visualConfig.focals).toMatchObject({
+            type: 'personal', personalAssetId: 'asset-present', personalImage: OBJECT_URL
+        });
+    });
+
+    it('falls back to the standard focal when personal focal bytes are missing', async () => {
+        missingOnly('asset-evicted');
+        const session = sessionWithTwoAssets();
+        session.visualConfig = {
+            visualMode: 'focals',
+            focals: { type: 'personal', personalAssetId: 'asset-evicted', personalImage: null }
+        };
+        const hydrated = await hydrateSessionSequenceAssets(session);
+        expect(hydrated.visualConfig.focals).toMatchObject({
+            type: 'standard', standardGlyph: 'breath', personalImage: null
+        });
+    });
+
     it('takes the clips that named it with it', async () => {
         // WITHOUT THIS THE FIX IS COSMETIC. compileSession runs
         // validateSequenceAssetReferences, which refuses a program naming
@@ -84,6 +110,35 @@ describe('a missing image is absent, and the reading opens', () => {
         const hydrated = await hydrateSessionSequenceAssets(session);
         expect(hydrated.experienceProgram.tracks[0].clips.map(c => c.id)).toEqual(['clip-present']);
         expect(hydrated.visualScoreAssignments.map(a => a.assetId)).toEqual(['asset-present']);
+    });
+
+    it('takes a personal focal field clip with its missing backing image', async () => {
+        missingOnly('asset-evicted');
+        const session = sessionWithTwoAssets();
+        session.visualScoreAssignments = [{
+            assetId: 'surface:focal',
+            cue: {
+                kind: 'field', renderer: 'focal',
+                config: { type: 'personal', personalAssetId: 'asset-evicted' }
+            }
+        }];
+        session.experienceProgram = {
+            schema: 'rise.experience-program.v1', id: 'program-focal',
+            authority: 'user', editable: true,
+            tracks: [{
+                id: 'track-visual', kind: 'visual', clips: [{
+                    id: 'clip-focal',
+                    cue: {
+                        kind: 'field', renderer: 'focal',
+                        config: { type: 'personal', personalAssetId: 'asset-evicted' }
+                    }
+                }]
+            }]
+        };
+
+        const hydrated = await hydrateSessionSequenceAssets(session);
+        expect(hydrated.experienceProgram.tracks).toEqual([]);
+        expect(hydrated.visualScoreAssignments).toEqual([]);
     });
 
     it('drops a visual track emptied of every clip', async () => {

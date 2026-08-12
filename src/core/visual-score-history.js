@@ -1,4 +1,6 @@
-const COMMAND_TYPES = new Set(['assign', 'replace-overlap', 'erase', 'replace-asset']);
+const COMMAND_TYPES = new Set([
+  'assign', 'replace-overlap', 'erase', 'replace-asset', 'configure-visual'
+]);
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 200;
 

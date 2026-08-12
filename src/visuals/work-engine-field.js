@@ -52,11 +52,13 @@ export class WorkEngineField {
             : () => ({});
 
         this.running = false;
+        this.paused = false;
         this._planes = null;
         this._active = 0;
         this._rafId = null;
         this._lastFrameAt = 0;
         this._nextRotateAt = 0;
+        this._remainingRotateMs = 0;
         this._cursor = 0;
         this._engines = [];          // [{ familyId, id, engineClass }, ...]
         this._loading = null;
@@ -110,7 +112,7 @@ export class WorkEngineField {
     }
 
     _onVisibility() {
-        if (!this.running) return;
+        if (!this.running || this.paused) return;
         if (document.hidden) {
             this._cancel();
         } else {
@@ -239,7 +241,7 @@ export class WorkEngineField {
     }
 
     _tick(timestamp) {
-        if (!this.running) return;
+        if (!this.running || this.paused) return;
         const dt = this._lastFrameAt
             ? Math.min((timestamp - this._lastFrameAt) / 1000, MAX_STEP_SECONDS)
             : 0;
@@ -274,6 +276,7 @@ export class WorkEngineField {
     async start() {
         if (this.running) return;
         this.running = true;
+        this.paused = false;
         this._mount();
         await this._loadEngines();
         // A family that will not load leaves the field still rather than
@@ -299,6 +302,8 @@ export class WorkEngineField {
 
     stop() {
         this.running = false;
+        this.paused = false;
+        this._remainingRotateMs = 0;
         this._cancel();
         if (this._planes) {
             for (const plane of this._planes) {
@@ -307,6 +312,27 @@ export class WorkEngineField {
                 plane.entry = null;
             }
         }
+    }
+
+    /** Hold the live canvases and their engine state at the current frame. */
+    pause() {
+        if (!this.running || this.paused) return false;
+        this.paused = true;
+        this._remainingRotateMs = Math.max(0, this._nextRotateAt - performance.now());
+        this._cancel();
+        return true;
+    }
+
+    /** Continue stepping the held engines without a catch-up lurch. */
+    resume() {
+        if (!this.running || !this.paused) return false;
+        this.paused = false;
+        this._lastFrameAt = 0;
+        this._nextRotateAt = performance.now() + this._remainingRotateMs;
+        if (!this.reducedMotion && this._engines.length) {
+            this._rafId = requestAnimationFrame(this._tick);
+        }
+        return true;
     }
 
     /**
@@ -338,7 +364,7 @@ export class WorkEngineField {
         }
         this._cursor = 0;
         this._rotate(false);
-        if (this.reducedMotion) return;
+        if (this.reducedMotion || this.paused) return;
         this._lastFrameAt = 0;
         this._nextRotateAt = performance.now() + this.dwellMs;
         this._rafId = requestAnimationFrame(this._tick);

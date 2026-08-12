@@ -206,7 +206,8 @@ export function compose(flow, options = {}) {
                 // A scene change. If the next block is NOT an image, this
                 // episode is stillness and earns deliberate space (§3.2).
                 const next = blocks[i + 1];
-                const isStill = !next || next.kind !== BLOCK.IMAGE;
+                const isStill = block.heldVisual !== true
+                    && (!next || ![BLOCK.IMAGE, BLOCK.FOCAL].includes(next.kind));
                 push({
                     type: 'break',
                     episodeId: block.episodeId,
@@ -234,6 +235,22 @@ export function compose(flow, options = {}) {
                 type: 'symbol',
                 symbol: block.symbol,
                 episodeId: block.episodeId ?? null,
+                rhythm: RHYTHM.OPEN
+            });
+            bleedRun = 0;
+            stillPending = false;
+            continue;
+        }
+
+        // A passage focal is neither a provider figure nor prose. It retains
+        // its modest focal proportions and remains attached to the episode
+        // boundary that authored it.
+        if (block.kind === BLOCK.FOCAL) {
+            push({
+                type: 'focal',
+                focal: block.focal,
+                episodeId: block.episodeId ?? null,
+                at: block.at || null,
                 rhythm: RHYTHM.OPEN
             });
             bleedRun = 0;
@@ -367,12 +384,12 @@ export function compose(flow, options = {}) {
 
     // Trim leading/trailing rhythm-only items — a page never opens or
     // closes on empty space.
-    while (items.length && items[0].type !== 'text' && items[0].type !== 'figure' && items[0].type !== 'chapter') {
+    while (items.length && !['text', 'figure', 'focal', 'chapter'].includes(items[0].type)) {
         items.shift();
     }
     while (items.length) {
         const last = items[items.length - 1];
-        if (last.type === 'text' || last.type === 'figure') break;
+        if (last.type === 'text' || last.type === 'figure' || last.type === 'focal') break;
         items.pop();
     }
 

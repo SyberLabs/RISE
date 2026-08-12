@@ -357,6 +357,49 @@ describe('ContinuousField', () => {
         field.stop();
     });
 
+    it('pause holds the authored wall and resumes with the remaining dwell', async () => {
+        const works = pool('a.jpg', 'b.jpg', 'c.jpg');
+        const { field, host, clock } = mount({ getPool: () => works });
+        const advance = vi.spyOn(field, '_advance');
+        field.start();
+        await Promise.resolve(); await Promise.resolve();
+        const held = field.currentUrl;
+
+        clock.tick(400);
+        expect(field.pause()).toBe(true);
+        expect(field.paused).toBe(true);
+        clock.tick(5000);
+        await Promise.resolve();
+        expect(field.currentUrl).toBe(held);
+        expect(host.querySelectorAll('.continuous-field-layer')).toHaveLength(2);
+        expect(advance).toHaveBeenCalledTimes(1);
+
+        expect(field.resume()).toBe(true);
+        clock.tick(599);
+        expect(advance).toHaveBeenCalledTimes(1);
+        clock.tick(1);
+        expect(advance).toHaveBeenCalledTimes(2);
+        field.stop();
+    });
+
+    it('an async work completing during pause cannot replace the held wall', async () => {
+        let resolveNext;
+        const getNextWork = vi.fn()
+            .mockResolvedValueOnce({ url: 'held.jpg' })
+            .mockImplementationOnce(() => new Promise(resolve => { resolveNext = resolve; }));
+        const { field, clock } = mount({ getNextWork, hasWorks: () => true });
+        field.start();
+        await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+        expect(field.currentUrl).toBe('held.jpg');
+
+        clock.tick(1000);
+        field.pause();
+        resolveNext({ url: 'late.jpg' });
+        await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+        expect(field.currentUrl).toBe('held.jpg');
+        field.stop();
+    });
+
     it('draws every work before repeating (ShuffleBag order)', async () => {
         const works = pool('a.jpg', 'b.jpg', 'c.jpg');
         const seen = [];

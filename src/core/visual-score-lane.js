@@ -5,12 +5,17 @@ import {
   halfOpenRangesOverlap
 } from './experience-program.js';
 import { READING_LIMITS } from './reading-limits.js';
-import { normalizeQuote, resolveSourceSpan } from './source-span.js';
+import {
+  normalizeQuote,
+  resolveSourceSpan,
+  snapCharacterRangeToTokens
+} from './source-span.js';
 import {
   EDITOR_ASSET_SCHEMA,
   editorAssetSupports,
   validateEditorAsset
 } from './editor-asset.js';
+import { personalFocalAssetIdFromCue } from './visual-style-definitions.js';
 
 export const SEQUENCE_ASSET_PREFIX = 'sequence-asset:';
 export const SEQUENCE_ASSET_STORAGE_IDB = 'idb';
@@ -54,25 +59,31 @@ function dataImage(value) {
   return value;
 }
 
-function runtimeImageUri(value) {
+function runtimeMediaUri(value) {
   if (typeof value !== 'string' || value.length > MAX_SEQUENCE_ASSET_URI_LENGTH) {
-    fail('VISUAL_SCORE_INVALID_ASSET', 'Sequence images must be local image data.', {});
+    fail('VISUAL_SCORE_INVALID_ASSET', 'Sequence media must be local data.', {});
   }
   if (value.startsWith('data:image/') || value.startsWith('blob:')) return value;
-  fail('VISUAL_SCORE_INVALID_ASSET', 'Sequence images must be local image data.', {});
+  fail('VISUAL_SCORE_INVALID_ASSET', 'Sequence media must be local data.', {});
 }
 
-function imageMimeType(value) {
-  if (typeof value !== 'string' || !value.startsWith('image/') || value.length > 120) {
-    fail('VISUAL_SCORE_INVALID_ASSET', 'Durable sequence images need an image/* MIME type.', {});
+function mediaMimeType(value, kind) {
+  const valid = kind === 'video' ? value === 'video/mp4' : value?.startsWith('image/');
+  if (typeof value !== 'string' || !valid || value.length > 120) {
+    fail('VISUAL_SCORE_INVALID_ASSET', kind === 'video'
+      ? 'Sequence videos must be video/mp4.'
+      : 'Durable sequence images need an image/* MIME type.', {});
   }
   return value.trim();
 }
 
-function byteLength(value) {
+function byteLength(value, kind) {
   const n = Number(value);
-  if (!Number.isInteger(n) || n <= 0 || n > READING_LIMITS.maxImageFileBytes) {
-    fail('VISUAL_SCORE_INVALID_ASSET', 'Durable sequence images need a valid byte length.', {});
+  const max = kind === 'video'
+    ? READING_LIMITS.maxVideoFileBytes
+    : READING_LIMITS.maxImageFileBytes;
+  if (!Number.isInteger(n) || n <= 0 || n > max) {
+    fail('VISUAL_SCORE_INVALID_ASSET', 'Durable sequence media needs a valid byte length.', {});
   }
   return n;
 }
@@ -98,6 +109,13 @@ export function sequenceAssetForPersistence(asset) {
     mimeType: canonical.mimeType,
     byteLength: canonical.byteLength
   };
+  if (canonical.kind === 'video') {
+    persisted.kind = 'video';
+    persisted.durationMs = canonical.durationMs;
+    persisted.audioPolicy = 'muted';
+    persisted.timeMode = canonical.timeMode;
+    if (canonical.posterAssetId) persisted.posterAssetId = canonical.posterAssetId;
+  }
   if (canonical.provenance) persisted.provenance = canonical.provenance;
   return Object.freeze(persisted);
 }
@@ -127,6 +145,11 @@ export function assetIdFromCollection(collectionId) {
 
 /** Rebuild the deterministic editor reference stored implicitly by a cue. */
 export function scoreAssetIdFromCue(cue) {
+  if (cue?.kind === 'video') return cue.assetId || null;
+  if (cue?.kind === 'field' && ['focal', 'attractor', 'genesis'].includes(cue.renderer)) {
+    return `surface:${cue.renderer}`;
+  }
+  if (cue?.kind === 'still') return 'surface:off';
   if (!cue || !Array.isArray(cue.collections) || cue.collections.length !== 1) return null;
   const collection = cue.collections[0];
   if (cue.kind === 'sourced') {
@@ -140,6 +163,7 @@ export function createSequenceVisualAsset(value = {}) {
   const id = exactId(value.id, 'Asset id');
   const name = boundedName(value.name);
   const color = VISUAL_SCORE_COLORS.includes(value.color) ? value.color : VISUAL_SCORE_COLORS[0];
+  const kind = value.kind === 'video' || value.mimeType === 'video/mp4' ? 'video' : 'image';
   const storage = value.storage === SEQUENCE_ASSET_STORAGE_IDB
     || (value.storage !== SEQUENCE_ASSET_STORAGE_INLINE
       && !value.uri
@@ -149,16 +173,19 @@ export function createSequenceVisualAsset(value = {}) {
     : SEQUENCE_ASSET_STORAGE_INLINE;
 
   let asset;
+  if (kind === 'video' && storage !== SEQUENCE_ASSET_STORAGE_IDB) {
+    fail('VISUAL_SCORE_INVALID_ASSET', 'Sequence videos require durable media storage.', {});
+  }
   if (storage === SEQUENCE_ASSET_STORAGE_IDB) {
     asset = {
       id,
       name,
       color,
       storage: SEQUENCE_ASSET_STORAGE_IDB,
-      mimeType: imageMimeType(value.mimeType),
-      byteLength: byteLength(value.byteLength)
+      mimeType: mediaMimeType(value.mimeType, kind),
+      byteLength: byteLength(value.byteLength, kind)
     };
-    if (value.uri != null) asset.uri = runtimeImageUri(value.uri);
+    if (value.uri != null) asset.uri = runtimeMediaUri(value.uri);
   } else {
     asset = {
       id,
@@ -169,17 +196,52 @@ export function createSequenceVisualAsset(value = {}) {
     };
   }
 
+  if (kind === 'video') {
+    const durationMs = Number(value.durationMs);
+    if (!Number.isInteger(durationMs) || durationMs <= 0 || durationMs > 24 * 60 * 60 * 1000) {
+      fail('VISUAL_SCORE_INVALID_ASSET', 'Sequence videos need a valid duration.', {});
+    }
+    const timeModes = new Set(['cue', 'fit-span', 'loop', 'hold-final']);
+    asset.kind = 'video';
+    asset.durationMs = durationMs;
+    asset.audioPolicy = 'muted';
+    asset.timeMode = timeModes.has(value.timeMode) ? value.timeMode : 'loop';
+    if (typeof value.posterAssetId === 'string' && value.posterAssetId.trim()) {
+      asset.posterAssetId = exactId(value.posterAssetId.trim(), 'Poster asset id');
+    }
+  }
+
   const canonicalProvenance = boundedProvenance(value.provenance);
   if (canonicalProvenance) asset.provenance = canonicalProvenance;
   return Object.freeze(asset);
 }
 
 function scoreCue(value) {
+  if (value.kind === 'still') return Object.freeze({ kind: 'still' });
+  if (value.kind === 'field') {
+    return Object.freeze({
+      kind: 'field',
+      renderer: value.renderer,
+      config: Object.freeze({ ...(value.config || {}) })
+    });
+  }
+  if (value.kind === 'video') {
+    return Object.freeze({
+      kind: 'video',
+      assetId: value.assetId,
+      timeMode: value.timeMode || 'loop',
+      audioPolicy: 'muted',
+      reducedMotion: 'poster'
+    });
+  }
   const cue = {
     kind: value.kind,
     collections: Object.freeze([...value.collections])
   };
   if (value.engines) cue.engines = Object.freeze([...value.engines]);
+  if (value.config && Object.keys(value.config).length) {
+    cue.config = Object.freeze({ ...value.config });
+  }
   return Object.freeze(cue);
 }
 
@@ -206,7 +268,9 @@ export function createVisualScoreAsset(value) {
     id: asset.id,
     name: asset.name,
     color: asset.color,
-    cue: scoreCue({ kind: 'sourced', collections: [sequenceAssetCollection(asset.id)] })
+    cue: asset.kind === 'video'
+      ? scoreCue({ kind: 'video', assetId: asset.id, timeMode: asset.timeMode })
+      : scoreCue({ kind: 'sourced', collections: [sequenceAssetCollection(asset.id)] })
   });
 }
 
@@ -236,7 +300,8 @@ function strictAssignment(value, sources, assets) {
   const assetId = exactId(value?.assetId, 'Asset id');
   const source = sources.find(item => item.id === sourceId);
   if (!source) fail('VISUAL_SCORE_SOURCE_NOT_FOUND', `Source ${sourceId} is unavailable.`, { sourceId });
-  if (!assets.some(item => item.id === assetId)) {
+  const asset = assets.find(item => item.id === assetId);
+  if (!asset) {
     fail('VISUAL_SCORE_ASSET_NOT_FOUND', `Visual asset ${assetId} is unavailable.`, { assetId });
   }
   const anchor = {
@@ -247,15 +312,31 @@ function strictAssignment(value, sources, assets) {
     quoteEnd: value.quoteEnd
   };
   resolveSourceSpan(anchor, source.text, `visualScore.assignments.${id}`);
-  return Object.freeze({
+  const snapped = snapCharacterRangeToTokens(
+    source.text, anchor.fromCharacter, anchor.toCharacter);
+  if (!snapped) fail('VISUAL_SCORE_EMPTY_SELECTION', 'Select visible source text first.');
+  const snappedText = source.text.slice(snapped.fromCharacter, snapped.toCharacter);
+  const assignment = {
     id,
     sourceId,
     assetId,
-    fromCharacter: anchor.fromCharacter,
-    toCharacter: anchor.toCharacter,
-    quoteStart: anchor.quoteStart,
-    quoteEnd: anchor.quoteEnd
-  });
+    fromCharacter: snapped.fromCharacter,
+    toCharacter: snapped.toCharacter,
+    quoteStart: fingerprint(snappedText, 'start'),
+    quoteEnd: fingerprint(snappedText, 'end')
+  };
+  if (value.cue !== undefined) {
+    const sameField = asset.cue.kind === 'field' && value.cue?.kind === 'field'
+      && value.cue.renderer === asset.cue.renderer;
+    const sameProcedural = asset.cue.kind === 'procedural' && value.cue?.kind === 'procedural'
+      && JSON.stringify(value.cue.collections) === JSON.stringify(asset.cue.collections);
+    if (!sameField && !sameProcedural) {
+      fail('VISUAL_SCORE_CUE_SNAPSHOT',
+        'Only the selected visual may carry a clip configuration snapshot.', { assetId });
+    }
+    assignment.cue = scoreCue(value.cue);
+  }
+  return Object.freeze(assignment);
 }
 
 /** Strictly validate restored editor state against its current sources/assets. */
@@ -304,16 +385,18 @@ export function validateVisualScoreLane({ sources = [], assets = [], assignments
  */
 export function assignVisualSpan({
   assignments = [], source, assetId, assignmentId, fromCharacter, toCharacter,
-  overlap = 'reject'
+  overlap = 'reject', cue = null
 }) {
   if (!Array.isArray(assignments)) {
     fail('VISUAL_SCORE_ASSIGNMENTS_REQUIRED', 'Visual assignments must be an array.');
   }
   const sourceId = exactId(source?.id, 'Source id');
   const text = typeof source?.text === 'string' ? source.text : '';
-  const selected = Number.isInteger(fromCharacter) && Number.isInteger(toCharacter)
-    ? text.slice(fromCharacter, toCharacter)
-    : '';
+  const snapped = snapCharacterRangeToTokens(text, fromCharacter, toCharacter);
+  if (!snapped) fail('VISUAL_SCORE_EMPTY_SELECTION', 'Select visible source text first.');
+  fromCharacter = snapped.fromCharacter;
+  toCharacter = snapped.toCharacter;
+  const selected = text.slice(fromCharacter, toCharacter);
   const candidate = {
     id: exactId(assignmentId, 'Assignment id'),
     sourceId,
@@ -323,6 +406,15 @@ export function assignVisualSpan({
     quoteStart: fingerprint(selected, 'start'),
     quoteEnd: fingerprint(selected, 'end')
   };
+  if (cue != null) {
+    const field = cue?.kind === 'field' && ['focal', 'attractor', 'genesis'].includes(cue.renderer);
+    const procedural = cue?.kind === 'procedural' && Array.isArray(cue.collections)
+      && cue.collections.length === 1;
+    if (!field && !procedural) {
+      fail('VISUAL_SCORE_CUE_SNAPSHOT', 'Only configurable visual cues may be snapshotted.');
+    }
+    candidate.cue = scoreCue(cue);
+  }
   resolveSourceSpan({
     sourceIds: [sourceId],
     fromCharacter,
@@ -370,7 +462,9 @@ function sourceTitle(source, index) {
 }
 
 /** Compile editor state into the sole public Experience Program format. */
-export function compileVisualScoreProgram({ programId, sources, assets, assignments }) {
+export function compileVisualScoreProgram({
+  programId, sources, assets, assignments, visualFallback = { kind: 'still' }
+}) {
   const lane = validateVisualScoreLane({ sources, assets, assignments });
   if (lane.assignments.length === 0) return null;
 
@@ -403,10 +497,10 @@ export function compileVisualScoreProgram({ programId, sources, assets, assignme
               quoteStart: assignment.quoteStart,
               quoteEnd: assignment.quoteEnd
             },
-            cue: asset.cue
+            cue: assignment.cue || asset.cue
           };
         }),
-        fallback: { kind: 'still' }
+        fallback: visualFallback
       }
     ],
     metadata: { kind: 'workshop-visual-score' }
@@ -415,13 +509,31 @@ export function compileVisualScoreProgram({ programId, sources, assets, assignme
 
 /** Validate that every canonical sequence-asset cue resolves locally. */
 export function validateSequenceAssetReferences(program, assets = []) {
-  const ids = new Set(assets.map(asset => exactId(
-    createSequenceVisualAsset(asset).id,
-    'Asset id'
-  )));
+  const canonicalAssets = assets.map(createSequenceVisualAsset);
+  const ids = new Set(canonicalAssets.map(asset => exactId(asset.id, 'Asset id')));
+  const videos = new Set(canonicalAssets.filter(asset => asset.kind === 'video').map(asset => asset.id));
   for (const track of program?.tracks || []) {
     if (track.kind !== 'visual') continue;
     for (const clip of track.clips) {
+      const focalAssetId = personalFocalAssetIdFromCue(clip.cue);
+      if (focalAssetId) {
+        const focalAsset = canonicalAssets.find(asset =>
+          asset.id === focalAssetId && asset.kind !== 'video');
+        if (!focalAsset) {
+          fail('VISUAL_SCORE_ASSET_NOT_FOUND',
+            `Visual clip ${clip.id} names missing personal focal ${focalAssetId}.`,
+            { clipId: clip.id, assetId: focalAssetId });
+        }
+        continue;
+      }
+      if (clip.cue?.kind === 'video') {
+        if (!videos.has(clip.cue.assetId)) {
+          fail('VISUAL_SCORE_ASSET_NOT_FOUND',
+            `Visual clip ${clip.id} names missing sequence video ${clip.cue.assetId}.`,
+            { clipId: clip.id, assetId: clip.cue.assetId });
+        }
+        continue;
+      }
       for (const collection of clip.cue?.collections || []) {
         const assetId = assetIdFromCollection(collection);
         if (assetId && !ids.has(assetId)) {

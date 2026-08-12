@@ -14,6 +14,27 @@ const MARKERS = {
     HOLD: '[HOLD]'
 };
 
+// Private-use sentinel inserted by the session compiler at authored media
+// boundaries. It is deliberately neither whitespace nor punctuation: the
+// chunker, and only the chunker, interprets it. It creates no atom, pause, or
+// display character; it merely prevents a linguistic chunk from crossing a
+// score-authority boundary.
+export const SOURCE_SCORE_CUT = '\uE000';
+
+export function insertSourceScoreCuts(text, offsets = []) {
+    if (typeof text !== 'string' || !Array.isArray(offsets) || offsets.length === 0) {
+        return typeof text === 'string' ? text : '';
+    }
+    const cuts = [...new Set(offsets)]
+        .filter(offset => Number.isInteger(offset) && offset > 0 && offset < text.length)
+        .sort((left, right) => right - left);
+    let result = text;
+    for (const offset of cuts) {
+        result = `${result.slice(0, offset)}${SOURCE_SCORE_CUT}${result.slice(offset)}`;
+    }
+    return result;
+}
+
 /**
  * Pause durations in ms
  */
@@ -547,32 +568,33 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
         const verse = verseByParagraph.get(paragraphIndex) || null;
         const atomsBeforeParagraph = atoms.length;
 
-        // Split based on mode
-        let chunks;
-        switch (mode) {
-            case 'paragraph':
-                chunks = [trimmed];
-                break;
-            case 'sentence':
-                chunks = splitSentences(trimmed);
-                break;
-            case 'phrase': {
-                const speakerHead = dialogueHints?.preserveSpeakerHead === true;
-                // Line is the unit when lineation survives.
-                chunks = verseLines
-                    ? splitVerseLines(trimmed, speakerHead, phraseFloor)
-                    : splitPhrases(trimmed, speakerHead);
-                // Floor for punctuation-split prose only (not speaker heads or verse).
-                if (phraseFloor && !speakerHead && !verseLines) {
-                    chunks = applyPhraseFloor(chunks, trimmed);
+        // Split based on mode, independently inside every authored score
+        // unit. Running the phrase floor per unit is the essential invariant:
+        // it may repair a short linguistic fragment, but it may never merge it
+        // across a change of media authority.
+        const hardUnits = trimmed.split(SOURCE_SCORE_CUT).filter(unit => unit.trim());
+        const chunks = hardUnits.flatMap((unit) => {
+            const scoreUnit = unit.trim();
+            switch (mode) {
+                case 'paragraph':
+                    return [scoreUnit];
+                case 'sentence':
+                    return splitSentences(scoreUnit);
+                case 'phrase': {
+                    const speakerHead = dialogueHints?.preserveSpeakerHead === true;
+                    let phrases = verseLines
+                        ? splitVerseLines(scoreUnit, speakerHead, phraseFloor)
+                        : splitPhrases(scoreUnit, speakerHead);
+                    if (phraseFloor && !speakerHead && !verseLines) {
+                        phrases = applyPhraseFloor(phrases, scoreUnit);
+                    }
+                    return phrases;
                 }
-                break;
+                case 'word':
+                default:
+                    return splitWords(scoreUnit);
             }
-            case 'word':
-            default:
-                chunks = splitWords(trimmed);
-                break;
-        }
+        });
 
         // Create atoms from chunks
         for (const chunk of chunks) {

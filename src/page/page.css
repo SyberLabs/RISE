@@ -64,12 +64,31 @@
   opacity: 0.72;
 }
 .page-focal-image {
-  width: clamp(56px, 7vw, 84px);
-  height: clamp(56px, 7vw, 84px);
-  object-fit: cover;
-  border-radius: 50%;
+  width: clamp(128px, 18vw, 220px);
+  height: clamp(56px, 8vw, 92px);
+  object-fit: contain;
+  border-radius: 3px;
+  background: rgba(7, 8, 11, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   opacity: 0.85;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
+/* Passage-scored focals retain the focal grammar, but sit inside the reading. */
+.page-passage-focal {
+  margin-block: clamp(1.4rem, 4vh, 2.8rem);
+  padding-block: 0.35rem;
+}
+
+.page-passage-focal.is-mark {
+  font-size: clamp(24px, 2.8vw, 36px);
+  opacity: 0.66;
+}
+
+.page-passage-focal .page-focal-image,
+.page-passage-focal.page-focal .page-focal-image {
+  width: clamp(112px, 16vw, 192px);
+  height: clamp(48px, 7vw, 80px);
 }
 
 .page-title {

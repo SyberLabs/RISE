@@ -42,4 +42,19 @@ describe('visual score command history', () => {
     });
     expect(branched.future).toEqual([]);
   });
+
+  it('treats a passage style revision as one reversible command', () => {
+    const before = [{ ...clip('styled'), cue: {
+      kind: 'procedural', collections: ['klee'], config: { preset: 'harmonic' }
+    } }];
+    const after = [{ ...before[0], cue: {
+      kind: 'procedural', collections: ['klee'], config: { preset: 'chaotic' }
+    } }];
+    const history = recordVisualScoreCommand(createVisualScoreHistory(), {
+      type: 'configure-visual', before, after,
+      selectedBefore: 'styled', selectedAfter: 'styled'
+    });
+    expect(undoVisualScoreCommand(history).snapshot.assignments[0].cue.config.preset)
+      .toBe('harmonic');
+  });
 });

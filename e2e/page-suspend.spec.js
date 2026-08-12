@@ -92,9 +92,38 @@ test('a spatial launch runs no temporal visual machinery', async ({ page }) => {
   });
   console.log('SPATIAL_LAUNCH ' + JSON.stringify({ sawWarning, ...state }));
   expect(state.projection).toBe('page');
-  expect(state.visualMode).toBe('off');              // temporal machinery off
-  expect(state.suspended).toBe('interlocution');     // but the choice remembered
+  expect(state.visualMode).toBe('interlocution');    // authorial choice survives
+  expect(state.suspended).toBeUndefined();           // no shadow configuration
   expect(state.galleryLayers).toBe(0);               // no Gallery clock
-  expect(state.hasRhythmic).toBe(false);
+  expect(state.hasRhythmic).toBe(true);               // capability, not execution
   expect(sawWarning).toBe(false);                    // no consent prompt needed
+});
+
+test('a focal survives a direct Page launch and renders above the reading', async ({ page }) => {
+  await boot(page, {
+    visualInterlocution: {
+      visualMode: 'focals',
+      focals: { type: 'standard', standardGlyph: 'star' }
+    }
+  });
+  await page.evaluate(() => {
+    window.rise.router.views.get('chamber').instance.config.projection = 'page';
+  });
+  await page.locator('#begin-btn').click();
+  await expect(page.locator('.page-article')).toBeVisible({ timeout: 20000 });
+  await expect(page.locator('.page-masthead .page-focal')).toHaveText('✦');
+
+  const state = await page.evaluate(() => ({
+    visualMode: window.rise.currentSession?.visualConfig?.visualMode,
+    suspended: window.rise.currentSession?.visualConfig?.suspendedVisualMode,
+    hiddenFocal: document.querySelectorAll('#chamber-field .chamber-focal').length
+  }));
+  expect(state.visualMode).toBe('focals');
+  expect(state.suspended).toBeUndefined();
+  expect(state.hiddenFocal).toBe(0);
+
+  await page.locator('#chamber-display').hover();
+  await page.locator('#page-mode-btn').click();
+  await expect(page.locator('#chamber-page')).toBeHidden();
+  await expect(page.locator('#chamber-field .chamber-focal')).toHaveCount(1);
 });

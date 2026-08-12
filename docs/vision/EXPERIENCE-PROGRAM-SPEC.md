@@ -232,6 +232,27 @@ on end. Two things must never quietly compete for the same ear.
 Sequence-local video only at first. A global video library raises
 storage and lifecycle questions that can wait.
 
+### 5.1 Persistent fields as schedulable visual works
+
+Focal, Attractor, and Genesis are not separate child readings. They are
+visual cues on the same source-coordinate clock as images, collections,
+procedural works, and video:
+
+```js
+cue: {
+  kind: "field",
+  renderer: "focal" | "attractor" | "genesis",
+  config: { /* bounded renderer configuration captured by the clip */ }
+}
+```
+
+The visual track fallback carries the whole-reading field (or `still`). A
+passage field temporarily supersedes that fallback; when its half-open atom
+range ends, the fallback resumes without rebuilding the Session. One runtime
+field director owns mounting, crossfade, pause/resume, cancellation, and
+destruction. WPM, chunking, pacing, audio, and recitation remain properties of
+the uninterrupted reading and are never copied into field clips.
+
 ---
 
 ## 6. Engine registry scope
@@ -450,7 +471,7 @@ User Media Score ──────┼────── Live Curator
 
 1. **Define `rise.experience-program.v1`** — unify visual, audio,
    movement, transition, later video. *(Foundation implemented 2026-08-03;
-   video remains intentionally outside the current cue vocabulary.)*
+   video cue vocabulary added with Step 5 on 2026-08-11.)*
 2. **Stable source-span anchors** — character/token ranges with quote
    fingerprints, compiled to atoms. *(Implemented 2026-08-03: strict
    character/token anchors, edition-drift refusal, atom coordinates, and
@@ -462,7 +483,9 @@ User Media Score ──────┼────── Live Curator
 4. **The audio lane and sync groups.** *(Implemented 2026-08-04: independent
    bed/event lowering and execution, tone cues, sync-group preservation,
    transport cancellation, and Workshop passage authoring.)*
-5. **MP4 as a first-class visual asset.**
+5. **MP4 as a first-class visual asset.** *(Implemented 2026-08-11:
+   sequence-local durable import, muted/poster cue policy, Workshop span
+   authoring, persistence, compilation, and authority-bound runtime playback.)*
 6. **Export/import Experience Program JSON** — this alone enables the
    manual Live Curator workflow.
 7. **Formalise engine registry scope.**

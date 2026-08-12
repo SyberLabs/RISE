@@ -21,6 +21,9 @@ export const READING_LIMITS = Object.freeze({
    */
   maxAtoms: 120_000,
   maxImageFileBytes: 8 * 1024 * 1024,
+  // Sequence-local MP4 only. Kept below half the durable project budget so
+  // one import cannot crowd every other authored asset out of the store.
+  maxVideoFileBytes: 96 * 1024 * 1024,
 
   /**
    * Two URI ceilings for the same asset at different moments:

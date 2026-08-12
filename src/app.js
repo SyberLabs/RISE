@@ -413,31 +413,25 @@ class App {
                     return { destroy: () => { } };
                 }
 
-                let visualMode = session.visualConfig?.visualMode || 'off';
+                const authoredVisualMode = session.visualConfig?.visualMode || 'off';
+                let visualMode = authoredVisualMode;
+                let activateDeferredVisuals = async () => true;
                 let recitationVoice = null;
 
                 // A SPATIAL reading runs no temporal visual machinery.
                 // Page Mode has no flash economy and no advance clock
                 // (PAGE-MODE-SPEC §4), so a session that opens as a page
-                // must not request interlocution consent, configure the
-                // flash economy, preload a flash pool, or start Gallery,
+                // must not request interlocution consent, preload a flash
+                // pool, or start Gallery,
                 // attractor, Genesis, or focal engines — all of which
                 // would otherwise run invisibly beneath the page, burning
                 // CPU/GPU/network and contradicting the projection. The
-                // reader's visual SELECTION is untouched: switching back
-                // to the Stream restores it (see Chamber.togglePageMode).
+                // authorial configuration remains immutable across the
+                // projection boundary. PageReader needs it to spatially
+                // lower held fields and the authored program; only temporal
+                // EXECUTION is deferred until the Stream owns the session.
                 const spatialLaunch = session.projection === 'page';
-                if (spatialLaunch && visualMode !== 'off') {
-                    session.visualConfig = {
-                        ...session.visualConfig,
-                        visualMode: 'off',
-                        // The reader's choice is REMEMBERED, not discarded:
-                        // it is what the Stream returns to if they leave the
-                        // page. Suspension is not deselection.
-                        suspendedVisualMode: visualMode
-                    };
-                    visualMode = 'off';
-                }
+                if (spatialLaunch) visualMode = 'off';
 
                 try {
                     // Consent is an interaction phase, not a loading task. It
@@ -553,12 +547,13 @@ class App {
                     // modes install their complete identity below so an
                     // interlocution -> interlocution transition cannot depend
                     // on a diff against the prior reading's singleton state.
-                    if (visualMode !== 'interlocution') {
+                    const visualSetupMode = spatialLaunch ? authoredVisualMode : visualMode;
+                    if (visualSetupMode !== 'interlocution') {
                         visualCortex.resetSessionVisualIdentity();
                     }
 
                     // Configure visual cortex based on the consented mode.
-                    if (visualMode === 'interlocution') {
+                    if (visualSetupMode === 'interlocution') {
                         this.updateLoadingStatus('Loading visual engine...');
                         const activeTypes = [];
                         const rawInterlocution = session.visualConfig.interlocution || {};
@@ -667,16 +662,44 @@ class App {
                             session,
                             interlocution.frequency ?? 0.2
                         );
-                        await visualCortex.preload(estimatedFlashCount);
-                    } else if (visualMode === 'focals') {
+                        if (spatialLaunch) {
+                            // Configuration is inert without a Stream host or
+                            // presentation opportunity. Defer capability and
+                            // asset work until the reader actually leaves Page.
+                            activateDeferredVisuals = async () => {
+                                const directPresentation = session.visualConfig
+                                  ?.interlocution?.presentation;
+                                const directFlashes = directPresentation !== 'continuous';
+                                const consentScope = session.visualConfig?.consentScope;
+                                const activated = directFlashes
+                                  ? (await requestVisualInterlocutionConsent(consentScope))
+                                    && beginVisualInterlocutionSession(consentScope)
+                                  : beginNonFlashingVisualSession(consentScope);
+                                if (!activated) {
+                                    visualCortex.updateConfig({ enabled: false });
+                                    this.showToast(
+                                      'Visual flashes remain off until the safety notice is accepted.',
+                                      4000
+                                    );
+                                    return false;
+                                }
+                                await visualCortex.preloadProgram(session.visualProgram);
+                                await visualCortex.preload(estimatedFlashCount);
+                                return true;
+                            };
+                        } else {
+                            await visualCortex.preloadProgram(session.visualProgram);
+                            await visualCortex.preload(estimatedFlashCount);
+                        }
+                    } else if (visualSetupMode === 'focals') {
                         // Focals mode: persistent gentle focal point (handled by Chamber renderer)
                         // No visual cortex preloading needed - focals are persistent, not probabilistic
                         console.log('[RISE] Focals mode active:', session.visualConfig.focals);
-                    } else if (visualMode === 'attractor') {
+                    } else if (visualSetupMode === 'attractor') {
                         // Attractor mode: persistent strange-attractor field (handled by Chamber renderer)
                         // No visual cortex preloading needed - the field is continuous, not probabilistic
                         console.log('[RISE] Attractor mode active:', session.visualConfig.attractor);
-                    } else if (visualMode === 'genesis') {
+                    } else if (visualSetupMode === 'genesis') {
                         // Genesis mode: continuously growing Klee field (handled by Chamber renderer)
                         console.log('[RISE] Genesis mode active:', session.visualConfig.genesis);
                     }
@@ -704,6 +727,7 @@ class App {
                         player: player,
                         voice: recitationVoice,
                         autoStart: true,
+                        onEnterStream: activateDeferredVisuals,
                         onExit: (reason, data) => {
                             // Cleanup
                             player.stop();

@@ -72,7 +72,8 @@ describe('ROSA MYSTICA (the Chapel procedural, spec §6)', () => {
 
   it('the Chamber mounts the rose focal and tears it down; reduced-motion is honored in the engine', () => {
     const chamber = readFileSync(resolve('src/components/Chamber.js'), 'utf8');
-    expect(chamber).toContain("focals.type === 'rose'");
+    expect(chamber).toContain("cue.renderer === 'focal'");
+    expect(chamber).toContain("config.type === 'rose'");
     expect(chamber).toContain('initializeRoseFocal');
     expect(chamber).toContain('this.rosaField.destroy()');
     const engine = readFileSync(resolve('src/visuals/rosa-mystica.js'), 'utf8');

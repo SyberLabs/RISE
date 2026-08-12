@@ -37,6 +37,50 @@ export function sourceTokens(text) {
   }));
 }
 
+/**
+ * Expand a DOM character selection to complete whitespace tokens. Passage
+ * media never divides a word: the smallest authored unit is one token.
+ */
+export function snapCharacterRangeToTokens(text, fromCharacter, toCharacter) {
+  if (typeof text !== 'string' || !Number.isInteger(fromCharacter)
+    || !Number.isInteger(toCharacter) || fromCharacter < 0
+    || toCharacter <= fromCharacter || toCharacter > text.length) return null;
+  const covered = sourceTokens(text).filter(token =>
+    token.end > fromCharacter && token.start < toCharacter);
+  if (!covered.length) return null;
+  return Object.freeze({
+    fromCharacter: covered[0].start,
+    toCharacter: covered[covered.length - 1].end,
+    fromToken: covered[0].index,
+    toToken: covered[covered.length - 1].index + 1
+  });
+}
+
+function assertResolvedTokenBoundary(span, text, path, { snap = false } = {}) {
+  const snapped = snapCharacterRangeToTokens(
+    text, span.fromCharacter, span.toCharacter);
+  if (!snapped || snapped.fromCharacter !== span.fromCharacter
+    || snapped.toCharacter !== span.toCharacter) {
+    if (snap && snapped) {
+      return Object.freeze({
+        ...span,
+        fromCharacter: snapped.fromCharacter,
+        toCharacter: snapped.toCharacter,
+        fromToken: snapped.fromToken,
+        toToken: snapped.toToken
+      });
+    }
+    fail('SOURCE_SPAN_TOKEN_BOUNDARY',
+      'Passage media boundaries must fall between complete words', path, {
+        fromCharacter: span.fromCharacter,
+        toCharacter: span.toCharacter,
+        snappedFromCharacter: snapped?.fromCharacter ?? null,
+        snappedToCharacter: snapped?.toCharacter ?? null
+      });
+  }
+  return span;
+}
+
 export function normalizeQuote(value) {
   return typeof value === 'string' ? value.trim().replace(/\s+/gu, ' ') : '';
 }
@@ -405,6 +449,36 @@ function authoredSpanAnchors(program) {
 }
 
 /**
+ * Resolve all media endpoints for one source before atomization. Quotation-
+ * only misses retain the reader's existing soft-omission policy; explicit
+ * coordinates fail closed. Returned offsets are exact token boundaries.
+ */
+export function sourceSpanCutPoints(program, source) {
+  if (!source?.id || typeof source?.raw !== 'string') return Object.freeze([]);
+  const offsets = new Set();
+  let normalizedIndex = null;
+  for (const { clip, path, quotationOnly } of authoredSpanAnchors(program)) {
+    if (clip.anchor?.sourceIds?.[0] !== source.id) continue;
+    if (quotationOnly && !normalizedIndex) {
+      normalizedIndex = buildNormalizedSourceIndex(source.raw);
+    }
+    let span;
+    try {
+      span = resolveSourceSpan(clip.anchor, source.raw, path, { normalizedIndex });
+    } catch (error) {
+      if (quotationOnly && (error?.code === 'SOURCE_SPAN_QUOTE_NOT_FOUND'
+        || error?.code === 'SOURCE_SPAN_QUOTE_AMBIGUOUS')) continue;
+      throw error;
+    }
+    if (!span) continue;
+    span = assertResolvedTokenBoundary(span, source.raw, path, { snap: quotationOnly });
+    if (span.fromCharacter > 0) offsets.add(span.fromCharacter);
+    if (span.toCharacter < source.raw.length) offsets.add(span.toCharacter);
+  }
+  return Object.freeze([...offsets].sort((left, right) => left - right));
+}
+
+/**
  * Verify every authored span against the supplied edition and compile its
  * coordinate space onto that source's atoms. Returns the resolved spans for
  * diagnostics and tests; the canonical program remains unchanged.
@@ -475,6 +549,7 @@ export function compileSourceSpans(program, sources, atoms) {
       throw error;
     }
     if (!span) continue;
+    span = assertResolvedTokenBoundary(span, source.raw, path, { snap: quotationOnly });
 
     const matchedAtoms = sourceAtoms.filter(atom => atomIntersects(atom, span));
     if (matchedAtoms.length === 0) {
@@ -490,6 +565,15 @@ export function compileSourceSpans(program, sources, atoms) {
     }
     const spanId = `${trackId}:${clip.id}`;
     for (const atom of matchedAtoms) {
+      const sameTrack = (atom.sourceSpanIds || [])
+        .find(id => id.startsWith(`${trackId}:`));
+      if (sameTrack && sameTrack !== spanId) {
+        fail('SOURCE_SPAN_ATOM_CONFLICT',
+          `Compiled atom ${atom.position} crosses two ${trackId} clips`, path, {
+            atomPosition: atom.position,
+            conflicts: [sameTrack, spanId]
+          });
+      }
       atom.sourceSpanIds = [...new Set([...(atom.sourceSpanIds || []), spanId])]
         .slice(0, MAX_COMPILED_SPAN_IDS);
     }

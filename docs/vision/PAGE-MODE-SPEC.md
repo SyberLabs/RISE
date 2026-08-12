@@ -174,6 +174,20 @@ chooses the projection, and can switch. Neither is primary.
   program-loss discipline (persist `visualProgram` with the reading —
   [[mt27-program-loss]]) protects both equally; the Page is if anything a
   forcing function to get that right.
+- A whole-reading focal, including a focal retained as Scored fallback
+  authority, is held once above the opening title. A passage-scored focal is a
+  smaller static presence at the same source-span boundary the Stream follows.
+  Project images resolve from `sequenceVisualAssets`; they are never sent to an
+  external provider.
+- Projection controls execution, not authorship. A Page-first launch may defer
+  Gallery, video, Genesis, Attractor, and focal presenters, but it must not
+  rewrite `visualConfig` or `visualProgram`. Returning to Stream activates the
+  deferred capability and presenter from the unchanged session.
+- Static projection parity includes sourced images, whole-reading/fallback
+  focal authority, passage focal cues, and project-owned focal media. It does
+  not flatten a score's several dynamic field configurations into the one
+  whole-reading sampler configuration: that is the deferred projection phase
+  specified below.
 - ✦ The Page has **no flash economy and no advance clock** — it is static space,
   not timed presence. Therefore no VisualFlashGate, and photosensitivity is
   moot for motion (there is none). Reduced-motion is trivially satisfied.
@@ -205,6 +219,27 @@ chooses the projection, and can switch. Neither is primary.
 - **Export (PDF/image/MP4).** Distribution, not experience — deferred with the
   MP4 note in `NORTH-STAR.md`. A well-built Page is, however, natively
   screen-recordable and print-CSS-friendly, which gets 80% of sharing for free.
+
+### 6.1 Deferred dynamic score projection — recorded 2026-08-11
+
+Two authored visual kinds cross the Stream/Page boundary but do not yet have a
+complete static projection contract:
+
+1. **Cue-specific Genesis and Attractor fields.** A whole-reading dynamic mode
+   has one active configuration and can be sampled parametrically through the
+   Chamber's existing collection resolver. A scored reading may contain several
+   field clips with different system, palette, form, preset, or glass settings.
+   Page therefore needs a config-keyed static sampler, abort ownership, bounded
+   caching, and a per-reading sample budget. Configuration must remain in the
+   canonical cue; it must not be encoded into synthetic collection ids.
+2. **Sequence MP4 posters.** Stream owns temporal playback. Page needs one
+   deterministic static poster per video asset, with extraction/storage,
+   cancellation, and degradation rules. It must not mount or play video merely
+   to obtain a frame, and reduced-motion behavior must not become the accidental
+   poster API.
+
+These are deliberately parked after static focal parity. They are new
+projection capabilities, not correctness gaps in the Page-first lifecycle.
 
 ## 7. Build order
 

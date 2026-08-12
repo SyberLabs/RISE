@@ -19,6 +19,7 @@ import {
   validateWorkshopProject
 } from './workshop-project.js';
 import { isBoundarySource } from './journey-compiler.js';
+import { SEQUENCE_ASSET_PREFIX } from './visual-score-lane.js';
 
 /** Refuse multi-hundred-megabyte pastes before JSON.parse allocates. */
 export const PROGRAM_IO_MAX_JSON_BYTES = 2_000_000;
@@ -138,7 +139,8 @@ export function parseExperienceProgramJson(text, options = {}) {
 /**
  * Import a program object (already parsed). Lands as proposed.
  * When `context` is supplied, every named source/collection/engine/
- * soundscape/swell/tone must appear in that capability document.
+ * soundscape/swell/tone/sequence asset must appear in that capability
+ * document.
  */
 export function importExperienceProgram(value, { context = null } = {}) {
   const normalized = normalizeImportedProgram(value);
@@ -161,6 +163,7 @@ function cueIdsFromProgram(program) {
   const soundscapes = new Set();
   const swells = new Set();
   const tones = new Set();
+  const assets = new Set();
   /** @type {Array<{ sourceId: string, trackKind: string }>} */
   const sourceRefs = [];
 
@@ -176,9 +179,10 @@ function cueIdsFromProgram(program) {
       if (cue.soundscapeId) soundscapes.add(cue.soundscapeId);
       if (cue.swellId) swells.add(cue.swellId);
       if (cue.kind === 'tone' && cue.presetId) tones.add(cue.presetId);
+      if (cue.kind === 'video' && cue.assetId) assets.add(cue.assetId);
     }
   }
-  return { collections, engines, soundscapes, swells, tones, sourceRefs };
+  return { collections, engines, soundscapes, swells, tones, assets, sourceRefs };
 }
 
 /**
@@ -262,6 +266,19 @@ export function assertProgramWithinContext(program, contextValue) {
         `Program names swell ${id} absent from curator context`,
         '$.tracks',
         { swellId: id });
+    }
+  }
+  // A sequence asset travels in the context as a collection id, which is the
+  // only vocabulary it has there. Nothing else in a program names an asset, so
+  // this is the whole of the check — and a context carrying no assets (the
+  // Scriptorium exports none, because no bytes leave) refuses every video by
+  // the same rule rather than by a special case.
+  for (const id of used.assets) {
+    if (!allowedCollections.has(`${SEQUENCE_ASSET_PREFIX}${id}`)) {
+      fail('PROGRAM_IO_UNKNOWN_ASSET',
+        `Program names sequence asset ${id} absent from curator context`,
+        '$.tracks',
+        { assetId: id });
     }
   }
   assertProgramWithinBudget(program, context);
@@ -488,6 +505,22 @@ export function describeImportFailure(error, { context = null } = {}) {
       lines.push(
         'A quotation anchor could not be located in the edition.',
         'Check the wording, or use a progress range instead.'
+      );
+      break;
+    case 'PROGRAM_IO_UNKNOWN_ASSET':
+      lines.push(
+        `This score plays a video from sequence asset "${details.assetId}", which this `
+        + 'reading does not have.',
+        'Assets are files someone added by hand, and none travel in a capability '
+        + 'document — so a score written from one cannot name a video at all. '
+        + 'Use a procedural engine or a museum collection instead.'
+      );
+      break;
+    case 'VISUAL_SCORE_ASSET_NOT_FOUND':
+      lines.push(
+        `${error.message}`,
+        'The id exists but is not the kind of asset the clip needs — a video clip '
+        + 'needs a video, and a focal needs an image.'
       );
       break;
     case 'PROGRAM_IO_BUDGET_EXCEEDED': {

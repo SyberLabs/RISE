@@ -25,7 +25,13 @@ import { PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
  */
 const FLASHING_PRESENTATIONS = new Set(['behind-stream', 'full-frame']);
 import { MemoryCore } from '../core/memory.js';
-import { ATTRACTOR_SYSTEMS, ATTRACTOR_PALETTES } from '../visuals/attractor.js';
+import {
+    ATTRACTOR_PALETTES,
+    ATTRACTOR_SYSTEMS,
+    FOCAL_GLYPHS,
+    HARMONOGRAPH_CLIMATES,
+    KLEE_PRESETS
+} from '../core/visual-style-definitions.js';
 import { escapeHtml, safeUrl } from '../core/sanitize.js';
 import {
     hasVisualSelectionFields,
@@ -58,7 +64,7 @@ import {
 } from '../core/visual-presence.js';
 
 // The five curated Klee presets (shared by Rhythmic chips and Genesis chips)
-const KLEE_PRESET_CHIP_IDS = ['architectural', 'chaotic', 'harmonic', 'gravitational', 'twittering'];
+const KLEE_PRESET_CHIP_IDS = KLEE_PRESETS.filter(item => item.id !== 'random').map(item => item.id);
 
 
 // Chapel vocabulary the panel can NAME without importing chapel content:
@@ -606,45 +612,17 @@ export class VisualInterlocutionPanel {
         // colonial relation its launch supplies. They arrive only with
         // the sequence that curated them, never as a generic option.
 
-        const kleePresets = [
-            { id: 'random', name: 'Random' },
-            { id: 'architectural', name: 'Architectural' },
-            { id: 'chaotic', name: 'Chaotic' },
-            { id: 'harmonic', name: 'Harmonic' },
-            { id: 'gravitational', name: 'Gravitational' },
-            { id: 'twittering', name: 'Twittering' }
-        ];
+        const kleePresets = KLEE_PRESETS;
 
         // Harmonograph climates — same grammar as the Klee chips: Auto
         // lets the conductor (or, unresponsive, chance) choose; an
         // explicit climate pins palette + chord family, while mood keeps
         // its say over the pendulum's energy
-        const harmonographClimates = [
-            { id: 'auto', name: 'Auto' },
-            { id: 'emberDawn', name: 'Ember' },
-            { id: 'solarFlare', name: 'Solar' },
-            { id: 'midnightWater', name: 'Midnight' },
-            { id: 'stormViolet', name: 'Storm' },
-            { id: 'jadeVeil', name: 'Jade' },
-            { id: 'whiteHeat', name: 'White' }
-        ];
+        const harmonographClimates = HARMONOGRAPH_CLIMATES;
 
 
         // Standard focal glyphs for neurosensitive-friendly viewing
-        const focalGlyphs = [
-            { id: 'breath', name: 'Breath', icon: '◯', dynamic: true, description: 'Gentle pulsing circle' },
-            { id: 'anchor', name: 'Anchor', icon: '⚓', dynamic: false, description: 'Stable grounding point' },
-            { id: 'lotus', name: 'Lotus', icon: '❀', dynamic: false, description: 'Centered bloom' },
-            { id: 'eye', name: 'Eye', icon: '◉', dynamic: true, description: 'Soft focus ring' },
-            { id: 'star', name: 'Star', icon: '✦', dynamic: false, description: 'Fixed point of light' },
-            { id: 'wave', name: 'Wave', icon: '≈', dynamic: true, description: 'Gentle oscillation' },
-            { id: 'void', name: 'Void', icon: '●', dynamic: false, description: 'Pure stillness' },
-            // ROSA MYSTICA leaves the Chapel: the procedural rose
-            // window as a standard focal, completing the grid. Its
-            // substyle (Vitrum glass / Verbum letterfield) appears
-            // when chosen.
-            { id: 'rose', name: 'Rose', icon: '❂', dynamic: true, description: 'Procedural rose window — stained glass or psalm-lettered field' }
-        ];
+        const focalGlyphs = FOCAL_GLYPHS;
 
         // Universal Diagrams — RETIRED (SOURCE-CURATION-SPEC). The
         // registry is empty by design, so this resolves to nothing and

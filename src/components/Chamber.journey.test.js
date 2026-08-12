@@ -19,6 +19,8 @@ import {
     MovementScheduleController, AudioScheduleController
 } from '../core/journey-schedulers.js';
 import { VisualScheduleController } from '../core/visual-scheduler.js';
+import { Chamber } from './Chamber.js';
+import { visualCortex } from '../visuals/visual-cortex.js';
 
 const MANIFEST = {
     schemaVersion: 'rise.journey.v1',
@@ -222,5 +224,72 @@ describe('nothing outlives the reading', () => {
 
         controller.observe(atom('p1', 'y'));
         expect(engine.startSoundscape).toHaveBeenCalledWith('ordered-field');
+    });
+});
+
+describe('Gallery pause authority', () => {
+    const shell = (authored) => {
+        const chamber = Object.create(Chamber.prototype);
+        chamber.container = document.createElement('div');
+        chamber._visualSchedule = authored ? {} : null;
+        chamber._authoredGalleryPaused = false;
+        chamber._audioSchedule = null;
+        chamber.voice = null;
+        chamber.kleeField = null;
+        return chamber;
+    };
+
+    it('holds and resumes a Gallery bound to an authored program', () => {
+        const pause = vi.spyOn(visualCortex, 'pauseContinuousField').mockReturnValue(true);
+        const resume = vi.spyOn(visualCortex, 'resumeContinuousField').mockReturnValue(true);
+        const chamber = shell(true);
+
+        chamber.onStateChange({ state: 'paused' });
+        expect(pause).toHaveBeenCalledOnce();
+        chamber.onStateChange({ state: 'playing' });
+        expect(resume).toHaveBeenCalledOnce();
+        vi.restoreAllMocks();
+    });
+
+    it('leaves an unbound ambient Gallery drifting', () => {
+        const pause = vi.spyOn(visualCortex, 'pauseContinuousField').mockReturnValue(true);
+        const chamber = shell(false);
+        chamber.onStateChange({ state: 'paused' });
+        expect(pause).not.toHaveBeenCalled();
+        vi.restoreAllMocks();
+    });
+});
+
+describe('scheduled field authority', () => {
+    it('routes one cue to the field lifecycle and the generic cortex', () => {
+        const chamber = Object.create(Chamber.prototype);
+        chamber._visualFieldDirector = { applyCue: vi.fn() };
+        const applyCortex = vi.spyOn(visualCortex, 'applyCue').mockImplementation(() => {});
+        const cue = {
+            kind: 'field', renderer: 'attractor',
+            config: { system: 'thomas', palette: 'gold' }
+        };
+
+        chamber.applyScheduledVisualCue(cue, { cueId: 'passage-field' });
+
+        expect(chamber._visualFieldDirector.applyCue).toHaveBeenCalledWith(
+            cue, { transitionMs: 320 });
+        expect(applyCortex).toHaveBeenCalledWith(cue, {
+            cueId: 'passage-field', transitionMs: 320
+        });
+        vi.restoreAllMocks();
+    });
+
+    it('adapts the legacy focal cue into the same dynamic field lifecycle', () => {
+        const chamber = Object.create(Chamber.prototype);
+        chamber._visualFieldDirector = { applyCue: vi.fn() };
+        vi.spyOn(visualCortex, 'applyCue').mockImplementation(() => {});
+
+        chamber.applyScheduledVisualCue({ kind: 'focal', focal: { standardGlyph: 'star' } });
+
+        expect(chamber._visualFieldDirector.applyCue).toHaveBeenCalledWith({
+            kind: 'field', renderer: 'focal', config: { standardGlyph: 'star' }
+        }, { transitionMs: 320 });
+        vi.restoreAllMocks();
     });
 });
