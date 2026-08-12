@@ -988,9 +988,9 @@ itself.**
 | signature | lines | works | from |
 |---|---|---|---|
 | `contents-run-out` | 20,454 | 11 | chinese poems |
-| **`transcriber-image-file`** | **366** | 1 | don-quixote |
-| **`file-size-annotation`** | **365** | 1 | don-quixote |
-| **`full-size-link`** | **260** | 1 | don-quixote |
+| **`transcriber-image-file`** | **366 → 0** | 1 | don-quixote — **trimmed 2026-08-12** |
+| **`file-size-annotation`** | **365 → 0** | 1 | don-quixote — **trimmed 2026-08-12** |
+| **`full-size-link`** | **260 → 0** | 1 | don-quixote — **trimmed 2026-08-12** |
 | **`scan-provider-header`** | **137** | 1 | a-hundred-verses |
 | **`html-entity`** | **89** | 1 | rilke letters |
 | `transcriber-note` | 21 | 11 | don-quixote |
@@ -1028,3 +1028,35 @@ Hamlet unseen. A guard retained only while it fires is not a guard.
 Rung 3 — a model reading — belongs on the neighbourhoods these produce, not on
 whole books. **The registry is the targeting system**, and it is what makes the
 cleansing recursive rather than repetitive.
+
+---
+
+## 3e. The second trim pass — 2026-08-12
+
+**Don Quixote: 626 lines of image furniture, cut line by line.** Not a
+preamble — it ran through the whole work, `p003.jpg (307K)` and `Full Size`
+recurring for hundreds of plates across 145 sections. Every one of the 23
+distinct line shapes was listed and read before the cut, and not one was
+prose. No division was withdrawn: apart from these lines the work is Cervantes
+throughout. 425,995 words remain and all three signatures now report **zero**.
+
+**Le Morte d'Arthur: three heading lists withdrawn, 6,140 words.** Sections
+that run chapter heading to chapter heading with no prose between them.
+
+The discriminator was checked against its own neighbour rather than trusted:
+
+| | opens | density | verdict |
+|---|---|---|---|
+| section 1 | `CHAPTER XII. How King Pellinore rode…` then `CHAPTER XIII…` | 1.78/100w | contents |
+| section 245 | `CHAPTER I. How Sir Tristram jousted…` then *"And if so be ye can descrive what ye bear"* | below threshold | **the book** |
+
+A contents list runs heading to heading; a real chapter has a heading and then
+Malory. One measure separates them, and the neighbour proves it.
+
+**Both Front matter sections were left alone, deliberately.** They carry
+contents too, but they open with `Le Morte D'Arthur / King Arthur and of his
+Noble Knights…` — the title block, and the only place the work names itself in
+its opening pages. Karenina taught that on the same day: cutting to the first
+real heading removed exactly that and `identity.test.js` failed at once. They
+want the Karenina treatment — cut the navigation run, keep the title — and
+they get their own pass rather than a hurried one here.

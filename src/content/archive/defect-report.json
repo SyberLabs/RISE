@@ -21,33 +21,6 @@
       "discoveredIn": "a-hundred-and-seventy-chinese-poems"
     },
     {
-      "id": "transcriber-image-file",
-      "disposition": "trim",
-      "lines": 366,
-      "works": [
-        "don-quixote"
-      ],
-      "discoveredIn": "don-quixote"
-    },
-    {
-      "id": "file-size-annotation",
-      "disposition": "trim",
-      "lines": 365,
-      "works": [
-        "don-quixote"
-      ],
-      "discoveredIn": "don-quixote"
-    },
-    {
-      "id": "full-size-link",
-      "disposition": "trim",
-      "lines": 260,
-      "works": [
-        "don-quixote"
-      ],
-      "discoveredIn": "don-quixote"
-    },
-    {
       "id": "scan-provider-header",
       "disposition": "trim",
       "lines": 137,
@@ -101,6 +74,27 @@
         "sacred-emerald-tablet"
       ],
       "discoveredIn": "sacred-emerald-tablet"
+    },
+    {
+      "id": "transcriber-image-file",
+      "disposition": "trim",
+      "lines": 0,
+      "works": [],
+      "discoveredIn": "don-quixote"
+    },
+    {
+      "id": "file-size-annotation",
+      "disposition": "trim",
+      "lines": 0,
+      "works": [],
+      "discoveredIn": "don-quixote"
+    },
+    {
+      "id": "full-size-link",
+      "disposition": "trim",
+      "lines": 0,
+      "works": [],
+      "discoveredIn": "don-quixote"
     },
     {
       "id": "variorum-sigla",
