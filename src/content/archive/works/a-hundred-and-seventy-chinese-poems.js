@@ -14,60 +14,6 @@ export const A_HUNDRED_AND_SEVENTY_CHINESE_POEMS_SECTIONS = [
         "content": "A HUNDRED AND SEVENTY\n    CHINESE POEMS\n\n    TRANSLATED BY\n    ARTHUR WALEY\n\n    LONDON\n    CONSTABLE AND COMPANY LTD.\n    1918\n\n\n\n\n    PRINTED IN GREAT BRITAIN.\n    CHISWICK PRESS: CHARLES WHITTINGHAM AND CO.\n    TOOKS COURT, CHANCERY LANE, LONDON.\n\n\n\n\nPRELIMINARY NOTE\n\n\nIn making this book I have tried to avoid poems which have been\ntranslated before. A hundred and forty of those I have chosen have not\nbeen translated by any one else. The remaining thirty odd I have\nincluded in many cases because the previous versions were full of\nmistakes; in others, because the works in which they appeared are no\nlonger procurable. Moreover, they are mostly in German, a language with\nwhich my readers may not all be acquainted.\n\nWith some hesitation I have included literal versions of six poems\n(three of the “Seventeen Old Poems,” “Autumn Wind,” “Li Fu-jēn,” and “On\nthe Death of his Father”) already skilfully rhymed by Professor Giles in\n“Chinese Poetry in English Verse.” They were too typical to omit; and a\ncomparison of the two renderings may be of interest. Some of these\ntranslations have appeared in the “Bulletin of the School of Oriental\nStudies,” in the “New Statesman,” in the “Little Review” (Chicago), and\nin “Poetry” (Chicago).\n\n\n\n\nCONTENTS"
     },
     {
-        "name": "PART I",
-        "path": [
-            "PART I"
-        ],
-        "startAnchor": "PART I",
-        "endAnchor": "CHAPTER I:",
-        "content": "PART I\n\n                                             PAGE\n\n  INTRODUCTION                                  3\n\n  THE METHOD OF TRANSLATION                    19\n\n  BIBLIOGRAPHICAL NOTES                        21"
-    },
-    {
-        "name": "CHAPTER I:",
-        "path": [
-            "CHAPTER I:"
-        ],
-        "startAnchor": "CHAPTER I:",
-        "endAnchor": "CHAPTER II:",
-        "content": "CHAPTER I:\n\n      Battle                                   23\n\n      The Man-Wind and the Woman-Wind          24\n\n      Master Tēng-t’u                          26\n\n      The Orphan                               27\n\n      The Sick Wife                            29\n\n      Cock-Crow Song                           30\n\n      The Golden Palace                        31\n\n      “Old Poem”                               32\n\n      Meeting in the Road                      32\n\n      Fighting South of the Castle             33\n\n      The Eastern Gate                         34\n\n      Old and New                              35\n\n      South of the Great Sea                   35\n\n      The Other Side of the Valley             36\n\n      Oaths of Friendship                      37\n\n      Burial Songs                             38\n\n      Seventeen Old Poems                   39-48\n\n      The Autumn Wind                          48\n\n      Li Fu-jēn                                49\n\n      Song of Snow-white Heads                 50\n\n      To his Wife                              51\n\n      Li Ling                                  52\n\n      Lament of Hsi-chün                       53\n\n      Ch’in Chia                               53\n\n      Ch’in Chia’s Wife’s Reply                54\n\n      Song                                     55"
-    },
-    {
-        "name": "CHAPTER II:",
-        "path": [
-            "CHAPTER II:"
-        ],
-        "startAnchor": "CHAPTER II:",
-        "endAnchor": "CHAPTER IV:",
-        "content": "CHAPTER II:\n\n      Satire on Paying Calls in August         57\n\n      On the Death of his Father               58\n\n      The Campaign against Wu                  59\n\n      The Ruins of Lo-yang                     60\n\n      The Cock-fight                           61\n\n      A Vision                                 62\n\n      The Curtain of the Wedding Bed           63\n\n      Regret                                   63\n\n      Taoist Song                              64\n\n      A Gentle Wind                            64\n\n      Woman                                    65\n\n      Day Dreams                               66\n\n      The Scholar in the Narrow Street         66\n\n      The Desecration of the Han Tombs         67\n\n      Bearer’s Song                            68\n\n      The Valley Wind                          69\n\nCHAPTER III:\n\n      Poems by T’ao Ch’ien                  71-79"
-    },
-    {
-        "name": "CHAPTER IV:",
-        "path": [
-            "CHAPTER IV:"
-        ],
-        "startAnchor": "CHAPTER IV:",
-        "endAnchor": "CHAPTER V:",
-        "content": "CHAPTER IV:\n\n      Inviting Guests                          81\n\n      Climbing a Mountain                      81\n\n      Sailing Homeward                         82\n\n      Five “Tzŭ-yeh” Songs                     83\n\n      The Little Lady of Ch’ing-hsi            84\n\n      Plucking the Rushes                      84\n\n      Ballad of the Western Island in the\n          North Country                        84\n\n      Song                                     86\n\n      Song of the Men of Chin-ling             86\n\n      The Scholar Recruit                      87\n\n      The Red Hills                            87\n\n      Dreaming of a Dead Lady                  88\n\n      The Liberator                            89\n\n      Lo-yang                                  89\n\n      Winter Night                             90\n\n      The Rejected Wife                        90\n\n      People hide their Love                   91\n\n      The Ferry                                91\n\n      The Waters of Lung-t’ou                  92\n\n      Flowers and Moonlight on the\n          Spring River                         92\n\n      Tchirek Song                             93"
-    },
-    {
-        "name": "CHAPTER V:",
-        "path": [
-            "CHAPTER V:"
-        ],
-        "startAnchor": "CHAPTER V:",
-        "endAnchor": "PART II",
-        "content": "CHAPTER V:\n\n      Business Men                             95\n\n      Tell me now                              95\n\n      On Going to a Tavern                     96\n\n      Stone Fish Lake                          96\n\n      Civilization                             97\n\n      A Protest in the Sixth Year of\n          Ch’ien Fu                            97\n\n      On the Birth of his Son                  98\n\n      The Pedlar of Spells                     98\n\n      Boating in Autumn                        99\n\n      The Herd-boy                             99\n\n      How I sailed on the Lake till I came\n          to the Easter Stream                100\n\n      A Seventeenth-century Chinese Poem      100"
-    },
-    {
-        "name": "PART II",
-        "path": [
-            "PART II"
-        ],
-        "startAnchor": "PART II",
-        "endAnchor": "INTRODUCTION",
-        "content": "PART II\n\n                                             PAGE\n\n  INTRODUCTION                                105\n\n  BY PO CHÜ-I:\n\n      An Early Levée                          115\n\n      Being on Duty all night in the\n          Palace and dreaming of the\n          Hsien-yu Temple                     116\n\n      Passing T’ien-mēn Street in Ch’ang-an\n          and seeing a distant View of\n          Chung-nan Mountain                  116\n\n      The Letter                              117\n\n      Rejoicing at the Arrival of Ch’ēn\n          Hsiung                              118\n\n      Golden Bells                            119\n\n      Remembering Golden Bells                120\n\n      Illness                                 120\n\n      The Dragon of the Black Pool            121\n\n      The Grain-tribute                       123\n\n      The People of Tao-chou                  123\n\n      The Old Harp                            125\n\n      The Harper of Chao                      125\n\n      The Flower Market                       126\n\n      The Prisoner                            127\n\n      The Chancellor’s Gravel-drive           131\n\n      The Man who Dreamed of Fairies          132\n\n      Magic                                   134\n\n      The Two Red Towers                      135\n\n      The Charcoal-seller                     137\n\n      The Politician                          138\n\n      The Old Man with the Broken Arm         139\n\n      Kept waiting in the Boat at Chiu-k’ou\n          Ten Days by an adverse Wind         142\n\n      On Board Ship: Reading Yüan Chēn’s\n          Poems                               142\n\n      Arriving at Hsün-yang                   143\n\n      Madly Singing in the Mountains          144\n\n      Releasing a migrant “Yen” (wild Goose)  145\n\n      To a Portrait Painter who desired him\n          to sit                              146\n\n      Separation                              147\n\n      Having climbed to the topmost Peak of\n          the Incense-burner Mountain         148\n\n      Eating Bamboo-shoots                    149\n\n      The Red Cockatoo                        149\n\n      After Lunch                             150\n\n      Alarm at first entering the Yang-tze\n          Gorges                              150\n\n      On being removed from Hsün-yang and\n          sent to Chung-chou                  151\n\n      Planting Flowers on the Eastern\n          Embankment                          152\n\n      Children                                153\n\n      Pruning Trees                           154\n\n      Being visited by a Friend during\n          Illness                             155\n\n      On the way to Hangchow: Anchored on\n          the River at Night                  155\n\n      Stopping the Night at Jung-yang         156\n\n      The Silver Spoon                        156\n\n      The Hat given to the Poet by Li Chien   157\n\n      The Big Rug                             157\n\n      After getting Drunk, becoming Sober in\n          the Night                           158\n\n      Realizing the Futility of Life          158\n\n      Rising Late and Playing with A-ts’ui,\n          aged Two                            159\n\n      On a Box containing his own Works       160\n\n      On being Sixty                          161\n\n      Climbing the Terrace of Kuan-yin and\n      looking at the City                     162\n\n      Climbing the Ling Ying Terrace and\n          looking North                       162\n\n      Going to the Mountains with a little\n          Dancing Girl, aged Fifteen          163\n\n      Dreaming of Yüan Chēn                   163\n\n      A Dream of Mountaineering               164\n\n      Ease                                    165\n\n      On hearing someone sing a Poem by\n      Yüan Chēn                               165\n\n      The Philosophers                        166\n\n      Taoism and Buddhism                     167\n\n      Last Poem                               168\n\nPART I"
-    },
-    {
         "name": "INTRODUCTION",
         "path": [
             "INTRODUCTION"

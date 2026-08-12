@@ -18,7 +18,7 @@
  * not one. Anything that fails its test is reported and left alone.
  */
 import { readdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { rewriteSections } from '../src/content/archive/payload-writer.js';
 
 const DIR = fileURLToPath(new URL('../src/content/archive/works/', import.meta.url));
@@ -145,7 +145,7 @@ const flagged = [];
 const edited = new Map();   // file -> sections
 
 for (const file of readdirSync(DIR).filter(f => f.endsWith('.js')).sort()) {
-    const mod = await import(DIR + file);
+    const mod = await import(pathToFileURL(DIR + file).href);
     const key = Object.keys(mod).find(k => k.endsWith('_SECTIONS'));
     if (!key || !Array.isArray(mod[key])) continue;
 

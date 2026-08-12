@@ -20,7 +20,7 @@
  * cut can be checked without re-reading the work.
  */
 import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { rewriteSections } from '../src/content/archive/payload-writer.js';
 
 const DIR = fileURLToPath(new URL('../src/content/archive/works/', import.meta.url));
@@ -86,7 +86,7 @@ const files = new Map();
 
 async function sectionsOf(file) {
     if (!files.has(file)) {
-        const mod = await import(DIR + file + '.js');
+        const mod = await import(pathToFileURL(DIR + file + '.js').href);
         const key = Object.keys(mod).find(k => k.endsWith('_SECTIONS'));
         files.set(file, { key, sections: [...mod[key]] });
     }
