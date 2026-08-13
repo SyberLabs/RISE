@@ -697,6 +697,28 @@ export function describeImportFailure(error, { context = null } = {}) {
         'Narration is a spoken lane. It may duck the bed; it cannot become atmosphere or a swell.'
       );
       break;
+    case 'PUBLICATION_HUMAN_REQUIRED':
+    case 'PUBLICATION_WATCH_REQUIRED':
+      lines.push(
+        `${error.message}`,
+        'A person must watch the hashed artifact and approve it. The agent cannot publish.'
+      );
+      break;
+    case 'PUBLICATION_RIGHTS_UNRESOLVED':
+      lines.push(
+        'Unresolved or private-review rights cannot approve a public destination.',
+        'Keep the package for private review, or resolve each named asset before asking again.'
+      );
+      break;
+    case 'PUBLICATION_NOT_APPROVED':
+    case 'PUBLICATION_SCHEDULED':
+    case 'PUBLICATION_CREDENTIALS':
+    case 'PUBLICATION_ARTIFACT':
+      lines.push(
+        `${error.message}`,
+        'Publication is a human decision over one hashed artifact. Rendering does not post.'
+      );
+      break;
     default:
       lines.push(error?.message || 'The score was refused.');
   }

@@ -2,9 +2,9 @@
 
 **Vision and implementation specification, 2026-08-12.**
 
-Status: **PHASE 6 LANDED — narration lane (spoken track, voice admission, authored
-bed duck, source-span captions). Phase 7 (human-reviewed social delivery) is
-not started.**
+Status: **PHASE 7 LANDED — human-reviewed social delivery (destination-neutral
+queue, mock adapter, idempotent receipt, withdrawal, post-approval schedule).
+Phase 8 (policy-bounded automation) is deferred.**
 
 Companion specifications:
 
@@ -1195,6 +1195,14 @@ authorship.
 
 **Exit:** RISE can prepare and deliver one approved artifact without granting
 the agent publication authority.
+
+Landed: `rise.publication-review-item.v1` is destination-neutral. Enqueue is
+explicit — render completion does not create a review item, and the agent has
+no publish/approve/deliver op. A human approval must name the watched artifact
+hash. Unresolved rights block `social-short`. `mock-social` delivers
+idempotently, records platform id/URL and artifact hash on
+`rise.publication-receipt.v1` without credentials, and can withdraw.
+Scheduling is allowed only after approval; the host still calls deliver.
 
 ### Phase 8 — Policy-bounded automation
 
