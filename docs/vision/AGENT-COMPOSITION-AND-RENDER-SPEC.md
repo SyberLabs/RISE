@@ -2,9 +2,9 @@
 
 **Vision and implementation specification, 2026-08-12.**
 
-Status: **PHASE 4 LANDED — closed agent operations (revision lock, Workshop
-commands, sequence-map proposals, Scriptorium paste). Phase 5 (acquisition
-gateway) is not started.**
+Status: **PHASE 5 LANDED — acquisition gateway (candidate model, AIC public-domain
+images, direct upload, consented generation, Archive text inspect). Phase 6
+(narration) is not started.**
 
 Companion specifications:
 
@@ -1153,6 +1153,15 @@ proposal → Workshop revision → render preflight.
 
 **Exit:** external media may enter a proposed draft, but cannot bypass durable
 identity, validation, provenance, rights, or human review.
+
+Landed: `rise.acquisition-request.v1` / `rise.acquisition-candidate.v1` /
+`rise.acquisition-verdict.v1` are the one doorway. AIC resolves pinned ids
+only; upload and generated image share validate/hash/rights; generation
+refuses without consent and cost acknowledgement and never becomes verified
+rights; Archive text reuses the shelf cleansing scores; audio/video inspect
+refuses until media-specific checks exist. Admission requires a human verdict
+and returns a `rise.project-asset.v1` record plus bytes — it does not write
+IndexedDB. `request-asset` still applies as pending.
 
 ### Phase 6 — Narration
 

@@ -39,7 +39,7 @@ const ASSET_FIELDS = new Set([
 const STORAGE_FIELDS = new Set(['kind', 'recordId']);
 const PROVENANCE_FIELDS = new Set([
   'origin', 'sourceUrl', 'provider', 'creator', 'createdAt', 'acquiredAt',
-  'generator', 'promptDigest'
+  'generator', 'promptDigest', 'inputs', 'safetyResult'
 ]);
 const RIGHTS_FIELDS = new Set([
   'status', 'license', 'credit', 'evidence', 'distributionAllowed'
@@ -226,7 +226,31 @@ function validateProvenance(value, path) {
     ? null
     : digest(source.promptDigest, `${path}.promptDigest`);
   if (promptDigest) provenance.promptDigest = promptDigest;
+  const safetyResult = boundedText(source.safetyResult, `${path}.safetyResult`, 200);
+  if (safetyResult) provenance.safetyResult = safetyResult;
+  const inputs = validateProvenanceInputs(source.inputs, `${path}.inputs`);
+  if (inputs) provenance.inputs = inputs;
   return Object.freeze(provenance);
+}
+
+function validateProvenanceInputs(value, path) {
+  if (value == null) return null;
+  if (!Array.isArray(value) || value.length > 16) {
+    fail('PROJECT_ASSET_INPUTS', 'provenance.inputs must be an array of at most 16 records', path);
+  }
+  if (!value.length) return null;
+  return Object.freeze(value.map((item, index) => {
+    const record = item && typeof item === 'object' && !Array.isArray(item) ? item : null;
+    if (!record) fail('PROJECT_ASSET_INPUTS', 'Expected an input record', `${path}[${index}]`);
+    if (Object.keys(record).some(key => key !== 'assetId' && key !== 'contentHash')) {
+      fail('PROJECT_ASSET_UNKNOWN_FIELD', 'inputs may only include assetId and contentHash',
+        `${path}[${index}]`);
+    }
+    return Object.freeze({
+      assetId: exactId(record.assetId, `${path}[${index}].assetId`),
+      contentHash: digest(record.contentHash, `${path}[${index}].contentHash`)
+    });
+  }));
 }
 
 function validateRights(value, path) {

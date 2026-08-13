@@ -670,6 +670,30 @@ export function describeImportFailure(error, { context = null } = {}) {
         ...(context?.library || []).map(item => item.id)
       ]);
       break;
+    case 'ACQUISITION_CONSENT_REQUIRED':
+      lines.push(
+        'Generated media needs explicit consent and a cost acknowledgement before a generator may run.',
+        'A candidate is not an asset; scoring it now would bypass admission.'
+      );
+      break;
+    case 'ACQUISITION_KIND_DEFERRED':
+      lines.push(
+        `${error.message}`,
+        'Audio and video wait on media-specific checks. Request an image, a document, or an already-admitted asset.'
+      );
+      break;
+    case 'ACQUISITION_TEXT_CLEANSING':
+      lines.push(
+        'This edition fails Archive identity or cleansing checks.',
+        'A variorum apparatus, a bad scan, or a missing title/author/edition cannot enter as a source.'
+      );
+      break;
+    case 'ACQUISITION_HUMAN_REQUIRED':
+      lines.push(
+        'Only a person may admit an acquisition candidate.',
+        'The agent may request; it may not grant the resulting id.'
+      );
+      break;
     default:
       lines.push(error?.message || 'The score was refused.');
   }
