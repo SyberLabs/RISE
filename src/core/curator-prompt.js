@@ -8,6 +8,7 @@
 
 import { CURATOR_CONTEXT_SCHEMA, validateCuratorContext } from './curator-context.js';
 import { EXPERIENCE_PROGRAM_SCHEMA } from './experience-program.js';
+import { AGENT_OPERATION_SET_SCHEMA } from './agent-operations.js';
 
 const MAX_INTENT = 2_000;
 
@@ -60,7 +61,7 @@ export function buildCuratorPrompt({ intent = '', context = null } = {}) {
     'You are arranging an audiovisual reading score for RISE.',
     'Return ONLY a single JSON object. No markdown fences, no commentary.',
     '',
-    `Schema: "${EXPERIENCE_PROGRAM_SCHEMA}"`,
+    `Schema: "${EXPERIENCE_PROGRAM_SCHEMA}" or "${AGENT_OPERATION_SET_SCHEMA}"`,
     'Authority: omit it, or use "proposed" / "user". Never "published".',
     'editable: true',
     '',
@@ -194,7 +195,41 @@ export function buildCuratorPrompt({ intent = '', context = null } = {}) {
     'THE READING TRACK IS OPTIONAL. Leave it out entirely if the reader\'s own',
     'pace is right for this arrangement — that is the common case. Do not emit',
     'a pace cue that sets neither wpm nor chunkMode: an empty cue occupies its',
-    'span while saying nothing, and is refused.'
+    'span while saying nothing, and is refused.',
+    '',
+    'ALTERNATIVE — instead of a complete score you may return a bounded',
+    'operation list against the current Workshop revision. Same ids. No',
+    'network acquisition. Every op is a command a person can already perform.',
+    '',
+    '{',
+    '  "schema": "rise.agent-operation-set.v1",',
+    '  "id": "ops-memory-1",',
+    '  "projectId": "project-memory",',
+    '  "baseRevision": 0,',
+    '  "generationId": "run-1",',
+    '  "intent": "Build quietly, then open into color.",',
+    '  "operations": [',
+    '    { "op": "add-source", "id": "op-source", "sourceId": "literary-meditations" },',
+    '    { "op": "assign-visual", "id": "op-visual", "assignmentId": "v1",',
+    '      "sourceId": "literary-meditations", "assetId": "procedural:klee",',
+    '      "fromCharacter": 0, "toCharacter": 80 },',
+    '    { "op": "assign-audio", "id": "op-audio", "assignmentId": "a1",',
+    '      "sourceId": "literary-meditations", "assetId": "soundscape:aurora",',
+    '      "fromCharacter": 0, "toCharacter": 80 },',
+    '    { "op": "set-pace", "id": "op-pace", "assignmentId": "p1",',
+    '      "sourceId": "literary-meditations", "cue": { "wpm": 150 } },',
+    '    { "op": "set-render-profile", "id": "op-profile",',
+    '      "profileId": "social-portrait-1080" }',
+    '  ]',
+    '}',
+    '',
+    'Closed operations: add-source, remove-source, reorder-source, request-asset',
+    '(pending until admission), import-asset, assign/replace/erase-visual,',
+    'assign/replace/erase-audio, configure-field, set-pace, create/remove-sync-group,',
+    'set-atmosphere, set-render-profile, request-preview, request-compile.',
+    'Do not invent ops. Do not emit create-transition until the Workshop has it.',
+    'baseRevision must match the project; a newer human edit refuses the set.',
+    'Rationale is optional explanation and never enters the Experience Program.'
   );
 
   return `${lines.join('\n')}\n`;

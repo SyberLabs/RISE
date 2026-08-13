@@ -15,6 +15,10 @@ import {
   validateCuratorContext
 } from './curator-context.js';
 import {
+  AGENT_OPERATION_SET_SCHEMA,
+  validateAgentOperationSet
+} from './agent-operations.js';
+import {
   WORKSHOP_PROJECT_SCHEMA,
   validateWorkshopProject
 } from './workshop-project.js';
@@ -137,6 +141,39 @@ export function parseExperienceProgramJson(text, options = {}) {
     fail('PROGRAM_IO_JSON', `Invalid JSON: ${error.message}`, '$');
   }
   return importExperienceProgram(parsed, options);
+}
+
+/**
+ * Scriptorium paste: a full proposed score, or a bounded operation set.
+ */
+export function parseCuratorPaste(text, options = {}) {
+  if (typeof text !== 'string' || !text.trim()) {
+    fail('PROGRAM_IO_EMPTY', 'Expected non-empty JSON text', '$');
+  }
+  if (text.length > PROGRAM_IO_MAX_JSON_BYTES) {
+    fail(
+      'PROGRAM_IO_TOO_LARGE',
+      `Experience Program JSON may not exceed ${PROGRAM_IO_MAX_JSON_BYTES} characters`,
+      '$',
+      { maxBytes: PROGRAM_IO_MAX_JSON_BYTES, length: text.length }
+    );
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (error) {
+    fail('PROGRAM_IO_JSON', `Invalid JSON: ${error.message}`, '$');
+  }
+  if (parsed?.schema === AGENT_OPERATION_SET_SCHEMA) {
+    return {
+      kind: 'operations',
+      operationSet: validateAgentOperationSet(parsed)
+    };
+  }
+  return {
+    kind: 'program',
+    program: importExperienceProgram(parsed, options)
+  };
 }
 
 /**
@@ -378,6 +415,7 @@ export function workshopProjectFromImportedProgram({
       kind: 'live-curator-import',
       ...provenance
     },
+    revision: 0,
     updatedAt: Date.now()
   });
 }
@@ -590,6 +628,47 @@ export function describeImportFailure(error, { context = null } = {}) {
         `${error.message}`,
         'Unknown fields are refused rather than ignored, so a misspelling cannot pass as an omission.'
       );
+      break;
+    case 'AGENT_OP_STALE_REVISION':
+      lines.push(
+        `This proposal was built on project revision ${details.expected}, but the project is now at ${details.actual}.`,
+        'Export a fresh context from the current revision, or discard the stale operations.'
+      );
+      break;
+    case 'AGENT_OP_CANCELLED':
+    case 'AGENT_OP_STALE_GENERATION':
+      lines.push(
+        'This agent run was cancelled or superseded. Late results cannot apply.',
+        'Start a new run against the current project revision.'
+      );
+      break;
+    case 'AGENT_OP_NO_WORKSHOP_EQUIVALENT':
+      lines.push(
+        `${error.message}`,
+        'An agent may only propose commands a person can already perform in the Workshop.'
+      );
+      break;
+    case 'AGENT_OP_URI':
+      lines.push(
+        'An operation named a URI. Operations name ids only — no data:, blob: or http(s) values.'
+      );
+      break;
+    case 'AGENT_OP_UNKNOWN':
+      lines.push(
+        `${error.message}`,
+        'Use only the closed operation vocabulary from the prompt.'
+      );
+      break;
+    case 'AGENT_OP_SOURCE':
+    case 'AGENT_OP_SOURCE_UNRESOLVED':
+      lines.push(
+        `${error.message}`,
+        'Name a library work or already-loaded source from the companion context, and resolve its text before applying a span.'
+      );
+      options('sources', [
+        ...(context?.sources || []).map(item => item.id),
+        ...(context?.library || []).map(item => item.id)
+      ]);
       break;
     default:
       lines.push(error?.message || 'The score was refused.');

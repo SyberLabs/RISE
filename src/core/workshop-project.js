@@ -217,7 +217,12 @@ function normalizeDefaults(value = {}) {
     audio: normalizeAudio(input.audio),
     projection: input.projection === 'page' ? 'page' : 'stream',
     recitation: { enabled: input.recitation?.enabled === true },
-    voiceId: typeof input.voiceId === 'string' ? input.voiceId.slice(0, 160) : null
+    voiceId: typeof input.voiceId === 'string' ? input.voiceId.slice(0, 160) : null,
+    render: {
+      profileId: typeof input.render?.profileId === 'string' && input.render.profileId.trim()
+        ? input.render.profileId.trim().slice(0, 80)
+        : null
+    }
   };
 }
 
@@ -249,9 +254,32 @@ export function validateWorkshopProject(value) {
     defaults: normalizeDefaults(input.defaults),
     provenance: plainClone(input.provenance) || {},
     paceV2: true,
+    revision: Number.isInteger(input.revision) && input.revision >= 0
+      ? input.revision
+      : 0,
     updatedAt: Number.isFinite(Number(input.updatedAt)) ? Number(input.updatedAt) : 0
   };
   return deepFreeze(project);
+}
+
+/** A blank Workshop project an agent operation set may revise from revision 0. */
+export function emptyWorkshopProject({
+  id = 'project-draft',
+  title = '',
+  intent = 'custom'
+} = {}) {
+  return validateWorkshopProject({
+    schema: WORKSHOP_PROJECT_SCHEMA,
+    id,
+    title,
+    intent,
+    sources: [],
+    assets: [],
+    experienceProgram: null,
+    defaults: {},
+    revision: 0,
+    updatedAt: 0
+  });
 }
 
 function migratedWpm(blueprint) {
@@ -433,6 +461,7 @@ export function workshopProjectToSessionConfig(value) {
     experienceProgramId: project.experienceProgram?.id || `workshop-${project.id}`,
     provenance: plainClone(project.provenance),
     paceV2: true,
+    revision: project.revision,
     updatedAt: project.updatedAt
   };
 }
@@ -488,6 +517,7 @@ export function workshopEditorDataToProject(value, { id, updatedAt = 0 } = {}) {
     },
     provenance: editor.provenance,
     paceV2: true,
+    revision: editor.revision,
     updatedAt
   });
 }

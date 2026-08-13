@@ -351,6 +351,7 @@ export class Workshop {
     this.restoringVisualSelection = false;
     this.visualScoreHistory = createVisualScoreHistory();
     this.audioScoreHistory = createVisualScoreHistory();
+    this.pendingAgentProposal = null;
     this.scoreView = 'visual';
     this.personalSwells = [];
     this.collectionPreviewCache = new Map();
@@ -492,6 +493,7 @@ export class Workshop {
     this.scoredActivationUndo = null;
     this.visualScoreHistory = createVisualScoreHistory();
     this.audioScoreHistory = createVisualScoreHistory();
+    this.pendingAgentProposal = null;
     this.scoreView = 'visual';
     this.audioPreview?.stop();
     this.activeAssetLane = 'visual';
@@ -890,10 +892,24 @@ export class Workshop {
   }
 
   sequenceMapGroups() {
+    const proposal = this.pendingAgentProposal;
+    const proposedVisual = proposal?.proposedVisual || [];
+    const proposedAudio = proposal?.proposedAudio || [];
+    const visualAssignments = proposedVisual.length
+      ? [...this.sessionData.visualScoreAssignments, ...proposedVisual.filter(item =>
+        !this.sessionData.visualScoreAssignments.some(current => current.id === item.id))]
+      : this.sessionData.visualScoreAssignments;
+    const audioAssignments = proposedAudio.length
+      ? [...this.sessionData.audioScoreAssignments, ...proposedAudio.filter(item =>
+        !this.sessionData.audioScoreAssignments.some(current => current.id === item.id))]
+      : this.sessionData.audioScoreAssignments;
     return buildSequenceMapGroups({
       sources: this.scoreSources(),
-      visualAssignments: this.sessionData.visualScoreAssignments,
-      audioAssignments: this.sessionData.audioScoreAssignments
+      visualAssignments,
+      audioAssignments,
+      proposedIds: proposal
+        ? [...proposedVisual, ...proposedAudio].map(item => item.id)
+        : null
     });
   }
 
@@ -962,7 +978,7 @@ export class Workshop {
             const selectedAudio = entry.audio.find(item => item.id === this.selectedAudioAssignmentId) || entry.audio[0];
             const excerpt = group.source.text.slice(entry.fromCharacter, entry.toCharacter).replace(/\s+/gu, ' ').trim().slice(0, 92);
             const labels = [visualAsset?.name, ...entry.audio.map(audio => audioAssets.get(audio.assetId)?.name)].filter(Boolean);
-            return `<li class="studio-sequence-map-entry ${selected ? 'is-selected' : ''} ${entry.visual ? 'has-visual' : ''} ${entry.audio.length ? 'has-audio' : ''} ${entry.visual && entry.audio.length ? 'is-synchronized' : ''}"
+            return `<li class="studio-sequence-map-entry ${selected ? 'is-selected' : ''} ${entry.status === 'proposed' ? 'is-proposed' : ''} ${entry.visual ? 'has-visual' : ''} ${entry.audio.length ? 'has-audio' : ''} ${entry.visual && entry.audio.length ? 'is-synchronized' : ''}"
                 data-sequence-entry-key="${this.escapeHtml(entry.key)}"
                 ${entry.visual ? `data-sequence-visual-id="${this.escapeHtml(entry.visual.id)}"` : ''}
                 data-sequence-audio-ids="${this.escapeHtml(entry.audio.map(item => item.id).join(' '))}"

@@ -24,13 +24,20 @@ import {
   downloadJsonFile,
   downloadTextFile,
   ExperienceProgramIoError,
-  parseExperienceProgramJson,
+  parseCuratorPaste,
   workshopProjectFromImportedProgram
 } from '../core/experience-program-io.js';
 import { ExperienceProgramValidationError } from '../core/experience-program.js';
 import {
+  AgentOperationError,
+  applyAgentOperationSet,
+  summarizeAgentOperationSet
+} from '../core/agent-operations.js';
+import { emptyWorkshopProject } from '../core/workshop-project.js';
+import {
   previewProgramChoices,
   resolveProgramLibrarySources,
+  resolveOperationLibrarySources,
   assertResolvedProgramQuotations
 } from '../core/scriptorium-resolve.js';
 import { SourceSpanResolutionError } from '../core/source-span.js';
@@ -88,6 +95,8 @@ export class Scriptorium {
     this.promptText = '';
     this.pasted = '';
     this.program = null;
+    this.operationSet = null;
+    this.proposalRows = null;
     this.preview = null;
     this.rundown = null;
     this.verdict = null;
@@ -151,6 +160,27 @@ export class Scriptorium {
     `;
   }
 
+  renderProposal(rows) {
+    return `
+      <p class="scriptorium-note">
+        ${rows.length} proposed operation${rows.length === 1 ? '' : 's'} against
+        revision ${escapeHtml(String(this.operationSet?.baseRevision ?? 0))}.
+        Pending acquisitions cannot execute. Rationale never enters the score.
+      </p>
+      <ul class="scriptorium-track-list">
+        ${rows.map(row => `
+          <li>
+            <strong>${escapeHtml(row.op)}</strong>
+            <span class="scriptorium-meta">${escapeHtml(row.status)}${
+              row.sourceId ? ` · ${escapeHtml(row.sourceId)}` : ''
+            }${row.assetId ? ` · ${escapeHtml(row.assetId)}` : ''}</span>
+            ${row.rationale ? `<span class="scriptorium-meta">${escapeHtml(row.rationale)}</span>` : ''}
+          </li>
+        `).join('')}
+      </ul>
+    `;
+  }
+
   render() {
     const preview = this.preview;
     const rundown = this.rundown;
@@ -202,7 +232,7 @@ export class Scriptorium {
           <h2 id="scriptorium-paste-title">3. Paste</h2>
           <label class="scriptorium-label" for="scriptorium-paste">The score that came back</label>
           <textarea id="scriptorium-paste" class="scriptorium-paste" rows="12"
-            spellcheck="false" placeholder='{ "schema": "rise.experience-program.v1", ... }'>${escapeHtml(this.pasted)}</textarea>
+            spellcheck="false" placeholder='{ "schema": "rise.experience-program.v1" } or rise.agent-operation-set.v1'>${escapeHtml(this.pasted)}</textarea>
           <div class="scriptorium-actions">
             <button type="button" class="btn-primary" data-action="examine">Examine</button>
           </div>
@@ -222,7 +252,7 @@ export class Scriptorium {
 
         <section class="scriptorium-step" aria-labelledby="scriptorium-preview-title">
           <h2 id="scriptorium-preview-title">5. The reading</h2>
-          ${rundown ? this.renderRundown(rundown, preview) : `
+          ${rundown ? this.renderRundown(rundown, preview) : this.proposalRows ? this.renderProposal(this.proposalRows) : `
             <p class="scriptorium-note">This appears after a score is accepted at the gate.</p>
           `}
         </section>
@@ -236,8 +266,8 @@ export class Scriptorium {
             yourself.
           </p>
           <div class="scriptorium-actions">
-            <button type="button" class="btn-primary" data-action="begin" ${this.program ? '' : 'disabled'}>Begin reading</button>
-            <button type="button" class="btn-secondary" data-action="keep" ${this.program ? '' : 'disabled'}>Keep in the Vault</button>
+            <button type="button" class="btn-primary" data-action="begin" ${this.program || this.operationSet ? '' : 'disabled'}>Begin reading</button>
+            <button type="button" class="btn-secondary" data-action="keep" ${this.program || this.operationSet ? '' : 'disabled'}>Keep in the Vault</button>
           </div>
         </section>
 
@@ -339,7 +369,21 @@ export class Scriptorium {
       return;
     }
     try {
-      const program = parseExperienceProgramJson(text, { context: this.context });
+      const pasted = parseCuratorPaste(text, { context: this.context });
+      if (pasted.kind === 'operations') {
+        this.operationSet = pasted.operationSet;
+        this.proposalRows = summarizeAgentOperationSet(pasted.operationSet);
+        this.program = null;
+        this.preview = null;
+        this.rundown = null;
+        this.verdict = { ok: true, text: null };
+        this.status = 'Operations accepted at the gate. Read what they would change, then begin.';
+        this.render();
+        return;
+      }
+      const program = pasted.program;
+      this.operationSet = null;
+      this.proposalRows = null;
       this.program = program;
       this.preview = previewProgramChoices(program, this.context);
       this.rundown = describeProgramRundown(program, this.context);
@@ -347,12 +391,15 @@ export class Scriptorium {
       this.status = 'Score accepted at the gate. Read what it does, then begin.';
     } catch (error) {
       this.program = null;
+      this.operationSet = null;
+      this.proposalRows = null;
       this.preview = null;
       this.rundown = null;
       const textOut = describeImportFailure(error, { context: this.context });
       this.verdict = { ok: false, text: textOut };
       this.status = (error instanceof ExperienceProgramValidationError
-        || error instanceof ExperienceProgramIoError)
+        || error instanceof ExperienceProgramIoError
+        || error instanceof AgentOperationError)
         ? 'Refused.'
         : (error.message || 'Refused.');
     }
@@ -361,6 +408,7 @@ export class Scriptorium {
 
   /** Load the works the score names and build the project it compiles from. */
   async resolveProject() {
+    if (this.operationSet) return this.resolveOperationProject();
     if (!this.program) return;
     this.status = 'Loading chosen works…';
     this.render();
@@ -397,6 +445,43 @@ export class Scriptorium {
       this.status = (error instanceof ExperienceProgramValidationError
         || error instanceof ExperienceProgramIoError
         || error instanceof SourceSpanResolutionError)
+        ? 'Refused.'
+        : (error.message || 'Refused.');
+      this.render();
+      return null;
+    }
+  }
+
+  async resolveOperationProject() {
+    this.status = 'Applying operations…';
+    this.render();
+    try {
+      const { sources, missing, refused } = await resolveOperationLibrarySources(this.operationSet);
+      if (missing.length || refused.length) {
+        this.status = `Could not load: ${[...missing, ...refused].join(', ')}`;
+        this.render();
+        return null;
+      }
+      const resolvedSources = Object.fromEntries(sources.map(source => [source.id, source]));
+      const applied = applyAgentOperationSet({
+        project: emptyWorkshopProject({
+          id: this.operationSet.projectId,
+          title: this.intent.trim().slice(0, 80) || this.operationSet.id,
+          intent: 'custom'
+        }),
+        operationSet: this.operationSet,
+        context: this.context,
+        resolvedSources
+      });
+      return applied.project;
+    } catch (error) {
+      this.verdict = {
+        ok: false,
+        text: describeImportFailure(error, { context: this.context })
+      };
+      this.status = (error instanceof AgentOperationError
+        || error instanceof ExperienceProgramIoError
+        || error instanceof ExperienceProgramValidationError)
         ? 'Refused.'
         : (error.message || 'Refused.');
       this.render();

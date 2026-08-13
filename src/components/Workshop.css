@@ -3226,6 +3226,18 @@
   box-shadow: inset 2px 0 0 var(--color-threshold);
 }
 
+.studio-sequence-map-entry.is-proposed {
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--color-threshold) 70%, transparent);
+}
+
+.studio-sequence-map-entry.is-proposed .studio-sequence-map-entry-main small::after {
+  content: " · proposed";
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.72em;
+  opacity: 0.72;
+}
+
 .studio-sequence-map-entry-main {
   display: grid;
   width: 100%;

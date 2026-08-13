@@ -10,7 +10,14 @@ function assignmentOrder(left, right) {
  * ranges form one synchronized passage, including legacy assignments created
  * before syncGroup was persisted.
  */
-export function buildSequenceMapGroups({ sources = [], visualAssignments = [], audioAssignments = [] } = {}) {
+export function buildSequenceMapGroups({
+  sources = [],
+  visualAssignments = [],
+  audioAssignments = [],
+  proposedIds = null
+} = {}) {
+  const proposed = proposedIds instanceof Set ? proposedIds : new Set(proposedIds || []);
+  const statusOf = (id) => (proposed.size && proposed.has(id) ? 'proposed' : 'current');
   return sources.map((source, sourceIndex) => {
     const sourceId = String(source.id);
     const visuals = visualAssignments
@@ -35,7 +42,8 @@ export function buildSequenceMapGroups({ sources = [], visualAssignments = [], a
         fromCharacter: visual.fromCharacter,
         toCharacter: visual.toCharacter,
         visual,
-        audio: synchronizedAudio
+        audio: synchronizedAudio,
+        status: statusOf(visual.id)
       };
     });
     for (const audio of audios) {
@@ -46,7 +54,8 @@ export function buildSequenceMapGroups({ sources = [], visualAssignments = [], a
         fromCharacter: audio.fromCharacter,
         toCharacter: audio.toCharacter,
         visual: null,
-        audio: [audio]
+        audio: [audio],
+        status: statusOf(audio.id)
       });
     }
     entries.sort((left, right) => left.fromCharacter - right.fromCharacter

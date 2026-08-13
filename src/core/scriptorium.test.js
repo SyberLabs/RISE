@@ -12,6 +12,7 @@ describe('buildCuratorPrompt', () => {
       context
     });
     expect(prompt).toMatch(/rise\.experience-program\.v1/);
+    expect(prompt).toMatch(/rise\.agent-operation-set\.v1/);
     expect(prompt).toMatch(/fromProgress/);
     expect(prompt).toMatch(/quoteStart/);
     expect(prompt).toMatch(/memory and loss/);

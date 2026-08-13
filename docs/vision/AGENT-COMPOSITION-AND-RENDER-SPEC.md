@@ -2,9 +2,9 @@
 
 **Vision and implementation specification, 2026-08-12.**
 
-Status: **PHASE 3 LANDED — project asset manifest over existing Workshop
-stores (hash, provenance, rights, atomic deletion, transfer bundle). Phase 4
-(agent operations) is not started.**
+Status: **PHASE 4 LANDED — closed agent operations (revision lock, Workshop
+commands, sequence-map proposals, Scriptorium paste). Phase 5 (acquisition
+gateway) is not started.**
 
 Companion specifications:
 
@@ -1134,6 +1134,13 @@ transfer share `verifyTransferBundle`.
 
 **Exit:** an agent can compose from existing sources/assets with no power a
 human cannot inspect and reproduce.
+
+Landed: `rise.agent-operation-set.v1` is a closed command list against
+`baseRevision`; apply is transactional and maps onto Workshop history;
+stale revision and cancelled generation refuse; request-asset stays pending;
+the sequence map marks proposed clips; the Scriptorium prompt and refusal
+copy speak operations as well as scores. The loop test walks intent →
+proposal → Workshop revision → render preflight.
 
 ### Phase 5 — Acquisition gateway
 

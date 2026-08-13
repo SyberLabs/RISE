@@ -196,6 +196,22 @@ describe('the prompt teaches a shape that passes', () => {
         expect(() => validateExperienceProgram(example)).not.toThrow();
     });
 
+    it('carries a worked operation-set example that validates', async () => {
+        const { buildCuratorPrompt } = await import('./curator-prompt.js');
+        const { validateAgentOperationSet, AGENT_OPERATION_SET_SCHEMA } = await import('./agent-operations.js');
+        const prompt = buildCuratorPrompt(surface());
+        const marker = `"schema": "${AGENT_OPERATION_SET_SCHEMA}"`;
+        const opened = prompt.indexOf(`{\n  ${marker}`);
+        expect(opened, 'prompt shows no operation-set example').toBeGreaterThan(-1);
+        let depth = 0;
+        let end = opened;
+        for (let i = opened; i < prompt.length; i += 1) {
+            if (prompt[i] === '{') depth += 1;
+            else if (prompt[i] === '}') { depth -= 1; if (depth === 0) { end = i + 1; break; } }
+        }
+        expect(() => validateAgentOperationSet(JSON.parse(prompt.slice(opened, end)))).not.toThrow();
+    });
+
     it('names the containers a model will otherwise flatten', async () => {
         const { buildCuratorPrompt } = await import('./curator-prompt.js');
         const prompt = buildCuratorPrompt(surface());

@@ -38,11 +38,11 @@ function sectionsToText(sections) {
 }
 
 /**
- * @param {object} program validated experience program
+ * @param {string[]} ids
  * @returns {Promise<{ sources: object[], missing: string[], refused: string[] }>}
  */
-export async function resolveProgramLibrarySources(program) {
-  const wanted = programSourceIds(program);
+export async function resolveLibrarySourceIds(ids = []) {
+  const wanted = [...new Set(ids.filter(Boolean))];
   const registry = ingestedArchiveTexts();
   const byId = new Map(registry.map(work => [work.id, work]));
   const sources = [];
@@ -83,6 +83,21 @@ export async function resolveProgramLibrarySources(program) {
   }
 
   return { sources, missing, refused };
+}
+
+/**
+ * @param {object} program validated experience program
+ * @returns {Promise<{ sources: object[], missing: string[], refused: string[] }>}
+ */
+export async function resolveProgramLibrarySources(program) {
+  return resolveLibrarySourceIds(programSourceIds(program));
+}
+
+export async function resolveOperationLibrarySources(operationSet) {
+  const ids = (operationSet?.operations || [])
+    .filter(item => item.op === 'add-source')
+    .map(item => item.sourceId);
+  return resolveLibrarySourceIds(ids);
 }
 
 /**
