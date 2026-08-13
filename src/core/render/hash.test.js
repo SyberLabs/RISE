@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canonicalJson, contentHashOf, looksLikeUri, parseContentHash } from './hash.js';
+import { canonicalJson, contentHashOf, contentHashOfBytes, looksLikeUri, parseContentHash } from './hash.js';
 import { RenderError } from './errors.js';
 
 describe('render content hashing', () => {
@@ -17,5 +17,13 @@ describe('render content hashing', () => {
     expect(looksLikeUri('blob:https://rise.local/1')).toBe(true);
     expect(looksLikeUri('asset-rain-window')).toBe(false);
     expect(() => parseContentHash('not-a-hash')).toThrow(RenderError);
+  });
+
+  it('hashes admitted media bytes distinctly from canonical JSON of the same view', async () => {
+    const bytes = new Uint8Array([1, 2, 3, 4]);
+    const hashed = await contentHashOfBytes(bytes);
+    expect(hashed).toMatch(/^sha256:[0-9a-f]{64}$/);
+    expect(hashed).toBe(await contentHashOfBytes(bytes.buffer));
+    expect(hashed).not.toBe(await contentHashOf(Array.from(bytes)));
   });
 });

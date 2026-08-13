@@ -1,8 +1,9 @@
 /**
- * Render projection — Phases 0–2.
+ * Render projection — Phases 0–3.
  *
  * Inventory, support, immutable job, preflight, vertical-slice render,
- * distribution packages, and package verification.
+ * distribution packages, package verification, and the project asset
+ * manifest over existing Workshop stores.
  * No Chamber coupling, no Workshop mutation, no H.264 mux yet.
  */
 
@@ -24,6 +25,7 @@ export {
 export {
   canonicalJson,
   contentHashOf,
+  contentHashOfBytes,
   parseContentHash,
   looksLikeUri
 } from './hash.js';
@@ -79,3 +81,30 @@ export {
 export { verifyRenderPackage } from './verify.js';
 export { RENDER_QUALITY_TIERS, qualityTier } from './quality.js';
 export { owedCreditLines } from './package.js';
+export {
+  PROJECT_ASSET_SCHEMA,
+  PROJECT_ASSET_MANIFEST_SCHEMA,
+  ASSET_TRANSFER_BUNDLE_SCHEMA,
+  PROJECT_ASSET_KINDS,
+  PROJECT_ASSET_ORIGINS,
+  PROJECT_ASSET_STORAGE_KINDS,
+  ProjectAssetError,
+  validateProjectAsset,
+  validateProjectAssetManifest,
+  defaultUploadRights,
+  libraryRights,
+  rightsCapabilities,
+  assertDistributionAllowed,
+  inventoryAssetFromProjectAsset,
+  projectWorkshopMedia,
+  projectPersonalSwell,
+  projectLibraryAudio,
+  admitTransformedAsset,
+  referencedAssetIdsFromProgram,
+  planAssetDeletion,
+  compileProjectAssetManifest,
+  packTransferBundle,
+  verifyTransferBundle,
+  importTransferBundle,
+  recoverAssetFromBundle
+} from './project-asset.js';

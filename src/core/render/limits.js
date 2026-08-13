@@ -17,6 +17,8 @@ export const RENDER_LIMITS = Object.freeze({
   maxAudioFileBytes: 32 * 1024 * 1024,
   maxOutputBytes: 256 * 1024 * 1024,
   maxTemporaryBytes: 512 * 1024 * 1024,
+  maxTransferAssets: READING_LIMITS.maxSequenceAssets,
+  maxTransferBytes: 128 * 1024 * 1024,
   maxDecodedPixels: 1920 * 1080,
   maxVideoDurationMs: 120_000,
   maxFrames: 90_000,

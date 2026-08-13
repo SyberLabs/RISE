@@ -66,6 +66,23 @@ export async function contentHashOf(value) {
   return `sha256:${hex}`;
 }
 
+/**
+ * Hash admitted media bytes. Distinct from `contentHashOf`, which digests
+ * canonical JSON / UTF-8 text — never use one where the other is owed.
+ */
+export async function contentHashOfBytes(bytes) {
+  const view = bytes instanceof Uint8Array
+    ? bytes
+    : bytes instanceof ArrayBuffer
+      ? new Uint8Array(bytes)
+      : null;
+  if (!view) {
+    fail('RENDER_HASH_BYTES', 'Expected Uint8Array or ArrayBuffer media bytes', '$');
+  }
+  const hex = await sha256Hex(view);
+  return `sha256:${hex}`;
+}
+
 export function hashesEqual(left, right) {
   return parseContentHash(left, '$.left') === parseContentHash(right, '$.right');
 }

@@ -2,9 +2,9 @@
 
 **Vision and implementation specification, 2026-08-12.**
 
-Status: **PHASE 2 LANDED — distribution packages (poster, square/landscape,
-range preview, verification CLI). Phase 3 (project asset manifest) is not
-started.**
+Status: **PHASE 3 LANDED — project asset manifest over existing Workshop
+stores (hash, provenance, rights, atomic deletion, transfer bundle). Phase 4
+(agent operations) is not started.**
 
 Companion specifications:
 
@@ -1116,6 +1116,12 @@ profile.
 
 **Exit:** every rendered byte has one durable id, hash, provenance, rights
 record, and verified local/remote transfer rule.
+
+Landed: `rise.project-asset.v1` projects Workshop images/MP4s and personal
+swells without migrating IndexedDB; library beds hash against the pinned
+renderer rather than user bytes; a transform writes a new id and lineage
+record; scored deletion requires an atomic program repair; local and remote
+transfer share `verifyTransferBundle`.
 
 ### Phase 4 — Agent operations
 
