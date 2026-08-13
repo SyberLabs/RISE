@@ -39,11 +39,26 @@ export const EXPERIENCE_PROGRAM_LIMITS = Object.freeze({
 });
 
 const AUTHORITIES = new Set(['published', 'user', 'proposed']);
-const TRACK_KINDS = new Set(['movement', 'transition', 'visual', 'audio', 'swell', 'reading']);
-const VISUAL_KINDS = new Set(['still', 'focal', 'field', 'sourced', 'procedural', 'video']);
-const VISUAL_FIELD_RENDERERS = new Set(['focal', 'attractor', 'genesis']);
-const AUDIO_KINDS = new Set(['hold', 'silence', 'soundscape', 'tone']);
-const READING_KINDS = new Set(['pace']);
+
+/** Canonical track/cue vocabularies. The render-support registry must cover every value. */
+export const PROGRAM_TRACK_KINDS = Object.freeze([
+  'movement', 'transition', 'visual', 'audio', 'swell', 'reading'
+]);
+export const PROGRAM_VISUAL_KINDS = Object.freeze([
+  'still', 'focal', 'field', 'sourced', 'procedural', 'video'
+]);
+export const PROGRAM_VISUAL_FIELD_RENDERERS = Object.freeze([
+  'focal', 'attractor', 'genesis'
+]);
+export const PROGRAM_AUDIO_KINDS = Object.freeze(['hold', 'silence', 'soundscape', 'tone']);
+export const PROGRAM_READING_KINDS = Object.freeze(['pace']);
+export const PROGRAM_VIDEO_TIME_MODES = Object.freeze(['cue', 'fit-span', 'loop', 'hold-final']);
+
+const TRACK_KINDS = new Set(PROGRAM_TRACK_KINDS);
+const VISUAL_KINDS = new Set(PROGRAM_VISUAL_KINDS);
+const VISUAL_FIELD_RENDERERS = new Set(PROGRAM_VISUAL_FIELD_RENDERERS);
+const AUDIO_KINDS = new Set(PROGRAM_AUDIO_KINDS);
+const READING_KINDS = new Set(PROGRAM_READING_KINDS);
 
 /** Mirrors `models.js`; a score may not ask for a cut the chunker cannot make. */
 export const READING_CHUNK_MODES = Object.freeze(['word', 'phrase', 'sentence', 'paragraph']);
@@ -334,7 +349,7 @@ function validateVisualCue(value, path) {
     };
   }
   if (source.kind === 'video') {
-    const timeModes = new Set(['cue', 'fit-span', 'loop', 'hold-final']);
+    const timeModes = new Set(PROGRAM_VIDEO_TIME_MODES);
     if (!timeModes.has(source.timeMode)) {
       fail('PROGRAM_VIDEO_TIME_MODE', 'Unknown video time mode', `${path}.timeMode`);
     }

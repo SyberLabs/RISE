@@ -2,7 +2,8 @@
 
 **Vision and implementation specification, 2026-08-12.**
 
-Status: **PROPOSED — architecture defined; implementation not started.**
+Status: **PHASE 0 LANDED — render contract, support registry, and preflight.
+Phase 1 (deterministic vertical slice) is not started.**
 
 Companion specifications:
 
@@ -1057,6 +1058,12 @@ A command-line verifier should be able to inspect a package and answer:
 
 **Exit:** every shipped cue is declared native, degraded, or unsupported, and
 one immutable job can be preflighted without rendering.
+
+Landed in `src/core/render/`: support registry (`support.js`),
+`rise.render-job.v1` (`job.js`), virtual clock (`clock.js`), pinned
+environment (`environment.js`), limits/profiles (`limits.js`), and preflight
+(`preflight.js`). The drift test in `support.test.js` fails CI when
+`experience-program.js` grows a cue without a declaration.
 
 ### Phase 1 — Deterministic vertical slice
 
