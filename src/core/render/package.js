@@ -1,10 +1,11 @@
 /**
- * Render package: captions, credits, manifest, diagnostics.
+ * Render package: captions, credits, poster, thumbnail, rights, manifest.
  * No credentials, no private source text, no local paths.
  */
 
 import { RENDER_MANIFEST_SCHEMA, PINNED_RENDERER } from './environment.js';
 import { captionsFromPlan, captionsToSrt, captionsToVtt } from './captions.js';
+import { contentHashOf } from './hash.js';
 
 export function creditsText({ sources = [], inventory = {} } = {}) {
   const lines = ['Credits — RISE render package'];
@@ -18,6 +19,15 @@ export function creditsText({ sources = [], inventory = {} } = {}) {
     lines.push(`${asset.kind}: ${credit}`);
   }
   return lines.join('\n');
+}
+
+export function owedCreditLines({ sources = [], inventory = {} } = {}) {
+  return creditsText({ sources, inventory })
+    .split('\n')
+    .slice(1)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .sort();
 }
 
 export function rightsReport(inventory = {}, distributionClass = 'private-review') {
@@ -38,7 +48,7 @@ export function rightsReport(inventory = {}, distributionClass = 'private-review
   });
 }
 
-export function buildRenderPackage({
+export async function buildRenderPackage({
   job,
   jobHash,
   plan,
@@ -48,9 +58,33 @@ export function buildRenderPackage({
   audio,
   sources,
   inventory,
-  diagnostics
+  diagnostics,
+  posterBytes = null,
+  thumbnailBytes = null,
+  posterHash = null,
+  thumbnailHash = null,
+  quality = 'final',
+  excerpt = null,
+  captionRange = null
 }) {
-  const cues = captionsFromPlan(plan);
+  const cues = captionsFromPlan(plan, captionRange || {});
+  const vtt = captionsToVtt(cues);
+  const srt = captionsToSrt(cues);
+  const credits = creditsText({ sources, inventory });
+  const rights = rightsReport(inventory, job.policies.distributionClass);
+  const captionsJson = JSON.stringify(cues);
+  const outputHashes = {
+    frames: frameHashes,
+    audio: audioHash,
+    captionsVtt: await contentHashOf(vtt),
+    captionsSrt: await contentHashOf(srt),
+    captionsJson: await contentHashOf(captionsJson),
+    credits: await contentHashOf(credits),
+    rights: await contentHashOf(rights)
+  };
+  if (posterHash) outputHashes.poster = posterHash;
+  if (thumbnailHash) outputHashes.thumbnail = thumbnailHash;
+
   const manifest = Object.freeze({
     schema: RENDER_MANIFEST_SCHEMA,
     jobId: job.id,
@@ -61,12 +95,13 @@ export function buildRenderPackage({
     programHash: job.programHash,
     profile: job.profile,
     seed: job.seed,
+    quality,
     renderer: job.renderer,
     determinismCriterion: PINNED_RENDERER.determinismCriterion,
     encoder: Object.freeze({
       declared: job.renderer.codecProfile,
       actual: 'rise-decoded-identity/0.1',
-      note: 'Phase 1 compares decoded RGBA frames and mixed PCM. H.264 mux is a later adapter.'
+      note: 'Decoded RGBA frames, mixed PCM, and BMP posters. H.264 mux is a later adapter.'
     }),
     frameCount: plan.frameCount,
     durationMs: plan.durationMs,
@@ -80,21 +115,26 @@ export function buildRenderPackage({
     sourceSnapshots: job.sourceSnapshots,
     assetSnapshots: job.assetSnapshots,
     appliedDegradations: Object.freeze([]),
-    outputHashes: Object.freeze({
-      frames: frameHashes,
-      audio: audioHash
-    }),
+    excerpt: excerpt ? Object.freeze(excerpt) : null,
+    outputHashes: Object.freeze(outputHashes),
     droppedFrames: 0,
     lateFrames: 0
   });
 
-  return Object.freeze({
-    'captions.vtt': captionsToVtt(cues),
-    'captions.srt': captionsToSrt(cues),
-    'credits.txt': creditsText({ sources, inventory }),
-    'rights-report.json': rightsReport(inventory, job.policies.distributionClass),
+  const files = {
+    'captions.vtt': vtt,
+    'captions.srt': srt,
+    'captions.json': captionsJson,
+    'credits.txt': credits,
+    'rights-report.json': rights,
     'render-manifest.json': manifest,
-    'diagnostics.json': Object.freeze(diagnostics || {}),
+    'diagnostics.json': Object.freeze(diagnostics || {})
+  };
+  if (posterBytes) files['poster.bmp'] = posterBytes;
+  if (thumbnailBytes) files['thumbnail.bmp'] = thumbnailBytes;
+
+  return Object.freeze({
+    ...files,
     captions: cues
   });
 }

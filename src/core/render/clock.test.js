@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   compareFrameToDuration,
   frameCountForDuration,
+  frameIndexAt,
   lastFrameIndex,
   presentationMs,
   presentationRational,
@@ -33,6 +34,8 @@ describe('virtual render clock', () => {
     expect(frameCountForDuration(27400, FPS30)).toBe(822);
     expect(compareFrameToDuration(821, FPS30, 27400)).toBe(-1);
     expect(compareFrameToDuration(822, FPS30, 27400)).toBe(0);
+    expect(frameIndexAt(0, FPS30)).toBe(0);
+    expect(frameIndexAt(1000, FPS30)).toBe(30);
   });
 
   it('refuses a zero or inverted frame rate', () => {

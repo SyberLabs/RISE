@@ -20,14 +20,19 @@ function formatSrt(ms) {
   return formatVtt(ms).replace('.', ',');
 }
 
-export function captionsFromPlan(plan) {
+export function captionsFromPlan(plan, { fromMs = 0, toMs = null } = {}) {
+  const start = Math.max(0, fromMs | 0);
+  const end = toMs == null ? Number.POSITIVE_INFINITY : toMs;
   const cues = [];
   for (const atom of plan.atoms) {
     const text = String(atom.text || '').trim();
     if (!text) continue;
+    if (atom.endMs <= start || atom.startMs >= end) continue;
     cues.push(Object.freeze({
       fromMs: atom.startMs,
       toMs: atom.endMs,
+      playFromMs: Math.max(atom.startMs, start) - start,
+      playToMs: Math.min(atom.endMs, end) - start,
       text,
       sourceId: atom.sourceId,
       sourceCharacterStart: atom.sourceCharacterStart,
@@ -40,7 +45,9 @@ export function captionsFromPlan(plan) {
 export function captionsToVtt(cues) {
   const lines = ['WEBVTT', ''];
   for (const cue of cues) {
-    lines.push(`${formatVtt(cue.fromMs)} --> ${formatVtt(cue.toMs)}`);
+    const from = cue.playFromMs == null ? cue.fromMs : cue.playFromMs;
+    const to = cue.playToMs == null ? cue.toMs : cue.playToMs;
+    lines.push(`${formatVtt(from)} --> ${formatVtt(to)}`);
     lines.push(cue.text);
     lines.push('');
   }
@@ -50,8 +57,10 @@ export function captionsToVtt(cues) {
 export function captionsToSrt(cues) {
   const lines = [];
   cues.forEach((cue, index) => {
+    const from = cue.playFromMs == null ? cue.fromMs : cue.playFromMs;
+    const to = cue.playToMs == null ? cue.toMs : cue.playToMs;
     lines.push(String(index + 1));
-    lines.push(`${formatSrt(cue.fromMs)} --> ${formatSrt(cue.toMs)}`);
+    lines.push(`${formatSrt(from)} --> ${formatSrt(to)}`);
     lines.push(cue.text);
     lines.push('');
   });

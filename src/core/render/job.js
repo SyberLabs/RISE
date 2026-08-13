@@ -287,3 +287,31 @@ export function pinnedRendererForProfile(profileId) {
     codecProfile: profile.codecProfile
   });
 }
+
+/**
+ * Same admitted composition, different projection. Does not rewrite
+ * program hash, source snapshots, assets, duration, or seed.
+ */
+export function deriveRenderJob(job, profileId) {
+  const source = validateRenderJob(job);
+  const profile = renderProfile(profileId);
+  if (!profile) {
+    fail('RENDER_JOB_PROFILE', `Unknown render profile: ${String(profileId)}`, '$.profile');
+  }
+  return validateRenderJob({
+    schema: source.schema,
+    id: `${source.id}:${profileId}`.slice(0, RENDER_LIMITS.maxIdLength),
+    projectId: source.projectId,
+    projectRevision: source.projectRevision,
+    programHash: source.programHash,
+    sourceSnapshots: source.sourceSnapshots.map(item => ({ ...item })),
+    assetSnapshots: source.assetSnapshots.map(item => ({ ...item })),
+    profile: profile.id,
+    viewport: { ...profile.viewport },
+    frameRate: { ...profile.frameRate },
+    durationMs: source.durationMs,
+    seed: source.seed,
+    renderer: pinnedRendererForProfile(profile.id),
+    policies: { ...source.policies }
+  });
+}

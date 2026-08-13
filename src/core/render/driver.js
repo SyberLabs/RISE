@@ -13,6 +13,7 @@ import { renderFrameRgba } from './raster.js';
 import { mixAudio, peakAmplitude } from './audio-mix.js';
 import { buildRenderPackage } from './package.js';
 import { preflightRenderJob, PREFLIGHT_VERDICTS } from './preflight.js';
+import { renderPoster } from './poster.js';
 
 function audioBytes(pcm) {
   return new Uint8Array(pcm.buffer, pcm.byteOffset, pcm.byteLength);
@@ -88,8 +89,17 @@ export async function renderJob(input, options = {}) {
     }
   }
 
-  const audio = mixAudio(plan, { sampleRate: options.sampleRate });
+  const audio = mixAudio(plan, {
+    sampleRate: options.sampleRate,
+    fromMs: options.excerpt?.fromMs,
+    toMs: options.excerpt?.toMs
+  });
   const audioHash = await hashPcm(audio.pcm);
+  const poster = await renderPoster(plan, {
+    inventory: input.inventory,
+    scale: options.posterScale == null ? Math.min(scale, 0.25) : options.posterScale,
+    thumbnailMaxEdge: options.thumbnailMaxEdge || 160
+  });
   const diagnostics = Object.freeze({
     startedAt: started,
     endedAt: Date.now(),
@@ -98,9 +108,10 @@ export async function renderJob(input, options = {}) {
     toFrame,
     droppedFrames: 0,
     lateFrames: 0,
-    peakAmplitude: peakAmplitude(audio.pcm)
+    peakAmplitude: peakAmplitude(audio.pcm),
+    posterFrame: poster.frameIndex
   });
-  const pack = buildRenderPackage({
+  const pack = await buildRenderPackage({
     job: admitted.job,
     jobHash: admitted.jobHash,
     plan,
@@ -110,7 +121,16 @@ export async function renderJob(input, options = {}) {
     audio,
     sources: input.sources,
     inventory: input.inventory,
-    diagnostics
+    diagnostics,
+    posterBytes: poster.posterBytes,
+    thumbnailBytes: poster.thumbnailBytes,
+    posterHash: poster.posterHash,
+    thumbnailHash: poster.thumbnailHash,
+    quality: options.tier || 'final',
+    excerpt: options.excerpt || null,
+    captionRange: options.excerpt
+      ? { fromMs: options.excerpt.fromMs, toMs: options.excerpt.toMs }
+      : null
   });
 
   return Object.freeze({

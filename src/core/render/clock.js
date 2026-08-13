@@ -92,3 +92,12 @@ export function lastFrameIndex(durationMs, frameRate) {
   const count = frameCountForDuration(durationMs, frameRate);
   return count === 0 ? null : count - 1;
 }
+
+/** First frame whose presentation time is >= ms (exclusive-end friendly). */
+export function frameIndexAt(ms, frameRate) {
+  const rate = validateFrameRate(frameRate);
+  if (!Number.isInteger(ms) || ms < 0) {
+    fail('RENDER_DURATION', 'Expected a non-negative integer millisecond count', '$.ms');
+  }
+  return Number((BigInt(ms) * BigInt(rate.numerator)) / (1000n * BigInt(rate.denominator)));
+}

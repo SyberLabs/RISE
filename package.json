@@ -22,7 +22,8 @@
     "audit:text": "vite-node scripts/audit-text-quality.mjs",
     "build:audubon": "node scripts/build-audubon-catalog.mjs",
     "build:pericopes": "node scripts/build-pericopes.mjs",
-    "build:voice-pack": "node scripts/build-voice-pack.mjs"
+    "build:voice-pack": "node scripts/build-voice-pack.mjs",
+    "verify:render": "node scripts/verify-render-package.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

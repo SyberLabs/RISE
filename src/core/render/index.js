@@ -1,8 +1,8 @@
 /**
- * Render projection — Phase 0 contract and Phase 1 vertical slice.
+ * Render projection — Phases 0–2.
  *
- * Inventory, support registry, immutable job, virtual clock, preflight,
- * render plan, explicit-time presenters, offline audio, decoded-identity driver.
+ * Inventory, support, immutable job, preflight, vertical-slice render,
+ * distribution packages, and package verification.
  * No Chamber coupling, no Workshop mutation, no H.264 mux yet.
  */
 
@@ -33,6 +33,7 @@ export {
   compareFrameToDuration,
   frameCountForDuration,
   lastFrameIndex,
+  frameIndexAt,
   validateFrameRate
 } from './clock.js';
 export {
@@ -48,7 +49,8 @@ export {
   validateRenderJob,
   admitRenderJob,
   jobFrameCount,
-  pinnedRendererForProfile
+  pinnedRendererForProfile,
+  deriveRenderJob
 } from './job.js';
 export {
   PREFLIGHT_VERDICTS,
@@ -68,3 +70,12 @@ export { mixAudio } from './audio-mix.js';
 export { captionsFromPlan, captionsToVtt, captionsToSrt } from './captions.js';
 export { renderJob, renderJobTwice } from './driver.js';
 export { safeAreasFor } from './layout.js';
+export {
+  renderDistributionPackages,
+  renderProfilePackage,
+  renderPreview,
+  DISTRIBUTION_PROFILE_IDS
+} from './distribution.js';
+export { verifyRenderPackage } from './verify.js';
+export { RENDER_QUALITY_TIERS, qualityTier } from './quality.js';
+export { owedCreditLines } from './package.js';

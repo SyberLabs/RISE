@@ -2,10 +2,9 @@
 
 **Vision and implementation specification, 2026-08-12.**
 
-Status: **PHASE 1 LANDED — render contract, support registry, preflight, and
-the deterministic vertical slice (plan + decoded-identity render). Phase 2
-(distribution package completeness: poster, landscape/square, verification CLI)
-is not started.**
+Status: **PHASE 2 LANDED — distribution packages (poster, square/landscape,
+range preview, verification CLI). Phase 3 (project asset manifest) is not
+started.**
 
 Companion specifications:
 
@@ -1099,6 +1098,12 @@ encoder adapter — the manifest records that gap.
 
 **Exit:** one approved composition yields three inspectable packages without
 changing canonical authorship.
+
+Landed: `renderDistributionPackages` emits portrait, square, and landscape
+packages from one program hash; posters/thumbnails are deterministic BMPs;
+`renderPreview` records the parent range; `scripts/verify-render-package.mjs`
+answers the five inspect questions. Owed credits cannot be dropped by a
+profile.
 
 ### Phase 3 — Project asset manifest and audio convergence
 

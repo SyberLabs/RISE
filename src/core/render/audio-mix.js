@@ -54,13 +54,29 @@ function sampleBed(kind, cue, timeSec, channel) {
   return 0;
 }
 
-export function mixAudio(plan, { sampleRate = RENDER_SAMPLE_RATE, channels = RENDER_AUDIO_CHANNELS } = {}) {
-  const frames = Math.max(0, Math.round((plan.durationMs / 1000) * sampleRate));
+export function mixAudio(plan, {
+  sampleRate = RENDER_SAMPLE_RATE,
+  channels = RENDER_AUDIO_CHANNELS,
+  fromMs = 0,
+  toMs = null
+} = {}) {
+  const start = Math.max(0, fromMs | 0);
+  const end = Math.min(plan.durationMs, toMs == null ? plan.durationMs : toMs | 0);
+  if (end < start) {
+    fail('RENDER_AUDIO_RANGE', 'Audio mix range must be half-open and ordered', '$.fromMs');
+  }
+  const durationMs = end - start;
+  const frames = Math.max(0, Math.round((durationMs / 1000) * sampleRate));
   const pcm = new Float32Array(frames * channels);
   let held = { cueKind: 'audio:silence', cue: { kind: 'silence' }, fadeMs: 0, gain: 1 };
+  for (const run of plan.audioRuns) {
+    if (run.toMs <= start && run.cueKind !== 'audio:hold' && run.cueKind !== 'audio:silence') {
+      held = run;
+    }
+  }
 
   for (let i = 0; i < frames; i += 1) {
-    const ms = Math.min(plan.durationMs - 1, Math.floor((i * 1000) / sampleRate));
+    const ms = Math.min(plan.durationMs - 1, start + Math.floor((i * 1000) / sampleRate));
     const run = audioRunAt(plan, ms);
     if (!run) continue;
     if (run.cueKind !== 'audio:hold' && run.cueKind !== 'audio:silence') {
@@ -75,12 +91,12 @@ export function mixAudio(plan, { sampleRate = RENDER_SAMPLE_RATE, channels = REN
         { cueKind: active.cueKind });
     }
     const gain = fadeGain(ms, run) * 0.35;
-    const t = i / sampleRate;
+    const t = ms / 1000;
     for (let ch = 0; ch < channels; ch += 1) {
       pcm[i * channels + ch] = sampleBed(active.cueKind, active.cue, t, ch) * gain;
     }
   }
-  return Object.freeze({ sampleRate, channels, frames, pcm });
+  return Object.freeze({ sampleRate, channels, frames, pcm, fromMs: start, toMs: end });
 }
 
 export function peakAmplitude(pcm) {
