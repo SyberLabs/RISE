@@ -688,10 +688,13 @@ export function describeImportFailure(error, { context = null } = {}) {
         'A variorum apparatus, a bad scan, or a missing title/author/edition cannot enter as a source.'
       );
       break;
-    case 'ACQUISITION_HUMAN_REQUIRED':
+    case 'NARRATION_DUCK_TARGET':
+    case 'NARRATION_NOT_VOICE':
+    case 'NARRATION_KIND':
+    case 'NARRATION_SCORE_NOT_VOICE':
       lines.push(
-        'Only a person may admit an acquisition candidate.',
-        'The agent may request; it may not grant the resulting id.'
+        `${error.message}`,
+        'Narration is a spoken lane. It may duck the bed; it cannot become atmosphere or a swell.'
       );
       break;
     default:

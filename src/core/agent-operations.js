@@ -18,6 +18,13 @@ import {
   eraseAudioSpan
 } from './audio-score-lane.js';
 import {
+  assignNarrationSpan,
+  appendNarrationTrack,
+  createNarrationScoreAsset,
+  eraseNarrationSpan,
+  narrationAssignmentsFromClips
+} from './narration-score-lane.js';
+import {
   assignVisualSpan,
   eraseVisualSpan,
   VISUAL_SCORE_COLORS
@@ -47,6 +54,9 @@ export const AGENT_OPERATION_OPS = Object.freeze([
   'assign-audio',
   'replace-audio',
   'erase-audio',
+  'assign-narration',
+  'replace-narration',
+  'erase-narration',
   'configure-field',
   'set-pace',
   'create-transition',
@@ -63,6 +73,7 @@ const MUTATING_OPS = new Set([
   'add-source', 'remove-source', 'reorder-source', 'import-asset',
   'assign-visual', 'replace-visual', 'erase-visual',
   'assign-audio', 'replace-audio', 'erase-audio',
+  'assign-narration', 'replace-narration', 'erase-narration',
   'configure-field', 'set-pace', 'create-sync-group', 'remove-sync-group',
   'set-atmosphere', 'set-render-profile'
 ]);
@@ -99,6 +110,11 @@ const OP_FIELDS = Object.freeze({
   'replace-audio': ['assignmentId', 'sourceId', 'assetId', 'fromCharacter', 'toCharacter',
     'quoteStart', 'quoteEnd', 'syncGroup'],
   'erase-audio': ['assignmentId'],
+  'assign-narration': ['assignmentId', 'sourceId', 'voiceId', 'assetId', 'fromCharacter',
+    'toCharacter', 'quoteStart', 'quoteEnd', 'overlap', 'duck', 'pronunciations', 'words'],
+  'replace-narration': ['assignmentId', 'sourceId', 'voiceId', 'assetId', 'fromCharacter',
+    'toCharacter', 'quoteStart', 'quoteEnd', 'duck', 'pronunciations', 'words'],
+  'erase-narration': ['assignmentId'],
   'configure-field': ['assignmentId', 'sourceId', 'renderer', 'fromCharacter', 'toCharacter',
     'quoteStart', 'quoteEnd'],
   'set-pace': ['assignmentId', 'sourceId', 'fromCharacter', 'toCharacter', 'quoteStart',
@@ -225,7 +241,7 @@ function validateOperation(value, path) {
       exactId(id, `${path}.sourceIds[${index}]`)));
   } else if (source.op === 'request-asset') {
     op.requestId = exactId(source.requestId, `${path}.requestId`);
-    if (!['image', 'video', 'audio', 'font', 'document'].includes(source.kind)) {
+    if (!['image', 'video', 'audio', 'font', 'document', 'voice'].includes(source.kind)) {
       fail('AGENT_OP_KIND', `Unknown asset kind: ${String(source.kind)}`, `${path}.kind`);
     }
     op.kind = source.kind;
@@ -265,7 +281,30 @@ function validateOperation(value, path) {
     if (!op.sourceId) {
       fail('AGENT_OP_ID', 'A span operation needs sourceId', `${path}.sourceId`);
     }
-  } else if (source.op === 'erase-visual' || source.op === 'erase-audio') {
+  } else if (source.op === 'assign-narration' || source.op === 'replace-narration') {
+    copyId('assignmentId');
+    copyId('sourceId');
+    if (source.assetId != null) copyId('assetId');
+    if (source.voiceId != null) copyId('voiceId');
+    if (!op.assetId && !op.voiceId) {
+      fail('AGENT_OP_ASSET', 'assign-narration needs voiceId or assetId', `${path}.voiceId`);
+    }
+    Object.assign(op, validateAnchorFields(source, path));
+    if (source.overlap != null) {
+      if (source.overlap !== 'reject' && source.overlap !== 'replace') {
+        fail('AGENT_OP_OVERLAP', 'overlap must be reject or replace', `${path}.overlap`);
+      }
+      op.overlap = source.overlap;
+    }
+    if (source.duck && typeof source.duck === 'object') op.duck = deepFreeze({ ...source.duck });
+    if (Array.isArray(source.pronunciations)) {
+      op.pronunciations = deepFreeze(source.pronunciations.map(item => ({ ...item })));
+    }
+    if (Array.isArray(source.words)) {
+      op.words = deepFreeze(source.words.map(item => ({ ...item })));
+    }
+  } else if (source.op === 'erase-visual' || source.op === 'erase-audio'
+    || source.op === 'erase-narration') {
     op.assignmentId = exactId(source.assignmentId, `${path}.assignmentId`);
   } else if (source.op === 'create-transition' || source.op === 'revise-transition') {
     copyId('transitionId');
@@ -512,7 +551,8 @@ function sourceView(source) {
 
 function compileDraft(draft) {
   const sources = draft.sources.map(sourceView);
-  const hasMedia = draft.visualAssignments.length || draft.audioAssignments.length;
+  const hasMedia = draft.visualAssignments.length || draft.audioAssignments.length
+    || draft.narrationAssignments.length;
   let program = null;
   if (hasMedia) {
     program = compileWorkshopScoreProgram({
@@ -523,6 +563,29 @@ function compileDraft(draft) {
       audioAssets: draft.audioAssets,
       audioAssignments: draft.audioAssignments
     });
+    if (!program && sources.length) {
+      program = createExperienceProgram({
+        schema: EXPERIENCE_PROGRAM_SCHEMA,
+        id: `workshop-${draft.id}`,
+        authority: 'user',
+        editable: true,
+        tracks: [{
+          id: 'movements',
+          kind: 'movement',
+          clips: sources.map((source, index) => ({
+            id: `source-${index + 1}`,
+            anchor: { sourceIds: [source.id] },
+            data: { index, title: source.name || `Source ${index + 1}` }
+          }))
+        }]
+      });
+    }
+    if (program && draft.narrationAssignments.length) {
+      program = validateExperienceProgram({
+        ...program,
+        tracks: appendNarrationTrack(program.tracks, draft.narrationAssignments)
+      });
+    }
   } else if (sources.length) {
     program = createExperienceProgram({
       schema: EXPERIENCE_PROGRAM_SCHEMA,
@@ -658,8 +721,12 @@ export function applyAgentOperationSet({
     provenance: { ...base.provenance },
     visualAssignments: visualAssignmentsFromProgram(base.experienceProgram).map(item => ({ ...item })),
     audioAssignments: audioAssignmentsFromProgram(base.experienceProgram).map(item => ({ ...item })),
+    narrationAssignments: narrationAssignmentsFromClips(
+      (base.experienceProgram?.tracks || []).find(track => track.kind === 'narration')?.clips || []
+    ).map(item => ({ ...item })),
     visualAssets: [],
     audioAssets: [],
+    narrationAssets: [],
     paceAssignments: (base.experienceProgram?.tracks || [])
       .filter(track => track.kind === 'reading')
       .flatMap(track => (track.clips || []).map(clip => ({
@@ -687,6 +754,17 @@ export function applyAgentOperationSet({
       draft.audioAssets.push(audioAssetFor(assignment.assetId, { personalSwells }));
     } catch {
       /* same as visual: compile will refuse if the asset is truly gone */
+    }
+  }
+  for (const assignment of draft.narrationAssignments) {
+    if (draft.narrationAssets.some(item => item.id === assignment.assetId)) continue;
+    try {
+      draft.narrationAssets.push(createNarrationScoreAsset({
+        id: assignment.assetId,
+        cue: assignment.cue
+      }));
+    } catch {
+      /* compile will refuse if the voice cannot be named */
     }
   }
 
@@ -756,7 +834,8 @@ export function applyAgentOperationSet({
     if (op.op === 'remove-source') {
       findSource(op.sourceId, path);
       const stillNamed = [...draft.visualAssignments, ...draft.audioAssignments,
-        ...draft.paceAssignments].some(item => item.sourceId === op.sourceId);
+        ...draft.narrationAssignments, ...draft.paceAssignments]
+        .some(item => item.sourceId === op.sourceId);
       if (stillNamed) {
         fail('AGENT_OP_SOURCE_IN_USE',
           `Source ${op.sourceId} is still named by the score`, path);
@@ -872,6 +951,72 @@ export function applyAgentOperationSet({
         workshopCommand: 'erase'
       }));
       workshopCommands.push({ type: 'erase', lane: 'audio', assignmentId: op.assignmentId });
+      continue;
+    }
+
+    if (op.op === 'assign-narration' || op.op === 'replace-narration') {
+      const source = findSource(op.sourceId, path);
+      const span = resolveSpan(op, source, path);
+      const voiceKey = op.voiceId || op.assetId;
+      let asset = draft.narrationAssets.find(item => item.id === voiceKey);
+      if (!asset) {
+        try {
+          asset = createNarrationScoreAsset({
+            id: voiceKey,
+            voiceId: op.voiceId,
+            voiceAssetId: op.assetId,
+            duck: op.duck,
+            pronunciations: op.pronunciations,
+            words: op.words
+          });
+        } catch (error) {
+          fail(error.code || 'AGENT_OP_NARRATION', error.message, path, error.details || {});
+        }
+        draft.narrationAssets.push(asset);
+      }
+      const overlap = op.op === 'replace-narration' ? 'replace' : (op.overlap || 'reject');
+      try {
+        draft.narrationAssignments = assignNarrationSpan({
+          assignments: draft.narrationAssignments,
+          source: sourceView(source),
+          assetId: asset.id,
+          assets: draft.narrationAssets,
+          assignmentId: op.assignmentId,
+          fromCharacter: span.fromCharacter,
+          toCharacter: span.toCharacter,
+          overlap,
+          cue: {
+            kind: 'spoken',
+            ...(op.voiceId || asset.cue.voiceId
+              ? { voiceId: op.voiceId || asset.cue.voiceId } : {}),
+            ...(op.assetId || asset.cue.voiceAssetId
+              ? { voiceAssetId: op.assetId || asset.cue.voiceAssetId } : {}),
+            ...(op.duck ? { duck: op.duck } : {}),
+            ...(op.pronunciations ? { pronunciations: op.pronunciations } : {}),
+            ...(op.words ? { words: op.words } : {})
+          }
+        });
+      } catch (error) {
+        fail(error.code || 'AGENT_OP_NARRATION', error.message, path, error.details || {});
+      }
+      const command = overlap === 'replace' ? 'replace-overlap' : 'assign';
+      inspection.push(inspectionRow(op, {
+        summary: `Narration ${asset.id} on ${op.sourceId}`,
+        fromCharacter: span.fromCharacter,
+        toCharacter: span.toCharacter,
+        workshopCommand: command
+      }));
+      workshopCommands.push({ type: command, lane: 'narration', assignmentId: op.assignmentId });
+      continue;
+    }
+
+    if (op.op === 'erase-narration') {
+      draft.narrationAssignments = eraseNarrationSpan(draft.narrationAssignments, op.assignmentId);
+      inspection.push(inspectionRow(op, {
+        summary: `Erase narration ${op.assignmentId}`,
+        workshopCommand: 'erase'
+      }));
+      workshopCommands.push({ type: 'erase', lane: 'narration', assignmentId: op.assignmentId });
       continue;
     }
 

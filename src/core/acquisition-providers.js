@@ -343,11 +343,91 @@ export function createArchiveTextProvider({ catalog = [] } = {}) {
   };
 }
 
+export function createVoiceProvider({ generate } = {}) {
+  return {
+    id: 'voice',
+    kinds: ['voice'],
+    preferences: ['project-media', 'generated'],
+    async inspect(request, options = {}) {
+      if (request.sourcePreference.includes('generated')) {
+        if (!generationConsentGranted(options.consent)
+          && request.sourcePreference.every(item => item === 'generated')) {
+          failAcquisition('ACQUISITION_CONSENT_REQUIRED',
+            'Generated speech needs explicit consent and a cost acknowledgement', '$.consent');
+        }
+        if (generationConsentGranted(options.consent)) {
+          return [candidateBase(request, {
+            id: `cand-voice-gen-${request.id}`,
+            origin: 'generated',
+            provider: 'voice',
+            title: 'Generated speech',
+            expectedMime: 'audio/wav',
+            rights: unknownRights(),
+            warnings: ['generated-status-is-not-rights']
+          })];
+        }
+      }
+      const bytes = options.bytes instanceof Uint8Array ? options.bytes : null;
+      const mimeType = String(options.mimeType || '').trim();
+      if (!bytes || !mimeType) return [];
+      if (!/^audio\/(wav|wave|x-wav|mpeg|mp3)$/i.test(mimeType)) {
+        failAcquisition('ACQUISITION_MIME', 'Spoken admission is WAV or MPEG only', '$.mimeType', {
+          mimeType
+        });
+      }
+      if (!Number.isInteger(options.durationMs) || options.durationMs <= 0) {
+        failAcquisition('ACQUISITION_DURATION',
+          'Spoken audio needs a duration before it can be inspected', '$.durationMs');
+      }
+      return [candidateBase(request, {
+        id: `cand-voice-${request.id}`,
+        origin: 'upload',
+        provider: 'voice',
+        title: options.title || 'Spoken take',
+        expectedMime: mimeType === 'audio/mp3' ? 'audio/mpeg' : mimeType,
+        rights: options.rights || unknownRights()
+      })];
+    },
+    async fetch(candidate, request, options = {}) {
+      if (candidate.origin === 'generated') {
+        if (!generationConsentGranted(options.consent)) {
+          failAcquisition('ACQUISITION_CONSENT_REQUIRED',
+            'Generated speech needs explicit consent and a cost acknowledgement', '$.consent');
+        }
+        const run = options.generate || generate;
+        if (typeof run !== 'function') {
+          failAcquisition('ACQUISITION_GENERATOR_UNAVAILABLE',
+            'No speech generator is bound after consent was granted', '$.generate');
+        }
+        const result = await run({ request, consent: options.consent });
+        const bytes = result?.bytes instanceof Uint8Array ? result.bytes : null;
+        if (!bytes) failAcquisition('ACQUISITION_BYTES', 'Generator produced no speech bytes', '$.bytes');
+        return {
+          bytes,
+          mimeType: String(result.mimeType || 'audio/wav').trim(),
+          durationMs: result.durationMs || options.durationMs,
+          generator: result.model || result.generator || 'generated-voice',
+          safetyResult: result.safetyResult || 'unmoderated',
+          promptDigest: result.promptDigest || null
+        };
+      }
+      const bytes = options.bytes instanceof Uint8Array ? options.bytes : null;
+      if (!bytes) failAcquisition('ACQUISITION_BYTES', 'Voice fetch needs the original bytes', '$.bytes');
+      return {
+        bytes,
+        mimeType: String(options.mimeType || '').trim(),
+        durationMs: options.durationMs
+      };
+    }
+  };
+}
+
 export function createDefaultAcquisitionProviders(options = {}) {
   return [
     createAicProvider(options),
     createUploadProvider(),
     createGeneratedProvider(options),
-    createArchiveTextProvider(options)
+    createArchiveTextProvider(options),
+    createVoiceProvider(options)
   ];
 }

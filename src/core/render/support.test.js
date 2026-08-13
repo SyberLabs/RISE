@@ -67,7 +67,7 @@ describe('render-support registry', () => {
 
   it('covers the experience-program vocabularies without a second list of kinds', () => {
     expect(PROGRAM_TRACK_KINDS).toEqual([
-      'movement', 'transition', 'visual', 'audio', 'swell', 'reading'
+      'movement', 'transition', 'visual', 'audio', 'swell', 'reading', 'narration'
     ]);
     expect(PROGRAM_VISUAL_KINDS).toEqual([
       'still', 'focal', 'field', 'sourced', 'procedural', 'video'

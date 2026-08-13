@@ -12,6 +12,8 @@
  * A score either validates exactly or refuses with a path and error code.
  */
 
+import { validateNarrationCue } from './narration.js';
+
 export const EXPERIENCE_PROGRAM_SCHEMA = 'rise.experience-program.v1';
 
 export const EXPERIENCE_PROGRAM_LIMITS = Object.freeze({
@@ -42,7 +44,7 @@ const AUTHORITIES = new Set(['published', 'user', 'proposed']);
 
 /** Canonical track/cue vocabularies. The render-support registry must cover every value. */
 export const PROGRAM_TRACK_KINDS = Object.freeze([
-  'movement', 'transition', 'visual', 'audio', 'swell', 'reading'
+  'movement', 'transition', 'visual', 'audio', 'swell', 'reading', 'narration'
 ]);
 export const PROGRAM_VISUAL_KINDS = Object.freeze([
   'still', 'focal', 'field', 'sourced', 'procedural', 'video'
@@ -52,6 +54,7 @@ export const PROGRAM_VISUAL_FIELD_RENDERERS = Object.freeze([
 ]);
 export const PROGRAM_AUDIO_KINDS = Object.freeze(['hold', 'silence', 'soundscape', 'tone']);
 export const PROGRAM_READING_KINDS = Object.freeze(['pace']);
+export const PROGRAM_NARRATION_KINDS = Object.freeze(['spoken']);
 export const PROGRAM_VIDEO_TIME_MODES = Object.freeze(['cue', 'fit-span', 'loop', 'hold-final']);
 
 const TRACK_KINDS = new Set(PROGRAM_TRACK_KINDS);
@@ -70,7 +73,8 @@ const TRACK_LIMITS = Object.freeze({
   visual: EXPERIENCE_PROGRAM_LIMITS.maxClipsPerTrack,
   audio: EXPERIENCE_PROGRAM_LIMITS.maxClipsPerTrack,
   swell: EXPERIENCE_PROGRAM_LIMITS.maxClipsPerTrack,
-  reading: EXPERIENCE_PROGRAM_LIMITS.maxClipsPerTrack
+  reading: EXPERIENCE_PROGRAM_LIMITS.maxClipsPerTrack,
+  narration: EXPERIENCE_PROGRAM_LIMITS.maxClipsPerTrack
 });
 
 export class ExperienceProgramValidationError extends Error {
@@ -494,7 +498,8 @@ function validateClip(value, path, kind, index) {
     clipFields.add('data');
     clipFields.add('durationMs');
   }
-  if (kind === 'visual' || kind === 'audio' || kind === 'swell' || kind === 'reading') {
+  if (kind === 'visual' || kind === 'audio' || kind === 'swell' || kind === 'reading'
+    || kind === 'narration') {
     clipFields.add('cue');
   }
   onlyKeys(source, clipFields, path);
@@ -541,6 +546,13 @@ function validateClip(value, path, kind, index) {
   } else if (kind === 'reading') {
     clip.cue = validateReadingCue(source.cue, `${path}.cue`);
     assertReadingAnchorSupportsCue(clip, path);
+  } else if (kind === 'narration') {
+    try {
+      clip.cue = validateNarrationCue(source.cue, `${path}.cue`);
+    } catch (error) {
+      fail(error.code || 'PROGRAM_NARRATION', error.message, error.path || `${path}.cue`,
+        error.details || {});
+    }
   }
   return clip;
 }
@@ -612,7 +624,7 @@ function validateRelationships(tracks) {
   const knownAnchors = new Set([...sourceOwners.keys(), ...transitionSources]);
   for (const track of tracks.filter(item =>
     item.kind === 'visual' || item.kind === 'audio' || item.kind === 'swell'
-    || item.kind === 'reading')) {
+    || item.kind === 'reading' || item.kind === 'narration')) {
     for (const clip of track.clips) {
       const ranged = clip.anchor.fromProgress !== undefined
         || clip.anchor.fromCharacter !== undefined
@@ -831,6 +843,7 @@ export function lowerExperienceProgram(value) {
   const audioTracks = byKind('audio');
   const swellTracks = byKind('swell');
   const readingTracks = byKind('reading');
+  const narrationTracks = byKind('narration');
 
   const movements = movementTrack.clips.map(clip => ({
     id: clip.id,
@@ -857,6 +870,7 @@ export function lowerExperienceProgram(value) {
   const audioSegments = segmentsFor(audioTracks);
   const swellSegments = segmentsFor(swellTracks);
   const readingSegments = segmentsFor(readingTracks);
+  const narrationSegments = segmentsFor(narrationTracks);
 
   const visualFallback = visualTracks[0]?.fallback || { kind: 'still' };
   const audioFallback = audioTracks[0]?.fallback || { kind: 'silence', fadeMs: 500 };
@@ -897,12 +911,18 @@ export function lowerExperienceProgram(value) {
     segments: readingSegments
   } : null;
 
+  const narrationProgram = narrationSegments.length ? {
+    coordinateSpace: 'source',
+    segments: narrationSegments
+  } : null;
+
   return {
     experienceProgram: program,
     movementProgram,
     visualProgram,
     audioProgram,
     readingProgram,
+    narrationProgram,
     swellProgram: swellSegments.length ? {
       coordinateSpace: 'source',
       segments: swellSegments,

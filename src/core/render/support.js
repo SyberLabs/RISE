@@ -12,6 +12,7 @@
 
 import {
   PROGRAM_AUDIO_KINDS,
+  PROGRAM_NARRATION_KINDS,
   PROGRAM_READING_KINDS,
   PROGRAM_VISUAL_FIELD_RENDERERS,
   PROGRAM_VISUAL_KINDS
@@ -142,6 +143,12 @@ export const RENDER_SUPPORT = Object.freeze({
   'reading:pace': nativeSlice('reading:pace', [
     'session-compiler atom timeline',
     'PacingEngine wall-adjacent durations'
+  ]),
+
+  'narration:spoken': nativeSlice('narration:spoken', [
+    'offline spoken mix',
+    'authored bed duck',
+    'source-span captions'
   ])
 });
 
@@ -179,6 +186,7 @@ export function requiredRenderCueKinds() {
   }
   for (const kind of PROGRAM_AUDIO_KINDS) kinds.add(`audio:${kind}`);
   for (const kind of PROGRAM_READING_KINDS) kinds.add(`reading:${kind}`);
+  for (const kind of PROGRAM_NARRATION_KINDS) kinds.add(`narration:${kind}`);
   return kinds;
 }
 
@@ -231,6 +239,7 @@ export function classifyCue(cue, trackKind = null) {
   if (trackKind === 'movement' || kind === 'movement') return 'structural:movement';
   if (trackKind === 'transition' || kind === 'transition') return 'structural:transition';
   if (trackKind === 'swell' || kind === 'swell') return 'swell:swell';
+  if (trackKind === 'narration' || kind === 'spoken') return 'narration:spoken';
   if (trackKind === 'reading' || kind === 'pace') return `reading:${kind || 'pace'}`;
   if (trackKind === 'audio' || PROGRAM_AUDIO_KINDS.includes(kind)) return `audio:${kind}`;
   if (kind === 'still') return 'visual:still';

@@ -64,7 +64,8 @@ export {
   hashRenderPlan,
   atomAt,
   visualRunAt,
-  audioRunAt
+  audioRunAt,
+  narrationRunAt
 } from './plan.js';
 export { mapVideoSourceTime } from './video-time.js';
 export { renderFrameRgba } from './raster.js';

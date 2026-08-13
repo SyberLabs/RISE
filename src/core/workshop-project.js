@@ -10,6 +10,7 @@ import {
 import { visualFallbackCueFromConfig } from './visual-program.js';
 import { compileWorkshopScoreProgram } from './audio-score-lane.js';
 import { audioScoreAssetFromId } from './workshop-audio.js';
+import { narrationAssignmentsFromClips } from './narration-score-lane.js';
 
 export const WORKSHOP_PROJECT_SCHEMA = 'rise.workshop-project.v1';
 
@@ -425,6 +426,13 @@ export function audioAssignmentsFromProgram(program) {
     }));
 }
 
+export function narrationAssignmentsFromProgram(program) {
+  if (!program) return [];
+  const canonical = validateExperienceProgram(program);
+  const track = canonical.tracks.find(item => item.kind === 'narration');
+  return narrationAssignmentsFromClips(track?.clips || []);
+}
+
 export function workshopProjectToSessionConfig(value) {
   const project = isWorkshopProject(value)
     ? validateWorkshopProject(value)
@@ -457,6 +465,7 @@ export function workshopProjectToSessionConfig(value) {
     sequenceVisualAssets: plainClone(project.assets),
     visualScoreAssignments: visualAssignmentsFromProgram(project.experienceProgram),
     audioScoreAssignments: audioAssignmentsFromProgram(project.experienceProgram),
+    narrationScoreAssignments: narrationAssignmentsFromProgram(project.experienceProgram),
     experienceProgram: project.experienceProgram,
     experienceProgramId: project.experienceProgram?.id || `workshop-${project.id}`,
     provenance: plainClone(project.provenance),

@@ -8,7 +8,8 @@
 
 import { fail } from './errors.js';
 import { RENDER_AUDIO_CHANNELS, RENDER_SAMPLE_RATE } from './layout.js';
-import { audioRunAt } from './plan.js';
+import { audioRunAt, narrationRunAt } from './plan.js';
+import { duckGainAt } from '../narration.js';
 
 const AURORA = Object.freeze({
   root: 108,
@@ -90,10 +91,16 @@ export function mixAudio(plan, {
         '$.audioRuns',
         { cueKind: active.cueKind });
     }
-    const gain = fadeGain(ms, run) * 0.35;
+    const gain = fadeGain(ms, run) * 0.35 * duckGainAt(narrationRunAt(plan, ms), ms);
     const t = ms / 1000;
+    const spoken = narrationRunAt(plan, ms);
     for (let ch = 0; ch < channels; ch += 1) {
-      pcm[i * channels + ch] = sampleBed(active.cueKind, active.cue, t, ch) * gain;
+      let sample = sampleBed(active.cueKind, active.cue, t, ch) * gain;
+      if (spoken?.cueKind === 'narration:spoken') {
+        const pan = ch === 0 ? 0.85 : 0.65;
+        sample += Math.sin(2 * Math.PI * 220 * t) * 0.12 * pan;
+      }
+      pcm[i * channels + ch] = sample;
     }
   }
   return Object.freeze({ sampleRate, channels, frames, pcm, fromMs: start, toMs: end });

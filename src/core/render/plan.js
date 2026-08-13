@@ -91,6 +91,7 @@ export function compileRenderPlan(input = {}) {
   const lowered = lowerExperienceProgram(program);
   const visualProgram = lowered.visualProgram;
   const audioBed = lowered.audioProgram?.lanes?.bed || lowered.audioProgram;
+  const narrationProgram = lowered.narrationProgram;
   const assets = new Map((input.inventory?.assets || []).map(asset => [asset.assetId, asset]));
 
   const atoms = [];
@@ -119,6 +120,20 @@ export function compileRenderPlan(input = {}) {
         '$.tracks',
         { cueKind: audioKind, cueId: audio.id });
     }
+    const spoken = narrationProgram
+      ? cueForAtom({ ...narrationProgram, fallback: { kind: 'none' } }, atom)
+      : null;
+    const hasNarration = spoken && spoken.id !== '__fallback__' && spoken.cue?.kind === 'spoken';
+    if (hasNarration) {
+      const narrationKind = classifyCue(spoken.cue, 'narration');
+      const narrationSupport = renderSupportFor(narrationKind);
+      if (!narrationSupport || narrationSupport.render === 'unsupported') {
+        fail('RENDER_CUE_UNSUPPORTED',
+          narrationSupport?.reason || `Cue ${narrationKind} cannot be rendered`,
+          '$.tracks',
+          { cueKind: narrationKind, cueId: spoken.id });
+      }
+    }
     atoms.push(Object.freeze({
       index: atom.position,
       startMs: cursor,
@@ -133,7 +148,10 @@ export function compileRenderPlan(input = {}) {
       visualKind,
       audioCueId: audio.id,
       audioCue: audio.cue,
-      audioKind
+      audioKind,
+      narrationCueId: hasNarration ? spoken.id : null,
+      narrationCue: hasNarration ? spoken.cue : null,
+      narrationKind: hasNarration ? 'narration:spoken' : null
     }));
     cursor += duration;
   }
@@ -184,6 +202,23 @@ export function compileRenderPlan(input = {}) {
     gain: typeof run.cue?.gain === 'number' ? run.cue.gain : 1
   }));
 
+  const narrationRuns = coalesce(
+    atoms.filter(atom => atom.narrationCueId),
+    'narrationCueId',
+    'narrationCue'
+  ).map(run => Object.freeze({
+    cueId: run.cueId,
+    cueKind: 'narration:spoken',
+    cue: run.cue,
+    fromMs: run.fromMs,
+    toMs: run.toMs,
+    duck: run.cue?.duck || null,
+    words: run.cue?.words || null,
+    pronunciations: run.cue?.pronunciations || null,
+    voiceId: run.cue?.voiceId || null,
+    voiceAssetId: run.cue?.voiceAssetId || null
+  }));
+
   const profile = renderProfile(job.profile);
   const plan = {
     schema: 'rise.render-plan.v1',
@@ -198,7 +233,8 @@ export function compileRenderPlan(input = {}) {
     loudnessLufs: profile.loudnessLufs,
     atoms,
     visualRuns,
-    audioRuns
+    audioRuns,
+    narrationRuns
   };
   return deepFreeze(plan);
 }
@@ -227,4 +263,9 @@ export function visualRunAt(plan, presentationMs) {
 
 export function audioRunAt(plan, presentationMs) {
   return plan.audioRuns.find(run => presentationMs >= run.fromMs && presentationMs < run.toMs) || null;
+}
+
+export function narrationRunAt(plan, presentationMs) {
+  return (plan.narrationRuns || [])
+    .find(run => presentationMs >= run.fromMs && presentationMs < run.toMs) || null;
 }

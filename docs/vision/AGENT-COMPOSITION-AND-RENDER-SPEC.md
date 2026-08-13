@@ -2,15 +2,17 @@
 
 **Vision and implementation specification, 2026-08-12.**
 
-Status: **PHASE 5 LANDED — acquisition gateway (candidate model, AIC public-domain
-images, direct upload, consented generation, Archive text inspect). Phase 6
-(narration) is not started.**
+Status: **PHASE 6 LANDED — narration lane (spoken track, voice admission, authored
+bed duck, source-span captions). Phase 7 (human-reviewed social delivery) is
+not started.**
 
 Companion specifications:
 
 - [`EXPERIENCE-PROGRAM-SPEC.md`](./EXPERIENCE-PROGRAM-SPEC.md)
 - [`WORKSHOP-COMPOSITION-STUDIO-SPEC.md`](./WORKSHOP-COMPOSITION-STUDIO-SPEC.md)
 - [`SCRIPTORIUM-SPEC.md`](./SCRIPTORIUM-SPEC.md)
+- [`RECITATION-SPEC.md`](./RECITATION-SPEC.md)
+- [`NARRATION-LANE-SPEC.md`](./NARRATION-LANE-SPEC.md)
 - [`../specs/ARCHIVE-CLEANSING-SPEC.md`](../specs/ARCHIVE-CLEANSING-SPEC.md)
 
 This specification defines the path from an authored RISE experience to a
@@ -694,9 +696,10 @@ It must define:
 Missing named audio produces silence only where the canonical cue explicitly
 permits silence; otherwise it refuses.
 
-**Narration is a separate future lane.** It needs word/span correspondence,
-voice provenance, pronunciation policy, ducking authority, caption alignment,
-and replacement/cancellation rules. It must not be disguised as a bed or swell.
+**Narration is a separate lane.** See [`NARRATION-LANE-SPEC.md`](./NARRATION-LANE-SPEC.md).
+It needs word/span correspondence, voice provenance, pronunciation policy, ducking
+authority, caption alignment, and replacement/cancellation rules. It must not be
+disguised as a bed or swell.
 
 ### 9.9 MP4 time mapping
 
@@ -1171,6 +1174,15 @@ render/runtime execution.
 
 **Exit:** narration is independently editable and cannot steal atmosphere or
 swell authority.
+
+Landed: `narration` is an Experience Program track of `spoken` cues. Voice
+audio admits as acquisition kind `voice` (WAV/MPEG, duration required);
+generic audio/video stay deferred. An authored duck may lower the bed only.
+Pronunciations are a review table and never rewrite the source. Captions
+keep source coordinates when they follow word timings. Agent
+assign/replace/erase-narration compile onto that track and leave
+`defaults.audio` untouched. Chamber recitation remains presentation, not
+authorship.
 
 ### Phase 7 — Human-reviewed social delivery
 

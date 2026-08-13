@@ -25,7 +25,7 @@ export const ACQUISITION_CANDIDATE_SCHEMA = 'rise.acquisition-candidate.v1';
 export const ACQUISITION_VERDICT_SCHEMA = 'rise.acquisition-verdict.v1';
 
 export const ACQUISITION_KINDS = Object.freeze([
-  'image', 'video', 'audio', 'font', 'document'
+  'image', 'video', 'audio', 'font', 'document', 'voice'
 ]);
 export const ACQUISITION_SOURCE_PREFERENCES = Object.freeze([
   'public-domain', 'project-media', 'generated'
@@ -172,14 +172,14 @@ function untrustedDescription(value, path) {
 
 function byteCeiling(kind) {
   if (kind === 'video') return RENDER_LIMITS.maxVideoFileBytes;
-  if (kind === 'audio') return RENDER_LIMITS.maxAudioFileBytes;
+  if (kind === 'audio' || kind === 'voice') return RENDER_LIMITS.maxAudioFileBytes;
   if (kind === 'document') return ACQUISITION_LIMITS.maxTextCharacters;
   return RENDER_LIMITS.maxImageFileBytes;
 }
 
 function defaultPreferences(kind) {
   if (kind === 'image') return Object.freeze(['public-domain']);
-  if (kind === 'document') return Object.freeze(['project-media']);
+  if (kind === 'document' || kind === 'voice') return Object.freeze(['project-media']);
   return Object.freeze([]);
 }
 
@@ -502,6 +502,18 @@ function mimeAgrees(kind, contentType, bytes) {
   if (kind === 'document') {
     return contentType === 'text/plain' || contentType === 'application/json';
   }
+  if (kind === 'voice') {
+    if (contentType === 'audio/wav' || contentType === 'audio/wave' || contentType === 'audio/x-wav') {
+      return bytes.length >= 12
+        && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+        && bytes[8] === 0x57 && bytes[9] === 0x41 && bytes[10] === 0x56 && bytes[11] === 0x45;
+    }
+    if (contentType === 'audio/mpeg' || contentType === 'audio/mp3') {
+      return (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33)
+        || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0);
+    }
+    return false;
+  }
   return false;
 }
 
@@ -711,6 +723,11 @@ export async function fetchAcquisitionCandidate(candidateValue, requestValue, op
       mimeType
     });
   }
+  if (candidate.kind === 'voice' && !mimeAgrees('voice', mimeType, bytes)) {
+    failAcquisition('ACQUISITION_MIME', 'Fetched bytes are not admitted spoken audio', '$.mimeType', {
+      mimeType
+    });
+  }
   const contentHash = await contentHashOfBytes(bytes);
   const fetched = {
     schema: ACQUISITION_CANDIDATE_SCHEMA,
@@ -755,7 +772,8 @@ export async function fetchAcquisitionCandidate(candidateValue, requestValue, op
     generator: payload.generator || null,
     safetyResult: payload.safetyResult || null,
     inputs: payload.inputs || null,
-    createdAt: payload.createdAt || isoNow(options.now)
+    createdAt: payload.createdAt || isoNow(options.now),
+    durationMs: Number.isInteger(payload.durationMs) ? payload.durationMs : options.durationMs || null
   };
 }
 
@@ -771,6 +789,7 @@ export async function admitAcquisitionCandidate({
   safetyResult = null,
   inputs = null,
   createdAt = null,
+  durationMs = null,
   now = null
 } = {}) {
   const judged = validateAcquisitionVerdict(verdict);
@@ -823,11 +842,15 @@ export async function admitAcquisitionCandidate({
     failAcquisition('ACQUISITION_RIGHTS',
       'Generated status is not a rights classification', '$.rights');
   }
-  const kind = record.kind;
+  const kind = record.kind === 'voice' ? 'audio' : record.kind;
+  if (kind === 'audio' && record.kind === 'voice' && !Number.isInteger(durationMs)) {
+    failAcquisition('ACQUISITION_DURATION',
+      'Spoken audio needs a duration before it can be admitted', '$.durationMs');
+  }
   const asset = validateProjectAsset({
     schema: PROJECT_ASSET_SCHEMA,
     id: exactId(assetId, '$.assetId'),
-    projectId: exactId(projectId || record.requestId, '$.projectId'),
+    projectId: exactId(projectId, '$.projectId'),
     kind,
     mimeType: admittedMime,
     byteLength: view.byteLength,
@@ -838,7 +861,8 @@ export async function admitAcquisitionCandidate({
     },
     provenance,
     rights,
-    transformations: []
+    transformations: [],
+    ...(Number.isInteger(durationMs) && durationMs > 0 ? { durationMs } : {})
   });
   return deepFreeze({
     status: 'admitted',
@@ -859,7 +883,7 @@ export function acquisitionRequestFromAgentOp(op, { projectId } = {}) {
     kind: op.kind,
     purpose: 'agent-request',
     query: op.query,
-    sourcePreference: op.kind === 'document'
+    sourcePreference: op.kind === 'document' || op.kind === 'voice'
       ? ['project-media']
       : ['public-domain']
   };

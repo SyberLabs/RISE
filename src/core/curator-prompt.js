@@ -227,8 +227,10 @@ export function buildCuratorPrompt({ intent = '', context = null } = {}) {
     '(pending until admission; name a pinned object such as aic:27992, not a',
     'keyword search. Candidates are not assets; a human verdict admits them),',
     'import-asset, assign/replace/erase-visual,',
-    'assign/replace/erase-audio, configure-field, set-pace, create/remove-sync-group,',
-    'set-atmosphere, set-render-profile, request-preview, request-compile.',
+    'assign/replace/erase-audio, assign/replace/erase-narration (spoken voice;',
+    'may duck the bed, never a soundscape or swell), configure-field, set-pace,',
+    'create/remove-sync-group, set-atmosphere, set-render-profile, request-preview,',
+    'request-compile.',
     'Do not invent ops. Do not emit create-transition until the Workshop has it.',
     'baseRevision must match the project; a newer human edit refuses the set.',
     'Rationale is optional explanation and never enters the Experience Program.'
