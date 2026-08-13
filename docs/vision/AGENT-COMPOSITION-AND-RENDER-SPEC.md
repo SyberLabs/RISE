@@ -2,8 +2,10 @@
 
 **Vision and implementation specification, 2026-08-12.**
 
-Status: **PHASE 0 LANDED — render contract, support registry, and preflight.
-Phase 1 (deterministic vertical slice) is not started.**
+Status: **PHASE 1 LANDED — render contract, support registry, preflight, and
+the deterministic vertical slice (plan + decoded-identity render). Phase 2
+(distribution package completeness: poster, landscape/square, verification CLI)
+is not started.**
 
 Companion specifications:
 
@@ -1078,6 +1080,13 @@ environment (`environment.js`), limits/profiles (`limits.js`), and preflight
 
 **Exit:** the 20–30 second reference composition renders twice with identical
 manifest inputs and the chosen deterministic-output criterion.
+
+Landed in `src/core/render/`: `plan.js` compiles the session clock into an
+immutable plan; `raster.js` / `klee-adapter.js` / `video-time.js` project
+still, text, Klee, and muted MP4; `audio-mix.js` mixes an offline aurora bed;
+`driver.js` renders the same job twice under `decoded-identity`. Captions,
+credits, and a manifest ship beside the decoded hashes. H.264 mux is the next
+encoder adapter — the manifest records that gap.
 
 ### Phase 2 — Distribution package
 

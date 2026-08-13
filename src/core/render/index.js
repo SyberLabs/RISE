@@ -1,8 +1,9 @@
 /**
- * Render projection — Phase 0 contract.
+ * Render projection — Phase 0 contract and Phase 1 vertical slice.
  *
- * Inventory, support registry, immutable job, virtual clock, and preflight.
- * No encoder, no Chamber coupling, no Workshop mutation.
+ * Inventory, support registry, immutable job, virtual clock, preflight,
+ * render plan, explicit-time presenters, offline audio, decoded-identity driver.
+ * No Chamber coupling, no Workshop mutation, no H.264 mux yet.
  */
 
 export { RenderError } from './errors.js';
@@ -54,3 +55,16 @@ export {
   preflightRenderJob,
   describePreflightFailure
 } from './preflight.js';
+export {
+  compileRenderPlan,
+  hashRenderPlan,
+  atomAt,
+  visualRunAt,
+  audioRunAt
+} from './plan.js';
+export { mapVideoSourceTime } from './video-time.js';
+export { renderFrameRgba } from './raster.js';
+export { mixAudio } from './audio-mix.js';
+export { captionsFromPlan, captionsToVtt, captionsToSrt } from './captions.js';
+export { renderJob, renderJobTwice } from './driver.js';
+export { safeAreasFor } from './layout.js';

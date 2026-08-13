@@ -25,7 +25,8 @@ export const PREFLIGHT_VERDICTS = Object.freeze({
 });
 
 const INVENTORY_ASSET_FIELDS = new Set([
-  'assetId', 'contentHash', 'kind', 'mimeType', 'byteLength', 'rights'
+  'assetId', 'contentHash', 'kind', 'mimeType', 'byteLength', 'rights',
+  'durationMs', 'width', 'height'
 ]);
 const INVENTORY_SOURCE_FIELDS = new Set([
   'sourceId', 'contentHash', 'byteLength', 'characterCount'
@@ -78,7 +79,7 @@ function validateInventoryAsset(value, path) {
     fail('RENDER_INVENTORY_RIGHTS',
       'rights.distributionAllowed must be boolean', `${path}.rights.distributionAllowed`);
   }
-  return Object.freeze({
+  const asset = {
     assetId: source.assetId,
     contentHash: parseContentHash(source.contentHash, `${path}.contentHash`),
     kind: source.kind,
@@ -86,9 +87,16 @@ function validateInventoryAsset(value, path) {
     byteLength: Number.isInteger(source.byteLength) ? source.byteLength : 0,
     rights: Object.freeze({
       status: rightsSource.status,
-      distributionAllowed: rightsSource.distributionAllowed
+      distributionAllowed: rightsSource.distributionAllowed,
+      ...(typeof rightsSource.credit === 'string' ? { credit: rightsSource.credit } : {})
     })
-  });
+  };
+  if (Number.isInteger(source.durationMs) && source.durationMs > 0) {
+    asset.durationMs = source.durationMs;
+  }
+  if (Number.isInteger(source.width) && source.width > 0) asset.width = source.width;
+  if (Number.isInteger(source.height) && source.height > 0) asset.height = source.height;
+  return Object.freeze(asset);
 }
 
 function validateInventorySource(value, path) {
