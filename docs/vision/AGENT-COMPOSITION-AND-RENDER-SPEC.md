@@ -2,9 +2,10 @@
 
 **Vision and implementation specification, 2026-08-12.**
 
-Status: **PHASE 7 LANDED — human-reviewed social delivery (destination-neutral
-queue, mock adapter, idempotent receipt, withdrawal, post-approval schedule).
-Phase 8 (policy-bounded automation) is deferred.**
+Status: **PHASE 8 LANDED — policy-bounded automation (channel policy, custody
+handles, frequency/cost ceilings, moderation escalation, rights renewal,
+audit, emergency stop). Live destination credentials remain a product
+decision; the agent still cannot publish.**
 
 Companion specifications:
 
@@ -500,17 +501,29 @@ candidates, provenance, rights, cost, and intended span before admission.
 After admitted assets exist, the agent completes a render-ready Workshop draft,
 runs preflight, and renders a private review package.
 
+Landed: `runProducer` applies an operation set, inspects acquisition without
+admitting, compiles a private-review job when `request-compile` is present,
+and may enqueue destination-neutral review items. It never admits, approves,
+or delivers.
+
 ### Stage D — distribution assistant
 
 The agent derives multiple bounded distribution profiles and proposes titles,
 descriptions, excerpts, caption styles, and posting metadata. A human still
 approves each concrete artifact and destination.
 
+Landed: the producer may enqueue `rise.publication-review-item.v1` from a
+private pack. Approval still requires a person, a watched hash, and public
+resolved rights.
+
 ### Stage E — policy-bounded channel automation
 
-Deferred. It requires destination credentials, rate limits, moderation,
-withdrawal, audit logs, cost ceilings, and explicit channel policy. Nothing in
-Stages A–D implies that this authority has been granted.
+A named person adopts `rise.channel-policy.v1`. That policy may authorize
+retries and scheduled delivery of an **already-approved** artifact, within
+frequency and cost ceilings, against an opaque vault handle. It cannot approve
+a new artifact, waive rights, or survive an emergency stop. Live destination
+credentials and a real social channel remain a later product decision.
+Nothing here grants the agent publication authority.
 
 ---
 
@@ -869,7 +882,8 @@ but approval is artifact-specific in the first release. Changing profile,
 excerpt, captions, thumbnail, or text produces a new review item.
 
 Scheduling and automatic retries follow destination approval; they do not
-weaken content approval.
+weaken content approval. A channel policy may authorize those retries for one
+already-approved artifact. Changing the policy does not approve a new one.
 
 ---
 
@@ -1206,15 +1220,26 @@ Scheduling is allowed only after approval; the host still calls deliver.
 
 ### Phase 8 — Policy-bounded automation
 
-Deferred until real use establishes:
+1. channel editorial policy;
+2. moderation and escalation;
+3. rights renewal/withdrawal;
+4. cost and frequency ceilings;
+5. credential custody;
+6. audit and emergency stop;
+7. who is accountable for publication.
 
-- channel editorial policy;
-- moderation and escalation;
-- rights renewal/withdrawal;
-- cost and frequency ceilings;
-- credential custody;
-- audit and emergency stop;
-- who is accountable for publication.
+**Exit:** unattended retry and schedule of an approved artifact remain bounded
+by a human-adopted channel policy, without granting the agent publication
+authority or storing destination secrets on the receipt.
+
+Landed: `rise.channel-policy.v1` is adopted only by a named person.
+`rise.credential-custody.v1` holds a vault handle, never a token.
+`deliverUnderPolicy` enforces profile allowlist, captions/credits, resolved
+rights, daily frequency and cost ceilings, and moderation escalation.
+A rights withdrawal after approval demands a new human review. Emergency stop
+halts the channel; only a person may clear it. Audit events record who acted.
+The agent has no policy, stop, or deliver op. Mock custody is not a live
+social credential.
 
 ---
 
@@ -1346,8 +1371,10 @@ These require explicit rulings before their phases begin.
    canonical extension with compatibility rules?
 8. **Agent placement:** evolve the Scriptorium in place or introduce a dedicated
    Producer surface after Stage B?
-9. **Publication threshold:** is one human approval required per artifact, per
-   scheduled campaign, or per tightly bounded channel policy?
+9. **Publication threshold:** one human approval per artifact. A channel
+   policy may authorize retries and scheduled delivery of that same approved
+   artifact; it cannot approve a new one, waive rights, or survive an
+   emergency stop.
 10. **Archive admission:** when may project-only text remain private without
     becoming a permanent shelved work?
 

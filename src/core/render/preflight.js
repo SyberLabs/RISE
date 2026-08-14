@@ -246,6 +246,18 @@ export async function preflightRenderJob(input = {}) {
     }
   }
 
+  for (const item of classified) {
+    if (item.cueKind !== 'visual:sourced:collection') continue;
+    const images = [...assetsById.values()].filter(asset => asset.kind === 'image');
+    if (!images.length) {
+      push(refusal('RENDER_COLLECTION_UNPINNED',
+        'A museum collection cannot be fetched during render; admit stills first',
+        item.path,
+        { collections: item.cue?.collections || [] },
+        'Admit collection works into the project, or assign a procedural engine.'));
+    }
+  }
+
   const publicDistribution = job.policies.distributionClass === 'public';
   const rightsIssues = [];
   for (const snapshot of job.assetSnapshots) {

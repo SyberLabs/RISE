@@ -18,10 +18,28 @@
 import { KleeEngine, KLEE_PRESET_NAMES, KLEE_CHAMBER_BACKGROUND } from './klee-enhanced.js';
 import { planInterlocution } from '../core/conductor.js';
 
-const GROW_MS = 28000;   // one composition unfolds over ~28s
+export const GENESIS_GROW_MS = 28000;   // one composition unfolds over ~28s
 const HOLD_MS = 9000;    // rests complete before dissolving
 const FADE_MS = 1600;    // crossfade between episodes (CSS opacity)
 const MAX_PIXELS = 2_600_000; // background layer: slightly lighter cap than flashes
+
+/** Ease-out growth used by live Genesis and offline Chamber paint. */
+export function genesisGrowProgress(elapsedMs) {
+    const t = Math.min(1, Math.max(0, Number(elapsedMs) || 0) / GENESIS_GROW_MS);
+    return 1 - ((1 - t) ** 1.8);
+}
+
+/**
+ * A scored take shorter than a live grow still completes the episode.
+ * Longer takes keep live time so the pen does not race.
+ */
+export function genesisProgressForRun(elapsedMs, runDurationMs) {
+    const span = Number(runDurationMs);
+    const mapped = Number.isFinite(span) && span > 0 && span < GENESIS_GROW_MS
+        ? (Math.max(0, Number(elapsedMs) || 0) / span) * GENESIS_GROW_MS
+        : elapsedMs;
+    return genesisGrowProgress(mapped);
+}
 
 export class KleeField {
     /**
@@ -200,15 +218,14 @@ export class KleeField {
             // Ease-out growth: eager start, patient resolution.
             // Render every frame — with fractional tip interpolation in the
             // engine, the pen moves continuously rather than step by step.
-            const t = Math.min(1, elapsed / GROW_MS);
-            this.progress = 1 - Math.pow(1 - t, 1.8);
+            this.progress = genesisGrowProgress(elapsed);
             this._render();
-            if (t >= 1) {
+            if (elapsed >= GENESIS_GROW_MS) {
                 this.phase = 'holding';
                 this.phaseStart = now;
             }
         } else if (this.phase === 'holding') {
-            const holdFor = this._isStill() ? HOLD_MS + GROW_MS * 0.5 : HOLD_MS;
+            const holdFor = this._isStill() ? HOLD_MS + GENESIS_GROW_MS * 0.5 : HOLD_MS;
             if (elapsed >= holdFor) {
                 this.phase = 'fading';
                 this.phaseStart = now;

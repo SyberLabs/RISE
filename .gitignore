@@ -63,7 +63,8 @@ src/sources/visual/museum-pins.js.tmp
 voice-probe.wav
 voice-samples/
 
-# Contact sheets are working files, not source
+# Generated render output
+out/
 met-*.html
 contact-sheet*.html
 science-sheet.html

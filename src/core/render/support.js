@@ -5,9 +5,10 @@
  * native, degraded, or unsupported. Interactive presenters are not evidence
  * of export support. CI fails when the vocab grows without a declaration.
  *
- * Phase 0 declares the first vertical-slice families as native (the contract
- * Phase 1 implements) and everything else as unsupported. Unsupported required
- * cues refuse preflight; they are never silently omitted.
+ * Chamber engines and collections are native when the Playwright stage can
+ * paint them at explicit t. Museum collections need admitted stills in
+ * inventory — render never fetches AIC. Swell remains unsupported.
+ * Unsupported required cues refuse preflight; they are never silently omitted.
  */
 
 import {
@@ -68,56 +69,69 @@ export const RENDER_SUPPORT = Object.freeze({
     'canvas still / CSS background',
     'no object-URL persistence'
   ]),
-  'visual:focal': unsupported('visual:focal',
-    'Focal placement depends on the live page/stream viewport; no explicit-time adapter yet',
-    ['live viewport', 'page/stream placement', 'glyph animation']),
-  'visual:field:focal': unsupported('visual:field:focal',
-    'Focal fields advance on requestAnimationFrame; no frame-addressable adapter yet',
-    ['visual-field-director', 'requestAnimationFrame', 'canvas']),
-  'visual:field:attractor': unsupported('visual:field:attractor',
-    'Attractor fields integrate with step(dt) and have no render checkpoint contract yet',
-    ['requestAnimationFrame', 'step(dt)', 'canvas filament']),
-  'visual:field:genesis': unsupported('visual:field:genesis',
-    'Genesis fields advance mutable state on the live clock; no explicit-time adapter yet',
-    ['requestAnimationFrame', 'mutable field state', 'canvas']),
+  'visual:focal': nativeSlice('visual:focal', [
+    'canvas 2d / CSS glyph',
+    'Rosa Mystica WebGL for rose'
+  ]),
+  'visual:field:focal': nativeSlice('visual:field:focal', [
+    'canvas 2d / CSS glyph',
+    'Rosa Mystica WebGL for rose'
+  ]),
+  'visual:field:attractor': nativeSlice('visual:field:attractor', [
+    'AttractorField.tick at explicit t',
+    'canvas 2d'
+  ]),
+  'visual:field:genesis': nativeSlice('visual:field:genesis', [
+    'KleeEngine.render at genesisGrowProgress(t)',
+    'canvas 2d'
+  ]),
 
   'visual:sourced:project-image': nativeSlice('visual:sourced:project-image', [
     'blob/object-URL hydration at runtime',
     'canvas drawImage'
   ]),
-  'visual:sourced:gallery': unsupported('visual:sourced:gallery',
-    'Ordered gallery cadence is not in the first render slice',
-    ['gallery cadence', 'multiple sequence assets']),
-  'visual:sourced:collection': unsupported('visual:sourced:collection',
-    'Museum/collection sourced cues shuffle live and may fetch remote works',
-    ['ShuffleBag', 'Math.random', 'collection fetch']),
+  'visual:sourced:gallery': nativeSlice('visual:sourced:gallery', [
+    'admitted stills in inventory',
+    'canvas drawImage / putImageData'
+  ]),
+  'visual:sourced:collection': nativeSlice('visual:sourced:collection', [
+    'admitted stills in inventory — render does not fetch museum APIs',
+    'seeded pick among pinned works'
+  ]),
 
   'visual:procedural:klee': nativeSlice('visual:procedural:klee', [
     'requestAnimationFrame in the Chamber',
     'canvas 2d',
     'preset randomness — render must pin seed'
   ]),
-  'visual:procedural:turrell': unsupported('visual:procedural:turrell',
-    'No explicit-time Turrell adapter in the first render slice',
-    ['requestAnimationFrame', 'canvas']),
-  'visual:procedural:fractal': unsupported('visual:procedural:fractal',
-    'No explicit-time fractal adapter in the first render slice',
-    ['requestAnimationFrame', 'canvas']),
-  'visual:procedural:neural': unsupported('visual:procedural:neural',
-    'No explicit-time neural adapter in the first render slice',
-    ['requestAnimationFrame', 'canvas']),
-  'visual:procedural:rockgarden': unsupported('visual:procedural:rockgarden',
-    'No explicit-time rock-garden adapter in the first render slice',
-    ['requestAnimationFrame', 'canvas']),
-  'visual:procedural:harmonograph': unsupported('visual:procedural:harmonograph',
-    'No explicit-time harmonograph adapter in the first render slice',
-    ['requestAnimationFrame', 'canvas']),
-  'visual:procedural:shuffled': unsupported('visual:procedural:shuffled',
-    'A procedural cue naming several collections is a live shuffle, not a pinned engine',
-    ['Math.random', 'collection pool']),
-  'visual:procedural:work-engine': unsupported('visual:procedural:work-engine',
-    'Work-authored engines have no pinned render adapter; interactive load is lazy and index-walked',
-    ['dynamic import', 'engine index walk', 'canvas']),
+  'visual:procedural:turrell': nativeSlice('visual:procedural:turrell', [
+    'Turrell.generate + canvas render',
+    'preset randomness — render must pin seed'
+  ]),
+  'visual:procedural:fractal': nativeSlice('visual:procedural:fractal', [
+    'FractalFlameGenerator at pinned seed',
+    'canvas putImageData'
+  ]),
+  'visual:procedural:neural': nativeSlice('visual:procedural:neural', [
+    'NeuralNetwork.generate at pinned seed',
+    'canvas 2d'
+  ]),
+  'visual:procedural:rockgarden': nativeSlice('visual:procedural:rockgarden', [
+    'RockGarden.generateRockGarden at pinned seed',
+    'canvas 2d'
+  ]),
+  'visual:procedural:harmonograph': nativeSlice('visual:procedural:harmonograph', [
+    'Harmonograph.generate + render(progress)',
+    'canvas 2d'
+  ]),
+  'visual:procedural:shuffled': nativeSlice('visual:procedural:shuffled', [
+    'seeded pick among named collections',
+    'same painters as a single-engine cue'
+  ]),
+  'visual:procedural:work-engine': nativeSlice('visual:procedural:work-engine', [
+    'work engine generate + step(dt) + render',
+    'TIME_SCALE 0.3 reading pace'
+  ]),
 
   'visual:video': nativeSlice('visual:video', [
     'HTMLVideoElement.currentTime',
@@ -269,12 +283,13 @@ function classifySourcedCue(cue) {
 function classifyProceduralCue(cue) {
   const collections = Array.isArray(cue.collections) ? cue.collections : [];
   const engines = Array.isArray(cue.engines) ? cue.engines : [];
-  if (engines.length > 0 || collections.some(id => isWorkEngineFamily(id))) {
-    return 'visual:procedural:work-engine';
-  }
+  const workFamilies = collections.filter(id => isWorkEngineFamily(id));
   const patterns = collections.filter(id => PROCEDURAL_PATTERN_IDS.includes(id));
-  if (patterns.length > 1 || collections.length > 1) {
+  if (patterns.length + workFamilies.length > 1 || collections.length > 1) {
     return 'visual:procedural:shuffled';
+  }
+  if (engines.length > 0 || workFamilies.length === 1) {
+    return 'visual:procedural:work-engine';
   }
   if (patterns.length === 1) return `visual:procedural:${patterns[0]}`;
   return 'visual:procedural:shuffled';

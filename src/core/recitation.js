@@ -51,6 +51,19 @@ export function stripEmphasis(text) {
     return typeof text === 'string' ? text.replace(EMPHASIS, '$1') : '';
 }
 
+/**
+ * Chamber atom face scale. Longer phrases step down so the field
+ * never overflows; render and the live Chamber must share this.
+ */
+export function sizeAtomScale(content) {
+    const shown = stripEmphasis(content).length;
+    let scale = 1;
+    if (shown > 20) scale = 56 / 72;
+    if (shown > 40) scale = 40 / 72;
+    if (shown > 60) scale = 32 / 72;
+    return scale;
+}
+
 /** Does this text carry any authored emphasis? */
 export function hasEmphasis(text) {
     return typeof text === 'string' && EMPHASIS.test(text.replace(EMPHASIS, m => m));

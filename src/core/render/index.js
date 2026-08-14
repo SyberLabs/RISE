@@ -4,7 +4,8 @@
  * Inventory, support, immutable job, preflight, vertical-slice render,
  * distribution packages, package verification, and the project asset
  * manifest over existing Workshop stores.
- * No Chamber coupling, no Workshop mutation, no H.264 mux yet.
+ * No Chamber coupling, no Workshop mutation.
+ * H.264 mux is a Node encoder adapter (`encode-mp4.js`), not Chamber authority.
  */
 
 export { RenderError } from './errors.js';

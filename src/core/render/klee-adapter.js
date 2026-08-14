@@ -1,9 +1,8 @@
 /**
- * Deterministic Klee adapter for offline render.
+ * Clerk Klee adapter — isomorphic inventory proof, not the Chamber picture.
  *
- * Uses the same seeded RNG as the Chamber engine. It does not call
- * requestAnimationFrame, workers, or Math.random. Time is an explicit
- * argument so frame n is a pure function of seed, preset, and n.
+ * The Chamber paints with KleeEngine at explicit time (`chamber-paint.js`).
+ * This polyline clerk remains the jsdom-safe decoded-identity pin.
  */
 
 import { createSeededRandom } from '../../visuals/lib/klee-core.js';

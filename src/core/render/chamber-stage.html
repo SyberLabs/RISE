@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RISE Chamber stage</title>
+  <link rel="stylesheet" href="/src/design-system.css">
+  <link rel="stylesheet" href="/src/components/Chamber.css">
+  <link rel="stylesheet" href="/src/visuals/visuals.css">
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--color-void, #0A0A0C);
+    }
+    .chamber {
+      min-height: 100%;
+      height: 100%;
+    }
+    .chamber-display {
+      min-height: 100% !important;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    .chamber-field {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="chamber">
+    <div class="chamber-display" id="chamber-display">
+      <div class="chamber-field" id="chamber-field">
+        <div class="chamber-genesis" id="visual-host" aria-hidden="true"></div>
+        <div class="atom-band" id="atom-band">
+          <div class="atom-display glass-tile" id="atom-display"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/core/render/chamber-stage.js"></script>
+</body>
+</html>

@@ -30,10 +30,10 @@ import {
 import { ExperienceProgramValidationError } from '../core/experience-program.js';
 import {
   AgentOperationError,
-  applyAgentOperationSet,
   summarizeAgentOperationSet
 } from '../core/agent-operations.js';
 import { emptyWorkshopProject } from '../core/workshop-project.js';
+import { ProducerError, runProducer } from '../core/producer.js';
 import {
   previewProgramChoices,
   resolveProgramLibrarySources,
@@ -463,7 +463,7 @@ export class Scriptorium {
         return null;
       }
       const resolvedSources = Object.fromEntries(sources.map(source => [source.id, source]));
-      const applied = applyAgentOperationSet({
+      const produced = await runProducer({
         project: emptyWorkshopProject({
           id: this.operationSet.projectId,
           title: this.intent.trim().slice(0, 80) || this.operationSet.id,
@@ -471,9 +471,11 @@ export class Scriptorium {
         }),
         operationSet: this.operationSet,
         context: this.context,
-        resolvedSources
+        resolvedSources,
+        render: false
       });
-      return applied.project;
+      this.producer = produced;
+      return produced.project;
     } catch (error) {
       this.verdict = {
         ok: false,
@@ -481,7 +483,8 @@ export class Scriptorium {
       };
       this.status = (error instanceof AgentOperationError
         || error instanceof ExperienceProgramIoError
-        || error instanceof ExperienceProgramValidationError)
+        || error instanceof ExperienceProgramValidationError
+        || error instanceof ProducerError)
         ? 'Refused.'
         : (error.message || 'Refused.');
       this.render();

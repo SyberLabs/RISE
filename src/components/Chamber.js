@@ -15,7 +15,7 @@ import { escapeHtml } from '../core/sanitize.js';
 // The reveal and its emphasis notation are pure logic — no DOM, no
 // audio — so they live in core and are tested without a browser.
 import {
-  splitWords, stripEmphasis, revealBudget, revealSchedule
+  splitWords, stripEmphasis, sizeAtomScale, revealBudget, revealSchedule
 } from '../core/recitation.js';
 import { Voice } from '../audio/voice.js';
 import { scoreAtoms, planInterlocution } from '../core/conductor.js';
@@ -1360,13 +1360,8 @@ export class Chamber {
    * otherwise push a phrase into a smaller face than it needs.
    */
   sizeAtomText(atomDisplay, content) {
-    const shown = stripEmphasis(content).length;
-    let scale = 1;
-    if (shown > 20) scale = 56 / 72;
-    if (shown > 40) scale = 40 / 72;
-    if (shown > 60) scale = 32 / 72;
     atomDisplay.style.removeProperty('font-size');
-    atomDisplay.style.setProperty('--atom-scale', String(scale));
+    atomDisplay.style.setProperty('--atom-scale', String(sizeAtomScale(content)));
   }
 
   applyLivingText(atomDisplay, index) {

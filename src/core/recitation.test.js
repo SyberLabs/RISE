@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-    splitWords, stripEmphasis, revealBudget, revealSchedule, speechOnsets,
+    splitWords, stripEmphasis, sizeAtomScale, revealBudget, revealSchedule, speechOnsets,
     REVEAL_SHARE, REVEAL_MAX_MS, REVEAL_MIN_ATOM_MS,
     SPOKEN_REVEAL_TIME_SCALE
 } from './recitation.js';
@@ -38,6 +38,13 @@ describe('authored emphasis', () => {
             .toBe('how beautiful and amazing');
         expect(stripEmphasis('')).toBe('');
         expect(stripEmphasis(null)).toBe('');
+    });
+
+    it('steps the Chamber atom face down for longer phrases', () => {
+        expect(sizeAtomScale('Happy families')).toBe(1);
+        expect(sizeAtomScale('Happy families are all alike; every')).toBe(56 / 72);
+        expect(sizeAtomScale('A'.repeat(41))).toBe(40 / 72);
+        expect(sizeAtomScale('A'.repeat(61))).toBe(32 / 72);
     });
 
     it('survives repeated calls', () => {

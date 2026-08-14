@@ -719,6 +719,42 @@ export function describeImportFailure(error, { context = null } = {}) {
         'Publication is a human decision over one hashed artifact. Rendering does not post.'
       );
       break;
+    case 'PRODUCER_NO_SCORE':
+    case 'PRODUCER_PROFILE':
+      lines.push(
+        `${error.message}`,
+        'The producer compiles a private review from a finished score. It cannot admit or publish.'
+      );
+      break;
+    case 'PUBLICATION_POLICY_HUMAN_REQUIRED':
+    case 'PUBLICATION_ACCOUNTABLE':
+      lines.push(
+        `${error.message}`,
+        'A named person adopts the channel and remains accountable. The agent cannot.'
+      );
+      break;
+    case 'PUBLICATION_EMERGENCY_STOP':
+      lines.push(
+        `${error.message}`,
+        'Clear the stop only after a person has reviewed the channel.'
+      );
+      break;
+    case 'PUBLICATION_FREQUENCY':
+    case 'PUBLICATION_COST':
+      lines.push(
+        `${error.message}`,
+        'The channel has a daily ceiling. Wait, or raise it as a person.'
+      );
+      break;
+    case 'PUBLICATION_ESCALATE':
+    case 'PUBLICATION_RIGHTS_WITHDRAWN':
+    case 'PUBLICATION_CUSTODY':
+    case 'PUBLICATION_POLICY_PROFILE':
+      lines.push(
+        `${error.message}`,
+        'Automation may retry an approved artifact; it cannot waive review, rights, or custody.'
+      );
+      break;
     default:
       lines.push(error?.message || 'The score was refused.');
   }

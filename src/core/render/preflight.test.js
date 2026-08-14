@@ -92,6 +92,65 @@ function sliceProgram() {
   });
 }
 
+function swellProgram() {
+  return validateExperienceProgram({
+    schema: EXPERIENCE_PROGRAM_SCHEMA,
+    id: 'swell-score',
+    authority: 'user',
+    editable: true,
+    tracks: [
+      {
+        id: 'movements',
+        kind: 'movement',
+        clips: [{
+          id: 'm1',
+          anchor: { sourceIds: [SOURCE_ID] },
+          data: { index: 0, title: 'One' }
+        }]
+      },
+      {
+        id: 'swells',
+        kind: 'swell',
+        clips: [{
+          id: 's1',
+          anchor: { sourceIds: [SOURCE_ID] },
+          cue: { kind: 'swell', swellId: 'pressure-hit' }
+        }]
+      }
+    ]
+  });
+}
+
+function collectionProgram() {
+  return validateExperienceProgram({
+    schema: EXPERIENCE_PROGRAM_SCHEMA,
+    id: 'collection-score',
+    authority: 'user',
+    editable: true,
+    tracks: [
+      {
+        id: 'movements',
+        kind: 'movement',
+        clips: [{
+          id: 'm1',
+          anchor: { sourceIds: [SOURCE_ID] },
+          data: { index: 0, title: 'One' }
+        }]
+      },
+      {
+        id: 'visual-main',
+        kind: 'visual',
+        clips: [{
+          id: 'c1',
+          anchor: { sourceIds: [SOURCE_ID] },
+          cue: { kind: 'sourced', collections: ['aic-oldmasters'] }
+        }],
+        fallback: { kind: 'still' }
+      }
+    ]
+  });
+}
+
 function genesisProgram() {
   return validateExperienceProgram({
     schema: EXPERIENCE_PROGRAM_SCHEMA,
@@ -202,7 +261,7 @@ describe('render preflight', () => {
   });
 
   it('refuses an unsupported required cue instead of omitting it', async () => {
-    const program = genesisProgram();
+    const program = swellProgram();
     const job = await jobFor(program, { assetSnapshots: [] });
     const report = await preflightRenderJob({
       job,
@@ -219,8 +278,50 @@ describe('render preflight', () => {
     });
     expect(report.verdict).toBe(PREFLIGHT_VERDICTS.REFUSED);
     expect(report.refusals.some(item => item.code === 'RENDER_CUE_UNSUPPORTED')).toBe(true);
-    expect(describePreflightFailure(report)).toMatch(/Genesis fields/i);
+    expect(describePreflightFailure(report)).toMatch(/Swell/i);
     expect(describePreflightFailure(report)).toMatch(/Replace this cue/);
+  });
+
+  it('accepts a genesis field as a native Chamber painter', async () => {
+    const program = genesisProgram();
+    const job = await jobFor(program, { assetSnapshots: [] });
+    const report = await preflightRenderJob({
+      job,
+      program,
+      inventory: {
+        sources: job.sourceSnapshots.map(snapshot => ({
+          sourceId: snapshot.sourceId,
+          contentHash: snapshot.contentHash,
+          byteLength: 100,
+          characterCount: 40
+        })),
+        assets: []
+      }
+    });
+    expect(report.verdict).toBe(PREFLIGHT_VERDICTS.RENDERABLE);
+    expect(report.cues.some(item => item.cueKind === 'visual:field:genesis' && item.render === 'native'))
+      .toBe(true);
+  });
+
+  it('refuses a museum collection that has no admitted stills', async () => {
+    const program = collectionProgram();
+    const job = await jobFor(program, { assetSnapshots: [] });
+    const report = await preflightRenderJob({
+      job,
+      program,
+      inventory: {
+        sources: job.sourceSnapshots.map(snapshot => ({
+          sourceId: snapshot.sourceId,
+          contentHash: snapshot.contentHash,
+          byteLength: 100,
+          characterCount: 40
+        })),
+        assets: []
+      }
+    });
+    expect(report.verdict).toBe(PREFLIGHT_VERDICTS.REFUSED);
+    expect(report.refusals.some(item => item.code === 'RENDER_COLLECTION_UNPINNED')).toBe(true);
+    expect(describePreflightFailure(report)).toMatch(/admit stills/i);
   });
 
   it('refuses a program that does not match the job hash', async () => {

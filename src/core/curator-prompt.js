@@ -232,8 +232,10 @@ export function buildCuratorPrompt({ intent = '', context = null } = {}) {
     'create/remove-sync-group, set-atmosphere, set-render-profile, request-preview,',
     'request-compile.',
     'Do not invent ops. Do not emit create-transition until the Workshop has it.',
-    'There is no publish, approve, deliver, or withdraw operation. Publication is',
-    'a human decision over a hashed artifact; rendering does not post.',
+    'There is no publish, approve, deliver, withdraw, or channel-policy operation.',
+    'A host producer may compile a private review and queue it. You cannot admit',
+    'a candidate or post an artifact.',
+    'Publication is a human decision over a hashed artifact; rendering does not post.',
     'baseRevision must match the project; a newer human edit refuses the set.',
     'Rationale is optional explanation and never enters the Experience Program.'
   );

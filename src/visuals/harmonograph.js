@@ -121,7 +121,8 @@ export class Harmonograph {
         ctx.lineJoin = 'round';
 
         const anchors = this.plan.anchors;
-        const steps = this.envelope.length;
+        const progress = Math.max(0, Math.min(1, options.progress ?? 1));
+        const steps = Math.max(2, Math.floor(this.envelope.length * progress));
         const batch = 80; // segments per stroke, colored along the decay
 
         // Pass 1 — glow: one wide, faint understroke in the climate's

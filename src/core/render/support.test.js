@@ -107,14 +107,21 @@ describe('render-support registry', () => {
       .toBe('audio:soundscape');
     expect(classifyCue({ kind: 'pace', wpm: 160 }, 'reading')).toBe('reading:pace');
     expect(renderSupportFor('visual:procedural:klee').render).toBe('native');
+    expect(renderSupportFor('visual:procedural:turrell').render).toBe('native');
+    expect(renderSupportFor('visual:procedural:fractal').render).toBe('native');
+    expect(renderSupportFor('visual:procedural:neural').render).toBe('native');
+    expect(renderSupportFor('visual:procedural:rockgarden').render).toBe('native');
+    expect(renderSupportFor('visual:procedural:harmonograph').render).toBe('native');
     expect(renderSupportFor('visual:video').render).toBe('native');
   });
 
-  it('classifies live shuffle, fields, and work engines as unsupported', () => {
+  it('classifies live shuffle, fields, and work engines as native Chamber painters', () => {
     expect(classifyCue({
       kind: 'field', renderer: 'genesis', config: {}
     }, 'visual')).toBe('visual:field:genesis');
-    expect(renderSupportFor('visual:field:genesis').render).toBe('unsupported');
+    expect(renderSupportFor('visual:field:genesis').render).toBe('native');
+    expect(renderSupportFor('visual:field:attractor').render).toBe('native');
+    expect(renderSupportFor('visual:focal').render).toBe('native');
     expect(classifyCue({
       kind: 'procedural',
       collections: ['paradise-lost'],
@@ -122,12 +129,19 @@ describe('render-support registry', () => {
     }, 'visual')).toBe('visual:procedural:work-engine');
     expect(classifyCue({
       kind: 'procedural',
+      collections: ['storm-of-steel']
+    }, 'visual')).toBe('visual:procedural:work-engine');
+    expect(renderSupportFor('visual:procedural:work-engine').render).toBe('native');
+    expect(classifyCue({
+      kind: 'procedural',
       collections: ['klee', 'turrell']
     }, 'visual')).toBe('visual:procedural:shuffled');
+    expect(renderSupportFor('visual:procedural:shuffled').render).toBe('native');
     expect(classifyCue({
       kind: 'sourced',
       collections: ['aic-oldmasters']
     }, 'visual')).toBe('visual:sourced:collection');
+    expect(renderSupportFor('visual:sourced:collection').render).toBe('native');
     expect(classifyCue({ kind: 'swell', swellId: 'pressure-hit' }, 'swell'))
       .toBe('swell:swell');
     expect(renderSupportFor('swell:swell').render).toBe('unsupported');

@@ -7,7 +7,7 @@ import { join } from 'node:path';
 
 const TEXT_FILES = ['captions.vtt', 'captions.srt', 'captions.json', 'credits.txt'];
 const JSON_FILES = ['rights-report.json', 'render-manifest.json', 'diagnostics.json'];
-const BINARY_FILES = ['poster.bmp', 'thumbnail.bmp'];
+const BINARY_FILES = ['poster.bmp', 'thumbnail.bmp', 'experience.mp4'];
 
 export function writeRenderPackageDir(dir, pack) {
   mkdirSync(dir, { recursive: true });
