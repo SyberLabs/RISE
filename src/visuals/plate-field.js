@@ -1,11 +1,11 @@
 /**
- * Gallery plates — Iris and Spectral draw across the dwell.
+ * Gallery plates — Iris draws across the dwell; Spectral is a still.
  *
  * ContinuousField is image-only. Harmonograph already has a living
  * layer; this is that layer for Ostensoria and Apparitio. The engines
- * generate a finished plate once per dwell; the time adapter reveals it.
- * Full-frame and behind-stream keep a finished still. Reduced motion
- * holds the completed plate.
+ * generate a finished plate once per dwell; Iris is revealed by the
+ * time adapter, Spectral appears complete. Full-frame and behind-stream
+ * keep a finished still. Reduced motion holds the completed plate.
  */
 
 import { Ostensoria } from './ostensoria.js';
@@ -111,12 +111,18 @@ export class PlateField {
 
     _progress(plane) {
         if (this.reducedMotion) return 1;
+        // Spectral keeps a finished still. The time adapter remains on
+        // Apparitio.render; Gallery simply does not drive it.
+        if (plane.family !== 'ostensoria') return 1;
         return galleryDrawProgress(plane.elapsedMs, this.dwellMs);
     }
 
     _draw(plane) {
         if (!plane?.engine) return;
-        plane.engine.render(plane.canvas, { progress: this._progress(plane) });
+        const progress = this._progress(plane);
+        if (progress >= 1 && plane._drawnComplete) return;
+        plane.engine.render(plane.canvas, { progress });
+        if (progress >= 1) plane._drawnComplete = true;
     }
 
     _rotate(first) {
@@ -130,7 +136,9 @@ export class PlateField {
         const engine = new Engine();
         engine.generate(this.getSignal() || null, `gallery-plate:${id}:${this._cursor}`);
         incoming.engine = engine;
+        incoming.family = id;
         incoming.elapsedMs = this.reducedMotion ? this.dwellMs : 0;
+        incoming._drawnComplete = false;
         this._draw(incoming);
         incoming.canvas.style.transition = this.reducedMotion || first
             ? 'none'

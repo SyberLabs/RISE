@@ -7,22 +7,64 @@
  * is the finished plate — cores of ink first, wash later.
  *
  * Spatial bias is the only family difference: Iris Plates open from the
- * centre; Spectral Plates unfurl from the mirror axis.
+ * centre; Spectral Plates unfurl from the mirror axis. Gallery uses the
+ * time adapter for Iris only; Spectral keeps a finished still.
+ *
+ * Presentation: a plate is a square. Cover-scaling it onto a landscape
+ * or portrait Chamber crops the figure and upscales the bake. Contain
+ * with a short-side inset keeps the whole plate on the glass.
  */
 
 const VOID = '#0A0A0C';
 
 export const OSTENSORIA_PAPER_RGB = [10, 10, 12];
 export const APPARITIO_VOID_RGB = [10, 10, 12];
+export const PLATE_FIT_INSET = 0.08;
+export const PLATE_FIT_MIN_PAD = 24;
 
-function coverBlit(ctx, canvas, src) {
-  ctx.fillStyle = VOID;
+/**
+ * Bake resolution index for Chamber. HTML draft (760) is too small once
+ * the plate is shown on a retina display; never drop below 1000px.
+ *
+ * @param {{ innerWidth?: number, innerHeight?: number, devicePixelRatio?: number }} [view]
+ * @returns {2|3|4}
+ */
+export function chamberPlateQuality(view = typeof window !== 'undefined' ? window : null) {
+  const w = Number(view?.innerWidth) || 1280;
+  const h = Number(view?.innerHeight) || 800;
+  const dpr = Math.min(2, Math.max(1, Number(view?.devicePixelRatio) || 1));
+  const edge = Math.min(w, h) * dpr * (1 - PLATE_FIT_INSET * 2);
+  if (edge >= 1300) return 4;
+  if (edge >= 1080) return 3;
+  return 2;
+}
+
+export function plateFitRect(canvasWidth, canvasHeight, srcWidth, srcHeight) {
+  const sw = Math.max(1, Number(srcWidth) || 1);
+  const sh = Math.max(1, Number(srcHeight) || 1);
+  const short = Math.min(canvasWidth, canvasHeight);
+  const pad = Math.max(PLATE_FIT_MIN_PAD, Math.round(short * PLATE_FIT_INSET));
+  const availW = Math.max(1, canvasWidth - pad * 2);
+  const availH = Math.max(1, canvasHeight - pad * 2);
+  const scale = Math.min(availW / sw, availH / sh);
+  const tw = sw * scale;
+  const th = sh * scale;
+  return {
+    x: (canvasWidth - tw) / 2,
+    y: (canvasHeight - th) / 2,
+    width: tw,
+    height: th
+  };
+}
+
+export function fitPlateBlit(ctx, canvas, src, voidFill = VOID) {
+  ctx.fillStyle = voidFill;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   if (!src?.width || !src?.height) return;
-  const scale = Math.max(canvas.width / src.width, canvas.height / src.height);
-  const tw = src.width * scale;
-  const th = src.height * scale;
-  ctx.drawImage(src, (canvas.width - tw) / 2, (canvas.height - th) / 2, tw, th);
+  const rect = plateFitRect(canvas.width, canvas.height, src.width, src.height);
+  ctx.imageSmoothingEnabled = true;
+  if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, rect.x, rect.y, rect.width, rect.height);
 }
 
 function spatialWeight(x, y, w, h, spatial) {
@@ -118,7 +160,7 @@ export function revealPlate(canvas, spec = {}) {
   const paper = paperRgb || APPARITIO_VOID_RGB;
 
   if (t >= 1 && plate) {
-    coverBlit(ctx, canvas, plate);
+    fitPlateBlit(ctx, canvas, plate);
     return true;
   }
   if (t <= 0 || !plateData?.data || !order) {
@@ -128,7 +170,7 @@ export function revealPlate(canvas, spec = {}) {
 
   const next = ensureScratch(scratch, width, height);
   if (!next) {
-    if (plate) coverBlit(ctx, canvas, plate);
+    if (plate) fitPlateBlit(ctx, canvas, plate);
     return !!plate;
   }
   const src = plateData.data;
@@ -152,7 +194,7 @@ export function revealPlate(canvas, spec = {}) {
   }
   next.ctx.putImageData(next.imageData, 0, 0);
   spec.scratch = next;
-  coverBlit(ctx, canvas, next.canvas);
+  fitPlateBlit(ctx, canvas, next.canvas);
   return true;
 }
 

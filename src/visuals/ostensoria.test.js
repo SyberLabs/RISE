@@ -21,6 +21,7 @@ describe('Ostensoria engine', () => {
         expect(a.cur.palette).toBe(b.cur.palette);
         expect(a.look.palette).toBe(b.look.palette);
         expect(['reliquary', 'ice']).toContain(a.look.palette);
+        expect(a.cur.quality).toBeGreaterThanOrEqual(2);
         expect(a.coverage.sparse).toBe(false);
         expect(a.coverage.voidFraction).toBeLessThan(VOID_FRACTION_LIMIT);
     }, 30_000);

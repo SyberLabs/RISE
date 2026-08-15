@@ -9,6 +9,8 @@ import {
   APPARITIO_VOID_RGB,
   buildPlateOrderFromRgb,
   capturePlateData,
+  chamberPlateQuality,
+  fitPlateBlit,
   revealPlate
 } from './plate-draw.js';
 
@@ -62,12 +64,7 @@ function randomSeed(){
 }
 
 function coverBlit(ctx, canvas, src){
-  ctx.fillStyle = VOID;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  if(!src?.width || !src?.height) return;
-  const scale = Math.max(canvas.width / src.width, canvas.height / src.height);
-  const tw = src.width * scale, th = src.height * scale;
-  ctx.drawImage(src, (canvas.width - tw) / 2, (canvas.height - th) / 2, tw, th);
+  fitPlateBlit(ctx, canvas, src, VOID);
 }
 
 export class Apparitio {
@@ -88,7 +85,7 @@ export class Apparitio {
       reach: options.reach != null ? +options.reach : (0.6+sr()*0.5),
       filigree: options.filigree != null ? +options.filigree : (0.4+sr()*1.1),
       crown: options.crown || 'auto',
-      quality: options.quality != null ? +options.quality : 1
+      quality: options.quality != null ? +options.quality : chamberPlateQuality()
     };
     const look = {
       exposure: options.exposure != null ? +options.exposure : 1.6,

@@ -354,12 +354,7 @@ const stage = {
       engine.generate(null, `${ctx.seed}:apparitio`);
       return { engine, destroy() {} };
     });
-    painter.engine.render(this.canvas, {
-      progress: galleryDrawProgress(
-        ctx.elapsedMs,
-        ctx.durationMs || galleryCadenceTimings(GALLERY_CADENCE_DEFAULT).dwellMs
-      )
-    });
+    painter.engine.render(this.canvas);
   },
 
   async paintRockGarden(ctx) {

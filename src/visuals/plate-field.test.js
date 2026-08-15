@@ -60,9 +60,9 @@ describe('PlateField', () => {
         field.destroy();
     });
 
-    it('advances the reveal on the gallery clock', () => {
+    it('advances the Iris reveal on the gallery clock', () => {
         const field = new PlateField(host, {
-            families: ['apparitio'],
+            families: ['ostensoria'],
             dwellMs: 8_000,
             crossfadeMs: 1_200
         });
@@ -72,6 +72,19 @@ describe('PlateField', () => {
         const latest = progresses.at(-1);
         expect(latest).toBeGreaterThan(0);
         expect(latest).toBeLessThan(1);
+        field.destroy();
+    });
+
+    it('holds Spectral Plates as a finished still', () => {
+        const field = new PlateField(host, {
+            families: ['apparitio'],
+            dwellMs: 8_000,
+            crossfadeMs: 1_200
+        });
+        field.start();
+        expect(progresses[0]).toBe(1);
+        for (let t = 16; t <= 2_000; t += 16) frame(t);
+        expect(progresses.every(p => p === 1)).toBe(true);
         field.destroy();
     });
 

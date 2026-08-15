@@ -7,6 +7,8 @@ import {
     APPARITIO_VOID_RGB,
     buildPlateOrder,
     buildPlateOrderFromRgb,
+    chamberPlateQuality,
+    plateFitRect,
     revealPlate
 } from './plate-draw.js';
 
@@ -65,5 +67,25 @@ describe('plate-draw adapter', () => {
         expect(revealPlate(canvas, { plate, progress: 1 })).toBe(true);
         expect(drawImage).toHaveBeenCalledWith(plate, expect.any(Number), expect.any(Number),
             expect.any(Number), expect.any(Number));
+    });
+
+    it('contains a square plate inside the canvas with a pad, never covering', () => {
+        const rect = plateFitRect(1920, 1080, 1000, 1000);
+        expect(rect.width).toBeLessThan(1080);
+        expect(rect.height).toBe(rect.width);
+        expect(rect.x).toBeGreaterThan(0);
+        expect(rect.y).toBeGreaterThan(0);
+        expect(rect.x + rect.width).toBeLessThan(1920);
+        expect(rect.y + rect.height).toBeLessThan(1080);
+
+        const phone = plateFitRect(780, 1688, 1000, 1000);
+        expect(phone.width).toBeLessThan(780);
+        expect(phone.x).toBeGreaterThan(0);
+    });
+
+    it('picks a Chamber bake above HTML draft, and a finer one on a large retina screen', () => {
+        expect(chamberPlateQuality({ innerWidth: 390, innerHeight: 844, devicePixelRatio: 2 })).toBe(2);
+        expect(chamberPlateQuality({ innerWidth: 1920, innerHeight: 1080, devicePixelRatio: 1 })).toBe(2);
+        expect(chamberPlateQuality({ innerWidth: 1920, innerHeight: 1080, devicePixelRatio: 2 })).toBe(4);
     });
 });

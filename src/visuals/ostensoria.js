@@ -8,6 +8,8 @@
 import {
   buildPlateOrder,
   capturePlateData,
+  chamberPlateQuality,
+  fitPlateBlit,
   OSTENSORIA_PAPER_RGB,
   revealPlate
 } from './plate-draw.js';
@@ -154,12 +156,7 @@ function randomSeed(){
 }
 
 function coverBlit(ctx, canvas, src){
-  ctx.fillStyle = VOID;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  if(!src?.width || !src?.height) return;
-  const scale = Math.max(canvas.width / src.width, canvas.height / src.height);
-  const tw = src.width * scale, th = src.height * scale;
-  ctx.drawImage(src, (canvas.width - tw) / 2, (canvas.height - th) / 2, tw, th);
+  fitPlateBlit(ctx, canvas, src, VOID);
 }
 
 export const OSTENSORIA_SPARSE_TRIES = 12;
@@ -283,7 +280,8 @@ export class Ostensoria {
   /**
    * @param {Object} [signal]
    * @param {string|number} [seed]
-   * @param {Object} [options] original form/look knobs; quality defaults to draft
+   * @param {Object} [options] original form/look knobs; quality defaults
+   *   to Chamber-adaptive (never HTML draft 760)
    */
   _bake(signal, seed, options = {}) {
     const seedStr = seed == null ? randomSeed() : (String(seed).trim() || 'OSTENSORIA');
@@ -294,7 +292,7 @@ export class Ostensoria {
       family: options.family || 'auto',
       order: options.order != null ? +options.order : orders[(sr()*orders.length)|0],
       mirror: options.mirror != null ? !!options.mirror : sr()>0.12,
-      quality: options.quality != null ? +options.quality : 1
+      quality: options.quality != null ? +options.quality : chamberPlateQuality()
     };
     const rolledPalette = sr() < 0.5 ? 'reliquary' : 'ice';
     const palette = RAMPS[options.palette] ? options.palette : rolledPalette;

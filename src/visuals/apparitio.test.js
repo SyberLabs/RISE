@@ -17,6 +17,7 @@ describe('Apparitio engine', () => {
         expect(a.cur.crown).toBe(b.cur.crown);
         expect(a.cur.phase).toBe(b.cur.phase);
         expect(a.cur.flowSig).toBe(b.cur.flowSig);
+        expect(a.cur.quality).toBeGreaterThanOrEqual(2);
     }, 30_000);
 
     it('a different seed yields a different apparition', () => {
