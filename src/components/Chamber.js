@@ -25,6 +25,10 @@ import {
   MovementScheduleController,
   AudioScheduleController
 } from '../core/journey-schedulers.js';
+import {
+  applyVisualViewportBottom,
+  clearVisualViewportBottom
+} from '../core/visual-viewport.js';
 
 /**
  * Chamber Component
@@ -218,6 +222,7 @@ export class Chamber {
 
     this.render();
     this.attachEvents();
+    this.bindVisualViewport();
     this.initializeDisplay();
 
     // A spatial reading opens as a page (SPATIAL-CHAMBER-SPEC §3).
@@ -2471,7 +2476,29 @@ export class Chamber {
     document.removeEventListener('keydown', this.boundKeyboardHandler);
   }
 
+  bindVisualViewport() {
+    this._syncVisualViewport = () => {
+      applyVisualViewportBottom(document.documentElement);
+    };
+    this._syncVisualViewport();
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', this._syncVisualViewport, { passive: true });
+    vv?.addEventListener('scroll', this._syncVisualViewport, { passive: true });
+    window.addEventListener('resize', this._syncVisualViewport, { passive: true });
+  }
+
+  unbindVisualViewport() {
+    if (!this._syncVisualViewport) return;
+    const vv = window.visualViewport;
+    vv?.removeEventListener('resize', this._syncVisualViewport);
+    vv?.removeEventListener('scroll', this._syncVisualViewport);
+    window.removeEventListener('resize', this._syncVisualViewport);
+    this._syncVisualViewport = null;
+    clearVisualViewportBottom(document.documentElement);
+  }
+
   destroy() {
+    this.unbindVisualViewport();
     this._bandMoveCleanup?.();
     this._bandMoveCleanup = null;
     if (this._bandResize) {

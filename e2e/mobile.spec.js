@@ -690,6 +690,9 @@ test('Page Mode keeps the whole measure on the screen', async ({ page }) => {
     expect(m.barGap,
         `the bar sits ${m.barGap}px from the bottom in Page Mode but ${streamBottom}px in the Stream`)
         .toBeGreaterThanOrEqual(streamBottom);
+    expect(streamBottom,
+        `the Stream bar has only ${streamBottom}px of air above the screen edge`)
+        .toBeGreaterThanOrEqual(20);
 });
 
 /** Premium mobile threshold (Premium_Mobile_Chamber P1–P7). */

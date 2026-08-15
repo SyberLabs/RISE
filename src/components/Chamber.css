@@ -5,10 +5,12 @@
 
 .chamber {
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--color-void);
   position: relative;
   display: flex;
   flex-direction: column;
+  --chamber-controls-clearance: var(--space-xl);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -84,6 +86,7 @@
 .chamber-display {
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -283,11 +286,21 @@
   will-change: transform;
 }
 
-/* ─── Hidden Controls ─── */
+/* ─── Hidden Controls ───
+   Pinned to the VISIBLE viewport, not the 100vh column.
+
+   iOS Safari's `100vh` is the large viewport (chrome hidden). An
+   absolute bar at `bottom` of a min-height:100vh display therefore
+   lives in the strip under the URL bar — only its top peeks in.
+   That is intermittent because the chrome shows and hides, and
+   pinch-zoom shrinks visualViewport further. `position: fixed`
+   plus `--chamber-vv-bottom` (Visual Viewport API) keep a floor of
+   air between the glass edge and the bar. Safe-area env() is 0
+   without viewport-fit=cover, so it is not the guard. */
 
 .chamber-controls {
-  position: absolute;
-  bottom: var(--space-xl);
+  position: fixed;
+  bottom: calc(var(--chamber-controls-clearance) + var(--chamber-vv-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
 
@@ -393,6 +406,12 @@
    ───────────────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
+  .chamber {
+    /* Floor of 24px even after the phone density step shrinks
+       --space-md. This is the air between the screen edge and the bar. */
+    --chamber-controls-clearance: max(24px, var(--space-md));
+  }
+
   /* A TABLET STILL READS AS A STAGE. Between 641 and 768 the desktop
      composition holds and only the margin tightens; the phone
      composition takes over at 640. See "THE PHONE IS THE FRAME".
@@ -408,7 +427,6 @@
   }
 
   .chamber-controls {
-    bottom: var(--space-md);
     gap: var(--space-sm);
   }
 }
@@ -1288,7 +1306,7 @@
   }
 
   /* Icon-only controls (aria-label/title remain); wrap rather than
-     overflow. Pin left+right: absolute+transform shrink-to-fit wraps
+     overflow. Pin left+right: fixed+transform shrink-to-fit wraps
      into a narrow column instead of using available width. */
   .chamber-controls {
     left: var(--space-xs);
@@ -1318,8 +1336,8 @@
   }
 
   /* Page Mode: fewer controls — shrink-wrap and centre; keep the same
-     bottom offset as Stream so the bar does not jump. Do not rely on
-     safe-area alone for clearance without viewport-fit=cover (env is 0). */
+     bottom offset as Stream so the bar does not jump. Clearance is the
+     shared --chamber-controls-clearance, not a second bottom recipe. */
   .chamber-display.page-mode-on .chamber-controls {
     left: 50%;
     right: auto;
@@ -1330,7 +1348,6 @@
     gap: var(--space-xs);
     padding-left: var(--space-sm);
     padding-right: var(--space-sm);
-    bottom: calc(var(--space-xl) + env(safe-area-inset-bottom, 0px));
   }
 }
 
