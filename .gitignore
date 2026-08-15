@@ -77,3 +77,8 @@ science.json
 # never travel with the jobs. See docs/specs/CORPUS-REVIEWER-PROMPT.md
 corpus-review-*.json
 scratch/
+
+# Local HTML engine demos — extracted into src/visuals, not shipped
+/ostensoria.html
+/ostensoria (1).html
+/apparitio (2).html
