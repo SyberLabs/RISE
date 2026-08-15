@@ -63,7 +63,11 @@ export function fitPlateBlit(ctx, canvas, src, voidFill = VOID) {
   if (!src?.width || !src?.height) return;
   const rect = plateFitRect(canvas.width, canvas.height, src.width, src.height);
   ctx.imageSmoothingEnabled = true;
-  if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high';
+  try {
+    ctx.imageSmoothingQuality = 'high';
+  } catch {
+    /* Safari versions without the quality enum still smooth. */
+  }
   ctx.drawImage(src, rect.x, rect.y, rect.width, rect.height);
 }
 

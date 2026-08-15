@@ -95,6 +95,9 @@ export class PlateField {
             if (plane.canvas.width === w && plane.canvas.height === h) continue;
             plane.canvas.width = w;
             plane.canvas.height = h;
+            // Setting width/height clears the bitmap. A finished Spectral
+            // still must be blitted again or the plane stays void.
+            plane._drawnComplete = false;
             this._draw(plane);
         }
     }
@@ -121,8 +124,8 @@ export class PlateField {
         if (!plane?.engine) return;
         const progress = this._progress(plane);
         if (progress >= 1 && plane._drawnComplete) return;
-        plane.engine.render(plane.canvas, { progress });
-        if (progress >= 1) plane._drawnComplete = true;
+        const ok = plane.engine.render(plane.canvas, { progress });
+        if (progress >= 1 && ok) plane._drawnComplete = true;
     }
 
     _rotate(first) {
@@ -185,6 +188,7 @@ export class PlateField {
         this._mount();
         this._cursor = 0;
         this._rotate(true);
+        this._resize();
         if (this.reducedMotion) return;
         this._lastFrameAt = 0;
         this._nextRotateAt = performance.now() + this.dwellMs;
@@ -206,6 +210,7 @@ export class PlateField {
                 plane.canvas.style.opacity = '0';
                 plane.engine = null;
                 plane.elapsedMs = 0;
+                plane._drawnComplete = false;
             }
         }
     }

@@ -88,6 +88,22 @@ describe('PlateField', () => {
         field.destroy();
     });
 
+    it('repaints a Spectral still after the canvas is resized', () => {
+        const field = new PlateField(host, {
+            families: ['apparitio'],
+            dwellMs: 8_000,
+            crossfadeMs: 1_200
+        });
+        field.start();
+        const painted = progresses.length;
+        expect(painted).toBeGreaterThan(0);
+        host.getBoundingClientRect = () => ({ width: 400, height: 800, top: 0, left: 0, bottom: 800, right: 400 });
+        field._resize();
+        expect(progresses.length).toBeGreaterThan(painted);
+        expect(progresses.at(-1)).toBe(1);
+        field.destroy();
+    });
+
     it('reduced motion holds one finished plate, with no clock', () => {
         const field = new PlateField(host, {
             families: ['ostensoria'],
