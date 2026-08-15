@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSTENSORIA — a pattern engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#0a0a0c;
+    --ground-2:#111114;
+    --line:#26262b;
+    --ink:#e9e6dc;
+    --ink-dim:#8a877e;
+    --gold:#c8a24a;
+    --gold-dim:#7c6a3a;
+    --paper:#ecebe4;
+    --paper-warm:#e7e4d8;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--ground);color:var(--ink);}
+  body{
+    font-family:"Cormorant Garamond",Georgia,serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    position:relative;
+    overflow-x:hidden;
+  }
+  /* film grain over the whole chrome, static */
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:9;opacity:.05;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .wrap{max-width:1280px;margin:0 auto;padding:28px 22px 60px;}
+
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:26px;}
+  .brand{font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.42em;color:var(--gold);text-transform:uppercase;}
+  h1{font-family:"Cormorant Garamond",serif;font-weight:500;font-size:clamp(30px,6vw,54px);letter-spacing:.03em;margin:.12em 0 0;line-height:1;}
+  .tag{font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.14em;color:var(--ink-dim);max-width:34ch;text-align:right;}
+
+  .stage{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:34px;align-items:start;}
+  @media (max-width:880px){ .stage{grid-template-columns:1fr;} }
+
+  /* the plate */
+  .plate-frame{position:relative;background:var(--paper);border:1px solid var(--line);
+    box-shadow:0 1px 0 rgba(255,255,255,.03), 0 40px 80px -40px rgba(0,0,0,.8);padding:14px;}
+  .plate-inner{position:relative;border:1px solid rgba(20,18,14,.18);}
+  canvas{display:block;width:100%;height:auto;image-rendering:auto;}
+  .plate-label{position:absolute;left:12px;bottom:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-end;
+    font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.08em;color:rgba(24,22,18,.72);pointer-events:none;}
+  .plate-label .r{text-align:right;line-height:1.5;}
+  .plate-num{font-size:10px;letter-spacing:.14em;color:rgba(24,22,18,.55);}
+
+  .progress{position:absolute;left:14px;right:14px;top:14px;height:2px;background:rgba(20,18,14,.1);overflow:hidden;opacity:0;transition:opacity .2s;}
+  .progress.on{opacity:1;}
+  .progress i{display:block;height:100%;width:0;background:var(--gold);transition:width .06s linear;}
+
+  /* controls */
+  .rail{display:flex;flex-direction:column;gap:20px;}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  button{
+    font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    background:var(--ground-2);color:var(--ink);border:1px solid var(--line);padding:12px 10px;cursor:pointer;
+    transition:border-color .15s, color .15s, background .15s;
+  }
+  button:hover{border-color:var(--gold);color:#fff;}
+  button:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+  button.primary{background:var(--gold);color:#1a1408;border-color:var(--gold);font-weight:700;}
+  button.primary:hover{background:#d8b25c;}
+  button.wide{grid-column:1 / -1;}
+  button:disabled{opacity:.4;cursor:progress;}
+
+  fieldset{border:1px solid var(--line);padding:14px 14px 16px;margin:0;}
+  legend{font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);padding:0 8px;}
+  .ctl{margin-top:12px;}
+  .ctl:first-of-type{margin-top:4px;}
+  .ctl label{display:flex;justify-content:space-between;align-items:baseline;font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.06em;color:var(--ink-dim);text-transform:uppercase;margin-bottom:6px;}
+  .ctl label .val{color:var(--ink);}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;background:var(--line);outline:none;margin:6px 0;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--gold);cursor:pointer;border:2px solid var(--ground);}
+  input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--gold);cursor:pointer;border:2px solid var(--ground);}
+  input[type=range]:focus-visible::-webkit-slider-thumb{outline:2px solid var(--gold);outline-offset:2px;}
+  select, input[type=text]{width:100%;font-family:"Space Mono",monospace;font-size:11px;background:var(--ground-2);color:var(--ink);border:1px solid var(--line);padding:8px;letter-spacing:.05em;}
+  select:focus-visible, input[type=text]:focus-visible{outline:2px solid var(--gold);outline-offset:1px;}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .toggle{display:flex;align-items:center;gap:8px;font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.06em;color:var(--ink-dim);text-transform:uppercase;cursor:pointer;user-select:none;margin-top:12px;}
+  .toggle input{accent-color:var(--gold);width:15px;height:15px;}
+  .seedrow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;}
+  .hint{font-family:"Space Mono",monospace;font-size:9.5px;letter-spacing:.04em;color:var(--ink-dim);line-height:1.6;margin-top:10px;}
+  a{color:var(--gold);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand">SyberLabs · Pattern Engine</div>
+      <h1>Ostensoria</h1>
+    </div>
+    <div class="tag">Sacred vessels grown from strange-attractor density. Each seed is one plate, drawn once and never again.</div>
+  </header>
+
+  <div class="stage">
+    <div class="plate-frame">
+      <div class="plate-inner">
+        <canvas id="cv" width="1000" height="1000" aria-label="generated plate"></canvas>
+        <div class="progress" id="prog"><i></i></div>
+        <div class="plate-label">
+          <div id="lblLeft">OSTENSORIA</div>
+          <div class="r" id="lblRight"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rail">
+      <div class="actions">
+        <button class="primary wide" id="btnNew">New plate</button>
+        <button id="btnRender">Re-develop</button>
+        <button id="btnExport">Export PNG</button>
+      </div>
+
+      <fieldset>
+        <legend>Seed</legend>
+        <div class="ctl seedrow">
+          <input type="text" id="seed" spellcheck="false" aria-label="seed">
+          <button id="btnCopy" style="padding:8px 10px;">Copy</button>
+        </div>
+        <div class="hint">Same seed and settings always yield the same plate. Change the seed for a new one.</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Form</legend>
+        <div class="ctl">
+          <label for="family">Attractor</label>
+          <select id="family">
+            <option value="auto">Auto (seed decides)</option>
+            <option value="clifford">Clifford</option>
+            <option value="dejong">De Jong</option>
+            <option value="svensson">Svensson</option>
+            <option value="fractal">Fractal dream</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label for="order">Symmetry order <span class="val" id="orderV"></span></label>
+          <input type="range" id="order" min="1" max="12" step="1" value="2">
+        </div>
+        <label class="toggle"><input type="checkbox" id="mirror" checked> Mirror axis (dihedral)</label>
+        <div class="ctl">
+          <label for="quality">Density <span class="val" id="qualityV"></span></label>
+          <input type="range" id="quality" min="1" max="4" step="1" value="2">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Light</legend>
+        <div class="ctl">
+          <label for="exposure">Exposure <span class="val" id="exposureV"></span></label>
+          <input type="range" id="exposure" min="0.2" max="6" step="0.05" value="2.1">
+        </div>
+        <div class="ctl">
+          <label for="gamma">Gamma <span class="val" id="gammaV"></span></label>
+          <input type="range" id="gamma" min="0.4" max="2.2" step="0.02" value="0.9">
+        </div>
+        <div class="ctl">
+          <label for="bloom">Bloom <span class="val" id="bloomV"></span></label>
+          <input type="range" id="bloom" min="0" max="1.4" step="0.02" value="0.6">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Color</legend>
+        <div class="ctl">
+          <label for="palette">Palette</label>
+          <select id="palette">
+            <option value="iris">Iris (full spectrum)</option>
+            <option value="reliquary">Reliquary (gold & cobalt)</option>
+            <option value="ember">Ember</option>
+            <option value="ice">Ice</option>
+            <option value="verdant">Verdant (green)</option>
+            <option value="gold">Gold (yellow)</option>
+            <option value="lilac">Lilac (light purple)</option>
+            <option value="rose">Rose (pink)</option>
+            <option value="teal">Teal (aqua)</option>
+            <option value="sepia">Sepia (warm mono)</option>
+            <option value="peacock">Peacock (green-blue)</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div class="ctl">
+          <label for="hue">Hue <span class="val" id="hueV"></span></label>
+          <input type="range" id="hue" min="0" max="1" step="0.005" value="0">
+        </div>
+        <div class="ctl">
+          <label for="bands">Bands <span class="val" id="bandsV"></span></label>
+          <input type="range" id="bands" min="0.4" max="4" step="0.05" value="1.4">
+        </div>
+        <div class="ctl">
+          <label for="sat">Saturation <span class="val" id="satV"></span></label>
+          <input type="range" id="sat" min="0" max="1" step="0.02" value="0.95">
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Optics</legend>
+        <div class="ctl">
+          <label for="chroma">Chromatic split <span class="val" id="chromaV"></span></label>
+          <input type="range" id="chroma" min="0" max="10" step="0.1" value="2.2">
+        </div>
+        <div class="ctl">
+          <label for="grain">Grain <span class="val" id="grainV"></span></label>
+          <input type="range" id="grain" min="0" max="0.16" step="0.005" value="0.05">
+        </div>
+        <label class="toggle"><input type="checkbox" id="imprint"> Imprint label into export</label>
+      </fieldset>
+
+      <div class="hint">Light, Color and Optics re-develop instantly from the cached field. Form, Density and Seed re-run the plate.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+(function(){
+  // ---------- seeded rng ----------
+  function xmur3(str){ let h=1779033703^str.length;
+    for(let i=0;i<str.length;i++){ h=Math.imul(h^str.charCodeAt(i),3432918353); h=h<<13|h>>>19; }
+    return function(){ h=Math.imul(h^h>>>16,2246822507); h=Math.imul(h^h>>>13,3266489909); h^=h>>>16; return h>>>0; };
+  }
+  function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+  // ---------- helpers ----------
+  const clamp=(x,a,b)=>x<a?a:x>b?b:x;
+  const smooth=(a,b,x)=>{ let t=clamp((x-a)/(b-a),0,1); return t*t*(3-2*t); };
+  const fract=x=>x-Math.floor(x);
+  function hsv2rgb(h,s,v,out){
+    h=fract(h)*6; const i=Math.floor(h), f=h-i;
+    const p=v*(1-s), q=v*(1-f*s), t=v*(1-(1-f)*s);
+    switch(i%6){
+      case 0: out[0]=v;out[1]=t;out[2]=p;break;
+      case 1: out[0]=q;out[1]=v;out[2]=p;break;
+      case 2: out[0]=p;out[1]=v;out[2]=t;break;
+      case 3: out[0]=p;out[1]=q;out[2]=v;break;
+      case 4: out[0]=t;out[1]=p;out[2]=v;break;
+      default:out[0]=v;out[1]=p;out[2]=q;break;
+    }
+  }
+
+  // curated spectral ramps: luminous bands with black separators (halo + ring gaps)
+  const RAMPS={
+    iris:[[0,[0,0,0]],[0.10,[0.13,0.05,0.55]],[0.27,[0.85,0.10,0.20]],[0.44,[1.0,0.45,0.06]],[0.59,[1.0,0.86,0.20]],[0.71,[0.45,0.90,0.40]],[0.83,[0.15,0.70,1.0]],[0.93,[0.45,0.30,0.90]],[1,[0,0,0]]],
+    reliquary:[[0,[0,0,0]],[0.18,[0.10,0.20,0.85]],[0.40,[0.55,0.80,1.0]],[0.50,[1,1,1]],[0.60,[1.0,0.80,0.40]],[0.80,[0.75,0.45,0.10]],[1,[0,0,0]]],
+    ember:[[0,[0,0,0]],[0.20,[0.55,0.05,0.10]],[0.42,[0.95,0.20,0.05]],[0.60,[1.0,0.55,0.10]],[0.76,[1.0,0.85,0.35]],[0.88,[1,1,0.85]],[1,[0,0,0]]],
+    ice:[[0,[0,0,0]],[0.22,[0.10,0.25,0.75]],[0.45,[0.20,0.65,1.0]],[0.62,[0.55,0.90,1.0]],[0.78,[0.90,0.98,1.0]],[0.90,[1,1,1]],[1,[0,0,0]]],
+    verdant:[[0,[0,0,0]],[0.16,[0.05,0.22,0.10]],[0.36,[0.10,0.55,0.20]],[0.54,[0.45,0.80,0.25]],[0.70,[0.80,0.95,0.45]],[0.85,[0.97,1.0,0.80]],[1,[0,0,0]]],
+    gold:[[0,[0,0,0]],[0.16,[0.35,0.18,0.02]],[0.36,[0.85,0.55,0.05]],[0.54,[1.0,0.80,0.15]],[0.70,[1.0,0.92,0.40]],[0.86,[1.0,1.0,0.85]],[1,[0,0,0]]],
+    lilac:[[0,[0,0,0]],[0.16,[0.20,0.12,0.38]],[0.36,[0.45,0.35,0.80]],[0.54,[0.65,0.55,0.95]],[0.70,[0.82,0.75,1.0]],[0.86,[0.95,0.92,1.0]],[1,[0,0,0]]],
+    rose:[[0,[0,0,0]],[0.16,[0.35,0.05,0.20]],[0.36,[0.85,0.15,0.45]],[0.54,[1.0,0.40,0.65]],[0.70,[1.0,0.68,0.82]],[0.86,[1.0,0.92,0.95]],[1,[0,0,0]]],
+    teal:[[0,[0,0,0]],[0.16,[0.02,0.22,0.24]],[0.36,[0.05,0.55,0.55]],[0.54,[0.20,0.80,0.75]],[0.70,[0.55,0.95,0.88]],[0.86,[0.90,1.0,0.97]],[1,[0,0,0]]],
+    sepia:[[0,[0,0,0]],[0.18,[0.25,0.15,0.08]],[0.40,[0.55,0.38,0.20]],[0.58,[0.80,0.62,0.40]],[0.76,[0.95,0.85,0.68]],[0.90,[1.0,0.98,0.92]],[1,[0,0,0]]],
+    peacock:[[0,[0,0,0]],[0.14,[0.05,0.20,0.15]],[0.32,[0.05,0.50,0.45]],[0.50,[0.10,0.55,0.85]],[0.66,[0.35,0.80,0.90]],[0.82,[0.75,0.95,0.85]],[0.92,[0.97,1.0,0.95]],[1,[0,0,0]]]
+  };
+  function buildLUT(anchors, sat){
+    const L=new Float32Array(256*3);
+    for(let i=0;i<256;i++){
+      const u=i/255; let j=0;
+      while(j<anchors.length-1 && u>anchors[j+1][0]) j++;
+      const a=anchors[j], b=anchors[Math.min(j+1,anchors.length-1)];
+      const span=(b[0]-a[0])||1, f=clamp((u-a[0])/span,0,1);
+      let r=a[1][0]+(b[1][0]-a[1][0])*f, g=a[1][1]+(b[1][1]-a[1][1])*f, bl=a[1][2]+(b[1][2]-a[1][2])*f;
+      const lum=0.299*r+0.587*g+0.114*bl;
+      L[i*3]=lum+(r-lum)*sat; L[i*3+1]=lum+(g-lum)*sat; L[i*3+2]=lum+(bl-lum)*sat;
+    }
+    return L;
+  }
+
+  // ---------- attractor families ----------
+  // each returns {step(x,y,out), name}
+  function makeAttractor(kind, rnd){
+    const R=(a,b)=>a+(b-a)*rnd();
+    if(kind==="clifford"){
+      const a=R(-2,2),b=R(-2,2),c=R(-2,2),d=R(-2,2);
+      return {name:"Clifford", coeff:[a,b,c,d], step:(x,y,o)=>{ o[0]=Math.sin(a*y)+c*Math.cos(a*x); o[1]=Math.sin(b*x)+d*Math.cos(b*y); }};
+    }
+    if(kind==="dejong"){
+      const a=R(-3,3),b=R(-3,3),c=R(-3,3),d=R(-3,3);
+      return {name:"De Jong", coeff:[a,b,c,d], step:(x,y,o)=>{ o[0]=Math.sin(a*y)-Math.cos(b*x); o[1]=Math.sin(c*x)-Math.cos(d*y); }};
+    }
+    if(kind==="svensson"){
+      const a=R(-3,3),b=R(-3,3),c=R(-3,3),d=R(-3,3);
+      return {name:"Svensson", coeff:[a,b,c,d], step:(x,y,o)=>{ o[0]=d*Math.sin(a*x)-Math.sin(b*y); o[1]=c*Math.cos(a*x)+Math.cos(b*y); }};
+    }
+    // fractal dream
+    const a=R(-3,3),b=R(-3,3),c=R(-1.5,1.5),d=R(-1.5,1.5);
+    return {name:"Fractal dream", coeff:[a,b,c,d], step:(x,y,o)=>{ o[0]=Math.sin(y*b)+c*Math.sin(x*b); o[1]=Math.sin(x*a)+d*Math.sin(y*a); }};
+  }
+
+  // reject fixed points and tame cycles: only keep genuinely chaotic maps
+  function qualifyAttractor(attr, rnd){
+    const o=[0,0], oe=[0,0];
+    let x=rnd()*2-1, y=rnd()*2-1;
+    for(let i=0;i<600;i++){ attr.step(x,y,o); x=o[0]; y=o[1]; if(!isFinite(x)||!isFinite(y)) return {ok:false}; }
+    const d0=1e-6; let xe=x+d0, ye=y, sum=0, n=0;
+    let minx=1e9,maxx=-1e9,miny=1e9,maxy=-1e9;
+    for(let i=0;i<8000;i++){
+      attr.step(x,y,o); attr.step(xe,ye,oe); x=o[0]; y=o[1];
+      if(!isFinite(x)||!isFinite(y)) return {ok:false};
+      if(x<minx)minx=x; if(x>maxx)maxx=x; if(y<miny)miny=y; if(y>maxy)maxy=y;
+      let dx=oe[0]-x, dy=oe[1]-y, dist=Math.hypot(dx,dy);
+      if(dist===0){ xe=x+d0; ye=y; continue; }
+      sum+=Math.log(dist/d0); n++;
+      xe=x + d0*dx/dist; ye=y + d0*dy/dist;
+    }
+    const lyap=sum/Math.max(n,1);
+    const ok = isFinite(lyap) && lyap>0.04 && Math.max(maxx-minx,maxy-miny)>0.4 && (maxx-minx)>0.08 && (maxy-miny)>0.08;
+    return {ok, lyap, minx, maxx, miny, maxy, x, y};
+  }
+
+  function fallbackAttractor(kind){
+    const sets={clifford:[-1.4,1.6,1.0,0.7], dejong:[1.641,1.902,0.316,1.525], svensson:[1.5,-1.8,1.6,0.9], fractal:[-0.966918,2.879879,0.765145,0.744728]};
+    const c=sets[kind]||sets.clifford; const a=c[0],b=c[1],cc=c[2],d=c[3];
+    if(kind==="dejong")  return {name:"De Jong", coeff:c, step:(x,y,o)=>{ o[0]=Math.sin(a*y)-Math.cos(b*x); o[1]=Math.sin(cc*x)-Math.cos(d*y); }};
+    if(kind==="svensson")return {name:"Svensson",coeff:c, step:(x,y,o)=>{ o[0]=d*Math.sin(a*x)-Math.sin(b*y); o[1]=cc*Math.cos(a*x)+Math.cos(b*y); }};
+    if(kind==="fractal") return {name:"Fractal dream", coeff:c, step:(x,y,o)=>{ o[0]=Math.sin(y*b)+cc*Math.sin(x*b); o[1]=Math.sin(x*a)+d*Math.sin(y*a); }};
+    return {name:"Clifford", coeff:c, step:(x,y,o)=>{ o[0]=Math.sin(a*y)+cc*Math.cos(a*x); o[1]=Math.sin(b*x)+d*Math.cos(b*y); }};
+  }
+
+  // ---------- state ----------
+  const cv=document.getElementById("cv");
+  const ctx=cv.getContext("2d",{willReadFrequently:false});
+  const prog=document.getElementById("prog");
+  const progBar=prog.querySelector("i");
+
+  const QUALITY_RES=[0,760,1000,1200,1440];      // by quality index
+  const QUALITY_SPLATS=[0,2.2e6,4.2e6,7.5e6,1.2e7];
+
+  let field=null;    // Float32Array density
+  let fW=0,fH=0, fMax=1;
+  let running=false;
+  let cur={};        // current plate descriptor
+
+  // reusable buffers for develop
+  let baseR,baseG,baseB, glowSmall, glowW,glowH;
+
+  const el=id=>document.getElementById(id);
+  const controls={
+    seed:el("seed"), family:el("family"), order:el("order"), mirror:el("mirror"),
+    quality:el("quality"), exposure:el("exposure"), gamma:el("gamma"), bloom:el("bloom"),
+    palette:el("palette"), hue:el("hue"), bands:el("bands"), sat:el("sat"),
+    chroma:el("chroma"), grain:el("grain"), imprint:el("imprint")
+  };
+
+  // ---------- read params ----------
+  function readForm(){
+    return {
+      seed: controls.seed.value.trim() || "OSTENSORIA",
+      family: controls.family.value,
+      order: +controls.order.value,
+      mirror: controls.mirror.checked,
+      quality: +controls.quality.value
+    };
+  }
+  function readLook(){
+    return {
+      exposure:+controls.exposure.value, gamma:+controls.gamma.value, bloom:+controls.bloom.value,
+      hue:+controls.hue.value, bands:+controls.bands.value, sat:+controls.sat.value,
+      chroma:+controls.chroma.value, grain:+controls.grain.value
+    };
+  }
+
+  // ---------- accumulate density field ----------
+  function beginPlate(){
+    if(running) return;
+    const f=readForm();
+    const seedRng=mulberry32(xmur3(f.seed)());
+    // choose family from seed if auto
+    let kind=f.family;
+    if(kind==="auto"){ const fams=["clifford","dejong","svensson","fractal"]; kind=fams[Math.floor(seedRng()*fams.length)]; }
+    let attr=null, qual=null, tries=0;
+    while(tries<48){
+      const cand=makeAttractor(kind, seedRng);
+      const q=qualifyAttractor(cand, seedRng);
+      if(q.ok){ attr=cand; qual=q; break; }
+      tries++;
+    }
+    if(!attr){ attr=fallbackAttractor(kind); qual=qualifyAttractor(attr, seedRng); }
+
+    const res=QUALITY_RES[f.quality];
+    fW=fH=res;
+    if(cv.width!==res){ cv.width=res; cv.height=res; }
+    field=new Float32Array(res*res);
+
+    // symmetry transforms (rotations, optional mirror)
+    const order=clamp(f.order,1,12);
+    const rots=[];
+    for(let k=0;k<order;k++){ const a=2*Math.PI*k/order; rots.push([Math.cos(a),Math.sin(a)]); }
+    const mirror=f.mirror;
+
+    cur={ seed:f.seed, family:attr.name, kind, order, mirror, quality:f.quality,
+          coeff:attr.coeff, res, phase:seedRng() };
+
+    // bounds and continuation point come from qualification
+    let x=qual.x, y=qual.y;
+    const o=[0,0];
+    const cx0=(qual.minx+qual.maxx)/2, cy0=(qual.miny+qual.maxy)/2;
+    const span=Math.max(qual.maxx-qual.minx, qual.maxy-qual.miny, 0.5)/2;
+    const target=res*0.40;                 // radius on canvas
+    const scale=target/span;
+    const ccx=res/2, ccy=res/2;
+
+    // splat budget -> iterations
+    const copies=order*(mirror?2:1);
+    const totalSplats=QUALITY_SPLATS[f.quality];
+    const iters=Math.max(50000, Math.floor(totalSplats/copies));
+    const CHUNK=Math.max(60000, Math.floor(iters/26));
+
+    running=true;
+    setBusy(true);
+    prog.classList.add("on"); progBar.style.width="0%";
+
+    let done=0;
+    // local refs for speed
+    const F=field, W=res;
+    function chunk(){
+      const stop=Math.min(done+CHUNK, iters);
+      for(let i=done;i<stop;i++){
+        attr.step(x,y,o); x=o[0]; y=o[1];
+        const px=(x-cx0)*scale, py=(y-cy0)*scale;
+        for(let k=0;k<rots.length;k++){
+          const cr=rots[k][0], sr=rots[k][1];
+          let ax=px*cr - py*sr, ay=px*sr + py*cr;
+          let sx=(ccx+ax)|0, sy=(ccy+ay)|0;
+          if(sx>=0&&sx<W&&sy>=0&&sy<W) F[sy*W+sx]+=1;
+          if(mirror){
+            sx=(ccx-ax)|0;
+            if(sx>=0&&sx<W&&sy>=0&&sy<W) F[sy*W+sx]+=1;
+          }
+        }
+      }
+      done=stop;
+      progBar.style.width=(100*done/iters).toFixed(1)+"%";
+      if(done<iters){ requestAnimationFrame(chunk); }
+      else{ finishAccum(); }
+    }
+    requestAnimationFrame(chunk);
+  }
+
+  let fieldDev=null;
+  function finishAccum(){
+    // gentle blur of a develop copy to calm the speckle while keeping filaments
+    fieldDev=Float32Array.from(field);
+    boxBlur(fieldDev,fW,fH,1);
+    let m=1;
+    for(let i=0;i<fieldDev.length;i++){ if(fieldDev[i]>m)m=fieldDev[i]; }
+    fMax=m;
+    running=false;
+    // allocate develop buffers
+    baseR=new Float32Array(fW*fH); baseG=new Float32Array(fW*fH); baseB=new Float32Array(fW*fH);
+    glowW=fW>>2; glowH=fH>>2; glowSmall=new Float32Array(glowW*glowH);
+    develop();
+    prog.classList.remove("on");
+    setBusy(false);
+    updateLabel();
+  }
+
+  // ---------- develop: field -> pixels ----------
+  const paper=[0.925,0.918,0.886];
+  function develop(){
+    if(!fieldDev) return;
+    const look=readLook();
+    const W=fW,H=fH,N=W*H;
+    const logMax=Math.log(1+fMax*look.exposure);
+    const gm=look.gamma;
+    const bands=look.bands, phaseHue=look.hue + cur.phase*0.27, sat=look.sat;
+    // choose ramp: named palette -> its LUT; custom -> iris
+    let rampName=controls.palette.value; if(!RAMPS[rampName]) rampName="iris";
+    const LUT=buildLUT(RAMPS[rampName], clamp(sat,0,1));
+
+    glowSmall.fill(0);
+    for(let i=0;i<N;i++){
+      const d=fieldDev[i];
+      let t = d>0 ? Math.log(1+d*look.exposure)/logMax : 0;
+      t = Math.pow(clamp(t,0,1), gm);
+
+      // ring coordinate through the spectral ramp
+      const u = fract(t*bands + phaseHue);
+      const idx=(u*255)|0, o3=idx*3;
+      let r=LUT[o3], g=LUT[o3+1], b=LUT[o3+2];
+
+      // envelope: black halo at low density, white-hot vessel at high density
+      const env = smooth(0.0,0.11,t);
+      const hot = smooth(0.80,1.0,t);
+      r*=env; g*=env; b*=env;
+      r=r+(1-r)*hot; g=g+(1-g)*hot; b=b+(1-b)*hot;
+
+      // coverage over paper (thin fringe still tints the stock)
+      const cov = smooth(0.0,0.02,t);
+      const ir=1-cov;
+      baseR[i]=paper[0]*ir + r*cov;
+      baseG[i]=paper[1]*ir + g*cov;
+      baseB[i]=paper[2]*ir + b*cov;
+
+      // glow source from the bright vessel
+      const gsrc = t>0.6 ? Math.pow((t-0.6)/0.4,2) : 0;
+      if(gsrc>0){ const gx=(i%W)>>2, gy=((i/W)|0)>>2; glowSmall[gy*glowW+gx]+=gsrc; }
+    }
+
+    // blur glow (separable box, twice) at quarter res
+    if(look.bloom>0){
+      boxBlur(glowSmall,glowW,glowH,3);
+      boxBlur(glowSmall,glowW,glowH,3);
+      // normalize glow
+      let gm2=1e-6; for(let i=0;i<glowSmall.length;i++){ if(glowSmall[i]>gm2)gm2=glowSmall[i]; }
+      const gInv=1/gm2;
+      for(let i=0;i<glowSmall.length;i++) glowSmall[i]*=gInv;
+    }
+
+    // compose final with bloom, chromatic aberration, grain, vignette
+    const img=ctx.createImageData(W,H);
+    const data=img.data;
+    const cxp=W/2, cyp=H/2, maxR=Math.hypot(cxp,cyp);
+    const ca=look.chroma, bloom=look.bloom, grain=look.grain;
+    const gW=glowW, gH=glowH;
+    // grain rng seeded per plate
+    const grnd=mulberry32(xmur3(cur.seed+"|grain")());
+    // precompute a small grain table
+    const GT=4096, gtab=new Float32Array(GT);
+    for(let i=0;i<GT;i++) gtab[i]=(grnd()-0.5);
+
+    function sampleBloom(x,y){
+      // bilinear from glowSmall in quarter space
+      const gx=x/4, gy=y/4;
+      let x0=gx|0, y0=gy|0; const fx=gx-x0, fy=gy-y0;
+      let x1=x0+1<gW?x0+1:x0, y1=y0+1<gH?y0+1:y0;
+      if(x0<0)x0=0; if(y0<0)y0=0;
+      const a=glowSmall[y0*gW+x0], b=glowSmall[y0*gW+x1], c=glowSmall[y1*gW+x0], e=glowSmall[y1*gW+x1];
+      return (a*(1-fx)+b*fx)*(1-fy)+(c*(1-fx)+e*fx)*fy;
+    }
+    function samp(buf,x,y){
+      if(x<0)x=0; else if(x>=W)x=W-1;
+      if(y<0)y=0; else if(y>=H)y=H-1;
+      return buf[(y|0)*W+(x|0)];
+    }
+
+    let gi=0;
+    for(let y=0;y<H;y++){
+      const dy=y-cyp;
+      for(let x=0;x<W;x++){
+        const i=y*W+x;
+        const dx=x-cxp;
+        const rr=Math.hypot(dx,dy)/maxR;
+        // chromatic radial offset (grows outward)
+        const off=ca*rr*rr;
+        const ux=dx/(Math.hypot(dx,dy)||1), uy=dy/(Math.hypot(dx,dy)||1);
+        let R = ca>0 ? samp(baseR, x+ux*off, y+uy*off) : baseR[i];
+        let G = baseG[i];
+        let B = ca>0 ? samp(baseB, x-ux*off, y-uy*off) : baseB[i];
+
+        if(bloom>0){
+          const gl=sampleBloom(x,y)*bloom;
+          // warm-white screen add
+          R=1-(1-R)*(1-gl*1.0);
+          G=1-(1-G)*(1-gl*0.96);
+          B=1-(1-B)*(1-gl*0.85);
+        }
+
+        // vignette (subtle)
+        const vig=1 - 0.10*rr*rr;
+        R*=vig; G*=vig; B*=vig;
+
+        // grain
+        if(grain>0){
+          const n=gtab[(gi++)&(GT-1)]*grain;
+          R+=n; G+=n; B+=n;
+        }
+
+        const o=i*4;
+        data[o]  =clamp(R,0,1)*255;
+        data[o+1]=clamp(G,0,1)*255;
+        data[o+2]=clamp(B,0,1)*255;
+        data[o+3]=255;
+      }
+    }
+    ctx.putImageData(img,0,0);
+  }
+
+  function boxBlur(buf,W,H,r){
+    const tmp=new Float32Array(buf.length);
+    const norm=1/(2*r+1);
+    // horizontal
+    for(let y=0;y<H;y++){
+      let acc=0; const row=y*W;
+      for(let k=-r;k<=r;k++) acc+=buf[row+clamp(k,0,W-1)];
+      for(let x=0;x<W;x++){
+        tmp[row+x]=acc*norm;
+        const add=buf[row+clamp(x+r+1,0,W-1)], sub=buf[row+clamp(x-r,0,W-1)];
+        acc+=add-sub;
+      }
+    }
+    // vertical
+    for(let x=0;x<W;x++){
+      let acc=0;
+      for(let k=-r;k<=r;k++) acc+=tmp[clamp(k,0,H-1)*W+x];
+      for(let y=0;y<H;y++){
+        buf[y*W+x]=acc*norm;
+        const add=tmp[clamp(y+r+1,0,H-1)*W+x], sub=tmp[clamp(y-r,0,H-1)*W+x];
+        acc+=add-sub;
+      }
+    }
+  }
+
+  // ---------- ui plumbing ----------
+  function setBusy(b){
+    ["btnNew","btnRender","btnExport"].forEach(id=>el(id).disabled=b);
+  }
+  function updateLabel(){
+    const c=cur.coeff.map(v=>v.toFixed(2)).join(" ");
+    el("lblLeft").textContent="OSTENSORIA · "+cur.family;
+    el("lblRight").innerHTML=
+      "SEED "+esc(cur.seed)+"<br>D"+cur.order+(cur.mirror?"·m":"")+" · ["+c+"]";
+  }
+  function esc(s){ return String(s).replace(/[<>&]/g,m=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[m])); }
+
+  // palettes set the color sliders
+  const PALETTES={
+    iris:{hue:0.0,bands:1.4,sat:0.95},
+    reliquary:{hue:0.0,bands:1.1,sat:0.85},
+    ember:{hue:0.0,bands:1.5,sat:0.95},
+    ice:{hue:0.0,bands:1.2,sat:0.85},
+    verdant:{hue:0.0,bands:1.3,sat:0.90},
+    gold:{hue:0.0,bands:1.3,sat:0.92},
+    lilac:{hue:0.0,bands:1.25,sat:0.85},
+    rose:{hue:0.0,bands:1.3,sat:0.90},
+    teal:{hue:0.0,bands:1.3,sat:0.88},
+    sepia:{hue:0.0,bands:1.1,sat:0.80},
+    peacock:{hue:0.0,bands:1.3,sat:0.90},
+    custom:{hue:0.0,bands:1.6,sat:0.95}
+  };
+  controls.palette.addEventListener("change",()=>{
+    const p=PALETTES[controls.palette.value];
+    if(p){ controls.hue.value=p.hue; controls.bands.value=p.bands; controls.sat.value=p.sat; syncLabels(); if(!running) develop(); }
+  });
+
+  function randomSeed(){
+    const words=["CRISTO","REX","LUX","VERBUM","ROSA","STELLA","AVE","SPES","VIA","CORPUS","IGNIS","AURORA","NOX","EIDOLON","SIGNUM","VELUM","ARCA","SOL"];
+    const r=Math.random;
+    return words[(r()*words.length)|0]+"-"+Math.floor(r()*9000+1000);
+  }
+
+  function newPlate(){
+    controls.seed.value=randomSeed();
+    // let seed also nudge form for variety
+    const sr=mulberry32(xmur3(controls.seed.value)());
+    const orders=[1,2,2,2,4,4,6,8,12];
+    controls.order.value=orders[(sr()*orders.length)|0];
+    controls.mirror.checked = sr()>0.12;
+    syncLabels();
+    beginPlate();
+  }
+
+  function syncLabels(){
+    el("orderV").textContent="D"+controls.order.value;
+    el("qualityV").textContent=["","draft","standard","fine","master"][+controls.quality.value];
+    el("exposureV").textContent=(+controls.exposure.value).toFixed(2);
+    el("gammaV").textContent=(+controls.gamma.value).toFixed(2);
+    el("bloomV").textContent=(+controls.bloom.value).toFixed(2);
+    el("hueV").textContent=(+controls.hue.value).toFixed(2);
+    el("bandsV").textContent=(+controls.bands.value).toFixed(2);
+    el("satV").textContent=(+controls.sat.value).toFixed(2);
+    el("chromaV").textContent=(+controls.chroma.value).toFixed(1);
+    el("grainV").textContent=(+controls.grain.value).toFixed(3);
+  }
+
+  // form-changing inputs re-run the plate; look inputs re-develop
+  ["order","quality"].forEach(id=>controls[id].addEventListener("change",()=>{ syncLabels(); beginPlate(); }));
+  controls.family.addEventListener("change",beginPlate);
+  controls.mirror.addEventListener("change",beginPlate);
+  ["exposure","gamma","bloom","hue","bands","sat","chroma","grain"].forEach(id=>{
+    controls[id].addEventListener("input",()=>{
+      syncLabels();
+      if(!running) develop();
+    });
+  });
+
+  el("btnNew").addEventListener("click",newPlate);
+  el("btnRender").addEventListener("click",()=>{ if(!running) develop(); });
+  el("btnCopy").addEventListener("click",()=>{ navigator.clipboard&&navigator.clipboard.writeText(controls.seed.value); });
+  controls.seed.addEventListener("change",beginPlate);
+
+  el("btnExport").addEventListener("click",()=>{
+    let out=cv;
+    if(controls.imprint.checked){
+      out=document.createElement("canvas"); out.width=cv.width; out.height=cv.height;
+      const c=out.getContext("2d"); c.drawImage(cv,0,0);
+      c.font=(cv.width*0.011)+"px monospace"; c.fillStyle="rgba(24,22,18,0.6)";
+      c.textAlign="right";
+      c.fillText("OSTENSORIA · "+cur.seed, cv.width-cv.width*0.03, cv.height-cv.height*0.028);
+    }
+    out.toBlob(b=>{
+      const a=document.createElement("a");
+      a.download="ostensoria_"+cur.seed.replace(/[^a-z0-9]/gi,"_")+".png";
+      a.href=URL.createObjectURL(b); a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    },"image/png");
+  });
+
+  // ---------- boot ----------
+  controls.seed.value=randomSeed();
+  syncLabels();
+  window.addEventListener("load",()=>{ beginPlate(); });
+  // in case load already fired
+  if(document.readyState==="complete") beginPlate();
+})();
+</script>
+</body>
+</html>

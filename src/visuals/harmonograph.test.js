@@ -138,4 +138,15 @@ describe('Harmonograph engine', () => {
         expect(hg.render(makeCanvas(800, 600, false))).toBe(false); // headless
         expect(hg.render(null)).toBe(false);
     });
+
+    it('progress traces the pen; omitted progress is the finished figure', () => {
+        const hg = new Harmonograph();
+        hg.generate({ valence: 0.2, arousal: 0.4 }, 'progress');
+        const short = makeCanvas(400, 400);
+        const full = makeCanvas(400, 400);
+        hg.render(short, { progress: 0.15 });
+        hg.render(full);
+        expect(full.ctx.stroke.mock.calls.length)
+            .toBeGreaterThan(short.ctx.stroke.mock.calls.length);
+    });
 });

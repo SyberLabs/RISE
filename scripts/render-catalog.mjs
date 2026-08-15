@@ -59,6 +59,7 @@ function arg(name, fallback = null) {
 
 const scale = Number(arg('--scale', '1')) || 1;
 const only = arg('--only', 'all');
+const onlyId = arg('--id', null);
 const skipExisting = Boolean(arg('--skip-existing', false));
 const outRoot = resolve(arg('--out', join(ROOT, '..', 'out', 'render', 'catalog')));
 
@@ -353,7 +354,10 @@ async function main() {
 
   const procedural = groups.has('procedural') ? proceduralTakes() : [];
   const attractors = groups.has('attractor') ? attractorTakes() : [];
-  const collectionDefs = groups.has('collections') ? collectionSpecs() : [];
+  const collectionDefs = (groups.has('collections') ? collectionSpecs() : [])
+    .filter(spec => !onlyId || onlyId === true || spec.id === onlyId);
+  const proceduralTakesFiltered = procedural.filter(take => !onlyId || onlyId === true || take.id === onlyId);
+  const attractorTakesFiltered = attractors.filter(take => !onlyId || onlyId === true || take.id === onlyId);
 
   const collectionTakes = [];
   for (const spec of collectionDefs) {
@@ -379,7 +383,7 @@ async function main() {
     });
   }
 
-  const queue = [...procedural, ...attractors, ...collectionTakes];
+  const queue = [...proceduralTakesFiltered, ...attractorTakesFiltered, ...collectionTakes];
   if (!queue.length) {
     writeFileSync(join(outRoot, 'catalog.json'), `${JSON.stringify({ results }, null, 2)}\n`);
     console.log('Nothing to render.');

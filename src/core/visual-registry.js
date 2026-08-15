@@ -47,6 +47,16 @@ export const PROCEDURAL_PATTERNS = Object.freeze([
     description: 'A single continuous line traced by two damped pendulums tuned to a musical '
       + 'interval, winding into a lattice and decaying into stillness. Thin, precise, and '
       + 'visibly losing energy as it draws.'
+  }),
+  Object.freeze({
+    id: 'ostensoria', name: 'Iris Plates', icon: '◍',
+    description: 'A square plate grown from strange-attractor density — radial vessels, '
+      + 'spectral bands, and a dark halo on the chamber void. One seed, one plate, drawn once.'
+  }),
+  Object.freeze({
+    id: 'apparitio', name: 'Spectral Plates', icon: '☾',
+    description: 'An upright apparition on a single mirror axis: swept spectral wings, a '
+      + 'filigree spine, a crowning halo on black. Each seed appears once.'
   })
 ]);
 

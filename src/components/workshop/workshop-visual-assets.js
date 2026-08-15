@@ -13,7 +13,9 @@ const PROCEDURAL = Object.freeze([
   ['fractal', 'Fractal Flames', '✧'],
   ['neural', 'Neural Networks', '◉'],
   ['rockgarden', 'Rock Garden', '◯'],
-  ['harmonograph', 'Harmonograph', '∿']
+  ['harmonograph', 'Harmonograph', '∿'],
+  ['ostensoria', 'Iris Plates', '◍'],
+  ['apparitio', 'Spectral Plates', '☾']
 ]);
 
 const PROCEDURAL_PREVIEWS = Object.freeze({
@@ -22,7 +24,9 @@ const PROCEDURAL_PREVIEWS = Object.freeze({
   fractal: 'conic-gradient(from 230deg at 54% 48%,#0b0b15,#7e376f,#e09f67,#2e7191,#0b0b15)',
   neural: 'radial-gradient(circle at 28% 36%,#d6b56d 0 2px,transparent 3px),radial-gradient(circle at 68% 58%,#8dc9bb 0 3px,transparent 4px),linear-gradient(32deg,transparent 46%,#7898ac 48% 49%,transparent 51%),#111b25',
   rockgarden: 'repeating-radial-gradient(ellipse at 62% 54%,#33404a 0 2px,#171f27 3px 8px,#27313b 9px 10px)',
-  harmonograph: 'repeating-radial-gradient(ellipse at 50% 50%,transparent 0 6px,#b995c8 7px 8px,transparent 9px 14px),#111923'
+  harmonograph: 'repeating-radial-gradient(ellipse at 50% 50%,transparent 0 6px,#b995c8 7px 8px,transparent 9px 14px),#111923',
+  ostensoria: 'radial-gradient(ellipse at 50% 48%,#1a0848 0 10%,#c41832 22%,#f08a12 36%,#f0dc48 48%,#5ed46a 60%,#2aa0f0 74%,#ece6d8 100%)',
+  apparitio: 'radial-gradient(ellipse at 50% 16%,#e8eefc 0 5%,transparent 16%),linear-gradient(90deg,transparent 46%,#c8d4ff 49.5% 50.5%,transparent 54%),conic-gradient(from 210deg at 50% 52%,#0a0a0c,#e84a38,#f0c44a,#3ae06e,#3490ff,#6a58f0,#0a0a0c)'
 });
 
 function collectionPreview(index) {

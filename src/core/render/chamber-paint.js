@@ -15,6 +15,7 @@ import { presentationMs } from './clock.js';
 import { atomAt, visualRunAt } from './plan.js';
 import { fail } from './errors.js';
 import { decodeImage } from './decode.js';
+import { galleryWallAt } from '../visual-presence.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 const STAGE_PATH = '/src/core/render/chamber-stage.html';
@@ -87,15 +88,31 @@ function stillsFromInventory(inventory = {}) {
   return stills;
 }
 
-function stillIdFor(run, stills, seed, timeMs) {
-  if (!stills.length || !run) return null;
+function stillFrameFor(run, stills, timeMs) {
+  if (!stills.length || !run) return { stillId: null, incomingStillId: null, dissolve: 1 };
   const personalId = run.cue?.config?.personalAssetId;
-  if (personalId && stills.some(item => item.id === personalId)) return personalId;
-  if (run.assetId && stills.some(item => item.id === run.assetId)) return run.assetId;
-  if (run.cueKind === 'visual:sourced:gallery' || run.cueKind === 'visual:sourced:collection') {
-    return stills[Math.floor(Math.max(0, timeMs) / 4000) % stills.length].id;
+  if (personalId && stills.some(item => item.id === personalId)) {
+    return { stillId: personalId, incomingStillId: null, dissolve: 1 };
   }
-  return null;
+  if (run.assetId && stills.some(item => item.id === run.assetId)) {
+    return { stillId: run.assetId, incomingStillId: null, dissolve: 1 };
+  }
+  if (run.cueKind === 'visual:sourced:gallery' || run.cueKind === 'visual:sourced:collection') {
+    const elapsedMs = Math.max(0, timeMs - (run.fromMs || 0));
+    const durationMs = Math.max(0, (run.toMs || 0) - (run.fromMs || 0));
+    const wall = galleryWallAt(elapsedMs, stills.length, {
+      durationMs,
+      cadence: run.cue?.config?.galleryCadence
+    });
+    const outgoing = wall.outgoingIndex == null ? null : stills[wall.outgoingIndex];
+    const incoming = wall.incomingIndex == null ? null : stills[wall.incomingIndex];
+    return {
+      stillId: outgoing?.id || incoming?.id || null,
+      incomingStillId: outgoing && incoming && outgoing.id !== incoming.id ? incoming.id : null,
+      dissolve: outgoing ? wall.mix : (incoming ? wall.mix : 1)
+    };
+  }
+  return { stillId: null, incomingStillId: null, dissolve: 1 };
 }
 
 function outputSize(plan, scale) {
@@ -223,6 +240,7 @@ export async function openChamberPainter({
       const atom = atomAt(currentPlan, timeMs);
       const run = visualRunAt(currentPlan, timeMs);
       const cueKind = run?.cueKind || 'visual:still';
+      const stillFrame = stillFrameFor(run, stills, timeMs);
       await page.evaluate(async (state) => {
         await window.__stage.paint(state);
       }, {
@@ -232,7 +250,9 @@ export async function openChamberPainter({
         elapsedMs: run ? timeMs - run.fromMs : 0,
         durationMs: run ? run.toMs - run.fromMs : 0,
         seed: currentPlan.seed,
-        stillId: stillIdFor(run, stills, currentPlan.seed, timeMs)
+        stillId: stillFrame.stillId,
+        incomingStillId: stillFrame.incomingStillId,
+        dissolve: stillFrame.dissolve
       });
       if (frameIndex === 0 || (frameIndex + 1) % 30 === 0) {
         ffmpegLog(`Chamber frame ${frameIndex + 1}/${currentPlan.frameCount}`);

@@ -13,6 +13,8 @@ import { FractalFlame } from './fractal.js';
 import { RockGarden } from './rockgarden.js';
 import { NeuralNetwork } from './neural.js';
 import { Harmonograph } from './harmonograph.js';
+import { Ostensoria } from './ostensoria.js';
+import { Apparitio } from './apparitio.js';
 import { createRemoteImage } from './remote-image.js';
 import { Blueprint } from './blueprint.js';
 import { Freedom } from './freedom.js';
@@ -32,6 +34,8 @@ import {
     workEngineFamilies
 } from './work-engines.js';
 import { WorkEngineField } from './work-engine-field.js';
+import { HarmonographField } from './harmonograph-field.js';
+import { PlateField, PLATE_FAMILIES } from './plate-field.js';
 import { SequenceVideoField } from './sequence-video-field.js';
 import { ShuffleBag } from '../sources/visual/shuffle-bag.js';
 import {
@@ -112,6 +116,8 @@ const GALLERY_PROCEDURAL_TYPES = Object.freeze([
     'neural',
     'rockgarden',
     'harmonograph',
+    'ostensoria',
+    'apparitio',
     'blueprint',
     'freedom'
 ]);
@@ -122,6 +128,8 @@ const GALLERY_PROCEDURAL_TITLES = Object.freeze({
     neural: 'Neural Field',
     rockgarden: 'Rock Garden',
     harmonograph: 'Harmonograph',
+    ostensoria: 'Iris Plates',
+    apparitio: 'Spectral Plates',
     blueprint: 'Blueprint',
     freedom: 'Freedom Field'
 });
@@ -135,6 +143,8 @@ export class VisualCortex {
         this.rockgarden = null;
         this.neural = null;
         this.harmonograph = null;
+        this.ostensoria = null;
+        this.apparitio = null;
         this.blueprint = null;
         this.freedom = null;
         this.imageWashEl = null;
@@ -202,6 +212,8 @@ export class VisualCortex {
         // They step and redraw every frame rather than being snapshotted,
         // so they share the host but not the gallery's image abstraction.
         this._workEngineField = null;
+        this._harmonographField = null;
+        this._plateField = null;
         this._sequenceVideoField = null;
         this._sequenceVideoHost = null;
         this._activeVideoCue = null;
@@ -340,6 +352,8 @@ export class VisualCortex {
         // Initialize Harmonograph (shares klee canvas)
         if (kleeCanvas) {
             this.harmonograph = new Harmonograph();
+            this.ostensoria = new Ostensoria();
+            this.apparitio = new Apparitio();
             this.blueprint = new Blueprint();
             this.freedom = new Freedom();
         }
@@ -966,6 +980,13 @@ export class VisualCortex {
                 }
                 return;
             }
+            if (type === 'ostensoria' && this.ostensoria) {
+                if (!this.ostensoria.isReady?.()) {
+                    this.ostensoria.beginSession?.();
+                    await this.ostensoria.fillQueue?.(1);
+                }
+                return;
+            }
             if (type === 'klee' && this.kleeFlashes) {
                 if (!this.kleeFlashes.queue?.length) {
                     this.kleeFlashes.beginSession?.({
@@ -975,9 +996,10 @@ export class VisualCortex {
                     await this.kleeFlashes.preload?.(1);
                 }
             }
-            // turrell / neural / harmonograph / blueprint / freedom /
-            // rockgarden generate synchronously from their engines and
-            // need no queue.
+            // turrell / neural / harmonograph / apparitio /
+            // blueprint / freedom / rockgarden generate synchronously
+            // from their engines and need no queue. Ostensoria preloads
+            // like fractal so a ≥95% void plate is discarded before a flash.
         } catch {
             // A family that will not warm simply yields stillness.
         }
@@ -1033,6 +1055,14 @@ export class VisualCortex {
         if (this._workEngineField) {
             this._workEngineField.destroy();
             this._workEngineField = null;
+        }
+        if (this._harmonographField) {
+            this._harmonographField.destroy();
+            this._harmonographField = null;
+        }
+        if (this._plateField) {
+            this._plateField.destroy();
+            this._plateField = null;
         }
         this._continuousFieldHost = el || null;
         this._syncContinuousField();
@@ -1097,16 +1127,20 @@ export class VisualCortex {
     pauseContinuousField() {
         const imagePaused = this._continuousField?.pause?.() === true;
         const enginePaused = this._workEngineField?.pause?.() === true;
+        const harmonographPaused = this._harmonographField?.pause?.() === true;
+        const platePaused = this._plateField?.pause?.() === true;
         const videoPaused = this._sequenceVideoField?.pause?.() === true;
-        return imagePaused || enginePaused || videoPaused;
+        return imagePaused || enginePaused || harmonographPaused || platePaused || videoPaused;
     }
 
     /** Resume exactly the Gallery presenters paused at the player boundary. */
     resumeContinuousField() {
         const imageResumed = this._continuousField?.resume?.() === true;
         const engineResumed = this._workEngineField?.resume?.() === true;
+        const harmonographResumed = this._harmonographField?.resume?.() === true;
+        const plateResumed = this._plateField?.resume?.() === true;
         const videoResumed = this._sequenceVideoField?.resume?.() === true;
-        return imageResumed || engineResumed || videoResumed;
+        return imageResumed || engineResumed || harmonographResumed || plateResumed || videoResumed;
     }
 
     /**
@@ -1161,11 +1195,35 @@ export class VisualCortex {
      * their own layer under the gallery, stepping and redrawing every
      * frame. Snapshotting one here as well would put a frozen WebP of
      * the chariot into the crossfade rotation beside the turning one.
+     *
+     * Harmonograph is the other living exception: in Gallery the pen
+     * traces across the dwell. Rhythmic flashes still snapshot a
+     * finished figure via _renderContinuousProceduralWork.
      */
     _continuousProceduralTypes() {
         const active = this.config.activeTypes || [];
+        const liveHarmonograph = this._continuousHarmonographLive();
+        const livePlates = this._continuousPlateFamilies();
         return GALLERY_PROCEDURAL_TYPES.filter(type =>
-            active.includes(type) && !isWorkEngineFamily(type));
+            active.includes(type)
+            && !isWorkEngineFamily(type)
+            && !(type === 'harmonograph' && liveHarmonograph)
+            && !livePlates.includes(type));
+    }
+
+    _continuousHarmonographLive() {
+        return (this.config.activeTypes || []).includes('harmonograph')
+            && this.config.renderLanguage !== 'ascii';
+    }
+
+    _continuousPlateFamilies() {
+        if (this.config.renderLanguage === 'ascii') return [];
+        const active = this.config.activeTypes || [];
+        return PLATE_FAMILIES.filter(id => active.includes(id));
+    }
+
+    _continuousPlateLive() {
+        return this._continuousPlateFamilies().length > 0;
     }
 
     /** The families that get a living layer rather than a still. */
@@ -1185,6 +1243,8 @@ export class VisualCortex {
     _continuousHasWorks() {
         return this._continuousProceduralTypes().length > 0
             || this._continuousWorkFamilies().length > 0
+            || this._continuousHarmonographLive()
+            || this._continuousPlateLive()
             || this._activeSequenceAssets().length > 0
             || this._activePoolCategories().length > 0;
     }
@@ -1352,6 +1412,17 @@ export class VisualCortex {
                 rendered = this.harmonograph.render(this._kleeCanvas);
                 canvas = this._kleeCanvas;
             }
+        } else if (type === 'ostensoria' && this.ostensoria && this._kleeCanvas) {
+            this._resizeKleeCanvas();
+            rendered = this._paintOstensoria(signal);
+            if (rendered) canvas = this._kleeCanvas;
+        } else if (type === 'apparitio' && this.apparitio && this._kleeCanvas) {
+            this._resizeKleeCanvas();
+            rendered = this.apparitio.generate(signal, undefined);
+            if (rendered) {
+                rendered = this.apparitio.render(this._kleeCanvas);
+                canvas = this._kleeCanvas;
+            }
         } else if (type === 'blueprint' && this.blueprint && this._kleeCanvas) {
             this._resizeKleeCanvas();
             rendered = this.blueprint.generate(signal, undefined, {
@@ -1511,6 +1582,8 @@ export class VisualCortex {
             this._continuousField.stop();
         }
         this._syncWorkEngineField(shouldRun);
+        this._syncHarmonographField(shouldRun);
+        this._syncPlateField(shouldRun);
     }
 
     /**
@@ -1551,6 +1624,61 @@ export class VisualCortex {
             this._workEngineField.start().catch(error =>
                 console.warn('[Visual Cortex] Living field could not start:', error));
         }
+    }
+
+    /**
+     * Gallery Harmonograph: a living pen under the image planes, on the
+     * same dwell as the wall. Full-frame and behind-stream never start
+     * this field — they keep a finished still.
+     */
+    _syncHarmonographField(gateOpen) {
+        const shouldRun = gateOpen && this._continuousHarmonographLive();
+        if (!shouldRun) {
+            if (this._harmonographField?.running) this._harmonographField.stop();
+            return;
+        }
+        if (!this._harmonographField) {
+            if (!this._continuousFieldHost) return;
+            const timings = galleryCadenceTimings(this.config.galleryCadence);
+            this._harmonographField = new HarmonographField(this._continuousFieldHost, {
+                dwellMs: timings.dwellMs,
+                crossfadeMs: timings.crossfadeMs,
+                reducedMotion: this._continuousReducedMotion(),
+                getSignal: () => this._nextContinuousSignal(),
+                getClimate: () => this.config.harmonographClimate || 'auto'
+            });
+        }
+        this._harmonographField.reducedMotion = this._continuousReducedMotion();
+        if (!this._harmonographField.running) this._harmonographField.start();
+    }
+
+    /**
+     * Gallery plates: a living reveal under the image planes, on the
+     * same dwell as the wall. The engines still generate a finished
+     * plate; the time adapter draws it. Full-frame and behind-stream
+     * keep a finished still.
+     */
+    _syncPlateField(gateOpen) {
+        const families = this._continuousPlateFamilies();
+        const shouldRun = gateOpen && families.length > 0;
+        if (!shouldRun) {
+            if (this._plateField?.running) this._plateField.stop();
+            return;
+        }
+        if (!this._plateField) {
+            if (!this._continuousFieldHost) return;
+            const timings = galleryCadenceTimings(this.config.galleryCadence);
+            this._plateField = new PlateField(this._continuousFieldHost, {
+                families,
+                dwellMs: timings.dwellMs,
+                crossfadeMs: timings.crossfadeMs,
+                reducedMotion: this._continuousReducedMotion(),
+                getSignal: () => this._nextContinuousSignal()
+            });
+        }
+        this._plateField.reducedMotion = this._continuousReducedMotion();
+        this._plateField.setFamilies(families);
+        if (!this._plateField.running) this._plateField.start();
     }
 
     /**
@@ -1668,6 +1796,14 @@ export class VisualCortex {
         }
         if ('galleryCadence' in nextConfig && this._workEngineField) {
             this._workEngineField.setCadence(
+                galleryCadenceTimings(this.config.galleryCadence));
+        }
+        if ('galleryCadence' in nextConfig && this._harmonographField) {
+            this._harmonographField.setCadence(
+                galleryCadenceTimings(this.config.galleryCadence));
+        }
+        if ('galleryCadence' in nextConfig && this._plateField) {
+            this._plateField.setCadence(
                 galleryCadenceTimings(this.config.galleryCadence));
         }
         if ('galleryCadence' in nextConfig && this._continuousField) {
@@ -2532,7 +2668,7 @@ export class VisualCortex {
     _isExternalCategory(type) {
         if (typeof type !== 'string' || this._isRetiredExternalType(type)) return false;
         // Core types are internal or handled elsewhere
-        const coreTypes = ['klee', 'turrell', 'fractal', 'neural', 'global', 'custom', 'rockgarden', 'harmonograph', 'blueprint', 'freedom', 'diagram', 'global-pool',
+        const coreTypes = ['klee', 'turrell', 'fractal', 'neural', 'global', 'custom', 'rockgarden', 'harmonograph', 'ostensoria', 'apparitio', 'blueprint', 'freedom', 'diagram', 'global-pool',
             // Families authored for one work. Listed so selection does
             // not filter out a type the cortex can genuinely render.
             ...workEngineFamilies()];
@@ -2679,6 +2815,16 @@ export class VisualCortex {
             preloadPromises.push(this.fractal.preload(count));
         }
 
+        if (this.ostensoria && this.config.activeTypes.includes('ostensoria')) {
+            this.ostensoria.beginSession();
+            const ostensoriaShare = 1 / Math.max(1, this.config.activeTypes.length);
+            const estimatedCount = Math.ceil(flashCount * ostensoriaShare * 1.5);
+            const count = this.config.presentation === 'continuous'
+                ? Math.max(2, estimatedCount)
+                : Math.max(1, estimatedCount);
+            preloadPromises.push(this.ostensoria.preload(count));
+        }
+
         // Klee artworks are prepared as complete geometry/style snapshots.
         // One snapshot supports several static short flashes, so preload by
         // episode rather than by raw flash count.
@@ -2753,6 +2899,15 @@ export class VisualCortex {
         const externalStatus = this.getExternalAssetStatus();
         if (externalPreload) this._scheduleBackgroundWarm(externalStatus.minimumReady);
         return externalStatus;
+    }
+
+    _paintOstensoria(signal) {
+        if (this.ostensoria.takePlate?.()) {
+            return this.ostensoria.render(this._kleeCanvas);
+        }
+        if (!this.ostensoria.generate?.(signal, undefined)) return false;
+        this.ostensoria.fillQueue?.(this.ostensoria.maxQueueSize ?? 3);
+        return this.ostensoria.render(this._kleeCanvas);
     }
 
     _harmonographAsciiFrame(signal) {
@@ -3399,6 +3554,15 @@ export class VisualCortex {
                 rendered = this.harmonograph.render(this._kleeCanvas);
                 if (rendered && kleeEl) kleeEl.hidden = false;
             }
+        } else if (selectedType === 'ostensoria' && this.ostensoria && this._kleeCanvas) {
+            this._resizeKleeCanvas();
+            rendered = this._paintOstensoria(signal);
+            if (rendered && kleeEl) kleeEl.hidden = false;
+        } else if (selectedType === 'apparitio' && this.apparitio && this._kleeCanvas) {
+            this._resizeKleeCanvas();
+            rendered = this.apparitio.generate(signal, undefined);
+            if (rendered) rendered = this.apparitio.render(this._kleeCanvas);
+            if (rendered && kleeEl) kleeEl.hidden = false;
         } else if (selectedType === 'blueprint' && this.blueprint && this._kleeCanvas) {
             // The drafting plate: for passages about mechanism, where a
             // museum holds portraits of inventors rather than pictures
@@ -3545,6 +3709,14 @@ export class VisualCortex {
             this._workEngineField.destroy();
             this._workEngineField = null;
         }
+        if (this._harmonographField) {
+            this._harmonographField.destroy();
+            this._harmonographField = null;
+        }
+        if (this._plateField) {
+            this._plateField.destroy();
+            this._plateField = null;
+        }
         if (this._sequenceVideoField) {
             this._sequenceVideoField.destroy();
             this._sequenceVideoField = null;
@@ -3582,6 +3754,8 @@ export class VisualCortex {
         this.kleeFlashes = null;
         this.fractal?.destroy?.();
         this.fractal = null;
+        this.ostensoria?.destroy?.();
+        this.ostensoria = null;
         this.asciiCompiler?.destroy?.();
         this.asciiCompiler = null;
         this.asciiRenderer = null;

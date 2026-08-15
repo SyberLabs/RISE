@@ -136,7 +136,7 @@ describe('every named capability says what it looks like', () => {
     // the whole of what a curator is choosing between.
     const context = surface();
 
-    it('describes all six procedural patterns', () => {
+    it('describes all registered procedural patterns', () => {
         for (const id of PROCEDURAL_PATTERN_IDS) {
             expect(context.catalog.engines[id]?.description, id).toBeTruthy();
         }

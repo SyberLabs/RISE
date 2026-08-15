@@ -17,10 +17,11 @@
  * precesses instead of retracing itself, so consonant ratios become
  * layered rosettes and golden ratios weave without ever closing.
  *
- * House rules honored: still frames only (all motion lives between
- * flashes, never during), glow via wide understroke (never
- * shadowBlur), deterministic under a seed, and a null-ctx guard so
- * headless environments stay silent.
+ * House rules honored: Rhythmic flashes and behind-stream are still
+ * frames (progress defaults to 1). Gallery is the exception — the pen
+ * travels across the dwell and rests complete for a few seconds.
+ * Glow via wide understroke (never shadowBlur), deterministic under a
+ * seed, and a null-ctx guard so headless environments stay silent.
  */
 import { createSeededRandom } from './lib/klee-core.js';
 import { planHarmonograph } from '../core/conductor.js';
@@ -100,9 +101,10 @@ export class Harmonograph {
     }
 
     /**
-     * Draw the prepared trace to a canvas as a single still frame.
+     * Draw the prepared trace to a canvas.
      * @param {HTMLCanvasElement} canvas
-     * @param {Object} [options] - { backgroundColor }
+     * @param {Object} [options] - { backgroundColor, progress }
+     *   progress 0..1 traces the pen; omitted or 1 is the finished figure.
      */
     render(canvas, options = {}) {
         if (!this.plan || !this.trace || !canvas) return false;

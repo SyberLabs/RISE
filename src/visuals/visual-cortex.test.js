@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { VisualCortex } from './visual-cortex.js';
 import { KleeFlashes } from './klee-flashes.js';
 import { ContinuousField } from './continuous-field.js';
+import { Ostensoria } from './ostensoria.js';
 import { grantVisualInterlocutionConsent } from '../core/visual-safety.js';
 
 function mockEngine(width = 800, height = 400) {
@@ -1758,6 +1759,14 @@ describe('Continuous Field (Gallery) wiring', () => {
             generate: vi.fn(() => true),
             render: vi.fn(() => true)
         };
+        cortex.ostensoria = {
+            generate: vi.fn(() => true),
+            render: vi.fn(() => true)
+        };
+        cortex.apparitio = {
+            generate: vi.fn(() => true),
+            render: vi.fn(() => true)
+        };
         cortex.blueprint = {
             generate: vi.fn(() => true),
             render: vi.fn(() => true)
@@ -1773,7 +1782,7 @@ describe('Continuous Field (Gallery) wiring', () => {
 
         const types = [
             'klee', 'turrell', 'fractal', 'neural',
-            'rockgarden', 'harmonograph', 'blueprint', 'freedom'
+            'rockgarden', 'harmonograph', 'ostensoria', 'apparitio', 'blueprint', 'freedom'
         ];
         const works = await Promise.all(
             types.map(type => cortex._renderContinuousProceduralWork(type))
@@ -1914,6 +1923,45 @@ describe('Continuous Field (Gallery) wiring', () => {
         cortex.updateConfig({ galleryCadence: 0 });
         expect(cortex._continuousField.dwellMs).toBe(30000);
         expect(cortex._continuousField.crossfadeMs).toBe(2500);
+        cortex.destroy();
+    });
+
+    it('Gallery Harmonograph draws on a living layer; full-frame does not', () => {
+        const { cortex, host } = hostedContinuousCortex();
+        const snapshot = vi.spyOn(cortex, '_renderContinuousProceduralWork');
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['harmonograph']
+        });
+        expect(cortex._harmonographField?.running).toBe(true);
+        expect(host.querySelectorAll('.harmonograph-plane').length).toBe(2);
+        expect(snapshot).not.toHaveBeenCalled();
+
+        cortex.updateConfig({ presentation: 'full-frame' });
+        expect(cortex._harmonographField?.running).toBe(false);
+        cortex.destroy();
+    });
+
+    it('Gallery plates draw on a living layer; full-frame does not', () => {
+        vi.spyOn(Ostensoria.prototype, 'generate').mockImplementation(function generate() {
+            this.ready = true;
+            return true;
+        });
+        vi.spyOn(Ostensoria.prototype, 'render').mockReturnValue(true);
+        const { cortex, host } = hostedContinuousCortex();
+        const snapshot = vi.spyOn(cortex, '_renderContinuousProceduralWork');
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['ostensoria']
+        });
+        expect(cortex._plateField?.running).toBe(true);
+        expect(host.querySelectorAll('.plate-plane').length).toBe(2);
+        expect(snapshot).not.toHaveBeenCalled();
+
+        cortex.updateConfig({ presentation: 'full-frame' });
+        expect(cortex._plateField?.running).toBe(false);
         cortex.destroy();
     });
 

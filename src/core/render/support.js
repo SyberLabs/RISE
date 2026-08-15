@@ -124,6 +124,14 @@ export const RENDER_SUPPORT = Object.freeze({
     'Harmonograph.generate + render(progress)',
     'canvas 2d'
   ]),
+  'visual:procedural:ostensoria': nativeSlice('visual:procedural:ostensoria', [
+    'Ostensoria.generate + render',
+    'canvas 2d'
+  ]),
+  'visual:procedural:apparitio': nativeSlice('visual:procedural:apparitio', [
+    'Apparitio.generate + render',
+    'canvas 2d'
+  ]),
   'visual:procedural:shuffled': nativeSlice('visual:procedural:shuffled', [
     'seeded pick among named collections',
     'same painters as a single-engine cue'

@@ -1030,6 +1030,8 @@ describe('Atrium-exclusive pattern pills', () => {
         });
         expect(container.querySelector('[data-procedural="blueprint"]')).toBeNull();
         expect(container.querySelector('[data-procedural="freedom"]')).toBeNull();
+        expect(container.querySelector('[data-procedural="ostensoria"]')).not.toBeNull();
+        expect(container.querySelector('[data-procedural="apparitio"]')).not.toBeNull();
         panel.destroy();
         container.remove();
     });

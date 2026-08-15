@@ -371,7 +371,9 @@ const TYPE_AFFINITY = {
     neural: (v, a) => 0.4 + a * 0.8 + (v < 0 ? 0.4 : 0),       // dark intensity
     klee: () => 1.0,                                            // versatile baseline
     turrell: (v, a) => 0.4 + Math.max(0, v) * 1.2 + (1 - a) * 0.5, // warm light fields
-    rockgarden: (v, a) => 0.3 + (1 - a) * 1.5                   // stillness
+    rockgarden: (v, a) => 0.3 + (1 - a) * 1.5,                  // stillness
+    ostensoria: (v, a) => 0.4 + (1 - a) * 1.1,                  // radial plate, still figure
+    apparitio: (v, a) => 0.35 + a * 0.7 + Math.max(0, v) * 0.4  // spectral apparition
 };
 
 /**

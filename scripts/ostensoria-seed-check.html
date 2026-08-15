@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ostensoria seed check</title>
+  <style>
+    html, body { margin: 0; background: #0A0A0C; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script type="module">
+    import { Ostensoria } from '/src/visuals/ostensoria.js';
+    import { measureFieldVoid } from '/src/visuals/ostensoria-coverage.js';
+
+    window.renderOstensoria = (seed, options = {}) => {
+      const engine = new Ostensoria();
+      engine.generate(null, seed, options);
+      const canvas = document.getElementById('c');
+      canvas.width = engine.fW;
+      canvas.height = engine.fH;
+      engine.render(canvas);
+      const coverage = measureFieldVoid(engine.fieldDev, engine.fMax);
+      return {
+        cur: engine.cur,
+        look: engine.look,
+        fMax: engine.fMax,
+        coverage
+      };
+    };
+  </script>
+</body>
+</html>

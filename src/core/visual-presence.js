@@ -76,6 +76,128 @@ export function galleryCadenceValueText(value) {
         + `${(crossfadeMs / 1000).toFixed(1)} second dissolve`;
 }
 
+// Gallery figure-drawing: Harmonograph's pen and the plate adapter both
+// finish a few seconds before the next work, so the completed figure
+// can be seen still. Full-frame and behind-stream keep a finished still
+// (render progress defaults to 1).
+export const GALLERY_DRAW_HOLD_MS = 2_500;
+export const GALLERY_DRAW_MIN_MS = 4_000;
+export const HARMONOGRAPH_HOLD_MS = GALLERY_DRAW_HOLD_MS;
+export const HARMONOGRAPH_DRAW_MIN_MS = GALLERY_DRAW_MIN_MS;
+
+export function galleryDrawMs(dwellMs) {
+    const dwell = Math.max(1, Number(dwellMs) || GALLERY_DWELL_MIN_MS);
+    const spare = Math.min(GALLERY_DRAW_HOLD_MS, Math.max(800, dwell - GALLERY_DRAW_MIN_MS));
+    return Math.max(1, dwell - spare);
+}
+
+export function galleryDrawProgress(elapsedMs, dwellMs) {
+    const drawMs = galleryDrawMs(dwellMs);
+    const t = Math.min(1, Math.max(0, (Number(elapsedMs) || 0) / drawMs));
+    return 1 - ((1 - t) ** 1.8);
+}
+
+export function harmonographDrawMs(dwellMs) {
+    return galleryDrawMs(dwellMs);
+}
+
+export function harmonographDrawProgress(elapsedMs, dwellMs) {
+    return galleryDrawProgress(elapsedMs, dwellMs);
+}
+
+// CSS `ease-in-out` is cubic-bezier(0.42, 0, 0.58, 1). Cosine is the same
+// symmetry and a close enough dissolve that explicit-t frames match the
+// Chamber wall without solving a unit bezier per pixel.
+export function galleryEase(t) {
+    const x = Math.max(0, Math.min(1, Number(t) || 0));
+    return 0.5 - 0.5 * Math.cos(Math.PI * x);
+}
+
+/**
+ * Cadence for a gallery wall of known length. A take shorter than one
+ * Chamber dwell still dissolves — it only breathes faster so a second
+ * work can appear before the film ends. The dissolve never drops below
+ * Gallery's gentle floor.
+ */
+export function galleryTimingsForDuration(durationMs, count, cadence) {
+    const chamber = galleryCadenceTimings(cadence);
+    const n = Math.max(0, count | 0);
+    const duration = Number(durationMs);
+    if (n <= 1 || !Number.isFinite(duration) || duration <= 0 || duration >= chamber.dwellMs) {
+        return chamber;
+    }
+    const holdFloorMs = 1_500;
+    const minPeriod = GALLERY_CROSSFADE_MIN_MS + holdFloorMs;
+    const works = Math.max(1, Math.min(n, Math.floor(duration / minPeriod)));
+    if (works <= 1) return chamber;
+    const dwellMs = Math.round(duration / works);
+    const crossfadeMs = Math.round(Math.max(
+        GALLERY_CROSSFADE_MIN_MS,
+        Math.min(
+            GALLERY_CROSSFADE_MAX_MS,
+            dwellMs * 0.18,
+            Math.max(0, dwellMs - holdFloorMs)
+        )
+    ));
+    return Object.freeze({ cadence: chamber.cadence, dwellMs, crossfadeMs });
+}
+
+/**
+ * Continuous Field at explicit presentation time: advance every dwell,
+ * dissolve over crossfade with ease-in-out, never through black. The
+ * first work is already present; mix is 0 at the start of a later
+ * dissolve and 1 when the incoming work is fully present.
+ */
+export function galleryWallAt(timeMs, count, options = {}) {
+    const n = Math.max(0, count | 0);
+    const { dwellMs, crossfadeMs } = galleryTimingsForDuration(
+        options.durationMs,
+        n,
+        options.cadence
+    );
+    if (n === 0) {
+        return Object.freeze({
+            outgoingIndex: null,
+            incomingIndex: null,
+            mix: 0,
+            dwellMs,
+            crossfadeMs
+        });
+    }
+    const t = Math.max(0, Number(timeMs) || 0);
+    const fade = Math.max(1, crossfadeMs);
+    const period = Math.max(1, dwellMs);
+    if (n === 1) {
+        return Object.freeze({
+            outgoingIndex: null,
+            incomingIndex: 0,
+            mix: 1,
+            dwellMs,
+            crossfadeMs
+        });
+    }
+    const cycle = Math.floor(t / period);
+    const into = t - cycle * period;
+    const incomingIndex = cycle % n;
+    const mix = cycle === 0 || into >= fade ? 1 : galleryEase(into / fade);
+    if (cycle === 0) {
+        return Object.freeze({
+            outgoingIndex: null,
+            incomingIndex: 0,
+            mix: 1,
+            dwellMs,
+            crossfadeMs
+        });
+    }
+    return Object.freeze({
+        outgoingIndex: (cycle - 1) % n,
+        incomingIndex,
+        mix,
+        dwellMs,
+        crossfadeMs
+    });
+}
+
 // Behind-stream imagery is peripheral, not a cut: it needs dwell time
 // to register beneath the text, so its default presence is a full beat
 export const VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS = 1000;

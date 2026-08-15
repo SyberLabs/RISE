@@ -112,6 +112,8 @@ describe('render-support registry', () => {
     expect(renderSupportFor('visual:procedural:neural').render).toBe('native');
     expect(renderSupportFor('visual:procedural:rockgarden').render).toBe('native');
     expect(renderSupportFor('visual:procedural:harmonograph').render).toBe('native');
+    expect(renderSupportFor('visual:procedural:ostensoria').render).toBe('native');
+    expect(renderSupportFor('visual:procedural:apparitio').render).toBe('native');
     expect(renderSupportFor('visual:video').render).toBe('native');
   });
 

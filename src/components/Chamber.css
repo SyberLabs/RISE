@@ -1147,11 +1147,13 @@
   .movement-title { transition: none; }
 }
 
-/* The living layer: engines authored for a work, stepping every frame.
-   It sits UNDER the gallery's image planes — a movement that mixes a
-   procedural family with museum works shows the works over the field,
+/* The living layer: work-engine families, Gallery Harmonograph, and
+   Gallery plates. They sit UNDER the gallery's image planes — a movement
+   that mixes them with museum works shows the works over the field,
    never the field over the works. */
-.chamber-continuous-field .work-engine-plane {
+.chamber-continuous-field .work-engine-plane,
+.chamber-continuous-field .harmonograph-plane,
+.chamber-continuous-field .plate-plane {
   position: absolute;
   inset: 0;
   width: 100%;

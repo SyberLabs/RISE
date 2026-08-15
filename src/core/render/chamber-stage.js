@@ -2,7 +2,8 @@
  * Browser stage for Chamber-identical offline frames.
  *
  * Drives the same painters the Chamber uses — Klee, Turrell, fractal,
- * neural, rock garden, harmonograph, genesis, attractor, focals, work
+ * neural, rock garden, harmonograph, iris plates, spectral plates,
+ * genesis, attractor, focals, work
  * engines — at explicit presentation time. Not a screen recording of rAF.
  */
 
@@ -12,8 +13,16 @@ import { FOCAL_GLYPHS } from '../visual-style-definitions.js';
 import { createSeededRandom } from '../../visuals/lib/klee-core.js';
 import { KleeEngine, KLEE_CHAMBER_BACKGROUND, KLEE_PRESET_NAMES } from '../../visuals/klee-enhanced.js';
 import { genesisProgressForRun } from '../../visuals/klee-field.js';
+import {
+  GALLERY_CADENCE_DEFAULT,
+  galleryCadenceTimings,
+  galleryDrawProgress,
+  harmonographDrawProgress
+} from '../visual-presence.js';
 import { Turrell } from '../../visuals/turrell.js';
 import { Harmonograph } from '../../visuals/harmonograph.js';
+import { Ostensoria } from '../../visuals/ostensoria.js';
+import { Apparitio } from '../../visuals/apparitio.js';
 import { RockGarden } from '../../visuals/rockgarden.js';
 import { NeuralNetwork } from '../../visuals/neural.js';
 import { FractalFlameGenerator } from '../../visuals/lib/fractal-engine.js';
@@ -80,15 +89,14 @@ function loadDataUrl(dataUrl) {
   });
 }
 
-async function coverImage(canvas, image) {
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = VOID;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+async function drawCover(canvas, image, alpha = 1) {
+  if (!image || alpha <= 0) return;
   let source = null;
   let width = 0;
   let height = 0;
   if (image?.dataUrl) {
-    const img = await loadDataUrl(image.dataUrl);
+    if (!image._img) image._img = await loadDataUrl(image.dataUrl);
+    const img = image._img;
     source = img;
     width = img.naturalWidth;
     height = img.naturalHeight;
@@ -110,7 +118,16 @@ async function coverImage(canvas, image) {
   const scale = Math.max(canvas.width / width, canvas.height / height);
   const tw = width * scale;
   const th = height * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
   ctx.drawImage(source, (canvas.width - tw) / 2, (canvas.height - th) / 2, tw, th);
+  ctx.restore();
+}
+
+async function coverImage(canvas, image) {
+  clearVoid(canvas);
+  await drawCover(canvas, image, 1);
 }
 
 const stage = {
@@ -198,7 +215,10 @@ const stage = {
     const showGlass = resolved.glass;
     this.setFieldMode(resolved.mode);
     await this.paintResolved(resolved, {
-      cue, elapsedMs, durationMs, progress, seed, stillId: state.stillId
+      cue, elapsedMs, durationMs, progress, seed,
+      stillId: state.stillId,
+      incomingStillId: state.incomingStillId,
+      dissolve: Number.isFinite(state.dissolve) ? state.dissolve : 1
     });
     paintAtom(document.getElementById('atom-display'), text, showGlass);
   },
@@ -246,6 +266,8 @@ const stage = {
     }
     if (kind === 'visual:procedural:turrell') return this.paintTurrell(ctx);
     if (kind === 'visual:procedural:harmonograph') return this.paintHarmonograph(ctx);
+    if (kind === 'visual:procedural:ostensoria') return this.paintOstensoria(ctx);
+    if (kind === 'visual:procedural:apparitio') return this.paintApparitio(ctx);
     if (kind === 'visual:procedural:rockgarden') return this.paintRockGarden(ctx);
     if (kind === 'visual:procedural:neural') return this.paintNeural(ctx);
     if (kind === 'visual:procedural:fractal') return this.paintFractal(ctx);
@@ -254,12 +276,14 @@ const stage = {
     }
     if (kind === 'visual:field:attractor') return this.paintAttractor(ctx);
     if (kind === 'visual:focal' || kind === 'visual:field:focal') return this.paintFocal(ctx);
-    if (kind === 'visual:sourced:project-image'
+    if (kind === 'visual:still'
+      || kind === 'visual:sourced:project-image'
       || kind === 'visual:sourced:gallery'
       || kind === 'visual:sourced:collection'
       || kind === 'visual:video') {
       return this.paintStill(ctx);
     }
+    await this.ensure('void', () => ({ destroy() {} }));
     clearVoid(this.canvas);
   },
 
@@ -299,7 +323,43 @@ const stage = {
       engine.generate(null, `${ctx.seed}:harmonograph`, { climate });
       return { engine, destroy() {} };
     });
-    painter.engine.render(this.canvas, { backgroundColor: VOID, progress: ctx.progress });
+    painter.engine.render(this.canvas, {
+      backgroundColor: VOID,
+      progress: harmonographDrawProgress(
+        ctx.elapsedMs,
+        ctx.durationMs || galleryCadenceTimings(GALLERY_CADENCE_DEFAULT).dwellMs
+      )
+    });
+  },
+
+  async paintOstensoria(ctx) {
+    const key = `ostensoria:${ctx.seed}`;
+    const painter = await this.ensure(key, () => {
+      const engine = new Ostensoria();
+      engine.generate(null, `${ctx.seed}:ostensoria`);
+      return { engine, destroy() {} };
+    });
+    painter.engine.render(this.canvas, {
+      progress: galleryDrawProgress(
+        ctx.elapsedMs,
+        ctx.durationMs || galleryCadenceTimings(GALLERY_CADENCE_DEFAULT).dwellMs
+      )
+    });
+  },
+
+  async paintApparitio(ctx) {
+    const key = `apparitio:${ctx.seed}`;
+    const painter = await this.ensure(key, () => {
+      const engine = new Apparitio();
+      engine.generate(null, `${ctx.seed}:apparitio`);
+      return { engine, destroy() {} };
+    });
+    painter.engine.render(this.canvas, {
+      progress: galleryDrawProgress(
+        ctx.elapsedMs,
+        ctx.durationMs || galleryCadenceTimings(GALLERY_CADENCE_DEFAULT).dwellMs
+      )
+    });
   },
 
   async paintRockGarden(ctx) {
@@ -488,12 +548,33 @@ const stage = {
   },
 
   async paintStill(ctx) {
-    const still = ctx.stillId && this.stills.get(ctx.stillId);
-    if (!still) {
+    await this.ensure('still', () => ({ destroy() {} }));
+    if (!this.canvas) return;
+    this.canvas.style.display = 'block';
+    const outgoing = ctx.stillId && this.stills.get(ctx.stillId);
+    const incoming = ctx.incomingStillId && this.stills.get(ctx.incomingStillId);
+    const dissolve = Number.isFinite(ctx.dissolve) ? ctx.dissolve : 1;
+    try {
+      if (incoming && outgoing && incoming !== outgoing && dissolve < 1) {
+        clearVoid(this.canvas);
+        await drawCover(this.canvas, outgoing, 1);
+        await drawCover(this.canvas, incoming, dissolve);
+        return;
+      }
+      const still = incoming && dissolve >= 1 ? incoming : outgoing || incoming;
+      if (!still) {
+        clearVoid(this.canvas);
+        return;
+      }
+      if (dissolve >= 1 || incoming) {
+        await coverImage(this.canvas, still);
+        return;
+      }
       clearVoid(this.canvas);
-      return;
+      await drawCover(this.canvas, still, dissolve);
+    } catch {
+      clearVoid(this.canvas);
     }
-    await coverImage(this.canvas, still);
   }
 };
 

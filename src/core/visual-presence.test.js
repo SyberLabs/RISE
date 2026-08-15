@@ -6,6 +6,13 @@ import {
     formatVisualPresence,
     galleryCadenceTimings,
     galleryCadenceValueText,
+    galleryDrawMs,
+    galleryDrawProgress,
+    galleryEase,
+    galleryTimingsForDuration,
+    galleryWallAt,
+    harmonographDrawMs,
+    harmonographDrawProgress,
     minimumVisualPresenceRest,
     nearestVisualPresenceStep,
     normalizeGalleryCadence,
@@ -38,6 +45,52 @@ describe('Visual Presence policy', () => {
         });
         expect(galleryCadenceValueText(0.5))
             .toBe('balanced, about 15 seconds per work, 2.5 second dissolve');
+    });
+
+    it('dissolves the gallery wall at explicit time, never through a cut', () => {
+        expect(galleryEase(0)).toBe(0);
+        expect(galleryEase(1)).toBe(1);
+        expect(galleryEase(0.5)).toBeCloseTo(0.5, 5);
+
+        const long = galleryWallAt(0, 4, { durationMs: 60_000 });
+        expect(long.outgoingIndex).toBeNull();
+        expect(long.incomingIndex).toBe(0);
+        expect(long.mix).toBe(1);
+        expect(long.dwellMs).toBe(15492);
+
+        const held = galleryWallAt(4_000, 4, { durationMs: 60_000 });
+        expect(held.outgoingIndex).toBeNull();
+        expect(held.incomingIndex).toBe(0);
+        expect(held.mix).toBe(1);
+
+        const dissolving = galleryWallAt(long.dwellMs + long.crossfadeMs / 2, 4, {
+            durationMs: 60_000
+        });
+        expect(dissolving.outgoingIndex).toBe(0);
+        expect(dissolving.incomingIndex).toBe(1);
+        expect(dissolving.mix).toBeGreaterThan(0.2);
+        expect(dissolving.mix).toBeLessThan(0.8);
+
+        const short = galleryTimingsForDuration(9_300, 4);
+        expect(short.dwellMs).toBeLessThan(galleryCadenceTimings(0.5).dwellMs);
+        expect(short.crossfadeMs).toBeGreaterThanOrEqual(1_200);
+        const mid = galleryWallAt(short.dwellMs, 4, { durationMs: 9_300 });
+        expect(mid.outgoingIndex).toBe(0);
+        expect(mid.incomingIndex).toBe(1);
+        expect(mid.mix).toBe(0);
+    });
+
+    it('paces a Gallery Harmonograph so the figure completes with a few seconds to spare', () => {
+        expect(harmonographDrawMs(8_000)).toBe(5_500);
+        expect(harmonographDrawProgress(0, 8_000)).toBe(0);
+        expect(harmonographDrawProgress(5_500, 8_000)).toBe(1);
+        expect(harmonographDrawProgress(8_000, 8_000)).toBe(1);
+        const mid = harmonographDrawProgress(2_750, 8_000);
+        expect(mid).toBeGreaterThan(0.5);
+        expect(mid).toBeLessThan(1);
+        expect(harmonographDrawMs(15_492)).toBe(12_992);
+        expect(galleryDrawProgress(0, 8_000)).toBe(harmonographDrawProgress(0, 8_000));
+        expect(galleryDrawMs(8_000)).toBe(harmonographDrawMs(8_000));
     });
 
     it('normalizes missing, legacy, and oversized values', () => {
