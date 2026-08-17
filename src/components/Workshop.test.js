@@ -4,6 +4,7 @@
  * exclusive-beds behavior matching the Chamber's audio panel.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
 import {
     endVisualInterlocutionSession,
     grantVisualInterlocutionConsent
@@ -190,7 +191,12 @@ describe('Workshop Composition Studio architecture', () => {
         container.querySelector('[data-asset-group="procedural"]').click();
         expect(workshop.visualAssetGroup).toBe('procedural');
         expect(workshop.editorDirty).toBe(false);
-        expect(container.querySelectorAll('.studio-asset-card')).toHaveLength(6);
+        // Every procedural pattern gets a card. Pinned to the registry rather
+        // than to a number: the literal 6 went stale the moment Iris and
+        // Spectral joined, and a count that has to be edited by hand each time
+        // an engine ships stops asserting the relationship it was written for.
+        expect(container.querySelectorAll('.studio-asset-card'))
+            .toHaveLength(PROCEDURAL_PATTERNS.length);
 
         container.querySelector('[data-editor-asset-id="procedural:klee"]').click();
         expect(container.querySelector('.studio-selected-asset')?.textContent).toContain('Klee Lines');
