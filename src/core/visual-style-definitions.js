@@ -33,6 +33,27 @@ export const HARMONOGRAPH_CLIMATES = Object.freeze([
   Object.freeze({ id: 'whiteHeat', name: 'White' })
 ]);
 
+export const OSTENSORIA_PALETTES = Object.freeze([
+  Object.freeze({ id: 'auto', name: 'Auto' }),
+  Object.freeze({ id: 'iris', name: 'Iris' }),
+  Object.freeze({ id: 'reliquary', name: 'Reliquary' }),
+  Object.freeze({ id: 'ember', name: 'Ember' }),
+  Object.freeze({ id: 'ice', name: 'Ice' }),
+  Object.freeze({ id: 'verdant', name: 'Verdant' }),
+  Object.freeze({ id: 'lilac', name: 'Lilac' }),
+  Object.freeze({ id: 'teal', name: 'Teal' }),
+  Object.freeze({ id: 'sepia', name: 'Sepia' }),
+  Object.freeze({ id: 'peacock', name: 'Peacock' })
+]);
+
+export const APPARITIO_PALETTES = Object.freeze([
+  Object.freeze({ id: 'auto', name: 'Auto' }),
+  Object.freeze({ id: 'prism', name: 'Prism' }),
+  Object.freeze({ id: 'marian', name: 'Marian' }),
+  Object.freeze({ id: 'ember', name: 'Ember' }),
+  Object.freeze({ id: 'holo', name: 'Holo' })
+]);
+
 export const FOCAL_GLYPHS = Object.freeze([
   Object.freeze({ id: 'breath', name: 'Breath', icon: '◯', dynamic: true, description: 'Gentle pulsing circle' }),
   Object.freeze({ id: 'anchor', name: 'Anchor', icon: '⚓', dynamic: false, description: 'Stable grounding point' }),
@@ -52,6 +73,8 @@ export const ROSE_MODES = Object.freeze([
 const ids = values => new Set(values.map(value => value.id));
 const KLEE_IDS = ids(KLEE_PRESETS);
 const HARMONOGRAPH_IDS = ids(HARMONOGRAPH_CLIMATES);
+const OSTENSORIA_IDS = ids(OSTENSORIA_PALETTES);
+const APPARITIO_IDS = ids(APPARITIO_PALETTES);
 const FOCAL_IDS = ids(FOCAL_GLYPHS);
 const ROSE_IDS = ids(ROSE_MODES);
 const ATTRACTOR_SYSTEM_IDS = ids(ATTRACTOR_SYSTEMS);
@@ -82,6 +105,14 @@ export const VISUAL_STYLE_DEFINITIONS = Object.freeze({
   harmonograph: Object.freeze({
     id: 'harmonograph', label: 'Harmonograph', group: 'procedural', configurable: true,
     defaults: Object.freeze({ climate: 'auto' })
+  }),
+  ostensoria: Object.freeze({
+    id: 'ostensoria', label: 'Iris Plates', group: 'procedural', configurable: true,
+    defaults: Object.freeze({ palette: 'auto' })
+  }),
+  apparitio: Object.freeze({
+    id: 'apparitio', label: 'Spectral Plates', group: 'procedural', configurable: true,
+    defaults: Object.freeze({ palette: 'auto' })
   })
 });
 
@@ -129,6 +160,12 @@ export function normalizeProceduralStyle(collections, value = {}) {
   }
   if (family === 'harmonograph') {
     return Object.freeze({ climate: HARMONOGRAPH_IDS.has(source.climate) ? source.climate : 'auto' });
+  }
+  if (family === 'ostensoria') {
+    return Object.freeze({ palette: OSTENSORIA_IDS.has(source.palette) ? source.palette : 'auto' });
+  }
+  if (family === 'apparitio') {
+    return Object.freeze({ palette: APPARITIO_IDS.has(source.palette) ? source.palette : 'auto' });
   }
   return Object.freeze({});
 }
@@ -180,12 +217,18 @@ export function visualCueStyleSummary(cue) {
   if (cue?.kind === 'procedural' && cue.collections?.[0] === 'harmonograph') {
     return title(normalizeProceduralStyle(cue.collections, cue.config).climate);
   }
+  if (cue?.kind === 'procedural' && cue.collections?.[0] === 'ostensoria') {
+    return title(normalizeProceduralStyle(cue.collections, cue.config).palette);
+  }
+  if (cue?.kind === 'procedural' && cue.collections?.[0] === 'apparitio') {
+    return title(normalizeProceduralStyle(cue.collections, cue.config).palette);
+  }
   return '';
 }
 
 export function visualCueIsConfigurable(cue) {
   return Boolean(
     cue?.kind === 'field'
-    || (cue?.kind === 'procedural' && ['klee', 'harmonograph'].includes(cue.collections?.[0]))
+    || (cue?.kind === 'procedural' && ['klee', 'harmonograph', 'ostensoria', 'apparitio'].includes(cue.collections?.[0]))
   );
 }

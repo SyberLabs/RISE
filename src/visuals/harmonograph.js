@@ -18,8 +18,9 @@
  * layered rosettes and golden ratios weave without ever closing.
  *
  * House rules honored: Rhythmic flashes and behind-stream are still
- * frames (progress defaults to 1). Gallery is the exception — the pen
- * travels across the dwell and rests complete for a few seconds.
+ * frames (progress defaults to 1). Gallery is the exception — after
+ * the incoming plane is visible the pen travels across the remaining
+ * dwell and rests complete for a few seconds.
  * Glow via wide understroke (never shadowBlur), deterministic under a
  * seed, and a null-ctx guard so headless environments stay silent.
  */

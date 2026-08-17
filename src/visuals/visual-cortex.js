@@ -1197,8 +1197,9 @@ export class VisualCortex {
      * the chariot into the crossfade rotation beside the turning one.
      *
      * Harmonograph is the other living exception: in Gallery the pen
-     * traces across the dwell. Rhythmic flashes still snapshot a
-     * finished figure via _renderContinuousProceduralWork.
+     * waits out the dissolve, then traces across the remaining dwell.
+     * Rhythmic flashes still snapshot a finished figure via
+     * _renderContinuousProceduralWork.
      */
     _continuousProceduralTypes() {
         const active = this.config.activeTypes || [];
@@ -1655,8 +1656,9 @@ export class VisualCortex {
     /**
      * Gallery plates: a living reveal under the image planes, on the
      * same dwell as the wall. The engines still generate a finished
-     * plate; the time adapter draws it. Full-frame and behind-stream
-     * keep a finished still.
+     * plate; the time adapter draws it. After the first work the reveal
+     * waits out the dissolve. Full-frame and behind-stream keep a
+     * finished still.
      */
     _syncPlateField(gateOpen) {
         const families = this._continuousPlateFamilies();

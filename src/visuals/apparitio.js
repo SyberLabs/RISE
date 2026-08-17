@@ -2,14 +2,16 @@
  * Apparitio — Spectral Plates.
  *
  * Engine extracted from apparitio (2).html. The wing, spine, crown,
- * sparkle, and develop math are unchanged. Chamber supplies seed and a
- * destination canvas in place of the demo chrome.
+ * sparkle, and develop math are unchanged. Chamber supplies seed, a
+ * destination canvas, and lifts the developed film onto the chamber
+ * void so the plate is the wall, not a black square.
  */
 import {
   APPARITIO_VOID_RGB,
   buildPlateOrderFromRgb,
   capturePlateData,
   chamberPlateQuality,
+  compositeInkOnPaper,
   fitPlateBlit,
   revealPlate
 } from './plate-draw.js';
@@ -388,6 +390,7 @@ export class Apparitio {
         const vig=1 - 0.42*rr*rr*rr;
         R*=vig; G*=vig; B*=vig;
         if(grain>0){ const n=gtab[(gi++)&(GT-1)]*grain; R+=n; G+=n; B+=n; }
+        [R, G, B] = compositeInkOnPaper(R, G, B, APPARITIO_VOID_RGB);
         const o=i*4;
         data[o]=clamp(R,0,1)*255; data[o+1]=clamp(G,0,1)*255; data[o+2]=clamp(B,0,1)*255; data[o+3]=255;
       }

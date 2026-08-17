@@ -5,6 +5,11 @@
  * living layer under the gallery; this is that layer for Harmonograph
  * alone. Full-frame and behind-stream keep a finished still. Reduced
  * motion draws one complete figure and holds it.
+ *
+ * After the first figure, the pen waits out the dissolve. The incoming
+ * plane fades in empty; drawing starts once it is opaque. The remaining
+ * dwell is then travel plus a few seconds of stillness before the next
+ * work.
  */
 
 import { Harmonograph } from './harmonograph.js';
@@ -65,7 +70,7 @@ export class HarmonographField {
             canvas.style.opacity = '0';
             canvas.style.transition = `opacity ${this.crossfadeMs}ms ease-in-out`;
             this.host.appendChild(canvas);
-            return { canvas, engine: null, elapsedMs: 0 };
+            return { canvas, engine: null, elapsedMs: 0, holdPenMs: 0, drawDwellMs: 0 };
         };
         this._planes = [make(), make()];
 
@@ -104,7 +109,11 @@ export class HarmonographField {
 
     _progress(plane) {
         if (this.reducedMotion) return 1;
-        return harmonographDrawProgress(plane.elapsedMs, this.dwellMs);
+        if ((plane.holdPenMs || 0) > 0) return 0;
+        const dwell = Number.isFinite(plane.drawDwellMs) && plane.drawDwellMs > 0
+            ? plane.drawDwellMs
+            : this.dwellMs;
+        return harmonographDrawProgress(plane.elapsedMs, dwell);
     }
 
     _draw(plane) {
@@ -126,6 +135,8 @@ export class HarmonographField {
         });
         incoming.engine = engine;
         incoming.elapsedMs = this.reducedMotion ? this.dwellMs : 0;
+        incoming.holdPenMs = this.reducedMotion || first ? 0 : this.crossfadeMs;
+        incoming.drawDwellMs = Math.max(1, this.dwellMs - incoming.holdPenMs);
         this._draw(incoming);
         incoming.canvas.style.transition = this.reducedMotion || first
             ? 'none'
@@ -138,10 +149,26 @@ export class HarmonographField {
                 if (retire.canvas.style.opacity === '0') {
                     retire.engine = null;
                     retire.elapsedMs = 0;
+                    retire.holdPenMs = 0;
                 }
             }, this.reducedMotion ? 0 : this.crossfadeMs);
         }
         this._active = this._planes.indexOf(incoming);
+    }
+
+    _advance(plane, dt) {
+        if (!plane?.engine) return;
+        let remaining = dt;
+        if (plane.holdPenMs > 0) {
+            if (remaining <= plane.holdPenMs) {
+                plane.holdPenMs -= remaining;
+                return;
+            }
+            remaining -= plane.holdPenMs;
+            plane.holdPenMs = 0;
+        }
+        plane.elapsedMs += remaining;
+        this._draw(plane);
     }
 
     _tick(timestamp) {
@@ -151,11 +178,8 @@ export class HarmonographField {
             : 0;
         this._lastFrameAt = timestamp;
 
-        for (const plane of this._planes) {
-            if (!plane.engine) continue;
-            plane.elapsedMs += dt;
-            this._draw(plane);
-        }
+        const plane = this._planes[this._active];
+        this._advance(plane, dt);
 
         if (timestamp >= this._nextRotateAt) {
             this._rotate(false);
@@ -192,6 +216,7 @@ export class HarmonographField {
                 plane.canvas.style.opacity = '0';
                 plane.engine = null;
                 plane.elapsedMs = 0;
+                plane.holdPenMs = 0;
             }
         }
     }

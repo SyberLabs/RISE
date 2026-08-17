@@ -8,6 +8,7 @@ import {
     buildPlateOrder,
     buildPlateOrderFromRgb,
     chamberPlateQuality,
+    compositeInkOnPaper,
     plateFitRect,
     revealPlate
 } from './plate-draw.js';
@@ -87,5 +88,16 @@ describe('plate-draw adapter', () => {
         expect(chamberPlateQuality({ innerWidth: 390, innerHeight: 844, devicePixelRatio: 2 })).toBe(2);
         expect(chamberPlateQuality({ innerWidth: 1920, innerHeight: 1080, devicePixelRatio: 1 })).toBe(2);
         expect(chamberPlateQuality({ innerWidth: 1920, innerHeight: 1080, devicePixelRatio: 2 })).toBe(4);
+    });
+
+    it('lifts empty Spectral film onto the chamber void, not black', () => {
+        const empty = compositeInkOnPaper(0, 0, 0);
+        expect(empty[0]).toBeCloseTo(APPARITIO_VOID_RGB[0] / 255);
+        expect(empty[1]).toBeCloseTo(APPARITIO_VOID_RGB[1] / 255);
+        expect(empty[2]).toBeCloseTo(APPARITIO_VOID_RGB[2] / 255);
+        const white = compositeInkOnPaper(1, 1, 1);
+        expect(white[0]).toBeCloseTo(1);
+        expect(white[1]).toBeCloseTo(1);
+        expect(white[2]).toBeCloseTo(1);
     });
 });

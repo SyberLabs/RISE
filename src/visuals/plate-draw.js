@@ -7,8 +7,8 @@
  * is the finished plate — cores of ink first, wash later.
  *
  * Spatial bias is the only family difference: Iris Plates open from the
- * centre; Spectral Plates unfurl from the mirror axis. Gallery uses the
- * time adapter for Iris only; Spectral keeps a finished still.
+ * centre; Spectral Plates unfurl from the mirror axis. Gallery drives
+ * both on the same dwell clock.
  *
  * Presentation: a plate is a square. Cover-scaling it onto a landscape
  * or portrait Chamber crops the figure and upscales the bake. Contain
@@ -21,6 +21,25 @@ export const OSTENSORIA_PAPER_RGB = [10, 10, 12];
 export const APPARITIO_VOID_RGB = [10, 10, 12];
 export const PLATE_FIT_INSET = 0.08;
 export const PLATE_FIT_MIN_PAD = 24;
+
+function clamp01(x) {
+  return x < 0 ? 0 : x > 1 ? 1 : x;
+}
+
+/**
+ * Apparitio develops on black film. Lift the ink onto chamber void so
+ * empty plate is the wall, not a darker square inside the contain-fit.
+ */
+export function compositeInkOnPaper(r, g, b, paperRgb = APPARITIO_VOID_RGB) {
+  const R = clamp01(r);
+  const G = clamp01(g);
+  const B = clamp01(b);
+  return [
+    (paperRgb[0] / 255) * (1 - R) + R,
+    (paperRgb[1] / 255) * (1 - G) + G,
+    (paperRgb[2] / 255) * (1 - B) + B
+  ];
+}
 
 /**
  * Bake resolution index for Chamber. HTML draft (760) is too small once

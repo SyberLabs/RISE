@@ -62,6 +62,22 @@ describe('HarmonographField', () => {
         field.destroy();
     });
 
+    it('holds the pen until the incoming plane has finished dissolving in', () => {
+        vi.spyOn(performance, 'now').mockReturnValue(0);
+        const field = new HarmonographField(host, { dwellMs: 8_000, crossfadeMs: 1_200 });
+        field.start();
+        progresses.length = 0;
+        frame(8_000);
+        expect(progresses.at(-1)).toBe(0);
+        for (let t = 8_050; t <= 9_200; t += 50) frame(t);
+        expect(progresses.at(-1)).toBe(0);
+        frame(9_250);
+        const started = progresses.at(-1);
+        expect(started).toBeGreaterThan(0);
+        expect(started).toBeLessThan(0.1);
+        field.destroy();
+    });
+
     it('reduced motion holds one finished figure, with no clock', () => {
         const field = new HarmonographField(host, {
             dwellMs: 8_000,

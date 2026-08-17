@@ -29,6 +29,10 @@ describe('visual style definitions', () => {
       .toEqual({ preset: 'harmonic' });
     expect(normalizeProceduralStyle(['harmonograph'], { climate: 'jadeVeil' }))
       .toEqual({ climate: 'jadeVeil' });
+    expect(normalizeProceduralStyle(['ostensoria'], { palette: 'reliquary' }))
+      .toEqual({ palette: 'reliquary' });
+    expect(normalizeProceduralStyle(['apparitio'], { palette: 'marian' }))
+      .toEqual({ palette: 'marian' });
     expect(normalizeProceduralStyle(['fractal'], { preset: 'harmonic' })).toEqual({});
   });
 });

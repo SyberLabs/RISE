@@ -75,24 +75,46 @@ describe('PlateField', () => {
         field.destroy();
     });
 
-    it('holds Spectral Plates as a finished still', () => {
+    it('advances Spectral Plates on the same gallery clock', () => {
         const field = new PlateField(host, {
             families: ['apparitio'],
             dwellMs: 8_000,
             crossfadeMs: 1_200
         });
         field.start();
-        expect(progresses[0]).toBe(1);
+        expect(progresses[0]).toBe(0);
         for (let t = 16; t <= 2_000; t += 16) frame(t);
-        expect(progresses.every(p => p === 1)).toBe(true);
+        const latest = progresses.at(-1);
+        expect(latest).toBeGreaterThan(0);
+        expect(latest).toBeLessThan(1);
         field.destroy();
     });
 
-    it('repaints a Spectral still after the canvas is resized', () => {
+    it('holds the reveal until the incoming plane has finished dissolving in', () => {
+        vi.spyOn(performance, 'now').mockReturnValue(0);
         const field = new PlateField(host, {
             families: ['apparitio'],
             dwellMs: 8_000,
             crossfadeMs: 1_200
+        });
+        field.start();
+        progresses.length = 0;
+        frame(8_000);
+        expect(progresses.at(-1)).toBe(0);
+        for (let t = 8_050; t <= 9_200; t += 50) frame(t);
+        expect(progresses.at(-1)).toBe(0);
+        frame(9_250);
+        const started = progresses.at(-1);
+        expect(started).toBeGreaterThan(0);
+        expect(started).toBeLessThan(0.1);
+        field.destroy();
+    });
+
+    it('repaints a finished plate after the canvas is resized', () => {
+        const field = new PlateField(host, {
+            families: ['apparitio'],
+            dwellMs: 8_000,
+            reducedMotion: true
         });
         field.start();
         const painted = progresses.length;

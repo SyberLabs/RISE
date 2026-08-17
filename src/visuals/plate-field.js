@@ -1,11 +1,13 @@
 /**
- * Gallery plates — Iris draws across the dwell; Spectral is a still.
+ * Gallery plates — Iris and Spectral draw across the dwell.
  *
  * ContinuousField is image-only. Harmonograph already has a living
  * layer; this is that layer for Ostensoria and Apparitio. The engines
- * generate a finished plate once per dwell; Iris is revealed by the
- * time adapter, Spectral appears complete. Full-frame and behind-stream
- * keep a finished still. Reduced motion holds the completed plate.
+ * generate a finished plate once per dwell; the time adapter reveals
+ * it. After the first plate, the reveal waits out the dissolve so the
+ * birth is visible, then the remaining dwell is travel plus a few
+ * seconds of stillness. Full-frame and behind-stream keep a finished
+ * still. Reduced motion holds the completed plate.
  */
 
 import { Ostensoria } from './ostensoria.js';
@@ -72,7 +74,7 @@ export class PlateField {
             canvas.style.opacity = '0';
             canvas.style.transition = `opacity ${this.crossfadeMs}ms ease-in-out`;
             this.host.appendChild(canvas);
-            return { canvas, engine: null, elapsedMs: 0 };
+            return { canvas, engine: null, elapsedMs: 0, holdPenMs: 0, drawDwellMs: 0 };
         };
         this._planes = [make(), make()];
 
@@ -95,8 +97,8 @@ export class PlateField {
             if (plane.canvas.width === w && plane.canvas.height === h) continue;
             plane.canvas.width = w;
             plane.canvas.height = h;
-            // Setting width/height clears the bitmap. A finished Spectral
-            // still must be blitted again or the plane stays void.
+            // Setting width/height clears the bitmap. A finished plate
+            // must be blitted again or the plane stays void.
             plane._drawnComplete = false;
             this._draw(plane);
         }
@@ -114,10 +116,11 @@ export class PlateField {
 
     _progress(plane) {
         if (this.reducedMotion) return 1;
-        // Spectral keeps a finished still. The time adapter remains on
-        // Apparitio.render; Gallery simply does not drive it.
-        if (plane.family !== 'ostensoria') return 1;
-        return galleryDrawProgress(plane.elapsedMs, this.dwellMs);
+        if ((plane.holdPenMs || 0) > 0) return 0;
+        const dwell = Number.isFinite(plane.drawDwellMs) && plane.drawDwellMs > 0
+            ? plane.drawDwellMs
+            : this.dwellMs;
+        return galleryDrawProgress(plane.elapsedMs, dwell);
     }
 
     _draw(plane) {
@@ -141,6 +144,8 @@ export class PlateField {
         incoming.engine = engine;
         incoming.family = id;
         incoming.elapsedMs = this.reducedMotion ? this.dwellMs : 0;
+        incoming.holdPenMs = this.reducedMotion || first ? 0 : this.crossfadeMs;
+        incoming.drawDwellMs = Math.max(1, this.dwellMs - incoming.holdPenMs);
         incoming._drawnComplete = false;
         this._draw(incoming);
         incoming.canvas.style.transition = this.reducedMotion || first
@@ -154,10 +159,26 @@ export class PlateField {
                 if (retire.canvas.style.opacity === '0') {
                     retire.engine = null;
                     retire.elapsedMs = 0;
+                    retire.holdPenMs = 0;
                 }
             }, this.reducedMotion ? 0 : this.crossfadeMs);
         }
         this._active = this._planes.indexOf(incoming);
+    }
+
+    _advance(plane, dt) {
+        if (!plane?.engine) return;
+        let remaining = dt;
+        if (plane.holdPenMs > 0) {
+            if (remaining <= plane.holdPenMs) {
+                plane.holdPenMs -= remaining;
+                return;
+            }
+            remaining -= plane.holdPenMs;
+            plane.holdPenMs = 0;
+        }
+        plane.elapsedMs += remaining;
+        this._draw(plane);
     }
 
     _tick(timestamp) {
@@ -167,11 +188,8 @@ export class PlateField {
             : 0;
         this._lastFrameAt = timestamp;
 
-        for (const plane of this._planes) {
-            if (!plane.engine) continue;
-            plane.elapsedMs += dt;
-            this._draw(plane);
-        }
+        const plane = this._planes[this._active];
+        this._advance(plane, dt);
 
         if (timestamp >= this._nextRotateAt) {
             this._rotate(false);
@@ -210,6 +228,7 @@ export class PlateField {
                 plane.canvas.style.opacity = '0';
                 plane.engine = null;
                 plane.elapsedMs = 0;
+                plane.holdPenMs = 0;
                 plane._drawnComplete = false;
             }
         }

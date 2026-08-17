@@ -125,12 +125,14 @@ export const RENDER_SUPPORT = Object.freeze({
     'canvas 2d'
   ]),
   'visual:procedural:ostensoria': nativeSlice('visual:procedural:ostensoria', [
-    'Ostensoria.generate + render',
-    'canvas 2d'
+    'Ostensoria.generate + render(progress)',
+    'canvas 2d',
+    'palette — render must pin seed'
   ]),
   'visual:procedural:apparitio': nativeSlice('visual:procedural:apparitio', [
-    'Apparitio.generate + render',
-    'canvas 2d'
+    'Apparitio.generate + render(progress)',
+    'canvas 2d',
+    'palette — render must pin seed'
   ]),
   'visual:procedural:shuffled': nativeSlice('visual:procedural:shuffled', [
     'seeded pick among named collections',

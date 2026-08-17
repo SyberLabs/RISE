@@ -333,10 +333,12 @@ const stage = {
   },
 
   async paintOstensoria(ctx) {
-    const key = `ostensoria:${ctx.seed}`;
+    const palette = ctx.cue?.config?.palette || 'auto';
+    const key = `ostensoria:${palette}:${ctx.seed}`;
     const painter = await this.ensure(key, () => {
       const engine = new Ostensoria();
-      engine.generate(null, `${ctx.seed}:ostensoria`);
+      engine.generate(null, `${ctx.seed}:ostensoria`,
+        palette !== 'auto' ? { palette } : {});
       return { engine, destroy() {} };
     });
     painter.engine.render(this.canvas, {
@@ -348,13 +350,20 @@ const stage = {
   },
 
   async paintApparitio(ctx) {
-    const key = `apparitio:${ctx.seed}`;
+    const palette = ctx.cue?.config?.palette || 'auto';
+    const key = `apparitio:${palette}:${ctx.seed}`;
     const painter = await this.ensure(key, () => {
       const engine = new Apparitio();
-      engine.generate(null, `${ctx.seed}:apparitio`);
+      engine.generate(null, `${ctx.seed}:apparitio`,
+        palette !== 'auto' ? { palette } : {});
       return { engine, destroy() {} };
     });
-    painter.engine.render(this.canvas);
+    painter.engine.render(this.canvas, {
+      progress: galleryDrawProgress(
+        ctx.elapsedMs,
+        ctx.durationMs || galleryCadenceTimings(GALLERY_CADENCE_DEFAULT).dwellMs
+      )
+    });
   },
 
   async paintRockGarden(ctx) {

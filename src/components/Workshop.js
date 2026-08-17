@@ -79,6 +79,8 @@ import {
   FOCAL_GLYPHS,
   HARMONOGRAPH_CLIMATES,
   KLEE_PRESETS,
+  OSTENSORIA_PALETTES,
+  APPARITIO_PALETTES,
   normalizeConfigurableVisualCue,
   normalizeFieldStyle,
   normalizeProceduralStyle,
@@ -1259,6 +1261,14 @@ export class Workshop {
       const config = normalizeProceduralStyle(cue.collections, cue.config);
       controls = `<label><span>Harmonograph climate</span><select class="input-select" data-visual-style-setting="harmonograph-climate">
         ${options(HARMONOGRAPH_CLIMATES, config.climate)}</select></label>`;
+    } else if (cue.kind === 'procedural' && cue.collections?.[0] === 'ostensoria') {
+      const config = normalizeProceduralStyle(cue.collections, cue.config);
+      controls = `<label><span>Iris palette</span><select class="input-select" data-visual-style-setting="ostensoria-palette">
+        ${options(OSTENSORIA_PALETTES, config.palette)}</select></label>`;
+    } else if (cue.kind === 'procedural' && cue.collections?.[0] === 'apparitio') {
+      const config = normalizeProceduralStyle(cue.collections, cue.config);
+      controls = `<label><span>Spectral palette</span><select class="input-select" data-visual-style-setting="apparitio-palette">
+        ${options(APPARITIO_PALETTES, config.palette)}</select></label>`;
     }
     if (!controls) return '';
     return `<section class="studio-visual-style ${compact ? 'is-compact' : ''}" data-style-asset-id="${this.escapeHtml(entry.asset.id)}">
@@ -3511,6 +3521,12 @@ export class Workshop {
     } else if (current.kind === 'procedural' && current.collections?.[0] === 'harmonograph'
       && setting === 'harmonograph-climate') {
       next = { ...current, config: normalizeProceduralStyle(current.collections, { climate: value }) };
+    } else if (current.kind === 'procedural' && current.collections?.[0] === 'ostensoria'
+      && setting === 'ostensoria-palette') {
+      next = { ...current, config: normalizeProceduralStyle(current.collections, { palette: value }) };
+    } else if (current.kind === 'procedural' && current.collections?.[0] === 'apparitio'
+      && setting === 'apparitio-palette') {
+      next = { ...current, config: normalizeProceduralStyle(current.collections, { palette: value }) };
     } else return false;
     next = normalizeConfigurableVisualCue(next);
     this.visualAssetStyleDrafts.set(entry.asset.id, next);

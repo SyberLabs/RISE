@@ -34,7 +34,9 @@ import {
   ATTRACTOR_PALETTES,
   ATTRACTOR_SYSTEMS,
   HARMONOGRAPH_CLIMATES,
-  KLEE_PRESETS
+  KLEE_PRESETS,
+  OSTENSORIA_PALETTES,
+  APPARITIO_PALETTES
 } from '../src/core/visual-style-definitions.js';
 import { PROCEDURAL_PATTERNS as PROCEDURAL_LIST } from '../src/core/visual-registry.js';
 
@@ -91,6 +93,36 @@ function proceduralTakes() {
             kind: 'procedural',
             collections: ['harmonograph'],
             config: { climate: climate.id }
+          }
+        });
+      }
+      continue;
+    }
+    if (pattern.id === 'ostensoria') {
+      for (const palette of OSTENSORIA_PALETTES) {
+        takes.push({
+          group: 'procedural',
+          id: `ostensoria-${palette.id}`,
+          title: `Iris Plates · ${palette.name}`,
+          cue: {
+            kind: 'procedural',
+            collections: ['ostensoria'],
+            config: { palette: palette.id }
+          }
+        });
+      }
+      continue;
+    }
+    if (pattern.id === 'apparitio') {
+      for (const palette of APPARITIO_PALETTES) {
+        takes.push({
+          group: 'procedural',
+          id: `apparitio-${palette.id}`,
+          title: `Spectral Plates · ${palette.name}`,
+          cue: {
+            kind: 'procedural',
+            collections: ['apparitio'],
+            config: { palette: palette.id }
           }
         });
       }

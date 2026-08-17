@@ -56,7 +56,7 @@ export const PROCEDURAL_PATTERNS = Object.freeze([
   Object.freeze({
     id: 'apparitio', name: 'Spectral Plates', icon: '☾',
     description: 'An upright apparition on a single mirror axis: swept spectral wings, a '
-      + 'filigree spine, a crowning halo on black. Each seed appears once.'
+      + 'filigree spine, a crowning halo on the chamber void. Each seed appears once.'
   })
 ]);
 
