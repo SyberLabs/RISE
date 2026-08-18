@@ -1954,12 +1954,12 @@ export class AudioEngine {
             await this.playAmbient(options.ambientUrl);
         }
 
-        // Trigger HQ Swell on entry — unless a score owns the swell lane.
-        // With no default chosen this call passes null, which means "give me
-        // any swell", and a random one would then sound underneath a scored
-        // one the author did name. A domain that scores its own swells is the
-        // authority over them; entry only speaks for an unscored reading.
-        if (options.entrySwell !== false) {
+        // A swell on entry only when one was actually chosen, and only when no
+        // score owns the lane. Passing null here used to mean "give me any
+        // swell", so a reading with nothing chosen opened with a random one —
+        // and a reading that scored its own heard that random one underneath.
+        // Silence is a valid state; an unrequested sound is not.
+        if (options.entrySwell !== false && options.swellId) {
             this.playSwell(options.swellId);
         }
 

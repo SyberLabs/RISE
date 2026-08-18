@@ -1282,14 +1282,36 @@ describe('Workshop atmosphere: exclusive beds', () => {
         container.remove();
     });
 
-    it("'Personal' is an entry swell, not a bed — it coexists with a soundscape", () => {
+    it('audioPreset only ever names a tone, so a bed and a recording cannot erase each other', () => {
+        // It used to hold both a tone and the flag `personal`, so choosing a
+        // personal recording wiped the tone bed and choosing a tone wiped the
+        // recording. One field, two meanings, mutually destructive.
         const { workshop, container } = makeWorkshop();
 
-        chooseAudio(container, 'soundscape:faded-signal');
-        chooseAudio(container, 'swell:personal');
+        chooseAudio(container, 'tone:deep');
+        expect(workshop.sessionData.audioPreset).toBe('deep');
 
-        expect(workshop.sessionData.audioPreset).toBe('personal');
+        chooseAudio(container, 'soundscape:faded-signal');
         expect(workshop.sessionData.soundscape).toBe('faded-signal');
+        // One base layer at a time: a soundscape displaces a tone rather than
+        // sitting beside it.
+        expect(workshop.sessionData.audioPreset).toBe('silent');
+
+        container.remove();
+    });
+
+    it('rewrites a project that still carries the overloaded preset', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.replaceEditorData({
+            audioPreset: 'personal',
+            selectedSwellId: 'never-see-me-again'
+        }, { kind: 'draft' });
+
+        // A personal recording under the whole reading is the base layer now,
+        // so the pair becomes one soundscape and the dead flag is dropped.
+        expect(workshop.sessionData.soundscape).toBe('personal:never-see-me-again');
+        expect(workshop.sessionData.audioPreset).toBe('silent');
+        expect(workshop.sessionData.selectedSwellId).toBeNull();
 
         container.remove();
     });

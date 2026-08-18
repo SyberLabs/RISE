@@ -13,8 +13,8 @@ import { describe, expect, it } from 'vitest';
 import { AudioScheduleController } from './journey-schedulers.js';
 import {
     PERSONAL_BED_PREFIX,
-    personalBedEditorAsset,
-    personalSwellEditorAsset,
+    applyPersonalAudioAsWholeReading,
+    personalAudioEditorAsset,
     audioScoreAssetFromId
 } from './workshop-audio.js';
 
@@ -38,20 +38,26 @@ const bedProgram = (soundscapeId) => ({
 const atom = () => ({ sourceId: 's1', sourceProgress: 0.2 });
 
 describe('a personal recording can be an event or an atmosphere', () => {
-    it('offers the same file on both lanes', () => {
-        expect(personalSwellEditorAsset(RECORDING).lane).toBe('swell');
-        expect(personalBedEditorAsset(RECORDING).lane).toBe('audio');
-        // The bed cue is a soundscape, so every bed rule already covers it.
-        expect(personalBedEditorAsset(RECORDING).cueTemplate).toMatchObject({
-            kind: 'soundscape',
-            soundscapeId: `${PERSONAL_BED_PREFIX}${RECORDING.id}`
+    it('is one asset, placeable either way', () => {
+        const asset = personalAudioEditorAsset(RECORDING);
+        // The file carries no behaviour of its own. `swell` is the wire name
+        // of the overlay lane and never reaches the reader.
+        expect(asset.lane).toBe('swell');
+        expect(asset.name).toBe(RECORDING.name);
+        expect(asset.capability).toBe('both');
+    });
+
+    it('becomes the base layer when placed under the whole reading', () => {
+        expect(applyPersonalAudioAsWholeReading(RECORDING.id)).toEqual({
+            soundscape: `${PERSONAL_BED_PREFIX}${RECORDING.id}`,
+            audioPreset: 'silent',
+            selectedSwellId: null
         });
     });
 
-    it('resolves a bed asset back from its id', () => {
-        const asset = audioScoreAssetFromId(`personal-bed:${RECORDING.id}`, [RECORDING]);
-        expect(asset.lane).toBe('audio');
-        expect(asset.name).toContain('bed');
+    it('resolves back from its id', () => {
+        const asset = audioScoreAssetFromId(`swell:${RECORDING.id}`, [RECORDING]);
+        expect(asset.name).toBe(RECORDING.name);
     });
 
     it('holds under the reading and returns after a pause', () => {

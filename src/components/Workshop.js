@@ -46,8 +46,10 @@ import {
 import {
   applyWorkshopAudioAsset,
   audioScoreAssetFromId,
-  personalBedEditorAsset,
-  personalSwellEditorAsset,
+  applyPersonalAudioAsWholeReading,
+  personalAudioEditorAsset,
+  personalBedSoundscapeId,
+  PERSONAL_BED_PREFIX,
   WORKSHOP_AUDIO_ASSETS,
   WorkshopAudioPreviewController,
   workshopAudioAsset,
@@ -251,6 +253,21 @@ function normalizeSessionData(data = {}) {
       }
     })
     .filter(Boolean);
+  // MIGRATION: `audioPreset` used to double as a swell flag.
+  //
+  // Setting a personal recording as the default wrote `audioPreset:'personal'`,
+  // which is not a tone the engine knows — so the bed reported Silence, the
+  // engine warned about an unknown preset, and choosing a tone afterwards
+  // silently discarded the recording. A personal file placed under the whole
+  // reading is a BASE layer now, so the old pair is rewritten as one.
+  if (incoming.audioPreset === 'personal') {
+    incoming.soundscape = incoming.selectedSwellId
+      ? personalBedSoundscapeId(incoming.selectedSwellId)
+      : (incoming.soundscape && incoming.soundscape !== 'none' ? incoming.soundscape : 'none');
+    incoming.audioPreset = 'silent';
+    incoming.selectedSwellId = null;
+  }
+
   const focals = { ...defaults.visualConfig.focals, ...(visualConfig.focals || {}) };
   if (typeof focals.personalAssetId === 'string') {
     const personalAsset = sequenceVisualAssets.find(asset =>
@@ -687,7 +704,7 @@ export class Workshop {
       audioSelectionHtml: this.renderSelectedAudioAsset(),
       audioSummary: this.audioSummary(),
       audioBedLabel: this.audioBedLabel(),
-      audioEntryLabel: this.audioEntryLabel(),
+      audioEntryLabel: this.audioLayerLabel(),
       wordCount: this.readingWordCount(),
       readingDuration: this.readingDurationLabel(),
       studioViewport: this.studioViewport,
@@ -819,8 +836,8 @@ export class Workshop {
       <summary><span>Atmosphere</span><span class="text-capitalize" data-audio-summary>${this.escapeHtml(this.audioSummary())}</span></summary>
       <div class="studio-inspector-body">
         <div class="studio-atmosphere-summary">
-          <span><small>Continuous bed</small><strong data-audio-bed>${this.escapeHtml(this.audioBedLabel())}</strong></span>
-          <span><small>Entry event</small><strong data-audio-entry>${this.escapeHtml(this.audioEntryLabel())}</strong></span>
+          <span><small>Whole reading</small><strong data-audio-bed>${this.escapeHtml(this.audioBedLabel())}</strong></span>
+          <span><small>Highlighted</small><strong data-audio-entry>${this.escapeHtml(this.audioLayerLabel())}</strong></span>
         </div>
         <div id="studio-audio-selection">${this.renderSelectedAudioAsset()}</div>
       </div>
@@ -1645,23 +1662,33 @@ export class Workshop {
   }
 
   audioBedLabel(data = this.sessionData) {
-    if ((data.soundscape || 'none') !== 'none') {
-      return workshopAudioAsset(`soundscape:${data.soundscape}`)?.name || data.soundscape;
+    const soundscape = data.soundscape || 'none';
+    if (soundscape.startsWith(PERSONAL_BED_PREFIX)) {
+      const id = soundscape.slice(PERSONAL_BED_PREFIX.length);
+      return this.personalSwells.find(item => item.id === id)?.name || 'Personal audio';
     }
-    if (data.audioPreset && !['silent', 'personal'].includes(data.audioPreset)) {
+    if (soundscape !== 'none') {
+      return workshopAudioAsset(`soundscape:${soundscape}`)?.name || soundscape;
+    }
+    if (data.audioPreset && data.audioPreset !== 'silent') {
       return workshopAudioAsset(`tone:${data.audioPreset}`)?.name || data.audioPreset;
     }
     return 'Silence';
   }
 
-  audioEntryLabel(data = this.sessionData) {
-    if (data.audioPreset !== 'personal') return 'None';
-    return data.selectedSwellId ? 'Personal swell' : 'Choose a swell';
+  audioSummary(data = this.sessionData) {
+    return this.audioBedLabel(data);
   }
 
-  audioSummary(data = this.sessionData) {
-    const bed = this.audioBedLabel(data);
-    return data.audioPreset === 'personal' ? `${bed} + entry` : bed;
+  /**
+   * What the highlights add over the whole-reading layer. Counted rather than
+   * named: a passage layer belongs to its passage, and the Composition map is
+   * where each one is read.
+   */
+  audioLayerLabel(data = this.sessionData) {
+    const clips = (data.audioScoreAssignments || []).length;
+    if (!clips) return 'None';
+    return `${clips} passage${clips === 1 ? '' : 's'}`;
   }
 
   renderAudioAssetRegistry() {
@@ -1687,14 +1714,9 @@ export class Workshop {
     const builtIns = WORKSHOP_AUDIO_ASSETS
       .map(workshopAudioEditorAsset)
       .filter(asset => asset && editorAssetSupports(asset, 'span'));
-    // Each personal recording is offered twice, because it can be two
-    // different things: a momentary event on the swell lane, or a bed that
-    // holds under the reading. The shelf only ever produced the first, which
-    // is why a file assigned across a whole text sounded once and never came
-    // back after a pause.
-    const personal = this.personalSwells.map(personalSwellEditorAsset).filter(Boolean);
-    const beds = this.personalSwells.map(personalBedEditorAsset).filter(Boolean);
-    return [...builtIns, ...personal, ...beds];
+    // One entry per recording. Where it is placed decides what it does.
+    const personal = this.personalSwells.map(personalAudioEditorAsset).filter(Boolean);
+    return [...builtIns, ...personal];
   }
 
   selectedAudioScoreAsset() {
@@ -1780,7 +1802,7 @@ export class Workshop {
         node.textContent = this.audioBedLabel();
       });
       this.container.querySelectorAll('[data-audio-entry]').forEach(node => {
-        node.textContent = this.audioEntryLabel();
+        node.textContent = this.audioLayerLabel();
       });
     });
     void this.populatePersonalSwellSelect();
@@ -1823,7 +1845,7 @@ export class Workshop {
       ? this.selectedAudioAssetId.slice('swell:'.length) : null;
     const personal = this.personalSwells.find(item => item.id === personalId);
     const next = personal
-      ? { soundscape: this.sessionData.soundscape || 'none', audioPreset: 'personal', selectedSwellId: personal.id }
+      ? applyPersonalAudioAsWholeReading(personal.id)
       : applyWorkshopAudioAsset(this.sessionData, this.selectedAudioAssetId);
     Object.assign(this.sessionData, next);
     this.audioPreview.stop();

@@ -72,7 +72,24 @@ export function workshopAudioEditorAsset(assetOrId) {
   });
 }
 
-export function personalSwellEditorAsset(swell) {
+/**
+ * A reader's own recording. ONE asset, two placements.
+ *
+ * It used to be offered twice — once as an entry swell, once as a bed — which
+ * asked the reader to choose a behaviour before they had chosen a place. But
+ * how long a file sounds is a property of the file, not of the slot it sits
+ * in: a ten minute track "at the start" and the same track "for the whole
+ * reading" are the same experience. So the file is just a file, and where it
+ * goes decides what it does:
+ *
+ *   whole reading  → the base layer, a soundscape whose voice is theirs
+ *   a highlight    → a layer stacked over the base for that passage only
+ *
+ * `lane: 'swell'` and the `swell` cue are the WIRE names for the overlay lane
+ * and they stay, because every saved sequence and published Journey already
+ * spells them that way. The reader never sees the word.
+ */
+export function personalAudioEditorAsset(swell) {
   if (!swell?.id || !swell?.name) return null;
   return createEditorAsset({
     id: `swell:${swell.id}`,
@@ -81,50 +98,35 @@ export function personalSwellEditorAsset(swell) {
     name: swell.name,
     capability: 'both',
     editor: { color: AUDIO_COLORS.swell, preview: { kind: 'audio', ref: swell.id } },
-    provenance: { provider: 'Personal swell shelf' },
+    provenance: { provider: 'Personal audio shelf' },
     cueTemplate: { kind: 'swell', swellId: swell.id, fadeMs: 250 }
   });
 }
 
 /**
- * The same personal recording, offered for the bed lane.
+ * Placing a personal recording under the whole reading.
  *
- * A swell fires once when its span is entered and pause ends it for good —
- * correct for an event, and wrong for a reader who wants their own audio
- * under the whole reading. That is a bed, so the file is offered as one:
- * a soundscape whose voice is theirs, holding for the span, restored on
- * resume, replaced when another bed takes authority.
+ * It becomes the BASE layer, not an entry event — a soundscape whose voice is
+ * the reader's file. `audioPreset` is left as a tone value and never carries
+ * the word `personal`: it used to, and because one field then meant two
+ * things, choosing a personal file erased the tone bed while choosing a tone
+ * erased the file. They no longer touch each other.
  */
-export function personalBedEditorAsset(swell) {
-  if (!swell?.id || !swell?.name) return null;
-  return createEditorAsset({
-    id: `personal-bed:${swell.id}`,
-    lane: 'audio',
-    kind: 'audio-bed',
-    name: `${swell.name} (bed)`,
-    capability: 'both',
-    editor: { color: AUDIO_COLORS.swell, preview: { kind: 'audio', ref: swell.id } },
-    provenance: { provider: 'Personal audio shelf' },
-    cueTemplate: {
-      kind: 'soundscape',
-      soundscapeId: personalBedSoundscapeId(swell.id),
-      fadeMs: 500
-    }
-  });
+export function applyPersonalAudioAsWholeReading(swellId) {
+  return {
+    soundscape: personalBedSoundscapeId(swellId),
+    audioPreset: 'silent',
+    selectedSwellId: null
+  };
 }
 
 export function audioScoreAssetFromId(assetId, personalSwells = []) {
   const builtIn = workshopAudioEditorAsset(assetId);
   if (builtIn) return builtIn;
-  if (typeof assetId === 'string' && assetId.startsWith('personal-bed:')) {
-    const bedId = assetId.slice('personal-bed:'.length);
-    return personalBedEditorAsset(personalSwells.find(item => item.id === bedId)
-      || { id: bedId, name: 'Personal audio' });
-  }
   if (typeof assetId !== 'string' || !assetId.startsWith('swell:')) return null;
   const swellId = assetId.slice('swell:'.length);
-  return personalSwellEditorAsset(personalSwells.find(item => item.id === swellId)
-    || { id: swellId, name: 'Personal swell' });
+  return personalAudioEditorAsset(personalSwells.find(item => item.id === swellId)
+    || { id: swellId, name: 'Personal audio' });
 }
 
 export function workshopAudioAsset(assetId) {
@@ -151,16 +153,15 @@ export function applyWorkshopAudioAsset(data, assetId) {
     selectedSwellId: data.selectedSwellId || null
   };
 
+  // One base layer: a soundscape or a tone, never both, and `audioPreset`
+  // never means anything but a tone. Choosing one no longer discards the
+  // reader's personal audio, because that now lives in `soundscape`.
   if (asset.kind === 'soundscape') {
     next.soundscape = asset.value;
-    if (!['silent', 'personal'].includes(next.audioPreset)) next.audioPreset = 'silent';
+    next.audioPreset = 'silent';
   } else if (asset.kind === 'tone') {
     next.audioPreset = asset.value;
-    next.selectedSwellId = null;
-    if (asset.value !== 'silent') next.soundscape = 'none';
-    if (asset.value === 'silent') next.soundscape = 'none';
-  } else {
-    next.audioPreset = 'personal';
+    next.soundscape = 'none';
   }
   return next;
 }

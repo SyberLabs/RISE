@@ -6,15 +6,26 @@ import {
 } from './workshop-audio.js';
 
 describe('Workshop audio defaults', () => {
-  it('keeps entry swells independent while enforcing exclusive continuous beds', () => {
+  it('holds one base layer, and lets nothing else clear it', () => {
+    // A soundscape displaces a tone: there is one base at a time.
     expect(applyWorkshopAudioAsset({ soundscape: 'aurora', audioPreset: 'gateway' },
       'soundscape:faded-signal')).toMatchObject({ soundscape: 'faded-signal', audioPreset: 'silent' });
-    expect(applyWorkshopAudioAsset({ soundscape: 'aurora', audioPreset: 'personal', selectedSwellId: 's1' },
-      'swell:personal')).toEqual({ soundscape: 'aurora', audioPreset: 'personal', selectedSwellId: 's1' });
-    expect(applyWorkshopAudioAsset({ soundscape: 'aurora', audioPreset: 'personal', selectedSwellId: 's1' },
-      'tone:deep')).toEqual({ soundscape: 'none', audioPreset: 'deep', selectedSwellId: null });
+    // And a tone displaces a soundscape.
+    expect(applyWorkshopAudioAsset({ soundscape: 'aurora', audioPreset: 'silent' },
+      'tone:deep')).toMatchObject({ soundscape: 'none', audioPreset: 'deep' });
     expect(workshopAudioAssetIsCurrent({ soundscape: 'none', audioPreset: 'silent' },
       { kind: 'tone', value: 'silent' })).toBe(true);
+  });
+
+  it('no longer discards a personal recording when a tone is chosen', () => {
+    // `audioPreset` carried both a tone and the flag `personal`, so the two
+    // settings destroyed one another: picking a tone nulled the recording,
+    // picking the recording overwrote the tone with a value the engine does
+    // not know. They are separate fields of the model now.
+    const next = applyWorkshopAudioAsset(
+      { soundscape: 'none', audioPreset: 'silent', selectedSwellId: 's1' }, 'tone:deep');
+    expect(next.audioPreset).toBe('deep');
+    expect(next.selectedSwellId).toBe('s1');
   });
 });
 
