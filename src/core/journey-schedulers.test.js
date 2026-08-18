@@ -255,7 +255,11 @@ describe('multi-lane audio runtime', () => {
         expect(result.syncGroups).toEqual(['opening']);
     });
 
-    it('pauses both lanes, restores only the bed on resume, and cancels on stop', () => {
+    it('pauses both lanes and brings both back on resume, and cancels on stop', () => {
+        // The overlay lane used to be left behind, on the reasoning that a
+        // swell is momentary and replaying one performs it twice. It carries
+        // a layer that holds for its whole passage now, so a reader who paused
+        // inside that passage came back to it missing.
         const calls = [];
         const controller = new AudioScheduleController(lanes(), {
             stopSoundscape: () => {},
@@ -265,9 +269,11 @@ describe('multi-lane audio runtime', () => {
         });
         controller.observe(atom('p1'));
         controller.pause();
+        expect(calls).toContain('stop-swell');
         controller.resume();
-        expect(calls.filter(call => call === 'swell:bell')).toHaveLength(1);
+        expect(calls.filter(call => call === 'swell:bell')).toHaveLength(2);
         expect(calls.filter(call => call === 'tone:deep')).toHaveLength(2);
+        expect(controller.activeSwellId).not.toBeNull();
         controller.stop();
         expect(controller.activeBedId).toBeNull();
         expect(controller.activeSwellId).toBeNull();

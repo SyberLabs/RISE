@@ -132,9 +132,22 @@ atom observation resolves both lanes as a transaction: bed authority changes
 first, then a co-anchored swell fires. A `syncGroup` records correspondence
 without merging the clips. Beds replace beds; swells never replace beds;
 explicit silence owns the bed lane; leaving an authored bed restores the
-project atmosphere default. Pause cancels both outputs, resume restores the
-bed without replaying a momentary swell, and stale asynchronous events are
-cancelled by generation.
+project atmosphere default. Pause cancels both outputs, resume restores
+**both lanes**, and stale asynchronous events are cancelled by generation.
+
+Resume once restored the bed alone, on the reasoning that a swell is a
+momentary event and replaying one would perform it a second time. That reading
+of the lane is obsolete. The `swell` lane carries a layer that holds for the
+length of its passage — a reader's own recording, minutes long, stacked over
+the whole-reading bed — so pausing inside that passage and returning to it
+silent loses the layer rather than avoiding a repeat. The engine can start a
+source but not resume one mid-file, so the layer restarts from its beginning;
+that is the honest limit of the runtime, not a chosen behaviour.
+
+`swell` remains the wire name of the overlay lane in every saved sequence and
+published Journey. No authoring surface uses the word: audio is placed either
+under the whole reading or over a highlighted passage, and how long it sounds
+is a property of the file.
 
 ---
 

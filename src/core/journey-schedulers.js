@@ -305,6 +305,14 @@ export class AudioScheduleController {
         this._activeBedId = bed?.id ?? null;
         this._activeSwellId = swell?.id ?? null;
         this._applyBed(bed?.cue, generation);
+        // The overlay lane comes back with the bed. It used to be left behind
+        // on the reasoning that a swell is a momentary event and replaying one
+        // would be a second performance of something that had already happened
+        // — but the lane now carries a layer that holds for its whole passage.
+        // Pausing inside that passage and returning to it silent is the layer
+        // being lost, not a repeat being avoided. The engine can only start a
+        // source, so the layer restarts rather than resuming where it stopped.
+        this._applySwell(swell?.cue, generation);
         return { bed, swell, syncGroups: this._syncGroups(bed, swell) };
     }
 
