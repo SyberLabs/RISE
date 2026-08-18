@@ -14,6 +14,7 @@ import {
   revealPlate
 } from './plate-draw.js';
 import { measureFieldVoid, VOID_FRACTION_LIMIT } from './ostensoria-coverage.js';
+import { nowMs, pumpBakeQueue } from './plate-bake.js';
 
 const VOID = '#0A0A0C';
 
@@ -200,6 +201,59 @@ export class Ostensoria {
     return true;
   }
 
+  /**
+   * Start a bake that stepBake() can slice, including sparse retries.
+   * generate() keeps calling _bake so tests can stub a one-shot attempt.
+   */
+  beginBake(signal, seed, options = {}) {
+    this.ready = false;
+    this.plate = null;
+    this.plateData = null;
+    this.order = null;
+    this._plateScratch = null;
+    this._dev = null;
+    const acceptSparse = options.acceptSparse === true;
+    const maxTries = Number.isFinite(Number(options.maxSparseTries))
+      ? Math.max(1, Number(options.maxSparseTries))
+      : OSTENSORIA_SPARSE_TRIES;
+    const pinned = seed == null ? null : (String(seed).trim() || 'OSTENSORIA');
+    this._gen = {
+      signal,
+      options,
+      acceptSparse,
+      maxTries,
+      pinned,
+      current: pinned,
+      attempt: 0
+    };
+    this._beginAttempt(signal, pinned, options);
+  }
+
+  stepBake(budgetMs = 8) {
+    if (this.ready && !this._attemptQueue?.length) return true;
+    const g = this._gen;
+    if (!g) return !!this.ready;
+    const deadline = nowMs() + Math.max(0, budgetMs);
+    while (nowMs() < deadline) {
+      if (this._attemptQueue?.length) {
+        if (!this._stepAttempt(deadline - nowMs())) return false;
+      }
+      const coverage = measureFieldVoid(this.fieldDev, this.fMax);
+      this.coverage = coverage;
+      this.acceptedSeed = this.cur?.seed ?? g.current;
+      if (g.acceptSparse || coverage.voidFraction < VOID_FRACTION_LIMIT || g.attempt + 1 >= g.maxTries) {
+        this.ready = true;
+        this._gen = null;
+        this._attemptQueue = null;
+        return true;
+      }
+      g.attempt += 1;
+      g.current = g.pinned == null ? null : `${g.pinned}:v${g.attempt}`;
+      this._beginAttempt(g.signal, g.current, g.options);
+    }
+    return false;
+  }
+
   isReady() {
     return this.queue.length > 0;
   }
@@ -284,6 +338,24 @@ export class Ostensoria {
    *   to Chamber-adaptive (never HTML draft 760)
    */
   _bake(signal, seed, options = {}) {
+    this._beginAttempt(signal, seed, options);
+    while (!this._stepAttempt(1e9)) {}
+    this.ready = true;
+    return true;
+  }
+
+  _beginAttempt(signal, seed, options = {}) {
+    this.ready = false;
+    this._dev = null;
+    const jobs = [];
+    jobs.push(() => {
+      this._prepareAttempt(signal, seed, options, jobs);
+      return true;
+    });
+    this._attemptQueue = jobs;
+  }
+
+  _prepareAttempt(signal, seed, options, jobs) {
     const seedStr = seed == null ? randomSeed() : (String(seed).trim() || 'OSTENSORIA');
     const sr = mulberry32(xmur3(seedStr)());
     const orders = [1,2,2,2,4,4,6,8,12];
@@ -342,102 +414,164 @@ export class Ostensoria {
     const totalSplats=QUALITY_SPLATS[form.quality] || QUALITY_SPLATS[1];
     const iters=Math.max(50000, Math.floor(totalSplats/copies));
     const F=field, W=res;
-    for(let i=0;i<iters;i++){
-      attr.step(x,y,o); x=o[0]; y=o[1];
-      const px=(x-cx0)*scale, py=(y-cy0)*scale;
-      for(let k=0;k<rots.length;k++){
-        const cr=rots[k][0], sr=rots[k][1];
-        let ax=px*cr - py*sr, ay=px*sr + py*cr;
-        let sx=(ccx+ax)|0, sy=(ccy+ay)|0;
-        if(sx>=0&&sx<W&&sy>=0&&sy<W) F[sy*W+sx]+=1;
-        if(mirror){
-          sx=(ccx-ax)|0;
-          if(sx>=0&&sx<W&&sy>=0&&sy<W) F[sy*W+sx]+=1;
+    let i = 0;
+    jobs.push(function splat(remainMs){
+      const t0 = nowMs();
+      while(i<iters && (nowMs()-t0)<remainMs){
+        const end = Math.min(iters, i+512);
+        for(; i<end; i++){
+          attr.step(x,y,o); x=o[0]; y=o[1];
+          const px=(x-cx0)*scale, py=(y-cy0)*scale;
+          for(let k=0;k<rots.length;k++){
+            const cr=rots[k][0], sr=rots[k][1];
+            let ax=px*cr - py*sr, ay=px*sr + py*cr;
+            let sx=(ccx+ax)|0, sy=(ccy+ay)|0;
+            if(sx>=0&&sx<W&&sy>=0&&sy<W) F[sy*W+sx]+=1;
+            if(mirror){
+              sx=(ccx-ax)|0;
+              if(sx>=0&&sx<W&&sy>=0&&sy<W) F[sy*W+sx]+=1;
+            }
+          }
         }
       }
-    }
-
-    const fieldDev=Float32Array.from(field);
-    boxBlur(fieldDev,fW,fH,1);
-    let m=1;
-    for(let i=0;i<fieldDev.length;i++){ if(fieldDev[i]>m)m=fieldDev[i]; }
-    this.cur = cur;
-    this.look = look;
-    this.fieldDev = fieldDev;
-    this.fW = fW;
-    this.fH = fH;
-    this.fMax = m;
-    this.baseR=new Float32Array(fW*fH); this.baseG=new Float32Array(fW*fH); this.baseB=new Float32Array(fW*fH);
-    this.glowW=fW>>2; this.glowH=fH>>2; this.glowSmall=new Float32Array(this.glowW*this.glowH);
-    this.ready = true;
-    this.plate = this._developPlate();
-    this.plateData = capturePlateData(this.plate, this.fW, this.fH);
-    this.order = buildPlateOrder(this.fieldDev, this.fW, this.fH, 'radial');
-    this._plateScratch = null;
-    return true;
+      return i>=iters;
+    });
+    jobs.push(() => {
+      const fieldDev=Float32Array.from(field);
+      boxBlur(fieldDev,fW,fH,1);
+      let m=1;
+      for(let j=0;j<fieldDev.length;j++){ if(fieldDev[j]>m)m=fieldDev[j]; }
+      this.cur = cur;
+      this.look = look;
+      this.fieldDev = fieldDev;
+      this.fW = fW;
+      this.fH = fH;
+      this.fMax = m;
+      this.baseR=new Float32Array(fW*fH); this.baseG=new Float32Array(fW*fH); this.baseB=new Float32Array(fW*fH);
+      this.glowW=fW>>2; this.glowH=fH>>2; this.glowSmall=new Float32Array(this.glowW*this.glowH);
+      return true;
+    });
+    jobs.push(() => {
+      this.plate = this._openPlate();
+      if (!this.plate) return true;
+      this._initDevelop(this.plate.getContext('2d'));
+      return true;
+    });
+    jobs.push((remainMs) => this._stepDevelop(remainMs));
+    jobs.push(() => {
+      this.plateData = capturePlateData(this.plate, this.fW, this.fH);
+      this.order = buildPlateOrder(this.fieldDev, this.fW, this.fH, 'radial');
+      this._plateScratch = null;
+      return true;
+    });
+    this._attemptQueue = jobs;
   }
 
-  _developPlate(){
+  _stepAttempt(budgetMs) {
+    if (!this._attemptQueue || this._attemptQueue.length === 0) return true;
+    return pumpBakeQueue(this._attemptQueue, budgetMs);
+  }
+
+  _openPlate(){
     if(!this.fieldDev || typeof document === 'undefined') return null;
     const plate = document.createElement('canvas');
     plate.width = this.fW;
     plate.height = this.fH;
     const ctx = plate.getContext && plate.getContext('2d');
     if(!ctx?.createImageData) return null;
-    this._develop(ctx);
+    return plate;
+  }
+
+  _developPlate(){
+    const plate = this._openPlate();
+    if(!plate) return null;
+    this._develop(plate.getContext('2d'));
     return plate;
   }
 
   _develop(ctx){
+    this._initDevelop(ctx);
+    while(!this._stepDevelop(1e9)) {}
+  }
+
+  _initDevelop(ctx){
     const look=this.look;
     const W=this.fW,H=this.fH,N=W*H;
-    const fieldDev=this.fieldDev, fMax=this.fMax, cur=this.cur;
-    const baseR=this.baseR, baseG=this.baseG, baseB=this.baseB, glowSmall=this.glowSmall;
-    const glowW=this.glowW, glowH=this.glowH;
+    const fMax=this.fMax, cur=this.cur;
+    const glowSmall=this.glowSmall;
     const logMax=Math.log(1+fMax*look.exposure);
-    const gm=look.gamma;
     const bands=look.bands, phaseHue=look.hue + cur.phase*0.27, sat=look.sat;
     let rampName=look.palette; if(!RAMPS[rampName]) rampName="iris";
     const LUT=buildLUT(RAMPS[rampName], clamp(sat,0,1));
-
     glowSmall.fill(0);
-    for(let i=0;i<N;i++){
-      const d=fieldDev[i];
-      let t = d>0 ? Math.log(1+d*look.exposure)/logMax : 0;
-      t = Math.pow(clamp(t,0,1), gm);
-      const u = fract(t*bands + phaseHue);
-      const idx=(u*255)|0, o3=idx*3;
-      let r=LUT[o3], g=LUT[o3+1], b=LUT[o3+2];
-      const env = smooth(0.0,0.11,t);
-      const hot = smooth(0.80,1.0,t);
-      r*=env; g*=env; b*=env;
-      r=r+(1-r)*hot; g=g+(1-g)*hot; b=b+(1-b)*hot;
-      const cov = smooth(0.0,0.02,t);
-      const ir=1-cov;
-      baseR[i]=paper[0]*ir + r*cov;
-      baseG[i]=paper[1]*ir + g*cov;
-      baseB[i]=paper[2]*ir + b*cov;
-      const gsrc = t>0.6 ? Math.pow((t-0.6)/0.4,2) : 0;
-      if(gsrc>0){ const gx=(i%W)>>2, gy=((i/W)|0)>>2; glowSmall[gy*glowW+gx]+=gsrc; }
-    }
-
-    if(look.bloom>0){
-      boxBlur(glowSmall,glowW,glowH,3);
-      boxBlur(glowSmall,glowW,glowH,3);
-      let gm2=1e-6; for(let i=0;i<glowSmall.length;i++){ if(glowSmall[i]>gm2)gm2=glowSmall[i]; }
-      const gInv=1/gm2;
-      for(let i=0;i<glowSmall.length;i++) glowSmall[i]*=gInv;
-    }
-
     const img=ctx.createImageData(W,H);
-    const data=img.data;
-    const cxp=W/2, cyp=H/2, maxR=Math.hypot(cxp,cyp);
-    const ca=look.chroma, bloom=look.bloom, grain=look.grain;
-    const gW=glowW, gH=glowH;
     const grnd=mulberry32(xmur3(cur.seed+"|grain")());
     const GT=4096, gtab=new Float32Array(GT);
     for(let i=0;i<GT;i++) gtab[i]=(grnd()-0.5);
+    this._dev = {
+      ctx, look, W, H, N, LUT, logMax, bands, phaseHue,
+      fieldDev:this.fieldDev, fMax,
+      baseR:this.baseR, baseG:this.baseG, baseB:this.baseB,
+      glowSmall, glowW:this.glowW, glowH:this.glowH,
+      img, data:img.data,
+      cxp:W/2, cyp:H/2, maxR:Math.hypot(W/2,H/2),
+      ca:look.chroma, bloom:look.bloom, grain:look.grain,
+      gW:this.glowW, gH:this.glowH, gtab, gmask:GT-1,
+      phase:'tone', i:0, y:0, gi:0
+    };
+  }
 
+  _stepDevelop(remainMs){
+    const d=this._dev;
+    if(!d) return true;
+    const t0=nowMs();
+    const look=d.look;
+    const W=d.W,H=d.H,N=d.N;
+    const fieldDev=d.fieldDev;
+    const baseR=d.baseR, baseG=d.baseG, baseB=d.baseB, glowSmall=d.glowSmall;
+    const glowW=d.glowW, glowH=d.glowH;
+    const LUT=d.LUT, logMax=d.logMax, gm=look.gamma;
+    const bands=d.bands, phaseHue=d.phaseHue;
+
+    if(d.phase==='tone'){
+      while(d.i<N && (nowMs()-t0)<remainMs){
+        const end=Math.min(N, d.i+8192);
+        for(; d.i<end; d.i++){
+          const i=d.i;
+          const dens=fieldDev[i];
+          let t = dens>0 ? Math.log(1+dens*look.exposure)/logMax : 0;
+          t = Math.pow(clamp(t,0,1), gm);
+          const u = fract(t*bands + phaseHue);
+          const idx=(u*255)|0, o3=idx*3;
+          let r=LUT[o3], g=LUT[o3+1], b=LUT[o3+2];
+          const env = smooth(0.0,0.11,t);
+          const hot = smooth(0.80,1.0,t);
+          r*=env; g*=env; b*=env;
+          r=r+(1-r)*hot; g=g+(1-g)*hot; b=b+(1-b)*hot;
+          const cov = smooth(0.0,0.02,t);
+          const ir=1-cov;
+          baseR[i]=paper[0]*ir + r*cov;
+          baseG[i]=paper[1]*ir + g*cov;
+          baseB[i]=paper[2]*ir + b*cov;
+          const gsrc = t>0.6 ? Math.pow((t-0.6)/0.4,2) : 0;
+          if(gsrc>0){ const gx=(i%W)>>2, gy=((i/W)|0)>>2; glowSmall[gy*glowW+gx]+=gsrc; }
+        }
+      }
+      if(d.i<N) return false;
+      if(look.bloom>0){
+        boxBlur(glowSmall,glowW,glowH,3);
+        boxBlur(glowSmall,glowW,glowH,3);
+        let gm2=1e-6; for(let i=0;i<glowSmall.length;i++){ if(glowSmall[i]>gm2)gm2=glowSmall[i]; }
+        const gInv=1/gm2;
+        for(let i=0;i<glowSmall.length;i++) glowSmall[i]*=gInv;
+      }
+      d.phase='write';
+    }
+
+    const data=d.data;
+    const cxp=d.cxp, cyp=d.cyp, maxR=d.maxR;
+    const ca=d.ca, bloom=d.bloom, grain=d.grain;
+    const gW=d.gW, gH=d.gH, gtab=d.gtab, gmask=d.gmask;
     function sampleBloom(x,y){
       const gx=x/4, gy=y/4;
       let x0=gx|0, y0=gy|0; const fx=gx-x0, fy=gy-y0;
@@ -452,8 +586,8 @@ export class Ostensoria {
       return buf[(y|0)*W+(x|0)];
     }
 
-    let gi=0;
-    for(let y=0;y<H;y++){
+    while(d.y<H && (nowMs()-t0)<remainMs){
+      const y=d.y;
       const dy=y-cyp;
       for(let x=0;x<W;x++){
         const i=y*W+x;
@@ -473,7 +607,7 @@ export class Ostensoria {
         const vig=1 - 0.10*rr*rr;
         R*=vig; G*=vig; B*=vig;
         if(grain>0){
-          const n=gtab[(gi++)&(GT-1)]*grain;
+          const n=gtab[(d.gi++)&gmask]*grain;
           R+=n; G+=n; B+=n;
         }
         const o=i*4;
@@ -482,8 +616,12 @@ export class Ostensoria {
         data[o+2]=clamp(B,0,1)*255;
         data[o+3]=255;
       }
+      d.y++;
     }
-    ctx.putImageData(img,0,0);
+    if(d.y<H) return false;
+    d.ctx.putImageData(d.img,0,0);
+    this._dev = null;
+    return true;
   }
 
   render(canvas, options = {}) {

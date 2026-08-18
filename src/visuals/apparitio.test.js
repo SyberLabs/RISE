@@ -34,4 +34,21 @@ describe('Apparitio engine', () => {
         expect(engine.render({ getContext: () => ({}) })).toBe(false);
         expect(engine.render(null)).toBe(false);
     });
+
+    it('stepBake drain matches generate for a fixed seed', () => {
+        const a = new Apparitio();
+        const b = new Apparitio();
+        a.generate(null, 'SERAPH-1234');
+        b.beginBake(null, 'SERAPH-1234');
+        let n = 0;
+        while (!b.stepBake(8) && n < 20_000) n++;
+        expect(b.ready).toBe(true);
+        expect(n).toBeGreaterThan(1);
+        expect(b.cur.wings).toBe(a.cur.wings);
+        expect(b.cur.reach).toBe(a.cur.reach);
+        expect(b.cur.filigree).toBe(a.cur.filigree);
+        expect(b.cur.crown).toBe(a.cur.crown);
+        expect(b.cur.phase).toBe(a.cur.phase);
+        expect(b.cur.flowSig).toBe(a.cur.flowSig);
+    }, 30_000);
 });

@@ -11,10 +11,10 @@ import {
   buildPlateOrderFromRgb,
   capturePlateData,
   chamberPlateQuality,
-  compositeInkOnPaper,
   fitPlateBlit,
   revealPlate
 } from './plate-draw.js';
+import { nowMs, pumpBakeQueue } from './plate-bake.js';
 
 const VOID = '#0A0A0C';
 const clamp=(x,a,b)=>x<a?a:x>b?b:x;
@@ -78,7 +78,25 @@ export class Apparitio {
     this.ready = false;
   }
 
-  generate(signal, seed, options = {}) {
+  /**
+   * Start a bake that stepBake() can slice. generate() drains this.
+   */
+  beginBake(signal, seed, options = {}) {
+    this.ready = false;
+    this.plate = null;
+    this.plateData = null;
+    this.order = null;
+    this._plateScratch = null;
+    this._dev = null;
+    const jobs = [];
+    this._bakeQueue = jobs;
+    jobs.push(() => {
+      this._prepareBake(signal, seed, options, jobs);
+      return true;
+    });
+  }
+
+  _prepareBake(signal, seed, options, jobs) {
     const seedStr = seed == null ? randomSeed() : (String(seed).trim() || 'APPARITIO');
     const sr=mulberry32(xmur3(seedStr)());
     const form = {
@@ -157,65 +175,68 @@ export class Apparitio {
       }
     }
 
-    function drawWing(anchorY, tilt, reachPx, widthPx, bandDir, wide){
+    function wingJob(anchorY, tilt, reachPx, widthPx, bandDir, wide){
       const N = wide ? 2200 : 1600;
       const M = wide ? 40 : 18;
       const softBrush = res*(wide?0.006:0.0026);
       const perInt = wide ? 0.05 : 0.11;
-      for(let s=0;s<N;s++){
-        const t=s/(N-1), theta=Math.PI*t, lobe=Math.sin(theta);
-        let px=Math.sin(theta)*reachPx, py=(-Math.cos(theta))*reachPx*0.62;
-        px+=Math.sin(theta*2)*reachPx*0.10; py+=-Math.sin(theta)*reachPx*0.16;
-        const ct=Math.cos(tilt), st=Math.sin(tilt);
-        const wx=px*ct-py*st, wy=anchorY+px*st+py*ct;
-        const taper=smooth(0,0.10,t)*smooth(0,0.14,1-t);
-        const nx=Math.cos(tilt+Math.PI/2), ny=Math.sin(tilt+Math.PI/2);
-        const halfW=widthPx*lobe*0.5;
-        for(let bi=0;bi<M;bi++){
-          const bf=bi/(M-1);
-          const band = bf<0.16 ? bf/0.16*0.06 : 0.06+(bf-0.16)/0.84*0.82;
-          const u=clamp((bandDir>0?band:1-band)+phase*0.12,0,0.999);
-          lutRGB(LUT,u,col);
-          const off=(bf-0.5)*2*halfW;
-          const sx=cx+wx+nx*off, sy=wy+ny*off;
-          const inten=perInt*taper;
-          splatSoft(sx,sy,softBrush, col[0]*inten,col[1]*inten,col[2]*inten);
-          splatSoft(fW-1-sx,sy,softBrush, col[0]*inten,col[1]*inten,col[2]*inten);
+      let s = 0;
+      return function run(remainMs){
+        const t0 = nowMs();
+        while(s<N && (nowMs()-t0)<remainMs){
+          const t=s/(N-1), theta=Math.PI*t, lobe=Math.sin(theta);
+          let px=Math.sin(theta)*reachPx, py=(-Math.cos(theta))*reachPx*0.62;
+          px+=Math.sin(theta*2)*reachPx*0.10; py+=-Math.sin(theta)*reachPx*0.16;
+          const ct=Math.cos(tilt), st=Math.sin(tilt);
+          const wx=px*ct-py*st, wy=anchorY+px*st+py*ct;
+          const taper=smooth(0,0.10,t)*smooth(0,0.14,1-t);
+          const nx=Math.cos(tilt+Math.PI/2), ny=Math.sin(tilt+Math.PI/2);
+          const halfW=widthPx*lobe*0.5;
+          for(let bi=0;bi<M;bi++){
+            const bf=bi/(M-1);
+            const band = bf<0.16 ? bf/0.16*0.06 : 0.06+(bf-0.16)/0.84*0.82;
+            const u=clamp((bandDir>0?band:1-band)+phase*0.12,0,0.999);
+            lutRGB(LUT,u,col);
+            const off=(bf-0.5)*2*halfW;
+            const sx=cx+wx+nx*off, sy=wy+ny*off;
+            const inten=perInt*taper;
+            splatSoft(sx,sy,softBrush, col[0]*inten,col[1]*inten,col[2]*inten);
+            splatSoft(fW-1-sx,sy,softBrush, col[0]*inten,col[1]*inten,col[2]*inten);
+          }
+          s++;
         }
-      }
+        return s>=N;
+      };
     }
 
-    const jobs=[];
     const nWings=form.wings;
     const upper=Math.ceil(nWings/2), lower=nWings-upper;
     const wideLobes = seedRng()<0.5;
-    jobs.push(()=>{
-      for(let w=0; w<upper; w++){
-        const anchorY = res*0.48 - w*res*0.020;
-        const tilt = -0.60 - w*0.30;
-        const reach = res*(0.17 + 0.05*w) * (0.92+0.12*form.reach);
-        drawWing(anchorY, tilt, reach, res*(wideLobes?0.06:0.035), +1, wideLobes && w<2);
-      }
-    });
-    if(lower>0) jobs.push(()=>{
-      for(let w=0; w<lower; w++){
-        const anchorY = res*0.66 + w*res*0.024;
-        const tilt = -Math.PI + 0.55 + w*0.30;
-        const reach = res*(0.17 + 0.05*w) * (0.92+0.12*form.reach);
-        drawWing(anchorY, tilt, reach, res*(wideLobes?0.05:0.03), -1, wideLobes && w<1);
-      }
-    });
+    for(let w=0; w<upper; w++){
+      const anchorY = res*0.48 - w*res*0.020;
+      const tilt = -0.60 - w*0.30;
+      const reach = res*(0.17 + 0.05*w) * (0.92+0.12*form.reach);
+      jobs.push(wingJob(anchorY, tilt, reach, res*(wideLobes?0.06:0.035), +1, wideLobes && w<2));
+    }
+    for(let w=0; w<lower; w++){
+      const anchorY = res*0.66 + w*res*0.024;
+      const tilt = -Math.PI + 0.55 + w*0.30;
+      const reach = res*(0.17 + 0.05*w) * (0.92+0.12*form.reach);
+      jobs.push(wingJob(anchorY, tilt, reach, res*(wideLobes?0.05:0.03), -1, wideLobes && w<1));
+    }
 
     if(form.filigree>0){
-      jobs.push(()=>{
-        const fr=mulberry32(xmur3(form.seed+"|spine")());
-        const bandW=res*(0.055+0.03*fr());
-        const kBase = 2 + (fr()*4|0);
-        const nNodes = (8 + (fr()*6|0));
-        const yA = yTop + (yBot-yTop)*0.06, yB = yTop + (yBot-yTop)*0.78;
-        const spanY = yB - yA;
-        const detail = clamp(form.filigree,0,1.6);
-        for(let nd=0; nd<nNodes; nd++){
+      const fr=mulberry32(xmur3(form.seed+"|spine")());
+      const bandW=res*(0.055+0.03*fr());
+      const kBase = 2 + (fr()*4|0);
+      const nNodes = (8 + (fr()*6|0));
+      const yA = yTop + (yBot-yTop)*0.06, yB = yTop + (yBot-yTop)*0.78;
+      const spanY = yB - yA;
+      const detail = clamp(form.filigree,0,1.6);
+      let nd = 0;
+      jobs.push(function run(remainMs){
+        const t0 = nowMs();
+        while(nd<nNodes && (nowMs()-t0)<remainMs){
           const ty = nd/(nNodes-1);
           const cy = yA + ty*spanY;
           const env = Math.sin(Math.PI*ty);
@@ -235,27 +256,36 @@ export class Apparitio {
             splatSharp(cx-lx, cy+ly, tintR,tintG,tintB, a);
           }
           splatSharp(cx, cy, 1,1,1, 0.55*env);
+          nd++;
         }
+        return nd>=nNodes;
       });
     }
 
     if(look.sparkle>0){
-      jobs.push(()=>{
-        const sparkRng=mulberry32(xmur3(form.seed+"|spark")());
-        const round = sparkRng()<0.5;
-        const arcs = 3 + (sparkRng()*3|0);
-        const perArc = (26 + 46*look.sparkle)|0;
-        const topY = res*0.14;
-        for(let ai=0; ai<arcs; ai++){
-          const arcR = res*(0.15 + 0.11*ai + sparkRng()*0.04);
-          const y0 = topY + res*(0.02 + 0.06*ai);
-          const spanA = lerp(0.7, 1.5, ai/arcs);
-          const jitter = res*0.012;
-          for(let s=0; s<perArc; s++){
+      const sparkRng=mulberry32(xmur3(form.seed+"|spark")());
+      const round = sparkRng()<0.5;
+      const arcs = 3 + (sparkRng()*3|0);
+      const perArc = (26 + 46*look.sparkle)|0;
+      const topY = res*0.14;
+      let ai = 0, s = 0;
+      let arcR = 0, y0 = 0, spanA = 0, jitter = 0;
+      let tipsLeft = -1;
+      jobs.push(function run(remainMs){
+        const t0 = nowMs();
+        while(ai<arcs && (nowMs()-t0)<remainMs){
+          if(s===0){
+            arcR = res*(0.15 + 0.11*ai + sparkRng()*0.04);
+            y0 = topY + res*(0.02 + 0.06*ai);
+            spanA = lerp(0.7, 1.5, ai/arcs);
+            jitter = res*0.012;
+          }
+          while(s<perArc && (nowMs()-t0)<remainMs){
             const th = lerp(-spanA, spanA, s/(perArc-1));
             const ex = Math.sin(th)*arcR + (sparkRng()-0.5)*jitter;
             const ey = y0 - Math.cos(th)*arcR*0.32 + (sparkRng()-0.5)*jitter;
             const sx = cx + ex, sy = Math.max(res*0.035, ey);
+            s++;
             if(sy<0||sy>fH) continue;
             const u = clamp(fract(0.15+0.2*ai+phase),0,0.999); lutRGB(LUT,u,col);
             const mag = 0.45+0.55*sparkRng();
@@ -267,9 +297,13 @@ export class Apparitio {
               splatStar(sx,sy,len, 0.95,0.97,1.0, 0.5*mag);
             }
           }
+          if(s<perArc) return false;
+          ai++;
+          s = 0;
         }
-        const tips=(18+30*look.sparkle)|0;
-        for(let i=0;i<tips;i++){
+        if(ai<arcs) return false;
+        if(tipsLeft<0) tipsLeft = (18+30*look.sparkle)|0;
+        while(tipsLeft>0 && (nowMs()-t0)<remainMs){
           const t=sparkRng(); const theta=Math.PI*t;
           const reachPx=res*0.17*(0.92+0.12*form.reach);
           let px=Math.sin(theta)*reachPx, py=(-Math.cos(theta))*reachPx*0.62;
@@ -279,13 +313,15 @@ export class Apparitio {
           const mag=0.4+0.5*sparkRng();
           if(round){ splatSharp(sx,sy,0.9,0.93,1.0,0.5*mag); splatSharp(fW-1-sx,sy,0.9,0.93,1.0,0.5*mag); }
           else { splatStar(sx,sy,(2+3*mag)|0,0.95,0.97,1.0,0.45*mag); splatStar(fW-1-sx,sy,(2+3*mag)|0,0.95,0.97,1.0,0.45*mag); }
+          tipsLeft--;
         }
+        return tipsLeft<=0;
       });
     }
 
-    jobs.push(()=>{
+    jobs.push(function crownJob(){
       const topY=res*0.14;
-      if(crown==="none") return;
+      if(crown==="none") return true;
       if(crown==="orb"){
         for(let ring=0;ring<40;ring++){ const rad=res*0.012*(1+ring*0.12); const a=Math.exp(-ring*0.16)*0.6;
           splatSoft(cx,topY,rad, a,a,a); }
@@ -301,72 +337,150 @@ export class Apparitio {
         for(let s=0;s<steps;s++){ const th=s/steps*TAU; const x=cx+Math.cos(th)*rr, y=topY+Math.sin(th)*rr;
           splatSoft(x,y,res*0.010, 0.7,0.82,1.0); splatSharp(x,y,0.9,0.95,1.0,0.5); }
       }
+      return true;
     });
 
-    for (const job of jobs) job();
+    jobs.push(function blurJob(){
+      boxBlur3(accR,fW,fH,1); boxBlur3(accG,fW,fH,1); boxBlur3(accB,fW,fH,1);
+      return true;
+    });
+    jobs.push(() => {
+      this.cur = cur;
+      this.look = look;
+      this.fW = fW;
+      this.fH = fH;
+      this.accR = accR; this.accG = accG; this.accB = accB;
+      this.shR = shR; this.shG = shG; this.shB = shB;
+      this.glowW=fW>>2; this.glowH=fH>>2; this.glowSmall=new Float32Array(this.glowW*this.glowH);
+      return true;
+    });
+    jobs.push(() => {
+      this.plate = this._openPlate();
+      if (!this.plate) return true;
+      const ctx = this.plate.getContext('2d');
+      this._initDevelop(ctx);
+      return true;
+    });
+    jobs.push((remainMs) => this._stepDevelop(remainMs));
+    jobs.push(() => {
+      this.plateData = capturePlateData(this.plate, this.fW, this.fH);
+      this.order = buildPlateOrderFromRgb(
+        this.accR, this.accG, this.accB, this.shR, this.shG, this.shB,
+        this.fW, this.fH, 'axis'
+      );
+      this._plateScratch = null;
+      this.ready = true;
+      return true;
+    });
+  }
 
-    boxBlur3(accR,fW,fH,1); boxBlur3(accG,fW,fH,1); boxBlur3(accB,fW,fH,1);
-    this.cur = cur;
-    this.look = look;
-    this.fW = fW;
-    this.fH = fH;
-    this.accR = accR; this.accG = accG; this.accB = accB;
-    this.shR = shR; this.shG = shG; this.shB = shB;
-    this.glowW=fW>>2; this.glowH=fH>>2; this.glowSmall=new Float32Array(this.glowW*this.glowH);
-    this.ready = true;
-    this.plate = this._developPlate();
-    this.plateData = capturePlateData(this.plate, this.fW, this.fH);
-    this.order = buildPlateOrderFromRgb(
-      this.accR, this.accG, this.accB, this.shR, this.shG, this.shB,
-      this.fW, this.fH, 'axis'
-    );
-    this._plateScratch = null;
+  stepBake(budgetMs = 8) {
+    if (this.ready) return true;
+    if (!this._bakeQueue) return false;
+    pumpBakeQueue(this._bakeQueue, budgetMs);
+    return this.ready;
+  }
+
+  generate(signal, seed, options = {}) {
+    this.beginBake(signal, seed, options);
+    while (!this.stepBake(1e9)) {}
     return true;
   }
 
-  _developPlate(){
+  _openPlate(){
     if(!this.accR || typeof document === 'undefined') return null;
     const plate = document.createElement('canvas');
     plate.width = this.fW;
     plate.height = this.fH;
     const ctx = plate.getContext && plate.getContext('2d');
     if(!ctx?.createImageData) return null;
-    this._develop(ctx);
+    return plate;
+  }
+
+  _developPlate(){
+    const plate = this._openPlate();
+    if(!plate) return null;
+    this._develop(plate.getContext('2d'));
     return plate;
   }
 
   _develop(ctx){
+    this._initDevelop(ctx);
+    while(!this._stepDevelop(1e9)) {}
+  }
+
+  _initDevelop(ctx){
     const look=this.look;
     const W=this.fW,H=this.fH,N=W*H;
-    const accR=this.accR, accG=this.accG, accB=this.accB;
-    const shR=this.shR, shG=this.shG, shB=this.shB;
-    const glowSmall=this.glowSmall, glowW=this.glowW, glowH=this.glowH;
-    const exp=look.exposure*1.35, gm=look.gamma;
-    const baseR=new Float32Array(N), baseG=new Float32Array(N), baseB=new Float32Array(N);
+    const glowSmall=this.glowSmall;
     glowSmall.fill(0);
-    for(let i=0;i<N;i++){
-      let r=(accR[i]+shR[i]*1.3)*exp, g=(accG[i]+shG[i]*1.3)*exp, b=(accB[i]+shB[i]*1.3)*exp;
-      r=r/(1+r); g=g/(1+g); b=b/(1+b);
-      r=Math.pow(r,gm); g=Math.pow(g,gm); b=Math.pow(b,gm);
-      baseR[i]=r; baseG[i]=g; baseB[i]=b;
-      const lum=0.299*r+0.587*g+0.114*b;
-      if(lum>0.5){ const gs=(lum-0.5)/0.5; const gx=(i%W)>>2, gy=((i/W)|0)>>2; glowSmall[gy*glowW+gx]+=gs*gs; }
-    }
-
-    if(look.bloom>0){
-      boxBlur3(glowSmall,glowW,glowH,3); boxBlur3(glowSmall,glowW,glowH,3);
-      let gmx=1e-6; for(let i=0;i<glowSmall.length;i++){ if(glowSmall[i]>gmx)gmx=glowSmall[i]; }
-      const gi=1/gmx; for(let i=0;i<glowSmall.length;i++) glowSmall[i]*=gi;
-    }
-
     const img=ctx.createImageData(W,H);
-    const data=img.data;
-    const cxp=W/2, cyp=H/2, maxR=Math.hypot(cxp,cyp);
-    const ca=look.chroma, bloom=look.bloom, grain=look.grain;
-    const gW=glowW,gH=glowH;
+    // The paper lift is `compositeInkOnPaper` unrolled. Calling it per pixel
+    // allocated a three-element array 1.5M times per plate and measured 64ms
+    // of the 240ms develop at 1240px; the same arithmetic inline is ~1ms.
+    // The exported function stays the definition of the rule and is what the
+    // tests hold; this is the same expression with no return array.
+    const paperR=APPARITIO_VOID_RGB[0]/255,
+          paperG=APPARITIO_VOID_RGB[1]/255,
+          paperB=APPARITIO_VOID_RGB[2]/255;
     const grnd=mulberry32(xmur3(this.cur.seed+"|grain")());
     const GT=4096, gtab=new Float32Array(GT); for(let i=0;i<GT;i++) gtab[i]=grnd()-0.5;
+    this._dev = {
+      ctx, look, W, H, N,
+      accR:this.accR, accG:this.accG, accB:this.accB,
+      shR:this.shR, shG:this.shG, shB:this.shB,
+      glowSmall, glowW:this.glowW, glowH:this.glowH,
+      exp:look.exposure*1.35, gm:look.gamma,
+      baseR:new Float32Array(N), baseG:new Float32Array(N), baseB:new Float32Array(N),
+      img, data:img.data,
+      cxp:W/2, cyp:H/2, maxR:Math.hypot(W/2,H/2),
+      ca:look.chroma, bloom:look.bloom, grain:look.grain,
+      gW:this.glowW, gH:this.glowH,
+      paperR, paperG, paperB, gtab, gmask:GT-1,
+      phase:'tone', i:0, y:0, gi:0
+    };
+  }
 
+  _stepDevelop(remainMs){
+    const d=this._dev;
+    if(!d) return true;
+    const t0=nowMs();
+    const look=d.look;
+    const W=d.W,H=d.H,N=d.N;
+    const accR=d.accR, accG=d.accG, accB=d.accB;
+    const shR=d.shR, shG=d.shG, shB=d.shB;
+    const glowSmall=d.glowSmall, glowW=d.glowW, glowH=d.glowH;
+    const exp=d.exp, gm=d.gm;
+    const baseR=d.baseR, baseG=d.baseG, baseB=d.baseB;
+
+    if(d.phase==='tone'){
+      while(d.i<N && (nowMs()-t0)<remainMs){
+        const end=Math.min(N, d.i+8192);
+        for(; d.i<end; d.i++){
+          const i=d.i;
+          let r=(accR[i]+shR[i]*1.3)*exp, g=(accG[i]+shG[i]*1.3)*exp, b=(accB[i]+shB[i]*1.3)*exp;
+          r=r/(1+r); g=g/(1+g); b=b/(1+b);
+          r=Math.pow(r,gm); g=Math.pow(g,gm); b=Math.pow(b,gm);
+          baseR[i]=r; baseG[i]=g; baseB[i]=b;
+          const lum=0.299*r+0.587*g+0.114*b;
+          if(lum>0.5){ const gs=(lum-0.5)/0.5; const gx=(i%W)>>2, gy=((i/W)|0)>>2; glowSmall[gy*glowW+gx]+=gs*gs; }
+        }
+      }
+      if(d.i<N) return false;
+      if(look.bloom>0){
+        boxBlur3(glowSmall,glowW,glowH,3); boxBlur3(glowSmall,glowW,glowH,3);
+        let gmx=1e-6; for(let i=0;i<glowSmall.length;i++){ if(glowSmall[i]>gmx)gmx=glowSmall[i]; }
+        const gi=1/gmx; for(let i=0;i<glowSmall.length;i++) glowSmall[i]*=gi;
+      }
+      d.phase='write';
+    }
+
+    const data=d.data;
+    const cxp=d.cxp, cyp=d.cyp, maxR=d.maxR;
+    const ca=d.ca, bloom=d.bloom, grain=d.grain;
+    const gW=d.gW, gH=d.gH;
+    const paperR=d.paperR, paperG=d.paperG, paperB=d.paperB;
+    const gtab=d.gtab, gmask=d.gmask;
     function sampBloom(x,y){
       const gx=x/4, gy=y/4; let x0=gx|0,y0=gy|0; const fx=gx-x0,fy=gy-y0;
       let x1=x0+1<gW?x0+1:x0, y1=y0+1<gH?y0+1:y0; if(x0<0)x0=0; if(y0<0)y0=0;
@@ -375,8 +489,8 @@ export class Apparitio {
     }
     function samp(buf,x,y){ if(x<0)x=0;else if(x>=W)x=W-1; if(y<0)y=0;else if(y>=H)y=H-1; return buf[(y|0)*W+(x|0)]; }
 
-    let gi=0;
-    for(let y=0;y<H;y++){
+    while(d.y<H && (nowMs()-t0)<remainMs){
+      const y=d.y;
       const dy=y-cyp;
       for(let x=0;x<W;x++){
         const i=y*W+x; const dx=x-cxp;
@@ -389,13 +503,22 @@ export class Apparitio {
           R=1-(1-R)*(1-gl); G=1-(1-G)*(1-gl*0.97); B=1-(1-B)*(1-gl*0.9); }
         const vig=1 - 0.42*rr*rr*rr;
         R*=vig; G*=vig; B*=vig;
-        if(grain>0){ const n=gtab[(gi++)&(GT-1)]*grain; R+=n; G+=n; B+=n; }
-        [R, G, B] = compositeInkOnPaper(R, G, B, APPARITIO_VOID_RGB);
+        if(grain>0){ const n=gtab[(d.gi++)&gmask]*grain; R+=n; G+=n; B+=n; }
+        R = R < 0 ? 0 : R > 1 ? 1 : R;
+        G = G < 0 ? 0 : G > 1 ? 1 : G;
+        B = B < 0 ? 0 : B > 1 ? 1 : B;
+        R = paperR*(1-R) + R;
+        G = paperG*(1-G) + G;
+        B = paperB*(1-B) + B;
         const o=i*4;
         data[o]=clamp(R,0,1)*255; data[o+1]=clamp(G,0,1)*255; data[o+2]=clamp(B,0,1)*255; data[o+3]=255;
       }
+      d.y++;
     }
-    ctx.putImageData(img,0,0);
+    if(d.y<H) return false;
+    d.ctx.putImageData(d.img,0,0);
+    this._dev = null;
+    return true;
   }
 
   render(canvas, options = {}) {

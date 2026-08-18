@@ -1948,6 +1948,13 @@ describe('Continuous Field (Gallery) wiring', () => {
             this.ready = true;
             return true;
         });
+        vi.spyOn(Ostensoria.prototype, 'beginBake').mockImplementation(function beginBake() {
+            this.ready = false;
+        });
+        vi.spyOn(Ostensoria.prototype, 'stepBake').mockImplementation(function stepBake() {
+            this.ready = true;
+            return true;
+        });
         vi.spyOn(Ostensoria.prototype, 'render').mockReturnValue(true);
         const { cortex, host } = hostedContinuousCortex();
         const snapshot = vi.spyOn(cortex, '_renderContinuousProceduralWork');

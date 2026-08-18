@@ -66,6 +66,26 @@ describe('Ostensoria engine', () => {
         expect(engine.render({ getContext: () => ({}) })).toBe(false);
         expect(engine.render(null)).toBe(false);
     });
+
+    it('stepBake drain matches generate for a fixed seed', () => {
+        const a = new Ostensoria();
+        const b = new Ostensoria();
+        a.generate(null, 'LUX-1234');
+        b.beginBake(null, 'LUX-1234');
+        let n = 0;
+        while (!b.stepBake(8) && n < 20_000) n++;
+        expect(b.ready).toBe(true);
+        expect(n).toBeGreaterThan(1);
+        expect(b.cur.coeff).toEqual(a.cur.coeff);
+        expect(b.cur.family).toBe(a.cur.family);
+        expect(b.cur.kind).toBe(a.cur.kind);
+        expect(b.cur.order).toBe(a.cur.order);
+        expect(b.cur.mirror).toBe(a.cur.mirror);
+        expect(b.cur.phase).toBe(a.cur.phase);
+        expect(b.cur.palette).toBe(a.cur.palette);
+        expect(b.look.palette).toBe(a.look.palette);
+        expect(b.acceptedSeed).toBe(a.acceptedSeed);
+    }, 30_000);
 });
 
 function denseField(engine) {

@@ -4,7 +4,9 @@
  * ContinuousField is image-only. Harmonograph already has a living
  * layer; this is that layer for Ostensoria and Apparitio. The engines
  * generate a finished plate once per dwell; the time adapter reveals
- * it. After the first plate, the reveal waits out the dissolve so the
+ * it. The bake is prefetched during the previous dwell and sliced
+ * across frames (~8 ms each) so the seam is a blit, not a 500–900 ms
+ * freeze. After the first plate, the reveal waits out the dissolve so the
  * birth is visible, then the remaining dwell is travel plus a few
  * seconds of stillness. Full-frame and behind-stream keep a finished
  * still. Reduced motion holds the completed plate.
@@ -17,6 +19,7 @@ import {
     galleryCadenceTimings,
     galleryDrawProgress
 } from '../core/visual-presence.js';
+import { PLATE_BAKE_BUDGET_MS } from './plate-bake.js';
 
 const MAX_DPR = 2;
 const MAX_FRAME_MS = 50;
@@ -59,6 +62,8 @@ export class PlateField {
         this._lastFrameAt = 0;
         this._nextRotateAt = 0;
         this._remainingRotateMs = 0;
+        this._pending = null;
+        this._hot = null;
 
         this._tick = this._tick.bind(this);
         this._resize = this._resize.bind(this);
@@ -136,11 +141,10 @@ export class PlateField {
         const incoming = first ? this._planes[0] : this._planes[1 - this._active];
         const outgoing = first ? null : this._planes[this._active];
         const id = this.families[this._cursor % this.families.length];
-        const Engine = ENGINES[id];
         this._cursor += 1;
+        const Engine = ENGINES[id];
         if (!Engine) return;
-        const engine = new Engine();
-        engine.generate(this.getSignal() || null, `gallery-plate:${id}:${this._cursor}`);
+        const engine = this._takeEngine(id, this._cursor);
         incoming.engine = engine;
         incoming.family = id;
         incoming.elapsedMs = this.reducedMotion ? this.dwellMs : 0;
@@ -164,6 +168,70 @@ export class PlateField {
             }, this.reducedMotion ? 0 : this.crossfadeMs);
         }
         this._active = this._planes.indexOf(incoming);
+        this._startBake();
+    }
+
+    _abortBake() {
+        this._pending = null;
+        this._hot = null;
+    }
+
+    /**
+     * The next plate is baked during the current dwell, so its signal is read
+     * a dwell earlier than the plate appears. A gallery plate answers the
+     * reading it was begun under rather than the one it opens on.
+     */
+    _startBake() {
+        // Reduced motion never rotates, so there is nothing to bake ahead.
+        if (this.reducedMotion) return;
+        if (this._pending || this._hot) return;
+        if (!this.families.length) return;
+        const cursor = this._cursor + 1;
+        const id = this.families[(cursor - 1) % this.families.length];
+        const Engine = ENGINES[id];
+        if (!Engine) return;
+        const engine = new Engine();
+        const seed = `gallery-plate:${id}:${cursor}`;
+        if (typeof engine.beginBake === 'function') {
+            engine.beginBake(this.getSignal() || null, seed);
+            this._pending = { engine, family: id, cursor };
+        } else {
+            engine.generate(this.getSignal() || null, seed);
+            this._hot = { engine, family: id, cursor };
+        }
+    }
+
+    _pumpBake() {
+        const pending = this._pending;
+        if (!pending?.engine) return;
+        if (typeof pending.engine.stepBake === 'function') {
+            pending.engine.stepBake(PLATE_BAKE_BUDGET_MS);
+        }
+        if (pending.engine.ready) {
+            this._hot = pending;
+            this._pending = null;
+        }
+    }
+
+    _takeEngine(id, cursor) {
+        const hot = this._hot;
+        if (hot && hot.family === id && hot.cursor === cursor && hot.engine?.ready) {
+            this._hot = null;
+            return hot.engine;
+        }
+        const pending = this._pending;
+        if (pending && pending.family === id && pending.cursor === cursor) {
+            if (typeof pending.engine.stepBake === 'function') {
+                pending.engine.stepBake(1e9);
+            }
+            this._pending = null;
+            if (pending.engine.ready) return pending.engine;
+        }
+        this._abortBake();
+        const Engine = ENGINES[id];
+        const engine = new Engine();
+        engine.generate(this.getSignal() || null, `gallery-plate:${id}:${cursor}`);
+        return engine;
     }
 
     _advance(plane, dt) {
@@ -187,6 +255,8 @@ export class PlateField {
             ? Math.min(timestamp - this._lastFrameAt, MAX_FRAME_MS)
             : 0;
         this._lastFrameAt = timestamp;
+
+        this._pumpBake();
 
         const plane = this._planes[this._active];
         this._advance(plane, dt);
@@ -222,6 +292,7 @@ export class PlateField {
         this.running = false;
         this.paused = false;
         this._remainingRotateMs = 0;
+        this._abortBake();
         this._cancel();
         if (this._planes) {
             for (const plane of this._planes) {
@@ -255,7 +326,9 @@ export class PlateField {
 
     setFamilies(families) {
         this.families = normalizeFamilies(families);
+        this._abortBake();
         if (this.running && this.families.length === 0) this.stop();
+        else if (this.running && !this.reducedMotion) this._startBake();
     }
 
     setCadence({ dwellMs, crossfadeMs } = {}) {

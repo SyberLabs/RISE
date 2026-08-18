@@ -22,8 +22,19 @@ beforeEach(() => {
         this.ready = true;
         return true;
     };
+    const begin = function beginBake() {
+        this.ready = false;
+    };
+    const step = function stepBake() {
+        this.ready = true;
+        return true;
+    };
     vi.spyOn(Ostensoria.prototype, 'generate').mockImplementation(stub);
     vi.spyOn(Apparitio.prototype, 'generate').mockImplementation(stub);
+    vi.spyOn(Ostensoria.prototype, 'beginBake').mockImplementation(begin);
+    vi.spyOn(Apparitio.prototype, 'beginBake').mockImplementation(begin);
+    vi.spyOn(Ostensoria.prototype, 'stepBake').mockImplementation(step);
+    vi.spyOn(Apparitio.prototype, 'stepBake').mockImplementation(step);
     vi.spyOn(Ostensoria.prototype, 'render').mockImplementation(function render(_canvas, options) {
         progresses.push(options?.progress);
         return true;
@@ -135,6 +146,50 @@ describe('PlateField', () => {
         field.start();
         expect(progresses[0]).toBe(1);
         expect(rafQueue).toHaveLength(0);
+        field.destroy();
+    });
+
+    it('bakes the next plate during the dwell, not at the seam', () => {
+        vi.spyOn(performance, 'now').mockReturnValue(0);
+        const field = new PlateField(host, {
+            families: ['apparitio'],
+            dwellMs: 8_000,
+            crossfadeMs: 1_200
+        });
+        field.start();
+        expect(Apparitio.prototype.generate).toHaveBeenCalledTimes(1);
+        expect(Apparitio.prototype.beginBake).toHaveBeenCalledTimes(1);
+        expect(Apparitio.prototype.beginBake.mock.calls[0][1]).toBe('gallery-plate:apparitio:2');
+        for (let t = 16; t <= 200; t += 16) frame(t);
+        const gens = Apparitio.prototype.generate.mock.calls.length;
+        progresses.length = 0;
+        frame(8_000);
+        expect(Apparitio.prototype.generate).toHaveBeenCalledTimes(gens);
+        expect(progresses.at(-1)).toBe(0);
+        field.destroy();
+    });
+
+    it('finishes a late bake at rotate instead of starting a new generate', () => {
+        vi.spyOn(performance, 'now').mockReturnValue(0);
+        vi.spyOn(Apparitio.prototype, 'stepBake').mockImplementation(function stepBake(budget) {
+            if (budget >= 1000) {
+                this.ready = true;
+                return true;
+            }
+            return false;
+        });
+        const field = new PlateField(host, {
+            families: ['apparitio'],
+            dwellMs: 8_000,
+            crossfadeMs: 1_200
+        });
+        field.start();
+        expect(Apparitio.prototype.generate).toHaveBeenCalledTimes(1);
+        progresses.length = 0;
+        frame(8_000);
+        expect(Apparitio.prototype.generate).toHaveBeenCalledTimes(1);
+        expect(Apparitio.prototype.stepBake).toHaveBeenCalledWith(1e9);
+        expect(progresses.at(-1)).toBe(0);
         field.destroy();
     });
 });
