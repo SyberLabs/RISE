@@ -154,7 +154,8 @@ export class AudioScheduleController {
         this._lastAtom = atom;
         const bed = this.bedProgram ? cueForAtom(this.bedProgram, atom) : null;
         const swell = this.swellProgram ? cueForAtom(this.swellProgram, atom) : null;
-        const changed = bed?.id !== this._activeBedId || swell?.id !== this._activeSwellId;
+        const nextSwellId = this._heldSwellId(swell);
+        const changed = bed?.id !== this._activeBedId || nextSwellId !== this._activeSwellId;
         if (!changed) return { bed, swell, syncGroups: this._syncGroups(bed, swell) };
 
         const generation = ++this._generation;
@@ -162,11 +163,42 @@ export class AudioScheduleController {
             this._activeBedId = bed?.id ?? null;
             this._applyBed(bed?.cue, generation);
         }
-        if (swell?.id !== this._activeSwellId) {
-            this._activeSwellId = swell?.id ?? null;
+        if (nextSwellId !== this._activeSwellId) {
+            this._activeSwellId = nextSwellId;
             this._applySwell(swell?.cue, generation);
         }
         return { bed, swell, syncGroups: this._syncGroups(bed, swell) };
+    }
+
+    /**
+     * The id the swell lane is sounding under after resolving `swell`.
+     *
+     * `hold` is the lane's fallback and means the lane KEEPS what it has —
+     * which has to include the id, not only the output. Advancing the id to
+     * `__fallback__` on the way past an authored span made returning to that
+     * span look like a new cue, and the layer was stopped and replayed from
+     * its first second every time the reading crossed the edge. A reader's
+     * own recording under a whole passage restarted every few seconds.
+     */
+    _heldSwellId(swell) {
+        if (!swell || swell.cue?.kind === 'hold') return this._activeSwellId;
+        return swell.id ?? null;
+    }
+
+    /**
+     * Whether a bed cue is the one already sounding.
+     *
+     * Re-asserting a bed stops and starts it, because that is the only shape
+     * the engine has. A procedural soundscape hides this — it is self-evolving
+     * noise and its restart is inaudible. A recording does not hide it: the
+     * song jumps back to 0:00. So an authored cue that names what is already
+     * playing is not a change at all.
+     */
+    _sameBed(a, b) {
+        if (!a || !b || a.kind !== b.kind) return false;
+        if (a.kind === 'soundscape') return a.soundscapeId === b.soundscapeId;
+        if (a.kind === 'tone') return a.presetId === b.presetId;
+        return a.kind === 'silence';
     }
 
     _syncGroups(bed, swell) {
@@ -245,9 +277,11 @@ export class AudioScheduleController {
     _applyBed(cue, generation) {
         if (!this.engine || !cue) return;
         const current = () => generation === this._generation;
+        const asked = cue.kind === 'hold' ? this.defaultCue : cue;
+        if (asked && this._sameBed(asked, this._activeBedCue)) return;
         const hadBed = !!this._activeBedCue;
         this._cancelBed();
-        const effective = cue.kind === 'hold' ? this.defaultCue : cue;
+        const effective = asked;
         this._activeBedCue = effective || cue;
         if (!effective || !current()) return;
         const immediate = effective.fadeMs === 0;
@@ -273,6 +307,7 @@ export class AudioScheduleController {
 
     _applySwell(cue, generation) {
         if (!this.engine) return;
+        if (cue?.kind === 'hold') return;
         if (this._activeSwellCue?.kind === 'swell') {
             this._command('stopSwell')?.(this._activeSwellCue.fadeMs === 0);
         }
@@ -294,6 +329,10 @@ export class AudioScheduleController {
         if (this._activeSwellCue?.kind === 'swell') this._command('stopSwell')?.(false);
         this._activeBedId = null;
         this._activeSwellId = null;
+        // Nothing is sounding after a pause, and the record of what is
+        // sounding decides whether resume has anything to restore.
+        this._activeBedCue = null;
+        this._activeSwellCue = null;
     }
 
     resume() {
@@ -302,8 +341,18 @@ export class AudioScheduleController {
         const bed = this.bedProgram ? cueForAtom(this.bedProgram, this._lastAtom) : null;
         const swell = this.swellProgram ? cueForAtom(this.swellProgram, this._lastAtom) : null;
         const generation = ++this._generation;
+        // A RESUME RESTORES WHAT A PAUSE SILENCED, AND NOTHING ELSE.
+        //
+        // The Chamber calls this on every `playing` state, and the player
+        // emits one whenever a visual interlocution ends — a flash that
+        // interrupts a reading and hands it straight back. Treating that as a
+        // fresh start reopened both lanes mid-reading, which on a reader's own
+        // recording is the song jumping to its first second every few seconds.
+        // The bed guards itself by comparing cues; the layer has no such
+        // comparison, so it asks what a pause left behind.
+        const silenced = !this._activeSwellCue;
         this._activeBedId = bed?.id ?? null;
-        this._activeSwellId = swell?.id ?? null;
+        this._activeSwellId = this._heldSwellId(swell);
         this._applyBed(bed?.cue, generation);
         // The overlay lane comes back with the bed. It used to be left behind
         // on the reasoning that a swell is a momentary event and replaying one
@@ -312,7 +361,7 @@ export class AudioScheduleController {
         // Pausing inside that passage and returning to it silent is the layer
         // being lost, not a repeat being avoided. The engine can only start a
         // source, so the layer restarts rather than resuming where it stopped.
-        this._applySwell(swell?.cue, generation);
+        if (silenced) this._applySwell(swell?.cue, generation);
         return { bed, swell, syncGroups: this._syncGroups(bed, swell) };
     }
 
