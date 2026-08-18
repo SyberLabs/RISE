@@ -511,8 +511,11 @@ export class Chamber {
     const exitBtn = this.container.querySelector('#exit-btn');
 
     playPauseBtn?.addEventListener('click', () => {
-      window.rise?.audioEngine?.playHiss();
+      // A paused reading holds the audio clock, and a UI sound may not lift
+      // that. This is the one press that means "lift it", so the reading is
+      // let go first and its own click is heard.
       this.togglePlayPause();
+      window.rise?.audioEngine?.playHiss();
     });
     volumeBtn?.addEventListener('click', () => {
       window.rise?.audioEngine?.playHiss();
