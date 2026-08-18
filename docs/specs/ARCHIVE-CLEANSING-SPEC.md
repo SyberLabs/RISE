@@ -1060,3 +1060,249 @@ its opening pages. Karenina taught that on the same day: cutting to the first
 real heading removed exactly that and `identity.test.js` failed at once. They
 want the Karenina treatment — cut the navigation run, keep the title — and
 they get their own pass rather than a hurried one here.
+
+---
+
+## The scheme became reader-facing — 2026-08-18
+
+Everything above cleanses the TEXT. The four findings below are about the
+SCHEME: what a work's divisions are called, where they start, and whether they
+are divisions at all. That used to be internal bookkeeping. It is not any more.
+
+The Scriptorium can now compose a reading shorter than the shortest whole work
+by naming a division, or a division's opening (`src/core/library-extent.js`).
+A curator names one by number; the reader is told which one by name. So a
+division named from a bibliography, or a division that is a scanner's header,
+is no longer a blemish inside a payload — it is what a reader is handed and
+what the interface calls it.
+
+---
+
+## 2h. Verse read as prose — 2026-08-18
+
+**Five works have lost their line breaks.** A poem's lines were joined with
+spaces and only the stanza breaks survived, so the verse arrives as run-on
+prose. Blake's quatrains reach the reader as one 117-character line.
+
+The separation is total. Verse either kept its lineation or lost all of it:
+
+| work | avg line | lines over 120 chars |
+|---|---|---|
+| `sacred-rumi` | 2,079 chars | **97%** |
+| `kabir-songs` | 184 | 38% |
+| `literary-leaves-of-grass` | 177 | 45% |
+| `literary-poems-blake` | 112 | 49% |
+| `literary-poems-dickinson` | 99 | 22% |
+| | | |
+| `the-kalevala` | 33 | **0%** |
+| `the-oedipus-trilogy` | 33 | 0% |
+| `a-hundred-verses-from-old-japan` | 36 | 0% |
+| `the-ramayan-of-valmiki` | 36 | 0% |
+| `a-doll-s-house` | 36 | 0% |
+
+Nothing sits between 37 and 99. This is not a spectrum of typesetting quality;
+it is two groups, and five works are in the wrong one.
+
+### It cost them their divisions
+
+The damage does not stop at the line. Headings are found by their shape on a
+line of their own, so a work whose lines were joined has no headings left to
+find:
+
+- **`sacred-rumi`** — 14,110 words in **35 lines**. No scheme was detectable,
+  so RISE cut it itself: `reason: "measured"`, four divisions called `Reading`.
+  The one work in the library where the divider had to invent, and the reason
+  is upstream of the divider.
+- **`literary-poems-blake`** — 5,539 words, `divided: false`, **one division**.
+  Fifty heading lines stand inside it — its poems, and the book's own two
+  section titles — and not one of them can be named. Its table of contents
+  went the same way: nineteen Innocence titles run together on one line.
+- **`kabir-songs`** — 11,515 words, `divided: false`, one division.
+
+So a curator cannot ask for *The Tyger*. It can ask for Blake whole, or for the
+opening of the single division that is the entire book — which begins, as the
+example below shows, with a picture caption and a title page.
+
+And Blake is the work that defines the library's short-length cliff: at 5,539
+words it is the second-shortest thing on the shelf, the first being the Emerald
+Tablet at 237. The one book most needed for a short reading is the one whose
+poems are locked inside an undivided section.
+
+### The worked example: Blake's Tyger
+
+Our payload is the Astolat Press edition of 1901 (London: R. Brimley Johnson)
+by way of Gutenberg. What it serves:
+
+```
+THE TIGER
+
+Tiger, tiger, burning bright In the forests of the night, What immortal hand
+or eye Could frame thy fearful symmetry?
+
+In what distant deeps or skies Burnt the fire of thine eyes? On what wings
+dare he aspire? What the hand dare seize the fire?
+```
+
+Blake engraved it in 1794 in *Songs of Experience*. The same eight lines:
+
+```
+Tyger Tyger, burning bright,
+In the forests of the night;
+What immortal hand or eye,
+Could frame thy fearful symmetry?
+
+In what distant deeps or skies.
+Burnt the fire of thine eyes?
+On what wings dare he aspire?
+What the hand, dare sieze the fire?
+```
+
+Ten separate corruptions, of two different kinds:
+
+| # | corruption | kind |
+|---|---|---|
+| 1 | 24 lines joined into 6 | **ingest** |
+| 2 | `[Picture: Image of Blake's original page of The Tyger]` is the first text in the work | **ingest** |
+| 3 | the whole book is one undivided section | **ingest** |
+| 4 | title `The Tyger` becomes `THE TIGER`, in the poem and in the contents | edition |
+| 5 | `Tyger Tyger` becomes `Tiger, tiger` — respelt, comma added, second word lowercased | edition |
+| 6 | `water'd` becomes `watered` | edition |
+| 7 | `sieze` becomes `seize` — Blake's own misspelling, corrected away | edition |
+| 8 | `Did he smile his work to see?` becomes `Did He smile His work to see?` | edition |
+| 9 | `the Lamb` becomes `the lamb`, losing the pointer to the companion poem | edition |
+| 10 | `Dare its deadly terrors clasp!` becomes `clasp?` | edition |
+
+**The two kinds do not have the same remedy, and that difference is the point
+of this section.**
+
+1–3 are OURS. The 1901 book had line breaks, a picture rather than a caption of
+one, and a table of contents. The ingest lost them. These are repairable from
+the source we already used and nobody has to decide anything.
+
+4–10 are the EDITION'S. R. Brimley Johnson modernised Blake, as Victorian
+editors did. Repairing those means acquiring a different edition, not fixing
+this one — and until that is done the shelf serves a modernised Blake under
+Blake's name with nothing saying so.
+
+`&` for `and`, `sieze`, `water'd` and the terminal `!` are Blake's engraved
+readings and are not errors to be tidied. The reference text above is set down
+as the TARGET, from the received transcription of the plates. **It is not an
+acquisition.** A poem typed from memory is exactly the substitution this
+document exists to prevent. Ingesting it means sourcing an edition that prints
+Blake's own text — an Erdman, or a Blake Archive transcription — with a
+provenance record like every other work, never a hand-keyed file.
+
+### Disposition
+
+- **Lineation (1) — repairable, not yet specified.** The five works want a
+  re-ingest from source with line breaks preserved. Whitman, Blake, Dickinson,
+  Rumi and Kabir are the list. Rumi and Blake regain a division scheme by it,
+  which is the larger prize.
+- **Picture captions (2) — trim.** `[Picture: …]` is the
+  `transcriber-image-file` class in a different costume: the caption of a plate
+  the payload does not carry. No signature holds this shape yet.
+- **Modernised edition (4–10) — review, and declare.** Nothing may be edited
+  into a payload to make it look older. Either acquire an edition of Blake's
+  text, or say on the card which edition this is.
+
+---
+
+## 2i. A division scheme made of citations — 2026-08-18
+
+**`sacred-corpus-hermeticum` has 244 divisions named from a works-cited list.**
+
+```
+Volume 1 — D.  J,  L.  =  Mead  (G.  E.  S.),  Did  Jesus  Live  100  B.C.?
+F. F. F. = Mead (G. K. S.), Fragments of a Faith Forgotten.  Some Short
+Sketches among the Gnostics, mainly of the first two centuries
+```
+
+The scheme is counting bibliography entries rather than tractates. Found while
+sending division labels to a curator, where a name is the thing being chosen by
+— a division named for a citation cannot be chosen, and the work has 244 of
+them.
+
+Recorded as `bibliography-as-division-title` in `defect-signatures.js`. The
+sweep confirms it: **10 lines, one work**, and nothing else in 88 works.
+
+**Disposition: review.** The scheme is wrong, not the text, and re-dividing a
+Hermetic corpus is an editorial act. Nothing is cut on a signature alone. It is
+excluded from the curator's labels meanwhile — not because it is long, but
+because its names are not names.
+
+---
+
+## 3f. Where the work begins — 2026-08-18
+
+**Thirty-three of eighty-eight works open on something that is not the work.**
+A Gutenberg header, a title page, a contents list — sitting at division one,
+which is where anything naming a division blindly will land.
+
+```
+extended-bhagavad-gita-full   division 1 = "Front matter"          body from 2
+the-kalevala                  division 1 = "Front matter (1/3)"    body from 4
+le-morte-darthur              division 1 = "Front matter (1/2)"    body from 3
+beowulf, faust, metamorphoses, phaedra, a-doll-s-house, …          body from 2
+```
+
+The divider already labels this matter `Front matter` — it has always known.
+Nothing read the label.
+
+`division-index.json` now carries **`bodyFrom`**: the first division that is the
+work itself, present only when something precedes it. It reaches the curator
+through `divisions.bodyFrom`, and the prompt forbids naming a division below it.
+
+The predicate (`isFrontMatterLabel`, in `divisions.js` beside where the labels
+are written) reads **only the label this codebase generates**. An author's own
+`Preface & Introduction` — Ross, *A Theory of Pure Design* — is a division of
+the book and a reader may well want it. Detecting front matter by meaning
+rather than by our own mark would take that decision away from them.
+
+---
+
+## 3g. What the line registry cannot hold — 2026-08-18
+
+§3d made cleansing recursive by writing each defect down as a pattern the whole
+shelf can be asked about. **A shape defect does not fit in it.**
+
+`DEFECT_SIGNATURES` tests one line at a time, which suits an image filename or
+a boilerplate line. Lost lineation (§2h) is not a substring — it is a property
+of a work's line-length distribution. The obvious regex was tried: a long line
+with four or more mid-line capitalised starts. Measured against the corpus it
+fires on **35 works**, and its worst offenders are prose:
+
+```
+ 97%  sacred-rumi                  ← the real thing
+ 69%  extended-bhagavad-gita-full
+ 57%  okakura-book-of-tea
+ 32%  literary-walden              ← Thoreau, correctly typeset
+ 20%  romance-of-the-three-kingdoms
+```
+
+It was not added. A signature that cries wolf on Walden makes the registry
+worth less than no registry, because the next person reads a report full of
+noise and stops reading reports.
+
+**The measurement that does separate them is in §2h** and takes two numbers per
+work — mean line length, and the share of lines over 120 characters. It wants a
+work-level audit script beside the line-level one, taking a declared list of
+works whose form is verse. Until that exists this section IS the record: the
+recipe and the five names, so the question can be asked again.
+
+**The registry's shape is a finding in itself.** Everything in it is a defect
+you can point at on one line. Everything absent from it is a defect you can only
+see by standing back, and this is the first of those we have written down.
+
+---
+
+## Open, as of 2026-08-18
+
+| | |
+|---|---|
+| re-ingest five verse works with lineation | not started — §2h |
+| a work-level audit for shape defects | not started — §3g |
+| `[Picture: …]` caption signature | not started — §2h |
+| Corpus Hermeticum's division scheme | review — §2i |
+| Blake's edition: acquire, or declare on the card | review — §2h |
+| Rilke: 14 U+FFFD, 89 undecoded HTML entities | open, needs a ruling |
+| Le Morte's two Front matter sections | want the Karenina treatment — §3e |
