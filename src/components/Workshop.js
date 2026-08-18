@@ -48,6 +48,7 @@ import {
   audioScoreAssetFromId,
   applyPersonalAudioAsWholeReading,
   personalAudioEditorAsset,
+  personalAudioIsWholeReading,
   personalBedSoundscapeId,
   PERSONAL_BED_PREFIX,
   WORKSHOP_AUDIO_ASSETS,
@@ -722,7 +723,6 @@ export class Workshop {
 
     this.updateCreateButton();
     this.updatePersonalSwellList();
-    this.populatePersonalSwellSelect();
   }
 
   setInspectorContext(context, { navigate = false, focus = false } = {}) {
@@ -747,7 +747,6 @@ export class Workshop {
       const label = this.container.querySelector('.studio-inspector > .studio-pane-title strong');
       if (label) label.textContent = inspectorContextLabel(this.inspectorContext);
     });
-    if (this.inspectorContext.kind === 'audioAsset') void this.populatePersonalSwellSelect();
     return true;
   }
 
@@ -888,7 +887,7 @@ export class Workshop {
     const asset = this.audioScoreAssets().find(item => item.id === assignment.assetId);
     const excerpt = source?.text.slice(assignment.fromCharacter, assignment.toCharacter).replace(/\s+/gu, ' ').trim() || '';
     return `<section class="studio-context-card studio-clip-inspector" id="studio-audio-clip-inspector">
-      <span class="studio-kicker">${assignment.lane === 'swell' ? 'Swell event' : 'Audio bed clip'}</span><h3>${this.escapeHtml(asset?.name || 'Missing audio')}</h3>
+      <span class="studio-kicker">${assignment.lane === 'swell' ? 'Layered over the reading' : 'Audio bed clip'}</span><h3>${this.escapeHtml(asset?.name || 'Missing audio')}</h3>
       <blockquote>“${this.escapeHtml(excerpt.slice(0, 220))}${excerpt.length > 220 ? '…' : ''}”</blockquote>
       <p class="font-mono">Characters ${assignment.fromCharacter}–${assignment.toCharacter}</p>
       <div class="studio-selected-actions studio-choice-grid studio-choice-grid-3">
@@ -960,7 +959,7 @@ export class Workshop {
         <button type="button" class="btn-ghost btn-compact" data-action="erase-score-assignment" data-assignment-id="${this.escapeHtml(visual.id)}">Erase</button>
       </div></div>` : '';
     const audioActions = entry.audio.map(audio => `<div class="studio-sequence-map-lane-actions">
-      <span><i class="is-audio" aria-hidden="true"></i>${audio.lane === 'swell' ? 'Swell' : 'Audio bed'}</span>
+      <span><i class="is-audio" aria-hidden="true"></i>${audio.lane === 'swell' ? 'Layer' : 'Audio bed'}</span>
       <div class="studio-choice-grid studio-choice-grid-3">
         <button type="button" class="btn-secondary btn-compact" data-action="preview-audio-assignment" data-assignment-id="${this.escapeHtml(audio.id)}">Preview</button>
         <button type="button" class="btn-secondary btn-compact" data-action="choose-score-asset" data-score-lane="audio">Replace</button>
@@ -1008,7 +1007,7 @@ export class Workshop {
                 ${selectedAudio ? `data-audio-assignment-id="${this.escapeHtml(selectedAudio.id)}"` : ''}
                 aria-expanded="${selected}" aria-pressed="${selected}" data-focus-key="sequence-entry:${this.escapeHtml(entry.key)}">
                 <span class="studio-sequence-map-rail" aria-hidden="true"><i class="is-visual"></i><i class="is-audio"></i></span>
-                <span><small>${entry.fromCharacter}–${entry.toCharacter} · ${entry.visual && entry.audio.length ? 'Visual + audio' : entry.visual ? 'Visual' : entry.audio[0]?.lane === 'swell' ? 'Swell' : 'Audio'}</small>
+                <span><small>${entry.fromCharacter}–${entry.toCharacter} · ${entry.visual && entry.audio.length ? 'Visual + audio' : entry.visual ? 'Visual' : entry.audio[0]?.lane === 'swell' ? 'Layer' : 'Audio'}</small>
                   <strong>${this.escapeHtml(labels.join(' + ') || 'Missing media')}</strong>
                   <span>“${this.escapeHtml(excerpt)}${excerpt.length === 92 ? '…' : ''}”</span></span>
               </button>
@@ -1656,9 +1655,18 @@ export class Workshop {
   }
 
   currentAudioAssetId(data = this.sessionData) {
-    if ((data.soundscape || 'none') !== 'none') return `soundscape:${data.soundscape}`;
-    if (data.audioPreset === 'personal') return 'swell:personal';
+    const soundscape = data.soundscape || 'none';
+    if (soundscape.startsWith(PERSONAL_BED_PREFIX)) {
+      return `swell:${soundscape.slice(PERSONAL_BED_PREFIX.length)}`;
+    }
+    if (soundscape !== 'none') return `soundscape:${soundscape}`;
     return `tone:${data.audioPreset || 'silent'}`;
+  }
+
+  selectedPersonalAudio() {
+    if (!this.selectedAudioAssetId?.startsWith('swell:')) return null;
+    const id = this.selectedAudioAssetId.slice('swell:'.length);
+    return this.personalSwells.find(item => item.id === id) || null;
   }
 
   audioBedLabel(data = this.sessionData) {
@@ -1678,6 +1686,16 @@ export class Workshop {
 
   audioSummary(data = this.sessionData) {
     return this.audioBedLabel(data);
+  }
+
+  wholeReadingAudioWash(data = this.sessionData) {
+    const soundscape = data.soundscape || 'none';
+    if (soundscape === 'none' && (data.audioPreset || 'silent') === 'silent') return null;
+    const asset = audioScoreAssetFromId(this.currentAudioAssetId(data), this.personalSwells);
+    return {
+      label: this.audioBedLabel(data),
+      color: asset?.editor?.color || AUDIO_SCORE_COLORS[0]
+    };
   }
 
   /**
@@ -1701,10 +1719,10 @@ export class Workshop {
         <button type="button" data-action="select-audio-asset" data-audio-asset-id="${asset.id}"
                 role="option" aria-selected="${selected}" tabindex="${selected ? '0' : '-1'}"
                 data-focus-key="audio-asset:${asset.id}"
-                aria-label="${this.escapeHtml(`${asset.name}, ${asset.kind} default${current ? ', current' : ''}`)}">
+                aria-label="${this.escapeHtml(`${asset.name}, ${asset.kind}${current ? ', sounds under the whole reading' : ''}`)}">
           <span class="studio-audio-icon" aria-hidden="true">${asset.icon}</span>
           <span><strong>${this.escapeHtml(asset.name)}</strong><small>${this.escapeHtml(asset.description)}</small></span>
-          <span class="studio-audio-badges">${asset.kind === 'swell' ? '<em>Whole reading</em>' : '<em>Passage + default</em>'}${current ? '<em>Current</em>' : ''}${playing ? '<em>Previewing</em>' : ''}</span>
+          <span class="studio-audio-badges"><em>Whole reading or passage</em>${current ? '<em>Current</em>' : ''}${playing ? '<em>Previewing</em>' : ''}</span>
         </button>
       </article>`;
     }).join('');
@@ -1730,34 +1748,26 @@ export class Workshop {
   }
 
   renderSelectedAudioAsset() {
-    const personalId = this.selectedAudioAssetId?.startsWith('swell:')
-      ? this.selectedAudioAssetId.slice('swell:'.length) : null;
-    const personal = this.personalSwells.find(item => item.id === personalId);
+    const personal = this.selectedPersonalAudio();
     const asset = workshopAudioAsset(this.selectedAudioAssetId) || (personal ? {
-      id: this.selectedAudioAssetId, kind: 'swell', value: 'personal', name: personal.name,
-      icon: '★', description: 'A bounded personal event for a selected passage.', swellId: personal.id
+      id: this.selectedAudioAssetId, kind: 'personal', value: personal.id, name: personal.name,
+      icon: '★', description: 'Your own recording. Set it under the whole reading, or highlight a passage to layer it there.'
     } : null);
     if (!asset) {
-      return '<p class="studio-inspector-empty">Choose an audio default from the Audio library.</p>';
+      return '<p class="studio-inspector-empty">Choose audio from the Audio library.</p>';
     }
     const current = personal
-      ? this.sessionData.audioPreset === 'personal' && this.sessionData.selectedSwellId === personal.id
+      ? personalAudioIsWholeReading(this.sessionData, personal.id)
       : workshopAudioAssetIsCurrent(this.sessionData, asset);
     const playing = this.audioPreviewState.assetId === asset.id;
-    const swellPicker = asset.kind === 'swell' && !personal ? `
-      <label class="input-label" for="personal-swell-select">Entry swell</label>
-      <select id="personal-swell-select" class="input-select input-select-full">
-        <option value="">Select custom swell...</option>
-      </select>` : '';
     return `<div class="studio-audio-selection">
       <div class="studio-audio-selection-title"><span aria-hidden="true">${asset.icon}</span>
-        <div><span class="studio-kicker">${asset.kind === 'swell' ? 'Entry event' : 'Continuous bed'}</span>
+        <div><span class="studio-kicker">Whole reading</span>
           <h3>${this.escapeHtml(asset.name)}</h3></div></div>
       <p class="input-note text-fog">${this.escapeHtml(asset.description)}</p>
-      ${swellPicker}
       <div class="studio-selected-actions">
         <button type="button" class="btn-primary btn-compact" data-action="apply-audio-default"
-                ${current ? 'disabled' : ''}>${current ? 'Current default' : 'Use as default'}</button>
+                ${current ? 'disabled' : ''}>${current ? 'Sounds under the whole reading' : 'Set for whole reading'}</button>
         <button type="button" class="btn-secondary btn-compact" data-action="preview-audio-default"
                 ${asset.value === 'silent' ? 'disabled' : ''}>${playing ? 'Restart preview' : 'Preview'}</button>
         <button type="button" class="btn-ghost btn-compact" data-action="stop-audio-preview"
@@ -1805,7 +1815,6 @@ export class Workshop {
         node.textContent = this.audioLayerLabel();
       });
     });
-    void this.populatePersonalSwellSelect();
   }
 
   setAssetLane(lane) {
@@ -1841,9 +1850,7 @@ export class Workshop {
   }
 
   applySelectedAudioDefault() {
-    const personalId = this.selectedAudioAssetId?.startsWith('swell:')
-      ? this.selectedAudioAssetId.slice('swell:'.length) : null;
-    const personal = this.personalSwells.find(item => item.id === personalId);
+    const personal = this.selectedPersonalAudio();
     const next = personal
       ? applyPersonalAudioAsWholeReading(personal.id)
       : applyWorkshopAudioAsset(this.sessionData, this.selectedAudioAssetId);
@@ -1855,19 +1862,12 @@ export class Workshop {
     return true;
   }
 
-  async previewSelectedAudioDefault(swellId = this.sessionData.selectedSwellId) {
-    const personalId = this.selectedAudioAssetId?.startsWith('swell:')
-      ? this.selectedAudioAssetId.slice('swell:'.length) : null;
-    const personal = this.personalSwells.find(item => item.id === personalId);
-    const asset = workshopAudioAsset(this.selectedAudioAssetId) || (personal ? {
-      id: 'swell:personal', kind: 'swell', value: 'personal'
-    } : null);
-    if (!asset || asset.value === 'silent') return false;
-    if (asset.kind === 'swell' && !swellId) {
-      this.showToast('Choose a personal swell to preview');
-      return false;
-    }
-    await this.audioPreview.play(asset.id, { swellId: personal?.id || swellId });
+  async previewSelectedAudioDefault(swellId = null) {
+    const assetId = this.selectedAudioAssetId;
+    if (!assetId) return false;
+    const personal = this.selectedPersonalAudio();
+    if (!personal && workshopAudioAsset(assetId)?.value === 'silent') return false;
+    await this.audioPreview.play(assetId, { swellId: swellId || personal?.id || null });
     return true;
   }
 
@@ -3083,7 +3083,7 @@ export class Workshop {
           data-assignment-id="${this.escapeHtml(assignment.id)}" aria-pressed="${assignment.id === this.selectedAudioAssignmentId}">
           <span class="visual-score-swatch" aria-hidden="true"></span>
           <span><strong>${this.escapeHtml(asset?.name || 'Missing audio')}</strong>
-          <small>${assignment.lane === 'swell' ? 'Swell event' : 'Audio bed'} · “${this.escapeHtml(excerpt)}${excerpt.length === 72 ? '…' : ''}”</small></span>
+          <small>${assignment.lane === 'swell' ? 'Layer' : 'Audio bed'} · “${this.escapeHtml(excerpt)}${excerpt.length === 72 ? '…' : ''}”</small></span>
         </button>
         <button type="button" class="btn-icon visual-score-erase" data-action="erase-audio-assignment"
           data-assignment-id="${this.escapeHtml(assignment.id)}" aria-label="Erase audio assignment">×</button>
@@ -3145,6 +3145,7 @@ export class Workshop {
     const canAssign = Boolean(pending && selectedAsset && !this.pendingScoreConflict);
     const canAssignVisual = Boolean(pending && visualAsset && !this.pendingScoreConflict);
     const canAssignAudio = Boolean(pending && audioAsset && !this.pendingScoreConflict);
+    const wash = lane === 'audio' ? this.wholeReadingAudioWash() : null;
     return `<section class="visual-score-editor media-score-editor" aria-labelledby="media-score-title" data-score-view="${this.scoreView}">
       <div class="media-score-view-tabs" role="tablist" aria-label="Score view">
         ${['visual', 'audio', 'combined'].map(view => `<button type="button" role="tab"
@@ -3156,7 +3157,7 @@ export class Workshop {
           <p class="input-note text-fog">${this.scoreView === 'combined'
             ? 'Select one passage, then assign its visual and audio independently from the combined passage card.'
             : lane === 'audio'
-            ? 'Choose an audio bed or swell, select its passage, then assign. Audio uses underlines; visuals use filled highlights.'
+            ? 'Choose audio, select its passage, then assign. A highlighted passage layers its audio over the whole-reading bed. Audio uses underlines; visuals use filled highlights.'
             : 'Choose a visual, select its passage, then assign. Colours are editor guides only.'}</p></div>
         <div class="visual-score-header-actions">
           ${this.scoreView === 'combined' ? `<div class="visual-score-history studio-combined-history studio-choice-grid studio-choice-grid-4" aria-label="Visual and audio score histories">
@@ -3175,8 +3176,11 @@ export class Workshop {
       </div>
       <div class="visual-score-workspace">
         <div class="visual-score-text-column">
+          ${wash ? `<p class="score-whole-reading-audio" style="--whole-reading-audio-color:${wash.color}">
+            <span aria-hidden="true"></span><span><strong>${this.escapeHtml(wash.label)}</strong> sounds under the whole reading. Highlight a passage to layer audio over it.</span></p>` : ''}
           <div id="visual-score-text" class="visual-score-text" tabindex="0" role="textbox"
             aria-label="Selectable source text for ${this.scoreView === 'combined' ? 'combined media' : lane} scoring" aria-multiline="true"
+            ${wash ? `data-whole-reading-audio="${this.escapeHtml(wash.label)}" style="--whole-reading-audio-color:${wash.color}"` : ''}
             data-source-id="${this.escapeHtml(source.id)}">${this.renderHighlightedScoreText(source, visualAssets)}</div>
           <div class="visual-score-toolbar">
             <span id="visual-score-selection" class="text-fog" aria-live="polite">${this.pendingScoreConflict
@@ -3193,7 +3197,7 @@ export class Workshop {
       ${this.scoreView !== 'audio' ? `<div class="visual-score-lane" role="region" aria-label="Visual assignments">
         <span class="studio-kicker">Visual lane</span>${this.renderVisualScoreAssignments(source, visualAssets)}</div>` : ''}
       ${this.scoreView !== 'visual' ? `<div class="visual-score-lane audio-score-lane" role="region" aria-label="Audio assignments">
-        <span class="studio-kicker">Audio bed + swell lane</span>${this.renderAudioScoreAssignments(source)}</div>` : ''}
+        <span class="studio-kicker">Audio lane</span>${this.renderAudioScoreAssignments(source)}</div>` : ''}
     </section>`;
   }
 
@@ -3267,21 +3271,6 @@ export class Workshop {
     </section>`;
   }
 
-  async populatePersonalSwellSelect() {
-    const select = this.container.querySelector('#personal-swell-select');
-    if (!select) return;
-
-    const swells = await PersonalSwells.getAll();
-    const currentId = this.sessionData.selectedSwellId;
-
-    select.innerHTML = '<option value="">Select custom swell...</option>' + 
-      swells.map(s => `
-        <option value="${this.escapeHtml(s.id)}" ${s.id === currentId ? 'selected' : ''}>
-          ${this.escapeHtml(s.name)}
-        </option>
-      `).join('');
-  }
-
   async updatePersonalSwellList() {
     const list = this.container.querySelector('#personal-swell-list');
     if (!list) return;
@@ -3301,7 +3290,7 @@ export class Workshop {
         </div>
         <div style="display: flex; gap: 5px;">
           <button type="button" class="btn-ghost btn-compact" data-action="select-personal-swell-asset" data-id="${swell.id}"
-                  aria-label="Select ${this.escapeHtml(swell.name)} for passage authoring">Select</button>
+                  aria-label="Select ${this.escapeHtml(swell.name)}">Select</button>
           <button type="button" class="btn-icon" data-action="preview-personal-swell" data-id="${swell.id}"
                   aria-label="Preview ${this.escapeHtml(swell.name)}" style="color: var(--color-mist); font-size: 10px;">◎</button>
           <button type="button" class="btn-icon" data-action="remove-personal-swell" data-id="${swell.id}"
@@ -3786,7 +3775,7 @@ export class Workshop {
       this.refreshVisualScoreView();
       this.refreshScoreSelectionUi();
       this.updateSequencePicker();
-      this.announce(`${asset.name} assigned as ${asset.lane === 'swell' ? 'a swell event' : 'an audio bed'}.${exactVisual ? ' It is synchronized with the matching visual.' : ''}`);
+      this.announce(`${asset.name} assigned as ${asset.lane === 'swell' ? 'a layer over the reading' : 'an audio bed'}.${exactVisual ? ' It is synchronized with the matching visual.' : ''}`);
       return true;
     } catch (error) {
       if (error instanceof AudioScoreLaneError && error.code === 'AUDIO_SCORE_OVERLAP') {
@@ -4106,13 +4095,6 @@ export class Workshop {
         this.visualAssetSearch = event.target.value.slice(0, 120);
         const registry = this.container.querySelector('#visual-assets-list');
         if (registry) registry.innerHTML = this.renderVisualAssetRegistry();
-        return;
-      }
-      if (event.target.matches('#personal-swell-select')) {
-        this.sessionData.selectedSwellId = event.target.value || null;
-        this.markEditorDirty();
-        this.refreshAudioStudio();
-        this.updateSequencePicker();
         return;
       }
       const styleSetting = event.target.dataset.visualStyleSetting;
@@ -4471,9 +4453,8 @@ export class Workshop {
         const index = parseInt(target.dataset.index);
         this.showSourcePreview(index);
       } else if (action === 'preview-personal-swell') {
-        const id = target.dataset.id;
-        this.selectAudioAsset('swell:personal');
-        void this.previewSelectedAudioDefault(id);
+        this.selectAudioAsset(`swell:${target.dataset.id}`);
+        void this.previewSelectedAudioDefault();
       } else if (action === 'remove-personal-swell') {
         window.rise?.audioEngine?.playHiss();
         const id = target.dataset.id;
@@ -5238,7 +5219,7 @@ export class Workshop {
     const file = event.target.files[0];
     if (!file) return;
 
-    const displayName = await namingModal.show(file.name, 'Name Swell', 'Atmospheric Metadata');
+    const displayName = await namingModal.show(file.name, 'Name this audio', 'Personal audio');
     if (!displayName) {
       event.target.value = '';
       return;
@@ -5247,9 +5228,8 @@ export class Workshop {
     this.showToast(`Decoding ${displayName}...`);
     try {
       await PersonalSwells.addSwell(file, displayName);
-      await this.populatePersonalSwellSelect();
       await this.updatePersonalSwellList();
-      this.showToast('Swell added to personal pool');
+      this.showToast('Audio added to your shelf');
       if (window.rise?.audioEngine) {
         await window.rise.audioEngine.reloadPersonalSwells();
       }
@@ -5262,18 +5242,20 @@ export class Workshop {
 
   async removePersonalSwell(id) {
     try {
-      const removedActiveSwell = this.sessionData.selectedSwellId === id;
+      // A recording that no longer exists cannot go on being the base layer.
+      const wasWholeReading = personalAudioIsWholeReading(this.sessionData, id);
+      const wasSelectedSwell = this.sessionData.selectedSwellId === id;
       await PersonalSwells.removeSwell(id);
-      if (removedActiveSwell) {
-        this.sessionData.selectedSwellId = null;
+      if (wasWholeReading) this.sessionData.soundscape = 'none';
+      if (wasSelectedSwell) this.sessionData.selectedSwellId = null;
+      if (wasWholeReading || wasSelectedSwell) {
         this.audioPreview.stop();
         this.markEditorDirty();
       }
-      await this.populatePersonalSwellSelect();
       await this.updatePersonalSwellList();
       this.refreshAudioStudio();
       this.updateSequencePicker();
-      this.showToast('Swell removed');
+      this.showToast('Audio removed');
       if (window.rise?.audioEngine) {
         await window.rise.audioEngine.reloadPersonalSwells();
       }

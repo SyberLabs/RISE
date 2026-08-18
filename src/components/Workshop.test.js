@@ -5,6 +5,8 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
+import { WORKSHOP_AUDIO_ASSETS } from '../core/workshop-audio.js';
+import { PersonalSwells } from '../core/personal-swells.js';
 import {
     endVisualInterlocutionSession,
     grantVisualInterlocutionConsent
@@ -1223,8 +1225,9 @@ describe('Workshop atmosphere: exclusive beds', () => {
         expect(audioEngine.stopSoundscape).toHaveBeenCalledWith(true);
         expect(workshop.audioPreviewState.state).toBe('idle');
 
-        workshop.selectAudioAsset('swell:personal');
-        await workshop.previewSelectedAudioDefault('exact-swell-id');
+        workshop.personalSwells = [{ id: 'exact-swell-id', name: 'Mine' }];
+        workshop.selectAudioAsset('swell:exact-swell-id');
+        await workshop.previewSelectedAudioDefault();
         expect(audioEngine.playSwell).toHaveBeenCalledWith('exact-swell-id');
         workshop.destroy();
         expect(audioEngine.stopSwell).toHaveBeenCalledWith(true);
@@ -1255,7 +1258,7 @@ describe('Workshop atmosphere: exclusive beds', () => {
     it('offers audio defaults in the unified library with Silence active by default', () => {
         const { workshop, container } = makeWorkshop();
         const cards = container.querySelectorAll('[data-audio-card-id]');
-        expect(cards).toHaveLength(7);
+        expect(cards).toHaveLength(WORKSHOP_AUDIO_ASSETS.length);
         expect(container.querySelector('[data-audio-card-id="tone:silent"]')
             .classList.contains('is-current')).toBe(true);
         expect(workshop.sessionData.soundscape).toBe('none');
@@ -1312,6 +1315,55 @@ describe('Workshop atmosphere: exclusive beds', () => {
         expect(workshop.sessionData.soundscape).toBe('personal:never-see-me-again');
         expect(workshop.sessionData.audioPreset).toBe('silent');
         expect(workshop.sessionData.selectedSwellId).toBeNull();
+
+        container.remove();
+    });
+
+    it('washes the whole text while an audio bed sounds under it', () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'washed', name: 'Washed', type: 'text/plain',
+            data: 'Alpha beta gamma delta epsilon.'
+        }, { id: 'local', name: 'Local' });
+        workshop.scoreView = 'audio';
+        workshop.refreshVisualScoreView();
+
+        // Silence has nothing to wash.
+        expect(workshop.wholeReadingAudioWash()).toBeNull();
+        expect(container.querySelector('#visual-score-text')
+            .hasAttribute('data-whole-reading-audio')).toBe(false);
+
+        chooseAudio(container, 'soundscape:aurora');
+        workshop.refreshVisualScoreView();
+        expect(container.querySelector('#visual-score-text')
+            .getAttribute('data-whole-reading-audio')).toBe('Aurora');
+        expect(container.querySelector('.score-whole-reading-audio').textContent)
+            .toContain('Aurora');
+
+        container.remove();
+    });
+
+    it('names a personal recording in the wash, and drops it when the file is deleted', async () => {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'washed', name: 'Washed', type: 'text/plain',
+            data: 'Alpha beta gamma delta epsilon.'
+        }, { id: 'local', name: 'Local' });
+        workshop.scoreView = 'audio';
+        workshop.personalSwells = [{ id: 'kanye', name: 'Never See Me Again' }];
+        workshop.selectAudioAsset('swell:kanye');
+        expect(workshop.applySelectedAudioDefault()).toBe(true);
+        workshop.refreshVisualScoreView();
+
+        expect(workshop.sessionData.soundscape).toBe('personal:kanye');
+        expect(container.querySelector('#visual-score-text')
+            .getAttribute('data-whole-reading-audio')).toBe('Never See Me Again');
+
+        // A recording that no longer exists cannot go on being the base layer.
+        vi.spyOn(PersonalSwells, 'removeSwell').mockResolvedValue(undefined);
+        vi.spyOn(PersonalSwells, 'getAll').mockResolvedValue([]);
+        await workshop.removePersonalSwell('kanye');
+        expect(workshop.sessionData.soundscape).toBe('none');
 
         container.remove();
     });

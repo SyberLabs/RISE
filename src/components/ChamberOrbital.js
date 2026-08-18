@@ -53,10 +53,12 @@ const ORBITAL_PREFS_KEY = 'rise_orbital_prefs_v1';
 // texts can be book-sized, and a quota failure on one must never cost
 // the other. Prefs shed only the focal image; text sheds only itself.
 const ORBITAL_TEXT_KEY = 'rise_orbital_text_v1';
-// `personal` is a Workshop sentinel and `drift` is a legacy engine preset.
-// Keep both valid even though the orbital currently exposes four choices.
+// Every id the engine can actually play. `drift` is a legacy engine preset,
+// valid even though the orbital exposes four choices. `personal` is not here:
+// it was a Workshop sentinel the engine never knew, so admitting it let an
+// unplayable preset through the very guard that exists to stop one.
 const AUDIO_PRESET_IDS = new Set([
-  'silent', 'focus', 'deep', 'drift', 'gateway', 'personal'
+  'silent', 'focus', 'deep', 'drift', 'gateway'
 ]);
 /* The padlock drawn on a chunking mode Recitation has taken. Declared
    once so the first render and the runtime toggle cannot disagree —

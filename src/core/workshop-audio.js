@@ -39,32 +39,25 @@ export const WORKSHOP_AUDIO_ASSETS = Object.freeze([
   Object.freeze({
     id: 'tone:gateway', kind: 'tone', value: 'gateway', name: 'Gateway', icon: '◈',
     description: 'A layered entrainment atmosphere.'
-  }),
-  Object.freeze({
-    id: 'swell:personal', kind: 'swell', value: 'personal', name: 'Personal Entry', icon: '★',
-    description: 'A bounded entry event from your personal shelf.'
   })
 ]);
 
 export function workshopAudioEditorAsset(assetOrId) {
   const asset = typeof assetOrId === 'string' ? workshopAudioAsset(assetOrId) : assetOrId;
   if (!asset) return null;
-  const isSwell = asset.kind === 'swell';
   const cueTemplate = asset.kind === 'soundscape'
     ? { kind: 'soundscape', soundscapeId: asset.value, fadeMs: 700 }
-    : asset.kind === 'tone'
-      ? asset.value === 'silent'
-        ? { kind: 'silence', fadeMs: 500 }
-        : { kind: 'tone', presetId: asset.value, fadeMs: 500 }
-      : { kind: 'swell', swellId: asset.swellId || asset.value, fadeMs: 250 };
+    : asset.value === 'silent'
+      ? { kind: 'silence', fadeMs: 500 }
+      : { kind: 'tone', presetId: asset.value, fadeMs: 500 };
   return createEditorAsset({
     id: asset.id,
-    lane: isSwell ? 'swell' : 'audio',
-    kind: isSwell ? 'audio-swell' : 'audio-bed',
+    lane: 'audio',
+    kind: 'audio-bed',
     name: asset.name,
-    capability: isSwell ? 'default' : 'both',
+    capability: 'both',
     editor: {
-      color: AUDIO_COLORS[asset.value] || (isSwell ? AUDIO_COLORS.swell : AUDIO_COLORS.deep),
+      color: AUDIO_COLORS[asset.value] || AUDIO_COLORS.deep,
       preview: { kind: 'audio', ref: asset.id }
     },
     provenance: { provider: 'RISE audio registry' },
@@ -112,6 +105,11 @@ export function personalAudioEditorAsset(swell) {
  * things, choosing a personal file erased the tone bed while choosing a tone
  * erased the file. They no longer touch each other.
  */
+export function personalAudioIsWholeReading(data, swellId) {
+  if (!swellId) return false;
+  return (data?.soundscape || 'none') === personalBedSoundscapeId(swellId);
+}
+
 export function applyPersonalAudioAsWholeReading(swellId) {
   return {
     soundscape: personalBedSoundscapeId(swellId),
@@ -133,10 +131,20 @@ export function workshopAudioAsset(assetId) {
   return WORKSHOP_AUDIO_ASSETS.find(asset => asset.id === assetId) || null;
 }
 
+/**
+ * Preview accepts a personal recording, which the registry does not list: the
+ * shelf holds the reader's files, and only the id `swell:<id>` names them.
+ */
+function previewableAudioAsset(assetId) {
+  const registered = workshopAudioAsset(assetId);
+  if (registered) return registered;
+  if (typeof assetId !== 'string' || !assetId.startsWith('swell:')) return null;
+  return { id: assetId, kind: 'swell', value: assetId.slice('swell:'.length) };
+}
+
 export function workshopAudioAssetIsCurrent(data, asset) {
   if (!asset) return false;
   if (asset.kind === 'soundscape') return data.soundscape === asset.value;
-  if (asset.kind === 'swell') return data.audioPreset === 'personal';
   if (asset.value === 'silent') {
     return (data.soundscape || 'none') === 'none'
       && (data.audioPreset || 'silent') === 'silent';
@@ -183,7 +191,7 @@ export class WorkshopAudioPreviewController {
   }
 
   async play(assetId, options = {}) {
-    const asset = workshopAudioAsset(assetId);
+    const asset = previewableAudioAsset(assetId);
     if (!asset || asset.value === 'silent') {
       this.stop();
       return this.status();
@@ -205,7 +213,7 @@ export class WorkshopAudioPreviewController {
       engine.applyPreset?.(asset.value);
     } else {
       engine.stopSwell?.(true);
-      await engine.playSwell?.(options.swellId || null);
+      await engine.playSwell?.(options.swellId || asset.value);
       if (generation !== this.generation) {
         engine.stopSwell?.(true);
         return this.status();

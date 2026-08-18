@@ -733,6 +733,41 @@
     user-select: text;
 }
 
+/* The whole-reading audio, shown as a wash across every word it sounds under.
+   It sits behind the passage marks, which are the layers stacked over it. */
+.visual-score-text[data-whole-reading-audio] {
+    background:
+        linear-gradient(
+            color-mix(in srgb, var(--whole-reading-audio-color) 10%, transparent),
+            color-mix(in srgb, var(--whole-reading-audio-color) 10%, transparent)),
+        rgba(0, 0, 0, 0.34);
+    border-color: color-mix(in srgb, var(--whole-reading-audio-color) 34%, var(--color-shadow));
+}
+
+.score-whole-reading-audio {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    margin: 0 0 var(--space-xs);
+    color: var(--color-fog);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+}
+
+.score-whole-reading-audio span[aria-hidden] {
+    width: 10px;
+    height: 10px;
+    flex: none;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--whole-reading-audio-color) 42%, transparent);
+    border: 1px solid color-mix(in srgb, var(--whole-reading-audio-color) 72%, transparent);
+}
+
+.score-whole-reading-audio strong {
+    color: var(--color-cloud);
+    font-weight: 500;
+}
+
 .visual-score-text:focus-visible {
     outline: 2px solid var(--color-threshold);
     outline-offset: 2px;
@@ -2352,7 +2387,7 @@
     }
 }
 
-/* Personal Swell Pool Items */
+/* Personal audio shelf */
 .personal-swell-list {
     margin-top: var(--space-xs);
 }
@@ -2410,10 +2445,6 @@
 
 .input-select-full {
   width: 100%;
-}
-
-#personal-swell-picker-container {
-  margin-top: 0.5rem;
 }
 
 /* Studio Shelves — visually quieter than the creator: a thin
