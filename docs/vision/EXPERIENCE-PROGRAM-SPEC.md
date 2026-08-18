@@ -154,6 +154,20 @@ against the frozen clock queue and fire together when it runs again, and a
 suspension outlives the reading that asked for it. **A reading's pause reaches
 its own layers and no further.**
 
+A LAYER IS AN ADDITION, SO THE BED MAKES ROOM RATHER THAN STOPPING. While a
+swell sounds, the bed layers duck to a floor and return when it ends — the
+same instrument §5 names for transferring audio authority to video. Two
+recordings at full level are mud; a bed at a floor under a layer is the layer
+sitting forward with the reading's atmosphere still beneath it. Ducking is
+composed by REASON, because recitation and a layer can both want it and two
+independent mechanisms would each record the other's ducked value as the level
+to restore, walking the music down to silence.
+
+A bed authored on a passage is the one thing that cannot follow this rule: the
+engine holds a single soundscape, so an atmosphere cannot sound over another
+and a bed clip still replaces for its span. The Workshop says which is which
+rather than offering one gesture that means two things.
+
 It follows that **a cue naming what is already sounding is not a change**.
 Re-asserting a bed stops and starts it, because that is the only shape the
 engine has, and `hold` keeps not only a lane's output but the id it is

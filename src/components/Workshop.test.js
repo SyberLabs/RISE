@@ -1343,6 +1343,26 @@ describe('Workshop atmosphere: exclusive beds', () => {
         container.remove();
     });
 
+    it('washes the text the moment the audio is set, not at the next redraw', () => {
+        // The wash lives in the score canvas, which the Set button did not
+        // redraw — so it appeared only when something else happened to
+        // rebuild it, which in practice was assigning a passage clip.
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'washed', name: 'Washed', type: 'text/plain',
+            data: 'Alpha beta gamma delta epsilon.'
+        }, { id: 'local', name: 'Local' });
+        workshop.scoreView = 'audio';
+        workshop.refreshVisualScoreView();
+
+        workshop.selectAudioAsset('soundscape:aurora');
+        expect(workshop.applySelectedAudioDefault()).toBe(true);
+
+        expect(container.querySelector('#visual-score-text')
+            .getAttribute('data-whole-reading-audio')).toBe('Aurora');
+        container.remove();
+    });
+
     it('names a personal recording in the wash, and drops it when the file is deleted', async () => {
         const { workshop, container } = makeWorkshop();
         workshop.addSource({

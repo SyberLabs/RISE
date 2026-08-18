@@ -100,6 +100,14 @@ import { createChantBed, isChantBedId, CHANT_BED_IDS } from './chant.js';
  * Audio Engine for RISE
  * Handles ambient audio, binaural beats, and synchronized triggers
  */
+/* `ui` and `typing` never duck: a keystroke or a click is feedback and must
+   still be heard. Recitation connects straight to masterGain, outside these
+   named gains, so ducking cannot attenuate the voice it makes room for.
+   BED_LAYERS omits `swell` — a layer is what the bed steps back FOR. */
+const MUSICAL_LAYERS = Object.freeze(['binaural', 'harmonics', 'noise', 'drone',
+    'ambient', 'swell', 'soundscape']);
+const BED_LAYERS = Object.freeze(MUSICAL_LAYERS.filter(name => name !== 'swell'));
+
 export class AudioEngine {
     constructor() {
         this.context = null;
@@ -622,38 +630,68 @@ export class AudioEngine {
      * directly to `masterGain`, outside these named musical layer gains,
      * so this cannot attenuate the voice being made room for.
      */
-    setVoiceDucking(ducked, { floor = 0.18, downSec = 0.15, upSec = 0.6 } = {}) {
+    setVoiceDucking(ducked, options = {}) {
+        this._setDucking('voice', ducked, { layers: MUSICAL_LAYERS, ...options });
+    }
+
+    /**
+     * A HIGHLIGHTED PASSAGE'S LAYER MAKES THE BED STEP BACK.
+     *
+     * A layer is an addition, not a substitution — so the whole-reading audio
+     * does not stop under one, it makes room and returns. Two recordings at
+     * full level are mud; a bed at a floor under a layer is the layer sitting
+     * forward with the reading's atmosphere still beneath it.
+     *
+     * The floor is higher and the ramps slower than the voice's, because this
+     * is one long musical gesture rather than a phrase-by-phrase yielding.
+     * The layer itself is not in this set: it is the thing being made room for.
+     */
+    setLayerDucking(ducked, options = {}) {
+        this._setDucking('layer', ducked, {
+            layers: BED_LAYERS, floor: 0.34, downSec: 0.6, upSec: 1.2, ...options
+        });
+    }
+
+    /**
+     * One ducking, several reasons.
+     *
+     * Recitation and a passage layer can want the bed down at the same time,
+     * and each has its own floor and its own set of layers. Two independent
+     * mechanisms would each remember the other's ducked value as the level to
+     * restore, and the music would ratchet down and never come back up. There
+     * is one baseline per layer, taken before anything ducked it, and the
+     * deepest active floor wins.
+     */
+    _setDucking(reason, ducked, { layers = MUSICAL_LAYERS, floor = 0.18,
+        downSec = 0.15, upSec = 0.6 } = {}) {
         if (!this.context) return;
         const now = this.context.currentTime;
-        const MUSICAL = ['binaural', 'harmonics', 'noise', 'drone', 'ambient',
-            'swell', 'soundscape'];
+        this._duckReasons ??= new Map();
+        if (ducked) this._duckReasons.set(reason, { floor, layers });
+        else this._duckReasons.delete(reason);
 
-        if (ducked) {
-            // Remember the pre-duck gains once. A second duck while
-            // already ducked must not record the ducked value as the
-            // level to restore — that would ratchet the music down.
-            this._duckedGains ??= new Map();
-            for (const name of MUSICAL) {
-                const gain = this.layerGains?.[name]?.gain;
-                if (!gain) continue;
-                if (!this._duckedGains.has(name)) this._duckedGains.set(name, gain.value);
-                const target = this._duckedGains.get(name) * floor;
-                gain.cancelScheduledValues(now);
-                gain.setValueAtTime(gain.value, now);
-                gain.linearRampToValueAtTime(target, now + downSec);
-            }
-            return;
+        this._duckBaseline ??= new Map();
+        const affected = new Set(this._duckBaseline.keys());
+        for (const active of this._duckReasons.values()) {
+            for (const name of active.layers) affected.add(name);
         }
 
-        if (!this._duckedGains) return;
-        for (const [name, prior] of this._duckedGains) {
+        for (const name of affected) {
             const gain = this.layerGains?.[name]?.gain;
             if (!gain) continue;
+            if (!this._duckBaseline.has(name)) this._duckBaseline.set(name, gain.value);
+            const baseline = this._duckBaseline.get(name);
+            let multiplier = 1;
+            for (const active of this._duckReasons.values()) {
+                if (active.layers.includes(name)) multiplier = Math.min(multiplier, active.floor);
+            }
             gain.cancelScheduledValues(now);
             gain.setValueAtTime(gain.value, now);
-            gain.linearRampToValueAtTime(prior, now + upSec);
+            gain.linearRampToValueAtTime(baseline * multiplier, now + (multiplier < 1 ? downSec : upSec));
+            // Restored to its own level, a layer is no longer ducked by
+            // anything and the next duck reads its baseline afresh.
+            if (multiplier === 1) this._duckBaseline.delete(name);
         }
-        this._duckedGains = null;
     }
 
     setShuttleSuspension(suspended) {
@@ -1275,9 +1313,14 @@ export class AudioEngine {
 
             source.start();
             this.layers.swell = source;
+            this.setLayerDucking(true);
 
             source.onended = () => {
-                if (this.layers.swell === source) this.layers.swell = null;
+                if (this.layers.swell !== source) return;
+                this.layers.swell = null;
+                // A layer shorter than its passage gives the bed back when it
+                // ends, not when the passage does.
+                this.setLayerDucking(false);
             };
         } catch (error) {
             console.error('[AudioEngine] Swell playback failed:', error);
@@ -1288,6 +1331,7 @@ export class AudioEngine {
      * Stop swell layer
      */
     stopSwell(instant = false) {
+        this.setLayerDucking(false);
         if (this.layers.swell) {
             const source = this.layers.swell;
             const fadeTime = instant ? 0 : 1.0;

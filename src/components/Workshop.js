@@ -1722,7 +1722,7 @@ export class Workshop {
                 aria-label="${this.escapeHtml(`${asset.name}, ${asset.kind}${current ? ', sounds under the whole reading' : ''}`)}">
           <span class="studio-audio-icon" aria-hidden="true">${asset.icon}</span>
           <span><strong>${this.escapeHtml(asset.name)}</strong><small>${this.escapeHtml(asset.description)}</small></span>
-          <span class="studio-audio-badges"><em>Whole reading or passage</em>${current ? '<em>Current</em>' : ''}${playing ? '<em>Previewing</em>' : ''}</span>
+          <span class="studio-audio-badges"><em>Bed</em>${current ? '<em>Current</em>' : ''}${playing ? '<em>Previewing</em>' : ''}</span>
         </button>
       </article>`;
     }).join('');
@@ -1858,6 +1858,9 @@ export class Workshop {
     this.audioPreview.stop();
     this.markEditorDirty();
     this.refreshAudioStudio();
+    // The wash across the scored text names the base layer, so the canvas has
+    // to be redrawn by the act that changes it.
+    this.updateVisualScoreEditor();
     this.updateSequencePicker();
     return true;
   }
@@ -3157,7 +3160,7 @@ export class Workshop {
           <p class="input-note text-fog">${this.scoreView === 'combined'
             ? 'Select one passage, then assign its visual and audio independently from the combined passage card.'
             : lane === 'audio'
-            ? 'Choose audio, select its passage, then assign. A highlighted passage layers its audio over the whole-reading bed. Audio uses underlines; visuals use filled highlights.'
+            ? 'Your own recordings layer over the whole-reading bed and duck it. A bed replaces it for that passage instead, because only one atmosphere can sound at a time. Audio uses underlines; visuals use filled highlights.'
             : 'Choose a visual, select its passage, then assign. Colours are editor guides only.'}</p></div>
         <div class="visual-score-header-actions">
           ${this.scoreView === 'combined' ? `<div class="visual-score-history studio-combined-history studio-choice-grid studio-choice-grid-4" aria-label="Visual and audio score histories">

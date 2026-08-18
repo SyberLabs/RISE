@@ -59,7 +59,7 @@ export function renderAssetLibrary(view) {
           <div class="studio-asset-registry-scroll">
             <div class="studio-audio-registry" id="audio-assets-list" role="listbox" aria-label="Audio assets">${view.audioAssetsHtml}</div>
           </div>
-          <div class="studio-personal-audio"><span class="studio-kicker">Personal audio</span>
+          <div class="studio-personal-audio"><span class="studio-kicker">Personal audio · bed or layer</span>
             <div class="personal-swell-list" id="personal-swell-list"></div></div>
         </div>
       </section>
