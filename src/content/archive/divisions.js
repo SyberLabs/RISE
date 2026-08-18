@@ -959,6 +959,34 @@ export function titledSchemeIn(lines) {
  * prose — a work whose sections repeat a name, or whose names run to
  * sentences, has not been cut at its titles.
  */
+/**
+ * A label this module WROTE for the matter before the work begins.
+ *
+ * Only the generated form. A work's own "Preface" is the author's division and
+ * the reader may want it; `Front matter` is what the divider calls the bytes
+ * that are not the work — a Gutenberg header, a transcriber's note. Thirty-two
+ * of the eighty-eight ingests open with one, so a curator asking blindly for
+ * division 1 reads boilerplate better than a third of the time.
+ */
+export function isFrontMatterLabel(label) {
+    return /^front matter\b/iu.test(String(label || '').trim());
+}
+
+/**
+ * A label that says more than its own number.
+ *
+ * "Essay 12" tells a curator nothing the count and the noun did not; "The Cup
+ * of Humanity" tells it what it would be choosing. Sending the first kind is
+ * paying context for a number the model already has.
+ */
+export function isInformativeLabel(label) {
+    const name = String(label || '').trim();
+    if (!name || isFrontMatterLabel(name)) return false;
+    if (/^complete text$/i.test(name)) return false;
+    // "Essay 12", "Chapter IV", "12.", "Reading 3 (2/3)"
+    return !/^(\p{L}+\s+)?([0-9]+|[ivxlcdm]+)\.?(\s*\([^)]*\))?$/iu.test(name);
+}
+
 export function titledSchemeFromNames(names, { minCount = 3 } = {}) {
     const list = (names || []).map(n => String(n || '').trim());
     const usable = list.filter(n =>

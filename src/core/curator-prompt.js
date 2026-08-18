@@ -49,7 +49,16 @@ function lengthLines(ctx) {
     "is the author's own or RISE-measured — prefer authored schemes when you",
     'cut, since those divisions are real units of the work.',
     "A division's length is roughly `words` / `divisions.count`; an opening",
-    'is as long as you asked for, so a short reading is one opening, not many.'
+    'is as long as you asked for, so a short reading is one opening, not many.',
+    '',
+    'CHOOSING A DIVISION — some entries carry `divisions.labels`, one name per',
+    'division in order, so label[0] is division 1. Where they are given, choose',
+    'by the name: a reader meets "The Cup of Humanity", not "division 3".',
+    'Where they are not, the divisions are numbered rather than named and one',
+    'is much like another — say why you chose in your note.',
+    '`divisions.bodyFrom`, when present, is the first division that is the WORK:',
+    "everything before it is the edition's front matter, a scanner's header or",
+    'a table of contents. Never name a division below it.'
   ];
 }
 

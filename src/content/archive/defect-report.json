@@ -58,6 +58,15 @@
       "discoveredIn": "don-quixote"
     },
     {
+      "id": "bibliography-as-division-title",
+      "disposition": "review",
+      "lines": 10,
+      "works": [
+        "sacred-corpus-hermeticum"
+      ],
+      "discoveredIn": "sacred-corpus-hermeticum"
+    },
+    {
       "id": "replacement-character",
       "disposition": "review",
       "lines": 1,

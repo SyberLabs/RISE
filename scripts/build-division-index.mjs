@@ -11,7 +11,19 @@
 import { readdirSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
-import { divideSections } from '../src/content/archive/divisions.js';
+import {
+    divideSections,
+    isFrontMatterLabel,
+    isInformativeLabel
+} from '../src/content/archive/divisions.js';
+
+/**
+ * Labels are sent to a curator so it can choose a division by what it is
+ * rather than by its number. They ride WHOLE or not at all: a truncated list
+ * would read as the work's complete scheme and send the model past the end.
+ */
+const MAX_LABELLED_DIVISIONS = 140;
+const MAX_LABEL_LENGTH = 60;
 
 const WORKS_DIR = resolve('src/content/archive/works');
 const OUT = resolve('src/content/archive/division-index.json');
@@ -29,6 +41,11 @@ for (const file of readdirSync(WORKS_DIR).filter(f => f.endsWith('.js')).sort())
     }
     const { divided: isDivided, noun, reason, entries } = divideSections(mod[key]);
     const words = entries.reduce((n, e) => n + e.words, 0);
+    const labels = entries.map(e => String(e.label || '').trim());
+    // Ordinals are positions, so the first division that is the work itself.
+    const bodyFrom = labels.findIndex(label => !isFrontMatterLabel(label)) + 1;
+    const worthSending = labels.length <= MAX_LABELLED_DIVISIONS
+        && labels.some(isInformativeLabel);
     index[id] = {
         divided: isDivided,
         // Titled schemes have no division noun (named places, not
@@ -42,6 +59,11 @@ for (const file of readdirSync(WORKS_DIR).filter(f => f.endsWith('.js')).sort())
         // The work's own word for its divisions ("chapters", "books", …).
         noun: noun || null,
         count: entries.length,
+        // Where the work starts, when something precedes it.
+        ...(bodyFrom > 1 ? { bodyFrom } : {}),
+        ...(worthSending
+            ? { labels: labels.map(label => label.slice(0, MAX_LABEL_LENGTH)) }
+            : {}),
         words
     };
     if (isDivided) divided++;

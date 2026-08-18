@@ -315,7 +315,8 @@ function normalizeLibrary(value, path) {
     }
     if (item.divisions != null) {
       const div = record(item.divisions, `${path}[${index}].divisions`);
-      onlyKeys(div, new Set(['titled', 'authored', 'reason', 'count', 'noun']), `${path}[${index}].divisions`);
+      onlyKeys(div, new Set(['titled', 'authored', 'reason', 'count', 'noun',
+        'labels', 'bodyFrom']), `${path}[${index}].divisions`);
       const divisions = {};
       if (typeof div.titled === 'boolean') divisions.titled = div.titled;
       if (typeof div.authored === 'boolean') divisions.authored = div.authored;
@@ -331,6 +332,31 @@ function normalizeLibrary(value, path) {
       }
       if (div.noun != null) {
         divisions.noun = boundedText(div.noun, `${path}[${index}].divisions.noun`);
+      }
+      if (div.bodyFrom != null) {
+        if (!Number.isInteger(div.bodyFrom) || div.bodyFrom < 1) {
+          fail('CURATOR_CONTEXT_LIBRARY_DIVISIONS',
+            'Expected a division ordinal of one or more',
+            `${path}[${index}].divisions.bodyFrom`);
+        }
+        divisions.bodyFrom = div.bodyFrom;
+      }
+      if (div.labels != null) {
+        if (!Array.isArray(div.labels)) {
+          fail('CURATOR_CONTEXT_LIBRARY_DIVISIONS', 'Expected an array of labels',
+            `${path}[${index}].divisions.labels`);
+        }
+        const labels = div.labels;
+        // WHOLE OR NOT AT ALL. A truncated list reads as the work's complete
+        // scheme, and a curator counting positions in it would name a division
+        // past the end of the work.
+        if (divisions.count != null && labels.length !== divisions.count) {
+          fail('CURATOR_CONTEXT_LIBRARY_DIVISIONS',
+            'Expected one label per division, or none',
+            `${path}[${index}].divisions.labels`);
+        }
+        divisions.labels = labels.map((label, position) =>
+          boundedText(label, `${path}[${index}].divisions.labels[${position}]`));
       }
       if (Object.keys(divisions).length) entry.divisions = divisions;
     }
@@ -429,7 +455,14 @@ export function buildLibraryCatalogue() {
       authored,
       ...(reason ? { reason } : {}),
       ...(Number.isInteger(div.count) ? { count: div.count } : {}),
-      ...(div.noun ? { noun: String(div.noun).slice(0, 40) } : {})
+      ...(div.noun ? { noun: String(div.noun).slice(0, 40) } : {}),
+      // Where the work itself begins, when a Gutenberg header precedes it.
+      ...(Number.isInteger(div.bodyFrom) && div.bodyFrom > 1
+        ? { bodyFrom: div.bodyFrom } : {}),
+      // Present only where a scheme names its divisions something a reader
+      // could choose by. Ordinal labels are the count and the noun again.
+      ...(Array.isArray(div.labels) && div.labels.length === div.count
+        ? { labels: div.labels.map(label => String(label).slice(0, 80)) } : {})
     };
     return entry;
   });

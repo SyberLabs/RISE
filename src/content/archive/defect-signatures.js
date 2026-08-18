@@ -137,6 +137,19 @@ export const DEFECT_SIGNATURES = Object.freeze([
         discoveredOn: '2026-08-12',
         why: 'Sometimes genuine scholarship about the edition, sometimes a '
             + 'note about image formats. A human decides which.'
+    },
+    {
+        id: 'bibliography-as-division-title',
+        name: 'A bibliography entry standing as a division name',
+        pattern: /^.{0,40}=\s*\p{Lu}\w*\s*\(\p{Lu}[.\s\p{Lu}]*\)/u,
+        disposition: 'review',
+        discoveredIn: 'sacred-corpus-hermeticum',
+        discoveredOn: '2026-08-18',
+        why: 'Its 244 divisions are named from a works-cited list — "Volume 1 '
+            + '— D. J, L. = Mead (G. E. S.), Did Jesus L…" — so the scheme '
+            + 'counts references rather than tractates. Found while sending '
+            + 'division labels to the curator, where a name is what a reader '
+            + 'chooses by; a division named for a citation cannot be chosen.'
     }
 ]);
 
