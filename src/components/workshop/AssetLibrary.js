@@ -54,12 +54,12 @@ export function renderAssetLibrary(view) {
         <div id="studio-audio-library-panel" class="studio-library-lane-panel" role="tabpanel" ${view.activeAssetLane === 'audio' ? '' : 'hidden'}>
           <div class="studio-audio-library-heading">
             <p class="input-note text-fog">Passage clips score selected text. Atmosphere remains the whole-reading default.</p>
-            <button type="button" class="btn-secondary btn-compact" data-action="upload-personal-swell">+ Entry swell</button>
+            <button type="button" class="btn-secondary btn-compact" data-action="upload-personal-swell">+ Personal audio</button>
           </div>
           <div class="studio-asset-registry-scroll">
             <div class="studio-audio-registry" id="audio-assets-list" role="listbox" aria-label="Audio assets">${view.audioAssetsHtml}</div>
           </div>
-          <div class="studio-personal-audio"><span class="studio-kicker">Personal entry events</span>
+          <div class="studio-personal-audio"><span class="studio-kicker">Personal audio</span>
             <div class="personal-swell-list" id="personal-swell-list"></div></div>
         </div>
       </section>

@@ -1689,9 +1689,9 @@ export class Workshop {
       .filter(asset => asset && editorAssetSupports(asset, 'span'));
     // Each personal recording is offered twice, because it can be two
     // different things: a momentary event on the swell lane, or a bed that
-    // holds under the reading. The tab is called Personal Entry Events and
-    // only ever produced the first, which is why a file assigned across a
-    // whole text sounded once and never came back after a pause.
+    // holds under the reading. The shelf only ever produced the first, which
+    // is why a file assigned across a whole text sounded once and never came
+    // back after a pause.
     const personal = this.personalSwells.map(personalSwellEditorAsset).filter(Boolean);
     const beds = this.personalSwells.map(personalBedEditorAsset).filter(Boolean);
     return [...builtIns, ...personal, ...beds];
@@ -3267,7 +3267,7 @@ export class Workshop {
     const swells = await PersonalSwells.getAll();
     this.personalSwells = swells;
     if (swells.length === 0) {
-      list.innerHTML = `<div class="empty-sources text-fog" style="padding: 1rem; border: none;">No personal swells uploaded</div>`;
+      list.innerHTML = `<div class="empty-sources text-fog" style="padding: 1rem; border: none;">No personal audio uploaded</div>`;
       return;
     }
 
