@@ -304,7 +304,8 @@ const WORKS = {
             return {
                 sections: [{
                     name: 'Songs of Kabir',
-                    content: sectionText(lines.slice(from + 1, end > 0 ? end : lines.length), captions)
+                    content: sectionText(lines.slice(from + 1, end > 0 ? end : lines.length),
+                        captions, { verse: true })
                 }],
                 captions
             };
@@ -509,13 +510,17 @@ const WORKS = {
  * (PHRASE-CHUNKING-STUDY.md §4), so a false break here would be
  * indistinguishable from a real one downstream.
  */
-function sectionText(lines, captions = []) {
+function sectionText(lines, captions = [], { verse = false } = {}) {
     const paras = [];
     let buf = [];
     let skipping = false;
     const flush = () => {
         if (!buf.length) return;
-        paras.push(buf.join(' ').replace(/\s+/g, ' ').trim());
+        // A LINE BREAK IN VERSE IS THE POET'S, not the file's. Reflowing one
+        // hands the reader run-on prose and takes the poems' headings with it.
+        paras.push(verse
+            ? buf.join('\n')
+            : buf.join(' ').replace(/\s+/g, ' ').trim());
         buf = [];
     };
     for (const line of lines) {

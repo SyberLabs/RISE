@@ -194,6 +194,7 @@ const WORKS = Object.freeze([
     },
     {
         id: 'literary-leaves-of-grass',
+        verse: true,
         title: 'Leaves of Grass',
         author: 'Walt Whitman',
         shelf: 'western',
@@ -204,6 +205,7 @@ const WORKS = Object.freeze([
     },
     {
         id: 'literary-poems-dickinson',
+        verse: true,
         title: 'Poems by Emily Dickinson: Three Series, Complete',
         author: 'Emily Dickinson',
         shelf: 'western',
@@ -224,6 +226,7 @@ const WORKS = Object.freeze([
     },
     {
         id: 'literary-poems-blake',
+        verse: true,
         title: 'Songs of Innocence and of Experience',
         author: 'William Blake',
         shelf: 'western',
@@ -418,11 +421,29 @@ function unwrap(value) {
         lines.slice(start >= 0 ? start + 1 : 0, end >= 0 ? end : lines.length)).join('\n');
 }
 
-function reflow(lines) {
+/**
+ * Hard-wrapped lines back into paragraphs.
+ *
+ * Gutenberg wraps at about 72 columns, which is a property of the FILE and not
+ * of the text, so joining those lines is right for prose.
+ *
+ * IT IS EXACTLY WRONG FOR VERSE. A poem's line breaks are the one thing its
+ * author chose, and reflowing them hands the reader run-on prose — Blake's
+ * quatrains arrived as one 117-character line. Worse, it took the poems with
+ * it: headings are found by their shape on a line of their own, so a work
+ * whose lines were joined has none left to find, and Blake, Kabir and Rumi
+ * lost their division schemes to this. `verse` keeps the lines and lets the
+ * blank lines go on marking stanzas.
+ */
+function reflow(lines, { verse = false } = {}) {
     const paragraphs = [];
     let buffer = [];
     const flush = () => {
-        if (buffer.length) paragraphs.push(buffer.join(' ').replace(/\s+/g, ' ').trim());
+        if (buffer.length) {
+            paragraphs.push(verse
+                ? buffer.join('\n')
+                : buffer.join(' ').replace(/\s+/g, ' ').trim());
+        }
         buffer = [];
     };
     for (const line of lines) {
@@ -435,6 +456,7 @@ function reflow(lines) {
 }
 
 function sectionsFor(work, artifacts) {
+    const form = { verse: work.verse === true };
     const sections = [];
     const completeFallback = [];
     const usedHeadingLabels = new Set();
@@ -449,7 +471,7 @@ function sectionsFor(work, artifacts) {
         completeFallback.push({
             name: artifacts.length > 1 ? `Part ${volume + 1}` : 'Full text',
             path: artifacts.length > 1 ? [`Part ${volume + 1}`] : ['Full text'],
-            content: reflow(text.split('\n'))
+            content: reflow(text.split('\n'), form)
         });
         const lines = text.split('\n');
         const hits = [];
@@ -460,7 +482,7 @@ function sectionsFor(work, artifacts) {
         }
         const usable = hits.filter((at, i) => (hits[i + 1] ?? lines.length) - at > 3);
         if (usable.length >= 2) {
-            const opening = reflow(lines.slice(0, usable[0]));
+            const opening = reflow(lines.slice(0, usable[0]), form);
             if (opening.length >= 120) {
                 sections.push({
                     name: artifacts.length > 1 ? `Volume ${volume + 1} — Opening` : 'Opening',
@@ -471,7 +493,7 @@ function sectionsFor(work, artifacts) {
             for (let i = 0; i < usable.length; i++) {
                 const from = usable[i];
                 const to = usable[i + 1] ?? lines.length;
-                const content = reflow(lines.slice(from + 1, to));
+                const content = reflow(lines.slice(from + 1, to), form);
                 if (content.length >= 120) {
                     const rawHeading = lines[from].trim();
                     const mappedHeading = work.headingLabels?.[rawHeading.toUpperCase()];
@@ -487,7 +509,7 @@ function sectionsFor(work, artifacts) {
                 }
             }
         } else {
-            const content = reflow(lines);
+            const content = reflow(lines, form);
             if (content.length >= 120) {
                 sections.push({
                     name: artifacts.length > 1 ? `Volume ${volume + 1}` : 'Full text',

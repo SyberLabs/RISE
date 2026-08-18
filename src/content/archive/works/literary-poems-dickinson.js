@@ -6,1918 +6,1918 @@ export const LITERARY_POEMS_DICKINSON_SECTIONS = [
         "path": [
             "Opening"
         ],
-        "content": "POEMS\n\nby EMILY DICKINSON\n\nEdited by two of her friends\n\nMABEL LOOMIS TODD and T.W. HIGGINSON\n\nPREFACE.\n\nThe verses of Emily Dickinson belong emphatically to what Emerson long since called \"the Poetry of the Portfolio,\"--something produced absolutely without the thought of publication, and solely by way of expression of the writer's own mind. Such verse must inevitably forfeit whatever advantage lies in the discipline of public criticism and the enforced conformity to accepted ways. On the other hand, it may often gain something through the habit of freedom and the unconventional utterance of daring thoughts. In the case of the present author, there was absolutely no choice in the matter; she must write thus, or not at all. A recluse by temperament and habit, literally spending years without setting her foot beyond the doorstep, and many more years during which her walks were strictly limited to her father's grounds, she habitually concealed her mind, like her person, from all but a very few friends; and it was with great difficulty that she was persuaded to print, during her lifetime, three or four poems. Yet she wrote verses in great abundance; and though brought curiously indifferent to all conventional rules, had yet a rigorous literary standard of her own, and often altered a word many times to suit an ear which had its own tenacious fastidiousness.\n\nMiss Dickinson was born in Amherst, Mass., Dec. 10, 1830, and died there May 15, 1886. Her father, Hon. Edward Dickinson, was the leading lawyer of Amherst, and was treasurer of the well-known college there situated. It was his custom once a year to hold a large reception at his house, attended by all the families connected with the institution and by the leading people of the town. On these occasions his daughter Emily emerged from her wonted retirement and did her part as gracious hostess; nor would any one have known from her manner, I have been told, that this was not a daily occurrence. The annual occasion once past, she withdrew again into her seclusion, and except for a very few friends was as invisible to the world as if she had dwelt in a nunnery. For myself, although I had corresponded with her for many years, I saw her but twice face to face, and brought away the impression of something as unique and remote as Undine or Mignon or Thekla.\n\nThis selection from her poems is published to meet the desire of her personal friends, and especially of her surviving sister. It is believed that the thoughtful reader will find in these pages a quality more suggestive of the poetry of William Blake than of anything to be elsewhere found,--flashes of wholly original and profound insight into nature and life; words and phrases exhibiting an extraordinary vividness of descriptive and imaginative power, yet often set in a seemingly whimsical or even rugged frame. They are here published as they were written, with very few and superficial changes; although it is fair to say that the titles have been assigned, almost invariably, by the editors. In many cases these verses will seem to the reader like poetry torn up by the roots, with rain and dew and earth still clinging to them, giving a freshness and a fragrance not otherwise to be conveyed. In other cases, as in the few poems of shipwreck or of mental conflict, we can only wonder at the gift of vivid imagination by which this recluse woman can delineate, by a few touches, the very crises of physical or mental struggle. And sometimes again we catch glimpses of a lyric strain, sustained perhaps but for a line or two at a time, and making the reader regret its sudden cessation. But the main quality of these poems is that of extraordinary grasp and insight, uttered with an uneven vigor sometimes exasperating, seemingly wayward, but really unsought and inevitable. After all, when a thought takes one's breath away, a lesson on grammar seems an impertinence. As Ruskin wrote in his earlier and better days, \"No weight nor mass nor beauty of execution can outweigh one grain or fragment of thought.\"\n\n---Thomas Wentworth Higginson\n\nEach was to each - the sealed church - Permitted to commune - _this_ time - Lest we too awkward show At Supper of \"the Lamb.\"\n\nThe hours slid fast - as hours will - Clutched tight - by greedy hands - So - faces on two Decks look back - Bound to _opposing_ lands.\n\nAnd so, when all the time had leaked, Without external sound, Each bound the other's Crucifix - We gave no other bond -\n\nSufficient troth - that we shall _rise_, Deposed - at length the Grave - To that new marriage - _Justified_ - through Calvaries - of Love!\n\nFrom the handwriting, it is not always clear which are dashes, which are commas and which are periods, nor it is entirely clear which initial letters are capitalized.\n\nHowever, this transcription may be compared with the edited version in the main text to get a flavor of the changes made in these early editions.\n\n---JT\n\nThis is my letter to the world, That never wrote to me, -- The simple news that Nature told, With tender majesty.\n\nHer message is committed To hands I cannot see; For love of her, sweet countrymen, Judge tenderly of me!\n\nI. LIFE."
+        "content": "POEMS\n\nby EMILY DICKINSON\n\nEdited by two of her friends\n\nMABEL LOOMIS TODD and T.W. HIGGINSON\n\nPREFACE.\n\nThe verses of Emily Dickinson belong emphatically to what Emerson\nlong since called \"the Poetry of the Portfolio,\"--something produced\nabsolutely without the thought of publication, and solely by way of\nexpression of the writer's own mind. Such verse must inevitably\nforfeit whatever advantage lies in the discipline of public criticism\nand the enforced conformity to accepted ways. On the other hand, it\nmay often gain something through the habit of freedom and the\nunconventional utterance of daring thoughts. In the case of the\npresent author, there was absolutely no choice in the matter; she\nmust write thus, or not at all. A recluse by temperament and habit,\nliterally spending years without setting her foot beyond the\ndoorstep, and many more years during which her walks were strictly\nlimited to her father's grounds, she habitually concealed her mind,\nlike her person, from all but a very few friends; and it was with\ngreat difficulty that she was persuaded to print, during her\nlifetime, three or four poems.  Yet she wrote verses in great\nabundance; and though brought curiously indifferent to all\nconventional rules, had yet a rigorous literary standard of her own,\nand often altered a word many times to suit an ear which had its own\ntenacious fastidiousness.\n\nMiss Dickinson was born in Amherst, Mass., Dec. 10, 1830, and died\nthere May 15, 1886. Her father, Hon. Edward Dickinson, was the\nleading lawyer of Amherst, and was treasurer of the well-known\ncollege there situated. It was his custom once a year to hold a large\nreception at his house, attended by all the families connected with\nthe institution and by the leading people of the town. On these\noccasions his daughter Emily emerged from her wonted retirement and\ndid her part as gracious hostess; nor would any one have known from\nher manner, I have been told, that this was not a daily occurrence.\nThe annual occasion once past, she withdrew again into her seclusion,\nand except for a very few friends was as invisible to the world as if\nshe had dwelt in a nunnery.  For myself, although I had corresponded\nwith her for many years, I saw her but twice face to face, and\nbrought away the impression of something as unique and remote as\nUndine or Mignon or Thekla.\n\nThis selection from her poems is published to meet the desire of her\npersonal friends, and especially of her surviving sister. It is\nbelieved that the thoughtful reader will find in these pages a\nquality more suggestive of the poetry of William Blake than of\nanything to be elsewhere found,--flashes of wholly original and\nprofound insight into nature and life; words and phrases exhibiting\nan extraordinary vividness of descriptive and imaginative power, yet\noften set in a seemingly whimsical or even rugged frame. They are\nhere published as they were written, with very few and superficial\nchanges; although it is fair to say that the titles have been\nassigned, almost invariably, by the editors. In many cases these\nverses will seem to the reader like poetry torn up by the roots, with\nrain and dew and earth still clinging to them, giving a freshness and\na fragrance not otherwise to be conveyed.  In other cases, as in the\nfew poems of shipwreck or of mental conflict, we can only wonder at\nthe gift of vivid imagination by which this recluse woman can\ndelineate, by a few touches, the very crises of physical or mental\nstruggle. And sometimes again we catch glimpses of a lyric strain,\nsustained perhaps but for a line or two at a time, and making the\nreader regret its sudden cessation. But the main quality of these\npoems is that of extraordinary grasp and insight, uttered with an\nuneven vigor sometimes exasperating, seemingly wayward, but really\nunsought and inevitable.  After all, when a thought takes one's\nbreath away, a lesson on grammar seems an impertinence. As Ruskin\nwrote in his earlier and better days, \"No weight nor mass nor beauty\nof execution can outweigh one grain or fragment of thought.\"\n\n---Thomas Wentworth Higginson\n\nEach was to each - the sealed church -\nPermitted to commune -  _this_ time -\nLest we too awkward show\nAt Supper of \"the Lamb.\"\n\nThe hours slid fast - as hours will -\nClutched tight - by greedy hands -\nSo - faces on two Decks look back -\nBound to _opposing_ lands.\n\nAnd so, when all the time had leaked,\nWithout external sound,\nEach bound the other's Crucifix -\nWe gave no other bond -\n\nSufficient troth - that we shall _rise_,\nDeposed - at length the Grave -\nTo that new marriage -\n_Justified_ - through Calvaries - of Love!\n\nFrom the handwriting, it is not always clear which are dashes,\nwhich are commas and which are periods, nor it is entirely\nclear which initial letters are capitalized.\n\nHowever, this transcription may be compared with the edited\nversion in the main text to get a flavor of the changes made\nin these early editions.\n\n---JT\n\nThis is my letter to the world,\nThat never wrote to me, --\nThe simple news that Nature told,\nWith tender majesty.\n\nHer message is committed\nTo hands I cannot see;\nFor love of her, sweet countrymen,\nJudge tenderly of me!\n\nI. LIFE."
     },
     {
         "name": "I.",
         "path": [
             "I."
         ],
-        "content": "SUCCESS.\n\n[Published in \"A Masque of Poets\" at the request of \"H.H.,\" the author's fellow-townswoman and friend.]\n\nSuccess is counted sweetest By those who ne'er succeed. To comprehend a nectar Requires sorest need.\n\nNot one of all the purple host Who took the flag to-day Can tell the definition, So clear, of victory,\n\nAs he, defeated, dying, On whose forbidden ear The distant strains of triumph Break, agonized and clear!\n\nII.\n\nOur share of night to bear, Our share of morning, Our blank in bliss to fill, Our blank in scorning.\n\nHere a star, and there a star, Some lose their way. Here a mist, and there a mist, Afterwards -- day!\n\nIII.\n\nROUGE ET NOIR.\n\nSoul, wilt thou toss again? By just such a hazard Hundreds have lost, indeed, But tens have won an all.\n\nAngels' breathless ballot Lingers to record thee; Imps in eager caucus Raffle for my soul."
+        "content": "SUCCESS.\n\n[Published in \"A Masque of Poets\"\nat the request of \"H.H.,\" the author's\nfellow-townswoman and friend.]\n\nSuccess is counted sweetest\nBy those who ne'er succeed.\nTo comprehend a nectar\nRequires sorest need.\n\nNot one of all the purple host\nWho took the flag to-day\nCan tell the definition,\nSo clear, of victory,\n\nAs he, defeated, dying,\nOn whose forbidden ear\nThe distant strains of triumph\nBreak, agonized and clear!\n\nII.\n\nOur share of night to bear,\nOur share of morning,\nOur blank in bliss to fill,\nOur blank in scorning.\n\nHere a star, and there a star,\nSome lose their way.\nHere a mist, and there a mist,\nAfterwards -- day!\n\nIII.\n\nROUGE ET NOIR.\n\nSoul, wilt thou toss again?\nBy just such a hazard\nHundreds have lost, indeed,\nBut tens have won an all.\n\nAngels' breathless ballot\nLingers to record thee;\nImps in eager caucus\nRaffle for my soul."
     },
     {
         "name": "IV.",
         "path": [
             "IV."
         ],
-        "content": "ROUGE GAGNE.\n\n'T is so much joy! 'T is so much joy! If I should fail, what poverty! And yet, as poor as I Have ventured all upon a throw; Have gained! Yes! Hesitated so This side the victory!\n\nLife is but life, and death but death! Bliss is but bliss, and breath but breath! And if, indeed, I fail, At least to know the worst is sweet. Defeat means nothing but defeat, No drearier can prevail!\n\nAnd if I gain, -- oh, gun at sea, Oh, bells that in the steeples be, At first repeat it slow! For heaven is a different thing Conjectured, and waked sudden in, And might o'erwhelm me so!"
+        "content": "ROUGE GAGNE.\n\n'T is so much joy! 'T is so much joy!\nIf I should fail, what poverty!\nAnd yet, as poor as I\nHave ventured all upon a throw;\nHave gained! Yes! Hesitated so\nThis side the victory!\n\nLife is but life, and death but death!\nBliss is but bliss, and breath but breath!\nAnd if, indeed, I fail,\nAt least to know the worst is sweet.\nDefeat means nothing but defeat,\nNo drearier can prevail!\n\nAnd if I gain, -- oh, gun at sea,\nOh, bells that in the steeples be,\nAt first repeat it slow!\nFor heaven is a different thing\nConjectured, and waked sudden in,\nAnd might o'erwhelm me so!"
     },
     {
         "name": "V.",
         "path": [
             "V."
         ],
-        "content": "Glee! The great storm is over! Four have recovered the land; Forty gone down together Into the boiling sand.\n\nRing, for the scant salvation! Toll, for the bonnie souls, -- Neighbor and friend and bridegroom, Spinning upon the shoals!\n\nHow they will tell the shipwreck When winter shakes the door, Till the children ask, \"But the forty? Did they come back no more?\"\n\nThen a silence suffuses the story, And a softness the teller's eye; And the children no further question, And only the waves reply.\n\nVI.\n\nIf I can stop one heart from breaking, I shall not live in vain; If I can ease one life the aching, Or cool one pain, Or help one fainting robin Unto his nest again, I shall not live in vain."
+        "content": "Glee! The great storm is over!\nFour have recovered the land;\nForty gone down together\nInto the boiling sand.\n\nRing, for the scant salvation!\nToll, for the bonnie souls, --\nNeighbor and friend and bridegroom,\nSpinning upon the shoals!\n\nHow they will tell the shipwreck\nWhen winter shakes the door,\nTill the children ask, \"But the forty?\nDid they come back no more?\"\n\nThen a silence suffuses the story,\nAnd a softness the teller's eye;\nAnd the children no further question,\nAnd only the waves reply.\n\nVI.\n\nIf I can stop one heart from breaking,\nI shall not live in vain;\nIf I can ease one life the aching,\nOr cool one pain,\nOr help one fainting robin\nUnto his nest again,\nI shall not live in vain."
     },
     {
         "name": "VII.",
         "path": [
             "VII."
         ],
-        "content": "ALMOST!\n\nWithin my reach! I could have touched! I might have chanced that way! Soft sauntered through the village, Sauntered as soft away! So unsuspected violets Within the fields lie low, Too late for striving fingers That passed, an hour ago."
+        "content": "ALMOST!\n\nWithin my reach!\nI could have touched!\nI might have chanced that way!\nSoft sauntered through the village,\nSauntered as soft away!\nSo unsuspected violets\nWithin the fields lie low,\nToo late for striving fingers\nThat passed, an hour ago."
     },
     {
         "name": "VIII.",
         "path": [
             "VIII."
         ],
-        "content": "A wounded deer leaps highest, I've heard the hunter tell; 'T is but the ecstasy of death, And then the brake is still.\n\nThe smitten rock that gushes, The trampled steel that springs; A cheek is always redder Just where the hectic stings!\n\nMirth is the mail of anguish, In which it cautions arm, Lest anybody spy the blood And \"You're hurt\" exclaim!\n\nIX.\n\nThe heart asks pleasure first, And then, excuse from pain; And then, those little anodynes That deaden suffering;\n\nAnd then, to go to sleep; And then, if it should be The will of its Inquisitor, The liberty to die."
+        "content": "A wounded deer leaps highest,\nI've heard the hunter tell;\n'T is but the ecstasy of death,\nAnd then the brake is still.\n\nThe smitten rock that gushes,\nThe trampled steel that springs;\nA cheek is always redder\nJust where the hectic stings!\n\nMirth is the mail of anguish,\nIn which it cautions arm,\nLest anybody spy the blood\nAnd \"You're hurt\" exclaim!\n\nIX.\n\nThe heart asks pleasure first,\nAnd then, excuse from pain;\nAnd then, those little anodynes\nThat deaden suffering;\n\nAnd then, to go to sleep;\nAnd then, if it should be\nThe will of its Inquisitor,\nThe liberty to die."
     },
     {
         "name": "X.",
         "path": [
             "X."
         ],
-        "content": "IN A LIBRARY.\n\nA precious, mouldering pleasure 't is To meet an antique book, In just the dress his century wore; A privilege, I think,\n\nHis venerable hand to take, And warming in our own, A passage back, or two, to make To times when he was young.\n\nHis quaint opinions to inspect, His knowledge to unfold On what concerns our mutual mind, The literature of old;\n\nWhat interested scholars most, What competitions ran When Plato was a certainty. And Sophocles a man;\n\nWhen Sappho was a living girl, And Beatrice wore The gown that Dante deified. Facts, centuries before,\n\nHe traverses familiar, As one should come to town And tell you all your dreams were true; He lived where dreams were sown.\n\nHis presence is enchantment, You beg him not to go; Old volumes shake their vellum heads And tantalize, just so.\n\nXI.\n\nMuch madness is divinest sense To a discerning eye; Much sense the starkest madness. 'T is the majority In this, as all, prevails. Assent, and you are sane; Demur, -- you're straightway dangerous, And handled with a chain.\n\nXII.\n\nI asked no other thing, No other was denied. I offered Being for it; The mighty merchant smiled.\n\nBrazil? He twirled a button, Without a glance my way: \"But, madam, is there nothing else That we can show to-day?\""
+        "content": "IN A LIBRARY.\n\nA precious, mouldering pleasure 't is\nTo meet an antique book,\nIn just the dress his century wore;\nA privilege, I think,\n\nHis venerable hand to take,\nAnd warming in our own,\nA passage back, or two, to make\nTo times when he was young.\n\nHis quaint opinions to inspect,\nHis knowledge to unfold\nOn what concerns our mutual mind,\nThe literature of old;\n\nWhat interested scholars most,\nWhat competitions ran\nWhen Plato was a certainty.\nAnd Sophocles a man;\n\nWhen Sappho was a living girl,\nAnd Beatrice wore\nThe gown that Dante deified.\nFacts, centuries before,\n\nHe traverses familiar,\nAs one should come to town\nAnd tell you all your dreams were true;\nHe lived where dreams were sown.\n\nHis presence is enchantment,\nYou beg him not to go;\nOld volumes shake their vellum heads\nAnd tantalize, just so.\n\nXI.\n\nMuch madness is divinest sense\nTo a discerning eye;\nMuch sense the starkest madness.\n'T is the majority\nIn this, as all, prevails.\nAssent, and you are sane;\nDemur, -- you're straightway dangerous,\nAnd handled with a chain.\n\nXII.\n\nI asked no other thing,\nNo other was denied.\nI offered Being for it;\nThe mighty merchant smiled.\n\nBrazil? He twirled a button,\nWithout a glance my way:\n\"But, madam, is there nothing else\nThat we can show to-day?\""
     },
     {
         "name": "XIII.",
         "path": [
             "XIII."
         ],
-        "content": "EXCLUSION.\n\nThe soul selects her own society, Then shuts the door; On her divine majority Obtrude no more.\n\nUnmoved, she notes the chariot's pausing At her low gate; Unmoved, an emperor is kneeling Upon her mat.\n\nI've known her from an ample nation Choose one; Then close the valves of her attention Like stone."
+        "content": "EXCLUSION.\n\nThe soul selects her own society,\nThen shuts the door;\nOn her divine majority\nObtrude no more.\n\nUnmoved, she notes the chariot's pausing\nAt her low gate;\nUnmoved, an emperor is kneeling\nUpon her mat.\n\nI've known her from an ample nation\nChoose one;\nThen close the valves of her attention\nLike stone."
     },
     {
         "name": "XIV.",
         "path": [
             "XIV."
         ],
-        "content": "THE SECRET.\n\nSome things that fly there be, -- Birds, hours, the bumble-bee: Of these no elegy.\n\nSome things that stay there be, -- Grief, hills, eternity: Nor this behooveth me.\n\nThere are, that resting, rise. Can I expound the skies? How still the riddle lies!"
+        "content": "THE SECRET.\n\nSome things that fly there be, --\nBirds, hours, the bumble-bee:\nOf these no elegy.\n\nSome things that stay there be, --\nGrief, hills, eternity:\nNor this behooveth me.\n\nThere are, that resting, rise.\nCan I expound the skies?\nHow still the riddle lies!"
     },
     {
         "name": "XV.",
         "path": [
             "XV."
         ],
-        "content": "THE LONELY HOUSE.\n\nI know some lonely houses off the road A robber 'd like the look of, -- Wooden barred, And windows hanging low, Inviting to A portico, Where two could creep: One hand the tools, The other peep To make sure all's asleep. Old-fashioned eyes, Not easy to surprise!\n\nHow orderly the kitchen 'd look by night, With just a clock, -- But they could gag the tick, And mice won't bark; And so the walls don't tell, None will.\n\nA pair of spectacles ajar just stir -- An almanac's aware. Was it the mat winked, Or a nervous star? The moon slides down the stair To see who's there.\n\nThere's plunder, -- where? Tankard, or spoon, Earring, or stone, A watch, some ancient brooch To match the grandmamma, Staid sleeping there.\n\nDay rattles, too, Stealth's slow; The sun has got as far As the third sycamore. Screams chanticleer, \"Who's there?\" And echoes, trains away, Sneer -- \"Where?\" While the old couple, just astir, Fancy the sunrise left the door ajar!"
+        "content": "THE LONELY HOUSE.\n\nI know some lonely houses off the road\nA robber 'd like the look of, --\nWooden barred,\nAnd windows hanging low,\nInviting to\nA portico,\nWhere two could creep:\nOne hand the tools,\nThe other peep\nTo make sure all's asleep.\nOld-fashioned eyes,\nNot easy to surprise!\n\nHow orderly the kitchen 'd look by night,\nWith just a clock, --\nBut they could gag the tick,\nAnd mice won't bark;\nAnd so the walls don't tell,\nNone will.\n\nA pair of spectacles ajar just stir --\nAn almanac's aware.\nWas it the mat winked,\nOr a nervous star?\nThe moon slides down the stair\nTo see who's there.\n\nThere's plunder, -- where?\nTankard, or spoon,\nEarring, or stone,\nA watch, some ancient brooch\nTo match the grandmamma,\nStaid sleeping there.\n\nDay rattles, too,\nStealth's slow;\nThe sun has got as far\nAs the third sycamore.\nScreams chanticleer,\n\"Who's there?\"\nAnd echoes, trains away,\nSneer -- \"Where?\"\nWhile the old couple, just astir,\nFancy the sunrise left the door ajar!"
     },
     {
         "name": "XVI.",
         "path": [
             "XVI."
         ],
-        "content": "To fight aloud is very brave, But gallanter, I know, Who charge within the bosom, The cavalry of woe.\n\nWho win, and nations do not see, Who fall, and none observe, Whose dying eyes no country Regards with patriot love.\n\nWe trust, in plumed procession, For such the angels go, Rank after rank, with even feet And uniforms of snow.\n\nXVII.\n\nDAWN.\n\nWhen night is almost done, And sunrise grows so near That we can touch the spaces, It 's time to smooth the hair\n\nAnd get the dimples ready, And wonder we could care For that old faded midnight That frightened but an hour."
+        "content": "To fight aloud is very brave,\nBut gallanter, I know,\nWho charge within the bosom,\nThe cavalry of woe.\n\nWho win, and nations do not see,\nWho fall, and none observe,\nWhose dying eyes no country\nRegards with patriot love.\n\nWe trust, in plumed procession,\nFor such the angels go,\nRank after rank, with even feet\nAnd uniforms of snow.\n\nXVII.\n\nDAWN.\n\nWhen night is almost done,\nAnd sunrise grows so near\nThat we can touch the spaces,\nIt 's time to smooth the hair\n\nAnd get the dimples ready,\nAnd wonder we could care\nFor that old faded midnight\nThat frightened but an hour."
     },
     {
         "name": "XVIII.",
         "path": [
             "XVIII."
         ],
-        "content": "THE BOOK OF MARTYRS.\n\nRead, sweet, how others strove, Till we are stouter; What they renounced, Till we are less afraid; How many times they bore The faithful witness, Till we are helped, As if a kingdom cared!\n\nRead then of faith That shone above the fagot; Clear strains of hymn The river could not drown; Brave names of men And celestial women, Passed out of record Into renown!\n\nXIX.\n\nTHE MYSTERY OF PAIN.\n\nPain has an element of blank; It cannot recollect When it began, or if there were A day when it was not.\n\nIt has no future but itself, Its infinite realms contain Its past, enlightened to perceive New periods of pain."
+        "content": "THE BOOK OF MARTYRS.\n\nRead, sweet, how others strove,\nTill we are stouter;\nWhat they renounced,\nTill we are less afraid;\nHow many times they bore\nThe faithful witness,\nTill we are helped,\nAs if a kingdom cared!\n\nRead then of faith\nThat shone above the fagot;\nClear strains of hymn\nThe river could not drown;\nBrave names of men\nAnd celestial women,\nPassed out of record\nInto renown!\n\nXIX.\n\nTHE MYSTERY OF PAIN.\n\nPain has an element of blank;\nIt cannot recollect\nWhen it began, or if there were\nA day when it was not.\n\nIt has no future but itself,\nIts infinite realms contain\nIts past, enlightened to perceive\nNew periods of pain."
     },
     {
         "name": "XX.",
         "path": [
             "XX."
         ],
-        "content": "I taste a liquor never brewed, From tankards scooped in pearl; Not all the vats upon the Rhine Yield such an alcohol!\n\nInebriate of air am I, And debauchee of dew, Reeling, through endless summer days, From inns of molten blue.\n\nWhen landlords turn the drunken bee Out of the foxglove's door, When butterflies renounce their drams, I shall but drink the more!\n\nTill seraphs swing their snowy hats, And saints to windows run, To see the little tippler Leaning against the sun!"
+        "content": "I taste a liquor never brewed,\nFrom tankards scooped in pearl;\nNot all the vats upon the Rhine\nYield such an alcohol!\n\nInebriate of air am I,\nAnd debauchee of dew,\nReeling, through endless summer days,\nFrom inns of molten blue.\n\nWhen landlords turn the drunken bee\nOut of the foxglove's door,\nWhen butterflies renounce their drams,\nI shall but drink the more!\n\nTill seraphs swing their snowy hats,\nAnd saints to windows run,\nTo see the little tippler\nLeaning against the sun!"
     },
     {
         "name": "XXI.",
         "path": [
             "XXI."
         ],
-        "content": "A BOOK.\n\nHe ate and drank the precious words, His spirit grew robust; He knew no more that he was poor, Nor that his frame was dust. He danced along the dingy days, And this bequest of wings Was but a book. What liberty A loosened spirit brings!\n\nXXII.\n\nI had no time to hate, because The grave would hinder me, And life was not so ample I Could finish enmity.\n\nNor had I time to love; but since Some industry must be, The little toil of love, I thought, Was large enough for me."
+        "content": "A BOOK.\n\nHe ate and drank the precious words,\nHis spirit grew robust;\nHe knew no more that he was poor,\nNor that his frame was dust.\nHe danced along the dingy days,\nAnd this bequest of wings\nWas but a book. What liberty\nA loosened spirit brings!\n\nXXII.\n\nI had no time to hate, because\nThe grave would hinder me,\nAnd life was not so ample I\nCould finish enmity.\n\nNor had I time to love; but since\nSome industry must be,\nThe little toil of love, I thought,\nWas large enough for me."
     },
     {
         "name": "XXIII.",
         "path": [
             "XXIII."
         ],
-        "content": "UNRETURNING.\n\n'T was such a little, little boat That toddled down the bay! 'T was such a gallant, gallant sea That beckoned it away!\n\n'T was such a greedy, greedy wave That licked it from the coast; Nor ever guessed the stately sails My little craft was lost!\n\nXXIV.\n\nWhether my bark went down at sea, Whether she met with gales, Whether to isles enchanted She bent her docile sails;\n\nBy what mystic mooring She is held to-day, -- This is the errand of the eye Out upon the bay.\n\nXXV.\n\nBelshazzar had a letter, -- He never had but one; Belshazzar's correspondent Concluded and begun In that immortal copy The conscience of us all Can read without its glasses On revelation's wall.\n\nXXVI.\n\nThe brain within its groove Runs evenly and true; But let a splinter swerve, 'T were easier for you To put the water back When floods have slit the hills, And scooped a turnpike for themselves, And blotted out the mills!\n\nII. LOVE."
+        "content": "UNRETURNING.\n\n'T was such a little, little boat\nThat toddled down the bay!\n'T was such a gallant, gallant sea\nThat beckoned it away!\n\n'T was such a greedy, greedy wave\nThat licked it from the coast;\nNor ever guessed the stately sails\nMy little craft was lost!\n\nXXIV.\n\nWhether my bark went down at sea,\nWhether she met with gales,\nWhether to isles enchanted\nShe bent her docile sails;\n\nBy what mystic mooring\nShe is held to-day, --\nThis is the errand of the eye\nOut upon the bay.\n\nXXV.\n\nBelshazzar had a letter, --\nHe never had but one;\nBelshazzar's correspondent\nConcluded and begun\nIn that immortal copy\nThe conscience of us all\nCan read without its glasses\nOn revelation's wall.\n\nXXVI.\n\nThe brain within its groove\nRuns evenly and true;\nBut let a splinter swerve,\n'T were easier for you\nTo put the water back\nWhen floods have slit the hills,\nAnd scooped a turnpike for themselves,\nAnd blotted out the mills!\n\nII. LOVE."
     },
     {
         "name": "I.",
         "path": [
             "I."
         ],
-        "content": "MINE.\n\nMine by the right of the white election! Mine by the royal seal! Mine by the sign in the scarlet prison Bars cannot conceal!\n\nMine, here in vision and in veto! Mine, by the grave's repeal Titled, confirmed, -- delirious charter! Mine, while the ages steal!\n\nII.\n\nBEQUEST.\n\nYou left me, sweet, two legacies, -- A legacy of love A Heavenly Father would content, Had He the offer of;\n\nYou left me boundaries of pain Capacious as the sea, Between eternity and time, Your consciousness and me.\n\nIII.\n\nAlter? When the hills do. Falter? When the sun Question if his glory Be the perfect one.\n\nSurfeit? When the daffodil Doth of the dew: Even as herself, O friend! I will of you!\n\nIV.\n\nSUSPENSE.\n\nElysium is as far as to The very nearest room, If in that room a friend await Felicity or doom.\n\nWhat fortitude the soul contains, That it can so endure The accent of a coming foot, The opening of a door!"
+        "content": "MINE.\n\nMine by the right of the white election!\nMine by the royal seal!\nMine by the sign in the scarlet prison\nBars cannot conceal!\n\nMine, here in vision and in veto!\nMine, by the grave's repeal\nTitled, confirmed, -- delirious charter!\nMine, while the ages steal!\n\nII.\n\nBEQUEST.\n\nYou left me, sweet, two legacies, --\nA legacy of love\nA Heavenly Father would content,\nHad He the offer of;\n\nYou left me boundaries of pain\nCapacious as the sea,\nBetween eternity and time,\nYour consciousness and me.\n\nIII.\n\nAlter? When the hills do.\nFalter? When the sun\nQuestion if his glory\nBe the perfect one.\n\nSurfeit? When the daffodil\nDoth of the dew:\nEven as herself, O friend!\nI will of you!\n\nIV.\n\nSUSPENSE.\n\nElysium is as far as to\nThe very nearest room,\nIf in that room a friend await\nFelicity or doom.\n\nWhat fortitude the soul contains,\nThat it can so endure\nThe accent of a coming foot,\nThe opening of a door!"
     },
     {
         "name": "V.",
         "path": [
             "V."
         ],
-        "content": "SURRENDER.\n\nDoubt me, my dim companion! Why, God would be content With but a fraction of the love Poured thee without a stint. The whole of me, forever, What more the woman can, -- Say quick, that I may dower thee With last delight I own!\n\nIt cannot be my spirit, For that was thine before; I ceded all of dust I knew, -- What opulence the more Had I, a humble maiden, Whose farthest of degree Was that she might, Some distant heaven, Dwell timidly with thee!"
+        "content": "SURRENDER.\n\nDoubt me, my dim companion!\nWhy, God would be content\nWith but a fraction of the love\nPoured thee without a stint.\nThe whole of me, forever,\nWhat more the woman can, --\nSay quick, that I may dower thee\nWith last delight I own!\n\nIt cannot be my spirit,\nFor that was thine before;\nI ceded all of dust I knew, --\nWhat opulence the more\nHad I, a humble maiden,\nWhose farthest of degree\nWas that she might,\nSome distant heaven,\nDwell timidly with thee!"
     },
     {
         "name": "VI.",
         "path": [
             "VI."
         ],
-        "content": "If you were coming in the fall, I'd brush the summer by With half a smile and half a spurn, As housewives do a fly.\n\nIf I could see you in a year, I'd wind the months in balls, And put them each in separate drawers, Until their time befalls.\n\nIf only centuries delayed, I'd count them on my hand, Subtracting till my fingers dropped Into Van Diemen's land.\n\nIf certain, when this life was out, That yours and mine should be, I'd toss it yonder like a rind, And taste eternity.\n\nBut now, all ignorant of the length Of time's uncertain wing, It goads me, like the goblin bee, That will not state its sting."
+        "content": "If you were coming in the fall,\nI'd brush the summer by\nWith half a smile and half a spurn,\nAs housewives do a fly.\n\nIf I could see you in a year,\nI'd wind the months in balls,\nAnd put them each in separate drawers,\nUntil their time befalls.\n\nIf only centuries delayed,\nI'd count them on my hand,\nSubtracting till my fingers dropped\nInto Van Diemen's land.\n\nIf certain, when this life was out,\nThat yours and mine should be,\nI'd toss it yonder like a rind,\nAnd taste eternity.\n\nBut now, all ignorant of the length\nOf time's uncertain wing,\nIt goads me, like the goblin bee,\nThat will not state its sting."
     },
     {
         "name": "VII.",
         "path": [
             "VII."
         ],
-        "content": "WITH A FLOWER.\n\nI hide myself within my flower, That wearing on your breast, You, unsuspecting, wear me too -- And angels know the rest.\n\nI hide myself within my flower, That, fading from your vase, You, unsuspecting, feel for me Almost a loneliness."
+        "content": "WITH A FLOWER.\n\nI hide myself within my flower,\nThat wearing on your breast,\nYou, unsuspecting, wear me too --\nAnd angels know the rest.\n\nI hide myself within my flower,\nThat, fading from your vase,\nYou, unsuspecting, feel for me\nAlmost a loneliness."
     },
     {
         "name": "VIII.",
         "path": [
             "VIII."
         ],
-        "content": "PROOF.\n\nThat I did always love, I bring thee proof: That till I loved I did not love enough.\n\nThat I shall love alway, I offer thee That love is life, And life hath immortality.\n\nThis, dost thou doubt, sweet? Then have I Nothing to show But Calvary."
+        "content": "PROOF.\n\nThat I did always love,\nI bring thee proof:\nThat till I loved\nI did not love enough.\n\nThat I shall love alway,\nI offer thee\nThat love is life,\nAnd life hath immortality.\n\nThis, dost thou doubt, sweet?\nThen have I\nNothing to show\nBut Calvary."
     },
     {
         "name": "IX.",
         "path": [
             "IX."
         ],
-        "content": "Have you got a brook in your little heart, Where bashful flowers blow, And blushing birds go down to drink, And shadows tremble so?\n\nAnd nobody knows, so still it flows, That any brook is there; And yet your little draught of life Is daily drunken there.\n\nThen look out for the little brook in March, When the rivers overflow, And the snows come hurrying from the hills, And the bridges often go.\n\nAnd later, in August it may be, When the meadows parching lie, Beware, lest this little brook of life Some burning noon go dry!"
+        "content": "Have you got a brook in your little heart,\nWhere bashful flowers blow,\nAnd blushing birds go down to drink,\nAnd shadows tremble so?\n\nAnd nobody knows, so still it flows,\nThat any brook is there;\nAnd yet your little draught of life\nIs daily drunken there.\n\nThen look out for the little brook in March,\nWhen the rivers overflow,\nAnd the snows come hurrying from the hills,\nAnd the bridges often go.\n\nAnd later, in August it may be,\nWhen the meadows parching lie,\nBeware, lest this little brook of life\nSome burning noon go dry!"
     },
     {
         "name": "X.",
         "path": [
             "X."
         ],
-        "content": "TRANSPLANTED.\n\nAs if some little Arctic flower, Upon the polar hem, Went wandering down the latitudes, Until it puzzled came To continents of summer, To firmaments of sun, To strange, bright crowds of flowers, And birds of foreign tongue! I say, as if this little flower To Eden wandered in -- What then? Why, nothing, only, Your inference therefrom!\n\nXI.\n\nTHE OUTLET.\n\nMy river runs to thee: Blue sea, wilt welcome me?\n\nMy river waits reply. Oh sea, look graciously!\n\nI'll fetch thee brooks From spotted nooks, --\n\nSay, sea, Take me!"
+        "content": "TRANSPLANTED.\n\nAs if some little Arctic flower,\nUpon the polar hem,\nWent wandering down the latitudes,\nUntil it puzzled came\nTo continents of summer,\nTo firmaments of sun,\nTo strange, bright crowds of flowers,\nAnd birds of foreign tongue!\nI say, as if this little flower\nTo Eden wandered in --\nWhat then? Why, nothing, only,\nYour inference therefrom!\n\nXI.\n\nTHE OUTLET.\n\nMy river runs to thee:\nBlue sea, wilt welcome me?\n\nMy river waits reply.\nOh sea, look graciously!\n\nI'll fetch thee brooks\nFrom spotted nooks, --\n\nSay, sea,\nTake me!"
     },
     {
         "name": "XII.",
         "path": [
             "XII."
         ],
-        "content": "IN VAIN.\n\nI cannot live with you, It would be life, And life is over there Behind the shelf\n\nThe sexton keeps the key to, Putting up Our life, his porcelain, Like a cup\n\nDiscarded of the housewife, Quaint or broken; A newer Sevres pleases, Old ones crack.\n\nI could not die with you, For one must wait To shut the other's gaze down, -- You could not.\n\nAnd I, could I stand by And see you freeze, Without my right of frost, Death's privilege?\n\nNor could I rise with you, Because your face Would put out Jesus', That new grace\n\nGlow plain and foreign On my homesick eye, Except that you, than he Shone closer by.\n\nThey'd judge us -- how? For you served Heaven, you know, Or sought to; I could not,\n\nBecause you saturated sight, And I had no more eyes For sordid excellence As Paradise.\n\nAnd were you lost, I would be, Though my name Rang loudest On the heavenly fame.\n\nAnd were you saved, And I condemned to be Where you were not, That self were hell to me.\n\nSo we must keep apart, You there, I here, With just the door ajar That oceans are, And prayer, And that pale sustenance, Despair!"
+        "content": "IN VAIN.\n\nI cannot live with you,\nIt would be life,\nAnd life is over there\nBehind the shelf\n\nThe sexton keeps the key to,\nPutting up\nOur life, his porcelain,\nLike a cup\n\nDiscarded of the housewife,\nQuaint or broken;\nA newer Sevres pleases,\nOld ones crack.\n\nI could not die with you,\nFor one must wait\nTo shut the other's gaze down, --\nYou could not.\n\nAnd I, could I stand by\nAnd see you freeze,\nWithout my right of frost,\nDeath's privilege?\n\nNor could I rise with you,\nBecause your face\nWould put out Jesus',\nThat new grace\n\nGlow plain and foreign\nOn my homesick eye,\nExcept that you, than he\nShone closer by.\n\nThey'd judge us -- how?\nFor you served Heaven, you know,\nOr sought to;\nI could not,\n\nBecause you saturated sight,\nAnd I had no more eyes\nFor sordid excellence\nAs Paradise.\n\nAnd were you lost, I would be,\nThough my name\nRang loudest\nOn the heavenly fame.\n\nAnd were you saved,\nAnd I condemned to be\nWhere you were not,\nThat self were hell to me.\n\nSo we must keep apart,\nYou there, I here,\nWith just the door ajar\nThat oceans are,\nAnd prayer,\nAnd that pale sustenance,\nDespair!"
     },
     {
         "name": "XIII.",
         "path": [
             "XIII."
         ],
-        "content": "RENUNCIATION.\n\nThere came a day at summer's full Entirely for me; I thought that such were for the saints, Where revelations be.\n\nThe sun, as common, went abroad, The flowers, accustomed, blew, As if no soul the solstice passed That maketh all things new.\n\nThe time was scarce profaned by speech; The symbol of a word Was needless, as at sacrament The wardrobe of our Lord.\n\nEach was to each the sealed church, Permitted to commune this time, Lest we too awkward show At supper of the Lamb.\n\nThe hours slid fast, as hours will, Clutched tight by greedy hands; So faces on two decks look back, Bound to opposing lands.\n\nAnd so, when all the time had failed, Without external sound, Each bound the other's crucifix, We gave no other bond.\n\nSufficient troth that we shall rise -- Deposed, at length, the grave -- To that new marriage, justified Through Calvaries of Love!"
+        "content": "RENUNCIATION.\n\nThere came a day at summer's full\nEntirely for me;\nI thought that such were for the saints,\nWhere revelations be.\n\nThe sun, as common, went abroad,\nThe flowers, accustomed, blew,\nAs if no soul the solstice passed\nThat maketh all things new.\n\nThe time was scarce profaned by speech;\nThe symbol of a word\nWas needless, as at sacrament\nThe wardrobe of our Lord.\n\nEach was to each the sealed church,\nPermitted to commune this time,\nLest we too awkward show\nAt supper of the Lamb.\n\nThe hours slid fast, as hours will,\nClutched tight by greedy hands;\nSo faces on two decks look back,\nBound to opposing lands.\n\nAnd so, when all the time had failed,\nWithout external sound,\nEach bound the other's crucifix,\nWe gave no other bond.\n\nSufficient troth that we shall rise --\nDeposed, at length, the grave --\nTo that new marriage, justified\nThrough Calvaries of Love!"
     },
     {
         "name": "XIV.",
         "path": [
             "XIV."
         ],
-        "content": "LOVE'S BAPTISM.\n\nI'm ceded, I've stopped being theirs; The name they dropped upon my face With water, in the country church, Is finished using now, And they can put it with my dolls, My childhood, and the string of spools I've finished threading too.\n\nBaptized before without the choice, But this time consciously, of grace Unto supremest name, Called to my full, the crescent dropped, Existence's whole arc filled up With one small diadem.\n\nMy second rank, too small the first, Crowned, crowing on my father's breast, A half unconscious queen; But this time, adequate, erect, With will to choose or to reject. And I choose -- just a throne."
+        "content": "LOVE'S BAPTISM.\n\nI'm ceded, I've stopped being theirs;\nThe name they dropped upon my face\nWith water, in the country church,\nIs finished using now,\nAnd they can put it with my dolls,\nMy childhood, and the string of spools\nI've finished threading too.\n\nBaptized before without the choice,\nBut this time consciously, of grace\nUnto supremest name,\nCalled to my full, the crescent dropped,\nExistence's whole arc filled up\nWith one small diadem.\n\nMy second rank, too small the first,\nCrowned, crowing on my father's breast,\nA half unconscious queen;\nBut this time, adequate, erect,\nWith will to choose or to reject.\nAnd I choose -- just a throne."
     },
     {
         "name": "XV.",
         "path": [
             "XV."
         ],
-        "content": "RESURRECTION.\n\n'T was a long parting, but the time For interview had come; Before the judgment-seat of God, The last and second time\n\nThese fleshless lovers met, A heaven in a gaze, A heaven of heavens, the privilege Of one another's eyes.\n\nNo lifetime set on them, Apparelled as the new Unborn, except they had beheld, Born everlasting now.\n\nWas bridal e'er like this? A paradise, the host, And cherubim and seraphim The most familiar guest."
+        "content": "RESURRECTION.\n\n'T was a long parting, but the time\nFor interview had come;\nBefore the judgment-seat of God,\nThe last and second time\n\nThese fleshless lovers met,\nA heaven in a gaze,\nA heaven of heavens, the privilege\nOf one another's eyes.\n\nNo lifetime set on them,\nApparelled as the new\nUnborn, except they had beheld,\nBorn everlasting now.\n\nWas bridal e'er like this?\nA paradise, the host,\nAnd cherubim and seraphim\nThe most familiar guest."
     },
     {
         "name": "XVI.",
         "path": [
             "XVI."
         ],
-        "content": "APOCALYPSE.\n\nI'm wife; I've finished that, That other state; I'm Czar, I'm woman now: It's safer so.\n\nHow odd the girl's life looks Behind this soft eclipse! I think that earth seems so To those in heaven now.\n\nThis being comfort, then That other kind was pain; But why compare? I'm wife! stop there!"
+        "content": "APOCALYPSE.\n\nI'm wife; I've finished that,\nThat other state;\nI'm Czar, I'm woman now:\nIt's safer so.\n\nHow odd the girl's life looks\nBehind this soft eclipse!\nI think that earth seems so\nTo those in heaven now.\n\nThis being comfort, then\nThat other kind was pain;\nBut why compare?\nI'm wife! stop there!"
     },
     {
         "name": "XVII.",
         "path": [
             "XVII."
         ],
-        "content": "THE WIFE.\n\nShe rose to his requirement, dropped The playthings of her life To take the honorable work Of woman and of wife.\n\nIf aught she missed in her new day Of amplitude, or awe, Or first prospective, or the gold In using wore away,\n\nIt lay unmentioned, as the sea Develops pearl and weed, But only to himself is known The fathoms they abide.\n\nXVIII.\n\nAPOTHEOSIS.\n\nCome slowly, Eden! Lips unused to thee, Bashful, sip thy jasmines, As the fainting bee,\n\nReaching late his flower, Round her chamber hums, Counts his nectars -- enters, And is lost in balms!\n\nIII. NATURE.\n\nI.\n\nNew feet within my garden go, New fingers stir the sod; A troubadour upon the elm Betrays the solitude.\n\nNew children play upon the green, New weary sleep below; And still the pensive spring returns, And still the punctual snow!\n\nII.\n\nMAY-FLOWER.\n\nPink, small, and punctual, Aromatic, low, Covert in April, Candid in May,\n\nDear to the moss, Known by the knoll, Next to the robin In every human soul.\n\nBold little beauty, Bedecked with thee, Nature forswears Antiquity."
+        "content": "THE WIFE.\n\nShe rose to his requirement, dropped\nThe playthings of her life\nTo take the honorable work\nOf woman and of wife.\n\nIf aught she missed in her new day\nOf amplitude, or awe,\nOr first prospective, or the gold\nIn using wore away,\n\nIt lay unmentioned, as the sea\nDevelops pearl and weed,\nBut only to himself is known\nThe fathoms they abide.\n\nXVIII.\n\nAPOTHEOSIS.\n\nCome slowly, Eden!\nLips unused to thee,\nBashful, sip thy jasmines,\nAs the fainting bee,\n\nReaching late his flower,\nRound her chamber hums,\nCounts his nectars -- enters,\nAnd is lost in balms!\n\nIII. NATURE.\n\nI.\n\nNew feet within my garden go,\nNew fingers stir the sod;\nA troubadour upon the elm\nBetrays the solitude.\n\nNew children play upon the green,\nNew weary sleep below;\nAnd still the pensive spring returns,\nAnd still the punctual snow!\n\nII.\n\nMAY-FLOWER.\n\nPink, small, and punctual,\nAromatic, low,\nCovert in April,\nCandid in May,\n\nDear to the moss,\nKnown by the knoll,\nNext to the robin\nIn every human soul.\n\nBold little beauty,\nBedecked with thee,\nNature forswears\nAntiquity."
     },
     {
         "name": "III.",
         "path": [
             "III."
         ],
-        "content": "WHY?\n\nThe murmur of a bee A witchcraft yieldeth me. If any ask me why, 'T were easier to die Than tell.\n\nThe red upon the hill Taketh away my will; If anybody sneer, Take care, for God is here, That's all.\n\nThe breaking of the day Addeth to my degree; If any ask me how, Artist, who drew me so, Must tell!"
+        "content": "WHY?\n\nThe murmur of a bee\nA witchcraft yieldeth me.\nIf any ask me why,\n'T were easier to die\nThan tell.\n\nThe red upon the hill\nTaketh away my will;\nIf anybody sneer,\nTake care, for God is here,\nThat's all.\n\nThe breaking of the day\nAddeth to my degree;\nIf any ask me how,\nArtist, who drew me so,\nMust tell!"
     },
     {
         "name": "IV.",
         "path": [
             "IV."
         ],
-        "content": "Perhaps you'd like to buy a flower? But I could never sell. If you would like to borrow Until the daffodil\n\nUnties her yellow bonnet Beneath the village door, Until the bees, from clover rows Their hock and sherry draw,\n\nWhy, I will lend until just then, But not an hour more!"
+        "content": "Perhaps you'd like to buy a flower?\nBut I could never sell.\nIf you would like to borrow\nUntil the daffodil\n\nUnties her yellow bonnet\nBeneath the village door,\nUntil the bees, from clover rows\nTheir hock and sherry draw,\n\nWhy, I will lend until just then,\nBut not an hour more!"
     },
     {
         "name": "VI.",
         "path": [
             "VI."
         ],
-        "content": "A SERVICE OF SONG.\n\nSome keep the Sabbath going to church; I keep it staying at home, With a bobolink for a chorister, And an orchard for a dome.\n\nSome keep the Sabbath in surplice; I just wear my wings, And instead of tolling the bell for church, Our little sexton sings.\n\nGod preaches, -- a noted clergyman, -- And the sermon is never long; So instead of getting to heaven at last, I'm going all along!\n\nVII.\n\nThe bee is not afraid of me, I know the butterfly; The pretty people in the woods Receive me cordially.\n\nThe brooks laugh louder when I come, The breezes madder play. Wherefore, mine eyes, thy silver mists? Wherefore, O summer's day?"
+        "content": "A SERVICE OF SONG.\n\nSome keep the Sabbath going to church;\nI keep it staying at home,\nWith a bobolink for a chorister,\nAnd an orchard for a dome.\n\nSome keep the Sabbath in surplice;\nI just wear my wings,\nAnd instead of tolling the bell for church,\nOur little sexton sings.\n\nGod preaches, -- a noted clergyman, --\nAnd the sermon is never long;\nSo instead of getting to heaven at last,\nI'm going all along!\n\nVII.\n\nThe bee is not afraid of me,\nI know the butterfly;\nThe pretty people in the woods\nReceive me cordially.\n\nThe brooks laugh louder when I come,\nThe breezes madder play.\nWherefore, mine eyes, thy silver mists?\nWherefore, O summer's day?"
     },
     {
         "name": "VIII.",
         "path": [
             "VIII."
         ],
-        "content": "SUMMER'S ARMIES.\n\nSome rainbow coming from the fair! Some vision of the world Cashmere I confidently see! Or else a peacock's purple train, Feather by feather, on the plain Fritters itself away!\n\nThe dreamy butterflies bestir, Lethargic pools resume the whir Of last year's sundered tune. From some old fortress on the sun Baronial bees march, one by one, In murmuring platoon!\n\nThe robins stand as thick to-day As flakes of snow stood yesterday, On fence and roof and twig. The orchis binds her feather on For her old lover, Don the Sun, Revisiting the bog!\n\nWithout commander, countless, still, The regiment of wood and hill In bright detachment stand. Behold! Whose multitudes are these? The children of whose turbaned seas, Or what Circassian land?"
+        "content": "SUMMER'S ARMIES.\n\nSome rainbow coming from the fair!\nSome vision of the world Cashmere\nI confidently see!\nOr else a peacock's purple train,\nFeather by feather, on the plain\nFritters itself away!\n\nThe dreamy butterflies bestir,\nLethargic pools resume the whir\nOf last year's sundered tune.\nFrom some old fortress on the sun\nBaronial bees march, one by one,\nIn murmuring platoon!\n\nThe robins stand as thick to-day\nAs flakes of snow stood yesterday,\nOn fence and roof and twig.\nThe orchis binds her feather on\nFor her old lover, Don the Sun,\nRevisiting the bog!\n\nWithout commander, countless, still,\nThe regiment of wood and hill\nIn bright detachment stand.\nBehold! Whose multitudes are these?\nThe children of whose turbaned seas,\nOr what Circassian land?"
     },
     {
         "name": "IX.",
         "path": [
             "IX."
         ],
-        "content": "THE GRASS.\n\nThe grass so little has to do, -- A sphere of simple green, With only butterflies to brood, And bees to entertain,\n\nAnd stir all day to pretty tunes The breezes fetch along, And hold the sunshine in its lap And bow to everything;\n\nAnd thread the dews all night, like pearls, And make itself so fine, -- A duchess were too common For such a noticing.\n\nAnd even when it dies, to pass In odors so divine, As lowly spices gone to sleep, Or amulets of pine.\n\nAnd then to dwell in sovereign barns, And dream the days away, -- The grass so little has to do, I wish I were the hay!\n\nX.\n\nA little road not made of man, Enabled of the eye, Accessible to thill of bee, Or cart of butterfly.\n\nIf town it have, beyond itself, 'T is that I cannot say; I only sigh, -- no vehicle Bears me along that way."
+        "content": "THE GRASS.\n\nThe grass so little has to do, --\nA sphere of simple green,\nWith only butterflies to brood,\nAnd bees to entertain,\n\nAnd stir all day to pretty tunes\nThe breezes fetch along,\nAnd hold the sunshine in its lap\nAnd bow to everything;\n\nAnd thread the dews all night, like pearls,\nAnd make itself so fine, --\nA duchess were too common\nFor such a noticing.\n\nAnd even when it dies, to pass\nIn odors so divine,\nAs lowly spices gone to sleep,\nOr amulets of pine.\n\nAnd then to dwell in sovereign barns,\nAnd dream the days away, --\nThe grass so little has to do,\nI wish I were the hay!\n\nX.\n\nA little road not made of man,\nEnabled of the eye,\nAccessible to thill of bee,\nOr cart of butterfly.\n\nIf town it have, beyond itself,\n'T is that I cannot say;\nI only sigh, -- no vehicle\nBears me along that way."
     },
     {
         "name": "XI.",
         "path": [
             "XI."
         ],
-        "content": "SUMMER SHOWER.\n\nA drop fell on the apple tree, Another on the roof; A half a dozen kissed the eaves, And made the gables laugh.\n\nA few went out to help the brook, That went to help the sea. Myself conjectured, Were they pearls, What necklaces could be!\n\nThe dust replaced in hoisted roads, The birds jocoser sung; The sunshine threw his hat away, The orchards spangles hung.\n\nThe breezes brought dejected lutes, And bathed them in the glee; The East put out a single flag, And signed the fete away."
+        "content": "SUMMER SHOWER.\n\nA drop fell on the apple tree,\nAnother on the roof;\nA half a dozen kissed the eaves,\nAnd made the gables laugh.\n\nA few went out to help the brook,\nThat went to help the sea.\nMyself conjectured, Were they pearls,\nWhat necklaces could be!\n\nThe dust replaced in hoisted roads,\nThe birds jocoser sung;\nThe sunshine threw his hat away,\nThe orchards spangles hung.\n\nThe breezes brought dejected lutes,\nAnd bathed them in the glee;\nThe East put out a single flag,\nAnd signed the fete away."
     },
     {
         "name": "XII.",
         "path": [
             "XII."
         ],
-        "content": "PSALM OF THE DAY.\n\nA something in a summer's day, As slow her flambeaux burn away, Which solemnizes me.\n\nA something in a summer's noon, -- An azure depth, a wordless tune, Transcending ecstasy.\n\nAnd still within a summer's night A something so transporting bright, I clap my hands to see;\n\nThen veil my too inspecting face, Lest such a subtle, shimmering grace Flutter too far for me.\n\nThe wizard-fingers never rest, The purple brook within the breast Still chafes its narrow bed;\n\nStill rears the East her amber flag, Guides still the sun along the crag His caravan of red,\n\nLike flowers that heard the tale of dews, But never deemed the dripping prize Awaited their low brows;\n\nOr bees, that thought the summer's name Some rumor of delirium No summer could for them;\n\nOr Arctic creature, dimly stirred By tropic hint, -- some travelled bird Imported to the wood;\n\nOr wind's bright signal to the ear, Making that homely and severe, Contented, known, before\n\nThe heaven unexpected came, To lives that thought their worshipping A too presumptuous psalm."
+        "content": "PSALM OF THE DAY.\n\nA something in a summer's day,\nAs slow her flambeaux burn away,\nWhich solemnizes me.\n\nA something in a summer's noon, --\nAn azure depth, a wordless tune,\nTranscending ecstasy.\n\nAnd still within a summer's night\nA something so transporting bright,\nI clap my hands to see;\n\nThen veil my too inspecting face,\nLest such a subtle, shimmering grace\nFlutter too far for me.\n\nThe wizard-fingers never rest,\nThe purple brook within the breast\nStill chafes its narrow bed;\n\nStill rears the East her amber flag,\nGuides still the sun along the crag\nHis caravan of red,\n\nLike flowers that heard the tale of dews,\nBut never deemed the dripping prize\nAwaited their low brows;\n\nOr bees, that thought the summer's name\nSome rumor of delirium\nNo summer could for them;\n\nOr Arctic creature, dimly stirred\nBy tropic hint, -- some travelled bird\nImported to the wood;\n\nOr wind's bright signal to the ear,\nMaking that homely and severe,\nContented, known, before\n\nThe heaven unexpected came,\nTo lives that thought their worshipping\nA too presumptuous psalm."
     },
     {
         "name": "XIII.",
         "path": [
             "XIII."
         ],
-        "content": "THE SEA OF SUNSET.\n\nThis is the land the sunset washes, These are the banks of the Yellow Sea; Where it rose, or whither it rushes, These are the western mystery!\n\nNight after night her purple traffic Strews the landing with opal bales; Merchantmen poise upon horizons, Dip, and vanish with fairy sails."
+        "content": "THE SEA OF SUNSET.\n\nThis is the land the sunset washes,\nThese are the banks of the Yellow Sea;\nWhere it rose, or whither it rushes,\nThese are the western mystery!\n\nNight after night her purple traffic\nStrews the landing with opal bales;\nMerchantmen poise upon horizons,\nDip, and vanish with fairy sails."
     },
     {
         "name": "XIV.",
         "path": [
             "XIV."
         ],
-        "content": "PURPLE CLOVER.\n\nThere is a flower that bees prefer, And butterflies desire; To gain the purple democrat The humming-birds aspire.\n\nAnd whatsoever insect pass, A honey bears away Proportioned to his several dearth And her capacity.\n\nHer face is rounder than the moon, And ruddier than the gown Of orchis in the pasture, Or rhododendron worn.\n\nShe doth not wait for June; Before the world is green Her sturdy little countenance Against the wind is seen,\n\nContending with the grass, Near kinsman to herself, For privilege of sod and sun, Sweet litigants for life.\n\nAnd when the hills are full, And newer fashions blow, Doth not retract a single spice For pang of jealousy.\n\nHer public is the noon, Her providence the sun, Her progress by the bee proclaimed In sovereign, swerveless tune.\n\nThe bravest of the host, Surrendering the last, Nor even of defeat aware When cancelled by the frost."
+        "content": "PURPLE CLOVER.\n\nThere is a flower that bees prefer,\nAnd butterflies desire;\nTo gain the purple democrat\nThe humming-birds aspire.\n\nAnd whatsoever insect pass,\nA honey bears away\nProportioned to his several dearth\nAnd her capacity.\n\nHer face is rounder than the moon,\nAnd ruddier than the gown\nOf orchis in the pasture,\nOr rhododendron worn.\n\nShe doth not wait for June;\nBefore the world is green\nHer sturdy little countenance\nAgainst the wind is seen,\n\nContending with the grass,\nNear kinsman to herself,\nFor privilege of sod and sun,\nSweet litigants for life.\n\nAnd when the hills are full,\nAnd newer fashions blow,\nDoth not retract a single spice\nFor pang of jealousy.\n\nHer public is the noon,\nHer providence the sun,\nHer progress by the bee proclaimed\nIn sovereign, swerveless tune.\n\nThe bravest of the host,\nSurrendering the last,\nNor even of defeat aware\nWhen cancelled by the frost."
     },
     {
         "name": "XV.",
         "path": [
             "XV."
         ],
-        "content": "THE BEE.\n\nLike trains of cars on tracks of plush I hear the level bee: A jar across the flowers goes, Their velvet masonry\n\nWithstands until the sweet assault Their chivalry consumes, While he, victorious, tilts away To vanquish other blooms.\n\nHis feet are shod with gauze, His helmet is of gold; His breast, a single onyx With chrysoprase, inlaid.\n\nHis labor is a chant, His idleness a tune; Oh, for a bee's experience Of clovers and of noon!\n\nXVI.\n\nPresentiment is that long shadow on the lawn Indicative that suns go down; The notice to the startled grass That darkness is about to pass."
+        "content": "THE BEE.\n\nLike trains of cars on tracks of plush\nI hear the level bee:\nA jar across the flowers goes,\nTheir velvet masonry\n\nWithstands until the sweet assault\nTheir chivalry consumes,\nWhile he, victorious, tilts away\nTo vanquish other blooms.\n\nHis feet are shod with gauze,\nHis helmet is of gold;\nHis breast, a single onyx\nWith chrysoprase, inlaid.\n\nHis labor is a chant,\nHis idleness a tune;\nOh, for a bee's experience\nOf clovers and of noon!\n\nXVI.\n\nPresentiment is that long shadow on the lawn\nIndicative that suns go down;\nThe notice to the startled grass\nThat darkness is about to pass."
     },
     {
         "name": "XVII.",
         "path": [
             "XVII."
         ],
-        "content": "As children bid the guest good-night, And then reluctant turn, My flowers raise their pretty lips, Then put their nightgowns on.\n\nAs children caper when they wake, Merry that it is morn, My flowers from a hundred cribs Will peep, and prance again."
+        "content": "As children bid the guest good-night,\nAnd then reluctant turn,\nMy flowers raise their pretty lips,\nThen put their nightgowns on.\n\nAs children caper when they wake,\nMerry that it is morn,\nMy flowers from a hundred cribs\nWill peep, and prance again."
     },
     {
         "name": "XVIII.",
         "path": [
             "XVIII."
         ],
-        "content": "Angels in the early morning May be seen the dews among, Stooping, plucking, smiling, flying: Do the buds to them belong?\n\nAngels when the sun is hottest May be seen the sands among, Stooping, plucking, sighing, flying; Parched the flowers they bear along."
+        "content": "Angels in the early morning\nMay be seen the dews among,\nStooping, plucking, smiling, flying:\nDo the buds to them belong?\n\nAngels when the sun is hottest\nMay be seen the sands among,\nStooping, plucking, sighing, flying;\nParched the flowers they bear along."
     },
     {
         "name": "XIX.",
         "path": [
             "XIX."
         ],
-        "content": "So bashful when I spied her, So pretty, so ashamed! So hidden in her leaflets, Lest anybody find;\n\nSo breathless till I passed her, So helpless when I turned And bore her, struggling, blushing, Her simple haunts beyond!\n\nFor whom I robbed the dingle, For whom betrayed the dell, Many will doubtless ask me, But I shall never tell!"
+        "content": "So bashful when I spied her,\nSo pretty, so ashamed!\nSo hidden in her leaflets,\nLest anybody find;\n\nSo breathless till I passed her,\nSo helpless when I turned\nAnd bore her, struggling, blushing,\nHer simple haunts beyond!\n\nFor whom I robbed the dingle,\nFor whom betrayed the dell,\nMany will doubtless ask me,\nBut I shall never tell!"
     },
     {
         "name": "XX.",
         "path": [
             "XX."
         ],
-        "content": "TWO WORLDS.\n\nIt makes no difference abroad, The seasons fit the same, The mornings blossom into noons, And split their pods of flame.\n\nWild-flowers kindle in the woods, The brooks brag all the day; No blackbird bates his jargoning For passing Calvary.\n\nAuto-da-fe and judgment Are nothing to the bee; His separation from his rose To him seems misery.\n\nXXI.\n\nTHE MOUNTAIN.\n\nThe mountain sat upon the plain In his eternal chair, His observation omnifold, His inquest everywhere.\n\nThe seasons prayed around his knees, Like children round a sire: Grandfather of the days is he, Of dawn the ancestor."
+        "content": "TWO WORLDS.\n\nIt makes no difference abroad,\nThe seasons fit the same,\nThe mornings blossom into noons,\nAnd split their pods of flame.\n\nWild-flowers kindle in the woods,\nThe brooks brag all the day;\nNo blackbird bates his jargoning\nFor passing Calvary.\n\nAuto-da-fe and judgment\nAre nothing to the bee;\nHis separation from his rose\nTo him seems misery.\n\nXXI.\n\nTHE MOUNTAIN.\n\nThe mountain sat upon the plain\nIn his eternal chair,\nHis observation omnifold,\nHis inquest everywhere.\n\nThe seasons prayed around his knees,\nLike children round a sire:\nGrandfather of the days is he,\nOf dawn the ancestor."
     },
     {
         "name": "XXII.",
         "path": [
             "XXII."
         ],
-        "content": "A DAY.\n\nI'll tell you how the sun rose, -- A ribbon at a time. The steeples swam in amethyst, The news like squirrels ran.\n\nThe hills untied their bonnets, The bobolinks begun. Then I said softly to myself, \"That must have been the sun!\"\n\n* * *\n\nBut how he set, I know not. There seemed a purple stile Which little yellow boys and girls Were climbing all the while\n\nTill when they reached the other side, A dominie in gray Put gently up the evening bars, And led the flock away.\n\nXXIII.\n\nThe butterfly's assumption-gown, In chrysoprase apartments hung, This afternoon put on.\n\nHow condescending to descend, And be of buttercups the friend In a New England town!"
+        "content": "A DAY.\n\nI'll tell you how the sun rose, --\nA ribbon at a time.\nThe steeples swam in amethyst,\nThe news like squirrels ran.\n\nThe hills untied their bonnets,\nThe bobolinks begun.\nThen I said softly to myself,\n\"That must have been the sun!\"\n\n*  *  *\n\nBut how he set, I know not.\nThere seemed a purple stile\nWhich little yellow boys and girls\nWere climbing all the while\n\nTill when they reached the other side,\nA dominie in gray\nPut gently up the evening bars,\nAnd led the flock away.\n\nXXIII.\n\nThe butterfly's assumption-gown,\nIn chrysoprase apartments hung,\nThis afternoon put on.\n\nHow condescending to descend,\nAnd be of buttercups the friend\nIn a New England town!"
     },
     {
         "name": "XXIV.",
         "path": [
             "XXIV."
         ],
-        "content": "THE WIND.\n\nOf all the sounds despatched abroad, There's not a charge to me Like that old measure in the boughs, That phraseless melody\n\nThe wind does, working like a hand Whose fingers brush the sky, Then quiver down, with tufts of tune Permitted gods and me.\n\nWhen winds go round and round in bands, And thrum upon the door, And birds take places overhead, To bear them orchestra,\n\nI crave him grace, of summer boughs, If such an outcast be, He never heard that fleshless chant Rise solemn in the tree,\n\nAs if some caravan of sound On deserts, in the sky, Had broken rank, Then knit, and passed In seamless company.\n\nXXV.\n\nDEATH AND LIFE.\n\nApparently with no surprise To any happy flower, The frost beheads it at its play In accidental power. The blond assassin passes on, The sun proceeds unmoved To measure off another day For an approving God.\n\nXXVI.\n\n'T WAS later when the summer went Than when the cricket came, And yet we knew that gentle clock Meant nought but going home.\n\n'T was sooner when the cricket went Than when the winter came, Yet that pathetic pendulum Keeps esoteric time."
+        "content": "THE WIND.\n\nOf all the sounds despatched abroad,\nThere's not a charge to me\nLike that old measure in the boughs,\nThat phraseless melody\n\nThe wind does, working like a hand\nWhose fingers brush the sky,\nThen quiver down, with tufts of tune\nPermitted gods and me.\n\nWhen winds go round and round in bands,\nAnd thrum upon the door,\nAnd birds take places overhead,\nTo bear them orchestra,\n\nI crave him grace, of summer boughs,\nIf such an outcast be,\nHe never heard that fleshless chant\nRise solemn in the tree,\n\nAs if some caravan of sound\nOn deserts, in the sky,\nHad broken rank,\nThen knit, and passed\nIn seamless company.\n\nXXV.\n\nDEATH AND LIFE.\n\nApparently with no surprise\nTo any happy flower,\nThe frost beheads it at its play\nIn accidental power.\nThe blond assassin passes on,\nThe sun proceeds unmoved\nTo measure off another day\nFor an approving God.\n\nXXVI.\n\n'T WAS later when the summer went\nThan when the cricket came,\nAnd yet we knew that gentle clock\nMeant nought but going home.\n\n'T was sooner when the cricket went\nThan when the winter came,\nYet that pathetic pendulum\nKeeps esoteric time."
     },
     {
         "name": "XXVII.",
         "path": [
             "XXVII."
         ],
-        "content": "INDIAN SUMMER.\n\nThese are the days when birds come back, A very few, a bird or two, To take a backward look.\n\nThese are the days when skies put on The old, old sophistries of June, -- A blue and gold mistake.\n\nOh, fraud that cannot cheat the bee, Almost thy plausibility Induces my belief,\n\nTill ranks of seeds their witness bear, And softly through the altered air Hurries a timid leaf!\n\nOh, sacrament of summer days, Oh, last communion in the haze, Permit a child to join,\n\nThy sacred emblems to partake, Thy consecrated bread to break, Taste thine immortal wine!"
+        "content": "INDIAN SUMMER.\n\nThese are the days when birds come back,\nA very few, a bird or two,\nTo take a backward look.\n\nThese are the days when skies put on\nThe old, old sophistries of June, --\nA blue and gold mistake.\n\nOh, fraud that cannot cheat the bee,\nAlmost thy plausibility\nInduces my belief,\n\nTill ranks of seeds their witness bear,\nAnd softly through the altered air\nHurries a timid leaf!\n\nOh, sacrament of summer days,\nOh, last communion in the haze,\nPermit a child to join,\n\nThy sacred emblems to partake,\nThy consecrated bread to break,\nTaste thine immortal wine!"
     },
     {
         "name": "XXVIII.",
         "path": [
             "XXVIII."
         ],
-        "content": "AUTUMN.\n\nThe morns are meeker than they were, The nuts are getting brown; The berry's cheek is plumper, The rose is out of town.\n\nThe maple wears a gayer scarf, The field a scarlet gown. Lest I should be old-fashioned, I'll put a trinket on."
+        "content": "AUTUMN.\n\nThe morns are meeker than they were,\nThe nuts are getting brown;\nThe berry's cheek is plumper,\nThe rose is out of town.\n\nThe maple wears a gayer scarf,\nThe field a scarlet gown.\nLest I should be old-fashioned,\nI'll put a trinket on."
     },
     {
         "name": "XXIX.",
         "path": [
             "XXIX."
         ],
-        "content": "BECLOUDED.\n\nThe sky is low, the clouds are mean, A travelling flake of snow Across a barn or through a rut Debates if it will go.\n\nA narrow wind complains all day How some one treated him; Nature, like us, is sometimes caught Without her diadem."
+        "content": "BECLOUDED.\n\nThe sky is low, the clouds are mean,\nA travelling flake of snow\nAcross a barn or through a rut\nDebates if it will go.\n\nA narrow wind complains all day\nHow some one treated him;\nNature, like us, is sometimes caught\nWithout her diadem."
     },
     {
         "name": "XXX.",
         "path": [
             "XXX."
         ],
-        "content": "THE HEMLOCK.\n\nI think the hemlock likes to stand Upon a marge of snow; It suits his own austerity, And satisfies an awe\n\nThat men must slake in wilderness, Or in the desert cloy, -- An instinct for the hoar, the bald, Lapland's necessity.\n\nThe hemlock's nature thrives on cold; The gnash of northern winds Is sweetest nutriment to him, His best Norwegian wines.\n\nTo satin races he is nought; But children on the Don Beneath his tabernacles play, And Dnieper wrestlers run."
+        "content": "THE HEMLOCK.\n\nI think the hemlock likes to stand\nUpon a marge of snow;\nIt suits his own austerity,\nAnd satisfies an awe\n\nThat men must slake in wilderness,\nOr in the desert cloy, --\nAn instinct for the hoar, the bald,\nLapland's necessity.\n\nThe hemlock's nature thrives on cold;\nThe gnash of northern winds\nIs sweetest nutriment to him,\nHis best Norwegian wines.\n\nTo satin races he is nought;\nBut children on the Don\nBeneath his tabernacles play,\nAnd Dnieper wrestlers run."
     },
     {
         "name": "XXXI.",
         "path": [
             "XXXI."
         ],
-        "content": "There's a certain slant of light, On winter afternoons, That oppresses, like the weight Of cathedral tunes.\n\nHeavenly hurt it gives us; We can find no scar, But internal difference Where the meanings are.\n\nNone may teach it anything, 'T is the seal, despair, -- An imperial affliction Sent us of the air.\n\nWhen it comes, the landscape listens, Shadows hold their breath; When it goes, 't is like the distance On the look of death.\n\nIV. TIME AND ETERNITY."
+        "content": "There's a certain slant of light,\nOn winter afternoons,\nThat oppresses, like the weight\nOf cathedral tunes.\n\nHeavenly hurt it gives us;\nWe can find no scar,\nBut internal difference\nWhere the meanings are.\n\nNone may teach it anything,\n'T is the seal, despair, --\nAn imperial affliction\nSent us of the air.\n\nWhen it comes, the landscape listens,\nShadows hold their breath;\nWhen it goes, 't is like the distance\nOn the look of death.\n\nIV. TIME AND ETERNITY."
     },
     {
         "name": "I.",
         "path": [
             "I."
         ],
-        "content": "One dignity delays for all, One mitred afternoon. None can avoid this purple, None evade this crown.\n\nCoach it insures, and footmen, Chamber and state and throng; Bells, also, in the village, As we ride grand along.\n\nWhat dignified attendants, What service when we pause! How loyally at parting Their hundred hats they raise!\n\nHow pomp surpassing ermine, When simple you and I Present our meek escutcheon, And claim the rank to die!"
+        "content": "One dignity delays for all,\nOne mitred afternoon.\nNone can avoid this purple,\nNone evade this crown.\n\nCoach it insures, and footmen,\nChamber and state and throng;\nBells, also, in the village,\nAs we ride grand along.\n\nWhat dignified attendants,\nWhat service when we pause!\nHow loyally at parting\nTheir hundred hats they raise!\n\nHow pomp surpassing ermine,\nWhen simple you and I\nPresent our meek escutcheon,\nAnd claim the rank to die!"
     },
     {
         "name": "II.",
         "path": [
             "II."
         ],
-        "content": "TOO LATE.\n\nDelayed till she had ceased to know, Delayed till in its vest of snow Her loving bosom lay. An hour behind the fleeting breath, Later by just an hour than death, -- Oh, lagging yesterday!\n\nCould she have guessed that it would be; Could but a crier of the glee Have climbed the distant hill; Had not the bliss so slow a pace, -- Who knows but this surrendered face Were undefeated still?\n\nOh, if there may departing be Any forgot by victory In her imperial round, Show them this meek apparelled thing, That could not stop to be a king, Doubtful if it be crowned!\n\nIII.\n\nASTRA CASTRA.\n\nDeparted to the judgment, A mighty afternoon; Great clouds like ushers leaning, Creation looking on.\n\nThe flesh surrendered, cancelled, The bodiless begun; Two worlds, like audiences, disperse And leave the soul alone."
+        "content": "TOO LATE.\n\nDelayed till she had ceased to know,\nDelayed till in its vest of snow\nHer loving bosom lay.\nAn hour behind the fleeting breath,\nLater by just an hour than death, --\nOh, lagging yesterday!\n\nCould she have guessed that it would be;\nCould but a crier of the glee\nHave climbed the distant hill;\nHad not the bliss so slow a pace, --\nWho knows but this surrendered face\nWere undefeated still?\n\nOh, if there may departing be\nAny forgot by victory\nIn her imperial round,\nShow them this meek apparelled thing,\nThat could not stop to be a king,\nDoubtful if it be crowned!\n\nIII.\n\nASTRA CASTRA.\n\nDeparted to the judgment,\nA mighty afternoon;\nGreat clouds like ushers leaning,\nCreation looking on.\n\nThe flesh surrendered, cancelled,\nThe bodiless begun;\nTwo worlds, like audiences, disperse\nAnd leave the soul alone."
     },
     {
         "name": "IV.",
         "path": [
             "IV."
         ],
-        "content": "Safe in their alabaster chambers, Untouched by morning and untouched by noon, Sleep the meek members of the resurrection, Rafter of satin, and roof of stone.\n\nLight laughs the breeze in her castle of sunshine; Babbles the bee in a stolid ear; Pipe the sweet birds in ignorant cadence, -- Ah, what sagacity perished here!\n\nGrand go the years in the crescent above them; Worlds scoop their arcs, and firmaments row, Diadems drop and Doges surrender, Soundless as dots on a disk of snow."
+        "content": "Safe in their alabaster chambers,\nUntouched by morning and untouched by noon,\nSleep the meek members of the resurrection,\nRafter of satin, and roof of stone.\n\nLight laughs the breeze in her castle of sunshine;\nBabbles the bee in a stolid ear;\nPipe the sweet birds in ignorant cadence, --\nAh, what sagacity perished here!\n\nGrand go the years in the crescent above them;\nWorlds scoop their arcs, and firmaments row,\nDiadems drop and Doges surrender,\nSoundless as dots on a disk of snow."
     },
     {
         "name": "V.",
         "path": [
             "V."
         ],
-        "content": "On this long storm the rainbow rose, On this late morn the sun; The clouds, like listless elephants, Horizons straggled down.\n\nThe birds rose smiling in their nests, The gales indeed were done; Alas! how heedless were the eyes On whom the summer shone!\n\nThe quiet nonchalance of death No daybreak can bestir; The slow archangel's syllables Must awaken her."
+        "content": "On this long storm the rainbow rose,\nOn this late morn the sun;\nThe clouds, like listless elephants,\nHorizons straggled down.\n\nThe birds rose smiling in their nests,\nThe gales indeed were done;\nAlas! how heedless were the eyes\nOn whom the summer shone!\n\nThe quiet nonchalance of death\nNo daybreak can bestir;\nThe slow archangel's syllables\nMust awaken her."
     },
     {
         "name": "VI.",
         "path": [
             "VI."
         ],
-        "content": "FROM THE CHRYSALIS.\n\nMy cocoon tightens, colors tease, I'm feeling for the air; A dim capacity for wings Degrades the dress I wear.\n\nA power of butterfly must be The aptitude to fly, Meadows of majesty concedes And easy sweeps of sky.\n\nSo I must baffle at the hint And cipher at the sign, And make much blunder, if at last I take the clew divine."
+        "content": "FROM THE CHRYSALIS.\n\nMy cocoon tightens, colors tease,\nI'm feeling for the air;\nA dim capacity for wings\nDegrades the dress I wear.\n\nA power of butterfly must be\nThe aptitude to fly,\nMeadows of majesty concedes\nAnd easy sweeps of sky.\n\nSo I must baffle at the hint\nAnd cipher at the sign,\nAnd make much blunder, if at last\nI take the clew divine."
     },
     {
         "name": "VII.",
         "path": [
             "VII."
         ],
-        "content": "SETTING SAIL.\n\nExultation is the going Of an inland soul to sea, -- Past the houses, past the headlands, Into deep eternity!\n\nBred as we, among the mountains, Can the sailor understand The divine intoxication Of the first league out from land?\n\nVIII.\n\nLook back on time with kindly eyes, He doubtless did his best; How softly sinks his trembling sun In human nature's west!"
+        "content": "SETTING SAIL.\n\nExultation is the going\nOf an inland soul to sea, --\nPast the houses, past the headlands,\nInto deep eternity!\n\nBred as we, among the mountains,\nCan the sailor understand\nThe divine intoxication\nOf the first league out from land?\n\nVIII.\n\nLook back on time with kindly eyes,\nHe doubtless did his best;\nHow softly sinks his trembling sun\nIn human nature's west!"
     },
     {
         "name": "IX.",
         "path": [
             "IX."
         ],
-        "content": "A train went through a burial gate, A bird broke forth and sang, And trilled, and quivered, and shook his throat Till all the churchyard rang;\n\nAnd then adjusted his little notes, And bowed and sang again. Doubtless, he thought it meet of him To say good-by to men."
+        "content": "A train went through a burial gate,\nA bird broke forth and sang,\nAnd trilled, and quivered, and shook his throat\nTill all the churchyard rang;\n\nAnd then adjusted his little notes,\nAnd bowed and sang again.\nDoubtless, he thought it meet of him\nTo say good-by to men."
     },
     {
         "name": "X.",
         "path": [
             "X."
         ],
-        "content": "I died for beauty, but was scarce Adjusted in the tomb, When one who died for truth was lain In an adjoining room.\n\nHe questioned softly why I failed? \"For beauty,\" I replied. \"And I for truth, -- the two are one; We brethren are,\" he said.\n\nAnd so, as kinsmen met a night, We talked between the rooms, Until the moss had reached our lips, And covered up our names."
+        "content": "I died for beauty, but was scarce\nAdjusted in the tomb,\nWhen one who died for truth was lain\nIn an adjoining room.\n\nHe questioned softly why I failed?\n\"For beauty,\" I replied.\n\"And I for truth, -- the two are one;\nWe brethren are,\" he said.\n\nAnd so, as kinsmen met a night,\nWe talked between the rooms,\nUntil the moss had reached our lips,\nAnd covered up our names."
     },
     {
         "name": "XI.",
         "path": [
             "XI."
         ],
-        "content": "\"TROUBLED ABOUT MANY THINGS.\"\n\nHow many times these low feet staggered, Only the soldered mouth can tell; Try! can you stir the awful rivet? Try! can you lift the hasps of steel?\n\nStroke the cool forehead, hot so often, Lift, if you can, the listless hair; Handle the adamantine fingers Never a thimble more shall wear.\n\nBuzz the dull flies on the chamber window; Brave shines the sun through the freckled pane; Fearless the cobweb swings from the ceiling -- Indolent housewife, in daisies lain!\n\nXII.\n\nREAL.\n\nI like a look of agony, Because I know it 's true; Men do not sham convulsion, Nor simulate a throe.\n\nThe eyes glaze once, and that is death. Impossible to feign The beads upon the forehead By homely anguish strung.\n\nXIII.\n\nTHE FUNERAL.\n\nThat short, potential stir That each can make but once, That bustle so illustrious 'T is almost consequence,\n\nIs the eclat of death. Oh, thou unknown renown That not a beggar would accept, Had he the power to spurn!"
+        "content": "\"TROUBLED ABOUT MANY THINGS.\"\n\nHow many times these low feet staggered,\nOnly the soldered mouth can tell;\nTry! can you stir the awful rivet?\nTry! can you lift the hasps of steel?\n\nStroke the cool forehead, hot so often,\nLift, if you can, the listless hair;\nHandle the adamantine fingers\nNever a thimble more shall wear.\n\nBuzz the dull flies on the chamber window;\nBrave shines the sun through the freckled pane;\nFearless the cobweb swings from the ceiling --\nIndolent housewife, in daisies lain!\n\nXII.\n\nREAL.\n\nI like a look of agony,\nBecause I know it 's true;\nMen do not sham convulsion,\nNor simulate a throe.\n\nThe eyes glaze once, and that is death.\nImpossible to feign\nThe beads upon the forehead\nBy homely anguish strung.\n\nXIII.\n\nTHE FUNERAL.\n\nThat short, potential stir\nThat each can make but once,\nThat bustle so illustrious\n'T is almost consequence,\n\nIs the eclat of death.\nOh, thou unknown renown\nThat not a beggar would accept,\nHad he the power to spurn!"
     },
     {
         "name": "XIV.",
         "path": [
             "XIV."
         ],
-        "content": "I went to thank her, But she slept; Her bed a funnelled stone, With nosegays at the head and foot, That travellers had thrown,\n\nWho went to thank her; But she slept. 'T was short to cross the sea To look upon her like, alive, But turning back 't was slow.\n\nXV.\n\nI've seen a dying eye Run round and round a room In search of something, as it seemed, Then cloudier become; And then, obscure with fog, And then be soldered down, Without disclosing what it be, 'T were blessed to have seen."
+        "content": "I went to thank her,\nBut she slept;\nHer bed a funnelled stone,\nWith nosegays at the head and foot,\nThat travellers had thrown,\n\nWho went to thank her;\nBut she slept.\n'T was short to cross the sea\nTo look upon her like, alive,\nBut turning back 't was slow.\n\nXV.\n\nI've seen a dying eye\nRun round and round a room\nIn search of something, as it seemed,\nThen cloudier become;\nAnd then, obscure with fog,\nAnd then be soldered down,\nWithout disclosing what it be,\n'T were blessed to have seen."
     },
     {
         "name": "XVI.",
         "path": [
             "XVI."
         ],
-        "content": "REFUGE.\n\nThe clouds their backs together laid, The north begun to push, The forests galloped till they fell, The lightning skipped like mice; The thunder crumbled like a stuff -- How good to be safe in tombs, Where nature's temper cannot reach, Nor vengeance ever comes!\n\nXVII.\n\nI never saw a moor, I never saw the sea; Yet know I how the heather looks, And what a wave must be.\n\nI never spoke with God, Nor visited in heaven; Yet certain am I of the spot As if the chart were given.\n\nXVIII.\n\nPLAYMATES.\n\nGod permits industrious angels Afternoons to play. I met one, -- forgot my school-mates, All, for him, straightway.\n\nGod calls home the angels promptly At the setting sun; I missed mine. How dreary marbles, After playing Crown!"
+        "content": "REFUGE.\n\nThe clouds their backs together laid,\nThe north begun to push,\nThe forests galloped till they fell,\nThe lightning skipped like mice;\nThe thunder crumbled like a stuff --\nHow good to be safe in tombs,\nWhere nature's temper cannot reach,\nNor vengeance ever comes!\n\nXVII.\n\nI never saw a moor,\nI never saw the sea;\nYet know I how the heather looks,\nAnd what a wave must be.\n\nI never spoke with God,\nNor visited in heaven;\nYet certain am I of the spot\nAs if the chart were given.\n\nXVIII.\n\nPLAYMATES.\n\nGod permits industrious angels\nAfternoons to play.\nI met one, -- forgot my school-mates,\nAll, for him, straightway.\n\nGod calls home the angels promptly\nAt the setting sun;\nI missed mine. How dreary marbles,\nAfter playing Crown!"
     },
     {
         "name": "XIX.",
         "path": [
             "XIX."
         ],
-        "content": "To know just how he suffered would be dear; To know if any human eyes were near To whom he could intrust his wavering gaze, Until it settled firm on Paradise.\n\nTo know if he was patient, part content, Was dying as he thought, or different; Was it a pleasant day to die, And did the sunshine face his way?\n\nWhat was his furthest mind, of home, or God, Or what the distant say At news that he ceased human nature On such a day?\n\nAnd wishes, had he any? Just his sigh, accented, Had been legible to me. And was he confident until Ill fluttered out in everlasting well?\n\nAnd if he spoke, what name was best, What first, What one broke off with At the drowsiest?\n\nWas he afraid, or tranquil? Might he know How conscious consciousness could grow, Till love that was, and love too blest to be, Meet -- and the junction be Eternity?"
+        "content": "To know just how he suffered would be dear;\nTo know if any human eyes were near\nTo whom he could intrust his wavering gaze,\nUntil it settled firm on Paradise.\n\nTo know if he was patient, part content,\nWas dying as he thought, or different;\nWas it a pleasant day to die,\nAnd did the sunshine face his way?\n\nWhat was his furthest mind, of home, or God,\nOr what the distant say\nAt news that he ceased human nature\nOn such a day?\n\nAnd wishes, had he any?\nJust his sigh, accented,\nHad been legible to me.\nAnd was he confident until\nIll fluttered out in everlasting well?\n\nAnd if he spoke, what name was best,\nWhat first,\nWhat one broke off with\nAt the drowsiest?\n\nWas he afraid, or tranquil?\nMight he know\nHow conscious consciousness could grow,\nTill love that was, and love too blest to be,\nMeet -- and the junction be Eternity?"
     },
     {
         "name": "XX.",
         "path": [
             "XX."
         ],
-        "content": "The last night that she lived, It was a common night, Except the dying; this to us Made nature different.\n\nWe noticed smallest things, -- Things overlooked before, By this great light upon our minds Italicized, as 't were.\n\nThat others could exist While she must finish quite, A jealousy for her arose So nearly infinite.\n\nWe waited while she passed; It was a narrow time, Too jostled were our souls to speak, At length the notice came.\n\nShe mentioned, and forgot; Then lightly as a reed Bent to the water, shivered scarce, Consented, and was dead.\n\nAnd we, we placed the hair, And drew the head erect; And then an awful leisure was, Our faith to regulate."
+        "content": "The last night that she lived,\nIt was a common night,\nExcept the dying; this to us\nMade nature different.\n\nWe noticed smallest things, --\nThings overlooked before,\nBy this great light upon our minds\nItalicized, as 't were.\n\nThat others could exist\nWhile she must finish quite,\nA jealousy for her arose\nSo nearly infinite.\n\nWe waited while she passed;\nIt was a narrow time,\nToo jostled were our souls to speak,\nAt length the notice came.\n\nShe mentioned, and forgot;\nThen lightly as a reed\nBent to the water, shivered scarce,\nConsented, and was dead.\n\nAnd we, we placed the hair,\nAnd drew the head erect;\nAnd then an awful leisure was,\nOur faith to regulate."
     },
     {
         "name": "XXI.",
         "path": [
             "XXI."
         ],
-        "content": "THE FIRST LESSON.\n\nNot in this world to see his face Sounds long, until I read the place Where this is said to be But just the primer to a life Unopened, rare, upon the shelf, Clasped yet to him and me.\n\nAnd yet, my primer suits me so I would not choose a book to know Than that, be sweeter wise; Might some one else so learned be, And leave me just my A B C, Himself could have the skies.\n\nXXII.\n\nThe bustle in a house The morning after death Is solemnest of industries Enacted upon earth, --\n\nThe sweeping up the heart, And putting love away We shall not want to use again Until eternity."
+        "content": "THE FIRST LESSON.\n\nNot in this world to see his face\nSounds long, until I read the place\nWhere this is said to be\nBut just the primer to a life\nUnopened, rare, upon the shelf,\nClasped yet to him and me.\n\nAnd yet, my primer suits me so\nI would not choose a book to know\nThan that, be sweeter wise;\nMight some one else so learned be,\nAnd leave me just my A B C,\nHimself could have the skies.\n\nXXII.\n\nThe bustle in a house\nThe morning after death\nIs solemnest of industries\nEnacted upon earth, --\n\nThe sweeping up the heart,\nAnd putting love away\nWe shall not want to use again\nUntil eternity."
     },
     {
         "name": "XXIII.",
         "path": [
             "XXIII."
         ],
-        "content": "I reason, earth is short, And anguish absolute, And many hurt; But what of that?\n\nI reason, we could die: The best vitality Cannot excel decay; But what of that?\n\nI reason that in heaven Somehow, it will be even, Some new equation given; But what of that?"
+        "content": "I reason, earth is short,\nAnd anguish absolute,\nAnd many hurt;\nBut what of that?\n\nI reason, we could die:\nThe best vitality\nCannot excel decay;\nBut what of that?\n\nI reason that in heaven\nSomehow, it will be even,\nSome new equation given;\nBut what of that?"
     },
     {
         "name": "XXIV.",
         "path": [
             "XXIV."
         ],
-        "content": "Afraid? Of whom am I afraid? Not death; for who is he? The porter of my father's lodge As much abasheth me.\n\nOf life? 'T were odd I fear a thing That comprehendeth me In one or more existences At Deity's decree.\n\nOf resurrection? Is the east Afraid to trust the morn With her fastidious forehead? As soon impeach my crown!"
+        "content": "Afraid? Of whom am I afraid?\nNot death; for who is he?\nThe porter of my father's lodge\nAs much abasheth me.\n\nOf life? 'T were odd I fear a thing\nThat comprehendeth me\nIn one or more existences\nAt Deity's decree.\n\nOf resurrection? Is the east\nAfraid to trust the morn\nWith her fastidious forehead?\nAs soon impeach my crown!"
     },
     {
         "name": "XXV.",
         "path": [
             "XXV."
         ],
-        "content": "DYING.\n\nThe sun kept setting, setting still; No hue of afternoon Upon the village I perceived, -- From house to house 't was noon.\n\nThe dusk kept dropping, dropping still; No dew upon the grass, But only on my forehead stopped, And wandered in my face.\n\nMy feet kept drowsing, drowsing still, My fingers were awake; Yet why so little sound myself Unto my seeming make?\n\nHow well I knew the light before! I could not see it now. 'T is dying, I am doing; but I'm not afraid to know."
+        "content": "DYING.\n\nThe sun kept setting, setting still;\nNo hue of afternoon\nUpon the village I perceived, --\nFrom house to house 't was noon.\n\nThe dusk kept dropping, dropping still;\nNo dew upon the grass,\nBut only on my forehead stopped,\nAnd wandered in my face.\n\nMy feet kept drowsing, drowsing still,\nMy fingers were awake;\nYet why so little sound myself\nUnto my seeming make?\n\nHow well I knew the light before!\nI could not see it now.\n'T is dying, I am doing; but\nI'm not afraid to know."
     },
     {
         "name": "XXVI.",
         "path": [
             "XXVI."
         ],
-        "content": "Two swimmers wrestled on the spar Until the morning sun, When one turned smiling to the land. O God, the other one!\n\nThe stray ships passing spied a face Upon the waters borne, With eyes in death still begging raised, And hands beseeching thrown."
+        "content": "Two swimmers wrestled on the spar\nUntil the morning sun,\nWhen one turned smiling to the land.\nO God, the other one!\n\nThe stray ships passing spied a face\nUpon the waters borne,\nWith eyes in death still begging raised,\nAnd hands beseeching thrown."
     },
     {
         "name": "XXVII.",
         "path": [
             "XXVII."
         ],
-        "content": "THE CHARIOT.\n\nBecause I could not stop for Death, He kindly stopped for me; The carriage held but just ourselves And Immortality.\n\nWe slowly drove, he knew no haste, And I had put away My labor, and my leisure too, For his civility.\n\nWe passed the school where children played, Their lessons scarcely done; We passed the fields of gazing grain, We passed the setting sun.\n\nWe paused before a house that seemed A swelling of the ground; The roof was scarcely visible, The cornice but a mound.\n\nSince then 't is centuries; but each Feels shorter than the day I first surmised the horses' heads Were toward eternity.\n\nXXVIII.\n\nShe went as quiet as the dew From a familiar flower. Not like the dew did she return At the accustomed hour!\n\nShe dropt as softly as a star From out my summer's eve; Less skilful than Leverrier It's sorer to believe!\n\nXXIX.\n\nRESURGAM.\n\nAt last to be identified! At last, the lamps upon thy side, The rest of life to see! Past midnight, past the morning star! Past sunrise! Ah! what leagues there are Between our feet and day!"
+        "content": "THE CHARIOT.\n\nBecause I could not stop for Death,\nHe kindly stopped for me;\nThe carriage held but just ourselves\nAnd Immortality.\n\nWe slowly drove, he knew no haste,\nAnd I had put away\nMy labor, and my leisure too,\nFor his civility.\n\nWe passed the school where children played,\nTheir lessons scarcely done;\nWe passed the fields of gazing grain,\nWe passed the setting sun.\n\nWe paused before a house that seemed\nA swelling of the ground;\nThe roof was scarcely visible,\nThe cornice but a mound.\n\nSince then 't is centuries; but each\nFeels shorter than the day\nI first surmised the horses' heads\nWere toward eternity.\n\nXXVIII.\n\nShe went as quiet as the dew\nFrom a familiar flower.\nNot like the dew did she return\nAt the accustomed hour!\n\nShe dropt as softly as a star\nFrom out my summer's eve;\nLess skilful than Leverrier\nIt's sorer to believe!\n\nXXIX.\n\nRESURGAM.\n\nAt last to be identified!\nAt last, the lamps upon thy side,\nThe rest of life to see!\nPast midnight, past the morning star!\nPast sunrise! Ah! what leagues there are\nBetween our feet and day!"
     },
     {
         "name": "XXX.",
         "path": [
             "XXX."
         ],
-        "content": "Except to heaven, she is nought; Except for angels, lone; Except to some wide-wandering bee, A flower superfluous blown;\n\nExcept for winds, provincial; Except by butterflies, Unnoticed as a single dew That on the acre lies.\n\nThe smallest housewife in the grass, Yet take her from the lawn, And somebody has lost the face That made existence home!\n\nXXXI.\n\nDeath is a dialogue between The spirit and the dust. \"Dissolve,\" says Death. The Spirit, \"Sir, I have another trust.\"\n\nDeath doubts it, argues from the ground. The Spirit turns away, Just laying off, for evidence, An overcoat of clay.\n\nXXXII.\n\nIt was too late for man, But early yet for God; Creation impotent to help, But prayer remained our side.\n\nHow excellent the heaven, When earth cannot be had; How hospitable, then, the face Of our old neighbor, God!"
+        "content": "Except to heaven, she is nought;\nExcept for angels, lone;\nExcept to some wide-wandering bee,\nA flower superfluous blown;\n\nExcept for winds, provincial;\nExcept by butterflies,\nUnnoticed as a single dew\nThat on the acre lies.\n\nThe smallest housewife in the grass,\nYet take her from the lawn,\nAnd somebody has lost the face\nThat made existence home!\n\nXXXI.\n\nDeath is a dialogue between\nThe spirit and the dust.\n\"Dissolve,\" says Death. The Spirit, \"Sir,\nI have another trust.\"\n\nDeath doubts it, argues from the ground.\nThe Spirit turns away,\nJust laying off, for evidence,\nAn overcoat of clay.\n\nXXXII.\n\nIt was too late for man,\nBut early yet for God;\nCreation impotent to help,\nBut prayer remained our side.\n\nHow excellent the heaven,\nWhen earth cannot be had;\nHow hospitable, then, the face\nOf our old neighbor, God!"
     },
     {
         "name": "XXXIII.",
         "path": [
             "XXXIII."
         ],
-        "content": "ALONG THE POTOMAC.\n\nWhen I was small, a woman died. To-day her only boy Went up from the Potomac, His face all victory,\n\nTo look at her; how slowly The seasons must have turned Till bullets clipt an angle, And he passed quickly round!\n\nIf pride shall be in Paradise I never can decide; Of their imperial conduct, No person testified.\n\nBut proud in apparition, That woman and her boy Pass back and forth before my brain, As ever in the sky."
+        "content": "ALONG THE POTOMAC.\n\nWhen I was small, a woman died.\nTo-day her only boy\nWent up from the Potomac,\nHis face all victory,\n\nTo look at her; how slowly\nThe seasons must have turned\nTill bullets clipt an angle,\nAnd he passed quickly round!\n\nIf pride shall be in Paradise\nI never can decide;\nOf their imperial conduct,\nNo person testified.\n\nBut proud in apparition,\nThat woman and her boy\nPass back and forth before my brain,\nAs ever in the sky."
     },
     {
         "name": "XXXIV.",
         "path": [
             "XXXIV."
         ],
-        "content": "The daisy follows soft the sun, And when his golden walk is done, Sits shyly at his feet. He, waking, finds the flower near. \"Wherefore, marauder, art thou here?\" \"Because, sir, love is sweet!\"\n\nWe are the flower, Thou the sun! Forgive us, if as days decline, We nearer steal to Thee, -- Enamoured of the parting west, The peace, the flight, the amethyst, Night's possibility!"
+        "content": "The daisy follows soft the sun,\nAnd when his golden walk is done,\nSits shyly at his feet.\nHe, waking, finds the flower near.\n\"Wherefore, marauder, art thou here?\"\n\"Because, sir, love is sweet!\"\n\nWe are the flower, Thou the sun!\nForgive us, if as days decline,\nWe nearer steal to Thee, --\nEnamoured of the parting west,\nThe peace, the flight, the amethyst,\nNight's possibility!"
     },
     {
         "name": "XXXV.",
         "path": [
             "XXXV."
         ],
-        "content": "EMANCIPATION.\n\nNo rack can torture me, My soul's at liberty Behind this mortal bone There knits a bolder one\n\nYou cannot prick with saw, Nor rend with scymitar. Two bodies therefore be; Bind one, and one will flee.\n\nThe eagle of his nest No easier divest And gain the sky, Than mayest thou,\n\nExcept thyself may be Thine enemy; Captivity is consciousness, So's liberty.\n\nXXXVI.\n\nLOST.\n\nI lost a world the other day. Has anybody found? You'll know it by the row of stars Around its forehead bound.\n\nA rich man might not notice it; Yet to my frugal eye Of more esteem than ducats. Oh, find it, sir, for me!\n\nXXXVII.\n\nIf I shouldn't be alive When the robins come, Give the one in red cravat A memorial crumb.\n\nIf I couldn't thank you, Being just asleep, You will know I'm trying With my granite lip!"
+        "content": "EMANCIPATION.\n\nNo rack can torture me,\nMy soul's at liberty\nBehind this mortal bone\nThere knits a bolder one\n\nYou cannot prick with saw,\nNor rend with scymitar.\nTwo bodies therefore be;\nBind one, and one will flee.\n\nThe eagle of his nest\nNo easier divest\nAnd gain the sky,\nThan mayest thou,\n\nExcept thyself may be\nThine enemy;\nCaptivity is consciousness,\nSo's liberty.\n\nXXXVI.\n\nLOST.\n\nI lost a world the other day.\nHas anybody found?\nYou'll know it by the row of stars\nAround its forehead bound.\n\nA rich man might not notice it;\nYet to my frugal eye\nOf more esteem than ducats.\nOh, find it, sir, for me!\n\nXXXVII.\n\nIf I shouldn't be alive\nWhen the robins come,\nGive the one in red cravat\nA memorial crumb.\n\nIf I couldn't thank you,\nBeing just asleep,\nYou will know I'm trying\nWith my granite lip!"
     },
     {
         "name": "XXXVIII.",
         "path": [
             "XXXVIII."
         ],
-        "content": "Sleep is supposed to be, By souls of sanity, The shutting of the eye.\n\nSleep is the station grand Down which on either hand The hosts of witness stand!\n\nMorn is supposed to be, By people of degree, The breaking of the day.\n\nMorning has not occurred! That shall aurora be East of eternity;\n\nOne with the banner gay, One in the red array, -- That is the break of day."
+        "content": "Sleep is supposed to be,\nBy souls of sanity,\nThe shutting of the eye.\n\nSleep is the station grand\nDown which on either hand\nThe hosts of witness stand!\n\nMorn is supposed to be,\nBy people of degree,\nThe breaking of the day.\n\nMorning has not occurred!\nThat shall aurora be\nEast of eternity;\n\nOne with the banner gay,\nOne in the red array, --\nThat is the break of day."
     },
     {
         "name": "XXXIX.",
         "path": [
             "XXXIX."
         ],
-        "content": "I shall know why, when time is over, And I have ceased to wonder why; Christ will explain each separate anguish In the fair schoolroom of the sky.\n\nHe will tell me what Peter promised, And I, for wonder at his woe, I shall forget the drop of anguish That scalds me now, that scalds me now."
+        "content": "I shall know why, when time is over,\nAnd I have ceased to wonder why;\nChrist will explain each separate anguish\nIn the fair schoolroom of the sky.\n\nHe will tell me what Peter promised,\nAnd I, for wonder at his woe,\nI shall forget the drop of anguish\nThat scalds me now, that scalds me now."
     },
     {
         "name": "XL.",
         "path": [
             "XL."
         ],
-        "content": "I never lost as much but twice, And that was in the sod; Twice have I stood a beggar Before the door of God!\n\nAngels, twice descending, Reimbursed my store. Burglar, banker, father, I am poor once more!\n\nPOEMS\n\nby EMILY DICKINSON\n\nSecond Series\n\nEdited by two of her friends\n\nMABEL LOOMIS TODD and T.W. HIGGINSON\n\nPREFACE\n\nThe eagerness with which the first volume of Emily Dickinson's poems has been read shows very clearly that all our alleged modern artificiality does not prevent a prompt appreciation of the qualities of directness and simplicity in approaching the greatest themes,--life and love and death. That \"irresistible needle-touch,\" as one of her best critics has called it, piercing at once the very core of a thought, has found a response as wide and sympathetic as it has been unexpected even to those who knew best her compelling power. This second volume, while open to the same criticism as to form with its predecessor, shows also the same shining beauties.\n\nAlthough Emily Dickinson had been in the habit of sending occasional poems to friends and correspondents, the full extent of her writing was by no means imagined by them. Her friend \"H.H.\" must at least have suspected it, for in a letter dated 5th September, 1884, she wrote:--\n\nMY DEAR FRIEND,-- What portfolios full of verses you must have! It is a cruel wrong to your \"day and generation\" that you will not give them light.\n\nIf such a thing should happen as that I should outlive you, I wish you would make me your literary legatee and executor. Surely after you are what is called \"dead\" you will be willing that the poor ghosts you have left behind should be cheered and pleased by your verses, will you not? You ought to be. I do not think we have a right to withhold from the world a word or a thought any more than a deed which might help a single soul. . . .\n\nTruly yours,\n\nHELEN JACKSON.\n\nThe \"portfolios\" were found, shortly after Emily Dickinson's death, by her sister and only surviving housemate. Most of the poems had been carefully copied on sheets of note-paper, and tied in little fascicules, each of six or eight sheets. While many of them bear evidence of having been thrown off at white heat, still more had received thoughtful revision. There is the frequent addition of rather perplexing foot-notes, affording large choice of words and phrases. And in the copies which she sent to friends, sometimes one form, sometimes another, is found to have been used. Without important exception, her friends have generously placed at the disposal of the Editors any poems they had received from her; and these have given the obvious advantage of comparison among several renderings of the same verse.\n\nTo what further rigorous pruning her verses would have been subjected had she published them herself, we cannot know. They should be regarded in many cases as merely the first strong and suggestive sketches of an artist, intended to be embodied at some time in the finished picture.\n\nEmily Dickinson appears to have written her first poems in the winter of 1862. In a letter to oone of the present Editors the April following, she says, \"I made no verse, but one or two, until this winter.\"\n\nThe handwriting was at first somewhat like the delicate, running Italian hand of our elder gentlewomen; but as she advanced in breadth of thought, it grew bolder and more abrupt, until in her latest years each letter stood distinct and separate from its fellows. In most of her poems, particularly the later ones, everything by way of punctuation was discarded, except numerous dashes; and all important words began with capitals. The effect of a page of her more recent manuscript is exceedingly quaint and strong. The fac-simile given in the present volume is from one of the earlier transition periods. Although there is nowhere a date, the handwriting makes it possible to arrange the poems with general chronologic accuracy.\n\nAs a rule, the verses were without titles; but \"A Country Burial,\" \"A Thunder-Storm,\" \"The Humming-Bird,\" and a few others were named by their author, frequently at the end,--sometimes only in the accompanying note, if sent to a friend.\n\nThe variation of readings, with the fact that she often wrote in pencil and not always clearly, have at times thrown a good deal of responsibility upon her Editors. But all interference not absolutely inevitable has been avoided. The very roughness of her rendering is part of herself, and not lightly to be touched; for it seems in many cases that she intentionally avoided the smoother and more usual rhymes.\n\nLike impressionist pictures, or Wagner's rugged music, the very absence of conventional form challenges attention. In Emily Dickinson's exacting hands, the especial, intrinsic fitness of a particular order of words might not be sacrificed to anything virtually extrinsic; and her verses all show a strange cadence of inner rhythmical music. Lines are always daringly constructed, and the \"thought-rhyme\" appears frequently,--appealing, indeed, to an unrecognized sense more elusive than hearing.\n\nEmily Dickinson scrutinized everything with clear-eyed frankness. Every subject was proper ground for legitimate study, even the sombre facts of death and burial, and the unknown life beyond. She touches these themes sometimes lightly, sometimes almost humorously, more often with weird and peculiar power; but she is never by any chance frivolous or trivial. And while, as one critic has said, she may exhibit toward God \"an Emersonian self-possession,\" it was because she looked upon all life with a candor as unprejudiced as it is rare.\n\nShe had tried society and the world, and found them lacking. She was not an invalid, and she lived in seclusion from no love-disappointment. Her life was the normal blossoming of a nature introspective to a high degree, whose best thought could not exist in pretence.\n\nStorm, wind, the wild March sky, sunsets and dawns; the birds and bees, butterflies and flowers of her garden, with a few trusted human friends, were sufficient companionship. The coming of the first robin was a jubilee beyond crowning of monarch or birthday of pope; the first red leaf hurrying through \"the altered air,\" an epoch. Immortality was close about her; and while never morbid or melancholy, she lived in its presence.\n\nMABEL LOOMIS TODD.\n\nAMHERST, MASSACHUSETTS, August, I891.\n\nMy nosegays are for captives; Dim, long-expectant eyes, Fingers denied the plucking, Patient till paradise,\n\nTo such, if they should whisper Of morning and the moor, They bear no other errand, And I, no other prayer.\n\nI. LIFE.\n\nI.\n\nI'm nobody! Who are you? Are you nobody, too? Then there 's a pair of us -- don't tell! They 'd banish us, you know.\n\nHow dreary to be somebody! How public, like a frog To tell your name the livelong day To an admiring bog!"
+        "content": "I never lost as much but twice,\nAnd that was in the sod;\nTwice have I stood a beggar\nBefore the door of God!\n\nAngels, twice descending,\nReimbursed my store.\nBurglar, banker, father,\nI am poor once more!\n\nPOEMS\n\nby EMILY DICKINSON\n\nSecond Series\n\nEdited by two of her friends\n\nMABEL LOOMIS TODD and T.W. HIGGINSON\n\nPREFACE\n\nThe eagerness with which the first volume of Emily Dickinson's\npoems has been read shows very clearly that all our alleged modern\nartificiality does not prevent a prompt appreciation of the\nqualities of directness and simplicity in approaching the greatest\nthemes,--life and love and death. That \"irresistible needle-touch,\"\nas one of her best critics has called it, piercing at once the very\ncore of a thought, has found a response as wide and sympathetic as\nit has been unexpected even to those who knew best her compelling\npower.  This second volume, while open to the same criticism as to\nform with its predecessor, shows also the same shining beauties.\n\nAlthough Emily Dickinson had been in the habit of sending\noccasional poems to friends and correspondents, the full extent of\nher writing was by no means imagined by them. Her friend \"H.H.\"\nmust at least have suspected it, for in a letter dated 5th\nSeptember, 1884, she wrote:--\n\nMY DEAR FRIEND,-- What portfolios full of verses\nyou must have! It is a cruel wrong to your \"day and\ngeneration\" that you will not give them light.\n\nIf such a thing should happen as that I should outlive\nyou, I wish you would make me your literary legatee\nand executor. Surely after you are what is called\n\"dead\" you will be willing that the poor ghosts you\nhave left behind should be cheered and pleased by your\nverses, will you not? You ought to be. I do not think\nwe have a right to withhold from the world a word or\na thought any more than a deed which might help a\nsingle soul. . . .\n\nTruly yours,\n\nHELEN JACKSON.\n\nThe \"portfolios\" were found, shortly after Emily Dickinson's death,\nby her sister and only surviving housemate. Most of the poems had\nbeen carefully copied on sheets of note-paper, and tied in little\nfascicules, each of six or eight sheets. While many of them bear\nevidence of having been thrown off at white heat, still more had\nreceived thoughtful revision. There is the frequent addition of\nrather perplexing foot-notes, affording large choice of words and\nphrases. And in the copies which she sent to friends, sometimes one\nform, sometimes another, is found to have been used. Without\nimportant exception, her friends have generously placed at the\ndisposal of the Editors any poems they had received from her; and\nthese have given the obvious advantage of comparison among several\nrenderings of the same verse.\n\nTo what further rigorous pruning her verses would have been\nsubjected had she published them herself, we cannot know. They\nshould be regarded in many cases as merely the first strong and\nsuggestive sketches of an artist, intended to be embodied at some\ntime in the finished picture.\n\nEmily Dickinson appears to have written her first poems in the\nwinter of 1862. In a letter to oone of the present Editors the\nApril following, she says, \"I made no verse, but one or two, until\nthis winter.\"\n\nThe handwriting was at first somewhat like the delicate, running\nItalian hand of our elder gentlewomen; but as she advanced in\nbreadth of thought, it grew bolder and more abrupt, until in her\nlatest years each letter stood distinct and separate from its\nfellows. In most of her poems, particularly the later ones,\neverything by way of punctuation was discarded, except numerous\ndashes; and all important words began with capitals. The effect of\na page of her more recent manuscript is exceedingly quaint and\nstrong.  The fac-simile given in the present volume is from one of\nthe earlier transition periods. Although there is nowhere a date,\nthe handwriting makes it possible to arrange the poems with general\nchronologic accuracy.\n\nAs a rule, the verses were without titles; but \"A Country Burial,\"\n\"A Thunder-Storm,\" \"The Humming-Bird,\" and a few others were named\nby their author, frequently at the end,--sometimes only in the\naccompanying note, if sent to a friend.\n\nThe variation of readings, with the fact that she often wrote in\npencil and not always clearly, have at times thrown a good deal of\nresponsibility upon her Editors. But all interference not\nabsolutely inevitable has been avoided. The very roughness of her\nrendering is part of herself, and not lightly to be touched; for it\nseems in many cases that she intentionally avoided the smoother and\nmore usual rhymes.\n\nLike impressionist pictures, or Wagner's rugged music, the very\nabsence of conventional form challenges attention. In Emily\nDickinson's exacting hands, the especial, intrinsic fitness of a\nparticular order of words might not be sacrificed to anything\nvirtually extrinsic; and her verses all show a strange cadence of\ninner rhythmical music. Lines are always daringly constructed, and\nthe \"thought-rhyme\" appears frequently,--appealing, indeed, to an\nunrecognized sense more elusive than hearing.\n\nEmily Dickinson scrutinized everything with clear-eyed frankness.\nEvery subject was proper ground for legitimate study, even the\nsombre facts of death and burial, and the unknown life beyond. She\ntouches these themes sometimes lightly, sometimes almost\nhumorously, more often with weird and peculiar power; but she is\nnever by any chance frivolous or trivial. And while, as one critic\nhas said, she may exhibit toward God \"an Emersonian self-possession,\"\nit was because she looked upon all life with a candor as unprejudiced\nas it is rare.\n\nShe had tried society and the world, and found them lacking.  She\nwas not an invalid, and she lived in seclusion from no\nlove-disappointment. Her life was the normal blossoming of a nature\nintrospective to a high degree, whose best thought could not exist\nin pretence.\n\nStorm, wind, the wild March sky, sunsets and dawns; the birds and\nbees, butterflies and flowers of her garden, with a few trusted\nhuman friends, were sufficient companionship. The coming of the\nfirst robin was a jubilee beyond crowning of monarch or birthday of\npope; the first red leaf hurrying through \"the altered air,\" an\nepoch. Immortality was close about her; and while never morbid or\nmelancholy, she lived in its presence.\n\nMABEL LOOMIS TODD.\n\nAMHERST, MASSACHUSETTS,\nAugust, I891.\n\nMy nosegays are for captives;\nDim, long-expectant eyes,\nFingers denied the plucking,\nPatient till paradise,\n\nTo such, if they should whisper\nOf morning and the moor,\nThey bear no other errand,\nAnd I, no other prayer.\n\nI. LIFE.\n\nI.\n\nI'm nobody!  Who are you?\nAre you nobody, too?\nThen there 's a pair of us -- don't tell!\nThey 'd banish us, you know.\n\nHow dreary to be somebody!\nHow public, like a frog\nTo tell your name the livelong day\nTo an admiring bog!"
     },
     {
         "name": "II.",
         "path": [
             "II."
         ],
-        "content": "I bring an unaccustomed wine To lips long parching, next to mine, And summon them to drink.\n\nCrackling with fever, they essay; I turn my brimming eyes away, And come next hour to look.\n\nThe hands still hug the tardy glass; The lips I would have cooled, alas! Are so superfluous cold,\n\nI would as soon attempt to warm The bosoms where the frost has lain Ages beneath the mould.\n\nSome other thirsty there may be To whom this would have pointed me Had it remained to speak.\n\nAnd so I always bear the cup If, haply, mine may be the drop Some pilgrim thirst to slake, --\n\nIf, haply, any say to me, \"Unto the little, unto me,\" When I at last awake."
+        "content": "I bring an unaccustomed wine\nTo lips long parching, next to mine,\nAnd summon them to drink.\n\nCrackling with fever, they essay;\nI turn my brimming eyes away,\nAnd come next hour to look.\n\nThe hands still hug the tardy glass;\nThe lips I would have cooled, alas!\nAre so superfluous cold,\n\nI would as soon attempt to warm\nThe bosoms where the frost has lain\nAges beneath the mould.\n\nSome other thirsty there may be\nTo whom this would have pointed me\nHad it remained to speak.\n\nAnd so I always bear the cup\nIf, haply, mine may be the drop\nSome pilgrim thirst to slake, --\n\nIf, haply, any say to me,\n\"Unto the little, unto me,\"\nWhen I at last awake."
     },
     {
         "name": "III.",
         "path": [
             "III."
         ],
-        "content": "The nearest dream recedes, unrealized. The heaven we chase Like the June bee Before the school-boy Invites the race; Stoops to an easy clover -- Dips -- evades -- teases -- deploys; Then to the royal clouds Lifts his light pinnace Heedless of the boy Staring, bewildered, at the mocking sky.\n\nHomesick for steadfast honey, Ah! the bee flies not That brews that rare variety.\n\nIV.\n\nWe play at paste, Till qualified for pearl, Then drop the paste, And deem ourself a fool. The shapes, though, were similar, And our new hands Learned gem-tactics Practising sands.\n\nV.\n\nI found the phrase to every thought I ever had, but one; And that defies me, -- as a hand Did try to chalk the sun\n\nTo races nurtured in the dark; -- How would your own begin? Can blaze be done in cochineal, Or noon in mazarin?"
+        "content": "The nearest dream recedes, unrealized.\nThe heaven we chase\nLike the June bee\nBefore the school-boy\nInvites the race;\nStoops to an easy clover --\nDips -- evades -- teases -- deploys;\nThen to the royal clouds\nLifts his light pinnace\nHeedless of the boy\nStaring, bewildered, at the mocking sky.\n\nHomesick for steadfast honey,\nAh! the bee flies not\nThat brews that rare variety.\n\nIV.\n\nWe play at paste,\nTill qualified for pearl,\nThen drop the paste,\nAnd deem ourself a fool.\nThe shapes, though, were similar,\nAnd our new hands\nLearned gem-tactics\nPractising sands.\n\nV.\n\nI found the phrase to every thought\nI ever had, but one;\nAnd that defies me, -- as a hand\nDid try to chalk the sun\n\nTo races nurtured in the dark; --\nHow would your own begin?\nCan blaze be done in cochineal,\nOr noon in mazarin?"
     },
     {
         "name": "VI.",
         "path": [
             "VI."
         ],
-        "content": "HOPE.\n\nHope is the thing with feathers That perches in the soul, And sings the tune without the words, And never stops at all,\n\nAnd sweetest in the gale is heard; And sore must be the storm That could abash the little bird That kept so many warm.\n\nI 've heard it in the chillest land, And on the strangest sea; Yet, never, in extremity, It asked a crumb of me."
+        "content": "HOPE.\n\nHope is the thing with feathers\nThat perches in the soul,\nAnd sings the tune without the words,\nAnd never stops at all,\n\nAnd sweetest in the gale is heard;\nAnd sore must be the storm\nThat could abash the little bird\nThat kept so many warm.\n\nI 've heard it in the chillest land,\nAnd on the strangest sea;\nYet, never, in extremity,\nIt asked a crumb of me."
     },
     {
         "name": "VII.",
         "path": [
             "VII."
         ],
-        "content": "THE WHITE HEAT.\n\nDare you see a soul at the white heat? Then crouch within the door. Red is the fire's common tint; But when the vivid ore\n\nHas sated flame's conditions, Its quivering substance plays Without a color but the light Of unanointed blaze.\n\nLeast village boasts its blacksmith, Whose anvil's even din Stands symbol for the finer forge That soundless tugs within,\n\nRefining these impatient ores With hammer and with blaze, Until the designated light Repudiate the forge."
+        "content": "THE WHITE HEAT.\n\nDare you see a soul at the white heat?\nThen crouch within the door.\nRed is the fire's common tint;\nBut when the vivid ore\n\nHas sated flame's conditions,\nIts quivering substance plays\nWithout a color but the light\nOf unanointed blaze.\n\nLeast village boasts its blacksmith,\nWhose anvil's even din\nStands symbol for the finer forge\nThat soundless tugs within,\n\nRefining these impatient ores\nWith hammer and with blaze,\nUntil the designated light\nRepudiate the forge."
     },
     {
         "name": "VIII.",
         "path": [
             "VIII."
         ],
-        "content": "TRIUMPHANT.\n\nWho never lost, are unprepared A coronet to find; Who never thirsted, flagons And cooling tamarind.\n\nWho never climbed the weary league -- Can such a foot explore The purple territories On Pizarro's shore?\n\nHow many legions overcome? The emperor will say. How many colors taken On Revolution Day?\n\nHow many bullets bearest? The royal scar hast thou? Angels, write \"Promoted\" On this soldier's brow!"
+        "content": "TRIUMPHANT.\n\nWho never lost, are unprepared\nA coronet to find;\nWho never thirsted, flagons\nAnd cooling tamarind.\n\nWho never climbed the weary league --\nCan such a foot explore\nThe purple territories\nOn Pizarro's shore?\n\nHow many legions overcome?\nThe emperor will say.\nHow many colors taken\nOn Revolution Day?\n\nHow many bullets bearest?\nThe royal scar hast thou?\nAngels, write \"Promoted\"\nOn this soldier's brow!"
     },
     {
         "name": "IX.",
         "path": [
             "IX."
         ],
-        "content": "THE TEST.\n\nI can wade grief, Whole pools of it, -- I 'm used to that. But the least push of joy Breaks up my feet, And I tip -- drunken. Let no pebble smile, 'T was the new liquor, -- That was all!\n\nPower is only pain, Stranded, through discipline, Till weights will hang. Give balm to giants, And they 'll wilt, like men. Give Himmaleh, -- They 'll carry him!\n\nX.\n\nESCAPE.\n\nI never hear the word \"escape\" Without a quicker blood, A sudden expectation, A flying attitude.\n\nI never hear of prisons broad By soldiers battered down, But I tug childish at my bars, -- Only to fail again!\n\nXI.\n\nCOMPENSATION.\n\nFor each ecstatic instant We must an anguish pay In keen and quivering ratio To the ecstasy.\n\nFor each beloved hour Sharp pittances of years, Bitter contested farthings And coffers heaped with tears."
+        "content": "THE TEST.\n\nI can wade grief,\nWhole pools of it, --\nI 'm used to that.\nBut the least push of joy\nBreaks up my feet,\nAnd I tip -- drunken.\nLet no pebble smile,\n'T was the new liquor, --\nThat was all!\n\nPower is only pain,\nStranded, through discipline,\nTill weights will hang.\nGive balm to giants,\nAnd they 'll wilt, like men.\nGive Himmaleh, --\nThey 'll carry him!\n\nX.\n\nESCAPE.\n\nI never hear the word \"escape\"\nWithout a quicker blood,\nA sudden expectation,\nA flying attitude.\n\nI never hear of prisons broad\nBy soldiers battered down,\nBut I tug childish at my bars, --\nOnly to fail again!\n\nXI.\n\nCOMPENSATION.\n\nFor each ecstatic instant\nWe must an anguish pay\nIn keen and quivering ratio\nTo the ecstasy.\n\nFor each beloved hour\nSharp pittances of years,\nBitter contested farthings\nAnd coffers heaped with tears."
     },
     {
         "name": "XII.",
         "path": [
             "XII."
         ],
-        "content": "THE MARTYRS.\n\nThrough the straight pass of suffering The martyrs even trod, Their feet upon temptation, Their faces upon God.\n\nA stately, shriven company; Convulsion playing round, Harmless as streaks of meteor Upon a planet's bound.\n\nTheir faith the everlasting troth; Their expectation fair; The needle to the north degree Wades so, through polar air."
+        "content": "THE MARTYRS.\n\nThrough the straight pass of suffering\nThe martyrs even trod,\nTheir feet upon temptation,\nTheir faces upon God.\n\nA stately, shriven company;\nConvulsion playing round,\nHarmless as streaks of meteor\nUpon a planet's bound.\n\nTheir faith the everlasting troth;\nTheir expectation fair;\nThe needle to the north degree\nWades so, through polar air."
     },
     {
         "name": "XIII.",
         "path": [
             "XIII."
         ],
-        "content": "A PRAYER.\n\nI meant to have but modest needs, Such as content, and heaven; Within my income these could lie, And life and I keep even.\n\nBut since the last included both, It would suffice my prayer But just for one to stipulate, And grace would grant the pair.\n\nAnd so, upon this wise I prayed, -- Great Spirit, give to me A heaven not so large as yours, But large enough for me.\n\nA smile suffused Jehovah's face; The cherubim withdrew; Grave saints stole out to look at me, And showed their dimples, too.\n\nI left the place with all my might, -- My prayer away I threw; The quiet ages picked it up, And Judgment twinkled, too,\n\nThat one so honest be extant As take the tale for true That \"Whatsoever you shall ask, Itself be given you.\"\n\nBut I, grown shrewder, scan the skies With a suspicious air, -- As children, swindled for the first, All swindlers be, infer.\n\nXV.\n\nThe soul unto itself Is an imperial friend, -- Or the most agonizing spy An enemy could send.\n\nSecure against its own, No treason it can fear; Itself its sovereign, of itself The soul should stand in awe."
+        "content": "A PRAYER.\n\nI meant to have but modest needs,\nSuch as content, and heaven;\nWithin my income these could lie,\nAnd life and I keep even.\n\nBut since the last included both,\nIt would suffice my prayer\nBut just for one to stipulate,\nAnd grace would grant the pair.\n\nAnd so, upon this wise I prayed, --\nGreat Spirit, give to me\nA heaven not so large as yours,\nBut large enough for me.\n\nA smile suffused Jehovah's face;\nThe cherubim withdrew;\nGrave saints stole out to look at me,\nAnd showed their dimples, too.\n\nI left the place with all my might, --\nMy prayer away I threw;\nThe quiet ages picked it up,\nAnd Judgment twinkled, too,\n\nThat one so honest be extant\nAs take the tale for true\nThat \"Whatsoever you shall ask,\nItself be given you.\"\n\nBut I, grown shrewder, scan the skies\nWith a suspicious air, --\nAs children, swindled for the first,\nAll swindlers be, infer.\n\nXV.\n\nThe soul unto itself\nIs an imperial friend, --\nOr the most agonizing spy\nAn enemy could send.\n\nSecure against its own,\nNo treason it can fear;\nItself its sovereign, of itself\nThe soul should stand in awe."
     },
     {
         "name": "XVII.",
         "path": [
             "XVII."
         ],
-        "content": "THE RAILWAY TRAIN.\n\nI like to see it lap the miles, And lick the valleys up, And stop to feed itself at tanks; And then, prodigious, step\n\nAround a pile of mountains, And, supercilious, peer In shanties by the sides of roads; And then a quarry pare\n\nTo fit its sides, and crawl between, Complaining all the while In horrid, hooting stanza; Then chase itself down hill\n\nAnd neigh like Boanerges; Then, punctual as a star, Stop -- docile and omnipotent -- At its own stable door.\n\nXIX.\n\nDelight becomes pictorial When viewed through pain, -- More fair, because impossible That any gain.\n\nThe mountain at a given distance In amber lies; Approached, the amber flits a little, -- And that 's the skies!"
+        "content": "THE RAILWAY TRAIN.\n\nI like to see it lap the miles,\nAnd lick the valleys up,\nAnd stop to feed itself at tanks;\nAnd then, prodigious, step\n\nAround a pile of mountains,\nAnd, supercilious, peer\nIn shanties by the sides of roads;\nAnd then a quarry pare\n\nTo fit its sides, and crawl between,\nComplaining all the while\nIn horrid, hooting stanza;\nThen chase itself down hill\n\nAnd neigh like Boanerges;\nThen, punctual as a star,\nStop -- docile and omnipotent --\nAt its own stable door.\n\nXIX.\n\nDelight becomes pictorial\nWhen viewed through pain, --\nMore fair, because impossible\nThat any gain.\n\nThe mountain at a given distance\nIn amber lies;\nApproached, the amber flits a little, --\nAnd that 's the skies!"
     },
     {
         "name": "XX.",
         "path": [
             "XX."
         ],
-        "content": "A thought went up my mind to-day That I have had before, But did not finish, -- some way back, I could not fix the year,\n\nNor where it went, nor why it came The second time to me, Nor definitely what it was, Have I the art to say.\n\nBut somewhere in my soul, I know I 've met the thing before; It just reminded me -- 't was all -- And came my way no more.\n\nXXI.\n\nIs Heaven a physician? They say that He can heal, But medicine posthumous Is unavailable.\n\nIs Heaven an exchequer? They speak of what we owe; But that negotiation I 'm not a party to."
+        "content": "A thought went up my mind to-day\nThat I have had before,\nBut did not finish, -- some way back,\nI could not fix the year,\n\nNor where it went, nor why it came\nThe second time to me,\nNor definitely what it was,\nHave I the art to say.\n\nBut somewhere in my soul, I know\nI 've met the thing before;\nIt just reminded me -- 't was all --\nAnd came my way no more.\n\nXXI.\n\nIs Heaven a physician?\nThey say that He can heal,\nBut medicine posthumous\nIs unavailable.\n\nIs Heaven an exchequer?\nThey speak of what we owe;\nBut that negotiation\nI 'm not a party to."
     },
     {
         "name": "XXII.",
         "path": [
             "XXII."
         ],
-        "content": "THE RETURN.\n\nThough I get home how late, how late! So I get home, 't will compensate. Better will be the ecstasy That they have done expecting me, When, night descending, dumb and dark, They hear my unexpected knock. Transporting must the moment be, Brewed from decades of agony!\n\nTo think just how the fire will burn, Just how long-cheated eyes will turn To wonder what myself will say, And what itself will say to me, Beguiles the centuries of way!"
+        "content": "THE RETURN.\n\nThough I get home how late, how late!\nSo I get home, 't will compensate.\nBetter will be the ecstasy\nThat they have done expecting me,\nWhen, night descending, dumb and dark,\nThey hear my unexpected knock.\nTransporting must the moment be,\nBrewed from decades of agony!\n\nTo think just how the fire will burn,\nJust how long-cheated eyes will turn\nTo wonder what myself will say,\nAnd what itself will say to me,\nBeguiles the centuries of way!"
     },
     {
         "name": "XXIII.",
         "path": [
             "XXIII."
         ],
-        "content": "A poor torn heart, a tattered heart, That sat it down to rest, Nor noticed that the ebbing day Flowed silver to the west, Nor noticed night did soft descend Nor constellation burn, Intent upon the vision Of latitudes unknown.\n\nThe angels, happening that way, This dusty heart espied; Tenderly took it up from toil And carried it to God. There, -- sandals for the barefoot; There, -- gathered from the gales, Do the blue havens by the hand Lead the wandering sails."
+        "content": "A poor torn heart, a tattered heart,\nThat sat it down to rest,\nNor noticed that the ebbing day\nFlowed silver to the west,\nNor noticed night did soft descend\nNor constellation burn,\nIntent upon the vision\nOf latitudes unknown.\n\nThe angels, happening that way,\nThis dusty heart espied;\nTenderly took it up from toil\nAnd carried it to God.\nThere, -- sandals for the barefoot;\nThere, -- gathered from the gales,\nDo the blue havens by the hand\nLead the wandering sails."
     },
     {
         "name": "XXIV.",
         "path": [
             "XXIV."
         ],
-        "content": "TOO MUCH.\n\nI should have been too glad, I see, Too lifted for the scant degree Of life's penurious round; My little circuit would have shamed This new circumference, have blamed The homelier time behind.\n\nI should have been too saved, I see, Too rescued; fear too dim to me That I could spell the prayer I knew so perfect yesterday, -- That scalding one, \"Sabachthani,\" Recited fluent here.\n\nEarth would have been too much, I see, And heaven not enough for me; I should have had the joy Without the fear to justify, -- The palm without the Calvary; So, Saviour, crucify.\n\nDefeat whets victory, they say; The reefs in old Gethsemane Endear the shore beyond. 'T is beggars banquets best define; 'T is thirsting vitalizes wine, -- Faith faints to understand."
+        "content": "TOO MUCH.\n\nI should have been too glad, I see,\nToo lifted for the scant degree\nOf life's penurious round;\nMy little circuit would have shamed\nThis new circumference, have blamed\nThe homelier time behind.\n\nI should have been too saved, I see,\nToo rescued; fear too dim to me\nThat I could spell the prayer\nI knew so perfect yesterday, --\nThat scalding one, \"Sabachthani,\"\nRecited fluent here.\n\nEarth would have been too much, I see,\nAnd heaven not enough for me;\nI should have had the joy\nWithout the fear to justify, --\nThe palm without the Calvary;\nSo, Saviour, crucify.\n\nDefeat whets victory, they say;\nThe reefs in old Gethsemane\nEndear the shore beyond.\n'T is beggars banquets best define;\n'T is thirsting vitalizes wine, --\nFaith faints to understand."
     },
     {
         "name": "XXV.",
         "path": [
             "XXV."
         ],
-        "content": "SHIPWRECK.\n\nIt tossed and tossed, -- A little brig I knew, -- O'ertook by blast, It spun and spun, And groped delirious, for morn.\n\nIt slipped and slipped, As one that drunken stepped; Its white foot tripped, Then dropped from sight.\n\nAh, brig, good-night To crew and you; The ocean's heart too smooth, too blue, To break for you."
+        "content": "SHIPWRECK.\n\nIt tossed and tossed, --\nA little brig I knew, --\nO'ertook by blast,\nIt spun and spun,\nAnd groped delirious, for morn.\n\nIt slipped and slipped,\nAs one that drunken stepped;\nIts white foot tripped,\nThen dropped from sight.\n\nAh, brig, good-night\nTo crew and you;\nThe ocean's heart too smooth, too blue,\nTo break for you."
     },
     {
         "name": "XXVI.",
         "path": [
             "XXVI."
         ],
-        "content": "Victory comes late, And is held low to freezing lips Too rapt with frost To take it. How sweet it would have tasted, Just a drop! Was God so economical? His table 's spread too high for us Unless we dine on tip-toe. Crumbs fit such little mouths, Cherries suit robins; The eagle's golden breakfast Strangles them. God keeps his oath to sparrows, Who of little love Know how to starve!"
+        "content": "Victory comes late,\nAnd is held low to freezing lips\nToo rapt with frost\nTo take it.\nHow sweet it would have tasted,\nJust a drop!\nWas God so economical?\nHis table 's spread too high for us\nUnless we dine on tip-toe.\nCrumbs fit such little mouths,\nCherries suit robins;\nThe eagle's golden breakfast\nStrangles them.\nGod keeps his oath to sparrows,\nWho of little love\nKnow how to starve!"
     },
     {
         "name": "XXVII.",
         "path": [
             "XXVII."
         ],
-        "content": "ENOUGH.\n\nGod gave a loaf to every bird, But just a crumb to me; I dare not eat it, though I starve, -- My poignant luxury To own it, touch it, prove the feat That made the pellet mine, -- Too happy in my sparrow chance For ampler coveting.\n\nIt might be famine all around, I could not miss an ear, Such plenty smiles upon my board, My garner shows so fair. I wonder how the rich may feel, -- An Indiaman -- an Earl? I deem that I with but a crumb Am sovereign of them all.\n\nXXVIII.\n\nExperiment to me Is every one I meet. If it contain a kernel? The figure of a nut\n\nPresents upon a tree, Equally plausibly; But meat within is requisite, To squirrels and to me."
+        "content": "ENOUGH.\n\nGod gave a loaf to every bird,\nBut just a crumb to me;\nI dare not eat it, though I starve, --\nMy poignant luxury\nTo own it, touch it, prove the feat\nThat made the pellet mine, --\nToo happy in my sparrow chance\nFor ampler coveting.\n\nIt might be famine all around,\nI could not miss an ear,\nSuch plenty smiles upon my board,\nMy garner shows so fair.\nI wonder how the rich may feel, --\nAn Indiaman -- an Earl?\nI deem that I with but a crumb\nAm sovereign of them all.\n\nXXVIII.\n\nExperiment to me\nIs every one I meet.\nIf it contain a kernel?\nThe figure of a nut\n\nPresents upon a tree,\nEqually plausibly;\nBut meat within is requisite,\nTo squirrels and to me."
     },
     {
         "name": "XXIX.",
         "path": [
             "XXIX."
         ],
-        "content": "MY COUNTRY'S WARDROBE.\n\nMy country need not change her gown, Her triple suit as sweet As when 't was cut at Lexington, And first pronounced \"a fit.\"\n\nGreat Britain disapproves \"the stars;\" Disparagement discreet, -- There 's something in their attitude That taunts her bayonet."
+        "content": "MY COUNTRY'S WARDROBE.\n\nMy country need not change her gown,\nHer triple suit as sweet\nAs when 't was cut at Lexington,\nAnd first pronounced \"a fit.\"\n\nGreat Britain disapproves \"the stars;\"\nDisparagement discreet, --\nThere 's something in their attitude\nThat taunts her bayonet."
     },
     {
         "name": "XXXI.",
         "path": [
             "XXXI."
         ],
-        "content": "Except the heaven had come so near, So seemed to choose my door, The distance would not haunt me so; I had not hoped before.\n\nBut just to hear the grace depart I never thought to see, Afflicts me with a double loss; 'T is lost, and lost to me.\n\nXXXIII.\n\nTHE DUEL.\n\nI took my power in my hand. And went against the world; 'T was not so much as David had, But I was twice as bold.\n\nI aimed my pebble, but myself Was all the one that fell. Was it Goliath was too large, Or only I too small?"
+        "content": "Except the heaven had come so near,\nSo seemed to choose my door,\nThe distance would not haunt me so;\nI had not hoped before.\n\nBut just to hear the grace depart\nI never thought to see,\nAfflicts me with a double loss;\n'T is lost, and lost to me.\n\nXXXIII.\n\nTHE DUEL.\n\nI took my power in my hand.\nAnd went against the world;\n'T was not so much as David had,\nBut I was twice as bold.\n\nI aimed my pebble, but myself\nWas all the one that fell.\nWas it Goliath was too large,\nOr only I too small?"
     },
     {
         "name": "XXXIV.",
         "path": [
             "XXXIV."
         ],
-        "content": "A shady friend for torrid days Is easier to find Than one of higher temperature For frigid hour of mind.\n\nThe vane a little to the east Scares muslin souls away; If broadcloth breasts are firmer Than those of organdy,\n\nWho is to blame? The weaver? Ah! the bewildering thread! The tapestries of paradise So notelessly are made!"
+        "content": "A shady friend for torrid days\nIs easier to find\nThan one of higher temperature\nFor frigid hour of mind.\n\nThe vane a little to the east\nScares muslin souls away;\nIf broadcloth breasts are firmer\nThan those of organdy,\n\nWho is to blame? The weaver?\nAh! the bewildering thread!\nThe tapestries of paradise\nSo notelessly are made!"
     },
     {
         "name": "XXXV.",
         "path": [
             "XXXV."
         ],
-        "content": "THE GOAL.\n\nEach life converges to some centre Expressed or still; Exists in every human nature A goal,\n\nAdmitted scarcely to itself, it may be, Too fair For credibility's temerity To dare.\n\nAdored with caution, as a brittle heaven, To reach Were hopeless as the rainbow's raiment To touch,\n\nYet persevered toward, surer for the distance; How high Unto the saints' slow diligence The sky!\n\nUngained, it may be, by a life's low venture, But then, Eternity enables the endeavoring Again."
+        "content": "THE GOAL.\n\nEach life converges to some centre\nExpressed or still;\nExists in every human nature\nA goal,\n\nAdmitted scarcely to itself, it may be,\nToo fair\nFor credibility's temerity\nTo dare.\n\nAdored with caution, as a brittle heaven,\nTo reach\nWere hopeless as the rainbow's raiment\nTo touch,\n\nYet persevered toward, surer for the distance;\nHow high\nUnto the saints' slow diligence\nThe sky!\n\nUngained, it may be, by a life's low venture,\nBut then,\nEternity enables the endeavoring\nAgain."
     },
     {
         "name": "XXXVI.",
         "path": [
             "XXXVI."
         ],
-        "content": "SIGHT.\n\nBefore I got my eye put out, I liked as well to see As other creatures that have eyes, And know no other way.\n\nBut were it told to me, to-day, That I might have the sky For mine, I tell you that my heart Would split, for size of me.\n\nThe meadows mine, the mountains mine, -- All forests, stintless stars, As much of noon as I could take Between my finite eyes.\n\nThe motions of the dipping birds, The lightning's jointed road, For mine to look at when I liked, -- The news would strike me dead!\n\nSo safer, guess, with just my soul Upon the window-pane Where other creatures put their eyes, Incautious of the sun."
+        "content": "SIGHT.\n\nBefore I got my eye put out,\nI liked as well to see\nAs other creatures that have eyes,\nAnd know no other way.\n\nBut were it told to me, to-day,\nThat I might have the sky\nFor mine, I tell you that my heart\nWould split, for size of me.\n\nThe meadows mine, the mountains mine, --\nAll forests, stintless stars,\nAs much of noon as I could take\nBetween my finite eyes.\n\nThe motions of the dipping birds,\nThe lightning's jointed road,\nFor mine to look at when I liked, --\nThe news would strike me dead!\n\nSo safer, guess, with just my soul\nUpon the window-pane\nWhere other creatures put their eyes,\nIncautious of the sun."
     },
     {
         "name": "XXXVII.",
         "path": [
             "XXXVII."
         ],
-        "content": "Talk with prudence to a beggar Of 'Potosi' and the mines! Reverently to the hungry Of your viands and your wines!\n\nCautious, hint to any captive You have passed enfranchised feet! Anecdotes of air in dungeons Have sometimes proved deadly sweet!"
+        "content": "Talk with prudence to a beggar\nOf 'Potosi' and the mines!\nReverently to the hungry\nOf your viands and your wines!\n\nCautious, hint to any captive\nYou have passed enfranchised feet!\nAnecdotes of air in dungeons\nHave sometimes proved deadly sweet!"
     },
     {
         "name": "XXXVIII.",
         "path": [
             "XXXVIII."
         ],
-        "content": "THE PREACHER.\n\nHe preached upon \"breadth\" till it argued him narrow, -- The broad are too broad to define; And of \"truth\" until it proclaimed him a liar, -- The truth never flaunted a sign.\n\nSimplicity fled from his counterfeit presence As gold the pyrites would shun. What confusion would cover the innocent Jesus To meet so enabled a man!"
+        "content": "THE PREACHER.\n\nHe preached upon \"breadth\" till it argued him narrow, --\nThe broad are too broad to define;\nAnd of \"truth\" until it proclaimed him a liar, --\nThe truth never flaunted a sign.\n\nSimplicity fled from his counterfeit presence\nAs gold the pyrites would shun.\nWhat confusion would cover the innocent Jesus\nTo meet so enabled a man!"
     },
     {
         "name": "XXXIX.",
         "path": [
             "XXXIX."
         ],
-        "content": "Good night! which put the candle out? A jealous zephyr, not a doubt. Ah! friend, you little knew How long at that celestial wick The angels labored diligent; Extinguished, now, for you!\n\nIt might have been the lighthouse spark Some sailor, rowing in the dark, Had importuned to see! It might have been the waning lamp That lit the drummer from the camp To purer reveille!\n\nXL.\n\nWhen I hoped I feared, Since I hoped I dared; Everywhere alone As a church remain; Spectre cannot harm, Serpent cannot charm; He deposes doom, Who hath suffered him.\n\nXLI.\n\nDEED.\n\nA deed knocks first at thought, And then it knocks at will. That is the manufacturing spot, And will at home and well.\n\nIt then goes out an act, Or is entombed so still That only to the ear of God Its doom is audible."
+        "content": "Good night! which put the candle out?\nA jealous zephyr, not a doubt.\nAh! friend, you little knew\nHow long at that celestial wick\nThe angels labored diligent;\nExtinguished, now, for you!\n\nIt might have been the lighthouse spark\nSome sailor, rowing in the dark,\nHad importuned to see!\nIt might have been the waning lamp\nThat lit the drummer from the camp\nTo purer reveille!\n\nXL.\n\nWhen I hoped I feared,\nSince I hoped I dared;\nEverywhere alone\nAs a church remain;\nSpectre cannot harm,\nSerpent cannot charm;\nHe deposes doom,\nWho hath suffered him.\n\nXLI.\n\nDEED.\n\nA deed knocks first at thought,\nAnd then it knocks at will.\nThat is the manufacturing spot,\nAnd will at home and well.\n\nIt then goes out an act,\nOr is entombed so still\nThat only to the ear of God\nIts doom is audible."
     },
     {
         "name": "XLII.",
         "path": [
             "XLII."
         ],
-        "content": "TIME'S LESSON.\n\nMine enemy is growing old, -- I have at last revenge. The palate of the hate departs; If any would avenge, --\n\nLet him be quick, the viand flits, It is a faded meat. Anger as soon as fed is dead; 'T is starving makes it fat."
+        "content": "TIME'S LESSON.\n\nMine enemy is growing old, --\nI have at last revenge.\nThe palate of the hate departs;\nIf any would avenge, --\n\nLet him be quick, the viand flits,\nIt is a faded meat.\nAnger as soon as fed is dead;\n'T is starving makes it fat."
     },
     {
         "name": "XLIII.",
         "path": [
             "XLIII."
         ],
-        "content": "REMORSE.\n\nRemorse is memory awake, Her companies astir, -- A presence of departed acts At window and at door.\n\nIt's past set down before the soul, And lighted with a match, Perusal to facilitate Of its condensed despatch.\n\nRemorse is cureless, -- the disease Not even God can heal; For 't is his institution, -- The complement of hell.\n\nXLIV.\n\nTHE SHELTER.\n\nThe body grows outside, -- The more convenient way, -- That if the spirit like to hide, Its temple stands alway\n\nAjar, secure, inviting; It never did betray The soul that asked its shelter In timid honesty.\n\nXLV.\n\nUndue significance a starving man attaches To food Far off; he sighs, and therefore hopeless, And therefore good.\n\nPartaken, it relieves indeed, but proves us That spices fly In the receipt. It was the distance Was savory."
+        "content": "REMORSE.\n\nRemorse is memory awake,\nHer companies astir, --\nA presence of departed acts\nAt window and at door.\n\nIt's past set down before the soul,\nAnd lighted with a match,\nPerusal to facilitate\nOf its condensed despatch.\n\nRemorse is cureless, -- the disease\nNot even God can heal;\nFor 't is his institution, --\nThe complement of hell.\n\nXLIV.\n\nTHE SHELTER.\n\nThe body grows outside, --\nThe more convenient way, --\nThat if the spirit like to hide,\nIts temple stands alway\n\nAjar, secure, inviting;\nIt never did betray\nThe soul that asked its shelter\nIn timid honesty.\n\nXLV.\n\nUndue significance a starving man attaches\nTo food\nFar off; he sighs, and therefore hopeless,\nAnd therefore good.\n\nPartaken, it relieves indeed, but proves us\nThat spices fly\nIn the receipt. It was the distance\nWas savory."
     },
     {
         "name": "XLVI.",
         "path": [
             "XLVI."
         ],
-        "content": "Heart not so heavy as mine, Wending late home, As it passed my window Whistled itself a tune, --\n\nA careless snatch, a ballad, A ditty of the street; Yet to my irritated ear An anodyne so sweet,\n\nIt was as if a bobolink, Sauntering this way, Carolled and mused and carolled, Then bubbled slow away.\n\nIt was as if a chirping brook Upon a toilsome way Set bleeding feet to minuets Without the knowing why.\n\nTo-morrow, night will come again, Weary, perhaps, and sore. Ah, bugle, by my window, I pray you stroll once more!\n\nXLVII.\n\nI many times thought peace had come, When peace was far away; As wrecked men deem they sight the land At centre of the sea,\n\nAnd struggle slacker, but to prove, As hopelessly as I, How many the fictitious shores Before the harbor lie."
+        "content": "Heart not so heavy as mine,\nWending late home,\nAs it passed my window\nWhistled itself a tune, --\n\nA careless snatch, a ballad,\nA ditty of the street;\nYet to my irritated ear\nAn anodyne so sweet,\n\nIt was as if a bobolink,\nSauntering this way,\nCarolled and mused and carolled,\nThen bubbled slow away.\n\nIt was as if a chirping brook\nUpon a toilsome way\nSet bleeding feet to minuets\nWithout the knowing why.\n\nTo-morrow, night will come again,\nWeary, perhaps, and sore.\nAh, bugle, by my window,\nI pray you stroll once more!\n\nXLVII.\n\nI many times thought peace had come,\nWhen peace was far away;\nAs wrecked men deem they sight the land\nAt centre of the sea,\n\nAnd struggle slacker, but to prove,\nAs hopelessly as I,\nHow many the fictitious shores\nBefore the harbor lie."
     },
     {
         "name": "XLVIII.",
         "path": [
             "XLVIII."
         ],
-        "content": "Unto my books so good to turn Far ends of tired days; It half endears the abstinence, And pain is missed in praise.\n\nAs flavors cheer retarded guests With banquetings to be, So spices stimulate the time Till my small library.\n\nIt may be wilderness without, Far feet of failing men, But holiday excludes the night, And it is bells within.\n\nI thank these kinsmen of the shelf; Their countenances bland Enamour in prospective, And satisfy, obtained.\n\nXLIX.\n\nThis merit hath the worst, -- It cannot be again. When Fate hath taunted last And thrown her furthest stone,\n\nThe maimed may pause and breathe, And glance securely round. The deer invites no longer Than it eludes the hound."
+        "content": "Unto my books so good to turn\nFar ends of tired days;\nIt half endears the abstinence,\nAnd pain is missed in praise.\n\nAs flavors cheer retarded guests\nWith banquetings to be,\nSo spices stimulate the time\nTill my small library.\n\nIt may be wilderness without,\nFar feet of failing men,\nBut holiday excludes the night,\nAnd it is bells within.\n\nI thank these kinsmen of the shelf;\nTheir countenances bland\nEnamour in prospective,\nAnd satisfy, obtained.\n\nXLIX.\n\nThis merit hath the worst, --\nIt cannot be again.\nWhen Fate hath taunted last\nAnd thrown her furthest stone,\n\nThe maimed may pause and breathe,\nAnd glance securely round.\nThe deer invites no longer\nThan it eludes the hound."
     },
     {
         "name": "L.",
         "path": [
             "L."
         ],
-        "content": "HUNGER.\n\nI had been hungry all the years; My noon had come, to dine; I, trembling, drew the table near, And touched the curious wine.\n\n'T was this on tables I had seen, When turning, hungry, lone, I looked in windows, for the wealth I could not hope to own.\n\nI did not know the ample bread, 'T was so unlike the crumb The birds and I had often shared In Nature's dining-room.\n\nThe plenty hurt me, 't was so new, -- Myself felt ill and odd, As berry of a mountain bush Transplanted to the road.\n\nNor was I hungry; so I found That hunger was a way Of persons outside windows, The entering takes away."
+        "content": "HUNGER.\n\nI had been hungry all the years;\nMy noon had come, to dine;\nI, trembling, drew the table near,\nAnd touched the curious wine.\n\n'T was this on tables I had seen,\nWhen turning, hungry, lone,\nI looked in windows, for the wealth\nI could not hope to own.\n\nI did not know the ample bread,\n'T was so unlike the crumb\nThe birds and I had often shared\nIn Nature's dining-room.\n\nThe plenty hurt me, 't was so new, --\nMyself felt ill and odd,\nAs berry of a mountain bush\nTransplanted to the road.\n\nNor was I hungry; so I found\nThat hunger was a way\nOf persons outside windows,\nThe entering takes away."
     },
     {
         "name": "LI.",
         "path": [
             "LI."
         ],
-        "content": "I gained it so, By climbing slow, By catching at the twigs that grow Between the bliss and me. It hung so high, As well the sky Attempt by strategy.\n\nI said I gained it, -- This was all. Look, how I clutch it, Lest it fall, And I a pauper go; Unfitted by an instant's grace For the contented beggar's face I wore an hour ago."
+        "content": "I gained it so,\nBy climbing slow,\nBy catching at the twigs that grow\nBetween the bliss and me.\nIt hung so high,\nAs well the sky\nAttempt by strategy.\n\nI said I gained it, --\nThis was all.\nLook, how I clutch it,\nLest it fall,\nAnd I a pauper go;\nUnfitted by an instant's grace\nFor the contented beggar's face\nI wore an hour ago."
     },
     {
         "name": "LII.",
         "path": [
             "LII."
         ],
-        "content": "To learn the transport by the pain, As blind men learn the sun; To die of thirst, suspecting That brooks in meadows run;\n\nTo stay the homesick, homesick feet Upon a foreign shore Haunted by native lands, the while, And blue, beloved air --\n\nThis is the sovereign anguish, This, the signal woe! These are the patient laureates Whose voices, trained below,\n\nAscend in ceaseless carol, Inaudible, indeed, To us, the duller scholars Of the mysterious bard!"
+        "content": "To learn the transport by the pain,\nAs blind men learn the sun;\nTo die of thirst, suspecting\nThat brooks in meadows run;\n\nTo stay the homesick, homesick feet\nUpon a foreign shore\nHaunted by native lands, the while,\nAnd blue, beloved air --\n\nThis is the sovereign anguish,\nThis, the signal woe!\nThese are the patient laureates\nWhose voices, trained below,\n\nAscend in ceaseless carol,\nInaudible, indeed,\nTo us, the duller scholars\nOf the mysterious bard!"
     },
     {
         "name": "LIII.",
         "path": [
             "LIII."
         ],
-        "content": "RETURNING.\n\nI years had been from home, And now, before the door, I dared not open, lest a face I never saw before\n\nStare vacant into mine And ask my business there. My business, -- just a life I left, Was such still dwelling there?\n\nI fumbled at my nerve, I scanned the windows near; The silence like an ocean rolled, And broke against my ear.\n\nI laughed a wooden laugh That I could fear a door, Who danger and the dead had faced, But never quaked before.\n\nI fitted to the latch My hand, with trembling care, Lest back the awful door should spring, And leave me standing there.\n\nI moved my fingers off As cautiously as glass, And held my ears, and like a thief Fled gasping from the house.\n\nLIV.\n\nPRAYER.\n\nPrayer is the little implement Through which men reach Where presence is denied them. They fling their speech\n\nBy means of it in God's ear; If then He hear, This sums the apparatus Comprised in prayer."
+        "content": "RETURNING.\n\nI years had been from home,\nAnd now, before the door,\nI dared not open, lest a face\nI never saw before\n\nStare vacant into mine\nAnd ask my business there.\nMy business, -- just a life I left,\nWas such still dwelling there?\n\nI fumbled at my nerve,\nI scanned the windows near;\nThe silence like an ocean rolled,\nAnd broke against my ear.\n\nI laughed a wooden laugh\nThat I could fear a door,\nWho danger and the dead had faced,\nBut never quaked before.\n\nI fitted to the latch\nMy hand, with trembling care,\nLest back the awful door should spring,\nAnd leave me standing there.\n\nI moved my fingers off\nAs cautiously as glass,\nAnd held my ears, and like a thief\nFled gasping from the house.\n\nLIV.\n\nPRAYER.\n\nPrayer is the little implement\nThrough which men reach\nWhere presence is denied them.\nThey fling their speech\n\nBy means of it in God's ear;\nIf then He hear,\nThis sums the apparatus\nComprised in prayer."
     },
     {
         "name": "LV.",
         "path": [
             "LV."
         ],
-        "content": "I know that he exists Somewhere, in silence. He has hid his rare life From our gross eyes.\n\n'T is an instant's play, 'T is a fond ambush, Just to make bliss Earn her own surprise!\n\nBut should the play Prove piercing earnest, Should the glee glaze In death's stiff stare,\n\nWould not the fun Look too expensive? Would not the jest Have crawled too far?"
+        "content": "I know that he exists\nSomewhere, in silence.\nHe has hid his rare life\nFrom our gross eyes.\n\n'T is an instant's play,\n'T is a fond ambush,\nJust to make bliss\nEarn her own surprise!\n\nBut should the play\nProve piercing earnest,\nShould the glee glaze\nIn death's stiff stare,\n\nWould not the fun\nLook too expensive?\nWould not the jest\nHave crawled too far?"
     },
     {
         "name": "LVI.",
         "path": [
             "LVI."
         ],
-        "content": "MELODIES UNHEARD.\n\nMusicians wrestle everywhere: All day, among the crowded air, I hear the silver strife; And -- waking long before the dawn -- Such transport breaks upon the town I think it that \"new life!\"\n\nIt is not bird, it has no nest; Nor band, in brass and scarlet dressed, Nor tambourine, nor man; It is not hymn from pulpit read, -- The morning stars the treble led On time's first afternoon!\n\nSome say it is the spheres at play! Some say that bright majority Of vanished dames and men! Some think it service in the place Where we, with late, celestial face, Please God, shall ascertain!"
+        "content": "MELODIES UNHEARD.\n\nMusicians wrestle everywhere:\nAll day, among the crowded air,\nI hear the silver strife;\nAnd -- waking long before the dawn --\nSuch transport breaks upon the town\nI think it that \"new life!\"\n\nIt is not bird, it has no nest;\nNor band, in brass and scarlet dressed,\nNor tambourine, nor man;\nIt is not hymn from pulpit read, --\nThe morning stars the treble led\nOn time's first afternoon!\n\nSome say it is the spheres at play!\nSome say that bright majority\nOf vanished dames and men!\nSome think it service in the place\nWhere we, with late, celestial face,\nPlease God, shall ascertain!"
     },
     {
         "name": "LVII.",
         "path": [
             "LVII."
         ],
-        "content": "CALLED BACK.\n\nJust lost when I was saved! Just felt the world go by! Just girt me for the onset with eternity, When breath blew back, And on the other side I heard recede the disappointed tide!\n\nTherefore, as one returned, I feel, Odd secrets of the line to tell! Some sailor, skirting foreign shores, Some pale reporter from the awful doors Before the seal!\n\nNext time, to stay! Next time, the things to see By ear unheard, Unscrutinized by eye.\n\nNext time, to tarry, While the ages steal, -- Slow tramp the centuries, And the cycles wheel.\n\nII. LOVE."
+        "content": "CALLED BACK.\n\nJust lost when I was saved!\nJust felt the world go by!\nJust girt me for the onset with eternity,\nWhen breath blew back,\nAnd on the other side\nI heard recede the disappointed tide!\n\nTherefore, as one returned, I feel,\nOdd secrets of the line to tell!\nSome sailor, skirting foreign shores,\nSome pale reporter from the awful doors\nBefore the seal!\n\nNext time, to stay!\nNext time, the things to see\nBy ear unheard,\nUnscrutinized by eye.\n\nNext time, to tarry,\nWhile the ages steal, --\nSlow tramp the centuries,\nAnd the cycles wheel.\n\nII. LOVE."
     },
     {
         "name": "I.",
         "path": [
             "I."
         ],
-        "content": "CHOICE.\n\nOf all the souls that stand create I have elected one. When sense from spirit files away, And subterfuge is done;\n\nWhen that which is and that which was Apart, intrinsic, stand, And this brief tragedy of flesh Is shifted like a sand;\n\nWhen figures show their royal front And mists are carved away, -- Behold the atom I preferred To all the lists of clay!\n\nII.\n\nI have no life but this, To lead it here; Nor any death, but lest Dispelled from there;\n\nNor tie to earths to come, Nor action new, Except through this extent, The realm of you."
+        "content": "CHOICE.\n\nOf all the souls that stand create\nI have elected one.\nWhen sense from spirit files away,\nAnd subterfuge is done;\n\nWhen that which is and that which was\nApart, intrinsic, stand,\nAnd this brief tragedy of flesh\nIs shifted like a sand;\n\nWhen figures show their royal front\nAnd mists are carved away, --\nBehold the atom I preferred\nTo all the lists of clay!\n\nII.\n\nI have no life but this,\nTo lead it here;\nNor any death, but lest\nDispelled from there;\n\nNor tie to earths to come,\nNor action new,\nExcept through this extent,\nThe realm of you."
     },
     {
         "name": "III.",
         "path": [
             "III."
         ],
-        "content": "Your riches taught me poverty. Myself a millionnaire In little wealths, -- as girls could boast, -- Till broad as Buenos Ayre,\n\nYou drifted your dominions A different Peru; And I esteemed all poverty, For life's estate with you.\n\nOf mines I little know, myself, But just the names of gems, -- The colors of the commonest; And scarce of diadems\n\nSo much that, did I meet the queen, Her glory I should know: But this must be a different wealth, To miss it beggars so.\n\nI 'm sure 't is India all day To those who look on you Without a stint, without a blame, -- Might I but be the Jew!\n\nI 'm sure it is Golconda, Beyond my power to deem, -- To have a smile for mine each day, How better than a gem!\n\nAt least, it solaces to know That there exists a gold, Although I prove it just in time Its distance to behold!\n\nIt 's far, far treasure to surmise, And estimate the pearl That slipped my simple fingers through While just a girl at school!"
+        "content": "Your riches taught me poverty.\nMyself a millionnaire\nIn little wealths, -- as girls could boast, --\nTill broad as Buenos Ayre,\n\nYou drifted your dominions\nA different Peru;\nAnd I esteemed all poverty,\nFor life's estate with you.\n\nOf mines I little know, myself,\nBut just the names of gems, --\nThe colors of the commonest;\nAnd scarce of diadems\n\nSo much that, did I meet the queen,\nHer glory I should know:\nBut this must be a different wealth,\nTo miss it beggars so.\n\nI 'm sure 't is India all day\nTo those who look on you\nWithout a stint, without a blame, --\nMight I but be the Jew!\n\nI 'm sure it is Golconda,\nBeyond my power to deem, --\nTo have a smile for mine each day,\nHow better than a gem!\n\nAt least, it solaces to know\nThat there exists a gold,\nAlthough I prove it just in time\nIts distance to behold!\n\nIt 's far, far treasure to surmise,\nAnd estimate the pearl\nThat slipped my simple fingers through\nWhile just a girl at school!"
     },
     {
         "name": "IV.",
         "path": [
             "IV."
         ],
-        "content": "THE CONTRACT.\n\nI gave myself to him, And took himself for pay. The solemn contract of a life Was ratified this way.\n\nThe wealth might disappoint, Myself a poorer prove Than this great purchaser suspect, The daily own of Love\n\nDepreciate the vision; But, till the merchant buy, Still fable, in the isles of spice, The subtle cargoes lie.\n\nAt least, 't is mutual risk, -- Some found it mutual gain; Sweet debt of Life, -- each night to owe, Insolvent, every noon."
+        "content": "THE CONTRACT.\n\nI gave myself to him,\nAnd took himself for pay.\nThe solemn contract of a life\nWas ratified this way.\n\nThe wealth might disappoint,\nMyself a poorer prove\nThan this great purchaser suspect,\nThe daily own of Love\n\nDepreciate the vision;\nBut, till the merchant buy,\nStill fable, in the isles of spice,\nThe subtle cargoes lie.\n\nAt least, 't is mutual risk, --\nSome found it mutual gain;\nSweet debt of Life, -- each night to owe,\nInsolvent, every noon."
     },
     {
         "name": "V.",
         "path": [
             "V."
         ],
-        "content": "THE LETTER.\n\n\"GOING to him! Happy letter! Tell him -- Tell him the page I didn't write; Tell him I only said the syntax, And left the verb and the pronoun out. Tell him just how the fingers hurried, Then how they waded, slow, slow, slow; And then you wished you had eyes in your pages, So you could see what moved them so.\n\n\"Tell him it wasn't a practised writer, You guessed, from the way the sentence toiled; You could hear the bodice tug, behind you, As if it held but the might of a child; You almost pitied it, you, it worked so. Tell him -- No, you may quibble there, For it would split his heart to know it, And then you and I were silenter.\n\n\"Tell him night finished before we finished, And the old clock kept neighing 'day!' And you got sleepy and begged to be ended -- What could it hinder so, to say? Tell him just how she sealed you, cautious, But if he ask where you are hid Until to-morrow, -- happy letter! Gesture, coquette, and shake your head!\""
+        "content": "THE LETTER.\n\n\"GOING to him! Happy letter! Tell him --\nTell him the page I didn't write;\nTell him I only said the syntax,\nAnd left the verb and the pronoun out.\nTell him just how the fingers hurried,\nThen how they waded, slow, slow, slow;\nAnd then you wished you had eyes in your pages,\nSo you could see what moved them so.\n\n\"Tell him it wasn't a practised writer,\nYou guessed, from the way the sentence toiled;\nYou could hear the bodice tug, behind you,\nAs if it held but the might of a child;\nYou almost pitied it, you, it worked so.\nTell him -- No, you may quibble there,\nFor it would split his heart to know it,\nAnd then you and I were silenter.\n\n\"Tell him night finished before we finished,\nAnd the old clock kept neighing 'day!'\nAnd you got sleepy and begged to be ended --\nWhat could it hinder so, to say?\nTell him just how she sealed you, cautious,\nBut if he ask where you are hid\nUntil to-morrow, -- happy letter!\nGesture, coquette, and shake your head!\""
     },
     {
         "name": "VI.",
         "path": [
             "VI."
         ],
-        "content": "The way I read a letter 's this: 'T is first I lock the door, And push it with my fingers next, For transport it be sure.\n\nAnd then I go the furthest off To counteract a knock; Then draw my little letter forth And softly pick its lock.\n\nThen, glancing narrow at the wall, And narrow at the floor, For firm conviction of a mouse Not exorcised before,\n\nPeruse how infinite I am To -- no one that you know! And sigh for lack of heaven, -- but not The heaven the creeds bestow.\n\nVII.\n\nWild nights! Wild nights! Were I with thee, Wild nights should be Our luxury!\n\nFutile the winds To a heart in port, -- Done with the compass, Done with the chart.\n\nRowing in Eden! Ah! the sea! Might I but moor To-night in thee!"
+        "content": "The way I read a letter 's this:\n'T is first I lock the door,\nAnd push it with my fingers next,\nFor transport it be sure.\n\nAnd then I go the furthest off\nTo counteract a knock;\nThen draw my little letter forth\nAnd softly pick its lock.\n\nThen, glancing narrow at the wall,\nAnd narrow at the floor,\nFor firm conviction of a mouse\nNot exorcised before,\n\nPeruse how infinite I am\nTo -- no one that you know!\nAnd sigh for lack of heaven, -- but not\nThe heaven the creeds bestow.\n\nVII.\n\nWild nights! Wild nights!\nWere I with thee,\nWild nights should be\nOur luxury!\n\nFutile the winds\nTo a heart in port, --\nDone with the compass,\nDone with the chart.\n\nRowing in Eden!\nAh! the sea!\nMight I but moor\nTo-night in thee!"
     },
     {
         "name": "VIII.",
         "path": [
             "VIII."
         ],
-        "content": "AT HOME.\n\nThe night was wide, and furnished scant With but a single star, That often as a cloud it met Blew out itself for fear.\n\nThe wind pursued the little bush, And drove away the leaves November left; then clambered up And fretted in the eaves.\n\nNo squirrel went abroad; A dog's belated feet Like intermittent plush were heard Adown the empty street.\n\nTo feel if blinds be fast, And closer to the fire Her little rocking-chair to draw, And shiver for the poor,\n\nThe housewife's gentle task. \"How pleasanter,\" said she Unto the sofa opposite, \"The sleet than May -- no thee!\"\n\nIX.\n\nPOSSESSION.\n\nDid the harebell loose her girdle To the lover bee, Would the bee the harebell hallow Much as formerly?\n\nDid the paradise, persuaded, Yield her moat of pearl, Would the Eden be an Eden, Or the earl an earl?\n\nX.\n\nA charm invests a face Imperfectly beheld, -- The lady dare not lift her veil For fear it be dispelled.\n\nBut peers beyond her mesh, And wishes, and denies, -- Lest interview annul a want That image satisfies."
+        "content": "AT HOME.\n\nThe night was wide, and furnished scant\nWith but a single star,\nThat often as a cloud it met\nBlew out itself for fear.\n\nThe wind pursued the little bush,\nAnd drove away the leaves\nNovember left; then clambered up\nAnd fretted in the eaves.\n\nNo squirrel went abroad;\nA dog's belated feet\nLike intermittent plush were heard\nAdown the empty street.\n\nTo feel if blinds be fast,\nAnd closer to the fire\nHer little rocking-chair to draw,\nAnd shiver for the poor,\n\nThe housewife's gentle task.\n\"How pleasanter,\" said she\nUnto the sofa opposite,\n\"The sleet than May -- no thee!\"\n\nIX.\n\nPOSSESSION.\n\nDid the harebell loose her girdle\nTo the lover bee,\nWould the bee the harebell hallow\nMuch as formerly?\n\nDid the paradise, persuaded,\nYield her moat of pearl,\nWould the Eden be an Eden,\nOr the earl an earl?\n\nX.\n\nA charm invests a face\nImperfectly beheld, --\nThe lady dare not lift her veil\nFor fear it be dispelled.\n\nBut peers beyond her mesh,\nAnd wishes, and denies, --\nLest interview annul a want\nThat image satisfies."
     },
     {
         "name": "XI.",
         "path": [
             "XI."
         ],
-        "content": "THE LOVERS.\n\nThe rose did caper on her cheek, Her bodice rose and fell, Her pretty speech, like drunken men, Did stagger pitiful.\n\nHer fingers fumbled at her work, -- Her needle would not go; What ailed so smart a little maid It puzzled me to know,\n\nTill opposite I spied a cheek That bore another rose; Just opposite, another speech That like the drunkard goes;\n\nA vest that, like the bodice, danced To the immortal tune, -- Till those two troubled little clocks Ticked softly into one.\n\nXII.\n\nIn lands I never saw, they say, Immortal Alps look down, Whose bonnets touch the firmament, Whose sandals touch the town, --\n\nMeek at whose everlasting feet A myriad daisies play. Which, sir, are you, and which am I, Upon an August day?"
+        "content": "THE LOVERS.\n\nThe rose did caper on her cheek,\nHer bodice rose and fell,\nHer pretty speech, like drunken men,\nDid stagger pitiful.\n\nHer fingers fumbled at her work, --\nHer needle would not go;\nWhat ailed so smart a little maid\nIt puzzled me to know,\n\nTill opposite I spied a cheek\nThat bore another rose;\nJust opposite, another speech\nThat like the drunkard goes;\n\nA vest that, like the bodice, danced\nTo the immortal tune, --\nTill those two troubled little clocks\nTicked softly into one.\n\nXII.\n\nIn lands I never saw, they say,\nImmortal Alps look down,\nWhose bonnets touch the firmament,\nWhose sandals touch the town, --\n\nMeek at whose everlasting feet\nA myriad daisies play.\nWhich, sir, are you, and which am I,\nUpon an August day?"
     },
     {
         "name": "XIII.",
         "path": [
             "XIII."
         ],
-        "content": "The moon is distant from the sea, And yet with amber hands She leads him, docile as a boy, Along appointed sands.\n\nHe never misses a degree; Obedient to her eye, He comes just so far toward the town, Just so far goes away.\n\nOh, Signor, thine the amber hand, And mine the distant sea, -- Obedient to the least command Thine eyes impose on me."
+        "content": "The moon is distant from the sea,\nAnd yet with amber hands\nShe leads him, docile as a boy,\nAlong appointed sands.\n\nHe never misses a degree;\nObedient to her eye,\nHe comes just so far toward the town,\nJust so far goes away.\n\nOh, Signor, thine the amber hand,\nAnd mine the distant sea, --\nObedient to the least command\nThine eyes impose on me."
     },
     {
         "name": "XIV.",
         "path": [
             "XIV."
         ],
-        "content": "He put the belt around my life, -- I heard the buckle snap, And turned away, imperial, My lifetime folding up Deliberate, as a duke would do A kingdom's title-deed, -- Henceforth a dedicated sort, A member of the cloud.\n\nYet not too far to come at call, And do the little toils That make the circuit of the rest, And deal occasional smiles To lives that stoop to notice mine And kindly ask it in, -- Whose invitation, knew you not For whom I must decline?\n\nXV.\n\nTHE LOST JEWEL.\n\nI held a jewel in my fingers And went to sleep. The day was warm, and winds were prosy; I said: \"'T will keep.\"\n\nI woke and chid my honest fingers, -- The gem was gone; And now an amethyst remembrance Is all I own."
+        "content": "He put the belt around my life, --\nI heard the buckle snap,\nAnd turned away, imperial,\nMy lifetime folding up\nDeliberate, as a duke would do\nA kingdom's title-deed, --\nHenceforth a dedicated sort,\nA member of the cloud.\n\nYet not too far to come at call,\nAnd do the little toils\nThat make the circuit of the rest,\nAnd deal occasional smiles\nTo lives that stoop to notice mine\nAnd kindly ask it in, --\nWhose invitation, knew you not\nFor whom I must decline?\n\nXV.\n\nTHE LOST JEWEL.\n\nI held a jewel in my fingers\nAnd went to sleep.\nThe day was warm, and winds were prosy;\nI said: \"'T will keep.\"\n\nI woke and chid my honest fingers, --\nThe gem was gone;\nAnd now an amethyst remembrance\nIs all I own."
     },
     {
         "name": "XVI.",
         "path": [
             "XVI."
         ],
-        "content": "What if I say I shall not wait? What if I burst the fleshly gate And pass, escaped, to thee? What if I file this mortal off, See where it hurt me, -- that 's enough, -- And wade in liberty?\n\nThey cannot take us any more, -- Dungeons may call, and guns implore; Unmeaning now, to me, As laughter was an hour ago, Or laces, or a travelling show, Or who died yesterday!\n\nIII. NATURE."
+        "content": "What if I say I shall not wait?\nWhat if I burst the fleshly gate\nAnd pass, escaped, to thee?\nWhat if I file this mortal off,\nSee where it hurt me, -- that 's enough, --\nAnd wade in liberty?\n\nThey cannot take us any more, --\nDungeons may call, and guns implore;\nUnmeaning now, to me,\nAs laughter was an hour ago,\nOr laces, or a travelling show,\nOr who died yesterday!\n\nIII. NATURE."
     },
     {
         "name": "I.",
         "path": [
             "I."
         ],
-        "content": "MOTHER NATURE.\n\nNature, the gentlest mother, Impatient of no child, The feeblest or the waywardest, -- Her admonition mild\n\nIn forest and the hill By traveller is heard, Restraining rampant squirrel Or too impetuous bird.\n\nHow fair her conversation, A summer afternoon, -- Her household, her assembly; And when the sun goes down\n\nHer voice among the aisles Incites the timid prayer Of the minutest cricket, The most unworthy flower.\n\nWhen all the children sleep She turns as long away As will suffice to light her lamps; Then, bending from the sky\n\nWith infinite affection And infiniter care, Her golden finger on her lip, Wills silence everywhere."
+        "content": "MOTHER NATURE.\n\nNature, the gentlest mother,\nImpatient of no child,\nThe feeblest or the waywardest, --\nHer admonition mild\n\nIn forest and the hill\nBy traveller is heard,\nRestraining rampant squirrel\nOr too impetuous bird.\n\nHow fair her conversation,\nA summer afternoon, --\nHer household, her assembly;\nAnd when the sun goes down\n\nHer voice among the aisles\nIncites the timid prayer\nOf the minutest cricket,\nThe most unworthy flower.\n\nWhen all the children sleep\nShe turns as long away\nAs will suffice to light her lamps;\nThen, bending from the sky\n\nWith infinite affection\nAnd infiniter care,\nHer golden finger on her lip,\nWills silence everywhere."
     },
     {
         "name": "II.",
         "path": [
             "II."
         ],
-        "content": "OUT OF THE MORNING.\n\nWill there really be a morning? Is there such a thing as day? Could I see it from the mountains If I were as tall as they?\n\nHas it feet like water-lilies? Has it feathers like a bird? Is it brought from famous countries Of which I have never heard?\n\nOh, some scholar! Oh, some sailor! Oh, some wise man from the skies! Please to tell a little pilgrim Where the place called morning lies!"
+        "content": "OUT OF THE MORNING.\n\nWill there really be a morning?\nIs there such a thing as day?\nCould I see it from the mountains\nIf I were as tall as they?\n\nHas it feet like water-lilies?\nHas it feathers like a bird?\nIs it brought from famous countries\nOf which I have never heard?\n\nOh, some scholar! Oh, some sailor!\nOh, some wise man from the skies!\nPlease to tell a little pilgrim\nWhere the place called morning lies!"
     },
     {
         "name": "III.",
         "path": [
             "III."
         ],
-        "content": "At half-past three a single bird Unto a silent sky Propounded but a single term Of cautious melody.\n\nAt half-past four, experiment Had subjugated test, And lo! her silver principle Supplanted all the rest.\n\nAt half-past seven, element Nor implement was seen, And place was where the presence was, Circumference between."
+        "content": "At half-past three a single bird\nUnto a silent sky\nPropounded but a single term\nOf cautious melody.\n\nAt half-past four, experiment\nHad subjugated test,\nAnd lo! her silver principle\nSupplanted all the rest.\n\nAt half-past seven, element\nNor implement was seen,\nAnd place was where the presence was,\nCircumference between."
     },
     {
         "name": "IV.",
         "path": [
             "IV."
         ],
-        "content": "DAY'S PARLOR.\n\nThe day came slow, till five o'clock, Then sprang before the hills Like hindered rubies, or the light A sudden musket spills.\n\nThe purple could not keep the east, The sunrise shook from fold, Like breadths of topaz, packed a night, The lady just unrolled.\n\nThe happy winds their timbrels took; The birds, in docile rows, Arranged themselves around their prince (The wind is prince of those).\n\nThe orchard sparkled like a Jew, -- How mighty 't was, to stay A guest in this stupendous place, The parlor of the day!"
+        "content": "DAY'S PARLOR.\n\nThe day came slow, till five o'clock,\nThen sprang before the hills\nLike hindered rubies, or the light\nA sudden musket spills.\n\nThe purple could not keep the east,\nThe sunrise shook from fold,\nLike breadths of topaz, packed a night,\nThe lady just unrolled.\n\nThe happy winds their timbrels took;\nThe birds, in docile rows,\nArranged themselves around their prince\n(The wind is prince of those).\n\nThe orchard sparkled like a Jew, --\nHow mighty 't was, to stay\nA guest in this stupendous place,\nThe parlor of the day!"
     },
     {
         "name": "V.",
         "path": [
             "V."
         ],
-        "content": "THE SUN'S WOOING.\n\nThe sun just touched the morning; The morning, happy thing, Supposed that he had come to dwell, And life would be all spring.\n\nShe felt herself supremer, -- A raised, ethereal thing; Henceforth for her what holiday! Meanwhile, her wheeling king\n\nTrailed slow along the orchards His haughty, spangled hems, Leaving a new necessity, -- The want of diadems!\n\nThe morning fluttered, staggered, Felt feebly for her crown, -- Her unanointed forehead Henceforth her only one."
+        "content": "THE SUN'S WOOING.\n\nThe sun just touched the morning;\nThe morning, happy thing,\nSupposed that he had come to dwell,\nAnd life would be all spring.\n\nShe felt herself supremer, --\nA raised, ethereal thing;\nHenceforth for her what holiday!\nMeanwhile, her wheeling king\n\nTrailed slow along the orchards\nHis haughty, spangled hems,\nLeaving a new necessity, --\nThe want of diadems!\n\nThe morning fluttered, staggered,\nFelt feebly for her crown, --\nHer unanointed forehead\nHenceforth her only one."
     },
     {
         "name": "VI.",
         "path": [
             "VI."
         ],
-        "content": "THE ROBIN.\n\nThe robin is the one That interrupts the morn With hurried, few, express reports When March is scarcely on.\n\nThe robin is the one That overflows the noon With her cherubic quantity, An April but begun.\n\nThe robin is the one That speechless from her nest Submits that home and certainty And sanctity are best."
+        "content": "THE ROBIN.\n\nThe robin is the one\nThat interrupts the morn\nWith hurried, few, express reports\nWhen March is scarcely on.\n\nThe robin is the one\nThat overflows the noon\nWith her cherubic quantity,\nAn April but begun.\n\nThe robin is the one\nThat speechless from her nest\nSubmits that home and certainty\nAnd sanctity are best."
     },
     {
         "name": "VII.",
         "path": [
             "VII."
         ],
-        "content": "THE BUTTERFLY'S DAY.\n\nFrom cocoon forth a butterfly As lady from her door Emerged -- a summer afternoon -- Repairing everywhere,\n\nWithout design, that I could trace, Except to stray abroad On miscellaneous enterprise The clovers understood.\n\nHer pretty parasol was seen Contracting in a field Where men made hay, then struggling hard With an opposing cloud,\n\nWhere parties, phantom as herself, To Nowhere seemed to go In purposeless circumference, As 't were a tropic show.\n\nAnd notwithstanding bee that worked, And flower that zealous blew, This audience of idleness Disdained them, from the sky,\n\nTill sundown crept, a steady tide, And men that made the hay, And afternoon, and butterfly, Extinguished in its sea."
+        "content": "THE BUTTERFLY'S DAY.\n\nFrom cocoon forth a butterfly\nAs lady from her door\nEmerged -- a summer afternoon --\nRepairing everywhere,\n\nWithout design, that I could trace,\nExcept to stray abroad\nOn miscellaneous enterprise\nThe clovers understood.\n\nHer pretty parasol was seen\nContracting in a field\nWhere men made hay, then struggling hard\nWith an opposing cloud,\n\nWhere parties, phantom as herself,\nTo Nowhere seemed to go\nIn purposeless circumference,\nAs 't were a tropic show.\n\nAnd notwithstanding bee that worked,\nAnd flower that zealous blew,\nThis audience of idleness\nDisdained them, from the sky,\n\nTill sundown crept, a steady tide,\nAnd men that made the hay,\nAnd afternoon, and butterfly,\nExtinguished in its sea."
     },
     {
         "name": "VIII.",
         "path": [
             "VIII."
         ],
-        "content": "THE BLUEBIRD.\n\nBefore you thought of spring, Except as a surmise, You see, God bless his suddenness, A fellow in the skies Of independent hues, A little weather-worn, Inspiriting habiliments Of indigo and brown.\n\nWith specimens of song, As if for you to choose, Discretion in the interval, With gay delays he goes To some superior tree Without a single leaf, And shouts for joy to nobody But his seraphic self!"
+        "content": "THE BLUEBIRD.\n\nBefore you thought of spring,\nExcept as a surmise,\nYou see, God bless his suddenness,\nA fellow in the skies\nOf independent hues,\nA little weather-worn,\nInspiriting habiliments\nOf indigo and brown.\n\nWith specimens of song,\nAs if for you to choose,\nDiscretion in the interval,\nWith gay delays he goes\nTo some superior tree\nWithout a single leaf,\nAnd shouts for joy to nobody\nBut his seraphic self!"
     },
     {
         "name": "IX.",
         "path": [
             "IX."
         ],
-        "content": "APRIL.\n\nAn altered look about the hills; A Tyrian light the village fills; A wider sunrise in the dawn; A deeper twilight on the lawn; A print of a vermilion foot; A purple finger on the slope; A flippant fly upon the pane; A spider at his trade again; An added strut in chanticleer; A flower expected everywhere; An axe shrill singing in the woods; Fern-odors on untravelled roads, -- All this, and more I cannot tell, A furtive look you know as well, And Nicodemus' mystery Receives its annual reply."
+        "content": "APRIL.\n\nAn altered look about the hills;\nA Tyrian light the village fills;\nA wider sunrise in the dawn;\nA deeper twilight on the lawn;\nA print of a vermilion foot;\nA purple finger on the slope;\nA flippant fly upon the pane;\nA spider at his trade again;\nAn added strut in chanticleer;\nA flower expected everywhere;\nAn axe shrill singing in the woods;\nFern-odors on untravelled roads, --\nAll this, and more I cannot tell,\nA furtive look you know as well,\nAnd Nicodemus' mystery\nReceives its annual reply."
     },
     {
         "name": "X.",
         "path": [
             "X."
         ],
-        "content": "THE SLEEPING FLOWERS.\n\n\"Whose are the little beds,\" I asked, \"Which in the valleys lie?\" Some shook their heads, and others smiled, And no one made reply.\n\n\"Perhaps they did not hear,\" I said; \"I will inquire again. Whose are the beds, the tiny beds So thick upon the plain?\"\n\n\"'T is daisy in the shortest; A little farther on, Nearest the door to wake the first, Little leontodon.\n\n\"'T is iris, sir, and aster, Anemone and bell, Batschia in the blanket red, And chubby daffodil.\"\n\nMeanwhile at many cradles Her busy foot she plied, Humming the quaintest lullaby That ever rocked a child.\n\n\"Hush! Epigea wakens! -- The crocus stirs her lids, Rhodora's cheek is crimson, -- She's dreaming of the woods.\"\n\nThen, turning from them, reverent, \"Their bed-time 't is,\" she said; \"The bumble-bees will wake them When April woods are red.\""
+        "content": "THE SLEEPING FLOWERS.\n\n\"Whose are the little beds,\" I asked,\n\"Which in the valleys lie?\"\nSome shook their heads, and others smiled,\nAnd no one made reply.\n\n\"Perhaps they did not hear,\" I said;\n\"I will inquire again.\nWhose are the beds, the tiny beds\nSo thick upon the plain?\"\n\n\"'T is daisy in the shortest;\nA little farther on,\nNearest the door to wake the first,\nLittle leontodon.\n\n\"'T is iris, sir, and aster,\nAnemone and bell,\nBatschia in the blanket red,\nAnd chubby daffodil.\"\n\nMeanwhile at many cradles\nHer busy foot she plied,\nHumming the quaintest lullaby\nThat ever rocked a child.\n\n\"Hush! Epigea wakens! --\nThe crocus stirs her lids,\nRhodora's cheek is crimson, --\nShe's dreaming of the woods.\"\n\nThen, turning from them, reverent,\n\"Their bed-time 't is,\" she said;\n\"The bumble-bees will wake them\nWhen April woods are red.\""
     },
     {
         "name": "XI.",
         "path": [
             "XI."
         ],
-        "content": "MY ROSE.\n\nPigmy seraphs gone astray, Velvet people from Vevay, Belles from some lost summer day, Bees' exclusive coterie. Paris could not lay the fold Belted down with emerald; Venice could not show a cheek Of a tint so lustrous meek. Never such an ambuscade As of brier and leaf displayed For my little damask maid. I had rather wear her grace Than an earl's distinguished face; I had rather dwell like her Than be Duke of Exeter Royalty enough for me To subdue the bumble-bee!"
+        "content": "MY ROSE.\n\nPigmy seraphs gone astray,\nVelvet people from Vevay,\nBelles from some lost summer day,\nBees' exclusive coterie.\nParis could not lay the fold\nBelted down with emerald;\nVenice could not show a cheek\nOf a tint so lustrous meek.\nNever such an ambuscade\nAs of brier and leaf displayed\nFor my little damask maid.\nI had rather wear her grace\nThan an earl's distinguished face;\nI had rather dwell like her\nThan be Duke of Exeter\nRoyalty enough for me\nTo subdue the bumble-bee!"
     },
     {
         "name": "XII.",
         "path": [
             "XII."
         ],
-        "content": "THE ORIOLE'S SECRET.\n\nTo hear an oriole sing May be a common thing, Or only a divine.\n\nIt is not of the bird Who sings the same, unheard, As unto crowd.\n\nThe fashion of the ear Attireth that it hear In dun or fair.\n\nSo whether it be rune, Or whether it be none, Is of within;\n\nThe \"tune is in the tree,\" The sceptic showeth me; \"No, sir! In thee!\""
+        "content": "THE ORIOLE'S SECRET.\n\nTo hear an oriole sing\nMay be a common thing,\nOr only a divine.\n\nIt is not of the bird\nWho sings the same, unheard,\nAs unto crowd.\n\nThe fashion of the ear\nAttireth that it hear\nIn dun or fair.\n\nSo whether it be rune,\nOr whether it be none,\nIs of within;\n\nThe \"tune is in the tree,\"\nThe sceptic showeth me;\n\"No, sir! In thee!\""
     },
     {
         "name": "XIII.",
         "path": [
             "XIII."
         ],
-        "content": "THE ORIOLE.\n\nOne of the ones that Midas touched, Who failed to touch us all, Was that confiding prodigal, The blissful oriole.\n\nSo drunk, he disavows it With badinage divine; So dazzling, we mistake him For an alighting mine.\n\nA pleader, a dissembler, An epicure, a thief, -- Betimes an oratorio, An ecstasy in chief;\n\nThe Jesuit of orchards, He cheats as he enchants Of an entire attar For his decamping wants.\n\nThe splendor of a Burmah, The meteor of birds, Departing like a pageant Of ballads and of bards.\n\nI never thought that Jason sought For any golden fleece; But then I am a rural man, With thoughts that make for peace.\n\nBut if there were a Jason, Tradition suffer me Behold his lost emolument Upon the apple-tree."
+        "content": "THE ORIOLE.\n\nOne of the ones that Midas touched,\nWho failed to touch us all,\nWas that confiding prodigal,\nThe blissful oriole.\n\nSo drunk, he disavows it\nWith badinage divine;\nSo dazzling, we mistake him\nFor an alighting mine.\n\nA pleader, a dissembler,\nAn epicure, a thief, --\nBetimes an oratorio,\nAn ecstasy in chief;\n\nThe Jesuit of orchards,\nHe cheats as he enchants\nOf an entire attar\nFor his decamping wants.\n\nThe splendor of a Burmah,\nThe meteor of birds,\nDeparting like a pageant\nOf ballads and of bards.\n\nI never thought that Jason sought\nFor any golden fleece;\nBut then I am a rural man,\nWith thoughts that make for peace.\n\nBut if there were a Jason,\nTradition suffer me\nBehold his lost emolument\nUpon the apple-tree."
     },
     {
         "name": "XIV.",
         "path": [
             "XIV."
         ],
-        "content": "IN SHADOW.\n\nI dreaded that first robin so, But he is mastered now, And I 'm accustomed to him grown, -- He hurts a little, though.\n\nI thought if I could only live Till that first shout got by, Not all pianos in the woods Had power to mangle me.\n\nI dared not meet the daffodils, For fear their yellow gown Would pierce me with a fashion So foreign to my own.\n\nI wished the grass would hurry, So when 't was time to see, He 'd be too tall, the tallest one Could stretch to look at me.\n\nI could not bear the bees should come, I wished they 'd stay away In those dim countries where they go: What word had they for me?\n\nThey 're here, though; not a creature failed, No blossom stayed away In gentle deference to me, The Queen of Calvary.\n\nEach one salutes me as he goes, And I my childish plumes Lift, in bereaved acknowledgment Of their unthinking drums.\n\nXV.\n\nTHE HUMMING-BIRD.\n\nA route of evanescence With a revolving wheel; A resonance of emerald, A rush of cochineal; And every blossom on the bush Adjusts its tumbled head, -- The mail from Tunis, probably, An easy morning's ride."
+        "content": "IN SHADOW.\n\nI dreaded that first robin so,\nBut he is mastered now,\nAnd I 'm accustomed to him grown, --\nHe hurts a little, though.\n\nI thought if I could only live\nTill that first shout got by,\nNot all pianos in the woods\nHad power to mangle me.\n\nI dared not meet the daffodils,\nFor fear their yellow gown\nWould pierce me with a fashion\nSo foreign to my own.\n\nI wished the grass would hurry,\nSo when 't was time to see,\nHe 'd be too tall, the tallest one\nCould stretch to look at me.\n\nI could not bear the bees should come,\nI wished they 'd stay away\nIn those dim countries where they go:\nWhat word had they for me?\n\nThey 're here, though; not a creature failed,\nNo blossom stayed away\nIn gentle deference to me,\nThe Queen of Calvary.\n\nEach one salutes me as he goes,\nAnd I my childish plumes\nLift, in bereaved acknowledgment\nOf their unthinking drums.\n\nXV.\n\nTHE HUMMING-BIRD.\n\nA route of evanescence\nWith a revolving wheel;\nA resonance of emerald,\nA rush of cochineal;\nAnd every blossom on the bush\nAdjusts its tumbled head, --\nThe mail from Tunis, probably,\nAn easy morning's ride."
     },
     {
         "name": "XVI.",
         "path": [
             "XVI."
         ],
-        "content": "SECRETS.\n\nThe skies can't keep their secret! They tell it to the hills -- The hills just tell the orchards -- And they the daffodils!\n\nA bird, by chance, that goes that way Soft overheard the whole. If I should bribe the little bird, Who knows but she would tell?\n\nI think I won't, however, It's finer not to know; If summer were an axiom, What sorcery had snow?\n\nSo keep your secret, Father! I would not, if I could, Know what the sapphire fellows do, In your new-fashioned world!"
+        "content": "SECRETS.\n\nThe skies can't keep their secret!\nThey tell it to the hills --\nThe hills just tell the orchards --\nAnd they the daffodils!\n\nA bird, by chance, that goes that way\nSoft overheard the whole.\nIf I should bribe the little bird,\nWho knows but she would tell?\n\nI think I won't, however,\nIt's finer not to know;\nIf summer were an axiom,\nWhat sorcery had snow?\n\nSo keep your secret, Father!\nI would not, if I could,\nKnow what the sapphire fellows do,\nIn your new-fashioned world!"
     },
     {
         "name": "XVII.",
         "path": [
             "XVII."
         ],
-        "content": "Who robbed the woods, The trusting woods? The unsuspecting trees Brought out their burrs and mosses His fantasy to please. He scanned their trinkets, curious, He grasped, he bore away. What will the solemn hemlock, What will the fir-tree say?"
+        "content": "Who robbed the woods,\nThe trusting woods?\nThe unsuspecting trees\nBrought out their burrs and mosses\nHis fantasy to please.\nHe scanned their trinkets, curious,\nHe grasped, he bore away.\nWhat will the solemn hemlock,\nWhat will the fir-tree say?"
     },
     {
         "name": "XVIII.",
         "path": [
             "XVIII."
         ],
-        "content": "TWO VOYAGERS.\n\nTwo butterflies went out at noon And waltzed above a stream, Then stepped straight through the firmament And rested on a beam;\n\nAnd then together bore away Upon a shining sea, -- Though never yet, in any port, Their coming mentioned be.\n\nIf spoken by the distant bird, If met in ether sea By frigate or by merchantman, Report was not to me."
+        "content": "TWO VOYAGERS.\n\nTwo butterflies went out at noon\nAnd waltzed above a stream,\nThen stepped straight through the firmament\nAnd rested on a beam;\n\nAnd then together bore away\nUpon a shining sea, --\nThough never yet, in any port,\nTheir coming mentioned be.\n\nIf spoken by the distant bird,\nIf met in ether sea\nBy frigate or by merchantman,\nReport was not to me."
     },
     {
         "name": "XIX.",
         "path": [
             "XIX."
         ],
-        "content": "BY THE SEA.\n\nI started early, took my dog, And visited the sea; The mermaids in the basement Came out to look at me,\n\nAnd frigates in the upper floor Extended hempen hands, Presuming me to be a mouse Aground, upon the sands.\n\nBut no man moved me till the tide Went past my simple shoe, And past my apron and my belt, And past my bodice too,\n\nAnd made as he would eat me up As wholly as a dew Upon a dandelion's sleeve -- And then I started too.\n\nAnd he -- he followed close behind; I felt his silver heel Upon my ankle, -- then my shoes Would overflow with pearl.\n\nUntil we met the solid town, No man he seemed to know; And bowing with a mighty look At me, the sea withdrew."
+        "content": "BY THE SEA.\n\nI started early, took my dog,\nAnd visited the sea;\nThe mermaids in the basement\nCame out to look at me,\n\nAnd frigates in the upper floor\nExtended hempen hands,\nPresuming me to be a mouse\nAground, upon the sands.\n\nBut no man moved me till the tide\nWent past my simple shoe,\nAnd past my apron and my belt,\nAnd past my bodice too,\n\nAnd made as he would eat me up\nAs wholly as a dew\nUpon a dandelion's sleeve --\nAnd then I started too.\n\nAnd he -- he followed close behind;\nI felt his silver heel\nUpon my ankle, -- then my shoes\nWould overflow with pearl.\n\nUntil we met the solid town,\nNo man he seemed to know;\nAnd bowing with a mighty look\nAt me, the sea withdrew."
     },
     {
         "name": "XX.",
         "path": [
             "XX."
         ],
-        "content": "OLD-FASHIONED.\n\nArcturus is his other name, -- I'd rather call him star! It's so unkind of science To go and interfere!\n\nI pull a flower from the woods, -- A monster with a glass Computes the stamens in a breath, And has her in a class.\n\nWhereas I took the butterfly Aforetime in my hat, He sits erect in cabinets, The clover-bells forgot.\n\nWhat once was heaven, is zenith now. Where I proposed to go When time's brief masquerade was done, Is mapped, and charted too!\n\nWhat if the poles should frisk about And stand upon their heads! I hope I 'm ready for the worst, Whatever prank betides!\n\nPerhaps the kingdom of Heaven 's changed! I hope the children there Won't be new-fashioned when I come, And laugh at me, and stare!\n\nI hope the father in the skies Will lift his little girl, -- Old-fashioned, naughty, everything, -- Over the stile of pearl!"
+        "content": "OLD-FASHIONED.\n\nArcturus is his other name, --\nI'd rather call him star!\nIt's so unkind of science\nTo go and interfere!\n\nI pull a flower from the woods, --\nA monster with a glass\nComputes the stamens in a breath,\nAnd has her in a class.\n\nWhereas I took the butterfly\nAforetime in my hat,\nHe sits erect in cabinets,\nThe clover-bells forgot.\n\nWhat once was heaven, is zenith now.\nWhere I proposed to go\nWhen time's brief masquerade was done,\nIs mapped, and charted too!\n\nWhat if the poles should frisk about\nAnd stand upon their heads!\nI hope I 'm ready for the worst,\nWhatever prank betides!\n\nPerhaps the kingdom of Heaven 's changed!\nI hope the children there\nWon't be new-fashioned when I come,\nAnd laugh at me, and stare!\n\nI hope the father in the skies\nWill lift his little girl, --\nOld-fashioned, naughty, everything, --\nOver the stile of pearl!"
     },
     {
         "name": "XXI.",
         "path": [
             "XXI."
         ],
-        "content": "A TEMPEST.\n\nAn awful tempest mashed the air, The clouds were gaunt and few; A black, as of a spectre's cloak, Hid heaven and earth from view.\n\nThe creatures chuckled on the roofs And whistled in the air, And shook their fists and gnashed their teeth. And swung their frenzied hair.\n\nThe morning lit, the birds arose; The monster's faded eyes Turned slowly to his native coast, And peace was Paradise!"
+        "content": "A TEMPEST.\n\nAn awful tempest mashed the air,\nThe clouds were gaunt and few;\nA black, as of a spectre's cloak,\nHid heaven and earth from view.\n\nThe creatures chuckled on the roofs\nAnd whistled in the air,\nAnd shook their fists and gnashed their teeth.\nAnd swung their frenzied hair.\n\nThe morning lit, the birds arose;\nThe monster's faded eyes\nTurned slowly to his native coast,\nAnd peace was Paradise!"
     },
     {
         "name": "XXIII.",
         "path": [
             "XXIII."
         ],
-        "content": "IN THE GARDEN.\n\nA bird came down the walk: He did not know I saw; He bit an angle-worm in halves And ate the fellow, raw.\n\nAnd then he drank a dew From a convenient grass, And then hopped sidewise to the wall To let a beetle pass.\n\nHe glanced with rapid eyes That hurried all abroad, -- They looked like frightened beads, I thought; He stirred his velvet head\n\nLike one in danger; cautious, I offered him a crumb, And he unrolled his feathers And rowed him softer home\n\nThan oars divide the ocean, Too silver for a seam, Or butterflies, off banks of noon, Leap, splashless, as they swim."
+        "content": "IN THE GARDEN.\n\nA bird came down the walk:\nHe did not know I saw;\nHe bit an angle-worm in halves\nAnd ate the fellow, raw.\n\nAnd then he drank a dew\nFrom a convenient grass,\nAnd then hopped sidewise to the wall\nTo let a beetle pass.\n\nHe glanced with rapid eyes\nThat hurried all abroad, --\nThey looked like frightened beads, I thought;\nHe stirred his velvet head\n\nLike one in danger; cautious,\nI offered him a crumb,\nAnd he unrolled his feathers\nAnd rowed him softer home\n\nThan oars divide the ocean,\nToo silver for a seam,\nOr butterflies, off banks of noon,\nLeap, splashless, as they swim."
     },
     {
         "name": "XXIV.",
         "path": [
             "XXIV."
         ],
-        "content": "THE SNAKE.\n\nA narrow fellow in the grass Occasionally rides; You may have met him, -- did you not, His notice sudden is.\n\nThe grass divides as with a comb, A spotted shaft is seen; And then it closes at your feet And opens further on.\n\nHe likes a boggy acre, A floor too cool for corn. Yet when a child, and barefoot, I more than once, at morn,\n\nHave passed, I thought, a whip-lash Unbraiding in the sun, -- When, stooping to secure it, It wrinkled, and was gone.\n\nSeveral of nature's people I know, and they know me; I feel for them a transport Of cordiality;\n\nBut never met this fellow, Attended or alone, Without a tighter breathing, And zero at the bone."
+        "content": "THE SNAKE.\n\nA narrow fellow in the grass\nOccasionally rides;\nYou may have met him, -- did you not,\nHis notice sudden is.\n\nThe grass divides as with a comb,\nA spotted shaft is seen;\nAnd then it closes at your feet\nAnd opens further on.\n\nHe likes a boggy acre,\nA floor too cool for corn.\nYet when a child, and barefoot,\nI more than once, at morn,\n\nHave passed, I thought, a whip-lash\nUnbraiding in the sun, --\nWhen, stooping to secure it,\nIt wrinkled, and was gone.\n\nSeveral of nature's people\nI know, and they know me;\nI feel for them a transport\nOf cordiality;\n\nBut never met this fellow,\nAttended or alone,\nWithout a tighter breathing,\nAnd zero at the bone."
     },
     {
         "name": "XXV.",
         "path": [
             "XXV."
         ],
-        "content": "THE MUSHROOM.\n\nThe mushroom is the elf of plants, At evening it is not; At morning in a truffled hut It stops upon a spot\n\nAs if it tarried always; And yet its whole career Is shorter than a snake's delay, And fleeter than a tare.\n\n'T is vegetation's juggler, The germ of alibi; Doth like a bubble antedate, And like a bubble hie.\n\nI feel as if the grass were pleased To have it intermit; The surreptitious scion Of summer's circumspect.\n\nHad nature any outcast face, Could she a son contemn, Had nature an Iscariot, That mushroom, -- it is him."
+        "content": "THE MUSHROOM.\n\nThe mushroom is the elf of plants,\nAt evening it is not;\nAt morning in a truffled hut\nIt stops upon a spot\n\nAs if it tarried always;\nAnd yet its whole career\nIs shorter than a snake's delay,\nAnd fleeter than a tare.\n\n'T is vegetation's juggler,\nThe germ of alibi;\nDoth like a bubble antedate,\nAnd like a bubble hie.\n\nI feel as if the grass were pleased\nTo have it intermit;\nThe surreptitious scion\nOf summer's circumspect.\n\nHad nature any outcast face,\nCould she a son contemn,\nHad nature an Iscariot,\nThat mushroom, -- it is him."
     },
     {
         "name": "XXVI.",
         "path": [
             "XXVI."
         ],
-        "content": "THE STORM.\n\nThere came a wind like a bugle; It quivered through the grass, And a green chill upon the heat So ominous did pass We barred the windows and the doors As from an emerald ghost; The doom's electric moccason That very instant passed. On a strange mob of panting trees, And fences fled away, And rivers where the houses ran The living looked that day. The bell within the steeple wild The flying tidings whirled. How much can come And much can go, And yet abide the world!\n\nXXVII.\n\nTHE SPIDER.\n\nA spider sewed at night Without a light Upon an arc of white. If ruff it was of dame Or shroud of gnome, Himself, himself inform. Of immortality His strategy Was physiognomy."
+        "content": "THE STORM.\n\nThere came a wind like a bugle;\nIt quivered through the grass,\nAnd a green chill upon the heat\nSo ominous did pass\nWe barred the windows and the doors\nAs from an emerald ghost;\nThe doom's electric moccason\nThat very instant passed.\nOn a strange mob of panting trees,\nAnd fences fled away,\nAnd rivers where the houses ran\nThe living looked that day.\nThe bell within the steeple wild\nThe flying tidings whirled.\nHow much can come\nAnd much can go,\nAnd yet abide the world!\n\nXXVII.\n\nTHE SPIDER.\n\nA spider sewed at night\nWithout a light\nUpon an arc of white.\nIf ruff it was of dame\nOr shroud of gnome,\nHimself, himself inform.\nOf immortality\nHis strategy\nWas physiognomy."
     },
     {
         "name": "XXVIII.",
         "path": [
             "XXVIII."
         ],
-        "content": "I know a place where summer strives With such a practised frost, She each year leads her daisies back, Recording briefly, \"Lost.\"\n\nBut when the south wind stirs the pools And struggles in the lanes, Her heart misgives her for her vow, And she pours soft refrains\n\nInto the lap of adamant, And spices, and the dew, That stiffens quietly to quartz, Upon her amber shoe."
+        "content": "I know a place where summer strives\nWith such a practised frost,\nShe each year leads her daisies back,\nRecording briefly, \"Lost.\"\n\nBut when the south wind stirs the pools\nAnd struggles in the lanes,\nHer heart misgives her for her vow,\nAnd she pours soft refrains\n\nInto the lap of adamant,\nAnd spices, and the dew,\nThat stiffens quietly to quartz,\nUpon her amber shoe."
     },
     {
         "name": "XXIX.",
         "path": [
             "XXIX."
         ],
-        "content": "The one that could repeat the summer day Were greater than itself, though he Minutest of mankind might be. And who could reproduce the sun, At period of going down -- The lingering and the stain, I mean -- When Orient has been outgrown, And Occident becomes unknown, His name remain."
+        "content": "The one that could repeat the summer day\nWere greater than itself, though he\nMinutest of mankind might be.\nAnd who could reproduce the sun,\nAt period of going down --\nThe lingering and the stain, I mean --\nWhen Orient has been outgrown,\nAnd Occident becomes unknown,\nHis name remain."
     },
     {
         "name": "XXX.",
         "path": [
             "XXX."
         ],
-        "content": "THE WIND'S VISIT.\n\nThe wind tapped like a tired man, And like a host, \"Come in,\" I boldly answered; entered then My residence within\n\nA rapid, footless guest, To offer whom a chair Were as impossible as hand A sofa to the air.\n\nNo bone had he to bind him, His speech was like the push Of numerous humming-birds at once From a superior bush.\n\nHis countenance a billow, His fingers, if he pass, Let go a music, as of tunes Blown tremulous in glass.\n\nHe visited, still flitting; Then, like a timid man, Again he tapped -- 't was flurriedly -- And I became alone.\n\nXXXI.\n\nNature rarer uses yellow Than another hue; Saves she all of that for sunsets, -- Prodigal of blue,\n\nSpending scarlet like a woman, Yellow she affords Only scantly and selectly, Like a lover's words.\n\nXXXII.\n\nGOSSIP.\n\nThe leaves, like women, interchange Sagacious confidence; Somewhat of nods, and somewhat of Portentous inference,\n\nThe parties in both cases Enjoining secrecy, -- Inviolable compact To notoriety."
+        "content": "THE WIND'S VISIT.\n\nThe wind tapped like a tired man,\nAnd like a host, \"Come in,\"\nI boldly answered; entered then\nMy residence within\n\nA rapid, footless guest,\nTo offer whom a chair\nWere as impossible as hand\nA sofa to the air.\n\nNo bone had he to bind him,\nHis speech was like the push\nOf numerous humming-birds at once\nFrom a superior bush.\n\nHis countenance a billow,\nHis fingers, if he pass,\nLet go a music, as of tunes\nBlown tremulous in glass.\n\nHe visited, still flitting;\nThen, like a timid man,\nAgain he tapped -- 't was flurriedly --\nAnd I became alone.\n\nXXXI.\n\nNature rarer uses yellow\nThan another hue;\nSaves she all of that for sunsets, --\nProdigal of blue,\n\nSpending scarlet like a woman,\nYellow she affords\nOnly scantly and selectly,\nLike a lover's words.\n\nXXXII.\n\nGOSSIP.\n\nThe leaves, like women, interchange\nSagacious confidence;\nSomewhat of nods, and somewhat of\nPortentous inference,\n\nThe parties in both cases\nEnjoining secrecy, --\nInviolable compact\nTo notoriety."
     },
     {
         "name": "XXXIII.",
         "path": [
             "XXXIII."
         ],
-        "content": "SIMPLICITY.\n\nHow happy is the little stone That rambles in the road alone, And doesn't care about careers, And exigencies never fears; Whose coat of elemental brown A passing universe put on; And independent as the sun, Associates or glows alone, Fulfilling absolute decree In casual simplicity."
+        "content": "SIMPLICITY.\n\nHow happy is the little stone\nThat rambles in the road alone,\nAnd doesn't care about careers,\nAnd exigencies never fears;\nWhose coat of elemental brown\nA passing universe put on;\nAnd independent as the sun,\nAssociates or glows alone,\nFulfilling absolute decree\nIn casual simplicity."
     },
     {
         "name": "XXXIV.",
         "path": [
             "XXXIV."
         ],
-        "content": "STORM.\n\nIt sounded as if the streets were running, And then the streets stood still. Eclipse was all we could see at the window, And awe was all we could feel.\n\nBy and by the boldest stole out of his covert, To see if time was there. Nature was in her beryl apron, Mixing fresher air.\n\nXXXV.\n\nTHE RAT.\n\nThe rat is the concisest tenant. He pays no rent, -- Repudiates the obligation, On schemes intent.\n\nBalking our wit To sound or circumvent, Hate cannot harm A foe so reticent.\n\nNeither decree Prohibits him, Lawful as Equilibrium."
+        "content": "STORM.\n\nIt sounded as if the streets were running,\nAnd then the streets stood still.\nEclipse was all we could see at the window,\nAnd awe was all we could feel.\n\nBy and by the boldest stole out of his covert,\nTo see if time was there.\nNature was in her beryl apron,\nMixing fresher air.\n\nXXXV.\n\nTHE RAT.\n\nThe rat is the concisest tenant.\nHe pays no rent, --\nRepudiates the obligation,\nOn schemes intent.\n\nBalking our wit\nTo sound or circumvent,\nHate cannot harm\nA foe so reticent.\n\nNeither decree\nProhibits him,\nLawful as\nEquilibrium."
     },
     {
         "name": "XXXVI.",
         "path": [
             "XXXVI."
         ],
-        "content": "Frequently the woods are pink, Frequently are brown; Frequently the hills undress Behind my native town.\n\nOft a head is crested I was wont to see, And as oft a cranny Where it used to be.\n\nAnd the earth, they tell me, On its axis turned, -- Wonderful rotation By but twelve performed!"
+        "content": "Frequently the woods are pink,\nFrequently are brown;\nFrequently the hills undress\nBehind my native town.\n\nOft a head is crested\nI was wont to see,\nAnd as oft a cranny\nWhere it used to be.\n\nAnd the earth, they tell me,\nOn its axis turned, --\nWonderful rotation\nBy but twelve performed!"
     },
     {
         "name": "XXXVII.",
         "path": [
             "XXXVII."
         ],
-        "content": "A THUNDER-STORM.\n\nThe wind begun to rock the grass With threatening tunes and low, -- He flung a menace at the earth, A menace at the sky.\n\nThe leaves unhooked themselves from trees And started all abroad; The dust did scoop itself like hands And throw away the road.\n\nThe wagons quickened on the streets, The thunder hurried slow; The lightning showed a yellow beak, And then a livid claw.\n\nThe birds put up the bars to nests, The cattle fled to barns; There came one drop of giant rain, And then, as if the hands\n\nThat held the dams had parted hold, The waters wrecked the sky, But overlooked my father's house, Just quartering a tree.\n\nXXXVIII.\n\nWITH FLOWERS.\n\nSouth winds jostle them, Bumblebees come, Hover, hesitate, Drink, and are gone.\n\nButterflies pause On their passage Cashmere; I, softly plucking, Present them here!\n\nXXXIX.\n\nSUNSET.\n\nWhere ships of purple gently toss On seas of daffodil, Fantastic sailors mingle, And then -- the wharf is still."
+        "content": "A THUNDER-STORM.\n\nThe wind begun to rock the grass\nWith threatening tunes and low, --\nHe flung a menace at the earth,\nA menace at the sky.\n\nThe leaves unhooked themselves from trees\nAnd started all abroad;\nThe dust did scoop itself like hands\nAnd throw away the road.\n\nThe wagons quickened on the streets,\nThe thunder hurried slow;\nThe lightning showed a yellow beak,\nAnd then a livid claw.\n\nThe birds put up the bars to nests,\nThe cattle fled to barns;\nThere came one drop of giant rain,\nAnd then, as if the hands\n\nThat held the dams had parted hold,\nThe waters wrecked the sky,\nBut overlooked my father's house,\nJust quartering a tree.\n\nXXXVIII.\n\nWITH FLOWERS.\n\nSouth winds jostle them,\nBumblebees come,\nHover, hesitate,\nDrink, and are gone.\n\nButterflies pause\nOn their passage Cashmere;\nI, softly plucking,\nPresent them here!\n\nXXXIX.\n\nSUNSET.\n\nWhere ships of purple gently toss\nOn seas of daffodil,\nFantastic sailors mingle,\nAnd then -- the wharf is still."
     },
     {
         "name": "XL.",
         "path": [
             "XL."
         ],
-        "content": "She sweeps with many-colored brooms, And leaves the shreds behind; Oh, housewife in the evening west, Come back, and dust the pond!\n\nYou dropped a purple ravelling in, You dropped an amber thread; And now you 've littered all the East With duds of emerald!\n\nAnd still she plies her spotted brooms, And still the aprons fly, Till brooms fade softly into stars -- And then I come away.\n\nXLI.\n\nLike mighty footlights burned the red At bases of the trees, -- The far theatricals of day Exhibiting to these.\n\n'T was universe that did applaud While, chiefest of the crowd, Enabled by his royal dress, Myself distinguished God."
+        "content": "She sweeps with many-colored brooms,\nAnd leaves the shreds behind;\nOh, housewife in the evening west,\nCome back, and dust the pond!\n\nYou dropped a purple ravelling in,\nYou dropped an amber thread;\nAnd now you 've littered all the East\nWith duds of emerald!\n\nAnd still she plies her spotted brooms,\nAnd still the aprons fly,\nTill brooms fade softly into stars --\nAnd then I come away.\n\nXLI.\n\nLike mighty footlights burned the red\nAt bases of the trees, --\nThe far theatricals of day\nExhibiting to these.\n\n'T was universe that did applaud\nWhile, chiefest of the crowd,\nEnabled by his royal dress,\nMyself distinguished God."
     },
     {
         "name": "XLII.",
         "path": [
             "XLII."
         ],
-        "content": "PROBLEMS.\n\nBring me the sunset in a cup, Reckon the morning's flagons up, And say how many dew; Tell me how far the morning leaps, Tell me what time the weaver sleeps Who spun the breadths of blue!\n\nWrite me how many notes there be In the new robin's ecstasy Among astonished boughs; How many trips the tortoise makes, How many cups the bee partakes, -- The debauchee of dews!\n\nAlso, who laid the rainbow's piers, Also, who leads the docile spheres By withes of supple blue? Whose fingers string the stalactite, Who counts the wampum of the night, To see that none is due?\n\nWho built this little Alban house And shut the windows down so close My spirit cannot see? Who 'll let me out some gala day, With implements to fly away, Passing pomposity?"
+        "content": "PROBLEMS.\n\nBring me the sunset in a cup,\nReckon the morning's flagons up,\nAnd say how many dew;\nTell me how far the morning leaps,\nTell me what time the weaver sleeps\nWho spun the breadths of blue!\n\nWrite me how many notes there be\nIn the new robin's ecstasy\nAmong astonished boughs;\nHow many trips the tortoise makes,\nHow many cups the bee partakes, --\nThe debauchee of dews!\n\nAlso, who laid the rainbow's piers,\nAlso, who leads the docile spheres\nBy withes of supple blue?\nWhose fingers string the stalactite,\nWho counts the wampum of the night,\nTo see that none is due?\n\nWho built this little Alban house\nAnd shut the windows down so close\nMy spirit cannot see?\nWho 'll let me out some gala day,\nWith implements to fly away,\nPassing pomposity?"
     },
     {
         "name": "XLIII.",
         "path": [
             "XLIII."
         ],
-        "content": "THE JUGGLER OF DAY.\n\nBlazing in gold and quenching in purple, Leaping like leopards to the sky, Then at the feet of the old horizon Laying her spotted face, to die;\n\nStooping as low as the otter's window, Touching the roof and tinting the barn, Kissing her bonnet to the meadow, -- And the juggler of day is gone!"
+        "content": "THE JUGGLER OF DAY.\n\nBlazing in gold and quenching in purple,\nLeaping like leopards to the sky,\nThen at the feet of the old horizon\nLaying her spotted face, to die;\n\nStooping as low as the otter's window,\nTouching the roof and tinting the barn,\nKissing her bonnet to the meadow, --\nAnd the juggler of day is gone!"
     },
     {
         "name": "XLIV.",
         "path": [
             "XLIV."
         ],
-        "content": "MY CRICKET.\n\nFarther in summer than the birds, Pathetic from the grass, A minor nation celebrates Its unobtrusive mass.\n\nNo ordinance is seen, So gradual the grace, A pensive custom it becomes, Enlarging loneliness.\n\nAntiquest felt at noon When August, burning low, Calls forth this spectral canticle, Repose to typify.\n\nRemit as yet no grace, No furrow on the glow, Yet a druidic difference Enhances nature now."
+        "content": "MY CRICKET.\n\nFarther in summer than the birds,\nPathetic from the grass,\nA minor nation celebrates\nIts unobtrusive mass.\n\nNo ordinance is seen,\nSo gradual the grace,\nA pensive custom it becomes,\nEnlarging loneliness.\n\nAntiquest felt at noon\nWhen August, burning low,\nCalls forth this spectral canticle,\nRepose to typify.\n\nRemit as yet no grace,\nNo furrow on the glow,\nYet a druidic difference\nEnhances nature now."
     },
     {
         "name": "XLV.",
         "path": [
             "XLV."
         ],
-        "content": "As imperceptibly as grief The summer lapsed away, -- Too imperceptible, at last, To seem like perfidy.\n\nA quietness distilled, As twilight long begun, Or Nature, spending with herself Sequestered afternoon.\n\nThe dusk drew earlier in, The morning foreign shone, -- A courteous, yet harrowing grace, As guest who would be gone.\n\nAnd thus, without a wing, Or service of a keel, Our summer made her light escape Into the beautiful."
+        "content": "As imperceptibly as grief\nThe summer lapsed away, --\nToo imperceptible, at last,\nTo seem like perfidy.\n\nA quietness distilled,\nAs twilight long begun,\nOr Nature, spending with herself\nSequestered afternoon.\n\nThe dusk drew earlier in,\nThe morning foreign shone, --\nA courteous, yet harrowing grace,\nAs guest who would be gone.\n\nAnd thus, without a wing,\nOr service of a keel,\nOur summer made her light escape\nInto the beautiful."
     },
     {
         "name": "XLVI.",
         "path": [
             "XLVI."
         ],
-        "content": "It can't be summer, -- that got through; It 's early yet for spring; There 's that long town of white to cross Before the blackbirds sing.\n\nIt can't be dying, -- it's too rouge, -- The dead shall go in white. So sunset shuts my question down With clasps of chrysolite."
+        "content": "It can't be summer, -- that got through;\nIt 's early yet for spring;\nThere 's that long town of white to cross\nBefore the blackbirds sing.\n\nIt can't be dying, -- it's too rouge, --\nThe dead shall go in white.\nSo sunset shuts my question down\nWith clasps of chrysolite."
     },
     {
         "name": "XLVII.",
         "path": [
             "XLVII."
         ],
-        "content": "SUMMER'S OBSEQUIES.\n\nThe gentian weaves her fringes, The maple's loom is red. My departing blossoms Obviate parade.\n\nA brief, but patient illness, An hour to prepare; And one, below this morning, Is where the angels are.\n\nIt was a short procession, -- The bobolink was there, An aged bee addressed us, And then we knelt in prayer.\n\nWe trust that she was willing, -- We ask that we may be. Summer, sister, seraph, Let us go with thee!\n\nIn the name of the bee And of the butterfly And of the breeze, amen!"
+        "content": "SUMMER'S OBSEQUIES.\n\nThe gentian weaves her fringes,\nThe maple's loom is red.\nMy departing blossoms\nObviate parade.\n\nA brief, but patient illness,\nAn hour to prepare;\nAnd one, below this morning,\nIs where the angels are.\n\nIt was a short procession, --\nThe bobolink was there,\nAn aged bee addressed us,\nAnd then we knelt in prayer.\n\nWe trust that she was willing, --\nWe ask that we may be.\nSummer, sister, seraph,\nLet us go with thee!\n\nIn the name of the bee\nAnd of the butterfly\nAnd of the breeze, amen!"
     },
     {
         "name": "XLVIII.",
         "path": [
             "XLVIII."
         ],
-        "content": "FRINGED GENTIAN.\n\nGod made a little gentian; It tried to be a rose And failed, and all the summer laughed. But just before the snows There came a purple creature That ravished all the hill; And summer hid her forehead, And mockery was still. The frosts were her condition; The Tyrian would not come Until the North evoked it. \"Creator! shall I bloom?\""
+        "content": "FRINGED GENTIAN.\n\nGod made a little gentian;\nIt tried to be a rose\nAnd failed, and all the summer laughed.\nBut just before the snows\nThere came a purple creature\nThat ravished all the hill;\nAnd summer hid her forehead,\nAnd mockery was still.\nThe frosts were her condition;\nThe Tyrian would not come\nUntil the North evoked it.\n\"Creator! shall I bloom?\""
     },
     {
         "name": "XLIX.",
         "path": [
             "XLIX."
         ],
-        "content": "NOVEMBER.\n\nBesides the autumn poets sing, A few prosaic days A little this side of the snow And that side of the haze.\n\nA few incisive mornings, A few ascetic eyes, -- Gone Mr. Bryant's golden-rod, And Mr. Thomson's sheaves.\n\nStill is the bustle in the brook, Sealed are the spicy valves; Mesmeric fingers softly touch The eyes of many elves.\n\nPerhaps a squirrel may remain, My sentiments to share. Grant me, O Lord, a sunny mind, Thy windy will to bear!"
+        "content": "NOVEMBER.\n\nBesides the autumn poets sing,\nA few prosaic days\nA little this side of the snow\nAnd that side of the haze.\n\nA few incisive mornings,\nA few ascetic eyes, --\nGone Mr. Bryant's golden-rod,\nAnd Mr. Thomson's sheaves.\n\nStill is the bustle in the brook,\nSealed are the spicy valves;\nMesmeric fingers softly touch\nThe eyes of many elves.\n\nPerhaps a squirrel may remain,\nMy sentiments to share.\nGrant me, O Lord, a sunny mind,\nThy windy will to bear!"
     },
     {
         "name": "L.",
         "path": [
             "L."
         ],
-        "content": "THE SNOW.\n\nIt sifts from leaden sieves, It powders all the wood, It fills with alabaster wool The wrinkles of the road.\n\nIt makes an even face Of mountain and of plain, -- Unbroken forehead from the east Unto the east again.\n\nIt reaches to the fence, It wraps it, rail by rail, Till it is lost in fleeces; It flings a crystal veil\n\nOn stump and stack and stem, -- The summer's empty room, Acres of seams where harvests were, Recordless, but for them.\n\nIt ruffles wrists of posts, As ankles of a queen, -- Then stills its artisans like ghosts, Denying they have been."
+        "content": "THE SNOW.\n\nIt sifts from leaden sieves,\nIt powders all the wood,\nIt fills with alabaster wool\nThe wrinkles of the road.\n\nIt makes an even face\nOf mountain and of plain, --\nUnbroken forehead from the east\nUnto the east again.\n\nIt reaches to the fence,\nIt wraps it, rail by rail,\nTill it is lost in fleeces;\nIt flings a crystal veil\n\nOn stump and stack and stem, --\nThe summer's empty room,\nAcres of seams where harvests were,\nRecordless, but for them.\n\nIt ruffles wrists of posts,\nAs ankles of a queen, --\nThen stills its artisans like ghosts,\nDenying they have been."
     },
     {
         "name": "LI.",
         "path": [
             "LI."
         ],
-        "content": "THE BLUE JAY.\n\nNo brigadier throughout the year So civic as the jay. A neighbor and a warrior too, With shrill felicity\n\nPursuing winds that censure us A February day, The brother of the universe Was never blown away.\n\nThe snow and he are intimate; I 've often seen them play When heaven looked upon us all With such severity,\n\nI felt apology were due To an insulted sky, Whose pompous frown was nutriment To their temerity.\n\nThe pillow of this daring head Is pungent evergreens; His larder -- terse and militant -- Unknown, refreshing things;\n\nHis character a tonic, His future a dispute; Unfair an immortality That leaves this neighbor out.\n\nIV. TIME AND ETERNITY.\n\nI.\n\nLet down the bars, O Death! The tired flocks come in Whose bleating ceases to repeat, Whose wandering is done.\n\nThine is the stillest night, Thine the securest fold; Too near thou art for seeking thee, Too tender to be told."
+        "content": "THE BLUE JAY.\n\nNo brigadier throughout the year\nSo civic as the jay.\nA neighbor and a warrior too,\nWith shrill felicity\n\nPursuing winds that censure us\nA February day,\nThe brother of the universe\nWas never blown away.\n\nThe snow and he are intimate;\nI 've often seen them play\nWhen heaven looked upon us all\nWith such severity,\n\nI felt apology were due\nTo an insulted sky,\nWhose pompous frown was nutriment\nTo their temerity.\n\nThe pillow of this daring head\nIs pungent evergreens;\nHis larder -- terse and militant --\nUnknown, refreshing things;\n\nHis character a tonic,\nHis future a dispute;\nUnfair an immortality\nThat leaves this neighbor out.\n\nIV. TIME AND ETERNITY.\n\nI.\n\nLet down the bars, O Death!\nThe tired flocks come in\nWhose bleating ceases to repeat,\nWhose wandering is done.\n\nThine is the stillest night,\nThine the securest fold;\nToo near thou art for seeking thee,\nToo tender to be told."
     },
     {
         "name": "II.",
         "path": [
             "II."
         ],
-        "content": "Going to heaven! I don't know when, Pray do not ask me how, -- Indeed, I 'm too astonished To think of answering you! Going to heaven! -- How dim it sounds! And yet it will be done As sure as flocks go home at night Unto the shepherd's arm!\n\nPerhaps you 're going too! Who knows? If you should get there first, Save just a little place for me Close to the two I lost!\n\nThe smallest \"robe\" will fit me, And just a bit of \"crown;\" For you know we do not mind our dress When we are going home.\n\nI 'm glad I don't believe it, For it would stop my breath, And I 'd like to look a little more At such a curious earth! I am glad they did believe it Whom I have never found Since the mighty autumn afternoon I left them in the ground.\n\nIII.\n\nAt least to pray is left, is left. O Jesus! in the air I know not which thy chamber is, -- I 'm knocking everywhere.\n\nThou stirrest earthquake in the South, And maelstrom in the sea; Say, Jesus Christ of Nazareth, Hast thou no arm for me?"
+        "content": "Going to heaven!\nI don't know when,\nPray do not ask me how, --\nIndeed, I 'm too astonished\nTo think of answering you!\nGoing to heaven! --\nHow dim it sounds!\nAnd yet it will be done\nAs sure as flocks go home at night\nUnto the shepherd's arm!\n\nPerhaps you 're going too!\nWho knows?\nIf you should get there first,\nSave just a little place for me\nClose to the two I lost!\n\nThe smallest \"robe\" will fit me,\nAnd just a bit of \"crown;\"\nFor you know we do not mind our dress\nWhen we are going home.\n\nI 'm glad I don't believe it,\nFor it would stop my breath,\nAnd I 'd like to look a little more\nAt such a curious earth!\nI am glad they did believe it\nWhom I have never found\nSince the mighty autumn afternoon\nI left them in the ground.\n\nIII.\n\nAt least to pray is left, is left.\nO Jesus! in the air\nI know not which thy chamber is, --\nI 'm knocking everywhere.\n\nThou stirrest earthquake in the South,\nAnd maelstrom in the sea;\nSay, Jesus Christ of Nazareth,\nHast thou no arm for me?"
     },
     {
         "name": "IV.",
         "path": [
             "IV."
         ],
-        "content": "EPITAPH.\n\nStep lightly on this narrow spot! The broadest land that grows Is not so ample as the breast These emerald seams enclose.\n\nStep lofty; for this name is told As far as cannon dwell, Or flag subsist, or fame export Her deathless syllable."
+        "content": "EPITAPH.\n\nStep lightly on this narrow spot!\nThe broadest land that grows\nIs not so ample as the breast\nThese emerald seams enclose.\n\nStep lofty; for this name is told\nAs far as cannon dwell,\nOr flag subsist, or fame export\nHer deathless syllable."
     },
     {
         "name": "V.",
         "path": [
             "V."
         ],
-        "content": "Morns like these we parted; Noons like these she rose, Fluttering first, then firmer, To her fair repose.\n\nNever did she lisp it, And 't was not for me; She was mute from transport, I, from agony!\n\nTill the evening, nearing, One the shutters drew -- Quick! a sharper rustling! And this linnet flew!\n\nVI.\n\nA death-blow is a life-blow to some Who, till they died, did not alive become; Who, had they lived, had died, but when They died, vitality begun."
+        "content": "Morns like these we parted;\nNoons like these she rose,\nFluttering first, then firmer,\nTo her fair repose.\n\nNever did she lisp it,\nAnd 't was not for me;\nShe was mute from transport,\nI, from agony!\n\nTill the evening, nearing,\nOne the shutters drew --\nQuick! a sharper rustling!\nAnd this linnet flew!\n\nVI.\n\nA death-blow is a life-blow to some\nWho, till they died, did not alive become;\nWho, had they lived, had died, but when\nThey died, vitality begun."
     },
     {
         "name": "VII.",
         "path": [
             "VII."
         ],
-        "content": "I read my sentence steadily, Reviewed it with my eyes, To see that I made no mistake In its extremest clause, --\n\nThe date, and manner of the shame; And then the pious form That \"God have mercy\" on the soul The jury voted him.\n\nI made my soul familiar With her extremity, That at the last it should not be A novel agony,\n\nBut she and Death, acquainted, Meet tranquilly as friends, Salute and pass without a hint -- And there the matter ends."
+        "content": "I read my sentence steadily,\nReviewed it with my eyes,\nTo see that I made no mistake\nIn its extremest clause, --\n\nThe date, and manner of the shame;\nAnd then the pious form\nThat \"God have mercy\" on the soul\nThe jury voted him.\n\nI made my soul familiar\nWith her extremity,\nThat at the last it should not be\nA novel agony,\n\nBut she and Death, acquainted,\nMeet tranquilly as friends,\nSalute and pass without a hint --\nAnd there the matter ends."
     },
     {
         "name": "VIII.",
         "path": [
             "VIII."
         ],
-        "content": "I have not told my garden yet, Lest that should conquer me; I have not quite the strength now To break it to the bee.\n\nI will not name it in the street, For shops would stare, that I, So shy, so very ignorant, Should have the face to die.\n\nThe hillsides must not know it, Where I have rambled so, Nor tell the loving forests The day that I shall go,\n\nNor lisp it at the table, Nor heedless by the way Hint that within the riddle One will walk to-day!"
+        "content": "I have not told my garden yet,\nLest that should conquer me;\nI have not quite the strength now\nTo break it to the bee.\n\nI will not name it in the street,\nFor shops would stare, that I,\nSo shy, so very ignorant,\nShould have the face to die.\n\nThe hillsides must not know it,\nWhere I have rambled so,\nNor tell the loving forests\nThe day that I shall go,\n\nNor lisp it at the table,\nNor heedless by the way\nHint that within the riddle\nOne will walk to-day!"
     },
     {
         "name": "IX.",
         "path": [
             "IX."
         ],
-        "content": "THE BATTLE-FIELD.\n\nThey dropped like flakes, they dropped like stars, Like petals from a rose, When suddenly across the June A wind with fingers goes.\n\nThey perished in the seamless grass, -- No eye could find the place; But God on his repealless list Can summon every face."
+        "content": "THE BATTLE-FIELD.\n\nThey dropped like flakes, they dropped like stars,\nLike petals from a rose,\nWhen suddenly across the June\nA wind with fingers goes.\n\nThey perished in the seamless grass, --\nNo eye could find the place;\nBut God on his repealless list\nCan summon every face."
     },
     {
         "name": "X.",
         "path": [
             "X."
         ],
-        "content": "The only ghost I ever saw Was dressed in mechlin, -- so; He wore no sandal on his foot, And stepped like flakes of snow. His gait was soundless, like the bird, But rapid, like the roe; His fashions quaint, mosaic, Or, haply, mistletoe.\n\nHis conversation seldom, His laughter like the breeze That dies away in dimples Among the pensive trees. Our interview was transient,-- Of me, himself was shy; And God forbid I look behind Since that appalling day!"
+        "content": "The only ghost I ever saw\nWas dressed in mechlin, -- so;\nHe wore no sandal on his foot,\nAnd stepped like flakes of snow.\nHis gait was soundless, like the bird,\nBut rapid, like the roe;\nHis fashions quaint, mosaic,\nOr, haply, mistletoe.\n\nHis conversation seldom,\nHis laughter like the breeze\nThat dies away in dimples\nAmong the pensive trees.\nOur interview was transient,--\nOf me, himself was shy;\nAnd God forbid I look behind\nSince that appalling day!"
     },
     {
         "name": "XI.",
         "path": [
             "XI."
         ],
-        "content": "Some, too fragile for winter winds, The thoughtful grave encloses, -- Tenderly tucking them in from frost Before their feet are cold.\n\nNever the treasures in her nest The cautious grave exposes, Building where schoolboy dare not look And sportsman is not bold.\n\nThis covert have all the children Early aged, and often cold, -- Sparrows unnoticed by the Father; Lambs for whom time had not a fold.\n\nXII.\n\nAs by the dead we love to sit, Become so wondrous dear, As for the lost we grapple, Though all the rest are here, --\n\nIn broken mathematics We estimate our prize, Vast, in its fading ratio, To our penurious eyes!"
+        "content": "Some, too fragile for winter winds,\nThe thoughtful grave encloses, --\nTenderly tucking them in from frost\nBefore their feet are cold.\n\nNever the treasures in her nest\nThe cautious grave exposes,\nBuilding where schoolboy dare not look\nAnd sportsman is not bold.\n\nThis covert have all the children\nEarly aged, and often cold, --\nSparrows unnoticed by the Father;\nLambs for whom time had not a fold.\n\nXII.\n\nAs by the dead we love to sit,\nBecome so wondrous dear,\nAs for the lost we grapple,\nThough all the rest are here, --\n\nIn broken mathematics\nWe estimate our prize,\nVast, in its fading ratio,\nTo our penurious eyes!"
     },
     {
         "name": "XIII.",
         "path": [
             "XIII."
         ],
-        "content": "MEMORIALS.\n\nDeath sets a thing significant The eye had hurried by, Except a perished creature Entreat us tenderly\n\nTo ponder little workmanships In crayon or in wool, With \"This was last her fingers did,\" Industrious until\n\nThe thimble weighed too heavy, The stitches stopped themselves, And then 't was put among the dust Upon the closet shelves.\n\nA book I have, a friend gave, Whose pencil, here and there, Had notched the place that pleased him, -- At rest his fingers are.\n\nNow, when I read, I read not, For interrupting tears Obliterate the etchings Too costly for repairs."
+        "content": "MEMORIALS.\n\nDeath sets a thing significant\nThe eye had hurried by,\nExcept a perished creature\nEntreat us tenderly\n\nTo ponder little workmanships\nIn crayon or in wool,\nWith \"This was last her fingers did,\"\nIndustrious until\n\nThe thimble weighed too heavy,\nThe stitches stopped themselves,\nAnd then 't was put among the dust\nUpon the closet shelves.\n\nA book I have, a friend gave,\nWhose pencil, here and there,\nHad notched the place that pleased him, --\nAt rest his fingers are.\n\nNow, when I read, I read not,\nFor interrupting tears\nObliterate the etchings\nToo costly for repairs."
     },
     {
         "name": "XIV.",
         "path": [
             "XIV."
         ],
-        "content": "I went to heaven, -- 'T was a small town, Lit with a ruby, Lathed with down. Stiller than the fields At the full dew, Beautiful as pictures No man drew. People like the moth, Of mechlin, frames, Duties of gossamer, And eider names. Almost contented I could be 'Mong such unique Society."
+        "content": "I went to heaven, --\n'T was a small town,\nLit with a ruby,\nLathed with down.\nStiller than the fields\nAt the full dew,\nBeautiful as pictures\nNo man drew.\nPeople like the moth,\nOf mechlin, frames,\nDuties of gossamer,\nAnd eider names.\nAlmost contented\nI could be\n'Mong such unique\nSociety."
     },
     {
         "name": "XV.",
         "path": [
             "XV."
         ],
-        "content": "Their height in heaven comforts not, Their glory nought to me; 'T was best imperfect, as it was; I 'm finite, I can't see.\n\nThe house of supposition, The glimmering frontier That skirts the acres of perhaps, To me shows insecure.\n\nThe wealth I had contented me; If 't was a meaner size, Then I had counted it until It pleased my narrow eyes\n\nBetter than larger values, However true their show; This timid life of evidence Keeps pleading, \"I don't know.\"\n\nXVI.\n\nThere is a shame of nobleness Confronting sudden pelf, -- A finer shame of ecstasy Convicted of itself.\n\nA best disgrace a brave man feels, Acknowledged of the brave, -- One more \"Ye Blessed\" to be told; But this involves the grave."
+        "content": "Their height in heaven comforts not,\nTheir glory nought to me;\n'T was best imperfect, as it was;\nI 'm finite, I can't see.\n\nThe house of supposition,\nThe glimmering frontier\nThat skirts the acres of perhaps,\nTo me shows insecure.\n\nThe wealth I had contented me;\nIf 't was a meaner size,\nThen I had counted it until\nIt pleased my narrow eyes\n\nBetter than larger values,\nHowever true their show;\nThis timid life of evidence\nKeeps pleading, \"I don't know.\"\n\nXVI.\n\nThere is a shame of nobleness\nConfronting sudden pelf, --\nA finer shame of ecstasy\nConvicted of itself.\n\nA best disgrace a brave man feels,\nAcknowledged of the brave, --\nOne more \"Ye Blessed\" to be told;\nBut this involves the grave."
     },
     {
         "name": "XVII.",
         "path": [
             "XVII."
         ],
-        "content": "TRIUMPH.\n\nTriumph may be of several kinds. There 's triumph in the room When that old imperator, Death, By faith is overcome.\n\nThere 's triumph of the finer mind When truth, affronted long, Advances calm to her supreme, Her God her only throng.\n\nA triumph when temptation's bribe Is slowly handed back, One eye upon the heaven renounced And one upon the rack.\n\nSeverer triumph, by himself Experienced, who can pass Acquitted from that naked bar, Jehovah's countenance!\n\nXVIII.\n\nPompless no life can pass away; The lowliest career To the same pageant wends its way As that exalted here. How cordial is the mystery! The hospitable pall A \"this way\" beckons spaciously, -- A miracle for all!\n\nXIX.\n\nI noticed people disappeared, When but a little child, -- Supposed they visited remote, Or settled regions wild.\n\nNow know I they both visited And settled regions wild, But did because they died, -- a fact Withheld the little child!"
+        "content": "TRIUMPH.\n\nTriumph may be of several kinds.\nThere 's triumph in the room\nWhen that old imperator, Death,\nBy faith is overcome.\n\nThere 's triumph of the finer mind\nWhen truth, affronted long,\nAdvances calm to her supreme,\nHer God her only throng.\n\nA triumph when temptation's bribe\nIs slowly handed back,\nOne eye upon the heaven renounced\nAnd one upon the rack.\n\nSeverer triumph, by himself\nExperienced, who can pass\nAcquitted from that naked bar,\nJehovah's countenance!\n\nXVIII.\n\nPompless no life can pass away;\nThe lowliest career\nTo the same pageant wends its way\nAs that exalted here.\nHow cordial is the mystery!\nThe hospitable pall\nA \"this way\" beckons spaciously, --\nA miracle for all!\n\nXIX.\n\nI noticed people disappeared,\nWhen but a little child, --\nSupposed they visited remote,\nOr settled regions wild.\n\nNow know I they both visited\nAnd settled regions wild,\nBut did because they died, -- a fact\nWithheld the little child!"
     },
     {
         "name": "XX.",
         "path": [
             "XX."
         ],
-        "content": "FOLLOWING.\n\nI had no cause to be awake, My best was gone to sleep, And morn a new politeness took, And failed to wake them up,\n\nBut called the others clear, And passed their curtains by. Sweet morning, when I over-sleep, Knock, recollect, for me!\n\nI looked at sunrise once, And then I looked at them, And wishfulness in me arose For circumstance the same.\n\n'T was such an ample peace, It could not hold a sigh, -- 'T was Sabbath with the bells divorced, 'T was sunset all the day.\n\nSo choosing but a gown And taking but a prayer, The only raiment I should need, I struggled, and was there."
+        "content": "FOLLOWING.\n\nI had no cause to be awake,\nMy best was gone to sleep,\nAnd morn a new politeness took,\nAnd failed to wake them up,\n\nBut called the others clear,\nAnd passed their curtains by.\nSweet morning, when I over-sleep,\nKnock, recollect, for me!\n\nI looked at sunrise once,\nAnd then I looked at them,\nAnd wishfulness in me arose\nFor circumstance the same.\n\n'T was such an ample peace,\nIt could not hold a sigh, --\n'T was Sabbath with the bells divorced,\n'T was sunset all the day.\n\nSo choosing but a gown\nAnd taking but a prayer,\nThe only raiment I should need,\nI struggled, and was there."
     },
     {
         "name": "XXI.",
         "path": [
             "XXI."
         ],
-        "content": "If anybody's friend be dead, It 's sharpest of the theme The thinking how they walked alive, At such and such a time.\n\nTheir costume, of a Sunday, Some manner of the hair, -- A prank nobody knew but them, Lost, in the sepulchre.\n\nHow warm they were on such a day: You almost feel the date, So short way off it seems; and now, They 're centuries from that.\n\nHow pleased they were at what you said; You try to touch the smile, And dip your fingers in the frost: When was it, can you tell,\n\nYou asked the company to tea, Acquaintance, just a few, And chatted close with this grand thing That don't remember you?\n\nPast bows and invitations, Past interview, and vow, Past what ourselves can estimate, -- That makes the quick of woe!"
+        "content": "If anybody's friend be dead,\nIt 's sharpest of the theme\nThe thinking how they walked alive,\nAt such and such a time.\n\nTheir costume, of a Sunday,\nSome manner of the hair, --\nA prank nobody knew but them,\nLost, in the sepulchre.\n\nHow warm they were on such a day:\nYou almost feel the date,\nSo short way off it seems; and now,\nThey 're centuries from that.\n\nHow pleased they were at what you said;\nYou try to touch the smile,\nAnd dip your fingers in the frost:\nWhen was it, can you tell,\n\nYou asked the company to tea,\nAcquaintance, just a few,\nAnd chatted close with this grand thing\nThat don't remember you?\n\nPast bows and invitations,\nPast interview, and vow,\nPast what ourselves can estimate, --\nThat makes the quick of woe!"
     },
     {
         "name": "XXII.",
         "path": [
             "XXII."
         ],
-        "content": "THE JOURNEY.\n\nOur journey had advanced; Our feet were almost come To that odd fork in Being's road, Eternity by term.\n\nOur pace took sudden awe, Our feet reluctant led. Before were cities, but between, The forest of the dead.\n\nRetreat was out of hope, -- Behind, a sealed route, Eternity's white flag before, And God at every gate.\n\nXXIII.\n\nA COUNTRY BURIAL.\n\nAmple make this bed. Make this bed with awe; In it wait till judgment break Excellent and fair.\n\nBe its mattress straight, Be its pillow round; Let no sunrise' yellow noise Interrupt this ground."
+        "content": "THE JOURNEY.\n\nOur journey had advanced;\nOur feet were almost come\nTo that odd fork in Being's road,\nEternity by term.\n\nOur pace took sudden awe,\nOur feet reluctant led.\nBefore were cities, but between,\nThe forest of the dead.\n\nRetreat was out of hope, --\nBehind, a sealed route,\nEternity's white flag before,\nAnd God at every gate.\n\nXXIII.\n\nA COUNTRY BURIAL.\n\nAmple make this bed.\nMake this bed with awe;\nIn it wait till judgment break\nExcellent and fair.\n\nBe its mattress straight,\nBe its pillow round;\nLet no sunrise' yellow noise\nInterrupt this ground."
     },
     {
         "name": "XXIV.",
         "path": [
             "XXIV."
         ],
-        "content": "GOING.\n\nOn such a night, or such a night, Would anybody care If such a little figure Slipped quiet from its chair,\n\nSo quiet, oh, how quiet! That nobody might know But that the little figure Rocked softer, to and fro?\n\nOn such a dawn, or such a dawn, Would anybody sigh That such a little figure Too sound asleep did lie\n\nFor chanticleer to wake it, -- Or stirring house below, Or giddy bird in orchard, Or early task to do?\n\nThere was a little figure plump For every little knoll, Busy needles, and spools of thread, And trudging feet from school.\n\nPlaymates, and holidays, and nuts, And visions vast and small. Strange that the feet so precious charged Should reach so small a goal!\n\nXXV.\n\nEssential oils are wrung: The attar from the rose Is not expressed by suns alone, It is the gift of screws.\n\nThe general rose decays; But this, in lady's drawer, Makes summer when the lady lies In ceaseless rosemary.\n\nXXVI.\n\nI lived on dread; to those who know The stimulus there is In danger, other impetus Is numb and vital-less.\n\nAs 't were a spur upon the soul, A fear will urge it where To go without the spectre's aid Were challenging despair."
+        "content": "GOING.\n\nOn such a night, or such a night,\nWould anybody care\nIf such a little figure\nSlipped quiet from its chair,\n\nSo quiet, oh, how quiet!\nThat nobody might know\nBut that the little figure\nRocked softer, to and fro?\n\nOn such a dawn, or such a dawn,\nWould anybody sigh\nThat such a little figure\nToo sound asleep did lie\n\nFor chanticleer to wake it, --\nOr stirring house below,\nOr giddy bird in orchard,\nOr early task to do?\n\nThere was a little figure plump\nFor every little knoll,\nBusy needles, and spools of thread,\nAnd trudging feet from school.\n\nPlaymates, and holidays, and nuts,\nAnd visions vast and small.\nStrange that the feet so precious charged\nShould reach so small a goal!\n\nXXV.\n\nEssential oils are wrung:\nThe attar from the rose\nIs not expressed by suns alone,\nIt is the gift of screws.\n\nThe general rose decays;\nBut this, in lady's drawer,\nMakes summer when the lady lies\nIn ceaseless rosemary.\n\nXXVI.\n\nI lived on dread; to those who know\nThe stimulus there is\nIn danger, other impetus\nIs numb and vital-less.\n\nAs 't were a spur upon the soul,\nA fear will urge it where\nTo go without the spectre's aid\nWere challenging despair."
     },
     {
         "name": "XXVII.",
         "path": [
             "XXVII."
         ],
-        "content": "If I should die, And you should live, And time should gurgle on, And morn should beam, And noon should burn, As it has usual done; If birds should build as early, And bees as bustling go, -- One might depart at option From enterprise below! 'T is sweet to know that stocks will stand When we with daisies lie, That commerce will continue, And trades as briskly fly. It makes the parting tranquil And keeps the soul serene, That gentlemen so sprightly Conduct the pleasing scene!"
+        "content": "If I should die,\nAnd you should live,\nAnd time should gurgle on,\nAnd morn should beam,\nAnd noon should burn,\nAs it has usual done;\nIf birds should build as early,\nAnd bees as bustling go, --\nOne might depart at option\nFrom enterprise below!\n'T is sweet to know that stocks will stand\nWhen we with daisies lie,\nThat commerce will continue,\nAnd trades as briskly fly.\nIt makes the parting tranquil\nAnd keeps the soul serene,\nThat gentlemen so sprightly\nConduct the pleasing scene!"
     },
     {
         "name": "XXVIII.",
         "path": [
             "XXVIII."
         ],
-        "content": "AT LENGTH.\n\nHer final summer was it, And yet we guessed it not; If tenderer industriousness Pervaded her, we thought\n\nA further force of life Developed from within, -- When Death lit all the shortness up, And made the hurry plain.\n\nWe wondered at our blindness, -- When nothing was to see But her Carrara guide-post, -- At our stupidity,\n\nWhen, duller than our dullness, The busy darling lay, So busy was she, finishing, So leisurely were we!"
+        "content": "AT LENGTH.\n\nHer final summer was it,\nAnd yet we guessed it not;\nIf tenderer industriousness\nPervaded her, we thought\n\nA further force of life\nDeveloped from within, --\nWhen Death lit all the shortness up,\nAnd made the hurry plain.\n\nWe wondered at our blindness, --\nWhen nothing was to see\nBut her Carrara guide-post, --\nAt our stupidity,\n\nWhen, duller than our dullness,\nThe busy darling lay,\nSo busy was she, finishing,\nSo leisurely were we!"
     },
     {
         "name": "XXIX.",
         "path": [
             "XXIX."
         ],
-        "content": "GHOSTS.\n\nOne need not be a chamber to be haunted, One need not be a house; The brain has corridors surpassing Material place.\n\nFar safer, of a midnight meeting External ghost, Than an interior confronting That whiter host.\n\nFar safer through an Abbey gallop, The stones achase, Than, moonless, one's own self encounter In lonesome place.\n\nOurself, behind ourself concealed, Should startle most; Assassin, hid in our apartment, Be horror's least.\n\nThe prudent carries a revolver, He bolts the door, O'erlooking a superior spectre More near."
+        "content": "GHOSTS.\n\nOne need not be a chamber to be haunted,\nOne need not be a house;\nThe brain has corridors surpassing\nMaterial place.\n\nFar safer, of a midnight meeting\nExternal ghost,\nThan an interior confronting\nThat whiter host.\n\nFar safer through an Abbey gallop,\nThe stones achase,\nThan, moonless, one's own self encounter\nIn lonesome place.\n\nOurself, behind ourself concealed,\nShould startle most;\nAssassin, hid in our apartment,\nBe horror's least.\n\nThe prudent carries a revolver,\nHe bolts the door,\nO'erlooking a superior spectre\nMore near."
     },
     {
         "name": "XXX.",
         "path": [
             "XXX."
         ],
-        "content": "VANISHED.\n\nShe died, -- this was the way she died; And when her breath was done, Took up her simple wardrobe And started for the sun.\n\nHer little figure at the gate The angels must have spied, Since I could never find her Upon the mortal side."
+        "content": "VANISHED.\n\nShe died, -- this was the way she died;\nAnd when her breath was done,\nTook up her simple wardrobe\nAnd started for the sun.\n\nHer little figure at the gate\nThe angels must have spied,\nSince I could never find her\nUpon the mortal side."
     },
     {
         "name": "XXXI.",
         "path": [
             "XXXI."
         ],
-        "content": "PRECEDENCE.\n\nWait till the majesty of Death Invests so mean a brow! Almost a powdered footman Might dare to touch it now!\n\nWait till in everlasting robes This democrat is dressed, Then prate about \"preferment\" And \"station\" and the rest!\n\nAround this quiet courtier Obsequious angels wait! Full royal is his retinue, Full purple is his state!\n\nA lord might dare to lift the hat To such a modest clay, Since that my Lord, \"the Lord of lords\" Receives unblushingly!"
+        "content": "PRECEDENCE.\n\nWait till the majesty of Death\nInvests so mean a brow!\nAlmost a powdered footman\nMight dare to touch it now!\n\nWait till in everlasting robes\nThis democrat is dressed,\nThen prate about \"preferment\"\nAnd \"station\" and the rest!\n\nAround this quiet courtier\nObsequious angels wait!\nFull royal is his retinue,\nFull purple is his state!\n\nA lord might dare to lift the hat\nTo such a modest clay,\nSince that my Lord, \"the Lord of lords\"\nReceives unblushingly!"
     },
     {
         "name": "XXXII.",
         "path": [
             "XXXII."
         ],
-        "content": "GONE.\n\nWent up a year this evening! I recollect it well! Amid no bells nor bravos The bystanders will tell! Cheerful, as to the village, Tranquil, as to repose, Chastened, as to the chapel, This humble tourist rose. Did not talk of returning, Alluded to no time When, were the gales propitious, We might look for him; Was grateful for the roses In life's diverse bouquet, Talked softly of new species To pick another day.\n\nBeguiling thus the wonder, The wondrous nearer drew; Hands bustled at the moorings -- The crowd respectful grew. Ascended from our vision To countenances new! A difference, a daisy, Is all the rest I knew!"
+        "content": "GONE.\n\nWent up a year this evening!\nI recollect it well!\nAmid no bells nor bravos\nThe bystanders will tell!\nCheerful, as to the village,\nTranquil, as to repose,\nChastened, as to the chapel,\nThis humble tourist rose.\nDid not talk of returning,\nAlluded to no time\nWhen, were the gales propitious,\nWe might look for him;\nWas grateful for the roses\nIn life's diverse bouquet,\nTalked softly of new species\nTo pick another day.\n\nBeguiling thus the wonder,\nThe wondrous nearer drew;\nHands bustled at the moorings --\nThe crowd respectful grew.\nAscended from our vision\nTo countenances new!\nA difference, a daisy,\nIs all the rest I knew!"
     },
     {
         "name": "XXXIII.",
         "path": [
             "XXXIII."
         ],
-        "content": "REQUIEM.\n\nTaken from men this morning, Carried by men to-day, Met by the gods with banners Who marshalled her away.\n\nOne little maid from playmates, One little mind from school, -- There must be guests in Eden; All the rooms are full.\n\nFar as the east from even, Dim as the border star, -- Courtiers quaint, in kingdoms, Our departed are.\n\nXXXIV.\n\nWhat inn is this Where for the night Peculiar traveller comes? Who is the landlord? Where the maids? Behold, what curious rooms! No ruddy fires on the hearth, No brimming tankards flow. Necromancer, landlord, Who are these below?"
+        "content": "REQUIEM.\n\nTaken from men this morning,\nCarried by men to-day,\nMet by the gods with banners\nWho marshalled her away.\n\nOne little maid from playmates,\nOne little mind from school, --\nThere must be guests in Eden;\nAll the rooms are full.\n\nFar as the east from even,\nDim as the border star, --\nCourtiers quaint, in kingdoms,\nOur departed are.\n\nXXXIV.\n\nWhat inn is this\nWhere for the night\nPeculiar traveller comes?\nWho is the landlord?\nWhere the maids?\nBehold, what curious rooms!\nNo ruddy fires on the hearth,\nNo brimming tankards flow.\nNecromancer, landlord,\nWho are these below?"
     },
     {
         "name": "XXXV.",
         "path": [
             "XXXV."
         ],
-        "content": "It was not death, for I stood up, And all the dead lie down; It was not night, for all the bells Put out their tongues, for noon.\n\nIt was not frost, for on my flesh I felt siroccos crawl, -- Nor fire, for just my marble feet Could keep a chancel cool.\n\nAnd yet it tasted like them all; The figures I have seen Set orderly, for burial, Reminded me of mine,\n\nAs if my life were shaven And fitted to a frame, And could not breathe without a key; And 't was like midnight, some,\n\nWhen everything that ticked has stopped, And space stares, all around, Or grisly frosts, first autumn morns, Repeal the beating ground.\n\nBut most like chaos, -- stopless, cool, -- Without a chance or spar, Or even a report of land To justify despair."
+        "content": "It was not death, for I stood up,\nAnd all the dead lie down;\nIt was not night, for all the bells\nPut out their tongues, for noon.\n\nIt was not frost, for on my flesh\nI felt siroccos crawl, --\nNor fire, for just my marble feet\nCould keep a chancel cool.\n\nAnd yet it tasted like them all;\nThe figures I have seen\nSet orderly, for burial,\nReminded me of mine,\n\nAs if my life were shaven\nAnd fitted to a frame,\nAnd could not breathe without a key;\nAnd 't was like midnight, some,\n\nWhen everything that ticked has stopped,\nAnd space stares, all around,\nOr grisly frosts, first autumn morns,\nRepeal the beating ground.\n\nBut most like chaos, -- stopless, cool, --\nWithout a chance or spar,\nOr even a report of land\nTo justify despair."
     },
     {
         "name": "XXXVI.",
         "path": [
             "XXXVI."
         ],
-        "content": "TILL THE END.\n\nI should not dare to leave my friend, Because -- because if he should die While I was gone, and I -- too late -- Should reach the heart that wanted me;\n\nIf I should disappoint the eyes That hunted, hunted so, to see, And could not bear to shut until They \"noticed\" me -- they noticed me;\n\nIf I should stab the patient faith So sure I 'd come -- so sure I 'd come, It listening, listening, went to sleep Telling my tardy name, --\n\nMy heart would wish it broke before, Since breaking then, since breaking then, Were useless as next morning's sun, Where midnight frosts had lain!"
+        "content": "TILL THE END.\n\nI should not dare to leave my friend,\nBecause -- because if he should die\nWhile I was gone, and I -- too late --\nShould reach the heart that wanted me;\n\nIf I should disappoint the eyes\nThat hunted, hunted so, to see,\nAnd could not bear to shut until\nThey \"noticed\" me -- they noticed me;\n\nIf I should stab the patient faith\nSo sure I 'd come -- so sure I 'd come,\nIt listening, listening, went to sleep\nTelling my tardy name, --\n\nMy heart would wish it broke before,\nSince breaking then, since breaking then,\nWere useless as next morning's sun,\nWhere midnight frosts had lain!"
     },
     {
         "name": "XXXVII.",
         "path": [
             "XXXVII."
         ],
-        "content": "VOID.\n\nGreat streets of silence led away To neighborhoods of pause; Here was no notice, no dissent, No universe, no laws.\n\nBy clocks 't was morning, and for night The bells at distance called; But epoch had no basis here, For period exhaled.\n\nXXXVIII.\n\nA throe upon the features A hurry in the breath, An ecstasy of parting Denominated \"Death,\" --\n\nAn anguish at the mention, Which, when to patience grown, I 've known permission given To rejoin its own."
+        "content": "VOID.\n\nGreat streets of silence led away\nTo neighborhoods of pause;\nHere was no notice, no dissent,\nNo universe, no laws.\n\nBy clocks 't was morning, and for night\nThe bells at distance called;\nBut epoch had no basis here,\nFor period exhaled.\n\nXXXVIII.\n\nA throe upon the features\nA hurry in the breath,\nAn ecstasy of parting\nDenominated \"Death,\" --\n\nAn anguish at the mention,\nWhich, when to patience grown,\nI 've known permission given\nTo rejoin its own."
     },
     {
         "name": "XXXIX.",
         "path": [
             "XXXIX."
         ],
-        "content": "SAVED!\n\nOf tribulation these are they Denoted by the white; The spangled gowns, a lesser rank Of victors designate.\n\nAll these did conquer; but the ones Who overcame most times Wear nothing commoner than snow, No ornament but palms.\n\nSurrender is a sort unknown On this superior soil; Defeat, an outgrown anguish, Remembered as the mile\n\nOur panting ankle barely gained When night devoured the road; But we stood whispering in the house, And all we said was \"Saved\"!"
+        "content": "SAVED!\n\nOf tribulation these are they\nDenoted by the white;\nThe spangled gowns, a lesser rank\nOf victors designate.\n\nAll these did conquer; but the ones\nWho overcame most times\nWear nothing commoner than snow,\nNo ornament but palms.\n\nSurrender is a sort unknown\nOn this superior soil;\nDefeat, an outgrown anguish,\nRemembered as the mile\n\nOur panting ankle barely gained\nWhen night devoured the road;\nBut we stood whispering in the house,\nAnd all we said was \"Saved\"!"
     },
     {
         "name": "XL.",
         "path": [
             "XL."
         ],
-        "content": "I think just how my shape will rise When I shall be forgiven, Till hair and eyes and timid head Are out of sight, in heaven.\n\nI think just how my lips will weigh With shapeless, quivering prayer That you, so late, consider me, The sparrow of your care.\n\nI mind me that of anguish sent, Some drifts were moved away Before my simple bosom broke, -- And why not this, if they?\n\nAnd so, until delirious borne I con that thing, -- \"forgiven,\" -- Till with long fright and longer trust I drop my heart, unshriven!"
+        "content": "I think just how my shape will rise\nWhen I shall be forgiven,\nTill hair and eyes and timid head\nAre out of sight, in heaven.\n\nI think just how my lips will weigh\nWith shapeless, quivering prayer\nThat you, so late, consider me,\nThe sparrow of your care.\n\nI mind me that of anguish sent,\nSome drifts were moved away\nBefore my simple bosom broke, --\nAnd why not this, if they?\n\nAnd so, until delirious borne\nI con that thing, -- \"forgiven,\" --\nTill with long fright and longer trust\nI drop my heart, unshriven!"
     },
     {
         "name": "XLI.",
         "path": [
             "XLI."
         ],
-        "content": "THE FORGOTTEN GRAVE.\n\nAfter a hundred years Nobody knows the place, -- Agony, that enacted there, Motionless as peace.\n\nWeeds triumphant ranged, Strangers strolled and spelled At the lone orthography Of the elder dead.\n\nWinds of summer fields Recollect the way, -- Instinct picking up the key Dropped by memory."
+        "content": "THE FORGOTTEN GRAVE.\n\nAfter a hundred years\nNobody knows the place, --\nAgony, that enacted there,\nMotionless as peace.\n\nWeeds triumphant ranged,\nStrangers strolled and spelled\nAt the lone orthography\nOf the elder dead.\n\nWinds of summer fields\nRecollect the way, --\nInstinct picking up the key\nDropped by memory."
     },
     {
         "name": "XLII.",
         "path": [
             "XLII."
         ],
-        "content": "Lay this laurel on the one Too intrinsic for renown. Laurel! veil your deathless tree, -- Him you chasten, that is he!\n\nPOEMS\n\nby EMILY DICKINSON\n\nThird Series\n\nEdited by\n\nMABEL LOOMIS TODD\n\nIt's all I have to bring to-day, This, and my heart beside, This, and my heart, and all the fields, And all the meadows wide. Be sure you count, should I forget, -- Some one the sum could tell, -- This, and my heart, and all the bees Which in the clover dwell.\n\nPREFACE.\n\nThe intellectual activity of Emily Dickinson was so great that a large and characteristic choice is still possible among her literary material, and this third volume of her verses is put forth in response to the repeated wish of the admirers of her peculiar genius. Much of Emily Dickinson's prose was rhythmic, --even rhymed, though frequently not set apart in lines.\n\nAlso many verses, written as such, were sent to friends in letters; these were published in 1894, in the volumes of her _Letters_. It has not been necessary, however, to include them in this Series, and all have been omitted, except three or four exceptionally strong ones, as \"A Book,\" and \"With Flowers.\"\n\nThere is internal evidence that many of the poems were simply spontaneous flashes of insight, apparently unrelated to outward circumstance. Others, however, had an obvious personal origin; for example, the verses \"I had a Guinea golden,\" which seem to have been sent to some friend travelling in Europe, as a dainty reminder of letter-writing delinquencies. The surroundings in which any of Emily Dickinson's verses are known to have been written usually serve to explain them clearly; but in general the present volume is full of thoughts needing no interpretation to those who apprehend this scintillating spirit.\n\nM. L. T.\n\nAMHERST, _October_, 1896.\n\nI. LIFE.\n\nI.\n\nREAL RICHES.\n\n'T is little I could care for pearls Who own the ample sea; Or brooches, when the Emperor With rubies pelteth me;\n\nOr gold, who am the Prince of Mines; Or diamonds, when I see A diadem to fit a dome Continual crowning me.\n\nII.\n\nSUPERIORITY TO FATE.\n\nSuperiority to fate Is difficult to learn. 'T is not conferred by any, But possible to earn\n\nA pittance at a time, Until, to her surprise, The soul with strict economy Subsists till Paradise.\n\nIII.\n\nHOPE.\n\nHope is a subtle glutton; He feeds upon the fair; And yet, inspected closely, What abstinence is there!\n\nHis is the halcyon table That never seats but one, And whatsoever is consumed The same amounts remain.\n\nII.\n\nHeaven is what I cannot reach! The apple on the tree, Provided it do hopeless hang, That 'heaven' is, to me.\n\nThe color on the cruising cloud, The interdicted ground Behind the hill, the house behind, -- There Paradise is found!"
+        "content": "Lay this laurel on the one\nToo intrinsic for renown.\nLaurel! veil your deathless tree, --\nHim you chasten, that is he!\n\nPOEMS\n\nby EMILY DICKINSON\n\nThird Series\n\nEdited by\n\nMABEL LOOMIS TODD\n\nIt's all I have to bring to-day,\nThis, and my heart beside,\nThis, and my heart, and all the fields,\nAnd all the meadows wide.\nBe sure you count, should I forget, --\nSome one the sum could tell, --\nThis, and my heart, and all the bees\nWhich in the clover dwell.\n\nPREFACE.\n\nThe intellectual activity of Emily Dickinson was so great that\na large and characteristic choice is still possible among her\nliterary material, and this third volume of her verses is put\nforth in response to the repeated wish of the admirers of her\npeculiar genius. Much of Emily Dickinson's prose was rhythmic,\n--even rhymed, though frequently not set apart in lines.\n\nAlso many verses, written as such, were sent to friends in\nletters; these were published in 1894, in the volumes of her\n_Letters_. It has not been necessary, however, to include them in\nthis Series, and all have been omitted, except three or four\nexceptionally strong ones, as \"A Book,\" and \"With Flowers.\"\n\nThere is internal evidence that many of the poems were simply\nspontaneous flashes of insight, apparently unrelated to outward\ncircumstance. Others, however, had an obvious personal origin;\nfor example, the verses \"I had a Guinea golden,\" which seem to\nhave been sent to some friend travelling in Europe, as a dainty\nreminder of letter-writing delinquencies. The surroundings in\nwhich any of Emily Dickinson's verses are known to have been\nwritten usually serve to explain them clearly; but in general the\npresent volume is full of thoughts needing no interpretation to\nthose who apprehend this scintillating spirit.\n\nM. L. T.\n\nAMHERST, _October_, 1896.\n\nI. LIFE.\n\nI.\n\nREAL RICHES.\n\n'T is little I could care for pearls\nWho own the ample sea;\nOr brooches, when the Emperor\nWith rubies pelteth me;\n\nOr gold, who am the Prince of Mines;\nOr diamonds, when I see\nA diadem to fit a dome\nContinual crowning me.\n\nII.\n\nSUPERIORITY TO FATE.\n\nSuperiority to fate\nIs difficult to learn.\n'T is not conferred by any,\nBut possible to earn\n\nA pittance at a time,\nUntil, to her surprise,\nThe soul with strict economy\nSubsists till Paradise.\n\nIII.\n\nHOPE.\n\nHope is a subtle glutton;\nHe feeds upon the fair;\nAnd yet, inspected closely,\nWhat abstinence is there!\n\nHis is the halcyon table\nThat never seats but one,\nAnd whatsoever is consumed\nThe same amounts remain.\n\nII.\n\nHeaven is what I cannot reach!\nThe apple on the tree,\nProvided it do hopeless hang,\nThat 'heaven' is, to me.\n\nThe color on the cruising cloud,\nThe interdicted ground\nBehind the hill, the house behind, --\nThere Paradise is found!"
     },
     {
         "name": "VII.",
         "path": [
             "VII."
         ],
-        "content": "To venerate the simple days Which lead the seasons by, Needs but to remember That from you or me They may take the trifle Termed mortality!\n\nTo invest existence with a stately air, Needs but to remember That the acorn there Is the egg of forests For the upper air!\n\nVIII.\n\nLIFE'S TRADES.\n\nIt's such a little thing to weep, So short a thing to sigh; And yet by trades the size of these We men and women die!"
+        "content": "To venerate the simple days\nWhich lead the seasons by,\nNeeds but to remember\nThat from you or me\nThey may take the trifle\nTermed mortality!\n\nTo invest existence with a stately air,\nNeeds but to remember\nThat the acorn there\nIs the egg of forests\nFor the upper air!\n\nVIII.\n\nLIFE'S TRADES.\n\nIt's such a little thing to weep,\nSo short a thing to sigh;\nAnd yet by trades the size of these\nWe men and women die!"
     },
     {
         "name": "IX.",
         "path": [
             "IX."
         ],
-        "content": "Drowning is not so pitiful As the attempt to rise. Three times, 't is said, a sinking man Comes up to face the skies, And then declines forever To that abhorred abode Where hope and he part company, -- For he is grasped of God. The Maker's cordial visage, However good to see, Is shunned, we must admit it, Like an adversity."
+        "content": "Drowning is not so pitiful\nAs the attempt to rise.\nThree times, 't is said, a sinking man\nComes up to face the skies,\nAnd then declines forever\nTo that abhorred abode\nWhere hope and he part company, --\nFor he is grasped of God.\nThe Maker's cordial visage,\nHowever good to see,\nIs shunned, we must admit it,\nLike an adversity."
     },
     {
         "name": "XI.",
         "path": [
             "XI."
         ],
-        "content": "If the foolish call them 'flowers,' Need the wiser tell? If the savans 'classify' them, It is just as well!\n\nThose who read the Revelations Must not criticise Those who read the same edition With beclouded eyes!\n\nCould we stand with that old Moses Canaan denied, -- Scan, like him, the stately landscape On the other side, --\n\nDoubtless we should deem superfluous Many sciences Not pursued by learnèd angels In scholastic skies!\n\nLow amid that glad _Belles lettres_ Grant that we may stand, Stars, amid profound Galaxies, At that grand 'Right hand'!\n\nXIII.\n\nPARTING.\n\nMy life closed twice before its close; It yet remains to see If Immortality unveil A third event to me,\n\nSo huge, so hopeless to conceive, As these that twice befell. Parting is all we know of heaven, And all we need of hell.\n\nXIV.\n\nASPIRATION.\n\nWe never know how high we are Till we are called to rise; And then, if we are true to plan, Our statures touch the skies.\n\nThe heroism we recite Would be a daily thing, Did not ourselves the cubits warp For fear to be a king."
+        "content": "If the foolish call them 'flowers,'\nNeed the wiser tell?\nIf the savans 'classify' them,\nIt is just as well!\n\nThose who read the Revelations\nMust not criticise\nThose who read the same edition\nWith beclouded eyes!\n\nCould we stand with that old Moses\nCanaan denied, --\nScan, like him, the stately landscape\nOn the other side, --\n\nDoubtless we should deem superfluous\nMany sciences\nNot pursued by learnèd angels\nIn scholastic skies!\n\nLow amid that glad _Belles lettres_\nGrant that we may stand,\nStars, amid profound Galaxies,\nAt that grand 'Right hand'!\n\nXIII.\n\nPARTING.\n\nMy life closed twice before its close;\nIt yet remains to see\nIf Immortality unveil\nA third event to me,\n\nSo huge, so hopeless to conceive,\nAs these that twice befell.\nParting is all we know of heaven,\nAnd all we need of hell.\n\nXIV.\n\nASPIRATION.\n\nWe never know how high we are\nTill we are called to rise;\nAnd then, if we are true to plan,\nOur statures touch the skies.\n\nThe heroism we recite\nWould be a daily thing,\nDid not ourselves the cubits warp\nFor fear to be a king."
     },
     {
         "name": "XV.",
         "path": [
             "XV."
         ],
-        "content": "THE INEVITABLE.\n\nWhile I was fearing it, it came, But came with less of fear, Because that fearing it so long Had almost made it dear. There is a fitting a dismay, A fitting a despair. 'Tis harder knowing it is due, Than knowing it is here. The trying on the utmost, The morning it is new, Is terribler than wearing it A whole existence through.\n\nXVI.\n\nA BOOK.\n\nThere is no frigate like a book To take us lands away, Nor any coursers like a page Of prancing poetry. This traverse may the poorest take Without oppress of toll; How frugal is the chariot That bears a human soul!\n\nXVIII.\n\nA PORTRAIT.\n\nA face devoid of love or grace, A hateful, hard, successful face, A face with which a stone Would feel as thoroughly at ease As were they old acquaintances, -- First time together thrown."
+        "content": "THE INEVITABLE.\n\nWhile I was fearing it, it came,\nBut came with less of fear,\nBecause that fearing it so long\nHad almost made it dear.\nThere is a fitting a dismay,\nA fitting a despair.\n'Tis harder knowing it is due,\nThan knowing it is here.\nThe trying on the utmost,\nThe morning it is new,\nIs terribler than wearing it\nA whole existence through.\n\nXVI.\n\nA BOOK.\n\nThere is no frigate like a book\nTo take us lands away,\nNor any coursers like a page\nOf prancing poetry.\nThis traverse may the poorest take\nWithout oppress of toll;\nHow frugal is the chariot\nThat bears a human soul!\n\nXVIII.\n\nA PORTRAIT.\n\nA face devoid of love or grace,\nA hateful, hard, successful face,\nA face with which a stone\nWould feel as thoroughly at ease\nAs were they old acquaintances, --\nFirst time together thrown."
     },
     {
         "name": "XIX.",
         "path": [
             "XIX."
         ],
-        "content": "I HAD A GUINEA GOLDEN.\n\nI had a guinea golden; I lost it in the sand, And though the sum was simple, And pounds were in the land, Still had it such a value Unto my frugal eye, That when I could not find it I sat me down to sigh.\n\nI had a crimson robin Who sang full many a day, But when the woods were painted He, too, did fly away. Time brought me other robins, -- Their ballads were the same, -- Still for my missing troubadour I kept the 'house at hame.'\n\nI had a star in heaven; One Pleiad was its name, And when I was not heeding It wandered from the same. And though the skies are crowded, And all the night ashine, I do not care about it, Since none of them are mine.\n\nMy story has a moral: I have a missing friend, -- Pleiad its name, and robin, And guinea in the sand, -- And when this mournful ditty, Accompanied with tear, Shall meet the eye of traitor In country far from here, Grant that repentance solemn May seize upon his mind, And he no consolation Beneath the sun may find.\n\nNOTE. -- This poem may have had, like many others, a personal origin. It is more than probable that it was sent to some friend travelling in Europe, a dainty reminder of letter-writing delinquencies."
+        "content": "I HAD A GUINEA GOLDEN.\n\nI had a guinea golden;\nI lost it in the sand,\nAnd though the sum was simple,\nAnd pounds were in the land,\nStill had it such a value\nUnto my frugal eye,\nThat when I could not find it\nI sat me down to sigh.\n\nI had a crimson robin\nWho sang full many a day,\nBut when the woods were painted\nHe, too, did fly away.\nTime brought me other robins, --\nTheir ballads were the same, --\nStill for my missing troubadour\nI kept the 'house at hame.'\n\nI had a star in heaven;\nOne Pleiad was its name,\nAnd when I was not heeding\nIt wandered from the same.\nAnd though the skies are crowded,\nAnd all the night ashine,\nI do not care about it,\nSince none of them are mine.\n\nMy story has a moral:\nI have a missing friend, --\nPleiad its name, and robin,\nAnd guinea in the sand, --\nAnd when this mournful ditty,\nAccompanied with tear,\nShall meet the eye of traitor\nIn country far from here,\nGrant that repentance solemn\nMay seize upon his mind,\nAnd he no consolation\nBeneath the sun may find.\n\nNOTE. -- This poem may have had, like many others, a\npersonal origin. It is more than probable that it was\nsent to some friend travelling in Europe, a dainty\nreminder of letter-writing delinquencies."
     },
     {
         "name": "XX.",
         "path": [
             "XX."
         ],
-        "content": "SATURDAY AFTERNOON.\n\nFrom all the jails the boys and girls Ecstatically leap, -- Beloved, only afternoon That prison doesn't keep.\n\nThey storm the earth and stun the air, A mob of solid bliss. Alas! that frowns could lie in wait For such a foe as this!\n\nXXII.\n\nUpon the gallows hung a wretch, Too sullied for the hell To which the law entitled him. As nature's curtain fell The one who bore him tottered in, For this was woman's son. ''T was all I had,' she stricken gasped; Oh, what a livid boon!"
+        "content": "SATURDAY AFTERNOON.\n\nFrom all the jails the boys and girls\nEcstatically leap, --\nBeloved, only afternoon\nThat prison doesn't keep.\n\nThey storm the earth and stun the air,\nA mob of solid bliss.\nAlas! that frowns could lie in wait\nFor such a foe as this!\n\nXXII.\n\nUpon the gallows hung a wretch,\nToo sullied for the hell\nTo which the law entitled him.\nAs nature's curtain fell\nThe one who bore him tottered in,\nFor this was woman's son.\n''T was all I had,' she stricken gasped;\nOh, what a livid boon!"
     },
     {
         "name": "XXIII.",
         "path": [
             "XXIII."
         ],
-        "content": "THE LOST THOUGHT.\n\nI felt a clearing in my mind As if my brain had split; I tried to match it, seam by seam, But could not make them fit.\n\nThe thought behind I strove to join Unto the thought before, But sequence ravelled out of reach Like balls upon a floor."
+        "content": "THE LOST THOUGHT.\n\nI felt a clearing in my mind\nAs if my brain had split;\nI tried to match it, seam by seam,\nBut could not make them fit.\n\nThe thought behind I strove to join\nUnto the thought before,\nBut sequence ravelled out of reach\nLike balls upon a floor."
     },
     {
         "name": "XXIV.",
         "path": [
             "XXIV."
         ],
-        "content": "RETICENCE.\n\nThe reticent volcano keeps His never slumbering plan; Confided are his projects pink To no precarious man.\n\nIf nature will not tell the tale Jehovah told to her, Can human nature not survive Without a listener?\n\nAdmonished by her buckled lips Let every babbler be. The only secret people keep Is Immortality.\n\nXXV.\n\nWITH FLOWERS.\n\nIf recollecting were forgetting, Then I remember not; And if forgetting, recollecting, How near I had forgot! And if to miss were merry, And if to mourn were gay, How very blithe the fingers That gathered these to-day!"
+        "content": "RETICENCE.\n\nThe reticent volcano keeps\nHis never slumbering plan;\nConfided are his projects pink\nTo no precarious man.\n\nIf nature will not tell the tale\nJehovah told to her,\nCan human nature not survive\nWithout a listener?\n\nAdmonished by her buckled lips\nLet every babbler be.\nThe only secret people keep\nIs Immortality.\n\nXXV.\n\nWITH FLOWERS.\n\nIf recollecting were forgetting,\nThen I remember not;\nAnd if forgetting, recollecting,\nHow near I had forgot!\nAnd if to miss were merry,\nAnd if to mourn were gay,\nHow very blithe the fingers\nThat gathered these to-day!"
     },
     {
         "name": "XXVI.",
         "path": [
             "XXVI."
         ],
-        "content": "The farthest thunder that I heard Was nearer than the sky, And rumbles still, though torrid noons Have lain their missiles by. The lightning that preceded it Struck no one but myself, But I would not exchange the bolt For all the rest of life. Indebtedness to oxygen The chemist may repay, But not the obligation To electricity. It founds the homes and decks the days, And every clamor bright Is but the gleam concomitant Of that waylaying light. The thought is quiet as a flake, -- A crash without a sound; How life's reverberation Its explanation found!\n\nXXVII.\n\nOn the bleakness of my lot Bloom I strove to raise. Late, my acre of a rock Yielded grape and maize.\n\nSoil of flint if steadfast tilled Will reward the hand; Seed of palm by Lybian sun Fructified in sand."
+        "content": "The farthest thunder that I heard\nWas nearer than the sky,\nAnd rumbles still, though torrid noons\nHave lain their missiles by.\nThe lightning that preceded it\nStruck no one but myself,\nBut I would not exchange the bolt\nFor all the rest of life.\nIndebtedness to oxygen\nThe chemist may repay,\nBut not the obligation\nTo electricity.\nIt founds the homes and decks the days,\nAnd every clamor bright\nIs but the gleam concomitant\nOf that waylaying light.\nThe thought is quiet as a flake, --\nA crash without a sound;\nHow life's reverberation\nIts explanation found!\n\nXXVII.\n\nOn the bleakness of my lot\nBloom I strove to raise.\nLate, my acre of a rock\nYielded grape and maize.\n\nSoil of flint if steadfast tilled\nWill reward the hand;\nSeed of palm by Lybian sun\nFructified in sand."
     },
     {
         "name": "XXVIII.",
         "path": [
             "XXVIII."
         ],
-        "content": "CONTRAST.\n\nA door just opened on a street -- I, lost, was passing by -- An instant's width of warmth disclosed, And wealth, and company.\n\nThe door as sudden shut, and I, I, lost, was passing by, -- Lost doubly, but by contrast most, Enlightening misery.\n\nXXIX.\n\nFRIENDS.\n\nAre friends delight or pain? Could bounty but remain Riches were good.\n\nBut if they only stay Bolder to fly away, Riches are sad.\n\nXXX.\n\nFIRE.\n\nAshes denote that fire was; Respect the grayest pile For the departed creature's sake That hovered there awhile.\n\nFire exists the first in light, And then consolidates, -- Only the chemist can disclose Into what carbonates."
+        "content": "CONTRAST.\n\nA door just opened on a street --\nI, lost, was passing by --\nAn instant's width of warmth disclosed,\nAnd wealth, and company.\n\nThe door as sudden shut, and I,\nI, lost, was passing by, --\nLost doubly, but by contrast most,\nEnlightening misery.\n\nXXIX.\n\nFRIENDS.\n\nAre friends delight or pain?\nCould bounty but remain\nRiches were good.\n\nBut if they only stay\nBolder to fly away,\nRiches are sad.\n\nXXX.\n\nFIRE.\n\nAshes denote that fire was;\nRespect the grayest pile\nFor the departed creature's sake\nThat hovered there awhile.\n\nFire exists the first in light,\nAnd then consolidates, --\nOnly the chemist can disclose\nInto what carbonates."
     },
     {
         "name": "XXXI.",
         "path": [
             "XXXI."
         ],
-        "content": "A MAN.\n\nFate slew him, but he did not drop; She felled -- he did not fall -- Impaled him on her fiercest stakes -- He neutralized them all.\n\nShe stung him, sapped his firm advance, But, when her worst was done, And he, unmoved, regarded her, Acknowledged him a man.\n\nXXXII.\n\nVENTURES.\n\nFinite to fail, but infinite to venture. For the one ship that struts the shore Many's the gallant, overwhelmed creature Nodding in navies nevermore."
+        "content": "A MAN.\n\nFate slew him, but he did not drop;\nShe felled -- he did not fall --\nImpaled him on her fiercest stakes --\nHe neutralized them all.\n\nShe stung him, sapped his firm advance,\nBut, when her worst was done,\nAnd he, unmoved, regarded her,\nAcknowledged him a man.\n\nXXXII.\n\nVENTURES.\n\nFinite to fail, but infinite to venture.\nFor the one ship that struts the shore\nMany's the gallant, overwhelmed creature\nNodding in navies nevermore."
     },
     {
         "name": "XXXIII.",
         "path": [
             "XXXIII."
         ],
-        "content": "GRIEFS.\n\nI measure every grief I meet With analytic eyes; I wonder if it weighs like mine, Or has an easier size.\n\nI wonder if they bore it long, Or did it just begin? I could not tell the date of mine, It feels so old a pain.\n\nI wonder if it hurts to live, And if they have to try, And whether, could they choose between, They would not rather die.\n\nI wonder if when years have piled -- Some thousands -- on the cause Of early hurt, if such a lapse Could give them any pause;\n\nOr would they go on aching still Through centuries above, Enlightened to a larger pain By contrast with the love.\n\nThe grieved are many, I am told; The reason deeper lies, -- Death is but one and comes but once, And only nails the eyes.\n\nThere's grief of want, and grief of cold, -- A sort they call 'despair;' There's banishment from native eyes, In sight of native air.\n\nAnd though I may not guess the kind Correctly, yet to me A piercing comfort it affords In passing Calvary,\n\nTo note the fashions of the cross, Of those that stand alone, Still fascinated to presume That some are like my own."
+        "content": "GRIEFS.\n\nI measure every grief I meet\nWith analytic eyes;\nI wonder if it weighs like mine,\nOr has an easier size.\n\nI wonder if they bore it long,\nOr did it just begin?\nI could not tell the date of mine,\nIt feels so old a pain.\n\nI wonder if it hurts to live,\nAnd if they have to try,\nAnd whether, could they choose between,\nThey would not rather die.\n\nI wonder if when years have piled --\nSome thousands -- on the cause\nOf early hurt, if such a lapse\nCould give them any pause;\n\nOr would they go on aching still\nThrough centuries above,\nEnlightened to a larger pain\nBy contrast with the love.\n\nThe grieved are many, I am told;\nThe reason deeper lies, --\nDeath is but one and comes but once,\nAnd only nails the eyes.\n\nThere's grief of want, and grief of cold, --\nA sort they call 'despair;'\nThere's banishment from native eyes,\nIn sight of native air.\n\nAnd though I may not guess the kind\nCorrectly, yet to me\nA piercing comfort it affords\nIn passing Calvary,\n\nTo note the fashions of the cross,\nOf those that stand alone,\nStill fascinated to presume\nThat some are like my own."
     },
     {
         "name": "XXXIV.",
         "path": [
             "XXXIV."
         ],
-        "content": "I have a king who does not speak; So, wondering, thro' the hours meek I trudge the day away,-- Half glad when it is night and sleep, If, haply, thro' a dream to peep In parlors shut by day.\n\nAnd if I do, when morning comes, It is as if a hundred drums Did round my pillow roll, And shouts fill all my childish sky, And bells keep saying 'victory' From steeples in my soul!\n\nAnd if I don't, the little Bird Within the Orchard is not heard, And I omit to pray, 'Father, thy will be done' to-day, For my will goes the other way, And it were perjury!"
+        "content": "I have a king who does not speak;\nSo, wondering, thro' the hours meek\nI trudge the day away,--\nHalf glad when it is night and sleep,\nIf, haply, thro' a dream to peep\nIn parlors shut by day.\n\nAnd if I do, when morning comes,\nIt is as if a hundred drums\nDid round my pillow roll,\nAnd shouts fill all my childish sky,\nAnd bells keep saying 'victory'\nFrom steeples in my soul!\n\nAnd if I don't, the little Bird\nWithin the Orchard is not heard,\nAnd I omit to pray,\n'Father, thy will be done' to-day,\nFor my will goes the other way,\nAnd it were perjury!"
     },
     {
         "name": "XXXV.",
         "path": [
             "XXXV."
         ],
-        "content": "DISENCHANTMENT.\n\nIt dropped so low in my regard I heard it hit the ground, And go to pieces on the stones At bottom of my mind;\n\nYet blamed the fate that fractured, less Than I reviled myself For entertaining plated wares Upon my silver shelf.\n\nXXXVI.\n\nLOST FAITH.\n\nTo lose one's faith surpasses The loss of an estate, Because estates can be Replenished, -- faith cannot.\n\nInherited with life, Belief but once can be; Annihilate a single clause, And Being's beggary.\n\nXXXVII.\n\nLOST JOY.\n\nI had a daily bliss I half indifferent viewed, Till sudden I perceived it stir, -- It grew as I pursued,\n\nTill when, around a crag, It wasted from my sight, Enlarged beyond my utmost scope, I learned its sweetness right."
+        "content": "DISENCHANTMENT.\n\nIt dropped so low in my regard\nI heard it hit the ground,\nAnd go to pieces on the stones\nAt bottom of my mind;\n\nYet blamed the fate that fractured, less\nThan I reviled myself\nFor entertaining plated wares\nUpon my silver shelf.\n\nXXXVI.\n\nLOST FAITH.\n\nTo lose one's faith surpasses\nThe loss of an estate,\nBecause estates can be\nReplenished, -- faith cannot.\n\nInherited with life,\nBelief but once can be;\nAnnihilate a single clause,\nAnd Being's beggary.\n\nXXXVII.\n\nLOST JOY.\n\nI had a daily bliss\nI half indifferent viewed,\nTill sudden I perceived it stir, --\nIt grew as I pursued,\n\nTill when, around a crag,\nIt wasted from my sight,\nEnlarged beyond my utmost scope,\nI learned its sweetness right."
     },
     {
         "name": "XXXVIII.",
         "path": [
             "XXXVIII."
         ],
-        "content": "I worked for chaff, and earning wheat Was haughty and betrayed. What right had fields to arbitrate In matters ratified?\n\nI tasted wheat, -- and hated chaff, And thanked the ample friend; Wisdom is more becoming viewed At distance than at hand.\n\nXXXIX.\n\nLife, and Death, and Giants Such as these, are still. Minor apparatus, hopper of the mill, Beetle at the candle, Or a fife's small fame, Maintain by accident That they proclaim."
+        "content": "I worked for chaff, and earning wheat\nWas haughty and betrayed.\nWhat right had fields to arbitrate\nIn matters ratified?\n\nI tasted wheat, -- and hated chaff,\nAnd thanked the ample friend;\nWisdom is more becoming viewed\nAt distance than at hand.\n\nXXXIX.\n\nLife, and Death, and Giants\nSuch as these, are still.\nMinor apparatus, hopper of the mill,\nBeetle at the candle,\nOr a fife's small fame,\nMaintain by accident\nThat they proclaim."
     },
     {
         "name": "XL.",
         "path": [
             "XL."
         ],
-        "content": "ALPINE GLOW.\n\nOur lives are Swiss, -- So still, so cool, Till, some odd afternoon, The Alps neglect their curtains, And we look farther on.\n\nItaly stands the other side, While, like a guard between, The solemn Alps, The siren Alps, Forever intervene!\n\nXLI.\n\nREMEMBRANCE.\n\nRemembrance has a rear and front, -- 'T is something like a house; It has a garret also For refuse and the mouse,\n\nBesides, the deepest cellar That ever mason hewed; Look to it, by its fathoms Ourselves be not pursued.\n\nXLII.\n\nTo hang our head ostensibly, And subsequent to find That such was not the posture Of our immortal mind,\n\nAffords the sly presumption That, in so dense a fuzz, You, too, take cobweb attitudes Upon a plane of gauze!"
+        "content": "ALPINE GLOW.\n\nOur lives are Swiss, --\nSo still, so cool,\nTill, some odd afternoon,\nThe Alps neglect their curtains,\nAnd we look farther on.\n\nItaly stands the other side,\nWhile, like a guard between,\nThe solemn Alps,\nThe siren Alps,\nForever intervene!\n\nXLI.\n\nREMEMBRANCE.\n\nRemembrance has a rear and front, --\n'T is something like a house;\nIt has a garret also\nFor refuse and the mouse,\n\nBesides, the deepest cellar\nThat ever mason hewed;\nLook to it, by its fathoms\nOurselves be not pursued.\n\nXLII.\n\nTo hang our head ostensibly,\nAnd subsequent to find\nThat such was not the posture\nOf our immortal mind,\n\nAffords the sly presumption\nThat, in so dense a fuzz,\nYou, too, take cobweb attitudes\nUpon a plane of gauze!"
     },
     {
         "name": "XLIII.",
         "path": [
             "XLIII."
         ],
-        "content": "THE BRAIN.\n\nThe brain is wider than the sky, For, put them side by side, The one the other will include With ease, and you beside.\n\nThe brain is deeper than the sea, For, hold them, blue to blue, The one the other will absorb, As sponges, buckets do.\n\nThe brain is just the weight of God, For, lift them, pound for pound, And they will differ, if they do, As syllable from sound."
+        "content": "THE BRAIN.\n\nThe brain is wider than the sky,\nFor, put them side by side,\nThe one the other will include\nWith ease, and you beside.\n\nThe brain is deeper than the sea,\nFor, hold them, blue to blue,\nThe one the other will absorb,\nAs sponges, buckets do.\n\nThe brain is just the weight of God,\nFor, lift them, pound for pound,\nAnd they will differ, if they do,\nAs syllable from sound."
     },
     {
         "name": "XLIV.",
         "path": [
             "XLIV."
         ],
-        "content": "The bone that has no marrow; What ultimate for that? It is not fit for table, For beggar, or for cat.\n\nA bone has obligations, A being has the same; A marrowless assembly Is culpabler than shame.\n\nBut how shall finished creatures A function fresh obtain? -- Old Nicodemus' phantom Confronting us again!\n\nXLV.\n\nTHE PAST.\n\nThe past is such a curious creature, To look her in the face A transport may reward us, Or a disgrace.\n\nUnarmed if any meet her, I charge him, fly! Her rusty ammunition Might yet reply!"
+        "content": "The bone that has no marrow;\nWhat ultimate for that?\nIt is not fit for table,\nFor beggar, or for cat.\n\nA bone has obligations,\nA being has the same;\nA marrowless assembly\nIs culpabler than shame.\n\nBut how shall finished creatures\nA function fresh obtain? --\nOld Nicodemus' phantom\nConfronting us again!\n\nXLV.\n\nTHE PAST.\n\nThe past is such a curious creature,\nTo look her in the face\nA transport may reward us,\nOr a disgrace.\n\nUnarmed if any meet her,\nI charge him, fly!\nHer rusty ammunition\nMight yet reply!"
     },
     {
         "name": "XLVII.",
         "path": [
             "XLVII."
         ],
-        "content": "What soft, cherubic creatures These gentlewomen are! One would as soon assault a plush Or violate a star.\n\nSuch dimity convictions, A horror so refined Of freckled human nature, Of Deity ashamed, --\n\nIt's such a common glory, A fisherman's degree! Redemption, brittle lady, Be so, ashamed of thee.\n\nXLVIII.\n\nDESIRE.\n\nWho never wanted, -- maddest joy Remains to him unknown: The banquet of abstemiousness Surpasses that of wine.\n\nWithin its hope, though yet ungrasped Desire's perfect goal, No nearer, lest reality Should disenthrall thy soul.\n\nL.\n\nPOWER.\n\nYou cannot put a fire out; A thing that can ignite Can go, itself, without a fan Upon the slowest night.\n\nYou cannot fold a flood And put it in a drawer, -- Because the winds would find it out, And tell your cedar floor.\n\nLI.\n\nA modest lot, a fame petite, A brief campaign of sting and sweet Is plenty! Is enough! A sailor's business is the shore, A soldier's -- balls. Who asketh more Must seek the neighboring life!"
+        "content": "What soft, cherubic creatures\nThese gentlewomen are!\nOne would as soon assault a plush\nOr violate a star.\n\nSuch dimity convictions,\nA horror so refined\nOf freckled human nature,\nOf Deity ashamed, --\n\nIt's such a common glory,\nA fisherman's degree!\nRedemption, brittle lady,\nBe so, ashamed of thee.\n\nXLVIII.\n\nDESIRE.\n\nWho never wanted, -- maddest joy\nRemains to him unknown:\nThe banquet of abstemiousness\nSurpasses that of wine.\n\nWithin its hope, though yet ungrasped\nDesire's perfect goal,\nNo nearer, lest reality\nShould disenthrall thy soul.\n\nL.\n\nPOWER.\n\nYou cannot put a fire out;\nA thing that can ignite\nCan go, itself, without a fan\nUpon the slowest night.\n\nYou cannot fold a flood\nAnd put it in a drawer, --\nBecause the winds would find it out,\nAnd tell your cedar floor.\n\nLI.\n\nA modest lot, a fame petite,\nA brief campaign of sting and sweet\nIs plenty! Is enough!\nA sailor's business is the shore,\nA soldier's -- balls. Who asketh more\nMust seek the neighboring life!"
     },
     {
         "name": "LII.",
         "path": [
             "LII."
         ],
-        "content": "Is bliss, then, such abyss I must not put my foot amiss For fear I spoil my shoe?\n\nI'd rather suit my foot Than save my boot, For yet to buy another pair Is possible At any fair.\n\nBut bliss is sold just once; The patent lost None buy it any more.\n\nLIII.\n\nEXPERIENCE.\n\nI stepped from plank to plank So slow and cautiously; The stars about my head I felt, About my feet the sea.\n\nI knew not but the next Would be my final inch, -- This gave me that precarious gait Some call experience."
+        "content": "Is bliss, then, such abyss\nI must not put my foot amiss\nFor fear I spoil my shoe?\n\nI'd rather suit my foot\nThan save my boot,\nFor yet to buy another pair\nIs possible\nAt any fair.\n\nBut bliss is sold just once;\nThe patent lost\nNone buy it any more.\n\nLIII.\n\nEXPERIENCE.\n\nI stepped from plank to plank\nSo slow and cautiously;\nThe stars about my head I felt,\nAbout my feet the sea.\n\nI knew not but the next\nWould be my final inch, --\nThis gave me that precarious gait\nSome call experience."
     },
     {
         "name": "LIV.",
         "path": [
             "LIV."
         ],
-        "content": "THANKSGIVING DAY.\n\nOne day is there of the series Termed Thanksgiving day, Celebrated part at table, Part in memory.\n\nNeither patriarch nor pussy, I dissect the play; Seems it, to my hooded thinking, Reflex holiday.\n\nHad there been no sharp subtraction From the early sum, Not an acre or a caption Where was once a room,\n\nNot a mention, whose small pebble Wrinkled any bay, -- Unto such, were such assembly, 'T were Thanksgiving day."
+        "content": "THANKSGIVING DAY.\n\nOne day is there of the series\nTermed Thanksgiving day,\nCelebrated part at table,\nPart in memory.\n\nNeither patriarch nor pussy,\nI dissect the play;\nSeems it, to my hooded thinking,\nReflex holiday.\n\nHad there been no sharp subtraction\nFrom the early sum,\nNot an acre or a caption\nWhere was once a room,\n\nNot a mention, whose small pebble\nWrinkled any bay, --\nUnto such, were such assembly,\n'T were Thanksgiving day."
     },
     {
         "name": "LV.",
         "path": [
             "LV."
         ],
-        "content": "CHILDISH GRIEFS.\n\nSoftened by Time's consummate plush, How sleek the woe appears That threatened childhood's citadel And undermined the years!\n\nBisected now by bleaker griefs, We envy the despair That devastated childhood's realm, So easy to repair.\n\nII. LOVE.\n\nI.\n\nCONSECRATION.\n\nProud of my broken heart since thou didst break it, Proud of the pain I did not feel till thee, Proud of my night since thou with moons dost slake it, Not to partake thy passion, my humility."
+        "content": "CHILDISH GRIEFS.\n\nSoftened by Time's consummate plush,\nHow sleek the woe appears\nThat threatened childhood's citadel\nAnd undermined the years!\n\nBisected now by bleaker griefs,\nWe envy the despair\nThat devastated childhood's realm,\nSo easy to repair.\n\nII. LOVE.\n\nI.\n\nCONSECRATION.\n\nProud of my broken heart since thou didst break it,\nProud of the pain I did not feel till thee,\nProud of my night since thou with moons dost slake it,\nNot to partake thy passion, my humility."
     },
     {
         "name": "II.",
         "path": [
             "II."
         ],
-        "content": "LOVE'S HUMILITY.\n\nMy worthiness is all my doubt, His merit all my fear, Contrasting which, my qualities Do lowlier appear;\n\nLest I should insufficient prove For his beloved need, The chiefest apprehension Within my loving creed.\n\nSo I, the undivine abode Of his elect content, Conform my soul as 't were a church Unto her sacrament."
+        "content": "LOVE'S HUMILITY.\n\nMy worthiness is all my doubt,\nHis merit all my fear,\nContrasting which, my qualities\nDo lowlier appear;\n\nLest I should insufficient prove\nFor his beloved need,\nThe chiefest apprehension\nWithin my loving creed.\n\nSo I, the undivine abode\nOf his elect content,\nConform my soul as 't were a church\nUnto her sacrament."
     },
     {
         "name": "IV.",
         "path": [
             "IV."
         ],
-        "content": "SATISFIED.\n\nOne blessing had I, than the rest So larger to my eyes That I stopped gauging, satisfied, For this enchanted size.\n\nIt was the limit of my dream, The focus of my prayer, -- A perfect, paralyzing bliss Contented as despair.\n\nI knew no more of want or cold, Phantasms both become, For this new value in the soul, Supremest earthly sum.\n\nThe heaven below the heaven above Obscured with ruddier hue. Life's latitude leant over-full; The judgment perished, too.\n\nWhy joys so scantily disburse, Why Paradise defer, Why floods are served to us in bowls, -- I speculate no more."
+        "content": "SATISFIED.\n\nOne blessing had I, than the rest\nSo larger to my eyes\nThat I stopped gauging, satisfied,\nFor this enchanted size.\n\nIt was the limit of my dream,\nThe focus of my prayer, --\nA perfect, paralyzing bliss\nContented as despair.\n\nI knew no more of want or cold,\nPhantasms both become,\nFor this new value in the soul,\nSupremest earthly sum.\n\nThe heaven below the heaven above\nObscured with ruddier hue.\nLife's latitude leant over-full;\nThe judgment perished, too.\n\nWhy joys so scantily disburse,\nWhy Paradise defer,\nWhy floods are served to us in bowls, --\nI speculate no more."
     },
     {
         "name": "V.",
         "path": [
             "V."
         ],
-        "content": "WITH A FLOWER.\n\nWhen roses cease to bloom, dear, And violets are done, When bumble-bees in solemn flight Have passed beyond the sun,\n\nThe hand that paused to gather Upon this summer's day Will idle lie, in Auburn, -- Then take my flower, pray!\n\nVI.\n\nSONG.\n\nSummer for thee grant I may be When summer days are flown! Thy music still when whippoorwill And oriole are done!\n\nFor thee to bloom, I'll skip the tomb And sow my blossoms o'er! Pray gather me, Anemone, Thy flower forevermore!"
+        "content": "WITH A FLOWER.\n\nWhen roses cease to bloom, dear,\nAnd violets are done,\nWhen bumble-bees in solemn flight\nHave passed beyond the sun,\n\nThe hand that paused to gather\nUpon this summer's day\nWill idle lie, in Auburn, --\nThen take my flower, pray!\n\nVI.\n\nSONG.\n\nSummer for thee grant I may be\nWhen summer days are flown!\nThy music still when whippoorwill\nAnd oriole are done!\n\nFor thee to bloom, I'll skip the tomb\nAnd sow my blossoms o'er!\nPray gather me, Anemone,\nThy flower forevermore!"
     },
     {
         "name": "VII.",
         "path": [
             "VII."
         ],
-        "content": "LOYALTY.\n\nSplit the lark and you'll find the music, Bulb after bulb, in silver rolled, Scantily dealt to the summer morning, Saved for your ear when lutes be old.\n\nLoose the flood, you shall find it patent, Gush after gush, reserved for you; Scarlet experiment! sceptic Thomas, Now, do you doubt that your bird was true?\n\nVIII.\n\nTo lose thee, sweeter than to gain All other hearts I knew. 'T is true the drought is destitute, But then I had the dew!\n\nThe Caspian has its realms of sand, Its other realm of sea; Without the sterile perquisite No Caspian could be."
+        "content": "LOYALTY.\n\nSplit the lark and you'll find the music,\nBulb after bulb, in silver rolled,\nScantily dealt to the summer morning,\nSaved for your ear when lutes be old.\n\nLoose the flood, you shall find it patent,\nGush after gush, reserved for you;\nScarlet experiment! sceptic Thomas,\nNow, do you doubt that your bird was true?\n\nVIII.\n\nTo lose thee, sweeter than to gain\nAll other hearts I knew.\n'T is true the drought is destitute,\nBut then I had the dew!\n\nThe Caspian has its realms of sand,\nIts other realm of sea;\nWithout the sterile perquisite\nNo Caspian could be."
     },
     {
         "name": "IX.",
         "path": [
             "IX."
         ],
-        "content": "Poor little heart! Did they forget thee? Then dinna care! Then dinna care!\n\nProud little heart! Did they forsake thee? Be debonair! Be debonair!\n\nFrail little heart! I would not break thee: Could'st credit me? Could'st credit me?\n\nGay little heart! Like morning glory Thou'll wilted be; thou'll wilted be!"
+        "content": "Poor little heart!\nDid they forget thee?\nThen dinna care! Then dinna care!\n\nProud little heart!\nDid they forsake thee?\nBe debonair! Be debonair!\n\nFrail little heart!\nI would not break thee:\nCould'st credit me? Could'st credit me?\n\nGay little heart!\nLike morning glory\nThou'll wilted be; thou'll wilted be!"
     },
     {
         "name": "X.",
         "path": [
             "X."
         ],
-        "content": "FORGOTTEN.\n\nThere is a word Which bears a sword Can pierce an armed man. It hurls its barbed syllables,-- At once is mute again. But where it fell The saved will tell On patriotic day, Some epauletted brother Gave his breath away.\n\nWherever runs the breathless sun, Wherever roams the day, There is its noiseless onset, There is its victory!\n\nBehold the keenest marksman! The most accomplished shot! Time's sublimest target Is a soul 'forgot'!\n\nXI.\n\nI've got an arrow here; Loving the hand that sent it, I the dart revere.\n\nFell, they will say, in 'skirmish'! Vanquished, my soul will know, By but a simple arrow Sped by an archer's bow."
+        "content": "FORGOTTEN.\n\nThere is a word\nWhich bears a sword\nCan pierce an armed man.\nIt hurls its barbed syllables,--\nAt once is mute again.\nBut where it fell\nThe saved will tell\nOn patriotic day,\nSome epauletted brother\nGave his breath away.\n\nWherever runs the breathless sun,\nWherever roams the day,\nThere is its noiseless onset,\nThere is its victory!\n\nBehold the keenest marksman!\nThe most accomplished shot!\nTime's sublimest target\nIs a soul 'forgot'!\n\nXI.\n\nI've got an arrow here;\nLoving the hand that sent it,\nI the dart revere.\n\nFell, they will say, in 'skirmish'!\nVanquished, my soul will know,\nBy but a simple arrow\nSped by an archer's bow."
     },
     {
         "name": "XII.",
         "path": [
             "XII."
         ],
-        "content": "THE MASTER.\n\nHe fumbles at your spirit As players at the keys Before they drop full music on; He stuns you by degrees,\n\nPrepares your brittle substance For the ethereal blow, By fainter hammers, further heard, Then nearer, then so slow\n\nYour breath has time to straighten, Your brain to bubble cool, -- Deals one imperial thunderbolt That scalps your naked soul.\n\nXIII.\n\nHeart, we will forget him! You and I, to-night! You may forget the warmth he gave, I will forget the light.\n\nWhen you have done, pray tell me, That I my thoughts may dim; Haste! lest while you're lagging, I may remember him!"
+        "content": "THE MASTER.\n\nHe fumbles at your spirit\nAs players at the keys\nBefore they drop full music on;\nHe stuns you by degrees,\n\nPrepares your brittle substance\nFor the ethereal blow,\nBy fainter hammers, further heard,\nThen nearer, then so slow\n\nYour breath has time to straighten,\nYour brain to bubble cool, --\nDeals one imperial thunderbolt\nThat scalps your naked soul.\n\nXIII.\n\nHeart, we will forget him!\nYou and I, to-night!\nYou may forget the warmth he gave,\nI will forget the light.\n\nWhen you have done, pray tell me,\nThat I my thoughts may dim;\nHaste! lest while you're lagging,\nI may remember him!"
     },
     {
         "name": "XIV.",
         "path": [
             "XIV."
         ],
-        "content": "Father, I bring thee not myself, -- That were the little load; I bring thee the imperial heart I had not strength to hold.\n\nThe heart I cherished in my own Till mine too heavy grew, Yet strangest, heavier since it went, Is it too large for you?\n\nXV.\n\nWe outgrow love like other things And put it in the drawer, Till it an antique fashion shows Like costumes grandsires wore."
+        "content": "Father, I bring thee not myself, --\nThat were the little load;\nI bring thee the imperial heart\nI had not strength to hold.\n\nThe heart I cherished in my own\nTill mine too heavy grew,\nYet strangest, heavier since it went,\nIs it too large for you?\n\nXV.\n\nWe outgrow love like other things\nAnd put it in the drawer,\nTill it an antique fashion shows\nLike costumes grandsires wore."
     },
     {
         "name": "XVI.",
         "path": [
             "XVI."
         ],
-        "content": "Not with a club the heart is broken, Nor with a stone; A whip, so small you could not see it. I've known\n\nTo lash the magic creature Till it fell, Yet that whip's name too noble Then to tell.\n\nMagnanimous of bird By boy descried, To sing unto the stone Of which it died.\n\nXVII.\n\nWHO?\n\nMy friend must be a bird, Because it flies! Mortal my friend must be, Because it dies! Barbs has it, like a bee. Ah, curious friend, Thou puzzlest me!"
+        "content": "Not with a club the heart is broken,\nNor with a stone;\nA whip, so small you could not see it.\nI've known\n\nTo lash the magic creature\nTill it fell,\nYet that whip's name too noble\nThen to tell.\n\nMagnanimous of bird\nBy boy descried,\nTo sing unto the stone\nOf which it died.\n\nXVII.\n\nWHO?\n\nMy friend must be a bird,\nBecause it flies!\nMortal my friend must be,\nBecause it dies!\nBarbs has it, like a bee.\nAh, curious friend,\nThou puzzlest me!"
     },
     {
         "name": "XVIII.",
         "path": [
             "XVIII."
         ],
-        "content": "He touched me, so I live to know That such a day, permitted so, I groped upon his breast. It was a boundless place to me, And silenced, as the awful sea Puts minor streams to rest.\n\nAnd now, I'm different from before, As if I breathed superior air, Or brushed a royal gown; My feet, too, that had wandered so, My gypsy face transfigured now To tenderer renown."
+        "content": "He touched me, so I live to know\nThat such a day, permitted so,\nI groped upon his breast.\nIt was a boundless place to me,\nAnd silenced, as the awful sea\nPuts minor streams to rest.\n\nAnd now, I'm different from before,\nAs if I breathed superior air,\nOr brushed a royal gown;\nMy feet, too, that had wandered so,\nMy gypsy face transfigured now\nTo tenderer renown."
     },
     {
         "name": "XX.",
         "path": [
             "XX."
         ],
-        "content": "NUMEN LUMEN.\n\nI live with him, I see his face; I go no more away For visitor, or sundown; Death's single privacy,\n\nThe only one forestalling mine, And that by right that he Presents a claim invisible, No wedlock granted me.\n\nI live with him, I hear his voice, I stand alive to-day To witness to the certainty Of immortality\n\nTaught me by Time, -- the lower way, Conviction every day, -- That life like this is endless, Be judgment what it may."
+        "content": "NUMEN LUMEN.\n\nI live with him, I see his face;\nI go no more away\nFor visitor, or sundown;\nDeath's single privacy,\n\nThe only one forestalling mine,\nAnd that by right that he\nPresents a claim invisible,\nNo wedlock granted me.\n\nI live with him, I hear his voice,\nI stand alive to-day\nTo witness to the certainty\nOf immortality\n\nTaught me by Time, -- the lower way,\nConviction every day, --\nThat life like this is endless,\nBe judgment what it may."
     },
     {
         "name": "XXI.",
         "path": [
             "XXI."
         ],
-        "content": "LONGING.\n\nI envy seas whereon he rides, I envy spokes of wheels Of chariots that him convey, I envy speechless hills\n\nThat gaze upon his journey; How easy all can see What is forbidden utterly As heaven, unto me!\n\nI envy nests of sparrows That dot his distant eaves, The wealthy fly upon his pane, The happy, happy leaves\n\nThat just abroad his window Have summer's leave to be, The earrings of Pizarro Could not obtain for me.\n\nI envy light that wakes him, And bells that boldly ring To tell him it is noon abroad, -- Myself his noon could bring,\n\nYet interdict my blossom And abrogate my bee, Lest noon in everlasting night Drop Gabriel and me.\n\nXXII.\n\nWEDDED.\n\nA solemn thing it was, I said, A woman white to be, And wear, if God should count me fit, Her hallowed mystery.\n\nA timid thing to drop a life Into the purple well, Too plummetless that it come back Eternity until.\n\nIII. NATURE."
+        "content": "LONGING.\n\nI envy seas whereon he rides,\nI envy spokes of wheels\nOf chariots that him convey,\nI envy speechless hills\n\nThat gaze upon his journey;\nHow easy all can see\nWhat is forbidden utterly\nAs heaven, unto me!\n\nI envy nests of sparrows\nThat dot his distant eaves,\nThe wealthy fly upon his pane,\nThe happy, happy leaves\n\nThat just abroad his window\nHave summer's leave to be,\nThe earrings of Pizarro\nCould not obtain for me.\n\nI envy light that wakes him,\nAnd bells that boldly ring\nTo tell him it is noon abroad, --\nMyself his noon could bring,\n\nYet interdict my blossom\nAnd abrogate my bee,\nLest noon in everlasting night\nDrop Gabriel and me.\n\nXXII.\n\nWEDDED.\n\nA solemn thing it was, I said,\nA woman white to be,\nAnd wear, if God should count me fit,\nHer hallowed mystery.\n\nA timid thing to drop a life\nInto the purple well,\nToo plummetless that it come back\nEternity until.\n\nIII. NATURE."
     },
     {
         "name": "I.",
         "path": [
             "I."
         ],
-        "content": "NATURE'S CHANGES.\n\nThe springtime's pallid landscape Will glow like bright bouquet, Though drifted deep in parian The village lies to-day.\n\nThe lilacs, bending many a year, With purple load will hang; The bees will not forget the tune Their old forefathers sang.\n\nThe rose will redden in the bog, The aster on the hill Her everlasting fashion set, And covenant gentians frill,\n\nTill summer folds her miracle As women do their gown, Or priests adjust the symbols When sacrament is done.\n\nII.\n\nTHE TULIP.\n\nShe slept beneath a tree Remembered but by me. I touched her cradle mute; She recognized the foot, Put on her carmine suit, -- And see!"
+        "content": "NATURE'S CHANGES.\n\nThe springtime's pallid landscape\nWill glow like bright bouquet,\nThough drifted deep in parian\nThe village lies to-day.\n\nThe lilacs, bending many a year,\nWith purple load will hang;\nThe bees will not forget the tune\nTheir old forefathers sang.\n\nThe rose will redden in the bog,\nThe aster on the hill\nHer everlasting fashion set,\nAnd covenant gentians frill,\n\nTill summer folds her miracle\nAs women do their gown,\nOr priests adjust the symbols\nWhen sacrament is done.\n\nII.\n\nTHE TULIP.\n\nShe slept beneath a tree\nRemembered but by me.\nI touched her cradle mute;\nShe recognized the foot,\nPut on her carmine suit, --\nAnd see!"
     },
     {
         "name": "III.",
         "path": [
             "III."
         ],
-        "content": "A light exists in spring Not present on the year At any other period. When March is scarcely here\n\nA color stands abroad On solitary hills That science cannot overtake, But human nature feels.\n\nIt waits upon the lawn; It shows the furthest tree Upon the furthest slope we know; It almost speaks to me.\n\nThen, as horizons step, Or noons report away, Without the formula of sound, It passes, and we stay:\n\nA quality of loss Affecting our content, As trade had suddenly encroached Upon a sacrament."
+        "content": "A light exists in spring\nNot present on the year\nAt any other period.\nWhen March is scarcely here\n\nA color stands abroad\nOn solitary hills\nThat science cannot overtake,\nBut human nature feels.\n\nIt waits upon the lawn;\nIt shows the furthest tree\nUpon the furthest slope we know;\nIt almost speaks to me.\n\nThen, as horizons step,\nOr noons report away,\nWithout the formula of sound,\nIt passes, and we stay:\n\nA quality of loss\nAffecting our content,\nAs trade had suddenly encroached\nUpon a sacrament."
     },
     {
         "name": "IV.",
         "path": [
             "IV."
         ],
-        "content": "THE WAKING YEAR.\n\nA lady red upon the hill Her annual secret keeps; A lady white within the field In placid lily sleeps!\n\nThe tidy breezes with their brooms Sweep vale, and hill, and tree! Prithee, my pretty housewives! Who may expected be?\n\nThe neighbors do not yet suspect! The woods exchange a smile -- Orchard, and buttercup, and bird -- In such a little while!\n\nAnd yet how still the landscape stands, How nonchalant the wood, As if the resurrection Were nothing very odd!"
+        "content": "THE WAKING YEAR.\n\nA lady red upon the hill\nHer annual secret keeps;\nA lady white within the field\nIn placid lily sleeps!\n\nThe tidy breezes with their brooms\nSweep vale, and hill, and tree!\nPrithee, my pretty housewives!\nWho may expected be?\n\nThe neighbors do not yet suspect!\nThe woods exchange a smile --\nOrchard, and buttercup, and bird --\nIn such a little while!\n\nAnd yet how still the landscape stands,\nHow nonchalant the wood,\nAs if the resurrection\nWere nothing very odd!"
     },
     {
         "name": "V.",
         "path": [
             "V."
         ],
-        "content": "TO MARCH.\n\nDear March, come in! How glad I am! I looked for you before. Put down your hat -- You must have walked -- How out of breath you are! Dear March, how are you? And the rest? Did you leave Nature well? Oh, March, come right upstairs with me, I have so much to tell!\n\nI got your letter, and the birds'; The maples never knew That you were coming, -- I declare, How red their faces grew! But, March, forgive me -- And all those hills You left for me to hue; There was no purple suitable, You took it all with you.\n\nWho knocks? That April! Lock the door! I will not be pursued! He stayed away a year, to call When I am occupied. But trifles look so trivial As soon as you have come, That blame is just as dear as praise And praise as mere as blame."
+        "content": "TO MARCH.\n\nDear March, come in!\nHow glad I am!\nI looked for you before.\nPut down your hat --\nYou must have walked --\nHow out of breath you are!\nDear March, how are you?\nAnd the rest?\nDid you leave Nature well?\nOh, March, come right upstairs with me,\nI have so much to tell!\n\nI got your letter, and the birds';\nThe maples never knew\nThat you were coming, -- I declare,\nHow red their faces grew!\nBut, March, forgive me --\nAnd all those hills\nYou left for me to hue;\nThere was no purple suitable,\nYou took it all with you.\n\nWho knocks? That April!\nLock the door!\nI will not be pursued!\nHe stayed away a year, to call\nWhen I am occupied.\nBut trifles look so trivial\nAs soon as you have come,\nThat blame is just as dear as praise\nAnd praise as mere as blame."
     },
     {
         "name": "VI.",
         "path": [
             "VI."
         ],
-        "content": "MARCH.\n\nWe like March, his shoes are purple, He is new and high; Makes he mud for dog and peddler, Makes he forest dry; Knows the adder's tongue his coming, And begets her spot. Stands the sun so close and mighty That our minds are hot. News is he of all the others; Bold it were to die With the blue-birds buccaneering On his British sky."
+        "content": "MARCH.\n\nWe like March, his shoes are purple,\nHe is new and high;\nMakes he mud for dog and peddler,\nMakes he forest dry;\nKnows the adder's tongue his coming,\nAnd begets her spot.\nStands the sun so close and mighty\nThat our minds are hot.\nNews is he of all the others;\nBold it were to die\nWith the blue-birds buccaneering\nOn his British sky."
     },
     {
         "name": "VIII.",
         "path": [
             "VIII."
         ],
-        "content": "A murmur in the trees to note, Not loud enough for wind; A star not far enough to seek, Nor near enough to find;\n\nA long, long yellow on the lawn, A hubbub as of feet; Not audible, as ours to us, But dapperer, more sweet;\n\nA hurrying home of little men To houses unperceived, -- All this, and more, if I should tell, Would never be believed.\n\nOf robins in the trundle bed How many I espy Whose nightgowns could not hide the wings, Although I heard them try!\n\nBut then I promised ne'er to tell; How could I break my word? So go your way and I'll go mine, -- No fear you'll miss the road.\n\nX.\n\nTo my quick ear the leaves conferred; The bushes they were bells; I could not find a privacy From Nature's sentinels.\n\nIn cave if I presumed to hide, The walls began to tell; Creation seemed a mighty crack To make me visible.\n\nXI.\n\nA ROSE.\n\nA sepal, petal, and a thorn Upon a common summer's morn, A flash of dew, a bee or two, A breeze A caper in the trees, -- And I'm a rose!"
+        "content": "A murmur in the trees to note,\nNot loud enough for wind;\nA star not far enough to seek,\nNor near enough to find;\n\nA long, long yellow on the lawn,\nA hubbub as of feet;\nNot audible, as ours to us,\nBut dapperer, more sweet;\n\nA hurrying home of little men\nTo houses unperceived, --\nAll this, and more, if I should tell,\nWould never be believed.\n\nOf robins in the trundle bed\nHow many I espy\nWhose nightgowns could not hide the wings,\nAlthough I heard them try!\n\nBut then I promised ne'er to tell;\nHow could I break my word?\nSo go your way and I'll go mine, --\nNo fear you'll miss the road.\n\nX.\n\nTo my quick ear the leaves conferred;\nThe bushes they were bells;\nI could not find a privacy\nFrom Nature's sentinels.\n\nIn cave if I presumed to hide,\nThe walls began to tell;\nCreation seemed a mighty crack\nTo make me visible.\n\nXI.\n\nA ROSE.\n\nA sepal, petal, and a thorn\nUpon a common summer's morn,\nA flash of dew, a bee or two,\nA breeze\nA caper in the trees, --\nAnd I'm a rose!"
     },
     {
         "name": "XII.",
         "path": [
             "XII."
         ],
-        "content": "High from the earth I heard a bird; He trod upon the trees As he esteemed them trifles, And then he spied a breeze, And situated softly Upon a pile of wind Which in a perturbation Nature had left behind. A joyous-going fellow I gathered from his talk, Which both of benediction And badinage partook, Without apparent burden, I learned, in leafy wood He was the faithful father Of a dependent brood; And this untoward transport His remedy for care, -- A contrast to our respites. How different we are!\n\nXIII.\n\nCOBWEBS.\n\nThe spider as an artist Has never been employed Though his surpassing merit Is freely certified\n\nBy every broom and Bridget Throughout a Christian land. Neglected son of genius, I take thee by the hand."
+        "content": "High from the earth I heard a bird;\nHe trod upon the trees\nAs he esteemed them trifles,\nAnd then he spied a breeze,\nAnd situated softly\nUpon a pile of wind\nWhich in a perturbation\nNature had left behind.\nA joyous-going fellow\nI gathered from his talk,\nWhich both of benediction\nAnd badinage partook,\nWithout apparent burden,\nI learned, in leafy wood\nHe was the faithful father\nOf a dependent brood;\nAnd this untoward transport\nHis remedy for care, --\nA contrast to our respites.\nHow different we are!\n\nXIII.\n\nCOBWEBS.\n\nThe spider as an artist\nHas never been employed\nThough his surpassing merit\nIs freely certified\n\nBy every broom and Bridget\nThroughout a Christian land.\nNeglected son of genius,\nI take thee by the hand."
     },
     {
         "name": "XIV.",
         "path": [
             "XIV."
         ],
-        "content": "A WELL.\n\nWhat mystery pervades a well! The water lives so far, Like neighbor from another world Residing in a jar.\n\nThe grass does not appear afraid; I often wonder he Can stand so close and look so bold At what is dread to me.\n\nRelated somehow they may be, -- The sedge stands next the sea, Where he is floorless, yet of fear No evidence gives he.\n\nBut nature is a stranger yet; The ones that cite her most Have never passed her haunted house, Nor simplified her ghost.\n\nTo pity those that know her not Is helped by the regret That those who know her, know her less The nearer her they get.\n\nXV.\n\nTo make a prairie it takes a clover and one bee, -- One clover, and a bee, And revery. The revery alone will do If bees are few."
+        "content": "A WELL.\n\nWhat mystery pervades a well!\nThe water lives so far,\nLike neighbor from another world\nResiding in a jar.\n\nThe grass does not appear afraid;\nI often wonder he\nCan stand so close and look so bold\nAt what is dread to me.\n\nRelated somehow they may be, --\nThe sedge stands next the sea,\nWhere he is floorless, yet of fear\nNo evidence gives he.\n\nBut nature is a stranger yet;\nThe ones that cite her most\nHave never passed her haunted house,\nNor simplified her ghost.\n\nTo pity those that know her not\nIs helped by the regret\nThat those who know her, know her less\nThe nearer her they get.\n\nXV.\n\nTo make a prairie it takes a clover and one bee, --\nOne clover, and a bee,\nAnd revery.\nThe revery alone will do\nIf bees are few."
     },
     {
         "name": "XVI.",
         "path": [
             "XVI."
         ],
-        "content": "THE WIND.\n\nIt's like the light, -- A fashionless delight It's like the bee, -- A dateless melody.\n\nIt's like the woods, Private like breeze, Phraseless, yet it stirs The proudest trees.\n\nIt's like the morning, -- Best when it's done, -- The everlasting clocks Chime noon."
+        "content": "THE WIND.\n\nIt's like the light, --\nA fashionless delight\nIt's like the bee, --\nA dateless melody.\n\nIt's like the woods,\nPrivate like breeze,\nPhraseless, yet it stirs\nThe proudest trees.\n\nIt's like the morning, --\nBest when it's done, --\nThe everlasting clocks\nChime noon."
     },
     {
         "name": "XVII.",
         "path": [
             "XVII."
         ],
-        "content": "A dew sufficed itself And satisfied a leaf, And felt, 'how vast a destiny! How trivial is life!'\n\nThe sun went out to work, The day went out to play, But not again that dew was seen By physiognomy.\n\nWhether by day abducted, Or emptied by the sun Into the sea, in passing, Eternally unknown.\n\nXIX.\n\nA SNAKE.\n\nSweet is the swamp with its secrets, Until we meet a snake; 'T is then we sigh for houses, And our departure take At that enthralling gallop That only childhood knows. A snake is summer's treason, And guile is where it goes."
+        "content": "A dew sufficed itself\nAnd satisfied a leaf,\nAnd felt, 'how vast a destiny!\nHow trivial is life!'\n\nThe sun went out to work,\nThe day went out to play,\nBut not again that dew was seen\nBy physiognomy.\n\nWhether by day abducted,\nOr emptied by the sun\nInto the sea, in passing,\nEternally unknown.\n\nXIX.\n\nA SNAKE.\n\nSweet is the swamp with its secrets,\nUntil we meet a snake;\n'T is then we sigh for houses,\nAnd our departure take\nAt that enthralling gallop\nThat only childhood knows.\nA snake is summer's treason,\nAnd guile is where it goes."
     },
     {
         "name": "XX.",
         "path": [
             "XX."
         ],
-        "content": "Could I but ride indefinite, As doth the meadow-bee, And visit only where I liked, And no man visit me,\n\nAnd flirt all day with buttercups, And marry whom I may, And dwell a little everywhere, Or better, run away\n\nWith no police to follow, Or chase me if I do, Till I should jump peninsulas To get away from you, --\n\nI said, but just to be a bee Upon a raft of air, And row in nowhere all day long, And anchor off the bar,-- What liberty! So captives deem Who tight in dungeons are."
+        "content": "Could I but ride indefinite,\nAs doth the meadow-bee,\nAnd visit only where I liked,\nAnd no man visit me,\n\nAnd flirt all day with buttercups,\nAnd marry whom I may,\nAnd dwell a little everywhere,\nOr better, run away\n\nWith no police to follow,\nOr chase me if I do,\nTill I should jump peninsulas\nTo get away from you, --\n\nI said, but just to be a bee\nUpon a raft of air,\nAnd row in nowhere all day long,\nAnd anchor off the bar,--\nWhat liberty! So captives deem\nWho tight in dungeons are."
     },
     {
         "name": "XXI.",
         "path": [
             "XXI."
         ],
-        "content": "THE MOON.\n\nThe moon was but a chin of gold A night or two ago, And now she turns her perfect face Upon the world below.\n\nHer forehead is of amplest blond; Her cheek like beryl stone; Her eye unto the summer dew The likest I have known.\n\nHer lips of amber never part; But what must be the smile Upon her friend she could bestow Were such her silver will!\n\nAnd what a privilege to be But the remotest star! For certainly her way might pass Beside your twinkling door.\n\nHer bonnet is the firmament, The universe her shoe, The stars the trinkets at her belt, Her dimities of blue."
+        "content": "THE MOON.\n\nThe moon was but a chin of gold\nA night or two ago,\nAnd now she turns her perfect face\nUpon the world below.\n\nHer forehead is of amplest blond;\nHer cheek like beryl stone;\nHer eye unto the summer dew\nThe likest I have known.\n\nHer lips of amber never part;\nBut what must be the smile\nUpon her friend she could bestow\nWere such her silver will!\n\nAnd what a privilege to be\nBut the remotest star!\nFor certainly her way might pass\nBeside your twinkling door.\n\nHer bonnet is the firmament,\nThe universe her shoe,\nThe stars the trinkets at her belt,\nHer dimities of blue."
     },
     {
         "name": "XXII.",
         "path": [
             "XXII."
         ],
-        "content": "THE BAT.\n\nThe bat is dun with wrinkled wings Like fallow article, And not a song pervades his lips, Or none perceptible.\n\nHis small umbrella, quaintly halved, Describing in the air An arc alike inscrutable, -- Elate philosopher!\n\nDeputed from what firmament Of what astute abode, Empowered with what malevolence Auspiciously withheld.\n\nTo his adroit Creator Ascribe no less the praise; Beneficent, believe me, His eccentricities."
+        "content": "THE BAT.\n\nThe bat is dun with wrinkled wings\nLike fallow article,\nAnd not a song pervades his lips,\nOr none perceptible.\n\nHis small umbrella, quaintly halved,\nDescribing in the air\nAn arc alike inscrutable, --\nElate philosopher!\n\nDeputed from what firmament\nOf what astute abode,\nEmpowered with what malevolence\nAuspiciously withheld.\n\nTo his adroit Creator\nAscribe no less the praise;\nBeneficent, believe me,\nHis eccentricities."
     },
     {
         "name": "XXIII.",
         "path": [
             "XXIII."
         ],
-        "content": "THE BALLOON.\n\nYou've seen balloons set, haven't you? So stately they ascend It is as swans discarded you For duties diamond.\n\nTheir liquid feet go softly out Upon a sea of blond; They spurn the air as 't were too mean For creatures so renowned.\n\nTheir ribbons just beyond the eye, They struggle some for breath, And yet the crowd applauds below; They would not encore death.\n\nThe gilded creature strains and spins, Trips frantic in a tree, Tears open her imperial veins And tumbles in the sea.\n\nThe crowd retire with an oath The dust in streets goes down, And clerks in counting-rooms observe, ''T was only a balloon.'"
+        "content": "THE BALLOON.\n\nYou've seen balloons set, haven't you?\nSo stately they ascend\nIt is as swans discarded you\nFor duties diamond.\n\nTheir liquid feet go softly out\nUpon a sea of blond;\nThey spurn the air as 't were too mean\nFor creatures so renowned.\n\nTheir ribbons just beyond the eye,\nThey struggle some for breath,\nAnd yet the crowd applauds below;\nThey would not encore death.\n\nThe gilded creature strains and spins,\nTrips frantic in a tree,\nTears open her imperial veins\nAnd tumbles in the sea.\n\nThe crowd retire with an oath\nThe dust in streets goes down,\nAnd clerks in counting-rooms observe,\n''T was only a balloon.'"
     },
     {
         "name": "XXIV.",
         "path": [
             "XXIV."
         ],
-        "content": "EVENING.\n\nThe cricket sang, And set the sun, And workmen finished, one by one, Their seam the day upon.\n\nThe low grass loaded with the dew, The twilight stood as strangers do With hat in hand, polite and new, To stay as if, or go.\n\nA vastness, as a neighbor, came, -- A wisdom without face or name, A peace, as hemispheres at home, -- And so the night became."
+        "content": "EVENING.\n\nThe cricket sang,\nAnd set the sun,\nAnd workmen finished, one by one,\nTheir seam the day upon.\n\nThe low grass loaded with the dew,\nThe twilight stood as strangers do\nWith hat in hand, polite and new,\nTo stay as if, or go.\n\nA vastness, as a neighbor, came, --\nA wisdom without face or name,\nA peace, as hemispheres at home, --\nAnd so the night became."
     },
     {
         "name": "XXVII.",
         "path": [
             "XXVII."
         ],
-        "content": "AURORA.\n\nOf bronze and blaze The north, to-night! So adequate its forms, So preconcerted with itself, So distant to alarms, -- An unconcern so sovereign To universe, or me, It paints my simple spirit With tints of majesty, Till I take vaster attitudes, And strut upon my stem, Disdaining men and oxygen, For arrogance of them.\n\nMy splendors are menagerie; But their competeless show Will entertain the centuries When I am, long ago, An island in dishonored grass, Whom none but daisies know."
+        "content": "AURORA.\n\nOf bronze and blaze\nThe north, to-night!\nSo adequate its forms,\nSo preconcerted with itself,\nSo distant to alarms, --\nAn unconcern so sovereign\nTo universe, or me,\nIt paints my simple spirit\nWith tints of majesty,\nTill I take vaster attitudes,\nAnd strut upon my stem,\nDisdaining men and oxygen,\nFor arrogance of them.\n\nMy splendors are menagerie;\nBut their competeless show\nWill entertain the centuries\nWhen I am, long ago,\nAn island in dishonored grass,\nWhom none but daisies know."
     },
     {
         "name": "XXVIII.",
         "path": [
             "XXVIII."
         ],
-        "content": "THE COMING OF NIGHT.\n\nHow the old mountains drip with sunset, And the brake of dun! How the hemlocks are tipped in tinsel By the wizard sun!\n\nHow the old steeples hand the scarlet, Till the ball is full, -- Have I the lip of the flamingo That I dare to tell?\n\nThen, how the fire ebbs like billows, Touching all the grass With a departing, sapphire feature, As if a duchess pass!\n\nHow a small dusk crawls on the village Till the houses blot; And the odd flambeaux no men carry Glimmer on the spot!\n\nNow it is night in nest and kennel, And where was the wood, Just a dome of abyss is nodding Into solitude! --\n\nThese are the visions baffled Guido; Titian never told; Domenichino dropped the pencil, Powerless to unfold."
+        "content": "THE COMING OF NIGHT.\n\nHow the old mountains drip with sunset,\nAnd the brake of dun!\nHow the hemlocks are tipped in tinsel\nBy the wizard sun!\n\nHow the old steeples hand the scarlet,\nTill the ball is full, --\nHave I the lip of the flamingo\nThat I dare to tell?\n\nThen, how the fire ebbs like billows,\nTouching all the grass\nWith a departing, sapphire feature,\nAs if a duchess pass!\n\nHow a small dusk crawls on the village\nTill the houses blot;\nAnd the odd flambeaux no men carry\nGlimmer on the spot!\n\nNow it is night in nest and kennel,\nAnd where was the wood,\nJust a dome of abyss is nodding\nInto solitude! --\n\nThese are the visions baffled Guido;\nTitian never told;\nDomenichino dropped the pencil,\nPowerless to unfold."
     },
     {
         "name": "XXIX.",
         "path": [
             "XXIX."
         ],
-        "content": "AFTERMATH.\n\nThe murmuring of bees has ceased; But murmuring of some Posterior, prophetic, Has simultaneous come, --\n\nThe lower metres of the year, When nature's laugh is done, -- The Revelations of the book Whose Genesis is June.\n\nIV. TIME AND ETERNITY."
+        "content": "AFTERMATH.\n\nThe murmuring of bees has ceased;\nBut murmuring of some\nPosterior, prophetic,\nHas simultaneous come, --\n\nThe lower metres of the year,\nWhen nature's laugh is done, --\nThe Revelations of the book\nWhose Genesis is June.\n\nIV. TIME AND ETERNITY."
     },
     {
         "name": "I.",
         "path": [
             "I."
         ],
-        "content": "This world is not conclusion; A sequel stands beyond, Invisible, as music, But positive, as sound. It beckons and it baffles; Philosophies don't know, And through a riddle, at the last, Sagacity must go. To guess it puzzles scholars; To gain it, men have shown Contempt of generations, And crucifixion known.\n\nII.\n\nWe learn in the retreating How vast an one Was recently among us. A perished sun\n\nEndears in the departure How doubly more Than all the golden presence It was before!\n\nIII.\n\nThey say that 'time assuages,' -- Time never did assuage; An actual suffering strengthens, As sinews do, with age.\n\nTime is a test of trouble, But not a remedy. If such it prove, it prove too There was no malady."
+        "content": "This world is not conclusion;\nA sequel stands beyond,\nInvisible, as music,\nBut positive, as sound.\nIt beckons and it baffles;\nPhilosophies don't know,\nAnd through a riddle, at the last,\nSagacity must go.\nTo guess it puzzles scholars;\nTo gain it, men have shown\nContempt of generations,\nAnd crucifixion known.\n\nII.\n\nWe learn in the retreating\nHow vast an one\nWas recently among us.\nA perished sun\n\nEndears in the departure\nHow doubly more\nThan all the golden presence\nIt was before!\n\nIII.\n\nThey say that 'time assuages,' --\nTime never did assuage;\nAn actual suffering strengthens,\nAs sinews do, with age.\n\nTime is a test of trouble,\nBut not a remedy.\nIf such it prove, it prove too\nThere was no malady."
     },
     {
         "name": "IV.",
         "path": [
             "IV."
         ],
-        "content": "We cover thee, sweet face. Not that we tire of thee, But that thyself fatigue of us; Remember, as thou flee, We follow thee until Thou notice us no more, And then, reluctant, turn away To con thee o'er and o'er, And blame the scanty love We were content to show, Augmented, sweet, a hundred fold If thou would'st take it now.\n\nV.\n\nENDING.\n\nThat is solemn we have ended, -- Be it but a play, Or a glee among the garrets, Or a holiday,\n\nOr a leaving home; or later, Parting with a world We have understood, for better Still it be unfurled.\n\nVII.\n\nGiven in marriage unto thee, Oh, thou celestial host! Bride of the Father and the Son, Bride of the Holy Ghost!\n\nOther betrothal shall dissolve, Wedlock of will decay; Only the keeper of this seal Conquers mortality."
+        "content": "We cover thee, sweet face.\nNot that we tire of thee,\nBut that thyself fatigue of us;\nRemember, as thou flee,\nWe follow thee until\nThou notice us no more,\nAnd then, reluctant, turn away\nTo con thee o'er and o'er,\nAnd blame the scanty love\nWe were content to show,\nAugmented, sweet, a hundred fold\nIf thou would'st take it now.\n\nV.\n\nENDING.\n\nThat is solemn we have ended, --\nBe it but a play,\nOr a glee among the garrets,\nOr a holiday,\n\nOr a leaving home; or later,\nParting with a world\nWe have understood, for better\nStill it be unfurled.\n\nVII.\n\nGiven in marriage unto thee,\nOh, thou celestial host!\nBride of the Father and the Son,\nBride of the Holy Ghost!\n\nOther betrothal shall dissolve,\nWedlock of will decay;\nOnly the keeper of this seal\nConquers mortality."
     },
     {
         "name": "IX.",
         "path": [
             "IX."
         ],
-        "content": "They won't frown always, -- some sweet day When I forget to tease, They'll recollect how cold I looked, And how I just said 'please.'\n\nThen they will hasten to the door To call the little child, Who cannot thank them, for the ice That on her lisping piled.\n\nX.\n\nIMMORTALITY.\n\nIt is an honorable thought, And makes one lift one's hat, As one encountered gentlefolk Upon a daily street,\n\nThat we've immortal place, Though pyramids decay, And kingdoms, like the orchard, Flit russetly away."
+        "content": "They won't frown always, -- some sweet day\nWhen I forget to tease,\nThey'll recollect how cold I looked,\nAnd how I just said 'please.'\n\nThen they will hasten to the door\nTo call the little child,\nWho cannot thank them, for the ice\nThat on her lisping piled.\n\nX.\n\nIMMORTALITY.\n\nIt is an honorable thought,\nAnd makes one lift one's hat,\nAs one encountered gentlefolk\nUpon a daily street,\n\nThat we've immortal place,\nThough pyramids decay,\nAnd kingdoms, like the orchard,\nFlit russetly away."
     },
     {
         "name": "XI.",
         "path": [
             "XI."
         ],
-        "content": "The distance that the dead have gone Does not at first appear; Their coming back seems possible For many an ardent year.\n\nAnd then, that we have followed them We more than half suspect, So intimate have we become With their dear retrospect."
+        "content": "The distance that the dead have gone\nDoes not at first appear;\nTheir coming back seems possible\nFor many an ardent year.\n\nAnd then, that we have followed them\nWe more than half suspect,\nSo intimate have we become\nWith their dear retrospect."
     },
     {
         "name": "XII.",
         "path": [
             "XII."
         ],
-        "content": "How dare the robins sing, When men and women hear Who since they went to their account Have settled with the year! -- Paid all that life had earned In one consummate bill, And now, what life or death can do Is immaterial. Insulting is the sun To him whose mortal light, Beguiled of immortality, Bequeaths him to the night. In deference to him Extinct be every hum, Whose garden wrestles with the dew, At daybreak overcome!"
+        "content": "How dare the robins sing,\nWhen men and women hear\nWho since they went to their account\nHave settled with the year! --\nPaid all that life had earned\nIn one consummate bill,\nAnd now, what life or death can do\nIs immaterial.\nInsulting is the sun\nTo him whose mortal light,\nBeguiled of immortality,\nBequeaths him to the night.\nIn deference to him\nExtinct be every hum,\nWhose garden wrestles with the dew,\nAt daybreak overcome!"
     },
     {
         "name": "XIII.",
         "path": [
             "XIII."
         ],
-        "content": "DEATH.\n\nDeath is like the insect Menacing the tree, Competent to kill it, But decoyed may be.\n\nBait it with the balsam, Seek it with the knife, Baffle, if it cost you Everything in life.\n\nThen, if it have burrowed Out of reach of skill, Ring the tree and leave it, -- 'T is the vermin's will."
+        "content": "DEATH.\n\nDeath is like the insect\nMenacing the tree,\nCompetent to kill it,\nBut decoyed may be.\n\nBait it with the balsam,\nSeek it with the knife,\nBaffle, if it cost you\nEverything in life.\n\nThen, if it have burrowed\nOut of reach of skill,\nRing the tree and leave it, --\n'T is the vermin's will."
     },
     {
         "name": "XIV.",
         "path": [
             "XIV."
         ],
-        "content": "UNWARNED.\n\n'T is sunrise, little maid, hast thou No station in the day? 'T was not thy wont to hinder so, -- Retrieve thine industry.\n\n'T is noon, my little maid, alas! And art thou sleeping yet? The lily waiting to be wed, The bee, dost thou forget?\n\nMy little maid, 't is night; alas, That night should be to thee Instead of morning! Hadst thou broached Thy little plan to me, Dissuade thee if I could not, sweet, I might have aided thee.\n\nXV.\n\nEach that we lose takes part of us; A crescent still abides, Which like the moon, some turbid night, Is summoned by the tides.\n\nXVI.\n\nNot any higher stands the grave For heroes than for men; Not any nearer for the child Than numb three-score and ten.\n\nThis latest leisure equal lulls The beggar and his queen; Propitiate this democrat By summer's gracious mien."
+        "content": "UNWARNED.\n\n'T is sunrise, little maid, hast thou\nNo station in the day?\n'T was not thy wont to hinder so, --\nRetrieve thine industry.\n\n'T is noon, my little maid, alas!\nAnd art thou sleeping yet?\nThe lily waiting to be wed,\nThe bee, dost thou forget?\n\nMy little maid, 't is night; alas,\nThat night should be to thee\nInstead of morning! Hadst thou broached\nThy little plan to me,\nDissuade thee if I could not, sweet,\nI might have aided thee.\n\nXV.\n\nEach that we lose takes part of us;\nA crescent still abides,\nWhich like the moon, some turbid night,\nIs summoned by the tides.\n\nXVI.\n\nNot any higher stands the grave\nFor heroes than for men;\nNot any nearer for the child\nThan numb three-score and ten.\n\nThis latest leisure equal lulls\nThe beggar and his queen;\nPropitiate this democrat\nBy summer's gracious mien."
     },
     {
         "name": "XVII.",
         "path": [
             "XVII."
         ],
-        "content": "ASLEEP.\n\nAs far from pity as complaint, As cool to speech as stone, As numb to revelation As if my trade were bone.\n\nAs far from time as history, As near yourself to-day As children to the rainbow's scarf, Or sunset's yellow play\n\nTo eyelids in the sepulchre. How still the dancer lies, While color's revelations break, And blaze the butterflies!"
+        "content": "ASLEEP.\n\nAs far from pity as complaint,\nAs cool to speech as stone,\nAs numb to revelation\nAs if my trade were bone.\n\nAs far from time as history,\nAs near yourself to-day\nAs children to the rainbow's scarf,\nOr sunset's yellow play\n\nTo eyelids in the sepulchre.\nHow still the dancer lies,\nWhile color's revelations break,\nAnd blaze the butterflies!"
     },
     {
         "name": "XVIII.",
         "path": [
             "XVIII."
         ],
-        "content": "THE SPIRIT.\n\n'T is whiter than an Indian pipe, 'T is dimmer than a lace; No stature has it, like a fog, When you approach the place.\n\nNot any voice denotes it here, Or intimates it there; A spirit, how doth it accost? What customs hath the air?\n\nThis limitless hyperbole Each one of us shall be; 'T is drama, if (hypothesis) It be not tragedy!"
+        "content": "THE SPIRIT.\n\n'T is whiter than an Indian pipe,\n'T is dimmer than a lace;\nNo stature has it, like a fog,\nWhen you approach the place.\n\nNot any voice denotes it here,\nOr intimates it there;\nA spirit, how doth it accost?\nWhat customs hath the air?\n\nThis limitless hyperbole\nEach one of us shall be;\n'T is drama, if (hypothesis)\nIt be not tragedy!"
     },
     {
         "name": "XIX.",
         "path": [
             "XIX."
         ],
-        "content": "THE MONUMENT.\n\nShe laid her docile crescent down, And this mechanic stone Still states, to dates that have forgot, The news that she is gone.\n\nSo constant to its stolid trust, The shaft that never knew, It shames the constancy that fled Before its emblem flew.\n\nXX.\n\nBless God, he went as soldiers, His musket on his breast; Grant, God, he charge the bravest Of all the martial blest.\n\nPlease God, might I behold him In epauletted white, I should not fear the foe then, I should not fear the fight.\n\nXXI.\n\nImmortal is an ample word When what we need is by, But when it leaves us for a time, 'T is a necessity.\n\nOf heaven above the firmest proof We fundamental know, Except for its marauding hand, It had been heaven below.\n\nXXIII.\n\nThe grave my little cottage is, Where, keeping house for thee, I make my parlor orderly, And lay the marble tea,\n\nFor two divided, briefly, A cycle, it may be, Till everlasting life unite In strong society.\n\nXXIV.\n\nThis was in the white of the year, That was in the green, Drifts were as difficult then to think As daisies now to be seen.\n\nLooking back is best that is left, Or if it be before, Retrospection is prospect's half, Sometimes almost more.\n\nXXV.\n\nSweet hours have perished here; This is a mighty room; Within its precincts hopes have played, -- Now shadows in the tomb."
+        "content": "THE MONUMENT.\n\nShe laid her docile crescent down,\nAnd this mechanic stone\nStill states, to dates that have forgot,\nThe news that she is gone.\n\nSo constant to its stolid trust,\nThe shaft that never knew,\nIt shames the constancy that fled\nBefore its emblem flew.\n\nXX.\n\nBless God, he went as soldiers,\nHis musket on his breast;\nGrant, God, he charge the bravest\nOf all the martial blest.\n\nPlease God, might I behold him\nIn epauletted white,\nI should not fear the foe then,\nI should not fear the fight.\n\nXXI.\n\nImmortal is an ample word\nWhen what we need is by,\nBut when it leaves us for a time,\n'T is a necessity.\n\nOf heaven above the firmest proof\nWe fundamental know,\nExcept for its marauding hand,\nIt had been heaven below.\n\nXXIII.\n\nThe grave my little cottage is,\nWhere, keeping house for thee,\nI make my parlor orderly,\nAnd lay the marble tea,\n\nFor two divided, briefly,\nA cycle, it may be,\nTill everlasting life unite\nIn strong society.\n\nXXIV.\n\nThis was in the white of the year,\nThat was in the green,\nDrifts were as difficult then to think\nAs daisies now to be seen.\n\nLooking back is best that is left,\nOr if it be before,\nRetrospection is prospect's half,\nSometimes almost more.\n\nXXV.\n\nSweet hours have perished here;\nThis is a mighty room;\nWithin its precincts hopes have played, --\nNow shadows in the tomb."
     },
     {
         "name": "XXVI.",
         "path": [
             "XXVI."
         ],
-        "content": "Me! Come! My dazzled face In such a shining place!\n\nMe! Hear! My foreign ear The sounds of welcome near!\n\nThe saints shall meet Our bashful feet.\n\nMy holiday shall be That they remember me;\n\nMy paradise, the fame That they pronounce my name.\n\nXXVII.\n\nINVISIBLE.\n\nFrom us she wandered now a year, Her tarrying unknown; If wilderness prevent her feet, Or that ethereal zone\n\nNo eye hath seen and lived, We ignorant must be. We only know what time of year We took the mystery.\n\nXXVIII.\n\nI wish I knew that woman's name, So, when she comes this way, To hold my life, and hold my ears, For fear I hear her say\n\nShe's 'sorry I am dead,' again, Just when the grave and I Have sobbed ourselves almost to sleep, -- Our only lullaby."
+        "content": "Me! Come! My dazzled face\nIn such a shining place!\n\nMe! Hear! My foreign ear\nThe sounds of welcome near!\n\nThe saints shall meet\nOur bashful feet.\n\nMy holiday shall be\nThat they remember me;\n\nMy paradise, the fame\nThat they pronounce my name.\n\nXXVII.\n\nINVISIBLE.\n\nFrom us she wandered now a year,\nHer tarrying unknown;\nIf wilderness prevent her feet,\nOr that ethereal zone\n\nNo eye hath seen and lived,\nWe ignorant must be.\nWe only know what time of year\nWe took the mystery.\n\nXXVIII.\n\nI wish I knew that woman's name,\nSo, when she comes this way,\nTo hold my life, and hold my ears,\nFor fear I hear her say\n\nShe's 'sorry I am dead,' again,\nJust when the grave and I\nHave sobbed ourselves almost to sleep, --\nOur only lullaby."
     },
     {
         "name": "XXIX.",
         "path": [
             "XXIX."
         ],
-        "content": "TRYING TO FORGET.\n\nBereaved of all, I went abroad, No less bereaved to be Upon a new peninsula, -- The grave preceded me,\n\nObtained my lodgings ere myself, And when I sought my bed, The grave it was, reposed upon The pillow for my head.\n\nI waked, to find it first awake, I rose, -- it followed me; I tried to drop it in the crowd, To lose it in the sea,\n\nIn cups of artificial drowse To sleep its shape away, -- The grave was finished, but the spade Remained in memory."
+        "content": "TRYING TO FORGET.\n\nBereaved of all, I went abroad,\nNo less bereaved to be\nUpon a new peninsula, --\nThe grave preceded me,\n\nObtained my lodgings ere myself,\nAnd when I sought my bed,\nThe grave it was, reposed upon\nThe pillow for my head.\n\nI waked, to find it first awake,\nI rose, -- it followed me;\nI tried to drop it in the crowd,\nTo lose it in the sea,\n\nIn cups of artificial drowse\nTo sleep its shape away, --\nThe grave was finished, but the spade\nRemained in memory."
     },
     {
         "name": "XXX.",
         "path": [
             "XXX."
         ],
-        "content": "I felt a funeral in my brain, And mourners, to and fro, Kept treading, treading, till it seemed That sense was breaking through.\n\nAnd when they all were seated, A service like a drum Kept beating, beating, till I thought My mind was going numb.\n\nAnd then I heard them lift a box, And creak across my soul With those same boots of lead, again. Then space began to toll\n\nAs all the heavens were a bell, And Being but an ear, And I and silence some strange race, Wrecked, solitary, here."
+        "content": "I felt a funeral in my brain,\nAnd mourners, to and fro,\nKept treading, treading, till it seemed\nThat sense was breaking through.\n\nAnd when they all were seated,\nA service like a drum\nKept beating, beating, till I thought\nMy mind was going numb.\n\nAnd then I heard them lift a box,\nAnd creak across my soul\nWith those same boots of lead, again.\nThen space began to toll\n\nAs all the heavens were a bell,\nAnd Being but an ear,\nAnd I and silence some strange race,\nWrecked, solitary, here."
     },
     {
         "name": "XXXI.",
         "path": [
             "XXXI."
         ],
-        "content": "I meant to find her when I came; Death had the same design; But the success was his, it seems, And the discomfit mine.\n\nI meant to tell her how I longed For just this single time; But Death had told her so the first, And she had hearkened him.\n\nTo wander now is my abode; To rest, -- to rest would be A privilege of hurricane To memory and me.\n\nXXXII.\n\nWAITING.\n\nI sing to use the waiting, My bonnet but to tie, And shut the door unto my house; No more to do have I,\n\nTill, his best step approaching, We journey to the day, And tell each other how we sang To keep the dark away.\n\nXXXIII.\n\nA sickness of this world it most occasions When best men die; A wishfulness their far condition To occupy.\n\nA chief indifference, as foreign A world must be Themselves forsake contented, For Deity."
+        "content": "I meant to find her when I came;\nDeath had the same design;\nBut the success was his, it seems,\nAnd the discomfit mine.\n\nI meant to tell her how I longed\nFor just this single time;\nBut Death had told her so the first,\nAnd she had hearkened him.\n\nTo wander now is my abode;\nTo rest, -- to rest would be\nA privilege of hurricane\nTo memory and me.\n\nXXXII.\n\nWAITING.\n\nI sing to use the waiting,\nMy bonnet but to tie,\nAnd shut the door unto my house;\nNo more to do have I,\n\nTill, his best step approaching,\nWe journey to the day,\nAnd tell each other how we sang\nTo keep the dark away.\n\nXXXIII.\n\nA sickness of this world it most occasions\nWhen best men die;\nA wishfulness their far condition\nTo occupy.\n\nA chief indifference, as foreign\nA world must be\nThemselves forsake contented,\nFor Deity."
     },
     {
         "name": "XXXIV.",
         "path": [
             "XXXIV."
         ],
-        "content": "Superfluous were the sun When excellence is dead; He were superfluous every day, For every day is said\n\nThat syllable whose faith Just saves it from despair, And whose 'I'll meet you' hesitates If love inquire, 'Where?'\n\nUpon his dateless fame Our periods may lie, As stars that drop anonymous From an abundant sky.\n\nXXXV.\n\nSo proud she was to die It made us all ashamed That what we cherished, so unknown To her desire seemed.\n\nSo satisfied to go Where none of us should be, Immediately, that anguish stooped Almost to jealousy."
+        "content": "Superfluous were the sun\nWhen excellence is dead;\nHe were superfluous every day,\nFor every day is said\n\nThat syllable whose faith\nJust saves it from despair,\nAnd whose 'I'll meet you' hesitates\nIf love inquire, 'Where?'\n\nUpon his dateless fame\nOur periods may lie,\nAs stars that drop anonymous\nFrom an abundant sky.\n\nXXXV.\n\nSo proud she was to die\nIt made us all ashamed\nThat what we cherished, so unknown\nTo her desire seemed.\n\nSo satisfied to go\nWhere none of us should be,\nImmediately, that anguish stooped\nAlmost to jealousy."
     },
     {
         "name": "XXXVI.",
         "path": [
             "XXXVI."
         ],
-        "content": "FAREWELL.\n\nTie the strings to my life, my Lord, Then I am ready to go! Just a look at the horses -- Rapid! That will do!\n\nPut me in on the firmest side, So I shall never fall; For we must ride to the Judgment, And it's partly down hill.\n\nBut never I mind the bridges, And never I mind the sea; Held fast in everlasting race By my own choice and thee.\n\nGood-by to the life I used to live, And the world I used to know; And kiss the hills for me, just once; Now I am ready to go!\n\nXXXVII.\n\nThe dying need but little, dear, -- A glass of water's all, A flower's unobtrusive face To punctuate the wall,\n\nA fan, perhaps, a friend's regret, And certainly that one No color in the rainbow Perceives when you are gone."
+        "content": "FAREWELL.\n\nTie the strings to my life, my Lord,\nThen I am ready to go!\nJust a look at the horses --\nRapid! That will do!\n\nPut me in on the firmest side,\nSo I shall never fall;\nFor we must ride to the Judgment,\nAnd it's partly down hill.\n\nBut never I mind the bridges,\nAnd never I mind the sea;\nHeld fast in everlasting race\nBy my own choice and thee.\n\nGood-by to the life I used to live,\nAnd the world I used to know;\nAnd kiss the hills for me, just once;\nNow I am ready to go!\n\nXXXVII.\n\nThe dying need but little, dear, --\nA glass of water's all,\nA flower's unobtrusive face\nTo punctuate the wall,\n\nA fan, perhaps, a friend's regret,\nAnd certainly that one\nNo color in the rainbow\nPerceives when you are gone."
     },
     {
         "name": "XXXVIII.",
         "path": [
             "XXXVIII."
         ],
-        "content": "DEAD.\n\nThere's something quieter than sleep Within this inner room! It wears a sprig upon its breast, And will not tell its name.\n\nSome touch it and some kiss it, Some chafe its idle hand; It has a simple gravity I do not understand!\n\nWhile simple-hearted neighbors Chat of the 'early dead,' We, prone to periphrasis, Remark that birds have fled!\n\nXXXIX.\n\nThe soul should always stand ajar, That if the heaven inquire, He will not be obliged to wait, Or shy of troubling her.\n\nDepart, before the host has slid The bolt upon the door, To seek for the accomplished guest, -- Her visitor no more."
+        "content": "DEAD.\n\nThere's something quieter than sleep\nWithin this inner room!\nIt wears a sprig upon its breast,\nAnd will not tell its name.\n\nSome touch it and some kiss it,\nSome chafe its idle hand;\nIt has a simple gravity\nI do not understand!\n\nWhile simple-hearted neighbors\nChat of the 'early dead,'\nWe, prone to periphrasis,\nRemark that birds have fled!\n\nXXXIX.\n\nThe soul should always stand ajar,\nThat if the heaven inquire,\nHe will not be obliged to wait,\nOr shy of troubling her.\n\nDepart, before the host has slid\nThe bolt upon the door,\nTo seek for the accomplished guest, --\nHer visitor no more."
     },
     {
         "name": "XL.",
         "path": [
             "XL."
         ],
-        "content": "Three weeks passed since I had seen her, -- Some disease had vexed; 'T was with text and village singing I beheld her next,\n\nAnd a company -- our pleasure To discourse alone; Gracious now to me as any, Gracious unto none.\n\nBorne, without dissent of either, To the parish night; Of the separated people Which are out of sight?"
+        "content": "Three weeks passed since I had seen her, --\nSome disease had vexed;\n'T was with text and village singing\nI beheld her next,\n\nAnd a company -- our pleasure\nTo discourse alone;\nGracious now to me as any,\nGracious unto none.\n\nBorne, without dissent of either,\nTo the parish night;\nOf the separated people\nWhich are out of sight?"
     },
     {
         "name": "XLI.",
         "path": [
             "XLI."
         ],
-        "content": "I breathed enough to learn the trick, And now, removed from air, I simulate the breath so well, That one, to be quite sure\n\nThe lungs are stirless, must descend Among the cunning cells, And touch the pantomime himself. How cool the bellows feels!"
+        "content": "I breathed enough to learn the trick,\nAnd now, removed from air,\nI simulate the breath so well,\nThat one, to be quite sure\n\nThe lungs are stirless, must descend\nAmong the cunning cells,\nAnd touch the pantomime himself.\nHow cool the bellows feels!"
     },
     {
         "name": "XLIII.",
         "path": [
             "XLIII."
         ],
-        "content": "JOY IN DEATH.\n\nIf tolling bell I ask the cause. 'A soul has gone to God,' I'm answered in a lonesome tone; Is heaven then so sad?\n\nThat bells should joyful ring to tell A soul had gone to heaven, Would seem to me the proper way A good news should be given."
+        "content": "JOY IN DEATH.\n\nIf tolling bell I ask the cause.\n'A soul has gone to God,'\nI'm answered in a lonesome tone;\nIs heaven then so sad?\n\nThat bells should joyful ring to tell\nA soul had gone to heaven,\nWould seem to me the proper way\nA good news should be given."
     },
     {
         "name": "XLIV.",
         "path": [
             "XLIV."
         ],
-        "content": "If I may have it when it's dead I will contented be; If just as soon as breath is out It shall belong to me,\n\nUntil they lock it in the grave, 'T is bliss I cannot weigh, For though they lock thee in the grave, Myself can hold the key.\n\nThink of it, lover! I and thee Permitted face to face to be; After a life, a death we'll say, -- For death was that, and this is thee."
+        "content": "If I may have it when it's dead\nI will contented be;\nIf just as soon as breath is out\nIt shall belong to me,\n\nUntil they lock it in the grave,\n'T is bliss I cannot weigh,\nFor though they lock thee in the grave,\nMyself can hold the key.\n\nThink of it, lover! I and thee\nPermitted face to face to be;\nAfter a life, a death we'll say, --\nFor death was that, and this is thee."
     },
     {
         "name": "XLV.",
         "path": [
             "XLV."
         ],
-        "content": "Before the ice is in the pools, Before the skaters go, Or any cheek at nightfall Is tarnished by the snow,\n\nBefore the fields have finished, Before the Christmas tree, Wonder upon wonder Will arrive to me!\n\nWhat we touch the hems of On a summer's day; What is only walking Just a bridge away;\n\nThat which sings so, speaks so, When there's no one here, -- Will the frock I wept in Answer me to wear?"
+        "content": "Before the ice is in the pools,\nBefore the skaters go,\nOr any cheek at nightfall\nIs tarnished by the snow,\n\nBefore the fields have finished,\nBefore the Christmas tree,\nWonder upon wonder\nWill arrive to me!\n\nWhat we touch the hems of\nOn a summer's day;\nWhat is only walking\nJust a bridge away;\n\nThat which sings so, speaks so,\nWhen there's no one here, --\nWill the frock I wept in\nAnswer me to wear?"
     },
     {
         "name": "XLVI.",
         "path": [
             "XLVI."
         ],
-        "content": "DYING.\n\nI heard a fly buzz when I died; The stillness round my form Was like the stillness in the air Between the heaves of storm.\n\nThe eyes beside had wrung them dry, And breaths were gathering sure For that last onset, when the king Be witnessed in his power.\n\nI willed my keepsakes, signed away What portion of me I Could make assignable, -- and then There interposed a fly,\n\nWith blue, uncertain, stumbling buzz, Between the light and me; And then the windows failed, and then I could not see to see."
+        "content": "DYING.\n\nI heard a fly buzz when I died;\nThe stillness round my form\nWas like the stillness in the air\nBetween the heaves of storm.\n\nThe eyes beside had wrung them dry,\nAnd breaths were gathering sure\nFor that last onset, when the king\nBe witnessed in his power.\n\nI willed my keepsakes, signed away\nWhat portion of me I\nCould make assignable, -- and then\nThere interposed a fly,\n\nWith blue, uncertain, stumbling buzz,\nBetween the light and me;\nAnd then the windows failed, and then\nI could not see to see."
     },
     {
         "name": "XLVII.",
         "path": [
             "XLVII."
         ],
-        "content": "Adrift! A little boat adrift! And night is coming down! Will no one guide a little boat Unto the nearest town?\n\nSo sailors say, on yesterday, Just as the dusk was brown, One little boat gave up its strife, And gurgled down and down.\n\nBut angels say, on yesterday, Just as the dawn was red, One little boat o'erspent with gales Retrimmed its masts, redecked its sails Exultant, onward sped!"
+        "content": "Adrift! A little boat adrift!\nAnd night is coming down!\nWill no one guide a little boat\nUnto the nearest town?\n\nSo sailors say, on yesterday,\nJust as the dusk was brown,\nOne little boat gave up its strife,\nAnd gurgled down and down.\n\nBut angels say, on yesterday,\nJust as the dawn was red,\nOne little boat o'erspent with gales\nRetrimmed its masts, redecked its sails\nExultant, onward sped!"
     },
     {
         "name": "XLVIII.",
         "path": [
             "XLVIII."
         ],
-        "content": "There's been a death in the opposite house As lately as to-day. I know it by the numb look Such houses have alway.\n\nThe neighbors rustle in and out, The doctor drives away. A window opens like a pod, Abrupt, mechanically;\n\nSomebody flings a mattress out, -- The children hurry by; They wonder if It died on that, -- I used to when a boy.\n\nThe minister goes stiffly in As if the house were his, And he owned all the mourners now, And little boys besides;\n\nAnd then the milliner, and the man Of the appalling trade, To take the measure of the house. There'll be that dark parade\n\nOf tassels and of coaches soon; It's easy as a sign, -- The intuition of the news In just a country town.\n\nXLIX.\n\nWe never know we go, -- when we are going We jest and shut the door; Fate following behind us bolts it, And we accost no more."
+        "content": "There's been a death in the opposite house\nAs lately as to-day.\nI know it by the numb look\nSuch houses have alway.\n\nThe neighbors rustle in and out,\nThe doctor drives away.\nA window opens like a pod,\nAbrupt, mechanically;\n\nSomebody flings a mattress out, --\nThe children hurry by;\nThey wonder if It died on that, --\nI used to when a boy.\n\nThe minister goes stiffly in\nAs if the house were his,\nAnd he owned all the mourners now,\nAnd little boys besides;\n\nAnd then the milliner, and the man\nOf the appalling trade,\nTo take the measure of the house.\nThere'll be that dark parade\n\nOf tassels and of coaches soon;\nIt's easy as a sign, --\nThe intuition of the news\nIn just a country town.\n\nXLIX.\n\nWe never know we go, -- when we are going\nWe jest and shut the door;\nFate following behind us bolts it,\nAnd we accost no more."
     },
     {
         "name": "L.",
         "path": [
             "L."
         ],
-        "content": "THE SOUL'S STORM.\n\nIt struck me every day The lightning was as new As if the cloud that instant slit And let the fire through.\n\nIt burned me in the night, It blistered in my dream; It sickened fresh upon my sight With every morning's beam.\n\nI thought that storm was brief, -- The maddest, quickest by; But Nature lost the date of this, And left it in the sky.\n\nLI.\n\nWater is taught by thirst; Land, by the oceans passed; Transport, by throe; Peace, by its battles told; Love, by memorial mould; Birds, by the snow.\n\nLII.\n\nTHIRST.\n\nWe thirst at first, -- 't is Nature's act; And later, when we die, A little water supplicate Of fingers going by.\n\nIt intimates the finer want, Whose adequate supply Is that great water in the west Termed immortality."
+        "content": "THE SOUL'S STORM.\n\nIt struck me every day\nThe lightning was as new\nAs if the cloud that instant slit\nAnd let the fire through.\n\nIt burned me in the night,\nIt blistered in my dream;\nIt sickened fresh upon my sight\nWith every morning's beam.\n\nI thought that storm was brief, --\nThe maddest, quickest by;\nBut Nature lost the date of this,\nAnd left it in the sky.\n\nLI.\n\nWater is taught by thirst;\nLand, by the oceans passed;\nTransport, by throe;\nPeace, by its battles told;\nLove, by memorial mould;\nBirds, by the snow.\n\nLII.\n\nTHIRST.\n\nWe thirst at first, -- 't is Nature's act;\nAnd later, when we die,\nA little water supplicate\nOf fingers going by.\n\nIt intimates the finer want,\nWhose adequate supply\nIs that great water in the west\nTermed immortality."
     },
     {
         "name": "LIII.",
         "path": [
             "LIII."
         ],
-        "content": "A clock stopped -- not the mantel's; Geneva's farthest skill Can't put the puppet bowing That just now dangled still.\n\nAn awe came on the trinket! The figures hunched with pain, Then quivered out of decimals Into degreeless noon.\n\nIt will not stir for doctors, This pendulum of snow; The shopman importunes it, While cool, concernless No\n\nNods from the gilded pointers, Nods from the seconds slim, Decades of arrogance between The dial life and him."
+        "content": "A clock stopped -- not the mantel's;\nGeneva's farthest skill\nCan't put the puppet bowing\nThat just now dangled still.\n\nAn awe came on the trinket!\nThe figures hunched with pain,\nThen quivered out of decimals\nInto degreeless noon.\n\nIt will not stir for doctors,\nThis pendulum of snow;\nThe shopman importunes it,\nWhile cool, concernless No\n\nNods from the gilded pointers,\nNods from the seconds slim,\nDecades of arrogance between\nThe dial life and him."
     },
     {
         "name": "LIV.",
         "path": [
             "LIV."
         ],
-        "content": "CHARLOTTE BRONTË'S GRAVE.\n\nAll overgrown by cunning moss, All interspersed with weed, The little cage of 'Currer Bell,' In quiet Haworth laid.\n\nThis bird, observing others, When frosts too sharp became, Retire to other latitudes, Quietly did the same,\n\nBut differed in returning; Since Yorkshire hills are green, Yet not in all the nests I meet Can nightingale be seen.\n\nGathered from many wanderings, Gethsemane can tell Through what transporting anguish She reached the asphodel!\n\nSoft fall the sounds of Eden Upon her puzzled ear; Oh, what an afternoon for heaven, When 'Brontë' entered there!\n\nLV.\n\nA toad can die of light! Death is the common right Of toads and men, -- Of earl and midge The privilege. Why swagger then? The gnat's supremacy Is large as thine.\n\nLVI.\n\nFar from love the Heavenly Father Leads the chosen child; Oftener through realm of briar Than the meadow mild,\n\nOftener by the claw of dragon Than the hand of friend, Guides the little one predestined To the native land.\n\nLVII.\n\nSLEEPING.\n\nA long, long sleep, a famous sleep That makes no show for dawn By stretch of limb or stir of lid, -- An independent one.\n\nWas ever idleness like this? Within a hut of stone To bask the centuries away Nor once look up for noon?"
+        "content": "CHARLOTTE BRONTË'S GRAVE.\n\nAll overgrown by cunning moss,\nAll interspersed with weed,\nThe little cage of 'Currer Bell,'\nIn quiet Haworth laid.\n\nThis bird, observing others,\nWhen frosts too sharp became,\nRetire to other latitudes,\nQuietly did the same,\n\nBut differed in returning;\nSince Yorkshire hills are green,\nYet not in all the nests I meet\nCan nightingale be seen.\n\nGathered from many wanderings,\nGethsemane can tell\nThrough what transporting anguish\nShe reached the asphodel!\n\nSoft fall the sounds of Eden\nUpon her puzzled ear;\nOh, what an afternoon for heaven,\nWhen 'Brontë' entered there!\n\nLV.\n\nA toad can die of light!\nDeath is the common right\nOf toads and men, --\nOf earl and midge\nThe privilege.\nWhy swagger then?\nThe gnat's supremacy\nIs large as thine.\n\nLVI.\n\nFar from love the Heavenly Father\nLeads the chosen child;\nOftener through realm of briar\nThan the meadow mild,\n\nOftener by the claw of dragon\nThan the hand of friend,\nGuides the little one predestined\nTo the native land.\n\nLVII.\n\nSLEEPING.\n\nA long, long sleep, a famous sleep\nThat makes no show for dawn\nBy stretch of limb or stir of lid, --\nAn independent one.\n\nWas ever idleness like this?\nWithin a hut of stone\nTo bask the centuries away\nNor once look up for noon?"
     },
     {
         "name": "LVIII.",
         "path": [
             "LVIII."
         ],
-        "content": "RETROSPECT.\n\n'T was just this time last year I died. I know I heard the corn, When I was carried by the farms, -- It had the tassels on.\n\nI thought how yellow it would look When Richard went to mill; And then I wanted to get out, But something held my will.\n\nI thought just how red apples wedged The stubble's joints between; And carts went stooping round the fields To take the pumpkins in.\n\nI wondered which would miss me least, And when Thanksgiving came, If father'd multiply the plates To make an even sum.\n\nAnd if my stocking hung too high, Would it blur the Christmas glee, That not a Santa Claus could reach The altitude of me?\n\nBut this sort grieved myself, and so I thought how it would be When just this time, some perfect year, Themselves should come to me."
+        "content": "RETROSPECT.\n\n'T was just this time last year I died.\nI know I heard the corn,\nWhen I was carried by the farms, --\nIt had the tassels on.\n\nI thought how yellow it would look\nWhen Richard went to mill;\nAnd then I wanted to get out,\nBut something held my will.\n\nI thought just how red apples wedged\nThe stubble's joints between;\nAnd carts went stooping round the fields\nTo take the pumpkins in.\n\nI wondered which would miss me least,\nAnd when Thanksgiving came,\nIf father'd multiply the plates\nTo make an even sum.\n\nAnd if my stocking hung too high,\nWould it blur the Christmas glee,\nThat not a Santa Claus could reach\nThe altitude of me?\n\nBut this sort grieved myself, and so\nI thought how it would be\nWhen just this time, some perfect year,\nThemselves should come to me."
     },
     {
         "name": "LIX.",
         "path": [
             "LIX."
         ],
-        "content": "ETERNITY.\n\nOn this wondrous sea, Sailing silently, Ho! pilot, ho! Knowest thou the shore Where no breakers roar, Where the storm is o'er?\n\nIn the silent west Many sails at rest, Their anchors fast; Thither I pilot thee, -- Land, ho! Eternity! Ashore at last!"
+        "content": "ETERNITY.\n\nOn this wondrous sea,\nSailing silently,\nHo! pilot, ho!\nKnowest thou the shore\nWhere no breakers roar,\nWhere the storm is o'er?\n\nIn the silent west\nMany sails at rest,\nTheir anchors fast;\nThither I pilot thee, --\nLand, ho! Eternity!\nAshore at last!"
     }
 ];
 
@@ -1940,7 +1940,7 @@ export const LITERARY_POEMS_DICKINSON_META = Object.freeze({
                 "label": "Project Gutenberg #12242",
                 "file": "dickinson-three-series-12242.txt",
                 "mediaType": "text/plain",
-                "retrieved": "2026-07-30",
+                "retrieved": "2026-08-18",
                 "sha256": "f4421418353de2737c9bfe3db1e4657534b6b8ae2a8603f31de2d77678d18791",
                 "bytes": 206765
             }
@@ -1952,6 +1952,6 @@ export const LITERARY_POEMS_DICKINSON_META = Object.freeze({
     },
     "extent": "full",
     "caveats": [],
-    "chars": 166720,
-    "payloadChecksum": "36b104179ed97d91016c516269fa71b12d122e21d813a105b65a5673536653ac"
+    "chars": 166731,
+    "payloadChecksum": "4d96977aef085c687a4606361a0b4e6521f064fa3951839e9ed0010cf72676fb"
 });
