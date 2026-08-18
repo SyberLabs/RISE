@@ -132,9 +132,8 @@ atom observation resolves both lanes as a transaction: bed authority changes
 first, then a co-anchored swell fires. A `syncGroup` records correspondence
 without merging the clips. Beds replace beds; swells never replace beds;
 explicit silence owns the bed lane; leaving an authored bed restores the
-project atmosphere default. A pause **suspends the audio clock** and both
-lanes hold their position; stale asynchronous events are cancelled by
-generation.
+project atmosphere default. Pause cancels both outputs, resume restores
+**both lanes**, and stale asynchronous events are cancelled by generation.
 
 Resume once restored the bed alone, on the reasoning that a swell is a
 momentary event and replaying one would perform it a second time. That reading
@@ -143,13 +142,17 @@ length of its passage — a reader's own recording, minutes long, stacked over
 the whole-reading bed — so pausing inside that passage and returning to it
 silent loses the layer rather than avoiding a repeat.
 
-Nor may a pause end the lanes and start them again. A buffer source can be
-started but never resumed, so tearing a lane down and rebuilding it returns a
-recording to its first second. The reading's silence comes from the engine
-suspending its context, which freezes every layer where it stands; the
-schedule holds its lanes rather than ending them. The two belong together —
-if the schedule also cancelled, the suspension would have nothing left to
-hold. Only a reading that ENDS cancels the lanes.
+A lane is started again rather than resumed, because a Web Audio buffer
+source has no resume. Position is therefore the ENGINE's to keep: it records
+where a recording was when it stopped and hands that offset to the next
+source, so a paused reading returns mid-song rather than at its first second.
+
+Suspending the audio context would give that for free, and must not be used
+for it. That context is the whole application's — the UI sounds, the lobby
+drones and every other room fall silent with the reading, sounds started
+against the frozen clock queue and fire together when it runs again, and a
+suspension outlives the reading that asked for it. **A reading's pause reaches
+its own layers and no further.**
 
 It follows that **a cue naming what is already sounding is not a change**.
 Re-asserting a bed stops and starts it, because that is the only shape the

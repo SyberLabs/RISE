@@ -278,18 +278,9 @@ export class AudioEngine {
     }
 
     /**
-     * Resume a context the BROWSER suspended — the autoplay lock that every
-     * UI sound lifts before it plays.
-     *
-     * It will not lift a suspension the READING asked for. A paused reading
-     * is frozen, not stopped, so anything that resumed the context would sound
-     * the reader's own recording where it stood: pressing the exit button
-     * played a click, the click resumed the clock, and the song burst through
-     * for the fraction of a second before the fade caught it. Only unpause()
-     * lifts a reader's pause.
+     * Resume audio context if suspended
      */
     async resume() {
-        if (this._sessionSuspended) return;
         if (this.context && this.context.state === 'suspended') {
             await this.context.resume();
         }
@@ -969,20 +960,44 @@ export class AudioEngine {
         const buffer = this.personalPool ? this.personalPool.get(swellId) : null;
         if (!buffer) return null;
         let source = null;
+        let startedAt = 0;
         return {
             start: () => {
                 source = this.context.createBufferSource();
                 source.buffer = buffer;
                 source.loop = true;
                 source.connect(this.layerGains.soundscape);
-                source.start();
+                startedAt = this.context.currentTime;
+                source.start(0, this._bedPosition(swellId, buffer));
             },
             stop: () => {
                 if (!source) return;
+                this._rememberBedPosition(swellId, buffer, startedAt);
                 try { source.stop(); } catch { /* already ended */ }
                 source = null;
             }
         };
+    }
+
+    /**
+     * Where a recording was when it last stopped.
+     *
+     * A buffer source can be started but never resumed, so a pause that ends
+     * the bed and a resume that starts it again would return a reader's own
+     * music to its first second. Procedural soundscapes have no position to
+     * lose and hid this for as long as beds were procedural. The engine keeps
+     * the offset instead, and hands it to the next source.
+     */
+    _bedPosition(swellId, buffer) {
+        const at = this._bedPositions?.get(swellId) || 0;
+        return buffer.duration > 0 ? at % buffer.duration : 0;
+    }
+
+    _rememberBedPosition(swellId, buffer, startedAt) {
+        if (!(buffer.duration > 0)) return;
+        const played = Math.max(0, this.context.currentTime - startedAt);
+        const at = (this._bedPosition(swellId, buffer) + played) % buffer.duration;
+        (this._bedPositions ||= new Map()).set(swellId, at);
     }
 
     /**
@@ -1900,7 +1915,7 @@ export class AudioEngine {
         }
         this._isFading = false;
 
-        await this.unpause();
+        await this.resume();
         if (generation !== this._sessionGeneration || this._destroyed) return { cancelled: true };
 
         // Engine warm-up: allow clock to stabilize after resume
@@ -1989,18 +2004,12 @@ export class AudioEngine {
         this.isPlaying = false;
         this._positionRamp = null;
 
-        // A FADE NEEDS A RUNNING CLOCK. Leaving a PAUSED reading means the
-        // context is suspended: the ramp below cannot progress, so the layers
-        // would sit connected and audible until the timer tore them down, and
-        // any sound that lifted the suspension inside that window would play
-        // them. A frozen exit is an immediate one.
-        const frozen = this.context?.state === 'suspended';
-        // The pause belonged to the reading being left, and must not follow
-        // the reader out — the rest of the app would be mute.
-        this._sessionSuspended = false;
+        // Positions belong to the reading that was playing. The next one
+        // starts its recordings from the beginning.
+        this._bedPositions?.clear();
 
         // Transition time for the "soft" exit
-        const transitionTime = (immediate || frozen) ? 0 : 500;
+        const transitionTime = immediate ? 0 : 500;
 
         // Fade out session (already likely done by Chamber, but let's be sure)
         this.fadeOutSession(0.3);
@@ -2043,13 +2052,11 @@ export class AudioEngine {
      */
     async pause() {
         if (this.context && this.context.state === 'running') {
-            this._sessionSuspended = true;
             await this.context.suspend();
         }
     }
 
     async unpause() {
-        this._sessionSuspended = false;
         if (this.context && this.context.state === 'suspended') {
             await this.context.resume();
         }
@@ -2060,7 +2067,7 @@ export class AudioEngine {
      */
     destroy() {
         this._destroyed = true;
-        this._sessionSuspended = false;
+        this._bedPositions?.clear();
         this._sessionGeneration++;
         this._cancelPendingSessionStop();
         this._cancelFade();

@@ -255,10 +255,12 @@ describe('multi-lane audio runtime', () => {
         expect(result.syncGroups).toEqual(['opening']);
     });
 
-    it('holds both lanes through a pause, and cancels them on stop', () => {
-        // A pause is silenced by the engine suspending its context, which
-        // freezes each layer where it stands. Stopping and restarting them
-        // here would be the one thing that cannot preserve a position.
+    it('pauses both lanes and brings both back on resume, and cancels on stop', () => {
+        // The overlay lane used to be left behind on resume, on the reasoning
+        // that a swell is momentary and replaying one performs it twice. It
+        // carries a layer that holds for a whole passage now, so a reader who
+        // paused inside that passage came back to it missing. Where the
+        // recording resumes FROM is the engine's business, not the schedule's.
         const calls = [];
         const controller = new AudioScheduleController(lanes(), {
             stopSoundscape: () => {},
@@ -267,15 +269,15 @@ describe('multi-lane audio runtime', () => {
             stopSwell: () => calls.push('stop-swell')
         });
         controller.observe(atom('p1'));
-        calls.length = 0;
-
         controller.pause();
+        expect(calls).toContain('stop-swell');
+
         controller.resume();
-        expect(calls).toEqual([]);
+        expect(calls.filter(call => call === 'swell:bell')).toHaveLength(2);
+        expect(calls.filter(call => call === 'tone:deep')).toHaveLength(2);
         expect(controller.activeSwellId).not.toBeNull();
 
         controller.stop();
-        expect(calls).toContain('stop-swell');
         expect(controller.activeBedId).toBeNull();
         expect(controller.activeSwellId).toBeNull();
     });

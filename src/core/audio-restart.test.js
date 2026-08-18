@@ -89,24 +89,20 @@ describe('a flash that hands the reading straight back is not a fresh start', ()
     });
 });
 
-describe('a paused reading suspends its audio rather than tearing it down', () => {
-    // The engine suspends the AudioContext, which freezes every layer where it
-    // stands. Stopping a bed and starting it again is the one thing that
-    // cannot preserve a position, and a recording has a position to lose.
-    it('holds both lanes through a pause and continues without replaying', () => {
+describe('a pause reaches its own lanes and no further', () => {
+    it('ends both lanes and brings both back', () => {
         const calls = [];
         const controller = new AudioScheduleController(program(), spyEngine(calls), {
             defaultCue: { kind: 'soundscape', soundscapeId: 'personal:kanye', fadeMs: 500 }
         });
         controller.observe(atom('s', 0.65));
-        controller.observe(atom('s', 0.25));
         calls.length = 0;
 
         controller.pause();
-        expect(calls).toEqual([]);
+        expect(calls).toContain('stop-swell');
 
         controller.resume();
-        expect(calls).toEqual([]);
+        expect(calls).toContain('play:kanye');
     });
 
     it('still refuses to advance cues while paused', () => {

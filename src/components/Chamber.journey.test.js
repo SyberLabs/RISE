@@ -251,28 +251,6 @@ describe('Gallery pause authority', () => {
         vi.restoreAllMocks();
     });
 
-    it('suspends the audio clock with the reading and lets it run again', () => {
-        // The suspension is what silences a pause, so a bed keeps its position
-        // instead of coming back at its first second.
-        const engine = { pause: vi.fn(), unpause: vi.fn() };
-        window.rise = { ...(window.rise || {}), audioEngine: engine };
-        const chamber = shell(false);
-        chamber._audioSchedule = { pause: vi.fn(), resume: vi.fn(), stop: vi.fn() };
-
-        chamber.onStateChange({ state: 'paused' });
-        expect(engine.pause).toHaveBeenCalledOnce();
-        expect(chamber._audioSchedule.pause).toHaveBeenCalledOnce();
-
-        chamber.onStateChange({ state: 'playing' });
-        expect(engine.unpause).toHaveBeenCalledOnce();
-
-        // A finished reading ends its audio outright; there is no position left
-        // to keep.
-        chamber.onStateChange({ state: 'complete' });
-        expect(chamber._audioSchedule.stop).toHaveBeenCalledOnce();
-        expect(engine.pause).toHaveBeenCalledOnce();
-    });
-
     it('leaves an unbound ambient Gallery drifting', () => {
         const pause = vi.spyOn(visualCortex, 'pauseContinuousField').mockReturnValue(true);
         const chamber = shell(false);

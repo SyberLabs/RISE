@@ -73,16 +73,15 @@ describe('a personal recording can be an event or an atmosphere', () => {
 
         controller.observe(atom());
         expect(calls).toContain(`start:${PERSONAL_BED_PREFIX}${RECORDING.id}`);
-        // It is a bed, so no swell was ever fired for it.
-        expect(calls).not.toContain('swell');
-        calls.length = 0;
 
-        // The thing a swell could not do: survive a pause. The audio clock is
-        // suspended, which holds the recording where it stands — so it is
-        // neither ended nor started over, and comes back mid-song.
+        // The thing a swell could not do: come back. It is started again
+        // rather than resumed, because a buffer source cannot be resumed —
+        // the engine hands the new source the position the old one reached
+        // (see bed-position.test.js), so the reader hears it mid-song.
         controller.pause();
         controller.resume();
-        expect(calls).toEqual([]);
-        expect(controller.activeBedId).not.toBeNull();
+        expect(calls.filter(call => call.startsWith('start:'))).toHaveLength(2);
+        // And it is a bed, so no swell was ever fired for it.
+        expect(calls).not.toContain('swell');
     });
 });
