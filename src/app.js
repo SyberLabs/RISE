@@ -515,6 +515,12 @@ class App {
                             preset: session.audioPreset !== 'silent' && !hasSoundscape ? session.audioPreset : null,
                             soundscape: hasSoundscape ? session.soundscape : null,
                             swellId: session.selectedSwellId,
+                            // A scored swell lane owns the swells. Without
+                            // this the entry trigger fires too, and with no
+                            // default chosen it fires a RANDOM one — which is
+                            // how an authored swell came back layered over
+                            // itself, offset by the reading's first atoms.
+                            entrySwell: !(session.audioProgram?.lanes?.swell?.segments?.length),
                             entrainment: {
                                 mode: session.entrainmentMode || 'binaural',
                                 waveform: session.entrainmentWaveform || 'sine',

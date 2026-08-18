@@ -1175,6 +1175,21 @@ export class AudioEngine {
 
             if (!buffer) return;
 
+            // ONE SWELL AT A TIME. `this.layers.swell` is a single slot and
+            // always was, but the previous source was never stopped — so two
+            // triggers inside one sound's length played the same audio over
+            // itself, offset by the gap between them. The gain below makes
+            // that worse rather than blending it: every call cancels the
+            // envelope and ramps from zero, so a second start ducks the voice
+            // already sounding and then lifts them together.
+            if (this.layers?.swell) {
+                try {
+                    this.layers.swell.onended = null;
+                    this.layers.swell.stop();
+                } catch { /* already finished */ }
+                this.layers.swell = null;
+            }
+
             const source = this.context.createBufferSource();
             source.buffer = buffer;
 
@@ -1896,8 +1911,14 @@ export class AudioEngine {
             await this.playAmbient(options.ambientUrl);
         }
 
-        // Trigger HQ Swell on entry
-        this.playSwell(options.swellId);
+        // Trigger HQ Swell on entry — unless a score owns the swell lane.
+        // With no default chosen this call passes null, which means "give me
+        // any swell", and a random one would then sound underneath a scored
+        // one the author did name. A domain that scores its own swells is the
+        // authority over them; entry only speaks for an unscored reading.
+        if (options.entrySwell !== false) {
+            this.playSwell(options.swellId);
+        }
 
         this.isPlaying = true;
         return { cancelled: false };
