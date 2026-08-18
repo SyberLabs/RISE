@@ -1884,6 +1884,22 @@ export class Workshop {
     // Persist as pure string representation
     item.data = normalizedData;
 
+    // LINE ENDINGS ARE NORMALISED HERE, AND ONLY HERE.
+    //
+    // A passage span is a pair of character offsets into this string, and the
+    // offsets are measured by walking the rendered text. The HTML parser turns
+    // CRLF and lone CR into LF, so a source that keeps its carriage returns is
+    // one the editor and the text disagree about: a selection is stored short
+    // by the number of CRs before it, the highlight lands somewhere the reader
+    // did not choose, and overlap is then judged between ranges nobody
+    // selected — which reads as "Replace overlap" clearing passages that do
+    // not overlap. Pasted articles and downloaded .txt files carry CRLF as a
+    // matter of course; the Archive's own payloads never do, which is why this
+    // only ever bit imported text.
+    if (typeof item.data === 'string') {
+      item.data = item.data.replace(/\r\n?/gu, '\n');
+    }
+
     // Count words in content
     let words = 0;
     if (typeof item.data === 'string') {

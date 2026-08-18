@@ -7,6 +7,8 @@
  * are checked after whitespace normalization before any atom is annotated.
  */
 
+import { isDroppedWordToken } from './chunker.js';
+
 const SOURCE_TOKEN = /\S+/gu;
 const STRUCTURAL_MARKER = /^\[(?:PAUSE|FLASH|HOLD)\]$/i;
 const VERSE_SENTINEL_OPEN = /^\[v$/i;
@@ -385,6 +387,17 @@ export function alignSourceAtoms(text, atoms, path = '$.sources') {
         atom.sourceTokenEnd = tokenPoint;
       }
       continue;
+    }
+
+    // Word chunking discards a mark standing alone; the source stream keeps
+    // it. Skip only what this atom does not expect next, so phrase and
+    // sentence atoms — which carry the mark inside their own text — still
+    // match it directly rather than stepping over it.
+    while (cursor < tokens.length
+      && tokens[cursor].comparable !== contentTokens[0]
+      && isDroppedWordToken(tokens[cursor].comparable)) {
+      characterCursor = tokens[cursor].end;
+      cursor += 1;
     }
 
     const first = tokens[cursor];

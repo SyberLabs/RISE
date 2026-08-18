@@ -317,21 +317,32 @@ function checkMarker(text) {
  * @param {string} text 
  * @returns {string[]}
  */
+/**
+ * A standalone token that word chunking discards: a lone mark carrying no
+ * letter or digit, which would otherwise be flashed at the reader as if it
+ * were a word. Punctuation attached to a word stays with the word; only a
+ * mark standing by itself is dropped.
+ *
+ * EXPORTED BECAUSE THE SPAN ALIGNER MUST GET THE SAME ANSWER.
+ * `alignSourceAtoms` walks the raw source token stream against compiled
+ * atoms, so it has to know exactly what the chunker left behind. When it did
+ * not, a spaced em-dash — ordinary in any pasted article — made every atom
+ * after it disagree with the text, and passage authoring failed at Run with
+ * SOURCE_SPAN_ATOM_ALIGNMENT.
+ */
+export function isDroppedWordToken(value) {
+    const val = String(value ?? '').trim();
+    if (!val) return true;
+    return val.length === 1 && /[^a-zA-Z0-9À-ÿ]/u.test(val);
+}
+
 function splitWords(text) {
-    // Split on whitespace but keep words with punctuation attached
-    // Filter out standalone punctuation/symbols and synthesis barrier markers
-    return text.split(/\s+/).filter(w => {
-        const val = w.trim();
-        if (!val) return false;
-        
-        // Discard standalone punctuation/icons (e.g. "|", "◈", "—")
-        // but keep actual words and markers like [PAUSE]
-        if (val.length === 1 && /[^a-zA-Z0-9À-ÿ]/.test(val)) return false;
-        if (val === '◈' || val == '—') return false;
-        if (val === 'SYNTHESIS' || val === 'BARRIER') return false; // Clean up the label too
-        
-        return true;
-    });
+    // Punctuation stays attached to its word; a mark alone is not a word.
+    // `SYNTHESIS` and `BARRIER` used to be discarded here as leftover labels
+    // from a feature that no longer exists — nothing in the codebase emitted
+    // them, so the only thing the clause could still do was delete those two
+    // words out of a reader's own text.
+    return text.split(/\s+/).filter(w => !isDroppedWordToken(w));
 }
 
 /**
