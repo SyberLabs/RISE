@@ -1116,9 +1116,21 @@ export class Workshop {
       && this.scoreAssetReference(entry) === this.selectedScoreAssetId) || null;
   }
 
+  /**
+   * SHARED MEDIA IS OFFERED, NOT HIDDEN.
+   *
+   * A shared entry needs copying into the project before a passage can name
+   * it, and this list used to exclude anything that did — leaving the
+   * `Shared media` group below permanently empty. The cost fell on the one
+   * reader who could least afford it: an image is classified shared the
+   * moment `activeBlueprintId` stops matching the sequence it was saved
+   * under, so a reader's OWN pictures could sit in the panel and be missing
+   * from this dropdown with nothing said. Offering them, and copying on
+   * choice, means the list can no longer be silently short.
+   */
   renderPassageAssetOptions(entries = this.visualAssetEntries()) {
-    const available = entries.filter(entry => !entry.materialization
-      && !entry.hidden && editorAssetSupports(entry.asset, 'span'));
+    const available = entries.filter(entry =>
+      !entry.hidden && editorAssetSupports(entry.asset, 'span'));
     const groups = [
       ['fields', 'Fields'], ['procedural', 'Procedural'], ['collections', 'Collections'],
       ['project', 'Project media'], ['shared', 'Shared media']
@@ -1131,8 +1143,9 @@ export class Workshop {
         if (!items.length) return '';
         return `<optgroup label="${label}">${items.map(entry => {
           const summary = visualCueStyleSummary(this.visualCueForEntry(entry));
+          const needsCopy = Boolean(entry.materialization);
           return `<option value="${this.escapeHtml(entry.asset.id)}"
-            ${this.scoreAssetReference(entry) === this.selectedScoreAssetId ? 'selected' : ''}>${this.escapeHtml(entry.asset.name)}${summary ? ` · ${this.escapeHtml(summary)}` : ''}</option>`;
+            ${!needsCopy && this.scoreAssetReference(entry) === this.selectedScoreAssetId ? 'selected' : ''}>${this.escapeHtml(entry.asset.name)}${summary ? ` · ${this.escapeHtml(summary)}` : ''}${needsCopy ? ' — copy into project' : ''}</option>`;
         }).join('')}</optgroup>`;
       }).join('')}`;
   }
@@ -2494,18 +2507,39 @@ export class Workshop {
     return true;
   }
 
-  materializeEditorAsset(assetId) {
+  /**
+   * Copy a shared image into this project so a passage can name it.
+   *
+   * THE SOURCE MAY BE A BLOB, NOT ONLY A DATA URI. A shared entry is either a
+   * global-pool image (inline `data:`) or an image belonging to another saved
+   * sequence — and a saved sequence keeps its media in IndexedDB, so its uri
+   * hydrates as `blob:`. Accepting only `data:` meant the one route back for
+   * a durable image refused it, which is how a reader's own pictures could sit
+   * in the panel unusable: re-scoped as shared the moment `activeBlueprintId`
+   * stopped matching, then declined by the very control offered to fix that.
+   */
+  async materializeEditorAsset(assetId) {
     const entry = this.visualAssetEntries().find(item => item.asset.id === assetId);
     if (!entry?.materialization) return false;
     const uri = entry.materialization.uri;
-    if (typeof uri !== 'string' || !uri.startsWith('data:image/')) {
-      this.showToast('Shared image could not be copied into this project');
-      return false;
-    }
-    let blob;
+    const originAssetId = entry.asset.provenance?.projectAssetId || null;
+    let blob = null;
     try {
-      blob = dataImageUriToBlob(uri);
+      if (typeof uri === 'string' && uri.startsWith('data:image/')) {
+        blob = dataImageUriToBlob(uri);
+      } else if (originAssetId) {
+        // The durable copy, read straight from the store that owns it.
+        const record = await WorkshopMedia.get(originAssetId);
+        blob = record?.data instanceof Blob ? record.data : null;
+      }
+      if (!blob && typeof uri === 'string' && uri.startsWith('blob:')) {
+        const response = await fetch(uri);
+        blob = await response.blob();
+      }
     } catch {
+      blob = null;
+    }
+    if (!(blob instanceof Blob) || !String(blob.type || '').startsWith('image/')) {
       this.showToast('Shared image could not be copied into this project');
       return false;
     }
@@ -4022,6 +4056,16 @@ export class Workshop {
         return;
       }
       if (event.type === 'change' && event.target.matches('[data-passage-asset-picker]')) {
+        // Choosing a shared image is a request to bring it in. Copy first,
+        // then select the project asset the copy produced, so the passage
+        // names something this sequence owns.
+        const chosen = this.visualAssetEntries().find(item => item.asset.id === event.target.value);
+        if (chosen?.materialization) {
+          void this.materializeEditorAsset(event.target.value).then(copied => {
+            if (copied) this.refreshScoreSelectionUi();
+          });
+          return;
+        }
         this.selectEditorAsset(event.target.value, { navigate: false });
         return;
       }
@@ -4297,7 +4341,7 @@ export class Workshop {
       } else if (action === 'select-editor-asset') {
         this.selectEditorAsset(target.dataset.editorAssetId);
       } else if (action === 'materialize-editor-asset') {
-        this.materializeEditorAsset(target.dataset.editorAssetId);
+        void this.materializeEditorAsset(target.dataset.editorAssetId);
       } else if (action === 'replace-score-asset') {
         this.replaceScoreAssignmentAsset(target.dataset.assignmentId);
       } else if (action === 'set-editor-asset-default') {
