@@ -7,6 +7,12 @@
 import { ingestedArchiveTexts } from '../content/archive/index.js';
 import { isBoundarySource } from './journey-compiler.js';
 import { assertQuotationAnchorsAgainstSources } from './source-span.js';
+import {
+  countWords,
+  extentSourceName,
+  parseLibraryExtent,
+  sentenceAlignedPrefix
+} from './library-extent.js';
 
 function programSourceIds(program) {
   const ids = new Set();
@@ -50,31 +56,35 @@ export async function resolveLibrarySourceIds(ids = []) {
   const refused = [];
 
   for (const id of wanted) {
-    const work = byId.get(id);
+    const extent = parseLibraryExtent(id);
+    const work = byId.get(extent.workId);
     if (!work) {
       missing.push(id);
       continue;
     }
     try {
-      const sections = await work.getSections();
-      const data = sectionsToText(sections);
-      if (!data) {
+      const resolved = extent.division
+        ? await resolveDivisionExtent(work, extent)
+        : await resolveWholeWork(work);
+      if (!resolved) {
         refused.push(id);
         continue;
       }
-      const words = typeof work.wordCount === 'number'
-        ? work.wordCount
-        : data.split(/\s+/u).filter(Boolean).length;
+      const { opening, ...source } = resolved;
       sources.push({
-        id: work.id,
-        name: work.title || work.id,
+        // The id keeps its extent: a score that named a division must go on
+        // naming it, and its media anchors are written against these ids.
+        id,
         providerId: 'archive-ingest',
         type: 'text/plain',
-        words,
-        data,
+        ...source,
         metadata: {
           author: work.author || null,
-          tradition: work.tradition || null
+          tradition: work.tradition || null,
+          // Where this text came from, for a reading that is part of a work.
+          workId: work.id,
+          ...(extent.division ? { division: extent.division } : {}),
+          ...(opening ? { opening: true } : {})
         }
       });
     } catch {
@@ -83,6 +93,52 @@ export async function resolveLibrarySourceIds(ids = []) {
   }
 
   return { sources, missing, refused };
+}
+
+async function resolveWholeWork(work) {
+  const data = sectionsToText(await work.getSections());
+  if (!data) return null;
+  const words = typeof work.wordCount === 'number' ? work.wordCount : countWords(data);
+  return { name: work.title || work.id, words, data };
+}
+
+/**
+ * A named division of a work, or its opening when the score asked for less
+ * than the division holds. A division the work does not have is a refusal,
+ * never the nearest one it does have — the same law the swells follow: a work
+ * that will not resolve is absent, never a substitute.
+ */
+async function resolveDivisionExtent(work, extent) {
+  if (typeof work.getDivisions !== 'function') return null;
+  const scheme = await work.getDivisions();
+  const entries = Array.isArray(scheme?.entries) ? scheme.entries : [];
+  // AN ORDINAL IS A POSITION IN THE SCHEME, not the `ordinal` field. Only
+  // about half the library's schemes carry that field at all, and one of them
+  // begins at two — so reading it would have refused a division most works
+  // have. `divisions.count` the model is given is this array's length.
+  const entry = entries[extent.division - 1];
+  if (!entry) return null;
+  const content = typeof entry.content === 'string' ? entry.content.trim() : '';
+  if (!content) return null;
+
+  const asked = extent.words;
+  const cut = asked ? sentenceAlignedPrefix(content, asked) : null;
+  const opening = Boolean(cut && cut.boundary !== 'whole');
+  return {
+    name: extentSourceName({
+      workTitle: work.title || work.id,
+      noun: scheme?.noun || work.chapterNoun,
+      ordinal: extent.division,
+      divisionTitle: entry.title,
+      label: entry.label,
+      opening
+    }),
+    words: opening
+      ? cut.words
+      : (Number.isInteger(entry.words) ? entry.words : countWords(content)),
+    data: opening ? cut.text : content,
+    opening
+  };
 }
 
 /**

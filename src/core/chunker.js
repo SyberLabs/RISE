@@ -460,10 +460,16 @@ function splitPhrases(text, preserveSpeakerHead = false) {
  * @param {string} text 
  * @returns {string[]}
  */
+/**
+ * Where one sentence ends and the next begins: sentence-ending punctuation,
+ * whitespace, a capital. Exported because the Scriptorium cuts excerpts on
+ * these same boundaries and a second copy would drift from this one.
+ */
+export const SENTENCE_BOUNDARY = /(?<=[.!?])\s+(?=[A-Z])/u;
+
 function splitSentences(text) {
-    // Split on sentence-ending punctuation followed by space and capital
     // We remove the pipe (|) split to distinguish this from Phrase mode
-    const sentences = text.split(/(?<=[.!?])\s+(?=[A-Z])/);
+    const sentences = text.split(SENTENCE_BOUNDARY);
     return sentences.map(s => s ? s.trim() : '').filter(s => s.length > 0);
 }
 

@@ -31,10 +31,25 @@ function lengthLines(ctx) {
   return [
     `LENGTH — the reader asked for about ${budget.toLocaleString()} words, and this is a`,
     'HARD LIMIT: a score over it is refused, not trimmed.',
-    'A movement reads its source WHOLE — there is no way to take part of a',
-    'work — so the length of your score is exactly the sum of `words` over',
-    'the sources your movement clips name. Add them up before you answer.',
-    'Prefer fewer works, or shorter ones, over a long list of whole books.'
+    'The length of your score is the sum of the words your movement clips',
+    'name. Add them up before you answer, and prefer fewer works over a long',
+    'list of whole books.',
+    '',
+    'EXTENT — you may name a whole work, one of its divisions, or a',
+    "division's opening. The extent rides in the source id:",
+    '  "montaigne-essays"        the whole work, `words` from the catalogue',
+    '  "montaigne-essays#42"     division 42 entire',
+    '  "montaigne-essays#42:200" the opening ~200 words of division 42,',
+    '                            cut at the nearest sentence',
+    "Ordinals start at 1 and must be within that entry's `divisions.count`;",
+    'a division a work does not have is refused, not neared. Use the largest',
+    "unit that fits the reader's length: a whole work if it fits, else a",
+    "division, else a division's opening. `divisions.noun` names the unit",
+    '(Essay, Chapter, Book) and `divisions.authored` says whether the scheme',
+    "is the author's own or RISE-measured — prefer authored schemes when you",
+    'cut, since those divisions are real units of the work.',
+    "A division's length is roughly `words` / `divisions.count`; an opening",
+    'is as long as you asked for, so a short reading is one opening, not many.'
   ];
 }
 

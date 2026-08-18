@@ -140,7 +140,19 @@ describe('the model is told the number, not an approximation', () => {
         });
         expect(prompt).toMatch(/asked for about 20,000 words/);
         expect(prompt).toMatch(/HARD LIMIT/);
-        expect(prompt).toMatch(/reads its source WHOLE/);
+    });
+
+    it('teaches the extents a movement may name, since a work is not the only unit', () => {
+        // A movement read its source whole, so the shortest reading the
+        // Scriptorium could compose was the shortest work in the library.
+        const prompt = buildCuratorPrompt({
+            context: context({ targetWords: 400, library: LIBRARY })
+        });
+        expect(prompt).toMatch(/EXTENT/);
+        expect(prompt).toMatch(/#42:200/);
+        expect(prompt).toMatch(/nearest sentence/);
+        // And that a division a work does not have is a refusal.
+        expect(prompt).toMatch(/refused, not neared/);
     });
 
     it('falls back to the compiler ceiling when none is set', () => {

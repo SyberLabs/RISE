@@ -53,8 +53,14 @@ async function copyText(text) {
 }
 
 const DEFAULT_TARGET_WORDS = 20_000;
-const TARGET_WORDS_MIN = 1_000;
-const TARGET_WORDS_STEP = 1_000;
+/**
+ * The floor is an opening, not the shortest work in the library. Below 5,539
+ * words the catalogue holds exactly one work, so a slider that filtered by
+ * whole works had nowhere to go; a movement can name a division's opening now
+ * (see library-extent.js), and 200 words is a passage worth reading.
+ */
+const TARGET_WORDS_MIN = 200;
+const TARGET_WORDS_STEP = 100;
 
 /**
  * Minutes are shown and words are sent.
@@ -211,8 +217,9 @@ export class Scriptorium {
             aria-describedby="scriptorium-length-readout">
           <p class="scriptorium-note" id="scriptorium-length-readout">${escapeHtml(describeLength(this.targetWords))}</p>
           <p class="scriptorium-note">
-            A movement reads its source whole, so this is the sum of the works the
-            score names. A score longer than this is refused, not trimmed.
+            A movement reads a whole work, one of its divisions, or a division's
+            opening — whichever is the largest that fits. A score longer than
+            this is refused, not trimmed.
           </p>
         </section>
 
