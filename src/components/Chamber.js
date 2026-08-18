@@ -2398,9 +2398,23 @@ export class Chamber {
     // NO AUDIO OUTLIVES THE READING (§8.3). The engine owns its own
     // pause path for scheduled ramps; this stops the Journey's score
     // from continuing to mean something while nothing is being read.
-    if (state === 'paused') this._audioSchedule?.pause();
-    else if (state === 'idle' || state === 'complete') this._audioSchedule?.stop();
-    else if (state === 'playing') this._audioSchedule?.resume();
+    // A PAUSED READING SUSPENDS THE AUDIO CLOCK.
+    //
+    // Suspending freezes every layer where it stands, so a bed resumes mid
+    // phrase rather than from its first second. The schedule holds its lanes
+    // rather than ending them (see AudioScheduleController.pause) — the two
+    // belong together: the silence comes from the suspension, so the schedule
+    // must not also tear down what the suspension is holding.
+    if (state === 'paused') {
+      this._audioSchedule?.pause();
+      void window.rise?.audioEngine?.pause?.();
+    } else if (state === 'idle' || state === 'complete') {
+      this._audioSchedule?.stop();
+    } else if (state === 'playing') {
+      // Before the schedule, so its commands reach a running context.
+      void window.rise?.audioEngine?.unpause?.();
+      this._audioSchedule?.resume();
+    }
 
     // The Genesis field breathes with the session: pausing the text
     // pauses the pen

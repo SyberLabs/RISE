@@ -87,16 +87,48 @@ describe('a flash that hands the reading straight back is not a fresh start', ()
         controller.resume();
         expect(calls).toEqual([]);
     });
+});
 
-    it('still restores both lanes after a real pause', () => {
+describe('a paused reading suspends its audio rather than tearing it down', () => {
+    // The engine suspends the AudioContext, which freezes every layer where it
+    // stands. Stopping a bed and starting it again is the one thing that
+    // cannot preserve a position, and a recording has a position to lose.
+    it('holds both lanes through a pause and continues without replaying', () => {
         const calls = [];
-        const controller = new AudioScheduleController(program(), spyEngine(calls), {});
+        const controller = new AudioScheduleController(program(), spyEngine(calls), {
+            defaultCue: { kind: 'soundscape', soundscapeId: 'personal:kanye', fadeMs: 500 }
+        });
         controller.observe(atom('s', 0.65));
-        expect(calls).toContain('play:kanye');
+        controller.observe(atom('s', 0.25));
         calls.length = 0;
 
         controller.pause();
+        expect(calls).toEqual([]);
+
         controller.resume();
-        expect(calls).toContain('play:kanye');
+        expect(calls).toEqual([]);
+    });
+
+    it('still refuses to advance cues while paused', () => {
+        const calls = [];
+        const controller = new AudioScheduleController(program(), spyEngine(calls), {});
+        controller.observe(atom('s', 0.65));
+        controller.pause();
+        calls.length = 0;
+        expect(controller.observe(atom('s', 0.25))).toBeNull();
+        expect(calls).toEqual([]);
+    });
+
+    it('tears everything down when the reading ends', () => {
+        const calls = [];
+        const controller = new AudioScheduleController(program(), spyEngine(calls), {
+            defaultCue: { kind: 'soundscape', soundscapeId: 'personal:kanye', fadeMs: 500 }
+        });
+        controller.observe(atom('s', 0.65));
+        calls.length = 0;
+        controller.stop();
+        expect(calls).toContain('stop-swell');
+        expect(controller.activeBedId).toBeNull();
+        expect(controller.activeSwellId).toBeNull();
     });
 });

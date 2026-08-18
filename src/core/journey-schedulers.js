@@ -322,19 +322,31 @@ export class AudioScheduleController {
         });
     }
 
+    /**
+     * A PAUSE HOLDS THE LANES; IT DOES NOT END THEM.
+     *
+     * The reading's silence comes from the engine suspending its context
+     * (Chamber.onStateChange), which freezes every layer exactly where it
+     * stands. This used to stop the bed and the swell outright, which is the
+     * one thing that cannot preserve a position: a buffer source can be
+     * started, never resumed, so a reader's own recording came back at 0:00
+     * every time they paused. Procedural beds hid it — they have no position
+     * to lose.
+     *
+     * Cues do not advance while paused, and the generation moves so an
+     * asynchronous swell resolving across the pause cannot publish into it.
+     */
     pause() {
         this._paused = true;
         this._generation += 1;
-        this._cancelBed();
-        if (this._activeSwellCue?.kind === 'swell') this._command('stopSwell')?.(false);
-        this._activeBedId = null;
-        this._activeSwellId = null;
-        // Nothing is sounding after a pause, and the record of what is
-        // sounding decides whether resume has anything to restore.
-        this._activeBedCue = null;
-        this._activeSwellCue = null;
     }
 
+    /**
+     * Re-resolves the lanes against the atom the reading stopped on. Both
+     * guards below make this a no-op for audio that never stopped, which is
+     * every ordinary pause; it acts only when something did end the lanes —
+     * a silenced Journey being switched back on.
+     */
     resume() {
         if (!this._enabled || !this._lastAtom) return null;
         this._paused = false;
