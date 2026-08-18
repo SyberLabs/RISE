@@ -46,6 +46,7 @@ import {
 import {
   applyWorkshopAudioAsset,
   audioScoreAssetFromId,
+  personalBedEditorAsset,
   personalSwellEditorAsset,
   WORKSHOP_AUDIO_ASSETS,
   WorkshopAudioPreviewController,
@@ -1686,8 +1687,14 @@ export class Workshop {
     const builtIns = WORKSHOP_AUDIO_ASSETS
       .map(workshopAudioEditorAsset)
       .filter(asset => asset && editorAssetSupports(asset, 'span'));
+    // Each personal recording is offered twice, because it can be two
+    // different things: a momentary event on the swell lane, or a bed that
+    // holds under the reading. The tab is called Personal Entry Events and
+    // only ever produced the first, which is why a file assigned across a
+    // whole text sounded once and never came back after a pause.
     const personal = this.personalSwells.map(personalSwellEditorAsset).filter(Boolean);
-    return [...builtIns, ...personal];
+    const beds = this.personalSwells.map(personalBedEditorAsset).filter(Boolean);
+    return [...builtIns, ...personal, ...beds];
   }
 
   selectedAudioScoreAsset() {

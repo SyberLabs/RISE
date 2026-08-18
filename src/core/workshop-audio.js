@@ -1,5 +1,15 @@
 import { createEditorAsset } from './editor-asset.js';
 
+/**
+ * A personal file sounding as a BED rather than as a momentary event.
+ *
+ * The soundscape id it produces is the one vocabulary the engine and the
+ * editor share, so it lives here beside the assets that build it rather than
+ * being spelled out at both ends.
+ */
+export const PERSONAL_BED_PREFIX = 'personal:';
+export const personalBedSoundscapeId = (swellId) => `${PERSONAL_BED_PREFIX}${swellId}`;
+
 const AUDIO_COLORS = Object.freeze({
   silent: '#8d91a3', aurora: '#b46dce', 'faded-signal': '#ef8254',
   focus: '#d1b85c', deep: '#7769c9', gateway: '#c76f9d', swell: '#67b9c7'
@@ -76,9 +86,41 @@ export function personalSwellEditorAsset(swell) {
   });
 }
 
+/**
+ * The same personal recording, offered for the bed lane.
+ *
+ * A swell fires once when its span is entered and pause ends it for good —
+ * correct for an event, and wrong for a reader who wants their own audio
+ * under the whole reading. That is a bed, so the file is offered as one:
+ * a soundscape whose voice is theirs, holding for the span, restored on
+ * resume, replaced when another bed takes authority.
+ */
+export function personalBedEditorAsset(swell) {
+  if (!swell?.id || !swell?.name) return null;
+  return createEditorAsset({
+    id: `personal-bed:${swell.id}`,
+    lane: 'audio',
+    kind: 'audio-bed',
+    name: `${swell.name} (bed)`,
+    capability: 'both',
+    editor: { color: AUDIO_COLORS.swell, preview: { kind: 'audio', ref: swell.id } },
+    provenance: { provider: 'Personal audio shelf' },
+    cueTemplate: {
+      kind: 'soundscape',
+      soundscapeId: personalBedSoundscapeId(swell.id),
+      fadeMs: 500
+    }
+  });
+}
+
 export function audioScoreAssetFromId(assetId, personalSwells = []) {
   const builtIn = workshopAudioEditorAsset(assetId);
   if (builtIn) return builtIn;
+  if (typeof assetId === 'string' && assetId.startsWith('personal-bed:')) {
+    const bedId = assetId.slice('personal-bed:'.length);
+    return personalBedEditorAsset(personalSwells.find(item => item.id === bedId)
+      || { id: bedId, name: 'Personal audio' });
+  }
   if (typeof assetId !== 'string' || !assetId.startsWith('swell:')) return null;
   const swellId = assetId.slice('swell:'.length);
   return personalSwellEditorAsset(personalSwells.find(item => item.id === swellId)

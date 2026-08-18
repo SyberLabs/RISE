@@ -91,6 +91,7 @@ export const LAYER_PRESETS = {
 };
 
 import { PersonalSwells } from '../core/personal-swells.js';
+import { PERSONAL_BED_PREFIX } from '../core/workshop-audio.js';
 import { createSoundscape } from './soundscapes.js';
 import { createChantBed, isChantBedId, CHANT_BED_IDS } from './chant.js';
 
@@ -914,6 +915,24 @@ export class AudioEngine {
         // The provenance contract rides through: each recording's
         // credit is announced as it begins (rooms subscribe via
         // engine.onChantTrackChange).
+        // PERSONAL BEDS ARE SOUNDSCAPES WHOSE VOICE IS THE READER'S FILE.
+        // Same contract, same layer, same teardown — the shape chant beds
+        // already established. A swell is a momentary event and cannot hold
+        // under a reading; a reader who wants their own audio sounding
+        // throughout is asking for a bed, and this is that bed.
+        if (typeof id === 'string' && id.startsWith(PERSONAL_BED_PREFIX)) {
+            const handle = this._personalBedHandle(id.slice(PERSONAL_BED_PREFIX.length));
+            if (!handle) {
+                console.warn('[AudioEngine] Personal bed not in the pool:', id);
+                return;
+            }
+            handle.start();
+            this.layers.soundscape = handle;
+            this.setLayerVolume('soundscape', this.config.layerVolumes.soundscape, true);
+            console.log(`[AudioEngine] Personal bed: ${id}`);
+            return;
+        }
+
         const handle = isChantBedId(id)
             ? createChantBed(CHANT_BED_IDS[id].family, this.context, this.layerGains.soundscape, {
                 onTrackChange: (chant) => {
@@ -931,6 +950,30 @@ export class AudioEngine {
         this.setLayerVolume('soundscape', this.config.layerVolumes.soundscape, true);
 
         console.log(`[AudioEngine] Soundscape: ${id}`);
+    }
+
+    /**
+     * One looping voice from the personal pool, in the soundscape handle's
+     * shape so every existing stop path already knows how to end it.
+     */
+    _personalBedHandle(swellId) {
+        const buffer = this.personalPool ? this.personalPool.get(swellId) : null;
+        if (!buffer) return null;
+        let source = null;
+        return {
+            start: () => {
+                source = this.context.createBufferSource();
+                source.buffer = buffer;
+                source.loop = true;
+                source.connect(this.layerGains.soundscape);
+                source.start();
+            },
+            stop: () => {
+                if (!source) return;
+                try { source.stop(); } catch { /* already ended */ }
+                source = null;
+            }
+        };
     }
 
     /**
