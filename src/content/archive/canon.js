@@ -29,8 +29,18 @@
  * divisions.js and ARCHIVE-CANON-SPEC §4.
  */
 export const STRUCTURED_IDS = Object.freeze(new Set([
+  'oedipus-rex',
   'spoon-river-anthology',
-  'literary-walden'
+  'literary-walden',
+  'middlemarch',
+  'the-brothers-karamazov',
+  'literary-meditations',
+  'sacred-tao-te-ching',
+  'the-iliad',
+  'the-divine-comedy',
+  'metamorphoses',
+  'paradise-lost',
+  'ulysses'
 ]));
 
 export const CANON = Object.freeze([
@@ -42,18 +52,11 @@ export const CANON = Object.freeze([
   { id: 'the-divine-comedy', form: 'structured verse epic' },
   { id: 'metamorphoses', form: 'classical narrative verse' },
   { id: 'spoon-river-anthology', form: 'poetry collection · 244 addressable poems' },
-  { id: 'the-oedipus-trilogy', form: 'drama' },
-  { id: 'extended-dhammapada-full', form: 'scriptural verse' },
-  { id: 'montaigne-essays', form: 'essay' },
+  { id: 'oedipus-rex', form: 'drama' },
   { id: 'literary-walden', form: 'natural prose' },
   { id: 'ulysses', form: 'unusually structured' },
 
-  // THE CANON IS CLOSED UNDER JOURNEY DEPENDENCIES. An authored Journey names
-  // its sources, so withholding one breaks the Journey — the war Journey reads
-  // Milton, Homer and Jünger against each other and cannot be assembled from
-  // two of the three. A shipped Journey is a promise about works.
-  { id: 'paradise-lost', form: 'English blank-verse epic · war Journey' },
-  { id: 'the-storm-of-steel', form: 'modern memoir, titled divisions · war Journey' }
+  { id: 'paradise-lost', form: 'English blank-verse epic' }
 ]);
 
 export const CANON_IDS = Object.freeze(new Set(CANON.map(entry => entry.id)));
@@ -74,6 +77,10 @@ export const CERTIFIED_IDS = Object.freeze(new Set([]));
  * canon. Works with a KNOWN defect say that instead — a reason a reader or a
  * future curator can act on beats a category every time.
  */
+/** Since 2026-08-18 RISE serves Standard Ebooks editions and nothing else. */
+const NOT_SE = 'Standard Ebooks does not carry it, and RISE hosts Standard '
+  + 'Ebooks editions only (ARCHIVE-CANON-SPEC §6). ';
+
 const NOT_IN_CANON = 'Not in the launch canon. The edition is inherited from a '
   + 'transcription project with no stated fidelity, and RISE has not verified '
   + 'it against a reference. Payload retained for re-sourcing '
@@ -87,6 +94,13 @@ const NOT_IN_CANON = 'Not in the launch canon. The edition is inherited from a '
  * which is a different statement from "we found something wrong with it".
  */
 const MEASURED = Object.freeze({
+  'the-storm-of-steel': 'Jünger died in 1998 and no structured public-domain '
+    + `edition exists. ${NOT_SE}The war Journey that read it is on ice.`,
+  'extended-dhammapada-full': `Max Müller's Sacred Books of the East. ${NOT_SE}`,
+  'montaigne-essays': `Cotton's translation, ed. Hazlitt. ${NOT_SE}`,
+  'the-oedipus-trilogy': 'RISE now serves Sophocles as the separate plays the '
+    + 'editions publish; Oedipus Rex is canonical and the other two are '
+    + `candidates. ${NOT_SE}`,
   'literary-poems-blake': 'The 1901 R. Brimley Johnson edition, which modernized '
     + "Blake — Tyger Tyger becomes Tiger, tiger — and arrives undivided, so its "
     + 'forty-seven poems cannot be named. Standard Ebooks declines to produce '

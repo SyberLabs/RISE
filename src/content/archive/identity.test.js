@@ -25,7 +25,9 @@
 import { describe, expect, it } from 'vitest';
 
 /** Works acquired from an edition that declares its own structure. */
-const STRUCTURED = new Set(['spoon-river-anthology', 'literary-walden']);
+const STRUCTURED = new Set(['spoon-river-anthology', 'literary-walden', 'middlemarch', 'the-brothers-karamazov',
+    'literary-meditations', 'sacred-tao-te-ching', 'the-iliad', 'the-divine-comedy',
+    'metamorphoses', 'paradise-lost', 'ulysses']);
 import { LIBRARY_TEXTS } from '../library.js';
 
 /** Words too common to identify anything. */

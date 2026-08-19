@@ -58,9 +58,9 @@ describe('no division is devoid of its own work’s vocabulary', () => {
         expect(uncheckable).toEqual([
             'kandinsky-spiritual-in-art',
             'literary-essays-emerson',
+            'literary-meditations',
             'literary-poems-blake',
             'literary-poems-dickinson',
-            'paradise-lost',
             'sacred-emerald-tablet',
             'sacred-rumi',
             'sacred-tao-te-ching'

@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { resolveLibrarySourceIds } from './scriptorium-resolve.js';
 import { ingestedArchiveTexts } from '../content/archive/index.js';
 
-const WORK = 'montaigne-essays';
+const WORK = 'middlemarch';
 
 describe('a movement may read part of a work', () => {
     it('still reads a whole work when the id names no extent', async () => {
@@ -26,7 +26,7 @@ describe('a movement may read part of a work', () => {
         const [source] = sources;
         expect(source.id).toBe(`${WORK}#2`);
         expect(source.name).toContain('·');
-        expect(source.name).toMatch(/2$/u);
+        expect(source.name).toMatch(/II$/u);
         expect(source.metadata).toMatchObject({ workId: WORK, division: 2 });
         expect(source.words).toBeGreaterThan(0);
         expect(source.data.length).toBeGreaterThan(0);
@@ -64,11 +64,11 @@ describe('an ordinal is a position, not a field', () => {
     // and one begins at two. Reading that field refused a division most works
     // have; the count the model is given is the entry array's length.
     it('resolves division one of a scheme whose entries carry no ordinal', async () => {
-        const { sources, refused } = await resolveLibrarySourceIds(['the-storm-of-steel#1']);
+        const { sources, refused } = await resolveLibrarySourceIds(['metamorphoses#1']);
         expect(refused).toEqual([]);
         expect(sources[0].words).toBeGreaterThan(0);
         // The scheme's own label names it, rather than a number we invented.
-        expect(sources[0].name).toBe('The Storm of Steel · Orainville (1/4)');
+        expect(sources[0].name).toContain('Metamorphoses · Creation of the World');
     }, 120_000);
 
     it('resolves every division the catalogue promises, across the library', async () => {

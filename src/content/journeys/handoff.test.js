@@ -13,7 +13,15 @@ import { resolveJourneyPassages } from './passages.js';
 import { compileSession } from '../../core/session-compiler.js';
 import { boundarySourceId } from '../../core/journey-compiler.js';
 
-describe('War assembles for launch', () => {
+/**
+ * ON ICE — 2026-08-18. RISE serves Standard Ebooks editions only, so Storm of
+ * Steel is withheld and Homer and Milton arrive in different translations than
+ * these passages were written against. Every quotation anchor into them
+ * refuses, which is the anchoring working. The score stays in the tree with
+ * its tests so re-authoring it later starts from what it was, and nothing here
+ * reaches a reader or the Scriptorium (src/components/Journeys.js).
+ */
+describe.skip('War assembles for launch', () => {
     it('resolves every passage and hands over one payload', async () => {
         const handoff = await createJourneyHandoff(WAR_JOURNEY, WAR_PASSAGES);
 
@@ -121,7 +129,7 @@ describe('War assembles for launch', () => {
     }, 240000);
 });
 
-describe('it refuses rather than shipping a partial argument', () => {
+describe.skip('it refuses rather than shipping a partial argument', () => {
     it('refuses a Journey that says it is not publishable', async () => {
         // Otherwise `status` is decorative, and the honest blocking we
         // did for a day would have meant nothing.
@@ -162,7 +170,7 @@ describe('it refuses rather than shipping a partial argument', () => {
     });
 });
 
-describe('the introduction is derived, never authored twice', () => {
+describe.skip('the introduction is derived, never authored twice', () => {
     it('states the argument, the movements, and the editions', async () => {
         const { resolved } = await resolveJourneyPassages(WAR_PASSAGES);
         const intro = journeyIntroduction(WAR_JOURNEY, resolved);
@@ -196,7 +204,7 @@ describe('the introduction is derived, never authored twice', () => {
     });
 });
 
-describe('the opening field', () => {
+describe.skip('the opening field', () => {
     it('turns the cortex on, in gallery, at the first movement\'s cue', async () => {
         // A cue can swap a field; it cannot turn one on. Without this
         // the Chamber began with visuals off and every cue the
@@ -216,7 +224,7 @@ describe('the opening field', () => {
     }, 240000);
 });
 
-describe('Book VI is read figure by figure', () => {
+describe.skip('Book VI is read figure by figure', () => {
     /**
      * The point of the whole mechanism: an engine appears where the poem
      * puts the thing it draws. These assertions are about MILTON, not
@@ -318,7 +326,7 @@ describe('Book VI is read figure by figure', () => {
     }, 240000);
 });
 
-describe('a Journey may not name audio that does not exist without saying so', () => {
+describe.skip('a Journey may not name audio that does not exist without saying so', () => {
     /**
      * War played in silence from the day it shipped. Two independent
      * faults stacked: the scheduler called `setSoundscape`, which the

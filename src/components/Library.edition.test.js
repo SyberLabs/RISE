@@ -121,7 +121,7 @@ describe('a contents sheet opens for every work on the shelf', () => {
         // inventing nouns again. The canon holds two of them — Meditations
         // and Storm of Steel — where the corpus held ten.
         expect(bare.length).toBeGreaterThanOrEqual(2);
-        expect(bare).toContain('the-storm-of-steel');
-        expect(bare).toContain('literary-meditations');
+        expect(bare).toContain('spoon-river-anthology');
+        expect(bare).toContain('literary-walden');
     }, 240000);
 });

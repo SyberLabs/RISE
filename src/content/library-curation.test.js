@@ -60,8 +60,8 @@ describe('divisions within a shelf', () => {
     it('the division reaches the registered text', () => {
         const tao = LIBRARY_TEXTS.find(t => t.id === 'sacred-tao-te-ching');
         expect(tao.division).toBe('classical');
-        const dhammapada = LIBRARY_TEXTS.find(t => t.id === 'extended-dhammapada-full');
-        expect(dhammapada.division).toBe('classical');
+        const iliad = LIBRARY_TEXTS.find(t => t.id === 'the-iliad');
+        expect(iliad.division).toBe('classical');
     });
 
     it('no shelf is a single division alone, except where that is true', () => {

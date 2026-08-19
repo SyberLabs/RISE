@@ -16,10 +16,11 @@ const find = id => catalogue.find(entry => entry.id === id);
 describe('the catalogue names divisions a curator can choose by', () => {
     it('sends labels only where they say more than a number', () => {
         // "Essay 12" is the count and the noun again; a name is not.
-        expect(find('the-storm-of-steel').divisions.labels[0]).toBe('Orainville (1/4)');
-        expect(find('literary-meditations').divisions.labels[0]).toBe('Opening (1/2)');
-        // "Essay 12" is the count and the noun again, so Montaigne sends none.
-        expect(find('montaigne-essays').divisions.labels).toBeUndefined();
+        expect(find('spoon-river-anthology').divisions.labels[0]).toBe('The Hill');
+        // Ovid's parts are named by the edition, so a curator can choose one.
+        expect(find('metamorphoses').divisions.labels[0]).toBe('Creation of the World');
+        // "Book I" is the count and the noun again, so Homer sends none.
+        expect(find('the-brothers-karamazov').divisions.labels).toBeUndefined();
         expect(find('the-iliad').divisions.labels).toBeUndefined();
     });
 
@@ -37,18 +38,14 @@ describe('the catalogue names divisions a curator can choose by', () => {
         // works open on something labelled "Front matter", and most of those
         // are the work: a title block, a translator's preface, Hawthorne's
         // Custom-House. See front-matter.test.js.
-        // Ovid arrives through Perseus, whose repository header opens the file.
-        expect(find('metamorphoses').divisions.bodyFrom).toBe(2);
-
-        // The work's own opening is never skipped: a title block, a
-        // translator's preface and a play's dramatis personae all carry the
-        // label "Front matter". See front-matter.test.js.
-        expect(find('the-iliad').divisions.bodyFrom).toBeUndefined();
-        expect(find('paradise-lost').divisions.bodyFrom).toBeUndefined();
-        expect(find('literary-meditations').divisions.bodyFrom).toBeUndefined();
-
-        // One work in the canon carries a distributor's opening.
-        expect(catalogue.filter(entry => entry.divisions?.bodyFrom).length).toBe(1);
+        // NO CANON WORK CARRIES A DISTRIBUTOR'S OPENING ANY MORE. Ovid's
+        // Perseus header went with the re-sourcing; an edition that declares
+        // its own parts has no boilerplate to skip past.
+        for (const id of ['metamorphoses', 'the-iliad', 'paradise-lost',
+            'literary-meditations', 'ulysses']) {
+            expect(find(id).divisions.bodyFrom, id).toBeUndefined();
+        }
+        expect(catalogue.filter(entry => entry.divisions?.bodyFrom).length).toBe(0);
     });
 
     it('survives its own validator', () => {
@@ -60,9 +57,10 @@ describe('the catalogue names divisions a curator can choose by', () => {
             audio: { soundscapes: [], tones: [], swells: [] },
             library: catalogue
         });
-        expect(context.library.find(e => e.id === 'the-storm-of-steel').divisions.labels)
-            .toHaveLength(48);
-        expect(context.library.find(e => e.id === 'metamorphoses').divisions.bodyFrom).toBe(2);
+        expect(context.library.find(e => e.id === 'spoon-river-anthology').divisions.labels)
+            .toHaveLength(246);
+        expect(context.library.find(e => e.id === 'metamorphoses').divisions.labels)
+            .toHaveLength(147);
     });
 
     it('refuses a label list that does not cover the divisions it describes', () => {
@@ -90,19 +88,17 @@ describe('the catalogue names divisions a curator can choose by', () => {
 
 describe('a label names the division it is beside', () => {
     it('resolves to the work the label promised', async () => {
-        const labels = find('the-storm-of-steel').divisions.labels;
-        const wanted = labels.indexOf('Orainville (3/4)') + 1;
-        const { sources } = await resolveLibrarySourceIds([`the-storm-of-steel#${wanted}`]);
-        expect(sources[0].name).toBe('The Storm of Steel · Orainville (3/4)');
+        const labels = find('spoon-river-anthology').divisions.labels;
+        const wanted = labels.indexOf('Lucinda Matlock') + 1;
+        const { sources } = await resolveLibrarySourceIds([`spoon-river-anthology#${wanted}`]);
+        expect(sources[0].name).toBe('Spoon River Anthology · Lucinda Matlock');
     }, 120_000);
 
-    it('reads the work rather than the header when bodyFrom is followed', async () => {
-        const { bodyFrom } = find('metamorphoses').divisions;
-        const [header] = (await resolveLibrarySourceIds(['metamorphoses#1:200'])).sources;
-        const [body] = (await resolveLibrarySourceIds(
-            [`metamorphoses#${bodyFrom}:200`])).sources;
-        // The skipped division names the repository rather than Ovid.
-        expect(header.data).toMatch(/perseus/iu);
-        expect(body.data).not.toMatch(/perseus/iu);
-    }, 120_000);
+    it('has no distributor opening left to skip', () => {
+        // Every canon work now comes from an edition that declares its own
+        // parts, so none of them opens on a repository header. The rule is
+        // still tested against the corpus in front-matter.test.js, where the
+        // withheld payloads keep the hard cases alive.
+        expect(catalogue.filter(entry => entry.divisions?.bodyFrom)).toEqual([]);
+    });
 });

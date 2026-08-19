@@ -405,11 +405,22 @@ console.log('[Library] System initialized');
 // legacy excerpts can claim it. This makes a completed re-ingest an
 // atomic replacement; no temporary quarantine window is needed.
 registerIngestedWorks();         // Verified public-domain ingests
-registerDeepSacredTexts();       // Legacy high-fidelity excerpts
+// LEGACY EXCERPT COLLECTIONS ARE NO LONGER REGISTERED — 2026-08-18.
+//
+// They predate the Archive and were shadowed by it: an ingested work
+// registered first and the excerpt of the same work was skipped as a
+// duplicate id. Withholding the Archive's Dhammapada let the legacy excerpt
+// take its place under a DIFFERENT id — the second door again, wearing
+// another name — and it arrived on a shelf that no longer exists.
+//
+// RISE serves Standard Ebooks editions and its own compositions. An excerpt
+// of unknown provenance is neither (ARCHIVE-CANON-SPEC §6).
+// registerDeepSacredTexts();
+
 registerExtendedSacredTexts();   // Legacy extended texts
-registerSimplifiedSacredTexts(); // Legacy fallback texts
+// registerSimplifiedSacredTexts();
 registerStarterTexts();          // Original RISE compositions
-registerLiteraryTexts();         // Legacy local literary excerpts
+// registerLiteraryTexts();
 
 // RETIRED (LIBRARY-SPEC §0). Two registrations are deliberately absent:
 //

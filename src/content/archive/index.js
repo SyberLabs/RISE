@@ -64,6 +64,18 @@ const CORE_WORKS = [
             .then(m => m.SPOON_RIVER_ANTHOLOGY_SECTIONS)
     },
     {
+        meta: {
+            id: 'oedipus-rex',
+            title: 'Oedipus Rex',
+            author: 'Sophocles',
+            shelf: 'western',
+            edition: { translator: 'Francis Storr', publisher: 'Standard Ebooks', year: 1912 },
+            basis: 'pre-1930-us'
+        },
+        load: () => import('./works/oedipus-rex.js')
+            .then(m => m.OEDIPUS_REX_SECTIONS)
+    },
+    {
         // Re-sourced 2026-08-18 from a structured edition. The Gutenberg
         // payload was missing 303 words its heading detector had eaten, and
         // carried Civil Disobedience under Walden's title

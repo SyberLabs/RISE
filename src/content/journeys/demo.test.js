@@ -12,7 +12,15 @@ import { resolveJourneyPassages, resolvePassage } from './passages.js';
 import { createJourneyHandoff } from './handoff.js';
 import { compileSession } from '../../core/session-compiler.js';
 
-describe('a disclosed route through a reading unit', () => {
+/**
+ * ON ICE — 2026-08-18. RISE serves Standard Ebooks editions only, so Storm of
+ * Steel is withheld and Homer and Milton arrive in different translations than
+ * these passages were written against. Every quotation anchor into them
+ * refuses, which is the anchoring working. The score stays in the tree with
+ * its tests so re-authoring it later starts from what it was, and nothing here
+ * reaches a reader or the Scriptorium (src/components/Journeys.js).
+ */
+describe.skip('a disclosed route through a reading unit', () => {
     const scene = WAR_PASSAGES.find(p => p.id === 'pass-iliad-hector-household');
 
     it('takes the scene its anchors name and nothing else', async () => {
@@ -67,7 +75,7 @@ describe('a disclosed route through a reading unit', () => {
     }, 120000);
 });
 
-describe('the trim', () => {
+describe.skip('the trim', () => {
     it('brings War under half its former length', async () => {
         const { resolved } = await resolveJourneyPassages(WAR_PASSAGES);
         const words = resolved.reduce((n, p) => n + p.words, 0);
@@ -80,7 +88,7 @@ describe('the trim', () => {
     }, 240000);
 });
 
-describe('a demonstration is not a Journey', () => {
+describe.skip('a demonstration is not a Journey', () => {
     it('refuses the word, because §1.1 means something', async () => {
         // A survey that cycles every engine is an anthology by design.
         // Publishing it as a Journey would make the term meaningless.
@@ -162,7 +170,7 @@ describe('a demonstration is not a Journey', () => {
     }, 240000);
 });
 
-describe('a withheld engine is withheld everywhere', () => {
+describe.skip('a withheld engine is withheld everywhere', () => {
     // Mustard Gas (#4) is held back for resolution: reaction-diffusion
     // resolves at the grid it simulates on, and behind a full-bleed
     // reading that grid reads as pixellation rather than as gas.
@@ -214,7 +222,7 @@ describe('a withheld engine is withheld everywhere', () => {
     });
 });
 
-describe('the reel plays in order, and each movement opens on its own engine', () => {
+describe.skip('the reel plays in order, and each movement opens on its own engine', () => {
     /**
      * Reported from a real reading: the Jünger movement opened on a
      * Milton engine and the ASCII trench was never seen. The cause was

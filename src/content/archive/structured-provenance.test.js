@@ -11,7 +11,9 @@
 import { describe, expect, it } from 'vitest';
 import { INGESTED_META } from './index.js';
 
-const STRUCTURED = ['spoon-river-anthology', 'literary-walden'];
+const STRUCTURED = ['spoon-river-anthology', 'literary-walden', 'middlemarch', 'the-brothers-karamazov',
+    'literary-meditations', 'sacred-tao-te-ching', 'the-iliad', 'the-divine-comedy',
+    'metamorphoses', 'paradise-lost', 'ulysses'];
 
 describe('a structured acquisition proves itself by provenance', () => {
   it.each(STRUCTURED)('%s records a digest for every source file', async (id) => {
@@ -63,7 +65,12 @@ describe('a declared scheme is not re-derived', () => {
       const sections = mod[`${id.toUpperCase().replace(/-/gu, '_')}_SECTIONS`];
       expect(index[id].reason, `${id} scheme`).toBe('declared');
       expect(index[id].count, `${id}: in must equal out`).toBe(sections.length);
-      expect(index[id].labels, `${id} labels`).toHaveLength(sections.length);
+      // Labels ride only where they say more than a number, so a work whose
+      // parts are called "Book I" sends none — and where they do ride, there
+      // is one per part.
+      if (index[id].labels) {
+        expect(index[id].labels, `${id} labels`).toHaveLength(sections.length);
+      }
     }
   });
 

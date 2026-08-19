@@ -14,7 +14,15 @@ import { resolveJourneyPassages, entriesForDivision } from './passages.js';
 import { compileJourney, cueForSource, JourneyCompileError } from '../../core/journey-compiler.js';
 import { readJourneySegments } from '../atrium/journey-segments.js';
 
-describe('the manifest states an argument, not a topic', () => {
+/**
+ * ON ICE — 2026-08-18. RISE serves Standard Ebooks editions only, so Storm of
+ * Steel is withheld and Homer and Milton arrive in different translations than
+ * these passages were written against. Every quotation anchor into them
+ * refuses, which is the anchoring working. The score stays in the tree with
+ * its tests so re-authoring it later starts from what it was, and nothing here
+ * reaches a reader or the Scriptorium (src/components/Journeys.js).
+ */
+describe.skip('the manifest states an argument, not a topic', () => {
     it('names a thesis, a transformation, and a terminal condition', () => {
         expect(WAR_JOURNEY.thesis).toMatch(/descends/);
         expect(WAR_JOURNEY.transformation).toBeTruthy();
@@ -49,7 +57,7 @@ describe('the manifest states an argument, not a topic', () => {
     });
 });
 
-describe('all three movements are bound', () => {
+describe.skip('all three movements are bound', () => {
     it('publishes, and declares what is still outstanding', () => {
         // Blocked for one day, on the reading that Junger's unnumbered
         // chapters were not citable. True about ordinals, false about
@@ -123,7 +131,7 @@ describe('all three movements are bound', () => {
     });
 });
 
-describe('every bound passage resolves against the Archive', () => {
+describe.skip('every bound passage resolves against the Archive', () => {
     it('finds real text for each locator', async () => {
         const bound = WAR_PASSAGES.filter(p =>
             readJourneySegments({ movements: WAR_BOUND_MOVEMENTS })
@@ -174,7 +182,7 @@ describe('every bound passage resolves against the Archive', () => {
     }, 120000);
 });
 
-describe('the sources do not become equivalent', () => {
+describe.skip('the sources do not become equivalent', () => {
     it('keeps each passage\'s own edition and role', async () => {
         // §1.3: "The Journey may create a relation. It may not erase the
         // differences that make the relation meaningful."

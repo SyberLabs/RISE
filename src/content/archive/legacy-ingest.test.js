@@ -49,7 +49,14 @@ describe('the legacy-classics replacement pass', () => {
         // (ARCHIVE-CLEANSING-SPEC §2j).
         expect(LEGACY_REINGESTED_WORKS).toHaveLength(16);
         for (const work of LEGACY_REINGESTED_WORKS) {
-            expect(work.meta.sourceSha256).toMatch(/^[0-9a-f]{64}$/);
+            // A work re-sourced from a structured edition records a digest per
+            // source FILE, in its own module; the single-artifact digest that
+            // described a download no longer applies to it.
+            if (work.meta.structuredSource) {
+                expect(work.meta.structuredSource).toMatch(/^https:\/\//u);
+            } else {
+                expect(work.meta.sourceSha256).toMatch(/^[0-9a-f]{64}$/);
+            }
             expect(work.meta.payloadChecksum).toMatch(/^[0-9a-f]{64}$/);
             // ATOMIC MEANS AT MOST ONE. The replacement pass exists so a
             // re-ingested work cannot sit beside the legacy excerpt it

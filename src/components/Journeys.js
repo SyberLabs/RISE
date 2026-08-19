@@ -25,8 +25,6 @@
  * So Begin compiles the authored config and enters the reading.
  */
 
-import { WAR_JOURNEY, WAR_PASSAGES } from '../content/journeys/war.js';
-import { DEMO_JOURNEY, DEMO_PASSAGES } from '../content/journeys/demo.js';
 import { createJourneyHandoff, journeyIntroduction } from '../content/journeys/handoff.js';
 import { resolveJourneyPassages } from '../content/journeys/passages.js';
 
@@ -39,9 +37,21 @@ import { resolveJourneyPassages } from '../content/journeys/passages.js';
  * seventy-five minutes before they know what any of it is would lose
  * most of them at the door.
  */
+/**
+ * ON ICE — 2026-08-18.
+ *
+ * A Journey names its sources and quotes their exact words, so it is a promise
+ * about a particular EDITION. RISE now serves Standard Ebooks editions only:
+ * Storm of Steel has no such edition and is withheld, and Homer and Milton
+ * arrive in different translations than the ones these passages were written
+ * against. Every quotation anchor into them refuses, correctly.
+ *
+ * Journeys will not be ready for release regardless, so they are withdrawn
+ * rather than re-anchored in haste — re-authoring someone's score against a
+ * new translation is an editorial act, not a repair. The scores stay in the
+ * tree with their tests; nothing reaches a reader or the Scriptorium.
+ */
 const JOURNEYS = [
-    { journey: DEMO_JOURNEY, passages: DEMO_PASSAGES },
-    { journey: WAR_JOURNEY, passages: WAR_PASSAGES }
 ];
 
 const esc = (value) => String(value ?? '').replace(/[&<>"]/g, c =>

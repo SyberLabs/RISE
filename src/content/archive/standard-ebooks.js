@@ -30,7 +30,11 @@ const PART_SELECTOR = [
   'section[epub\\:type~="chapter"]',
   'article[epub\\:type~="chapter"]',
   'section[epub\\:type~="epilogue"]',
-  'section[epub\\:type~="z3998:drama"]'
+  'section[epub\\:type~="z3998:drama"]',
+  // A preface INSIDE the bodymatter is the work — Longfellow sets a sonnet
+  // before each canticle of the Commedia. A preface the edition files as
+  // frontmatter never reaches here, because the file is skipped whole.
+  'section[epub\\:type~="preface"]'
 ].join(',');
 
 /**
@@ -41,7 +45,21 @@ const PART_SELECTOR = [
  * two words, caught by the reconciliation, which is the point of a check that
  * tolerates no loss rather than a small one.
  */
-const BLOCK_SELECTOR = 'p,tr,cite';
+const BLOCK_SELECTOR = ['p', 'tr', 'cite',
+  // A letter's signature is set as its own element rather than a paragraph —
+  // Ulysses sets Milly's as a `<b>` — so one word of Joyce went missing until
+  // the reconciliation refused the payload. Only the outermost block counts,
+  // so an inline emphasis inside a paragraph is still read with its paragraph.
+  '[epub\\:type~="z3998:signature"]',
+  '[epub\\:type~="z3998:valediction"]'
+].join(',');
+
+/** Sections that group readings rather than being one. */
+const CONTAINER_SELECTOR = [
+  'section[epub\\:type~="part"]',
+  'section[epub\\:type~="division"]',
+  'section[epub\\:type~="volume"]'
+].join(',');
 
 export class StandardEbooksStructureError extends Error {
   constructor(message, details = {}) {
@@ -160,6 +178,49 @@ function readPart(element) {
 }
 
 /**
+ * Container headings that sit INSIDE a file rather than owning one.
+ *
+ * The Tao Te Ching puts its two Parts and all eighty-one chapters in a single
+ * file, so `Part I` and `Part II` belong to no reading and would simply
+ * vanish. They are recorded, and counted, so the reconciliation stays honest.
+ */
+export function readContainerHeadings(xhtml, parse) {
+  const doc = parse(String(xhtml));
+  return [...doc.querySelectorAll(CONTAINER_SELECTOR)]
+    .filter(section => section.querySelector(PART_SELECTOR))
+    .map(section => {
+      const heading = [...section.children]
+        .find(child => /^(?:h[1-6]|hgroup)$/u.test(tag(child)));
+      return heading ? clean(heading.textContent) : '';
+    })
+    .filter(Boolean);
+}
+
+/**
+ * A file that groups the readings after it, rather than being one.
+ *
+ * Middlemarch gives each Book its own file holding nothing but the label and
+ * the title — `<section epub:type="part">` with an hgroup and no prose. It is
+ * the edition naming a group, and treating it as a missing reading was the
+ * importer failing to tell a container from a text.
+ *
+ * @returns {string|null} the container's name, or null if this is not one
+ */
+export function readContainerName(xhtml, parse) {
+  const doc = parse(String(xhtml));
+  const section = doc.querySelector(CONTAINER_SELECTOR);
+  if (!section) return null;
+  // A paragraph inside an hgroup is the second line of a heading — "Book I"
+  // over "Miss Brooke" — not prose. Counting it made Middlemarch's Books look
+  // like readings with one sentence in them.
+  const prose = [...section.querySelectorAll(BLOCK_SELECTOR)]
+    .filter(block => !block.closest('hgroup,h1,h2,h3,h4,h5,h6'));
+  if (prose.length) return null;
+  const heading = section.querySelector('hgroup,h1,h2,h3');
+  return heading ? clean(heading.textContent) : null;
+}
+
+/**
  * Parse one Standard Ebooks XHTML file into the parts it declares.
  *
  * @param {string} xhtml
@@ -187,12 +248,16 @@ export function readStandardEbooksFile(xhtml, parse) {
  * Headings are excluded from the payload body but counted here, because a
  * title is words the source carried.
  */
-export function reconcileWords(xhtml, parts, parse) {
+export function reconcileWords(xhtml, parts, parse, extra = []) {
   const doc = parse(String(xhtml));
   const body = doc.querySelector('body');
   const sourceWords = clean(body ? body.textContent : '').split(' ').filter(Boolean).length;
-  const importedWords = parts.reduce((total, part) => total
-    + clean(`${part.title || ''} ${part.content}`).split(' ').filter(Boolean).length, 0);
+  const counted = [
+    ...parts.map(part => `${part.title || ''} ${part.content}`),
+    ...extra
+  ];
+  const importedWords = counted.reduce((total, text) => total
+    + clean(text).split(' ').filter(Boolean).length, 0);
   return { sourceWords, importedWords, lost: sourceWords - importedWords };
 }
 

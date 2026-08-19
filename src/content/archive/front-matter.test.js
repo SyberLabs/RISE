@@ -67,8 +67,8 @@ describe('against the shelf', () => {
         }
         // And the Shahnama is not skipped to its last fortieth.
         expect(index['the-shahnama-of-firdausi'].bodyFrom).toBe(2);
-        // The canon's one distributor opening.
-        expect(index.metamorphoses.bodyFrom).toBe(2);
+        // Ovid's Perseus header went with the re-sourcing.
+        expect(index.metamorphoses.bodyFrom).toBeUndefined();
         expect(works.length).toBeGreaterThan(0);
     });
 });

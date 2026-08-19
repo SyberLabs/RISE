@@ -145,14 +145,44 @@ Two facts that decide the strategy:
   Kalevala or Shahnama.** Its catalogue is Western literature. It cannot serve
   the sacred and eastern shelves at all.
 
-So "Standard Ebooks first" is a Western-prose strategy, not an archive
-strategy. The edition is chosen per work, and the choice is recorded.
+### DECIDED 2026-08-18: Standard Ebooks only
+
+RISE serves Standard Ebooks editions and its own compositions. Nothing else.
+
+The reasoning is the one this whole document is about. A structured edition
+declares its parts, its stanzas and its verse lines, so an importer READS them;
+everything else must be inferred, and inference is what deleted 303 words of
+Walden and 11,359 of Leaves of Grass. One clean upstream is worth more than a
+larger catalogue we cannot vouch for.
+
+The cost is stated rather than hidden. Four works leave the canon because no
+Standard Ebooks edition exists: **Storm of Steel** (Jünger died in 1998),
+**the Dhammapada**, **Montaigne's Essays**, and **the Oedipus Trilogy** — the
+last only in that packaging, since Sophocles is published there as separate
+plays and *Oedipus Rex* is canonical in its place. The essay and the scriptural
+verse fixtures are lost with them, and the canon is honest about the gap rather
+than filling it from a source it cannot certify.
+
+A DIFFERENT EDITION IS A DIFFERENT WORK, and an authored score knows it. The
+war Journey quotes Homer and Milton exactly, so re-sourcing them made every
+quotation anchor refuse — correctly. The Journeys are on ice rather than
+re-anchored in haste: re-authoring a score against a new translation is an
+editorial act, not a repair, and Journeys will not be ready for release
+regardless. Their scores stay in the tree with their tests, reachable by
+neither a reader nor the Scriptorium.
+
+---
+
+So "Standard Ebooks first" was a Western-prose strategy. The rule above accepts
+that boundary deliberately, and the canon is what that upstream can supply.
 
 ## 7. The canon
 
 Fifteen works, chosen so that each is also an ACCEPTANCE FIXTURE for a
 textual form the reading system must handle. A canon of favourites would prove
 nothing; a canon of forms proves the instrument.
+
+Twelve works, all from Standard Ebooks, all read rather than inferred.
 
 | form the system must handle | work |
 |---|---|

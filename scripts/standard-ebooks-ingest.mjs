@@ -21,6 +21,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
 import {
+    readContainerHeadings,
+    readContainerName,
     readStandardEbooksFile,
     reconcileWords,
     sectionsFromParts
@@ -33,6 +35,138 @@ const RAW = 'https://raw.githubusercontent.com/standardebooks';
 const API = 'https://api.github.com/repos/standardebooks';
 
 const WORKS = {
+    'oedipus-rex': {
+        id: 'oedipus-rex',
+        repo: 'sophocles_oedipus-rex_francis-storr',
+        title: 'Oedipus Rex',
+        author: 'Sophocles',
+        shelf: 'western',
+        edition: { translator: 'Francis Storr', publisher: 'Standard Ebooks', year: 1912 },
+        rights: {
+            basis: 'pre-1930-us',
+            territory: 'US',
+            evidence: "Francis Storr translation, Loeb Classical Library, 1912 — in the "
+                + 'public domain in the United States. Standard Ebooks production work is '
+                + 'released CC0. Public-domain status elsewhere is not established here.'
+        }
+    },
+    'middlemarch': {
+        id: 'middlemarch',
+        repo: 'george-eliot_middlemarch',
+        title: 'Middlemarch',
+        author: 'George Eliot',
+        shelf: 'western',
+        edition: { publisher: 'Standard Ebooks', year: 1872 },
+        rights: {
+            basis: 'pre-1930-us',
+            territory: 'US',
+            evidence: 'First published 1872; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record.'
+        }
+    },
+    'karamazov': {
+        id: 'the-brothers-karamazov',
+        repo: 'fyodor-dostoevsky_the-brothers-karamazov_constance-garnett',
+        title: 'The Brothers Karamazov',
+        author: 'Fyodor Dostoevsky',
+        shelf: 'western',
+        edition: { translator: 'Constance Garnett', publisher: 'Standard Ebooks', year: 1880 },
+        rights: {
+            basis: 'pre-1930-us',
+            territory: 'US',
+            evidence: 'First published 1880; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record.'
+        }
+    },
+    'meditations': {
+        id: 'literary-meditations',
+        repo: 'marcus-aurelius_meditations_george-long',
+        title: 'Meditations',
+        author: 'Marcus Aurelius',
+        shelf: 'western',
+        edition: { translator: 'George Long', publisher: 'Standard Ebooks', year: 1862 },
+        rights: {
+            basis: 'pre-1930-us',
+            territory: 'US',
+            evidence: 'First published 1862; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record.'
+        }
+    },
+    'tao-te-ching': {
+        id: 'sacred-tao-te-ching',
+        repo: 'laozi_tao-te-ching_james-legge',
+        title: 'Tao Te Ching',
+        author: 'Laozi',
+        shelf: 'eastern',
+        edition: { translator: 'James Legge', publisher: 'Standard Ebooks', year: 1891 },
+        rights: {
+            basis: 'pre-1930-us',
+            territory: 'US',
+            evidence: 'First published 1891; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record.'
+        }
+    },
+    'iliad': {
+        id: 'the-iliad',
+        repo: 'homer_the-iliad_william-cullen-bryant',
+        title: 'The Iliad',
+        author: 'Homer',
+        shelf: 'western',
+        edition: { translator: 'William Cullen Bryant', publisher: 'Standard Ebooks', year: 1870 },
+        rights: {
+            basis: 'pre-1930-us',
+            territory: 'US',
+            evidence: 'First published 1870; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record.'
+        }
+    },
+    'divine-comedy': {
+        id: 'the-divine-comedy',
+        repo: 'dante-alighieri_the-divine-comedy_henry-wadsworth-longfellow',
+        title: 'The Divine Comedy',
+        author: 'Dante Alighieri',
+        shelf: 'western',
+        edition: { translator: 'Henry Wadsworth Longfellow', publisher: 'Standard Ebooks', year: 1867 },
+        rights: {
+            basis: 'pre-1930-us',
+            territory: 'US',
+            evidence: 'First published 1867; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record.'
+        }
+    },
+    'metamorphoses': {
+        id: 'metamorphoses',
+        repo: 'ovid_metamorphoses_various-translators',
+        title: 'Metamorphoses',
+        author: 'Ovid',
+        shelf: 'western',
+        edition: { translator: 'various translators', publisher: 'Standard Ebooks', year: 1717 },
+        rights: {
+            basis: 'pre-1930-us',
+            territory: 'US',
+            evidence: 'First published 1717; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record.'
+        }
+    },
+    'paradise-lost': {
+        id: 'paradise-lost',
+        repo: 'john-milton_paradise-lost',
+        title: 'Paradise Lost',
+        author: 'John Milton',
+        shelf: 'western',
+        edition: { publisher: 'Standard Ebooks', year: 1667 },
+        rights: {
+            basis: 'pre-1930-us',
+            territory: 'US',
+            evidence: 'First published 1667; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record.'
+        }
+    },
+    'ulysses': {
+        id: 'ulysses',
+        repo: 'james-joyce_ulysses',
+        title: 'Ulysses',
+        author: 'James Joyce',
+        shelf: 'western',
+        edition: { publisher: 'Standard Ebooks', year: 1922 },
+        rights: {
+            basis: 'pre-1930-us',
+            territory: 'US',
+            evidence: 'First published 1922; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record.'
+        }
+    },
     walden: {
         id: 'literary-walden',
         repo: 'henry-david-thoreau_walden',
@@ -74,14 +208,19 @@ const parse = markup => new JSDOM(markup, { contentType: 'text/html' }).window.d
 const sha = value => createHash('sha256').update(value).digest('hex');
 
 /**
- * The publisher speaking, rather than the work. Standard Ebooks puts these in
- * every edition; they are apparatus and are not read.
+ * WHAT IS THE WORK IS THE EDITION'S TO SAY.
+ *
+ * Every file declares itself on its own body element — `bodymatter` for the
+ * work, `frontmatter` and `backmatter` for a title page, a colophon, a
+ * translator's preface. A hand-written list of apparatus filenames was here
+ * first and it was a guess: it knew about colophons and did not know that
+ * Middlemarch opens on a preface and the Tao Te Ching on a translator's,
+ * both of which those editions call frontmatter.
  */
-const APPARATUS = new Set([
-    'titlepage.xhtml', 'imprint.xhtml', 'colophon.xhtml', 'uncopyright.xhtml',
-    'halftitlepage.xhtml', 'dedication.xhtml', 'acknowledgments.xhtml',
-    'endnotes.xhtml', 'loi.xhtml'
-]);
+function isBodyMatter(xhtml) {
+    const body = /<body[^>]*epub:type="([^"]*)"/u.exec(xhtml);
+    return Boolean(body) && body[1].split(/\s+/u).includes('bodymatter');
+}
 
 /**
  * READING ORDER IS THE EDITION'S, NOT OURS.
@@ -127,23 +266,42 @@ async function ingest(key) {
     let importedWords = 0;
 
     const spine = await readSpine(work);
-    const files = spine.filter(file => !APPARATUS.has(file));
-    console.log(`  spine: ${spine.length} files, ${files.length} of them the work`);
+    const skipped = [];
+    const containers = [];
 
-    for (const file of files) {
+    for (const file of spine) {
         const xhtml = await fetchFile(work, file);
+        if (!isBodyMatter(xhtml)) {
+            skipped.push(file);
+            continue;
+        }
+        // A Book or Part with no prose in it names the readings that follow.
+        // Recorded rather than dropped: the flat section model cannot hold two
+        // levels, and the shape a work has is not ours to forget.
+        const container = readContainerName(xhtml, parse);
+        if (container) {
+            containers.push(container);
+            console.log(`  ${file.padEnd(34)}    container  "${container}"`);
+            continue;
+        }
         digests.push(`${file} ${sha(xhtml)}`);
         const fileParts = readStandardEbooksFile(xhtml, parse);
         // A bodymatter file that yields nothing is markup this importer does
         // not understand, and guessing at it is the one thing forbidden here.
         if (!fileParts.length) throw new Error(`${file}: no addressable parts found`);
-        const reconciled = reconcileWords(xhtml, fileParts, parse);
+        // Containers inside a file own no reading, so their headings are
+        // counted where they went rather than silently vanishing.
+        const inFile = readContainerHeadings(xhtml, parse);
+        containers.push(...inFile);
+        const reconciled = reconcileWords(xhtml, fileParts, parse, inFile);
         sourceWords += reconciled.sourceWords;
         importedWords += reconciled.importedWords;
         parts.push(...fileParts);
-        console.log(`  ${file.padEnd(30)} ${String(fileParts.length).padStart(4)} parts  `
+        console.log(`  ${file.padEnd(34)} ${String(fileParts.length).padStart(4)} parts  `
             + `${String(reconciled.sourceWords).padStart(7)}w  lost ${reconciled.lost}`);
     }
+    console.log(`  spine: ${spine.length} files, ${digests.length} bodymatter, `
+        + `${skipped.length} apparatus (${skipped.join(', ')})`);
 
     // WORDS IN MUST EQUAL WORDS OUT. There is no acceptable loss: the importer
     // reads declared structure, so anything missing is the importer's fault.
@@ -172,6 +330,9 @@ async function ingest(key) {
             retrieved: new Date().toISOString().slice(0, 10)
         },
         rights: work.rights,
+        // Groups the edition declares above the reading level. RISE serves a
+        // flat list of readings, so these are recorded and not served.
+        ...(containers.length ? { containers } : {}),
         // The slugs the edition itself gave each part, in order. A curator can
         // name `spoon-river-anthology#lucinda-matlock` rather than `#87`.
         slugs: parts.map(part => part.id),

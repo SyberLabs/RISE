@@ -103,7 +103,7 @@
       "checkable": false
     },
     "literary-leaves-of-grass": {
-      "divisions": 263,
+      "divisions": 43,
       "checkable": true
     },
     "literary-letters-young-poet": {
@@ -111,8 +111,8 @@
       "checkable": true
     },
     "literary-meditations": {
-      "divisions": 25,
-      "checkable": true
+      "divisions": 19,
+      "checkable": false
     },
     "literary-poems-blake": {
       "divisions": 1,
@@ -127,7 +127,7 @@
       "checkable": true
     },
     "literary-walden": {
-      "divisions": 31,
+      "divisions": 38,
       "checkable": true
     },
     "madame-bovary": {
@@ -135,7 +135,7 @@
       "checkable": true
     },
     "metamorphoses": {
-      "divisions": 50,
+      "divisions": 149,
       "checkable": true
     },
     "middlemarch": {
@@ -158,13 +158,17 @@
       "divisions": 16,
       "checkable": true
     },
+    "oedipus-rex": {
+      "divisions": 4,
+      "checkable": true
+    },
     "okakura-book-of-tea": {
       "divisions": 6,
       "checkable": true
     },
     "paradise-lost": {
-      "divisions": 12,
-      "checkable": false
+      "divisions": 28,
+      "checkable": true
     },
     "parker-australian-tales": {
       "divisions": 31,
@@ -223,7 +227,7 @@
       "checkable": true
     },
     "spoon-river-anthology": {
-      "divisions": 243,
+      "divisions": 245,
       "checkable": true
     },
     "strange-stories-from-a-chinese-studio": {
@@ -259,7 +263,7 @@
       "checkable": true
     },
     "the-divine-comedy": {
-      "divisions": 10,
+      "divisions": 101,
       "checkable": true
     },
     "the-duchess-of-malfi": {
@@ -355,7 +359,7 @@
       "checkable": true
     },
     "ulysses": {
-      "divisions": 70,
+      "divisions": 69,
       "checkable": true
     },
     "vitruvius-architecture": {

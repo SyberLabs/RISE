@@ -56,7 +56,7 @@ export const LEGACY_REINGESTED_WORKS = [
             .then(module => module.LITERARY_POEMS_DICKINSON_SECTIONS)
     },
     {
-        meta: {"id":"literary-meditations","title":"Meditations","author":"Marcus Aurelius","shelf":"western","edition":{"translator":"George Long","publisher":"George Bell & Sons","year":1862},"basis":"author-death-70","chars":397844,"sections":13,"sourceSha256":"4dda538d50a205291ad1a494f07dccf96c89a3d422d48d14328a9a9b1d40c122","payloadChecksum":"e51e7a5493d6c8cbd1486f48b7c77d5bbd825b7e748c23b793bdfe6404545131"},
+        meta: {"id":"literary-meditations","title":"Meditations","author":"Marcus Aurelius","shelf":"western","edition":{"translator":"George Long","publisher":"Standard Ebooks","year":1862},"basis":"pre-1930-us","chars":246195,"sections":12,"payloadChecksum":"9ff8dd73e8d699654fd6155d5bd04d0055f6781449494c012633e7b5cffd7159","structuredSource":"https://raw.githubusercontent.com/standardebooks/marcus-aurelius_meditations_george-long"},
         load: () => import('./works/literary-meditations.js')
             .then(module => module.LITERARY_MEDITATIONS_SECTIONS)
     },
@@ -76,7 +76,7 @@ export const LEGACY_REINGESTED_WORKS = [
             .then(module => module.SACRED_YOGA_SUTRAS_SECTIONS)
     },
     {
-        meta: {"id":"sacred-tao-te-ching","title":"The Tao Teh King; or, The Tao and Its Characteristics","author":"Lao-tze","shelf":"eastern","edition":{"translator":"James Legge","publisher":"Clarendon Press","year":1891},"basis":"pre-1930-us","chars":58172,"sections":1,"sourceSha256":"3ec5ac31ee72b8c30b80bc276d8014dd870008da2c4a35840c9033fd51f5c74b","payloadChecksum":"81ae10618d495b95eb45e1049e3336f28be9a430f4a453160724d146adcb9f3c"},
+        meta: {"id":"sacred-tao-te-ching","title":"Tao Te Ching","author":"Laozi","shelf":"eastern","edition":{"translator":"James Legge","publisher":"Standard Ebooks","year":1891},"basis":"pre-1930-us","chars":57026,"sections":81,"payloadChecksum":"d55274df3803c5bf899640017858f04c284ec6450d1a5c01e1a3e8e5241968c2","structuredSource":"https://raw.githubusercontent.com/standardebooks/laozi_tao-te-ching_james-legge"},
         load: () => import('./works/sacred-tao-te-ching.js')
             .then(module => module.SACRED_TAO_TE_CHING_SECTIONS)
     }
