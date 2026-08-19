@@ -88,13 +88,13 @@ const MEASURED = Object.freeze({
     + 'undecoded HTML entities. A decoding failure upstream of the ingest.',
   'the-shahnama-of-firdausi': 'Heading scheme found so late that 1,006,053 of '
     + '1,099,111 words fall outside it. The scheme is broken, not the text.',
-  'literary-leaves-of-grass': 'Heading detection matches ordinary verse lines, '
-    + 'giving 908 sections named from Whitman’s own poetry. Needs a '
-    + 'structured edition.',
   'literary-poems-dickinson': 'Lineation restored 2026-08-18, but the division '
     + 'scheme is still ordinal and unverified against a reference.',
   'kabir-songs': 'Lineation restored 2026-08-18; the work remains undivided, so '
-    + 'its hundred poems cannot be named.'
+    + 'its hundred poems cannot be named.',
+  'literary-leaves-of-grass': 'Heading detection matches ordinary verse lines: '
+    + '11,359 of 121,712 words were consumed as division titles and deleted '
+    + 'from the body. Re-source (ARCHIVE-CLEANSING-SPEC §2j).'
 });
 
 /**

@@ -1295,10 +1295,118 @@ see by standing back, and this is the first of those we have written down.
 
 ---
 
+---
+
+## 2j. Text eaten by the heading detector — 2026-08-18
+
+**The worst defect found in the whole campaign, and no detector could ever
+have found it.** It is not garbage in the text. It is text that is gone.
+
+An ingest finds a heading by its shape on a line of its own, and the heading
+line is then REMOVED from the content — correctly, since a division's title is
+not its first sentence. Three works were given a pattern with no literal anchor
+and a case-insensitive flag:
+
+```js
+literary-walden           /^[A-Z][A-Z ,'-]{4,55}$/i
+literary-poems-blake      /^[A-Z][A-Z ’,'-]{2,55}$/i
+literary-leaves-of-grass  /^(?:BOOK [IVXLCDM]+|[A-Z][A-Z ,’'-]{5,65})$/i
+```
+
+`i` makes `[A-Z]` match lowercase. So `^[A-Z][A-Z ,'-]{4,55}$` matches any line
+of five to fifty-six letters, spaces, commas, apostrophes or hyphens — which is
+to say, most lines of ordinary prose and nearly every line of verse. Each one
+matched became a division boundary, and was deleted from the body.
+
+### Measured against the sources still on disk
+
+| work | source | ours | **lost** | sections |
+|---|---|---|---|---|
+| `literary-walden` | 115,813 | 115,510 | **303** | 48 |
+| `literary-leaves-of-grass` | 121,712 | 110,353 | **11,359** | 908 |
+| `literary-poems-blake` | 5,539 | 5,539 | 0 | 1 |
+
+Whitman has lost **9.3% of Leaves of Grass** — some nine hundred lines. Blake
+escaped only because its pattern matched so much that no scheme survived
+validation, so nothing was consumed and the work arrived undivided instead.
+
+Of Walden's 48 division names, seventeen are real chapters. **Thirty-one are
+Thoreau's own prose**, and each one is a line no longer in the book:
+
+```
+  "Inde genus durum sumus, experiensque laborum,"
+  "The wind that blows"
+  "Two second-hand windows"
+  "expeditions, using new passages and all improvements in"
+```
+
+### The line that proves it
+
+Walden quotes a poem about Baker Farm. Project Gutenberg #205, our own cached
+artifact, line 5798:
+
+```
+     “Thy entry is a pleasant field,
+     Which some mossy fruit trees yield
+     Partly to a ruddy brook,
+     By gliding musquash undertook,
+     And mercurial trout,
+     Darting about.”
+```
+
+What RISE serves:
+
+```
+     “Thy entry is a pleasant field, Which some mossy fruit trees yield
+     Partly to a ruddy brook, By gliding musquash undertook,
+
+     Darting about.”
+```
+
+`And mercurial trout,` matched the pattern. The word *mercurial* does not
+appear anywhere in our Walden.
+
+### Why this ends the detector strategy
+
+Every other defect in this document is something PRESENT that should not be:
+a filename, a running head, a citation, a replacement character. A signature
+can be written for each because there is something to match.
+
+**A missing line has no shape.** There is nothing to detect. The text reads
+perfectly — grammatical, in Thoreau's voice, continuous — and it is not what he
+wrote. No sweep over our own payloads could ever find it, however clever, and
+that is not a gap to be closed by a better sweep. It is the boundary of what
+sweeping can do.
+
+It was found by comparing our text against another edition, one word at a time,
+and it was found in the first three thousand characters compared.
+
+**This is the whole argument for ARCHIVE-CANON-SPEC**, and it was found the day
+after that document was adopted, in a work already in the canon.
+
+### Disposition
+
+- **`literary-walden` — re-source before certification.** It is canonical and
+  it is missing 303 words. Certification exists for exactly this.
+- **`literary-leaves-of-grass` — withheld, and now with a measured reason.**
+  11,359 words.
+- **The patterns themselves — fix at the ingest, not the payload.** An
+  unanchored capital class with `i` is the bug; the three works are the
+  symptom. A heading pattern must be anchored on a literal the work actually
+  uses (`CHAPTER`, `BOOK`, `CANTO`), or on a titled scheme read from section
+  names.
+- **A word-count reconciliation belongs in the ingest.** Source words in,
+  payload words out, and a difference beyond the known front-matter trim is a
+  failed ingest rather than a finished one. That check costs nothing and would
+  have caught all three on the day they were made.
+
 ## Open, as of 2026-08-18
 
 | | |
 |---|---|
+| **re-source Walden — 303 words missing, and it is canonical** | **urgent — §2j** |
+| fix the three unanchored heading patterns | not started — §2j |
+| word-count reconciliation in the ingest | not started — §2j |
 | re-ingest five verse works with lineation | not started — §2h |
 | a work-level audit for shape defects | not started — §3g |
 | `[Picture: …]` caption signature | not started — §2h |
