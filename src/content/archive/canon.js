@@ -30,7 +30,7 @@ export const CANON = Object.freeze([
   { id: 'the-iliad', form: 'epic in books' },
   { id: 'the-divine-comedy', form: 'structured verse epic' },
   { id: 'metamorphoses', form: 'classical narrative verse' },
-  { id: 'literary-poems-blake', form: 'poetry collection' },
+  { id: 'spoon-river-anthology', form: 'poetry collection · 244 addressable poems' },
   { id: 'the-oedipus-trilogy', form: 'drama' },
   { id: 'extended-dhammapada-full', form: 'scriptural verse' },
   { id: 'montaigne-essays', form: 'essay' },
@@ -76,6 +76,12 @@ const NOT_IN_CANON = 'Not in the launch canon. The edition is inherited from a '
  * which is a different statement from "we found something wrong with it".
  */
 const MEASURED = Object.freeze({
+  'literary-poems-blake': 'The 1901 R. Brimley Johnson edition, which modernized '
+    + "Blake — Tyger Tyger becomes Tiger, tiger — and arrives undivided, so its "
+    + 'forty-seven poems cannot be named. Standard Ebooks declines to produce '
+    + 'Blake at all: his integration of word and engraving yields a series of '
+    + 'images rather than parseable text. He needs a source class RISE is not '
+    + 'building before release (ARCHIVE-CLEANSING-SPEC §2h).',
   hamlet: 'Cambridge 1863 variorum — 32.3% critical apparatus. Re-source.',
   'king-lear': 'Cambridge 1863 variorum — 39.0% critical apparatus. Re-source.',
   'the-tempest': 'Cambridge 1863 variorum — 11.1% critical apparatus. Re-source.',

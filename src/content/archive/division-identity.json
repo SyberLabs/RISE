@@ -66,6 +66,10 @@
       "divisions": 45,
       "checkable": true
     },
+    "hamlet": {
+      "divisions": 33,
+      "checkable": true
+    },
     "jane-eyre": {
       "divisions": 66,
       "checkable": true
@@ -82,6 +86,10 @@
       "divisions": 11,
       "checkable": false
     },
+    "king-lear": {
+      "divisions": 39,
+      "checkable": true
+    },
     "kwaidan-stories-and-studies-of-strange-things": {
       "divisions": 12,
       "checkable": true
@@ -95,7 +103,7 @@
       "checkable": false
     },
     "literary-leaves-of-grass": {
-      "divisions": 41,
+      "divisions": 263,
       "checkable": true
     },
     "literary-letters-young-poet": {
@@ -214,6 +222,10 @@
       "divisions": 43,
       "checkable": true
     },
+    "spoon-river-anthology": {
+      "divisions": 243,
+      "checkable": true
+    },
     "strange-stories-from-a-chinese-studio": {
       "divisions": 173,
       "checkable": true
@@ -320,6 +332,10 @@
     },
     "the-storm-of-steel": {
       "divisions": 48,
+      "checkable": true
+    },
+    "the-tempest": {
+      "divisions": 14,
       "checkable": true
     },
     "the-tragical-history-of-doctor-faustus": {

@@ -42,8 +42,19 @@ describe('ingested works', () => {
             // than an assertion does.
             expect(source.rights.evidence.length,
                 `${meta.id} evidence is too thin to be checkable`).toBeGreaterThan(80);
-            expect(source.source.sha256, `${meta.id} records no source digest`)
-                .toMatch(/^[0-9a-f]{64}$/);
+            // A STRUCTURED EDITION IS MANY FILES, so it records a digest for
+            // each rather than one for a single download. Both shapes are the
+            // same promise: this is the artifact the world served us.
+            if (Array.isArray(source.source.files)) {
+                expect(source.source.files.length,
+                    `${meta.id} records no source files`).toBeGreaterThan(0);
+                for (const entry of source.source.files) {
+                    expect(entry, `${meta.id} file digest`).toMatch(/ [0-9a-f]{64}$/);
+                }
+            } else {
+                expect(source.source.sha256, `${meta.id} records no source digest`)
+                    .toMatch(/^[0-9a-f]{64}$/);
+            }
         }
     }, 60_000);
 

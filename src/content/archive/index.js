@@ -48,6 +48,22 @@ import DIVISION_INDEX from './division-index.json';
 
 const CORE_WORKS = [
     {
+        // THE FIRST WORK ACQUIRED FROM A STRUCTURED EDITION. Its poems, stanzas
+        // and verse lines are read from the source's own markup rather than
+        // inferred, and the ingest refuses a payload whose word count differs
+        // from the source's (ARCHIVE-CANON-SPEC §3, ARCHIVE-CLEANSING-SPEC §2j).
+        meta: {
+            id: 'spoon-river-anthology',
+            title: 'Spoon River Anthology',
+            author: 'Edgar Lee Masters',
+            shelf: 'western',
+            edition: { publisher: 'Standard Ebooks', year: 1916, statement: 'the expanded 1916 edition' },
+            basis: 'pre-1930-us'
+        },
+        load: () => import('./works/spoon-river-anthology.js')
+            .then(m => m.SPOON_RIVER_ANTHOLOGY_SECTIONS)
+    },
+    {
         meta: {
             id: 'vitruvius-architecture',
             title: 'The Ten Books on Architecture',

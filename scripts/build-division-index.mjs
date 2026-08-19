@@ -22,7 +22,7 @@ import {
  * rather than by its number. They ride WHOLE or not at all: a truncated list
  * would read as the work's complete scheme and send the model past the end.
  */
-const MAX_LABELLED_DIVISIONS = 140;
+const MAX_LABELLED_DIVISIONS = 300;
 const MAX_LABEL_LENGTH = 60;
 
 const WORKS_DIR = resolve('src/content/archive/works');

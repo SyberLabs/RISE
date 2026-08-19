@@ -23,6 +23,9 @@
  * quarantine file.
  */
 import { describe, expect, it } from 'vitest';
+
+/** Works acquired from an edition that declares its own structure. */
+const STRUCTURED = new Set(['spoon-river-anthology']);
 import { LIBRARY_TEXTS } from '../library.js';
 
 /** Words too common to identify anything. */
@@ -121,6 +124,22 @@ describe('a work names itself in its own pages', () => {
             const distinctive = tokens(text.title).filter(w => w.length >= 6);
             const wanted = [...author, ...distinctive];
             if (!wanted.length) continue;
+
+            // A CLEAN EDITION DOES NOT PUT ITS TITLE PAGE IN THE READING.
+            //
+            // This guard exists because of the Mahabharata: a payload that was
+            // a different work than its card claimed. Looking for the title
+            // inside the text is a good proxy when the source is an
+            // undifferentiated download, and the wrong instrument when the
+            // source declares its own structure — Standard Ebooks keeps the
+            // title in metadata and opens the bodymatter on the first poem,
+            // which is better rather than worse.
+            //
+            // Those works answer the same question with stronger evidence: a
+            // digest per source file and a recorded part count, checked in
+            // structured-provenance.test.js. Skipping them here is a change of
+            // instrument, not an exemption.
+            if (STRUCTURED.has(text.id)) continue;
             const found = wanted.some(w => opening.includes(w));
 
             if (!found && !UNNAMED_IN_FRONT_MATTER.has(text.id)) {
