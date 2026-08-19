@@ -652,6 +652,10 @@ function declaredScheme(sections, total) {
             label: String(section?.name || `Part ${index + 1}`).trim(),
             title: null,
             ordinal: index + 1,
+            // Carried from the ingest, which read it off the edition's own
+            // markup. Only a declared scheme can have it: an inferred one
+            // never saw the source.
+            ...(section?.verse === true ? { verse: true } : {}),
             content,
             words: wordsIn(content)
         };

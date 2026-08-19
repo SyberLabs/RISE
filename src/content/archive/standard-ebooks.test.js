@@ -91,9 +91,38 @@ describe('words in must equal words out', () => {
 
 describe('the shelf learns no second vocabulary', () => {
   it('emits sections in the shape every other work uses', () => {
+    // `verse` is the one addition, and it is present only where the edition
+    // marked the reading as verse — a prose section carries no such key, so
+    // an unstructured work's sections are the same two fields they were.
     expect(sectionsFromParts(readStandardEbooksFile(SPOON, parse))).toEqual([
-      { name: 'Hod Putt', content: expect.stringContaining('Here I lie') },
-      { name: 'Ollie McGee', content: expect.stringContaining('Have you seen') }
+      { name: 'Hod Putt', verse: true, content: expect.stringContaining('Here I lie') },
+      { name: 'Ollie McGee', verse: true, content: expect.stringContaining('Have you seen') }
     ]);
+  });
+
+  it('reads a verse drama down to its lines, through the table it is set in', () => {
+    // Storr sets Oedipus Rex as a table — a persona cell, then a verse cell
+    // whose lines are one level further down. Read at the cell, the whole
+    // speech is one line of prose and every word is still there, so word
+    // reconciliation cannot see the loss.
+    const DRAMA = `<html xmlns:epub="http://www.idpf.org/2007/ops"><body>
+      <section id="scene" epub:type="z3998:drama z3998:scene">
+        <table><tbody>
+          <tr>
+            <td epub:type="z3998:persona">Oedipus</td>
+            <td epub:type="z3998:verse"><p>
+              <span>My children, latest born to Cadmus old,</span><br/>
+              <span>Why sit ye here as suppliants, in your hands</span>
+            </p></td>
+          </tr>
+        </tbody></table>
+      </section>
+    </body></html>`;
+    const [part] = readStandardEbooksFile(DRAMA, parse);
+    expect(part.lines).toBe(2);
+    expect(part.verse).toBe(true);
+    expect(part.content).toBe('Oedipus'
+      + '\nMy children, latest born to Cadmus old,'
+      + '\nWhy sit ye here as suppliants, in your hands');
   });
 });

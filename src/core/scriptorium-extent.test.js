@@ -90,3 +90,32 @@ describe('an ordinal is a position, not a field', () => {
         }
     }, 300_000);
 });
+
+describe('a reading carries the edition’s own statement that it is verse', () => {
+    /**
+     * The chunker splits verse on the poet's line when it is told there is
+     * one. Nothing told it: `verseLines` was only ever set by the Journey
+     * path, so the Library served Tintern Abbey as prose and the phrase
+     * splitter cut at Wordsworth's commas and glued the pieces across his
+     * line ends — "with the length Of five long winters!", a capital mid-atom
+     * where a line began.
+     *
+     * The knowledge existed three times over and never arrived: the edition
+     * declared it, the ingest read it, and a reader-time heuristic guessed it
+     * back. This carries the declaration instead (PHRASE-CHUNKING-STUDY §8).
+     */
+    it('sets verseLines from what the ingest read, for verse and not for prose', async () => {
+        const { sources } = await resolveLibrarySourceIds([
+            'lyrical-ballads#20', 'oedipus-rex', 'literary-walden#1', 'middlemarch#1'
+        ]);
+        const verseOf = new Map(sources.map(source => [source.id, source.verseLines]));
+        // Wordsworth's blank verse, and Storr's Sophocles — whose lines live
+        // two levels down inside a table cell.
+        expect(verseOf.get('lyrical-ballads#20')).toBe(true);
+        expect(verseOf.get('oedipus-rex')).toBe(true);
+        // Thoreau quotes verse inside prose; Eliot opens on a verse epigraph.
+        // Weighed in words, neither reading is verse.
+        expect(verseOf.get('literary-walden#1')).toBe(false);
+        expect(verseOf.get('middlemarch#1')).toBe(false);
+    });
+});

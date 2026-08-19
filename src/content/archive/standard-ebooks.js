@@ -127,6 +127,18 @@ function isVerse(block) {
   return clean(spans.map(span => span.textContent).join(' ')) === clean(block.textContent);
 }
 
+/**
+ * The lines of one verse block, as the source divided them.
+ *
+ * A SPAN IS NOT A LINE. Reading every span as a verse line looked right
+ * against a poem, where the lines happen to be spans — and it was a decision
+ * rather than a reading. Standard Ebooks also uses a span inline, for a
+ * foreign word or a name, so a paragraph of Thoreau carrying
+ * `<span xml:lang="el">γεἱβω</span>` was read as a two-line poem of Greek and
+ * the 412 words of prose around it were dropped. The word reconciliation
+ * refused the payload, which is the only reason this is a story about a bug
+ * rather than a story about Walden.
+ */
 function verseLines(block) {
   if (![...block.children].some(child => tag(child) === 'br')) {
     return [...block.children]
@@ -148,44 +160,51 @@ function verseLines(block) {
 }
 
 /**
- * The text of one block, keeping the source's own line division.
+ * ONE DESCENT, so a block's text and its verse-line count cannot disagree.
  *
- * A SPAN IS NOT A LINE. Reading every span as a verse line looked right
- * against a poem, where the lines happen to be spans — and it was a decision
- * rather than a reading. Standard Ebooks also uses a span inline, for a
- * foreign word or a name, so a paragraph of Thoreau carrying
- * `<span xml:lang="el">γεἱβω</span>` was read as a two-line poem of Greek and
- * the 412 words of prose around it were dropped. The word reconciliation
- * refused the payload, which is the only reason this is a story about a bug
- * rather than a story about Walden.
+ * A SPAN IS NOT A LINE — see `verseLines`. And a verse drama sets its dialogue
+ * as a table: a `persona` cell naming the speaker, and the cells beside it
+ * carrying what they say. The speaker is kept on its own line rather than
+ * joined with a colon, because a colon is punctuation the edition did not
+ * print and this module invents none.
+ *
+ * A CELL IS NOT ITSELF A STANZA. Storr sets each speech as
+ * `<td epub:type="z3998:verse"><p><span>…</span><br/>…</p></td>`, so the verse
+ * markup sits one level BELOW the cell: asked of the cell, `isVerse` sees a
+ * lone `<p>` child and answers no, and Oedipus arrived as 898 prose blocks —
+ * one of them 373 words long — with Sophocles' lineation gone. Every word was
+ * still there, so reconciliation had nothing to say about it. A choral ode
+ * also names its movement in a `header`, which is printed and is read.
+ *
+ * @returns {{ text: string, lines: number }} `lines` counts VERSE lines only
  */
-function stanzaText(block) {
-  if (!isVerse(block)) return clean(block.textContent);
-  return verseLines(block).filter(Boolean).join('\n');
+const CELL_BLOCKS = /^(?:p|header|div|blockquote)$/u;
+
+function countWords(text) {
+  return String(text ?? '').split(/\s+/u).filter(Boolean).length;
 }
 
-/**
- * A verse drama sets its dialogue as a table: a `persona` cell naming the
- * speaker, and the cells beside it carrying what they say.
- *
- * The speaker is kept on its own line rather than joined to the line with a
- * colon, because a colon is punctuation the edition did not print and this
- * module does not invent any.
- */
-function rowText(row) {
-  return [...row.children]
-    .map(cell => stanzaText(cell))
-    .filter(Boolean)
-    .join('\n');
-}
-
-function blockText(element) {
+function readBlock(element) {
   // A HEADING IS NEVER VERSE. Standard Ebooks sets a label and its ordinal as
   // separate spans — "Part" and "Second" — and the verse test reads a block
   // whose whole text sits in spans as a stanza, so Hart-Leap Well's second
   // half was announced on two lines.
-  if (/^(?:h[1-6]|hgroup)$/u.test(tag(element))) return clean(element.textContent);
-  return tag(element) === 'tr' ? rowText(element) : stanzaText(element);
+  if (/^(?:h[1-6]|hgroup)$/u.test(tag(element))) {
+    return { text: clean(element.textContent), lines: 0 };
+  }
+  const inner = tag(element) === 'tr'
+    ? [...element.children]
+    : [...element.children].filter(child => CELL_BLOCKS.test(tag(child)));
+  if (inner.length) {
+    const parts = inner.map(readBlock);
+    return {
+      text: parts.map(part => part.text).filter(Boolean).join('\n'),
+      lines: parts.reduce((total, part) => total + part.lines, 0)
+    };
+  }
+  if (!isVerse(element)) return { text: clean(element.textContent), lines: 0 };
+  const lines = verseLines(element).filter(Boolean);
+  return { text: lines.join('\n'), lines: lines.length };
 }
 
 /**
@@ -305,9 +324,22 @@ function readPart(element) {
     .filter(block => !headings.some(other => other !== block && other.contains(block)));
   const elements = candidates.filter(block => !candidates.some(
     other => other !== block && other.contains(block)));
-  const blocks = elements.map(blockText).filter(Boolean);
-  const lines = elements.reduce((total, block) => total
-    + (isVerse(block) ? verseLines(block).filter(Boolean).length : 0), 0);
+  const read = elements.map(readBlock);
+  const blocks = read.map(block => block.text).filter(Boolean);
+  const lines = read.reduce((total, block) => total + block.lines, 0);
+  // IS THIS READING SET AS VERSE? Asked of the markup, block by block, and
+  // answered by how much of the reading's TEXT came from blocks the edition
+  // marked as verse. `kind` cannot answer it: Oedipus Rex is a `drama scene`
+  // and the Iliad's books are `chapter`s, and both are verse throughout.
+  //
+  // Weighed in WORDS, not lines. Counting verse lines against prose
+  // paragraphs compares unlike things — a chapter of Middlemarch is one line
+  // per paragraph, so an eight-line epigraph over two thousand words of prose
+  // outvoted the prose and called the chapter verse.
+  const verseWords = read.reduce((total, block) => total
+    + (block.lines > 0 ? countWords(block.text) : 0), 0);
+  const totalWords = read.reduce((total, block) => total + countWords(block.text), 0);
+  const verse = totalWords > 0 && verseWords / totalWords > 0.5;
 
   return {
     id: element.getAttribute('id') || null,
@@ -315,6 +347,7 @@ function readPart(element) {
     sourceTitle,
     // The word this section uses for itself, for a reading with no heading.
     unit: unitWord(element),
+    verse,
     kind: (element.getAttribute('epub:type') || '').includes('poem') ? 'poem' : 'division',
     content: blocks.join('\n\n'),
     stanzas: blocks.length,
@@ -470,6 +503,11 @@ export function sectionsFromParts(parts) {
     // what a reader is shown, and falling back to one put
     // `hart-leap-well-part-1` on the shelf beside Tintern Abbey.
     name: part.name || part.title || 'Untitled',
+    // CARRIED, NOT RE-DERIVED. The edition declared its verse and this module
+    // read it; a reader-time heuristic that guesses it back from the shape of
+    // the text is the same knowledge, held less well (`detectVerseLineation`
+    // remains the fallback for a source that declared nothing).
+    ...(part.verse ? { verse: true } : {}),
     content: part.content
   }));
 }

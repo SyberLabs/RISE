@@ -375,16 +375,93 @@ rather than re-litigating the existing three.
 
 ---
 
+## 9. Verse, modelled — 2026-08-19
+
+§8 said "verse is not modelled at all" and called a line-aware profile the
+obvious next study. It was already half-built — `detectVerseLineation` and
+`splitVerseLines` exist and the Journey path uses them — and the finding is
+that **the Library never turned it on.**
+
+Mateo read Tintern Abbey and saw it. What the shelf served:
+
+```
+  6w  Five years have passed; five summers,
+  7w  with the length Of five long winters!
+```
+
+The capital `Of` mid-atom is the tell: it is the start of Wordsworth's second
+line, glued to the tail of his first. The splitter cut at his commas and the
+floor re-joined the pieces across his line ends — the floor doing damage
+control on a problem it should not have had.
+
+### Measured, paired, across the canon
+
+Every section under both conditions, so every difference is the setting.
+
+| | today | verse lines | Δ cv |
+|---|---|---|---|
+| Tintern Abbey | cv 0.310 | **0.172** | −0.138 |
+| The Tables Turned | 0.519 | **0.220** | −0.299 |
+| Iliad I | 0.293 | **0.175** | −0.117 |
+| Paradise Lost I | 0.279 | **0.196** | −0.084 |
+| Oedipus Rex | 0.318 | **0.233** | −0.085 |
+| Middlemarch I | **0.399** | 0.598 | +0.200 |
+| Ulysses 1 | **0.489** | 0.703 | +0.214 |
+| Walden, Economy | **0.391** | 0.559 | +0.168 |
+
+The split is total: **every verse section improves, every prose section is
+badly damaged.** So the setting is not a default — it is a fact about a
+particular reading, and something has to know it.
+
+### The knowledge existed three times and never arrived
+
+1. Standard Ebooks DECLARES it — `<span>…</span><br/>` inside a block.
+2. Our ingest READS it — `isVerse`, `verseLines`, a per-part line count.
+3. `detectVerseLineation` GUESSES it back at read time, from shape.
+
+Step 2 threw it away: `sectionsFromParts` kept `{ name, content }` and dropped
+the rest. That is the flatten-and-reconstruct this archive was rebuilt to
+stop, running in the other direction — read, discarded, then inferred.
+
+**The declaration is carried now.** A section says `verse: true` where the
+edition's markup said so, `declaredScheme` passes it to the division entry,
+and `scriptorium-resolve` sets `verseLines` from it. `detectVerseLineation`
+remains, as the fallback for a source that declared nothing.
+
+### Weighed in words, not lines
+
+The first cut of this ratio counted verse lines against prose PARAGRAPHS,
+which compares unlike things: a chapter of Middlemarch is one line per
+paragraph, so an eight-line epigraph outvoted two thousand words of prose and
+called the chapter verse. By words, agreement with the old heuristic is
+**98.3% across 944 sections** — and every disagreement is verse the heuristic
+structurally cannot see, because it needs eight lines and a Spoon River
+epitaph or a chapter of the Tao Te Ching does not have them.
+
+### And a defect the ingest was blind to
+
+Storr sets Oedipus Rex as a table — `<td epub:type="z3998:persona">` beside
+`<td epub:type="z3998:verse">` — so the verse markup sits one level BELOW the
+cell. Asked of the cell, `isVerse` saw a lone `<p>` child and answered no. The
+play arrived as 898 prose blocks, one of them **373 words long**, with
+Sophocles' lineation gone and every word present, so word reconciliation had
+nothing to say about it. Read down to the cell's blocks: **1,544 verse lines**
+where there were none, at zero loss.
+
+Text and line count now come from ONE descent, so they cannot disagree.
+
+---
+
 ## 8. Still open
 
 - §5 step 1 — **per-boundary provenance** through `splitPhrases`, which
   still treats `|`, `,` and a newline as the same anonymous split. The
   paragraph-level `|` check is a coarse stand-in for it.
-- **Verse is not modelled at all.** Milton's line is a unit, and nothing
-  in the chunker knows it. There is no verse chunk profile; the only
-  profile is the Chapel's verse *sentinel* stripper, which is unrelated.
-  A line-aware profile for poetry is the obvious next study, and it may
-  beat the floor for verse outright.
+- ~~**Verse is not modelled at all.**~~ **Answered in §9.** The line splitter
+  already existed and the Library was not using it; it now runs from the
+  edition's own declaration rather than from a heuristic. Still open within
+  it: a stanza is not distinguished from a paragraph, and a run-on line
+  (Milton's enjambment past the ceiling) still falls back to punctuation.
 - `splitPhrases` splits after `.` before a capital, but **not after `?`
   or `!`** — so `"Question? SOCRATES:"` is one piece. Pre-existing, and
   visible in the dialogue tests.
