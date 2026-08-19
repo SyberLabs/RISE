@@ -35,10 +35,15 @@ const PART_SELECTOR = [
   // A preface INSIDE the bodymatter is the work — Longfellow sets a sonnet
   // before each canticle of the Commedia. A preface the edition files as
   // frontmatter never reaches here, because the file is skipped whole.
-  // A numbered saying, or a numbered part of a long poem: the edition marks it
-  // as its own unit, so it is one. The Analects is five hundred of them, which
-  // is the verse-inside-chapter shape the Dhammapada was the only test of.
-  'section[epub\\:type~="z3998:subchapter"]',
+  // `z3998:subchapter` IS NOT HERE, DELIBERATELY.
+  //
+  // It was, briefly, because the Analects marks each saying with one and those
+  // sayings are what a reader wants. But the word means a subdivision OF a
+  // chapter, and a division is what a reader ENTERS — so reading subchapters
+  // as divisions put twenty-three entries named "I" through "XXIII" on the
+  // shelf beside Tintern Abbey, each a stanza group of one poem, The Thorn,
+  // broken apart to make them. A subdivision belongs to its division, its
+  // printed headings with it, and is addressed inside it by the extent grammar.
   'section[epub\\:type~="preface"]'
 ].join(',');
 
@@ -166,7 +171,64 @@ function rowText(row) {
 }
 
 function blockText(element) {
-  return element.tagName?.toLowerCase() === 'tr' ? rowText(element) : stanzaText(element);
+  // A HEADING IS NEVER VERSE. Standard Ebooks sets a label and its ordinal as
+  // separate spans — "Part" and "Second" — and the verse test reads a block
+  // whose whole text sits in spans as a stanza, so Hart-Leap Well's second
+  // half was announced on two lines.
+  if (/^(?:h[1-6]|hgroup)$/u.test(tag(element))) return clean(element.textContent);
+  return tag(element) === 'tr' ? rowText(element) : stanzaText(element);
+}
+
+/**
+ * The headings that belong to THIS section rather than to one inside it.
+ *
+ * "Part Second" over the second half of Hart-Leap Well is printed in the book
+ * and belongs to the reading; it is not the reading's title.
+ */
+function ownHeadings(element) {
+  const inner = [...element.querySelectorAll('section,article')];
+  return [...element.querySelectorAll('hgroup,h1,h2,h3,h4,h5,h6')]
+    .filter(node => !inner.some(section => section.contains(node)));
+}
+
+function ownHeading(element) {
+  const headings = ownHeadings(element);
+  return headings.find(node => tag(node) === 'hgroup') || headings[0] || null;
+}
+
+/** The word a section uses for itself, when its heading is only a number. */
+const UNIT_WORDS = Object.freeze({
+  chapter: 'Chapter', part: 'Part', volume: 'Volume', division: 'Book',
+  preface: 'Preface', epilogue: 'Epilogue'
+});
+
+/** The unit a section calls itself, or null where it names none. */
+function unitWord(element) {
+  return (element.getAttribute('epub:type') || '').split(/\s+/u)
+    .map(token => UNIT_WORDS[token])
+    .find(Boolean) || null;
+}
+
+/**
+ * A HEADING THAT IS ONLY AN ORDINAL IS NOT A NAME.
+ *
+ * Middlemarch and the Tao Te Ching both set a chapter's heading as
+ * `<h3 epub:type="z3998:ordinal z3998:roman">I</h3>` and let the stylesheet
+ * print the word "Chapter" from the section's own type. Read plainly that is
+ * eighty-one entries called "I" through "LXXXI", which is what the shelf
+ * showed. The unit word is declared on the section and the number in the
+ * heading; putting them together reads two facts rather than inventing one,
+ * and it is what RISE's own divider does when it says "Essay 12".
+ */
+function partTitle(element, heading) {
+  if (!heading) return null;
+  const text = clean(heading.textContent);
+  if (!text) return null;
+  const bare = (heading.getAttribute('epub:type') || '').split(/\s+/u)
+    .includes('z3998:ordinal');
+  if (!bare) return text;
+  const unit = unitWord(element);
+  return unit ? `${unit} ${text}` : text;
 }
 
 /**
@@ -179,20 +241,30 @@ function readPart(element) {
   // A HEADING GROUP IS ONE HEADING. The Analects sets "Book I" over its
   // Chinese title in an hgroup, and reading only the `h2` left the second line
   // to be picked up as prose — counted once as a title and once as content.
-  const heading = element.querySelector('hgroup') || element.querySelector('h1,h2,h3,h4,h5,h6');
-  const title = heading ? clean(heading.textContent) : null;
+  // ONLY THE PART'S OWN HEADING IS ITS TITLE. A heading inside a subdivision
+  // — "Part Second" over the second half of Hart-Leap Well, the numeral over
+  // an Analects saying — is printed in the book and belongs to the reading, so
+  // it is read as a line of content below rather than mistaken for the title.
+  const headings = ownHeadings(element);
+  const heading = ownHeading(element);
+  const title = partTitle(element, heading);
+  // WHAT THE DOCUMENT SAID, beside what the reader is shown. The unit word in
+  // "Chapter I" is printed by the stylesheet from the section's type and is
+  // not in the text, so the reconciliation must weigh the heading as written
+  // or every such title would read as a word we invented.
+  const sourceTitle = heading ? clean(heading.textContent) : null;
 
-  // A PART IS ITS OWN BLOCKS. A chapter may hold numbered sub-parts, and each
-  // of those is a reading in its own right — but the prose the chapter itself
-  // carries before them is the chapter's, and taking only the innermost part
-  // dropped 2,191 words of Dostoevsky.
+  // A PART IS ITS OWN BLOCKS. A chapter may hold nested parts of its own, and
+  // the prose it carries before them is still the chapter's — taking only the
+  // innermost part dropped 2,191 words of Dostoevsky.
   const nested = [...element.querySelectorAll(PART_SELECTOR)];
   // A block inside another block is read with its container, so taking both
   // would count the same words twice — a paragraph inside a table row, a
   // citation inside a paragraph. Only the outermost is a block of its own.
-  const candidates = [...element.querySelectorAll(BLOCK_SELECTOR)]
+  const candidates = [...element.querySelectorAll(`${BLOCK_SELECTOR},hgroup,h1,h2,h3,h4,h5,h6`)]
     .filter(block => !nested.some(part => part.contains(block)))
-    .filter(block => !block.closest('hgroup,h1,h2,h3,h4,h5,h6'));
+    .filter(block => block !== heading && !heading?.contains(block))
+    .filter(block => !headings.some(other => other !== block && other.contains(block)));
   const elements = candidates.filter(block => !candidates.some(
     other => other !== block && other.contains(block)));
   const blocks = elements.map(blockText).filter(Boolean);
@@ -202,6 +274,9 @@ function readPart(element) {
   return {
     id: element.getAttribute('id') || null,
     title,
+    sourceTitle,
+    // The word this section uses for itself, for a reading with no heading.
+    unit: unitWord(element),
     kind: (element.getAttribute('epub:type') || '').includes('poem') ? 'poem' : 'division',
     content: blocks.join('\n\n'),
     stanzas: blocks.length,
@@ -268,15 +343,44 @@ export function readContainerName(xhtml, parse) {
  * @param {(markup: string) => Document} parse a DOM parser (jsdom in Node)
  * @returns {Array<object>}
  */
+/**
+ * A NESTED PART CARRIES ITS PARENT'S NAME.
+ *
+ * The Library is a flat list of readings, and the edition's hierarchy is real:
+ * the Ancient Mariner's seven parts are each titled "I" through "VII", and
+ * shown beside Tintern Abbey they read as nothing at all. Composing
+ * "parent · child" is a faithful flattening of two facts the edition stated,
+ * not a title we invented — it is the same shape `extentSourceName` already
+ * uses for "Essays · Essay 42".
+ *
+ * A child with no heading of its own takes its POSITION among its siblings.
+ * Hart-Leap Well leaves its first part unlabelled and calls only the second
+ * "Part Second", so the first arrived named `hart-leap-well-part-1` — an id
+ * leaking into the reading, which is the one thing an id must never do.
+ */
+function nameParts(parts) {
+  return parts.map(part => {
+    const ancestor = part.element.parentElement
+      ?.closest(`${PART_SELECTOR},${CONTAINER_SELECTOR}`) || null;
+    const above = ancestor ? clean(ownHeading(ancestor)?.textContent ?? '') : '';
+    const siblings = parts.filter(other => (other.element.parentElement
+      ?.closest(`${PART_SELECTOR},${CONTAINER_SELECTOR}`) || null) === ancestor);
+    const own = part.title || part.unit || String(siblings.indexOf(part) + 1);
+    return { ...part, name: above ? `${above} · ${own}` : (part.title || null) };
+  });
+}
+
 export function readStandardEbooksFile(xhtml, parse) {
   const doc = stripApparatus(parse(String(xhtml)));
   // Every part, outer and inner, in the order the edition set them. Each keeps
   // only its own blocks, so nothing is counted twice and nothing is dropped;
   // a part left with no blocks of its own is a container and is recorded as
   // one by readContainerHeadings rather than served as an empty reading.
-  return [...doc.querySelectorAll(PART_SELECTOR)]
-    .map(readPart)
-    .filter(part => part.content);
+  const parts = [...doc.querySelectorAll(PART_SELECTOR)]
+    .map(element => ({ element, ...readPart(element) }));
+  return nameParts(parts)
+    .filter(part => part.content)
+    .map(({ element, own, ...part }) => part);
 }
 
 /**
@@ -294,7 +398,7 @@ export function reconcileWords(xhtml, parts, parse, extra = []) {
   const body = doc.querySelector('body');
   const sourceWords = clean(body ? body.textContent : '').split(' ').filter(Boolean).length;
   const counted = [
-    ...parts.map(part => `${part.title || ''} ${part.content}`),
+    ...parts.map(part => `${part.sourceTitle ?? part.title ?? ''} ${part.content}`),
     ...extra
   ];
   const importedWords = counted.reduce((total, text) => total
@@ -308,7 +412,10 @@ export function reconcileWords(xhtml, parts, parse, extra = []) {
  */
 export function sectionsFromParts(parts) {
   return parts.map(part => ({
-    name: part.title || part.id || 'Untitled',
+    // `name`, never `id`. A slug is how a curator addresses a part; it is not
+    // what a reader is shown, and falling back to one put
+    // `hart-leap-well-part-1` on the shelf beside Tintern Abbey.
+    name: part.name || part.title || 'Untitled',
     content: part.content
   }));
 }

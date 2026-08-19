@@ -338,6 +338,23 @@ async function ingest(key) {
             + 'Refusing to write a payload that is not the edition.');
     }
 
+    // A WORK THAT IS ONE READING IS NAMED AFTER ITSELF. Oedipus Rex is a
+    // single scene with no heading over it, and "Untitled" is not what a
+    // reader is holding.
+    if (parts.length === 1 && !parts[0].name) {
+        parts[0].name = work.title;
+    } else {
+        // AND A HEADINGLESS READING IS NUMBERED ACROSS THE WORK. Joyce printed
+        // no titles over the episodes of Ulysses and each is its own file, so
+        // numbering them file by file gave eighteen "Chapter 1".
+        const seen = new Map();
+        for (const part of parts) {
+            if (part.name || !part.unit) continue;
+            const next = (seen.get(part.unit) || 0) + 1;
+            seen.set(part.unit, next);
+            part.name = `${part.unit} ${next}`;
+        }
+    }
     const sections = sectionsFromParts(parts);
     const payload = JSON.stringify(sections, null, 4);
     const name = constantName(work.id);

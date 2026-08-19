@@ -68,7 +68,7 @@ describe('an ordinal is a position, not a field', () => {
         expect(refused).toEqual([]);
         expect(sources[0].words).toBeGreaterThan(0);
         // The scheme's own label names it, rather than a number we invented.
-        expect(sources[0].name).toContain('Metamorphoses · Creation of the World');
+        expect(sources[0].name).toBe('Metamorphoses · Book I · Creation of the World');
     }, 120_000);
 
     it('resolves every division the catalogue promises, across the library', async () => {
