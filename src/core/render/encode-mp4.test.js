@@ -26,12 +26,19 @@ function solidFrame(width, height, color) {
  * machine, not about the code.
  *
  * Skipped, never quietly passed. A run that did not encode says so.
+ *
+ * AND THE SKIP IS A DEVELOPER CONVENIENCE, NOT A CI ESCAPE HATCH. The workflow
+ * installs ffmpeg, so on CI its absence means that step broke — and a skip
+ * there would hide the very regression the install exists to prevent. There it
+ * fails instead.
  */
 const ffmpeg = spawnSync('ffmpeg', ['-version'], { stdio: 'ignore' });
 const hasFfmpeg = !ffmpeg.error && ffmpeg.status === 0;
 
 describe('H.264 encoder adapter', () => {
-  it.skipIf(!hasFfmpeg)('muxes a short RGBA + PCM take into an MP4', async () => {
+  it.skipIf(!hasFfmpeg && !process.env.CI)('muxes a short RGBA + PCM take into an MP4', async () => {
+    expect(hasFfmpeg, 'CI installs ffmpeg; if it is missing, that step broke')
+      .toBe(true);
     const dir = mkdtempSync(join(tmpdir(), 'rise-mp4-test-'));
     const outputPath = join(dir, 'take.mp4');
     const frames = [

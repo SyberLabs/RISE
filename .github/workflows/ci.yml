@@ -28,6 +28,12 @@ jobs:
           # Matches the engines field in package.json.
           node-version: '20.19'
           cache: npm
+      # The MP4 encoder adapter hands bytes to the real ffmpeg, because a stub
+      # would only prove we can satisfy our own stub. The runner image does not
+      # carry it, so the test skipped and nothing on CI ever proved an MP4
+      # could be produced at all.
+      - name: Install ffmpeg, which the encoder test encodes with
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - run: npm ci
       - run: npm run test:run
 
