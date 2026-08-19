@@ -31,14 +31,22 @@ describe('the catalogue names divisions a curator can choose by', () => {
         }
     });
 
-    it('says where the work begins when an edition put something first', () => {
-        // Thirty-three of the ingests open on a Gutenberg header or a contents
-        // page, so a curator asking blindly for division 1 reads boilerplate.
-        expect(find('extended-bhagavad-gita-full').divisions.bodyFrom).toBe(2);
-        expect(find('the-kalevala').divisions.bodyFrom).toBe(4);
+    it('says where the work begins when a DISTRIBUTOR put something first', () => {
+        // Only when the leading division names its distributor. Thirty-two
+        // works open on something labelled "Front matter", and most of those
+        // are the work: a title block, a translator's preface, Hawthorne's
+        // Custom-House. See front-matter.test.js.
+        expect(find('romance-of-the-three-kingdoms').divisions.bodyFrom).toBe(2);
+        expect(find('faust').divisions.bodyFrom).toBe(2);
+        expect(find('metamorphoses').divisions.bodyFrom).toBe(2);
+
+        // The work's own opening is never skipped.
+        expect(find('extended-bhagavad-gita-full').divisions.bodyFrom).toBeUndefined();
+        expect(find('the-kalevala').divisions.bodyFrom).toBeUndefined();
         expect(find('okakura-book-of-tea').divisions.bodyFrom).toBeUndefined();
-        expect(catalogue.filter(entry => entry.divisions?.bodyFrom).length)
-            .toBeGreaterThan(20);
+
+        // Nine in the index; the ninth is King Lear, withheld and on no shelf.
+        expect(catalogue.filter(entry => entry.divisions?.bodyFrom).length).toBe(8);
     });
 
     it('survives its own validator', () => {
@@ -52,7 +60,7 @@ describe('the catalogue names divisions a curator can choose by', () => {
         });
         expect(context.library.find(e => e.id === 'okakura-book-of-tea').divisions.labels)
             .toHaveLength(6);
-        expect(context.library.find(e => e.id === 'the-kalevala').divisions.bodyFrom).toBe(4);
+        expect(context.library.find(e => e.id === 'faust').divisions.bodyFrom).toBe(2);
     });
 
     it('refuses a label list that does not cover the divisions it describes', () => {
@@ -87,12 +95,13 @@ describe('a label names the division it is beside', () => {
     }, 120_000);
 
     it('reads the work rather than the header when bodyFrom is followed', async () => {
-        const { bodyFrom } = find('extended-bhagavad-gita-full').divisions;
+        const { bodyFrom } = find('romance-of-the-three-kingdoms').divisions;
         const [header] = (await resolveLibrarySourceIds(
-            ['extended-bhagavad-gita-full#1:200'])).sources;
+            ['romance-of-the-three-kingdoms#1:200'])).sources;
         const [body] = (await resolveLibrarySourceIds(
-            [`extended-bhagavad-gita-full#${bodyFrom}:200`])).sources;
-        expect(header.name).toContain('Front matter');
-        expect(body.name).not.toContain('Front matter');
+            [`romance-of-the-three-kingdoms#${bodyFrom}:200`])).sources;
+        // The skipped division is a digital library's export note.
+        expect(header.data).toMatch(/digital edition|online library/iu);
+        expect(body.data).not.toMatch(/digital edition|online library/iu);
     }, 120_000);
 });

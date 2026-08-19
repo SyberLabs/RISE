@@ -13,7 +13,7 @@ import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import {
     divideSections,
-    isFrontMatterLabel,
+    firstBodyOrdinal,
     isInformativeLabel
 } from '../src/content/archive/divisions.js';
 
@@ -43,7 +43,7 @@ for (const file of readdirSync(WORKS_DIR).filter(f => f.endsWith('.js')).sort())
     const words = entries.reduce((n, e) => n + e.words, 0);
     const labels = entries.map(e => String(e.label || '').trim());
     // Ordinals are positions, so the first division that is the work itself.
-    const bodyFrom = labels.findIndex(label => !isFrontMatterLabel(label)) + 1;
+    const bodyFrom = firstBodyOrdinal(entries, { noun });
     const worthSending = labels.length <= MAX_LABELLED_DIVISIONS
         && labels.some(isInformativeLabel);
     index[id] = {

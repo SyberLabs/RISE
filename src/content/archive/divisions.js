@@ -9,6 +9,15 @@
  * repetition, numbering, and ascent — one capitalised line is not enough.
  */
 
+import { scanLine } from './defect-signatures.js';
+
+/** Matter that names its distributor rather than the work. */
+
+const DISTRIBUTOR_MATTER = /(?:project gutenberg|wsexport|about this digital edition|perseus project|distributed proofread|this e-?book comes from)/iu;
+
+/** Past this a leading run is evidence of a broken scheme. */
+const MAX_SKIPPED_SHARE = 0.2;
+
 /**
  * Division vocabularies from the work's own tradition (canto, night,
  * essay, …). The noun is part of the work; do not flatten every scheme
@@ -968,6 +977,46 @@ export function titledSchemeIn(lines) {
  * of the eighty-eight ingests open with one, so a curator asking blindly for
  * division 1 reads boilerplate better than a third of the time.
  */
+/**
+ * The first division that is the WORK, given a whole scheme.
+ *
+ * A LABEL IS NOT EVIDENCE. `divideSections` calls any preamble over two
+ * hundred words "Front matter", which is true of a Gutenberg header and
+ * equally true of The Custom-House, of Whitman's opening inscription, and of
+ * a play's dramatis personae. Reading the label alone told a curator to skip
+ * Hawthorne, and told it to skip nine tenths of the Shahnama, whose heading
+ * scheme is found so late that 1,006,053 of its 1,099,111 words carry the
+ * label. Both are the work.
+ *
+ * So a leading division is skipped only when something in it SAYS it is not
+ * the work — a distributor's boilerplate, a repository header, a transcriber's
+ * note, an index. Anything else is the author's, and the reader decides.
+ *
+ * Returns 1 when the work begins at its first division, which is the ordinary
+ * case and the safe one.
+ */
+export function firstBodyOrdinal(entries, { noun = null } = {}) {
+    const list = Array.isArray(entries) ? entries : [];
+    let ordinal = 1;
+    for (const entry of list) {
+        if (!isFrontMatterLabel(entry?.label)) break;
+        const content = String(entry?.content || '');
+        const distributor = content.split(/\n/u).some(line => scanLine(line).length > 0)
+            || DISTRIBUTOR_MATTER.test(content)
+            || (noun ? isContentsPage(content, noun) : false);
+        if (!distributor) break;
+        ordinal += 1;
+    }
+    // A SCHEME FOUND LATE IS A BROKEN SCHEME, NOT A LONG PREAMBLE. Skipping
+    // most of a work is never the right reading of its own front matter. One
+    // leading block is always allowed — that is the ordinary shape, and every
+    // work on the shelf that skips anything skips exactly one — so the cap
+    // only ever refuses a RUN.
+    const skipped = ordinal - 1;
+    if (skipped > 1 && skipped / list.length > MAX_SKIPPED_SHARE) return 1;
+    return ordinal;
+}
+
 export function isFrontMatterLabel(label) {
     return /^front matter\b/iu.test(String(label || '').trim());
 }

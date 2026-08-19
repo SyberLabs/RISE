@@ -6,7 +6,6 @@
     "authored": true,
     "noun": "Act",
     "count": 9,
-    "bodyFrom": 2,
     "words": 26466
   },
   "a-hundred-and-seventy-chinese-poems": {
@@ -16,7 +15,6 @@
     "authored": true,
     "noun": "Chapter",
     "count": 13,
-    "bodyFrom": 3,
     "words": 32472
   },
   "a-hundred-verses-from-old-japan": {
@@ -187,7 +185,6 @@
     "authored": true,
     "noun": "Part",
     "count": 42,
-    "bodyFrom": 2,
     "words": 26116
   },
   "boethius-consolation": {
@@ -261,7 +258,6 @@
     "authored": true,
     "noun": "Chapter",
     "count": 16,
-    "bodyFrom": 2,
     "words": 20109
   },
   "extended-dhammapada-full": {
@@ -299,7 +295,6 @@
     "authored": true,
     "noun": "Chapter",
     "count": 66,
-    "bodyFrom": 2,
     "words": 185390
   },
   "julian-revelations": {
@@ -368,7 +363,6 @@
     "authored": true,
     "noun": "Chapter",
     "count": 506,
-    "bodyFrom": 3,
     "words": 355928
   },
   "literary-essays-emerson": {
@@ -387,7 +381,6 @@
     "authored": true,
     "noun": "Part",
     "count": 263,
-    "bodyFrom": 2,
     "words": 110353
   },
   "literary-letters-young-poet": {
@@ -451,7 +444,6 @@
     "authored": true,
     "noun": "Part",
     "count": 274,
-    "bodyFrom": 2,
     "words": 30208
   },
   "literary-thus-spoke-zarathustra": {
@@ -461,7 +453,6 @@
     "authored": true,
     "noun": "Part",
     "count": 130,
-    "bodyFrom": 3,
     "words": 110900
   },
   "literary-walden": {
@@ -480,7 +471,6 @@
     "authored": true,
     "noun": "Part",
     "count": 31,
-    "bodyFrom": 2,
     "words": 115663
   },
   "metamorphoses": {
@@ -509,7 +499,6 @@
     "authored": true,
     "noun": "Chapter",
     "count": 143,
-    "bodyFrom": 2,
     "words": 212058
   },
   "montaigne-essays": {
@@ -737,7 +726,6 @@
     "authored": true,
     "noun": "Scene",
     "count": 31,
-    "bodyFrom": 2,
     "words": 14001
   },
   "pride-and-prejudice": {
@@ -747,7 +735,6 @@
     "authored": true,
     "noun": "Chapter",
     "count": 66,
-    "bodyFrom": 4,
     "words": 127273
   },
   "rasmussen-eskimo-tales": {
@@ -885,7 +872,6 @@
     "authored": true,
     "noun": "Book",
     "count": 11,
-    "bodyFrom": 2,
     "words": 30313
   },
   "sacred-zen-koans": {
@@ -904,7 +890,7 @@
     "authored": true,
     "noun": "Part",
     "count": 173,
-    "bodyFrom": 3,
+    "bodyFrom": 2,
     "words": 217703
   },
   "swann-s-way": {
@@ -941,7 +927,6 @@
     "authored": true,
     "noun": "Volume",
     "count": 470,
-    "bodyFrom": 2,
     "words": 1710281
   },
   "the-brothers-karamazov": {
@@ -987,7 +972,6 @@
     "authored": true,
     "noun": "Scene",
     "count": 20,
-    "bodyFrom": 2,
     "words": 26520
   },
   "the-faerie-queene": {
@@ -1034,7 +1018,6 @@
     "authored": true,
     "noun": "Rune",
     "count": 56,
-    "bodyFrom": 4,
     "words": 136211
   },
   "the-little-clay-cart": {
@@ -1053,7 +1036,6 @@
     "authored": true,
     "noun": "Section",
     "count": 2028,
-    "bodyFrom": 2,
     "words": 2550173
   },
   "the-nibelungenlied": {
@@ -1063,7 +1045,6 @@
     "authored": true,
     "noun": "Adventure",
     "count": 45,
-    "bodyFrom": 4,
     "words": 103023
   },
   "the-no-plays-of-japan": {
@@ -1073,7 +1054,7 @@
     "authored": true,
     "noun": "Chapter",
     "count": 21,
-    "bodyFrom": 5,
+    "bodyFrom": 2,
     "words": 55617
   },
   "the-odyssey": {
@@ -1101,7 +1082,6 @@
     "authored": true,
     "noun": "Canto",
     "count": 510,
-    "bodyFrom": 2,
     "words": 396796
   },
   "the-scarlet-letter": {
@@ -1111,7 +1091,6 @@
     "authored": true,
     "noun": "Part",
     "count": 28,
-    "bodyFrom": 5,
     "words": 83020
   },
   "the-shahnama-of-firdausi": {
@@ -1121,7 +1100,7 @@
     "authored": true,
     "noun": "Volume",
     "count": 400,
-    "bodyFrom": 361,
+    "bodyFrom": 2,
     "words": 1099111
   },
   "the-shih-king-or-book-of-poetry": {
@@ -1131,7 +1110,6 @@
     "authored": true,
     "noun": "Ode",
     "count": 71,
-    "bodyFrom": 4,
     "words": 53673
   },
   "the-song-of-roland": {
@@ -1209,7 +1187,6 @@
     "authored": true,
     "noun": "Scene",
     "count": 14,
-    "bodyFrom": 2,
     "words": 24022
   },
   "the-tragical-history-of-doctor-faustus": {
@@ -1228,7 +1205,6 @@
     "authored": true,
     "noun": "Chapter",
     "count": 21,
-    "bodyFrom": 2,
     "words": 32492
   },
   "translations-of-shakuntala-and-other-works": {
@@ -1238,7 +1214,6 @@
     "authored": true,
     "noun": "Act",
     "count": 18,
-    "bodyFrom": 2,
     "words": 59556
   },
   "twenty-two-goblins": {
