@@ -79,16 +79,21 @@ export class ArchiveTextProvider extends SourceProvider {
         return LIBRARY_TEXTS.length;
     }
 
+    /**
+     * A FACET WITH NOTHING BEHIND IT IS NOT OFFERED. The shelf is the canon
+     * now, so a category the corpus once filled can stand empty — and an
+     * empty shelf a reader can open is the same dead end as a rhyme pointing
+     * at a work nobody holds. Counted first, then filtered.
+     */
     getFacets() {
+        const held = (list, count) => list
+            .map(entry => ({ ...entry, count: count(entry) }))
+            .filter(entry => entry.count > 0);
         return {
-            shelves: LIBRARY_CATEGORIES.map(category => ({
-                ...category,
-                count: LIBRARY_TEXTS.filter(text => matchesShelf(text, category.id)).length
-            })),
-            divisions: DIVISIONS.map(division => ({
-                ...division,
-                count: LIBRARY_TEXTS.filter(text => text.division === division.id).length
-            }))
+            shelves: held(LIBRARY_CATEGORIES,
+                category => LIBRARY_TEXTS.filter(text => matchesShelf(text, category.id)).length),
+            divisions: held(DIVISIONS,
+                division => LIBRARY_TEXTS.filter(text => text.division === division.id).length)
         };
     }
 

@@ -26,7 +26,8 @@ describe('buildCuratorPrompt', () => {
 describe('library catalogue in curator context', () => {
   it('ships titles, authors, and titled/imposed division honesty', () => {
     const context = exportCuratorContext({ id: 'ctx', sources: [] });
-    expect(context.library?.length).toBeGreaterThan(20);
+    // The Library is the canon and is small on purpose (ARCHIVE-CANON-SPEC).
+    expect(context.library?.length).toBeGreaterThan(10);
     const sample = context.library.find(item => item.id === 'anna-karenina')
       || context.library[0];
     expect(sample).toMatchObject({

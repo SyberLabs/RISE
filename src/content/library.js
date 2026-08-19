@@ -19,7 +19,7 @@ import { curationFor } from './library-curation.js';
 import { isQuarantined } from './library-quarantine.js';
 // Works ingested from verified public-domain sources, each carrying its
 // own edition, source digest, and rights basis. See scripts/archive-ingest.mjs.
-import { ingestedArchiveTexts } from './archive/index.js';
+import { ingestedArchiveTexts, WITHHELD_WORKS } from './archive/index.js';
 
 /**
  * Library categories
@@ -314,12 +314,24 @@ export function registerText(text) {
     // caller that walked LIBRARY_TEXTS itself.
     if (isQuarantined(text.id)) return;
 
+    // AND A WORK NOT IN THE CANON IS WITHHELD AT THE SAME DOOR.
+    //
+    // The Archive is registered first and the legacy excerpt collections
+    // after it, and a duplicate id is skipped — so withholding an ingested
+    // work did not remove it, it handed the reader the older unverified
+    // excerpt of the same work instead. Eleven works came back through that
+    // second door. A shelf with two doors is not a shelf.
+    if (Object.hasOwn(WITHHELD_WORKS, text.id)) return;
+
     // Curation is applied HERE rather than in each provider loop, so a
     // new source cannot arrive unshelved by forgetting to ask. The
     // curated shelf wins over whatever category the adapter guessed:
     // where a work belongs is an editorial judgement, and the adapter
     // only knows which file it came out of.
-    const curation = curationFor(text.id);
+    // Held-ness is asked of the withheld list rather than of LIBRARY_TEXTS,
+    // which is still being built here and would make the answer depend on
+    // registration order.
+    const curation = curationFor(text.id, id => !Object.hasOwn(WITHHELD_WORKS, id));
     LIBRARY_TEXTS.push(curation
         ? {
             ...text,

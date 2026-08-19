@@ -43,6 +43,7 @@ import { divideSections } from './divisions.js';
 // deterministically from bytes already committed, so they are derived
 // once at build time rather than in every reader's browser — which is
 // what lets a card say "365 chapters" without downloading Tolstoy.
+import { withheldWorks } from './canon.js';
 import DIVISION_INDEX from './division-index.json';
 
 const CORE_WORKS = [
@@ -273,17 +274,20 @@ const CORE_WORKS = [
  * deleting a line — and so that nobody later wonders why Shakespeare is
  * missing from a library that holds Marlowe and Webster.
  */
-const WITHHELD = Object.freeze({
-    'hamlet': 'Cambridge 1863 variorum — 32.3% critical apparatus. Re-source.',
-    'king-lear': 'Cambridge 1863 variorum — 39.0% critical apparatus. Re-source.',
-    'the-tempest': 'Cambridge 1863 variorum — 11.1% critical apparatus. Re-source.'
-});
+const BUILT = [...CORE_WORKS, ...LEGACY_REINGESTED_WORKS, ...LITERATURE_WORKS];
+const workId = work => work.meta?.id ?? work.id ?? '';
+
+/**
+ * THE SHELF IS THE CANON. Everything else is withheld with its reason, which
+ * is the rule the three Shakespeares already obeyed — now applied to the whole
+ * archive rather than to the works we happened to catch (ARCHIVE-CANON-SPEC).
+ */
+const WITHHELD = withheldWorks(BUILT.map(workId));
 
 /** Every work the Archive is prepared to serve. */
 export const WITHHELD_WORKS = WITHHELD;
 
-const WORKS = [...CORE_WORKS, ...LEGACY_REINGESTED_WORKS, ...LITERATURE_WORKS]
-    .filter(work => !Object.hasOwn(WITHHELD, work.meta?.id ?? work.id ?? ''));
+const WORKS = BUILT.filter(work => !Object.hasOwn(WITHHELD, workId(work)));
 
 /**
  * A long work is not one reading, and its own sections are not its

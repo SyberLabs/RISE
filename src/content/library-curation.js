@@ -322,8 +322,16 @@ export const ARCHIVE_CURATION = Object.freeze({
 });
 
 /** The curation for a registered text id, or null when unshelved. */
-export function curationFor(textId) {
-    return ARCHIVE_CURATION[textId] || null;
+export function curationFor(textId, isHeld = null) {
+    const entry = ARCHIVE_CURATION[textId];
+    if (!entry) return null;
+    if (typeof isHeld !== 'function' || !entry.rhymes?.length) return entry;
+    // A RHYME POINTING AT A WORK THE SHELF NO LONGER HOLDS IS A DEAD END, and
+    // the reader is the one who finds it. Curation is written against the
+    // whole corpus; the canon is a subset of it, so the pointers are filtered
+    // rather than the editorial judgement rewritten.
+    const rhymes = entry.rhymes.filter(isHeld);
+    return rhymes.length === entry.rhymes.length ? entry : { ...entry, rhymes };
 }
 
 /**

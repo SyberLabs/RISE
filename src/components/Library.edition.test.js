@@ -118,9 +118,10 @@ describe('a contents sheet opens for every work on the shelf', () => {
         }
         // Recorded rather than asserted away: these are the titled works,
         // and a shrinking list would mean the divider had started
-        // inventing nouns again.
-        expect(bare.length).toBeGreaterThan(5);
+        // inventing nouns again. The canon holds two of them — Meditations
+        // and Storm of Steel — where the corpus held ten.
+        expect(bare.length).toBeGreaterThanOrEqual(2);
         expect(bare).toContain('the-storm-of-steel');
-        expect(bare).toContain('ross-pure-design');
+        expect(bare).toContain('literary-meditations');
     }, 240000);
 });

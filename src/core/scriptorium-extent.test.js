@@ -64,11 +64,11 @@ describe('an ordinal is a position, not a field', () => {
     // and one begins at two. Reading that field refused a division most works
     // have; the count the model is given is the entry array's length.
     it('resolves division one of a scheme whose entries carry no ordinal', async () => {
-        const { sources, refused } = await resolveLibrarySourceIds(['okakura-book-of-tea#1']);
+        const { sources, refused } = await resolveLibrarySourceIds(['the-storm-of-steel#1']);
         expect(refused).toEqual([]);
         expect(sources[0].words).toBeGreaterThan(0);
         // The scheme's own label names it, rather than a number we invented.
-        expect(sources[0].name).toBe('The Book of Tea · II. The Schools of Tea.');
+        expect(sources[0].name).toBe('The Storm of Steel · Orainville (1/4)');
     }, 120_000);
 
     it('resolves every division the catalogue promises, across the library', async () => {

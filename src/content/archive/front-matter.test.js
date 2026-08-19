@@ -56,13 +56,19 @@ describe('against the shelf', () => {
         const works = ingestedArchiveTexts();
         const index = (await import('./division-index.json')).default;
         // Each of these opens on something the reader may well want.
+        // Withheld works keep their payloads, so the index still describes
+        // them and the rule can still be checked against the hard cases.
         for (const id of ['the-scarlet-letter', 'literary-leaves-of-grass',
-            'a-doll-s-house', 'beowulf', 'le-morte-darthur']) {
-            expect(works.find(w => w.id === id), id).toBeTruthy();
+            'a-doll-s-house', 'beowulf', 'le-morte-darthur', 'the-iliad',
+            'paradise-lost', 'literary-meditations']) {
+            expect(index[id], id).toBeTruthy();
             expect(index[id].bodyFrom, `${id} must stay reachable from division 1`)
                 .toBeUndefined();
         }
         // And the Shahnama is not skipped to its last fortieth.
         expect(index['the-shahnama-of-firdausi'].bodyFrom).toBe(2);
+        // The canon's one distributor opening.
+        expect(index.metamorphoses.bodyFrom).toBe(2);
+        expect(works.length).toBeGreaterThan(0);
     });
 });

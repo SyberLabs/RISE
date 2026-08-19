@@ -50,7 +50,7 @@ describe('ArchiveTextProvider', () => {
 
     it('exposes the same chapter divisions as the Library and returns one stable chapter source', async () => {
         const provider = new ArchiveTextProvider();
-        const workId = 'a-hundred-and-seventy-chinese-poems';
+        const workId = 'the-iliad';
         const contents = await provider.getContents(workId);
         const chapter = await provider.getEntry(workId, contents.entries[0].id);
 

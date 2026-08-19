@@ -666,9 +666,12 @@ describe('a contents page is not a reading', () => {
         // real Epilogue is a different division and is last. So the
         // assertion is on the CONTENT rather than on a label the ingest
         // got wrong, plus the name it should have had all along.
-        const { ingestedArchiveTexts } = await import('./index.js');
-        const moby = ingestedArchiveTexts().find(w => w.id === 'moby-dick-or-the-whale');
-        const divisions = await moby.getDivisions();
+        // Moby-Dick is withheld with the rest of the corpus, and withheld is
+        // not deleted — the payload is read straight so the rule this guards
+        // survives the canon decision.
+        const mod = await import('./works/moby-dick-or-the-whale.js');
+        const sections = mod[Object.keys(mod).find(k => k.endsWith('_SECTIONS'))];
+        const divisions = divideSections(sections);
         // The LABEL is the divisions layer's own ("Front matter"), and it
         // is right: this is the book's front matter and it is Melville's.
         // The assertion is on what the division HOLDS, which is the thing
