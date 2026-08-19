@@ -71,6 +71,12 @@ describe('a personal bed keeps its place across a pause', () => {
         engine._sessionGeneration = 0;
         engine.fadeOutSession = () => {};
         void engine.stopSession({ immediate: true });
+        // stopSession clears the positions at once and then schedules the layer
+        // teardown. That teardown is engine.lifecycle's business, not this
+        // test's, and left to fire it would reach for layers this stub has
+        // never had — after the test had already finished, where a throw is an
+        // unhandled rejection rather than a failure anyone can read.
+        clearTimeout(engine._sessionStopTimer);
 
         engine.context.currentTime = 0;
         engine._personalBedHandle('kanye').start();

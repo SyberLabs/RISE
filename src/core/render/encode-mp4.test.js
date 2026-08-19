@@ -2,6 +2,7 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { encodeMp4 } from './encode-mp4.js';
 import { RENDER_SAMPLE_RATE } from './layout.js';
@@ -17,8 +18,20 @@ function solidFrame(width, height, color) {
   return { width, height, rgba };
 }
 
+/**
+ * This exercises the real ffmpeg, which is the point: the adapter's job is to
+ * hand a system encoder bytes it accepts, and a stub would only prove we can
+ * satisfy our own stub. So it is skipped where ffmpeg is absent rather than
+ * failing there — a build machine without the binary is telling us about the
+ * machine, not about the code.
+ *
+ * Skipped, never quietly passed. A run that did not encode says so.
+ */
+const ffmpeg = spawnSync('ffmpeg', ['-version'], { stdio: 'ignore' });
+const hasFfmpeg = !ffmpeg.error && ffmpeg.status === 0;
+
 describe('H.264 encoder adapter', () => {
-  it('muxes a short RGBA + PCM take into an MP4', async () => {
+  it.skipIf(!hasFfmpeg)('muxes a short RGBA + PCM take into an MP4', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'rise-mp4-test-'));
     const outputPath = join(dir, 'take.mp4');
     const frames = [
