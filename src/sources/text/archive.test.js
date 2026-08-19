@@ -23,19 +23,21 @@ describe('ArchiveTextProvider', () => {
         });
     });
 
-    it('searches current registry metadata and respects the two-axis shelf model', async () => {
+    it('searches current registry metadata and lists one shelf at a time', async () => {
         const provider = new ArchiveTextProvider();
         const joyce = await provider.search('Joyce');
-        const eastern = await provider.list({ category: 'eastern', limit: 250 });
+        const received = await provider.list({ category: 'received', limit: 250 });
+        const composed = await provider.list({ category: 'composed', limit: 250 });
 
         expect(joyce.some(item => item.name === 'Ulysses')).toBe(true);
-        expect(eastern.length).toBeGreaterThan(0);
-        expect(eastern.every(item => {
-            const text = LIBRARY_TEXTS.find(record => record.id === item.id);
-            return item.metadata.shelfId === 'eastern'
-                || text?.traditionShelf === 'eastern'
-                || text?.subjectShelves?.includes('eastern');
-        })).toBe(true);
+        expect(received.length).toBeGreaterThan(0);
+        expect(composed.length).toBeGreaterThan(0);
+        expect(received.every(item => item.metadata.shelfId === 'received')).toBe(true);
+        // A work is on exactly one shelf. The shelves used to overlap, a work
+        // being able to be Western AND about form at once, and a reader could
+        // meet the same book twice without either listing being wrong.
+        const ids = new Set(received.map(item => item.id));
+        expect(composed.some(item => ids.has(item.id))).toBe(false);
     });
 
     it('loads a selected work lazily through its registry sequence contract', async () => {

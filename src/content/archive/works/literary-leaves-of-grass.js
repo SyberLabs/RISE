@@ -168,7 +168,7 @@ export const LITERARY_LEAVES_OF_GRASS_META = Object.freeze({
     "id": "literary-leaves-of-grass",
     "title": "Leaves of Grass",
     "author": "Walt Whitman",
-    "shelf": "western",
+    "shelf": "received",
     "edition": {
         "publisher": "David McKay",
         "year": 1892,

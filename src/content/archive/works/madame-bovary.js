@@ -47,10 +47,8 @@ export const MADAME_BOVARY_META = Object.freeze({
     "accessionCode": "W37",
     "title": "Madame Bovary",
     "author": "Gustave Flaubert",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "novel",
     "edition": {
         "statement": "trans. Eleanor Marx-Aveling, Vizetelly, 1886",
         "year": 1886

@@ -4466,10 +4466,8 @@ export const THE_RAMAYAN_OF_VALMIKI_META = Object.freeze({
     "accessionCode": "E01",
     "title": "The Ramayan of Valmiki",
     "author": "Valmiki, traditional attribution",
-    "shelf": "eastern",
-    "traditionShelf": "eastern",
-    "subjectShelves": [],
-    "division": "classical",
+    "shelf": "received",
+    "division": "epic",
     "edition": {
         "statement": "trans. Ralph T. H. Griffith, 5 vols., 1870–74",
         "year": 1870

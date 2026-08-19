@@ -71,7 +71,11 @@ export class Library {
     this.onSelectText = options.onSelectText || (() => { });
 
     this.currentSection = 'archive'; // archive, sequences, personal
-    this.currentFilter = 'all';
+    // A SHELF IS ALWAYS CHOSEN. There are two, and "All" over two shelves
+    // renders one flat list of unlike things — a Wordsworth ballad beside an
+    // induction written here — which is the distinction the shelves exist to
+    // make.
+    this.currentFilter = 'received';
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
@@ -170,38 +174,25 @@ export class Library {
 
   renderArchive() {
     // A shelf states its own orienting line when the reader is standing
-    // in front of it; the general statement covers "All".
-    const orientation = LIBRARY_CATEGORIES
-      .find(c => c.id === this.currentFilter)?.orientation || '';
+    // in front of it.
+    const shelf = LIBRARY_CATEGORIES.find(c => c.id === this.currentFilter);
     return `
       <div class="library-section">
         <div class="section-header">
           <h2 class="text-light">The Archive</h2>
-          <p class="text-fog">Organised by resonance rather than genre — by what a work does to a reader, not the shelf a bookshop would file it on. Every text here is public domain, and says which edition you are reading.</p>
-          ${this.currentFilter !== 'all' && orientation
-            ? `<p class="archive-orientation text-mist">${escapeHtml(orientation)}</p>`
+          <p class="text-fog">Sorted by form rather than by period or place, because form is what decides the reading: a verse line is met differently from a paragraph, an aphorism differently from a chapter. Every text here is public domain, and says which edition you are reading.</p>
+          ${shelf?.orientation
+            ? `<p class="archive-orientation text-mist">${escapeHtml(shelf.orientation)}</p>`
             : ''}
         </div>
 
-        <!-- Two axes, as the Collections panel does for imagery: a
-             reader is asking either where a work is FROM or what it is
-             ABOUT, and one row of buttons would make those look like
-             alternatives. Vitruvius is Western and a book about form. -->
+        <!-- ONE QUESTION, ASKED FIRST: did RISE receive this work, or write
+             it? Provenance is what the Archive promises to keep, so it is the
+             cut a reader makes before any other. -->
         <div class="archive-axes">
           <div class="archive-axis">
-            <div class="archive-axis-label">By tradition</div>
             <div class="section-filters">
-              <button class="filter-btn ${this.currentFilter === 'all' ? 'active' : ''}" data-filter="all">All</button>
-              ${LIBRARY_CATEGORIES.filter(c => c.axis === 'tradition').map(c => `
-                <button class="filter-btn ${this.currentFilter === c.id ? 'active' : ''}"
-                  data-filter="${c.id}" title="${escapeHtml(c.description)}">${escapeHtml(c.name)}</button>
-              `).join('')}
-            </div>
-          </div>
-          <div class="archive-axis">
-            <div class="archive-axis-label">By subject</div>
-            <div class="section-filters">
-              ${LIBRARY_CATEGORIES.filter(c => c.axis !== 'tradition').map(c => `
+              ${LIBRARY_CATEGORIES.map(c => `
                 <button class="filter-btn ${this.currentFilter === c.id ? 'active' : ''}"
                   data-filter="${c.id}" title="${escapeHtml(c.description)}">${escapeHtml(c.name)}</button>
               `).join('')}
@@ -209,10 +200,9 @@ export class Library {
           </div>
         </div>
 
-        <!-- Grouped by division when standing at one shelf, so the
-             wrapper must not impose a grid over the group headings;
-             each division carries its own grid. -->
-        <div class="${this.currentFilter === 'all' ? 'archive-grid' : 'archive-divisions'}">
+        <!-- Always grouped by division, so the wrapper must not impose a
+             grid over the group headings; each division carries its own. -->
+        <div class="archive-divisions">
           ${this.renderArchiveItems()}
         </div>
       </div>
@@ -223,21 +213,17 @@ export class Library {
     // Get library texts
     let texts = LIBRARY_TEXTS || [];
 
-    // Filter by category
-    if (this.currentFilter !== 'all') {
-      texts = texts.filter(t => t.category.toLowerCase() === this.currentFilter.toLowerCase());
-    }
+    texts = texts.filter(t => t.category === this.currentFilter);
 
     if (texts.length === 0) {
       return '<div class="empty-state"><p class="text-fog">No texts in this category</p></div>';
     }
 
-    // Standing in front of ONE shelf, a reader sees its divisions:
-    // classical, then literary, then esoteric — a canon in reading
-    // order. Across all shelves at once the divisions would interleave
-    // four traditions and say nothing, so "All" stays a flat list.
-    if (this.currentFilter !== 'all') {
+    // A reader standing at a shelf sees its forms in reading order: what
+    // was sung, then staged, then taught, then argued, then told at length.
+    {
       const grouped = DIVISIONS
+        .filter(d => d.shelf === this.currentFilter)
         .map(d => ({ d, items: texts.filter(t => t.division === d.id) }))
         .filter(g => g.items.length);
       // A work with no division would vanish from a grouped view —

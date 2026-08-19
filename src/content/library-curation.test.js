@@ -8,9 +8,12 @@
  */
 import { describe, expect, it } from 'vitest';
 import { LITERATURE_WORKS } from './archive/literature-catalog.js';
-import { LIBRARY_TEXTS, LIBRARY_CATEGORIES } from './library.js';
+// DIVISIONS comes from the registry rather than the constants: the constants
+// hold the received shelf's forms, and the registry joins them with the
+// composed shelf's categories to make the whole vocabulary.
+import { LIBRARY_TEXTS, LIBRARY_CATEGORIES, DIVISIONS } from './library.js';
 import { ARCHIVE_CURATION, curationFor, shelfFor } from './library-curation.js';
-import { PD_BASIS, RESONANCE_FUNCTIONS, DIVISIONS } from './library-constants.js';
+import { PD_BASIS, RESONANCE_FUNCTIONS } from './library-constants.js';
 import { QUARANTINED, isQuarantined } from './library-quarantine.js';
 
 const SHELVES = new Set(LIBRARY_CATEGORIES.map(c => c.id));
@@ -59,26 +62,33 @@ describe('divisions within a shelf', () => {
 
     it('the division reaches the registered text', () => {
         const tao = LIBRARY_TEXTS.find(t => t.id === 'sacred-tao-te-ching');
-        expect(tao.division).toBe('classical');
+        expect(tao.division).toBe('wisdom');
         const iliad = LIBRARY_TEXTS.find(t => t.id === 'the-iliad');
-        expect(iliad.division).toBe('classical');
+        expect(iliad.division).toBe('epic');
     });
 
-    it('no shelf is a single division alone, except where that is true', () => {
-        // Indigenous Traditions is deliberately all-classical: four
-        // collected oral corpora, with no literature written in their
-        // light and no esoteric commentary that the Archive holds. The
-        // panel renders a lone division as a flat list rather than
-        // labelling the obvious, so this records the intent.
-        const byShelf = {};
-        for (const entry of Object.values(ARCHIVE_CURATION)) {
-            (byShelf[entry.shelf] ||= new Set()).add(entry.division);
+    it('a composed sequence is placed by its own category', () => {
+        // The composed shelf's divisions ARE the sequence categories, taken
+        // from starters.js rather than restated, so a new category needs no
+        // second edit to appear.
+        const composed = LIBRARY_TEXTS.filter(t => t.category === 'composed');
+        expect(composed.length).toBeGreaterThan(0);
+        for (const text of composed) {
+            expect(DIV_IDS.has(text.division),
+                `'${text.id}' is in no division the shelf renders`).toBe(true);
         }
-        expect([...byShelf.western].sort())
-            .toEqual(['classical', 'esoteric', 'imaginative', 'literary']);
-        expect([...byShelf.eastern].sort())
-            .toEqual(['classical', 'esoteric', 'imaginative', 'literary']);
-        expect([...byShelf.indigenous]).toEqual(['classical']);
+    });
+
+    it('a division belongs to the shelf whose works claim it', () => {
+        // A division declares its shelf, and a work claims a division. If
+        // those two ever disagreed the work would render under a heading
+        // from the other shelf, which is silent rather than loud.
+        const shelfOf = new Map(DIVISIONS.map(d => [d.id, d.shelf]));
+        for (const [id, entry] of Object.entries(ARCHIVE_CURATION)) {
+            expect(shelfOf.get(entry.division),
+                `${id} is on '${entry.shelf}' but its division belongs elsewhere`)
+                .toBe(entry.shelf);
+        }
     });
 });
 
@@ -174,10 +184,10 @@ describe('curation is editorial, and says so', () => {
         // registerText applies curation centrally so a new source cannot
         // arrive unshelved by forgetting to ask.
         const walden = LIBRARY_TEXTS.find(t => t.id === 'literary-walden');
-        expect(walden.category).toBe('western');
+        expect(walden.category).toBe('received');
         expect(walden.why).toBeTruthy();
         expect(walden.provenance.basis).toBe(PD_BASIS.PRE_1930);
-        expect(shelfFor('literary-walden')).toBe('western');
+        expect(shelfFor('literary-walden')).toBe('received');
         expect(curationFor('nothing-of-the-kind')).toBeNull();
     });
 });
@@ -221,6 +231,11 @@ describe('the retired shelves are gone', () => {
         // instances of a register the system has outgrown.
         for (const text of LIBRARY_TEXTS) {
             expect(['declassified', 'research']).not.toContain(text.category);
+            // The tradition axis went with them. It cut the Archive by where
+            // a work was written, which put thirteen books on one shelf and
+            // two on the other once the canon was chosen.
+            expect(['western', 'eastern', 'indigenous', 'form'])
+                .not.toContain(text.category);
             expect(text.id.startsWith('cia-'), `'${text.id}' is a retired document`).toBe(false);
             expect(text.id.startsWith('arxiv-'), `'${text.id}' is a retired feed`).toBe(false);
         }

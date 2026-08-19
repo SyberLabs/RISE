@@ -1400,6 +1400,69 @@ after that document was adopted, in a work already in the canon.
   failed ingest rather than a finished one. That check costs nothing and would
   have caught all three on the day they were made.
 
+## 2k. A name is not the heading's text — 2026-08-19
+
+**Class:** a structured heading flattened to a string, and a hierarchy dropped
+at a file boundary. Both are the ingest reading less than the edition wrote.
+Neither is visible to word reconciliation, because both lose STRUCTURE while
+every word still arrives.
+
+Found by a reader looking at the shelf, which is the third time that has been
+how a defect of this class surfaced.
+
+### The heading
+
+A Standard Ebooks heading marks its own parts:
+
+```xml
+<hgroup>
+  <h4 epub:type="z3998:ordinal z3998:roman">I</h4>
+  <p  epub:type="title">Fyodor Pavlovitch Karamazov</p>
+</hgroup>
+```
+
+`textContent` returns `I Fyodor Pavlovitch Karamazov`, which is three declared
+facts pressed into one string with the label — printed by the stylesheet from
+the section's own `epub:type` — silently absent. On the shelf that read as a
+numeral that restarted twelve times and explained nothing.
+
+The parts are read separately now: `se:label` or the section's unit word, then
+`z3998:ordinal`, then `epub:type="title"`, composed as `Chapter I: Fyodor
+Pavlovitch Karamazov`. Reconciliation still weighs the heading AS WRITTEN, so a
+word a stylesheet prints is never counted as one we imported.
+
+### The container
+
+Dostoevsky's Books, Eliot's Books and Joyce's Parts are each filed as their own
+spine document, so a chapter has NO ancestor to read within its own file. The
+importer only composed ancestry it could see in one document, and so dropped
+the level entirely — ninety-six chapters, and nothing to say which Book.
+
+The spine is the edition's own statement of what contains what. A container
+file now opens a scope that governs every reading after it, and closes every
+scope at its own depth or deeper: Part I holds Books I–III, and Part II must
+close Book III before it closes Part I.
+
+**Composition happens after numbering, not before.** Joyce titles none of his
+episodes; prefixing first left three readings called "Part I" where eighteen
+belonged.
+
+### Signature
+
+Not a line-level defect, so the registry cannot hold it (§3g). It is an
+ingest-time invariant instead, and the ingest now asserts all three:
+
+| invariant | what it catches |
+|---|---|
+| no two readings of a work share a name | a hierarchy silently dropped |
+| no name is a bare numeral, a slug, or `Untitled` | an id or a position leaking into a reading |
+| words in equal words out | anything textual, as before |
+
+All fifteen canon works were re-ingested against these. Zero duplicates, zero
+bare names, zero words lost.
+
+---
+
 ## Open, as of 2026-08-18
 
 | | |

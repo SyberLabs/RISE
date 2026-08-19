@@ -191,10 +191,8 @@ export const TRANSLATIONS_OF_SHAKUNTALA_AND_OTHER_WORKS_META = Object.freeze({
     "accessionCode": "E05",
     "title": "Translations of Shakuntala and Other Works",
     "author": "Kalidasa",
-    "shelf": "eastern",
-    "traditionShelf": "eastern",
-    "subjectShelves": [],
-    "division": "classical",
+    "shelf": "received",
+    "division": "drama",
     "edition": {
         "statement": "trans. Arthur W. Ryder, E. P. Dutton, 1912",
         "year": 1912

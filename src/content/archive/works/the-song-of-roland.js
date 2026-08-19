@@ -20,10 +20,8 @@ export const THE_SONG_OF_ROLAND_META = Object.freeze({
     "accessionCode": "W08",
     "title": "The Song of Roland",
     "author": "anonymous",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "classical",
+    "shelf": "received",
+    "division": "epic",
     "edition": {
         "statement": "trans. C. K. Scott-Moncrieff, Chapman & Hall, 1919",
         "year": 1919

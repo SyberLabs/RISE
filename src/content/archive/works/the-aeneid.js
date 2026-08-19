@@ -119,10 +119,8 @@ export const THE_AENEID_META = Object.freeze({
     "accessionCode": "W03",
     "title": "The Aeneid",
     "author": "Virgil",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "classical",
+    "shelf": "received",
+    "division": "epic",
     "edition": {
         "statement": "trans. John Dryden, 1697",
         "year": 1697

@@ -1054,7 +1054,7 @@ export const SACRED_CORPUS_HERMETICUM_META = Object.freeze({
     "id": "sacred-corpus-hermeticum",
     "title": "Thrice-Greatest Hermes",
     "author": "Hermes Trismegistus, traditional attribution",
-    "shelf": "western",
+    "shelf": "received",
     "edition": {
         "translator": "G. R. S. Mead",
         "publisher": "Theosophical Publishing Society",

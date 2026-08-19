@@ -115,7 +115,7 @@ export const LITERARY_WALDEN_META = Object.freeze({
     "id": "literary-walden",
     "title": "Walden",
     "author": "Henry David Thoreau",
-    "shelf": "western",
+    "shelf": "received",
     "edition": {
         "publisher": "Standard Ebooks",
         "year": 1854,

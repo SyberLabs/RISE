@@ -20,10 +20,8 @@ export const THE_SCARLET_LETTER_META = Object.freeze({
     "accessionCode": "W38",
     "title": "The Scarlet Letter",
     "author": "Nathaniel Hawthorne",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "novel",
     "edition": {
         "statement": "Ticknor, Reed & Fields, 1850",
         "year": 1850

@@ -180,10 +180,7 @@ export class SourceBrowser {
               <span aria-hidden="true">◌</span><span><strong>All works</strong><small>The complete curated registry</small></span>
               <em>${provider.count}</em>
             </button>
-            <span class="sb-shelf-axis">By tradition</span>
-            ${shelves.filter(shelf => shelf.axis === 'tradition').map(renderShelf).join('')}
-            <span class="sb-shelf-axis">By subject</span>
-            ${shelves.filter(shelf => shelf.axis !== 'tradition').map(renderShelf).join('')}`;
+            ${shelves.map(renderShelf).join('')}`;
         navigation.hidden = false;
         if (providerNavigation) providerNavigation.hidden = true;
     }

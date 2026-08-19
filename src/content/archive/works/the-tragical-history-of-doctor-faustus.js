@@ -20,10 +20,8 @@ export const THE_TRAGICAL_HISTORY_OF_DOCTOR_FAUSTUS_META = Object.freeze({
     "accessionCode": "W19",
     "title": "The Tragical History of Doctor Faustus",
     "author": "Christopher Marlowe",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "drama",
     "edition": {
         "statement": "Alexander Dyce text of the 1604 A-text, 1870s",
         "year": 1604

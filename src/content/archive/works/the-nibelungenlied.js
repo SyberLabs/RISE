@@ -380,10 +380,8 @@ export const THE_NIBELUNGENLIED_META = Object.freeze({
     "accessionCode": "W07",
     "title": "The Nibelungenlied",
     "author": "anonymous",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "classical",
+    "shelf": "received",
+    "division": "epic",
     "edition": {
         "statement": "trans. Daniel B. Shumway, Houghton Mifflin, 1909",
         "year": 1909

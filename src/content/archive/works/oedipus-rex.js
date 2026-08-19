@@ -30,7 +30,7 @@ export const OEDIPUS_REX_META = Object.freeze({
     "id": "oedipus-rex",
     "title": "Oedipus Rex",
     "author": "Sophocles",
-    "shelf": "western",
+    "shelf": "received",
     "edition": {
         "translator": "Francis Storr",
         "publisher": "Standard Ebooks",

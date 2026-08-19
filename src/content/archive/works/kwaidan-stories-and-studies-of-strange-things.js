@@ -47,10 +47,8 @@ export const KWAIDAN_STORIES_AND_STUDIES_OF_STRANGE_THINGS_META = Object.freeze(
     "accessionCode": "E13",
     "title": "Kwaidan: Stories and Studies of Strange Things",
     "author": "Lafcadio Hearn",
-    "shelf": "eastern",
-    "traditionShelf": "eastern",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "tale",
     "edition": {
         "statement": "Houghton, Mifflin, Boston/New York, 1904",
         "year": 1904

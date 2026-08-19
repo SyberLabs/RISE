@@ -290,10 +290,8 @@ export const PHAEDRA_META = Object.freeze({
     "accessionCode": "W21",
     "title": "Phaedra",
     "author": "Jean Racine",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "drama",
     "edition": {
         "statement": "trans. Robert Bruce Boswell, in *The French Classical Romances*, 1899",
         "year": 1899

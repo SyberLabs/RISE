@@ -1370,12 +1370,8 @@ export const MOBY_DICK_OR_THE_WHALE_META = Object.freeze({
     "accessionCode": "W28",
     "title": "Moby-Dick; or, The Whale",
     "author": "Herman Melville",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [
-        "form"
-    ],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "novel",
     "edition": {
         "statement": "Harper & Brothers, New York, 1851",
         "year": 1851

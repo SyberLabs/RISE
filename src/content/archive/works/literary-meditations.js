@@ -85,7 +85,7 @@ export const LITERARY_MEDITATIONS_META = Object.freeze({
     "id": "literary-meditations",
     "title": "Meditations",
     "author": "Marcus Aurelius",
-    "shelf": "western",
+    "shelf": "received",
     "edition": {
         "translator": "George Long",
         "publisher": "Standard Ebooks",

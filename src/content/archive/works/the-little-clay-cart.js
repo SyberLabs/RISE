@@ -146,10 +146,8 @@ export const THE_LITTLE_CLAY_CART_META = Object.freeze({
     "accessionCode": "E06",
     "title": "The Little Clay Cart",
     "author": "Shudraka, traditional attribution",
-    "shelf": "eastern",
-    "traditionShelf": "eastern",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "drama",
     "edition": {
         "statement": "trans. Arthur W. Ryder, Harvard Oriental Series, 1905",
         "year": 1905

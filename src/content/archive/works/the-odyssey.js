@@ -227,10 +227,8 @@ export const THE_ODYSSEY_META = Object.freeze({
     "accessionCode": "W02",
     "title": "The Odyssey",
     "author": "Homer",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "classical",
+    "shelf": "received",
+    "division": "epic",
     "edition": {
         "statement": "trans. Samuel Butler, Longmans, Green, 1900",
         "year": 1900

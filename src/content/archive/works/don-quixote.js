@@ -1316,12 +1316,8 @@ export const DON_QUIXOTE_META = Object.freeze({
     "accessionCode": "W24",
     "title": "Don Quixote",
     "author": "Miguel de Cervantes",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [
-        "form"
-    ],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "novel",
     "edition": {
         "statement": "trans. John Ormsby, 1885",
         "year": 1885

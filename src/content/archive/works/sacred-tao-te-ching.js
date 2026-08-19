@@ -350,7 +350,7 @@ export const SACRED_TAO_TE_CHING_META = Object.freeze({
     "id": "sacred-tao-te-ching",
     "title": "Tao Te Ching",
     "author": "Laozi",
-    "shelf": "eastern",
+    "shelf": "received",
     "edition": {
         "translator": "James Legge",
         "publisher": "Standard Ebooks",

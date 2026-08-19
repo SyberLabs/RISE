@@ -2162,10 +2162,8 @@ export const ANNA_KARENINA_META = Object.freeze({
     "accessionCode": "W35",
     "title": "Anna Karenina",
     "author": "Leo Tolstoy",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "novel",
     "edition": {
         "statement": "trans. Constance Garnett, Heinemann, 1901",
         "year": 1901

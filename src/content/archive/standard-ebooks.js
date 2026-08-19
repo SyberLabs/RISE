@@ -65,6 +65,15 @@ const BLOCK_SELECTOR = ['p', 'tr', 'cite',
 ].join(',');
 
 /** Sections that group readings rather than being one. */
+// Outermost first. A container closes every open container at its own depth
+// or deeper: Karamazov's Part I holds Books I to III, and Part II opens with
+// Book IV, so the Part must close the Book before it closes itself.
+const CONTAINER_RANK = Object.freeze(['volume', 'part', 'division']);
+
+function hasType(element, type) {
+  return (element.getAttribute('epub:type') || '').split(/\s+/u).includes(type);
+}
+
 const CONTAINER_SELECTOR = [
   'section[epub\\:type~="part"]',
   'section[epub\\:type~="division"]',
@@ -210,7 +219,16 @@ function unitWord(element) {
 }
 
 /**
- * A HEADING THAT IS ONLY AN ORDINAL IS NOT A NAME.
+ * A HEADING IS STRUCTURED, AND IS NOT ONE STRING.
+ *
+ * Standard Ebooks marks a heading's parts: `se:label` is the unit word,
+ * `z3998:ordinal` the number, `epub:type="title"` the title. Read flat by
+ * `textContent` they smash into each other — "Book I The Contention of
+ * Achilles", and, where the label is printed by the stylesheet rather than
+ * written, "I Fyodor Pavlovitch Karamazov", whose numeral restarts at every
+ * Book and so explains nothing on a flat shelf.
+ *
+ * A position and a title are two facts and are joined as a book joins them.
  *
  * Middlemarch and the Tao Te Ching both set a chapter's heading as
  * `<h3 epub:type="z3998:ordinal z3998:roman">I</h3>` and let the stylesheet
@@ -220,15 +238,35 @@ function unitWord(element) {
  * heading; putting them together reads two facts rather than inventing one,
  * and it is what RISE's own divider does when it says "Essay 12".
  */
+function marked(heading, type) {
+  const nodes = [heading, ...heading.querySelectorAll('*')].filter(
+    node => (node.getAttribute('epub:type') || '').split(/\s+/u).includes(type));
+  const outermost = nodes.filter(
+    node => !nodes.some(other => other !== node && other.contains(node)));
+  return clean(outermost.map(node => node.textContent).join(' ')) || null;
+}
+
+/**
+ * What the edition calls this part's POSITION — "Book I", "Canto XXIII".
+ *
+ * The label may be printed by the stylesheet rather than written in the
+ * heading, in which case the section's own type supplies the word.
+ */
+function designation(element, heading) {
+  const ordinal = marked(heading, 'z3998:ordinal');
+  if (!ordinal) return null;
+  const label = marked(heading, 'se:label') || unitWord(element);
+  return label ? `${label} ${ordinal}` : ordinal;
+}
+
 function partTitle(element, heading) {
   if (!heading) return null;
   const text = clean(heading.textContent);
   if (!text) return null;
-  const bare = (heading.getAttribute('epub:type') || '').split(/\s+/u)
-    .includes('z3998:ordinal');
-  if (!bare) return text;
-  const unit = unitWord(element);
-  return unit ? `${unit} ${text}` : text;
+  const title = marked(heading, 'title');
+  const position = designation(element, heading);
+  if (title && position) return `${position}: ${title}`;
+  return title || position || text;
 }
 
 /**
@@ -332,8 +370,15 @@ export function readContainerName(xhtml, parse) {
   const prose = [...section.querySelectorAll(BLOCK_SELECTOR)]
     .filter(block => !block.closest('hgroup,h1,h2,h3,h4,h5,h6'));
   if (prose.length) return null;
-  const heading = section.querySelector('hgroup,h1,h2,h3');
-  return heading ? clean(heading.textContent) : null;
+  const heading = ownHeading(section);
+  if (!heading) return null;
+  return {
+    name: partTitle(section, heading),
+    // What a reading inside this container is prefixed with, and the depth at
+    // which an opening container closes the ones already open.
+    prefix: designation(section, heading) || clean(heading.textContent),
+    rank: CONTAINER_RANK.findIndex(type => hasType(section, type))
+  };
 }
 
 /**
@@ -362,11 +407,20 @@ function nameParts(parts) {
   return parts.map(part => {
     const ancestor = part.element.parentElement
       ?.closest(`${PART_SELECTOR},${CONTAINER_SELECTOR}`) || null;
-    const above = ancestor ? clean(ownHeading(ancestor)?.textContent ?? '') : '';
+    const head = ancestor ? ownHeading(ancestor) : null;
+    // A PARENT LENDS ITS POSITION, NOT ITS WHOLE HEADING. Composing the full
+    // one gives "Book I: The History of a Family · Chapter I: Fyodor
+    // Pavlovitch Karamazov"; the Book's own title is recorded with the
+    // containers and is not needed to locate the child.
+    const above = head ? (designation(ancestor, head) || clean(head.textContent)) : '';
     const siblings = parts.filter(other => (other.element.parentElement
       ?.closest(`${PART_SELECTOR},${CONTAINER_SELECTOR}`) || null) === ancestor);
     const own = part.title || part.unit || String(siblings.indexOf(part) + 1);
-    return { ...part, name: above ? `${above} · ${own}` : (part.title || null) };
+    return {
+      ...part,
+      composed: Boolean(above),
+      name: above ? `${above} · ${own}` : (part.title || null)
+    };
   });
 }
 

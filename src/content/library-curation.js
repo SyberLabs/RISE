@@ -23,13 +23,33 @@
 import { PD_BASIS, RESONANCE_FUNCTIONS as R } from './library-constants.js';
 import { LITERATURE_CURATION } from './archive/literature-curation.js';
 
-export const ARCHIVE_CURATION = Object.freeze({
+
+/**
+ * WHAT THE CANON SAYS TO ITSELF.
+ *
+ * `rhymes` is the field that makes an archive rather than a list, and the
+ * generated entries carry none: they were written when the corpus was
+ * eighty-eight works, and a pointer into the withheld eighty is filtered away
+ * at the door by `curationFor`. So the canon states its own rhymes here,
+ * where a hand wrote them, and they are held to works the shelf actually has.
+ */
+const CANON_RHYMES = Object.freeze({
+    'the-iliad': ['metamorphoses', 'paradise-lost', 'oedipus-rex'],
+    'metamorphoses': ['the-iliad', 'the-divine-comedy', 'spoon-river-anthology'],
+    'the-divine-comedy': ['paradise-lost', 'metamorphoses', 'spoon-river-anthology'],
+    'paradise-lost': ['the-divine-comedy', 'the-iliad', 'literary-meditations'],
+    'middlemarch': ['the-brothers-karamazov', 'spoon-river-anthology', 'literary-essays-emerson'],
+    'the-brothers-karamazov': ['middlemarch', 'literary-meditations', 'the-divine-comedy'],
+    'ulysses': ['the-iliad', 'middlemarch', 'the-divine-comedy']
+});
+
+const CURATION = Object.freeze({
     ...LITERATURE_CURATION,
 
     // ── FORM ────────────────────────────────────────────────────
     'vitruvius-architecture': {
-        shelf: 'form',
-        division: 'classical',
+        shelf: 'received',
+        division: 'essay',
         why: 'The only architectural treatise to survive antiquity, written by a working engineer who had built artillery for Caesar. It treats a building as a compact between proportion, material, climate, acoustics, water and civic life — form here is not appearance but an agreement between unlike kinds of knowledge.',
         functions: [R.PATTERN, R.CONNECTION, R.RECURSION],
         rhymes: ['literary-meditations', 'sacred-emerald-tablet'],
@@ -37,88 +57,88 @@ export const ARCHIVE_CURATION = Object.freeze({
     },
 
     'dow-composition': {
-        shelf: 'form',
-        division: 'literary',
+        shelf: 'received',
+        division: 'essay',
         why: 'Dow taught that a picture is built the way music is — from line, dark-light, and colour arranged in relation — and taught it to Georgia O’Keeffe, who said it gave her something of her own to say. The exercises are the argument.',
         functions: [R.PATTERN, R.RECURSION],
         rhymes: ['ross-pure-design', 'crane-line-and-form'],
         provenance: { year: 1913, basis: PD_BASIS.PRE_1930 }
     },
     'ross-pure-design': {
-        shelf: 'form',
-        division: 'literary',
+        shelf: 'received',
+        division: 'essay',
         why: 'An attempt to state the grammar of order itself — harmony, balance, rhythm — before any question of subject arises. Ross wanted design to be teachable the way harmony is teachable, and the book is dry in exactly the way that ambition requires.',
         functions: [R.PATTERN, R.CONNECTION],
         rhymes: ['dow-composition', 'vitruvius-architecture'],
         provenance: { year: 1907, basis: PD_BASIS.PRE_1930 }
     },
     'crane-line-and-form': {
-        shelf: 'form',
-        division: 'literary',
+        shelf: 'received',
+        division: 'essay',
         why: 'Crane treats line not as contour but as a force that travels — from a leaf to a figure to the edge of the page. It is a grammar of continuity, and unusually useful where text and image share one field.',
         functions: [R.PATTERN, R.CONNECTION, R.RECURSION],
         rhymes: ['dow-composition', 'dresser-decorative-design'],
         provenance: { year: 1900, basis: PD_BASIS.AUTHOR_70 }
     },
     'kandinsky-spiritual-in-art': {
-        shelf: 'form',
-        division: 'esoteric',
+        shelf: 'received',
+        division: 'essay',
         why: 'Written while he was making the first abstract paintings and needed to explain to himself why colour could carry meaning without depicting anything. The argument is strange and in earnest; he is not theorising after the fact.',
         functions: [R.STATE, R.PATTERN],
         rhymes: ['ross-pure-design', 'literary-poems-blake'],
         provenance: { translator: 'Michael T. H. Sadler', year: 1914, basis: PD_BASIS.PRE_1930 }
     },
     'dresser-decorative-design': {
-        shelf: 'form',
-        division: 'literary',
+        shelf: 'received',
+        division: 'essay',
         why: 'Dresser keeps asking whether an ornament tells the truth about the material and the use beneath it. A sugar bowl becomes a test of attention, without pretending that usefulness abolishes delight.',
         functions: [R.PATTERN, R.CONNECTION],
         rhymes: ['crane-line-and-form', 'vitruvius-architecture'],
         provenance: { year: 1873, basis: PD_BASIS.PRE_1930 }
     },
     'epictetus-encheiridion': {
-        shelf: 'western',
-        division: 'classical',
+        shelf: 'received',
+        division: 'wisdom',
         why: 'A former slave teaching that the one thing nobody can take is your judgement about what happens to you. Long’s translation is the same English the Archive’s Marcus Aurelius speaks, which lets you hear the master behind the emperor.',
         functions: [R.RECURSION, R.PATTERN],
         rhymes: ['literary-meditations', 'boethius-consolation'],
         provenance: { translator: 'George Long', year: 1890, basis: PD_BASIS.AUTHOR_70 }
     },
     'montaigne-essays': {
-        shelf: 'western',
-        division: 'literary',
+        shelf: 'received',
+        division: 'essay',
         why: 'He invented the essay by refusing to pretend he had finished thinking. A hundred and two attempts to catch a mind in motion, including its contradictions, which he leaves standing.',
         functions: [R.RECURSION, R.STATE],
         rhymes: ['literary-essays-emerson', 'literary-meditations'],
         provenance: { translator: 'Charles Cotton', year: 1877, basis: PD_BASIS.PRE_1930 }
     },
     'okakura-book-of-tea': {
-        shelf: 'eastern',
-        division: 'literary',
+        shelf: 'received',
+        division: 'essay',
         why: 'Written in English for Western readers in 1906, it uses the tea ceremony to argue that attention to small things is not smallness. The chapter on flowers is a quiet indictment of how we treat what we admire.',
         functions: [R.STATE, R.RECURSION],
         rhymes: ['sacred-tao-te-ching', 'literary-walden'],
         provenance: { year: 1906, basis: PD_BASIS.PRE_1930 }
     },
     'boethius-consolation': {
-        shelf: 'western',
-        division: 'classical',
+        shelf: 'received',
+        division: 'wisdom',
         why: 'Written in a cell while awaiting execution, and it does not console by denying the situation. Philosophy arrives as a woman who has come to argue, and the argument is what steadies him.',
         functions: [R.STATE, R.RECURSION],
         rhymes: ['epictetus-encheiridion', 'julian-revelations'],
         provenance: { translator: 'H. R. James', year: 1897, basis: PD_BASIS.PRE_1930 }
     },
     'julian-revelations': {
-        shelf: 'western',
-        division: 'esoteric',
+        shelf: 'received',
+        division: 'wisdom',
         why: 'The first book written in English by a woman, composed after a near-fatal illness in which she saw sixteen showings and spent twenty years asking what they meant. “All shall be well” is a conclusion she works for, not a comfort she assumes.',
         functions: [R.STATE, R.RECURSION],
         rhymes: ['boethius-consolation', 'sacred-rumi'],
         provenance: { year: 1901, basis: PD_BASIS.PRE_1930 }
     },
     'kabir-songs': {
-        shelf: 'eastern',
-        division: 'literary',
+        shelf: 'received',
+        division: 'lyric',
         why: 'A fifteenth-century weaver who belonged to neither the Hindus nor the Muslims claiming him, and said so in poems that mock both. Tagore’s English keeps the plainness that makes the mockery land.',
         functions: [R.STATE, R.CONNECTION],
         rhymes: ['sacred-rumi', 'literary-poems-blake'],
@@ -137,32 +157,32 @@ export const ARCHIVE_CURATION = Object.freeze({
     // dossier warned against, and the caveat was written into the
     // curation while the shelf that caused it was left standing.
     'parker-australian-tales': {
-        shelf: 'indigenous',
-        division: 'classical',
+        shelf: 'received',
+        division: 'tale',
         why: 'Yuwaalaraay stories written down by a settler woman who grew up beside the people she was recording, and whose framing is visible on every page. Read them for the law and country inside the tales, and read Parker as the window she is — including the period language of her title.',
         functions: [R.CONNECTION, R.RECURSION],
         rhymes: ['rasmussen-eskimo-tales', 'mooney-cherokee-myths'],
         provenance: { year: 1896, basis: PD_BASIS.AUTHOR_70 }
     },
     'rasmussen-eskimo-tales': {
-        shelf: 'indigenous',
-        division: 'classical',
+        shelf: 'received',
+        division: 'tale',
         why: 'Greenland Inuit tales gathered by a man raised among Kalaallit speakers, then carried into English through his Danish. Hunger, weather, kinship and the instability between human and animal are not symbols laid over these stories; they are the conditions under which a world holds.',
         functions: [R.STATE, R.CONNECTION, R.RECURSION],
         rhymes: ['parker-australian-tales', 'beckwith-anansi-stories'],
         provenance: { translator: 'W. J. Alexander Worster', year: 1921, basis: PD_BASIS.PRE_1930 }
     },
     'mooney-cherokee-myths': {
-        shelf: 'indigenous',
-        division: 'classical',
+        shelf: 'received',
+        division: 'tale',
         why: 'Recorded from Cherokee speakers in the 1880s, a generation after the removal, by an ethnographer who learned the language. The cosmology is intact and so is the grief; the volume was published by the government that caused it.',
         functions: [R.CONNECTION, R.RECURSION],
         rhymes: ['parker-australian-tales', 'rasmussen-eskimo-tales'],
         provenance: { year: 1900, basis: PD_BASIS.US_GOV }
     },
     'beckwith-anansi-stories': {
-        shelf: 'indigenous',
-        division: 'classical',
+        shelf: 'received',
+        division: 'tale',
         why: 'The West African spider who crossed the Atlantic in the memory of enslaved people and kept telling his stories in Jamaica. Beckwith names her tellers and their parishes, which is why this collection is worth more than its archetypes.',
         functions: [R.CONNECTION, R.STATE],
         rhymes: ['rasmussen-eskimo-tales', 'mooney-cherokee-myths'],
@@ -170,8 +190,8 @@ export const ARCHIVE_CURATION = Object.freeze({
     },
 
     'sacred-yoga-sutras': {
-        shelf: 'eastern',
-        division: 'classical',
+        shelf: 'received',
+        division: 'wisdom',
         why: 'A technical manual for the mind, compressed to the point where a teacher was assumed present. Charles Johnston’s 1912 reading expands the aphorisms into a continuous argument without pretending the source is self-explanatory.',
         functions: [R.PATTERN, R.RECURSION],
         rhymes: ['extended-bhagavad-gita-full', 'literary-meditations'],
@@ -179,32 +199,32 @@ export const ARCHIVE_CURATION = Object.freeze({
     },
     // ── THE WESTERN CANON ───────────────────────────────────────
     'literary-meditations': {
-        shelf: 'western',
-        division: 'classical',
+        shelf: 'received',
+        division: 'wisdom',
         why: 'A Roman emperor writing to no one but himself, in Greek, at the edge of a war he did not expect to survive. The private register is the point: this is what a mind does when it is not performing.',
         functions: [R.RECURSION, R.STATE],
         rhymes: ['literary-walden', 'literary-letters-young-poet'],
         provenance: { translator: 'George Long', year: 1862, basis: PD_BASIS.AUTHOR_70 }
     },
     'literary-walden': {
-        shelf: 'western',
-        division: 'literary',
+        shelf: 'received',
+        division: 'essay',
         why: 'Withdrawal as method rather than escape. Thoreau went to the woods to find out what a life reduced to its terms actually contains, and reported back with the accounting intact.',
         functions: [R.STATE, R.PATTERN],
         rhymes: ['literary-meditations', 'literary-essays-emerson'],
         provenance: { year: 1854, basis: PD_BASIS.PRE_1930 }
     },
     'literary-essays-emerson': {
-        shelf: 'western',
-        division: 'literary',
+        shelf: 'received',
+        division: 'essay',
         why: 'The argument that the authority you are looking for is already seated in you, made by someone who understood how unwelcome that news is.',
         functions: [R.STATE, R.PATTERN],
         rhymes: ['literary-walden', 'literary-meditations'],
         provenance: { year: 1841, basis: PD_BASIS.PRE_1930 }
     },
     'literary-letters-young-poet': {
-        shelf: 'western',
-        division: 'literary',
+        shelf: 'received',
+        division: 'essay',
         why: 'Ten letters to a stranger who asked whether his poems were any good. Rilke declines to answer and addresses the harder question underneath it.',
         functions: [R.STATE, R.RECURSION],
         rhymes: ['literary-meditations', 'literary-poems-dickinson'],
@@ -214,32 +234,32 @@ export const ARCHIVE_CURATION = Object.freeze({
 
     // ── THE WESTERN CANON, continued ────────────────────────────
     'literary-poems-dickinson': {
-        shelf: 'western',
-        division: 'literary',
+        shelf: 'received',
+        division: 'lyric',
         why: 'She wrote about death from what reads like the far side of it, in a private punctuation nobody had used before. The dashes are load-bearing.',
         functions: [R.STATE, R.RECURSION],
         rhymes: ['literary-poems-blake', 'literary-letters-young-poet'],
         provenance: { year: 1890, basis: PD_BASIS.PRE_1930 }
     },
     'literary-poems-blake': {
-        shelf: 'western',
-        division: 'esoteric',
+        shelf: 'received',
+        division: 'lyric',
         why: 'Blake believed he was transcribing rather than composing. Whatever the truth of that, the poems behave like transcription — plain surfaces over something that does not resolve.',
         functions: [R.STATE, R.CONNECTION],
         rhymes: ['literary-poems-dickinson', 'literary-leaves-of-grass'],
         provenance: { edition: 'R. Brimley Johnson', year: 1901, basis: PD_BASIS.PRE_1930 }
     },
     'literary-thus-spoke-zarathustra': {
-        shelf: 'western',
-        division: 'literary',
+        shelf: 'received',
+        division: 'wisdom',
         why: 'Philosophy that refuses the essay and takes scripture’s form instead — partly to mock it, partly because the argument would not fit anywhere else.',
         functions: [R.STATE, R.PATTERN],
         rhymes: ['literary-leaves-of-grass', 'literary-poems-blake'],
         provenance: { translator: 'Thomas Common', year: 1909, basis: PD_BASIS.PRE_1930 }
     },
     'literary-leaves-of-grass': {
-        shelf: 'western',
-        division: 'literary',
+        shelf: 'received',
+        division: 'lyric',
         why: 'Whitman kept revising one book for thirty-six years. The catalogues are not padding; they are an argument that nothing is too ordinary to be included.',
         functions: [R.STATE, R.CONNECTION],
         rhymes: ['literary-poems-blake', 'literary-thus-spoke-zarathustra'],
@@ -250,16 +270,16 @@ export const ARCHIVE_CURATION = Object.freeze({
     // Scripture proper is not here at all: the Chapel keeps its own
     // door, and that separation is load-bearing.
     'sacred-tao-te-ching': {
-        shelf: 'eastern',
-        division: 'classical',
+        shelf: 'received',
+        division: 'wisdom',
         why: 'Eighty-one chapters that begin by warning you the subject cannot be named, and then name it for eighty-one chapters. The contradiction is the instruction.',
         functions: [R.RECURSION, R.STATE],
         rhymes: ['sacred-zen-koans', 'sacred-i-ching'],
         provenance: { translator: 'James Legge', year: 1891, basis: PD_BASIS.PRE_1930 }
     },
     'sacred-zen-koans': {
-        shelf: 'eastern',
-        division: 'esoteric',
+        shelf: 'received',
+        division: 'wisdom',
         why: 'Questions built so that answering them correctly is the failure. They work on the part of the mind that wants to resolve things.',
         functions: [R.RECURSION, R.PATTERN],
         rhymes: ['extended-dhammapada-full', 'sacred-tao-te-ching'],
@@ -267,16 +287,16 @@ export const ARCHIVE_CURATION = Object.freeze({
         caveats: ['The unattributed legacy miscellany is replaced by Suzuki’s complete 1927 first series, which includes historical koan material; the identifier remains stable.']
     },
     'sacred-rumi': {
-        shelf: 'eastern',
-        division: 'literary',
+        shelf: 'received',
+        division: 'lyric',
         why: 'Love poetry that is not metaphorically about God. Rumi means it literally, which is what makes the poems uncomfortable rather than merely beautiful.',
         functions: [R.STATE, R.RECURSION],
         rhymes: ['literary-poems-blake', 'sacred-tao-te-ching'],
         provenance: { translator: 'Reynold A. Nicholson', year: 1898, basis: PD_BASIS.AUTHOR_70 }
     },
     'extended-dhammapada-full': {
-        shelf: 'eastern',
-        division: 'classical',
+        shelf: 'received',
+        division: 'wisdom',
         why: 'The teaching compressed to aphorism, arranged so that reading it straight through is itself a kind of practice.',
         functions: [R.RECURSION, R.PATTERN],
         rhymes: ['sacred-tao-te-ching', 'sacred-zen-koans'],
@@ -285,8 +305,8 @@ export const ARCHIVE_CURATION = Object.freeze({
 
     // ── THE EASTERN CANON, continued ────────────────────────────
     'extended-bhagavad-gita-full': {
-        shelf: 'eastern',
-        division: 'classical',
+        shelf: 'received',
+        division: 'wisdom',
         why: 'A conversation held between two armies about whether to fight. That the setting is a battlefield and the subject is duty makes it the least abstract of the great philosophical texts.',
         functions: [R.STATE, R.RECURSION],
         rhymes: ['literary-meditations', 'epictetus-encheiridion'],
@@ -296,30 +316,77 @@ export const ARCHIVE_CURATION = Object.freeze({
     // ── THE WESTERN CANON — the Hermetic line ───────────────────
     // Greek-Egyptian texts that the Renaissance built a cosmology on.
     'sacred-corpus-hermeticum': {
-        shelf: 'western',
-        division: 'esoteric',
+        shelf: 'received',
+        division: 'wisdom',
         why: 'The fuller collection behind the Hermetica. Read it for how much of later European thought is already sitting here, waiting to be rediscovered.',
         functions: [R.CONNECTION, R.PATTERN],
         rhymes: ['sacred-emerald-tablet', 'sacred-i-ching'],
         provenance: { translator: 'G. R. S. Mead', year: 1906, basis: PD_BASIS.PRE_1930 }
     },
     'sacred-emerald-tablet': {
-        shelf: 'western',
-        division: 'esoteric',
+        shelf: 'received',
+        division: 'wisdom',
         why: 'A few lines that the entire alchemical tradition treated as its foundation. "As above, so below" is here, before it became a slogan.',
         functions: [R.CONNECTION, R.PATTERN],
         rhymes: ['sacred-corpus-hermeticum', 'sacred-i-ching'],
         provenance: { translator: 'Isaac Newton', year: 1680, basis: PD_BASIS.AUTHOR_70 }
     },
     'sacred-i-ching': {
-        shelf: 'eastern',
-        division: 'classical',
+        shelf: 'received',
+        division: 'wisdom',
         why: 'A system for reading situations as configurations rather than events. Whether or not you consult it, the structural claim — that change has a grammar — is the interesting part.',
         functions: [R.PATTERN, R.RECURSION],
         rhymes: ['sacred-tao-te-ching', 'sacred-corpus-hermeticum'],
         provenance: { translator: 'James Legge', year: 1882, basis: PD_BASIS.PRE_1930 }
     },
+
+    // ── THE FOUR THAT ARRIVED WITHOUT JUDGEMENT ─────────────────
+    // Acquired late, under the Standard Ebooks rule, and registered before
+    // anyone had said why they were worth an hour. A work with an edition
+    // and no judgement is a file, not a holding.
+
+    'oedipus-rex': {
+        shelf: 'received',
+        division: 'drama',
+        why: 'A man conducts a murder investigation with total competence and discovers he is the murderer, and the audience knows it from the first line. The dread is not in the finding out but in watching intelligence work perfectly toward its own destruction.',
+        functions: [R.STATE, R.PATTERN, R.RECURSION],
+        rhymes: ['the-iliad', 'literary-meditations', 'the-divine-comedy'],
+        provenance: { translator: 'Francis Storr', year: 1912, basis: PD_BASIS.PRE_1930 }
+    },
+
+    'lyrical-ballads': {
+        shelf: 'received',
+        division: 'lyric',
+        why: 'Two young men set out to prove that the speech of ordinary people, set down plainly, could carry everything poetry had been using ornament for — and the argument in the Preface is still the argument. What they wrote about was a leech-gatherer, an idiot boy, a ruined cottage, and the mind noticing itself notice.',
+        functions: [R.STATE, R.CONNECTION, R.RECURSION],
+        rhymes: ['spoon-river-anthology', 'literary-walden', 'literary-essays-emerson'],
+        provenance: { edition: 'the 1800 two-volume edition', year: 1800, basis: PD_BASIS.PRE_1930 }
+    },
+
+    'spoon-river-anthology': {
+        shelf: 'received',
+        division: 'lyric',
+        why: 'Two hundred and forty-six dead people speak their own epitaphs, and each correction of the record contradicts a neighbour’s. Read singly they are small; read across, the town assembles itself out of what nobody could say while alive.',
+        functions: [R.STATE, R.CONNECTION, R.RECURSION],
+        rhymes: ['lyrical-ballads', 'the-divine-comedy', 'middlemarch'],
+        provenance: { edition: 'the expanded 1916 edition', year: 1916, basis: PD_BASIS.PRE_1930 }
+    },
+
+    'confucius-analects': {
+        shelf: 'received',
+        division: 'wisdom',
+        why: 'Not a doctrine but a record of a teacher answering the person in front of him, so the same question gets different answers and the difference is the teaching. Nothing is argued; a great deal is shown, and the book withholds the system a reader keeps expecting.',
+        functions: [R.PATTERN, R.CONNECTION, R.RECURSION],
+        rhymes: ['sacred-tao-te-ching', 'literary-meditations', 'literary-essays-emerson'],
+        provenance: { translator: 'James Legge', year: 1861, basis: PD_BASIS.PRE_1930 }
+    },
 });
+
+export const ARCHIVE_CURATION = Object.freeze(Object.fromEntries(
+    Object.entries(CURATION).map(([id, entry]) => [
+        id,
+        CANON_RHYMES[id] ? { ...entry, rhymes: CANON_RHYMES[id] } : entry
+    ])));
 
 /** The curation for a registered text id, or null when unshelved. */
 export function curationFor(textId, isHeld = null) {

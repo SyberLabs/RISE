@@ -83,10 +83,8 @@ export const A_HUNDRED_AND_SEVENTY_CHINESE_POEMS_META = Object.freeze({
     "accessionCode": "E10",
     "title": "A Hundred and Seventy Chinese Poems",
     "author": "named Chinese poets; trans. Arthur Waley",
-    "shelf": "eastern",
-    "traditionShelf": "eastern",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "lyric",
     "edition": {
         "statement": "Alfred A. Knopf, New York, 1919 (London first ed. 1918)",
         "year": 1919

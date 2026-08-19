@@ -47,12 +47,8 @@ export const A_HUNDRED_VERSES_FROM_OLD_JAPAN_META = Object.freeze({
     "accessionCode": "E12",
     "title": "A Hundred Verses from Old Japan",
     "author": "the *Hyakunin Isshu* poets; trans. William N. Porter",
-    "shelf": "eastern",
-    "traditionShelf": "eastern",
-    "subjectShelves": [
-        "form"
-    ],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "lyric",
     "edition": {
         "statement": "Clarendon Press, 1909",
         "year": 1909

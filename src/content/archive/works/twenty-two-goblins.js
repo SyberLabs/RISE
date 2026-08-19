@@ -29,12 +29,8 @@ export const TWENTY_TWO_GOBLINS_META = Object.freeze({
     "accessionCode": "E07",
     "title": "Twenty-Two Goblins",
     "author": "traditional Sanskrit *Vetala* cycle; trans. Arthur W. Ryder",
-    "shelf": "eastern",
-    "traditionShelf": "eastern",
-    "subjectShelves": [
-        "form"
-    ],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "tale",
     "edition": {
         "statement": "University of Chicago Press, 1917",
         "year": 1917

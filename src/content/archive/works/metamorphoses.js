@@ -628,7 +628,7 @@ export const METAMORPHOSES_META = Object.freeze({
     "id": "metamorphoses",
     "title": "Metamorphoses",
     "author": "Ovid",
-    "shelf": "western",
+    "shelf": "received",
     "edition": {
         "translator": "various translators",
         "publisher": "Standard Ebooks",

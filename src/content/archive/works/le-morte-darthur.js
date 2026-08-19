@@ -5091,10 +5091,8 @@ export const LE_MORTE_DARTHUR_META = Object.freeze({
     "accessionCode": "W11",
     "title": "Le Morte Darthur",
     "author": "Sir Thomas Malory",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "classical",
+    "shelf": "received",
+    "division": "tale",
     "edition": {
         "statement": "Everyman's Library ed. Ernest Rhys, 1906",
         "year": 1906

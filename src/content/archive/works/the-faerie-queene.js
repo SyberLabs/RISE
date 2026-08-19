@@ -1601,12 +1601,8 @@ export const THE_FAERIE_QUEENE_META = Object.freeze({
     "accessionCode": "W26",
     "title": "The Faerie Queene",
     "author": "Edmund Spenser",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [
-        "form"
-    ],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "epic",
     "edition": {
         "statement": "ed. John W. Hales, Everyman's Library, 2 vols., J. M. Dent/E. P. Dutton, London/New York, 1909; Internet Archive [vol. I `faeriequeenedis01spen`](https://archive.org/details/faeriequeenedis01spen) and [vol. II `faeriequeenedis02spen`](https://archive.org/details/faeriequeenedis02spen); `pre-1930-us`",
         "year": 1909

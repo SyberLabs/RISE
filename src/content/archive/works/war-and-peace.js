@@ -3296,10 +3296,8 @@ export const WAR_AND_PEACE_META = Object.freeze({
     "accessionCode": "W36",
     "title": "War and Peace",
     "author": "Leo Tolstoy",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "novel",
     "edition": {
         "statement": "trans. Louise and Aylmer Maude, Oxford University Press, 1922–23",
         "year": 1922

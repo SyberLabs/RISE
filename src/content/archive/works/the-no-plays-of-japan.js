@@ -128,12 +128,8 @@ export const THE_NO_PLAYS_OF_JAPAN_META = Object.freeze({
     "accessionCode": "E09",
     "title": "The Nō Plays of Japan",
     "author": "named and anonymous Noh dramatists; trans. Arthur Waley",
-    "shelf": "eastern",
-    "traditionShelf": "eastern",
-    "subjectShelves": [
-        "form"
-    ],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "drama",
     "edition": {
         "statement": "Alfred A. Knopf, New York, 1922",
         "year": 1922

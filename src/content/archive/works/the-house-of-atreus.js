@@ -20,12 +20,8 @@ export const THE_HOUSE_OF_ATREUS_META = Object.freeze({
     "accessionCode": "W13",
     "title": "The House of Atreus",
     "author": "Aeschylus",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [
-        "form"
-    ],
-    "division": "classical",
+    "shelf": "received",
+    "division": "drama",
     "edition": {
         "statement": "trans. E. D. A. Morshead, 1881",
         "year": 1881

@@ -20,12 +20,8 @@ export const THE_DECAMERON_META = Object.freeze({
     "accessionCode": "W12",
     "title": "The Decameron",
     "author": "Giovanni Boccaccio",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [
-        "form"
-    ],
-    "division": "classical",
+    "shelf": "received",
+    "division": "tale",
     "edition": {
         "statement": "trans. John Payne, 1886",
         "year": 1886

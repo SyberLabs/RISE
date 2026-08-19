@@ -353,10 +353,8 @@ export const THE_TEMPEST_META = Object.freeze({
     "accessionCode": "W18",
     "title": "The Tempest",
     "author": "William Shakespeare",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "drama",
     "edition": {
         "statement": "Cambridge Shakespeare, ed. Clark and Wright, 1863–66",
         "year": 1863

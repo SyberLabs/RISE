@@ -794,10 +794,8 @@ export const KING_LEAR_META = Object.freeze({
     "accessionCode": "W17",
     "title": "King Lear",
     "author": "William Shakespeare",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "drama",
     "edition": {
         "statement": "Cambridge Shakespeare, ed. Clark and Wright, 1863–66",
         "year": 1863

@@ -137,10 +137,8 @@ export const FAUST_META = Object.freeze({
     "accessionCode": "W22",
     "title": "Faust",
     "author": "Johann Wolfgang von Goethe",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "drama",
     "edition": {
         "statement": "trans. Bayard Taylor, 2 vols., 1870–71; Boston/New York Houghton Mifflin reissue, 1912",
         "year": 1870

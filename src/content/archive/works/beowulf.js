@@ -20,10 +20,8 @@ export const BEOWULF_META = Object.freeze({
     "accessionCode": "W05",
     "title": "Beowulf",
     "author": "anonymous",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "classical",
+    "shelf": "received",
+    "division": "epic",
     "edition": {
         "statement": "trans. Francis B. Gummere, 1910",
         "year": 1910

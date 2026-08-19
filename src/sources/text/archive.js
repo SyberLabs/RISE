@@ -37,9 +37,7 @@ function editionStatement(text) {
 
 function matchesShelf(text, category) {
     if (!category || category === 'all') return true;
-    return text.category === category
-        || text.traditionShelf === category
-        || text.subjectShelves?.includes(category);
+    return text.category === category;
 }
 
 function searchableText(text) {
@@ -153,8 +151,6 @@ export class ArchiveTextProvider extends SourceProvider {
                 shelfId: text.category,
                 shelf: shelf?.name || text.category,
                 shelfIcon: shelf?.icon || '◇',
-                traditionShelf: text.traditionShelf,
-                subjectShelves: text.subjectShelves || [],
                 divisionId: text.division,
                 division: division?.name || text.division || '',
                 chapterCount: text.chapterCount,

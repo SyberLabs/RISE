@@ -47,10 +47,8 @@ export const A_DOLL_S_HOUSE_META = Object.freeze({
     "accessionCode": "W23",
     "title": "A Doll's House",
     "author": "Henrik Ibsen",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "drama",
     "edition": {
         "statement": "trans. William Archer, 1889",
         "year": 1889

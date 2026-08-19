@@ -191,10 +191,8 @@ export const THE_DUCHESS_OF_MALFI_META = Object.freeze({
     "accessionCode": "W20",
     "title": "The Duchess of Malfi",
     "author": "John Webster",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "drama",
     "edition": {
         "statement": "Harvard Classics-era public-domain text",
         "year": null

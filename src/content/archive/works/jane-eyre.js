@@ -371,10 +371,8 @@ export const JANE_EYRE_META = Object.freeze({
     "accessionCode": "W30",
     "title": "Jane Eyre",
     "author": "Charlotte Brontë",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "novel",
     "edition": {
         "statement": "Smith, Elder, 1847 text",
         "year": 1847

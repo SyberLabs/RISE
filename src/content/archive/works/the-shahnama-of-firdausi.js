@@ -4320,10 +4320,8 @@ export const THE_SHAHNAMA_OF_FIRDAUSI_META = Object.freeze({
     "accessionCode": "E03",
     "title": "The Shahnama of Firdausi",
     "author": "Ferdowsi",
-    "shelf": "eastern",
-    "traditionShelf": "eastern",
-    "subjectShelves": [],
-    "division": "classical",
+    "shelf": "received",
+    "division": "epic",
     "edition": {
         "statement": "trans. Arthur George Warner and Edmond Warner, 9 vols., Kegan Paul, 1905–25",
         "year": 1905

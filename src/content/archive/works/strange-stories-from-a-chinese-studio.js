@@ -29,10 +29,8 @@ export const STRANGE_STORIES_FROM_A_CHINESE_STUDIO_META = Object.freeze({
     "accessionCode": "E08",
     "title": "Strange Stories from a Chinese Studio",
     "author": "Pu Songling",
-    "shelf": "eastern",
-    "traditionShelf": "eastern",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "tale",
     "edition": {
         "statement": "trans. Herbert A. Giles, revised 2 vols., 1908",
         "year": 1908

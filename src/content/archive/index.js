@@ -56,7 +56,7 @@ const CORE_WORKS = [
             id: 'spoon-river-anthology',
             title: 'Spoon River Anthology',
             author: 'Edgar Lee Masters',
-            shelf: 'western',
+            shelf: 'received',
             edition: { publisher: 'Standard Ebooks', year: 1916, statement: 'the expanded 1916 edition' },
             basis: 'pre-1930-us'
         },
@@ -68,7 +68,7 @@ const CORE_WORKS = [
             id: 'oedipus-rex',
             title: 'Oedipus Rex',
             author: 'Sophocles',
-            shelf: 'western',
+            shelf: 'received',
             edition: { translator: 'Francis Storr', publisher: 'Standard Ebooks', year: 1912 },
             basis: 'pre-1930-us'
         },
@@ -80,7 +80,7 @@ const CORE_WORKS = [
             id: 'confucius-analects',
             title: 'Analects',
             author: 'Confucius',
-            shelf: 'eastern',
+            shelf: 'received',
             edition: { translator: 'James Legge', publisher: 'Standard Ebooks', year: 1861 },
             basis: 'pre-1930-us'
         },
@@ -92,7 +92,7 @@ const CORE_WORKS = [
             id: 'lyrical-ballads',
             title: 'Lyrical Ballads',
             author: 'William Wordsworth and Samuel Taylor Coleridge',
-            shelf: 'western',
+            shelf: 'received',
             edition: { publisher: 'Standard Ebooks', year: 1798 },
             basis: 'pre-1930-us'
         },
@@ -108,7 +108,7 @@ const CORE_WORKS = [
             id: 'literary-walden',
             title: 'Walden',
             author: 'Henry David Thoreau',
-            shelf: 'western',
+            shelf: 'received',
             edition: { publisher: 'Standard Ebooks', year: 1854, statement: 'Ticknor and Fields, 1854' },
             basis: 'pre-1930-us'
         },
@@ -120,7 +120,7 @@ const CORE_WORKS = [
             id: 'vitruvius-architecture',
             title: 'The Ten Books on Architecture',
             author: 'Vitruvius',
-            shelf: 'form',
+            shelf: 'received',
             edition: { translator: 'Morris Hicky Morgan', publisher: 'Harvard University Press', year: 1914 },
             basis: 'pre-1930-us'
         },
@@ -132,7 +132,7 @@ const CORE_WORKS = [
             id: 'dow-composition',
             title: 'Composition',
             author: 'Arthur Wesley Dow',
-            shelf: 'form',
+            shelf: 'received',
             edition: { publisher: 'Doubleday, Page & Co.', year: 1913 },
             basis: 'pre-1930-us'
         },
@@ -144,7 +144,7 @@ const CORE_WORKS = [
             id: 'ross-pure-design',
             title: 'A Theory of Pure Design',
             author: 'Denman Waldo Ross',
-            shelf: 'form',
+            shelf: 'received',
             edition: { publisher: 'Houghton, Mifflin & Co.', year: 1907 },
             basis: 'pre-1930-us'
         },
@@ -156,7 +156,7 @@ const CORE_WORKS = [
             id: 'crane-line-and-form',
             title: 'Line and Form',
             author: 'Walter Crane',
-            shelf: 'form',
+            shelf: 'received',
             edition: { publisher: 'George Bell & Sons', year: 1900 },
             basis: 'author-death-70'
         },
@@ -168,7 +168,7 @@ const CORE_WORKS = [
             id: 'kandinsky-spiritual-in-art',
             title: 'Concerning the Spiritual in Art',
             author: 'Wassily Kandinsky',
-            shelf: 'form',
+            shelf: 'received',
             edition: { translator: 'Michael T. H. Sadler', publisher: 'Constable & Co.', year: 1914 },
             basis: 'pre-1930-us'
         },
@@ -180,7 +180,7 @@ const CORE_WORKS = [
             id: 'dresser-decorative-design',
             title: 'Principles of Decorative Design',
             author: 'Christopher Dresser',
-            shelf: 'form',
+            shelf: 'received',
             edition: { publisher: 'Cassell, Petter & Galpin', year: 1873 },
             basis: 'pre-1930-us'
         },
@@ -192,7 +192,7 @@ const CORE_WORKS = [
             id: 'epictetus-encheiridion',
             title: 'The Discourses and Encheiridion',
             author: 'Epictetus',
-            shelf: 'western',
+            shelf: 'received',
             edition: { translator: 'George Long', publisher: 'George Bell & Sons', year: 1890 },
             basis: 'author-death-70'
         },
@@ -204,7 +204,7 @@ const CORE_WORKS = [
             id: 'montaigne-essays',
             title: 'Essays',
             author: 'Michel de Montaigne',
-            shelf: 'western',
+            shelf: 'received',
             edition: { translator: 'Charles Cotton', publisher: 'ed. William Carew Hazlitt', year: 1877 },
             basis: 'pre-1930-us'
         },
@@ -216,7 +216,7 @@ const CORE_WORKS = [
             id: 'okakura-book-of-tea',
             title: 'The Book of Tea',
             author: 'Kakuzo Okakura',
-            shelf: 'eastern',
+            shelf: 'received',
             edition: { publisher: 'Fox, Duffield & Co.', year: 1906 },
             basis: 'pre-1930-us'
         },
@@ -228,7 +228,7 @@ const CORE_WORKS = [
             id: 'boethius-consolation',
             title: 'The Consolation of Philosophy',
             author: 'Boethius',
-            shelf: 'western',
+            shelf: 'received',
             edition: { translator: 'H. R. James', publisher: 'Elliot Stock', year: 1897 },
             basis: 'pre-1930-us'
         },
@@ -240,7 +240,7 @@ const CORE_WORKS = [
             id: 'julian-revelations',
             title: 'Revelations of Divine Love',
             author: 'Julian of Norwich',
-            shelf: 'western',
+            shelf: 'received',
             edition: { publisher: 'ed. Grace Warrack, Methuen & Co.', year: 1901 },
             basis: 'pre-1930-us'
         },
@@ -252,7 +252,7 @@ const CORE_WORKS = [
             id: 'kabir-songs',
             title: 'Songs of Kabir',
             author: 'Kabir',
-            shelf: 'eastern',
+            shelf: 'received',
             edition: { translator: 'Rabindranath Tagore', publisher: 'Macmillan', year: 1915 },
             basis: 'pre-1930-us'
         },
@@ -264,7 +264,7 @@ const CORE_WORKS = [
             id: 'parker-australian-tales',
             title: 'Australian Legendary Tales',
             author: 'collected by K. Langloh Parker',
-            shelf: 'indigenous',
+            shelf: 'received',
             edition: { publisher: 'David Nutt', year: 1896 },
             basis: 'author-death-70'
         },
@@ -276,7 +276,7 @@ const CORE_WORKS = [
             id: 'rasmussen-eskimo-tales',
             title: 'Eskimo Folk-Tales',
             author: 'collected by Knud Rasmussen',
-            shelf: 'indigenous',
+            shelf: 'received',
             edition: { translator: 'W. J. Alexander Worster', publisher: 'Gyldendal', year: 1921 },
             basis: 'pre-1930-us'
         },
@@ -288,7 +288,7 @@ const CORE_WORKS = [
             id: 'mooney-cherokee-myths',
             title: 'Myths of the Cherokee',
             author: 'collected by James Mooney',
-            shelf: 'indigenous',
+            shelf: 'received',
             edition: { publisher: 'Bureau of American Ethnology, Nineteenth Annual Report', year: 1900 },
             basis: 'us-government-work'
         },
@@ -300,7 +300,7 @@ const CORE_WORKS = [
             id: 'beckwith-anansi-stories',
             title: 'Jamaica Anansi Stories',
             author: 'collected by Martha Warren Beckwith',
-            shelf: 'indigenous',
+            shelf: 'received',
             edition: { publisher: 'American Folk-Lore Society', year: 1924 },
             basis: 'pre-1930-us'
         },

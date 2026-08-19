@@ -163,10 +163,8 @@ export const THE_STORM_OF_STEEL_META = Object.freeze({
     "accessionCode": "W42",
     "title": "The Storm of Steel",
     "author": "Ernst Jünger; trans. Basil Creighton",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "literary",
+    "shelf": "received",
+    "division": "essay",
     "edition": {
         "statement": "Chatto & Windus, London, 1929; Basil Creighton translation",
         "year": 1929

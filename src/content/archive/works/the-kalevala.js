@@ -497,10 +497,8 @@ export const THE_KALEVALA_META = Object.freeze({
     "accessionCode": "W09",
     "title": "The Kalevala",
     "author": "traditional singers; compiled by Elias Lönnrot",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "classical",
+    "shelf": "received",
+    "division": "epic",
     "edition": {
         "statement": "trans. John Martin Crawford, 2 vols., 1888",
         "year": 1888

@@ -14,7 +14,7 @@ export const SACRED_EMERALD_TABLET_META = Object.freeze({
     "id": "sacred-emerald-tablet",
     "title": "Tabula Smaragdina",
     "author": "Hermes Trismegistus, traditional attribution",
-    "shelf": "western",
+    "shelf": "received",
     "edition": {
         "translator": "Isaac Newton",
         "publisher": "Keynes MS. 28, King’s College Library",

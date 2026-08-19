@@ -703,10 +703,8 @@ export const HAMLET_META = Object.freeze({
     "accessionCode": "W16",
     "title": "Hamlet",
     "author": "William Shakespeare",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "drama",
     "edition": {
         "statement": "Cambridge Shakespeare, ed. W. G. Clark and W. Aldis Wright, 1863–66",
         "year": 1863

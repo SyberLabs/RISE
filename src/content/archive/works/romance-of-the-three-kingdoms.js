@@ -1271,10 +1271,8 @@ export const ROMANCE_OF_THE_THREE_KINGDOMS_META = Object.freeze({
     "accessionCode": "E16",
     "title": "Romance of the Three Kingdoms",
     "author": "Luo Guanzhong, traditional attribution",
-    "shelf": "eastern",
-    "traditionShelf": "eastern",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "novel",
     "edition": {
         "statement": "trans. C. H. Brewitt-Taylor, Kelly & Walsh, Shanghai, 2 vols., 1925; scan-backed Wikisource [vol. I](https://en.wikisource.org/wiki/File:Romance_of_the_Three_Kingdoms_-_tr._Brewitt-Taylor_-_Volume_1.djvu) and [vol. II](https://en.wikisource.org/wiki/File:Romance_of_the_Three_Kingdoms_-_tr._Brewitt-Taylor_-_Volume_2.djvu); `author-death-70`",
         "year": 1925

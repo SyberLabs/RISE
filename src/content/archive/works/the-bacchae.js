@@ -20,10 +20,8 @@ export const THE_BACCHAE_META = Object.freeze({
     "accessionCode": "W15",
     "title": "The Bacchae",
     "author": "Euripides",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "classical",
+    "shelf": "received",
+    "division": "drama",
     "edition": {
         "statement": "trans. Gilbert Murray, 2nd ed., George Allen, 1906",
         "year": 1906

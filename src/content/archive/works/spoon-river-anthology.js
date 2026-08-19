@@ -1013,7 +1013,7 @@ export const SPOON_RIVER_ANTHOLOGY_META = Object.freeze({
     "id": "spoon-river-anthology",
     "title": "Spoon River Anthology",
     "author": "Edgar Lee Masters",
-    "shelf": "western",
+    "shelf": "received",
     "edition": {
         "publisher": "Standard Ebooks",
         "year": 1916,

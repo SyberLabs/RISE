@@ -196,7 +196,7 @@ export const EXTENDED_DHAMMAPADA_FULL_META = Object.freeze({
     "id": "extended-dhammapada-full",
     "title": "The Dhammapada",
     "author": "traditional Buddhist canon",
-    "shelf": "eastern",
+    "shelf": "received",
     "edition": {
         "translator": "F. Max Müller",
         "publisher": "Sacred Books of the East, vol. X",

@@ -40,7 +40,7 @@ const WORKS = {
         repo: 'ralph-waldo-emerson_essays',
         title: 'Essays',
         author: 'Ralph Waldo Emerson',
-        shelf: 'western',
+        shelf: 'received',
         edition: { publisher: 'Standard Ebooks', year: 1841 },
         rights: { basis: 'pre-1930-us', territory: 'US', evidence: 'First published 1841; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record.' }
     },
@@ -49,7 +49,7 @@ const WORKS = {
         repo: 'confucius_analects_james-legge',
         title: 'Analects',
         author: 'Confucius',
-        shelf: 'eastern',
+        shelf: 'received',
         edition: { translator: 'James Legge', publisher: 'Standard Ebooks', year: 1861 },
         rights: { basis: 'pre-1930-us', territory: 'US', evidence: 'First published 1861; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record.' }
     },
@@ -58,7 +58,7 @@ const WORKS = {
         repo: 'william-wordsworth_samuel-taylor-coleridge_lyrical-ballads',
         title: 'Lyrical Ballads',
         author: 'William Wordsworth and Samuel Taylor Coleridge',
-        shelf: 'western',
+        shelf: 'received',
         edition: { publisher: 'Standard Ebooks', year: 1798 },
         rights: { basis: 'pre-1930-us', territory: 'US', evidence: 'First published 1798; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record.' }
     },
@@ -67,7 +67,7 @@ const WORKS = {
         repo: 'sophocles_oedipus-rex_francis-storr',
         title: 'Oedipus Rex',
         author: 'Sophocles',
-        shelf: 'western',
+        shelf: 'received',
         edition: { translator: 'Francis Storr', publisher: 'Standard Ebooks', year: 1912 },
         rights: {
             basis: 'pre-1930-us',
@@ -82,7 +82,7 @@ const WORKS = {
         repo: 'george-eliot_middlemarch',
         title: 'Middlemarch',
         author: 'George Eliot',
-        shelf: 'western',
+        shelf: 'received',
         edition: { publisher: 'Standard Ebooks', year: 1872 },
         rights: {
             basis: 'pre-1930-us',
@@ -95,7 +95,7 @@ const WORKS = {
         repo: 'fyodor-dostoevsky_the-brothers-karamazov_constance-garnett',
         title: 'The Brothers Karamazov',
         author: 'Fyodor Dostoevsky',
-        shelf: 'western',
+        shelf: 'received',
         edition: { translator: 'Constance Garnett', publisher: 'Standard Ebooks', year: 1880 },
         rights: {
             basis: 'pre-1930-us',
@@ -108,7 +108,7 @@ const WORKS = {
         repo: 'marcus-aurelius_meditations_george-long',
         title: 'Meditations',
         author: 'Marcus Aurelius',
-        shelf: 'western',
+        shelf: 'received',
         edition: { translator: 'George Long', publisher: 'Standard Ebooks', year: 1862 },
         rights: {
             basis: 'pre-1930-us',
@@ -121,7 +121,7 @@ const WORKS = {
         repo: 'laozi_tao-te-ching_james-legge',
         title: 'Tao Te Ching',
         author: 'Laozi',
-        shelf: 'eastern',
+        shelf: 'received',
         edition: { translator: 'James Legge', publisher: 'Standard Ebooks', year: 1891 },
         rights: {
             basis: 'pre-1930-us',
@@ -134,7 +134,7 @@ const WORKS = {
         repo: 'homer_the-iliad_william-cullen-bryant',
         title: 'The Iliad',
         author: 'Homer',
-        shelf: 'western',
+        shelf: 'received',
         edition: { translator: 'William Cullen Bryant', publisher: 'Standard Ebooks', year: 1870 },
         rights: {
             basis: 'pre-1930-us',
@@ -147,7 +147,7 @@ const WORKS = {
         repo: 'dante-alighieri_the-divine-comedy_henry-wadsworth-longfellow',
         title: 'The Divine Comedy',
         author: 'Dante Alighieri',
-        shelf: 'western',
+        shelf: 'received',
         edition: { translator: 'Henry Wadsworth Longfellow', publisher: 'Standard Ebooks', year: 1867 },
         rights: {
             basis: 'pre-1930-us',
@@ -160,7 +160,7 @@ const WORKS = {
         repo: 'ovid_metamorphoses_various-translators',
         title: 'Metamorphoses',
         author: 'Ovid',
-        shelf: 'western',
+        shelf: 'received',
         edition: { translator: 'various translators', publisher: 'Standard Ebooks', year: 1717 },
         rights: {
             basis: 'pre-1930-us',
@@ -173,7 +173,7 @@ const WORKS = {
         repo: 'john-milton_paradise-lost',
         title: 'Paradise Lost',
         author: 'John Milton',
-        shelf: 'western',
+        shelf: 'received',
         edition: { publisher: 'Standard Ebooks', year: 1667 },
         rights: {
             basis: 'pre-1930-us',
@@ -186,7 +186,7 @@ const WORKS = {
         repo: 'james-joyce_ulysses',
         title: 'Ulysses',
         author: 'James Joyce',
-        shelf: 'western',
+        shelf: 'received',
         edition: { publisher: 'Standard Ebooks', year: 1922 },
         rights: {
             basis: 'pre-1930-us',
@@ -199,7 +199,7 @@ const WORKS = {
         repo: 'henry-david-thoreau_walden',
         title: 'Walden',
         author: 'Henry David Thoreau',
-        shelf: 'western',
+        shelf: 'received',
         edition: { publisher: 'Standard Ebooks', year: 1854, statement: 'Ticknor and Fields, 1854' },
         rights: {
             basis: 'pre-1930-us',
@@ -215,7 +215,7 @@ const WORKS = {
         repo: 'edgar-lee-masters_spoon-river-anthology',
         title: 'Spoon River Anthology',
         author: 'Edgar Lee Masters',
-        shelf: 'western',
+        shelf: 'received',
         // Reading order comes from the edition's own spine (see readSpine).
         // Named here only to record what the publisher's matter is called, so
         // a file appearing that is neither the work nor known apparatus is a
@@ -295,6 +295,12 @@ async function ingest(key) {
     const spine = await readSpine(work);
     const skipped = [];
     const containers = [];
+    // A CONTAINER FILED ON ITS OWN STILL GOVERNS WHAT FOLLOWS IT. Dostoevsky's
+    // Books are each their own spine file, so no chapter has an ancestor to
+    // read in its own document, and the shelf showed ninety-six chapters whose
+    // numerals restarted twelve times with nothing to say why. The spine is
+    // the edition's own statement of what contains what.
+    const scope = [];
 
     for (const file of spine) {
         const xhtml = await fetchFile(work, file);
@@ -307,8 +313,10 @@ async function ingest(key) {
         // levels, and the shape a work has is not ours to forget.
         const container = readContainerName(xhtml, parse);
         if (container) {
-            containers.push(container);
-            console.log(`  ${file.padEnd(34)}    container  "${container}"`);
+            containers.push(container.name);
+            while (scope.length && scope[scope.length - 1].rank >= container.rank) scope.pop();
+            scope.push(container);
+            console.log(`  ${file.padEnd(34)}    container  "${container.name}"`);
             continue;
         }
         digests.push(`${file} ${sha(xhtml)}`);
@@ -323,6 +331,11 @@ async function ingest(key) {
         const reconciled = reconcileWords(xhtml, fileParts, parse, inFile);
         sourceWords += reconciled.sourceWords;
         importedWords += reconciled.importedWords;
+        const within = scope[scope.length - 1];
+        for (const part of fileParts) {
+            // A part that already read an ancestor in its own document has one.
+            if (within && !part.composed) part.within = within.prefix;
+        }
         parts.push(...fileParts);
         console.log(`  ${file.padEnd(34)} ${String(fileParts.length).padStart(4)} parts  `
             + `${String(reconciled.sourceWords).padStart(7)}w  lost ${reconciled.lost}`);
@@ -355,6 +368,36 @@ async function ingest(key) {
             part.name = `${part.unit} ${next}`;
         }
     }
+    // COMPOSED LAST, so a part with no heading is still numbered. Joyce titles
+    // none of his episodes, and prefixing before numbering left three readings
+    // called "Part I" where eight belonged.
+    for (const part of parts) {
+        if (!part.within) continue;
+        part.name = part.name ? `${part.within} · ${part.name}` : part.within;
+    }
+    // A NAME MUST LOCATE ONE READING, AND MUST BE A NAME. Word reconciliation
+    // sees neither of these: a hierarchy dropped at a file boundary and an id
+    // used as a title both deliver every word. The shelf is where they show,
+    // so the shelf's two conditions are asserted here (ARCHIVE-CLEANSING-SPEC
+    // §2k) rather than left for a reader to find.
+    const seenNames = new Map();
+    for (const part of parts) {
+        const previous = seenNames.get(part.name);
+        if (previous !== undefined) {
+            throw new Error(`${work.id}: parts ${previous + 1} and ${parts.indexOf(part) + 1} `
+                + `are both named "${part.name}". A division the edition declared was dropped.`);
+        }
+        seenNames.set(part.name, parts.indexOf(part));
+    }
+    const unnamed = parts.filter(part => !part.name
+        || /^[IVXLCDM]+\.?$/u.test(part.name)
+        || /^[a-z0-9]+(-[a-z0-9]+)+$/u.test(part.name));
+    if (unnamed.length) {
+        throw new Error(`${work.id}: ${unnamed.length} parts carry no name a reader can read `
+            + `(${unnamed.slice(0, 3).map(part => JSON.stringify(part.name)).join(', ')}). `
+            + 'A bare numeral is a position and a slug is an id; neither is a title.');
+    }
+
     const sections = sectionsFromParts(parts);
     const payload = JSON.stringify(sections, null, 4);
     const name = constantName(work.id);

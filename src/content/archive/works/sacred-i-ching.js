@@ -13,7 +13,7 @@ export const SACRED_I_CHING_META = Object.freeze({
     "id": "sacred-i-ching",
     "title": "The Yî King",
     "author": "traditional; King Wăn and the Duke of Kâu",
-    "shelf": "eastern",
+    "shelf": "received",
     "edition": {
         "translator": "James Legge",
         "publisher": "Clarendon Press",

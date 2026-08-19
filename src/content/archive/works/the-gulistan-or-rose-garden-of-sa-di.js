@@ -110,10 +110,8 @@ export const THE_GULISTAN_OR_ROSE_GARDEN_OF_SA_DI_META = Object.freeze({
     "accessionCode": "E14",
     "title": "The Gulistan; or, Rose Garden of Sa'di",
     "author": "Sa'di",
-    "shelf": "eastern",
-    "traditionShelf": "eastern",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "tale",
     "edition": {
         "statement": "trans. Edward Rehatsek, 1888",
         "year": 1888

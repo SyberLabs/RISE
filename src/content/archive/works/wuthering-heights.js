@@ -317,10 +317,8 @@ export const WUTHERING_HEIGHTS_META = Object.freeze({
     "accessionCode": "W31",
     "title": "Wuthering Heights",
     "author": "Emily Brontë",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "novel",
     "edition": {
         "statement": "Thomas Cautley Newby, 1847",
         "year": 1847

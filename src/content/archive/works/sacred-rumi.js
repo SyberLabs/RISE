@@ -14,7 +14,7 @@ export const SACRED_RUMI_META = Object.freeze({
     "id": "sacred-rumi",
     "title": "Selected Poems from the Dīvāni Shamsi Tabrīz",
     "author": "Jalálu’ddín Rúmí",
-    "shelf": "eastern",
+    "shelf": "received",
     "edition": {
         "translator": "Reynold A. Nicholson",
         "publisher": "Cambridge University Press",

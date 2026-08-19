@@ -19020,12 +19020,8 @@ export const THE_MAHABHARATA_OF_KRISHNA_DWAIPAYANA_VYASA_META = Object.freeze({
     "accessionCode": "E02",
     "title": "The Mahabharata of Krishna-Dwaipayana Vyasa",
     "author": "Vyasa, traditional attribution",
-    "shelf": "eastern",
-    "traditionShelf": "eastern",
-    "subjectShelves": [
-        "form"
-    ],
-    "division": "classical",
+    "shelf": "received",
+    "division": "epic",
     "edition": {
         "statement": "trans. Kisari Mohan Ganguli, 1883–96 (Gutenberg volumes 1–4; the remaining volumes await re-sourcing)",
         "year": 1883

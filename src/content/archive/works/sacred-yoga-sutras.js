@@ -49,7 +49,7 @@ export const SACRED_YOGA_SUTRAS_META = Object.freeze({
     "id": "sacred-yoga-sutras",
     "title": "The Yoga Sutras of Patanjali: The Book of the Spiritual Man",
     "author": "Patañjali",
-    "shelf": "eastern",
+    "shelf": "received",
     "edition": {
         "translator": "Charles Johnston",
         "publisher": "Quarterly Book Department",

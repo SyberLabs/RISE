@@ -14,7 +14,7 @@ export const LITERARY_POEMS_BLAKE_META = Object.freeze({
     "id": "literary-poems-blake",
     "title": "Songs of Innocence and of Experience",
     "author": "William Blake",
-    "shelf": "western",
+    "shelf": "received",
     "edition": {
         "publisher": "R. Brimley Johnson",
         "year": 1901

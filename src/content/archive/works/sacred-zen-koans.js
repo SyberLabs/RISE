@@ -98,7 +98,7 @@ export const SACRED_ZEN_KOANS_META = Object.freeze({
     "id": "sacred-zen-koans",
     "title": "Essays in Zen Buddhism: First Series",
     "author": "Daisetz Teitaro Suzuki",
-    "shelf": "eastern",
+    "shelf": "received",
     "edition": {
         "publisher": "Luzac and Company",
         "year": 1927

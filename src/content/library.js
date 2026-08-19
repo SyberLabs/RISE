@@ -3,7 +3,7 @@
  * Infrastructure for sacred texts and literary sources
  */
 
-import { STARTER_SEQUENCES } from './starters.js';
+import { STARTER_SEQUENCES, SEQUENCE_CATEGORIES } from './starters.js';
 import { SACRED_TEXTS } from '../sources/text/sacred.js';
 import { SACRED_DEEP } from '../sources/text/data/sacred_deep.js';
 import { LITERARY_DEEP } from '../sources/text/data/literary_deep.js';
@@ -28,7 +28,22 @@ import { ingestedArchiveTexts, WITHHELD_WORKS } from './archive/index.js';
 // that this registry and library-curation.js can both use them without
 // forming an import cycle. Re-exported here: callers have always asked
 // the library for its categories, and should keep being able to.
-export { LIBRARY_CATEGORIES, DIVISIONS, RESONANCE_FUNCTIONS, PD_BASIS } from './library-constants.js';
+export { LIBRARY_CATEGORIES, RESONANCE_FUNCTIONS, PD_BASIS } from './library-constants.js';
+import { DIVISIONS as RECEIVED_DIVISIONS } from './library-constants.js';
+
+/**
+ * Every division on either shelf, in reading order, shelf by shelf.
+ *
+ * The composed shelf's divisions are the sequence categories, and they are
+ * TAKEN from `starters.js` rather than restated. A vocabulary living in two
+ * places where only one copy learns a new word is this project's most
+ * frequent defect, and a sequence in a category nobody had copied over would
+ * simply not appear on the shelf.
+ */
+export const DIVISIONS = [
+    ...RECEIVED_DIVISIONS,
+    ...SEQUENCE_CATEGORIES.map(category => ({ ...category, shelf: 'composed' }))
+];
 
 /**
  * Sacred text metadata template
@@ -83,6 +98,7 @@ function registerStarterTexts() {
             // works because provenance is the Archive's central promise:
             // a reader should always know which they are meeting.
             category: 'composed',
+            division: seq.category,
             tradition: 'Core System',
             description: seq.description,
             chapterCount: verses.length,
@@ -336,8 +352,6 @@ export function registerText(text) {
         ? {
             ...text,
             category: curation.shelf,
-            traditionShelf: curation.traditionShelf || curation.shelf,
-            subjectShelves: curation.subjectShelves || [],
             division: curation.division,
             why: curation.why,
             functions: curation.functions,

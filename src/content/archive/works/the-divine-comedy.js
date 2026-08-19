@@ -440,7 +440,7 @@ export const THE_DIVINE_COMEDY_META = Object.freeze({
     "id": "the-divine-comedy",
     "title": "The Divine Comedy",
     "author": "Dante Alighieri",
-    "shelf": "western",
+    "shelf": "received",
     "edition": {
         "translator": "Henry Wadsworth Longfellow",
         "publisher": "Standard Ebooks",

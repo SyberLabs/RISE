@@ -20,12 +20,8 @@ export const MRS_DALLOWAY_META = Object.freeze({
     "accessionCode": "W39",
     "title": "Mrs Dalloway",
     "author": "Virginia Woolf",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [
-        "form"
-    ],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "novel",
     "edition": {
         "statement": "Harcourt, Brace, New York, 1925",
         "year": 1925

@@ -20,10 +20,8 @@ export const THE_OEDIPUS_TRILOGY_META = Object.freeze({
     "accessionCode": "W14",
     "title": "The Oedipus Trilogy",
     "author": "Sophocles",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "classical",
+    "shelf": "received",
+    "division": "drama",
     "edition": {
         "statement": "trans. Francis Storr, Loeb Classical Library, 1912",
         "year": 1912

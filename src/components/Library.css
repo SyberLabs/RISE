@@ -149,15 +149,6 @@
   margin-bottom: var(--space-lg);
 }
 
-.archive-axis-label {
-  margin-bottom: var(--space-xs);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--color-fog);
-}
-
 .archive-axis .section-filters {
   display: flex;
   flex-wrap: wrap;

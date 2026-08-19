@@ -371,10 +371,8 @@ export const CRIME_AND_PUNISHMENT_META = Object.freeze({
     "accessionCode": "W34",
     "title": "Crime and Punishment",
     "author": "Fyodor Dostoevsky",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "novel",
     "edition": {
         "statement": "trans. Constance Garnett, Heinemann, 1914",
         "year": 1914

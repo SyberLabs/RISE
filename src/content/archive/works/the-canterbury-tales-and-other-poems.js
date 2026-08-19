@@ -20,12 +20,8 @@ export const THE_CANTERBURY_TALES_AND_OTHER_POEMS_META = Object.freeze({
     "accessionCode": "W10",
     "title": "The Canterbury Tales and Other Poems",
     "author": "Geoffrey Chaucer",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [
-        "form"
-    ],
-    "division": "classical",
+    "shelf": "received",
+    "division": "tale",
     "edition": {
         "statement": "ed. D. Laing Purves, 1870",
         "year": 1870

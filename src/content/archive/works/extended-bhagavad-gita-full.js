@@ -119,7 +119,7 @@ export const EXTENDED_BHAGAVAD_GITA_FULL_META = Object.freeze({
     "id": "extended-bhagavad-gita-full",
     "title": "The Song Celestial; or, Bhagavad-Gîtâ",
     "author": "traditional attribution to Vyasa",
-    "shelf": "eastern",
+    "shelf": "received",
     "edition": {
         "translator": "Sir Edwin Arnold",
         "publisher": "Truslove, Hanson & Comba, Ltd.",

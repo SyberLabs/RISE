@@ -15,11 +15,6 @@ export const DOSSIER_PATH = resolve(
     'docs/ingest-records/SOL-PD-ACQUISITIONS-DOSSIER-LITERATURE-2026-07-28.md'
 );
 
-const FORM_CROSS_SHELF = new Set([
-    'W06', 'W10', 'W12', 'W13', 'W24', 'W26', 'W28', 'W39', 'W40',
-    'W41', 'E02', 'E04', 'E07', 'E09', 'E12', 'I01', 'I08'
-]);
-
 const RELEASE_GATES = Object.freeze({
     I01: 'Community review/contact and access-restriction fields are required before public release.',
     I02: 'Community review/contact and access-restriction fields are required before public release.',
@@ -90,9 +85,12 @@ export function parseLiteratureDossier(markdown = readFileSync(DOSSIER_PATH, 'ut
             id: slug(title),
             title,
             author: clean(place[1]),
-            traditionShelf: place[2],
-            shelf: place[2],
-            subjectShelves: FORM_CROSS_SHELF.has(code) ? ['form'] : [],
+            // The dossier's third and fourth fields were a tradition shelf and
+            // a division in a vocabulary the Library no longer speaks. The
+            // shelf is now constant, and the division is read as written so a
+            // stale dossier fails the curation test loudly rather than
+            // placing a work on a shelf that does not exist.
+            shelf: 'received',
             division: place[3],
             why: labelled(block, 'why'),
             functions,

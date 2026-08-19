@@ -214,6 +214,45 @@ and Jünger against each other and cannot be assembled from two of the three —
 Paradise Lost and Storm of Steel are canonical because a shipped Journey is a
 promise about works, and the test suite said so before a reader could.
 
+### DECIDED 2026-08-19: the shelves are provenance, and the divisions are form
+
+The Library asked two questions of every work — where is it from, and what is
+it about — and answered the first with a Western canon and an Eastern one.
+Across eighty-eight inherited works that was defensible. Across the fifteen
+chosen ones it put THIRTEEN books on one shelf and TWO on the other, and a
+shelf of two is not a shelf.
+
+It was also the wrong question to ask first. It filed the Meditations away from
+the Tao Te Ching and the Analects on the grounds of a map, when what those
+three share is the thing a reader actually meets. So:
+
+```
+    WAS                              IS
+    By tradition  Western            Received  ── inherited, in a named edition
+                  Eastern            Composed  ── written here, in its own voice
+    By subject    Composed
+                  Form                 divided by FORM, in reading order:
+    within a shelf                     epic · drama · lyric · wisdom
+                  classical            essay · novel · tale
+                  discursive
+                  imaginative
+                  esoteric
+```
+
+The top cut is PROVENANCE, because provenance is what this document is about: a
+reader should always know whether they are meeting a received text or one
+written here. Where a work was written is a fact about it, not a shelf.
+
+Below that, FORM, because form decides the reading. A verse line is met
+differently from a paragraph and an aphorism differently from a chapter, and
+RISE is a system about the act of reading rather than about literary history. A
+reader who knows a work is an epic knows what the next hour will be like; one
+who knows it is thirteenth-century does not.
+
+The composed shelf's divisions are the sequence categories declared in
+`starters.js`, taken rather than restated — a vocabulary living in two places
+where only one copy learns a new word is this project's most frequent defect.
+
 ## 8. Everything else is withheld, and says why
 
 Not deleted. Withheld: absent from the Library, payload retained on disk, git

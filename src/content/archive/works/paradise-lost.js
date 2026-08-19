@@ -85,7 +85,7 @@ export const PARADISE_LOST_META = Object.freeze({
     "id": "paradise-lost",
     "title": "Paradise Lost",
     "author": "John Milton",
-    "shelf": "western",
+    "shelf": "received",
     "edition": {
         "publisher": "Standard Ebooks",
         "year": 1667

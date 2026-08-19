@@ -10,46 +10,33 @@
  */
 
 /**
- * The shelves. Names are deliberately plain and the voice lives in
- * `orientation` — a shelf a visitor cannot predict is one they will not
- * open.
+ * The two shelves, and they are the only two: a work is one RISE received
+ * from someone else, or one written here.
  *
- * TWO AXES, as the Collections panel already does for imagery.
- *
- * A reader browsing a library asks one of two questions: WHERE is this
- * from, or WHAT is it about. Those are not alternatives, and presenting
- * them in one row implies they are — Vitruvius is Western AND a book
- * about form, and a filter row that offers "Western" beside "Form"
- * makes a reader choose between two true answers.
- *
- * So each shelf declares its `axis`. Tradition shelves divide the world
- * by where a work comes from; subject shelves cut across them.
+ * THERE IS NO LONGER A TRADITION AXIS. It divided the Archive into a Western
+ * canon and an Eastern one, which was a defensible cut across eighty-eight
+ * inherited works and an indefensible one across fifteen chosen ones — it put
+ * thirteen books on one shelf and two on the other, and a shelf of two is not
+ * a shelf. Worse, it was the wrong question. It filed the Meditations away
+ * from the Tao Te Ching and the Analects on the grounds of a map, when what
+ * those three share is the thing a reader actually meets: precept, stated
+ * without argument, meant to be reread. Provenance is the distinction the
+ * Archive promises to keep; where a work was written is a fact about it, not
+ * a shelf to put it on.
  */
 export const LIBRARY_CATEGORIES = [
     {
-        id: 'western',
-        axis: 'tradition',
-        name: 'The Western Canon',
+        id: 'received',
+        name: 'Received',
         icon: '⌂',
-        description: 'Greece, Rome, and what Europe made of them',
-        orientation: 'From the Hermetica and the Stoics through the Christian mystics to the Americans — a long argument that has never stopped being had.'
+        description: 'Inherited works, each in a named edition',
+        orientation: 'Every one of these came from somewhere, and says where: a chosen edition, its translator, and the grounds on which it may be held. Nothing here was written for this system.'
     },
     {
-        id: 'eastern',
-        axis: 'tradition',
-        name: 'The Eastern Canon',
-        icon: '☯',
-        description: 'India, China, Persia, Japan',
-        orientation: 'Traditions that were old when Greece was young, and are still being read the way they were meant to be read: slowly, and more than once.'
-    },
-    {
-        // Not a shelf of found works but of written ones: sequences
-        // composed for this system, in its own voice. They are kept
-        // distinct because provenance is the Archive's central promise —
-        // a reader should always know whether they are meeting a
-        // received text or one written here.
+        // Kept distinct because provenance is the Archive's central promise —
+        // a reader should always know whether they are meeting a received
+        // text or one written here.
         id: 'composed',
-        axis: 'subject',
         name: 'Composed',
         icon: '✎',
         description: 'Written for this system, in its own voice',
@@ -69,42 +56,64 @@ export const RESONANCE_FUNCTIONS = Object.freeze({
 });
 
 /**
- * Divisions WITHIN a shelf, in reading order: a canon opens with its
- * founding texts, moves through what was written in their light, and
- * ends where it goes quiet and strange.
+ * Divisions WITHIN the received shelf: what KIND of thing a work is.
  *
- * Deliberately the SAME three on every shelf. A reader learns the
- * vocabulary once, and the parallel is itself informative — that every
- * tradition has a classical core, a literature, and an esoteric edge is
- * a claim worth making, and the Archive makes it by structure rather
- * than by saying so.
+ * Form is chosen over period or tradition because form is what decides the
+ * reading. A verse line is met differently from a paragraph, an aphorism
+ * differently from a chapter, a speech differently from a narrator — and RISE
+ * is a system about the act of reading rather than about literary history. A
+ * reader who knows a work is an epic knows what the next hour will be like;
+ * one who knows it is thirteenth-century does not.
  *
- * Some fits are looser than others. The Tao Te Ching sits under
- * CLASSICAL because it founds a tradition, not because it resembles
- * Marcus Aurelius; Rumi and Kabir are LITERARY because they are poets,
- * though their subject is devotional. Where a work could go two ways
- * the curation says which and why.
+ * In reading order, oldest form first: what was sung, then what was staged,
+ * then what was sung alone, then what was taught, then what was argued, then
+ * what was told at length.
+ *
+ * The composed shelf has its own divisions, which are the sequence categories
+ * declared in `starters.js` and are not restated here.
  */
 export const DIVISIONS = [
     {
-        id: 'classical',
-        name: 'Classical',
-        description: 'The founding texts, and the commentaries that became texts themselves'
+        id: 'epic',
+        shelf: 'received',
+        name: 'Epic',
+        description: 'Heroic narrative at the scale of a world'
     },
     {
-        id: 'literary',
-        name: 'Discursive',
-        description: 'Essays, letters, criticism, and the long argument after'
+        id: 'drama',
+        shelf: 'received',
+        name: 'Drama',
+        description: 'Written to be spoken, by people who are not the author'
     },
     {
-        id: 'imaginative',
-        name: 'Imaginative',
-        description: 'Worlds made in language — epic, drama, fiction, and tale'
+        id: 'lyric',
+        shelf: 'received',
+        name: 'Lyric',
+        description: 'The poem as a single utterance, and the books that collect them'
     },
     {
-        id: 'esoteric',
-        name: 'Esoteric',
-        description: 'The hidden reading: what a tradition says when it stops explaining'
+        id: 'wisdom',
+        shelf: 'received',
+        name: 'Wisdom',
+        description: 'Precept rather than argument — read slowly, and more than once'
+    },
+    {
+        id: 'essay',
+        shelf: 'received',
+        name: 'Essay',
+        description: 'A mind working in prose, at the length the thought takes'
+    },
+    {
+        id: 'novel',
+        shelf: 'received',
+        name: 'Novel',
+        description: 'One long invented life, or several'
+    },
+    {
+        id: 'tale',
+        shelf: 'received',
+        name: 'Tale',
+        description: 'Stories told before they were written, and the books that gathered them'
     }
 ];
 

@@ -28,6 +28,11 @@ import {
 } from './archive-dossier.mjs';
 import { headingVocabulary, titledSchemeIn } from '../src/content/archive/divisions.js';
 
+// Every inherited work is on the one shelf that holds inherited works. The
+// tradition axis this used to carry — Western against Eastern — was retired
+// with the shelves themselves; see library-constants.js.
+const RECEIVED_SHELF = 'received';
+
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CACHE = resolve(ROOT, '.ingest-cache', 'literature');
 const OUT = resolve(ROOT, 'src/content/archive/works');
@@ -647,9 +652,7 @@ function moduleText(entry, sections, artifacts) {
         accessionCode: entry.code,
         title: entry.title,
         author: entry.author,
-        shelf: entry.traditionShelf,
-        traditionShelf: entry.traditionShelf,
-        subjectShelves: entry.subjectShelves,
+        shelf: RECEIVED_SHELF,
         division: entry.division,
         edition: {
             statement: entry.provenance.edition,
@@ -690,9 +693,7 @@ function curationText(accessions) {
     for (const { entry } of accessions) {
         if (entry.releaseGate) continue;
         records[entry.id] = {
-            shelf: entry.traditionShelf,
-            traditionShelf: entry.traditionShelf,
-            subjectShelves: entry.subjectShelves,
+            shelf: RECEIVED_SHELF,
             division: entry.division,
             why: entry.why,
             functions: entry.functions,
@@ -736,9 +737,7 @@ async function ingest(entry) {
         id: entry.id,
         title: entry.title,
         author: entry.author,
-        shelf: entry.traditionShelf,
-        traditionShelf: entry.traditionShelf,
-        subjectShelves: entry.subjectShelves,
+        shelf: RECEIVED_SHELF,
         division: entry.division,
         edition: { statement: entry.provenance.edition, year: entry.provenance.year },
         basis: entry.provenance.basis,

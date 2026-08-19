@@ -1925,7 +1925,7 @@ export const LITERARY_POEMS_DICKINSON_META = Object.freeze({
     "id": "literary-poems-dickinson",
     "title": "Poems by Emily Dickinson: Three Series, Complete",
     "author": "Emily Dickinson",
-    "shelf": "western",
+    "shelf": "received",
     "edition": {
         "editors": "Mabel Loomis Todd and T. W. Higginson",
         "publisher": "Roberts Brothers",

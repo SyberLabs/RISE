@@ -46,18 +46,16 @@ describe('SourceBrowser request ownership', () => {
 
     expect(browser.activeProvider).toBe(provider);
     expect(browser.element.querySelector('.sb-library-navigation').hidden).toBe(false);
-    expect(browser.element.querySelector('[data-library-category="eastern"]')).not.toBeNull();
+    expect(browser.element.querySelector('[data-library-category="received"]')).not.toBeNull();
     expect(browser.element.querySelector('.sb-content-title').textContent)
       .toContain(`${provider.count} works`);
     expect(browser.element.querySelectorAll('.sb-item')).toHaveLength(provider.count);
 
-    browser.element.querySelector('[data-library-category="eastern"]').click();
+    browser.element.querySelector('[data-library-category="received"]').click();
     await new Promise(resolve => setTimeout(resolve, 20));
-    expect(browser.activeCategory).toBe('eastern');
+    expect(browser.activeCategory).toBe('received');
     expect(browser.contentItems.length).toBeGreaterThan(0);
-    expect(browser.contentItems.every(item => item.metadata.shelfId === 'eastern'
-      || item.metadata.traditionShelf === 'eastern'
-      || item.metadata.subjectShelves.includes('eastern'))).toBe(true);
+    expect(browser.contentItems.every(item => item.metadata.shelfId === 'received')).toBe(true);
     expect(browser.element.querySelector('.sb-item-edition')).not.toBeNull();
 
     const dividedIndex = browser.contentItems.findIndex(item => item.metadata.canBrowseParts);

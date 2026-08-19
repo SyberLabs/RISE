@@ -14,7 +14,7 @@ export const LITERARY_THUS_SPOKE_ZARATHUSTRA_META = Object.freeze({
     "id": "literary-thus-spoke-zarathustra",
     "title": "Thus Spake Zarathustra",
     "author": "Friedrich Nietzsche",
-    "shelf": "western",
+    "shelf": "received",
     "edition": {
         "translator": "Thomas Common",
         "publisher": "T. N. Foulis",

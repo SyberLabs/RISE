@@ -929,10 +929,8 @@ export const THE_SHIH_KING_OR_BOOK_OF_POETRY_META = Object.freeze({
     "accessionCode": "E11",
     "title": "The Shih King, or Book of Poetry",
     "author": "anonymous early Chinese poets; trans. James Legge",
-    "shelf": "eastern",
-    "traditionShelf": "eastern",
-    "subjectShelves": [],
-    "division": "classical",
+    "shelf": "received",
+    "division": "lyric",
     "edition": {
         "statement": "*Sacred Books of the East*, vol. 3, Clarendon Press, 1879",
         "year": 1879

@@ -569,10 +569,8 @@ export const PRIDE_AND_PREJUDICE_META = Object.freeze({
     "accessionCode": "W29",
     "title": "Pride and Prejudice",
     "author": "Jane Austen",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "novel",
     "edition": {
         "statement": "1813 text",
         "year": 1813

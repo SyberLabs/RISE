@@ -77,7 +77,7 @@ export const LITERARY_LETTERS_YOUNG_POET_META = Object.freeze({
     "id": "literary-letters-young-poet",
     "title": "Briefe an einen jungen Dichter",
     "author": "Rainer Maria Rilke",
-    "shelf": "western",
+    "shelf": "received",
     "edition": {
         "editor": "Franz Xaver Kappus",
         "publisher": "Insel-Verlag",

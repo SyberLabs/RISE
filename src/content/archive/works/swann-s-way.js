@@ -20,12 +20,8 @@ export const SWANN_S_WAY_META = Object.freeze({
     "accessionCode": "W40",
     "title": "Swann's Way",
     "author": "Marcel Proust",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [
-        "form"
-    ],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "novel",
     "edition": {
         "statement": "trans. C. K. Scott-Moncrieff, Chatto & Windus, 1922",
         "year": 1922

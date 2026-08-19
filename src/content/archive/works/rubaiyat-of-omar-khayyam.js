@@ -20,10 +20,8 @@ export const RUBAIYAT_OF_OMAR_KHAYYAM_META = Object.freeze({
     "accessionCode": "E15",
     "title": "Rubáiyát of Omar Khayyám",
     "author": "Omar Khayyam, attributed corpus; trans. Edward FitzGerald",
-    "shelf": "eastern",
-    "traditionShelf": "eastern",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "lyric",
     "edition": {
         "statement": "FitzGerald's four principal editions, 1859–79, with variants",
         "year": 1859

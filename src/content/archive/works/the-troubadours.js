@@ -191,10 +191,8 @@ export const THE_TROUBADOURS_META = Object.freeze({
     "accessionCode": "W27",
     "title": "The Troubadours",
     "author": "named Occitan poets; translated and discussed by H. J. Chaytor",
-    "shelf": "western",
-    "traditionShelf": "western",
-    "subjectShelves": [],
-    "division": "imaginative",
+    "shelf": "received",
+    "division": "lyric",
     "edition": {
         "statement": "Cambridge University Press, 1912",
         "year": 1912

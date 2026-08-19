@@ -64,7 +64,7 @@ const WORKS = {
         id: 'parker-australian-tales',
         title: 'Australian Legendary Tales',
         author: 'collected by K. Langloh Parker',
-        shelf: 'indigenous',
+        shelf: 'received',
         edition: { publisher: 'David Nutt', year: 1896 },
         source: { url: 'https://www.gutenberg.org/cache/epub/3833/pg3833.txt', label: 'Project Gutenberg #3833', file: 'parker-australian-tales-3833.txt' },
         rights: {
@@ -83,7 +83,7 @@ const WORKS = {
         id: 'rasmussen-eskimo-tales',
         title: 'Eskimo Folk-Tales',
         author: 'collected by Knud Rasmussen',
-        shelf: 'indigenous',
+        shelf: 'received',
         edition: { translator: 'W. J. Alexander Worster', publisher: 'Gyldendal', year: 1921 },
         source: { url: 'https://www.gutenberg.org/cache/epub/28932/pg28932.txt', label: 'Project Gutenberg #28932', file: 'rasmussen-eskimo-tales-28932.txt' },
         rights: {
@@ -103,7 +103,7 @@ const WORKS = {
         id: 'mooney-cherokee-myths',
         title: 'Myths of the Cherokee',
         author: 'collected by James Mooney',
-        shelf: 'indigenous',
+        shelf: 'received',
         edition: { publisher: 'Bureau of American Ethnology, Nineteenth Annual Report', year: 1900 },
         source: { url: 'https://www.gutenberg.org/cache/epub/45634/pg45634.txt', label: 'Project Gutenberg #45634', file: 'mooney-cherokee-myths-45634.txt' },
         rights: {
@@ -123,7 +123,7 @@ const WORKS = {
         id: 'beckwith-anansi-stories',
         title: 'Jamaica Anansi Stories',
         author: 'collected by Martha Warren Beckwith',
-        shelf: 'indigenous',
+        shelf: 'received',
         edition: { publisher: 'American Folk-Lore Society', year: 1924 },
         source: { url: 'https://www.gutenberg.org/cache/epub/72735/pg72735.txt', label: 'Project Gutenberg #72735', file: 'beckwith-anansi-stories-72735.txt' },
         rights: {
@@ -142,7 +142,7 @@ const WORKS = {
         id: 'epictetus-encheiridion',
         title: 'The Discourses and Encheiridion',
         author: 'Epictetus',
-        shelf: 'western',
+        shelf: 'received',
         edition: { translator: 'George Long', publisher: 'George Bell & Sons', year: 1890 },
         source: { url: 'https://www.gutenberg.org/cache/epub/10661/pg10661.txt', label: 'Project Gutenberg #10661', file: 'epictetus-encheiridion-10661.txt' },
         rights: {
@@ -159,7 +159,7 @@ const WORKS = {
         id: 'montaigne-essays',
         title: 'Essays',
         author: 'Michel de Montaigne',
-        shelf: 'western',
+        shelf: 'received',
         edition: { translator: 'Charles Cotton', editor: 'William Carew Hazlitt', year: 1877 },
         source: { url: 'https://www.gutenberg.org/cache/epub/3600/pg3600.txt', label: 'Project Gutenberg #3600', file: 'montaigne-essays-3600.txt' },
         rights: {
@@ -181,7 +181,7 @@ const WORKS = {
         id: 'okakura-book-of-tea',
         title: 'The Book of Tea',
         author: 'Kakuzo Okakura',
-        shelf: 'eastern',
+        shelf: 'received',
         edition: { publisher: 'Fox, Duffield & Co.', year: 1906 },
         source: { url: 'https://www.gutenberg.org/cache/epub/769/pg769.txt', label: 'Project Gutenberg #769', file: 'okakura-book-of-tea-769.txt' },
         rights: {
@@ -200,7 +200,7 @@ const WORKS = {
         id: 'boethius-consolation',
         title: 'The Consolation of Philosophy',
         author: 'Boethius',
-        shelf: 'western',
+        shelf: 'received',
         edition: { translator: 'H. R. James', publisher: 'Elliot Stock', year: 1897 },
         source: { url: 'https://www.gutenberg.org/cache/epub/14328/pg14328.txt', label: 'Project Gutenberg #14328', file: 'boethius-consolation-14328.txt' },
         rights: {
@@ -264,7 +264,7 @@ const WORKS = {
         id: 'julian-revelations',
         title: 'Revelations of Divine Love',
         author: 'Julian of Norwich',
-        shelf: 'western',
+        shelf: 'received',
         edition: { editor: 'Grace Warrack', publisher: 'Methuen & Co.', year: 1901 },
         source: { url: 'https://www.gutenberg.org/cache/epub/52958/pg52958.txt', label: 'Project Gutenberg #52958', file: 'julian-revelations-52958.txt' },
         rights: {
@@ -284,7 +284,7 @@ const WORKS = {
         id: 'kabir-songs',
         title: 'Songs of Kabir',
         author: 'Kabir',
-        shelf: 'eastern',
+        shelf: 'received',
         edition: { translator: 'Rabindranath Tagore', publisher: 'Macmillan', year: 1915 },
         source: { url: 'https://www.gutenberg.org/cache/epub/6519/pg6519.txt', label: 'Project Gutenberg #6519', file: 'kabir-songs-6519.txt' },
         rights: {
@@ -316,7 +316,7 @@ const WORKS = {
         id: 'dow-composition',
         title: 'Composition',
         author: 'Arthur Wesley Dow',
-        shelf: 'form',
+        shelf: 'received',
         edition: { publisher: 'Doubleday, Page & Co.', year: 1913, note: 'ninth edition, revised and enlarged' },
         source: { url: 'https://www.gutenberg.org/cache/epub/45410/pg45410.txt', label: 'Project Gutenberg #45410', file: 'dow-composition-45410.txt' },
         rights: {
@@ -337,7 +337,7 @@ const WORKS = {
         id: 'ross-pure-design',
         title: 'A Theory of Pure Design',
         author: 'Denman Waldo Ross',
-        shelf: 'form',
+        shelf: 'received',
         edition: { publisher: 'Houghton, Mifflin & Co.', year: 1907 },
         source: { url: 'https://www.gutenberg.org/cache/epub/74765/pg74765.txt', label: 'Project Gutenberg #74765', file: 'ross-pure-design-74765.txt' },
         rights: {
@@ -367,7 +367,7 @@ const WORKS = {
         id: 'crane-line-and-form',
         title: 'Line and Form',
         author: 'Walter Crane',
-        shelf: 'form',
+        shelf: 'received',
         edition: { publisher: 'George Bell & Sons', year: 1900 },
         source: { url: 'https://www.gutenberg.org/cache/epub/25290/pg25290.txt', label: 'Project Gutenberg #25290', file: 'crane-line-form-25290.txt' },
         rights: {
@@ -386,7 +386,7 @@ const WORKS = {
         id: 'kandinsky-spiritual-in-art',
         title: 'Concerning the Spiritual in Art',
         author: 'Wassily Kandinsky',
-        shelf: 'form',
+        shelf: 'received',
         edition: { translator: 'Michael T. H. Sadler', publisher: 'Constable & Co.', year: 1914 },
         source: { url: 'https://www.gutenberg.org/cache/epub/5321/pg5321.txt', label: 'Project Gutenberg #5321', file: 'kandinsky-spiritual-5321.txt' },
         rights: {
@@ -405,7 +405,7 @@ const WORKS = {
         id: 'dresser-decorative-design',
         title: 'Principles of Decorative Design',
         author: 'Christopher Dresser',
-        shelf: 'form',
+        shelf: 'received',
         edition: { publisher: 'Cassell, Petter & Galpin', year: 1873, note: 'fourth edition' },
         source: { url: 'https://www.gutenberg.org/cache/epub/39749/pg39749.txt', label: 'Project Gutenberg #39749', file: 'dresser-decorative-39749.txt' },
         rights: {
@@ -424,7 +424,7 @@ const WORKS = {
         id: 'vitruvius-architecture',
         title: 'The Ten Books on Architecture',
         author: 'Vitruvius',
-        shelf: 'form',
+        shelf: 'received',
 
         edition: {
             translator: 'Morris Hicky Morgan',

@@ -341,12 +341,8 @@ export const THE_BOOK_OF_THE_THOUSAND_NIGHTS_AND_A_NIGHT_META = Object.freeze({
     "accessionCode": "E04",
     "title": "The Book of the Thousand Nights and a Night",
     "author": "anonymous Arabic/Persian tale tradition; trans. Richard F. Burton",
-    "shelf": "eastern",
-    "traditionShelf": "eastern",
-    "subjectShelves": [
-        "form"
-    ],
-    "division": "classical",
+    "shelf": "received",
+    "division": "tale",
     "edition": {
         "statement": "Burton Club/Benares edition, 10 vols., text first issued 1885",
         "year": 1885
