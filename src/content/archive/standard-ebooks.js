@@ -33,11 +33,15 @@ const PART_SELECTOR = [
   'section[epub\\:type~="z3998:drama"]'
 ].join(',');
 
-/** The blocks a part is built from, in the order the edition put them. */
-const BLOCK_SELECTOR = 'p,tr';
-
-/** A line break inside a stanza is the poet's; a stanza break is a paragraph. */
-const LINE = 'span';
+/**
+ * The blocks a part is built from, in the order the edition put them.
+ *
+ * `cite` earns its place: a quoted poem's attribution sits beside the verse
+ * rather than inside it, so leaving it out dropped "T. Carew" from Walden —
+ * two words, caught by the reconciliation, which is the point of a check that
+ * tolerates no loss rather than a small one.
+ */
+const BLOCK_SELECTOR = 'p,tr,cite';
 
 export class StandardEbooksStructureError extends Error {
   constructor(message, details = {}) {
@@ -49,17 +53,60 @@ export class StandardEbooksStructureError extends Error {
 
 const clean = value => String(value ?? '').replace(/\s+/gu, ' ').trim();
 
+function tag(node) {
+  return node?.tagName ? node.tagName.toLowerCase() : '';
+}
+
 /**
- * The text of one stanza, keeping the source's own line division.
+ * Whether a block is verse, asked of the markup rather than assumed.
  *
- * A `<p>` holding `<span>` lines is verse and each span is a line. A `<p>`
- * holding no spans is prose and is one paragraph. Nothing here decides which;
- * the edition already did.
+ * A printed break between lines settles it. Failing that, a block whose whole
+ * text sits inside spans is a stanza whose lines happen not to need a break —
+ * a single-line stanza. A block with text OUTSIDE its spans is prose that
+ * happens to mark a word, which is what Thoreau's Greek is.
  */
-function stanzaText(paragraph) {
-  const lines = [...paragraph.querySelectorAll(LINE)];
-  if (!lines.length) return clean(paragraph.textContent);
-  return lines.map(line => clean(line.textContent)).filter(Boolean).join('\n');
+function isVerse(block) {
+  if ([...block.children].some(child => tag(child) === 'br')) return true;
+  const spans = [...block.children].filter(child => tag(child) === 'span');
+  if (!spans.length) return false;
+  return clean(spans.map(span => span.textContent).join(' ')) === clean(block.textContent);
+}
+
+function verseLines(block) {
+  if (![...block.children].some(child => tag(child) === 'br')) {
+    return [...block.children]
+      .filter(child => tag(child) === 'span')
+      .map(span => clean(span.textContent));
+  }
+  const lines = [];
+  let current = '';
+  for (const node of block.childNodes) {
+    if (tag(node) === 'br') {
+      lines.push(clean(current));
+      current = '';
+      continue;
+    }
+    current += node.textContent ?? '';
+  }
+  lines.push(clean(current));
+  return lines;
+}
+
+/**
+ * The text of one block, keeping the source's own line division.
+ *
+ * A SPAN IS NOT A LINE. Reading every span as a verse line looked right
+ * against a poem, where the lines happen to be spans — and it was a decision
+ * rather than a reading. Standard Ebooks also uses a span inline, for a
+ * foreign word or a name, so a paragraph of Thoreau carrying
+ * `<span xml:lang="el">γεἱβω</span>` was read as a two-line poem of Greek and
+ * the 412 words of prose around it were dropped. The word reconciliation
+ * refused the payload, which is the only reason this is a story about a bug
+ * rather than a story about Walden.
+ */
+function stanzaText(block) {
+  if (!isVerse(block)) return clean(block.textContent);
+  return verseLines(block).filter(Boolean).join('\n');
 }
 
 /**
@@ -72,9 +119,7 @@ function stanzaText(paragraph) {
  */
 function rowText(row) {
   return [...row.children]
-    .map(cell => (cell.querySelectorAll(LINE).length
-      ? stanzaText(cell)
-      : clean(cell.textContent)))
+    .map(cell => stanzaText(cell))
     .filter(Boolean)
     .join('\n');
 }
@@ -94,13 +139,15 @@ function readPart(element) {
   const title = heading ? clean(heading.textContent) : null;
   if (heading) heading.remove();
 
-  // A paragraph inside a table row belongs to that row and is read with it,
-  // so taking both would count the same words twice.
-  const elements = [...element.querySelectorAll(BLOCK_SELECTOR)]
-    .filter(block => block.tagName.toLowerCase() === 'tr' || !block.closest('tr'));
+  // A block inside another block is read with its container, so taking both
+  // would count the same words twice — a paragraph inside a table row, a
+  // citation inside a paragraph. Only the outermost is a block of its own.
+  const candidates = [...element.querySelectorAll(BLOCK_SELECTOR)];
+  const elements = candidates.filter(block => !candidates.some(
+    other => other !== block && other.contains(block)));
   const blocks = elements.map(blockText).filter(Boolean);
-  const lines = elements.reduce(
-    (total, block) => total + (block.querySelectorAll(LINE).length || 0), 0);
+  const lines = elements.reduce((total, block) => total
+    + (isVerse(block) ? verseLines(block).filter(Boolean).length : 0), 0);
 
   return {
     id: element.getAttribute('id') || null,

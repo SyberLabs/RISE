@@ -25,7 +25,7 @@
 import { describe, expect, it } from 'vitest';
 
 /** Works acquired from an edition that declares its own structure. */
-const STRUCTURED = new Set(['spoon-river-anthology']);
+const STRUCTURED = new Set(['spoon-river-anthology', 'literary-walden']);
 import { LIBRARY_TEXTS } from '../library.js';
 
 /** Words too common to identify anything. */

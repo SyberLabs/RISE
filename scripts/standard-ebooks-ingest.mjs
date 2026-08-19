@@ -33,16 +33,32 @@ const RAW = 'https://raw.githubusercontent.com/standardebooks';
 const API = 'https://api.github.com/repos/standardebooks';
 
 const WORKS = {
+    walden: {
+        id: 'literary-walden',
+        repo: 'henry-david-thoreau_walden',
+        title: 'Walden',
+        author: 'Henry David Thoreau',
+        shelf: 'western',
+        edition: { publisher: 'Standard Ebooks', year: 1854, statement: 'Ticknor and Fields, 1854' },
+        rights: {
+            basis: 'pre-1930-us',
+            territory: 'US',
+            evidence: 'First published 1854; in the public domain in the United States. '
+                + 'Standard Ebooks production work is released CC0, proofread against '
+                + 'page scans at the Internet Archive. Public-domain status elsewhere is '
+                + 'not established by this record.'
+        }
+    },
     'spoon-river': {
         id: 'spoon-river-anthology',
         repo: 'edgar-lee-masters_spoon-river-anthology',
         title: 'Spoon River Anthology',
         author: 'Edgar Lee Masters',
         shelf: 'western',
-        // The files that are the WORK. Standard Ebooks keeps its own colophon,
-        // imprint and uncopyright beside the text; they are the publisher
-        // speaking and are not read.
-        files: ['spoon-river-anthology.xhtml', 'epilogue.xhtml'],
+        // Reading order comes from the edition's own spine (see readSpine).
+        // Named here only to record what the publisher's matter is called, so
+        // a file appearing that is neither the work nor known apparatus is a
+        // refusal rather than a silent inclusion.
         edition: { publisher: 'Standard Ebooks', year: 1916, statement: 'the expanded 1916 edition' },
         rights: {
             basis: 'pre-1930-us',
@@ -57,11 +73,38 @@ const WORKS = {
 const parse = markup => new JSDOM(markup, { contentType: 'text/html' }).window.document;
 const sha = value => createHash('sha256').update(value).digest('hex');
 
-async function fetchFile(work, file) {
+/**
+ * The publisher speaking, rather than the work. Standard Ebooks puts these in
+ * every edition; they are apparatus and are not read.
+ */
+const APPARATUS = new Set([
+    'titlepage.xhtml', 'imprint.xhtml', 'colophon.xhtml', 'uncopyright.xhtml',
+    'halftitlepage.xhtml', 'dedication.xhtml', 'acknowledgments.xhtml',
+    'endnotes.xhtml', 'loi.xhtml'
+]);
+
+/**
+ * READING ORDER IS THE EDITION'S, NOT OURS.
+ *
+ * A directory listing is alphabetical, which for Walden would open on Baker
+ * Farm and end at Winter Animals. The spine says what follows what, and
+ * supplying that order from memory is exactly the kind of deciding this path
+ * exists to stop.
+ */
+async function readSpine(work) {
+    const opf = await fetchFile(work, 'content.opf', '');
+    const spine = /<spine>([\s\S]*?)<\/spine>/u.exec(opf);
+    if (!spine) throw new Error(`${work.repo}: no spine in content.opf`);
+    const refs = [...spine[1].matchAll(/idref="([^"]+)"/gu)].map(match => match[1]);
+    if (!refs.length) throw new Error(`${work.repo}: spine names no files`);
+    return refs;
+}
+
+async function fetchFile(work, file, dir = 'text/') {
     mkdirSync(CACHE, { recursive: true });
     const path = resolve(CACHE, `${work.repo}__${file}`);
     if (existsSync(path)) return readFileSync(path, 'utf8');
-    const url = `${RAW}/${work.repo}/master/src/epub/text/${file}`;
+    const url = `${RAW}/${work.repo}/master/src/epub/${dir}${file}`;
     process.stderr.write(`fetching ${url}\n`);
     const response = await fetch(url);
     if (!response.ok) throw new Error(`${file}: HTTP ${response.status}`);
@@ -83,10 +126,16 @@ async function ingest(key) {
     let sourceWords = 0;
     let importedWords = 0;
 
-    for (const file of work.files) {
+    const spine = await readSpine(work);
+    const files = spine.filter(file => !APPARATUS.has(file));
+    console.log(`  spine: ${spine.length} files, ${files.length} of them the work`);
+
+    for (const file of files) {
         const xhtml = await fetchFile(work, file);
         digests.push(`${file} ${sha(xhtml)}`);
         const fileParts = readStandardEbooksFile(xhtml, parse);
+        // A bodymatter file that yields nothing is markup this importer does
+        // not understand, and guessing at it is the one thing forbidden here.
         if (!fileParts.length) throw new Error(`${file}: no addressable parts found`);
         const reconciled = reconcileWords(xhtml, fileParts, parse);
         sourceWords += reconciled.sourceWords;

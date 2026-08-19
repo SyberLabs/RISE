@@ -22,6 +22,17 @@
  * reading system must handle. A canon of favourites would prove nothing about
  * the instrument; a canon of forms proves it.
  */
+/**
+ * Works acquired from an edition that marks its own parts.
+ *
+ * Their divisions are read, never re-derived — see `declaredScheme` in
+ * divisions.js and ARCHIVE-CANON-SPEC §4.
+ */
+export const STRUCTURED_IDS = Object.freeze(new Set([
+  'spoon-river-anthology',
+  'literary-walden'
+]));
+
 export const CANON = Object.freeze([
   { id: 'middlemarch', form: 'long prose novel' },
   { id: 'the-brothers-karamazov', form: 'long novel in translation' },

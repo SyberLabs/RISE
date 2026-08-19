@@ -16,6 +16,7 @@ import {
     firstBodyOrdinal,
     isInformativeLabel
 } from '../src/content/archive/divisions.js';
+import { STRUCTURED_IDS } from '../src/content/archive/canon.js';
 
 /**
  * Labels are sent to a curator so it can choose a division by what it is
@@ -39,7 +40,8 @@ for (const file of readdirSync(WORKS_DIR).filter(f => f.endsWith('.js')).sort())
         console.warn(`  ! ${id}: no SECTIONS export`);
         continue;
     }
-    const { divided: isDivided, noun, reason, entries } = divideSections(mod[key]);
+    const { divided: isDivided, noun, reason, entries } = divideSections(mod[key],
+        { declared: STRUCTURED_IDS.has(id) });
     const words = entries.reduce((n, e) => n + e.words, 0);
     const labels = entries.map(e => String(e.label || '').trim());
     // Ordinals are positions, so the first division that is the work itself.

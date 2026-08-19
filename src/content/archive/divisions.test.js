@@ -411,7 +411,11 @@ describe('the division index agrees with the works it describes', () => {
             // The second has no noun, and demanding one would push the
             // divider back into inventing "Chapter" for a work that
             // never said it.
-            if (entry.divided) expect(entry.noun || entry.titled).toBeTruthy();
+            // A third way, and the best one: the EDITION named them. A
+            // declared scheme has no noun because none was invented for it.
+            if (entry.divided) {
+                expect(entry.noun || entry.titled || entry.reason === 'declared').toBeTruthy();
+            }
             expect(typeof entry.reason === 'string' && entry.reason.length > 0,
                 `${meta.id} is missing division reason`).toBe(true);
             expect(entry.authored).toBe(entry.reason !== 'measured');

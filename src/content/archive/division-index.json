@@ -377,11 +377,11 @@
   "literary-leaves-of-grass": {
     "divided": true,
     "titled": false,
-    "reason": "inline",
+    "reason": "scheme",
     "authored": true,
-    "noun": "Part",
-    "count": 263,
-    "words": 110353
+    "noun": "Book",
+    "count": 43,
+    "words": 121664
   },
   "literary-letters-young-poet": {
     "divided": false,
@@ -458,11 +458,31 @@
   "literary-walden": {
     "divided": true,
     "titled": false,
-    "reason": "measured",
-    "authored": false,
-    "noun": "Reading",
-    "count": 31,
-    "words": 115510
+    "reason": "declared",
+    "authored": true,
+    "noun": null,
+    "count": 18,
+    "labels": [
+      "Economy",
+      "Where I Lived, and What I Lived For",
+      "Reading",
+      "Sounds",
+      "Solitude",
+      "Visitors",
+      "The Bean-Field",
+      "The Village",
+      "The Ponds",
+      "Baker Farm",
+      "Higher Laws",
+      "Brute Neighbors",
+      "House-Warming",
+      "Former Inhabitants and Winter Visitors",
+      "Winter Animals",
+      "The Pond in Winter",
+      "Spring",
+      "Conclusion"
+    ],
+    "words": 106215
   },
   "madame-bovary": {
     "divided": true,
@@ -1131,12 +1151,13 @@
   },
   "spoon-river-anthology": {
     "divided": true,
-    "titled": true,
-    "reason": "titled",
+    "titled": false,
+    "reason": "declared",
     "authored": true,
     "noun": null,
-    "count": 243,
+    "count": 246,
     "labels": [
+      "The Hill",
       "Hod Putt",
       "Ollie McGee",
       "Fletcher McGee",
@@ -1257,6 +1278,7 @@
       "Anthony Findlay",
       "John Cabanis",
       "The Unknown",
+      "Alexander Throckmorton",
       "Jonathan Swift Somers1",
       "Widow McFarlane",
       "Carl Hamblin",
@@ -1379,9 +1401,10 @@
       "Isaiah Beethoven",
       "Elijah Browning",
       "Webster Ford",
+      "The Spooniad",
       "Epilogue"
     ],
-    "words": 35185
+    "words": 37636
   },
   "strange-stories-from-a-chinese-studio": {
     "divided": true,

@@ -46,11 +46,6 @@ export const LEGACY_REINGESTED_WORKS = [
             .then(module => module.LITERARY_THUS_SPOKE_ZARATHUSTRA_SECTIONS)
     },
     {
-        meta: {"id":"literary-walden","title":"Walden; or, Life in the Woods","author":"Henry David Thoreau","shelf":"western","edition":{"publisher":"Ticknor and Fields","year":1854},"basis":"pre-1930-us","chars":630907,"sections":48,"sourceSha256":"eb082f07d434bd2055b9d8e08928a902c6ee3a96f7120311156766a64039ad7d","payloadChecksum":"2fcebe6815d1cbba68d262ccd2081bf483316d8f33464e5727466bd3bc5daaea"},
-        load: () => import('./works/literary-walden.js')
-            .then(module => module.LITERARY_WALDEN_SECTIONS)
-    },
-    {
         meta: {"id":"literary-leaves-of-grass","title":"Leaves of Grass","author":"Walt Whitman","shelf":"western","edition":{"publisher":"David McKay","year":1892,"statement":"1891–92 “deathbed” edition"},"basis":"pre-1930-us","chars":633402,"sections":908,"sourceSha256":"89bed731a83e233dd3f585f015d43f6d26dcdc024cd4beaca803f3cde121e8e2","payloadChecksum":"f6a5e647a915a79e8f2824cc5804d3ad349d4675401b0e8ab8cdadc10fd21a88"},
         load: () => import('./works/literary-leaves-of-grass.js')
             .then(module => module.LITERARY_LEAVES_OF_GRASS_SECTIONS)

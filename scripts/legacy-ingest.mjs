@@ -183,16 +183,6 @@ const WORKS = Object.freeze([
         headings: /^(?:ZARATHUSTRA’S PROLOGUE|[IVXLCDM]+\.\s+[A-Z][A-Z ,’'-]+|PART [IVXLCDM]+)$/i
     },
     {
-        id: 'literary-walden',
-        title: 'Walden; or, Life in the Woods',
-        author: 'Henry David Thoreau',
-        shelf: 'western',
-        edition: { publisher: 'Ticknor and Fields', year: 1854 },
-        sources: [source(pg(205), 'Project Gutenberg #205', 'walden-thoreau-205.txt')],
-        rights: { basis: 'pre-1930-us', evidence: 'Thoreau’s original English text, first published in 1854; exact artifact is marked public domain in the United States.' },
-        headings: /^[A-Z][A-Z ,'-]{4,55}$/i
-    },
-    {
         id: 'literary-leaves-of-grass',
         verse: true,
         title: 'Leaves of Grass',
@@ -201,7 +191,7 @@ const WORKS = Object.freeze([
         edition: { publisher: 'David McKay', year: 1892, statement: '1891–92 “deathbed” edition' },
         sources: [source(pg(1322), 'Project Gutenberg #1322', 'leaves-of-grass-whitman-1322.txt')],
         rights: { basis: 'pre-1930-us', evidence: 'Whitman’s final authorial 1891–92 edition; exact artifact is marked public domain in the United States.' },
-        headings: /^(?:BOOK [IVXLCDM]+|[A-Z][A-Z ,’'-]{5,65})$/i
+        headings: /^(?:BOOK [IVXLCDM]+|[A-Z][A-Z ,’'-]{5,65})$/
     },
     {
         id: 'literary-poems-dickinson',
@@ -233,7 +223,7 @@ const WORKS = Object.freeze([
         edition: { publisher: 'R. Brimley Johnson', year: 1901 },
         sources: [source(pg(1934), 'Project Gutenberg #1934', 'blake-songs-1934.txt')],
         rights: { basis: 'pre-1930-us', evidence: 'Blake’s original English poems in the 1901 R. Brimley Johnson edition; the exact Project Gutenberg artifact is pinned by SHA-256.' },
-        headings: /^[A-Z][A-Z ’,'-]{2,55}$/i
+        headings: /^[A-Z][A-Z ’,'-]{2,55}$/
     },
     {
         id: 'literary-essays-emerson',
@@ -655,6 +645,38 @@ function catalogText(records) {
         + `export const LEGACY_REINGESTED_WORKS = [\n${rows.join(',\n')}\n];\n`;
 }
 
+/**
+ * WORDS IN MUST EQUAL WORDS OUT — §2j, the check that costs nothing.
+ *
+ * A heading line is removed from the body once it has been used as a division
+ * title, so a pattern that matches ordinary prose deletes the text it matches.
+ * That is how 303 words left Walden and 11,359 left Leaves of Grass, silently,
+ * with nothing able to detect it afterwards: a missing line has no shape.
+ *
+ * A legacy work may legitimately shed matter it declares — a Gutenberg header,
+ * a trailing index. It must SAY how much. An undeclared loss is a failed
+ * ingest, not a finished one.
+ */
+function reconcile(work, sourceText, sections) {
+    const words = value => String(value || '').split(/\s+/).filter(Boolean).length;
+    const source = words(sourceText);
+    // A HEADING IS MOVED, NOT LOST. The line becomes the section's name, so it
+    // is counted where it went rather than declared as an acceptable loss.
+    const payload = sections.reduce((total, section) => total
+        + words(section.content) + words(section.name), 0);
+    const lost = source - payload;
+    const allowed = Number(work.allowedLoss ?? 0);
+    process.stdout.write(`  words  source ${source}  payload ${payload}  `
+        + `lost ${lost}${allowed ? ` (allowed ${allowed})` : ''}
+`);
+    if (lost > allowed) {
+        throw new Error(`${work.id}: ${lost} words lost and ${allowed} declared. `
+            + 'Declare the trim with allowedLoss, or fix the ingest. '
+            + 'See ARCHIVE-CLEANSING-SPEC §2j.');
+    }
+    return { source, payload, lost };
+}
+
 async function ingest(work) {
     const artifacts = [];
     for (const descriptor of work.sources) artifacts.push(await fetchArtifact(work, descriptor));
@@ -662,6 +684,7 @@ async function ingest(work) {
     if (!sections.length) throw new Error('no reading sections resolved');
     const payload = sections.map(section => section.content).join('\n\n');
     if (payload.length < 500) throw new Error(`payload is suspiciously short (${payload.length} chars)`);
+    reconcile(work, artifacts.map(artifact => artifact.text).join('\n'), sections);
     const meta = {
         id: work.id,
         title: work.title,

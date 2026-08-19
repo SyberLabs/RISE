@@ -43,7 +43,7 @@ import { divideSections } from './divisions.js';
 // deterministically from bytes already committed, so they are derived
 // once at build time rather than in every reader's browser — which is
 // what lets a card say "365 chapters" without downloading Tolstoy.
-import { withheldWorks } from './canon.js';
+import { STRUCTURED_IDS, withheldWorks } from './canon.js';
 import DIVISION_INDEX from './division-index.json';
 
 const CORE_WORKS = [
@@ -62,6 +62,22 @@ const CORE_WORKS = [
         },
         load: () => import('./works/spoon-river-anthology.js')
             .then(m => m.SPOON_RIVER_ANTHOLOGY_SECTIONS)
+    },
+    {
+        // Re-sourced 2026-08-18 from a structured edition. The Gutenberg
+        // payload was missing 303 words its heading detector had eaten, and
+        // carried Civil Disobedience under Walden's title
+        // (ARCHIVE-CLEANSING-SPEC §2j).
+        meta: {
+            id: 'literary-walden',
+            title: 'Walden',
+            author: 'Henry David Thoreau',
+            shelf: 'western',
+            edition: { publisher: 'Standard Ebooks', year: 1854, statement: 'Ticknor and Fields, 1854' },
+            basis: 'pre-1930-us'
+        },
+        load: () => import('./works/literary-walden.js')
+            .then(m => m.LITERARY_WALDEN_SECTIONS)
     },
     {
         meta: {
@@ -392,7 +408,10 @@ export function ingestedArchiveTexts() {
             // arrives, because the divisions are derived from it.
             divisions: null,
             getDivisions: async () => {
-                if (!divisions) divisions = divideSections(await load());
+                if (!divisions) {
+                    divisions = divideSections(await load(),
+                        { declared: STRUCTURED_IDS.has(meta.id) });
+                }
                 return divisions;
             },
             /**

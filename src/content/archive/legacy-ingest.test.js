@@ -44,7 +44,10 @@ describe('the legacy-classics replacement pass', () => {
     });
 
     it('publishes only the exact, checksummed replacement editions', () => {
-        expect(LEGACY_REINGESTED_WORKS).toHaveLength(17);
+        // Sixteen: Walden left this pipeline on 2026-08-18 for a structured
+        // edition, its Gutenberg payload having been missing 303 words
+        // (ARCHIVE-CLEANSING-SPEC §2j).
+        expect(LEGACY_REINGESTED_WORKS).toHaveLength(16);
         for (const work of LEGACY_REINGESTED_WORKS) {
             expect(work.meta.sourceSha256).toMatch(/^[0-9a-f]{64}$/);
             expect(work.meta.payloadChecksum).toMatch(/^[0-9a-f]{64}$/);

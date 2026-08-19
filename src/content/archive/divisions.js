@@ -638,6 +638,37 @@ function dropContentsEntries(entries, noun) {
 }
 
 /**
+ * The parts an edition declared, as divisions, unchanged.
+ *
+ * One entry per part, in the order the edition gave. No splitting, no folding,
+ * no contents filter — every one of those exists to repair a scheme nobody
+ * declared, and applying them here would be inventing a problem to solve.
+ */
+function declaredScheme(sections, total) {
+    const entries = sections.map((section, index) => {
+        const content = String(section?.content || '');
+        return {
+            id: index,
+            label: String(section?.name || `Part ${index + 1}`).trim(),
+            title: null,
+            ordinal: index + 1,
+            content,
+            words: wordsIn(content)
+        };
+    }).filter(entry => entry.content.trim());
+
+    return {
+        divided: entries.length > 1,
+        noun: null,
+        // Not `titled`, which means a scheme this module INFERRED from section
+        // names. `declared` means the edition said so.
+        reason: 'declared',
+        entries: entries.map((entry, index) => ({ ...entry, id: index, ordinal: index + 1 })),
+        words: total
+    };
+}
+
+/**
  * Is this preamble the book's own table of contents?
  *
  * War and Peace opened on 802 words reading "WAR AND PEACE By Leo
@@ -697,10 +728,24 @@ export function isContentsPage(text, noun) {
  * @param {{maxWords?: number, minWords?: number}} [opts]
  * @returns {{divided: boolean, noun: string|null, entries: object[]}}
  */
-export function divideSections(sections, { maxWords = 4000, minWords = 12000 } = {}) {
+export function divideSections(sections, { maxWords = 4000, minWords = 12000, declared = false } = {}) {
     const list = Array.isArray(sections) ? sections : [];
     const text = list.map(s => s?.content || '').join('\n\n');
     const total = wordsIn(text);
+
+    // A DECLARED SCHEME IS NOT RE-DERIVED.
+    //
+    // Everything below this line is archaeology: it reads section names as
+    // EVIDENCE and reconstructs a scheme, because a flat ingest left it no
+    // choice. A work acquired from an edition that marks its own parts has
+    // already answered the question, and asking it again is the same
+    // flatten-and-reconstruct that lost 303 words of Walden — here it merely
+    // lost the shape, cutting eighteen chapters into thirty-eight pieces and
+    // absorbing one of Spoon River's poems into its neighbour.
+    //
+    // A long chapter stays a long chapter. How much of one to read is a
+    // question for the reader and the extent grammar, not for the divider.
+    if (declared) return declaredScheme(list, total);
 
     const whole = (reason) => ({
         divided: false, noun: null, reason,

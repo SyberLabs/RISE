@@ -1404,9 +1404,10 @@ after that document was adopted, in a work already in the canon.
 
 | | |
 |---|---|
-| **re-source Walden — 303 words missing, and it is canonical** | **urgent — §2j** |
-| fix the three unanchored heading patterns | not started — §2j |
-| word-count reconciliation in the ingest | not started — §2j |
+| ~~re-source Walden~~ | **done 2026-08-18** — Standard Ebooks, 18 chapters, 0 lost |
+| ~~fix the three unanchored heading patterns~~ | **done 2026-08-18** — Whitman 908 sections → 23, 11,359 words recovered |
+| ~~word-count reconciliation in the ingest~~ | **done 2026-08-18** — both ingests refuse an undeclared loss |
+| Blake's ingest loses 39 words | **refused by the new check** — payload unchanged, work withheld |
 | re-ingest five verse works with lineation | not started — §2h |
 | a work-level audit for shape defects | not started — §3g |
 | `[Picture: …]` caption signature | not started — §2h |

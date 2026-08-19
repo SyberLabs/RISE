@@ -11,7 +11,7 @@
 import { describe, expect, it } from 'vitest';
 import { INGESTED_META } from './index.js';
 
-const STRUCTURED = ['spoon-river-anthology'];
+const STRUCTURED = ['spoon-river-anthology', 'literary-walden'];
 
 describe('a structured acquisition proves itself by provenance', () => {
   it.each(STRUCTURED)('%s records a digest for every source file', async (id) => {
@@ -47,5 +47,43 @@ describe('a structured acquisition proves itself by provenance', () => {
     for (const id of STRUCTURED) {
       expect(INGESTED_META.some(meta => meta.id === id), id).toBe(true);
     }
+  });
+});
+
+describe('a declared scheme is not re-derived', () => {
+  it('gives one division per part the edition marked', async () => {
+    const index = (await import('./division-index.json')).default;
+    // Everything divisions.js does below the `declared` gate is archaeology:
+    // it reads section names as evidence and reconstructs a scheme, because a
+    // flat ingest left it no choice. Running it over a declared scheme cut
+    // Walden's eighteen chapters into thirty-eight pieces and absorbed one of
+    // Spoon River's poems into its neighbour.
+    for (const id of STRUCTURED) {
+      const mod = await import(`./works/${id}.js`);
+      const sections = mod[`${id.toUpperCase().replace(/-/gu, '_')}_SECTIONS`];
+      expect(index[id].reason, `${id} scheme`).toBe('declared');
+      expect(index[id].count, `${id}: in must equal out`).toBe(sections.length);
+      expect(index[id].labels, `${id} labels`).toHaveLength(sections.length);
+    }
+  });
+
+  it('keeps a long chapter whole, because it is the author\'s chapter', async () => {
+    const index = (await import('./division-index.json')).default;
+    const walden = index['literary-walden'];
+    expect(walden.count).toBe(18);
+    expect(walden.labels[0]).toBe('Economy');
+    expect(walden.labels.at(-1)).toBe('Conclusion');
+    // Economy runs to 25,000 words and stays one division. How much of it to
+    // read is a question for the extent grammar, not for the divider.
+  });
+
+  it('holds the line the old ingest deleted', async () => {
+    // "And mercurial trout," matched Walden's heading pattern, and a heading
+    // is removed from the body once used as a title. It was gone, and no
+    // detector could find it (ARCHIVE-CLEANSING-SPEC §2j).
+    const mod = await import('./works/literary-walden.js');
+    const text = mod.LITERARY_WALDEN_SECTIONS.map(s => s.content).join('\n');
+    expect(text).toContain('And mercurial trout,');
+    expect(text).toContain('By gliding musquash undertook,');
   });
 });
