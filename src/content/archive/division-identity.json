@@ -30,6 +30,10 @@
       "divisions": 16,
       "checkable": true
     },
+    "confucius-analects": {
+      "divisions": 354,
+      "checkable": true
+    },
     "crane-line-and-form": {
       "divisions": 14,
       "checkable": true
@@ -99,7 +103,7 @@
       "checkable": true
     },
     "literary-essays-emerson": {
-      "divisions": 20,
+      "divisions": 46,
       "checkable": false
     },
     "literary-leaves-of-grass": {
@@ -128,6 +132,10 @@
     },
     "literary-walden": {
       "divisions": 38,
+      "checkable": true
+    },
+    "lyrical-ballads": {
+      "divisions": 50,
       "checkable": true
     },
     "madame-bovary": {
@@ -251,7 +259,7 @@
       "checkable": true
     },
     "the-brothers-karamazov": {
-      "divisions": 130,
+      "divisions": 91,
       "checkable": true
     },
     "the-canterbury-tales-and-other-poems": {

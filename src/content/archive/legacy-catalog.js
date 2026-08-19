@@ -66,7 +66,7 @@ export const LEGACY_REINGESTED_WORKS = [
             .then(module => module.LITERARY_POEMS_BLAKE_SECTIONS)
     },
     {
-        meta: {"id":"literary-essays-emerson","title":"Essays: First Series","author":"Ralph Waldo Emerson","shelf":"western","edition":{"publisher":"James Munroe and Company","year":1841},"basis":"pre-1930-us","chars":411053,"sections":1,"sourceSha256":"81815f0462758988764949d237d0b456f626673d0f989b4db9c68b299dc19494","payloadChecksum":"6eb8c1cdba5da157322231083814f648d342519d4117db46cf9898132038a5c5"},
+        meta: {"id":"literary-essays-emerson","title":"Essays","author":"Ralph Waldo Emerson","shelf":"western","edition":{"publisher":"Standard Ebooks","year":1841},"basis":"pre-1930-us","chars":736429,"sections":21,"payloadChecksum":"c8857d2376f4ab3e1dff6728b8f7e6fbdcbed5a911b405fab38b79bff654f525","structuredSource":"https://raw.githubusercontent.com/standardebooks/ralph-waldo-emerson_essays"},
         load: () => import('./works/literary-essays-emerson.js')
             .then(module => module.LITERARY_ESSAYS_EMERSON_SECTIONS)
     },

@@ -76,6 +76,30 @@ const CORE_WORKS = [
             .then(m => m.OEDIPUS_REX_SECTIONS)
     },
     {
+        meta: {
+            id: 'confucius-analects',
+            title: 'Analects',
+            author: 'Confucius',
+            shelf: 'eastern',
+            edition: { translator: 'James Legge', publisher: 'Standard Ebooks', year: 1861 },
+            basis: 'pre-1930-us'
+        },
+        load: () => import('./works/confucius-analects.js')
+            .then(m => m.CONFUCIUS_ANALECTS_SECTIONS)
+    },
+    {
+        meta: {
+            id: 'lyrical-ballads',
+            title: 'Lyrical Ballads',
+            author: 'William Wordsworth and Samuel Taylor Coleridge',
+            shelf: 'western',
+            edition: { publisher: 'Standard Ebooks', year: 1798 },
+            basis: 'pre-1930-us'
+        },
+        load: () => import('./works/lyrical-ballads.js')
+            .then(m => m.LYRICAL_BALLADS_SECTIONS)
+    },
+    {
         // Re-sourced 2026-08-18 from a structured edition. The Gutenberg
         // payload was missing 303 words its heading detector had eaten, and
         // carried Civil Disobedience under Walden's title

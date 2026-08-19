@@ -19,9 +19,14 @@ describe('the catalogue names divisions a curator can choose by', () => {
         expect(find('spoon-river-anthology').divisions.labels[0]).toBe('The Hill');
         // Ovid's parts are named by the edition, so a curator can choose one.
         expect(find('metamorphoses').divisions.labels[0]).toBe('Creation of the World');
-        // "Book I" is the count and the noun again, so Homer sends none.
-        expect(find('the-brothers-karamazov').divisions.labels).toBeUndefined();
-        expect(find('the-iliad').divisions.labels).toBeUndefined();
+        // Milton's parts are "Book I" through "Book XII" and the Analects'
+        // sayings are numbered — the count and the noun again, so neither
+        // sends any. Homer's books carry their own argument lines and
+        // Dostoevsky's subchapters have real titles, so both do.
+        expect(find('paradise-lost').divisions.labels).toBeUndefined();
+        expect(find('confucius-analects').divisions.labels).toBeUndefined();
+        expect(find('the-brothers-karamazov').divisions.labels).toHaveLength(104);
+        expect(find('the-iliad').divisions.labels).toHaveLength(24);
     });
 
     it('sends every label or none, so a position always names its division', () => {

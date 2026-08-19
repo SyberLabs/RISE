@@ -159,9 +159,15 @@ The cost is stated rather than hidden. Four works leave the canon because no
 Standard Ebooks edition exists: **Storm of Steel** (Jünger died in 1998),
 **the Dhammapada**, **Montaigne's Essays**, and **the Oedipus Trilogy** — the
 last only in that packaging, since Sophocles is published there as separate
-plays and *Oedipus Rex* is canonical in its place. The essay and the scriptural
-verse fixtures are lost with them, and the canon is honest about the gap rather
-than filling it from a source it cannot certify.
+plays and *Oedipus Rex* is canonical in its place.
+
+**Both lost fixtures were then restored from within the rule.** Montaigne was
+the only test of a short complete PROSE argument and the Dhammapada the only
+test of a numbered verse inside a chapter, so the canon took **Emerson's
+Essays** (21 complete arguments) and **the Analects** (499 addressable
+sayings, each its own `z3998:subchapter`) in their places. Lyrical Ballads
+came with them for the lyric and the ballad. The rule cost the canon nothing
+it could not replace from the same upstream.
 
 A DIFFERENT EDITION IS A DIFFERENT WORK, and an authored score knows it. The
 war Journey quotes Homer and Milton exactly, so re-sourcing them made every
@@ -182,7 +188,7 @@ Fifteen works, chosen so that each is also an ACCEPTANCE FIXTURE for a
 textual form the reading system must handle. A canon of favourites would prove
 nothing; a canon of forms proves the instrument.
 
-Twelve works, all from Standard Ebooks, all read rather than inferred.
+Fifteen works, all from Standard Ebooks, all read rather than inferred.
 
 | form the system must handle | work |
 |---|---|

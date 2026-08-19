@@ -13,7 +13,7 @@ import { INGESTED_META } from './index.js';
 
 const STRUCTURED = ['spoon-river-anthology', 'literary-walden', 'middlemarch', 'the-brothers-karamazov',
     'literary-meditations', 'sacred-tao-te-ching', 'the-iliad', 'the-divine-comedy',
-    'metamorphoses', 'paradise-lost', 'ulysses'];
+    'metamorphoses', 'paradise-lost', 'ulysses', 'literary-essays-emerson', 'confucius-analects', 'lyrical-ballads'];
 
 describe('a structured acquisition proves itself by provenance', () => {
   it.each(STRUCTURED)('%s records a digest for every source file', async (id) => {

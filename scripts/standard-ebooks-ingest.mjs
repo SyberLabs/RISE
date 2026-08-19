@@ -35,6 +35,33 @@ const RAW = 'https://raw.githubusercontent.com/standardebooks';
 const API = 'https://api.github.com/repos/standardebooks';
 
 const WORKS = {
+    'emerson': {
+        id: 'literary-essays-emerson',
+        repo: 'ralph-waldo-emerson_essays',
+        title: 'Essays',
+        author: 'Ralph Waldo Emerson',
+        shelf: 'western',
+        edition: { publisher: 'Standard Ebooks', year: 1841 },
+        rights: { basis: 'pre-1930-us', territory: 'US', evidence: 'First published 1841; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record.' }
+    },
+    'analects': {
+        id: 'confucius-analects',
+        repo: 'confucius_analects_james-legge',
+        title: 'Analects',
+        author: 'Confucius',
+        shelf: 'eastern',
+        edition: { translator: 'James Legge', publisher: 'Standard Ebooks', year: 1861 },
+        rights: { basis: 'pre-1930-us', territory: 'US', evidence: 'First published 1861; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record.' }
+    },
+    'lyrical-ballads': {
+        id: 'lyrical-ballads',
+        repo: 'william-wordsworth_samuel-taylor-coleridge_lyrical-ballads',
+        title: 'Lyrical Ballads',
+        author: 'William Wordsworth and Samuel Taylor Coleridge',
+        shelf: 'western',
+        edition: { publisher: 'Standard Ebooks', year: 1798 },
+        rights: { basis: 'pre-1930-us', territory: 'US', evidence: 'First published 1798; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record.' }
+    },
     'oedipus-rex': {
         id: 'oedipus-rex',
         repo: 'sophocles_oedipus-rex_francis-storr',

@@ -30,6 +30,9 @@
  */
 export const STRUCTURED_IDS = Object.freeze(new Set([
   'oedipus-rex',
+  'literary-essays-emerson',
+  'confucius-analects',
+  'lyrical-ballads',
   'spoon-river-anthology',
   'literary-walden',
   'middlemarch',
@@ -56,7 +59,14 @@ export const CANON = Object.freeze([
   { id: 'literary-walden', form: 'natural prose' },
   { id: 'ulysses', form: 'unusually structured' },
 
-  { id: 'paradise-lost', form: 'English blank-verse epic' }
+  { id: 'paradise-lost', form: 'English blank-verse epic' },
+
+  // The two fixtures the Standard Ebooks rule cost us, restored from within
+  // it. Montaigne was the only test of a short complete PROSE argument, and
+  // the Dhammapada the only test of a numbered verse inside a chapter.
+  { id: 'literary-essays-emerson', form: 'essay · 21 complete prose arguments' },
+  { id: 'confucius-analects', form: 'scriptural verse · 499 addressable sayings' },
+  { id: 'lyrical-ballads', form: 'lyric and ballad · 101 poems' }
 ]);
 
 export const CANON_IDS = Object.freeze(new Set(CANON.map(entry => entry.id)));
@@ -96,8 +106,10 @@ const NOT_IN_CANON = 'Not in the launch canon. The edition is inherited from a '
 const MEASURED = Object.freeze({
   'the-storm-of-steel': 'Jünger died in 1998 and no structured public-domain '
     + `edition exists. ${NOT_SE}The war Journey that read it is on ice.`,
-  'extended-dhammapada-full': `Max Müller's Sacred Books of the East. ${NOT_SE}`,
-  'montaigne-essays': `Cotton's translation, ed. Hazlitt. ${NOT_SE}`,
+  'extended-dhammapada-full': `Max Müller's Sacred Books of the East. ${NOT_SE}`
+    + 'The Analects carries the verse-inside-chapter form in its place.',
+  'montaigne-essays': `Cotton's translation, ed. Hazlitt. ${NOT_SE}`
+    + "Emerson's Essays carries the essay form in its place.",
   'the-oedipus-trilogy': 'RISE now serves Sophocles as the separate plays the '
     + 'editions publish; Oedipus Rex is canonical and the other two are '
     + `candidates. ${NOT_SE}`,

@@ -27,6 +27,7 @@
 const PART_SELECTOR = [
   'article[epub\\:type~="z3998:poem"]',
   'article[epub\\:type~="z3998:song"]',
+  'article[epub\\:type~="z3998:essay"]',
   'section[epub\\:type~="chapter"]',
   'article[epub\\:type~="chapter"]',
   'section[epub\\:type~="epilogue"]',
@@ -34,6 +35,10 @@ const PART_SELECTOR = [
   // A preface INSIDE the bodymatter is the work — Longfellow sets a sonnet
   // before each canticle of the Commedia. A preface the edition files as
   // frontmatter never reaches here, because the file is skipped whole.
+  // A numbered saying, or a numbered part of a long poem: the edition marks it
+  // as its own unit, so it is one. The Analects is five hundred of them, which
+  // is the verse-inside-chapter shape the Dhammapada was the only test of.
+  'section[epub\\:type~="z3998:subchapter"]',
   'section[epub\\:type~="preface"]'
 ].join(',');
 
@@ -70,6 +75,24 @@ export class StandardEbooksStructureError extends Error {
 }
 
 const clean = value => String(value ?? '').replace(/\s+/gu, ' ').trim();
+
+/**
+ * A NOTE MARKER IS NOT A WORD.
+ *
+ * An endnote reference is a superscript digit set against the word it follows,
+ * so reading the text plainly gives "During a Tour5" and "murmur.6—Once
+ * again". The notes themselves live in a backmatter file this importer never
+ * opens; the marker is apparatus and goes with them.
+ *
+ * The word reconciliation cannot see this. A marker adds no token — it fuses
+ * to the word beside it — so the counts balance while the text is wrong. It
+ * was found by reading Tintern Abbey, which is the only way it could be.
+ * Longfellow's Commedia carries 2,109 of them.
+ */
+function stripApparatus(doc) {
+  for (const marker of doc.querySelectorAll('[epub\\:type~="noteref"]')) marker.remove();
+  return doc;
+}
 
 function tag(node) {
   return node?.tagName ? node.tagName.toLowerCase() : '';
@@ -153,14 +176,23 @@ function blockText(element) {
  *   stanzas: number, lines: number }}
  */
 function readPart(element) {
-  const heading = element.querySelector('h1,h2,h3,h4,h5,h6');
+  // A HEADING GROUP IS ONE HEADING. The Analects sets "Book I" over its
+  // Chinese title in an hgroup, and reading only the `h2` left the second line
+  // to be picked up as prose — counted once as a title and once as content.
+  const heading = element.querySelector('hgroup') || element.querySelector('h1,h2,h3,h4,h5,h6');
   const title = heading ? clean(heading.textContent) : null;
-  if (heading) heading.remove();
 
+  // A PART IS ITS OWN BLOCKS. A chapter may hold numbered sub-parts, and each
+  // of those is a reading in its own right — but the prose the chapter itself
+  // carries before them is the chapter's, and taking only the innermost part
+  // dropped 2,191 words of Dostoevsky.
+  const nested = [...element.querySelectorAll(PART_SELECTOR)];
   // A block inside another block is read with its container, so taking both
   // would count the same words twice — a paragraph inside a table row, a
   // citation inside a paragraph. Only the outermost is a block of its own.
-  const candidates = [...element.querySelectorAll(BLOCK_SELECTOR)];
+  const candidates = [...element.querySelectorAll(BLOCK_SELECTOR)]
+    .filter(block => !nested.some(part => part.contains(block)))
+    .filter(block => !block.closest('hgroup,h1,h2,h3,h4,h5,h6'));
   const elements = candidates.filter(block => !candidates.some(
     other => other !== block && other.contains(block)));
   const blocks = elements.map(blockText).filter(Boolean);
@@ -185,9 +217,18 @@ function readPart(element) {
  * vanish. They are recorded, and counted, so the reconciliation stays honest.
  */
 export function readContainerHeadings(xhtml, parse) {
-  const doc = parse(String(xhtml));
-  return [...doc.querySelectorAll(CONTAINER_SELECTOR)]
+  const doc = stripApparatus(parse(String(xhtml)));
+  // A section that holds parts and no prose of its own names them. It may be
+  // marked as a container — a Book, a Volume — or be a chapter whose whole
+  // body is numbered sayings, as the Analects is.
+  return [...doc.querySelectorAll(`${CONTAINER_SELECTOR},${PART_SELECTOR}`)]
     .filter(section => section.querySelector(PART_SELECTOR))
+    .filter(section => {
+      const nested = [...section.querySelectorAll(PART_SELECTOR)];
+      return ![...section.querySelectorAll(BLOCK_SELECTOR)].some(
+        block => !nested.some(part => part.contains(block))
+          && !block.closest('hgroup,h1,h2,h3,h4,h5,h6'));
+    })
     .map(section => {
       const heading = [...section.children]
         .find(child => /^(?:h[1-6]|hgroup)$/u.test(tag(child)));
@@ -207,7 +248,7 @@ export function readContainerHeadings(xhtml, parse) {
  * @returns {string|null} the container's name, or null if this is not one
  */
 export function readContainerName(xhtml, parse) {
-  const doc = parse(String(xhtml));
+  const doc = stripApparatus(parse(String(xhtml)));
   const section = doc.querySelector(CONTAINER_SELECTOR);
   if (!section) return null;
   // A paragraph inside an hgroup is the second line of a heading — "Book I"
@@ -228,14 +269,14 @@ export function readContainerName(xhtml, parse) {
  * @returns {Array<object>}
  */
 export function readStandardEbooksFile(xhtml, parse) {
-  const doc = parse(String(xhtml));
-  const parts = [...doc.querySelectorAll(PART_SELECTOR)];
-  if (!parts.length) return [];
-  // A part inside another part would be counted twice, and the inner one is
-  // the real unit — a chapter wrapping poems is a container, not a reading.
-  const innermost = parts.filter(part => !parts.some(
-    other => other !== part && part.contains(other)));
-  return innermost.map(readPart).filter(part => part.content);
+  const doc = stripApparatus(parse(String(xhtml)));
+  // Every part, outer and inner, in the order the edition set them. Each keeps
+  // only its own blocks, so nothing is counted twice and nothing is dropped;
+  // a part left with no blocks of its own is a container and is recorded as
+  // one by readContainerHeadings rather than served as an empty reading.
+  return [...doc.querySelectorAll(PART_SELECTOR)]
+    .map(readPart)
+    .filter(part => part.content);
 }
 
 /**
@@ -249,7 +290,7 @@ export function readStandardEbooksFile(xhtml, parse) {
  * title is words the source carried.
  */
 export function reconcileWords(xhtml, parts, parse, extra = []) {
-  const doc = parse(String(xhtml));
+  const doc = stripApparatus(parse(String(xhtml)));
   const body = doc.querySelector('body');
   const sourceWords = clean(body ? body.textContent : '').split(' ').filter(Boolean).length;
   const counted = [
