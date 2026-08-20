@@ -169,7 +169,7 @@ because these axes reach the Iconclass-grade subject records.)
 
 ## §3 The Cleveland Museum of Art (CMA)
 
-**Role:** pins target (`adapters/cleveland.js`); used by the Atrium,
+**Role:** pins target (`adapters/cleveland.js`);
 not yet contributing to the chamber category pools. Strong in
 18th–19th-century European painting; also holds first-rank
 Impressionist works (Monet's *The Red Kerchief*, *Water Lilies
@@ -295,7 +295,7 @@ return empty image fields even when `hasImages` matched.
 ## §5 Rights ledger
 
 Per-institution rights signal → our RIGHTS basis
-(`src/content/atrium/imagery/works.js`). The gate everywhere:
+(`src/content/imagery/works.js`). The gate everywhere:
 **absence of a stated restriction is not permission** — only an
 explicit institutional statement clears.
 

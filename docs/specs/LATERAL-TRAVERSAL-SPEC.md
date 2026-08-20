@@ -146,8 +146,8 @@ flashes were shown, provenance was honored. Consequences:
 head reaches the final atom is complete — whether it arrived at 1×
 or 8×. The HWM is the honest and only progress metric; fast-forwarded
 text still passed the eyes. No dwell-time accounting, no "real
-reading" audit. (Progression systems — Atrium advancement, session
-records — read the HWM and the completion event; they do not inspect
+  reading" audit. (Progression systems — session
+  records — read the HWM and the completion event; they do not inspect
 velocity history.)
 
 ## 8. The liturgy exemption

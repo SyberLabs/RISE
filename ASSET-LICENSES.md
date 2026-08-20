@@ -61,7 +61,6 @@ republish them.
 | Starter sequences | `src/content/starters.js` |
 | Solarium sequences | `src/content/sol-sequences.js` |
 | Journey definitions and their authored programs | `src/content/journeys/demo.js`, `src/content/journeys/war.js` |
-| Atrium editorial framing and passage selection | `src/content/atrium/packs/pilot-v1/`, `src/content/atrium/editorial-review.js` |
 | Chapel liturgical arrangement | `src/content/chapel/liturgy/`, `src/content/chapel/chants.js` |
 | Specifications and design documents | `docs/` |
 
