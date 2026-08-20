@@ -27,6 +27,7 @@ import { MemoryCore } from './core/memory.js';
 import { initSourceSystem } from './sources/index.js';
 import { BetaGate } from './components/BetaGate.js';
 import './components/BetaGate.css';
+import { isRosaryDoor } from './core/rosary-door.js';
 
 import { visualCortex } from './visuals/visual-cortex.js';
 import { errorBoundary, ErrorCategory, ErrorSeverity } from './core/error-boundary.js';
@@ -227,10 +228,14 @@ class App {
             }
         } catch (e) { /* private mode, or unreadable state */ }
 
-        // Navigate to the recovered destination, personalized vault, or portal
+        // Navigate to the recovered destination, the Rosary door, a
+        // personalized vault, or the portal. `#rosary` is read here
+        // because the router does not own hashes.
         if (staleTarget && this.router.views.has(staleTarget)) {
             console.log('[RISE] Recovering navigation after stale build:', staleTarget);
             await this.router.navigate(staleTarget, { data: staleData });
+        } else if (isRosaryDoor()) {
+            await this.router.navigate('rosarium', { data: { door: true } });
         } else if (options.personalizedVault) {
             console.log('[RISE] Navigating directly to personalized vault:', options.personalizedVault);
             await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });
@@ -831,7 +836,8 @@ class App {
                 return new Rosarium(container, {
                     onNavigate: this.handleNavigate,
                     setId: data?.setId,
-                    iconId: data?.iconId
+                    iconId: data?.iconId,
+                    door: data?.door === true
                 });
             }
         });
