@@ -21,6 +21,13 @@ At its center is the **Chamber** — a reading instrument for combining:
 
 The reader chooses the conditions. RISE conducts the experience.
 
+Alongside the Chamber, RISE carries a **Catholic devotional instrument**: the
+Chapel, with the Douay-Rheims in seventy-three books, the Rosary and the
+Stations of the Cross prayed on a liturgy engine at measured pace, calendar-aware
+mystery sets, and sacred art pinned with verified rights. It is not an extra
+room. It is the second thing this project is for, and it is built to the
+standard the rest of the codebase is measured against.
+
 ---
 
 ## The Chamber
