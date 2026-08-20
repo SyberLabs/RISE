@@ -1,11 +1,12 @@
 import { cpus } from 'node:os';
 import { defineConfig } from 'vite';
 import { curiaPlugin } from './scripts/curia-plugin.js';
+import { exportMp4Plugin } from './scripts/export-mp4-plugin.js';
 
 export default defineConfig({
-  // Curia dev-write: apply:'serve' means the endpoint exists only on
+  // Curia / Export MP4: apply:'serve' means the endpoints exist only on
   // the dev server; production builds carry no write path.
-  plugins: [curiaPlugin()],
+  plugins: [curiaPlugin(), exportMp4Plugin()],
 
   // Note: We use a custom debug.js utility instead of dropping console statements.
   // This allows: debug logging in dev, optional debug in prod via localStorage,

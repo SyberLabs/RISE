@@ -26,6 +26,7 @@
     "build:voice-pack": "node scripts/build-voice-pack.mjs",
     "verify:render": "node scripts/verify-render-package.mjs",
     "render:mp4": "node scripts/render-mp4.mjs",
+    "render:mill": "node scripts/render-mill.mjs",
     "render:catalog": "node scripts/render-catalog.mjs"
   },
   "devDependencies": {
@@ -37,5 +38,8 @@
     "vite": "^7.2.4",
     "vite-node": "^3.2.4",
     "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "sql.js": "^1.14.2"
   }
 }

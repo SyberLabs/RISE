@@ -1,8 +1,9 @@
 /**
  * Node encoder adapter — RGBA frames + mixed PCM → H.264/AAC MP4.
  *
- * Uses a pinned local ffmpeg. Encoded container bytes are not the
- * determinism criterion; decoded frames and mixed samples remain that pin.
+ * Chamber and clerk both feed raw RGBA (or PNG if a caller still sends
+ * it). Encoded container bytes are not the determinism criterion;
+ * decoded frames and mixed samples remain that pin.
  * This module is Node-only. It does not belong in the isomorphic renderer.
  */
 
