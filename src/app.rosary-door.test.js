@@ -191,6 +191,32 @@ describe('Chapel Rosary door (#rosary)', () => {
     expect(prayerText()).toBeNull();
   });
 
+  it('open session, hashchange to #rosary: Sign of the Cross without reload', async () => {
+    localStorage.setItem('rise-beta-session', JSON.stringify(openSession()));
+    window.location.hash = '';
+    app = new App();
+    await app.checkBetaAccess();
+
+    expect(app.router.getCurrentView()).toBe('portal');
+    expect(prayerText()).toBeNull();
+
+    const navigate = vi.spyOn(app.router, 'navigate');
+    window.location.hash = ROSARY_DOOR_HASH;
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+
+    await vi.waitFor(() => {
+      expect(app.router.getCurrentView()).toBe('rosarium');
+      expect(prayerText()).toBe(ROSARY_PRAYERS.signOfTheCross);
+    });
+
+    expect(navigate).toHaveBeenCalledWith('rosarium', { data: { door: true } });
+    expect(navigate).not.toHaveBeenCalledWith('portal');
+    expect(navigate).not.toHaveBeenCalledWith('portal', expect.anything());
+    expect(document.getElementById('view-portal').hidden).toBe(true);
+    expect(document.getElementById('view-rosarium').hidden).toBe(false);
+    expect(window.location.hash).toBe(ROSARY_DOOR_HASH);
+  });
+
   it('the room without the door still opens on the chooser', () => {
     const container = document.createElement('div');
     const room = new Rosarium(container);
