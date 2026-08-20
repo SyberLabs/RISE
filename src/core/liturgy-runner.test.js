@@ -49,7 +49,9 @@ describe('LiturgyRunner (non-negotiable #3: fixed forms are fixed)', () => {
     const hail7 = atoms.find(atom => liturgyStepIdFromAtom(atom) === 'decade-2-hail-mary-7');
     expect(hail7).toBeTruthy();
     expect(hail7.duration).toBe(13000);
-    expect(liturgyStepState(compiled, 'decade-2-hail-mary-7').bead).toBe(6 + 11 + 1 + 6);
+    // Decade 2's Our Father is bead 16 (5 + 11); its Hail Marys run
+    // 17–26, so the seventh is bead 23.
+    expect(liturgyStepState(compiled, 'decade-2-hail-mary-7').bead).toBe(23);
   });
 });
 
@@ -76,7 +78,13 @@ describe('The Rosary structure (the count IS the form)', () => {
         .filter(step => step.state.phase === 'decade' && step.text === ROSARY_PRAYERS.hailMary)
         .map(step => step.state.bead);
       expect(new Set(beads).size).toBe(50);
-      expect(Math.max(...beads)).toBe(ROSARY_BEAD_COUNT - 1);
+      // A LITERAL, NOT THE FORMULA THAT PRODUCED IT. This line used to
+      // read `ROSARY_BEAD_COUNT - 1`, where both sides derived from the
+      // same 6 + (N-1)*11 expression — so it passed for any value of
+      // that expression, including the wrong one it was then asserting.
+      // A five-decade rosary's last bead is the fifty-ninth.
+      expect(Math.max(...beads)).toBe(59);
+      expect(ROSARY_BEAD_COUNT).toBe(59);
     }
   });
 

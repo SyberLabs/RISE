@@ -14,9 +14,14 @@
  *
  * Geometry: the loop carries the five decades (55 beads: 5 × (1 Our
  * Father + 10 Hail Marys)) arranged on an oval; the pendant hangs
- * below: medal, then the introductory beads (Glory Be, 3 Hail Marys,
- * Our Father), then the crucifix. Bead numbering matches
- * rosary-liturgy.js: crucifix 0, intro 1–5, decades 6–60.
+ * below: medal, then FOUR introductory beads (3 Hail Marys, Our
+ * Father), then the crucifix. Fifty-nine beads, which is what a
+ * five-decade rosary has.
+ *
+ * The Glory Be is prayed on the centrepiece and has no bead. This file
+ * used to draw it one — a fifth pendant bead — so the strand a reader
+ * looked at carried sixty. Numbering matches rosary-liturgy.js:
+ * centrepiece −1, crucifix 0, pendant 1–4, decades 5–59.
  */
 
 const EMBER = { r: 212, g: 165, b: 116 };
@@ -64,8 +69,8 @@ export class RosaryStrand {
       const decadeIndex = Math.floor(i / 11);
       const withinDecade = i % 11;
       beads.push({
-        // bead number: decade N's Our Father is 6 + N*11 - 11
-        bead: 6 + decadeIndex * 11 + withinDecade,
+        // bead number: decade N's Our Father is 5 + (N-1)*11
+        bead: 5 + decadeIndex * 11 + withinDecade,
         x: cx + Math.cos(angle) * rx,
         y: loopCy + Math.sin(angle) * ry,
         r: withinDecade === 0 ? 7.5 : 5.5,             // Our Father beads larger
@@ -73,17 +78,17 @@ export class RosaryStrand {
       });
     }
 
-    // The pendant: medal → Glory Be(5) → 3 Aves(4,3,2) → Pater(1) → crucifix(0)
+    // The pendant: medal(-1) → 3 Aves(4,3,2) → Pater(1) → crucifix(0).
+    // Four beads, not five. The Glory Be is prayed on the medal.
     const pendantX = cx;
     const medalY = loopCy + ry + 14;
     const drop = 24;
     beads.push({ bead: -1, x: pendantX, y: medalY, r: 8, kind: 'medal' });
-    beads.push({ bead: 5, x: pendantX, y: medalY + drop, r: 5.5, kind: 'ave' });
-    beads.push({ bead: 4, x: pendantX, y: medalY + drop * 2, r: 5.5, kind: 'ave' });
-    beads.push({ bead: 3, x: pendantX, y: medalY + drop * 3, r: 5.5, kind: 'ave' });
-    beads.push({ bead: 2, x: pendantX, y: medalY + drop * 4, r: 5.5, kind: 'ave' });
-    beads.push({ bead: 1, x: pendantX, y: medalY + drop * 5, r: 7.5, kind: 'pater' });
-    beads.push({ bead: 0, x: pendantX, y: medalY + drop * 6 + 10, r: 11, kind: 'crucifix' });
+    beads.push({ bead: 4, x: pendantX, y: medalY + drop, r: 5.5, kind: 'ave' });
+    beads.push({ bead: 3, x: pendantX, y: medalY + drop * 2, r: 5.5, kind: 'ave' });
+    beads.push({ bead: 2, x: pendantX, y: medalY + drop * 3, r: 5.5, kind: 'ave' });
+    beads.push({ bead: 1, x: pendantX, y: medalY + drop * 4, r: 7.5, kind: 'pater' });
+    beads.push({ bead: 0, x: pendantX, y: medalY + drop * 5 + 10, r: 11, kind: 'crucifix' });
 
     return { beads, cx, loopCy, rx, ry, pendantX, medalY, drop };
   }

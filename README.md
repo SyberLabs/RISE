@@ -21,6 +21,13 @@ At its center is the **Chamber** — a reading instrument for combining:
 
 The reader chooses the conditions. RISE conducts the experience.
 
+Alongside the Chamber, RISE carries a **Catholic devotional instrument**: the
+Chapel, with the Douay-Rheims in seventy-three books, the Rosary and the
+Stations of the Cross prayed on a liturgy engine at measured pace, calendar-aware
+mystery sets, and sacred art pinned with verified rights. It is not an extra
+room. It is the second thing this project is for, and it is built to the
+standard the rest of the codebase is measured against.
+
 ---
 
 ## The Chamber
@@ -179,41 +186,6 @@ It answers a different question:
 
 ---
 
-## RISE Chain — Experimental
-
-RISE Chain is an experimental generative lane exploring what happens when a library is treated not only as a collection of separate books, but as a stochastic linguistic field.
-
-The current research prototype uses a variable-order Markov process over selected Archive sources with:
-
-- deterministic seeds,
-- inspectable source genealogy,
-- entropy-sensitive backoff,
-- bounded source reproduction,
-- selectable probability profiles,
-- and an external conditioning interface.
-
-Generated language is explicitly presented as recomposition, never as quotation.
-
-The longer-term experiment is a coupled system in which language, procedural image, and sound recursively condition one another:
-
-```text
-language
-    ↓
-visual state
-    ↓
-acoustic state
-    ↓
-transition probabilities
-    ↓
-language
-```
-
-The aim is not to simulate an author.
-
-It is to investigate whether a corpus can become a dynamic medium in its own right.
-
----
-
 ## Design Principles
 
 Several rules have emerged through the development of RISE.
@@ -318,7 +290,6 @@ RISE is primarily a client-side JavaScript application built with Vite.
 ```text
 src/
 ├── audio/          Web Audio, recitation, voice and sound systems
-├── chain/          Experimental stochastic language systems
 ├── components/     Chamber, Portal, Library, Workshop and pavilions
 ├── content/        Curated texts, Journeys, Chapel, Atrium and collections
 ├── core/           Session compilation, chunking, pacing and shared models
