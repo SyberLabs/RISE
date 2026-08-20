@@ -48,7 +48,6 @@ import './components/Library.css';
 import './components/Workshop.css';
 import './components/Settings.css';
 import './components/Guide.css';
-import './components/Sol.css';
 import './components/Chapel.css';
 import './components/Rosarium.css';
 import './components/Via.css';
@@ -808,21 +807,6 @@ class App {
             }
         });
 
-        // Sol
-        this.router.registerView('sol', {
-            container: document.getElementById('view-sol'),
-            init: async (container) => {
-                const { Sol } = await import('./components/Sol.js');
-                return new Sol(container, {
-                    onNavigate: this.handleNavigate,
-                    onLaunchSequence: (data) => this.handleSolLaunch(data),
-                    // My Day plan entries may bind Workshop blueprints to
-                    // windows — same compile path the Vault uses
-                    onLaunchBlueprint: (blueprint) => this.handleCreateSession(blueprint)
-                });
-            }
-        });
-
         // The Rosarium — the Rosary's own room, entered from the Chapel
         this.router.registerView('rosarium', {
             container: document.getElementById('view-rosarium'),
@@ -980,33 +964,6 @@ class App {
                     soundscape: config.soundscape || 'none',
                     visualConfig: config.visualConfig || { visualMode: 'off' },
                     origin: { view: 'vault', icon: '◈', name: 'Vault' }
-                }
-            }
-        });
-    }
-
-    /**
-     * Handle Sol sequence launch
-     * Navigates to Chamber with Sol configuration
-     * @param {Object} data - { sequence, config }
-     */
-    handleSolLaunch(data) {
-        console.log('[RISE] Sol launch:', data.sequence.title);
-
-        const { sequence, config } = data;
-
-        // Navigate to Chamber
-        this.router.navigate('chamber', {
-            data: {
-                text: sequence.content,
-                source: `SOL: ${sequence.title}`,
-                config: {
-                    wpm: config.wpm,
-                    curve: config.curve,
-                    audioPreset: config.audioPreset || 'silent',
-                    soundscape: config.soundscape || 'none',
-                    visualConfig: config.visualConfig || { visualMode: 'off' },
-                    origin: { view: 'sol', icon: '☀', name: 'SOL' }
                 }
             }
         });

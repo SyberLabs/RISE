@@ -1,6 +1,6 @@
 /**
  * Origin chip integration tests — launches carrying origin metadata
- * (SOL / Vault / Library) show a wayfinding chip in the orbital view
+ * (Library / Vault / Chapel) show a wayfinding chip in the orbital view
  * that returns to the originating view; plain sessions show nothing.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -27,7 +27,11 @@ function makeOrbital(onBeginSession = () => { }) {
     return { orbital, container, onNavigate };
 }
 
-const SOL_ORIGIN = { view: 'sol', icon: '☀', name: 'SOL' };
+// THE EXAMPLE ORIGIN, not the subject. These tests are about the chip — that
+// it names where a reading came from and returns there — and the Solarium was
+// only the room they happened to name. It is deleted; the Library is not, and
+// it sets exactly this origin when a reader opens a work from the shelf.
+const LIBRARY_ORIGIN = { view: 'library', icon: '◇', name: 'Library' };
 
 describe('ChamberOrbital origin chip', () => {
     beforeEach(() => {
@@ -59,13 +63,13 @@ describe('ChamberOrbital origin chip', () => {
 
     it('renders the chip when a launch carries origin metadata', () => {
         const { orbital, container } = makeOrbital();
-        orbital.loadText('The body wakes...', 'SOL: Dawn', { origin: SOL_ORIGIN });
+        orbital.loadText('The body wakes...', 'Walden · Economy', { origin: LIBRARY_ORIGIN });
 
         const chip = container.querySelector('.orbital-origin-chip');
         expect(chip).not.toBeNull();
-        expect(chip.textContent).toContain('☀');
-        expect(chip.textContent).toContain('SOL');
-        expect(chip.title).toBe('Return to SOL');
+        expect(chip.textContent).toContain('◇');
+        expect(chip.textContent).toContain('Library');
+        expect(chip.title).toBe('Return to Library');
 
         orbital.destroy();
         container.remove();
@@ -73,10 +77,10 @@ describe('ChamberOrbital origin chip', () => {
 
     it('clicking the chip navigates back to the originating view', () => {
         const { orbital, container, onNavigate } = makeOrbital();
-        orbital.loadText('text', 'SOL: Dawn', { origin: SOL_ORIGIN });
+        orbital.loadText('text', 'Walden · Economy', { origin: LIBRARY_ORIGIN });
 
         container.querySelector('.orbital-origin-chip').click();
-        expect(onNavigate).toHaveBeenCalledWith('sol');
+        expect(onNavigate).toHaveBeenCalledWith('library');
 
         orbital.destroy();
         container.remove();
@@ -152,7 +156,7 @@ describe('ChamberOrbital origin chip', () => {
         localStorage.removeItem('rise_orbital_prefs_v1');
 
         const { orbital, container } = makeOrbital();
-        orbital.loadText('the text', 'SOL: Dawn', { origin: { view: 'sol', icon: '☀', name: 'SOL' } });
+        orbital.loadText('the text', 'Walden · Economy', { origin: LIBRARY_ORIGIN });
         orbital.config.wpm = 400;
         orbital.config.visualInterlocution.visualMode = 'genesis';
         orbital._persistPrefs();
@@ -164,7 +168,7 @@ describe('ChamberOrbital origin chip', () => {
         expect(localStorage.getItem('rise_orbital_prefs_v1')).toBeNull();
         // Session context survives — settings amnesia, not session amnesia
         expect(orbital.config.text).toBe('the text');
-        expect(orbital.config.origin?.view).toBe('sol');
+        expect(orbital.config.origin?.view).toBe('library');
         expect(container.querySelector('.orbital-origin-chip')).not.toBeNull();
 
         // A fresh orbital starts from defaults (destroy persists the
@@ -523,7 +527,7 @@ describe('ChamberOrbital origin chip', () => {
 
     it('a subsequent plain load replaces a previous origin', () => {
         const { orbital, container } = makeOrbital();
-        orbital.loadText('text', 'SOL: Dawn', { origin: SOL_ORIGIN });
+        orbital.loadText('text', 'Walden · Economy', { origin: LIBRARY_ORIGIN });
         orbital.loadText('other text', 'Pasted', {});
         expect(container.querySelector('.orbital-origin-chip')).toBeNull();
 
@@ -533,14 +537,14 @@ describe('ChamberOrbital origin chip', () => {
 
     it('the loaded text survives a refresh, with source and origin chip', () => {
         const a = makeOrbital();
-        a.orbital.loadText('the persistent text', 'SOL: Dawn', { origin: SOL_ORIGIN });
+        a.orbital.loadText('the persistent text', 'Walden · Economy', { origin: LIBRARY_ORIGIN });
         a.orbital.destroy();
         a.container.remove();
 
         const b = makeOrbital();
         expect(b.orbital.config.text).toBe('the persistent text');
-        expect(b.orbital.config.textSource).toBe('SOL: Dawn');
-        expect(b.orbital.config.origin?.view).toBe('sol');
+        expect(b.orbital.config.textSource).toBe('Walden · Economy');
+        expect(b.orbital.config.origin?.view).toBe('library');
         expect(b.container.querySelector('.orbital-origin-chip')).not.toBeNull();
 
         // Clearing the card clears the persistence with it
