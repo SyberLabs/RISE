@@ -18,10 +18,18 @@ async function openWorkshopWithSource(page) {
 
     await page.getByRole('button', { name: 'Sources', exact: true }).click();
     await page.getByRole('button', { name: 'Browse' }).click();
-    await expect(page.locator('.sb-content-title')).toContainText('Curated Archive · 107 works');
-    await page.getByRole('searchbox', { name: 'Search the source library' }).fill('A Hundred and Seventy Chinese Poems');
+    // Waley is withheld from the launch canon. Live count is 34, read
+    // from the heading rather than the retired 107-work archive.
+    await expect(page.locator('.source-browser-overlay')).toBeVisible();
+    await expect(page.locator('.sb-content-title')).toContainText('Curated Archive');
+    const heading = await page.locator('.sb-content-title').innerText();
+    const liveCount = Number((heading.match(/(\d+) works?/) || [])[1]);
+    expect(liveCount, 'source browser should report the live catalog').toBeGreaterThan(0);
+    expect(liveCount).not.toBe(107);
+    await expect(page.locator('.sb-item')).toHaveCount(liveCount);
+    await page.getByRole('searchbox', { name: 'Search the source library' }).fill('Walden');
     await expect(page.locator('.sb-item')).toHaveCount(1);
-    await page.getByRole('button', { name: /Open chapters of A Hundred and Seventy Chinese Poems/ }).click();
+    await page.getByRole('button', { name: /Open chapters of Walden/ }).click();
     await expect(page.locator('.sb-contents')).toBeVisible();
     await expect.poll(() => page.locator('.sb-chapter-item').count()).toBeGreaterThan(1);
     await page.locator('.sb-chapter-add').first().click();
