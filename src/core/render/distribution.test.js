@@ -1,9 +1,9 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { buildVerticalSlice } from './vertical-slice.js';
-import { renderDistributionPackages, renderPreview } from './distribution.js';
+import { renderDistributionPackages, renderPreview, renderProfilePackage } from './distribution.js';
 import { verifyRenderPackage } from './verify.js';
 import { writeRenderPackageDir, readRenderPackageDir } from './package-fs.js';
 import { owedCreditLines } from './package.js';
@@ -63,8 +63,21 @@ describe('distribution packages', () => {
     expect(cues.every(cue => cue.sourceId === 'source-1')).toBe(true);
     expect(cues[0]).toHaveProperty('sourceCharacterStart');
     expect(cues.every(cue => cue.playToMs <= 3000)).toBe(true);
+    expect(preview.mp4Path).toBeUndefined();
     expect(await verifyRenderPackage(preview.package)).toMatchObject({ ok: true });
   }, 20_000);
+
+  it('refuses renderProfilePackage as a compile and does not export it as one', async () => {
+    await expect(renderProfilePackage({}, 'social-portrait-1080', { compile: true }))
+      .rejects.toMatchObject({
+        name: 'RenderError',
+        code: 'RENDER_COMPILE_POSTER'
+      });
+    const indexSrc = readFileSync(join(process.cwd(), 'src/core/render/index.js'), 'utf8');
+    expect(indexSrc).not.toMatch(/renderProfilePackage/);
+    expect(indexSrc).toMatch(/renderArtifact/);
+    expect(indexSrc).toMatch(/renderPreview/);
+  });
 
   it('writes a directory the verification CLI can inspect', async () => {
     const slice = await buildVerticalSlice();

@@ -37,7 +37,7 @@ vi.mock('../producer.js', () => ({
         job: { profile: 'social-portrait-1080' },
         plan: { frameCount: 6, durationMs: 200 },
         package: {},
-        encoded: { path: encode.outputPath, width: 108, height: 192 }
+        encoded: { path: encode.outputPath, width: 1080, height: 1920 }
       }
     }
   }))
@@ -156,18 +156,24 @@ describe('render intake', () => {
     expect(runProducer).not.toHaveBeenCalled();
   });
 
-  it('compiles an operation set through runProducer', async () => {
+  it('compiles an operation set through runProducer at encode.tier final', async () => {
     const dir = tempDir();
-    await renderFromDocument(operationSet, {
+    const outputPath = join(dir, 'experience.mp4');
+    const artifact = await renderFromDocument(operationSet, {
       sources,
       painter: 'clerk',
-      outputPath: join(dir, 'experience.mp4')
+      outputPath
     });
     expect(runProducer).toHaveBeenCalledOnce();
     const call = vi.mocked(runProducer).mock.calls[0][0];
     expect(call.operationSet.operations.some(op => op.op === 'request-compile')).toBe(true);
     expect(call.encode.painter).toBe('clerk');
+    expect(call.encode.tier).toBe('final');
     expect(call.proposePublication).toBe(false);
+    expect(artifact.mp4Path).toBe(outputPath);
+    expect(artifact.job.profile).toBe('social-portrait-1080');
+    expect(artifact.encoded.width).toBe(1080);
+    expect(artifact.encoded.height).toBe(1920);
     expect(renderArtifact).not.toHaveBeenCalled();
   });
 

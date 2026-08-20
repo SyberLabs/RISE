@@ -235,13 +235,14 @@ export async function runProducer({
       /* @vite-ignore */
       new URL('./render/artifact.js', import.meta.url).href
     );
-    const tierInfo = qualityTier(encode?.tier || tier);
+    // Compile is always the final pin (scale 1, 48 kHz). Draft is preview only.
+    const compileTier = qualityTier('final');
     const ids = profiles || [compiled.profileId];
     for (const profileId of ids) {
       const job = profileId === compiled.profileId
         ? compiled.job
         : deriveRenderJob(compiled.job, profileId);
-      packages[profileId] = await renderArtifact({
+      const artifact = await renderArtifact({
         schema: KERNEL_REQUEST_SCHEMA,
         program: compiled.program,
         sources: compiled.sources,
@@ -250,13 +251,17 @@ export async function runProducer({
         job,
         outputPath: encode?.outputPath,
         painter: encode?.painter || 'chamber',
-        scale: encode?.scale ?? tierInfo.scale,
-        sampleRate: encode?.sampleRate || tierInfo.sampleRate,
+        scale: encode?.scale ?? compileTier.scale,
+        sampleRate: encode?.sampleRate || compileTier.sampleRate,
         ffmpegPath: encode?.ffmpegPath,
         fromMs: encode?.fromMs,
         toMs: encode?.toMs,
-        tier: encode?.tier || tier
+        tier: 'final'
       });
+      if (!artifact?.mp4Path) {
+        fail('PRODUCER_COMPILE_MP4', 'Compile must mux an MP4 via renderArtifact', '$');
+      }
+      packages[profileId] = artifact;
     }
   }
   result.packages = packages;
