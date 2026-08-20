@@ -22,7 +22,7 @@
 import { compileJourney } from '../../core/journey-compiler.js';
 import { detectVerseLineation } from '../../core/chunker.js';
 import { resolveJourneyPassages, verifyPassageChecksums } from './passages.js';
-import { readJourneyMovements } from '../atrium/journey-segments.js';
+import { readJourneyMovements } from '../journeys/journey-segments.js';
 
 export class JourneyHandoffError extends Error {
     constructor(code, message, details = {}) {

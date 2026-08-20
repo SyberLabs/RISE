@@ -13,7 +13,7 @@
  * cannot resolve yields stillness, never a Wikimedia substitute.
  */
 
-import { PinnedWorksProvider } from '../../atrium/imagery/provider.js';
+import { PinnedWorksProvider } from '../../imagery/provider.js';
 import { CHAPEL_PINNED_COLLECTIONS, hasChapelCollection as hasStaticChapelCollection } from './collections.js';
 import { allPericopeCollections } from './pericope-program.js';
 

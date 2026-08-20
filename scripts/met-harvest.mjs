@@ -148,7 +148,7 @@ function render(collectionId, queries, works) {
 <div class="bar">
   <button id="copy">Copy kept pins</button>
   <span class="count" id="count"></span>
-  <span class="count">Paste into ATRIUM_PINNED_COLLECTIONS in src/content/atrium/imagery/collections.js</span>
+  <span class="count">Paste into ATRIUM_PINNED_COLLECTIONS in src/content/imagery/collections.js</span>
 </div>
 <textarea id="sink"></textarea>
 <script>

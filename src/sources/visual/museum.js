@@ -455,7 +455,7 @@ export class MuseumProvider extends SourceProvider {
                     if (group[i]) pins.push(group[i]);
                 }
             }
-            const { resolveCollection } = await import('../../content/atrium/imagery/service.js');
+            const { resolveCollection } = await import('../../content/imagery/service.js');
             // Chunked: 95 rijks pins are ~285 Linked-Art requests on a
             // cold cache — batches of 8 keep the museum's API unhammered.
             // SourceCache (30 days) makes every later session instant.

@@ -21,7 +21,7 @@
  * prayer time.
  */
 
-import { freezeManifest } from '../../atrium/constants.js';
+import { freezeManifest } from '../../manifest.js';
 
 /** setId -> [work|null × 5], index = mystery ordinal - 1. */
 export const ROSARY_MYSTERY_WORKS = freezeManifest({

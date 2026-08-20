@@ -24,7 +24,7 @@ function makePortal(options = {}) {
 }
 
 describe('Portal SOL strip', () => {
-    it('nav holds the four core tools; Atrium and SOL live as specialized entries', () => {
+    it('nav holds the core tools; SOL lives as a specialized entry', () => {
         const { portal, container } = makePortal();
 
         // The nav row is tools operating on the reader's own material;
@@ -32,16 +32,6 @@ describe('Portal SOL strip', () => {
         const secondary = container.querySelectorAll('.nav-secondary .nav-item');
         expect(secondary).toHaveLength(3);
         expect([...secondary].map(el => el.dataset.nav)).toEqual(['vault', 'library', 'workshop']);
-
-        // The Atrium is now a marble pavilion in the side margin, not a
-        // stacked door — but the same nav hook and living detail hold. The
-        // name is carved on the pavilion's entablature frieze.
-        const door = container.querySelector('.portal-arch-atrium');
-        expect(door).not.toBeNull();
-        expect(door.dataset.nav).toBe('atrium');
-        expect(door.querySelector('.gz-name').textContent).toBe('Atrium');
-        // The pavilion renders complete before any lazy detail arrives
-        expect(door.querySelector('.atrium-door-detail').textContent.length).toBeGreaterThan(0);
 
         const strip = container.querySelector('.portal-arch-sol');
         expect(strip).not.toBeNull();
@@ -51,26 +41,14 @@ describe('Portal SOL strip', () => {
         container.remove();
     });
 
-    it('clicking the Atrium arch navigates to the Atrium', () => {
-        const { portal, container, onNavigate } = makePortal();
-        container.querySelector('.portal-arch-atrium').click();
-        expect(onNavigate).toHaveBeenCalledWith('atrium');
-        portal.destroy();
-        container.remove();
-    });
-
-    it('keeps a simple, timeless Atrium caption across re-entries', async () => {
+    it('offers no door to a room that is gone', () => {
+        // The Atrium was deleted and its door was not, for exactly as long as
+        // it took to run the tests — a button whose only job is to navigate
+        // somewhere the router no longer registers. Asserted rather than
+        // remembered, because the next room to go will leave the same door.
         const { portal, container } = makePortal();
-
-        const before = container.querySelector('.atrium-door-detail').textContent;
-        expect(before).toBe('philosophy & history');
-
-        // The populate hook is invoked at idle and on router re-entry; it
-        // must NOT deepen the caption into today's featured sequence.
-        await portal._populateAtriumDoor();
-        expect(container.querySelector('.atrium-door-detail').textContent)
-            .toBe('philosophy & history');
-
+        expect(container.querySelector('[data-nav="atrium"]')).toBeNull();
+        expect(container.querySelector('.portal-arch-atrium')).toBeNull();
         portal.destroy();
         container.remove();
     });

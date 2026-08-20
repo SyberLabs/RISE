@@ -8,8 +8,8 @@ import {
   hasChapelCollection as hasProviderChapelCollection,
   setDynamicChapelCollections
 } from './provider.js';
-import { resolveAicWork } from '../../atrium/imagery/adapters/aic.js';
-import { resolveRijksWork } from '../../atrium/imagery/adapters/rijks.js';
+import { resolveAicWork } from '../../imagery/adapters/aic.js';
+import { resolveRijksWork } from '../../imagery/adapters/rijks.js';
 import { createChapelHandoff, chapelSensoryConfig } from '../handoff.js';
 
 const KNOWN_SOURCES = new Set(['met', 'cleveland', 'aic', 'rijks']);
@@ -72,7 +72,7 @@ describe('Chapel pinned collections', () => {
   });
 
   it('stays within the service request bound', async () => {
-    const service = readFileSync(resolve('src/content/atrium/imagery/service.js'), 'utf8');
+    const service = readFileSync(resolve('src/content/imagery/service.js'), 'utf8');
     const bound = Number(/MAX_WORKS_PER_COLLECTION = (\d+)/.exec(service)?.[1]);
     for (const [id, collection] of Object.entries(CHAPEL_PINNED_COLLECTIONS)) {
       expect(collection.works.length, `${id} exceeds service bound — pins would silently truncate`)

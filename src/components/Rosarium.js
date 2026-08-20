@@ -339,7 +339,7 @@ export class Rosarium {
         sourceUrl: pin.sourceUrl
       };
     }
-    const { resolveCollection } = await import('../content/atrium/imagery/service.js');
+    const { resolveCollection } = await import('../content/imagery/service.js');
     const resolved = await resolveCollection(
       { works: [pin] },
       { signal: this._visualAbort?.signal }

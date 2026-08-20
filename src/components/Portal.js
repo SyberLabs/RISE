@@ -23,24 +23,9 @@ export class Portal {
     this.attachEvents();
     this.sequentialReveal();
     this.startSolStrip();
-    this.startAtriumDoor();
     this.syncContinue();
   }
 
-  /**
-   * The Atrium doorway's living detail — today's featured sequence.
-   * The corpus metadata is a separate lazy chunk (shared with the
-   * Atrium view, so this also warms it); the door renders immediately
-   * with static copy and deepens when the chunk arrives at idle.
-   * Only launchable sequences are ever featured.
-   */
-  startAtriumDoor() {
-    // The pavilion keeps a simple, timeless caption — "philosophy &
-    // history" — rather than deepening into today's featured sequence.
-    // The hook is retained (update() calls it) as a harmless no-op so the
-    // caption stays constant across router re-entries.
-    this._populateAtriumDoor = () => {};
-  }
 
   /**
    * The living SOL strip — the portal's heartbeat. SOL is a *when*, not
@@ -111,8 +96,6 @@ export class Portal {
   /** Router re-entry hook — refresh the living entries on return */
   update() {
     this.updateSolStrip();
-    // The featured sequence rolls at midnight; module is cached by now
-    this._populateAtriumDoor?.();
     // Returning from a reading is precisely when this changes.
     this.syncContinue();
   }
@@ -324,20 +307,12 @@ export class Portal {
           </div>
         </nav>
 
-        <!-- Two thresholds: Atrium and Solarium, flanking the centre.
-             Desktop: absolute beside the sigil (wrapper is display:contents).
-             Phone: two matched doors side by side. -->
+        <!-- ONE THRESHOLD, WHERE THERE WERE TWO. The Atrium door stood here
+             and is gone with the room behind it; the wrapper stays because
+             the Solarium still uses it, and because a door is cheaper to add
+             than the room it opens onto.
+             Desktop: absolute beside the sigil (wrapper is display:contents). -->
         <div class="portal-arches">
-        <!-- Atrium niche: curated doorway; featured sequence loads lazily. -->
-        <button class="portal-arch portal-arch-atrium" data-nav="atrium" style="opacity: 0;" aria-label="Enter the Atrium">
-          ${this._gazeboMarkup('Atrium', `
-            <span class="gz-marble"></span>
-            <span class="gz-niche-shade"></span>
-          `, `
-            <span class="portal-arch-detail atrium-door-detail">philosophy &amp; history</span>
-          `, '⬡')}
-        </button>
-
         <!-- Solarium: a when, not a place — Earth by the real clock.
              Route/view remain 'sol'; the carved name pairs with Atrium. -->
         <button class="portal-arch portal-arch-sol" data-nav="sol" style="opacity: 0;" aria-label="Enter the Solarium">
@@ -501,14 +476,6 @@ export class Portal {
       nav.style.transition = 'opacity 400ms var(--ease-out)';
       nav.style.opacity = '1';
     }, 1100);
-
-    const atriumArch = this.container.querySelector('.portal-arch-atrium');
-    revealTimeout(() => {
-      if (atriumArch) {
-        atriumArch.style.transition = 'opacity 700ms var(--ease-out)';
-        atriumArch.style.opacity = '1';
-      }
-    }, 1300);
 
     const solArch = this.container.querySelector('.portal-arch-sol');
     revealTimeout(() => {

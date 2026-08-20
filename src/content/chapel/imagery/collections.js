@@ -29,7 +29,7 @@
  * cannot resolve yields stillness, never a wrong image.
  */
 
-import { freezeManifest } from '../../atrium/constants.js';
+import { freezeManifest } from '../../manifest.js';
 
 export const CHAPEL_PINNED_COLLECTIONS = freezeManifest({
     'chapel-crucifixion': {

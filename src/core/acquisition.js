@@ -10,7 +10,7 @@
  * module never writes IndexedDB.
  */
 
-import { RIGHTS as ATRIUM_RIGHTS } from '../content/atrium/imagery/works.js';
+import { RIGHTS as ATRIUM_RIGHTS } from '../content/imagery/works.js';
 import { READING_LIMITS } from './reading-limits.js';
 import { looksLikeUri, contentHashOfBytes, parseContentHash } from './render/hash.js';
 import { RENDER_LIMITS, RENDER_RIGHTS_STATUSES } from './render/limits.js';

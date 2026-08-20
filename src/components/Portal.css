@@ -538,7 +538,6 @@
 .portal-arch { transform: translateY(-50%); }
 /* Nudged inward from the true edges — the pavilions sit a little closer
    to the reading centre without crowding it. */
-.portal-arch-atrium { left: clamp(40px, 6vw, 132px); }
 .portal-arch-sol    { right: clamp(40px, 6vw, 132px); }
 
 /* …and further in on a desktop, where the margin was mostly void. At
@@ -548,7 +547,6 @@
    phone the pavilions are already as close to the middle as the middle
    can afford. */
 @media (min-width: 1024px) {
-  .portal-arch-atrium { left: clamp(72px, 9vw, 190px); }
   .portal-arch-sol    { right: clamp(72px, 9vw, 190px); }
 }
 
@@ -641,7 +639,6 @@
    niche with the SAME navy so the smaller (contained) figure sits on a
    seamless field — no darker negative space around it. SOL keeps the
    near-black niche for its starfield. */
-.portal-arch-atrium .gz-niche { background: #23273c; }
 .gz-niche > span,
 .gz-niche > .gz-earth-disc { position: absolute; }
 /* the niche's inner shading — depth, and legibility for the name/caption */
@@ -708,7 +705,6 @@
   filter: brightness(1.02) contrast(1.02);
   transition: transform 0.9s var(--ease-out);
 }
-.portal-arch-atrium:hover .gz-marble { transform: scale(1.03); }
 
 /* SOL: the Earth disc in a field of stars */
 .gz-starfield {
@@ -1078,7 +1074,6 @@
   [data-nav="vault"] .room-glyph    { color: var(--color-threshold); }
   [data-nav="library"] .room-glyph  { color: rgba(139, 127, 212, 0.6); }
   [data-nav="workshop"] .room-glyph { color: var(--color-ember); }
-  .portal-arch-atrium .portal-arch-glyph { color: var(--color-chamber); }
   .portal-arch-sol .portal-arch-glyph    { color: var(--color-ember); }
 
   /* The Solarium's mark is not a fixed glyph: it is the sun or the

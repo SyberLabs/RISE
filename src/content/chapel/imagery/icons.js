@@ -16,7 +16,7 @@
  * falls back to stillness — never to a different image.
  */
 
-import { freezeManifest } from '../../atrium/constants.js';
+import { freezeManifest } from '../../manifest.js';
 
 export const CHAPEL_ICONS = freezeManifest({
   'icon-pantocrator-sinai': {

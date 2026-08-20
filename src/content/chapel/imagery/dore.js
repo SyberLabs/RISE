@@ -17,7 +17,7 @@
  * than hand-edit; the SHA-1s are the integrity contract.
  */
 
-import { freezeManifest } from '../../atrium/constants.js';
+import { freezeManifest } from '../../manifest.js';
 
 export const DORE_PLATES = freezeManifest([
     { plate: "001", book: "genesis", title: "The Creation of Light",

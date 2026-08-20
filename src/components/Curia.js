@@ -132,7 +132,7 @@ export class Curia {
         const pins = this._pins[categoryId] || [];
         if (pins.length) {
             try {
-                const { resolveCollection } = await import('../content/atrium/imagery/service.js');
+                const { resolveCollection } = await import('../content/imagery/service.js');
                 const CHUNK = 10;
                 for (let i = 0; i < pins.length; i += CHUNK) {
                     const batch = await resolveCollection({ works: pins.slice(i, i + CHUNK) }, {});

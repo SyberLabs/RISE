@@ -26,7 +26,7 @@
  * artist fields).
  */
 
-import { freezeManifest } from '../atrium/constants.js';
+import { freezeManifest } from '../manifest.js';
 
 export const CHANT_FAMILIES = Object.freeze({
   gregorian: 'Gregorian',

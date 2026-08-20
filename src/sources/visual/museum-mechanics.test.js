@@ -185,7 +185,7 @@ describe('museum pool mechanics', () => {
 
     it('every pin names a source the imagery service can resolve', async () => {
         const { MUSEUM_CATEGORY_PINS } = await import('./museum-pins.js');
-        const { isKnownImagerySource } = await import('../../content/atrium/imagery/service.js');
+        const { isKnownImagerySource } = await import('../../content/imagery/service.js');
         for (const [catId, pins] of Object.entries(MUSEUM_CATEGORY_PINS)) {
             for (const pin of pins) {
                 expect(isKnownImagerySource(pin.source),

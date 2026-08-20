@@ -11,7 +11,7 @@
  * Nothing in this module decides; it only states the form.
  */
 
-import { freezeManifest } from '../../atrium/constants.js';
+import { freezeManifest } from '../../manifest.js';
 
 export const ROSARY_PRAYERS = freezeManifest({
   signOfTheCross:

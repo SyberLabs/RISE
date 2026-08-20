@@ -1942,7 +1942,7 @@ export class VisualCortex {
             // A pinned collection wins: specific museum works, chosen and
             // reviewed, rather than whatever a keyword returned today.
             try {
-                const pinned = await import('../content/atrium/imagery/provider.js');
+                const pinned = await import('../content/imagery/provider.js');
                 if (pinned.hasPinnedCollection(categoryId)) {
                     return pinned.getPinnedWorksProvider();
                 }
@@ -1950,7 +1950,7 @@ export class VisualCortex {
                 console.warn('[Visual Cortex] Pinned works unavailable:', e);
             }
             try {
-                await import('../content/atrium/atrium-categories.js');
+                await import('../content/imagery/atrium-categories.js');
             } catch (e) {
                 console.warn('[Visual Cortex] Atrium categories unavailable:', e);
             }

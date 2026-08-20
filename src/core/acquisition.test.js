@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { RIGHTS } from '../content/atrium/imagery/works.js';
+import { RIGHTS } from '../content/imagery/works.js';
 import {
   ACQUISITION_CANDIDATE_SCHEMA,
   ACQUISITION_REQUEST_SCHEMA,

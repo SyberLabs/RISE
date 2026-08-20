@@ -20,7 +20,7 @@
  * the clock (§4.3).
  */
 
-import { readJourneyMovements } from '../content/atrium/journey-segments.js';
+import { readJourneyMovements } from '../content/journeys/journey-segments.js';
 import {
     createExperienceProgram,
     lowerExperienceProgram,

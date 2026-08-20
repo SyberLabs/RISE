@@ -2,7 +2,43 @@ import { describe, expect, it } from 'vitest';
 import { prepareChunkText } from './chunk-profiles.js';
 import { chunkText } from './chunker.js';
 import { compileSession } from './session-compiler.js';
-import { ATRIUM_PILOT_PAYLOADS } from '../content/atrium/packs/pilot-v1/payloads.js';
+
+/**
+ * THE FIXTURES ARE THIS TEST'S OWN.
+ *
+ * They were two payloads from the Atrium's pilot pack — chosen because they
+ * existed, not because the profile needed Plato — and they went when the room
+ * did. What was actually being proven is a property of the profile: a speaker
+ * label belongs at the head of the utterance that follows it, never trailing
+ * the one before. A test that owns its fixture cannot be broken by deleting a
+ * corpus it was never really about.
+ *
+ * Long enough to yield more than ten labelled atoms, because a speaker-head
+ * rule that holds for one exchange proves nothing about the next.
+ */
+const DIALOGUE = [
+    'SOCRATES: Then tell me what you take knowledge to be.',
+    'THEAETETUS: O yes, I will try, though I have tried before and failed.',
+    'SOCRATES: You failed alone. Fail again, and I will fail with you.',
+    'THEAETETUS: Knowledge is perception, I think.',
+    'SOCRATES: A brave answer. Is the wind cold?',
+    'THEAETETUS: To one who shivers, cold; to another, not cold.',
+    'SOCRATES: Then the same wind is and is not cold.',
+    'THEAETETUS: It seems so, and that troubles me.',
+    'SOCRATES: Let it trouble you. What troubles a man is what he has not yet thought through.',
+    'THEAETETUS: Then perception is of what appears, and no more.',
+    'SOCRATES: And is appearing the same as being?',
+    'THEAETETUS: I would not say so now.',
+    'SOCRATES: Then knowledge is something other than perception, and we must look again.',
+    'THEAETETUS: We must, and I am not sorry for it.'
+].join(' ');
+
+/** No speaker tag anywhere, so the profile must not touch a character. */
+const UNSPOKEN = 'Now that which is created must of necessity be created by a '
+    + 'cause. But the father and maker of all this universe is past finding out; '
+    + 'and even if we found him, to tell of him to all men would be impossible. '
+    + 'This question, however, we must ask about the world: which of the patterns '
+    + 'had the artificer in view when he made it?';
 
 const tokens = text => text.trim().split(/\s+/u).filter(Boolean);
 const stableAtom = atom => ({
@@ -30,10 +66,10 @@ describe('chunk profiles', () => {
         expect(raw).toBe('An opening question? THEAETETUS: Yes. SOCRATES: Then continue.');
     });
 
-    it('puts every matching Protagoras speaker label at its utterance head in Phrase mode', () => {
-        const raw = ATRIUM_PILOT_PAYLOADS['pass-protagoras-measure'];
+    it('puts every speaker label at its utterance head in Phrase mode', () => {
+        const raw = DIALOGUE;
         const session = compileSession({
-            sources: [{ id: 'pass-protagoras-measure', name: 'Theaetetus', data: raw, chunkProfile: 'dialogue' }],
+            sources: [{ id: 'dialogue-fixture', name: 'Dialogue', data: raw, chunkProfile: 'dialogue' }],
             chunkMode: 'phrase',
             curve: 'flat',
             wpm: 140
@@ -43,14 +79,12 @@ describe('chunk profiles', () => {
 
         expect(labelled.length).toBeGreaterThan(10);
         expect(labelled.every(value => /^(?:THEAETETUS|SOCRATES):\s+\S/.test(value))).toBe(true);
-        expect(content).toContain('THEAETETUS: O yes,');
         expect(content.some(value => /\s(?:THEAETETUS|SOCRATES):$/.test(value))).toBe(false);
         expect(tokens(content.join(' '))).toEqual(tokens(raw));
     });
 
-    it('passes Timaeus through byte-for-byte when no speaker tag is present', () => {
-        const raw = ATRIUM_PILOT_PAYLOADS['pass-plato-cosmos'];
-        expect(prepareChunkText(raw, 'dialogue').text).toBe(raw);
+    it('passes prose through byte-for-byte when no speaker tag is present', () => {
+        expect(prepareChunkText(UNSPOKEN, 'dialogue').text).toBe(UNSPOKEN);
     });
 
     it('keeps the no-profile compiler path identical to direct chunking', () => {

@@ -5,8 +5,8 @@
  * A provider failure returns no candidates; it never selects a substitute.
  */
 
-import { resolveAicWork } from '../content/atrium/imagery/adapters/aic.js';
-import { isDisplayable } from '../content/atrium/imagery/works.js';
+import { resolveAicWork } from '../content/imagery/adapters/aic.js';
+import { isDisplayable } from '../content/imagery/works.js';
 import {
   ARCHIVE_TEXT_REFUSE_SCORE,
   inspectArchiveText

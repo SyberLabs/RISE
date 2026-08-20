@@ -12,8 +12,8 @@
 
 import { WIKIMEDIA_CATEGORIES } from '../sources/visual/wikimedia.js';
 import { MUSEUM_CATEGORIES } from '../sources/visual/museum.js';
-import { ATRIUM_CATEGORIES } from '../content/atrium/atrium-categories.js';
-import { ATRIUM_PINNED_COLLECTIONS } from '../content/atrium/imagery/collections.js';
+import { ATRIUM_CATEGORIES } from '../content/imagery/atrium-categories.js';
+import { ATRIUM_PINNED_COLLECTIONS } from '../content/imagery/collections.js';
 import { SCIENCE_CATEGORIES, SCIENCE_KIND_LABELS }
     from '../content/science/imagery/science-pins.js';
 import { PROCEDURAL_PATTERNS } from '../core/visual-registry.js';

@@ -20,7 +20,7 @@
  * hand-edit; the SHA-1s are the integrity contract.
  */
 
-import { freezeManifest } from '../../atrium/constants.js';
+import { freezeManifest } from '../../manifest.js';
 
 export const STATIONS_VERSICLE =
   'We adore Thee, O Christ, and we praise Thee.';

@@ -42,7 +42,6 @@ import { normalizeVisualSelection } from './core/visual-selection.js';
 // Import styles
 import './design-system.css';
 import './components/Portal.css';
-import './components/Atrium.css';
 import './components/ChamberOrbital.css';
 import './components/Chamber.css';
 import './components/Library.css';
@@ -336,36 +335,6 @@ class App {
             }
         });
 
-        // Atrium (interpretive philosophy and history discovery)
-        this.router.registerView('atrium', {
-            container: document.getElementById('view-atrium'),
-            init: async (container, data) => {
-                const { Atrium } = await import('./components/Atrium.js');
-                return new Atrium(container, {
-                    onNavigate: this.handleNavigate,
-                    onConfigureLaunch: async (launch, origin) => {
-                        try {
-                            const { createAtriumJourneyHandoff } = await import('./content/atrium/handoff.js');
-                            const chamberData = await createAtriumJourneyHandoff(launch, { origin });
-                            await this.router.navigate('chamber', { data: chamberData });
-                        } catch (error) {
-                            console.error('[RISE] Atrium handoff failed:', error);
-                            this.showToast(
-                                error?.code === 'ATRIUM_JOURNEY_NOT_READY'
-                                    ? 'This Atrium journey is still under editorial review.'
-                                    : 'Unable to verify this Atrium content pack.',
-                                4000
-                            );
-                        }
-                    },
-                    domain: data?.domain,
-                    viewMode: data?.viewMode,
-                    selectedId: data?.selectedId,
-                    expandedJourneyId: data?.expandedJourneyId
-                });
-            }
-        });
-
         // Vault
         this.router.registerView('vault', {
             container: document.getElementById('view-vault'),
@@ -642,12 +611,14 @@ class App {
                                 activeTypes: activeTypes,
                                 kleePreset: interlocution.kleePreset ?? 'random',
                                 harmonographClimate: interlocution.harmonographClimate ?? 'auto',
-                                // Atrium-exclusive patterns carry the reading's
-                                // own subject: WHICH mechanism, WHICH colonial
-                                // relation. Without these the cortex falls back
-                                // to its defaults and every liberation sequence
-                                // draws Britain — the authored relation is lost
-                                // between the compiler and the renderer.
+                                // An authored pattern carries the reading's own
+                                // subject: WHICH mechanism, WHICH relation.
+                                // Without these the cortex falls back to its
+                                // defaults and the authored relation is lost
+                                // between the compiler and the renderer. Named
+                                // for the Atrium, which is gone; the fields are
+                                // read by the cortex, the panel and the orbital
+                                // and are not going with it.
                                 blueprintClimate: interlocution.blueprintClimate ?? 'auto',
                                 blueprintMechanism: interlocution.blueprintMechanism ?? null,
                                 freedomRelation: interlocution.freedomRelation ?? null,

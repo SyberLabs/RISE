@@ -23,9 +23,9 @@
  * report a shortfall.
  */
 
-import { ATRIUM_PINNED_COLLECTIONS } from '../src/content/atrium/imagery/collections.js';
+import { ATRIUM_PINNED_COLLECTIONS } from '../src/content/imagery/collections.js';
 import { CHAPEL_PINNED_COLLECTIONS } from '../src/content/chapel/imagery/collections.js';
-import { resolveCollection } from '../src/content/atrium/imagery/service.js';
+import { resolveCollection } from '../src/content/imagery/service.js';
 
 // A non-empty collection can still be degraded: warn well before zero
 // when resolved count falls below DEGRADED_RATIO of pins (and below floor).
