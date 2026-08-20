@@ -65,15 +65,17 @@ for (const phone of PHONES) {
     });
 }
 
-test('a card carrying a scan URL still fits the column', async ({ page }) => {
-    // Card with a long edition statement that once included raw URLs.
+test('a live shelf card still fits the column', async ({ page }) => {
+    // The scan-URL card (romance-of-the-three-kingdoms / Brewitt-Taylor)
+    // is withheld from the launch canon. Assert a live card fits the
+    // column and the subtitle has no raw http.
     test.setTimeout(120000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="library"]').first().click();
     await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 30000 });
 
     const card = await page.evaluate(() => {
-        const el = document.querySelector('[data-text-id="romance-of-the-three-kingdoms"]');
+        const el = document.querySelector('[data-text-id="literary-walden"]');
         if (!el) return null;
         const box = el.getBoundingClientRect();
         const subtitle = el.querySelector('.archive-subtitle');
@@ -91,11 +93,12 @@ test('a card carrying a scan URL still fits the column', async ({ page }) => {
     expect(card.subtitleRight).toBeLessThanOrEqual(card.viewport + 1);
     // Subtitle must not expose raw URLs.
     expect(card.subtitle).not.toContain('http');
-    expect(card.subtitle).toContain('Brewitt-Taylor');
 });
 
 test('a titled work opens its contents sheet', async ({ page }) => {
     // Titled schemes use noun null; the sheet must still open and label rows.
+    // ross-pure-design is withheld from the launch canon. literary-walden
+    // is live and divides by title (noun null): Economy, Solitude, Spring.
     test.setTimeout(120000);
     const errors = [];
     page.on('console', m => { if (m.type() === 'error') errors.push(m.text().slice(0, 160)); });
@@ -104,7 +107,7 @@ test('a titled work opens its contents sheet', async ({ page }) => {
     await page.locator('[data-nav="library"]').first().click();
     await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 30000 });
 
-    await page.locator('[data-text-id="ross-pure-design"] [data-action="select-text"]').click();
+    await page.locator('[data-text-id="literary-walden"] [data-action="select-text"]').click();
     await expect(page.locator('.toc-sheet')).toBeVisible({ timeout: 30000 });
 
     const sheet = await page.evaluate(() => ({
@@ -119,7 +122,7 @@ test('a titled work opens its contents sheet', async ({ page }) => {
     expect(sheet.entries).toBeGreaterThan(0);
     // Generic "entries" when the work never named a division unit.
     expect(sheet.noun).toBe('entries');
-    expect(sheet.first).toContain('Preface');
+    expect(sheet.first).toContain('Economy');
 });
 
 test('the Chamber reads as a band across the picture', async ({ page }) => {
