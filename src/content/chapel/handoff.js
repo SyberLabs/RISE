@@ -1,10 +1,10 @@
 /**
  * The Chapel -> Chamber boundary.
  *
- * Same discipline as the Atrium handoff: payload bytes are hashed
- * before they can enter a session, and a missing or altered payload is
- * a refusal, never a substitution. The Scripture corpus is immutable
- * content — a checksum mismatch means the text is not the text.
+ * Payload bytes are hashed before they can enter a session, and a
+ * missing or altered payload is a refusal, never a substitution. The
+ * Scripture corpus is immutable content — a checksum mismatch means
+ * the text is not the text.
  *
  * Degradation is reverent (spec non-negotiable #5): every failure path
  * throws a typed error the caller renders as a quiet message. Nothing

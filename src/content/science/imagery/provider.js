@@ -1,9 +1,9 @@
 /**
  * Science catalog provider — pinned science imagery behind a provider face.
  *
- * The simplest provider in the building, and deliberately so. The Atrium's
- * pinned provider calls `resolveCollection` because its pins are museum
- * object ids that must be turned into image URLs; these works arrive
+ * The simplest provider in the building, and deliberately so. The
+ * pinned-works provider calls `resolveCollection` because its pins are
+ * museum object ids that must be turned into image URLs; these works arrive
  * already resolved, rights-checked and credit-composed by
  * `build-science-catalog.mjs`. There is nothing left to fetch, so this
  * makes no network request at all.

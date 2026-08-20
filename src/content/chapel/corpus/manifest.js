@@ -6,8 +6,8 @@
  * by scripts/chapel-ingest.mjs. Translation identity is provenance:
  * every surface that shows this text names it.
  *
- * Each checksum is SHA-256 over the book's exact payload string — the
- * same integrity discipline the Atrium applies. The payload modules in
+ * Each checksum is SHA-256 over the book's exact payload string. The
+ * payload modules in
  * ./books/ are generated and must never be hand-edited; a checksum
  * mismatch at load time means the text is not the text.
  *
