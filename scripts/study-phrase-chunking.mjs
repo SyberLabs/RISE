@@ -29,12 +29,36 @@
  *   4. DURATION FLOOR atoms whose computed duration is so short the
  *                     text cannot be read before it is replaced.
  *
+ * WHY THERE IS NOW A SECOND CORPUS, AND A FLOOR SWEEP.
+ *
+ * This study was written before the floor existed and never updated. It
+ * reads LITERARY_DEEP and the Vault — and ALL THIRTY LITERARY_DEEP
+ * sequences contain `|`, exactly like the Vault. `applyPhraseFloor`
+ * returns early on any paragraph containing a pipe, so the floor cannot
+ * fire on either corpus. Running with the floor on and with the floor
+ * off produced byte-identical output: 658 atoms, 118 fragments, median
+ * 4, 30 stutter runs, both ways.
+ *
+ * The study's stated CONTROL was therefore the same condition as its
+ * experimental group, and it concluded from that comparison that a floor
+ * cannot be applied unconditionally. Meanwhile chunker.js carried a
+ * comment asserting that "floors of 4/5/6 all clear fragments and
+ * stutter runs completely" against Book VI, Iliad XXII and Guillemont —
+ * three texts no script in this repository has ever measured.
+ *
+ * So: the ARCHIVE corpus below is pipe-free prose, which is what an
+ * actual reader opens from the Library, and the FLOOR SWEEP runs it at
+ * floors 0/4/5/6 so the constant can be defended or changed by a number
+ * rather than by a sentence. The pipe fraction of every corpus is now
+ * printed, so this collapse cannot recur silently.
+ *
  * Run:  npm run study:chunking
  *       npm run study:chunking -- --json
  *       npm run study:chunking -- --examples 40
  */
 
 import { LITERARY_DEEP } from '../src/sources/text/data/literary_deep.js';
+import { ingestedArchiveTexts } from '../src/content/archive/index.js';
 import { VAULT_A_SEQUENCES } from '../src/content/personalized/vault-a.js';
 import { chunkText } from '../src/core/chunker.js';
 
@@ -111,6 +135,69 @@ function collectAuthored() {
     return rows;
 }
 
+/**
+ * THE CORPUS THE FLOOR ACTUALLY GOVERNS.
+ *
+ * Pipe-free prose from the ingested Archive — the text a reader opens
+ * from the Library, where no author has marked their own phrasing and
+ * the splitter is therefore the only thing deciding breath units.
+ */
+const ARCHIVE_SAMPLE = [
+    'literary-walden', 'pride-and-prejudice', 'moby-dick-or-the-whale',
+    'the-brothers-karamazov', 'literary-meditations', 'the-storm-of-steel'
+];
+const CHARS_PER_WORK = 60_000;
+
+async function collectArchive() {
+    const rows = [];
+    const shelf = ingestedArchiveTexts();
+    for (const id of ARCHIVE_SAMPLE) {
+        const work = shelf.find(text => text.id === id);
+        if (!work) continue;
+        const divisions = await work.getDivisions();
+        let budget = CHARS_PER_WORK;
+        for (const entry of divisions.entries) {
+            if (budget <= 0) break;
+            const text = (entry.content || '').slice(0, budget);
+            if (!text.trim()) continue;
+            budget -= text.length;
+            rows.push({ id, text });
+        }
+    }
+    return rows;
+}
+
+/** Fraction of a corpus the floor cannot touch, because a pipe is present. */
+const pipeFraction = texts => texts.filter(t => t.includes('|')).length / (texts.length || 1);
+
+/** Run one corpus at one floor and report what a reader would meet. */
+function sweepOnce(rows, floorOpts) {
+    const lengths = [];
+    let fragments = 0, runs = 0, run = 0;
+    for (const { text } of rows) {
+        for (const atom of chunkText(text, { mode: 'phrase', wpm: WPM, ...floorOpts })) {
+            if (atom.modality !== 'text') continue;
+            const content = (atom.content || '').trim();
+            if (!content) continue;
+            const n = words(content).length;
+            lengths.push(n);
+            if (n <= FRAGMENT_WORDS) fragments += 1;
+            if (n <= 3) run += 1; else { if (run >= 3) runs += 1; run = 0; }
+        }
+    }
+    if (run >= 3) runs += 1;
+    const sorted = [...lengths].sort((a, b) => a - b);
+    return {
+        atoms: lengths.length,
+        fragments,
+        fragmentPct: lengths.length ? 100 * fragments / lengths.length : 0,
+        median: sorted[Math.floor(sorted.length / 2)] || 0,
+        stutterRuns: runs
+    };
+}
+
+const archive = await collectArchive();
+
 const fragments = atoms.filter(a => a.words <= FRAGMENT_WORDS);
 const orphanHeads = atoms.filter(a => CONNECTIVES.has(bare(words(a.content)[0] || '')));
 const danglingTails = atoms.filter(a => {
@@ -171,6 +258,32 @@ if (json) {
             console.log(`  ${String(a.duration + 'ms').padStart(7)}  ${JSON.stringify(a.content)}   — ${a.author}`);
         }
     };
+    // ── FLOOR SWEEP ────────────────────────────────────────────────
+    // The measurement chunker.js's PHRASE_FLOOR_WORDS comment claims to
+    // rest on. Run it before changing that constant, and paste the table
+    // into the comment rather than a sentence.
+    if (archive.length) {
+        const texts = archive.map(r => r.text);
+        console.log(`\nFLOOR SWEEP — pipe-free Archive prose (${archive.length} divisions, ${(100 * pipeFraction(texts)).toFixed(1)}% contain a pipe)`);
+        console.log('  floor    atoms  fragments        median  stutter runs');
+        // Sweep past both edges of the flat region, or the table cannot
+        // show that 4/5/6 are the same answer.
+        const rows = [
+            ['off', { phraseFloor: false }],
+            ['2', { phraseFloor: 2 }],
+            ['4', { phraseFloor: 4 }],
+            ['5 (shipped)', { phraseFloor: 5 }],
+            ['6', { phraseFloor: 6 }],
+            ['8', { phraseFloor: 8 }],
+            ['12', { phraseFloor: 12 }]
+        ];
+        for (const [label, opts] of rows) {
+            const r = sweepOnce(archive, opts);
+            console.log(`  ${label.padEnd(12)}${String(r.atoms).padStart(5)}   ${String(r.fragments).padStart(4)} (${r.fragmentPct.toFixed(1)}%)`
+                + `${String(r.median).padStart(9)}${String(r.stutterRuns).padStart(14)}`);
+        }
+    }
+
     const authored = collectAuthored();
     const authoredFrags = authored.filter(a => a.words <= FRAGMENT_WORDS).length;
     console.log(`
@@ -179,6 +292,13 @@ CONTROL — authored \`|\` boundaries (Vault, ${authored.length} atoms)`);
     console.log('  These are DELIBERATE breath units, not defects. A floor that');
     console.log('  merged them would destroy the authored phrasing — which is why');
     console.log('  boundary provenance must come before any merge rule.');
+    const litTexts = [];
+    for (const work of Object.values(LITERARY_DEEP)) {
+        for (const seq of work.sequences || []) litTexts.push(seq.content || seq.text || '');
+    }
+    console.log(`\n  NOTE: the LITERARY corpus above is ${(100 * pipeFraction(litTexts)).toFixed(0)}% pipe-authored too, so the`);
+    console.log('  floor never fires on it either. The two are the SAME condition.');
+    console.log('  Read the FLOOR SWEEP for the floor; read this for the splitter.');
 
     show('FRAGMENTS', fragments);
     show('ORPHAN HEADS', orphanHeads);

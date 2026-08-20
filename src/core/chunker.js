@@ -72,11 +72,44 @@ const PUNCTUATION_PAUSE_WEIGHTS = {
 const MAX_CHUNK_WORDS = 16;
 
 /**
- * The floor, measured rather than chosen. Against Book VI, Iliad XXII
- * and Guillemont, floors of 4/5/6 all clear fragments and stutter runs
- * completely; 5 lands the median at 7-8 words, which is a breath, and
- * keeps roughly a third more atoms than 6 — so the phrasing stays finer
- * than sentence mode's while reading as whole units.
+ * The floor, measured — and now measurable, which it was not.
+ *
+ * This comment used to cite Book VI, Iliad XXII and Guillemont. No
+ * script in this repository has ever measured those three texts, and the
+ * one study that exists (`npm run study:chunking`) read a corpus in
+ * which every sequence carries an authored `|` — so `applyPhraseFloor`
+ * returned early on all of it and the floor never fired. Running that
+ * study with the floor on and with the floor off gave byte-identical
+ * output. The most confident constant in RISE rested on a sentence.
+ *
+ * It now rests on a table. From the FLOOR SWEEP over pipe-free Archive
+ * prose — the text a reader opens from the Library:
+ *
+ *   floor   atoms   fragments (≤2w)   median   stutter runs
+ *   off      4702      692  14.7%          6             77
+ *   2        4477      435   9.7%          7             48
+ *   4        3961       92   2.3%          8              1
+ *   5        3724       92   2.5%          9              1
+ *   6        3523       92   2.6%          9              1
+ *   8        3269       92   2.8%         10              1
+ *   12       3187       92   2.9%         11              1
+ *
+ * The floor does the work the old comment claimed: fragments fall from
+ * 14.7% to 2.5% and stutter runs from 77 to 1. Two corrections to what
+ * that comment said. Fragments do not go to zero at any floor — 92
+ * survive at every setting, because a short piece that closes a sentence
+ * has nothing it may join. And 5 does not keep "roughly a third more
+ * atoms than 6"; it keeps 5.7% more.
+ *
+ * What 5 is: the finest phrasing that still clears the stutter runs.
+ * Everything from 4 up clears them, and above 4 the only thing that
+ * moves is how much phrasing is spent buying nothing — atoms fall 3961 →
+ * 3187 between floors 4 and 12 with fragments flat. 5 sits one step into
+ * that plateau, holding the median at a 9-word breath. It is a defensible
+ * choice inside a flat region, not a measured optimum, and anyone moving
+ * it should re-run the sweep rather than trust this paragraph.
+ *
+ * Reproduce:  npm run study:chunking
  */
 const PHRASE_FLOOR_WORDS = 5;
 
@@ -200,7 +233,7 @@ function splitVerseLines(paragraph, preserveSpeakerHead, useFloor) {
         // sickness," and "food," on screens of their own.
         const pieces = splitPhrases(paragraph, preserveSpeakerHead);
         return useFloor && !preserveSpeakerHead
-            ? applyPhraseFloor(pieces, paragraph)
+            ? applyPhraseFloor(pieces, paragraph, floorOptions(useFloor))
             : pieces;
     }
 
@@ -215,7 +248,7 @@ function splitVerseLines(paragraph, preserveSpeakerHead, useFloor) {
             // let the floor tidy the pieces if this session asked for it.
             let pieces = splitPhrases(candidate, preserveSpeakerHead);
             if (useFloor && !preserveSpeakerHead) {
-                pieces = applyPhraseFloor(pieces, candidate);
+                pieces = applyPhraseFloor(pieces, candidate, floorOptions(useFloor));
             }
             out.push(...pieces);
             held = '';
@@ -231,6 +264,14 @@ function splitVerseLines(paragraph, preserveSpeakerHead, useFloor) {
     }
     if (held) out.push(held);
     return out;
+}
+
+/**
+ * `phraseFloor` as an options object. `true` is the shipped floor; a
+ * number is an explicit one, so a study can sweep it.
+ */
+function floorOptions(phraseFloor) {
+    return Number.isFinite(phraseFloor) ? { floor: phraseFloor } : {};
 }
 
 export function applyPhraseFloor(phrases, paragraph = '', {
@@ -505,7 +546,10 @@ function splitParagraphs(text) {
  */
 /**
  * Phrase floor on by default (PHRASE-CHUNKING-STUDY §7b). Pass
- * `phraseFloor: false` when short phrases are authored (verse profile).
+ * `phraseFloor: false` when short phrases are authored (verse profile),
+ * or a NUMBER to run a different floor — which is how the sweep in
+ * `npm run study:chunking` measures PHRASE_FLOOR_WORDS instead of
+ * asserting it. A boolean `true` means the shipped floor.
  */
 export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceId = '', hints = null, phraseFloor = true, verseLines = false } = {}) {
     if (typeof text !== 'string') return [];
@@ -613,7 +657,7 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
                         ? splitVerseLines(scoreUnit, speakerHead, phraseFloor)
                         : splitPhrases(scoreUnit, speakerHead);
                     if (phraseFloor && !speakerHead && !verseLines) {
-                        phrases = applyPhraseFloor(phrases, scoreUnit);
+                        phrases = applyPhraseFloor(phrases, scoreUnit, floorOptions(phraseFloor));
                     }
                     return phrases;
                 }

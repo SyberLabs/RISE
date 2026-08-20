@@ -735,3 +735,38 @@ describe('an enumerator must actually be one', () => {
         for (const bad of ['DID', 'CIVIL', 'MIMIC']) expect(re.test(bad), bad).toBe(false);
     });
 });
+
+describe('the floor is a number a study can sweep, not a sentence', () => {
+    // PHRASE_FLOOR_WORDS was documented as measured for six weeks while
+    // the only study that could have measured it ran on a corpus where
+    // the floor never fired. `npm run study:chunking` now sweeps it, and
+    // it can only do that if chunkText accepts an explicit floor. This
+    // guards the seam the sweep depends on.
+    const passage = 'When I go abroad I shall encounter meddling, ungrateful, '
+        + 'violent, treacherous, envious, unsociable people. But all of this '
+        + 'arises from ignorance of good and evil, and I have seen the nature '
+        + 'of the good that it is beautiful.';
+    const atomsAt = phraseFloor => chunkText(passage, { mode: 'phrase', wpm: 250, phraseFloor })
+        .filter(atom => atom.modality === 'text').length;
+
+    it('produces strictly fewer atoms as the floor rises', () => {
+        const off = atomsAt(false);
+        expect(atomsAt(2)).toBeLessThan(off);
+        expect(atomsAt(5)).toBeLessThan(atomsAt(2));
+        expect(atomsAt(12)).toBeLessThan(atomsAt(5));
+    });
+
+    it('treats `true` as the shipped floor of five', () => {
+        expect(atomsAt(true)).toBe(atomsAt(5));
+    });
+
+    it('still refuses to touch a paragraph an author has phrased', () => {
+        // A pipe anywhere means the boundaries are authored. This is why
+        // the old study measured nothing: its whole corpus had one.
+        const authored = passage.replace('meddling,', 'meddling |');
+        expect(atomsAt(false)).toBe(
+            chunkText(authored, { mode: 'phrase', wpm: 250, phraseFloor: 5 })
+                .filter(atom => atom.modality === 'text').length
+        );
+    });
+});
