@@ -48,7 +48,7 @@ describe('ChamberOrbital origin chip', () => {
 
     it('applies an editorial chunk mode carried by a launch', () => {
         const { orbital, container } = makeOrbital();
-        orbital.loadText('SOCRATES: Begin.', 'Atrium', { chunkMode: 'phrase' });
+        orbital.loadText('SOCRATES: Begin.', 'Pasted', { chunkMode: 'phrase' });
 
         expect(orbital.config.chunkMode).toBe('phrase');
         expect(container.querySelector('[data-chunk="phrase"]').classList.contains('active')).toBe(true);
@@ -554,7 +554,7 @@ describe('ChamberOrbital origin chip', () => {
         c.container.remove();
     });
 
-    it('retains Atrium passage boundaries and provenance through refresh and Begin', () => {
+    it('retains Chapel passage boundaries and provenance through refresh and Begin', () => {
         const sources = [{
             id: 'pass-fixture',
             name: 'Test Author, Test Edition — Test passage',
@@ -563,15 +563,15 @@ describe('ChamberOrbital origin chip', () => {
             provenance: { sourceId: 'src-fixture', canonicalLocator: 'section 1' }
         }];
         const origin = {
-            view: 'atrium',
-            icon: '⌘',
-            name: 'Atrium',
-            data: { domain: 'philosophy', selectedId: 'ph-fixture' }
+            view: 'chapel',
+            icon: '✛',
+            name: 'Chapel',
+            data: { bookId: 'numbers', chapter: 2 }
         };
-        const provenance = { kind: 'atrium-journey', journeyId: 'seq-fixture' };
+        const provenance = { kind: 'chapel-book', bookId: 'numbers', chapter: 2 };
 
         const a = makeOrbital();
-        a.orbital.loadText(sources[0].data, 'Atrium · The Tested Life', { sources, origin, provenance });
+        a.orbital.loadText(sources[0].data, 'The Chapel · Numbers 2', { sources, origin, provenance });
         const stored = JSON.parse(localStorage.getItem('rise_orbital_text_v1'));
         expect(stored.text).toBeNull();
         expect(stored.sources).toHaveLength(1);
@@ -584,7 +584,7 @@ describe('ChamberOrbital origin chip', () => {
         expect(b.orbital.config.sources[0].id).toBe('pass-fixture');
 
         b.container.querySelector('.orbital-origin-chip').click();
-        expect(b.onNavigate).toHaveBeenCalledWith('atrium', origin.data);
+        expect(b.onNavigate).toHaveBeenCalledWith('chapel', origin.data);
         b.orbital.beginSession();
         expect(onBeginSession).toHaveBeenCalledWith(expect.objectContaining({
             sources: expect.arrayContaining([expect.objectContaining({ id: 'pass-fixture' })]),

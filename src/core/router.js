@@ -130,8 +130,8 @@ export class Router {
                 this._reloadedForStaleChunk = true;
                 try {
                     // Carry the route DATA too, not just the view name:
-                    // the Atrium's selected node, a vault identifier, a
-                    // Library selection. Bounded and JSON-only, on the
+                    // a Chapel book, a vault identifier, a Library
+                    // selection. Bounded and JSON-only, on the
                     // same principle as provenance — recovery state must
                     // never be able to smuggle live objects across a
                     // reload. Oversized or circular data degrades to a

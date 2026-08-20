@@ -324,7 +324,7 @@ export function compileJourney(journey, options = {}) {
         throw new JourneyCompileError('JOURNEY_NO_MOVEMENTS',
             'A Journey needs at least one movement.', { journeyId });
     }
-    // Flat Atrium records predate authored Journeys and remain an explicit
+    // Flat segment records predate authored Journeys and remain an explicit
     // legacy input adapter. A manifest that declares movements is the new
     // authored shape and must identify its schema; omission is not v1.
     const declaresMovements = Array.isArray(journey.movements) && journey.movements.length > 0;

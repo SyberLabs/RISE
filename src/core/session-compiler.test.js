@@ -145,29 +145,29 @@ describe('session compiler', () => {
 
   it('retains bounded edition, passage, and launch provenance', () => {
     const session = compileSession({
-      title: 'Atrium fixture',
+      title: 'Chapel fixture',
       sources: [{
-        id: 'pass-plato-cave',
-        name: 'Plato, Republic — Cave',
+        id: 'pass-numbers-2',
+        name: 'Numbers 2',
         data: 'A verified packaged passage.',
         provenance: {
-          kind: 'atrium-passage',
-          sourceId: 'src-plato-republic',
-          canonicalLocator: 'Republic 514a–517a',
-          passageId: 'pass-plato-cave'
+          kind: 'chapel-book',
+          sourceId: 'src-numbers',
+          canonicalLocator: 'Numbers 2',
+          passageId: 'pass-numbers-2'
         }
       }],
-      origin: { view: 'atrium', data: { domain: 'philosophy', selectedId: 'ph-thinker-plato' } },
-      provenance: { kind: 'atrium-journey', journeyId: 'seq-ph-plato-ascent' }
+      origin: { view: 'chapel', data: { bookId: 'numbers', chapter: 2 } },
+      provenance: { kind: 'chapel-book', bookId: 'numbers', chapter: 2 }
     });
 
     expect(session.sources[0].provenance).toMatchObject({
-      sourceId: 'src-plato-republic',
-      passageId: 'pass-plato-cave'
+      sourceId: 'src-numbers',
+      passageId: 'pass-numbers-2'
     });
-    expect(session.atoms.filter(atom => atom.content).every(atom => atom.sourceId === 'pass-plato-cave')).toBe(true);
-    expect(session.origin).toMatchObject({ view: 'atrium', data: { selectedId: 'ph-thinker-plato' } });
-    expect(session.provenance).toEqual({ kind: 'atrium-journey', journeyId: 'seq-ph-plato-ascent' });
+    expect(session.atoms.filter(atom => atom.content).every(atom => atom.sourceId === 'pass-numbers-2')).toBe(true);
+    expect(session.origin).toMatchObject({ view: 'chapel', data: { bookId: 'numbers', chapter: 2 } });
+    expect(session.provenance).toEqual({ kind: 'chapel-book', bookId: 'numbers', chapter: 2 });
   });
 
   it('bounds provenance and removes prototype-bearing keys', () => {

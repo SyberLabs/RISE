@@ -314,7 +314,7 @@ export class Portal {
              Desktop: absolute beside the sigil (wrapper is display:contents). -->
         <div class="portal-arches">
         <!-- Solarium: a when, not a place — Earth by the real clock.
-             Route/view remain 'sol'; the carved name pairs with Atrium. -->
+             Route/view remain 'sol'. -->
         <button class="portal-arch portal-arch-sol" data-nav="sol" style="opacity: 0;" aria-label="Enter the Solarium">
           ${this._gazeboMarkup('Solarium', `
             <span class="gz-starfield"></span>

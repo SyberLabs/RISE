@@ -186,7 +186,7 @@ describe('an unscored reading compiles exactly as it always did', () => {
         expect(plan.progressPace).toEqual([]);
     });
 
-    it('keeps Atrium-style estimates constant, since no launch authors a pace', () => {
+    it('keeps estimates constant when no launch authors a pace', () => {
         const input = {
             sources: [{ id: 'dover', name: 'Dover Beach', type: 'text', data: PROSE }],
             wpm: 320,
