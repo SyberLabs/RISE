@@ -34,4 +34,38 @@ describe('Chamber RGBA paint', () => {
       await stage?.close();
     }
   }, 120_000);
+
+  it.skipIf(!hasPlaywright)('reaches the Vite stage with caption style and glass forced off', async () => {
+    const slice = await buildVerticalSlice();
+    const plan = compileRenderPlan(slice);
+    let stage;
+    try {
+      stage = await openChamberPainter({
+        plan,
+        scale: 0.1,
+        inventory: slice.inventory,
+        caption: { fontSize: 56, color: '#FFEE00', position: 'top-center' },
+        ffmpegLog: () => {}
+      });
+      expect(stage.caption).toMatchObject({
+        fontSize: 56,
+        color: '#FFEE00',
+        edgeColor: '#000000',
+        position: 'top-center'
+      });
+      await stage.capture(0);
+      const painted = await stage.readCaption();
+      expect(painted.captionMode).toBe(true);
+      expect(painted.glass).toBe(false);
+      expect(painted.caption).toMatchObject({
+        fontSize: 56,
+        color: '#FFEE00',
+        position: 'top-center'
+      });
+      expect(painted.fontFamily.toLowerCase()).toMatch(/helvetica|arial|sans-serif/);
+    } finally {
+      await stage?.close();
+    }
+  }, 120_000);
 });
+

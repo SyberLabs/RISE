@@ -33,14 +33,55 @@ import {
   loadWorkEngines
 } from '../../visuals/work-engines.js';
 import { TIME_SCALE } from '../../visuals/work-engine-field.js';
+import {
+  resolveCaptionStyle,
+  captionAllowsGlass,
+  captionAnchor,
+  captionCssFontSize
+} from './caption-style.js';
 
 const VOID = KLEE_CHAMBER_BACKGROUND;
+const CAPTION_VARS = [
+  '--caption-x',
+  '--caption-y',
+  '--caption-font',
+  '--caption-size',
+  '--caption-color',
+  '--caption-edge'
+];
 
 function paintAtom(el, text, showGlass) {
   const content = stripEmphasis(text || '');
   el.textContent = content;
+  if (stage.caption) {
+    el.style.removeProperty('--atom-scale');
+    el.classList.remove('glass-tile');
+    return;
+  }
   el.style.setProperty('--atom-scale', String(sizeAtomScale(content)));
   el.classList.toggle('glass-tile', Boolean(showGlass && content));
+}
+
+function applyCaptionMode(caption, frameWidth) {
+  const root = document.querySelector('.chamber');
+  const style = resolveCaptionStyle(caption);
+  stage.caption = style;
+  if (!root) return style;
+  if (!style) {
+    root.classList.remove('caption-mode');
+    for (const name of CAPTION_VARS) root.style.removeProperty(name);
+    return null;
+  }
+  const { x, y } = captionAnchor(style.position);
+  const cssWidth = window.innerWidth || frameWidth;
+  root.classList.add('caption-mode');
+  root.style.setProperty('--caption-x', String(x));
+  root.style.setProperty('--caption-y', String(y));
+  root.style.setProperty('--caption-font', style.fontFamily);
+  root.style.setProperty('--caption-size', `${captionCssFontSize(style.fontSize, cssWidth)}px`);
+  root.style.setProperty('--caption-color', style.color);
+  root.style.setProperty('--caption-edge', style.edgeColor);
+  return style;
 }
 
 function wrapLines(ctx, text, maxWidth) {
@@ -167,6 +208,7 @@ const stage = {
   width: 1080,
   height: 1920,
   seed: 'chamber-stage',
+  caption: null,
   canvas: null,
   host: null,
   field: null,
@@ -174,10 +216,11 @@ const stage = {
   activeKey: null,
   painter: null,
 
-  async prepare({ width, height, seed, stills = [] } = {}) {
+  async prepare({ width, height, seed, stills = [], caption } = {}) {
     this.width = width;
     this.height = height;
     this.seed = seed || 'chamber-stage';
+    applyCaptionMode(caption, width);
     this.field = document.getElementById('chamber-field');
     this.host = document.getElementById('visual-host');
     this.host.replaceChildren();
@@ -236,6 +279,7 @@ const stage = {
   },
 
   async paint(state = {}) {
+    if (state.caption !== undefined) applyCaptionMode(state.caption, this.width);
     const text = state.text || '';
     const cueKind = state.cueKind || 'visual:still';
     const cue = state.cue || { kind: 'still' };
@@ -244,7 +288,7 @@ const stage = {
     const seed = state.seed || this.seed;
     const progress = genesisProgressForRun(elapsedMs, durationMs);
     const resolved = this.resolveKind(cueKind, cue, seed);
-    const showGlass = resolved.glass;
+    const showGlass = captionAllowsGlass(this.caption, resolved.glass);
     this.setFieldMode(resolved.mode);
     await this.paintResolved(resolved, {
       cue, elapsedMs, durationMs, progress, seed,
@@ -624,6 +668,25 @@ const stage = {
     ctx.font = `${style.fontWeight || 400} ${fontSize * dpr}px ${style.fontFamily}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    const lineHeight = (parseFloat(style.lineHeight) || fontSize * 1.4) * dpr;
+    const lines = wrapLines(ctx, text, Math.max(1, box.width * dpr));
+    const originY = (box.top + box.height / 2) * dpr - ((lines.length - 1) * lineHeight) / 2;
+    const originX = (box.left + box.width / 2) * dpr;
+    const captioning = this.caption && el.id === 'atom-display';
+    if (captioning) {
+      ctx.lineJoin = 'round';
+      ctx.miterLimit = 2;
+      ctx.lineWidth = Math.max(2 * dpr, fontSize * dpr * 0.08);
+      ctx.strokeStyle = this.caption.edgeColor;
+      ctx.fillStyle = this.caption.color;
+      for (let i = 0; i < lines.length; i += 1) {
+        const y = originY + i * lineHeight;
+        ctx.strokeText(lines[i], originX, y);
+        ctx.fillText(lines[i], originX, y);
+      }
+      ctx.restore();
+      return;
+    }
     if (el.classList.contains('glass-tile')) {
       const background = style.backgroundColor;
       if (background && background !== 'transparent' && background !== 'rgba(0, 0, 0, 0)') {
@@ -639,10 +702,6 @@ const stage = {
       }
     }
     ctx.fillStyle = style.color || '#ECE8E0';
-    const lineHeight = (parseFloat(style.lineHeight) || fontSize * 1.4) * dpr;
-    const lines = wrapLines(ctx, text, Math.max(1, box.width * dpr));
-    const originY = (box.top + box.height / 2) * dpr - ((lines.length - 1) * lineHeight) / 2;
-    const originX = (box.left + box.width / 2) * dpr;
     for (let i = 0; i < lines.length; i += 1) {
       ctx.fillText(lines[i], originX, originY + i * lineHeight);
     }

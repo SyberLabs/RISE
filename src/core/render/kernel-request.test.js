@@ -64,4 +64,31 @@ describe('kernel request hopper', () => {
     expect(renderCliCommand('score-1.kernel-request.json'))
       .toBe('npm run render:mp4 -- score-1.kernel-request.json');
   });
+
+  it('omits caption so Chamber-identical MP4 paint stays the default', () => {
+    const request = buildKernelRequest({ program });
+    expect(request).not.toHaveProperty('caption');
+  });
+
+  it('resolves caption defaults and overrides on the kernel request', () => {
+    const defaults = buildKernelRequest({ program, caption: {} });
+    expect(defaults.caption).toEqual({
+      fontFamily: '"Helvetica Neue", Arial, sans-serif',
+      fontSize: 42,
+      color: '#FFFFFF',
+      edgeColor: '#000000',
+      position: 'bottom-center'
+    });
+    const override = buildKernelRequest({
+      program,
+      caption: { fontSize: 56, position: { x: 0.5, y: 0.82 }, color: '#FFF8E7' }
+    });
+    expect(override.caption).toMatchObject({
+      fontSize: 56,
+      color: '#FFF8E7',
+      edgeColor: '#000000',
+      position: { x: 0.5, y: 0.82 }
+    });
+  });
 });
+

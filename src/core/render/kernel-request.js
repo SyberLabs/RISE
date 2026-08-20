@@ -3,6 +3,8 @@
  * into renderArtifact. Browser-safe: no ffmpeg, no Node.
  */
 
+import { resolveCaptionStyle } from './caption-style.js';
+
 export const KERNEL_REQUEST_SCHEMA = 'rise.kernel-request.v1';
 export const DEFAULT_RENDER_PROFILE_ID = 'social-portrait-1080';
 export const EXPORT_MP4_PATH = '/__rise/export-mp4';
@@ -71,7 +73,8 @@ export function buildKernelRequest({
   toMs,
   tier,
   ffmpegPath,
-  job
+  job,
+  caption
 } = {}) {
   return defined({
     schema: KERNEL_REQUEST_SCHEMA,
@@ -90,7 +93,8 @@ export function buildKernelRequest({
     toMs,
     tier,
     ffmpegPath,
-    job
+    job,
+    caption: caption == null ? undefined : (resolveCaptionStyle(caption) || undefined)
   });
 }
 
@@ -113,7 +117,8 @@ export function kernelRequestFromWorkshopPayload(payload, options = {}) {
     scale: options.scale,
     fromMs: options.fromMs,
     toMs: options.toMs,
-    tier: options.tier
+    tier: options.tier,
+    caption: options.caption
   });
 }
 
