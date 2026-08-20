@@ -102,6 +102,11 @@ export class BetaGate {
 
   validateCode(code) {
     const normalizedCode = code.toLowerCase().trim();
+    // Open beta writes `{ code: 'open' }`. That session must reload
+    // as a session — otherwise every return trip is another gate.
+    if (normalizedCode === 'open') {
+      return { name: 'Reader', welcome: null };
+    }
     return BETA_INVITES[normalizedCode] || null;
   }
 

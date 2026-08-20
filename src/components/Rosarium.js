@@ -32,6 +32,7 @@ import { CHAPEL_ICONS, CHAPEL_ICON_DEFAULTS, findChapelIcon } from '../content/c
 import { RosaryStrand } from '../visuals/rosary-strand.js';
 import { escapeHtml } from '../core/sanitize.js';
 import { createRemoteImage } from '../visuals/remote-image.js';
+import { rosaryDoorHref } from '../core/rosary-door.js';
 
 const MODE_KEY = 'rise_chapel_rosary_mode_v1';
 const SOUND_KEY = 'rise_rosarium_sound_v1';
@@ -57,6 +58,15 @@ export class Rosarium {
     this.sound = SOUNDS.some(([id]) => id === this._pref(SOUND_KEY)) ? this._pref(SOUND_KEY) : 'none';
     this.autoAdvance = this._pref(ADVANCE_KEY) === 'auto';
     this.pace = 1;
+    this.door = options.door === true;
+    if (this.door) {
+      this.iconId = CHAPEL_ICON_DEFAULTS.marian;
+      this.setId = mysterySetForDate();
+      this.mode = 'plain';
+      this.sound = 'none';
+      this.autoAdvance = true;
+      this.pace = 1;
+    }
 
     // Prayer state
     this.phase = 'choosing';        // 'choosing' | 'strand' | 'prayer' | 'complete'
@@ -80,6 +90,10 @@ export class Rosarium {
     this._abort = new AbortController();
     this.render();
     this.attachEvents();
+    if (this.door) {
+      this.start();
+      this.advance();
+    }
   }
 
   _pref(key) {
@@ -260,6 +274,16 @@ export class Rosarium {
   }
 
   renderComplete() {
+    if (this.door) {
+      return `
+        <div class="rosarium-complete">
+          <p class="rosarium-where">The Rosary is complete.</p>
+          <button class="rosarium-start" data-action="copy-link">Copy this link</button>
+          <button class="rosarium-start" data-action="pray-again">Pray again</button>
+          <button class="rosarium-start" data-action="back">Chapel</button>
+        </div>
+      `;
+    }
     return `
       <div class="rosarium-complete">
         <p class="rosarium-where">The Rosary is complete.</p>
@@ -550,6 +574,11 @@ export class Rosarium {
       case 'back': this._exitToChapel(); break;
       case 'exit-chapel': this._exitToChapel(); break;
       case 'start': this.start(); break;
+      case 'pray-again':
+        this.start();
+        if (this.door) this.advance();
+        break;
+      case 'copy-link': this._copyDoorLink(); break;
       case 'advance': this.advance(); break;
       case 'prayer-done': this.prayerDone(); break;
       case 'gallery':
@@ -575,14 +604,25 @@ export class Rosarium {
     }
   }
 
+  async _copyDoorLink() {
+    const href = rosaryDoorHref();
+    try { await navigator.clipboard?.writeText?.(href); } catch { /* this visit only */ }
+    try { await navigator.share?.({ url: href }); } catch { /* declined or absent */ }
+  }
+
   /**
    * Escape walks back one register at a time:
    * prayer → strand → choosing → Chapel.
+   * The shareable door has no chooser: strand / complete leave for Chapel.
    * Consumed (return true) unless already at choosing.
    */
   handleEscape() {
     if (this.phase === 'prayer') { this.returnToStrand(); return true; }
     if (this.phase === 'strand' || this.phase === 'complete') {
+      if (this.door) {
+        this._exitToChapel();
+        return true;
+      }
       clearTimeout(this._strandTimer);
       clearTimeout(this._prayerTimer);
       this._beginVisualGeneration(); // the devotion ended; its work dies
