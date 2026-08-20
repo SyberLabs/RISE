@@ -256,7 +256,7 @@ async function renderFromOperations(document, options = {}) {
       ffmpegPath: options.ffmpegPath,
       fromMs: options.fromMs,
       toMs: options.toMs,
-      tier: options.tier
+      tier: 'final'
     })
   });
   if (produced.stage === 'refused') {

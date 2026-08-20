@@ -79,7 +79,6 @@ export { renderArtifact } from './artifact.js';
 export { exportRenderMp4 } from './export-mp4.js';
 export {
   renderDistributionPackages,
-  renderProfilePackage,
   renderPreview,
   DISTRIBUTION_PROFILE_IDS
 } from './distribution.js';

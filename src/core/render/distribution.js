@@ -110,10 +110,19 @@ async function renderAdmittedPackage(input, job, options = {}) {
   });
 }
 
-export async function renderProfilePackage(input, profileId, options = {}) {
-  return renderAdmittedPackage(input, deriveRenderJob(input.job, profileId), options);
+/**
+ * Quarantined. A poster package is not a compile.
+ * Compile always muxes through renderArtifact.
+ */
+export async function renderProfilePackage() {
+  fail(
+    'RENDER_COMPILE_POSTER',
+    'A poster package is not a compile. Use renderArtifact.',
+    '$'
+  );
 }
 
+/** Preview only. Not a compile. Compile muxes through renderArtifact. */
 export async function renderPreview(input, { fromMs, toMs, tier = 'draft' } = {}) {
   if (!Number.isInteger(fromMs) || !Number.isInteger(toMs) || toMs <= fromMs) {
     fail('RENDER_PREVIEW_RANGE', 'Preview range must be a half-open millisecond window', '$.excerpt');
@@ -132,7 +141,7 @@ export async function renderDistributionPackages(input, options = {}) {
   const packages = {};
   let credits = null;
   for (const profileId of profiles) {
-    const rendered = await renderProfilePackage(input, profileId, options);
+    const rendered = await renderAdmittedPackage(input, deriveRenderJob(input.job, profileId), options);
     if (!credits) credits = rendered.credits;
     else {
       const missing = credits.filter(line => !rendered.credits.includes(line));
