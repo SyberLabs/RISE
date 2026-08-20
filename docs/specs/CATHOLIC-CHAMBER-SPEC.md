@@ -10,9 +10,9 @@ it that way.
 
 ## 0. The nature of the room
 
-The Chamber reads text rhythmically. The Atrium curates and verifies. The
-Catholic Chamber is something neither of them is: a room built around
-**practices**, not merely readings. Lectio divina, the Rosary, the Stations of
+The Chamber reads text rhythmically. The Catholic Chamber is something
+the Chamber is not: a room built around **practices**, not merely readings.
+Lectio divina, the Rosary, the Stations of
 the Cross are not texts with settings — they are structured acts with their own
 tempo, repetition, and posture, refined over centuries. The system's job is to
 host them faithfully, never to reinterpret them.
@@ -29,7 +29,7 @@ without bending them, the architecture is genuinely general.
    NABRE are not interchangeable. The room ships ONE translation, names it on
    every surface that shows its text, and never mixes translations within a
    session. (Recommendation in §2.)
-2. **The readiness gates apply in full.** The Atrium's rights/edition/checksum
+2. **The readiness gates apply in full.** The rights/edition/checksum
    machinery is the right standard for Scripture — *more* right, not less.
    Nothing here bypasses it because the project is personal.
 3. **Fixed forms are fixed.** The Rosary has its decades; the Stations have
@@ -51,8 +51,8 @@ without bending them, the architecture is genuinely general.
 
 A small luminous icon in the main Portal — deliberately NOT a third strip.
 
-The Portal now has a grammar: the nav row is tools you own; the Atrium door and
-SOL strip are living invitations. The Catholic Chamber enters differently — as
+The Portal now has a grammar: the nav row is tools you own; the
+SOL strip is a living invitation. The Catholic Chamber enters differently — as
 a small, quiet, constant light. Like a sanctuary lamp: it does not advertise,
 it burns.
 
@@ -60,7 +60,7 @@ it burns.
   luminous breath (8s cycle, disabled under reduced-motion), placed in the
   portal's lower region near the footer — present on every visit, prominent on
   none.
-- **No copy, no live detail.** Unlike the Atrium door it does not rotate
+- **No copy, no live detail.** It does not rotate
   content or make an offer. Hover reveals a single name: *"The Chapel."*
   (Naming note: calling the ROOM "The Chapel" keeps "Chamber" meaning what it
   already means everywhere else in the app; the spec title keeps the working
@@ -95,7 +95,7 @@ Source, verified live: **Project Gutenberg #8300** is the complete
 Douay-Rheims Challoner revision, and Gutenberg also hosts it **per book**
 (e.g. #8326 is Ecclesiasticus alone) — which maps one-to-one onto the corpus
 structure below. Ingested once, checksummed per book with the same SHA-256
-payload discipline the Atrium uses, then treated as immutable content.
+payload discipline, then treated as immutable content.
 
 Size math, verified against the compiler's real limits: Psalms, the largest
 book, is ~250k chars ≈ ~13k Phrase atoms against the 2M-char / 120k-atom
@@ -127,8 +127,8 @@ list.
 
 ### Chunking
 
-A dedicated `scripture` chunk profile (the chunk-profile system built for the
-Atrium is exactly the right seam):
+A dedicated `scripture` chunk profile (the chunk-profile system
+is exactly the right seam):
 
 - **Verse-aware:** verse numbers become quiet structural boundaries, not
   spoken content — stripped from display, preserved as navigation anchors.
@@ -264,10 +264,10 @@ format:
 'chapel-resurrection'  — for Easter reading and the Glorious Mysteries
 ```
 
-Every work: contact-sheet reviewed by a human before pinning (the
-`atrium-contact-sheet.mjs` tool as-is), full attribution displayed, rights
-gate enforced. AIC's Old Masters range is strong here; the Met's European
-Paintings will carry the rest. These collections are **Chapel-scoped**: never
+Every work: contact-sheet reviewed by a human before pinning, full
+attribution displayed, rights gate enforced. AIC's Old Masters range is
+strong here; the Met's European Paintings will carry the rest. These
+collections are **Chapel-scoped**: never
 in the browsable Collections list, arriving only with Chapel launches — same
 isolation contract as `atr-` ids.
 
@@ -328,7 +328,7 @@ The dependency order — each stage independently shippable:
    once Scripture reads well, even bare.)*
 2. **The Chapel view + Portal icon** — book selection by liturgical grouping;
    launches into the Chamber with the scripture profile and contemplative
-   defaults. Payload boundary extended; isolation tests per the Atrium pattern.
+   defaults. Payload boundary extended; isolation tests.
 3. **Pinned imagery** — the four collections, contact-sheet reviewed; icon
    focal type with the Pantocrator and the Marian icon.
 4. **Chant registry** — rights-verified recordings, bed playback, graceful
