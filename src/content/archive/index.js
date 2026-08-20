@@ -374,7 +374,12 @@ const WORKS = BUILT.filter(work => !Object.hasOwn(WITHHELD, workId(work)));
  * scheme survives verification.
  */
 function sequencesFor(meta, sections) {
-    const { entries } = divideSections(sections);
+    // `declared`, exactly as getDivisions asks it. Without it this asked the
+    // divider to re-derive a scheme the edition had already stated, which is
+    // the flatten-and-reconstruct the structured ingest exists to end — one
+    // module reading the declaration and its neighbour guessing.
+    const { entries } = divideSections(sections,
+        { declared: STRUCTURED_IDS.has(meta.id) });
     return entries.map((entry, i) => ({
         id: `${meta.id}-${i + 1}`,
         name: entry.label,

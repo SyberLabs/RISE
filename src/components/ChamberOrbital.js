@@ -1595,6 +1595,12 @@ export class ChamberOrbital {
       });
     }
 
+    // WHETHER THIS TEXT IS SET AS VERSE, read off the edition at ingest and
+    // carried here by whoever opened it. Established per load like every
+    // other reading identity above: a poem must not leave the flag set for
+    // the prose that replaces it.
+    this.config.verseLines = config.verseLines === true;
+
     // Launch origin for the wayfinding chip (null when launched plainly)
     this.config.origin = config.origin || null;
     this.updateOriginChip();
@@ -1821,6 +1827,7 @@ export class ChamberOrbital {
       wpm: this.config.wpm,
       curve: this.config.curve,
       chunkMode: this.config.chunkMode,
+      verseLines: this.config.verseLines === true,
       audioPreset: this.config.audioPreset,
       soundscape: this.config.soundscape,
       entrainmentMode: this.config.entrainmentMode,

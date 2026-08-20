@@ -74,8 +74,16 @@ describe('ingested works', () => {
             const seqs = await text.getSequences();
             expect(seqs.length, `${text.id} resolved no sections`).toBeGreaterThan(0);
             for (const s of seqs) {
+                // A DECLARED DIVISION MAY BE SHORT, because the edition said
+                // where it ends. Ovid's Brazen Age is three lines and 120
+                // characters; the 200 this asked for was only ever met
+                // because the divider used to re-derive the scheme and merge
+                // short episodes into their neighbours.
+                //
+                // Set BELOW the shortest reading on the shelf, so it fails on
+                // a new stub rather than re-litigating a real short poem.
                 expect(s.content.length, `${text.id}/${s.name} is suspiciously short`)
-                    .toBeGreaterThan(200);
+                    .toBeGreaterThan(80);
                 // The dossier requires front matter, notes, and image
                 // anchors to remain addressable. Only the distributor's
                 // wrapper is categorically outside the edition.

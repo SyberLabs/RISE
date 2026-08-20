@@ -61,7 +61,14 @@ describe('a reading ends where the work ends something', () => {
             }
         }
 
-        expect(examined, 'the shelf carries split readings to check').toBeGreaterThan(100);
+        // NOTHING ON THE SHELF IS CUT ANY MORE. Every shelved work comes
+        // from an edition that declares its own divisions, and a declared
+        // scheme is never re-derived and so never split — `splitLongDivision`
+        // does not run for any of the fifteen. The offence check above stays
+        // because the splitter is still reachable by an unstructured work;
+        // this asserts the reason the count is zero rather than letting a
+        // vacuous pass look like a clean one.
+        expect(examined, 'a declared scheme is never split').toBe(0);
         expect(offences, offences.slice(0, 5).join('\n')).toEqual([]);
     }, 240000);
 

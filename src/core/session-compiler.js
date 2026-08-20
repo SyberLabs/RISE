@@ -282,7 +282,12 @@ function normalizeSources(config) {
             id: config.sourceId || 'primary',
             name: config.source || config.textSource || config.title || 'Session',
             type: 'text',
-            data: config.text ?? config.content ?? ''
+            data: config.text ?? config.content ?? '',
+            // A SESSION COMPILED FROM BARE TEXT IS STILL A SOURCE. Every
+            // reading that arrives as `text` rather than `sources` — which is
+            // every reading the Library starts — took this branch, and the
+            // branch dropped the field on the floor.
+            verseLines: config.verseLines === true
         }];
 
     let totalChars = 0;

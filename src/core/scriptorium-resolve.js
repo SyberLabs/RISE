@@ -5,6 +5,7 @@
  */
 
 import { ingestedArchiveTexts } from '../content/archive/index.js';
+import { mostlyVerse } from '../content/archive/divisions.js';
 import { isBoundarySource } from './journey-compiler.js';
 import { assertQuotationAnchorsAgainstSources } from './source-span.js';
 import {
@@ -101,28 +102,6 @@ async function resolveWholeWork(work) {
   if (!data) return null;
   const words = typeof work.wordCount === 'number' ? work.wordCount : countWords(data);
   return { name: work.title || work.id, words, data, verseLines: mostlyVerse(sections) };
-}
-
-/**
- * IS THE WHOLE WORK SET AS VERSE?
- *
- * Weighed in words, because a work is rarely all one thing: Lyrical Ballads
- * carries an Advertisement, the Commedia a prose preface per canticle. The
- * question the chunker is asking is whether respecting line breaks will serve
- * more of this reading than it harms, and the answer for a mixed work is the
- * majority — a prose paragraph is one long line, so the line-splitter hands
- * it back to the punctuation splitter unchanged and costs it nothing.
- */
-function mostlyVerse(sections) {
-  const list = Array.isArray(sections) ? sections : [];
-  let verse = 0;
-  let total = 0;
-  for (const section of list) {
-    const words = countWords(section?.content || '');
-    total += words;
-    if (section?.verse === true) verse += words;
-  }
-  return total > 0 && verse / total > 0.5;
 }
 
 /**

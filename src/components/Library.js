@@ -9,6 +9,7 @@
  */
 
 import { LIBRARY_TEXTS, LIBRARY_CATEGORIES, DIVISIONS } from '../content/library.js';
+import { mostlyVerse } from '../content/archive/divisions.js';
 import { escapeHtml } from '../core/sanitize.js';
 import { MemoryCore } from '../core/memory.js';
 
@@ -798,7 +799,13 @@ export class Library {
     this.closeContents();
     this.onSelectText(entry.content, `${text.title} · ${label}`, {
       wpm: text.defaultWpm,
-      curve: text.defaultCurve
+      curve: text.defaultCurve,
+      // THE DOOR A READER ACTUALLY OPENS. The verse declaration was carried
+      // as far as the Scriptorium's resolver, which serves an authored
+      // program — not this, which is how someone opens a poem. So Tintern
+      // Abbey was still cut at Wordsworth's commas and glued across his line
+      // ends after the fix was reported as shipped.
+      verseLines: entry.verse === true
     });
   }
 
@@ -809,7 +816,11 @@ export class Library {
     this.closeContents();
     this.onSelectText(full, text.title, {
       wpm: text.defaultWpm,
-      curve: text.defaultCurve
+      curve: text.defaultCurve,
+      // Weighed in words: a work is rarely all one thing, and the line
+      // splitter costs a prose paragraph nothing — one long line is handed
+      // straight back to the punctuation splitter.
+      verseLines: mostlyVerse(divisions.entries)
     });
   }
 

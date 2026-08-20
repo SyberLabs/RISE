@@ -267,6 +267,36 @@ const wordsIn = (s) => (s ? s.split(/\s+/).filter(Boolean).length : 0);
  * entirely in capitals, which is how this corpus's editions print a
  * chapter's name beneath its number.
  */
+/**
+ * IS THIS READING SET AS VERSE?
+ *
+ * Asked of parts that carry the ingest's `verse` flag — sections or division
+ * entries, which have the same two fields — and weighed in WORDS, because a
+ * work is rarely all one thing: Lyrical Ballads carries an Advertisement, the
+ * Commedia a prose preface per canticle, and Wordsworth prefaces The
+ * Complaint of a Forsaken Indian Woman with a hundred and fifty-two words of
+ * prose.
+ *
+ * The question is whether respecting printed line breaks serves more of this
+ * reading than it costs, and for a mixed reading the answer is the majority:
+ * a prose paragraph is one long line, which the line splitter hands straight
+ * back to the punctuation splitter unchanged.
+ *
+ * Lives here, and only here. A second copy is how a vocabulary ends up in two
+ * places where only one of them learns a new word.
+ */
+export function mostlyVerse(parts) {
+    const list = Array.isArray(parts) ? parts : [];
+    let verse = 0;
+    let total = 0;
+    for (const part of list) {
+        const words = wordsIn(part?.content || '');
+        total += words;
+        if (part?.verse === true) verse += words;
+    }
+    return total > 0 && verse / total > 0.5;
+}
+
 export function paragraphIsHeading(text) {
     const raw = String(text || '').trim();
     if (!raw || raw.length > 90 || raw.includes('\n')) return false;
