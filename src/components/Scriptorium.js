@@ -14,6 +14,17 @@
 import { MemoryCore } from '../core/memory.js';
 import { PersonalSwells } from '../core/personal-swells.js';
 import {
+  describeMaterials,
+  inspectMaterial,
+  MATERIAL_ACCEPT,
+  probeVideoDurationMs
+} from '../core/materials.js';
+import {
+  createSequenceVisualAsset,
+  SEQUENCE_ASSET_STORAGE_IDB,
+  VISUAL_SCORE_COLORS
+} from '../core/visual-score-lane.js';
+import {
   exportCuratorContext,
   serializeCuratorContext
 } from '../core/curator-context.js';
@@ -111,6 +122,12 @@ export class Scriptorium {
     // WHAT THE READER BROUGHT. The Library is what RISE holds and answers for;
     // these are the reader's own, which RISE describes rather than certifies.
     this.swells = [];
+    this.materials = [];
+    this.materialBlobs = new Map();
+    this.objectUrls = new Set();
+    // Closed until asked for. A reader composing from the Library alone should
+    // not have to decline an upload panel on the way past.
+    this.materialsOpen = false;
   }
 
   mount() {
@@ -154,6 +171,7 @@ export class Scriptorium {
       // the whole of the seam: both rooms build the same document from the
       // same function, and this one handed it empty arrays.
       swells: this.swells,
+      assets: this.materials,
       constraints: { targetWords: this.targetWords }
     });
     this.promptText = buildCuratorPrompt({
@@ -256,6 +274,42 @@ export class Scriptorium {
             opening — whichever is the largest that fits. A score longer than
             this is refused, not trimmed.
           </p>
+        </section>
+
+        <section class="scriptorium-step">
+          <details class="scriptorium-materials" ${this.materialsOpen ? 'open' : ''}>
+            <summary>
+              <span>Add your own images or video</span>
+              <span class="scriptorium-meta">${escapeHtml(describeMaterials(this.materials))}</span>
+            </summary>
+            <p class="scriptorium-note">
+              Optional. These are yours rather than the Library's — RISE describes
+              them to the composer rather than vouching for them, and they travel
+              with this reading rather than joining the shelf.
+            </p>
+            <input type="file" id="scriptorium-materials-input" hidden multiple
+              accept="${MATERIAL_ACCEPT}">
+            <button type="button" class="btn-secondary" data-action="add-material">Choose files</button>
+            ${this.materials.length ? `
+              <ul class="scriptorium-track-list">
+                ${this.materials.map(item => `
+                  <li>
+                    <strong>${escapeHtml(item.name)}</strong>
+                    <span class="scriptorium-meta">${escapeHtml(item.kind)}${
+                      item.durationMs ? ` · ${Math.round(item.durationMs / 1000)}s` : ''
+                    } · ${escapeHtml(item.id)}</span>
+                    <button type="button" class="btn-ghost btn-compact"
+                      data-action="drop-material" data-id="${escapeHtml(item.id)}"
+                      aria-label="Remove ${escapeHtml(item.name)}">Remove</button>
+                  </li>
+                `).join('')}
+              </ul>
+              <p class="scriptorium-note">
+                The composer is told each file's name and nothing more. Name them
+                for what they are and it will place them better.
+              </p>
+            ` : ''}
+          </details>
         </section>
 
         <section class="scriptorium-step" aria-labelledby="scriptorium-take-title">
@@ -393,6 +447,25 @@ export class Scriptorium {
         this.render();
       });
 
+    const materialsInput = this.container.querySelector('#scriptorium-materials-input');
+    materialsInput?.addEventListener('change', (event) => {
+      const files = event.target.files;
+      event.target.value = '';
+      void this.addMaterials(files);
+    });
+
+    this.container.querySelector('[data-action="add-material"]')
+      ?.addEventListener('click', () => materialsInput?.click());
+
+    this.container.querySelector('.scriptorium-materials')
+      ?.addEventListener('toggle', (event) => {
+        this.materialsOpen = event.target.open === true;
+      });
+
+    for (const button of this.container.querySelectorAll('[data-action="drop-material"]')) {
+      button.addEventListener('click', () => this.dropMaterial(button.dataset.id));
+    }
+
     this.container.querySelector('[data-action="begin"]')
       ?.addEventListener('click', () => { void this.begin(); });
 
@@ -473,7 +546,11 @@ export class Scriptorium {
         program: this.program,
         context: this.context,
         sources,
-        assets: [],
+        // CARRIED, NOT LOOKED UP. A sequence asset is validated against the
+        // assets the reading holds, so a score that names one the project does
+        // not carry is refused at compile — which is what an empty array here
+        // guaranteed for anything the reader had added.
+        assets: this.materials,
         title: this.intent.trim().slice(0, 80) || this.program.id,
         intent: 'custom',
         id: `scriptorium-${Date.now()}`,
@@ -554,6 +631,89 @@ export class Scriptorium {
     this.status = 'Opening the reading…';
     this.render();
     await this.onCreateSession(project);
+  }
+
+  /**
+   * Take a file the reader chose.
+   *
+   * Refusals are stated rather than swallowed: a file too large or of a kind
+   * a reading cannot carry says which, because the reader is the only one who
+   * can do anything about it.
+   */
+  async addMaterials(files) {
+    const chosen = [...(files || [])];
+    if (!chosen.length) return;
+    const refused = [];
+
+    for (const file of chosen) {
+      const verdict = inspectMaterial(file, { held: this.materials.length });
+      if (!verdict.ok) {
+        refused.push(verdict.reason);
+        continue;
+      }
+      let durationMs = null;
+      if (verdict.kind === 'video') {
+        try {
+          durationMs = await probeVideoDurationMs(file);
+        } catch {
+          refused.push(`Could not read ${file.name}.`);
+          continue;
+        }
+      }
+      const id = `asset-${crypto.randomUUID()}`;
+      const uri = URL.createObjectURL(file);
+      this.objectUrls.add(uri);
+      this.materialBlobs.set(id, file);
+      this.materials.push(createSequenceVisualAsset({
+        id,
+        name: file.name,
+        kind: verdict.kind === 'video' ? 'video' : 'image',
+        storage: SEQUENCE_ASSET_STORAGE_IDB,
+        mimeType: file.type,
+        byteLength: file.size,
+        uri,
+        ...(durationMs ? { durationMs } : {}),
+        color: VISUAL_SCORE_COLORS[this.materials.length % VISUAL_SCORE_COLORS.length]
+      }));
+    }
+
+    this.materialsOpen = true;
+    // The capability document is stale the moment the materials change, and a
+    // reader who already copied the prompt must be told to take it again.
+    this.buildTakeArtifacts();
+    this.status = refused.length
+      ? refused.join(' ')
+      : `${describeMaterials(this.materials)} added. Take the prompt again.`;
+    this.render();
+  }
+
+  dropMaterial(id) {
+    const held = this.materials.find(item => item.id === id);
+    if (!held) return;
+    if (held.uri) {
+      URL.revokeObjectURL(held.uri);
+      this.objectUrls.delete(held.uri);
+    }
+    this.materialBlobs.delete(id);
+    this.materials = this.materials.filter(item => item.id !== id);
+    this.materialsOpen = true;
+    this.buildTakeArtifacts();
+    this.status = `Removed. ${describeMaterials(this.materials)}`;
+    this.render();
+  }
+
+  /**
+   * Leaving the room releases the reader's files.
+   *
+   * Every staged material holds an object URL, and the router calls this on
+   * the way out. Without it a reader who added nine landscapes and changed
+   * their mind left nine blobs pinned for the life of the tab.
+   */
+  destroy() {
+    for (const uri of this.objectUrls) URL.revokeObjectURL(uri);
+    this.objectUrls.clear();
+    this.materialBlobs.clear();
+    this.materials = [];
   }
 
   /** Keep it without reading it, and stay in the room. */

@@ -175,3 +175,42 @@
   color: #e8e4dc;
   border-color: rgba(196, 165, 116, 0.75);
 }
+
+/* Materials — what the reader brought, folded away until asked for. A reader
+   composing from the Library alone should not have to decline an upload panel
+   on the way past. */
+.scriptorium-materials {
+  border: 1px solid var(--scriptorium-rule);
+  border-radius: 3px;
+  padding: 0.35rem 0.9rem;
+  max-width: 52rem;
+}
+
+.scriptorium-materials > summary {
+  cursor: pointer;
+  padding: 0.55rem 0;
+  display: flex;
+  gap: 0.9rem;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  color: var(--scriptorium-ink);
+}
+
+.scriptorium-materials > summary:focus-visible {
+  outline: 1px solid rgba(196, 165, 116, 0.75);
+  outline-offset: 3px;
+}
+
+.scriptorium-materials > summary .scriptorium-meta {
+  display: inline;
+}
+
+.scriptorium-materials[open] > summary {
+  border-bottom: 1px solid var(--scriptorium-rule);
+  margin-bottom: 0.85rem;
+}
+
+.scriptorium-materials .scriptorium-track-list li {
+  margin-bottom: 0.55rem;
+}
