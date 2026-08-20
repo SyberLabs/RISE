@@ -40,6 +40,13 @@ function prayerText() {
   return document.querySelector('.rosarium-prayer-text')?.textContent ?? null;
 }
 
+function stubMedia() {
+  HTMLImageElement.prototype.decode = vi.fn().mockRejectedValue(new Error('stillness'));
+  HTMLMediaElement.prototype.play = vi.fn().mockResolvedValue(undefined);
+  HTMLMediaElement.prototype.load = vi.fn();
+  HTMLMediaElement.prototype.pause = vi.fn();
+}
+
 describe('Chapel Rosary door (#rosary)', () => {
   let app;
 
@@ -61,7 +68,7 @@ describe('Chapel Rosary door (#rosary)', () => {
       configurable: true,
       value: { writeText: vi.fn().mockResolvedValue(undefined) }
     });
-    HTMLImageElement.prototype.decode = vi.fn().mockRejectedValue(new Error('stillness'));
+    stubMedia();
     vi.spyOn(sources, 'initSourceSystem').mockResolvedValue();
     plantShell();
   });
@@ -73,6 +80,7 @@ describe('Chapel Rosary door (#rosary)', () => {
     localStorage.clear();
     document.body.replaceChildren();
     vi.restoreAllMocks();
+    stubMedia();
   });
 
   it('gate-then-prayer: ENTER THE SPACE then the Sign of the Cross', async () => {
