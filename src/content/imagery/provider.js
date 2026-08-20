@@ -2,14 +2,14 @@
  * Pinned-works provider — the imagery service behind a provider face.
  *
  * The cortex asks providers for images by category id. This adapts the
- * pinned collections to that shape so a curated Atrium reading can show
+ * pinned collections to that shape so a curated reading can show
  * David's Death of Socrates where it previously showed whatever a
  * keyword search returned that day.
  *
  * ISOLATION (ATRIUM-IMAGERY-SPEC.md §5): this is not registered with
  * the Chamber's provider registry. The cortex reaches it only for ids
- * that a pinned collection defines, which only an Atrium launch can
- * supply. A reader browsing Collections never encounters it.
+ * that a pinned collection defines. A reader browsing Collections
+ * never encounters it.
  */
 
 import { ATRIUM_PINNED_COLLECTIONS } from './collections.js';
@@ -113,7 +113,7 @@ export class PinnedWorksProvider {
             title: work.title,
             url: work.imageUrl,
             fullUrl: work.fullImageUrl,
-            // Provenance the Atrium can display and Study mode will need
+            // Provenance a reading can display and Study mode will need
             artist: work.artist,
             date: work.date,
             license: work.rights,

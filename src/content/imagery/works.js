@@ -13,7 +13,7 @@
 /**
  * Rights normalized across institutions. Only public-domain-equivalent
  * values are eligible for display; anything else, including UNKNOWN,
- * is withheld exactly like an Atrium text that fails its rights gate.
+ * is withheld.
  */
 export const RIGHTS = Object.freeze({
     CC0: 'CC0',

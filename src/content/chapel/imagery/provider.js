@@ -1,10 +1,9 @@
 /**
  * Chapel pinned-works provider.
  *
- * The same PinnedWorksProvider machinery the Atrium uses, holding the
- * Chapel's collections instead. A separate instance with its own
- * shuffle state, so Chapel readings and Atrium readings never share a
- * rotation.
+ * The same PinnedWorksProvider machinery, holding the Chapel's
+ * collections. A separate instance with its own shuffle state, so
+ * Chapel readings never share a rotation with pinned atr- collections.
  *
  * ISOLATION (spec §5): not registered with the Chamber's provider
  * registry, never in the browsable Collections panel. The cortex

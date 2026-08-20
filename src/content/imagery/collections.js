@@ -233,11 +233,3 @@ export const ATRIUM_PINNED_COLLECTIONS = freezeManifest({
  * which is honest, rather than to a portrait that only looks relevant.
  */
 
-/** Pinned collection ids stay `atr-` namespaced, like their predecessors. */
-export function findPinnedCollection(id) {
-    return ATRIUM_PINNED_COLLECTIONS[id] || null;
-}
-
-export function hasPinnedCollection(id) {
-    return Object.hasOwn(ATRIUM_PINNED_COLLECTIONS, id);
-}

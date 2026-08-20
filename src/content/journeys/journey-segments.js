@@ -1,27 +1,22 @@
 /**
  * One segment order, read one way.
  *
- * The Atrium's existing Journeys are flat: a record carries `segments`
- * and the readiness, validation, itinerary, and handoff code all walk
- * that array directly. An authored Journey (JOURNEYS-SPEC §6.1) carries
- * `movements`, each with its own segments, because a movement is the
- * unit that changes the active world and a flat list cannot express
- * that.
+ * An authored Journey (JOURNEYS-SPEC §6.1) carries `movements`, each
+ * with its own segments, because a movement is the unit that changes
+ * the active world and a flat list cannot express that. A flat record
+ * still carries `segments` alone.
  *
- * Both shapes have to be readable by the same machinery during the
- * transition, and the spec is emphatic about how:
+ * The spec is emphatic:
  *
  *   "There must never be two independently maintained segment orders."
  *
- * So every consumer asks THIS function rather than reaching for a
- * field. A record's shape becomes a detail of the record instead of a
- * fact each caller has to know — which is what lets the first authored
- * Journey exist beside eighty flat ones without either being rewritten
- * to suit the other.
+ * So every consumer asks THIS module rather than reaching for a field.
+ * A record's shape becomes a detail of the record instead of a fact
+ * each caller has to know.
  */
 
 /** Is this an authored Journey — one with movements rather than a flat list? */
-export function isAuthoredJourney(journey) {
+function isAuthoredJourney(journey) {
     return Array.isArray(journey?.movements) && journey.movements.length > 0;
 }
 
@@ -64,18 +59,4 @@ export function readJourneyMovements(journey) {
         function: 'flat-sequence',
         segments
     }];
-}
-
-/** Where a passage sits: its movement id and index, or null if absent. */
-export function locateSegment(journey, passageId) {
-    const movements = readJourneyMovements(journey);
-    for (let m = 0; m < movements.length; m++) {
-        const segments = movements[m].segments || [];
-        for (let s = 0; s < segments.length; s++) {
-            if (segments[s]?.passageId === passageId) {
-                return { movementId: movements[m].id, movementIndex: m, segmentIndex: s };
-            }
-        }
-    }
-    return null;
 }
