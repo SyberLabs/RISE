@@ -1,3 +1,4 @@
+import { cpus } from 'node:os';
 import { defineConfig } from 'vite';
 import { curiaPlugin } from './scripts/curia-plugin.js';
 
@@ -81,12 +82,18 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.js'],
 
-    // Wider pools OOM / drop IPC when several workers each load jsdom,
-    // visual engines, and the full Library fixtures. Keep maxWorkers
-    // at 2 until those fixtures share a lighter setup; raising it alone
-    // just moves the crash later.
+    // A WORKER USED TO CARRY THE WHOLE ARCHIVE. Two was the ceiling because
+    // each fork loaded jsdom, the visual engines, and Library fixtures that
+    // linked ninety-five payloads — ninety-three megabytes, of which eighty-two
+    // belonged to works no reader could open. Unlinking the unreachable ones
+    // is the lighter setup the old note was waiting for: 168s → 81s here, and
+    // green at eight, which is where it was left rather than pushed.
+    //
+    // Scaled to the machine, because CI is not this machine. A GitHub runner
+    // has four cores where a workstation has sixteen, and a fixed six would
+    // oversubscribe the runner as surely as two throttles the workstation.
     pool: 'forks',
-    maxWorkers: 2,
+    maxWorkers: Math.max(2, Math.min(6, Math.floor(cpus().length / 2))),
     minWorkers: 1,
 
     include: ['src/**/*.{test,spec}.js'],
