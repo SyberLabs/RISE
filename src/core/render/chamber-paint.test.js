@@ -1,12 +1,14 @@
 // @vitest-environment node
+import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { compileRenderPlan } from './plan.js';
 import { openChamberPainter } from './chamber-paint.js';
 import { buildVerticalSlice } from './vertical-slice.js';
 
-let hasPlaywright = true;
+let hasPlaywright = false;
 try {
-  await import('playwright');
+  const { chromium } = await import('playwright');
+  hasPlaywright = existsSync(chromium.executablePath());
 } catch {
   hasPlaywright = false;
 }
