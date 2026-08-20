@@ -2,63 +2,52 @@ import { test, expect } from '@playwright/test';
 
 const GATE = { code: 'rise2025', name: 'Shelves', vault: null, timestamp: Date.now() };
 
-// Standing at one shelf, a reader should see its canon in reading
-// order: classical, then literary, then esoteric.
-test('a shelf shows its divisions in order; All stays flat', async ({ page }) => {
+// Standing at one shelf, a reader should see its forms in reading
+// order: what was sung, then staged, then sung alone, then taught.
+test('a shelf shows its divisions in order', async ({ page }) => {
   await page.addInitScript((g) => {
     localStorage.setItem('rise-beta-session', JSON.stringify(g));
   }, GATE);
   await page.goto('/');
   await page.locator('[data-nav="library"]').first().click();
-  await expect(page.locator('[data-filter="western"]')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('[data-filter="received"]')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('[data-filter="composed"]')).toBeVisible();
 
-  // "All" is a flat grid — divisions across four canons would say nothing.
-  const flat = await page.evaluate(() =>
-    document.querySelectorAll('[data-division]').length);
+  // One provenance axis: received or composed. There is no All.
+  const filters = await page.evaluate(() =>
+    [...document.querySelectorAll('.section-filters .filter-btn')].map(b => b.dataset.filter));
+  expect(filters).toEqual(['received', 'composed']);
 
-  // Two axes: where a work is from, and what it is about.
-  const axes = await page.evaluate(() =>
-    [...document.querySelectorAll('.archive-axis')].map(a => ({
-      label: a.querySelector('.archive-axis-label').textContent.trim(),
-      buttons: [...a.querySelectorAll('.filter-btn')].map(b => b.dataset.filter)
-    })));
-  console.log('AXES ' + JSON.stringify(axes));
-  expect(axes.map(a => a.label)).toEqual(['By tradition', 'By subject']);
-  expect(axes[0].buttons).toEqual(['all', 'western', 'eastern', 'indigenous']);
-  // Form & Design cuts across the traditions rather than sitting beside
-  // them; every shelf must appear in exactly one row.
-  expect(axes[1].buttons).toContain('form');
-  const seen = axes.flatMap(a => a.buttons);
-  expect(new Set(seen).size).toBe(seen.length);
-
-  await page.locator('[data-filter="western"]').click();
-  const western = await page.evaluate(() => ({
+  const received = await page.evaluate(() => ({
     divisions: [...document.querySelectorAll('[data-division]')].map(d => d.dataset.division),
     names: [...document.querySelectorAll('.archive-division-name')].map(n => n.textContent.trim()),
     cards: document.querySelectorAll('.archive-card').length,
     unplaced: document.querySelectorAll('[data-division="other"]').length
   }));
 
-  await page.locator('[data-filter="indigenous"]').click();
-  const indigenous = await page.evaluate(() => ({
+  await page.locator('[data-filter="composed"]').click();
+  const composed = await page.evaluate(() => ({
     divisions: [...document.querySelectorAll('[data-division]')].map(d => d.dataset.division),
-    cards: document.querySelectorAll('.archive-card').length
+    cards: document.querySelectorAll('.archive-card').length,
+    unplaced: document.querySelectorAll('[data-division="other"]').length
   }));
 
-  console.log('ALL flat divisions: ' + flat);
-  console.log('WESTERN ' + JSON.stringify(western));
-  console.log('INDIGENOUS ' + JSON.stringify(indigenous));
+  console.log('RECEIVED ' + JSON.stringify(received));
+  console.log('COMPOSED ' + JSON.stringify(composed));
 
-  expect(flat).toBe(0);
-  // imaginative sits between literary and esoteric.
-  expect(western.divisions).toEqual(['classical', 'literary', 'imaginative', 'esoteric']);
-  // Shelf grows; assert populated and filed, not a fixed card count.
-  expect(western.cards).toBeGreaterThan(10);
-  // Nothing unplaced: every work is filed within its canon.
-  expect(western.unplaced).toBe(0);
-  // A shelf of one division renders flat rather than labelling the obvious.
-  expect(indigenous.divisions).toEqual([]);
-  expect(indigenous.cards).toBeGreaterThan(0);
+  // Live received forms that actually have holdings, in DIVISIONS order.
+  // tale is a declared form; the launch canon has none, so it does not render.
+  expect(received.divisions).toEqual(['epic', 'drama', 'lyric', 'wisdom', 'essay', 'novel']);
+  expect(received.cards).toBeGreaterThan(0);
+  expect(received.unplaced).toBe(0);
+
+  // Composed divisions are the sequence categories that have items.
+  expect(composed.divisions).toEqual([
+    'chamber-entry', 'installation', 'grounding', 'contemplation',
+    'poetic', 'recursive', 'affirmation'
+  ]);
+  expect(composed.cards).toBeGreaterThan(0);
+  expect(composed.unplaced).toBe(0);
 });
 
 /**
@@ -71,10 +60,11 @@ async function openLibrary(page) {
   }, GATE);
   await page.goto('/');
   await page.locator('[data-nav="library"]').first().click();
-  await expect(page.locator('[data-filter="western"]')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('[data-filter="received"]')).toBeVisible({ timeout: 15000 });
 }
 
 test('a long work opens at its contents, in its own division noun', async ({ page }) => {
+  test.skip(true, 'war-and-peace is withheld from the launch canon');
   await openLibrary(page);
   await page.locator('[data-action="select-text"][data-id="war-and-peace"]').first().click();
 
@@ -102,6 +92,7 @@ test('a long work opens at its contents, in its own division noun', async ({ pag
 });
 
 test('choosing a chapter reads that chapter, not the book', async ({ page }) => {
+  test.skip(true, 'war-and-peace is withheld from the launch canon');
   await openLibrary(page);
   await page.locator('[data-action="select-text"][data-id="war-and-peace"]').first().click();
   await expect(page.locator('.toc-sheet')).toBeVisible({ timeout: 30000 });
@@ -134,6 +125,7 @@ test('choosing a chapter reads that chapter, not the book', async ({ page }) => 
 });
 
 test('the contents can be searched, and closed without choosing', async ({ page }) => {
+  test.skip(true, 'war-and-peace is withheld from the launch canon');
   await openLibrary(page);
   await page.locator('[data-action="select-text"][data-id="war-and-peace"]').first().click();
   await expect(page.locator('.toc-sheet')).toBeVisible({ timeout: 30000 });
@@ -149,12 +141,13 @@ test('the contents can be searched, and closed without choosing', async ({ page 
   await page.keyboard.press('Escape');
   await expect(page.locator('.toc-sheet')).toBeHidden({ timeout: 10000 });
   // Escaping is not choosing: the reader is still at the shelf.
-  await expect(page.locator('[data-filter="western"]')).toBeVisible();
+  await expect(page.locator('[data-filter="received"]')).toBeVisible();
 });
 
 test('a short work goes straight to the Chamber, with no contents to open', async ({ page }) => {
   // A table of contents with one row is a door with a sign reading
   // "door". Kabir's Songs is 11,515 words and is read whole.
+  test.skip(true, 'kabir-songs is withheld; remains undivided so its poems cannot be named');
   await openLibrary(page);
   await page.locator('[data-action="select-text"][data-id="kabir-songs"]').first().click();
   await page.waitForFunction(
