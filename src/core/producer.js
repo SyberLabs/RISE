@@ -17,10 +17,11 @@ import {
 import { enqueuePublicationReview } from './publication.js';
 import { contentHashOf } from './render/hash.js';
 import { RENDER_JOB_SCHEMA } from './render/environment.js';
-import { admitRenderJob, pinnedRendererForProfile } from './render/job.js';
+import { admitRenderJob, pinnedRendererForProfile, deriveRenderJob } from './render/job.js';
 import { renderProfile } from './render/limits.js';
 import { preflightRenderJob, PREFLIGHT_VERDICTS } from './render/preflight.js';
-import { renderPreview, renderProfilePackage } from './render/distribution.js';
+import { renderPreview } from './render/distribution.js';
+import { qualityTier } from './render/quality.js';
 import { compileSession } from './session-compiler.js';
 import {
   emptyWorkshopProject,
@@ -173,7 +174,8 @@ export async function runProducer({
   tier = 'draft',
   profiles = null,
   proposePublication = true,
-  render = true
+  render = true,
+  encode = null
 } = {}) {
   const set = validateAgentOperationSet(operationSet);
   const applied = applyAgentOperationSet({
@@ -229,9 +231,32 @@ export async function runProducer({
     });
   }
   if (wantsCompile) {
+    const { renderArtifact, KERNEL_REQUEST_SCHEMA } = await import(
+      /* @vite-ignore */
+      new URL('./render/artifact.js', import.meta.url).href
+    );
+    const tierInfo = qualityTier(encode?.tier || tier);
     const ids = profiles || [compiled.profileId];
     for (const profileId of ids) {
-      packages[profileId] = await renderProfilePackage(input, profileId, { tier });
+      const job = profileId === compiled.profileId
+        ? compiled.job
+        : deriveRenderJob(compiled.job, profileId);
+      packages[profileId] = await renderArtifact({
+        schema: KERNEL_REQUEST_SCHEMA,
+        program: compiled.program,
+        sources: compiled.sources,
+        inventory: compiled.inventory,
+        sessionInput: compiled.sessionInput,
+        job,
+        outputPath: encode?.outputPath,
+        painter: encode?.painter || 'chamber',
+        scale: encode?.scale ?? tierInfo.scale,
+        sampleRate: encode?.sampleRate || tierInfo.sampleRate,
+        ffmpegPath: encode?.ffmpegPath,
+        fromMs: encode?.fromMs,
+        toMs: encode?.toMs,
+        tier: encode?.tier || tier
+      });
     }
   }
   result.packages = packages;

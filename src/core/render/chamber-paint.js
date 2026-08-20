@@ -1,9 +1,11 @@
 /**
  * Node-only Chamber painter.
  *
- * Opens the live Chamber stage in Chromium and captures frames at
- * explicit presentation time. This is a projection of the score, not a
- * screen recording of rAF.
+ * Opens one Chromium stage per job and captures frames at explicit
+ * presentation time as raw RGBA — the same contract as clerk
+ * `renderFrameRgba`. This is a projection of the score, not a PNG
+ * screenshot and not a screen recording of rAF. Vite is started once
+ * for the painter, not per frame.
  */
 
 import { createServer } from 'vite';
@@ -257,15 +259,14 @@ export async function openChamberPainter({
       if (frameIndex === 0 || (frameIndex + 1) % 30 === 0) {
         ffmpegLog(`Chamber frame ${frameIndex + 1}/${currentPlan.frameCount}`);
       }
-      const png = await page.screenshot({
-        type: 'png',
-        animations: 'disabled'
-      });
+      const shot = await page.evaluate(async () => window.__stage.captureRgba());
+      const bytes = Buffer.from(shot.rgba, 'base64');
       return {
-        format: 'png',
-        png,
-        width: view.width,
-        height: view.height
+        width: shot.width,
+        height: shot.height,
+        rgba: new Uint8ClampedArray(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+        timeMs,
+        frameIndex
       };
     },
     close

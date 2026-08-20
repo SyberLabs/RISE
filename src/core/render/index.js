@@ -4,8 +4,8 @@
  * Inventory, support, immutable job, preflight, vertical-slice render,
  * distribution packages, package verification, and the project asset
  * manifest over existing Workshop stores.
- * No Chamber coupling, no Workshop mutation.
- * H.264 mux is a Node encoder adapter (`encode-mp4.js`), not Chamber authority.
+ * No Workshop mutation. H.264 mux is a Node encoder adapter
+ * (`encode-mp4.js` / `renderArtifact`); Chamber paint is Node-only.
  */
 
 export { RenderError } from './errors.js';
@@ -70,12 +70,13 @@ export {
 } from './plan.js';
 export { mapVideoSourceTime } from './video-time.js';
 export { renderFrameRgba } from './raster.js';
-export { mixAudio, peakAmplitude, measureLoudnessLufs } from './audio-mix.js';
-export { collectVoiceBytes } from './voice-pcm.js';
-export { decodeWav } from './wav.js';
+export { mixAudio } from './audio-mix.js';
 export { captionsFromPlan, captionsToVtt, captionsToSrt } from './captions.js';
 export { renderJob, renderJobTwice } from './driver.js';
 export { safeAreasFor } from './layout.js';
+export { KERNEL_REQUEST_SCHEMA, DEFAULT_RENDER_PROFILE_ID } from './kernel-request.js';
+export { renderArtifact } from './artifact.js';
+export { exportRenderMp4 } from './export-mp4.js';
 export {
   renderDistributionPackages,
   renderProfilePackage,

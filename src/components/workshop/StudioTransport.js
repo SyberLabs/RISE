@@ -39,6 +39,7 @@ export function renderStudioTransport(view) {
             <button type="button" class="btn-ghost" data-action="export-curator-context">Export context</button>
             <button type="button" class="btn-ghost" data-action="export-curator-prompt">Export prompt</button>
             <button type="button" class="btn-ghost" data-action="export-experience-program">Export score</button>
+            <button type="button" class="btn-ghost" data-action="export-mp4">Export MP4</button>
             <button type="button" class="btn-ghost" data-action="import-experience-program">Import score</button>
             <button type="button" class="btn-ghost" data-action="show-project-inspector">Details</button>
           </div>

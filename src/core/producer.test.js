@@ -1,6 +1,12 @@
+// @vitest-environment node
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { RIGHTS } from '../content/imagery/works.js';
 import {
+  AGENT_OPERATION_LIMITS,
   AGENT_OPERATION_OPS,
   AGENT_OPERATION_SET_SCHEMA
 } from './agent-operations.js';
@@ -20,6 +26,9 @@ const SOURCE_TEXT = [
   "Everything was in confusion in the Oblonskys' house."
 ].join(' ');
 const NOW = '2026-08-13T21:00:00.000Z';
+
+const ffmpeg = spawnSync('ffmpeg', ['-version'], { stdio: 'ignore' });
+const hasFfmpeg = !ffmpeg.error && ffmpeg.status === 0;
 
 function opSet(operations, overrides = {}) {
   return {
@@ -78,46 +87,80 @@ function jpegBytes() {
 }
 
 describe('producer runtime', () => {
-  it('runs intent → score → private pack → review queue without admitting or publishing', async () => {
+  it('keeps the 32-op ceiling and never admits or publishes', async () => {
     const produced = await runProducer({
       project: emptyWorkshopProject({ id: 'project-memory', title: 'Memory' }),
       operationSet: composeOps(),
       resolvedSources: {
         [SOURCE_ID]: { id: SOURCE_ID, name: 'Anna', data: SOURCE_TEXT }
       },
-      now: NOW,
-      tier: 'draft'
+      render: false,
+      now: NOW
     });
-    expect(produced.stage).toBe('review-queued');
     expect(produced.admitted).toEqual([]);
     expect(produced.approved).toEqual([]);
     expect(produced.delivered).toEqual([]);
     expect(produced.preflight.verdict).toBe(PREFLIGHT_VERDICTS.RENDERABLE);
-    expect(produced.packages['social-portrait-1080'].package['poster.bmp']).toBeTruthy();
-    expect(produced.reviewItems).toHaveLength(1);
-    expect(produced.reviewItems[0].schema).toBe(PUBLICATION_REVIEW_SCHEMA);
-    expect(produced.reviewItems[0].status).toBe('queued');
-    expect(produced.reviewItems[0].rights.distributionClass).toBe('private-review');
+    expect(AGENT_OPERATION_LIMITS.maxOperations).toBe(32);
     expect(AGENT_OPERATION_OPS).not.toContain('admit-asset');
     expect(AGENT_OPERATION_OPS).not.toContain('publish');
+  }, 20_000);
+
+  it.skipIf(!hasFfmpeg && !process.env.CI)('request-compile muxes an MP4 and queues human review', async () => {
+    expect(hasFfmpeg, 'CI installs ffmpeg; if it is missing, that step broke').toBe(true);
+    const dir = mkdtempSync(join(tmpdir(), 'rise-producer-mp4-'));
+    const outputPath = join(dir, 'experience.mp4');
     try {
-      approvePublication({
-        item: produced.reviewItems[0],
-        approval: {
-          schema: 'rise.publication-approval.v1',
-          reviewItemId: produced.reviewItems[0].id,
-          artifactHash: produced.reviewItems[0].artifact.packageHash,
-          decision: 'approve',
-          actor: 'human',
-          authority: 'user',
-          watchedArtifact: true,
-          decidedAt: NOW
+      const produced = await runProducer({
+        project: emptyWorkshopProject({ id: 'project-memory', title: 'Memory' }),
+        operationSet: composeOps(),
+        resolvedSources: {
+          [SOURCE_ID]: { id: SOURCE_ID, name: 'Anna', data: SOURCE_TEXT }
+        },
+        now: NOW,
+        tier: 'draft',
+        encode: {
+          painter: 'clerk',
+          outputPath,
+          fromMs: 0,
+          toMs: 200
         }
       });
-      throw new Error('expected refusal');
-    } catch (error) {
-      expect(error).toBeInstanceOf(PublicationError);
-      expect(error.code).toBe('PUBLICATION_RIGHTS_UNRESOLVED');
+      expect(produced.stage).toBe('review-queued');
+      expect(produced.admitted).toEqual([]);
+      expect(produced.approved).toEqual([]);
+      expect(produced.delivered).toEqual([]);
+      expect(produced.preflight.verdict).toBe(PREFLIGHT_VERDICTS.RENDERABLE);
+      const artifact = produced.packages['social-portrait-1080'];
+      expect(artifact.mp4Path).toBe(outputPath);
+      expect(artifact.package['poster.bmp']).toBeTruthy();
+      expect(artifact.srt).toMatch(/-->/);
+      expect(readFileSync(artifact.mp4Path).subarray(4, 8).toString()).toBe('ftyp');
+      expect(produced.reviewItems).toHaveLength(1);
+      expect(produced.reviewItems[0].schema).toBe(PUBLICATION_REVIEW_SCHEMA);
+      expect(produced.reviewItems[0].status).toBe('queued');
+      expect(produced.reviewItems[0].rights.distributionClass).toBe('private-review');
+      try {
+        approvePublication({
+          item: produced.reviewItems[0],
+          approval: {
+            schema: 'rise.publication-approval.v1',
+            reviewItemId: produced.reviewItems[0].id,
+            artifactHash: produced.reviewItems[0].artifact.packageHash,
+            decision: 'approve',
+            actor: 'human',
+            authority: 'user',
+            watchedArtifact: true,
+            decidedAt: NOW
+          }
+        });
+        throw new Error('expected refusal');
+      } catch (error) {
+        expect(error).toBeInstanceOf(PublicationError);
+        expect(error.code).toBe('PUBLICATION_RIGHTS_UNRESOLVED');
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
     }
   }, 30_000);
 

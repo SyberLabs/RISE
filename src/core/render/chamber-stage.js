@@ -43,6 +43,38 @@ function paintAtom(el, text, showGlass) {
   el.classList.toggle('glass-tile', Boolean(showGlass && content));
 }
 
+function wrapLines(ctx, text, maxWidth) {
+  const words = String(text || '').split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  const lines = [];
+  let current = '';
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (current && ctx.measureText(next).width > maxWidth) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+function bytesToBase64(bytes) {
+  return new Promise((resolve, reject) => {
+    const blob = new Blob([bytes], { type: 'application/octet-stream' });
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || '');
+      const comma = result.indexOf(',');
+      resolve(comma === -1 ? result : result.slice(comma + 1));
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
 function withSeededRandom(seed, fn) {
   const rng = createSeededRandom(String(seed));
   const original = Math.random;
@@ -579,6 +611,91 @@ const stage = {
     } catch {
       clearVoid(this.canvas);
     }
+  },
+
+  paintOverlayText(ctx, el, dpr) {
+    const text = (el.textContent || '').trim();
+    if (!text) return;
+    const box = el.getBoundingClientRect();
+    if (box.width < 1 || box.height < 1) return;
+    const style = getComputedStyle(el);
+    const fontSize = parseFloat(style.fontSize) || 16;
+    ctx.save();
+    ctx.font = `${style.fontWeight || 400} ${fontSize * dpr}px ${style.fontFamily}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (el.classList.contains('glass-tile')) {
+      const background = style.backgroundColor;
+      if (background && background !== 'transparent' && background !== 'rgba(0, 0, 0, 0)') {
+        ctx.fillStyle = background;
+        const padX = 8 * dpr;
+        const padY = 4 * dpr;
+        ctx.fillRect(
+          box.left * dpr - padX,
+          box.top * dpr - padY,
+          box.width * dpr + padX * 2,
+          box.height * dpr + padY * 2
+        );
+      }
+    }
+    ctx.fillStyle = style.color || '#ECE8E0';
+    const lineHeight = (parseFloat(style.lineHeight) || fontSize * 1.4) * dpr;
+    const lines = wrapLines(ctx, text, Math.max(1, box.width * dpr));
+    const originY = (box.top + box.height / 2) * dpr - ((lines.length - 1) * lineHeight) / 2;
+    const originX = (box.left + box.width / 2) * dpr;
+    for (let i = 0; i < lines.length; i += 1) {
+      ctx.fillText(lines[i], originX, originY + i * lineHeight);
+    }
+    ctx.restore();
+  },
+
+  /**
+   * Composite the live stage into an RGBA buffer. Visual engines stay
+   * canvases; this is a readback, not a PNG screenshot.
+   */
+  async captureRgba() {
+    const width = this.width;
+    const height = this.height;
+    if (!this._capture || this._capture.width !== width || this._capture.height !== height) {
+      this._capture = document.createElement('canvas');
+      this._capture.width = width;
+      this._capture.height = height;
+      this._captureCtx = this._capture.getContext('2d', {
+        willReadFrequently: true,
+        alpha: false
+      });
+    }
+    const ctx = this._captureCtx;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = VOID;
+    ctx.fillRect(0, 0, width, height);
+    const dpr = window.devicePixelRatio || 1;
+    const root = document.getElementById('chamber-display') || document.body;
+    for (const canvas of root.querySelectorAll('canvas')) {
+      if (canvas === this._capture) continue;
+      if (canvas.style.display === 'none') continue;
+      if (!canvas.width || !canvas.height) continue;
+      const box = canvas.getBoundingClientRect();
+      if (box.width < 1 || box.height < 1) continue;
+      ctx.drawImage(
+        canvas,
+        box.left * dpr,
+        box.top * dpr,
+        box.width * dpr,
+        box.height * dpr
+      );
+    }
+    const atom = document.getElementById('atom-display');
+    if (atom) this.paintOverlayText(ctx, atom, dpr);
+    for (const icon of root.querySelectorAll('.focal-icon')) {
+      this.paintOverlayText(ctx, icon, dpr);
+    }
+    const pixels = ctx.getImageData(0, 0, width, height);
+    return {
+      width,
+      height,
+      rgba: await bytesToBase64(pixels.data)
+    };
   }
 };
 

@@ -1619,3 +1619,104 @@ describe('Workshop Phase 5 responsive and accessibility contracts', () => {
         container.remove();
     });
 });
+
+describe('Workshop Export MP4', () => {
+    afterEach(() => {
+        vi.unstubAllGlobals();
+    });
+
+    function scoredWorkshop() {
+        const { workshop, container } = makeWorkshop();
+        workshop.addSource({
+            id: 'score-source',
+            name: 'Score source',
+            type: 'text/plain',
+            data: 'Still water reflects the moon. Wind crosses the reeds.'
+        }, { id: 'local' });
+        workshop.addSequenceVisualAsset(
+            'data:image/png;base64,c2NvcmU=',
+            'Moon image'
+        );
+        workshop.updateVisualAssetsList();
+        const text = container.querySelector('#visual-score-text');
+        const range = document.createRange();
+        range.setStart(text.firstChild, 0);
+        range.setEnd(text.firstChild, 11);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        text.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+        container.querySelector('[data-action="assign-score-selection"]').click();
+        return { workshop, container };
+    }
+
+    it('shows Export MP4 beside the other project exports', () => {
+        const { workshop, container } = makeWorkshop();
+        expect(container.querySelector('[data-action="export-mp4"]')?.textContent).toBe('Export MP4');
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('builds a kernel request from the current score', () => {
+        const { workshop, container } = scoredWorkshop();
+        const request = workshop.buildExportKernelRequest();
+        expect(request.schema).toBe('rise.kernel-request.v1');
+        expect(request.profileId).toBe('social-portrait-1080');
+        expect(request.painter).toBe('chamber');
+        expect(request.program.schema).toBe('rise.experience-program.v1');
+        expect(request.sources[0]).toMatchObject({
+            id: 'score-source',
+            data: 'Still water reflects the moon. Wind crosses the reeds.'
+        });
+        expect(request.program.tracks.some(track => track.kind === 'visual')).toBe(true);
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('POSTs the kernel request to the local export job', async () => {
+        const fetchMock = vi.fn(async (_url, init = {}) => {
+            if (init.method === 'GET') {
+                return { ok: true, json: async () => ({ ok: true, available: true }) };
+            }
+            return {
+                ok: true,
+                json: async () => ({
+                    ok: true,
+                    mp4Path: 'D:\\out\\workshop-export\\export-1\\experience.mp4',
+                    jobHash: 'sha256:abc'
+                })
+            };
+        });
+        vi.stubGlobal('fetch', fetchMock);
+        const { workshop, container } = scoredWorkshop();
+        await workshop.exportMp4();
+        expect(fetchMock.mock.calls.some(call => call[0] === '/__rise/export-mp4'
+            && call[1]?.method === 'GET')).toBe(true);
+        const post = fetchMock.mock.calls.find(call => call[1]?.method === 'POST');
+        expect(post[0]).toBe('/__rise/export-mp4');
+        const body = JSON.parse(post[1].body);
+        expect(body.schema).toBe('rise.kernel-request.v1');
+        expect(body.program.schema).toBe('rise.experience-program.v1');
+        expect(body.profileId).toBe('social-portrait-1080');
+        workshop.destroy();
+        container.remove();
+    });
+
+    it('downloads kernel JSON for the CLI when the Node path is absent', async () => {
+        vi.stubGlobal('fetch', vi.fn(async () => {
+            throw new TypeError('Failed to fetch');
+        }));
+        const { workshop, container } = scoredWorkshop();
+        const downloaded = [];
+        workshop.downloadKernelRequest = request => {
+            downloaded.push(request);
+            return 'score-source.kernel-request.json';
+        };
+        await workshop.exportMp4();
+        expect(downloaded).toHaveLength(1);
+        expect(downloaded[0].schema).toBe('rise.kernel-request.v1');
+        expect(downloaded[0].program).toBeTruthy();
+        workshop.destroy();
+        container.remove();
+    });
+});
