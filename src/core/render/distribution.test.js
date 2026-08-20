@@ -1,7 +1,6 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { buildVerticalSlice } from './vertical-slice.js';
 import { renderDistributionPackages, renderPreview, renderProfilePackage } from './distribution.js';
@@ -74,7 +73,7 @@ describe('distribution packages', () => {
         name: 'RenderError',
         code: 'RENDER_COMPILE_POSTER'
       });
-    const indexSrc = readFileSync(fileURLToPath(new URL('./index.js', import.meta.url)), 'utf8');
+    const indexSrc = readFileSync(join(process.cwd(), 'src/core/render/index.js'), 'utf8');
     expect(indexSrc).not.toMatch(/renderProfilePackage/);
     expect(indexSrc).toMatch(/renderArtifact/);
     expect(indexSrc).toMatch(/renderPreview/);
