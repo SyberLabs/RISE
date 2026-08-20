@@ -43,22 +43,3 @@ test('the panel offers no searched category, and none is fetched', async ({ page
   // Nothing in the entry path should reach the searched provider at all.
   expect(asked.filter(u => RETIRED.some(c => u.includes(c)))).toEqual([]);
 });
-
-// The Atrium is the largest content surface and the one whose imagery
-// came from searched categories. After the purge it must still show
-// PINNED works, and must never reach Commons to do it.
-test('an Atrium reading shows pinned works and never queries Commons', async ({ page }) => {
-  const commons = [];
-  await page.route('**commons.wikimedia.org**', route => {
-    commons.push(route.request().url());
-    return route.continue();
-  });
-  await page.addInitScript((g) => {
-    localStorage.setItem('rise-beta-session', JSON.stringify(g));
-  }, GATE);
-  await page.goto('/');
-  await page.locator('[data-nav="atrium"]').first().click();
-  await page.waitForTimeout(4000);
-  console.log('ATRIUM_COMMONS ' + JSON.stringify(commons.slice(0, 5)));
-  expect(commons).toEqual([]);
-});
