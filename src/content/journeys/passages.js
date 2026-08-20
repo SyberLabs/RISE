@@ -221,8 +221,7 @@ export async function resolvePassage(passage, texts = null) {
  * Resolve every passage a Journey names, in reading order.
  *
  * Reports rather than throws, so a caller can show which passages are
- * ready and which are not — the same fail-closed readiness pattern the
- * Atrium already applies to its own sources (§4.3).
+ * ready and which are not.
  */
 export async function resolveJourneyPassages(passages, texts = null) {
     const resolved = [];

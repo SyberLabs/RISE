@@ -6,7 +6,7 @@
  * manifest, and produces the one payload the app already knows how to
  * launch — text, a source label, and a config.
  *
- * FAIL CLOSED, like the Atrium and the Chapel before it. A Journey that
+ * FAIL CLOSED, like the Chapel. A Journey that
  * cannot be assembled throws a typed error the caller renders as a
  * quiet message; nothing here substitutes a passage, drops a movement,
  * or launches a partial argument. A Journey missing a step is not a

@@ -1,14 +1,14 @@
 /**
- * Atrium Imagery Service.
+ * Imagery service.
  *
  * Resolves a curated collection — an explicit list of pinned works — into
  * displayable records with full attribution.
  *
  * ISOLATION (see ATRIUM-IMAGERY-SPEC.md §5): this module is additive. It
  * registers nothing with the Chamber's provider registry, defines no new
- * Chamber defaults, and caches under its own provider id so an Atrium
- * launch never warms or pollutes Chamber caches. The dependency arrow
- * points content → source, never the reverse.
+ * Chamber defaults, and caches under its own provider id so a pinned
+ * collection never warms or pollutes Chamber caches. The dependency
+ * arrow points content → source, never the reverse.
  */
 
 import { SourceCache } from '../../sources/cache.js';
@@ -91,18 +91,4 @@ export async function resolveCollection(collection, options = {}) {
         pins.map(pin => resolveOne(pin, options).catch(() => null))
     );
     return settled.filter(isDisplayable);
-}
-
-/**
- * Resolve several collections at once, returning a map of id → works.
- * Order within each collection is the curator's order.
- */
-export async function resolveCollections(collections, options = {}) {
-    const entries = Object.entries(collections || {});
-    const resolved = await Promise.all(
-        entries.map(async ([id, collection]) => [
-            id, await resolveCollection(collection, options)
-        ])
-    );
-    return Object.fromEntries(resolved);
 }

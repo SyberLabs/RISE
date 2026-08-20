@@ -43,9 +43,8 @@ describe('Museum work contract', () => {
   });
 
   it('refuses any work whose rights are not established', () => {
-    // Absence of a stated restriction is not permission. This mirrors the
-    // Atrium's text readiness gates and is not negotiable for the same
-    // reason: the Atrium's value is that its material is defensible.
+    // Absence of a stated restriction is not permission. The imagery's
+    // value is that its material is defensible.
     const base = {
       id: 'met:1', title: 'X', imageUrl: 'https://x/i.jpg',
       sourceUrl: 'https://x/1', sourceName: 'Met'
@@ -169,7 +168,7 @@ describe('Imagery service', () => {
   });
 
   it('caches under its own namespace, never a Chamber provider id', () => {
-    // Isolation: an Atrium launch must not warm or pollute Chamber caches
+    // Isolation: pinned imagery must not warm or pollute Chamber caches
     expect(IMAGERY_PROVIDER_ID).toBe('atrium-imagery');
     expect(IMAGERY_PROVIDER_ID).not.toMatch(/^(wikimedia|museum-aic|generated)/);
   });
@@ -197,8 +196,8 @@ describe('Chamber isolation (spec §5)', () => {
   });
 
   it('registers no resolver with the Chamber provider registry', async () => {
-    // The Atrium's imagery must arrive only with the launch that curated
-    // it — never as a browsable option in the Visual panel.
+    // Pinned imagery must arrive only with the launch that curated it —
+    // never as a browsable option in the Visual panel.
     const wikimedia = await import('../../sources/visual/wikimedia.js');
     const resolved = wikimedia.resolveCategory?.('met:436105');
     expect(resolved == null || resolved === false).toBe(true);

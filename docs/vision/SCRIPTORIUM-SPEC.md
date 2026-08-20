@@ -64,7 +64,7 @@ depends on it.
 ## 3. Placement ✦
 
 **A door, not a nav tile.** The Portal's nav triad is Vault / Library /
-Workshop — the three daily tools. Atrium and Solarium are pavilions. The Curia
+Workshop — the three daily tools. Solarium is a pavilion. The Curia
 sits behind a small door because it is a specialist governance surface, and
 this is the same kind of thing.
 
