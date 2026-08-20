@@ -20,6 +20,8 @@ async function openWorkshopWithSource(page) {
     await page.getByRole('button', { name: 'Browse' }).click();
     // Waley is withheld from the launch canon. Live count is 34, read
     // from the heading rather than the retired 107-work archive.
+    // Tao Te Ching is live and its first chapter is short enough for
+    // the scoring path; Walden's Economy is a two-hour load.
     await expect(page.locator('.source-browser-overlay')).toBeVisible();
     await expect(page.locator('.sb-content-title')).toContainText('Curated Archive');
     const heading = await page.locator('.sb-content-title').innerText();
@@ -27,9 +29,9 @@ async function openWorkshopWithSource(page) {
     expect(liveCount, 'source browser should report the live catalog').toBeGreaterThan(0);
     expect(liveCount).not.toBe(107);
     await expect(page.locator('.sb-item')).toHaveCount(liveCount);
-    await page.getByRole('searchbox', { name: 'Search the source library' }).fill('Walden');
+    await page.getByRole('searchbox', { name: 'Search the source library' }).fill('Tao Te Ching');
     await expect(page.locator('.sb-item')).toHaveCount(1);
-    await page.getByRole('button', { name: /Open chapters of Walden/ }).click();
+    await page.getByRole('button', { name: /Open chapters of Tao Te Ching/ }).click();
     await expect(page.locator('.sb-contents')).toBeVisible();
     await expect.poll(() => page.locator('.sb-chapter-item').count()).toBeGreaterThan(1);
     await page.locator('.sb-chapter-add').first().click();
@@ -92,7 +94,7 @@ test('touch selection opens the passage palette and assigns without a synthetic 
     await page.getByRole('button', { name: 'Done' }).click();
     await page.getByRole('button', { name: 'Assets', exact: true }).click();
     await page.getByRole('tab', { name: 'Audio', exact: true }).click();
-    await page.getByRole('option', { name: /Aurora, soundscape default/ }).click();
+    await page.getByRole('option', { name: /Aurora, soundscape/ }).click();
     await page.getByRole('button', { name: 'Score', exact: true }).click();
     await expect(page.getByRole('tab', { name: 'Audio', exact: true })).toHaveAttribute('aria-selected', 'true');
 
