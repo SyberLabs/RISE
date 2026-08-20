@@ -102,13 +102,7 @@
    listed: it is the word the desktop tile has always shown, and it
    stays an ordinary inline span there. */
 .room-glyph,
-.room-line,
-.portal-arch-glyph { display: none; }
-
-/* Wraps the arch's caption so the phone has a single box to lay out.
-   `contents` means the plinth's flex column sees exactly the children
-   it saw before this element existed. */
-.portal-arch-line { display: contents; }
+.room-line { display: none; }
 
 /* P6 — the Continue strip. Two conditions, both required: the phone,
    AND a session that actually exists. The `hidden` attribute carries
@@ -486,235 +480,6 @@
     padding: var(--space-sm) var(--space-lg);
   }
 }
-/* Classical marble pavilions (aediculae): authored 420×560, scaled to margin. */
-
-.portal-arch {
-  /* Reset the button */
-  all: unset;
-  cursor: pointer;
-  position: absolute;
-  top: 50%;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* The pavilion is drawn at 420×560, then scaled to the margin. Scaling
-   the whole stage keeps every proportion of the design exact. */
-.gazebo {
-  /* A fixed scale, stepped by media query below. 0.42 → a 176×235
-     pavilion that clears the reading centre. */
-  --gz-scale: 0.42;
-  display: block;
-  width: calc(420px * var(--gz-scale));
-  height: calc(560px * var(--gz-scale));
-  position: relative;
-  transition: transform 0.35s var(--ease-out);
-}
-/* Desktop-only gazebo scale (≥1024). Mobile rules must not inherit these. */
-@media (min-width: 1600px) { .gazebo { --gz-scale: 0.58; } }
-@media (min-width: 1300px) and (max-width: 1599px) { .gazebo { --gz-scale: 0.54; } }
-@media (min-width: 1024px) and (max-width: 1299px) { .gazebo { --gz-scale: 0.48; } }
-.gazebo-stage {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 420px;
-  height: 560px;
-  transform: scale(var(--gz-scale));
-  transform-origin: top left;
-}
-
-/* Centre the whole button block against the viewport; hold it apart from
-   the reading centre. translateY keeps vertical centring under the scale. */
-.portal-arch { transform: translateY(-50%); }
-
-/* …and further in on a desktop, where the margin was mostly void. At
-   1600px the pavilion is 244px wide and its inner edge lands ~410px
-   clear of centre, so the title and the reading column keep their air.
-   The inset is inside the same 1024px floor as the scale above: on a
-   phone the pavilions are already as close to the middle as the middle
-   can afford. */
-@media (min-width: 1024px) {
-}
-
-.portal-arch:hover .gazebo { transform: translateY(-5px); }
-.portal-arch:active .gazebo { transform: translateY(-1px); }
-.portal-arch:focus-visible { outline: none; }
-.portal-arch:focus-visible .gazebo-stage {
-  filter: drop-shadow(0 0 0 var(--color-void)) drop-shadow(0 0 6px rgba(139, 127, 212, 0.9));
-}
-
-/* Every marble piece is positioned at the design's exact coordinates. */
-.gazebo-stage > span { position: absolute; }
-
-/* ground shadow */
-.gz-shadow {
-  left: 40px; right: 40px; bottom: -16px; height: 44px; border-radius: 50%;
-  background: radial-gradient(ellipse at 50% 50%, oklch(48% 0.014 256 / .32), transparent 72%);
-  filter: blur(6px);
-}
-/* finial spire + orb */
-.gz-finial-spire {
-  left: 50%; top: -52px; transform: translateX(-50%); width: 14px; height: 46px;
-  clip-path: polygon(50% 0%, 74% 26%, 62% 100%, 38% 100%, 26% 26%);
-  background: linear-gradient(180deg, oklch(92% 0.006 250), oklch(64% 0.012 252) 55%, oklch(48% 0.016 255));
-  box-shadow: 0 4px 8px rgba(60, 70, 85, .35);
-}
-.gz-finial-orb {
-  left: 50%; top: -10px; transform: translateX(-50%); width: 22px; height: 12px;
-  border-radius: 50% 50% 40% 40%;
-  background: linear-gradient(180deg, oklch(90% 0.006 250), oklch(58% 0.014 254));
-}
-/* the fluted dome */
-.gz-dome {
-  left: 60px; top: 0; width: 300px; height: 76px;
-  border-radius: 150px 150px 6px 6px / 76px 76px 6px 6px;
-  background: linear-gradient(178deg, oklch(93% 0.005 250), oklch(78% 0.01 252) 52%, oklch(64% 0.014 256));
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .6), 0 6px 14px -4px rgba(50, 60, 75, .35);
-  overflow: hidden;
-}
-.gz-dome-rays {
-  position: absolute; inset: 0;
-  background: repeating-conic-gradient(from 180deg at 50% 112%,
-    rgba(255, 255, 255, .30) 0deg 2deg, transparent 2deg 10deg,
-    rgba(70, 80, 95, .10) 10deg 12deg, transparent 12deg 20deg);
-}
-.gz-dome::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 16px;
-  background: linear-gradient(180deg, transparent, rgba(60, 70, 85, .28));
-}
-/* architrave (top slab of the entablature) */
-.gz-architrave {
-  left: 14px; top: 74px; width: 392px; height: 15px; border-radius: 2px;
-  background: linear-gradient(180deg, oklch(93% 0.005 250), oklch(72% 0.01 252) 60%, oklch(56% 0.014 256));
-  box-shadow: 0 4px 8px -2px rgba(50, 60, 75, .3), inset 0 1px 0 rgba(255, 255, 255, .6);
-}
-/* frieze — the name band */
-.gz-frieze {
-  left: 34px; top: 89px; width: 352px; height: 40px;
-  background: linear-gradient(180deg, oklch(84% 0.008 252), oklch(70% 0.012 254));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), inset 0 -2px 5px rgba(60, 70, 85, .22);
-  display: flex; align-items: center; justify-content: center;
-}
-.gz-name {
-  font-family: var(--font-display, 'Cinzel', serif);
-  font-size: 23px; font-weight: 600; letter-spacing: 7px; white-space: nowrap;
-  text-transform: uppercase;
-  color: oklch(36% 0.02 258);
-  text-shadow: 0 1px 0 rgba(255, 255, 255, .55), 0 -1px 1px rgba(40, 50, 65, .35);
-  transition: color 0.3s var(--ease-default);
-}
-.portal-arch:hover .gz-name { color: oklch(28% 0.03 262); }
-/* cornice (bottom slab of the entablature) */
-.gz-cornice {
-  left: 26px; top: 129px; width: 368px; height: 11px; border-radius: 2px;
-  background: linear-gradient(180deg, oklch(90% 0.006 250), oklch(62% 0.014 254));
-  box-shadow: 0 3px 6px -2px rgba(50, 60, 75, .28);
-}
-/* the arched niche back-plate */
-.gz-niche-back {
-  left: 92px; top: 142px; width: 236px; bottom: 80px; border-radius: 118px 118px 0 0;
-  background: linear-gradient(178deg, oklch(92% 0.005 250), oklch(74% 0.01 253) 40%, oklch(60% 0.014 256));
-  box-shadow: 0 4px 10px -4px rgba(50, 60, 75, .4), inset 0 2px 0 rgba(255, 255, 255, .55);
-}
-/* the niche opening — the LIVING WINDOW (holds Earth) */
-.gz-niche {
-  left: 106px; top: 156px; width: 208px; bottom: 80px;
-  border-radius: 104px 104px 0 0; overflow: hidden; background: #0a0a10;
-}
-/* the niche's inner shading — depth, and legibility for the name/caption */
-.gz-niche-shade {
-  inset: 0; border-radius: inherit; pointer-events: none; z-index: 4;
-  box-shadow:
-    inset 14px 0 26px -10px rgba(10, 12, 20, .6),
-    inset -14px 0 26px -10px rgba(10, 12, 20, .6),
-    inset 0 22px 30px -14px rgba(10, 12, 20, .55);
-}
-/* keystone at the crown of the niche */
-.gz-keystone {
-  left: 50%; top: 136px; transform: translateX(-50%); width: 26px; height: 34px;
-  clip-path: polygon(50% 0%, 100% 22%, 84% 100%, 16% 100%, 0% 22%);
-  background: linear-gradient(180deg, oklch(94% 0.005 250), oklch(66% 0.012 252) 60%, oklch(52% 0.016 256));
-  box-shadow: 0 3px 6px rgba(50, 60, 75, .3); z-index: 5;
-}
-/* volute scrollwork (SVG) under the entablature */
-.gz-volutes { left: 0; top: 0; width: 420px; height: 560px; pointer-events: none; }
-.gz-volutes svg { position: absolute; left: 0; top: 0; width: 420px; height: 560px; overflow: visible; }
-/* column capitals */
-.gz-cap { top: 141px; width: 44px; height: 16px; border-radius: 2px;
-  background: linear-gradient(180deg, oklch(94% 0.005 250), oklch(68% 0.012 253));
-  box-shadow: 0 2px 5px -1px rgba(50, 60, 75, .3); }
-.gz-cap-l { left: 52px; }
-.gz-cap-r { left: 324px; }
-/* fluted columns */
-.gz-col { top: 155px; width: 32px; bottom: 92px;
-  background: repeating-linear-gradient(90deg,
-    oklch(52% 0.016 256) 0 1.5px, oklch(88% 0.008 250) 1.5px 5px, oklch(66% 0.012 253) 5px 8px);
-  box-shadow: inset 0 0 6px rgba(60, 70, 85, .2); }
-.gz-col-l { left: 58px; }
-.gz-col-r { right: 58px; }
-/* column base blocks */
-.gz-base-block { bottom: 80px; width: 48px; height: 12px; border-radius: 2px;
-  background: linear-gradient(180deg, oklch(90% 0.006 250), oklch(62% 0.014 255)); }
-.gz-base-l { left: 50px; }
-.gz-base-r { right: 50px; }
-/* the stepped base */
-.gz-step { border-radius: 2px; }
-.gz-step-1 { left: 36px; right: 36px; bottom: 62px; height: 18px;
-  background: linear-gradient(180deg, oklch(93% 0.005 250), oklch(72% 0.01 253) 55%, oklch(58% 0.014 256));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), 0 3px 6px -2px rgba(50, 60, 75, .3); }
-.gz-step-2 { left: 18px; right: 18px; bottom: 44px; height: 18px;
-  background: linear-gradient(180deg, oklch(90% 0.006 250), oklch(68% 0.012 254) 55%, oklch(54% 0.016 257));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 3px 6px -2px rgba(50, 60, 75, .28); }
-.gz-step-3 { left: 0; right: 0; bottom: 26px; height: 18px;
-  background: linear-gradient(180deg, oklch(87% 0.008 251), oklch(64% 0.014 255) 55%, oklch(50% 0.018 258));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 6px 12px -4px rgba(50, 60, 75, .35); }
-
-/* ─── The niche's living content ─── */
-
-/* Atrium: the marble figure filling the niche */
-.gz-marble {
-  inset: 0; z-index: 2;
-  background-image: image-set(url('/portal/statue.webp') type('image/webp'),
-                              url('/portal/statue.png') type('image/png'));
-  /* Smaller in proportion to the pavilion — the figure stands with air
-     around it — pushed down far enough that the plinth slab sinks below
-     the niche floor, so he appears to stand on the ground on his own feet.
-     (Previously center calc(100% + 16px) — kept the base visible.) */
-  background-repeat: no-repeat; background-position: center calc(100% + 34px);
-  background-size: auto 84%;
-  filter: brightness(1.02) contrast(1.02);
-  transition: transform 0.9s var(--ease-out);
-}
-
-/* ─── The caption beneath the pavilion ─── */
-.portal-arch-plinth {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  margin-top: 2px; text-align: center; max-width: calc(420px * 0.62);
-}
-.portal-arch-detail {
-  font-family: var(--font-literary); font-style: italic; font-size: 11px; line-height: 1.3;
-  letter-spacing: 0.02em; color: var(--color-fog);
-  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-
-/* ─── Responsive ───
-   Below 960px the margins vanish; the pavilions leave their posts and
-   stack beneath the nav, centred, at full scale. */
-@media (max-width: 960px) {
-  .portal-arch {
-    position: static; transform: none;
-    left: auto; right: auto; margin: var(--space-lg) auto 0;
-  }
-  .portal-arch:hover .gazebo { transform: translateY(-5px); }
-  .gazebo { --gz-scale: 0.6; }
-}
-@media (max-width: 480px) {
-  .gazebo { --gz-scale: 0.5; }
-}
-
 /* Two primary acts rather than one. Chamber and Journeys are the same
  * act differently authored — a reading you assemble, and a reading
  * someone argued — so they sit at the same level with air between. */
@@ -722,20 +487,8 @@
   gap: var(--space-2xl);
 }
 
-/* The pair wrapper is inert everywhere but the phone: the arches are
-   absolutely positioned to flank the sigil, and `contents` removes the
-   wrapper from layout entirely so nothing about that changes. */
-.portal-arches {
-  display: contents;
-}
-
-/* The name is carved into the frieze everywhere else. */
-.portal-arch-name {
-  display: none;
-}
-
-/* Phone Portal: one viewport, no scroll. Stacks become rows; gazebo
-   ornament hidden below 640 — door + name only. Gazebo is aria-hidden. */
+/* Phone Portal: one viewport, no scroll. Stacks become rows.
+   Flanking pavilion doors (Atrium + Solarium) are gone. */
 
 @media (max-width: 640px) {
   /* One lit act (Chamber), then an index of rooms. Composition ~320px. */
@@ -975,19 +728,13 @@
     box-shadow: none;
   }
 
-  .room-glyph,
-  .portal-arch-glyph {
+  .room-glyph {
     display: block;
     font-size: 17px;
     line-height: 1;
   }
 
-  .room-name,
-  .portal-arch .portal-arch-name {
-    /* The arch's name is `display: none` by default — it is carved
-       into the marble frieze on desktop and only needs its own box
-       once the marble is put away. Removing the old mobile rule that
-       said so is what made both cards render nameless. */
+  .room-name {
     display: block;
     font-family: var(--font-display);
     font-size: 10px;
@@ -1025,98 +772,6 @@
   [data-nav="vault"] .room-glyph    { color: var(--color-threshold); }
   [data-nav="library"] .room-glyph  { color: rgba(139, 127, 212, 0.6); }
   [data-nav="workshop"] .room-glyph { color: var(--color-ember); }
-
-    /* ── The index: second line ── */
-  /* Sits directly under the first with no seam: the two lines are one
-     block of five rooms, not a list and an afterthought. */
-  /* Two wider cards. The asymmetry with the row above is deliberate
-     and carries meaning: three collections, then two rooms. That these
-     are different KINDS of place is exactly what five identical
-     underlined words failed to say. */
-  .portal-arches {
-    display: flex;
-    gap: var(--space-xs);
-    justify-content: center;
-    width: 100%;
-    max-width: 320px;
-    margin-top: var(--space-xs);
-  }
-
-  .portal-arch .gazebo {
-    display: none;
-  }
-
-  .portal-arch {
-    position: static;
-    transform: none;
-    left: auto;
-    right: auto;
-    flex: 1 1 0;
-    min-width: 0;
-    margin: 0;
-    /* The same card as the row above, laid out as a ROW rather than a
-       column because these two have the width for it: mark on the
-       left, name and line stacked beside it. */
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 9px;
-    padding: 9px 10px;
-    min-height: 52px;
-    text-align: left;
-    background: rgba(18, 18, 20, 0.55);
-    border: 1px solid rgba(42, 42, 48, 0.9);
-    border-radius: var(--radius-sm);
-  }
-
-  .portal-arch:active {
-    border-color: rgba(139, 127, 212, 0.4);
-    background: rgba(18, 18, 20, 0.8);
-  }
-
-  .portal-arch .portal-arch-plinth {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    min-width: 0;
-    margin-top: 0;
-    max-width: none;
-    text-align: left;
-  }
-
-  /* A real box now, not `contents`: the caption is the card's second
-     line and needs somewhere to be. */
-  .portal-arch .portal-arch-line {
-    display: block;
-    min-width: 0;
-    font-size: 8.5px;
-    line-height: 1.3;
-    color: var(--color-mist);
-  }
-
-  .portal-arch:active .portal-arch-name {
-    color: var(--color-glow);
-  }
-
-  /* Nothing left to lift. */
-  .portal-arch:hover .gazebo {
-    transform: none;
-  }
-
-  /* Arch detail is the only cue for what the pavilion contains. */
-  .portal-arch .portal-arch-detail {
-    display: block;
-    max-width: none;
-    white-space: normal;
-    overflow: visible;
-    font-family: var(--font-primary);
-    font-style: normal;
-    font-size: 8.5px;
-    line-height: 1.3;
-    letter-spacing: 0.01em;
-    color: var(--color-mist);
-  }
 
     /* P6: continue strip — resume last session, quieter than the act. */
   .portal-continue:not([hidden]) {
