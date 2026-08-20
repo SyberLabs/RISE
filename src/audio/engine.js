@@ -1,48 +1,88 @@
 /**
  * RISE Audio Engine
- * Web Audio API integration for ambient soundscapes and entrainment
- * 
- * Phase 3 Enhancements:
- * - 432Hz carrier option
- * - Harmonic overtones
- * - Pink noise layer 
- * - Solfeggio frequency presets
- * - Layer system with independent controls
- * - Layer presets (Focus, Deep, Drift, Gateway)
+ * Web Audio API integration for ambient soundscapes and beat layers
+ *
+ * WHAT THIS MODULE IS ALLOWED TO CLAIM.
+ *
+ * Everywhere else in RISE a constant either carries its measurement or
+ * states why it has none. This module did neither, and it shipped
+ * `528 Hz — "Transformation, miracles, DNA repair"` in product source
+ * for six weeks. Nobody owned that sentence. It was never measured, it
+ * cites nothing, and it is a health claim.
+ *
+ * The rule here now matches the rest of the repository:
+ *
+ *   The FREQUENCIES stay. They are numbers, they are selectable, and a
+ *   reader who wants a 528 Hz drone should have one — that is the
+ *   optionality this project exists to protect.
+ *
+ *   The EFFECTS go. Not softened, not hedged — removed. An unmeasured
+ *   claim about what a tone does to a person is precisely the "false
+ *   substitution" the README already says is worse than absence.
+ *
+ * A pitch may be described by what it IS — its frequency, its interval,
+ * its conventional name. It may not be described by what it DOES to a
+ * listener unless a citation sits beside it.
  */
 
 /**
- * Entrainment frequency targets (Hz)
+ * Beat-frequency bands, named after the EEG rhythms whose ranges they
+ * share. The RANGES are textbook. Whether playing a binaural beat
+ * inside one of them moves a listener's brain state is NOT established,
+ * and this module makes no such claim — the names are a vocabulary for
+ * choosing a slow beat, nothing more.
  */
 export const BRAINWAVE_BANDS = {
-    delta: { min: 0.5, max: 4, default: 2, description: 'Deep sleep, healing' },
-    theta: { min: 4, max: 8, default: 6, description: 'Hypnagogic, deep meditation' },
-    alpha: { min: 8, max: 14, default: 10, description: 'Relaxed, receptive' },
-    beta: { min: 14, max: 30, default: 18, description: 'Alert, focused' },
-    gamma: { min: 30, max: 100, default: 40, description: 'Peak awareness, insight' }
+    delta: { min: 0.5, max: 4, default: 2 },
+    theta: { min: 4, max: 8, default: 6 },
+    alpha: { min: 8, max: 14, default: 10 },
+    beta: { min: 14, max: 30, default: 18 },
+    gamma: { min: 30, max: 100, default: 40 }
 };
 
 /**
- * Solfeggio frequencies (Hz) - ancient healing tones
+ * Six drone pitches, under their conventional names.
+ *
+ * Historical note, because the previous comment had it wrong: this set
+ * is a twentieth-century construction, not an "ancient healing" scale.
+ * The frequencies are offered as pitches. No effect is claimed for any
+ * of them.
  */
 export const SOLFEGGIO_FREQUENCIES = {
-    ut: { freq: 396, description: 'Liberating guilt and fear' },
-    re: { freq: 417, description: 'Undoing situations, facilitating change' },
-    mi: { freq: 528, description: 'Transformation, miracles, DNA repair' },
-    fa: { freq: 639, description: 'Connecting, relationships' },
-    sol: { freq: 741, description: 'Awakening intuition' },
-    la: { freq: 852, description: 'Returning to spiritual order' }
+    ut: { freq: 396 },
+    re: { freq: 417 },
+    mi: { freq: 528 },
+    fa: { freq: 639 },
+    sol: { freq: 741 },
+    la: { freq: 852 }
 };
 
 /**
- * Carrier frequency options
+ * Carrier frequency options, named by what they are.
+ *
+ * `sacred` was the shipped default and the name asserted something the
+ * tuning does not do. 432 Hz is a pitch standard; it is now called one.
+ * `sacred` and `verdi` remain accepted as aliases so a stored session
+ * config from before this change still resolves.
  */
 export const CARRIER_TUNINGS = {
     standard: 200,    // Original RISE default
-    concert: 220,     // A3 in standard tuning
-    verdi: 216,       // A3 in 432Hz tuning (432/2)
-    sacred: 432       // Full 432Hz
+    concert: 220,     // A3 with A4 = 440 Hz
+    a432_low: 216,    // A3 with A4 = 432 Hz
+    a432: 432         // A4 = 432 Hz
 };
+
+/** Names this module used to ship, kept so old saved configs resolve. */
+const CARRIER_TUNING_ALIASES = Object.freeze({
+    verdi: 'a432_low',
+    sacred: 'a432'
+});
+
+/** Canonical tuning id for a stored or supplied name. */
+export function resolveCarrierTuning(name) {
+    const id = CARRIER_TUNING_ALIASES[name] || name;
+    return Object.hasOwn(CARRIER_TUNINGS, id) ? id : 'a432';
+}
 
 /**
  * Layer presets for different session types
@@ -74,7 +114,7 @@ export const LAYER_PRESETS = {
     },
     gateway: {
         name: 'Gateway',
-        description: 'Hemi-sync inspired layering',
+        description: 'Cross-channel layering',
         binaural: { enabled: true, band: 'theta', volume: 0.35 },
         harmonics: { enabled: true, volume: 0.15 },
         noise: { enabled: true, volume: 0.1 },
@@ -159,7 +199,7 @@ export class AudioEngine {
         // Configuration
         this.config = {
             masterVolume: 0.7,
-            carrierTuning: 'sacred',  // Default to 432Hz
+            carrierTuning: 'a432',    // A4 = 432 Hz
             binauralBeatFreq: 6,      // Theta
             fadeTime: 2.0,            // seconds
             entrainmentMode: 'binaural',  // binaural | monaural | isochronic | spatial
@@ -298,17 +338,17 @@ export class AudioEngine {
      * Get carrier frequency based on current tuning
      */
     getCarrierFrequency() {
-        return CARRIER_TUNINGS[this.config.carrierTuning] || 432;
+        return CARRIER_TUNINGS[resolveCarrierTuning(this.config.carrierTuning)];
     }
 
     /**
      * Set carrier tuning
-     * @param {'standard' | 'concert' | 'verdi' | 'sacred'} tuning
+     * @param {'standard' | 'concert' | 'a432_low' | 'a432'} tuning  (legacy 'verdi'/'sacred' accepted)
      */
     setCarrierTuning(tuning) {
-        if (CARRIER_TUNINGS[tuning]) {
-            this.config.carrierTuning = tuning;
-            console.log(`[AudioEngine] Carrier tuning: ${tuning} (${CARRIER_TUNINGS[tuning]}Hz)`);
+        const id = resolveCarrierTuning(tuning);
+        if (CARRIER_TUNINGS[id]) {
+            this.config.carrierTuning = id;
 
             // Restart entrainment if playing
             if (this.layers.binaural) {
@@ -903,7 +943,7 @@ export class AudioEngine {
         const info = SOLFEGGIO_FREQUENCIES[solfeggio];
         if (info) {
             this.startDrone(info.freq);
-            console.log(`[AudioEngine] Solfeggio ${solfeggio.toUpperCase()}: ${info.freq}Hz - ${info.description}`);
+            console.log(`[AudioEngine] Drone pitch ${solfeggio.toUpperCase()}: ${info.freq}Hz`);
         }
     }
 
@@ -1594,7 +1634,7 @@ export class AudioEngine {
             spatialRate: this.config.entrainmentSpatialRate,
             spatialRadius: this.config.entrainmentSpatialRadius
         });
-        console.log(`[AudioEngine] Entrainment: ${band} (${bandInfo.default}Hz) - ${bandInfo.description}`);
+        console.log(`[AudioEngine] Beat band: ${band} (${bandInfo.default}Hz)`);
     }
 
     // ═══════════════════════════════════════════════════════════
