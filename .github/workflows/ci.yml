@@ -35,6 +35,12 @@ jobs:
       - name: Install ffmpeg, which the encoder test encodes with
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - run: npm ci
+      # chamber-paint launches Playwright Chromium to capture raw RGBA from a
+      # live Chamber stage. npm ci installs the package, not the browser. The
+      # runner image does not carry Chromium, so the test failed and nothing
+      # on CI ever painted a frame.
+      - name: Install Chromium, which the chamber-paint test paints with
+        run: npx playwright install --with-deps chromium
       - run: npm run test:run
 
   build:
