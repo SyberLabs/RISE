@@ -290,8 +290,8 @@ RISE is primarily a client-side JavaScript application built with Vite.
 ```text
 src/
 ├── audio/          Web Audio, recitation, voice and sound systems
-├── components/     Chamber, Portal, Library, Workshop and pavilions
-├── content/        Curated texts, Journeys, Chapel, Atrium and collections
+├── components/     Chamber, Portal, Chapel, Rosarium, Curia, Library, Journeys, Scriptorium, Workshop, Vault, Sol, Via, Guide, Settings, VisualInterlocutionPanel
+├── content/        archive, chapel, imagery, journeys, science, texts, personalized
 ├── core/           Session compilation, chunking, pacing and shared models
 ├── display/        Presentation surfaces for a compiled session
 ├── page/           Spatial composition and Page projection
