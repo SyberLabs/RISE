@@ -1341,6 +1341,26 @@ class App {
         window.addEventListener('rise-open-settings', () => {
             this.router?.navigate('settings');
         }, options);
+
+        // `#rosary` is the door. The router does not own hashes, so an
+        // already-open session that lands on the hash without a reload
+        // is handled here. Clearing the hash does not yank a reader
+        // out of an in-progress Rosary.
+        window.addEventListener('hashchange', () => {
+            this.handleRosaryDoorHash();
+        }, options);
+    }
+
+    /**
+     * Same-tab `#rosary` after boot. Cold load still uses the
+     * initializeApp path. Does not write location.hash.
+     */
+    handleRosaryDoorHash() {
+        if (!isRosaryDoor() || !this.router) return;
+        const onDoorSit = this.router.getCurrentView() === 'rosarium'
+            && this.router.getViewInstance('rosarium')?.door === true;
+        if (onDoorSit) return;
+        return this.router.navigate('rosarium', { data: { door: true } });
     }
 
     /**
