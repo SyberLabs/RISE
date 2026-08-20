@@ -169,7 +169,7 @@ describe('Stale-build recovery preserves the destination, not just the view', ()
   };
 
   it('carries the route data across the reload', async () => {
-    // Recovering "Atrium" but losing the selected node drops the reader
+    // Recovering the view but losing the selected node drops the reader
     // at a general view instead of the passage they opened.
     const router = new Router();
     router.transitionDuration = 0;

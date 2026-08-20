@@ -80,8 +80,9 @@ export function createDefaultConfig() {
     // Launch origin (wayfinding): { view, icon, name } set by app.js
     // launch handlers (SOL / Vault / Library); null for plain sessions
     origin: null,
-    // Optional canonical multi-source payload and bounded provenance. Atrium
-    // uses these to keep passage boundaries intact through configuration.
+    // Optional canonical multi-source payload and bounded provenance. A
+    // packaged launch uses these to keep passage boundaries intact through
+    // configuration.
     sources: null,
     provenance: null,
     // Content-authored cue schedule. Launch identity, persisted with the

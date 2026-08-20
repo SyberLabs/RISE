@@ -272,9 +272,9 @@ describe('authored cues fail closed before they reach the runtime', () => {
 });
 
 describe('a flat playlist still compiles', () => {
-    it('reads an existing Atrium Journey as one movement', () => {
-        // Eighty flat records must not have to be rewritten for the
-        // first authored one to exist.
+    it('reads a flat segment playlist as one movement', () => {
+        // Flat records must not have to be rewritten for the first
+        // authored movement shape to exist.
         const { movementProgram } = compileJourney({
             id: 'seq-hist-declaration-claim',
             title: 'Declaring the People',
