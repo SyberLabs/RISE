@@ -4,12 +4,14 @@
  * Named soundscapes lower to a pinned harmonic series (the live halo
  * scheduler is not authority). Silence is zeros. Hold continues the last
  * generative bed. Missing named audio refuses — it does not invent a bed.
+ * Spoken narration mixes recitation / assigned PCM; it never emits a tone.
  */
 
 import { fail } from './errors.js';
 import { RENDER_AUDIO_CHANNELS, RENDER_SAMPLE_RATE } from './layout.js';
 import { audioRunAt, narrationRunAt } from './plan.js';
 import { duckGainAt } from '../narration.js';
+import { renderSpokenPcm } from './voice-pcm.js';
 
 const AURORA = Object.freeze({
   root: 108,
@@ -23,6 +25,8 @@ const TONE = Object.freeze({
   deep: 108,
   gateway: 162
 });
+
+const TRUE_PEAK_DBTP = -1;
 
 function fadeGain(ms, run) {
   const fade = Math.max(0, run.fadeMs | 0);
@@ -55,11 +59,62 @@ function sampleBed(kind, cue, timeSec, channel) {
   return 0;
 }
 
+function hasSpokenRuns(plan) {
+  return (plan.narrationRuns || []).some(run =>
+    run.cueKind === 'narration:spoken' || run.cue?.kind === 'spoken');
+}
+
+/**
+ * Ungated mean-square loudness (BS.1770 weighting omitted so 8 kHz tests
+ * and 48 kHz export share one gain law). Social profiles aim at −14 LUFS.
+ */
+export function measureLoudnessLufs(pcm, channels = RENDER_AUDIO_CHANNELS) {
+  const frames = Math.floor(pcm.length / channels);
+  if (frames < 1) return Number.NEGATIVE_INFINITY;
+  let sum = 0;
+  for (let i = 0; i < frames; i += 1) {
+    let energy = 0;
+    for (let ch = 0; ch < channels; ch += 1) {
+      const sample = pcm[i * channels + ch];
+      energy += sample * sample;
+    }
+    sum += energy;
+  }
+  const mean = sum / frames;
+  if (mean < 1e-12) return Number.NEGATIVE_INFINITY;
+  return -0.691 + 10 * Math.log10(mean);
+}
+
+export function applyLoudness(pcm, {
+  targetLufs,
+  channels = RENDER_AUDIO_CHANNELS,
+  truePeakDbtp = TRUE_PEAK_DBTP
+} = {}) {
+  if (typeof targetLufs !== 'number' || !Number.isFinite(targetLufs)) return pcm;
+  const measured = measureLoudnessLufs(pcm, channels);
+  if (!Number.isFinite(measured)) return pcm;
+  let gain = 10 ** ((targetLufs - measured) / 20);
+  const ceiling = 10 ** (truePeakDbtp / 20);
+  let peak = 0;
+  for (let i = 0; i < pcm.length; i += 1) {
+    const abs = Math.abs(pcm[i] * gain);
+    if (abs > peak) peak = abs;
+  }
+  if (peak > ceiling && peak > 0) gain *= ceiling / peak;
+  for (let i = 0; i < pcm.length; i += 1) pcm[i] *= gain;
+  return pcm;
+}
+
 export function mixAudio(plan, {
   sampleRate = RENDER_SAMPLE_RATE,
   channels = RENDER_AUDIO_CHANNELS,
   fromMs = 0,
-  toMs = null
+  toMs = null,
+  inventory = {},
+  voiceBytes = null,
+  readVoiceAsset = null,
+  manifest = undefined,
+  loudnessLufs = plan.loudnessLufs
 } = {}) {
   const start = Math.max(0, fromMs | 0);
   const end = Math.min(plan.durationMs, toMs == null ? plan.durationMs : toMs | 0);
@@ -76,33 +131,45 @@ export function mixAudio(plan, {
     }
   }
 
+  const spoken = hasSpokenRuns(plan)
+    ? renderSpokenPcm(plan, { inventory, voiceBytes, readVoiceAsset, manifest }, {
+      sampleRate,
+      channels,
+      fromMs: start,
+      toMs: end,
+      frames
+    })
+    : null;
+
   for (let i = 0; i < frames; i += 1) {
     const ms = Math.min(plan.durationMs - 1, start + Math.floor((i * 1000) / sampleRate));
     const run = audioRunAt(plan, ms);
-    if (!run) continue;
-    if (run.cueKind !== 'audio:hold' && run.cueKind !== 'audio:silence') {
-      held = run;
-    }
-    const active = run.cueKind === 'audio:hold' ? held : run;
-    if (active.cueKind !== 'audio:silence' && active.cueKind !== 'audio:hold'
-      && active.cueKind !== 'audio:soundscape' && active.cueKind !== 'audio:tone') {
-      fail('RENDER_AUDIO_UNSUPPORTED',
-        `Audio cue ${active.cueKind} has no offline mixer`,
-        '$.audioRuns',
-        { cueKind: active.cueKind });
-    }
-    const gain = fadeGain(ms, run) * 0.35 * duckGainAt(narrationRunAt(plan, ms), ms);
-    const t = ms / 1000;
-    const spoken = narrationRunAt(plan, ms);
-    for (let ch = 0; ch < channels; ch += 1) {
-      let sample = sampleBed(active.cueKind, active.cue, t, ch) * gain;
-      if (spoken?.cueKind === 'narration:spoken') {
-        const pan = ch === 0 ? 0.85 : 0.65;
-        sample += Math.sin(2 * Math.PI * 220 * t) * 0.12 * pan;
+    let gain = 0;
+    let active = run;
+    if (run) {
+      if (run.cueKind !== 'audio:hold' && run.cueKind !== 'audio:silence') {
+        held = run;
       }
+      active = run.cueKind === 'audio:hold' ? held : run;
+      if (active.cueKind !== 'audio:silence' && active.cueKind !== 'audio:hold'
+        && active.cueKind !== 'audio:soundscape' && active.cueKind !== 'audio:tone') {
+        fail('RENDER_AUDIO_UNSUPPORTED',
+          `Audio cue ${active.cueKind} has no offline mixer`,
+          '$.audioRuns',
+          { cueKind: active.cueKind });
+      }
+      gain = fadeGain(ms, run) * 0.35 * duckGainAt(narrationRunAt(plan, ms), ms);
+    }
+    const t = ms / 1000;
+    for (let ch = 0; ch < channels; ch += 1) {
+      let sample = active
+        ? sampleBed(active.cueKind, active.cue, t, ch) * gain
+        : 0;
+      if (spoken) sample += spoken[i * channels + ch];
       pcm[i * channels + ch] = sample;
     }
   }
+  applyLoudness(pcm, { targetLufs: loudnessLufs, channels });
   return Object.freeze({ sampleRate, channels, frames, pcm, fromMs: start, toMs: end });
 }
 

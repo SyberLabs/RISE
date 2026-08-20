@@ -53,7 +53,8 @@ async function renderAdmittedPackage(input, job, options = {}) {
   const audio = mixAudio(plan, {
     sampleRate: options.sampleRate || tier.sampleRate,
     fromMs,
-    toMs
+    toMs,
+    inventory: input.inventory
   });
   const posterFrame = excerpt
     ? Math.min(plan.frameCount - 1, Math.max(0, frameIndexAt(fromMs, plan.frameRate)))

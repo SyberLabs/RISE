@@ -70,7 +70,9 @@ export {
 } from './plan.js';
 export { mapVideoSourceTime } from './video-time.js';
 export { renderFrameRgba } from './raster.js';
-export { mixAudio } from './audio-mix.js';
+export { mixAudio, peakAmplitude, measureLoudnessLufs } from './audio-mix.js';
+export { collectVoiceBytes } from './voice-pcm.js';
+export { decodeWav } from './wav.js';
 export { captionsFromPlan, captionsToVtt, captionsToSrt } from './captions.js';
 export { renderJob, renderJobTwice } from './driver.js';
 export { safeAreasFor } from './layout.js';

@@ -92,7 +92,8 @@ export async function renderJob(input, options = {}) {
   const audio = mixAudio(plan, {
     sampleRate: options.sampleRate,
     fromMs: options.excerpt?.fromMs,
-    toMs: options.excerpt?.toMs
+    toMs: options.excerpt?.toMs,
+    inventory: input.inventory
   });
   const audioHash = await hashPcm(audio.pcm);
   const poster = await renderPoster(plan, {

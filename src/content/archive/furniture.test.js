@@ -113,7 +113,13 @@ describe('page furniture', () => {
             if (!/\n\];\s*\n/.test(src.slice(0, meta))) bad.push(file);
         }
         expect(bad, bad.join(', ')).toEqual([]);
-    });
+        // NINETY-THREE MEGABYTES, READ SYNCHRONOUSLY. It takes 509ms alone and
+        // vitest's default budget is five seconds, which was ample while the
+        // pool ran two workers and marginal once it ran six — the flake this
+        // states a budget for was caused by widening the pool, not by anything
+        // this test does. The work is real, so the budget is stated rather
+        // than the pool narrowed back.
+    }, 30_000);
 
     it('proves a running head by repetition when position cannot', () => {
         // Verse often lacks lower-case continuation; repetition still proves.

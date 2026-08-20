@@ -28,6 +28,7 @@ import {
 } from './acquisition.js';
 import { createVoiceProvider } from './acquisition-providers.js';
 import { mixAudio, peakAmplitude } from './render/audio-mix.js';
+import { encodeWav } from './render/wav.js';
 import { captionsFromPlan } from './render/captions.js';
 
 const SOURCE_ID = 'source-anna';
@@ -188,11 +189,13 @@ describe('narration admission, mix, and captions', () => {
       narrationRuns: [{
         cueId: 'voice-1',
         cueKind: 'narration:spoken',
-        cue: { kind: 'spoken', voiceId: 'af_heart' },
+        cue: { kind: 'spoken', voiceId: 'af_heart', voiceAssetId: 'asset-voice-1' },
         fromMs: 0,
         toMs: 400,
         duck: { target: 'bed', floor: 0.1, downMs: 0, upMs: 0 },
-        words: [{ text: 'Happy', fromCharacter: 0, toCharacter: 5, durationMs: 300 }]
+        words: [{ text: 'Happy', fromCharacter: 0, toCharacter: 5, durationMs: 300 }],
+        voiceId: 'af_heart',
+        voiceAssetId: 'asset-voice-1'
       }],
       atoms: [{
         index: 0,
@@ -204,15 +207,55 @@ describe('narration admission, mix, and captions', () => {
         sourceCharacterEnd: 15
       }]
     };
-    const mixed = mixAudio(plan);
+    const take = new Float32Array(Math.round(0.4 * 8_000)).fill(0.35);
+    const mixed = mixAudio(plan, {
+      sampleRate: 8_000,
+      inventory: {
+        bytesById: { 'asset-voice-1': encodeWav({ pcm: take, sampleRate: 8_000, channels: 1 }) }
+      }
+    });
     expect(duckGainAt(plan.narrationRuns[0], 200)).toBe(0.1);
-    expect(peakAmplitude(mixed.pcm)).toBeGreaterThan(0);
+    expect(peakAmplitude(mixed.pcm)).toBeGreaterThan(0.2);
     const captions = captionsFromPlan(plan);
     const spoken = captions.find(item => item.text === 'Happy');
     expect(spoken.sourceId).toBe(SOURCE_ID);
     expect(spoken.sourceCharacterStart).toBe(0);
     expect(spoken.sourceCharacterEnd).toBe(5);
     expect(spoken.text).toBe('Happy');
+  });
+
+  it('refuses spoken mix when the assigned voice bytes are missing', () => {
+    const plan = {
+      durationMs: 400,
+      audioRuns: [{
+        cueId: 'bed',
+        cueKind: 'audio:silence',
+        cue: { kind: 'silence' },
+        fromMs: 0,
+        toMs: 400,
+        fadeMs: 0,
+        gain: 1
+      }],
+      narrationRuns: [{
+        cueId: 'voice-1',
+        cueKind: 'narration:spoken',
+        cue: { kind: 'spoken', voiceAssetId: 'asset-voice-1' },
+        fromMs: 0,
+        toMs: 400,
+        voiceAssetId: 'asset-voice-1'
+      }],
+      atoms: [{
+        index: 0,
+        startMs: 0,
+        endMs: 400,
+        text: 'Happy families',
+        sourceId: SOURCE_ID,
+        sourceCharacterStart: 0,
+        sourceCharacterEnd: 15
+      }]
+    };
+    expect(() => mixAudio(plan, { sampleRate: 8_000 }))
+      .toThrow(expect.objectContaining({ code: 'RENDER_AUDIO_MISSING' }));
   });
 });
 
