@@ -34,7 +34,7 @@ async function openPortal(page) {
         localStorage.setItem('rise-beta-session', JSON.stringify(gate));
     }, GATE_SESSION);
     await page.goto('/');
-    await expect(page.locator('.portal-arch-sol')).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('[data-nav="library"]').first()).toBeVisible({ timeout: 15_000 });
 }
 
 /**

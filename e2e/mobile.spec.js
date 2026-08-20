@@ -122,38 +122,6 @@ test('a titled work opens its contents sheet', async ({ page }) => {
     expect(sheet.first).toContain('Preface');
 });
 
-test('the Portal puts the marble away rather than shrinking it', async ({ page }) => {
-    // Below 640px: hide gazebo ornament; keep the arch name readable.
-    test.setTimeout(120000);
-    await enter(page, 390, 844);
-    await expect(page.locator('[data-nav="chamber"]').first()).toBeVisible({ timeout: 30000 });
-    await page.waitForTimeout(2000);
-
-    const arches = await page.evaluate(() =>
-        [...document.querySelectorAll('.portal-arch')].map(a => {
-            const gz = a.querySelector('.gazebo');
-            const nm = a.querySelector('.portal-arch-name');
-            return {
-                nav: a.dataset.nav,
-                name: nm?.textContent.trim() || '',
-                gazebo: gz ? getComputedStyle(gz).display : 'absent',
-                nameShown: nm ? getComputedStyle(nm).display !== 'none' : false,
-                label: a.getAttribute('aria-label')
-            };
-        }));
-    console.log('ARCHES ' + JSON.stringify(arches));
-
-    expect(arches.length).toBeGreaterThan(0);
-    for (const arch of arches) {
-        expect(arch.gazebo, `${arch.nav} still draws its gazebo`).toBe('none');
-        // Name remains visible outside the hidden ornament.
-        expect(arch.nameShown, `${arch.nav} shows no name`).toBe(true);
-        expect(arch.name.length).toBeGreaterThan(2);
-        // Accessible name stays on the button (decoration is aria-hidden).
-        expect(arch.label).toBeTruthy();
-    }
-});
-
 test('the Chamber reads as a band across the picture', async ({ page }) => {
     // Phone: full-bleed reading band across the middle; imagery fills the rest.
     test.setTimeout(300000);
@@ -216,27 +184,7 @@ test('the Portal is one viewport, and does not scroll', async ({ page }) => {
     expect(fit.below, `hanging off the bottom: ${fit.below.join(', ')}`).toEqual([]);
     expect(fit.docHeight).toBeLessThanOrEqual(fit.viewport + 1);
 
-    // Remaining door ink quieter than primary nav; tap targets stay ≥40px.
-    const doors = await page.evaluate(() => {
-        const primary = document.querySelector('.nav-primary .nav-item')
-            .getBoundingClientRect().height;
-        return {
-            primary: Math.round(primary),
-            ink: [...document.querySelectorAll('.portal-arch .portal-arch-name')]
-                .map(n => Math.round(n.getBoundingClientRect().height)),
-            tap: [...document.querySelectorAll('.portal-arch')]
-                .map(a => Math.round(a.getBoundingClientRect().height))
-        };
-    });
-    console.log('DOORS ' + JSON.stringify(doors));
-
-    for (const ink of doors.ink) {
-        expect(ink, 'a secondary door is as loud as the primary nav')
-            .toBeLessThan(doors.primary / 2);
-    }
-    for (const tap of doors.tap) {
-        expect(tap, 'a door is too small to hit').toBeGreaterThanOrEqual(40);
-    }
+    // Secondary door ink quieter than primary nav; tap targets stay ≥40px.
 });
 
 test('the mode selector is one row with no empty cell', async ({ page }) => {
@@ -708,12 +656,14 @@ test('the phone-only threshold renders nothing on a desktop', async ({ page }) =
             rooms: [...document.querySelectorAll('.nav-secondary .nav-item')]
                 .map(b => b.innerText.replace(/\s+/g, ' ').trim()),
             vessel: Math.round(document.querySelector('.portal-sigil-vessel').getBoundingClientRect().width),
-            gazeboShown: getComputedStyle(document.querySelector('.gazebo')).display !== 'none',
+            // The pavilions went with the Atrium and the Solarium, and with
+            // them the arch glyph, the orb and the window this used to read
+            // inside their niches. What is left is the phone-only chrome that
+            // belongs to the nav.
             phoneOnly: {
                 stage: show('.sigil-stage'), mark: show('.act-mark'), verb: show('.act-verb'),
                 go: show('.act-go'), roomGlyph: show('.room-glyph'), roomLine: show('.room-line'),
-                archGlyph: show('.portal-arch-glyph'), orb: show('.sol-strip-orb'),
-                win: show('.sol-strip-window'), cont: show('.portal-continue')
+                cont: show('.portal-continue')
             }
         };
     });
@@ -722,7 +672,6 @@ test('the phone-only threshold renders nothing on a desktop', async ({ page }) =
     expect(d.actLabel).toBe('CHAMBER');
     expect(d.rooms).toEqual(['VAULT', 'LIBRARY', 'WORKSHOP']);
     expect(d.vessel).toBe(180);
-    expect(d.gazeboShown, 'the marble is still drawn').toBe(true);
     for (const [part, display] of Object.entries(d.phoneOnly)) {
         expect(display, `${part} is rendering on the desktop`).toBe('none');
     }
@@ -758,7 +707,7 @@ test('the threshold fits the phone in its widest state', async ({ page }) => {
     const warm = await page.evaluate(() => ({
         display: getComputedStyle(document.querySelector('.portal-continue')).display,
         title: document.querySelector('.continue-title').textContent.trim(),
-        cards: [...document.querySelectorAll('.nav-secondary .nav-item, .portal-arch')]
+        cards: [...document.querySelectorAll('.nav-secondary .nav-item')]
             .map(c => c.innerText.replace(/\s+/g, ' ').trim()),
         below: [...document.querySelectorAll('body *')]
             .filter(n => { const r = n.getBoundingClientRect(); return r.height > 14 && r.bottom > window.innerHeight + 2; })
@@ -775,6 +724,8 @@ test('the threshold fits the phone in its widest state', async ({ page }) => {
     expect(warm.display).toBe('flex');
     expect(warm.title.length).toBeGreaterThan(0);
 
+    // Three, not five: the two arches counted here went with their rooms.
+    expect(warm.cards).toHaveLength(3);
     for (const c of warm.cards) expect(c.length).toBeGreaterThan(8);
 
     expect(warm.below, `these hang below the fold: ${JSON.stringify(warm.below)}`).toEqual([]);

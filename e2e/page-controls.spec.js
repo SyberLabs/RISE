@@ -16,7 +16,7 @@ test('the control bar condenses in Page Mode and restores on return', async ({ p
     localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(g.prefs));
   }, { gate: GATE, seed: SEED, prefs: PREFS });
   await page.goto('/');
-  await expect(page.locator('.portal-arch-sol')).toBeVisible({ timeout: 15000 });
+  await expect(page.locator('[data-nav="library"]').first()).toBeVisible({ timeout: 15000 });
   await page.locator('[data-nav="chamber"]').first().click();
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15000 });
   await page.locator('#begin-btn').click();

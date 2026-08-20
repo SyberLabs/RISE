@@ -9,7 +9,6 @@
  * - The interface IS the first session
  */
 
-import { getWindowAt, resolveWindowPlan } from './Sol.js';
 
 export class Portal {
   constructor(container, options = {}) {
@@ -22,80 +21,12 @@ export class Portal {
     this.render();
     this.attachEvents();
     this.sequentialReveal();
-    this.startSolStrip();
     this.syncContinue();
   }
 
 
-  /**
-   * The living SOL strip — the portal's heartbeat. SOL is a *when*, not
-   * a place: instead of a fourth opaque card, it introduces itself with
-   * the hour, the current window, and what that window will play
-   * (following the user's My Day plan when set).
-   */
-  updateSolStrip() {
-    const strip = this.container.querySelector('.portal-arch-sol');
-    if (!strip) return;
-
-    const now = new Date();
-    const window = getWindowAt(now);
-    const suggestion = resolveWindowPlan(window);
-    const hour = now.getHours();
-    // The same 6–18 boundary the SOL orb has always used decides whether
-    // the arch shows the daylit Earth or the lamplit night side.
-    const isDay = hour >= 6 && hour < 18;
-    const orb = isDay ? '☀' : '☾';
-    const time = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-
-    strip.querySelector('.sol-strip-orb').textContent = orb;
-    strip.querySelector('.sol-strip-time').textContent = time;
-    strip.querySelector('.sol-strip-window').textContent = window.name;
-    strip.querySelector('.sol-strip-detail').textContent = suggestion.isCustom
-      ? `from your plan · ${suggestion.title}`
-      : window.name;
-    strip.setAttribute('aria-label', `Enter the Solarium — ${window.name}: ${suggestion.title}`);
-
-    // The Earth turns with the day. Swap the source only when the phase
-    // actually changes, so we never restart a playing loop needlessly.
-    this._syncEarthPhase(strip, isDay);
-  }
-
-  /**
-   * Point the SOL arch's Earth video at the day or night source. The video
-   * is lazy: it has no src until the arch is revealed, and it respects
-   * reduced-motion by holding a still first frame rather than looping.
-   */
-  _syncEarthPhase(strip, isDay) {
-    const video = strip.querySelector('.arch-earth-video');
-    if (!video) return;
-    // Nothing loads until the arch is armed at idle — but do not record the
-    // phase yet, so the arming pass still recognises work to do.
-    if (!this._earthArmed) return;
-    const phase = isDay ? 'day' : 'night';
-    if (video.dataset.phase === phase && video.src) return;
-    video.dataset.phase = phase;
-    video.src = isDay ? '/portal/earth-day.mp4' : '/portal/earth-night.mp4';
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) {
-      video.removeAttribute('loop');
-      // hold the first frame — a still Earth, no motion
-      video.addEventListener('loadeddata', () => { try { video.pause(); } catch {} }, { once: true });
-    }
-    video.play?.().catch(() => { /* autoplay blocked until interaction; the still poster stands */ });
-  }
-
-  startSolStrip() {
-    this.updateSolStrip();
-    this._solStripInterval = setInterval(() => {
-      // The router keeps hidden instances alive — skip work until visible
-      if (this.container.offsetParent === null) return;
-      this.updateSolStrip();
-    }, 30000);
-  }
-
   /** Router re-entry hook — refresh the living entries on return */
   update() {
-    this.updateSolStrip();
     // Returning from a reading is precisely when this changes.
     this.syncContinue();
   }
@@ -132,69 +63,6 @@ export class Portal {
     strip.hidden = false;
   }
 
-  /**
-   * A classical marble pavilion (aedicula), authored at its natural
-   * 420×560 and scaled to the margin by CSS. Ported from the creator's
-   * Archway.dc design: a domed roof + finial, an entablature bearing the
-   * NAME, fluted columns with volute capitals framing an arched niche
-   * (which holds `nicheInner` — the living window), on a stepped base.
-   * `plinthInner` is the caption beneath.
-   */
-  _gazeboMarkup(name, nicheInner, plinthInner, glyph = '') {
-    return `
-      <span class="gazebo" aria-hidden="true">
-        <span class="gazebo-stage">
-          <span class="gz-shadow"></span>
-          <span class="gz-finial-spire"></span>
-          <span class="gz-finial-orb"></span>
-          <span class="gz-dome"><span class="gz-dome-rays"></span></span>
-          <span class="gz-architrave"></span>
-          <span class="gz-frieze"><span class="gz-name">${name}</span></span>
-          <span class="gz-cornice"></span>
-          <span class="gz-niche-back"></span>
-          <span class="gz-niche">${nicheInner}</span>
-          <span class="gz-keystone"></span>
-          <span class="gz-volutes">
-            <svg viewBox="0 0 420 560" fill="none">
-              <defs><linearGradient id="gzSilver" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stop-color="oklch(96% 0.004 250)"/>
-                <stop offset="0.55" stop-color="oklch(72% 0.012 252)"/>
-                <stop offset="1" stop-color="oklch(52% 0.016 256)"/>
-              </linearGradient></defs>
-              <g stroke="rgba(60,70,85,.24)" stroke-width="5" stroke-linecap="round" transform="translate(1.5,2.5)">
-                <path d="M 74 150 C 74 172 90 184 108 188 C 120 191 124 202 116 209 C 108 216 96 210 99 201 C 101 195 109 195 112 200"/>
-                <path d="M 346 150 C 346 172 330 184 312 188 C 300 191 296 202 304 209 C 312 216 324 210 321 201 C 319 195 311 195 308 200"/>
-              </g>
-              <g stroke="url(#gzSilver)" stroke-width="3.4" stroke-linecap="round">
-                <path d="M 74 150 C 74 172 90 184 108 188 C 120 191 124 202 116 209 C 108 216 96 210 99 201 C 101 195 109 195 112 200"/>
-                <path d="M 346 150 C 346 172 330 184 312 188 C 300 191 296 202 304 209 C 312 216 324 210 321 201 C 319 195 311 195 308 200"/>
-              </g>
-            </svg>
-          </span>
-          <span class="gz-cap gz-cap-l"></span>
-          <span class="gz-cap gz-cap-r"></span>
-          <span class="gz-col gz-col-l"></span>
-          <span class="gz-base-block gz-base-l"></span>
-          <span class="gz-col gz-col-r"></span>
-          <span class="gz-base-block gz-base-r"></span>
-          <span class="gz-step gz-step-1"></span>
-          <span class="gz-step gz-step-2"></span>
-          <span class="gz-step gz-step-3"></span>
-        </span>
-      </span>
-      <span class="portal-arch-plinth">
-        <!-- The carved name lives in the frieze, inside a decoration
-             marked aria-hidden. On a phone the decoration is not shown
-             at all, so the name needs somewhere outside it to be. Hidden
-             on desktop, where the marble already says it. -->
-        <span class="portal-arch-glyph" aria-hidden="true">${glyph}</span>
-        <span class="portal-arch-name">${name}</span>
-        <!-- display:contents on desktop, so the plinth's flex column
-             sees exactly the children it always saw; a real box on the
-             phone, where it becomes the card's supporting line. -->
-        <span class="portal-arch-line">${plinthInner}</span>
-      </span>`;
-  }
 
   /**
    * On a phone the sigil is a seal (div), not a control.
@@ -307,28 +175,10 @@ export class Portal {
           </div>
         </nav>
 
-        <!-- ONE THRESHOLD, WHERE THERE WERE TWO. The Atrium door stood here
-             and is gone with the room behind it; the wrapper stays because
-             the Solarium still uses it, and because a door is cheaper to add
-             than the room it opens onto.
-             Desktop: absolute beside the sigil (wrapper is display:contents). -->
-        <div class="portal-arches">
-        <!-- Solarium: a when, not a place — Earth by the real clock.
-             Route/view remain 'sol'. -->
-        <button class="portal-arch portal-arch-sol" data-nav="sol" style="opacity: 0;" aria-label="Enter the Solarium">
-          ${this._gazeboMarkup('Solarium', `
-            <span class="gz-starfield"></span>
-            <span class="gz-earth-disc">
-              <video class="arch-earth-video" muted loop playsinline preload="none" disablePictureInPicture></video>
-            </span>
-            <span class="gz-niche-shade"></span>
-          `, `
-            <span class="portal-arch-detail sol-strip-detail"></span>
-            <span class="sol-strip-time font-mono"></span>
-            <span class="sol-strip-window"></span>
-          `, '<span class="sol-strip-orb"></span>')}
-        </button>
-        </div>
+        <!-- BOTH THRESHOLDS ARE GONE. The Atrium and the Solarium each
+             stood beside the sigil; the rooms went and the doors with them,
+             and a Portal that offered nine ways in now offers seven. A door
+             is cheap to add back when there is a room behind it. -->
 
         <!-- Continue: title only (no elapsed progress — session is in-memory).
              Hidden when there is nothing to resume. -->
@@ -477,26 +327,6 @@ export class Portal {
       nav.style.opacity = '1';
     }, 1100);
 
-    const solArch = this.container.querySelector('.portal-arch-sol');
-    revealTimeout(() => {
-      if (solArch) {
-        solArch.style.transition = 'opacity 700ms var(--ease-out)';
-        solArch.style.opacity = '1';
-      }
-      // The arch is up: arm the Earth and load the current phase's loop
-      // (deferred to idle so it never competes with first paint).
-      const armEarth = () => {
-        this._earthArmed = true;
-        const strip = this.container.querySelector('.portal-arch-sol');
-        const now = new Date();
-        if (strip) this._syncEarthPhase(strip, now.getHours() >= 6 && now.getHours() < 18);
-      };
-      if ('requestIdleCallback' in window) {
-        window.requestIdleCallback(armEarth, { timeout: 1500 });
-      } else {
-        revealTimeout(armEarth, 300);
-      }
-    }, 1500);
 
     // The sanctuary lamp is lit last and quietly: the class hands
     // opacity over to CSS (the 8s breath, or stillness under
@@ -535,7 +365,6 @@ export class Portal {
 
   destroy() {
     this.deactivate();
-    clearInterval(this._solStripInterval);
     // Reveal choreography must die with the view — surviving timers
     // fired after teardown (post-suite "window is not defined") and
     // could start media work after navigation

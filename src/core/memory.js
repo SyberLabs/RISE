@@ -19,7 +19,6 @@ import { WorkshopMedia } from './workshop-media.js';
 
 const STORAGE_KEY = 'rise_recursions_v1';
 const WORKSHOP_KEY = 'rise_workshop_v1';
-const SOL_PLAN_KEY = 'rise_sol_plan_v1';
 const GLOBAL_IMAGES_KEY = 'rise_global_images_v1';
 const MAX_GLOBAL_IMAGES = 20;
 
@@ -123,49 +122,6 @@ export class MemoryCore {
     }
   }
 
-  /**
-   * SOL plan — user bindings of sequences to the canonical temporal
-   * windows. Shape: { [windowKey]: { kind: 'sol'|'blueprint', id } }
-   */
-  static getSolPlan() {
-    try {
-      const data = localStorage.getItem(SOL_PLAN_KEY);
-      return data ? JSON.parse(data) : {};
-    } catch (e) {
-      console.error('[Memory] Fail read sol plan:', e);
-      return {};
-    }
-  }
-
-  /**
-   * Assign (or clear with null) a window's custom sequence.
-   */
-  static setSolPlanEntry(windowKey, entry) {
-    const plan = this.getSolPlan();
-    if (entry) {
-      plan[windowKey] = entry;
-    } else {
-      delete plan[windowKey];
-    }
-    try {
-      localStorage.setItem(SOL_PLAN_KEY, JSON.stringify(plan));
-    } catch (e) {
-      console.error('[Memory] Fail save sol plan:', e);
-    }
-    return plan;
-  }
-
-  /**
-   * Clear all memory (Amnesia protocol)
-   */
-  static clearMemory() {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(WORKSHOP_KEY);
-    localStorage.removeItem(SOL_PLAN_KEY);
-    localStorage.removeItem(GLOBAL_IMAGES_KEY);
-    localStorage.removeItem('rise_orbital_prefs_v1');
-    localStorage.removeItem('rise_orbital_text_v1');
-  }
 
   /**
    * Fetch all saved workshop blueprints (sync metadata views).
