@@ -73,7 +73,10 @@ jobs:
   e2e:
     name: Browser smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Sequential e2e + Chromium install + production build preview now exceeds
+    # 30m. CI #99 (1d6f41e) died at 29m 25s of `test:e2e` with no assertion;
+    # the job cap killed it. Logs are login-gated, so the last spec is unnamed.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -88,7 +91,7 @@ jobs:
       # is what gets tested.
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: failure() || cancelled()
         with:
           name: playwright-report
           path: |

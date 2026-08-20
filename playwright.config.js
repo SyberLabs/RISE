@@ -13,7 +13,7 @@ export default defineConfig({
     timeout: 45_000,
     retries: 1,
     workers: 1, // one browser, sequential — flows share an audio device
-    reporter: [['list']],
+    reporter: [['list'], ['github']],
     use: {
         baseURL: 'http://localhost:4317',
         headless: true,
