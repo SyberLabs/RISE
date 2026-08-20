@@ -13,6 +13,12 @@ import { kleeStrokes, rasterKlee } from './klee-adapter.js';
 import { decodeImage, decodeVideoFrame } from './decode.js';
 import { mapVideoSourceTime } from './video-time.js';
 import { FONT_CELL, glyphColumns, wrapText } from './font.js';
+import {
+  DEFAULT_CAPTION_FONT_SIZE,
+  captionTextRegion,
+  parseCssColor,
+  resolveCaptionStyle
+} from './caption-style.js';
 
 function fill(rgba, color) {
   for (let i = 0; i < rgba.length; i += 4) {
@@ -64,7 +70,7 @@ function drawGlyph(rgba, width, height, originX, originY, columns, color, pixel)
   }
 }
 
-function drawTextBlock(rgba, width, height, region, text, color, scale) {
+function drawTextBlock(rgba, width, height, region, text, color, scale, edgeColor = null) {
   const pixel = Math.max(1, Math.round(2 * scale));
   const cellW = FONT_CELL.width * pixel;
   const cellH = FONT_CELL.height * pixel;
@@ -79,9 +85,18 @@ function drawTextBlock(rgba, width, height, region, text, color, scale) {
   }
   let y = region.y;
   for (const line of lines) {
-    let x = region.x;
+    const lineWidth = line.length * cellW;
+    let x = edgeColor
+      ? region.x + Math.max(0, Math.round((region.width - lineWidth) / 2))
+      : region.x;
     for (const character of line) {
-      drawGlyph(rgba, width, height, x, y, glyphColumns(character), color, pixel);
+      const columns = glyphColumns(character);
+      if (edgeColor) {
+        for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+          drawGlyph(rgba, width, height, x + dx, y + dy, columns, edgeColor, pixel);
+        }
+      }
+      drawGlyph(rgba, width, height, x, y, columns, color, pixel);
       x += cellW;
     }
     y += cellH;
@@ -97,7 +112,7 @@ function assetsById(inventory) {
 /**
  * Raster one frame into a new RGBA buffer sized to the job viewport * scale.
  */
-export function renderFrameRgba(plan, frameIndex, { inventory = {}, scale = 1 } = {}) {
+export function renderFrameRgba(plan, frameIndex, { inventory = {}, scale = 1, caption } = {}) {
   const width = Math.max(1, Math.round(plan.viewport.width * scale));
   const height = Math.max(1, Math.round(plan.viewport.height * scale));
   const scaleX = width / plan.viewport.width;
@@ -134,13 +149,24 @@ export function renderFrameRgba(plan, frameIndex, { inventory = {}, scale = 1 } 
 
   const atom = atomAt(plan, timeMs);
   if (atom?.text) {
-    const region = plan.safeAreas.text;
-    drawTextBlock(rgba, width, height, {
-      x: Math.round(region.x * scaleX),
-      y: Math.round(region.y * scaleY),
-      width: Math.round(region.width * scaleX),
-      height: Math.round(region.height * scaleY)
-    }, atom.text, RENDER_TEXT_COLOR, scale);
+    const style = resolveCaptionStyle(caption);
+    if (style) {
+      const region = captionTextRegion(width, height, style);
+      drawTextBlock(
+        rgba, width, height, region, atom.text,
+        parseCssColor(style.color),
+        scale * (style.fontSize / DEFAULT_CAPTION_FONT_SIZE),
+        parseCssColor(style.edgeColor)
+      );
+    } else {
+      const region = plan.safeAreas.text;
+      drawTextBlock(rgba, width, height, {
+        x: Math.round(region.x * scaleX),
+        y: Math.round(region.y * scaleY),
+        width: Math.round(region.width * scaleX),
+        height: Math.round(region.height * scaleY)
+      }, atom.text, RENDER_TEXT_COLOR, scale);
+    }
   }
 
   return { width, height, rgba, timeMs, frameIndex };

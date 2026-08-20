@@ -28,6 +28,49 @@
     .chamber-field {
       flex: 1;
     }
+    /* MP4 caption path only. Live Chamber does not load this document. */
+    .chamber.caption-mode .chamber-field {
+      position: relative;
+    }
+    .chamber.caption-mode .atom-band,
+    .chamber.caption-mode .chamber-field-genesis .atom-band,
+    .chamber.caption-mode .chamber-field-stream .atom-band,
+    .chamber.caption-mode .chamber-field-genesis .atom-band:has(.atom-display),
+    .chamber.caption-mode .chamber-field-stream .atom-band:has(.atom-display) {
+      display: block;
+      position: absolute;
+      left: calc(var(--caption-x, 0.5) * 100%);
+      top: calc(var(--caption-y, 0.9) * 100%);
+      transform: translate(-50%, -50%);
+      width: 90%;
+      z-index: 10;
+      background: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border: 0;
+      box-shadow: none;
+    }
+    .chamber.caption-mode .atom-display,
+    .chamber.caption-mode .atom-display.glass-tile,
+    .chamber.caption-mode .chamber-field-genesis .atom-display.glass-tile,
+    .chamber.caption-mode .chamber-field-stream .atom-display.glass-tile {
+      font-family: var(--caption-font, "Helvetica Neue", Arial, sans-serif);
+      font-size: var(--caption-size, 21px);
+      font-weight: 600;
+      color: var(--caption-color, #FFFFFF);
+      -webkit-text-stroke: 0.06em var(--caption-edge, #000000);
+      paint-order: stroke fill;
+      background: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: none;
+      border: 0;
+      border-radius: 0;
+      max-width: 100%;
+      width: 100%;
+      transform: none;
+      padding: 0;
+    }
   </style>
 </head>
 <body>

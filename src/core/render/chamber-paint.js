@@ -18,6 +18,7 @@ import { atomAt, visualRunAt } from './plan.js';
 import { fail } from './errors.js';
 import { decodeImage } from './decode.js';
 import { galleryWallAt } from '../visual-presence.js';
+import { resolveCaptionStyle } from './caption-style.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 const STAGE_PATH = '/src/core/render/chamber-stage.html';
@@ -147,7 +148,8 @@ export async function openChamberPainter({
   plan,
   scale = 1,
   inventory = {},
-  ffmpegLog = console.log
+  ffmpegLog = console.log,
+  caption
 } = {}) {
   if (!plan) fail('RENDER_CHAMBER_PLAN', 'Chamber paint needs a compiled plan', '$.plan');
   const view = chamberView(plan, scale);
@@ -184,6 +186,7 @@ export async function openChamberPainter({
 
   let stills = stillsFromInventory(inventory);
   let currentPlan = plan;
+  let appliedCaption = resolveCaptionStyle(caption);
   const kinds = [...new Set((plan.visualRuns || []).map(run => run.cueKind))].join(', ') || 'visual:still';
 
   try {
@@ -192,13 +195,15 @@ export async function openChamberPainter({
       timeout: 60_000
     });
     await page.waitForFunction(() => window.__stage?.ready === true, null, { timeout: 30_000 });
-    await page.evaluate(async (args) => {
+    appliedCaption = await page.evaluate(async (args) => {
       await window.__stage.prepare(args);
+      return window.__stage.caption || null;
     }, {
       width: view.width,
       height: view.height,
       seed: plan.seed,
-      stills
+      stills,
+      caption
     });
     const type = await page.evaluate(() => {
       const el = document.getElementById('atom-display');
@@ -228,6 +233,17 @@ export async function openChamberPainter({
   return {
     width: view.width,
     height: view.height,
+    caption: appliedCaption ?? resolveCaptionStyle(caption),
+    async readCaption() {
+      return page.evaluate(() => ({
+        caption: window.__stage.caption || null,
+        glass: document.getElementById('atom-display')?.classList.contains('glass-tile') === true,
+        captionMode: document.querySelector('.chamber')?.classList.contains('caption-mode') === true,
+        fontFamily: document.getElementById('atom-display')
+          ? getComputedStyle(document.getElementById('atom-display')).fontFamily
+          : null
+      }));
+    },
     async setPlan(nextPlan) {
       currentPlan = nextPlan;
     },
@@ -254,7 +270,8 @@ export async function openChamberPainter({
         seed: currentPlan.seed,
         stillId: stillFrame.stillId,
         incomingStillId: stillFrame.incomingStillId,
-        dissolve: stillFrame.dissolve
+        dissolve: stillFrame.dissolve,
+        caption
       });
       if (frameIndex === 0 || (frameIndex + 1) % 30 === 0) {
         ffmpegLog(`Chamber frame ${frameIndex + 1}/${currentPlan.frameCount}`);

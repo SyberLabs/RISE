@@ -38,7 +38,8 @@ export async function exportRenderMp4({
   painter = 'chamber',
   fromMs = 0,
   toMs = null,
-  audio = null
+  audio = null,
+  caption
 } = {}) {
   if (!outputPath) fail('RENDER_ENCODE_PATH', 'exportRenderMp4 needs an output path', '$.outputPath');
   const compiled = plan || compileRenderPlan({
@@ -60,13 +61,13 @@ export async function exportRenderMp4({
       frames: async (index) => {
         const frameIndex = start + index;
         if (frameIndex >= end) return null;
-        return renderFrameRgba(compiled, frameIndex, { inventory, scale });
+        return renderFrameRgba(compiled, frameIndex, { inventory, scale, caption });
       }
     });
   }
 
   const { openChamberPainter } = await import('./chamber-paint.js');
-  const stage = await openChamberPainter({ plan: compiled, scale, inventory });
+  const stage = await openChamberPainter({ plan: compiled, scale, inventory, caption });
   try {
     return await encodeMp4({
       frameRate: compiled.frameRate,
