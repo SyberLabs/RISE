@@ -51,6 +51,11 @@ test('the Portal names one act, and the Vault opens the Journeys', async ({ page
   await expect(page.locator('.journeys-header [data-nav="vault"]')).toBeVisible();
 });
 
+// Published cards (War, Demonstration) are withdrawn — JOURNEYS = [] in
+// src/components/Journeys.js. Keep the door test above; these assume sits.
+test.describe('published Journey sits', () => {
+  test.skip(true, 'JOURNEYS = []; those sits are not shipped');
+
 test('War states its argument before asking for twenty minutes', async ({ page }) => {
   await openJourneys(page);
 
@@ -405,4 +410,6 @@ test('the Demonstration is the short door, and it opens', async ({ page }) => {
   console.log('DEMOCUES ' + JSON.stringify([...new Set(cues)]));
   // The reel is showing a NAMED engine, not the family at large.
   expect(cues.length).toBeGreaterThan(0);
+});
+
 });

@@ -5,6 +5,8 @@
 import { test, expect } from '@playwright/test';
 import { collectAcrossPages, pageCount } from './page-helpers.js';
 
+test.skip(true, 'JOURNEYS = []; those sits are not shipped');
+
 const GATE = { code: 'rise2025', name: 'Procedural', vault: null, timestamp: Date.now() };
 const WAR = '[data-journey="journey-war"]';
 
