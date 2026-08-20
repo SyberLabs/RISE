@@ -192,7 +192,17 @@ export function detectVerseLineation(text, { maxWords = MAX_CHUNK_WORDS } = {}) 
  */
 function splitVerseLines(paragraph, preserveSpeakerHead, useFloor) {
     const lines = paragraph.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    if (lines.length < 2) return splitPhrases(paragraph, preserveSpeakerHead);
+    if (lines.length < 2) {
+        // A PROSE PARAGRAPH INSIDE A VERSE READING STILL GETS THE FLOOR.
+        // Returning the raw punctuation split here handed it the 2026-07
+        // behaviour the floor exists to fix: Wordsworth's 152-word headnote
+        // to The Complaint of a Forsaken Indian Woman arrived as "from
+        // sickness," and "food," on screens of their own.
+        const pieces = splitPhrases(paragraph, preserveSpeakerHead);
+        return useFloor && !preserveSpeakerHead
+            ? applyPhraseFloor(pieces, paragraph)
+            : pieces;
+    }
 
     const out = [];
     let held = '';

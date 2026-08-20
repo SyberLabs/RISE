@@ -18,6 +18,7 @@
     "test:e2e": "playwright test",
     "probe:collections": "vite-node scripts/probe-collections.mjs",
     "study:chunking": "vite-node scripts/study-phrase-chunking.mjs",
+    "sheet:chunks": "node scripts/chunk-contact-sheet.mjs",
     "study:awareness": "vite-node scripts/study-chunker-awareness.mjs",
     "audit:text": "vite-node scripts/audit-text-quality.mjs",
     "build:audubon": "node scripts/build-audubon-catalog.mjs",

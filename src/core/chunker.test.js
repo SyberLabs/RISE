@@ -517,6 +517,25 @@ describe('verse lineation, detected rather than declared', () => {
         expect(atoms[0]).toBe('Book VI All night the dreadless Angel, unpursued,');
     });
 
+    it('still floors a PROSE paragraph inside a verse reading', () => {
+        // Found by the chunk contact sheet on its first run. Wordsworth
+        // prefaces The Complaint of a Forsaken Indian Woman with a 152-word
+        // prose headnote; it is one paragraph of one line, and the verse
+        // splitter handed a single-line paragraph straight to the punctuation
+        // splitter without the floor. The reader met "from sickness," and
+        // "food," on screens of their own — the 2026-07 behaviour the floor
+        // exists to fix, surviving inside a work that had been declared verse.
+        const headnote = 'When a Northern Indian, from sickness, is unable to '
+            + 'continue his journey with his companions, he is left behind, '
+            + 'covered over with Deer-skins, and is supplied with water, food, '
+            + 'and fuel, if the situation of the place will afford it.';
+        const atoms = chunkText(headnote,
+            { mode: 'phrase', wpm: 200, verseLines: true }).map(a => a.content);
+        for (const atom of atoms) {
+            expect(atom.split(/\s+/).filter(Boolean).length).toBeGreaterThan(2);
+        }
+    });
+
     it('does not apply the prose floor to a verse line', () => {
         // A poet's line is already a chosen unit; growing it into the
         // next one would be the floor overruling the author.

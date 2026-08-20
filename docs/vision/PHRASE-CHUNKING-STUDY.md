@@ -452,6 +452,61 @@ Text and line count now come from ONE descent, so they cannot disagree.
 
 ---
 
+## 10. The instrument that was missing — 2026-08-19
+
+Every metric this study owns scored Tintern Abbey as healthy. cv 0.310,
+fragments 0.6%, stutter runs 0, dangling tails clean — and the reader met an
+atom carrying the head of Wordsworth's next line. **The defect was found by a
+person reading one poem**, which is the third time that has been true.
+
+So the numbers are no longer asked to stand alone. `npm run sheet:chunks`
+renders every reading on the shelf, atom by atom, in every mode, with the
+metrics beside the page rather than in place of it. It is the chunker's
+version of the Atrium's contact sheet, and for the same stated reason: no
+automated metric replaces a human looking at the thing.
+
+### The metric that was missing
+
+**What share of atoms begin where a printed line begins?** No existing measure
+asked it, and it is exactly what Tintern Abbey failed.
+
+It must be asked BY POSITION, not by matching opening words. A short line is
+carried forward deliberately — "Oedipus" onto what Oedipus then says — and
+such an atom still begins where a line began. Comparing head words counted
+every carry as a miss and scored a faithful Oedipus Rex at **70.7%**. Asked by
+position it is **99.8%**. The first version of a metric was wrong about the
+chunker, which is the failure mode this whole section exists to guard against.
+
+### What the first run found
+
+| reading | on a printed line |
+|---|---|
+| Inferno, Purgatorio, The Hill, Roy Butler, Expostulation | 100% |
+| Oedipus Rex, Iliad I & XIII | 99% |
+| Paradise Lost, Metamorphoses | 94–99% |
+| **The Complaint of a Forsaken Indian Woman** | **80.7%** |
+
+The outlier is real. Wordsworth prefaces the poem with a 152-word PROSE
+headnote, and `splitVerseLines` returned a single-line paragraph straight to
+the punctuation splitter **without the floor** — so inside a work declared as
+verse, one paragraph was still getting the July 2026 behaviour:
+
+```
+  4w  When a Northern Indian,
+  2w  from sickness,
+  1w  food,
+  2w  and fuel,
+```
+
+Fixed, with a test. Metamorphoses and Paradise Lost improved with it: their
+prose arguments were losing the floor the same way. The residual 80.7% is the
+headnote itself, which correctly does not sit on verse lines.
+
+**A prose paragraph inside a verse reading is still prose.** The declaration
+says what the reading mostly is, not what every paragraph of it is.
+
+---
+
 ## 8. Still open
 
 - §5 step 1 — **per-boundary provenance** through `splitPhrases`, which
