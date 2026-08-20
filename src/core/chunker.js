@@ -269,9 +269,18 @@ function splitVerseLines(paragraph, preserveSpeakerHead, useFloor) {
 /**
  * `phraseFloor` as an options object. `true` is the shipped floor; a
  * number is an explicit one, so a study can sweep it.
+ *
+ * A number is checked here rather than trusted, because this is the only
+ * place that sees it: a fractional or negative floor merges nothing and
+ * would read as the sweep having found a flat region, and a floor above the
+ * ceiling is a request the merge cannot honour anyway.
  */
 function floorOptions(phraseFloor) {
-    return Number.isFinite(phraseFloor) ? { floor: phraseFloor } : {};
+    return Number.isInteger(phraseFloor)
+        && phraseFloor >= 0
+        && phraseFloor <= MAX_CHUNK_WORDS
+        ? { floor: phraseFloor }
+        : {};
 }
 
 export function applyPhraseFloor(phrases, paragraph = '', {

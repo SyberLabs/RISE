@@ -5,6 +5,9 @@
 
 import { describe, it, expect } from 'vitest';
 import { chunkText, countWords, estimateDuration, detectVerseLineation } from './chunker.js';
+// The compiler is imported because the defect below lives in the seam
+// between the two, and neither file can show it alone.
+import { compileSession } from './session-compiler.js';
 
 describe('chunkText', () => {
   describe('word mode', () => {
@@ -768,5 +771,48 @@ describe('the floor is a number a study can sweep, not a sentence', () => {
             chunkText(authored, { mode: 'phrase', wpm: 250, phraseFloor: 5 })
                 .filter(atom => atom.modality === 'text').length
         );
+    });
+});
+
+describe('a floor asked for is the floor applied', () => {
+    /**
+     * `chunkText` learned to take a number so the floor sweep could move it,
+     * and `compileSession` went on admitting only booleans — so a session
+     * asking for a floor of 8 was handed the shipped 5 and told nothing. The
+     * two layers disagreeing is the defect; one of them silently winning is
+     * what made it invisible.
+     */
+    const passage = 'One, two, three, four, five, six, seven, eight, nine, ten. '
+        + 'And now a second sentence, with clauses, that runs along, comma by comma, for a while.';
+    const atoms = (phraseFloor) => chunkText(passage,
+        { mode: 'phrase', wpm: 200, phraseFloor }).length;
+
+    it('honours a number the same way through the compiler as through the chunker', () => {
+        for (const floor of [false, true, 2, 8]) {
+            const direct = atoms(floor);
+            const compiled = compileSession({
+                text: passage, chunkMode: 'phrase', wpm: 200, phraseFloor: floor,
+                audioPreset: 'silent', visualConfig: { enabled: false }
+            }).atoms.length;
+            expect(compiled, `phraseFloor ${floor} arrived as something else`).toBe(direct);
+        }
+    });
+
+    it('refuses a floor that is not one, rather than merging to nothing', () => {
+        // A fractional or negative floor merges nothing and would read as the
+        // sweep having found a flat region; a floor over the ceiling is a
+        // request the merge cannot honour. Each falls back to the shipped one.
+        for (const nonsense of [-3, 2.5, 999]) {
+            expect(atoms(nonsense), `${nonsense} was taken as a floor`).toBe(atoms(true));
+        }
+    });
+
+    it('still hears a falsy value as "no floor", which is the older contract', () => {
+        // `false` must be sayable — that is why the precedence is written with
+        // `??` rather than `||`. NaN is falsy and so turns the floor OFF
+        // rather than falling back to the shipped one, which is the same
+        // answer the gate has always given and is left alone deliberately.
+        expect(atoms(Number.NaN)).toBe(atoms(false));
+        expect(atoms(0)).toBe(atoms(false));
     });
 });

@@ -137,7 +137,7 @@ A high score opens research; it does not bypass source, rights, editorial, speci
 
 The current corpus has 35 philosophy nodes and 61 history events. Live coverage evaluation reports 73 point launches and 25 journeys. After repairing two philosophy journey alignments and completing Association, Confederation, Amendment, 18 records have raw `none` coverage: 15 are open required launches and three are accepted non-launch records. No alignment repair remains open. In history specifically, nine of 61 events have neither a point nor a ready journey; eight require launches and the Mexican insurgency opening is evidence-bound.
 
-The record-level completion audit and revised terminal condition are maintained in `ATRIUM-COMPLETION-AUDIT.md`. Raw `none` coverage is no longer treated as a sufficient definition of unfinished work: required launches, existing-journey alignment repairs, evidence-bound events, and intentionally contextual records must be reported separately.
+The record-level completion audit that stated this was retired with the other concluded V2 process documents (PR #1); git holds it at `f55961b` for anyone who needs the counts as they stood. Its ruling is what survives, and it is restated here so it no longer depends on a file that is gone. Raw `none` coverage is no longer treated as a sufficient definition of unfinished work: required launches, existing-journey alignment repairs, evidence-bound events, and intentionally contextual records must be reported separately.
 
 | Historical field | Current posture | Material weakness | Program response |
 |---|---|---|---|

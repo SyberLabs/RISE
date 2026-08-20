@@ -426,8 +426,18 @@ export function compileSession(input = {}) {
                 //
                 // `??` and not `||`, deliberately: the point of the inversion
                 // is that FALSE must be sayable, and `||` cannot hear it.
+                // A NUMBER IS A FLOOR, AND IT HAS TO SURVIVE THIS HOP.
+                // `chunkText` learned to take one so a study could sweep it,
+                // and this guard admitted only booleans — so a caller asking
+                // for a floor of 8 was handed the shipped 5 without being
+                // told. Widened rather than documented as study-only: the two
+                // layers disagreeing is the defect, and one of them silently
+                // winning is what makes it hard to see.
                 phraseFloor: prepared.phraseFloor
-                    ?? (typeof config.phraseFloor === 'boolean' ? config.phraseFloor : true),
+                    ?? (typeof config.phraseFloor === 'boolean'
+                        || Number.isInteger(config.phraseFloor)
+                        ? config.phraseFloor
+                        : true),
                 verseLines: source.verseLines === true
             }));
         }
