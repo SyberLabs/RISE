@@ -92,7 +92,10 @@ test('touch selection opens the passage palette and assigns without a synthetic 
     await page.getByRole('button', { name: 'Done' }).click();
     await page.getByRole('button', { name: 'Assets', exact: true }).click();
     await page.getByRole('tab', { name: 'Audio', exact: true }).click();
-    await page.getByRole('option', { name: /Aurora, soundscape default/ }).click();
+    // Leftover accessible name was "Aurora, soundscape default". That
+    // string is not in the picker. Live labels are `${name}, ${kind}`
+    // from renderAudioAssetRegistry: Aurora, soundscape.
+    await page.getByRole('option', { name: /Aurora, soundscape/ }).click();
     await page.getByRole('button', { name: 'Score', exact: true }).click();
     await expect(page.getByRole('tab', { name: 'Audio', exact: true })).toHaveAttribute('aria-selected', 'true');
 
