@@ -88,24 +88,27 @@ test('the last step is reachable', async ({ page }) => {
     await expect(last).toBeInViewport();
 });
 
+// Leftover SCORE named The Great Work / sacred-emerald-tablet. That
+// source is withheld from the launch canon, so the gate refuses it and
+// The reading stays on the placeholder. Tao Te Ching is still accepted.
 const SCORE = JSON.stringify({
     schema: 'rise.experience-program.v1',
-    id: 'self-transformation-great-work',
+    id: 'sacred-tao-te-ching',
     authority: 'proposed',
     editable: true,
     tracks: [
         { id: 'movements', kind: 'movement', clips: [{ id: 'm1',
-            anchor: { sourceIds: ['sacred-emerald-tablet'] },
-            data: { index: 0, title: 'The Great Work' } }] },
+            anchor: { sourceIds: ['sacred-tao-te-ching'] },
+            data: { index: 0, title: 'Tao Te Ching' } }] },
         { id: 'visuals', kind: 'visual', fallback: { kind: 'still' }, clips: [
             { id: 'v1', cue: { kind: 'procedural', collections: ['rockgarden'] },
-              anchor: { sourceIds: ['sacred-emerald-tablet'], fromProgress: 0, toProgress: 0.3 } },
+              anchor: { sourceIds: ['sacred-tao-te-ching'], fromProgress: 0, toProgress: 0.3 } },
             { id: 'v2', cue: { kind: 'procedural', collections: ['turrell'] },
-              anchor: { sourceIds: ['sacred-emerald-tablet'], fromProgress: 0.3, toProgress: 1 } }
+              anchor: { sourceIds: ['sacred-tao-te-ching'], fromProgress: 0.3, toProgress: 1 } }
         ] },
         { id: 'pace', kind: 'reading', clips: [{ id: 'p1',
             cue: { kind: 'pace', wpm: 120, chunkMode: 'phrase' },
-            anchor: { sourceIds: ['sacred-emerald-tablet'] } }] }
+            anchor: { sourceIds: ['sacred-tao-te-ching'] } }] }
     ]
 });
 
@@ -119,8 +122,8 @@ test('the room accounts for a score and reads it without the Workshop', async ({
     // The rundown states what the Workshop could not: the pace, and imagery
     // bound by progress rather than by character offsets.
     const reading = page.getByRole('region', { name: 'The reading' });
-    await expect(reading).toContainText('The Great Work');
-    await expect(reading).toContainText('237 words');
+    await expect(reading).toContainText('Tao Te Ching');
+    await expect(reading).toContainText('10,321 words');
     await expect(reading).toContainText('120 words a minute, in phrases');
     await expect(reading).toContainText('the first 30%');
     await expect(reading).toContainText('the last 70%');
