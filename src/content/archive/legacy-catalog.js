@@ -2,58 +2,36 @@
 export const LEGACY_REINGESTED_WORKS = [
     {
         meta: {"id":"sacred-i-ching","title":"The Yî King","author":"traditional; King Wăn and the Duke of Kâu","shelf":"received","edition":{"translator":"James Legge","publisher":"Clarendon Press","year":1882},"basis":"pre-1930-us","chars":939744,"sections":1,"sourceSha256":"d3f6716cd31e19e7d923451ccceebd4492c9b6119035dbfac62401a2bfa692b1","payloadChecksum":"e6c47368ac3f66ec176986417f6cccdd428654b1bb101ebe9e5c386f5bf94fb5"},
-        load: () => import('./works/sacred-i-ching.js')
-            .then(module => module.SACRED_I_CHING_SECTIONS)
     },
     {
         meta: {"id":"sacred-zen-koans","title":"Essays in Zen Buddhism: First Series","author":"Daisetz Teitaro Suzuki","shelf":"received","edition":{"publisher":"Luzac and Company","year":1927},"basis":"pre-1930-us","chars":809550,"sections":15,"sourceSha256":"840b5d33ff602d8fee188546f3264763c6386e16ef6bd1f451adf127c7c8553d","payloadChecksum":"be8aa0754fdc80ef62112ecfc2f25069fb1a96634dd3756ecb8e08aeca5ceda8"},
-        load: () => import('./works/sacred-zen-koans.js')
-            .then(module => module.SACRED_ZEN_KOANS_SECTIONS)
     },
     {
         meta: {"id":"extended-bhagavad-gita-full","title":"The Song Celestial; or, Bhagavad-Gîtâ","author":"traditional attribution to Vyasa","shelf":"received","edition":{"translator":"Sir Edwin Arnold","publisher":"Truslove, Hanson & Comba, Ltd.","year":1900,"statement":"1900 New York reprint; Arnold translation first published 1885"},"basis":"pre-1930-us","chars":117818,"sections":16,"sourceSha256":"1a86e50814e20cbf14f3a05e2a64e9d64e90849808b8b3283dbfc510897f413d","payloadChecksum":"90eb2e9bac6473ef934a8c69947f8b31050b41ebeb5979a524e568a804cd413e"},
-        load: () => import('./works/extended-bhagavad-gita-full.js')
-            .then(module => module.EXTENDED_BHAGAVAD_GITA_FULL_SECTIONS)
     },
     {
         meta: {"id":"sacred-emerald-tablet","title":"Tabula Smaragdina","author":"Hermes Trismegistus, traditional attribution","shelf":"received","edition":{"translator":"Isaac Newton","publisher":"Keynes MS. 28, King’s College Library","year":1680},"basis":"author-death-70","chars":1260,"sections":1,"sourceSha256":"2fb21719d04a2577f954bf586fa556fa4c8eb2e9d461bdde7f90290ec89ff95d","payloadChecksum":"fda555d83aca1295d50880b4a150c79526202c6f4c1b10f8ecb1ac73d5e7ece9"},
-        load: () => import('./works/sacred-emerald-tablet.js')
-            .then(module => module.SACRED_EMERALD_TABLET_SECTIONS)
     },
     {
         meta: {"id":"extended-dhammapada-full","title":"The Dhammapada","author":"traditional Buddhist canon","shelf":"received","edition":{"translator":"F. Max Müller","publisher":"Sacred Books of the East, vol. X","year":1881},"basis":"pre-1930-us","chars":65915,"sections":27,"sourceSha256":"17ff9e252add72aedda8e71be55f0935454ef4fd7d5f82c37fff8cb587765f58","payloadChecksum":"bfb0dc09c0a2abad580ce2003c314d2e8c7dd3a1b545be5f29c3a52a7c2d1bf7"},
-        load: () => import('./works/extended-dhammapada-full.js')
-            .then(module => module.EXTENDED_DHAMMAPADA_FULL_SECTIONS)
     },
     {
         meta: {"id":"sacred-rumi","title":"Selected Poems from the Dīvāni Shamsi Tabrīz","author":"Jalálu’ddín Rúmí","shelf":"received","edition":{"translator":"Reynold A. Nicholson","publisher":"Cambridge University Press","year":1898},"basis":"author-death-70","chars":72819,"sections":1,"sourceSha256":"85a9f7c354d9812c5d25a6060ec594c36ec3fe160d1c9cc81452821dc0d2d93b","payloadChecksum":"3c6c43f4d3ad7e0142d1cc4af3c6d3903e2c4fb92a11be47afc4cd5f2c25c605"},
-        load: () => import('./works/sacred-rumi.js')
-            .then(module => module.SACRED_RUMI_SECTIONS)
     },
     {
         meta: {"id":"sacred-corpus-hermeticum","title":"Thrice-Greatest Hermes","author":"Hermes Trismegistus, traditional attribution","shelf":"received","edition":{"translator":"G. R. S. Mead","publisher":"Theosophical Publishing Society","year":1906},"basis":"pre-1930-us","chars":2023407,"sections":133,"sourceSha256":"736b6c2f9744b2246e4fbbff54dcdcea12423946d121f8c3e9edaa1d0bf4410d","payloadChecksum":"abc614b22bd2407365ae4680790840b2723c21e01e349f304f369c93bf3b5a84"},
-        load: () => import('./works/sacred-corpus-hermeticum.js')
-            .then(module => module.SACRED_CORPUS_HERMETICUM_SECTIONS)
     },
     {
         meta: {"id":"literary-letters-young-poet","title":"Briefe an einen jungen Dichter","author":"Rainer Maria Rilke","shelf":"received","edition":{"editor":"Franz Xaver Kappus","publisher":"Insel-Verlag","year":1929,"language":"German"},"basis":"author-death-70","chars":73825,"sections":10,"sourceSha256":"be6f9d6aa206ca9a5dd221da3ace299b2dea3a0f4d3b59959a4b87fd61c4fae3","payloadChecksum":"a4d80e98854559f83efc770681cd8d13a45419c98083e20ad79b7a5ec276e0d5"},
-        load: () => import('./works/literary-letters-young-poet.js')
-            .then(module => module.LITERARY_LETTERS_YOUNG_POET_SECTIONS)
     },
     {
         meta: {"id":"literary-thus-spoke-zarathustra","title":"Thus Spake Zarathustra","author":"Friedrich Nietzsche","shelf":"received","edition":{"translator":"Thomas Common","publisher":"T. N. Foulis","year":1909},"basis":"pre-1930-us","chars":634484,"sections":1,"sourceSha256":"ba7f7eb410efebb82bbedce7b7c824108c2d2bb2e371e68441250bd7f48627a7","payloadChecksum":"1cd121b04866f04c9535c0ab4294723482dfa049e3394bff1db4a215c832ff9b"},
-        load: () => import('./works/literary-thus-spoke-zarathustra.js')
-            .then(module => module.LITERARY_THUS_SPOKE_ZARATHUSTRA_SECTIONS)
     },
     {
         meta: {"id":"literary-leaves-of-grass","title":"Leaves of Grass","author":"Walt Whitman","shelf":"received","edition":{"publisher":"David McKay","year":1892,"statement":"1891–92 “deathbed” edition"},"basis":"pre-1930-us","chars":633402,"sections":908,"sourceSha256":"89bed731a83e233dd3f585f015d43f6d26dcdc024cd4beaca803f3cde121e8e2","payloadChecksum":"f6a5e647a915a79e8f2824cc5804d3ad349d4675401b0e8ab8cdadc10fd21a88"},
-        load: () => import('./works/literary-leaves-of-grass.js')
-            .then(module => module.LITERARY_LEAVES_OF_GRASS_SECTIONS)
     },
     {
         meta: {"id":"literary-poems-dickinson","title":"Poems by Emily Dickinson: Three Series, Complete","author":"Emily Dickinson","shelf":"received","edition":{"editors":"Mabel Loomis Todd and T. W. Higginson","publisher":"Roberts Brothers","year":1890,"statement":"three historical series, 1890–1896"},"basis":"pre-1930-us","chars":166720,"sections":274,"sourceSha256":"d063f4d9d85a11334dfd20030febe56c50bae2d0204763fb11205c1170376e0d","payloadChecksum":"36b104179ed97d91016c516269fa71b12d122e21d813a105b65a5673536653ac"},
-        load: () => import('./works/literary-poems-dickinson.js')
-            .then(module => module.LITERARY_POEMS_DICKINSON_SECTIONS)
     },
     {
         meta: {"id":"literary-meditations","title":"Meditations","author":"Marcus Aurelius","shelf":"received","edition":{"translator":"George Long","publisher":"Standard Ebooks","year":1862},"basis":"pre-1930-us","chars":246195,"sections":12,"payloadChecksum":"9ff8dd73e8d699654fd6155d5bd04d0055f6781449494c012633e7b5cffd7159","structuredSource":"https://raw.githubusercontent.com/standardebooks/marcus-aurelius_meditations_george-long"},
@@ -62,8 +40,6 @@ export const LEGACY_REINGESTED_WORKS = [
     },
     {
         meta: {"id":"literary-poems-blake","title":"Songs of Innocence and of Experience","author":"William Blake","shelf":"received","edition":{"publisher":"R. Brimley Johnson","year":1901},"basis":"pre-1930-us","chars":29759,"sections":1,"sourceSha256":"b0b5176d72ed7a56ac93fc9cbfd0cf0e688a97595fdf9f2fd1332a133a0d7748","payloadChecksum":"150874d16e2ad7da175f26aba911a1eca7653f125793b8b49417e92ae38670db"},
-        load: () => import('./works/literary-poems-blake.js')
-            .then(module => module.LITERARY_POEMS_BLAKE_SECTIONS)
     },
     {
         meta: {"id":"literary-essays-emerson","title":"Essays","author":"Ralph Waldo Emerson","shelf":"received","edition":{"publisher":"Standard Ebooks","year":1841},"basis":"pre-1930-us","chars":736429,"sections":21,"payloadChecksum":"c8857d2376f4ab3e1dff6728b8f7e6fbdcbed5a911b405fab38b79bff654f525","structuredSource":"https://raw.githubusercontent.com/standardebooks/ralph-waldo-emerson_essays"},
@@ -72,8 +48,6 @@ export const LEGACY_REINGESTED_WORKS = [
     },
     {
         meta: {"id":"sacred-yoga-sutras","title":"The Yoga Sutras of Patanjali: The Book of the Spiritual Man","author":"Patañjali","shelf":"received","edition":{"translator":"Charles Johnston","publisher":"Quarterly Book Department","year":1912},"basis":"pre-1930-us","chars":176222,"sections":6,"sourceSha256":"3576ab6b7f406e69ffe7ad3135cd24fabbaf8e584f21c49954409dcf951712aa","payloadChecksum":"6c53029032eb041da2ab8f1cefa8dfe5585fbe6d99f5eef2dc8a05eccf678471"},
-        load: () => import('./works/sacred-yoga-sutras.js')
-            .then(module => module.SACRED_YOGA_SUTRAS_SECTIONS)
     },
     {
         meta: {"id":"sacred-tao-te-ching","title":"Tao Te Ching","author":"Laozi","shelf":"received","edition":{"translator":"James Legge","publisher":"Standard Ebooks","year":1891},"basis":"pre-1930-us","chars":57026,"sections":81,"payloadChecksum":"d55274df3803c5bf899640017858f04c284ec6450d1a5c01e1a3e8e5241968c2","structuredSource":"https://raw.githubusercontent.com/standardebooks/laozi_tao-te-ching_james-legge"},

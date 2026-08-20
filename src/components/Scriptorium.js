@@ -12,6 +12,7 @@
  */
 
 import { MemoryCore } from '../core/memory.js';
+import { PersonalSwells } from '../core/personal-swells.js';
 import {
   exportCuratorContext,
   serializeCuratorContext
@@ -107,11 +108,41 @@ export class Scriptorium {
     this.rundown = null;
     this.verdict = null;
     this.status = '';
+    // WHAT THE READER BROUGHT. The Library is what RISE holds and answers for;
+    // these are the reader's own, which RISE describes rather than certifies.
+    this.swells = [];
   }
 
   mount() {
     this.render();
     this.bind();
+    void this.loadMaterials();
+  }
+
+  /**
+   * A composer may name the reader's own audio.
+   *
+   * The store is asynchronous and the take is rebuilt on every slider move, so
+   * the materials are read ONCE and held. A take built before they arrive is
+   * correct and smaller; it is rebuilt when they land rather than blocking the
+   * room on a database that may hold nothing.
+   */
+  async loadMaterials() {
+    let swells = [];
+    try {
+      swells = await PersonalSwells.getAll();
+    } catch (error) {
+      console.warn('[Scriptorium] Personal audio unavailable:', error);
+      return;
+    }
+    if (!Array.isArray(swells) || !swells.length) return;
+    // ID AND NAME ONLY. A stored swell carries its audio blob, and the
+    // capability document's first rule is that it never embeds media bytes.
+    this.swells = swells
+      .filter(swell => swell && typeof swell.id === 'string')
+      .map(swell => ({ id: swell.id, name: swell.name }));
+    this.buildTakeArtifacts();
+    this.render();
   }
 
   buildTakeArtifacts() {
@@ -119,6 +150,10 @@ export class Scriptorium {
       id: `scriptorium-${Date.now()}`,
       sources: [],
       includeLibrary: true,
+      // The reader's own audio, by id AND by name. Passing nothing here was
+      // the whole of the seam: both rooms build the same document from the
+      // same function, and this one handed it empty arrays.
+      swells: this.swells,
       constraints: { targetWords: this.targetWords }
     });
     this.promptText = buildCuratorPrompt({

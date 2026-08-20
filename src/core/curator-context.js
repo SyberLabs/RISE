@@ -250,9 +250,13 @@ function normalizeConstraints(value, path) {
 function normalizeCatalog(value, path) {
   if (value === undefined) return undefined;
   const input = record(value, path);
-  onlyKeys(input, new Set(['collections', 'engines', 'soundscapes']), path);
+  // `swells` is annotation for the reader's own audio, which is a different
+  // thing from a soundscape and belongs in its own section rather than
+  // borrowing one. Additive and annotation-only: membership is still decided
+  // against the flat id lists, so nothing here widens what a program may name.
+  onlyKeys(input, new Set(['collections', 'engines', 'soundscapes', 'swells']), path);
   const out = {};
-  for (const section of ['collections', 'engines', 'soundscapes']) {
+  for (const section of ['collections', 'engines', 'soundscapes', 'swells']) {
     if (input[section] === undefined) continue;
     const entries = record(input[section], `${path}.${section}`);
     const kept = {};
@@ -477,6 +481,8 @@ export function buildLibraryCatalogue() {
  * @param {Array} [surface.sources]
  * @param {Array} [surface.assets] sequence visual assets
  * @param {Array<string>} [surface.swellIds] personal swell ids
+ * @param {Array} [surface.swells] personal swells, `{ id, name }`, so the
+ *   catalogue can say which one is which
  * @param {Array<string>} [surface.extraCollections]
  * @param {Array<string>} [surface.extraEngines]
  * @param {object} [surface.constraints]
@@ -504,9 +510,32 @@ export function exportCuratorContext(surface = {}) {
     });
 
   const museumCollections = Object.keys(MUSEUM_CATEGORIES).map(id => `aic-${id}`);
-  const sequenceCollections = (Array.isArray(surface.assets) ? surface.assets : [])
-    .filter(asset => asset && typeof asset.id === 'string' && asset.id.trim())
-    .map(asset => `sequence-asset:${asset.id.trim()}`);
+  const assetList = (Array.isArray(surface.assets) ? surface.assets : [])
+    .filter(asset => asset && typeof asset.id === 'string' && asset.id.trim());
+  const sequenceCollections = assetList.map(asset => `sequence-asset:${asset.id.trim()}`);
+
+  // WHAT THE READER CALLED IT. An id the model cannot tell from any other id is
+  // a capability it cannot use on purpose; every uploaded asset used to reach it
+  // under one constant sentence, and a personal swell reached it under none at
+  // all. The name is the reader's own, so it is reported rather than invented.
+  const materialNames = new Map();
+  for (const asset of assetList) {
+    if (typeof asset.name === 'string' && asset.name.trim()) {
+      materialNames.set(`sequence-asset:${asset.id.trim()}`, asset.name.trim());
+    }
+  }
+  const swellList = (Array.isArray(surface.swells) ? surface.swells : [])
+    .filter(swell => swell && typeof swell.id === 'string' && swell.id.trim());
+  const personalAudioIds = new Set([
+    ...(Array.isArray(surface.swellIds) ? surface.swellIds : [])
+      .filter(id => typeof id === 'string' && id.trim()).map(id => id.trim()),
+    ...swellList.map(swell => swell.id.trim())
+  ]);
+  for (const swell of swellList) {
+    if (typeof swell.name === 'string' && swell.name.trim()) {
+      materialNames.set(swell.id.trim(), swell.name.trim());
+    }
+  }
   const collections = uniquePreserve([
     'global-pool',
     ...museumCollections,
@@ -528,7 +557,8 @@ export function exportCuratorContext(surface = {}) {
     .map(asset => asset.value));
   const swells = uniquePreserve([
     'personal',
-    ...(Array.isArray(surface.swellIds) ? surface.swellIds : [])
+    ...(Array.isArray(surface.swellIds) ? surface.swellIds : []),
+    ...swellList.map(swell => swell.id.trim())
   ]);
 
   const payload = {
@@ -540,7 +570,9 @@ export function exportCuratorContext(surface = {}) {
     visuals: { collections, engines },
     audio: { soundscapes, tones, swells },
     constraints: surface.constraints,
-    catalog: buildCatalog({ collections, engines, soundscapes }),
+    catalog: buildCatalog({
+      collections, engines, soundscapes, swells, materialNames, personalAudioIds
+    }),
     generatedAt: Date.now()
   };
   if (surface.includeLibrary !== false) {
@@ -568,7 +600,10 @@ export function exportCuratorContext(surface = {}) {
  * every engine at once, so without it a Milton engine looks equally
  * available over Anna Karenina — permitted, and wrong.
  */
-function buildCatalog({ collections, engines, soundscapes }) {
+function buildCatalog({
+  collections, engines, soundscapes, swells = [],
+  materialNames = new Map(), personalAudioIds = new Set()
+}) {
   const collectionEntries = {};
   for (const id of collections) {
     if (id.startsWith('aic-')) {
@@ -582,7 +617,14 @@ function buildCatalog({ collections, engines, soundscapes }) {
       continue;
     }
     if (id.startsWith('sequence-asset:')) {
-      collectionEntries[id] = { kind: 'sequence-asset', description: 'An image you added to this project.' };
+      const name = materialNames.get(id);
+      collectionEntries[id] = {
+        kind: 'sequence-asset',
+        // "An image" was wrong as well as uninformative: the same importer
+        // accepts video/mp4, so a reader's clip arrived described as a picture.
+        description: 'Media the reader added to this project.',
+        ...(name ? { name } : {})
+      };
       continue;
     }
     const pattern = PROCEDURAL_PATTERNS.find(item => item.id === id);
@@ -631,10 +673,27 @@ function buildCatalog({ collections, engines, soundscapes }) {
     if (Object.keys(entry).length) soundscapeEntries[id] = entry;
   }
 
+  // A SWELL THE READER UPLOADED IS IN NO REGISTRY, so nothing described it and
+  // it reached the model as a bare id — the one capability it was given no way
+  // to tell apart from any other. Claimed only for an id the caller declared
+  // as personal audio: a guess about what a merely-unknown id is would be the
+  // label-without-evidence this document refuses everywhere else.
+  const swellEntries = {};
+  for (const id of swells) {
+    if (!personalAudioIds.has(id)) continue;
+    const name = materialNames.get(id);
+    swellEntries[id] = {
+      kind: 'personal-audio',
+      description: 'Audio the reader uploaded.',
+      ...(name ? { name } : {})
+    };
+  }
+
   return {
     collections: collectionEntries,
     engines: engineEntries,
-    soundscapes: soundscapeEntries
+    soundscapes: soundscapeEntries,
+    swells: swellEntries
   };
 }
 

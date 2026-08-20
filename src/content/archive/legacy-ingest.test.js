@@ -87,7 +87,13 @@ describe('the legacy-classics replacement pass', () => {
         );
         expect(letters.meta.edition.language).toBe('German');
         expect(letters.meta.edition.translator).toBeUndefined();
-        const sections = await letters.load();
+        // IMPORTED DIRECTLY, because Rilke is withheld and a withheld work
+        // carries no loader — the catalogue links only what a reader can
+        // reach, so that eighty unreachable payloads stop being built and
+        // shipped. The payload is still on disk, and this rights guard still
+        // reads every word of it.
+        const { LITERARY_LETTERS_YOUNG_POET_SECTIONS: sections } =
+            await import('./works/literary-letters-young-poet.js');
         expect(sections.map(section => section.content).join('\n'))
             .not.toMatch(/M\.?\s*D\.?\s*Herter Norton/i);
     });

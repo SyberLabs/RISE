@@ -4953,7 +4953,11 @@ export class Workshop {
       id: `workshop-${this.activeBlueprintId || this.sessionData.experienceProgramId || 'draft'}`,
       sources: this.sessionData.sources || [],
       assets: this.sessionData.sequenceVisualAssets || [],
-      swellIds: (this.personalSwells || []).map(swell => swell.id).filter(Boolean)
+      // ID AND NAME ONLY: a stored swell carries its audio blob, and the
+      // capability document never embeds media bytes.
+      swells: (this.personalSwells || [])
+        .filter(swell => swell && typeof swell.id === 'string')
+        .map(swell => ({ id: swell.id, name: swell.name }))
     });
   }
 

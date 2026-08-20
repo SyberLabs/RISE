@@ -80,6 +80,14 @@ export function buildCuratorPrompt({ intent = '', context = null } = {}) {
   const collectionCount = ctx?.visuals?.collections?.length ?? 0;
   const engineCount = ctx?.visuals?.engines?.length ?? 0;
   const soundscapeCount = ctx?.audio?.soundscapes?.length ?? 0;
+  // What the reader brought, as opposed to what RISE holds. Counted
+  // separately because a score that uses someone's own audio or their own
+  // images is doing something the Library cannot do for them.
+  const materials = [
+    ...Object.entries(ctx?.catalog?.swells ?? {}),
+    ...Object.entries(ctx?.catalog?.collections ?? {})
+      .filter(([, entry]) => entry?.kind === 'sequence-asset')
+  ];
 
   const lines = [
     'You are arranging an audiovisual reading score for RISE.',
@@ -199,6 +207,17 @@ export function buildCuratorPrompt({ intent = '', context = null } = {}) {
       `Library works offered: ${libraryCount}`,
       `Visual collections: ${collectionCount}; engines: ${engineCount}`,
       `Soundscapes: ${soundscapeCount}`,
+      ...(materials.length
+        ? [
+          '',
+          `The reader has added ${materials.length} of their own:`,
+          ...materials.slice(0, 24).map(([id, entry]) =>
+            `  ${id}${entry?.name ? `  ${entry.name}` : ''}`),
+          'These are the reader\'s own, not the Library\'s: RISE describes them',
+          'rather than vouching for them. Use them where the reading is about',
+          'what they brought.'
+        ]
+        : []),
       'Use only ids listed in that document. Prefer catalogue descriptions',
       'when choosing imagery and sound.'
     );

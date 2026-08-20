@@ -46,7 +46,9 @@ import { divideSections } from './divisions.js';
 import { STRUCTURED_IDS, withheldWorks } from './canon.js';
 import DIVISION_INDEX from './division-index.json';
 
-const CORE_WORKS = [
+// Exported for the reachability guard, which must weigh every catalogue
+// entry — including the ones this file writes itself.
+export const CORE_WORKS = [
     {
         // THE FIRST WORK ACQUIRED FROM A STRUCTURED EDITION. Its poems, stanzas
         // and verse lines are read from the source's own markup rather than
@@ -124,8 +126,6 @@ const CORE_WORKS = [
             edition: { translator: 'Morris Hicky Morgan', publisher: 'Harvard University Press', year: 1914 },
             basis: 'pre-1930-us'
         },
-        load: () => import('./works/vitruvius-architecture.js')
-            .then(m => m.VITRUVIUS_ARCHITECTURE_SECTIONS)
     },
     {
         meta: {
@@ -136,8 +136,6 @@ const CORE_WORKS = [
             edition: { publisher: 'Doubleday, Page & Co.', year: 1913 },
             basis: 'pre-1930-us'
         },
-        load: () => import('./works/dow-composition.js')
-            .then(m => m.DOW_COMPOSITION_SECTIONS)
     },
     {
         meta: {
@@ -148,8 +146,6 @@ const CORE_WORKS = [
             edition: { publisher: 'Houghton, Mifflin & Co.', year: 1907 },
             basis: 'pre-1930-us'
         },
-        load: () => import('./works/ross-pure-design.js')
-            .then(m => m.ROSS_PURE_DESIGN_SECTIONS)
     },
     {
         meta: {
@@ -160,8 +156,6 @@ const CORE_WORKS = [
             edition: { publisher: 'George Bell & Sons', year: 1900 },
             basis: 'author-death-70'
         },
-        load: () => import('./works/crane-line-and-form.js')
-            .then(m => m.CRANE_LINE_AND_FORM_SECTIONS)
     },
     {
         meta: {
@@ -172,8 +166,6 @@ const CORE_WORKS = [
             edition: { translator: 'Michael T. H. Sadler', publisher: 'Constable & Co.', year: 1914 },
             basis: 'pre-1930-us'
         },
-        load: () => import('./works/kandinsky-spiritual-in-art.js')
-            .then(m => m.KANDINSKY_SPIRITUAL_IN_ART_SECTIONS)
     },
     {
         meta: {
@@ -184,8 +176,6 @@ const CORE_WORKS = [
             edition: { publisher: 'Cassell, Petter & Galpin', year: 1873 },
             basis: 'pre-1930-us'
         },
-        load: () => import('./works/dresser-decorative-design.js')
-            .then(m => m.DRESSER_DECORATIVE_DESIGN_SECTIONS)
     },
     {
         meta: {
@@ -196,8 +186,6 @@ const CORE_WORKS = [
             edition: { translator: 'George Long', publisher: 'George Bell & Sons', year: 1890 },
             basis: 'author-death-70'
         },
-        load: () => import('./works/epictetus-encheiridion.js')
-            .then(m => m.EPICTETUS_ENCHEIRIDION_SECTIONS)
     },
     {
         meta: {
@@ -208,8 +196,6 @@ const CORE_WORKS = [
             edition: { translator: 'Charles Cotton', publisher: 'ed. William Carew Hazlitt', year: 1877 },
             basis: 'pre-1930-us'
         },
-        load: () => import('./works/montaigne-essays.js')
-            .then(m => m.MONTAIGNE_ESSAYS_SECTIONS)
     },
     {
         meta: {
@@ -220,8 +206,6 @@ const CORE_WORKS = [
             edition: { publisher: 'Fox, Duffield & Co.', year: 1906 },
             basis: 'pre-1930-us'
         },
-        load: () => import('./works/okakura-book-of-tea.js')
-            .then(m => m.OKAKURA_BOOK_OF_TEA_SECTIONS)
     },
     {
         meta: {
@@ -232,8 +216,6 @@ const CORE_WORKS = [
             edition: { translator: 'H. R. James', publisher: 'Elliot Stock', year: 1897 },
             basis: 'pre-1930-us'
         },
-        load: () => import('./works/boethius-consolation.js')
-            .then(m => m.BOETHIUS_CONSOLATION_SECTIONS)
     },
     {
         meta: {
@@ -244,8 +226,6 @@ const CORE_WORKS = [
             edition: { publisher: 'ed. Grace Warrack, Methuen & Co.', year: 1901 },
             basis: 'pre-1930-us'
         },
-        load: () => import('./works/julian-revelations.js')
-            .then(m => m.JULIAN_REVELATIONS_SECTIONS)
     },
     {
         meta: {
@@ -256,8 +236,6 @@ const CORE_WORKS = [
             edition: { translator: 'Rabindranath Tagore', publisher: 'Macmillan', year: 1915 },
             basis: 'pre-1930-us'
         },
-        load: () => import('./works/kabir-songs.js')
-            .then(m => m.KABIR_SONGS_SECTIONS)
     },
     {
         meta: {
@@ -268,8 +246,6 @@ const CORE_WORKS = [
             edition: { publisher: 'David Nutt', year: 1896 },
             basis: 'author-death-70'
         },
-        load: () => import('./works/parker-australian-tales.js')
-            .then(m => m.PARKER_AUSTRALIAN_TALES_SECTIONS)
     },
     {
         meta: {
@@ -280,8 +256,6 @@ const CORE_WORKS = [
             edition: { translator: 'W. J. Alexander Worster', publisher: 'Gyldendal', year: 1921 },
             basis: 'pre-1930-us'
         },
-        load: () => import('./works/rasmussen-eskimo-tales.js')
-            .then(m => m.RASMUSSEN_ESKIMO_TALES_SECTIONS)
     },
     {
         meta: {
@@ -292,8 +266,6 @@ const CORE_WORKS = [
             edition: { publisher: 'Bureau of American Ethnology, Nineteenth Annual Report', year: 1900 },
             basis: 'us-government-work'
         },
-        load: () => import('./works/mooney-cherokee-myths.js')
-            .then(m => m.MOONEY_CHEROKEE_MYTHS_SECTIONS)
     },
     {
         meta: {
@@ -304,8 +276,6 @@ const CORE_WORKS = [
             edition: { publisher: 'American Folk-Lore Society', year: 1924 },
             basis: 'pre-1930-us'
         },
-        load: () => import('./works/beckwith-anansi-stories.js')
-            .then(m => m.BECKWITH_ANANSI_STORIES_SECTIONS)
     }
 ];
 
