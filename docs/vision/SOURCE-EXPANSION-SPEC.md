@@ -2,7 +2,7 @@
 
 **Extending R.I.S.E.'s imagery beyond the art museum: the heavens and
 the living world, sourced with the same rights discipline and reverent
-register the Chapel and Atrium already hold.**
+register the Chapel already holds.**
 
 Status: ACTIVE — the Audubon art-of-nature corpus and the cross-presenter
 artwork-label pathway are implemented; the remaining Cosmos and
@@ -38,7 +38,7 @@ folio release.
 ## 0. Why this, and why now
 
 The museum sources have served art beautifully — the four-institution
-pool model (MUSEUM-ATLAS), the Gospel pericope concordance, the Atrium's
+pool model (MUSEUM-ATLAS), the Gospel pericope concordance, the
 curated collections. But R.I.S.E. reads more than art history. A
 cosmology text, a psalm of creation, a natural-theology reading, an
 Ackerman-vault science sequence — these want **the heavens and the
@@ -650,7 +650,7 @@ look equivalent.
 
 Three routes, reusing machinery that already exists:
 
-1. **Free readings (Atrium / Library / paste)** — a science text selects
+1. **Free readings (Library / paste)** — a science text selects
    a Cosmos or Wildlife collection the same way it selects Old Masters
    today: `interlocution.sourced = ['cosmos']`, and the cortex resolves
    the pool through the new adapter. The Gallery (Continuous Field) is
@@ -735,14 +735,12 @@ core first.
 
 - **Intent naming.** "Cosmos" / "Wildlife"? Or finer ("Deep Sky",
   "The Heavens", "Creatures", "Natural History")? The Chapel register
-  might prefer "The Firmament" / "The Living World"; the Atrium register
-  might prefer plainer scientific names. (Mirrors the ATRIUM/SOLARIUM
-  naming instinct.)
+  might prefer "The Firmament" / "The Living World".
 - **Does the sacred surface use witness-of imagery?** A creation psalm
   under a Hubble deep field is powerful — but is the photographic real
   the right register behind Scripture, or does the Chapel stay with the
-  painted/iconographic tradition and leave the cosmos to the Atrium? A
-  genuine aesthetic-theological call, not a technical one.
+  painted/iconographic tradition? A genuine aesthetic-theological call,
+  not a technical one.
 - **Attribution display** — where credit lives in each presenter without
   breaking the reverent, uncluttered surface (a hover, a corner, a
   fade-in on dwell?).

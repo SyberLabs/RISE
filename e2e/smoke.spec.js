@@ -80,14 +80,10 @@ async function exitSession(page) {
 
 test('1 · portal presents the four tools and the living entries', async ({ page }) => {
     await boot(page, { text: false });
-    // The nav row is tools you own; Atrium and SOL are specialized entries,
-    // now marble pavilions flanking the centre.
+    // The nav row is tools you own; SOL is a specialized entry.
     const nav = page.locator('.nav-secondary .nav-item');
     await expect(nav).toHaveCount(3);
-    await expect(page.locator('.portal-arch-atrium[data-nav="atrium"]')).toBeVisible();
     await expect(page.locator('.sol-strip-window')).not.toBeEmpty();
-    // The Atrium pavilion carries a simple, timeless caption
-    await expect(page.locator('.atrium-door-detail')).toContainText('philosophy & history', { timeout: 10_000 });
 });
 
 test('2+3 · Aurora sounds — and sounds again the second time', async ({ page }) => {
@@ -339,71 +335,6 @@ test('9 - in-session Visuals control kills a live presence and keeps safety laye
     expect(exitLayers.exit).toBeGreaterThan(exitLayers.controls);
 });
 
-test('10 · Atrium point preserves origin, curated config, Begin, exit, and return state', async ({ page }) => {
-    await boot(page, { text: false });
-    await page.locator('[data-nav="atrium"]').click();
-    await expect(page.locator('.atrium')).toBeVisible({ timeout: 15_000 });
-
-    await page.locator('[data-view-mode="graph"]').click();
-    await page.locator('[data-select-id="ph-thinker-aristotle"]').last().click();
-    await expect(page.locator('.atrium-detail h2')).toHaveText('Aristotle');
-    await page.locator('.atrium-launch-gate [data-action="configure-launch"]').click();
-
-    await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
-    const configured = await page.evaluate(() => {
-        const instance = window.rise?.router?.views?.get('chamber')?.instance;
-        return {
-            soundscape: instance?.config?.soundscape,
-            curve: instance?.config?.curve,
-            origin: instance?.config?.origin,
-            visuals: instance?.config?.visualInterlocution?.interlocution
-        };
-    });
-    expect(configured.soundscape).toBe('aurora');
-    expect(configured.curve).toBe('flat');
-    expect(configured.origin.data).toMatchObject({
-        domain: 'philosophy',
-        selectedId: 'ph-thinker-aristotle',
-        viewMode: 'graph'
-    });
-    expect(configured.visuals.frequency).toBeLessThanOrEqual(0.15);
-    expect(configured.visuals.procedural).toEqual(['harmonograph']);
-    // Aristotle is a DEPICTED subject, so it resolves to its pinned
-    // collection — reviewed museum works (Rembrandt's Aristotle with a
-    // Bust of Homer) rather than four keyword pools. Atrium-scoped
-    // `atr-` ids are corpus content, never offered in the general
-    // Collections browser.
-    expect(configured.visuals.sourced)
-        .toEqual(['atr-aristotle']);
-    expect(configured.visuals.atriumCollections)
-        .toEqual(['atr-aristotle']);
-
-    // The panel names them for this reading, in human terms
-    await page.locator('[data-orbit="visual"]').click();
-    await expect(page.locator('.vi-atrium-collections')).toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('.vi-atrium-collection-chip')).toHaveCount(1);
-    await expect(page.locator('.vi-atrium-collections')).toContainText('Aristotle');
-    // …and the subject category is NOT browsable as a generic option
-    await expect(page.locator('[data-sourced="atr-aristotle"]')).toHaveCount(0);
-    await page.locator('[data-close="visual"]').click();
-
-    await page.locator('#begin-btn').click();
-    // The notice appears only for a flashing presentation; Gallery opens
-    // straight into the reading. This test is not about the gate, so it
-    // accepts one if offered and proceeds if not.
-    const warning = page.locator('#photosensitivity-modal');
-    await warning.waitFor({ state: 'visible', timeout: 4000 }).catch(() => {});
-    if (await warning.isVisible()) await warning.locator('#safety-accept').click();
-    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
-    await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
-
-    await exitSession(page);
-    await page.locator('[data-action="origin-return"]').click();
-    await expect(page.locator('.atrium')).toBeVisible({ timeout: 15_000 });
-    await expect(page.locator('[data-view-mode="graph"]')).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('.atrium-detail h2')).toHaveText('Aristotle');
-});
-
 test('12 · Gallery (Continuous Field) mounts behind the reading and reveals imagery without fading to black', async ({ page }) => {
     // A sourced continuous presentation: the Gallery is a persistent
     // crossfading field, not a flash source. It must mount its two layers
@@ -452,47 +383,4 @@ test('12 · Gallery (Continuous Field) mounts behind the reading and reveals ima
             return Number(l.style.opacity) === 1 && art && art.getAttribute('src');
         });
     }), { timeout: 30_000 }).toBe(true);
-});
-
-test('11 · Atrium dialogue keeps speaker labels at the head of Phrase atoms', async ({ page }) => {
-    await boot(page, { text: false });
-    await page.locator('[data-nav="atrium"]').click();
-    await expect(page.locator('.atrium')).toBeVisible({ timeout: 15_000 });
-
-    await page.locator('[data-view-mode="graph"]').click();
-    await page.locator('[data-select-id="ph-movement-sophistic"]').last().click();
-    await expect(page.locator('.atrium-detail h2')).toHaveText('Sophistic Movement');
-    await page.locator('.atrium-launch-gate [data-action="configure-launch"]').click();
-    await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
-
-    const chunkMode = await page.evaluate(() => (
-        window.rise?.router?.views?.get('chamber')?.instance?.config?.chunkMode
-    ));
-    expect(chunkMode).toBe('phrase');
-
-    await page.locator('#begin-btn').click();
-    // The modal used to be the signal that compilation had finished.
-    // Gallery raises none, so wait for the thing actually being asserted.
-    await page.waitForFunction(
-        () => (window.rise?.currentSession?.atoms || []).length > 0,
-        { timeout: 20_000 }
-    );
-
-    const dialogueAtoms = await page.evaluate(() => (
-        (window.rise?.currentSession?.atoms || [])
-            .filter(atom => atom.sourceId === 'pass-protagoras-measure' && atom.content)
-            .map(atom => atom.content)
-    ));
-    const speakerTurns = dialogueAtoms.filter(content => /(?:THEAETETUS|SOCRATES):/.test(content));
-    expect(speakerTurns.length).toBeGreaterThan(10);
-    expect(speakerTurns.every(content => /^(?:THEAETETUS|SOCRATES):\s+\S/.test(content))).toBe(true);
-    expect(dialogueAtoms).toContain('THEAETETUS: O yes,');
-    expect(dialogueAtoms.some(content => /\s(?:THEAETETUS|SOCRATES):$/.test(content))).toBe(false);
-
-    // The chunking assertion is independent of external-art hydration, so
-    // decline flashes if offered and keep this a deterministic text-flow
-    // E2E. A continuous surface raises no notice and needs no declining.
-    const warning = page.locator('#photosensitivity-modal');
-    if (await warning.isVisible()) await warning.locator('#safety-cancel').click();
-    await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
 });

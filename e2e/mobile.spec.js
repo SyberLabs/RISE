@@ -209,22 +209,14 @@ test('the Portal is one viewport, and does not scroll', async ({ page }) => {
                 const r = n.getBoundingClientRect();
                 return r.height > 20 && r.bottom > window.innerHeight + 2;
             })
-            .map(n => n.className.toString().slice(0, 34)).slice(0, 3),
-        // Secondary arches sit side by side.
-        archesSideBySide: (() => {
-            const a = [...document.querySelectorAll('.portal-arch')];
-            if (a.length < 2) return null;
-            const [one, two] = a.map(n => n.getBoundingClientRect());
-            return Math.abs(one.top - two.top) < 4 && one.right <= two.left + 4;
-        })()
+            .map(n => n.className.toString().slice(0, 34)).slice(0, 3)
     }));
     console.log('FIT ' + JSON.stringify(fit));
 
     expect(fit.below, `hanging off the bottom: ${fit.below.join(', ')}`).toEqual([]);
     expect(fit.docHeight).toBeLessThanOrEqual(fit.viewport + 1);
-    expect(fit.archesSideBySide).toBe(true);
 
-    // Secondary door ink quieter than primary nav; tap targets stay ≥40px.
+    // Remaining door ink quieter than primary nav; tap targets stay ≥40px.
     const doors = await page.evaluate(() => {
         const primary = document.querySelector('.nav-primary .nav-item')
             .getBoundingClientRect().height;
@@ -238,7 +230,6 @@ test('the Portal is one viewport, and does not scroll', async ({ page }) => {
     });
     console.log('DOORS ' + JSON.stringify(doors));
 
-    expect(doors.ink.length).toBe(2);
     for (const ink of doors.ink) {
         expect(ink, 'a secondary door is as loud as the primary nav')
             .toBeLessThan(doors.primary / 2);
@@ -784,7 +775,6 @@ test('the threshold fits the phone in its widest state', async ({ page }) => {
     expect(warm.display).toBe('flex');
     expect(warm.title.length).toBeGreaterThan(0);
 
-    expect(warm.cards).toHaveLength(5);
     for (const c of warm.cards) expect(c.length).toBeGreaterThan(8);
 
     expect(warm.below, `these hang below the fold: ${JSON.stringify(warm.below)}`).toEqual([]);
