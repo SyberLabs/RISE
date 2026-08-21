@@ -10,6 +10,9 @@
 
 import { LIBRARY_TEXTS, LIBRARY_CATEGORIES, DIVISIONS } from '../content/library.js';
 import { mostlyVerse } from '../content/archive/divisions.js';
+// The shelf says which state a reader is in. It asks per work, so the
+// line shrinks and then disappears as certifications land.
+import { uncertifiedCount } from '../content/archive/index.js';
 import { escapeHtml } from '../core/sanitize.js';
 import { MemoryCore } from '../core/memory.js';
 
@@ -185,6 +188,14 @@ export class Library {
           ${shelf?.orientation
             ? `<p class="archive-orientation text-mist">${escapeHtml(shelf.orientation)}</p>`
             : ''}
+          ${this.currentFilter === 'received' && uncertifiedCount() > 0 ? `
+            <p class="archive-review-note text-fog">
+              ${uncertifiedCount()} of these editions are <strong>prepared but not
+              yet certified</strong>. Each was imported from its publisher's own
+              markup and refuses any payload whose word count differs from the
+              source — but the end-to-end comparison a certified edition carries
+              has not been done. You are reading a candidate.
+            </p>` : ''}
         </div>
 
         <!-- ONE QUESTION, ASKED FIRST: did RISE receive this work, or write

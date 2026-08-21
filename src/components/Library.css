@@ -901,3 +901,14 @@
     padding-top: var(--space-xs);
   }
 }
+
+/* The shelf says which state a reader is in: prepared, or certified. It
+   shrinks as records land and disappears when none are outstanding. */
+.archive-review-note {
+  margin: 0.5rem 0 0;
+  max-width: 62ch;
+  font-size: 12px;
+  line-height: 1.5;
+  padding-left: 0.75rem;
+  border-left: 2px solid var(--color-shadow);
+}

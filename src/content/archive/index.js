@@ -344,7 +344,30 @@ export function archiveReviewEnabled(env = import.meta.env) {
     return env?.DEV === true || env?.VITE_RISE_ARCHIVE_REVIEW === '1';
 }
 
-export function releaseArchiveMetadata({ includeCandidates = archiveReviewEnabled() } = {}) {
+/**
+ * DOES A PUBLIC BUILD SERVE WORK THAT IS NOT YET CERTIFIED?
+ *
+ * Yes, as a standing decision (Mateo, 2026-08-21), and it is written here
+ * rather than set as a build variable so that it is legible in the source and
+ * reversible in one line.
+ *
+ * Failing closed was the right default and the wrong outcome: no work has ever
+ * been certified, so the public shelf served NOTHING while development served
+ * all fifteen. The gate stays exactly as built — `isArchiveEditionCertified`
+ * still answers per work against its exact source revision, and the shelf says
+ * which state a reader is in — but a reader meets prepared work rather than an
+ * empty room while the comparisons are done.
+ *
+ * Set this to `false` the day the certifications land, and the gate closes
+ * behind them with nothing else to change.
+ */
+export const RELEASE_SERVES_UNCERTIFIED = true;
+
+function serveCandidates() {
+    return RELEASE_SERVES_UNCERTIFIED || archiveReviewEnabled();
+}
+
+export function releaseArchiveMetadata({ includeCandidates = serveCandidates() } = {}) {
     const works = includeCandidates
         ? WORKS
         : WORKS.filter(work => isArchiveEditionCertified(work.meta));
@@ -501,7 +524,12 @@ export function ingestedArchiveTexts() {
 }
 
 /** Editions a reader-facing surface may expose in this build. */
-export function releaseArchiveTexts({ includeCandidates = archiveReviewEnabled() } = {}) {
+/** How many served works have no certification record for their exact bytes. */
+export function uncertifiedCount() {
+    return releaseArchiveMetadata().filter(meta => !isArchiveEditionCertified(meta)).length;
+}
+
+export function releaseArchiveTexts({ includeCandidates = serveCandidates() } = {}) {
     const works = includeCandidates
         ? WORKS
         : WORKS.filter(work => isArchiveEditionCertified(work.meta));
