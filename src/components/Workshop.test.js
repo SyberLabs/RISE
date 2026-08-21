@@ -864,21 +864,25 @@ describe('Workshop visual selection repair', () => {
         expect(workshop.pendingScoreSelection).toBeNull();
 
         text.dispatchEvent(new Event('pointerup', { bubbles: true }));
-        await new Promise(resolve => setTimeout(resolve, 90));
-        expect(workshop.pendingScoreSelection).toEqual({
+        await vi.waitFor(() => expect(workshop.pendingScoreSelection).toEqual({
             sourceId: 'selection-source', fromCharacter: 4, toCharacter: 20
-        });
+        }));
         expect(container.querySelector('.studio-passage-popover')?.getAttribute('role')).toBe('dialog');
         expect(container.querySelector('.studio-passage-popover').textContent).toContain('selected passage');
 
         const picker = container.querySelector('[data-passage-asset-picker]');
         picker.value = 'procedural:klee';
         picker.dispatchEvent(new Event('change', { bubbles: true }));
-        await new Promise(resolve => setTimeout(resolve, 20));
+        // Choosing a visual re-renders the score, which puts the author's
+        // selection back a frame later. Waited for rather than slept past: this
+        // is the frame that used to arrive after the test had finished and
+        // replace the NEXT test's selection with a range in a departed
+        // container, and a test that leaves its own frames in flight is how that
+        // reached across a file boundary at all.
+        await vi.waitFor(() => expect(window.getSelection().toString()).toBe('selected passage'));
         expect(workshop.pendingScoreSelection).toEqual({
             sourceId: 'selection-source', fromCharacter: 4, toCharacter: 20
         });
-        expect(window.getSelection().toString()).toBe('selected passage');
 
         const assign = container.querySelector('.studio-passage-popover [data-action="assign-score-selection"]');
         expect(assign.disabled).toBe(false);
@@ -890,6 +894,20 @@ describe('Workshop visual selection repair', () => {
         container.remove();
     });
 
+    /**
+     * WAITED FOR, NOT TIMED.
+     *
+     * These three paths debounce, and the waits here were fixed sleeps of 90 and
+     * 95 ms against a 40 ms and an 80 ms debounce. Passing because a duration is
+     * usually long enough is not the same as passing; this one failed once in two
+     * full-suite runs with `pendingScoreSelection` null where a span was
+     * expected. The cause was not the length of the sleep — it was a frame
+     * scheduled by the previous test's workshop arriving mid-test and replacing
+     * the document's selection (fixed in `restorePendingDomSelection`) — but a
+     * test that waits on a clock cannot tell the reader which of the two it
+     * caught. So it waits on the condition, and reports the timeout if the
+     * condition never arrives.
+     */
     it('captures scoped selectionchange, touchend, and keyboard selection paths', async () => {
         const { workshop, container } = makeWorkshop();
         addSelectionSource(workshop);
@@ -897,14 +915,14 @@ describe('Workshop visual selection repair', () => {
 
         selectCharacters(container, 0, 3);
         document.dispatchEvent(new Event('selectionchange'));
-        await new Promise(resolve => setTimeout(resolve, 90));
-        expect(workshop.pendingScoreSelection).toMatchObject({ fromCharacter: 0, toCharacter: 3 });
+        await vi.waitFor(() => expect(workshop.pendingScoreSelection)
+            .toMatchObject({ fromCharacter: 0, toCharacter: 3 }));
 
         workshop.cancelPendingScoreSelection({ announce: false });
         const touchText = selectCharacters(container, 4, 12);
         touchText.dispatchEvent(new Event('touchend', { bubbles: true }));
-        await new Promise(resolve => setTimeout(resolve, 95));
-        expect(workshop.pendingScoreSelection).toMatchObject({ fromCharacter: 4, toCharacter: 12 });
+        await vi.waitFor(() => expect(workshop.pendingScoreSelection)
+            .toMatchObject({ fromCharacter: 4, toCharacter: 12 }));
 
         workshop.cancelPendingScoreSelection({ announce: false });
         const keyboardText = selectCharacters(container, 13, 20);
@@ -913,6 +931,60 @@ describe('Workshop visual selection repair', () => {
 
         workshop.destroy();
         container.remove();
+    });
+
+    /**
+     * A ROOM THE AUTHOR HAS LEFT DOES NOT TOUCH THE DOCUMENT'S SELECTION.
+     *
+     * The frame `updateVisualScoreEditor` schedules while a passage is pending
+     * puts the author's selection back, and `window.getSelection()` belongs to
+     * the document rather than to any one Workshop. So a frame scheduled just
+     * before the author navigated away arrived after the next surface was
+     * mounted and replaced ITS selection with a range inside a container no
+     * longer in the document; the next capture found the selection outside its
+     * own text and dropped a passage the author had just made.
+     *
+     * That is what made the selectionchange test above flaky — not the length of
+     * its wait. Frames are held here rather than raced, so the ordering the
+     * full-suite run made possible once in two runs is the ordering this test
+     * always has.
+     */
+    it('does not reach into the selection after its container has gone', () => {
+        const frames = [];
+        const realRaf = globalThis.requestAnimationFrame;
+        globalThis.requestAnimationFrame = (callback) => frames.push(callback);
+        try {
+            const departing = makeWorkshop();
+            addSelectionSource(departing.workshop);
+            departing.workshop.activate();
+            selectCharacters(departing.container, 4, 20);
+            expect(departing.workshop.captureVisualScoreSelection()).toBe(true);
+            // What every picker change and every re-render does while a passage
+            // is pending: schedule the restore a frame ahead.
+            departing.workshop.updateVisualScoreEditor();
+            expect(frames.length).toBeGreaterThan(0);
+            departing.workshop.destroy();
+            departing.container.remove();
+
+            const arriving = makeWorkshop();
+            addSelectionSource(arriving.workshop);
+            arriving.workshop.activate();
+            selectCharacters(arriving.container, 0, 3);
+
+            // The departed room's frames arrive now.
+            for (const frame of frames.splice(0)) frame();
+
+            expect(window.getSelection().toString()).toBe('The');
+            expect(arriving.workshop.captureVisualScoreSelection()).toBe(true);
+            expect(arriving.workshop.pendingScoreSelection).toEqual({
+                sourceId: 'selection-source', fromCharacter: 0, toCharacter: 3
+            });
+
+            arriving.workshop.destroy();
+            arriving.container.remove();
+        } finally {
+            globalThis.requestAnimationFrame = realRaf;
+        }
     });
 
     it('activates Scored for the first assignment and lets the author undo only that activation', () => {

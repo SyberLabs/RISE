@@ -99,26 +99,23 @@ import {
 import {
   describeImportFailure,
   downloadJsonFile,
-  ExperienceProgramIoError,
   importExperienceProgram,
   parseExperienceProgramJson,
   serializeExperienceProgram,
+  unloadableLibrarySourcesError,
   workshopProjectFromImportedProgram
 } from '../core/experience-program-io.js';
 import {
   workshopProjectToBlueprintView
 } from '../core/workshop-project.js';
+import { resolveProgramLibrarySources } from '../core/scriptorium-resolve.js';
 import {
   EXPORT_MP4_PATH,
   kernelRequestFromWorkshopPayload,
   renderCliCommand
 } from '../core/render/kernel-request.js';
-import { ExperienceProgramValidationError } from '../core/experience-program.js';
 import { visualFallbackCueFromConfig } from '../core/visual-program.js';
-import {
-  assertQuotationAnchorsAgainstSources,
-  SourceSpanResolutionError
-} from '../core/source-span.js';
+import { assertQuotationAnchorsAgainstSources } from '../core/source-span.js';
 import './SourceBrowser.css';
 import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
 
@@ -3421,7 +3418,25 @@ export class Workshop {
     return this.rangeForSourceOffsets(root, selection.fromCharacter, selection.toCharacter);
   }
 
+  /**
+   * A ROOM THE AUTHOR HAS LEFT DOES NOT TOUCH THE DOCUMENT'S SELECTION.
+   *
+   * This is scheduled a frame ahead by every re-render that happens while a
+   * passage is pending, and it writes `window.getSelection()` — which belongs to
+   * the document, not to this Workshop. So a frame scheduled just before the
+   * author navigated away arrived after the next surface had been mounted, and
+   * replaced that surface's selection with a range inside a container that is no
+   * longer in the document. The next capture then found the selection outside
+   * its own text and dropped it: a passage the author had just made, gone,
+   * roughly one time in a hundred and never reproducibly.
+   *
+   * `querySelector` walks a detached tree perfectly well, so the range was
+   * built and installed without anything erroring. The frame is not cancelled —
+   * it is refused on arrival, which is the check that also holds for the frame
+   * already in flight when a container is swapped.
+   */
   restorePendingDomSelection() {
+    if (!this.container.isConnected) return false;
     const range = this.rangeForPendingScoreSelection();
     const selection = window.getSelection?.();
     if (!range || !selection) return false;
@@ -4959,7 +4974,8 @@ export class Workshop {
   /**
    * The capability document an imported score is checked against — what this
    * Workshop can actually name. It is no longer exported from here; the
-   * Scriptorium owns the curator loop (SCRIPTORIUM-SPEC §1), and this is only
+   * Scriptorium owns the curator loop (docs/vision/SCRIPTORIUM-SPEC.md §1),
+   * and this is only
    * the gate for Import score.
    */
   buildCuratorContextFromSurface() {
@@ -5174,25 +5190,149 @@ export class Workshop {
     }
   }
 
+  /**
+   * Load the Library works an imported score names, beside the reader's own.
+   *
+   * THE SCRIPTORIUM'S RESOLVER, REUSED WHOLE. It is the thing that knows the
+   * extent grammar — `work`, `work#12`, `work#12:200` — and knows that a cut
+   * with no honest boundary within reach is a refusal rather than a longer
+   * reading. A second copy of that here is how one door learns a new word and
+   * the other never hears it, which is the defect this codebase keeps paying
+   * for. Import score offers the Library in its capability document; this is
+   * what makes the offer true.
+   *
+   * ORDER AND IDENTITY. The surface keeps its own order and its own copies,
+   * first; the works the score names follow, in the order the score names
+   * them. An id the surface already holds is NOT re-read from the Library —
+   * a Scriptorium draft reopened here already carries `middlemarch#2:200` as
+   * an ordinary source, and the reader's copy is the one the gate admitted
+   * the score against (createCuratorSourceReader reads `context.sources`
+   * before `context.library`).
+   *
+   * @param {object} program validated proposed program
+   * @param {object[]} surfaceSources snapshot taken before the first await,
+   *   so a surface edited mid-load cannot half-apply into the project
+   * @param {object|null} context the capability document the gate used
+   * @returns {Promise<object[]|null>} null when something the score named
+   *   could not be loaded — the reader has been told which and why, and
+   *   nothing has been changed.
+   */
+  async resolveImportedProgramSources(program, surfaceSources, context) {
+    const held = new Set(surfaceSources.map(source => source?.id).filter(Boolean));
+    const { sources, missing, refused, reasons } = await resolveProgramLibrarySources(program);
+
+    // An id the surface supplies is not the Library's to miss: the resolver
+    // is handed every source the score names, and `my-notes` is not a work.
+    const absent = missing.filter(id => !held.has(id));
+    const unreadable = refused.filter(id => !held.has(id));
+    if (absent.length || unreadable.length) {
+      // ONE WORDING, TWO DOORS. This reply used to be written here, in a
+      // method the Scriptorium could not reach — so the room with the copyable
+      // refusal panel said `Could not load: ulysses#18:200` and stopped. The
+      // phrasing belongs beside every other refusal a curator can act on.
+      this.showImportRefusal(describeImportFailure(
+        unloadableLibrarySourcesError({ absent, unreadable, reasons }),
+        { context }
+      ));
+      return null;
+    }
+
+    return [...surfaceSources, ...sources.filter(source => !held.has(source.id))];
+  }
+
+  /**
+   * A refusal a reader can read twice and paste back to whoever wrote the
+   * score. These texts are corrections — several lines, naming ids and
+   * offering alternatives — and a two-second toast destroys them before
+   * they can be copied.
+   */
+  showImportRefusal(message) {
+    const text = String(message || 'Import refused');
+    this.announce('Import refused.');
+    const overlay = document.createElement('div');
+    overlay.className = 'naming-modal-overlay';
+    overlay.innerHTML = `
+      <div class="naming-modal" role="alertdialog" aria-modal="true" aria-label="Import refused">
+        <h2 class="naming-modal-title">Import refused</h2>
+        <textarea class="input" id="program-refusal-text" rows="12" readonly
+                  style="width:min(560px,80vw);max-width:100%;font-family:ui-monospace,monospace;font-size:0.8rem"
+                  spellcheck="false"></textarea>
+        <div class="naming-modal-actions" style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem">
+          <button type="button" class="btn-secondary" data-choice="copy">Copy</button>
+          <button type="button" class="btn-primary" data-choice="close">Close</button>
+        </div>
+      </div>`;
+    const field = overlay.querySelector('#program-refusal-text');
+    if (field) field.value = text;
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) {
+        overlay.remove();
+        return;
+      }
+      const button = event.target.closest('[data-choice]');
+      if (!button) return;
+      if (button.dataset.choice === 'copy') {
+        try {
+          navigator.clipboard?.writeText?.(text);
+        } catch { /* the text is selectable in the field either way */ }
+        this.showToast('Refusal copied');
+        return;
+      }
+      overlay.remove();
+    });
+    document.body.appendChild(overlay);
+    overlay.querySelector('[data-choice="close"]')?.focus();
+    return overlay;
+  }
+
+  setProgramImportBusy(busy) {
+    this.programImportBusy = busy;
+    const button = this.container.querySelector('[data-action="import-experience-program"]');
+    if (!button) return;
+    button.disabled = busy;
+    button.textContent = busy ? 'Importing…' : 'Import JSON';
+  }
+
   async importExperienceProgramText(text) {
+    // Loading the works a score names is asynchronous, and two imports racing
+    // each other would each build a project from a surface the other is about
+    // to replace.
+    if (this.programImportBusy) {
+      this.showToast('An import is already underway');
+      return;
+    }
+    this.setProgramImportBusy(true);
     let context = null;
     try {
       context = this.buildCuratorContextFromSurface();
       const program = parseExperienceProgramJson(text, { context });
 
-      if (!(this.sessionData.sources || []).length) {
+      // SNAPSHOT BEFORE THE AWAIT. Everything below is built from this array,
+      // so the project that reaches the Vault is the one the gate measured.
+      const surfaceSources = [...(this.sessionData.sources || [])];
+
+      this.announce('Loading the works this score names…');
+      const sources = await this.resolveImportedProgramSources(
+        program, surfaceSources, context
+      );
+      // Refused: the reader has the reason, and nothing here has been touched.
+      if (!sources) return;
+
+      if (!sources.length) {
         this.showToast('Add sources before importing a score that binds to them');
         return;
       }
 
       // Authoring gate: ambiguous quotes refuse here (curator can extend).
       // Session compile omits them so a reader never loses the reading.
-      assertQuotationAnchorsAgainstSources(program, this.sessionData.sources);
+      // Against the LOADED set, so a quote into a Library work is checked
+      // rather than skipped for want of any text to check it against.
+      assertQuotationAnchorsAgainstSources(program, sources);
 
       const project = workshopProjectFromImportedProgram({
         program,
         context,
-        sources: this.sessionData.sources,
+        sources,
         assets: this.sessionData.sequenceVisualAssets || [],
         defaults: {
           reading: {
@@ -5244,13 +5384,12 @@ export class Workshop {
       });
       this.showToast('Imported as proposed Vault draft');
     } catch (error) {
-      if (error instanceof ExperienceProgramValidationError
-        || error instanceof ExperienceProgramIoError
-        || error instanceof SourceSpanResolutionError) {
-        this.showToast(this.formatProgramIoError(error, context));
-        return;
-      }
-      this.showToast(this.formatProgramIoError(error, context));
+      // Every refusal is a correction several lines long; it goes where it
+      // can be read and copied rather than into a toast that outlives it by
+      // two seconds.
+      this.showImportRefusal(this.formatProgramIoError(error, context));
+    } finally {
+      this.setProgramImportBusy(false);
     }
   }
 
