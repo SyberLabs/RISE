@@ -51,6 +51,24 @@ function boundedName(value) {
   return value.trim().slice(0, 120);
 }
 
+/**
+ * What the reader says the file IS, in their own words.
+ *
+ * Separate from `provenance` on purpose. Provenance is load-bearing in this
+ * project — a reader should always know whether they are meeting a received
+ * text or one written here — and folding "what this is" into "where this came
+ * from" would spend a concept the archive depends on to save a field.
+ *
+ * Bounded to the capability document's own ceiling so a description that
+ * reaches `boundedText` there can only ever fail its URI test, never its
+ * length test. Two limits that had to be kept equal by hand is how the room
+ * would come to accept a string the document then refuses.
+ */
+function boundedDescription(value) {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  return value.trim().slice(0, READING_LIMITS.maxMaterialDescriptionChars);
+}
+
 function dataImage(value) {
   if (typeof value !== 'string' || !value.startsWith('data:image/')
     || value.length > MAX_SEQUENCE_ASSET_URI_LENGTH) {
@@ -116,6 +134,9 @@ export function sequenceAssetForPersistence(asset) {
     persisted.timeMode = canonical.timeMode;
     if (canonical.posterAssetId) persisted.posterAssetId = canonical.posterAssetId;
   }
+  // The description is the reader's, so it outlives the tab. Rebuilding the
+  // durable shape from a second allow-list is why it had to be named twice.
+  if (canonical.description) persisted.description = canonical.description;
   if (canonical.provenance) persisted.provenance = canonical.provenance;
   return Object.freeze(persisted);
 }
@@ -249,6 +270,13 @@ export function createSequenceVisualAsset(value = {}) {
       asset.posterAssetId = exactId(value.posterAssetId.trim(), 'Poster asset id');
     }
   }
+
+  // WHAT THE READER SAID IT IS, kept apart from where it came from. This
+  // function rebuilds its result from an allow-list, so a field it does not
+  // name is a field that dies here — which is where the reader's own words
+  // were being dropped on the way to the Vault and to the composer.
+  const canonicalDescription = boundedDescription(value.description);
+  if (canonicalDescription) asset.description = canonicalDescription;
 
   const canonicalProvenance = boundedProvenance(value.provenance);
   if (canonicalProvenance) asset.provenance = canonicalProvenance;
@@ -546,6 +574,39 @@ export function compileVisualScoreProgram({
   });
 }
 
+function sequenceAssetRoleLabel(role) {
+  if (role === 'personal-focal') return 'personal focal';
+  return role === 'sequence-video' ? 'sequence video' : 'sequence image';
+}
+
+/**
+ * What the composer must change, in the vocabulary the prompt taught.
+ *
+ * ABSENT AND WRONG-KIND ARE DIFFERENT REFUSALS. Both used to read "names
+ * missing sequence image", so an uploaded MP4 — accepted at step 4, listed in
+ * the panel above, scored the only way the prompt teaches — was refused at
+ * Begin as though it had never been added. A refusal that misnames the fault
+ * sends the reader looking for a file that is already there.
+ */
+function wrongKindRefusal(clipId, reference, asset) {
+  const named = `${asset.name} (${reference.id})`;
+  if (asset.kind === 'video') {
+    if (reference.role === 'personal-focal') {
+      return `Visual clip ${clipId} sets ${named} as the personal focal, but that file `
+        + 'is a video. A focal is a still image. Name one of the images this reading '
+        + 'carries, or drop the focal.';
+    }
+    return `Visual clip ${clipId} scores ${named} as a sequence image, but that file is `
+      + 'a video. Score a video with a video cue — { "kind": "video", "assetId": '
+      + `"${reference.id}", "timeMode": "loop", "audioPolicy": "muted", `
+      + '"reducedMotion": "poster" } — or name one of the images this reading carries.';
+  }
+  return `Visual clip ${clipId} scores ${named} as a sequence video, but that file is an `
+    + `image. Score an image with { "kind": "sourced", "collections": `
+    + `["${SEQUENCE_ASSET_PREFIX}${reference.id}"] }, or name one of the videos this `
+    + 'reading carries.';
+}
+
 /** Validate that every canonical sequence-asset cue resolves locally. */
 export function validateSequenceAssetReferences(program, assets = []) {
   const canonicalAssets = assets.map(createSequenceVisualAsset);
@@ -556,23 +617,24 @@ export function validateSequenceAssetReferences(program, assets = []) {
     for (const clip of track.clips) {
       for (const reference of sequenceAssetReferencesFromCue(clip.cue)) {
         const asset = assetsById.get(reference.id);
-        const kindMatches = reference.expectedKind === 'video'
-          ? asset?.kind === 'video'
-          : asset != null && asset.kind !== 'video';
-        if (!kindMatches) {
-          const assetLabel = reference.role === 'personal-focal'
-            ? 'personal focal'
-            : reference.role === 'sequence-video' ? 'sequence video' : 'sequence image';
+        const details = {
+          clipId: clip.id,
+          assetId: reference.id,
+          assetRole: reference.role,
+          expectedKind: reference.expectedKind,
+          actualKind: asset?.kind || null
+        };
+        if (!asset) {
           fail('VISUAL_SCORE_ASSET_NOT_FOUND',
-            `Visual clip ${clip.id} names missing ${assetLabel} ${reference.id}, `
-              + 'or the project media has the wrong kind.',
-            {
-              clipId: clip.id,
-              assetId: reference.id,
-              assetRole: reference.role,
-              expectedKind: reference.expectedKind,
-              actualKind: asset?.kind || null
-            });
+            `Visual clip ${clip.id} names missing ${sequenceAssetRoleLabel(reference.role)} `
+              + `${reference.id}; this reading carries no such file.`,
+            details);
+        }
+        const actualKind = asset.kind === 'video' ? 'video' : 'image';
+        if (actualKind !== reference.expectedKind) {
+          fail('VISUAL_SCORE_ASSET_KIND',
+            wrongKindRefusal(clip.id, reference, asset),
+            { ...details, actualKind });
         }
       }
     }

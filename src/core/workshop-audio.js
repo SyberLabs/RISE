@@ -118,13 +118,29 @@ export function applyPersonalAudioAsWholeReading(swellId) {
   };
 }
 
+/**
+ * A SWELL THAT IS NOT ON THE SHELF IS ABSENT, NOT INVENTED.
+ *
+ * This used to end `personalSwells.find(...) || { id: swellId, name:
+ * 'Personal audio' }`, so `swell:anything-at-all` was FABRICATED into a
+ * playable-looking asset with a made-up name. Two laws on one line: the gate
+ * repaired what it was handed, and it offered a substitute where an absence
+ * was required — a reader's own recording, standing in for a recording that
+ * belongs to nobody.
+ *
+ * Every caller already handles the absence: two filter it out and one guards
+ * on it. `personalSwells` is coerced because one caller reaches this through
+ * `.map(audioScoreAssetFromId)`, which passes the array INDEX as the second
+ * argument — a swell there did not fabricate, it threw.
+ */
 export function audioScoreAssetFromId(assetId, personalSwells = []) {
   const builtIn = workshopAudioEditorAsset(assetId);
   if (builtIn) return builtIn;
   if (typeof assetId !== 'string' || !assetId.startsWith('swell:')) return null;
   const swellId = assetId.slice('swell:'.length);
-  return personalAudioEditorAsset(personalSwells.find(item => item.id === swellId)
-    || { id: swellId, name: 'Personal audio' });
+  const shelf = Array.isArray(personalSwells) ? personalSwells : [];
+  const held = shelf.find(item => item?.id === swellId);
+  return held ? personalAudioEditorAsset(held) : null;
 }
 
 export function workshopAudioAsset(assetId) {

@@ -214,3 +214,189 @@
 .scriptorium-materials .scriptorium-track-list li {
   margin-bottom: 0.55rem;
 }
+
+/* THE CONFIRMATION MUST NOT LOOK LIKE THE EXPLANATION.
+   This element had no rule of its own anywhere. It inherited
+   .scriptorium-note — `color: var(--scriptorium-fog)` — which is the same dim
+   grey as the static prose above it and below it, so the one line in the panel
+   reporting that something HAD JUST HAPPENED was the third of three visually
+   identical grey paragraphs. It already carries role="status"; this is the
+   visible half of the same announcement. */
+.scriptorium-material-notice {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0.9rem 0;
+  padding: 0.6rem 0.85rem;
+  border-left: 2px solid var(--scriptorium-accent);
+  background: rgba(196, 165, 116, 0.08);
+  color: var(--scriptorium-ink);
+}
+
+.scriptorium-material-line {
+  display: block;
+  line-height: 1.4;
+}
+
+.scriptorium-material-taken {
+  color: var(--scriptorium-ink);
+}
+
+/* A refusal is a different thing from a confirmation and had been telling the
+   reader so in the same colour. Warm rather than alarm-red: nothing here has
+   gone wrong with RISE, one file was not taken. */
+.scriptorium-material-refused {
+  color: #e2a79c;
+}
+
+/* What the reader brought, with a picture of it. */
+.scriptorium-material-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.scriptorium-material {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr auto;
+  gap: 0.85rem;
+  align-items: start;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--scriptorium-rule);
+}
+
+.scriptorium-material:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* One tile, whatever is or is not inside it. An absent thumbnail is the same
+   shape as a present one so a list of nine files does not reflow into a
+   ragged column the moment one blob cannot be decoded. */
+.scriptorium-material-thumb {
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 2px;
+  border: 1px solid var(--scriptorium-rule);
+  background: var(--scriptorium-panel);
+  object-fit: cover;
+  display: block;
+  overflow: hidden;
+}
+
+.scriptorium-material-thumb-video {
+  position: relative;
+  display: block;
+  padding: 0;
+}
+
+.scriptorium-material-thumb-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.scriptorium-material-badge {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--scriptorium-ink);
+  background: rgba(10, 9, 8, 0.72);
+  text-align: center;
+}
+
+/* ABSENT, NOT BROKEN. A labelled empty tile rather than the browser's own
+   broken-image glyph sitting among the reader's photographs. */
+.scriptorium-material-thumb-absent {
+  display: grid;
+  place-items: center;
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--scriptorium-fog);
+}
+
+.scriptorium-material-body {
+  min-width: 0;
+}
+
+.scriptorium-material-body > strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+/* The id is a fact about the score, not a fact about the photograph, so it is
+   labelled and set in the score's own typeface rather than run on after the
+   file's measurements behind a bare separator. */
+.scriptorium-material-id {
+  margin-top: 0.1rem;
+}
+
+.scriptorium-material-id code {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 0.78rem;
+  color: var(--scriptorium-fog);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+/* An invitation, not a demand: the field is offered under every file and
+   nothing waits on it. */
+.scriptorium-material-describe {
+  display: block;
+  margin: 0.5rem 0 0.2rem;
+  font-size: 0.85rem;
+  color: var(--scriptorium-fog);
+}
+
+.scriptorium-material-optional {
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.scriptorium-material-description {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--scriptorium-panel);
+  color: var(--scriptorium-ink);
+  border: 1px solid var(--scriptorium-rule);
+  border-radius: 2px;
+  padding: 0.4rem 0.55rem;
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.scriptorium-material-description:focus-visible {
+  outline: 1px solid rgba(196, 165, 116, 0.75);
+  outline-offset: 1px;
+}
+
+.scriptorium-material-description::placeholder {
+  color: rgba(154, 149, 140, 0.6);
+  font-style: italic;
+}
+
+@media (max-width: 34rem) {
+  .scriptorium-material {
+    grid-template-columns: 3.25rem 1fr;
+  }
+
+  .scriptorium-material-thumb {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+
+  .scriptorium-material > .btn-ghost {
+    grid-column: 2;
+    justify-self: start;
+  }
+}

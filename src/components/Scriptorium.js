@@ -3,12 +3,22 @@
  *
  * Intent and length → take prompt + context → paste score → verdict →
  * an account of what the score does → read it, or keep it. RISE calls no
- * model; the reader carries documents by hand (SCRIPTORIUM-SPEC).
+ * model; the reader carries documents by hand
+ * (docs/vision/SCRIPTORIUM-SPEC.md §9).
  *
  * The room does not hand off to the Workshop. A score arrives finished and
  * bound in progress coordinates; the Workshop edits character spans by hand.
  * Routing one through the other would convert the anchors to enable editing
- * the room exists to make unnecessary (SCRIPTORIUM-SPEC §10b).
+ * the room exists to make unnecessary (docs/vision/SCRIPTORIUM-SPEC.md §10b).
+ *
+ * THIS ROOM DOES NOT OWN THE SEQUENCE. It owns a document: markup, listeners,
+ * object URLs, the clipboard, the Vault write, and the reader's files on their
+ * way into IndexedDB. The five steps live in ScriptoriumSession
+ * (src/core/scriptorium-session.js), which the internal CLI and the test suite
+ * drive through the same methods this file binds buttons to. Every piece of
+ * state the sequence owns is read here through a getter rather than copied:
+ * two copies of the intent, the length or the verdict is how one entrance
+ * learns a new word and the other never hears it (law 5).
  */
 
 import { MemoryCore } from '../core/memory.js';
@@ -24,36 +34,23 @@ import {
   SEQUENCE_ASSET_STORAGE_IDB,
   VISUAL_SCORE_COLORS
 } from '../core/visual-score-lane.js';
+import { ensureWorkshopAssetsDurable } from '../core/workshop-asset-durability.js';
 import {
-  exportCuratorContext,
+  catalogueTextIsSafe,
   serializeCuratorContext
 } from '../core/curator-context.js';
-import { buildCuratorPrompt } from '../core/curator-prompt.js';
-import { describeProgramRundown, estimateRundownMinutes } from '../core/program-rundown.js';
 import { READING_LIMITS } from '../core/reading-limits.js';
+import { estimateRundownMinutes } from '../core/program-rundown.js';
 import {
-  describeImportFailure,
+  createScriptoriumSession,
+  readerWpm,
+  SCRIPTORIUM_LENGTH
+} from '../core/scriptorium-session.js';
+import {
   downloadJsonFile,
-  downloadTextFile,
-  ExperienceProgramIoError,
-  parseCuratorPaste,
-  workshopProjectFromImportedProgram
+  downloadTextFile
 } from '../core/experience-program-io.js';
-import { ExperienceProgramValidationError } from '../core/experience-program.js';
-import {
-  AgentOperationError,
-  summarizeAgentOperationSet
-} from '../core/agent-operations.js';
-import { emptyWorkshopProject } from '../core/workshop-project.js';
-import { ProducerError, runProducer } from '../core/producer.js';
-import {
-  previewProgramChoices,
-  resolveProgramLibrarySources,
-  resolveOperationLibrarySources,
-  assertResolvedProgramQuotations
-} from '../core/scriptorium-resolve.js';
-import { SourceSpanResolutionError } from '../core/source-span.js';
-import { escapeHtml } from '../core/sanitize.js';
+import { escapeHtml, safeUrl } from '../core/sanitize.js';
 import './Scriptorium.css';
 
 async function copyText(text) {
@@ -64,42 +61,13 @@ async function copyText(text) {
   return false;
 }
 
-const DEFAULT_TARGET_WORDS = 20_000;
-/**
- * The floor is an opening, not the shortest work in the library. Below 5,539
- * words the catalogue holds exactly one work, so a slider that filtered by
- * whole works had nowhere to go; a movement can name a division's opening now
- * (see library-extent.js), and 200 words is a passage worth reading.
- */
-const TARGET_WORDS_MIN = 200;
-const TARGET_WORDS_STEP = 100;
-
-/**
- * Minutes are shown and words are sent.
- *
- * A model can add words up from the library it was handed; it cannot turn
- * minutes back into words without a pace and a chunk mode. And a program can
- * score its own pace now, so the minutes below are what this length comes to
- * at the reader's CURRENT setting — a reading that slows itself will run
- * longer, which is the score doing its job rather than the estimate failing.
- */
-function clampTargetWords(value) {
-  const parsed = Math.round(Number(value));
-  if (!Number.isFinite(parsed)) return DEFAULT_TARGET_WORDS;
-  return Math.max(TARGET_WORDS_MIN, Math.min(READING_LIMITS.maxAtoms, parsed));
-}
-
-function readerWpm() {
-  return Number(globalThis.rise?.settings?.wpm) || 320;
-}
-
-function describeLength(words) {
-  const wpm = readerWpm();
-  const minutes = Math.round(words / wpm);
-  const clock = minutes >= 60
-    ? `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`
-    : `${minutes} min`;
-  return `${words.toLocaleString()} words — about ${clock} at ${wpm} wpm`;
+/** A file's size as a person reads it. */
+function fileSize(bytes) {
+  const n = Number(bytes);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export class Scriptorium {
@@ -107,32 +75,54 @@ export class Scriptorium {
     this.container = container;
     this.onNavigate = options.onNavigate || (() => {});
     this.onCreateSession = options.onCreateSession || null;
-    this.intent = '';
-    this.targetWords = DEFAULT_TARGET_WORDS;
-    this.context = null;
-    this.promptText = '';
-    this.pasted = '';
-    this.program = null;
-    this.operationSet = null;
-    this.proposalRows = null;
-    this.preview = null;
-    this.rundown = null;
-    this.verdict = null;
-    this.status = '';
-    // WHAT THE READER BROUGHT. The Library is what RISE holds and answers for;
-    // these are the reader's own, which RISE describes rather than certifies.
-    this.swells = [];
-    this.materials = [];
+    /**
+     * The sequence, which this room renders rather than performs.
+     *
+     * `prepareAssets` is the one step of it that needs a browser: a staged
+     * material carries a blob: URL belonging to this document and to nothing
+     * after it, so the bytes are written to IndexedDB on the way into a
+     * project. A surface with no store (the CLI) passes nothing and carries
+     * the descriptors as they are.
+     */
+    this.session = createScriptoriumSession({
+      prepareAssets: (projectId) => this.durableMaterials(projectId)
+    });
     this.materialBlobs = new Map();
     this.objectUrls = new Set();
+    // Said where the reader is standing. A refusal about a file belongs beside
+    // the panel that took it, not in a status line six sections further down a
+    // page that scrolls.
+    this.materialNotice = null;
     // Closed until asked for. A reader composing from the Library alone should
     // not have to decline an upload panel on the way past.
     this.materialsOpen = false;
   }
 
+  // ── The sequence's state, read rather than copied ────────────────────────
+  get intent() { return this.session.intent; }
+  get targetWords() { return this.session.targetWords; }
+  get materials() { return this.session.materials; }
+  get swells() { return this.session.swells; }
+  get context() { return this.session.context; }
+  get promptText() { return this.session.promptText; }
+  get pasted() { return this.session.pasted; }
+  get program() { return this.session.program; }
+  get operationSet() { return this.session.operationSet; }
+  get proposalRows() { return this.session.proposalRows; }
+  get preview() { return this.session.preview; }
+  get rundown() { return this.session.rundown; }
+  get verdict() { return this.session.verdict; }
+  get projectId() { return this.session.projectId; }
+  get producer() { return this.session.producer; }
+  get status() { return this.session.status; }
+  set status(value) { this.session.status = value; }
+
   mount() {
+    // render() ends in bind(). Binding again here gave every control two
+    // listeners, and loadMaterials() returns without re-rendering for a reader
+    // with no personal swells — so one click on Examine examined twice and one
+    // click on Keep left two Vault drafts.
     this.render();
-    this.bind();
     void this.loadMaterials();
   }
 
@@ -153,31 +143,9 @@ export class Scriptorium {
       return;
     }
     if (!Array.isArray(swells) || !swells.length) return;
-    // ID AND NAME ONLY. A stored swell carries its audio blob, and the
-    // capability document's first rule is that it never embeds media bytes.
-    this.swells = swells
-      .filter(swell => swell && typeof swell.id === 'string')
-      .map(swell => ({ id: swell.id, name: swell.name }));
-    this.buildTakeArtifacts();
+    this.session.setSwells(swells);
+    this.session.take();
     this.render();
-  }
-
-  buildTakeArtifacts() {
-    this.context = exportCuratorContext({
-      id: `scriptorium-${Date.now()}`,
-      sources: [],
-      includeLibrary: true,
-      // The reader's own audio, by id AND by name. Passing nothing here was
-      // the whole of the seam: both rooms build the same document from the
-      // same function, and this one handed it empty arrays.
-      swells: this.swells,
-      assets: this.materials,
-      constraints: { targetWords: this.targetWords }
-    });
-    this.promptText = buildCuratorPrompt({
-      intent: this.intent,
-      context: this.context
-    });
   }
 
   renderRundown(rundown, preview) {
@@ -216,6 +184,93 @@ export class Scriptorium {
           Some divisions here were measured by RISE rather than authored by the
           book.
         </p>` : ''}
+    `;
+  }
+
+  /**
+   * The notice, in two voices.
+   *
+   * A refusal and a confirmation used to be the same grey as each other and
+   * as the two explanatory paragraphs bracketing them, so the one line saying
+   * something HAD JUST HAPPENED was the third of three identical paragraphs.
+   * `role="status"` was always right; this is the visible half of it.
+   */
+  materialNoticeMarkup() {
+    return (this.materialNotice || []).map(line => `
+      <span class="scriptorium-material-line scriptorium-material-${
+        line.tone === 'refused' ? 'refused' : 'taken'
+      }">${escapeHtml(line.text)}</span>
+    `).join('');
+  }
+
+  /**
+   * A picture of the file, not a description of one.
+   *
+   * The object URL was already minted for every staged file — held only so
+   * `dropMaterial` could revoke it — while the panel rendered no image at all.
+   *
+   * ABSENT, NEVER BROKEN. A video shows its own first frame where the browser
+   * will decode one and an unadorned labelled tile where it will not; an image
+   * whose blob has gone (a URL revoked, a descriptor rehydrated without one)
+   * falls back to the same tile rather than to a broken-image glyph. The
+   * thumbnails are decorative — the filename beside them is the accessible
+   * name — so they are hidden from assistive technology rather than announced
+   * twice.
+   */
+  renderMaterialThumbnail(item) {
+    const src = safeUrl(item.uri);
+    if (!src) {
+      return `<span class="scriptorium-material-thumb scriptorium-material-thumb-absent"
+        aria-hidden="true">${item.kind === 'video' ? 'video' : 'image'}</span>`;
+    }
+    if (item.kind === 'video') {
+      return `<span class="scriptorium-material-thumb scriptorium-material-thumb-video"
+        aria-hidden="true"><video src="${src}" muted playsinline
+        preload="metadata"></video><span class="scriptorium-material-badge">video</span></span>`;
+    }
+    return `<img class="scriptorium-material-thumb" src="${src}" alt="" aria-hidden="true">`;
+  }
+
+  /**
+   * One staged file, as a reader needs to meet it.
+   *
+   * WHAT THIS LINE USED TO SAY was ` · asset-5e2b0776-8781-4fe1-acdc-…`: a
+   * leading separator with nothing before it, because `kind` is only set on a
+   * video descriptor, followed by an internal identifier presented as though
+   * it were a fact about the photograph. The id does belong here — it is how
+   * the composer will name the file in the score, and a reader reading a score
+   * needs to match the two up — but it belongs labelled as that and set apart
+   * from the file's own measurements.
+   */
+  renderMaterial(item) {
+    const video = item.kind === 'video';
+    const facts = [
+      video ? 'Video' : 'Image',
+      video && item.durationMs ? `${Math.round(item.durationMs / 1000)}s` : '',
+      fileSize(item.byteLength)
+    ].filter(Boolean).join(' · ');
+    const id = escapeHtml(item.id);
+    return `
+      <li class="scriptorium-material">
+        ${this.renderMaterialThumbnail(item)}
+        <div class="scriptorium-material-body">
+          <strong>${escapeHtml(item.name)}</strong>
+          <span class="scriptorium-meta">${escapeHtml(facts)}</span>
+          <span class="scriptorium-meta scriptorium-material-id">Named in the score:
+            <code>${id}</code></span>
+          <label class="scriptorium-material-describe" for="describe-${id}">
+            What is this? <span class="scriptorium-material-optional">optional</span>
+          </label>
+          <input type="text" id="describe-${id}" class="scriptorium-material-description"
+            data-action="describe-material" data-id="${id}"
+            maxlength="${READING_LIMITS.maxMaterialDescriptionChars}"
+            value="${escapeHtml(item.description || '')}"
+            placeholder="The cliff path above the harbour, the morning after.">
+        </div>
+        <button type="button" class="btn-ghost btn-compact"
+          data-action="drop-material" data-id="${id}"
+          aria-label="Remove ${escapeHtml(item.name)}">Remove</button>
+      </li>
     `;
   }
 
@@ -265,10 +320,11 @@ export class Scriptorium {
 
           <label class="scriptorium-label" for="scriptorium-length">How long should it be?</label>
           <input id="scriptorium-length" class="scriptorium-length" type="range"
-            min="${TARGET_WORDS_MIN}" max="${READING_LIMITS.maxAtoms}" step="${TARGET_WORDS_STEP}"
+            min="${SCRIPTORIUM_LENGTH.min}" max="${SCRIPTORIUM_LENGTH.max}"
+            step="${SCRIPTORIUM_LENGTH.step}"
             value="${this.targetWords}"
             aria-describedby="scriptorium-length-readout">
-          <p class="scriptorium-note" id="scriptorium-length-readout">${escapeHtml(describeLength(this.targetWords))}</p>
+          <p class="scriptorium-note" id="scriptorium-length-readout">${escapeHtml(this.session.describeLength())}</p>
           <p class="scriptorium-note">
             A movement reads a whole work, one of its divisions, or a division's
             opening — whichever is the largest that fits. A score longer than
@@ -290,23 +346,21 @@ export class Scriptorium {
             <input type="file" id="scriptorium-materials-input" hidden multiple
               accept="${MATERIAL_ACCEPT}">
             <button type="button" class="btn-secondary" data-action="add-material">Choose files</button>
+            ${this.materialNotice?.length ? `
+              <p class="scriptorium-note scriptorium-material-notice" role="status">
+                ${this.materialNoticeMarkup()}
+              </p>
+            ` : ''}
             ${this.materials.length ? `
-              <ul class="scriptorium-track-list">
-                ${this.materials.map(item => `
-                  <li>
-                    <strong>${escapeHtml(item.name)}</strong>
-                    <span class="scriptorium-meta">${escapeHtml(item.kind)}${
-                      item.durationMs ? ` · ${Math.round(item.durationMs / 1000)}s` : ''
-                    } · ${escapeHtml(item.id)}</span>
-                    <button type="button" class="btn-ghost btn-compact"
-                      data-action="drop-material" data-id="${escapeHtml(item.id)}"
-                      aria-label="Remove ${escapeHtml(item.name)}">Remove</button>
-                  </li>
-                `).join('')}
+              <ul class="scriptorium-material-list">
+                ${this.materials.map(item => this.renderMaterial(item)).join('')}
               </ul>
               <p class="scriptorium-note">
-                The composer is told each file's name and nothing more. Name them
-                for what they are and it will place them better.
+                The composer is told each file's name, what kind of thing it is,
+                and whatever you write above. A file you describe can be placed
+                where the reading touches what you described; a file you leave
+                alone is still used, just arranged wherever it fits. Saying
+                nothing costs nothing.
               </p>
             ` : ''}
           </details>
@@ -379,21 +433,32 @@ export class Scriptorium {
 
     this.container.querySelector('#scriptorium-intent')
       ?.addEventListener('input', (event) => {
-        this.intent = event.target.value.slice(0, 2000);
+        this.session.setIntent(event.target.value);
       });
 
     this.container.querySelector('#scriptorium-length')
       ?.addEventListener('input', (event) => {
-        this.targetWords = clampTargetWords(event.target.value);
+        this.session.setTargetWords(event.target.value);
         // The readout alone, not a re-render: this room rebuilds its whole
         // DOM, which would take the slider's focus away mid-drag.
         const readout = this.container.querySelector('#scriptorium-length-readout');
-        if (readout) readout.textContent = describeLength(this.targetWords);
+        if (readout) readout.textContent = this.session.describeLength();
+      });
+
+    // COMMIT, NOT DRAG. The budget the gate measures against lives in the
+    // context document, which was built once and never rebuilt — so a reader
+    // who raised the length and pressed Examine was refused against the old
+    // number, and told to raise the length. Rebuilt here so the prompt and the
+    // context.json they copy carry the length on the slider, and rebuilt again
+    // in examine() because that is the other door into the gate.
+    this.container.querySelector('#scriptorium-length')
+      ?.addEventListener('change', () => {
+        if (this.context) this.session.take();
       });
 
     this.container.querySelector('[data-action="prepare-take"]')
       ?.addEventListener('click', () => {
-        this.buildTakeArtifacts();
+        this.session.take();
         this.status = 'Prompt and context ready.';
         this.render();
       });
@@ -434,7 +499,7 @@ export class Scriptorium {
       });
 
     this.container.querySelector('#scriptorium-paste')
-      ?.addEventListener('input', (event) => { this.pasted = event.target.value; });
+      ?.addEventListener('input', (event) => { this.session.pasted = event.target.value; });
 
     this.container.querySelector('[data-action="examine"]')
       ?.addEventListener('click', () => this.examine());
@@ -449,7 +514,11 @@ export class Scriptorium {
 
     const materialsInput = this.container.querySelector('#scriptorium-materials-input');
     materialsInput?.addEventListener('change', (event) => {
-      const files = event.target.files;
+      // COPY BEFORE CLEARING. `event.target.files` is a live FileList, not a
+      // snapshot: emptying the input empties the same object, so passing it on
+      // handed addMaterials zero files and every upload did nothing at all.
+      // A File outlives the FileList it came from; the list does not.
+      const files = [...(event.target.files || [])];
       event.target.value = '';
       void this.addMaterials(files);
     });
@@ -466,6 +535,48 @@ export class Scriptorium {
       button.addEventListener('click', () => this.dropMaterial(button.dataset.id));
     }
 
+    // A THUMBNAIL THAT CANNOT LOAD BECOMES ABSENT, NOT BROKEN. A revoked or
+    // stale blob: URL otherwise leaves the browser's own broken-image glyph in
+    // a panel of the reader's photographs.
+    for (const img of this.container.querySelectorAll('img.scriptorium-material-thumb')) {
+      img.addEventListener('error', () => {
+        img.removeAttribute('src');
+        img.classList.add('scriptorium-material-thumb-absent');
+      });
+    }
+
+    // TYPING IS NOT COMMITTING. `render()` rebuilds this room's whole DOM, so
+    // doing it per keystroke would take focus out of the field mid-sentence —
+    // the defect the length slider above carries a comment about. The
+    // descriptor is updated on every keystroke because that is cheap and
+    // cannot be seen; the capability document is rebuilt on commit, because
+    // it is neither.
+    for (const input of this.container.querySelectorAll('[data-action="describe-material"]')) {
+      input.addEventListener('input', () => {
+        this.describeMaterial(input.dataset.id, input.value);
+      });
+      input.addEventListener('change', () => {
+        const outcome = this.describeMaterial(input.dataset.id, input.value);
+        if (outcome === 'unknown') return;
+        if (outcome === 'refused') {
+          const held = this.materials.find(item => item.id === input.dataset.id);
+          this.announceMaterials([{
+            tone: 'refused',
+            text: `A description is prose, not a link — RISE will not carry a web `
+              + `address into the score. Say what ${held?.name || 'the file'} IS instead.`
+          }]);
+          return;
+        }
+        this.session.take();
+        this.announceMaterials([{
+          tone: 'taken',
+          text: outcome === 'cleared'
+            ? 'Description removed. Take the prompt again.'
+            : 'Description saved — the composer will be told it. Take the prompt again.'
+        }]);
+      });
+    }
+
     this.container.querySelector('[data-action="begin"]')
       ?.addEventListener('click', () => { void this.begin(); });
 
@@ -473,142 +584,27 @@ export class Scriptorium {
       ?.addEventListener('click', () => { void this.keep(); });
   }
 
+  /** The gate, said out loud. The verdict itself is the session's. */
   examine() {
-    const text = this.container.querySelector('#scriptorium-paste')?.value ?? this.pasted;
-    this.pasted = text;
-    if (!this.context) this.buildTakeArtifacts();
-    if (!text.trim()) {
-      this.verdict = { ok: false, text: 'Nothing to examine — paste the score first.' };
-      this.status = 'Nothing pasted.';
-      this.render();
-      return;
-    }
-    try {
-      const pasted = parseCuratorPaste(text, { context: this.context });
-      if (pasted.kind === 'operations') {
-        this.operationSet = pasted.operationSet;
-        this.proposalRows = summarizeAgentOperationSet(pasted.operationSet);
-        this.program = null;
-        this.preview = null;
-        this.rundown = null;
-        this.verdict = { ok: true, text: null };
-        this.status = 'Operations accepted at the gate. Read what they would change, then begin.';
-        this.render();
-        return;
-      }
-      const program = pasted.program;
-      this.operationSet = null;
-      this.proposalRows = null;
-      this.program = program;
-      this.preview = previewProgramChoices(program, this.context);
-      this.rundown = describeProgramRundown(program, this.context);
-      this.verdict = { ok: true, text: null };
-      this.status = 'Score accepted at the gate. Read what it does, then begin.';
-    } catch (error) {
-      this.program = null;
-      this.operationSet = null;
-      this.proposalRows = null;
-      this.preview = null;
-      this.rundown = null;
-      const textOut = describeImportFailure(error, { context: this.context });
-      this.verdict = { ok: false, text: textOut };
-      this.status = (error instanceof ExperienceProgramValidationError
-        || error instanceof ExperienceProgramIoError
-        || error instanceof AgentOperationError)
-        ? 'Refused.'
-        : (error.message || 'Refused.');
-    }
+    this.session.examine(
+      this.container.querySelector('#scriptorium-paste')?.value ?? this.pasted
+    );
     this.render();
   }
 
-  /** Load the works the score names and build the project it compiles from. */
+  /**
+   * Load the works the score names, and show what is happening while it runs.
+   *
+   * The room's whole contribution is the two renders. `read()` sets its status
+   * before its first await, so the frame below is painted with "Loading chosen
+   * works…" on it without that function knowing this room paints at all.
+   */
   async resolveProject() {
-    if (this.operationSet) return this.resolveOperationProject();
-    if (!this.program) return;
-    this.status = 'Loading chosen works…';
+    const reading = this.session.read();
     this.render();
-    try {
-      const { sources, missing, refused } = await resolveProgramLibrarySources(this.program);
-      if (missing.length || refused.length) {
-        this.status = `Could not load: ${[...missing, ...refused].join(', ')}`;
-        this.render();
-        return;
-      }
-      if (!sources.length) {
-        this.status = 'The score names no Library sources to load.';
-        this.render();
-        return;
-      }
-
-      assertResolvedProgramQuotations(this.program, sources);
-
-      return workshopProjectFromImportedProgram({
-        program: this.program,
-        context: this.context,
-        sources,
-        // CARRIED, NOT LOOKED UP. A sequence asset is validated against the
-        // assets the reading holds, so a score that names one the project does
-        // not carry is refused at compile — which is what an empty array here
-        // guaranteed for anything the reader had added.
-        assets: this.materials,
-        title: this.intent.trim().slice(0, 80) || this.program.id,
-        intent: 'custom',
-        id: `scriptorium-${Date.now()}`,
-        provenance: { kind: 'live-curator-import', room: 'scriptorium' }
-      });
-    } catch (error) {
-      this.verdict = {
-        ok: false,
-        text: describeImportFailure(error, { context: this.context })
-      };
-      this.status = (error instanceof ExperienceProgramValidationError
-        || error instanceof ExperienceProgramIoError
-        || error instanceof SourceSpanResolutionError)
-        ? 'Refused.'
-        : (error.message || 'Refused.');
-      this.render();
-      return null;
-    }
-  }
-
-  async resolveOperationProject() {
-    this.status = 'Applying operations…';
+    const { project } = await reading;
     this.render();
-    try {
-      const { sources, missing, refused } = await resolveOperationLibrarySources(this.operationSet);
-      if (missing.length || refused.length) {
-        this.status = `Could not load: ${[...missing, ...refused].join(', ')}`;
-        this.render();
-        return null;
-      }
-      const resolvedSources = Object.fromEntries(sources.map(source => [source.id, source]));
-      const produced = await runProducer({
-        project: emptyWorkshopProject({
-          id: this.operationSet.projectId,
-          title: this.intent.trim().slice(0, 80) || this.operationSet.id,
-          intent: 'custom'
-        }),
-        operationSet: this.operationSet,
-        context: this.context,
-        resolvedSources,
-        render: false
-      });
-      this.producer = produced;
-      return produced.project;
-    } catch (error) {
-      this.verdict = {
-        ok: false,
-        text: describeImportFailure(error, { context: this.context })
-      };
-      this.status = (error instanceof AgentOperationError
-        || error instanceof ExperienceProgramIoError
-        || error instanceof ExperienceProgramValidationError
-        || error instanceof ProducerError)
-        ? 'Refused.'
-        : (error.message || 'Refused.');
-      this.render();
-      return null;
-    }
+    return project;
   }
 
   /**
@@ -664,7 +660,7 @@ export class Scriptorium {
       const uri = URL.createObjectURL(file);
       this.objectUrls.add(uri);
       this.materialBlobs.set(id, file);
-      this.materials.push(createSequenceVisualAsset({
+      this.session.addMaterial(createSequenceVisualAsset({
         id,
         name: file.name,
         kind: verdict.kind === 'video' ? 'video' : 'image',
@@ -677,29 +673,123 @@ export class Scriptorium {
       }));
     }
 
+    const taken = chosen.length - refused.length;
     this.materialsOpen = true;
     // The capability document is stale the moment the materials change, and a
     // reader who already copied the prompt must be told to take it again.
-    this.buildTakeArtifacts();
-    this.status = refused.length
-      ? refused.join(' ')
-      : `${describeMaterials(this.materials)} added. Take the prompt again.`;
+    this.session.take();
+    // BOTH, NOT WHICHEVER CAME LAST. A refusal used to replace the notice, so
+    // a reader who added ok.png and notes.pdf together got a changed capability
+    // document, no word about re-exporting, and handed the model a context that
+    // did not name their image.
+    this.materialNotice = [
+      ...refused.map(text => ({ tone: 'refused', text })),
+      ...(taken
+        ? [{
+          tone: 'taken',
+          text: `${describeMaterials(this.materials)} added. Take the prompt again.`
+        }]
+        : [])
+    ];
+    this.status = '';
     this.render();
   }
 
-  dropMaterial(id) {
+  /**
+   * The reader's own words about one file they added.
+   *
+   * A SEPARATE FIELD, NOT `provenance`. Provenance survives the round trip
+   * already, which makes it the tempting place to put this, and it is
+   * load-bearing: a reader should always be able to tell whether they are
+   * meeting a received text or one written here. Folding "what this is" into
+   * "where this came from" would spend that distinction to save a field.
+   *
+   * @returns {'stored'|'cleared'|'refused'|'unknown'}
+   */
+  describeMaterial(id, text) {
     const held = this.materials.find(item => item.id === id);
+    if (!held) return 'unknown';
+    // BOUNDED, NOT REFUSED, FOR LENGTH. The field carries the same number as a
+    // `maxlength`, so a reader typing or pasting cannot exceed it and only a
+    // programmatic caller can — and telling THEM off would leave the reader
+    // with an unexplained empty description. A URI is the other half of the
+    // catalogue's rule and is a refusal, because silently deleting a sentence
+    // the reader wrote is worse than declining it out loud.
+    const description = String(text ?? '').trim()
+      .slice(0, READING_LIMITS.maxMaterialDescriptionChars);
+    // ASKED HERE, ENFORCED AT THE DOCUMENT. `boundedText` refuses a URI when
+    // the context is built, which is correct and is several steps away from
+    // this field — a reader who pasted a link would learn about it at Prepare
+    // prompt, in a refusal naming neither the file nor the sentence. Same rule,
+    // asked early enough to answer.
+    if (description && !catalogueTextIsSafe(description)) return 'refused';
+    if (description === (held.description || '')) {
+      return description ? 'stored' : 'cleared';
+    }
+    this.session.setMaterials(this.materials.map(item => item.id === id
+      ? createSequenceVisualAsset({ ...item, description })
+      : item));
+    return description ? 'stored' : 'cleared';
+  }
+
+  /**
+   * Say it without rebuilding the room.
+   *
+   * The reader may be standing in a description field when this fires, and
+   * `render()` replaces every node in the panel — see the length slider's
+   * readout, which is patched in place for exactly this reason. A full render
+   * is the fallback for the case where there is no notice element to patch.
+   */
+  announceMaterials(lines) {
+    this.materialNotice = lines;
+    const notice = this.container.querySelector('.scriptorium-material-notice');
+    if (!notice) {
+      this.render();
+      return;
+    }
+    notice.innerHTML = this.materialNoticeMarkup();
+  }
+
+  dropMaterial(id) {
+    const held = this.session.dropMaterial(id);
     if (!held) return;
     if (held.uri) {
       URL.revokeObjectURL(held.uri);
       this.objectUrls.delete(held.uri);
     }
     this.materialBlobs.delete(id);
-    this.materials = this.materials.filter(item => item.id !== id);
     this.materialsOpen = true;
-    this.buildTakeArtifacts();
-    this.status = `Removed. ${describeMaterials(this.materials)}`;
+    this.session.take();
+    this.materialNotice = [
+      { tone: 'taken', text: `Removed. ${describeMaterials(this.materials)}.` },
+      { tone: 'taken', text: 'Take the prompt again.' }
+    ];
+    this.status = '';
     this.render();
+  }
+
+  /**
+   * The reader's files, in the store, before the project names them.
+   *
+   * A staged material carries a blob: URL belonging to this document and to
+   * nothing after it, and persistence strips it — correctly, see
+   * sequenceAssetForPersistence. Nothing in this room ever wrote the bytes, so
+   * the project pointed at IndexedDB records that had never been created: the
+   * gate accepted, section 5 listed the imagery, and Begin opened a still
+   * ground over "no longer stored" — of a file added thirty seconds earlier.
+   * The Workshop has always called this on the way to persistence.
+   */
+  async durableMaterials(projectId) {
+    if (!this.materials.length) return [];
+    try {
+      return await ensureWorkshopAssetsDurable(projectId, this.materials, this.materialBlobs);
+    } catch (error) {
+      // A store that will not take the bytes is not a reason to withhold the
+      // text. The references travel, hydration finds nothing, and the reader
+      // is told the imagery is absent — which by then is true.
+      console.warn('[Scriptorium] Could not store the files the reader added:', error);
+      return this.materials;
+    }
   }
 
   /**
@@ -713,14 +803,20 @@ export class Scriptorium {
     for (const uri of this.objectUrls) URL.revokeObjectURL(uri);
     this.objectUrls.clear();
     this.materialBlobs.clear();
-    this.materials = [];
+    this.session.setMaterials([]);
   }
 
   /** Keep it without reading it, and stay in the room. */
   async keep() {
     const project = await this.resolveProject();
     if (!project) return;
-    const saved = await MemoryCore.saveWorkshopBlueprintAsync(project);
+    // WITH THE BYTES. Without them durability found nothing in the store,
+    // warned to the console, and saved the dangling reference — and the room
+    // then told the reader it opens from the Vault whenever they want it.
+    // Closing the tab made that permanent.
+    const saved = await MemoryCore.saveWorkshopBlueprintAsync(project, {
+      blobs: this.materialBlobs
+    });
     this.status = saved?.id
       ? 'Kept in the Vault. It opens from there whenever you want it.'
       : 'Could not save the Vault draft.';

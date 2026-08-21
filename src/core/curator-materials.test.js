@@ -21,19 +21,28 @@ const surface = (extra) => validateCuratorContext(exportCuratorContext({
 }));
 
 describe('materials arrive with their names', () => {
-    it('an uploaded asset is named, and is not called an image', () => {
+    it('an uploaded asset is named, and a clip is not called a picture', () => {
         const context = surface({
-            assets: [{ id: 'a1', name: 'cliff-at-dusk.png' }, { id: 'a2', name: 'wye-valley.mp4' }]
+            assets: [
+                { id: 'a1', name: 'cliff-at-dusk.png', kind: 'image' },
+                {
+                    id: 'a2', name: 'wye-valley.mp4', kind: 'video',
+                    mimeType: 'video/mp4', durationMs: 42_000
+                }
+            ]
         });
         const entry = context.catalog.collections['sequence-asset:a1'];
         expect(entry.name).toBe('cliff-at-dusk.png');
         expect(entry.kind).toBe('sequence-asset');
-        // The same importer accepts video/mp4, so "an image" was wrong as well
-        // as uninformative — a reader's clip arrived described as a picture.
-        expect(context.catalog.collections['sequence-asset:a2'].name).toBe('wye-valley.mp4');
-        for (const id of ['sequence-asset:a1', 'sequence-asset:a2']) {
-            expect(context.catalog.collections[id].description).not.toMatch(/an image/i);
-        }
+        expect(entry.mediaKind).toBe('image');
+        // The same importer accepts video/mp4, and both used to arrive under
+        // one sentence — so a reader's clip was described as a picture, and
+        // the duration measured at upload was told to nobody.
+        const clip = context.catalog.collections['sequence-asset:a2'];
+        expect(clip.name).toBe('wye-valley.mp4');
+        expect(clip.mediaKind).toBe('video');
+        expect(clip.durationMs).toBe(42_000);
+        expect(clip.description).not.toMatch(/image/i);
     });
 
     it('a personal swell is described at all', () => {

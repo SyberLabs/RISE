@@ -4,11 +4,13 @@ import {
   compileVisualScoreProgram,
   createSequenceVisualAsset,
   eraseVisualSpan,
+  sequenceAssetForPersistence,
   validateSequenceAssetReferences,
   validateVisualScoreLane,
   VisualScoreLaneError
 } from './visual-score-lane.js';
 import { createEditorAsset } from './editor-asset.js';
+import { READING_LIMITS } from './reading-limits.js';
 
 const IMAGE = 'data:image/png;base64,AAAA';
 const source = {
@@ -85,13 +87,55 @@ describe('visual score lane', () => {
     expect(() => validateSequenceAssetReferences(program, [])).toThrow(expect.objectContaining({
       code: 'VISUAL_SCORE_ASSET_NOT_FOUND'
     }));
+    // ABSENT AND WRONG-KIND ARE DIFFERENT FAULTS. Calling a video that is
+    // sitting in the panel "missing" sends the reader looking for a file they
+    // already added; the refusal has to name the fault it found.
     expect(() => validateSequenceAssetReferences(program, [{
       id: asset.id, kind: 'video', storage: 'idb', mimeType: 'video/mp4',
       byteLength: 4096, durationMs: 1000, name: 'Wrong kind'
     }])).toThrow(expect.objectContaining({
-      code: 'VISUAL_SCORE_ASSET_NOT_FOUND',
+      code: 'VISUAL_SCORE_ASSET_KIND',
       details: expect.objectContaining({ expectedKind: 'image', actualKind: 'video' })
     }));
+  });
+
+  it('tells a composer how to score the video it named as an image', () => {
+    const video = {
+      id: 'asset-video-0001', kind: 'video', storage: 'idb', mimeType: 'video/mp4',
+      byteLength: 4096, durationMs: 11_000, name: 'harbour.mp4'
+    };
+    const asImage = {
+      tracks: [{
+        kind: 'visual',
+        clips: [{
+          id: 'v1',
+          cue: { kind: 'sourced', collections: ['sequence-asset:asset-video-0001'] }
+        }]
+      }]
+    };
+    // The prompt teaches no video cue yet, so this is the score a composer
+    // writes for an MP4 — accepted at the gate and refused at Begin.
+    let refusal = null;
+    try { validateSequenceAssetReferences(asImage, [video]); } catch (error) { refusal = error; }
+    expect(refusal?.code).toBe('VISUAL_SCORE_ASSET_KIND');
+    expect(refusal.message).toContain('harbour.mp4');
+    expect(refusal.message).toContain('that file is a video');
+    expect(refusal.message).toContain('"kind": "video"');
+    expect(refusal.message).toContain('"assetId": "asset-video-0001"');
+    // And the cue it names is the one that passes.
+    const asVideo = {
+      tracks: [{
+        kind: 'visual',
+        clips: [{
+          id: 'v1',
+          cue: {
+            kind: 'video', assetId: 'asset-video-0001', timeMode: 'loop',
+            audioPolicy: 'muted', reducedMotion: 'poster'
+          }
+        }]
+      }]
+    };
+    expect(validateSequenceAssetReferences(asVideo, [video])).toBe(true);
   });
 
   it('compiles collection and procedural editor assets to their canonical cue kinds', () => {
@@ -239,6 +283,69 @@ describe('visual score lane', () => {
     expect(validateSequenceAssetReferences(program, [video])).toBe(true);
     expect(() => validateSequenceAssetReferences(program, [{
       id: 'video-1', uri: IMAGE, name: 'Wrong kind'
-    }])).toThrow(expect.objectContaining({ code: 'VISUAL_SCORE_ASSET_NOT_FOUND' }));
+    }])).toThrow(expect.objectContaining({
+      code: 'VISUAL_SCORE_ASSET_KIND',
+      details: expect.objectContaining({ expectedKind: 'video', actualKind: 'image' })
+    }));
+    expect(() => validateSequenceAssetReferences(program, []))
+      .toThrow(expect.objectContaining({ code: 'VISUAL_SCORE_ASSET_NOT_FOUND' }));
+  });
+
+  /**
+   * BOTH FUNCTIONS REBUILD FROM AN ALLOW-LIST, so a new field has to be named
+   * in both or it dies silently between them — canonicalisation drops it on
+   * the way in, persistence drops it again on the way to the Vault, and
+   * neither throws. A description the reader typed and then lost is the exact
+   * failure this pair of assertions exists to prevent.
+   */
+  describe('the reader\'s own description of a file', () => {
+    const described = (description) => createSequenceVisualAsset({
+      id: 'asset-9', name: 'cliff.png', color: '#7fd4a4', storage: 'idb',
+      mimeType: 'image/png', byteLength: 4096,
+      uri: 'blob:https://rise.test/asset-9', description
+    });
+
+    it('survives canonicalisation and the durable shape alike', () => {
+      const asset = described('The cliff path above the harbour.');
+      expect(asset.description).toBe('The cliff path above the harbour.');
+      expect(sequenceAssetForPersistence(asset).description)
+        .toBe('The cliff path above the harbour.');
+    });
+
+    it('is trimmed, bounded, and absent rather than empty', () => {
+      expect(described('   spaced   ').description).toBe('spaced');
+      expect(described('   ').description).toBeUndefined();
+      expect(described(null).description).toBeUndefined();
+      expect(described(42).description).toBeUndefined();
+      // The same ceiling the capability document applies, so a description
+      // that passes here cannot fail there for length.
+      expect(described('x'.repeat(9_000)).description)
+        .toHaveLength(READING_LIMITS.maxMaterialDescriptionChars);
+    });
+
+    it('is not provenance, and does not become it', () => {
+      const asset = described('What this is.');
+      expect(asset.provenance).toBeUndefined();
+      // Both may be carried at once; neither stands in for the other.
+      const both = createSequenceVisualAsset({
+        ...asset, provenance: { kind: 'reader-upload' }
+      });
+      expect(both.description).toBe('What this is.');
+      expect(both.provenance).toEqual({ kind: 'reader-upload' });
+      const persisted = sequenceAssetForPersistence(both);
+      expect(persisted.description).toBe('What this is.');
+      expect(persisted.provenance).toEqual({ kind: 'reader-upload' });
+    });
+
+    it('travels with a video too', () => {
+      const video = createSequenceVisualAsset({
+        id: 'video-9', kind: 'video', name: 'harbour.mp4', color: '#7fd4a4',
+        storage: 'idb', mimeType: 'video/mp4', byteLength: 4096,
+        durationMs: 11_000, description: 'The harbour, filling.'
+      });
+      expect(sequenceAssetForPersistence(video)).toMatchObject({
+        kind: 'video', durationMs: 11_000, description: 'The harbour, filling.'
+      });
+    });
   });
 });

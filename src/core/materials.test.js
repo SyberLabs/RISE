@@ -30,14 +30,32 @@ describe('a file the reader chose', () => {
         for (const type of ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4']) {
             expect(MATERIAL_ACCEPT).toContain(type);
         }
+        // Every term in the string must be a type this module takes. An
+        // extension offers whatever wears the name, including the untyped
+        // clip.mp4 that inspectMaterial then refuses — the dialog said yes and
+        // the module said no about the same file.
+        for (const term of MATERIAL_ACCEPT.split(',')) {
+            expect(inspectMaterial(file({ name: `a${term}`, type: term })))
+                .toMatchObject({ ok: true });
+        }
     });
 
-    it('refuses an mp4 the browser did not vouch for', () => {
+    it('refuses an mp4 the browser did not vouch for, and says what to do', () => {
         // The extension is what a file is CALLED; the type is what it claims
-        // to BE, and only one of those is evidence.
-        const verdict = inspectMaterial(file({ name: 'clip.mp4', type: 'application/octet-stream' }));
+        // to BE, and only one of those is evidence. "Video must be an MP4
+        // file" about a file called clip.mp4 reads as a contradiction.
+        for (const type of ['application/octet-stream', '']) {
+            const verdict = inspectMaterial(file({ name: 'clip.mp4', type }));
+            expect(verdict.ok).toBe(false);
+            expect(verdict.reason).toContain('clip.mp4');
+            expect(verdict.reason).toMatch(/Re-export or re-save it as MP4/);
+        }
+    });
+
+    it('names what it does carry when it refuses a kind', () => {
+        const verdict = inspectMaterial(file({ name: 'IMG_0042.HEIC', type: 'image/heic' }));
         expect(verdict.ok).toBe(false);
-        expect(verdict.reason).toMatch(/MP4/);
+        expect(verdict.reason).toMatch(/JPEG, PNG, WebP or GIF images, and MP4 video/);
     });
 
     it('states the limit it refused on, in the reader’s units', () => {

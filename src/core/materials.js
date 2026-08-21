@@ -20,9 +20,17 @@
 
 import { READING_LIMITS } from './reading-limits.js';
 
-/** One accept string, so a file dialog and this module cannot disagree. */
+/**
+ * One accept string, so a file dialog and this module cannot disagree.
+ *
+ * TYPES ONLY. The list carried `.mp4` as well, and an extension in an accept
+ * string offers every file wearing that name — including the ones this module
+ * then refuses for having no MIME type at all. The dialog said yes and the
+ * module said no about the same clip.mp4. A browser that types the file as
+ * video/mp4 still offers it; one that does not never should have.
+ */
 export const MATERIAL_ACCEPT =
-  'image/jpeg,image/png,image/webp,image/gif,video/mp4,.mp4';
+  'image/jpeg,image/png,image/webp,image/gif,video/mp4';
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const VIDEO_TYPE = 'video/mp4';
@@ -71,13 +79,22 @@ export function inspectMaterial(file, { held = 0 } = {}) {
       ? { ok: false, reason: `Video must be ${megabytes(READING_LIMITS.maxVideoFileBytes)} or smaller.` }
       : { ok: true, kind: 'video' };
   }
+  // Named .mp4 and typed as something else. Say both halves and give the
+  // reader somewhere to go: "Video must be an MP4 file" about a file called
+  // clip.mp4 reads as a contradiction and offers no next move.
   if (name.toLowerCase().endsWith('.mp4')) {
-    return { ok: false, reason: 'Video must be an MP4 file.' };
+    return {
+      ok: false,
+      reason: `${name} is named as an MP4 but your device sent it `
+        + `${type ? `as ${type}` : 'with no file type at all'}. RISE goes by the `
+        + 'type rather than the name. Re-export or re-save it as MP4 and choose it again.'
+    };
   }
 
   return {
     ok: false,
-    reason: `${name || 'That file'} is not a kind of file a reading can carry.`
+    reason: `${name || 'That file'} is not a kind of file a reading can carry. `
+      + 'It takes JPEG, PNG, WebP or GIF images, and MP4 video.'
   };
 }
 
