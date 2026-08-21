@@ -666,7 +666,7 @@ verdict about the score; `2` is the argv.
 | 20 | not a score yet | `PROGRAM_IO_EMPTY`, `PROGRAM_IO_JSON`, `PROGRAM_IO_TOO_LARGE` |
 | 21 | not a score this doorway may admit | `PROGRAM_IO_SCHEMA`, `PROGRAM_IO_RECORD`, `PROGRAM_IO_PUBLISHED_REFUSED` |
 | 22 | it smuggles something | `PROGRAM_IO_URI_REFUSED`, `PROGRAM_IO_PROTOTYPE` |
-| 23 | the program's own shape | `PROGRAM_LANE_OVERLAP`, `PROGRAM_READING_*`, `PROGRAM_INCOMPLETE_RANGE`, `PROGRAM_UNKNOWN_FIELD`, `WORKSHOP_PROJECT_*`, … |
+| 23 | the program's own shape | `PROGRAM_LANE_OVERLAP`, `PROGRAM_READING_*`, `PROGRAM_INCOMPLETE_RANGE`, `PROGRAM_UNKNOWN_FIELD`, `PROGRAM_SOURCE_OWNERSHIP`, `PROGRAM_TRANSITION_SOURCE_DUPLICATE`, `WORKSHOP_PROJECT_*`, … |
 | 24 | the capability document | `CURATOR_CONTEXT_*` |
 | 30 | a work this build does not hold | `PROGRAM_IO_UNKNOWN_SOURCE` |
 | 31 | the work is here, that division is not | `PROGRAM_IO_UNKNOWN_DIVISION` |

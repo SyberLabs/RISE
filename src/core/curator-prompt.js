@@ -37,6 +37,7 @@ import {
 import {
   EXTENT_MIN_WORDS,
   EXTENT_OVERSHOOT_LIMIT,
+  extentNominalWords,
   extentReadingBound
 } from './library-extent.js';
 
@@ -53,16 +54,31 @@ const EXAMPLE_TRANSITION_MS = Math.min(1_200,
 /** The opening length the examples ask for, when they need an opening. */
 const EXAMPLE_OPENING_WORDS = 200;
 /**
- * What that ask costs a budget, from the function that decides it.
+ * THE MOST THAT ASK MAY READ, from the function that decides it.
  *
- * The prompt tells a curator to price "#12:200" at 320 words. That figure is
- * `extentReadingBound`'s and was typed in as a literal beside a literal 1.6 —
- * two copies of an arithmetic the gate performs, in prose nothing checks. Any
- * division longer than the bound gives the bound, so the ceiling is what a
- * long division reports.
+ * The prompt used to price "#12:200" at 320 words and stop there. That figure
+ * is `extentReadingBound`'s and was typed in as a literal beside a literal
+ * 1.6 — two copies of an arithmetic the gate performs, in prose nothing
+ * checks. Any division longer than the bound gives the bound, so the ceiling
+ * is what a long division reports.
  */
 const EXAMPLE_OPENING_BOUND = extentReadingBound(
   Number.MAX_SAFE_INTEGER, EXAMPLE_OPENING_WORDS
+);
+/**
+ * WHAT THAT ASK COSTS A BUDGET, which is the other number and was the wrong
+ * one to leave unsaid.
+ *
+ * The gate spends what an extent NAMES against the reader's length and the
+ * bound only against the atom ceiling (experience-program-io.js says why in
+ * full). While the prompt taught the bound as the price, a model obeying it
+ * budgeted 320 for a reading that cost 200 and under-filled the reader's
+ * length by about 40% — the same defect as the gate's old over-charge with
+ * the sign reversed. Both numbers are now said, and both are derived here
+ * rather than typed, so the brief cannot drift from the gate again.
+ */
+const EXAMPLE_OPENING_COST = extentNominalWords(
+  EXAMPLE_OPENING_BOUND, EXAMPLE_OPENING_WORDS
 );
 
 const number = (value) => Number(value).toLocaleString('en-US');
@@ -135,12 +151,16 @@ function unitWithin(entry, share, taken = new Set()) {
       division: best + 1
     };
   }
-  // An opening, asked for short enough that even the overshoot fits.
+  // An opening, priced at what it names — which is what the reader's length
+  // is spent against. It used to reserve the overshoot, asking for
+  // `share / 1.6` so the BOUND would fit; the gate charges the bound only
+  // against the atom ceiling now, so reserving it here bought nothing and
+  // cost the example about 40% of every length it was generated under.
   const first = words.findIndex((_, index) => open(index));
   if (first < 0) return null;
   const ask = Math.max(EXTENT_MIN_WORDS,
-    Math.min(EXAMPLE_OPENING_WORDS, Math.floor(share / EXTENT_OVERSHOOT_LIMIT)));
-  const cost = extentReadingBound(words[first], ask);
+    Math.min(EXAMPLE_OPENING_WORDS, Math.floor(share)));
+  const cost = extentNominalWords(extentReadingBound(words[first], ask), ask);
   if (cost == null || cost > share) return null;
   return {
     id: `${entry.id}#${first + 1}:${ask}`,
@@ -545,11 +565,17 @@ function lengthLines(ctx, extent) {
     "  entry's `divisions.count`.",
     `- An opening under ${EXTENT_MIN_WORDS} words: "#12:37" asks for a fragment,`,
     '  not an opening.',
-    '- An opening the text cannot be cut near. RISE rounds to the nearest',
-    `  sentence and will overshoot by up to ${EXTENT_OVERSHOOT_LIMIT}×, so budget `
-    + `"#12:${EXAMPLE_OPENING_WORDS}" at ${number(EXAMPLE_OPENING_BOUND)}`,
-    '  words — but where the first honest boundary lies past that, the id is',
-    '  refused rather than handed back 5,714 words for a 200-word ask.',
+    `- An opening the text cannot be cut near. "#12:${EXAMPLE_OPENING_WORDS}" costs `
+    + `${number(EXAMPLE_OPENING_COST)} words`,
+    "  against the reader's length, because an opening delivers the boundary",
+    '  nearest its ask; RISE rounds to a sentence, so it may READ up to '
+    + `${EXTENT_OVERSHOOT_LIMIT}×`,
+    `  that — ${number(EXAMPLE_OPENING_BOUND)} words. Budget the first and add `
+    + 'those up; the second is',
+    '  only the most it can run to. Where the first honest boundary lies past',
+    `  ${number(EXAMPLE_OPENING_BOUND)}, the id is refused rather than handed back `
+    + '5,714 words for a',
+    `  ${EXAMPLE_OPENING_WORDS}-word ask.`,
     '',
     'CHOOSING A DIVISION — `divisions.labels` names every division in order,',
     'so labels[0] is division 1. Choose by the name: a reader meets',

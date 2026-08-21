@@ -21,12 +21,16 @@ import {
 import { buildCuratorPrompt } from './curator-prompt.js';
 import { parseCuratorPaste } from './experience-program-io.js';
 import { isBoundarySource } from './journey-compiler.js';
-import { extentReadingBound } from './library-extent.js';
+import {
+    EXTENT_OVERSHOOT_LIMIT, extentNominalWords, extentReadingBound
+} from './library-extent.js';
 import { resolveLibrarySourceIds } from './scriptorium-resolve.js';
 import {
     EXPERIENCE_PROGRAM_LIMITS, EXPERIENCE_PROGRAM_SCHEMA
 } from './experience-program.js';
-import { MAX_SAFE_TARGET_WORDS, READING_LIMITS } from './reading-limits.js';
+import {
+    MAX_SAFE_TARGET_WORDS, READING_LIMITS, READING_PACE
+} from './reading-limits.js';
 import { AGENT_OPERATION_SET_SCHEMA } from './agent-operations.js';
 
 /** Exactly what the room hands the reader at its default length. */
@@ -180,6 +184,169 @@ describe('the example holds at both ends of the slider', () => {
             const blocks = jsonBlocks(buildCuratorPrompt({ context }));
             const parsed = parseCuratorPaste(blocks[0], { context });
             expect(parsed.kind).toBe('program');
+        });
+    }
+});
+
+/**
+ * THE BRIEF PRICED AN OPENING AT A NUMBER THE GATE NO LONGER SPENDS.
+ *
+ * The gate charges what an extent NAMES against the reader's length — `#12:200`
+ * costs 200 — and keeps the 1.6× `extentReadingBound` for the atom ceiling,
+ * where it is load-bearing. The prompt still taught the bound as the price, so
+ * a model obeying it budgeted 320 for a reading that costs 200 and under-filled
+ * by about 40%: the same defect as the gate's old over-charge with the sign
+ * reversed, and invisible to a test that matches the sentence for "1.6×".
+ *
+ * So these read the two numbers back out of the sentence and spend them. The
+ * arithmetic check binds each to the function that produces it; the two after
+ * it hand the gate a score built by doing exactly what the sentence says, and
+ * require the gate to charge what the sentence promised.
+ */
+describe('the prompt prices an opening at the number the gate spends', () => {
+    const context = roomContext();
+    const prompt = buildCuratorPrompt({ context });
+
+    /** A budget nothing can fit, so every score comes back with its own price. */
+    const penny = roomContext(1);
+
+    /**
+     * WHAT THE GATE SPENDS, ASKED OF THE GATE. Recomputing it here would prove
+     * this file agrees with itself. `PROGRAM_IO_BUDGET_EXCEEDED` carries the
+     * total the gate measured, which is the number a reader's length is spent
+     * against and the number the sentence is about.
+     */
+    const gateCharge = (program) => {
+        try {
+            parseCuratorPaste(JSON.stringify(program), { context: penny });
+        } catch (error) {
+            if (error.code === 'PROGRAM_IO_BUDGET_EXCEEDED') return error.details.total;
+            throw error;
+        }
+        throw new Error('a one-word budget admitted this score');
+    };
+
+    /** The pricing sentence, unwrapped, with its numbers pulled out. */
+    const pricing = (text) => {
+        const bullet = text
+            .slice(text.indexOf('- An opening the text cannot be cut near.'))
+            .split('\n\n')[0]
+            .replace(/\s+/gu, ' ');
+        const cost = bullet.match(
+            /"#\d+:(\d+)" costs ([\d,]+) words against the reader's length/u);
+        const bound = bullet.match(/may READ up to ([\d.]+)× that — ([\d,]+) words/u);
+        expect(cost, 'the prompt states no cost for an opening').toBeTruthy();
+        expect(bound, 'the prompt states no bound for an opening').toBeTruthy();
+        const plain = (value) => Number(value.replace(/,/gu, ''));
+        return {
+            ask: plain(cost[1]),
+            cost: plain(cost[2]),
+            multiple: Number(bound[1]),
+            bound: plain(bound[2])
+        };
+    };
+
+    /**
+     * A score of openings, each asked for at the length the sentence prices,
+     * over divisions long enough that the cut is a cut rather than the whole
+     * division — which is the case the two numbers differ in.
+     */
+    const openingsFilling = (budget, { ask, cost }) => {
+        const clips = [];
+        for (const entry of context.library) {
+            const words = entry.divisions?.words;
+            if (!Array.isArray(words)) continue;
+            const body = Number.isInteger(entry.divisions.bodyFrom)
+                ? entry.divisions.bodyFrom : 1;
+            words.forEach((count, index) => {
+                if (index + 1 < body) return;
+                if (count <= extentReadingBound(Number.MAX_SAFE_INTEGER, ask)) return;
+                if ((clips.length + 1) * cost > budget) return;
+                if (clips.length >= EXPERIENCE_PROGRAM_LIMITS.maxMovements) return;
+                clips.push({
+                    id: `m${clips.length + 1}`,
+                    anchor: { sourceIds: [`${entry.id}#${index + 1}:${ask}`] },
+                    data: { index: clips.length, title: `Piece ${clips.length + 1}` }
+                });
+            });
+        }
+        return {
+            schema: EXPERIENCE_PROGRAM_SCHEMA,
+            id: 'by-the-brief',
+            authority: 'proposed',
+            editable: true,
+            tracks: [{ id: 'movements', kind: 'movement', clips }]
+        };
+    };
+
+    it('states both numbers, each derived from the function that decides it', () => {
+        const { ask, cost, multiple, bound } = pricing(prompt);
+        // The most a cut can be handed, and what it names — the same two
+        // functions the gate calls, over a division longer than either.
+        expect(bound).toBe(extentReadingBound(Number.MAX_SAFE_INTEGER, ask));
+        expect(cost).toBe(extentNominalWords(bound, ask));
+        expect(multiple).toBe(EXTENT_OVERSHOOT_LIMIT);
+        // Saying one number twice would satisfy every check above but the
+        // last: the whole point is that a curator is told two different things.
+        expect(cost).toBeLessThan(bound);
+    });
+
+    it('charges the stated cost, not the stated bound, against a length', () => {
+        const { ask, cost, bound } = pricing(prompt);
+        const one = openingsFilling(cost, pricing(prompt));
+        expect(one.tracks[0].clips).toHaveLength(1);
+        expect(gateCharge(one)).toBe(cost);
+        // And the id is admitted at exactly the length the sentence prices it
+        // at — a promise the reader's own slider keeps.
+        expect(parseCuratorPaste(JSON.stringify(one), { context: roomContext(cost) }).kind)
+            .toBe('program');
+        expect(cost).toBeLessThan(bound);
+        expect(ask).toBe(cost);
+    });
+
+    /**
+     * THE END-TO-END PROOF: a model that does the arithmetic the brief teaches.
+     *
+     * It reads the price out of the sentence, names openings until the length
+     * is spent, and hands the score in. What the gate then charges is what the
+     * reader gets. Under the old sentence the model priced each opening at the
+     * bound, named ⌊length / 320⌋ of them, and delivered 200 apiece — a 10-minute
+     * sitting filled to about 63%. The sentence is the only thing that changed.
+     */
+    for (const minutes of [5, 10]) {
+        it(`fills a ${minutes}-minute length when a model follows it`, () => {
+            const budget = minutes * READING_PACE.default;
+            const priced = pricing(buildCuratorPrompt({ context: roomContext(budget) }));
+            const filled = openingsFilling(budget, priced);
+            const charged = gateCharge(filled);
+            expect(charged).toBe(filled.tracks[0].clips.length * priced.cost);
+            expect(charged / budget,
+                `a model obeying the brief fills ${Math.round(100 * charged / budget)}% `
+                + `of a ${minutes}-minute reading`).toBeGreaterThanOrEqual(0.95);
+            // And what it composed is a score the room takes at that length.
+            expect(parseCuratorPaste(JSON.stringify(filled),
+                { context: roomContext(budget) }).kind).toBe('program');
+        });
+    }
+
+    /**
+     * AND THE WORKED EXAMPLE OBEYS ITS OWN SENTENCE. It reserved the overshoot
+     * — asking for `share / 1.6` so the BOUND would fit the share — which was
+     * the same over-charge in the same file, and cost a one-minute reading a
+     * fifth of itself and a five-minute reading nearly a quarter.
+     */
+    for (const minutes of [1, 5]) {
+        it(`prints an example that fills the ${minutes}-minute length it was made for`, () => {
+            const budget = minutes * READING_PACE.default;
+            const example = JSON.parse(jsonBlocks(
+                buildCuratorPrompt({ context: roomContext(budget) }))[0]);
+            const charged = gateCharge(example);
+            expect(charged / budget).toBeGreaterThanOrEqual(0.95);
+            // BOTH SIDES, because the example keeps its own books and the gate
+            // keeps the real ones. Pricing a piece at less than the gate
+            // charges fills the page just as convincingly and prints a score
+            // the room refuses.
+            expect(charged).toBeLessThanOrEqual(budget);
         });
     }
 });
@@ -446,6 +613,25 @@ describe('the transition the prompt teaches is one the gate takes', () => {
         const parsed = parseCuratorPaste(JSON.stringify(program), { context });
         expect(parsed.kind).toBe('program');
         expect(parsed.program.tracks.some(track => track.kind === 'transition')).toBe(true);
+    });
+
+    it('points from the Structure list to where the shape is taught', () => {
+        // The Structure list is where a model looks for the track kinds, and
+        // it named the transition track without ever saying what one looks
+        // like. The pointer is read out of the list and followed, so a
+        // section that is renamed or a bullet that stops pointing both fail
+        // here rather than leaving a model to search the brief.
+        const structure = prompt
+            .slice(prompt.indexOf('Structure:'), prompt.indexOf('PACE —'))
+            .replace(/\s+/gu, ' ');
+        const pointer = structure.match(
+            /A transition is a scored silence between two movements — see ([A-Z][A-Z ]+[A-Z]) below/u);
+        expect(pointer, 'the Structure list says nothing about a transition\'s shape')
+            .toBeTruthy();
+        const at = prompt.indexOf(`${pointer[1]} —`);
+        expect(at, `the Structure list points at ${pointer[1]}, which has no section`)
+            .toBeGreaterThan(-1);
+        expect(prompt.slice(at)).toContain('"kind": "transition"');
     });
 
     it('says which door takes a transition, not only which one refuses it', () => {

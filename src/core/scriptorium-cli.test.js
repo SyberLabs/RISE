@@ -515,19 +515,13 @@ describe('a refusal code is an exit status', () => {
    * An entry here is a code somebody decided not to document, which is a
    * decision that should cost a sentence.
    *
-   * THESE TWO ARE A HANDBACK RATHER THAN A DECISION. Both are the same verdict
-   * — one passage named twice — and both reached readers as a raw validator
-   * message until `describeImportFailure` was given words for them. Phrasing a
-   * refusal is what puts it in this check, and §13 is edited elsewhere, so the
-   * row 23 cell that should name them is handed back rather than written here.
-   * Delete these when it does.
+   * IT IS EMPTY, AND THAT IS THE POINT. It held `PROGRAM_SOURCE_OWNERSHIP` and
+   * `PROGRAM_TRANSITION_SOURCE_DUPLICATE` while §13 row 23 had yet to name
+   * them — a handback rather than a decision, since both reach a reader
+   * through `describeImportFailure` and phrasing a refusal is what puts it in
+   * this check. The row names them now, so both are back under the guard.
    */
-  const UNNAMED_IN_OPEN_ROW = Object.freeze({
-    PROGRAM_SOURCE_OWNERSHIP: '§13 row 23 has yet to name it; the spec is edited '
-      + 'elsewhere and this file reads it rather than writing it',
-    PROGRAM_TRANSITION_SOURCE_DUPLICATE: 'the same handback — its twin in the '
-      + 'transition lane, refused by the same rule at the same status'
-  });
+  const UNNAMED_IN_OPEN_ROW = Object.freeze({});
 
   const SPEC_ROWS = (() => {
     const spec = readFileSync(
@@ -548,6 +542,24 @@ describe('a refusal code is an exit status', () => {
     }
     return rows;
   })();
+
+  it('keeps no excuse for a code the table already names', () => {
+    // AN EXEMPTION IS THE ONE WAY BACK OUT OF THE GUARD. Row 23 names both of
+    // the codes that used to be listed here, and re-listing either would
+    // silence the backward pass for it again without touching the spec — a
+    // deletion from the table could then follow unread. An entry is only
+    // honest while the row it excuses does not name the code.
+    for (const [code, reason] of Object.entries(UNNAMED_IN_OPEN_ROW)) {
+      expect(typeof reason === 'string' && reason.length > 20,
+        `${code} is excused without a reason worth the name`).toBe(true);
+      const row = SPEC_ROWS.get(exitStatusForCode(code));
+      expect(row?.open, `${code} is excused at a row this file does not leave open`)
+        .toBe(true);
+      expect(rowNames(row, code),
+        `§13 names ${code} already, so the excuse only hides a later deletion`)
+        .toBe(false);
+    }
+  });
 
   it('marks exactly the rows this file allows to end in an ellipsis', () => {
     const marked = [...SPEC_ROWS].filter(([, row]) => row.markedOpen)
