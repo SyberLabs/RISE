@@ -176,3 +176,54 @@ describe('an unscored reading says so', () => {
         expect(estimateRundownMinutes(rundown, 320)).toBeNull();
     });
 });
+
+/**
+ * A DIVISION HAS A LENGTH, and this section is where the reader learns it.
+ *
+ * The lookup here was by exact id, so it had never heard of the extent grammar
+ * the room's own prompt teaches. Every score naming `work#12` or `work#12:200`
+ * reported "Length unknown" and no minutes at all — in the one section that
+ * tells a reader what they are agreeing to, directly below a gate that had
+ * already charged the score its 38 words.
+ */
+describe('a movement that names part of a work', () => {
+    const CHAPTERS = {
+        library: [{
+            id: 'sacred-tao-te-ching',
+            title: 'Tao Te Ching',
+            words: 10_321,
+            divisions: { count: 3, noun: 'Chapter', words: [38, 60, 120] }
+        }]
+    };
+
+    const naming = (sourceId) => validateExperienceProgram({
+        schema: 'rise.experience-program.v1',
+        id: 'part-of-a-work',
+        authority: 'proposed',
+        editable: true,
+        tracks: [{
+            id: 'movements',
+            kind: 'movement',
+            clips: [{ id: 'm1', anchor: { sourceIds: [sourceId] }, data: { index: 0, title: 'One' } }]
+        }]
+    });
+
+    it('says how long the division is, not that the length is unknown', () => {
+        const rundown = describeProgramRundown(naming('sacred-tao-te-ching#2'), CHAPTERS);
+        expect(rundown.totals.words).toBe(60);
+        expect(rundown.movements[0].sources[0].words).toBe(60);
+        expect(rundown.movements[0].sources[0].title).toBe('Tao Te Ching');
+    });
+
+    it('charges an opening the most it can read, as the gate does', () => {
+        // 40 words asked for, cut at the nearest boundary within 1.6× — so 64
+        // is what the budget spent and 64 is what the reader is shown.
+        const rundown = describeProgramRundown(naming('sacred-tao-te-ching#3:40'), CHAPTERS);
+        expect(rundown.totals.words).toBe(64);
+    });
+
+    it('still calls a division the work has not unknown', () => {
+        const rundown = describeProgramRundown(naming('sacred-tao-te-ching#900'), CHAPTERS);
+        expect(rundown.totals.words).toBeNull();
+    });
+});

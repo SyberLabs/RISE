@@ -38,6 +38,7 @@ import {
     requestVisualInterlocutionConsent
 } from './core/visual-safety.js';
 import { clampBandFraction } from './core/band-offset.js';
+import { clampReadingWpm } from './core/reading-limits.js';
 import { normalizeVisualSelection } from './core/visual-selection.js';
 
 // Import styles
@@ -1315,9 +1316,11 @@ class App {
                 masterVolume: Number.isFinite(Number(merged.masterVolume))
                     ? Math.max(0, Math.min(1, Number(merged.masterVolume)))
                     : defaultSettings.masterVolume,
-                defaultWpm: Number.isFinite(Number(merged.defaultWpm))
-                    ? Math.max(50, Math.min(1000, Number(merged.defaultWpm)))
-                    : defaultSettings.defaultWpm,
+                // The same window the reading engine performs at, so a pace
+                // this accepts is a pace the reader actually gets. `null` and
+                // `''` reach the default rather than Number()'s 0 and the
+                // floor it clamps to.
+                defaultWpm: clampReadingWpm(merged.defaultWpm, defaultSettings.defaultWpm),
                 defaultCurve: curves.has(merged.defaultCurve) ? merged.defaultCurve : defaultSettings.defaultCurve,
                 defaultAudioPreset: typeof merged.defaultAudioPreset === 'string'
                     ? merged.defaultAudioPreset.slice(0, 80)
@@ -1345,7 +1348,12 @@ class App {
      * Handle settings changes
      */
     handleSettingsChange(key, value) {
-        this.settings[key] = value;
+        // A pace is bounded where it is chosen, not where it is read. Stored
+        // unbounded, a 5,000 would sit in Settings looking accepted and be
+        // overridden to 1,000 by every surface that later read it.
+        this.settings[key] = key === 'defaultWpm'
+            ? clampReadingWpm(value, this.settings.defaultWpm)
+            : value;
         this.saveSettings();
 
         // Apply certain settings immediately

@@ -1,5 +1,5 @@
 import { validateExperienceProgram } from './experience-program.js';
-import { READING_LIMITS } from './reading-limits.js';
+import { clampReadingWpm, READING_LIMITS } from './reading-limits.js';
 import {
   compileVisualScoreProgram,
   createSequenceVisualAsset,
@@ -161,11 +161,18 @@ function normalizeAssets(value, path = '$.assets') {
   return assets;
 }
 
+/**
+ * The pace clamp here is the layer the compiled session honours, so it is the
+ * one that decides what a reader is allowed to read at. It used to be 100–500
+ * — the Chamber slider's range, copied — which meant a reader who set 60 in
+ * their settings was accepted by the app, stored at 60, and read at 100. It is
+ * READING_PACE now, the window the compiler, the program validator and the
+ * Chamber's live speed keys already shared.
+ */
 function normalizeReading(value = {}) {
   const input = value && typeof value === 'object' ? value : {};
-  const numericWpm = Number(input.wpm);
   return {
-    wpm: Number.isFinite(numericWpm) ? Math.max(100, Math.min(500, Math.round(numericWpm))) : 200,
+    wpm: clampReadingWpm(input.wpm),
     chunkMode: CHUNK_MODES.has(input.chunkMode) ? input.chunkMode : 'word',
     curve: CURVES.has(input.curve) ? input.curve : 'flat',
     displayMode: text(input.displayMode, 'focal', 40)
@@ -284,10 +291,14 @@ export function emptyWorkshopProject({
 }
 
 function migratedWpm(blueprint) {
-  const raw = Number(blueprint.wpm);
-  const wpm = Number.isFinite(raw) ? raw : 200;
+  const wpm = clampReadingWpm(blueprint.wpm);
   if (blueprint.paceV2 === true) return wpm;
-  return Math.max(100, Math.min(500, Math.round((wpm * 1.4375) / 10) * 10));
+  // Feel preservation: a pace saved before the temporal contract was
+  // calibrated under a hidden slowdown, so the number rises and the delivered
+  // reading stays where it was. Rounded to the slider's step, but bounded by
+  // the engine's window rather than the slider's — clamping a migrated 503
+  // back to 500 discards the feel this migration exists to keep.
+  return clampReadingWpm(Math.round((wpm * 1.4375) / 10) * 10);
 }
 
 function legacyAssets(blueprint) {

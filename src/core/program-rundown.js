@@ -12,6 +12,7 @@
  */
 
 import { anchorCoordinateSystem } from './experience-program.js';
+import { createCuratorSourceReader } from './curator-context.js';
 
 const PERCENT = fraction => `${Math.round(fraction * 100)}%`;
 
@@ -94,10 +95,17 @@ const trackOf = (program, kind) => (program?.tracks || []).find(track => track.k
  * }}
  */
 export function describeProgramRundown(program, context = null) {
-  const words = new Map();
-  for (const item of [...(context?.sources || []), ...(context?.library || [])]) {
-    if (Number.isInteger(item.words)) words.set(item.id, item.words);
-  }
+  /**
+   * HOW LONG, through the reader the gate uses.
+   *
+   * This was a `new Set(library.map(...))`-shaped lookup by exact id, and so
+   * had never heard of an extent: every score naming `sacred-tao-te-ching#40`
+   * — the id the room's own prompt teaches — reported "Length unknown" in the
+   * one section that tells a reader what they are agreeing to, while the gate
+   * beside it had charged the score 38 words. Same question, one answer
+   * (createCuratorSourceReader).
+   */
+  const read = createCuratorSourceReader(context || {});
   const titles = new Map();
   for (const item of [...(context?.sources || []), ...(context?.library || [])]) {
     titles.set(item.id, item.title || item.id);
@@ -105,11 +113,14 @@ export function describeProgramRundown(program, context = null) {
 
   const movementTrack = trackOf(program, 'movement');
   const movements = (movementTrack?.clips || []).map(clip => {
-    const sources = (clip.anchor.sourceIds || []).map(id => ({
-      id,
-      title: titles.get(id) || id,
-      words: words.has(id) ? words.get(id) : null
-    }));
+    const sources = (clip.anchor.sourceIds || []).map(id => {
+      const reading = read(id);
+      return {
+        id,
+        title: titles.get(id) || reading.title || id,
+        words: Number.isInteger(reading.words) ? reading.words : null
+      };
+    });
     const known = sources.filter(source => source.words !== null);
     return {
       id: clip.id,
@@ -157,8 +168,15 @@ export function describeProgramRundown(program, context = null) {
  * Minutes are a view of a word count, never a stored value — and with a scored
  * pace the score's own wpm governs where it applies, so the reader's setting
  * only answers for the rest.
+ *
+ * THE PACE IS REQUIRED. This carried a default of 320, which no caller ever
+ * reached — the only production one (the Scriptorium room) passes readerWpm()
+ * — so it was a fourth statement of the reader's pace, sitting unread, ready
+ * to answer for a future caller with a number nothing else in the codebase
+ * uses for this. An omitted pace now yields null, which reads as "no estimate"
+ * rather than as an estimate at a pace nobody set.
  */
-export function estimateRundownMinutes(rundown, readerWpm = 320) {
+export function estimateRundownMinutes(rundown, readerWpm) {
   if (!Number.isInteger(rundown?.totals?.words)) return null;
   const wholeReading = rundown.pace.find(entry => entry.span === 'throughout');
   const scored = wholeReading && /(\d+) words a minute/.exec(wholeReading.description);

@@ -13,6 +13,7 @@
  */
 
 import { validateNarrationCue } from './narration.js';
+import { READING_PACE } from './reading-limits.js';
 
 export const EXPERIENCE_PROGRAM_SCHEMA = 'rise.experience-program.v1';
 
@@ -32,8 +33,8 @@ export const EXPERIENCE_PROGRAM_LIMITS = Object.freeze({
   minTransitionDurationMs: 200,
   maxTransitionDurationMs: 30_000,
   maxFadeMs: 10_000,
-  minWpm: 50,
-  maxWpm: 1000,
+  minWpm: READING_PACE.min,
+  maxWpm: READING_PACE.max,
   maxMetadataDepth: 4,
   maxMetadataKeys: 40,
   maxMetadataArray: 64,

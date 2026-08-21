@@ -3,6 +3,8 @@
  * Computes atom durations based on type, complexity, weight, and state curves
  */
 
+import { READING_PACE } from './reading-limits.js';
+
 /**
  * Modality types for atoms
  */
@@ -237,7 +239,9 @@ export class PacingEngine {
 
     normalizeWpm(wpm) {
         const value = Number(wpm);
-        return Number.isFinite(value) ? Math.max(50, Math.min(1000, value)) : 320;
+        return Number.isFinite(value)
+            ? Math.max(READING_PACE.min, Math.min(READING_PACE.max, value))
+            : 320;
     }
 
     /**
