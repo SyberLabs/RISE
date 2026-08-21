@@ -30,6 +30,29 @@ import {
   clearVisualViewportBottom
 } from '../core/visual-viewport.js';
 import { hasNextLibraryDivision } from '../core/reading-continuation.js';
+import { READING_PACE } from '../core/reading-limits.js';
+
+/**
+ * THE SEAM, AS THE CHAMBER IS WILLING TO DRAW IT.
+ *
+ * The compiler decides what a seam SAYS (session-compiler.js); this decides
+ * whether there is anything drawable here at all. A restored session, a
+ * hand-edited export or an older Vault entry may carry anything under
+ * `atom.seam`, and the law at every such door is the same: a seam that
+ * cannot be named is ABSENT — the boundary stays the silence it already was
+ * — never a frame with nothing in it and never the word "undefined".
+ *
+ * An unrecognised depth degrades to the quieter of the two rather than the
+ * louder, so a value nobody wrote cannot announce itself as a new book.
+ */
+function seamOf(atom) {
+  const seam = atom?.seam;
+  if (!seam || typeof seam !== 'object') return null;
+  const label = typeof seam.label === 'string' ? seam.label.trim() : '';
+  if (!label) return null;
+  const name = typeof seam.name === 'string' ? seam.name.trim() : '';
+  return { depth: seam.depth === 'work' ? 'work' : 'piece', label, name: name || label };
+}
 
 /**
  * Chamber Component
@@ -1328,6 +1351,46 @@ export class Chamber {
   }
 
   /**
+   * Draw the seam between two pieces.
+   *
+   * A DEPTH IS A DIFFERENT WEIGHT, NOT A DIFFERENT SENTENCE. Arriving in
+   * another epitaph and arriving in another book were indistinguishable, and
+   * the fix is not more words — it is that one crossing is a quiet name and
+   * the other is an announcement with a rule under it. Both last exactly as
+   * long as the boundary atom the score already scheduled; nothing here owns
+   * a clock.
+   *
+   * Built with DOM calls rather than markup, so a work title or a division
+   * label is text and can never be anything else.
+   */
+  paintSeam(atomDisplay, seam) {
+    this.cancelReveal();
+    this._concealedReveal = null;
+    atomDisplay.textContent = '';
+    // A seam belongs to the reading, not to the passage that just ended:
+    // Living Text's colour and the previous phrase's size are both cleared
+    // so a mood does not leak across a boundary.
+    atomDisplay.style.removeProperty('color');
+    atomDisplay.style.removeProperty('text-shadow');
+    atomDisplay.style.removeProperty('--atom-scale');
+
+    const mark = document.createElement('div');
+    mark.className = 'atom-seam';
+    mark.dataset.seamDepth = seam.depth;
+    // The eye is given the part that changed; a reader who cannot see the
+    // screen is given the whole identity, since they have no page around it.
+    mark.setAttribute('aria-label', seam.name);
+    const label = document.createElement('span');
+    label.className = 'atom-seam-label';
+    label.textContent = seam.label;
+    mark.append(label);
+    atomDisplay.append(mark);
+
+    atomDisplay.style.transition = 'opacity 150ms var(--ease-out)';
+    atomDisplay.style.opacity = '1';
+  }
+
+  /**
    * Reveal an atom's words over time.
    *
    * The schedule decides WHEN each word appears; this only applies it.
@@ -1425,6 +1488,15 @@ export class Chamber {
     // render nothing and drop opacity so no residue — like the glass tile
     // collapsing into a caret-like slab — ever pulses between tokens.
     if (!atom.content || !atom.content.trim()) {
+      // ONE EMPTY ATOM IS NOT LIKE THE OTHERS. A boundary between two pieces
+      // carries a seam, and the reader is shown who speaks next — silently,
+      // because the voice says nothing here and should not (§8.4). Every
+      // other empty atom is a paragraph break and stays blank.
+      const seam = seamOf(atom);
+      if (seam) {
+        this.paintSeam(atomDisplay, seam);
+        return;
+      }
       atomDisplay.style.transition = 'opacity 150ms var(--ease-out)';
       atomDisplay.style.opacity = '0';
       atomDisplay.textContent = '';
@@ -2158,7 +2230,10 @@ export class Chamber {
   updateWpm(delta) {
     if (!this.player) return;
 
-    this.currentWpm = Math.max(50, Math.min(1000, this.currentWpm + delta));
+    this.currentWpm = Math.max(
+      READING_PACE.min,
+      Math.min(READING_PACE.max, this.currentWpm + delta)
+    );
     const factor = this.baseWpm / this.currentWpm;
     this.player.setSpeedFactor(factor);
 

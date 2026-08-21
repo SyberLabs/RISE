@@ -1165,6 +1165,67 @@
   .movement-title { transition: none; }
 }
 
+/* THE SEAM BETWEEN TWO PIECES.
+ *
+ * A reading composed from several works crosses a boundary every few
+ * hundred words, and every one of those crossings used to be the same
+ * blank frame. The seam names what is arriving, in the place the reader
+ * is already looking — inside the atom display, where the text was a
+ * moment ago and will be a moment later.
+ *
+ * TWO DEPTHS. A `piece` seam is the next voice in the same book: it is a
+ * caption, dim and small, and it does not pretend to be an event. A
+ * `work` seam is another book: larger, brighter, and ruled, so a reader
+ * feels the change of hand without being told about it. Both live and die
+ * with the boundary atom's own duration. */
+.atom-seam {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  text-align: center;
+  /* Independent of --atom-scale: a seam is not a phrase and must not be
+   * sized by the length of the one before it. */
+  font-family: var(--font-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.5;
+}
+
+.atom-seam-label {
+  display: block;
+  max-width: 22ch;
+}
+
+.atom-seam[data-seam-depth="piece"] {
+  font-size: 0.72rem;
+  color: var(--color-mist);
+  opacity: 0.5;
+}
+
+.atom-seam[data-seam-depth="work"] {
+  font-size: 0.95rem;
+  color: var(--color-light);
+  opacity: 0.82;
+}
+
+/* Only the deeper crossing is ruled. A line over every epitaph would be
+   the same list with more furniture in it. */
+.atom-seam[data-seam-depth="work"]::before {
+  content: "";
+  display: block;
+  width: 4rem;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.4;
+}
+
+@media (max-width: 640px) {
+  .atom-seam[data-seam-depth="piece"] { font-size: 0.66rem; }
+  .atom-seam[data-seam-depth="work"] { font-size: 0.85rem; }
+  .atom-seam-label { max-width: 18ch; }
+}
+
 /* The living layer: work-engine families, Gallery Harmonograph, and
    Gallery plates. They sit UNDER the gallery's image planes — a movement
    that mixes them with museum works shows the works over the field,

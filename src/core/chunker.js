@@ -4,6 +4,7 @@
  */
 
 import { Atom } from './models.js';
+import { READING_PACE } from './reading-limits.js';
 
 /**
  * Special markers in text
@@ -130,7 +131,7 @@ const LEADING_SPEAKER_LABEL = /^([A-Z][A-Z '.-]{1,30}):\s+/;
  */
 function getBaseDuration(wpm) {
     const safeWpm = Number.isFinite(Number(wpm))
-        ? Math.max(50, Math.min(1000, Number(wpm)))
+        ? Math.max(READING_PACE.min, Math.min(READING_PACE.max, Number(wpm)))
         : 320;
     return (60 * 1000) / safeWpm;
 }
@@ -795,12 +796,35 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
 }
 
 /**
- * Get word count from text
- * @param {string} text 
+ * How many words a text holds. THE ONLY ONE (law 5).
+ *
+ * `library-extent.js` exported a second `countWords` for the extent path, and
+ * measured over 3,000 division texts, their prefixes and every opening the
+ * grammar can cut, the two never disagreed about a string — including every
+ * separator `\s` covers, `\u00a0` and `\ufeff` among them. They disagreed
+ * about everything else: this one threw, that one coerced `null` to 0 and `42`
+ * to 1. Two doors with different contracts and no way to tell which one a
+ * caller had reached, so there is one door now and the other module imports
+ * it. shelf-measurements.test.js fails if a second declaration appears.
+ *
+ * A NON-STRING IS REFUSED, SAID OUT LOUD. Coercing is repairing, and the
+ * repair is silent: `countWords(null)` returning 0 reports a source of
+ * unknown length as a source of no length, which is the difference between
+ * PROGRAM_IO_BUDGET_UNMEASURED and a budget that quietly balances. The guard
+ * is here rather than incidental in `.split` so the message names the caller's
+ * mistake instead of reading "Cannot read properties of null".
+ *
+ * @param {string} text
  * @returns {number}
+ * @throws {TypeError} when handed anything but a string
  */
 export function countWords(text) {
-    return text.split(/\s+/).filter(w => w.length > 0).length;
+    if (typeof text !== 'string') {
+        throw new TypeError(
+            `countWords expects a string, received ${text === null ? 'null' : typeof text}`
+        );
+    }
+    return text.split(/\s+/u).filter(word => word.length > 0).length;
 }
 
 /**

@@ -15,7 +15,8 @@ import {
     lowerExperienceProgram,
     EXPERIENCE_PROGRAM_LIMITS
 } from './experience-program.js';
-import { READING_LIMITS } from './reading-limits.js';
+import { READING_LIMITS, READING_PACE } from './reading-limits.js';
+import { parseLibraryExtent } from './library-extent.js';
 import { compileSourceSpans, sourceSpanCutPoints } from './source-span.js';
 import {
     applyProgressPace,
@@ -39,8 +40,8 @@ import {
 } from './sequence-capabilities.js';
 
 export const SESSION_LIMITS = Object.freeze({
-    minWpm: 50,
-    maxWpm: 1000,
+    minWpm: READING_PACE.min,
+    maxWpm: READING_PACE.max,
     maxTextCharacters: READING_LIMITS.maxTextCharacters,
     maxTotalChars: READING_LIMITS.maxTotalChars,
     maxAtoms: READING_LIMITS.maxAtoms,
@@ -334,8 +335,110 @@ function normalizeSources(config) {
     }).filter(source => source.raw.trim().length > 0);
 }
 
-function createSourceBreak(wpm, position) {
-    return new Atom({
+/**
+ * WHAT A READER MEETS WHERE TWO PIECES ARE JOINED.
+ * ────────────────────────────────────────────────
+ * A reading used to be one work cut into movements. On a shelf of 944
+ * divisions whose median is 850 words it is several pieces from several
+ * works, and every join between them compiled to the same nine-tenths of a
+ * second of nothing: Judge Somers ended, one blank atom passed, and Benjamin
+ * Fraser began. Two different dead people with nothing between them, and
+ * crossing OUT of Spoon River into the Tao looked identical to crossing
+ * between two of its neighbours. That is what makes a stitch read as a list.
+ *
+ * A seam names the piece the reader is arriving in. It costs no new data —
+ * every content atom already carries the resolved name of its own extent,
+ * and the boundary is the one atom that blanks it — and it changes nothing
+ * about what is SPOKEN. A boundary is empty and the Chamber speaks nothing
+ * at one (JOURNEYS-SPEC §8.4), which is right for a spoken reading. What
+ * changes is what is seen.
+ *
+ * TWO DEPTHS, BECAUSE TWO CROSSINGS ARE NOT THE SAME CROSSING. Another
+ * epitaph is the next voice in one graveyard; the Tao after Spoon River is
+ * another book, and the reading should be able to feel the difference.
+ * WHICH work a piece belongs to is settled by the extent grammar rather than
+ * by reading the name apart, because `parseLibraryExtent` is where that
+ * question is already answered and a second answer here would be a second
+ * grammar.
+ *
+ * A SEAM THAT CANNOT BE NAMED IS ABSENT. No placeholder, no raw id, no empty
+ * rule — the boundary stays exactly the silence it was, which is the same
+ * reverent degradation the imagery and the swells follow.
+ */
+const WORD_CHARACTER = /[\p{L}\p{N}]/u;
+
+/**
+ * `nextName` with the head it shares with `previousName` removed.
+ *
+ * Within one work every piece's name opens with the work's own title, so a
+ * seam that printed the whole name would show a reader seven words they
+ * already have and two they do not, eight times in a row — the list feeling,
+ * in typography.
+ *
+ * THE SHARED HEAD IS MEASURED, NOT PARSED. Reading the separator that
+ * `extentSourceName` writes would put a second copy of a format this module
+ * does not own next to the original; the common prefix of two names says the
+ * same thing while knowing nothing about it, and says nothing at all when
+ * the names have nothing in common.
+ *
+ * IT IS CUT AT A PUNCTUATION MARK, NOT AT ANY SHARED WORD. Cutting at the
+ * last word the two names had in common turned "Meditations · Book IV" into
+ * "Meditations · Book V" and showed the reader "V" — a fragment, because the
+ * shared run had eaten into the piece's own name. A mark is where one part of
+ * a name ends and another begins, whatever mark an edition uses, so the cut
+ * lands after the last one inside the shared run and nowhere else: "Book V"
+ * keeps its noun, and "Judge Somers" into "John M. Church" — which share
+ * only a J and no mark — is not cut at all.
+ */
+const SEPARATOR = /[^\p{L}\p{N}\s]/u;
+
+function elideSharedHead(previousName, nextName) {
+    let shared = 0;
+    while (shared < previousName.length && shared < nextName.length
+        && previousName[shared] === nextName[shared]) shared += 1;
+    let cut = 0;
+    for (let i = 0; i < shared; i += 1) {
+        if (SEPARATOR.test(nextName[i])) cut = i + 1;
+    }
+    if (!cut) return nextName;
+    while (cut < nextName.length && !WORD_CHARACTER.test(nextName[cut])) cut += 1;
+    return nextName.slice(cut).trim() || nextName;
+}
+
+/**
+ * The seam between two adjacent sources, or null where there is nothing
+ * honest to show.
+ *
+ * @param {object|null} previous the source the reader is leaving
+ * @param {object} next the source the reader is arriving in
+ * @returns {{depth: 'work'|'piece', label: string, name: string}|null}
+ */
+function describeSeam(previous, next) {
+    const name = typeof next?.name === 'string' ? next.name.trim() : '';
+    if (!name) return null;
+    const previousName = typeof previous?.name === 'string' ? previous.name.trim() : '';
+    const sameWork = Boolean(previous)
+        && parseLibraryExtent(previous.id).workId === parseLibraryExtent(next.id).workId;
+    return {
+        depth: sameWork ? 'piece' : 'work',
+        label: sameWork && previousName ? elideSharedHead(previousName, name) : name,
+        name
+    };
+}
+
+/**
+ * Both kinds of boundary carry the seam, because both are the same crossing
+ * to the reader. A score that authored its own transition has said how long
+ * the silence lasts and what sounds under it; it has not said, and should
+ * not have to say, who speaks next.
+ */
+function markSeam(atom, seam) {
+    if (seam) atom.seam = seam;
+    return atom;
+}
+
+function createSourceBreak(wpm, position, seam = null) {
+    return markSeam(new Atom({
         content: '',
         modality: 'text',
         duration: Math.round((60_000 / wpm) * 3),
@@ -344,7 +447,7 @@ function createSourceBreak(wpm, position) {
         tags: ['source-break'],
         timingLocked: true,
         position
-    });
+    }), seam);
 }
 
 /** A boundary shorter than this is not a transition; longer is a stall. */
@@ -369,12 +472,12 @@ const BOUNDARY_MAX_MS = 30_000;
  * Its synthetic sourceId is what makes the visual and audio programs
  * change cue at exactly this point and nowhere else.
  */
-function createAuthoredBoundary(boundary, position) {
+function createAuthoredBoundary(boundary, position, seam = null) {
     const duration = Math.min(
         Math.max(Math.round(Number(boundary.durationMs) || 0), BOUNDARY_MIN_MS),
         BOUNDARY_MAX_MS
     );
-    return new Atom({
+    return markSeam(new Atom({
         content: '',
         modality: 'text',
         duration,
@@ -386,7 +489,7 @@ function createAuthoredBoundary(boundary, position) {
         timingLocked: true,
         sourceId: boundary.sourceId,
         position
-    });
+    }), seam);
 }
 
 export function compileSession(input = {}) {
@@ -395,7 +498,7 @@ export function compileSession(input = {}) {
     if (sources.length === 0) throw new TypeError('A session requires at least one non-empty text source');
 
     const atoms = [];
-    let previousSourceId = null;
+    let previousSource = null;
     for (const source of sources) {
         // A pace scored over this source, if any. With no reading track this
         // is one piece carrying the session's own mode and wpm, so the call
@@ -467,10 +570,11 @@ export function compileSession(input = {}) {
             // the current behaviour, so a Journey's transitions are the
             // only thing that changes.
             const authored = (config.sourceBoundaries || []).find(
-                b => b.afterSourceId === previousSourceId && b.beforeSourceId === source.id);
+                b => b.afterSourceId === previousSource.id && b.beforeSourceId === source.id);
+            const seam = describeSeam(previousSource, source);
             atoms.push(authored
-                ? createAuthoredBoundary(authored, atoms.length)
-                : createSourceBreak(config.wpm, atoms.length));
+                ? createAuthoredBoundary(authored, atoms.length, seam)
+                : createSourceBreak(config.wpm, atoms.length, seam));
         }
         // Where each atom falls INSIDE its own source, measured in words
         // consumed. A visual program that changes figure at Milton's line
@@ -497,7 +601,7 @@ export function compileSession(input = {}) {
         // ranged clips in two coordinate systems on one lane and source.
         const uniformWpm = plan.pieces.length === 1 ? plan.pieces[0].wpm : config.wpm;
         applyProgressPace(sourceAtoms, plan.progressPace, () => uniformWpm);
-        previousSourceId = source.id;
+        previousSource = source;
     }
     if (atoms.length === 0) throw new TypeError('The supplied sources produced no playable content');
 
