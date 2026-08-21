@@ -54,10 +54,16 @@ describe('a label is not evidence', () => {
 describe('against the shelf', () => {
     it('leaves an author\'s own opening reachable', async () => {
         const works = ingestedArchiveTexts();
-        const index = (await import('./division-index.json')).default;
+        // BOTH SHELF STATES. The hard cases for this rule are all withheld
+        // works, whose divisions are recorded in their own file so that they
+        // stay checkable without riding into a reader's bundle.
+        const index = {
+            ...(await import('./division-index.json')).default,
+            ...(await import('./division-index.withheld.json')).default
+        };
         // Each of these opens on something the reader may well want.
-        // Withheld works keep their payloads, so the index still describes
-        // them and the rule can still be checked against the hard cases.
+        // Withheld works keep their payloads, so the corpus record still
+        // describes them and the rule can still be checked against them.
         for (const id of ['the-scarlet-letter', 'literary-leaves-of-grass',
             'a-doll-s-house', 'beowulf', 'le-morte-darthur', 'the-iliad',
             'paradise-lost', 'literary-meditations']) {

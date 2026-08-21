@@ -23,6 +23,14 @@
  * reader is being handed; `spoon-river#87` does not.
  */
 
+// A WORD IS COUNTED IN ONE PLACE (law 5). This module declared its own
+// `countWords`, coercing where the chunker's throws. Measured over every
+// division, section, paragraph and prefix of the committed shelf — 44,839
+// strings, 116,650,530 characters — the two never disagreed about a string;
+// they disagreed only about what a non-string is worth, which is the drift
+// that survives because nothing shows it.
+import { countWords } from '../../core/chunker.js';
+
 /** Elements Standard Ebooks uses for a work's addressable parts. */
 const PART_SELECTOR = [
   'article[epub\\:type~="z3998:poem"]',
@@ -179,10 +187,6 @@ function verseLines(block) {
  * @returns {{ text: string, lines: number }} `lines` counts VERSE lines only
  */
 const CELL_BLOCKS = /^(?:p|header|div|blockquote)$/u;
-
-function countWords(text) {
-  return String(text ?? '').split(/\s+/u).filter(Boolean).length;
-}
 
 function readBlock(element) {
   // A HEADING IS NEVER VERSE. Standard Ebooks sets a label and its ordinal as

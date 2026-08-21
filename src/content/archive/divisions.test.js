@@ -441,12 +441,31 @@ describe('the division index agrees with the works it describes', () => {
         // stay on disk so a re-ingest can be compared against them. What
         // this still forbids is a payload that is off the shelf and
         // nobody said why.
-        const { default: index } = await import('./division-index.json');
+        // BOTH FILES, or this asks the served shelf whether it contains
+        // anything unserved and is answered no by construction. The index is
+        // split by shelf state so that eighty withheld works stop riding into
+        // every reader's bundle; the drift it was written to catch is between
+        // the works DIRECTORY and the catalogue, and that lives in the union.
+        const index = {
+            ...(await import('./division-index.json')).default,
+            ...(await import('./division-index.withheld.json')).default
+        };
         const { INGESTED_META, WITHHELD_WORKS } = await import('./index.js');
         const registered = new Set(INGESTED_META.map(m => m.id));
+        expect(Object.keys(index).length)
+            .toBe(registered.size + Object.keys(WITHHELD_WORKS).length);
         const unshelved = Object.keys(index)
             .filter(id => !registered.has(id) && !Object.hasOwn(WITHHELD_WORKS, id));
         expect(unshelved, `${unshelved.join(', ')} are ingested but on no shelf`).toEqual([]);
+
+        // AND THE SERVED FILE HOLDS ONLY SERVED WORKS. This is the half that
+        // reaches a reader; a withheld id here is 49 KiB of metadata for a
+        // book nobody can name, shipped behind a runtime filter that cannot
+        // remove it (a static import IS the dependency).
+        const served = Object.keys((await import('./division-index.json')).default);
+        expect(served.filter(id => !registered.has(id)),
+            'withheld works in the shipped index').toEqual([]);
+        expect(served.length).toBe(registered.size);
 
         // And every withholding states its reason, so the shelf never
         // goes quiet about something it is holding back.
@@ -454,6 +473,44 @@ describe('the division index agrees with the works it describes', () => {
             expect(typeof reason === 'string' && reason.length > 20,
                 `${id} is withheld without a stated reason`).toBe(true);
         }
+    });
+
+    it('lets nothing that ships import the withheld record', async () => {
+        // THE 82 MB LESSON, restated at 49 KiB: a runtime filter cannot remove
+        // a build-time dependency, because the static import IS the
+        // dependency. `buildLibraryCatalogue` has always dropped the withheld
+        // works, and all eighty of them shipped anyway.
+        //
+        // A test may read the withheld record — the hard front-matter and
+        // division cases live there. Nothing a bundler follows may.
+        const { readdirSync, readFileSync, statSync } = await import('node:fs');
+        const { join } = await import('node:path');
+
+        const offenders = [];
+        const walk = (dir) => {
+            for (const name of readdirSync(dir)) {
+                const path = join(dir, name);
+                if (statSync(path).isDirectory()) {
+                    walk(path);
+                    continue;
+                }
+                if (!/\.(?:js|mjs|ts)$/u.test(name)) continue;
+                if (/\.test\.[jt]s$/u.test(name)) continue;
+                if (readFileSync(path, 'utf8').includes('division-index.withheld.json')) {
+                    offenders.push(path);
+                }
+            }
+        };
+        walk(join(process.cwd(), 'src'));
+
+        // The guard is worth its reach: it has to be able to see the string
+        // it is looking for.
+        expect(readFileSync(
+            join(process.cwd(), 'src/content/archive/front-matter.test.js'), 'utf8'
+        )).toContain('division-index.withheld.json');
+
+        expect(offenders, `${offenders.join(', ')} would ship the withheld record`)
+            .toEqual([]);
     });
 });
 

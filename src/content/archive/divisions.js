@@ -9,6 +9,7 @@
  * repetition, numbering, and ascent — one capitalised line is not enough.
  */
 
+import { countWords } from '../../core/chunker.js';
 import { scanLine } from './defect-signatures.js';
 
 /** Matter that names its distributor rather than the work. */
@@ -254,8 +255,19 @@ export function schemesIn(text, { minCount = 3, minAscending = 0.6 } = {}) {
     return schemes;
 }
 
-/** Words in a string, counted the way the reading pace counts them. */
-const wordsIn = (s) => (s ? s.split(/\s+/).filter(Boolean).length : 0);
+// `wordsIn` USED TO BE DECLARED HERE (law 5): `s ? s.split(/\s+/)…` — the same
+// arithmetic as the chunker's countWords, without the `u` flag and coercing a
+// falsy argument to 0 where the chunker's throws.
+//
+// It was not incidental. It computes every per-division `words` in
+// division-index.json, which is the number the gate's budget SPENDS, while the
+// chunker's counts the text the atoms are made from — one quantity, two
+// functions, two contracts. Measured before deleting: over every division,
+// section, paragraph, label and prefix of the committed shelf (44,839 strings,
+// 116,650,530 characters) the two never disagreed about a string. They
+// disagreed only off the contract, which is where a duplication does its
+// damage: the day a caller stops guarding its argument, one door refuses and
+// the other invents a length of nothing.
 
 /**
  * Is this paragraph a heading in its own right?
@@ -290,7 +302,7 @@ export function mostlyVerse(parts) {
     let verse = 0;
     let total = 0;
     for (const part of list) {
-        const words = wordsIn(part?.content || '');
+        const words = countWords(part?.content || '');
         total += words;
         if (part?.verse === true) verse += words;
     }
@@ -330,7 +342,7 @@ export function paragraphIsHeading(text) {
  * heading run: a title belongs to what follows it.
  */
 export function splitLongDivision(content, { maxWords = 4000 } = {}) {
-    const total = wordsIn(content);
+    const total = countWords(content);
     if (total <= maxWords) return [content];
 
     const paragraphs = content.split(/\n\s*\n/);
@@ -393,7 +405,7 @@ export function splitLongDivision(content, { maxWords = 4000 } = {}) {
 
     for (let i = 0; i < paragraphs.length; i++) {
         const paragraph = paragraphs[i];
-        const w = wordsIn(paragraph);
+        const w = countWords(paragraph);
         // Prefer the work's own joint: a heading near the target ends the part.
         const atJoint = opensRun[i] && count >= Math.max(floor, target * NEAR);
         // Keep a paragraph whole even when it overshoots: an author's
@@ -409,7 +421,7 @@ export function splitLongDivision(content, { maxWords = 4000 } = {}) {
     const parted = out.filter(part => part.trim());
     // The final part answers to no overshoot test, so it is the one
     // place the floor cannot be enforced during the walk.
-    if (parted.length > 1 && wordsIn(parted[parted.length - 1]) < floor) {
+    if (parted.length > 1 && countWords(parted[parted.length - 1]) < floor) {
         parted[parted.length - 2] += `\n\n${parted.pop()}`;
     }
     return parted;
@@ -476,21 +488,27 @@ const capitalise = (w) => w ? w[0].toUpperCase() + w.slice(1) : w;
  * @param {{maxWords?: number, minWords?: number}} [opts]
  */
 export function divide(text, { maxWords = 4000, minWords = 12000 } = {}) {
+    // THE ONE PLACE THIS MODULE MEETS A NON-STRING, and it is answered here
+    // rather than inside the counter. `divide(null)` has always returned an
+    // undivided nothing; the deleted `wordsIn` made that work by coercing
+    // every argument, which is the repair countWords refuses to perform on
+    // behalf of a caller that never looked.
+    const body = typeof text === 'string' ? text : '';
     const whole = () => ({
         divided: false,
         noun: null,
-        entries: [{ id: 1, label: 'Complete text', title: null, content: text, words: wordsIn(text) }]
+        entries: [{ id: 1, label: 'Complete text', title: null, content: text, words: countWords(body) }]
     });
 
-    if (typeof text !== 'string' || !text.trim()) return whole();
+    if (!body.trim()) return whole();
     // Short works are read whole. Dividing a 6,000-word essay into
     // chapters serves nobody.
-    if (wordsIn(text) < minWords) return whole();
+    if (countWords(text) < minWords) return whole();
 
     const [scheme] = schemesIn(text);
     if (!scheme) return whole();
 
-    const total = wordsIn(text);
+    const total = countWords(text);
     const noun = capitalise(scheme.word || 'Part');
     const marks = scheme.items;
     const entries = [];
@@ -498,7 +516,7 @@ export function divide(text, { maxWords = 4000, minWords = 12000 } = {}) {
     // Everything before the first heading is front matter when it is
     // substantial, and discarded whitespace when it is not.
     const preamble = text.slice(0, marks[0].index).trim();
-    const preambleWords = wordsIn(preamble);
+    const preambleWords = countWords(preamble);
 
     // A SCHEME THAT BEGINS TOO LATE IS NOT THE WORK'S SCHEME.
     //
@@ -524,7 +542,7 @@ export function divide(text, { maxWords = 4000, minWords = 12000 } = {}) {
         for (const part of parts) {
             entries.push({
                 id: entries.length, label: 'Front matter', title: null,
-                content: part, words: wordsIn(part)
+                content: part, words: countWords(part)
             });
         }
         if (entries.length > 1) {
@@ -553,7 +571,7 @@ export function divide(text, { maxWords = 4000, minWords = 12000 } = {}) {
                 title: marks[i].title || null,
                 ordinal: marks[i].ordinal,
                 content: part,
-                words: wordsIn(part)
+                words: countWords(part)
             });
         });
     }
@@ -687,7 +705,7 @@ function declaredScheme(sections, total) {
             // never saw the source.
             ...(section?.verse === true ? { verse: true } : {}),
             content,
-            words: wordsIn(content)
+            words: countWords(content)
         };
     }).filter(entry => entry.content.trim());
 
@@ -765,7 +783,7 @@ export function isContentsPage(text, noun) {
 export function divideSections(sections, { maxWords = 4000, minWords = 12000, declared = false } = {}) {
     const list = Array.isArray(sections) ? sections : [];
     const text = list.map(s => s?.content || '').join('\n\n');
-    const total = wordsIn(text);
+    const total = countWords(text);
 
     // A DECLARED SCHEME IS NOT RE-DERIVED.
     //
@@ -812,7 +830,7 @@ export function divideSections(sections, { maxWords = 4000, minWords = 12000, de
                         id: entries.length,
                         label: pieces.length > 1 ? `${label} (${k + 1}/${pieces.length})` : label,
                         title: null,
-                        content: piece, words: wordsIn(piece)
+                        content: piece, words: countWords(piece)
                     });
                 });
             });
@@ -836,7 +854,7 @@ export function divideSections(sections, { maxWords = 4000, minWords = 12000, de
                 divided: true, noun: 'Reading', reason: 'measured',
                 entries: parts.map((content, k) => ({
                     id: k, label: `Reading ${k + 1}`, title: null,
-                    content, words: wordsIn(content)
+                    content, words: countWords(content)
                 }))
             };
         }
@@ -875,7 +893,7 @@ export function divideSections(sections, { maxWords = 4000, minWords = 12000, de
                 title: g.head?.title || null,
                 ordinal: g.head?.ordinal,
                 content: piece,
-                words: wordsIn(piece)
+                words: countWords(piece)
             });
         });
     }

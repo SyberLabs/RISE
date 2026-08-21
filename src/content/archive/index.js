@@ -43,6 +43,10 @@ import { divideSections } from './divisions.js';
 // deterministically from bytes already committed, so they are derived
 // once at build time rather than in every reader's browser — which is
 // what lets a card say "365 chapters" without downloading Tolstoy.
+//
+// SERVED WORKS ONLY. The withheld corpus's divisions are a separate file that
+// nothing shipping imports; `WORKS` below is already the served set, so this
+// registry never asks for an entry that is not here.
 import { STRUCTURED_IDS, withheldWorks } from './canon.js';
 import {
     isArchiveEditionCertified,
