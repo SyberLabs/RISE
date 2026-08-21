@@ -48,4 +48,18 @@ describe('shipped Recitation pack', () => {
                 .toBeGreaterThan(44);
         }
     });
+
+    it('preserves the Tintern pronunciation repair', () => {
+        const entry = resolveVoicePackEntry(
+            'af_heart',
+            'Of five long winters! and again I hear',
+            voicePackManifest
+        );
+
+        expect(entry).toMatchObject({
+            text: 'Of five long winters! and again I hear',
+            spokenText: 'Of five long winters! And again, I hear.'
+        });
+        expect(entry.onsetsMs.at(-1)).toBeGreaterThan(2400);
+    });
 });

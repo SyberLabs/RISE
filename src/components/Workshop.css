@@ -3080,9 +3080,13 @@
   position: absolute;
   z-index: 80;
   top: calc(100% + 8px);
-  right: 0;
-  width: 310px;
+  right: auto;
+  left: 0;
+  display: grid;
+  width: 210px;
   padding: 10px;
+  grid-template-columns: 1fr;
+  gap: 6px;
   border: 1px solid rgba(255, 255, 255, 0.13);
   border-radius: 8px;
   background: color-mix(in srgb, var(--color-abyss) 97%, #111827);
@@ -3091,6 +3095,8 @@
 
 .studio-project-menu-panel button {
   min-height: 38px;
+  justify-content: flex-start;
+  text-align: left;
 }
 
 .studio-library-lane-panel {

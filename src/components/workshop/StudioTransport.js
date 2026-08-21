@@ -34,13 +34,11 @@ export function renderStudioTransport(view) {
       <div class="studio-command-cluster">
         <details class="studio-project-menu">
           <summary class="btn-ghost">Project</summary>
-          <div class="studio-project-menu-panel studio-choice-grid studio-choice-grid-6" role="group" aria-label="Project commands">
-            <button type="button" class="btn-ghost workshop-reset-btn" data-action="reset-workshop" id="reset-workshop-btn">Reset</button>
-            <button type="button" class="btn-ghost" data-action="export-curator-context">Export context</button>
-            <button type="button" class="btn-ghost" data-action="export-curator-prompt">Export prompt</button>
-            <button type="button" class="btn-ghost" data-action="export-experience-program">Export score</button>
+          <div class="studio-project-menu-panel" role="group" aria-label="Project commands">
+            <button type="button" class="btn-ghost" data-action="import-experience-program">Import JSON</button>
+            <button type="button" class="btn-ghost" data-action="export-experience-program">Export JSON</button>
             <button type="button" class="btn-ghost" data-action="export-mp4">Export MP4</button>
-            <button type="button" class="btn-ghost" data-action="import-experience-program">Import score</button>
+            <button type="button" class="btn-ghost workshop-reset-btn" data-action="reset-workshop" id="reset-workshop-btn">Reset</button>
             <button type="button" class="btn-ghost" data-action="show-project-inspector">Details</button>
           </div>
         </details>

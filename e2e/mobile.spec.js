@@ -661,8 +661,21 @@ test('the phone-only threshold renders nothing on a desktop', async ({ page }) =
         return {
             // innerText ignores display:none phone-only spans.
             actLabel: document.querySelector('.nav-act').innerText.replace(/\s+/g, ' ').trim(),
-            rooms: [...document.querySelectorAll('.nav-secondary .nav-item')]
+            rooms: [...document.querySelectorAll('.nav-secondary .nav-item:not(.nav-try)')]
                 .map(b => b.innerText.replace(/\s+/g, ' ').trim()),
+            tryRise: (() => {
+                const library = document.querySelector('[data-nav="library"]').getBoundingClientRect();
+                const button = document.querySelector('.nav-try');
+                const box = button.getBoundingClientRect();
+                return {
+                    label: button.querySelector('.try-label')?.textContent.trim(),
+                    width: Math.round(box.width),
+                    height: Math.round(box.height),
+                    centerDelta: Math.round(Math.abs(
+                        (library.left + library.width / 2) - (box.left + box.width / 2)
+                    ))
+                };
+            })(),
             vessel: Math.round(document.querySelector('.portal-sigil-vessel').getBoundingClientRect().width),
             // The pavilions went with the Atrium and the Solarium, and with
             // them the arch glyph, the orb and the window this used to read
@@ -677,8 +690,9 @@ test('the phone-only threshold renders nothing on a desktop', async ({ page }) =
     });
     console.log('DESKTOP ' + JSON.stringify(d));
 
-    expect(d.actLabel).toBe('TRY RISE');
+    expect(d.actLabel).toBe('CHAMBER');
     expect(d.rooms).toEqual(['VAULT', 'LIBRARY', 'WORKSHOP']);
+    expect(d.tryRise).toEqual({ label: 'Try RISE', width: 96, height: 96, centerDelta: 0 });
     expect(d.vessel).toBe(180);
     for (const [part, display] of Object.entries(d.phoneOnly)) {
         expect(display, `${part} is rendering on the desktop`).toBe('none');
@@ -717,8 +731,9 @@ test('the threshold fits the phone in its widest state', async ({ page }) => {
     const warm = await page.evaluate(() => ({
         display: getComputedStyle(document.querySelector('.portal-continue')).display,
         title: document.querySelector('.continue-title').textContent.trim(),
-        cards: [...document.querySelectorAll('.nav-secondary .nav-item')]
+        cards: [...document.querySelectorAll('.nav-secondary .nav-item:not(.nav-try)')]
             .map(c => c.innerText.replace(/\s+/g, ' ').trim()),
+        tryRise: document.querySelector('.nav-try .try-label')?.textContent.trim(),
         below: [...document.querySelectorAll('body *')]
             .filter(n => { const r = n.getBoundingClientRect(); return r.height > 14 && r.bottom > window.innerHeight + 2; })
             .map(n => n.className.toString().slice(0, 30)).slice(0, 4),
@@ -737,6 +752,7 @@ test('the threshold fits the phone in its widest state', async ({ page }) => {
     // Three, not five: the two arches counted here went with their rooms.
     expect(warm.cards).toHaveLength(3);
     for (const c of warm.cards) expect(c.length).toBeGreaterThan(8);
+    expect(warm.tryRise).toBe('Try RISE');
 
     expect(warm.below, `these hang below the fold: ${JSON.stringify(warm.below)}`).toEqual([]);
     expect(warm.sideways).toEqual([]);

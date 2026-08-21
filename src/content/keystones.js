@@ -3,9 +3,9 @@
  *
  * Each one binds a human-facing route to one exact Archive edition and
  * division, then lowers to the same Session configuration the Chamber already
- * executes.  Admission is fail-closed: a changed edition, missing collection,
- * absent voice coverage, or incomplete human certification keeps the public
- * launch unavailable instead of silently degrading the authored experience.
+ * executes. Operational admission is fail-closed for changed bytes, missing
+ * media, or incomplete voice coverage. Exact-edition certification remains a
+ * separate publication gate for release artifacts and certified shelf claims.
  */
 
 import { ingestedArchiveTexts } from './archive/index.js';
@@ -17,9 +17,11 @@ import { proceduralPattern } from '../core/visual-registry.js';
 import { compileSession } from '../core/session-compiler.js';
 import { Voice } from '../audio/voice.js';
 import { DEFAULT_VOICE_ID, voicePackManifest } from '../audio/voice-pack.js';
+import { SEQUENCE_CAPABILITIES } from '../core/sequence-capabilities.js';
 
 export const KEYSTONE_SCHEMA = 'rise.keystone.v1';
 export const KEYSTONE_ROUTE_PREFIX = '/keystone/';
+export const TRY_RISE_PATH = '/try-rise';
 
 function freeze(value) {
   if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
@@ -44,8 +46,10 @@ export const KEYSTONE_MANIFESTS = freeze([
       expectedLabel: 'Book II'
     },
     visual: { kind: 'procedural', id: 'fractal' },
-    soundscape: 'aurora',
-    galleryCadence: 0.5
+    soundscape: 'faded-signal',
+    galleryCadence: 0.5,
+    admitted: true,
+    capabilities: [SEQUENCE_CAPABILITIES.RECITATION_AUDIO]
   },
   {
     schema: KEYSTONE_SCHEMA,
@@ -62,8 +66,10 @@ export const KEYSTONE_MANIFESTS = freeze([
       expectedLabel: 'Book XIII · Story of Polyxena and Hecuba'
     },
     visual: { kind: 'procedural', id: 'ostensoria' },
-    soundscape: 'faded-signal',
-    galleryCadence: 0.5
+    soundscape: 'aurora',
+    galleryCadence: 0.5,
+    admitted: true,
+    capabilities: [SEQUENCE_CAPABILITIES.RECITATION_AUDIO]
   },
   {
     schema: KEYSTONE_SCHEMA,
@@ -80,13 +86,19 @@ export const KEYSTONE_MANIFESTS = freeze([
       expectedLabel: 'Volume I · Lines Written a Few Miles Above Tintern Abbey, on Revisiting the Banks of the Wye During a Tour'
     },
     visual: { kind: 'collection', id: 'aic-landscapes' },
-    soundscape: 'none',
-    galleryCadence: 0.15
+    soundscape: 'aurora',
+    galleryCadence: 0.15,
+    admitted: true,
+    capabilities: [SEQUENCE_CAPABILITIES.RECITATION_AUDIO]
   }
 ]);
 
 export function keystonePath(slug) {
   return `${KEYSTONE_ROUTE_PREFIX}${String(slug || '').trim().toLowerCase()}`;
+}
+
+export function isTryRisePath(pathname) {
+  return String(pathname || '').replace(/\/+$/u, '') === TRY_RISE_PATH;
 }
 
 export function keystoneSlugFromPath(pathname) {
@@ -173,6 +185,7 @@ function sessionInput(manifest, work, entry, recitationEnabled) {
     projection: 'stream',
     soundscape: manifest.soundscape,
     audioPreset: 'silent',
+    capabilities: manifest.capabilities,
     recitation: { enabled: recitationEnabled },
     voiceId: DEFAULT_VOICE_ID,
     visualConfig: visualConfig(manifest),
@@ -236,14 +249,26 @@ export async function resolveKeystone(slug, { allowIncomplete = false } = {}) {
         `Complete recitation is unavailable (${coverage.missing} of ${coverage.speakable} phrases missing).`
       ));
     }
-    if (visualAvailable(manifest.visual) && (blockers.length === 0 || allowIncomplete)) {
+    const admitted = manifest.admitted === true && blockers.every(
+      blocker => blocker.code === 'KEYSTONE_SOURCE_UNCERTIFIED'
+    );
+    if (visualAvailable(manifest.visual)
+      && (blockers.length === 0 || admitted || allowIncomplete)) {
       input = sessionInput(manifest, resolved.work, resolved.entry, coverage.complete);
     }
   }
 
+  const operationalBlockers = blockers.filter(
+    blocker => blocker.code !== 'KEYSTONE_SOURCE_UNCERTIFIED'
+  );
+  const admitted = manifest.admitted === true
+    && operationalBlockers.length === 0
+    && Boolean(input);
+
   return Object.freeze({
     manifest,
     ready: blockers.length === 0,
+    admitted,
     reviewable: Boolean(input),
     blockers: Object.freeze(blockers),
     coverage,

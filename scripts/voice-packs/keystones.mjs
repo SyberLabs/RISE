@@ -24,6 +24,15 @@ for (const manifest of KEYSTONE_MANIFESTS) {
 export default Object.freeze({
   label: 'RISE Keystone release voice',
   voiceId: DEFAULT_VOICE_ID,
+  // Acoustic corrections are build-time pronunciation directions. The
+  // manifest remains keyed by the source atom verbatim, while Kokoro receives
+  // punctuation that makes the intended final word audible. Keeping this in
+  // the reproducible voice plan prevents a later pack rebuild from restoring
+  // a known defective take.
+  pronunciations: Object.freeze({
+    'Of five long winters! and again I hear':
+      'Of five long winters! And again, I hear.'
+  }),
   sourceRevisions: Object.freeze(sourceRevisions),
   sessions: Object.freeze(sessions)
 });

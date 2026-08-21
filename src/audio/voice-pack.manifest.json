@@ -1,6 +1,6 @@
 {
   "schema": "rise.recitation-voice-pack.v1",
-  "generatedAt": "2026-08-21T00:10:21.851Z",
+  "generatedAt": "2026-08-21T04:31:36.854Z",
   "model": "onnx-community/Kokoro-82M-v1.0-ONNX",
   "voices": {
     "af_heart": {
@@ -836,17 +836,19 @@
         },
         "12-138x7ff": {
           "text": "Of five long winters! and again I hear",
+          "spokenText": "Of five long winters! And again, I hear.",
           "asset": "/audio/recitation/af_heart/12-138x7ff.wav",
           "mimeType": "audio/wav",
           "sampleRate": 24000,
-          "durationMs": 2675,
+          "durationMs": 3075,
           "onsetsMs": [
             300,
             480,
-            720,
-            1800
+            1760,
+            1920,
+            2540
           ],
-          "peak": 0.564239
+          "peak": 0.559797
         },
         "12-144i0bs": {
           "text": "The picture of the mind revives again:",

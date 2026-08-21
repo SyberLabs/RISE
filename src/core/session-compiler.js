@@ -32,6 +32,11 @@ import {
     normalizePresentation,
     VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS
 } from './visual-presence.js';
+import {
+    normalizeSequenceCapabilities,
+    sequenceHasCapability,
+    SEQUENCE_CAPABILITIES
+} from './sequence-capabilities.js';
 
 export const SESSION_LIMITS = Object.freeze({
     minWpm: 50,
@@ -143,6 +148,8 @@ export function normalizeSessionConfig(input = {}) {
     const chunkMode = CHUNK_MODES.has(input.chunkMode) ? input.chunkMode : 'word';
     const curve = Object.hasOwn(CURVES, input.curve) ? input.curve : 'flat';
 
+    const capabilities = normalizeSequenceCapabilities(input.capabilities);
+
     // Recitation (RECITATION-SPEC) is a TEXT presentation and belongs
     // in the temporal orbit, beside wpm and chunkMode, because that is
     // what it modifies — not beside the imagery surfaces, which are a
@@ -152,7 +159,10 @@ export function normalizeSessionConfig(input = {}) {
     // restored or imported session may carry anything, and there is
     // exactly one validated path to the runtime.
     const recitation = Object.freeze({
-        enabled: input.recitation?.enabled === true
+        enabled: sequenceHasCapability(
+            capabilities,
+            SEQUENCE_CAPABILITIES.RECITATION_AUDIO
+        ) && input.recitation?.enabled === true
     });
     const revealMode = input.revealMode === 'progressive' ? 'progressive' : 'instant';
 
@@ -177,6 +187,7 @@ export function normalizeSessionConfig(input = {}) {
         wpm,
         chunkMode,
         curve,
+        capabilities,
         recitation,
         revealMode,
         sequenceVisualAssets,

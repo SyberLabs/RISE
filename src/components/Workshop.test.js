@@ -105,6 +105,23 @@ describe('Workshop Composition Studio architecture', () => {
         container.remove();
     });
 
+    it('keeps Project commands scoped to Workshop file and release operations', () => {
+        const { workshop, container } = makeWorkshop();
+        const commands = [...container.querySelectorAll('.studio-project-menu-panel button')]
+            .map(button => ({ label: button.textContent.trim(), action: button.dataset.action }));
+
+        expect(commands).toEqual([
+            { label: 'Import JSON', action: 'import-experience-program' },
+            { label: 'Export JSON', action: 'export-experience-program' },
+            { label: 'Export MP4', action: 'export-mp4' },
+            { label: 'Reset', action: 'reset-workshop' },
+            { label: 'Details', action: 'show-project-inspector' }
+        ]);
+
+        workshop.destroy();
+        container.remove();
+    });
+
     it('presents exact images, collections, procedural families, shared assets, and surfaces together', () => {
         const { container } = makeWorkshop();
         const form = container.querySelector('#workshop-form');

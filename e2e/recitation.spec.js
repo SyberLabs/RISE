@@ -6,7 +6,8 @@ const GATE = { code: 'rise2025', name: 'Recitation', vault: null, timestamp: Dat
 const SEED = {
   text: 'I would tell you how *beautiful* and *amazing* the *Lord Jesus Christ* is.\n\n'
       + 'This second phrase is long enough that its reveal has room to run across several words.',
-  textSource: 'Recitation', origin: null
+  textSource: 'Recitation', origin: null,
+  capabilities: ['recitation-audio']
 };
 
 // Emphasis and the reveal are independent: marked text is coloured
@@ -67,9 +68,12 @@ async function enterChamber(page, recitation, seed = SEED) {
   if (recitation) await installVoiceWorkerStub(page);
   await page.addInitScript((g) => {
     localStorage.setItem('rise-beta-session', JSON.stringify(g.gate));
-    localStorage.setItem('rise_orbital_text_v1', JSON.stringify(g.seed));
+    localStorage.setItem('rise_orbital_text_v1', JSON.stringify({
+      ...g.seed,
+      recitation: { enabled: g.recitation }
+    }));
     localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
-      wpm: 150, chunkMode: 'phrase', recitation: { enabled: g.recitation }
+      wpm: 150, chunkMode: 'phrase'
     }));
   }, { gate: GATE, seed, recitation });
   await page.goto('/');
@@ -232,7 +236,8 @@ test('the control turns recitation on, and the choice survives a return', async 
   expect(voices.options[0]).toBe('af_heart');
   expect(voices.options).not.toContain('am_adam');
 
-  // Begin persists the dials; returning must not reset the choice.
+  // Begin persists the choice with this capable sequence, never as a
+  // tab-wide preference that could grant voice to an unrelated reading.
   await page.locator('[data-close="audio"]').click();
   await page.locator('#begin-btn').click();
   const warn = page.locator('#photosensitivity-modal');
@@ -241,10 +246,12 @@ test('the control turns recitation on, and the choice survives a return', async 
   }
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20000 });
 
-  const persisted = await page.evaluate(() =>
-    JSON.parse(localStorage.getItem('rise_orbital_prefs_v1') || '{}').recitation);
+  const persisted = await page.evaluate(() => ({
+    text: JSON.parse(localStorage.getItem('rise_orbital_text_v1') || '{}').recitation,
+    prefs: JSON.parse(localStorage.getItem('rise_orbital_prefs_v1') || '{}').recitation
+  }));
   console.log('PERSISTED ' + JSON.stringify(persisted));
-  expect(persisted).toEqual({ enabled: true });
+  expect(persisted).toEqual({ text: { enabled: true }, prefs: undefined });
 });
 
 /**
@@ -264,7 +271,8 @@ test('the voice makes no request storm around preparation and playback', async (
     text: Array.from({ length: 40 }, (_, i) =>
       `Phrase number ${i} | carries enough words | to occupy a moment of reading.`
     ).join('\n\n'),
-    textSource: 'Storm', origin: null
+    textSource: 'Storm', origin: null,
+    capabilities: ['recitation-audio']
   };
   await enterChamber(page, true, LONG);
   // Was 2000ms, calibrated to stubbed synthesis that returned instantly.

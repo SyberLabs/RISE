@@ -73,7 +73,12 @@ test('the voice actually loads on the deployed site', async ({ page }) => {
     localStorage.setItem('rise_orbital_text_v1', JSON.stringify(
       { text: 'The first fire came from the thunder.', textSource: 'Live', origin: null }));
     localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(
-      { wpm: 150, chunkMode: 'phrase', recitation: { enabled: true } }));
+      {
+        wpm: 150,
+        chunkMode: 'phrase',
+        capabilities: ['recitation-audio'],
+        recitation: { enabled: true }
+      }));
   });
   await page.goto(LIVE);
   await page.locator('[data-nav="chamber"]').first().click();

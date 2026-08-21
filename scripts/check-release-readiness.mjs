@@ -1,7 +1,5 @@
-#!/usr/bin/env node
-
 /**
- * Fail-closed release admission for the corridor described in the roadmap.
+ * Fail-closed release admission for the public corridor described in the roadmap.
  *
  * This does not pretend to automate editorial or real-device judgment.  It
  * verifies the evidence the repository can prove, and emits the remaining

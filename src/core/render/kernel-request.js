@@ -49,6 +49,7 @@ export function sessionInputFromWorkshopPayload(payload = {}) {
     chunkMode: payload.chunkMode,
     curve: payload.curve,
     sequenceVisualAssets: payload.sequenceVisualAssets,
+    capabilities: payload.capabilities,
     recitation: payload.recitation,
     voiceId: payload.voiceId
   });

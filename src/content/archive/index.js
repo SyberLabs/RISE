@@ -48,7 +48,7 @@ import {
     isArchiveEditionCertified,
     withArchiveReleaseIdentity
 } from './certification.js';
-import DIVISION_INDEX from './division-index.json';
+import DIVISION_INDEX from './division-index.json' with { type: 'json' };
 
 // Exported for the reachability guard, which must weigh every catalogue
 // entry — including the ones this file writes itself.

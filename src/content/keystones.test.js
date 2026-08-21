@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   KEYSTONE_MANIFESTS,
+  TRY_RISE_PATH,
+  isTryRisePath,
   keystonePath,
   keystoneSlugFromPath,
   resolveKeystone
@@ -17,6 +19,8 @@ describe('release Keystone manifests', () => {
     expect(new Set(paths).size).toBe(paths.length);
     expect(keystoneSlugFromPath('/keystone/tintern/')).toBe('tintern');
     expect(keystoneSlugFromPath('/keystone/unknown')).toBeNull();
+    expect(TRY_RISE_PATH).toBe('/try-rise');
+    expect(isTryRisePath('/try-rise/')).toBe(true);
   });
 
   it('locks the editorially selected release divisions', () => {
@@ -49,12 +53,14 @@ describe('release Keystone manifests', () => {
     }
   });
 
-  it('fails closed only on human source certification', async () => {
+  it('admits the editorial compositions while keeping certification fail-closed', async () => {
     for (const manifest of KEYSTONE_MANIFESTS) {
       const result = await resolveKeystone(manifest.slug);
       const codes = result.blockers.map(item => item.code);
       expect(result.ready).toBe(false);
-      expect(result.reviewable).toBe(false);
+      expect(result.admitted).toBe(true);
+      expect(result.reviewable).toBe(true);
+      expect(result.sessionInput).toBeTruthy();
       expect(codes).toContain('KEYSTONE_SOURCE_UNCERTIFIED');
       expect(codes).not.toContain('KEYSTONE_RECITATION_INCOMPLETE');
       expect(result.coverage.complete).toBe(true);

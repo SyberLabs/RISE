@@ -19,6 +19,7 @@ test('Keystone corridor has durable cold, reload, launch, and Back behavior', as
   await expect(page.locator('[data-nav="keystones"]')).toBeVisible({ timeout: 15_000 });
 
   await page.locator('[data-nav="keystones"]').click();
+  await expect(page).toHaveURL(/\/try-rise$/u);
   const meditations = page.locator('#keystone-meditations');
   await expect(meditations).toBeVisible();
   const launch = meditations.locator('[data-keystone="meditations"]');
@@ -30,11 +31,22 @@ test('Keystone corridor has durable cold, reload, launch, and Back behavior', as
   await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
 
   await page.goBack();
+  await expect(page).toHaveURL(/\/try-rise$/u);
+  await expect.poll(() => page.evaluate(() => window.rise?.router?.currentView), {
+    timeout: 15_000
+  }).toBe('keystones');
+  await expect(page.locator('#keystone-meditations')).toBeVisible({ timeout: 15_000 });
+
+  await page.goBack();
   await expect(page).toHaveURL(/\/$/u);
   await expect.poll(() => page.evaluate(() => window.rise?.router?.currentView), {
     timeout: 15_000
   }).toBe('portal');
-  await expect(page.locator('[data-nav="keystones"]')).toBeVisible({ timeout: 15_000 });
+
+  await page.goto('/try-rise');
+  await expect(page.locator('#keystone-meditations')).toBeVisible({ timeout: 15_000 });
+  await page.reload();
+  await expect(page.locator('#keystone-tintern')).toBeVisible({ timeout: 15_000 });
 
   await page.goto('/keystone/tintern');
   const tintern = page.locator('#keystone-tintern');

@@ -214,8 +214,9 @@ class App {
         // Keystone paths are durable public entry points.  They resolve to a
         // threshold view first; admission and launch still happen through the
         // exact manifest gate rather than from URL text alone.
-        const { keystoneSlugFromPath } = await import('./content/keystones.js');
+        const { isTryRisePath, keystoneSlugFromPath } = await import('./content/keystones.js');
         const directKeystone = keystoneSlugFromPath(window.location.pathname);
+        const directTryRise = isTryRisePath(window.location.pathname);
 
         // A reload triggered by a stale build carries the destination
         // the reader was trying to reach, so recovery is invisible to
@@ -244,6 +245,8 @@ class App {
             await this.router.navigate('rosarium', { data: { door: true } });
         } else if (directKeystone) {
             await this.router.navigate('keystones', { data: { slug: directKeystone } });
+        } else if (directTryRise) {
+            await this.router.navigate('keystones');
         } else if (options.personalizedVault) {
             console.log('[RISE] Navigating directly to personalized vault:', options.personalizedVault);
             await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });
@@ -935,7 +938,12 @@ class App {
         // unrelated view. Leaving the release corridor explicitly returns
         // the browser to the application root so reload and Back agree with
         // the surface the reader can actually see.
-        if (viewName === 'portal' && /^\/keystone(?:\/|$)/u.test(window.location.pathname)) {
+        if (viewName === 'keystones'
+            && !/^\/(?:try-rise|keystone(?:\/|$))/u.test(window.location.pathname)) {
+            window.history.pushState({}, '', '/try-rise');
+        }
+        if (viewName === 'portal'
+            && /^\/(?:try-rise|keystone(?:\/|$))/u.test(window.location.pathname)) {
             window.history.pushState({}, '', '/');
         }
         this.router.navigate(viewName, { data });
@@ -1073,6 +1081,7 @@ class App {
                 origin: session.origin,
                 provenance: session.provenance,
                 continuation: next.continuation,
+                capabilities: session.capabilities,
                 recitation: session.recitation,
                 voiceId: session.voiceId,
                 selectedSwellId: session.selectedSwellId,
@@ -1483,11 +1492,11 @@ class App {
             // popstate alongside hashchange, and clearing the hash must not
             // pull an in-progress prayer back to the Portal.
             if (isRosaryDoor() || this.router?.getCurrentView() === 'rosarium') return;
-            const { keystoneSlugFromPath } = await import('./content/keystones.js');
+            const { isTryRisePath, keystoneSlugFromPath } = await import('./content/keystones.js');
             const slug = keystoneSlugFromPath(window.location.pathname);
-            if (slug) {
+            if (slug || isTryRisePath(window.location.pathname)) {
                 await this.router?.navigate('keystones', {
-                    data: { slug },
+                    data: slug ? { slug } : undefined,
                     replace: true,
                     skipStack: true
                 });
