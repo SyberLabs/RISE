@@ -12,9 +12,17 @@ Status: **ROOM STARTED (additive).** `rise.experience-program.v1` and
 copyable refusals (`describeImportFailure`), generated export prompt
 (separate from context.json), Library catalogue in context, quotation-only
 anchors, the Scriptorium door beside the Curia, and — 2026-08-10 — the
-reading track, which makes the room a **composer**. Workshop curator
-buttons remain until the room is proven by a hand-run loop. Rulings by the
-creator are marked ✦; open questions ⁇.
+reading track, which makes the room a **composer**; and — 2026-08-21 — the
+extent grammar (§10c), which lets a score spend a length on part of a work.
+Workshop curator buttons remain until the room is proven by a hand-run loop.
+Rulings by the creator are marked ✦; open questions ⁇.
+
+**This file is the one the code cites.** Five modules carry
+`docs/vision/SCRIPTORIUM-SPEC.md §N` in a header comment, and
+`src/core/scriptorium-spec.test.js` fails if a cited section is not a heading
+below. A citation nobody can check is a label offered as evidence, which is
+the failure this codebase names most often; the citations used to give no path
+at all, and a reader looking for them in `docs/specs/` found nothing.
 
 ---
 
@@ -164,15 +172,64 @@ Consequences, stated rather than discovered later:
 - **No payloads leave.** Titles, authors, division counts and lengths only —
   *IDs only, no bytes* holds unchanged.
 
-### Catalogue size ⁇
+### Catalogue size ✦ *(settled 2026-08-21)*
 
-`src/content/archive/division-index.json` already exists: 91 works, **12 KiB**,
-`{divided, titled, noun, count, words}` per work. Adding title and author lands
-near 30 KiB. Per-division titles for all 91 works would be ~150 KiB.
+`scripts/build-division-index.mjs` writes the whole corpus's divisions in a
+single pass over the committed bytes, and splits the result by shelf state:
 
-The index already records `titled: true/false`, so **only works that have real
-division titles need them shipped**; for numbered works the model names an
-index. That economy is already in the data and should decide the shape.
+- `src/content/archive/division-index.json` — the 15 served works. **40 KiB on
+  disk, 32 KiB embedded.** The only one anything under `src/` imports outside a
+  test.
+- `src/content/archive/division-index.withheld.json` — the other 80. **53 KiB on
+  disk, 49 KiB embedded.** Corpus audits only.
+
+Per work both carry `{divided, titled, reason, authored, noun, count, labels?,
+divisionWords, words}`.
+
+**Two sizes, because there were three statements of two numbers and none of them
+agreed.** This section stated one pair, the builder's own comments stated
+another, and the sizes a reader actually pays were neither: the committed files are
+pretty-printed and a bundler embeds the parsed JSON, which drops the indentation.
+So *on disk* is the artifact as committed and *embedded* is what a reader
+downloads, both rounded down to the KiB, and `scriptorium-spec.test.js` reads all
+four figures back out of the two bullets above and re-measures the files. Which
+number was meant was never written down, which is how one comment could say 49
+about the bundle while this section said 54 about the file and both sound like
+the same claim, and how a comment could say one figure about the bundle while
+this section said another about the file.
+
+Four rulings, each of which cost something to learn:
+
+- **One pass.** The per-division word counts the gate needs to measure
+  `work#12` lived briefly in a sibling `division-words.json`, written by a
+  second script. Two artifacts of one `divideSections` pass can disagree, and
+  a re-ingest that regenerated only one would silently mis-charge every
+  extent in the work. They come out of one call; the total and the parts that
+  make it are asserted against each other, and both are asserted against what
+  the resolver actually reads.
+- **Split by shelf, because a runtime filter cannot remove a build-time
+  dependency.** `buildLibraryCatalogue` walks the released works and drops the
+  rest, and all eighty withheld works rode into every reader's bundle anyway
+  — the static import *is* the dependency, which is the same mechanism that
+  once cost this codebase 82 MB. Splitting the artifact took 49 KiB of embedded
+  JSON out of `content-texts`. `divisions.test.js` fails if anything but a test imports
+  the withheld half, and fails if a withheld id appears in the served half.
+- **Labels ride for every scheme the author wrote, not only the titled
+  ones.** "Book I" was rejected as the count and the noun restated. It is not
+  restated: a work's own number is precisely what its array position is not
+  (§10c), and a curator handed no labels can only count blind. Milton,
+  Marcus Aurelius and Joyce shipped no labels at all on that reasoning.
+- **Only for a work the shelf offers.** Labels have exactly one consumer,
+  `buildLibraryCatalogue`, which walks the released works; sending the other
+  eighty would name divisions nobody can address. The split above now makes
+  that structural rather than a condition in the builder.
+
+They ride **whole or not at all**, and **uncut**. A truncated list reads as the
+work's complete scheme and sends a curator past the end of the work; a label
+shortened mid-word reads as the edition's own title. There were two caps, at
+60 characters in the builder and 80 in the catalogue, and one label in four of
+Lyrical Ballads was cut by them. The validator's bound on catalogue text is the
+only one left, and a label that breaches it refuses rather than lies.
 
 ---
 
@@ -412,6 +469,129 @@ works that make it up, and says the only three things that reduce it.
 
 ---
 
+### 10c. Part of a work — the extent grammar ✦ *(2026-08-21)*
+
+A movement read its source whole, so the shortest reading the room could
+compose was the shortest work on the shelf: 10,321 words. Length was a filter
+over the catalogue rather than a budget a score could spend.
+
+**The extent rides in the SOURCE ID.** `library-extent.js` owns the grammar and
+nothing else restates it:
+
+| id | reads |
+|---|---|
+| `sacred-tao-te-ching` | the whole work |
+| `sacred-tao-te-ching#40` | division 40 entire |
+| `sacred-tao-te-ching#40:200` | that division's opening ~200 words |
+
+A score is therefore self-describing — the same program reads the same words on
+any day, at any slider position — and the extent is resolved into an ordinary
+source before the chunker, the atoms or any media anchor see it.
+
+**The rung is always the largest honest unit that fits**: whole work → whole
+division → division's opening. The same reverent degradation the imagery
+follows: never a broken frame, always a smaller true thing.
+
+#### The gate reads extents, and charges the most they can read
+
+`createCuratorSourceReader` (curator-context.js) answers both questions a gate
+asks — *may the score name this?* and *how long is it?* — because they were
+answered separately by two `new Set(library.map(...))` lookups that had neither
+of them heard of an extent, and fixing only the membership side turned a
+refusal into an unmeasurable budget.
+
+An opening's exact length is a fact about where the sentences fall, which the
+gate cannot know while holding only the catalogue. What it can prove is the
+ceiling: `extentReadingBound` charges
+`min(divisionWords, EXTENT_OVERSHOOT_LIMIT × the ask)`, so `#12:200` costs up to
+320 words and a score the gate admits cannot read longer than it promised.
+`EXTENT_OVERSHOOT_LIMIT` is **1.6**, and it lives beside the cut it bounds in
+`library-extent.js`; a second copy in the gate is exactly the drift this
+codebase keeps paying for. This sentence carried a literal `1.6` through the
+fold-in that exported the constant — the spec being one of the documents the
+export existed to keep honest — so the figure above is now read back out of this
+paragraph and compared to the export.
+
+#### Three refusals, and no substitutions
+
+- **A division the work does not have.** Refused, never neared.
+- **Below the floor.** `#50:37` asks for 37 words against a 40-word floor. It
+  used to be handed back as a whole-string work id, miss in the registry, and
+  tell the reader RISE does not hold Spoon River — while Spoon River stood in
+  the same catalogue. The refusal now names the floor.
+- **An opening the text cannot be cut near.** `sentenceAlignedPrefix` returns
+  nothing when no boundary at or under the ceiling clears the floor.
+  `ulysses#18:200` used to return 5,714 words — Molly's soliloquy to its first
+  full stop, 28.6× the ask. The choice is between a passage of a wildly
+  different length and nothing, so it is nothing. Measured cost before the
+  choice was made: of 944 divisions on the shelf, 2 refuse at a 200-word ask.
+
+**Existence is established before the floor is judged.** A sub-floor ask on a
+work nobody holds is refused as absent; on a division the edition does not have,
+as no-such-division; below-floor is what is left when the work and the division
+are both there. Only the grammar may be judged before the shelf is asked, and
+only because an id whose shape is wrong names no work to look up.
+`parseLibraryExtent` is a string reader — it can see that a `:N` is under the
+floor and it cannot see whether the work, the division or its text exists — so
+judging the floor first let a fact about the cut speak for facts nobody had
+established. The refusal for `sacred-tao-te-ching#900:39` told the curator to
+name `sacred-tao-te-ching#900` instead, which is a chapter the Tao does not
+have, and following that advice earned a second refusal; the same id spelled
+`:200` was correctly refused as a division that is not there. Which of §13's
+four extent statuses a script learned turned on the `:N`. Both doors now judge
+in one order — `createCuratorSourceReader` at the gate,
+`resolveLibrarySourceIds` and `resolveDivisionExtent` at the reading — so the
+two cannot disagree about the same id.
+
+`add-source` carries **no `division` field**. It had one, validated and read by
+nothing, so `{"op":"add-source","sourceId":"sacred-tao-te-ching","division":40}`
+was accepted and loaded the whole book. It is refused rather than honoured —
+composing the id on the model's behalf is rewriting its output — and the
+refusal names the id that was meant.
+
+#### A division's position is not the work's own number
+
+This is the misaddressing that survives everything above, and no test can see
+it: labels and resolver positions agree 1-based for all fifteen works, so
+nothing is broken. But a work served in several parts numbers each part from
+one. Inferno Canto I is division 2, Purgatorio Canto I is 37, Paradiso Canto I
+is 71; *the Paolo and Francesca canto* is Inferno V and `the-divine-comedy#5`
+returns Canto IV.
+
+**Slugs are not the fix.** A slug is a durable anchor and depends on edition
+identity, which does not exist here: `CERTIFIED_IDS` is empty and
+`RELEASE_SERVES_UNCERTIFIED` is true. Minting one would promise permanence the
+shelf cannot keep.
+
+The fix is the catalogue plus one sentence. Every served work now ships
+`divisions.labels` (§7), and the export prompt says the position is not the
+work's own number, illustrated with the widest gap the catalogue currently
+holds — computed, so it can never describe a work that has left.
+
+#### What the reader can ask for
+
+`MAX_SAFE_TARGET_WORDS` (reading-limits.js) is **104,529**: `maxAtoms` divided
+by the worst-case atoms-per-word, because word chunking emits a paragraph-break
+atom per paragraph. The slider is capped there and the gate refuses above it
+with `PROGRAM_IO_ATOM_CEILING`, against the same constant — the two agree by
+reading one number rather than by arithmetic that matches today.
+
+This paragraph carried the figure from the old 1.05 atoms-per-word assumption
+until 2026-08-21; the constant has been 1.148 since the Analects were measured,
+and nothing re-read the figure here. This is the one number the
+slider and the gate both stand on and the document a red team is told to script
+against, so `scriptorium-spec.test.js` now reads it back out of this sentence
+and compares it to the exported constant. A number in prose is a label; the
+guard is what makes it evidence.
+
+The worst-case ratio it divides by bounds atoms per word of BUDGET, not per
+word of text — an opening can compile denser than the constant per word it
+delivers, and cannot per word it is charged. `reading-limits.js` states the
+proof and `shelf-measurements.test.js` measures every extent the grammar can
+name against it.
+
+---
+
 ## 11. How we will know
 
 **Run the loop by hand, badly, in the Workshop as it stands.** Not because the
@@ -443,6 +623,148 @@ Only then build the room.
 6. ~~Decide pacing~~ ✅ — the reading track; §10
 7. ~~Build the room~~ ✅ — additive; Workshop buttons left in place
 8. Remove the Workshop's curator buttons — separate, verified commit
+
+---
+
+## 13. Three entrances, one sequence ✦ *(2026-08-21)*
+
+The five steps — intent and length, take, examine, the reading, read — belong
+to `ScriptoriumSession` (`src/core/scriptorium-session.js`) and to nothing
+else. Three surfaces drive that one object:
+
+| surface | how it drives | what it adds |
+| --- | --- | --- |
+| the room, `Scriptorium.js` | DOM events | markup, object URLs, the clipboard, the Vault write, IndexedDB durability |
+| the CLI, `scripts/scriptorium.mjs` | argv | printing and an exit status |
+| the suite | direct calls | assertions |
+
+The room holds **no copy** of the intent, the length, the context, the prompt,
+the verdict, the program or the materials: each is a getter onto the session.
+That is not tidiness. The Scriptorium and the Workshop's Import score are two
+doors onto one gate, and every defect this room has produced has been one door
+knowing something the other did not.
+
+### The CLI is not an agent
+
+It calls no model and runs no loop. `RISE calls no model` (§9) is not suspended
+because the caller is a terminal. What the CLI does is ask the live modules a
+question and print the answer, which is why it replaced fourteen
+`scripts/probe-scriptorium-*.mjs` files: a probe records what the source said
+once, and three of those fourteen were describing source that had changed
+within hours.
+
+### A refusal code is an exit status
+
+`SCRIPTORIUM_EXIT` (`src/core/scriptorium-cli.js`) maps every refusal the gate
+can produce onto a process status, so a script asserts *which* refusal without
+reading prose. `0` is acceptance and nothing else; `1` means the CLI met a code
+its own vocabulary does not name, which is a bug in the CLI rather than a
+verdict about the score; `2` is the argv.
+
+| status | meaning | codes |
+| --- | --- | --- |
+| 20 | not a score yet | `PROGRAM_IO_EMPTY`, `PROGRAM_IO_JSON`, `PROGRAM_IO_TOO_LARGE` |
+| 21 | not a score this doorway may admit | `PROGRAM_IO_SCHEMA`, `PROGRAM_IO_RECORD`, `PROGRAM_IO_PUBLISHED_REFUSED` |
+| 22 | it smuggles something | `PROGRAM_IO_URI_REFUSED`, `PROGRAM_IO_PROTOTYPE` |
+| 23 | the program's own shape | `PROGRAM_LANE_OVERLAP`, `PROGRAM_READING_*`, `PROGRAM_INCOMPLETE_RANGE`, `PROGRAM_UNKNOWN_FIELD`, `WORKSHOP_PROJECT_*`, … |
+| 24 | the capability document | `CURATOR_CONTEXT_*` |
+| 30 | a work this build does not hold | `PROGRAM_IO_UNKNOWN_SOURCE` |
+| 31 | the work is here, that division is not | `PROGRAM_IO_UNKNOWN_DIVISION` |
+| 32 | an opening below the floor | `PROGRAM_IO_EXTENT_FLOOR` |
+| 33 | not one of the three id forms | `PROGRAM_IO_EXTENT_GRAMMAR` |
+| 34 | a capability nobody offers | `PROGRAM_IO_UNKNOWN_COLLECTION`, `…_ENGINE`, `…_SURFACE`, `…_SOUNDSCAPE`, `…_TONE`, `…_SWELL`, `…_VOICE`, `…_ASSET` |
+| 40 | longer than the reader asked for | `PROGRAM_IO_BUDGET_EXCEEDED` |
+| 41 | one source declares no length | `PROGRAM_IO_BUDGET_UNMEASURED` |
+| 42 | more words than one session holds | `PROGRAM_IO_ATOM_CEILING` |
+| 43 | more works than one session holds | `PROGRAM_IO_SOURCE_CEILING` |
+| 50 | only the text could settle it | `PROGRAM_IO_LIBRARY_UNLOADABLE`, `SOURCE_SPAN_*`, `VISUAL_SCORE_*`, `AUDIO_SCORE_*` |
+| 51 | there is no reading here | `PROGRAM_IO_NO_LIBRARY_SOURCES`, `PROGRAM_IO_NOT_EXAMINED` |
+| 60 | an operation set, or the producer | `AGENT_OP_*`, `PRODUCER_*`, `EDITOR_ASSET_*` |
+| 70 | acquisition, narration, publication | `ACQUISITION_*`, `NARRATION_*`, `PUBLICATION_*` |
+
+Row 23 is the only row whose cell ends in an ellipsis, and the ellipsis is
+honest: `PROGRAM_` is a prefix family, so a code added to the program validator
+tomorrow lands at 23 by construction. It is not a licence. The set of rows that
+may end that way lives in `scriptorium-cli.test.js` rather than being read out
+of this table — `open` computed from the document under test is a document that
+grants itself the exemption — and every refusal the CLI phrases at 23 has to be
+named in the cell above or excused there with a reason. Rehoming
+`AGENT_OP_SOURCE`, `SOURCE_SPAN_QUOTE_NOT_FOUND` and `PUBLICATION_HUMAN_REQUIRED`
+onto 23 once left the whole suite and CI green, because the backward pass
+skipped the row every unlisted code lands in.
+
+### What a capability is, and where the list of them lives
+
+Status 34 is one refusal per FAMILY of capability, and the families are one
+table: `CAPABILITY_FAMILIES` in `experience-program-io.js` says where each
+family's offered ids live in the capability document and which refusal an
+unoffered id raises. Both doors enumerate into that shape —
+`programCapabilities` for a score, `operationSetCapabilities` for an operation
+set — and one loop checks it.
+
+That is the second half of the fix `programSourceIds` began. Making the SOURCE
+check derived closed the hole a transition clip could carry a novel through,
+and the derivation stopped at text: a soundscape, a tone preset, a personal
+swell, a narration voice and a field renderer stayed hand-written allowlists
+that only the program door consulted. `set-atmosphere` wrote three of them
+into a project's reading defaults with no gate anywhere in the path, and
+`assign-audio` on a swell nobody holds FABRICATED one called "Personal audio".
+
+The document gained two lists in the same pass, because a capability that can
+be named has to be a capability the document describes: `audio.voices` (the
+voices that are actually BUILT — an unbuilt one is silence wearing a name) and
+`visuals.surfaces` (the three field renderers `PROGRAM_VISUAL_FIELD_RENDERERS`
+has always closed and nothing had ever offered).
+
+The four extent statuses are deliberately separate. They are the grammar §10c
+teaches, and telling 32 from 33 is the difference between a curator who asked
+wrongly and a build that cannot serve what was asked.
+
+#### Why 42 and 43 are two statuses
+
+A session holds a number of words *and* a number of works, and both ceilings
+are "longer than one session can hold". They were one status for a pass —
+`PROGRAM_IO_ATOM_CEILING` and 42 for both — with `details.maxSources` as the
+only thing distinguishing them. That was honest and it was not enough, for two
+reasons.
+
+The first is that the status is the whole of what a script reads. §13 exists so
+a caller can branch on *which* refusal without parsing prose or poking at a
+details object; a discriminator that lives only in `details` puts back exactly
+the reading the exit code was invented to remove.
+
+The second is that the two refusals ask the curator for different things. 42
+says the reading is too long: read less — a shorter work, a division instead of
+a book, fewer movements. 43 says the reading names too many *ids*: sixty-five
+chapters of the Tao is 8,456 words against a 20,000 budget, nothing large at
+all, and the fix is to name the work once rather than sixty-five times, which
+is very often the same text. A curator told "longer than one session can hold"
+about a score well inside every length they set has been told the wrong thing.
+
+That is the same argument that keeps 32 and 33 apart, and it is settled the
+same way: `scripts/fixtures/scriptorium/source-count.json` produces 43 on every
+run, and `source-count-limit.json` — exactly `READING_LIMITS.maxSources` — is
+admitted beside it, because a ceiling tested only from above may sit one too
+low.
+
+Every `PROGRAM_IO_*` refusal is named in the table **explicitly** rather than by
+prefix. `scriptorium-cli.test.js` reads the `case` labels out of
+`describeImportFailure` and fails when one of them would fall through to the
+`PROGRAM_` family default — because a status assigned by accident means nothing.
+
+### The wording of a refusal has one home
+
+`describeImportFailure` (`experience-program-io.js`). Nothing else phrases one.
+`PROGRAM_IO_LIBRARY_UNLOADABLE` was the last exception: the Workshop wrote that
+reply itself, in a method the Scriptorium could not reach, so the room with the
+copyable refusal panel said `Could not load: ulysses#18:200` and stopped.
+
+### It runs in CI
+
+`npm run scriptorium:ci` spawns the CLI against committed scores under
+`scripts/fixtures/scriptorium/` and asserts the documented status and code for
+each. It is its own job in `.github/workflows/ci.yml`, beside the unit suite
+which drives the same argv shell in-process.
 
 ---
 

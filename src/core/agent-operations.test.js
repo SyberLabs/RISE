@@ -6,13 +6,16 @@ import {
   cancelAgentRun,
   createAgentOperationHistory,
   createAgentRun,
+  NO_TRANSITION_OPERATION,
   previewAgentOperationSet,
   recordAgentOperationSet,
   redoAgentOperationSet,
   rejectAgentOperation,
+  summarizeAgentOperationSet,
   undoAgentOperationSet,
   validateAgentOperationSet
 } from './agent-operations.js';
+import { EXPERIENCE_PROGRAM_SCHEMA } from './experience-program.js';
 import { emptyWorkshopProject } from './workshop-project.js';
 import { exportCuratorContext } from './curator-context.js';
 import { contentHashOf } from './render/hash.js';
@@ -154,6 +157,34 @@ describe('rise.agent-operation-set.v1', () => {
         { op: 'create-transition', id: 'op-t', transitionId: 't1', fromMovementId: 'm1' }
       ])
     })).toThrow(expect.objectContaining({ code: 'AGENT_OP_NO_WORKSHOP_EQUIVALENT' }));
+  });
+
+  /**
+   * A REFUSAL THAT DOES NOT NAME THE WORKING DOOR TEACHES THAT THE CAPABILITY
+   * IS ABSENT. RISE takes a transition — in a score, where the validator
+   * accepts the track and the compiler gives the boundary atom the score's own
+   * duration and a synthetic id that cues can anchor to. Only the operation
+   * set refuses one, and it refused with "no human Workshop command yet",
+   * which a model reads as "RISE has no transitions". Both surfaces that state
+   * the refusal are checked here, against the one sentence they share.
+   */
+  it('sends a refused transition to the door that takes one', () => {
+    const project = emptyWorkshopProject({ id: 'project-memory' });
+    const attempt = () => applyAgentOperationSet({
+      project,
+      operationSet: opSet([
+        { op: 'create-transition', id: 'op-t', transitionId: 't1', fromMovementId: 'm1' }
+      ])
+    });
+    expect(attempt).toThrow(expect.objectContaining({ message: expect.stringContaining(NO_TRANSITION_OPERATION) }));
+    expect(NO_TRANSITION_OPERATION).toContain(EXPERIENCE_PROGRAM_SCHEMA);
+    expect(NO_TRANSITION_OPERATION).toContain('"transition" track');
+
+    const row = summarizeAgentOperationSet(opSet([
+      { op: 'create-transition', id: 'op-t', transitionId: 't1', fromMovementId: 'm1' }
+    ])).find(item => item.op === 'create-transition');
+    expect(row.status).toBe('refused');
+    expect(row.summary).toBe(NO_TRANSITION_OPERATION);
   });
 
   it('rejects one operation without corrupting the rest of the proposal', () => {

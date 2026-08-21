@@ -8,6 +8,7 @@
 
 import {
   EXPERIENCE_PROGRAM_SCHEMA,
+  PROGRAM_VISUAL_FIELD_RENDERERS,
   createExperienceProgram,
   validateExperienceProgram
 } from './experience-program.js';
@@ -38,6 +39,7 @@ import {
   visualAssignmentsFromProgram
 } from './workshop-project.js';
 import { locateQuoteSpan } from './source-span.js';
+import { libraryExtentId } from './library-extent.js';
 import { RENDER_PROFILE_IDS } from './render/limits.js';
 
 export const AGENT_OPERATION_SET_SCHEMA = 'rise.agent-operation-set.v1';
@@ -81,6 +83,40 @@ const MUTATING_OPS = new Set([
 const PENDING_OPS = new Set(['request-asset']);
 const HOST_REQUEST_OPS = new Set(['request-preview', 'request-compile']);
 const UNIMPLEMENTED_OPS = new Set(['create-transition', 'revise-transition']);
+
+/**
+ * WHY THE TWO DOORS DISAGREE ABOUT TRANSITIONS, SETTLED AND SAID OUT LOUD.
+ * ───────────────────────────────────────────────────────────────────────
+ * A transition is not a thing RISE cannot do. An experience program may carry
+ * a `transition` track; the validator takes it; `lowerExperienceProgram` turns
+ * it into a source boundary and `createAuthoredBoundary` compiles it into an
+ * atom with the score's own duration, a synthetic source id the visual and
+ * audio lanes can cue against, and an `authored-boundary` tag the Chamber
+ * already honours. It is exactly the construct the inverted shelf needs, and
+ * it works today.
+ *
+ * IT IS STILL REFUSED HERE, AND NOT OUT OF LAZINESS. An operation set's whole
+ * authority is that every op is a command a person can already perform, which
+ * is what makes one inspectable, reorderable and undoable by the reader it
+ * acts for. The Workshop has no transition control — no lane, no handle, no
+ * command — so an agent able to create one would hold a power the reader does
+ * not, over a lane the reader cannot see in order to correct it.
+ *
+ * And it would not survive being held. `compileDraft` rebuilds a project's
+ * program out of its assignments, and there is no transition assignment: the
+ * clip would be admitted, then dropped at the next edit. That is the
+ * `add-source.division` defect exactly — declared, validated, and read by
+ * nothing — and this codebase has already paid for it once.
+ *
+ * So the refusal stands and NAMES THE DOOR THAT WORKS. One sentence, in one
+ * place: the failure raises it, the inspection row prints it, and
+ * curator-prompt.js teaches the same distinction, so a model that meets it at
+ * any of the three is told the same thing.
+ */
+export const NO_TRANSITION_OPERATION = 'The Workshop has no transition control '
+  + 'for a person to inspect or undo, so an operation set may not create one. A '
+  + `transition IS available in a score: return a ${EXPERIENCE_PROGRAM_SCHEMA} `
+  + 'with a "transition" track instead.';
 
 export const AGENT_OPERATION_LIMITS = Object.freeze({
   maxIdLength: 160,
@@ -128,6 +164,196 @@ const OP_FIELDS = Object.freeze({
   'request-preview': ['fromMs', 'toMs', 'tier'],
   'request-compile': []
 });
+
+/**
+ * WHICH FIELDS OF AN OPERATION NAME A CAPABILITY, and which family each names.
+ *
+ * `OP_FIELDS` above says what an operation may carry. This says which of those
+ * fields carry an id the reader was OFFERED, as opposed to a label the author
+ * invents (`assignmentId`), a coordinate (`fromCharacter`) or a closed enum
+ * the validator already settles (`overlap`).
+ *
+ * It is read back out of this file by scriptorium-gate.test.js and checked
+ * against `OP_FIELDS`: a field that appears there and neither here nor in that
+ * test's list of fields that name nothing is a failure. That is the only
+ * arrangement in which a NEW capability-bearing field cannot be added without
+ * the gate learning to check it — which is exactly how `soundscape`,
+ * `audioPreset` and `selectedSwellId` came to be written straight into a
+ * project's reading defaults with no gate anywhere in the path.
+ */
+export const OPERATION_CAPABILITY_FIELDS = Object.freeze({
+  sourceId: 'sources',
+  sourceIds: 'sources',
+  assetId: 'lane-asset',
+  voiceId: 'voices',
+  soundscape: 'soundscapes',
+  audioPreset: 'tones',
+  selectedSwellId: 'swells',
+  renderer: 'surfaces',
+  profileId: 'render-profile'
+});
+
+/** The empty families every enumeration starts from, so callers may `for..of`. */
+const noCapabilities = () => ({
+  addedSources: [],
+  removedSources: [],
+  collections: new Set(),
+  engines: new Set(),
+  surfaces: new Set(),
+  soundscapes: new Set(),
+  tones: new Set(),
+  swells: new Set(),
+  voices: new Set(),
+  assets: new Set()
+});
+
+/**
+ * A soundscape whose voice is the reader's own file (workshop-audio.js).
+ *
+ * Written into `defaults.audio.soundscape` by the Workshop, so an operation
+ * set may legitimately name one — and what it is really naming is a SWELL,
+ * which is where the gate has to look for it.
+ */
+const PERSONAL_BED = 'personal:';
+
+/**
+ * The absence of a bed, which is not a bed and so is not a capability.
+ *
+ * `applyWorkshopAudioAsset` writes it whenever a tone is chosen. Refusing it
+ * would refuse the one way an operation set has of saying "no atmosphere".
+ */
+const NO_SOUNDSCAPE = 'none';
+
+/**
+ * WHAT A VISUAL `assetId` NAMES — the grammar, in one place.
+ *
+ * `visualAssetFor` used to carry this as a chain of `startsWith` tests and the
+ * gate carried none of it, so the two could not disagree only because one of
+ * them did not exist. They read this now, which means a prefix added here is
+ * a prefix both the gate and the producer learn at once.
+ *
+ * MUSEUM COLLECTIONS ARE TESTED BEFORE PROCEDURAL POOLS. Every museum id is in
+ * `context.visuals.collections`, and the old order asked "is this id a
+ * collection the context offers?" first and answered a bare `aic-ukiyoe` with
+ * a PROCEDURAL field — so the `aic-` branch was dead code for every id the
+ * context actually offered, and a reader who asked for ukiyo-e prints got a
+ * generated field pointed at a pool that is not one.
+ *
+ * @returns {{ family: string, id: string, kind: string }}
+ */
+export function visualAssetReference(assetId) {
+  const id = String(assetId ?? '');
+  for (const prefix of ['project-image:', 'project-video:', 'sequence-asset:']) {
+    if (id.startsWith(prefix)) {
+      return { family: 'assets', id: id.slice(prefix.length), kind: 'project-asset' };
+    }
+  }
+  if (id.startsWith('collection:')) {
+    return { family: 'collections', id: id.slice('collection:'.length), kind: 'sourced' };
+  }
+  if (id.startsWith('aic-')) return { family: 'collections', id, kind: 'sourced' };
+  if (id.startsWith('surface:')) {
+    return { family: 'surfaces', id: id.slice('surface:'.length), kind: 'field' };
+  }
+  if (id.startsWith('procedural:')) {
+    return { family: 'engines', id: id.slice('procedural:'.length), kind: 'procedural' };
+  }
+  // A bare id is a procedural pool or a work-engine family, which are offered
+  // under both `collections` and `engines`; the gate accepts either.
+  return { family: 'engines', id, kind: 'procedural' };
+}
+
+/** The same for an audio `assetId`: `soundscape:`, `tone:` or `swell:`. */
+export function audioAssetReference(assetId) {
+  const id = String(assetId ?? '');
+  if (id.startsWith('soundscape:')) {
+    return { family: 'soundscapes', id: id.slice('soundscape:'.length) };
+  }
+  if (id.startsWith('tone:')) return { family: 'tones', id: id.slice('tone:'.length) };
+  if (id.startsWith('swell:')) return { family: 'swells', id: id.slice('swell:'.length) };
+  // Not one of the three forms. The producer refuses it by name
+  // (AGENT_OP_ASSET); there is no family for the gate to check it against.
+  return { family: null, id };
+}
+
+/**
+ * EVERY capability an operation set names, by family.
+ *
+ * The same law as `programSourceIds`, carried the rest of the way. That
+ * function made the SOURCE check derived — one enumeration the budget spends
+ * and the resolver walks — and the derivation stopped at text: a soundscape,
+ * a tone preset, a personal swell, a narration voice and a field renderer
+ * were all still hand-written allowlists, and the operations door consulted
+ * none of them. `set-atmosphere` wrote three of them straight into a
+ * project's reading defaults with no gate anywhere in the path.
+ *
+ * So the door spends exactly this, and the producer resolves exactly this
+ * grammar. Not two functions kept in agreement — one enumeration, which is
+ * the only arrangement a new capability-bearing field cannot silently break.
+ *
+ * `addedSources` and `removedSources` are kept in order rather than as a set,
+ * because what a set cannot say is that a proposal added a work and then took
+ * it away again — which is what a model does when it changes its mind
+ * mid-proposal, and which leaves a reading with no text in it.
+ */
+export function operationSetCapabilities(operationSet) {
+  const named = noCapabilities();
+  for (const operation of operationSet?.operations || []) {
+    switch (operation.op) {
+      case 'add-source':
+        if (operation.sourceId) named.addedSources.push(operation.sourceId);
+        break;
+      case 'remove-source':
+        if (operation.sourceId) named.removedSources.push(operation.sourceId);
+        break;
+      case 'assign-visual':
+      case 'replace-visual': {
+        if (!operation.assetId) break;
+        const reference = visualAssetReference(operation.assetId);
+        named[reference.family].add(reference.id);
+        break;
+      }
+      case 'configure-field':
+        if (operation.renderer) named.surfaces.add(operation.renderer);
+        break;
+      case 'assign-audio':
+      case 'replace-audio': {
+        if (!operation.assetId) break;
+        const reference = audioAssetReference(operation.assetId);
+        if (reference.family) named[reference.family].add(reference.id);
+        break;
+      }
+      case 'assign-narration':
+      case 'replace-narration':
+        if (operation.voiceId) named.voices.add(operation.voiceId);
+        // A narration `assetId` is pre-rendered audio for a voice — a file,
+        // and so an asset of the project, checked the way every other asset a
+        // document names is checked.
+        if (operation.assetId) named.assets.add(operation.assetId);
+        break;
+      case 'import-asset':
+        if (operation.assetId) named.assets.add(operation.assetId);
+        break;
+      case 'set-atmosphere':
+        if (operation.soundscape && operation.soundscape !== NO_SOUNDSCAPE) {
+          if (operation.soundscape.startsWith(PERSONAL_BED)) {
+            named.swells.add(operation.soundscape.slice(PERSONAL_BED.length));
+          } else {
+            named.soundscapes.add(operation.soundscape);
+          }
+        }
+        if (operation.audioPreset) named.tones.add(operation.audioPreset);
+        if (operation.selectedSwellId) named.swells.add(operation.selectedSwellId);
+        break;
+      default:
+        // reorder-source permutes what the project already holds;
+        // set-render-profile and request-asset name closed vocabularies the
+        // validator has already settled; the rest name nothing offered.
+        break;
+    }
+  }
+  return named;
+}
 
 export class AgentOperationError extends Error {
   constructor(code, message, path = '$', details = {}) {
@@ -229,8 +455,31 @@ function validateOperation(value, path) {
 
   if (source.op === 'add-source') {
     op.sourceId = exactId(source.sourceId, `${path}.sourceId`);
-    const division = optionalInteger(source.division, `${path}.division`, 0);
-    if (division != null) op.division = division;
+    /**
+     * VALIDATED AND DROPPED IS THE WORST OF THE THREE.
+     *
+     * `division` was declared a legal field, checked into the operation, and
+     * then read by nothing: resolveOperationLibrarySources maps `sourceId`
+     * alone. So `{"op":"add-source","sourceId":"sacred-tao-te-ching",
+     * "division":40}` was ACCEPTED and loaded the whole 10,321-word book —
+     * the one place in this room that did something other than what it was
+     * told.
+     *
+     * It is refused rather than honoured. Composing the id here would be
+     * rewriting a model's output on its behalf, and the extent already has a
+     * grammar that says the same thing in the place everything else reads:
+     * the source id. The refusal names the id that WOULD have been meant, so
+     * a curator can paste back a correction without learning anything about
+     * this codebase.
+     */
+    if (source.division !== undefined) {
+      const division = optionalInteger(source.division, `${path}.division`, 1);
+      fail('AGENT_OP_DIVISION',
+        `add-source names a division in a field nothing reads. An extent rides in `
+        + `the source id: write "${libraryExtentId(op.sourceId, division)}"`,
+        `${path}.division`,
+        { sourceId: op.sourceId, division, extentId: libraryExtentId(op.sourceId, division) });
+    }
   } else if (source.op === 'remove-source') {
     op.sourceId = exactId(source.sourceId, `${path}.sourceId`);
   } else if (source.op === 'reorder-source') {
@@ -258,7 +507,8 @@ function validateOperation(value, path) {
     copyId('sourceId');
     if (source.op !== 'configure-field' && source.op !== 'set-pace') copyId('assetId');
     if (source.op === 'configure-field') {
-      if (!['focal', 'attractor', 'genesis'].includes(source.renderer)) {
+      // The program validator's own list, not a second spelling of it.
+      if (!PROGRAM_VISUAL_FIELD_RENDERERS.includes(source.renderer)) {
         fail('AGENT_OP_FIELD', `Unknown field renderer: ${String(source.renderer)}`,
           `${path}.renderer`);
       }
@@ -444,7 +694,13 @@ export function summarizeAgentOperationSet(value) {
           : 'proposed',
     summary: op.op === 'request-asset'
       ? `Acquisition ${op.requestId} remains unresolved until admission`
-      : op.rationale || op.op
+      // A REFUSAL THAT SAYS ONLY ITS OWN NAME IS NOT A REFUSAL A CURATOR CAN
+      // ACT ON. This row printed `create-transition` beside the word
+      // "refused" and left the reader to guess whether RISE lacks the
+      // capability or the door lacks it.
+      : UNIMPLEMENTED_OPS.has(op.op)
+        ? NO_TRANSITION_OPERATION
+        : op.rationale || op.op
   })));
 }
 
@@ -477,71 +733,97 @@ function resolveSpan(op, source, path) {
   };
 }
 
-function visualAssetFor(assetId, { project, context }) {
-  const rawId = assetId.startsWith('project-image:')
-    ? assetId.slice('project-image:'.length)
-    : assetId.startsWith('project-video:')
-      ? assetId.slice('project-video:'.length)
-      : assetId;
-  const sequence = (project.assets || []).find(item => item.id === rawId);
+/**
+ * The producer's half of the grammar `visualAssetReference` declares.
+ *
+ * It decides WHAT to build; the reference decides what the id NAMES. Keeping
+ * those one function was how `aic-ukiyoe` came to build a procedural field:
+ * the museum test sat below a bare-collection test that every museum id
+ * satisfied, and nothing else in the tree read the same order.
+ */
+function visualAssetFor(assetId, { project, context, path = '$.assetId' }) {
+  const reference = visualAssetReference(assetId);
+  const held = (project.assets || []);
+  const sequence = held.find(item => item.id === reference.id)
+    || held.find(item => item.id === assetId);
   if (sequence) return sequence;
 
-  if (assetId.startsWith('procedural:') || (context?.visuals?.collections || []).includes(assetId)) {
-    const family = assetId.startsWith('procedural:') ? assetId.slice('procedural:'.length) : assetId;
-    if (context?.visuals?.collections
-      && !context.visuals.collections.includes(family)
-      && !context.visuals.collections.includes(assetId)
-      && !(context.visuals.engines || []).includes(family)) {
-      fail('AGENT_OP_ASSET', `Visual ${assetId} is not offered in context`, '$.assetId');
-    }
-    return createEditorAsset({
-      id: assetId.startsWith('procedural:') ? assetId : `procedural:${family}`,
-      lane: 'visual',
-      kind: 'procedural',
-      name: family,
-      capability: 'span',
-      editor: { color: VISUAL_SCORE_COLORS[0], preview: { kind: 'generator', ref: family } },
-      cueTemplate: { kind: 'procedural', collections: [family] }
-    });
+  if (reference.family === 'assets') {
+    fail('AGENT_OP_ASSET', `Asset ${reference.id} is not admitted in this project`, path,
+      { assetId: reference.id });
   }
 
-  if (assetId.startsWith('collection:') || assetId.startsWith('aic-')) {
-    const collectionId = assetId.startsWith('collection:')
-      ? assetId.slice('collection:'.length)
-      : assetId;
-    if (context?.visuals?.collections && !context.visuals.collections.includes(collectionId)) {
-      fail('AGENT_OP_ASSET', `Collection ${collectionId} is not offered`, '$.assetId');
+  if (reference.family === 'surfaces') {
+    // A CLOSED VOCABULARY, CHECKED WHERE IT IS NAMED. `surface:<anything>`
+    // used to go straight into createEditorAsset, which refused it as
+    // EDITOR_ASSET_CUE_KIND and leaked `$.cueTemplate.kind` — a path into an
+    // object the reader never wrote — under a status that says RISE is broken.
+    if (!PROGRAM_VISUAL_FIELD_RENDERERS.includes(reference.id)) {
+      fail('AGENT_OP_SURFACE', `Unknown field renderer: ${reference.id}`, path,
+        { renderer: reference.id, offered: [...PROGRAM_VISUAL_FIELD_RENDERERS] });
     }
     return createEditorAsset({
-      id: `collection:${collectionId}`,
-      lane: 'visual',
-      kind: 'sourced-collection',
-      name: collectionId,
-      capability: 'span',
-      editor: { color: VISUAL_SCORE_COLORS[1], preview: { kind: 'sample', ref: collectionId } },
-      cueTemplate: { kind: 'sourced', collections: [collectionId] }
-    });
-  }
-
-  if (assetId.startsWith('surface:')) {
-    const renderer = assetId.slice('surface:'.length);
-    return createEditorAsset({
-      id: assetId,
+      id: `surface:${reference.id}`,
       lane: 'visual',
       kind: 'project-surface',
-      name: renderer,
+      name: reference.id,
       capability: 'span',
-      editor: { color: VISUAL_SCORE_COLORS[2], preview: { kind: 'surface', ref: renderer } },
-      cueTemplate: { kind: 'field', renderer, config: {} }
+      editor: { color: VISUAL_SCORE_COLORS[2], preview: { kind: 'surface', ref: reference.id } },
+      cueTemplate: { kind: 'field', renderer: reference.id, config: {} }
     });
   }
 
-  fail('AGENT_OP_ASSET', `Unknown visual asset ${assetId}`, '$.assetId');
+  if (reference.family === 'collections') {
+    if (context?.visuals?.collections && !context.visuals.collections.includes(reference.id)) {
+      fail('AGENT_OP_ASSET', `Collection ${reference.id} is not offered`, path);
+    }
+    return createEditorAsset({
+      id: `collection:${reference.id}`,
+      lane: 'visual',
+      kind: 'sourced-collection',
+      name: reference.id,
+      capability: 'span',
+      editor: { color: VISUAL_SCORE_COLORS[1], preview: { kind: 'sample', ref: reference.id } },
+      cueTemplate: { kind: 'sourced', collections: [reference.id] }
+    });
+  }
+
+  const family = reference.id;
+  const offered = context?.visuals?.collections
+    ? context.visuals.collections.includes(family)
+      || (context.visuals.engines || []).includes(family)
+    : null;
+  if (reference.kind === 'bare' && !offered) {
+    fail('AGENT_OP_ASSET', `Unknown visual asset ${assetId}`, path);
+  }
+  if (offered === false) {
+    fail('AGENT_OP_ASSET', `Visual ${assetId} is not offered in context`, path);
+  }
+  return createEditorAsset({
+    id: `procedural:${family}`,
+    lane: 'visual',
+    kind: 'procedural',
+    name: family,
+    capability: 'span',
+    editor: { color: VISUAL_SCORE_COLORS[0], preview: { kind: 'generator', ref: family } },
+    cueTemplate: { kind: 'procedural', collections: [family] }
+  });
 }
 
-function audioAssetFor(assetId, { personalSwells = [] }) {
+function audioAssetFor(assetId, { personalSwells = [], path = '$.assetId' }) {
   const asset = audioScoreAssetFromId(assetId, personalSwells);
-  if (!asset) fail('AGENT_OP_ASSET', `Unknown audio asset ${assetId}`, '$.assetId');
+  if (!asset) {
+    // A swell says which absence it is. `Unknown audio asset swell:ghost` is
+    // true and useless: the reader's shelf is the only place it could have
+    // come from, and naming the shelf is what makes the refusal actionable.
+    const reference = audioAssetReference(assetId);
+    if (reference.family === 'swells') {
+      fail('AGENT_OP_ASSET',
+        `Personal audio ${reference.id} is not on this reader's shelf`, path,
+        { swellId: reference.id });
+    }
+    fail('AGENT_OP_ASSET', `Unknown audio asset ${assetId}`, path);
+  }
   return asset;
 }
 
@@ -782,7 +1064,8 @@ export function applyAgentOperationSet({
     const path = `$.operations[id=${op.id}]`;
     if (UNIMPLEMENTED_OPS.has(op.op)) {
       fail('AGENT_OP_NO_WORKSHOP_EQUIVALENT',
-        `${op.op} has no human Workshop command yet, so an agent may not use it`,
+        `${op.op} has no human Workshop command yet, so an agent may not use it. `
+        + NO_TRANSITION_OPERATION,
         path, { op: op.op, operationId: op.id });
     }
     if (PENDING_OPS.has(op.op)) {
@@ -879,7 +1162,9 @@ export function applyAgentOperationSet({
       const source = findSource(op.sourceId, path);
       const span = resolveSpan(op, source, path);
       const assetId = op.op === 'configure-field' ? `surface:${op.renderer}` : op.assetId;
-      const visual = visualAssetFor(assetId, { project: { assets: draft.assets }, context });
+      const visual = visualAssetFor(assetId, {
+        project: { assets: draft.assets }, context, path
+      });
       if (!draft.visualAssets.some(item => item.id === visual.id)) draft.visualAssets.push(visual);
       const overlap = op.op === 'replace-visual' ? 'replace' : (op.overlap || 'reject');
       draft.visualAssignments = assignVisualSpan({
@@ -919,7 +1204,7 @@ export function applyAgentOperationSet({
     if (op.op === 'assign-audio' || op.op === 'replace-audio') {
       const source = findSource(op.sourceId, path);
       const span = resolveSpan(op, source, path);
-      const audio = audioAssetFor(op.assetId, { personalSwells });
+      const audio = audioAssetFor(op.assetId, { personalSwells, path });
       if (!draft.audioAssets.some(item => item.id === audio.id)) draft.audioAssets.push(audio);
       const overlap = op.op === 'replace-audio' ? 'replace' : (op.overlap || 'reject');
       draft.audioAssignments = assignAudioSpan({

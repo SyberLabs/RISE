@@ -8,13 +8,35 @@
 
 import { MUSEUM_CATEGORIES } from '../sources/visual/museum.js';
 import { SOUNDSCAPES } from '../audio/soundscapes.js';
+// THE VOICES THAT ARE ACTUALLY BUILT, which is not the same as the voices the
+// product has labels for: `availableVoicePacks` keeps only a pack with entries
+// in it. A voice with no recordings would be a capability offered that could
+// never sound, which is the defect the literal `personal` swell already was.
+// The manifest is already in the eager graph (src/content/keystones.js), so
+// naming it here costs no bundle bytes.
+import { availableVoicePacks } from '../audio/voice-pack.js';
 import { WORK_ENGINE_MANIFEST, workEngineFamilies } from '../visuals/work-engines.js';
 import { PROCEDURAL_PATTERNS, PROCEDURAL_PATTERN_IDS } from './visual-registry.js';
 import { WORKSHOP_AUDIO_ASSETS } from './workshop-audio.js';
-import { EXPERIENCE_PROGRAM_LIMITS } from './experience-program.js';
+import {
+  EXPERIENCE_PROGRAM_LIMITS,
+  PROGRAM_VISUAL_FIELD_RENDERERS
+} from './experience-program.js';
 import { READING_LIMITS } from './reading-limits.js';
 import { countWords } from './chunker.js';
+import { EXTENT_REFUSAL, extentReadingBound, parseLibraryExtent } from './library-extent.js';
 import { releaseArchiveMetadata } from '../content/archive/index.js';
+// THE SERVED SHELF'S divisions, as they were measured from the committed
+// bytes: how many, what they are called, and how long each one is. Generated
+// by scripts/build-division-index.mjs. The per-division lengths spent a while
+// in a sibling file because the two could not be regenerated in one change;
+// they come out of one pass now, because the gate cannot measure
+// `sacred-tao-te-ching#40` against a length that disagrees with the labels
+// beside it.
+//
+// The withheld corpus is a SEPARATE artifact and is deliberately not imported
+// here. The filter below drops those works at runtime, which is too late: this
+// import is what puts them in the bundle, and eighty of them were riding in it.
 import DIVISION_INDEX from '../content/archive/division-index.json';
 
 export const CURATOR_CONTEXT_SCHEMA = 'rise.curator-context.v1';
@@ -28,9 +50,16 @@ export const CURATOR_CONTEXT_LIMITS = Object.freeze({
   maxSoundscapes: 64,
   maxTones: 32,
   maxSwells: 128,
+  maxVoices: 32,
+  maxSurfaces: 32,
   maxTitleLength: 200,
-  maxDescriptionLength: 400,
-  maxConstraintNumber: 10_000
+  // The same ceiling the descriptor applies (READING_LIMITS), so a reader's
+  // description cannot pass the field and fail the document.
+  maxDescriptionLength: READING_LIMITS.maxMaterialDescriptionChars,
+  maxConstraintNumber: 10_000,
+  // A scheme's per-division lists (labels, word counts) ride whole or not at
+  // all, so this bounds the whole list rather than truncating one.
+  maxDivisions: 4_096
 });
 
 const PROCEDURAL_ENGINE_IDS = PROCEDURAL_PATTERN_IDS;
@@ -79,6 +108,38 @@ function exactId(value, path) {
   return value;
 }
 
+/**
+ * What RISE says about the reader's file when the reader has said nothing.
+ *
+ * Exported because a surface that PRINTS the catalogue needs to tell these
+ * apart from a description a person wrote: the prompt quotes the reader's own
+ * words and stays silent where there are none, and the alternative to naming
+ * the defaults here is a prompt that string-matches prose defined elsewhere.
+ */
+export const SEQUENCE_ASSET_DEFAULT_DESCRIPTIONS = Object.freeze({
+  image: 'An image the reader added to this project.',
+  video: 'A video the reader added to this project.'
+});
+
+const CATALOGUE_URI = /^(data:|blob:|https?:|javascript:)/i;
+
+/**
+ * Would this string survive `boundedText`?
+ *
+ * Exported so a surface that takes catalogue text FROM A PERSON can say no
+ * beside the field they typed it into. `boundedText` throws, which is right at
+ * the trust boundary and useless as an answer to a reader: the description
+ * field is several steps from Prepare prompt, and a refusal that surfaces
+ * there names neither the file nor the sentence that caused it. One rule,
+ * asked in two voices — the room asks whether, the document enforces that.
+ */
+export function catalogueTextIsSafe(value) {
+  const text = String(value ?? '').trim();
+  return text.length <= CURATOR_CONTEXT_LIMITS.maxDescriptionLength
+    && !CATALOGUE_URI.test(text)
+    && !text.includes('://');
+}
+
 /** Catalogue prose: bounded, trimmed, and never a URI. */
 function boundedText(value, path) {
   const text = String(value).trim();
@@ -86,7 +147,7 @@ function boundedText(value, path) {
     fail('CURATOR_CONTEXT_TEXT_TOO_LONG',
       `Catalogue text may not exceed ${CURATOR_CONTEXT_LIMITS.maxDescriptionLength} characters`, path);
   }
-  if (/^(data:|blob:|https?:|javascript:)/i.test(text) || text.includes('://')) {
+  if (CATALOGUE_URI.test(text) || text.includes('://')) {
     fail('CURATOR_CONTEXT_URI_REFUSED', 'Catalogue text must not be a URI', path);
   }
   return text;
@@ -166,9 +227,18 @@ function normalizeSource(value, path) {
   return out;
 }
 
+/**
+ * `surfaces` IS THE LIST THAT WAS MISSING, and its absence was a hole rather
+ * than an omission. A visual field renderer is a closed vocabulary — the
+ * program validator has always refused `PROGRAM_VISUAL_FIELD_RENDERERS`
+ * misses — but nothing offered the three names to a composer, and the
+ * operations door took `assetId: "surface:<anything>"` and built an editor
+ * asset out of it. A capability that can be named has to be a capability the
+ * document describes, or the gate is checking against a list nobody was given.
+ */
 function normalizeVisuals(value, path) {
   const visuals = record(value, path);
-  onlyKeys(visuals, new Set(['collections', 'engines']), path);
+  onlyKeys(visuals, new Set(['collections', 'engines', 'surfaces']), path);
   return {
     collections: uniqueIds(
       visuals.collections || [],
@@ -179,13 +249,25 @@ function normalizeVisuals(value, path) {
       visuals.engines || [],
       `${path}.engines`,
       CURATOR_CONTEXT_LIMITS.maxEngines
+    ),
+    surfaces: uniqueIds(
+      visuals.surfaces || [],
+      `${path}.surfaces`,
+      CURATOR_CONTEXT_LIMITS.maxSurfaces
     )
   };
 }
 
+/**
+ * `voices` LIKEWISE. Narration is a lane an operation set can score, and the
+ * document named no voice at all — so a model could not choose one on purpose
+ * and every one it invented was admitted at both doors. An unbuilt voice is
+ * silence, so the list is what `availableVoicePacks` reports rather than what
+ * the product has labels for.
+ */
 function normalizeAudio(value, path) {
   const audio = record(value, path);
-  onlyKeys(audio, new Set(['soundscapes', 'tones', 'swells']), path);
+  onlyKeys(audio, new Set(['soundscapes', 'tones', 'swells', 'voices']), path);
   return {
     soundscapes: uniqueIds(
       audio.soundscapes || [],
@@ -201,6 +283,11 @@ function normalizeAudio(value, path) {
       audio.swells || [],
       `${path}.swells`,
       CURATOR_CONTEXT_LIMITS.maxSwells
+    ),
+    voices: uniqueIds(
+      audio.voices || [],
+      `${path}.voices`,
+      CURATOR_CONTEXT_LIMITS.maxVoices
     )
   };
 }
@@ -254,9 +341,9 @@ function normalizeCatalog(value, path) {
   // thing from a soundscape and belongs in its own section rather than
   // borrowing one. Additive and annotation-only: membership is still decided
   // against the flat id lists, so nothing here widens what a program may name.
-  onlyKeys(input, new Set(['collections', 'engines', 'soundscapes', 'swells']), path);
+  onlyKeys(input, new Set(['collections', 'engines', 'soundscapes', 'swells', 'voices']), path);
   const out = {};
-  for (const section of ['collections', 'engines', 'soundscapes', 'swells']) {
+  for (const section of ['collections', 'engines', 'soundscapes', 'swells', 'voices']) {
     if (input[section] === undefined) continue;
     const entries = record(input[section], `${path}.${section}`);
     const kept = {};
@@ -265,13 +352,22 @@ function normalizeCatalog(value, path) {
         fail('CURATOR_CONTEXT_PROTOTYPE', 'Prototype keys are refused', `${path}.${section}.${id}`);
       }
       const item = record(entry, `${path}.${section}.${id}`);
-      onlyKeys(item, new Set(['name', 'kind', 'tags', 'work', 'description']),
-        `${path}.${section}.${id}`);
+      onlyKeys(item, new Set(['name', 'kind', 'mediaKind', 'durationMs', 'tags',
+        'work', 'description']), `${path}.${section}.${id}`);
       const clean = {};
       for (const field of ['name', 'kind', 'work', 'description']) {
         if (typeof item[field] === 'string' && item[field].trim()) {
           clean[field] = boundedText(item[field], `${path}.${section}.${id}.${field}`);
         }
+      }
+      // A still or a moving picture, and how long the moving one runs. Two
+      // closed values and a whole number of milliseconds — anything else is
+      // dropped, the same as any other annotation that arrives malformed.
+      if (item.mediaKind === 'image' || item.mediaKind === 'video') {
+        clean.mediaKind = item.mediaKind;
+      }
+      if (Number.isInteger(item.durationMs) && item.durationMs > 0) {
+        clean.durationMs = item.durationMs;
       }
       if (Array.isArray(item.tags)) {
         clean.tags = item.tags
@@ -320,7 +416,7 @@ function normalizeLibrary(value, path) {
     if (item.divisions != null) {
       const div = record(item.divisions, `${path}[${index}].divisions`);
       onlyKeys(div, new Set(['titled', 'authored', 'reason', 'count', 'noun',
-        'labels', 'bodyFrom']), `${path}[${index}].divisions`);
+        'labels', 'words', 'bodyFrom']), `${path}[${index}].divisions`);
       const divisions = {};
       if (typeof div.titled === 'boolean') divisions.titled = div.titled;
       if (typeof div.authored === 'boolean') divisions.authored = div.authored;
@@ -361,6 +457,35 @@ function normalizeLibrary(value, path) {
         }
         divisions.labels = labels.map((label, position) =>
           boundedText(label, `${path}[${index}].divisions.labels[${position}]`));
+      }
+      // HOW LONG EACH DIVISION IS. `entry.words` says how long the WORK is,
+      // which is the wrong number for every extent the room teaches: a score
+      // naming `sacred-tao-te-ching#40` spends 38 words, not 10,321. Same
+      // whole-or-nothing rule as the labels — a short list would charge
+      // divisions after the gap at their neighbour's length.
+      if (div.words != null) {
+        const divisionWords = div.words;
+        if (!Array.isArray(divisionWords)) {
+          fail('CURATOR_CONTEXT_LIBRARY_DIVISIONS', 'Expected an array of word counts',
+            `${path}[${index}].divisions.words`);
+        }
+        if (divisionWords.length > CURATOR_CONTEXT_LIMITS.maxDivisions) {
+          fail('CURATOR_CONTEXT_LIBRARY_DIVISIONS',
+            `At most ${CURATOR_CONTEXT_LIMITS.maxDivisions} divisions`,
+            `${path}[${index}].divisions.words`);
+        }
+        if (divisions.count != null && divisionWords.length !== divisions.count) {
+          fail('CURATOR_CONTEXT_LIBRARY_DIVISIONS',
+            'Expected one word count per division, or none',
+            `${path}[${index}].divisions.words`);
+        }
+        divisions.words = divisionWords.map((count, position) => {
+          if (!Number.isInteger(count) || count < 0) {
+            fail('CURATOR_CONTEXT_LIBRARY_DIVISIONS', 'Expected a non-negative word count',
+              `${path}[${index}].divisions.words[${position}]`);
+          }
+          return count;
+        });
       }
       if (Object.keys(divisions).length) entry.divisions = divisions;
     }
@@ -413,6 +538,151 @@ export function validateCuratorContext(value) {
   return deepFreeze(context);
 }
 
+/**
+ * What a source id turns out to be, once read against a capability document.
+ *
+ * `known` is the only admissible verdict; the rest are the reasons a gate
+ * has to refuse with. The two extent refusals are library-extent.js's own
+ * codes rather than new ones — the grammar is described in one place and
+ * this reads it, so a new form of id teaches both at once.
+ */
+export const CURATOR_SOURCE_KNOWN = 'known';
+export const CURATOR_SOURCE_UNKNOWN_WORK = 'unknown-work';
+export const CURATOR_SOURCE_UNKNOWN_DIVISION = 'unknown-division';
+
+/**
+ * Read one source id against what this document offers.
+ *
+ * ONE PLACE. Membership ("may the score name this?") and budget ("how long
+ * is it?") are the same question asked twice, and they were answered by two
+ * `new Set(library.map(item => item.id))` lookups that had both never heard
+ * of an extent. Every extent id the room teaches — the whole of `work#12`
+ * and `work#12:200` — was refused as an unknown source, and fixing only the
+ * membership side turned the refusal into an unmeasurable budget. So both
+ * ask this, and a third caller can too.
+ *
+ * @param {object} context a validated curator context
+ * @returns {(sourceId: string) => {
+ *   status: string, sourceId: string, workId: string, division: number|null,
+ *   askedWords: number|null, words: number|null, divisionCount: number|null,
+ *   title: string|null
+ * }}
+ */
+export function createCuratorSourceReader(context) {
+  const loaded = new Map((context?.sources || []).map(item => [item.id, item]));
+  const library = new Map((context?.library || []).map(item => [item.id, item]));
+
+  const reading = (fields) => ({
+    status: CURATOR_SOURCE_KNOWN,
+    workId: fields.sourceId,
+    division: null,
+    askedWords: null,
+    words: null,
+    divisionCount: null,
+    title: null,
+    ...fields
+  });
+
+  return function readCuratorSource(sourceId) {
+    const id = String(sourceId ?? '');
+
+    // EXACTLY WHAT IT SAYS, FIRST. A source already loaded into a project
+    // keeps its extent in its id — the resolver names it `middlemarch#2:200`
+    // and the score's anchors are written against that — so an id the reader
+    // already holds is that thing, not an instruction to cut it again.
+    const held = loaded.get(id) || library.get(id);
+    if (held) {
+      return reading({
+        sourceId: id,
+        words: Number.isInteger(held.words) ? held.words : null,
+        title: held.title || null
+      });
+    }
+
+    const extent = parseLibraryExtent(id);
+    // ONLY THE GRAMMAR IS JUDGED BEFORE THE SHELF IS ASKED, and it is the one
+    // verdict that can be: an id whose shape is wrong names no work at all —
+    // `workId` is the whole unparsed string — so there is nothing to look up.
+    //
+    // THE FLOOR IS NOT SUCH A VERDICT. `parseLibraryExtent` is a string reader:
+    // it can see that `:39` is under the floor and it cannot see whether the
+    // work or the division exists. Refusing here let a fact about the cut speak
+    // for facts nobody had established — `no-such-work-at-all#5:20` and
+    // `sacred-tao-te-ching#900:39` both refused below-floor, and the wording
+    // that reads that refusal tells the curator to name "sacred-tao-te-ching#900"
+    // instead, which is a chapter the Tao does not have. Spelled `:200` the same
+    // two ids were correctly absent and correctly no-such-division, so which of
+    // §13's four statuses a script learned turned on the `:N`. It is judged
+    // below, where everything its wording asserts has been established — the
+    // same order resolveLibrarySourceIds follows.
+    if (extent.refusal === EXTENT_REFUSAL.GRAMMAR) {
+      return reading({
+        status: extent.refusal,
+        sourceId: id,
+        workId: extent.workId,
+        division: extent.division
+      });
+    }
+    if (!extent.division) {
+      return reading({ status: CURATOR_SOURCE_UNKNOWN_WORK, sourceId: id });
+    }
+
+    const work = library.get(extent.workId);
+    if (!work) {
+      return reading({
+        status: CURATOR_SOURCE_UNKNOWN_WORK,
+        sourceId: id,
+        workId: extent.workId,
+        division: extent.division
+      });
+    }
+    const divisionCount = Number.isInteger(work.divisions?.count)
+      ? work.divisions.count
+      : null;
+    // A division the work does not have is a refusal, never the nearest one
+    // it does have — and it is a different refusal from a work nobody holds,
+    // which is what it used to be reported as.
+    if (divisionCount !== null && extent.division > divisionCount) {
+      return reading({
+        status: CURATOR_SOURCE_UNKNOWN_DIVISION,
+        sourceId: id,
+        workId: extent.workId,
+        division: extent.division,
+        divisionCount,
+        title: work.title || null
+      });
+    }
+    // THE FLOOR, LAST: everything its wording asserts is established by here.
+    // The count rides with it for the same reason it rides with the refusal
+    // above — it was null on every floor refusal while the same id at `:200`
+    // reported 81, so the reader was told the count where it does not matter
+    // and denied it where it does.
+    if (extent.refusal === EXTENT_REFUSAL.FLOOR) {
+      return reading({
+        status: extent.refusal,
+        sourceId: id,
+        workId: extent.workId,
+        division: extent.division,
+        divisionCount,
+        title: work.title || null
+      });
+    }
+    const perDivision = Array.isArray(work.divisions?.words) ? work.divisions.words : null;
+    const divisionWords = perDivision && perDivision.length >= extent.division
+      ? perDivision[extent.division - 1]
+      : null;
+    return reading({
+      sourceId: id,
+      workId: extent.workId,
+      division: extent.division,
+      askedWords: extent.words,
+      divisionCount,
+      words: extentReadingBound(divisionWords, extent.words),
+      title: work.title || null
+    });
+  };
+}
+
 function sourceText(source) {
   if (typeof source?.data === 'string') return source.data;
   if (typeof source?.raw === 'string') return source.raw;
@@ -437,12 +707,13 @@ function uniquePreserve(ids) {
  * Library catalogue for the Scriptorium: what exists, not what is loaded.
  * Titles, authors, lengths, and whether divisions are the author's scheme
  * or RISE-measured — ids and metadata only, never payloads
- * (SCRIPTORIUM-SPEC §7).
+ * (docs/vision/SCRIPTORIUM-SPEC.md §7).
  */
 export function buildLibraryCatalogue() {
   return releaseArchiveMetadata()
     .slice(0, CURATOR_CONTEXT_LIMITS.maxLibraryWorks).map(meta => {
     const div = DIVISION_INDEX[meta.id] || {};
+    const divisionWords = Array.isArray(div.divisionWords) ? div.divisionWords : null;
     const entry = {
       id: meta.id,
       title: String(meta.title || meta.id).slice(0, CURATOR_CONTEXT_LIMITS.maxTitleLength)
@@ -464,10 +735,18 @@ export function buildLibraryCatalogue() {
       // Where the work itself begins, when a Gutenberg header precedes it.
       ...(Number.isInteger(div.bodyFrom) && div.bodyFrom > 1
         ? { bodyFrom: div.bodyFrom } : {}),
-      // Present only where a scheme names its divisions something a reader
-      // could choose by. Ordinal labels are the count and the noun again.
+      // What the edition calls each division, in order, exactly as the
+      // divider read it. A second cap used to shorten them here after the
+      // index had already shortened them at 60, and a label cut mid-word
+      // reads as the edition's own title — so there is one bound now, the
+      // validator's, and a label that breaches it refuses rather than lies.
       ...(Array.isArray(div.labels) && div.labels.length === div.count
-        ? { labels: div.labels.map(label => String(label).slice(0, 80)) } : {})
+        ? { labels: [...div.labels] } : {}),
+      // Whereas these ride for every divided work, because they are what
+      // makes a division spendable: a curator cannot compose to a length it
+      // cannot add up, and the gate cannot measure what it was not told.
+      ...(Array.isArray(divisionWords) && divisionWords.length === div.count
+        ? { words: divisionWords } : {})
     };
     return entry;
   });
@@ -520,18 +799,35 @@ export function exportCuratorContext(surface = {}) {
   // under one constant sentence, and a personal swell reached it under none at
   // all. The name is the reader's own, so it is reported rather than invented.
   const materialNames = new Map();
+  // WHAT KIND OF THING IT IS. A still and a thirty-second clip were described
+  // by the same sentence, so a composer could not tell one from the other and
+  // scored a video as if it were a photograph. The duration is measured at
+  // upload (probeVideoDurationMs) and was then told to nobody.
+  const materialKinds = new Map();
   for (const asset of assetList) {
+    const collectionId = `sequence-asset:${asset.id.trim()}`;
     if (typeof asset.name === 'string' && asset.name.trim()) {
-      materialNames.set(`sequence-asset:${asset.id.trim()}`, asset.name.trim());
+      materialNames.set(collectionId, asset.name.trim());
     }
+    materialKinds.set(collectionId, {
+      // The same test createSequenceVisualAsset applies, so a still and a
+      // clip are not sorted one way in the score lane and another here.
+      mediaKind: asset.kind === 'video' || asset.mimeType === 'video/mp4' ? 'video' : 'image',
+      durationMs: Number.isInteger(asset.durationMs) && asset.durationMs > 0
+        ? asset.durationMs
+        : null,
+      // THE READER'S OWN WORDS, AND SO NOT TRUSTED THE WAY A GENERATED
+      // CONSTANT IS. Every other description in this catalogue is a string
+      // this codebase wrote; this one was typed by a person into a text field,
+      // so it is bounded and refused as a URI at the point it enters the
+      // document rather than wherever it happens to be printed.
+      description: typeof asset.description === 'string' && asset.description.trim()
+        ? boundedText(asset.description.trim(), '$.assets.description')
+        : null
+    });
   }
   const swellList = (Array.isArray(surface.swells) ? surface.swells : [])
     .filter(swell => swell && typeof swell.id === 'string' && swell.id.trim());
-  const personalAudioIds = new Set([
-    ...(Array.isArray(surface.swellIds) ? surface.swellIds : [])
-      .filter(id => typeof id === 'string' && id.trim()).map(id => id.trim()),
-    ...swellList.map(swell => swell.id.trim())
-  ]);
   for (const swell of swellList) {
     if (typeof swell.name === 'string' && swell.name.trim()) {
       materialNames.set(swell.id.trim(), swell.name.trim());
@@ -556,11 +852,20 @@ export function exportCuratorContext(surface = {}) {
   const tones = uniquePreserve(WORKSHOP_AUDIO_ASSETS
     .filter(asset => asset.kind === 'tone')
     .map(asset => asset.value));
+  // THE READER'S OWN AUDIO, AND NOTHING ELSE. A literal 'personal' used to
+  // head this list, and no swell has ever been called that: a personal
+  // signal is `swell_<timestamp>_<rand>` (personal-swells.js) and nothing in
+  // src/ reads the word specially. So the gate admitted a cue that was
+  // guaranteed silent — a capability offered that could never sound.
   const swells = uniquePreserve([
-    'personal',
     ...(Array.isArray(surface.swellIds) ? surface.swellIds : []),
     ...swellList.map(swell => swell.id.trim())
   ]);
+  // Both from the registry that owns them, for the same reason as everything
+  // above: a list written out here is a list that can come to disagree with
+  // the thing it describes.
+  const surfaces = uniquePreserve(PROGRAM_VISUAL_FIELD_RENDERERS);
+  const voices = uniquePreserve(availableVoicePacks().map(pack => pack.id));
 
   const payload = {
     schema: CURATOR_CONTEXT_SCHEMA,
@@ -568,11 +873,11 @@ export function exportCuratorContext(surface = {}) {
       ? surface.id.trim()
       : `curator-context-${Date.now()}`,
     sources,
-    visuals: { collections, engines },
-    audio: { soundscapes, tones, swells },
+    visuals: { collections, engines, surfaces },
+    audio: { soundscapes, tones, swells, voices },
     constraints: surface.constraints,
     catalog: buildCatalog({
-      collections, engines, soundscapes, swells, materialNames, personalAudioIds
+      collections, engines, soundscapes, swells, voices, materialNames, materialKinds
     }),
     generatedAt: Date.now()
   };
@@ -602,8 +907,8 @@ export function exportCuratorContext(surface = {}) {
  * available over Anna Karenina — permitted, and wrong.
  */
 function buildCatalog({
-  collections, engines, soundscapes, swells = [],
-  materialNames = new Map(), personalAudioIds = new Set()
+  collections, engines, soundscapes, swells = [], voices = [],
+  materialNames = new Map(), materialKinds = new Map()
 }) {
   const collectionEntries = {};
   for (const id of collections) {
@@ -619,11 +924,20 @@ function buildCatalog({
     }
     if (id.startsWith('sequence-asset:')) {
       const name = materialNames.get(id);
+      const media = materialKinds.get(id) || {};
+      const mediaKind = media.mediaKind === 'video' ? 'video' : 'image';
       collectionEntries[id] = {
         kind: 'sequence-asset',
-        // "An image" was wrong as well as uninformative: the same importer
-        // accepts video/mp4, so a reader's clip arrived described as a picture.
-        description: 'Media the reader added to this project.',
+        mediaKind,
+        // WHAT THE READER SAID, IF THEY SAID ANYTHING. The generated sentence
+        // below carries nothing `mediaKind` does not already carry, so once
+        // there are real words it is pure redundancy and gives way to them.
+        // The attribution — that these are the reader's own and RISE describes
+        // rather than vouches for them — is not lost with it: it lives in
+        // `kind: 'sequence-asset'` and in the prompt's own heading.
+        description: media.description || SEQUENCE_ASSET_DEFAULT_DESCRIPTIONS[mediaKind],
+        ...(mediaKind === 'video' && Number.isInteger(media.durationMs)
+          ? { durationMs: media.durationMs } : {}),
         ...(name ? { name } : {})
       };
       continue;
@@ -676,12 +990,15 @@ function buildCatalog({
 
   // A SWELL THE READER UPLOADED IS IN NO REGISTRY, so nothing described it and
   // it reached the model as a bare id — the one capability it was given no way
-  // to tell apart from any other. Claimed only for an id the caller declared
-  // as personal audio: a guess about what a merely-unknown id is would be the
-  // label-without-evidence this document refuses everywhere else.
+  // to tell apart from any other.
+  //
+  // Every id here is the reader's own: the list is built from their swells and
+  // nothing else. It used to be headed by a literal 'personal' that named no
+  // swell, and this loop carried a guard to keep that phantom out of the
+  // catalogue. The phantom is gone (see `swells` above), so the guard has gone
+  // with it rather than being left where no input could fail it.
   const swellEntries = {};
   for (const id of swells) {
-    if (!personalAudioIds.has(id)) continue;
     const name = materialNames.get(id);
     swellEntries[id] = {
       kind: 'personal-audio',
@@ -690,11 +1007,26 @@ function buildCatalog({
     };
   }
 
+  // A VOICE IS A PERSON'S NAME AND NOTHING ELSE WOULD SAY SO. `af_heart` is
+  // an id nobody could choose between if there were two, so the label the
+  // voice pack carries rides with it — from that registry, never authored here.
+  const voiceEntries = {};
+  const labelled = new Map(availableVoicePacks().map(pack => [pack.id, pack.label]));
+  for (const id of voices) {
+    const label = labelled.get(id);
+    voiceEntries[id] = {
+      kind: 'narration-voice',
+      description: 'A built recitation voice. Narration is spoken; it is not a bed or a swell.',
+      ...(label ? { name: label } : {})
+    };
+  }
+
   return {
     collections: collectionEntries,
     engines: engineEntries,
     soundscapes: soundscapeEntries,
-    swells: swellEntries
+    swells: swellEntries,
+    voices: voiceEntries
   };
 }
 
