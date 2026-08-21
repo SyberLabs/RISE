@@ -17,6 +17,11 @@ import {
   validateSequenceAssetReferences
 } from './visual-score-lane.js';
 import { createLibraryContinuation } from './reading-continuation.js';
+import {
+  normalizeSequenceCapabilities,
+  sequenceHasCapability,
+  SEQUENCE_CAPABILITIES
+} from './sequence-capabilities.js';
 
 /**
  * Modality types for content atoms
@@ -244,6 +249,7 @@ export class Session {
     continuation = null,
     customVisuals = [],
     sequenceVisualAssets = [],
+    capabilities = [],
     // Recitation owns voice. Progressive Reveal independently owns text
     // arrival; either feature can run without the other. The compiler
     // normalises both before they reach this model.
@@ -304,9 +310,15 @@ export class Session {
       throw new TypeError('Sequence visual asset ids must be unique.');
     }
     this.sequenceVisualAssets = Object.freeze(normalizedSequenceVisualAssets);
+    this.capabilities = normalizeSequenceCapabilities(capabilities);
     // Frozen so a consumer cannot flip a reading into recitation after
     // compilation — the same discipline the visual config follows.
-    this.recitation = Object.freeze({ enabled: recitation?.enabled === true });
+    this.recitation = Object.freeze({
+      enabled: sequenceHasCapability(
+        this.capabilities,
+        SEQUENCE_CAPABILITIES.RECITATION_AUDIO
+      ) && recitation?.enabled === true
+    });
     this.revealMode = revealMode === 'progressive' ? 'progressive' : 'instant';
     this.isCustom = isCustom;
     this.voiceEnabled = voiceEnabled;

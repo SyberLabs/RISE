@@ -274,6 +274,63 @@ describe('Player', () => {
       player.scheduleNextAtom();
       expect(callback).not.toHaveBeenCalled();
     });
+
+    it('never moves backward when a spoken atom replaces the ETA forecast', () => {
+      let now = 1000;
+      vi.spyOn(performance, 'now').mockImplementation(() => now);
+      session = new Session({
+        title: 'Speech-governed Session',
+        atoms: [
+          new Atom({ content: 'First phrase.', duration: 100 }),
+          new Atom({ content: 'Second phrase.', duration: 100 })
+        ]
+      });
+      player.destroy();
+      player = new Player(session);
+      const callback = vi.fn();
+      player.on('progress', callback);
+      player.sessionState.state = 'playing';
+
+      // The first phrase is almost complete under its real 1-second WAV.
+      player.currentAtomDisplayTime = 1000;
+      player.currentAtomRemainingTime = 1000;
+      player.atomStartTime = now;
+      now += 900;
+      player.startProgressAnimation();
+      const beforeBoundary = callback.mock.lastCall[0].progress;
+
+      // The next WAV is also much longer than its authored WPM estimate. The
+      // former elapsed/(elapsed+remaining) calculation jumped from ~82% to
+      // ~47% here. Authored position advances to the next phrase instead.
+      player.stopProgressAnimation();
+      player.sessionState.currentIndex = 1;
+      player.currentAtomDisplayTime = 1000;
+      player.currentAtomRemainingTime = 1000;
+      player.atomStartTime = now;
+      callback.mockClear();
+      player.startProgressAnimation();
+
+      expect(beforeBoundary).toBeCloseTo(0.45, 4);
+      expect(callback.mock.lastCall[0].progress).toBeCloseTo(0.5, 4);
+      expect(callback.mock.lastCall[0].progress).toBeGreaterThan(beforeBoundary);
+    });
+
+    it('changes ETA without changing authored position when pace changes', () => {
+      let now = 2000;
+      vi.spyOn(performance, 'now').mockImplementation(() => now);
+      player.sessionState.state = 'playing';
+      player.currentAtomDisplayTime = 100;
+      player.currentAtomRemainingTime = 100;
+      player.atomStartTime = now;
+      now += 40;
+
+      const positionBefore = player._authoredProgress();
+      const etaBefore = player.calculateRemainingTime();
+      player.setSpeedFactor(0.5);
+
+      expect(player._authoredProgress()).toBeCloseTo(positionBefore, 6);
+      expect(player.calculateRemainingTime()).toBeLessThan(etaBefore);
+    });
   });
 
   describe('session completion', () => {
@@ -1084,7 +1141,8 @@ describe('Player + Shuttle (LATERAL-TRAVERSAL-SPEC)', () => {
     player.shuttleBackward();
     player.shuttleBackward(); // -4× from the very start
     // one rewind tick hits the leader: the clamp fires, home returns
-    await vi.advanceTimersByTimeAsync(60);
+    // The 50ms perceptual floor completes on the next animation frame.
+    await vi.advanceTimersByTimeAsync(70);
     expect(player.shuttle.atHome).toBe(true);
     expect(shuttleEvents.some(e => e.reason === 'start-of-text')).toBe(true);
     // …and normal FORWARD reading has resumed

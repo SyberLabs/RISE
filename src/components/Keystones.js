@@ -6,6 +6,30 @@ import {
 import { archiveReviewEnabled } from '../content/archive/index.js';
 import { escapeHtml } from '../core/sanitize.js';
 
+const DISTRIBUTION_MANIFEST_PATH = '/media/keystones/distribution.json';
+
+async function loadPublishedMp4s(signal) {
+  try {
+    const response = await fetch(DISTRIBUTION_MANIFEST_PATH, { signal });
+    if (!response.ok) return new Map();
+    const manifest = await response.json();
+    if (manifest?.schema !== 'rise.keystone-distribution.v1'
+      || !Array.isArray(manifest.results)) return new Map();
+    const known = new Set(KEYSTONE_MANIFESTS.map(item => item.slug));
+    return new Map(manifest.results
+      .filter(item => item?.status === 'published'
+        && known.has(item.slug)
+        && /^\.\/[a-z0-9-]+\.mp4$/u.test(item.url || ''))
+      .map(item => [item.slug, {
+        ...item,
+        url: `/media/keystones/${item.url.slice(2)}`
+      }]));
+  } catch (error) {
+    if (error?.name !== 'AbortError') console.warn('[Keystones] MP4 manifest unavailable:', error);
+    return new Map();
+  }
+}
+
 /** Public threshold for the three canonical launch compositions. */
 export class Keystones {
   constructor(container, options = {}) {
@@ -15,6 +39,7 @@ export class Keystones {
     this.initialSlug = options.initialSlug || null;
     this.reviewMode = archiveReviewEnabled();
     this.results = new Map();
+    this.publishedMp4s = new Map();
     this._controller = new AbortController();
     this.render();
     this.attachEvents();
@@ -26,11 +51,21 @@ export class Keystones {
       const result = this.results.get(item.slug);
       const active = item.slug === this.initialSlug;
       const status = result
-        ? (result.ready ? 'Ready' : result.reviewable && this.reviewMode ? 'Review build' : 'In preparation')
+        ? (result.ready
+          ? 'Release certified'
+          : result.admitted
+            ? 'Admitted'
+            : result.reviewable && this.reviewMode ? 'Review build' : 'In preparation')
         : 'Checking…';
-      const canLaunch = result?.ready || (this.reviewMode && result?.reviewable);
+      const canLaunch = result?.ready || result?.admitted
+        || (this.reviewMode && result?.reviewable);
       const blockers = result?.blockers || [];
-      const details = blockers.length
+      const mp4 = this.publishedMp4s.get(item.slug);
+      const certificationOnly = result?.admitted && blockers.length
+        && blockers.every(blocker => blocker.code === 'KEYSTONE_SOURCE_UNCERTIFIED');
+      const details = certificationOnly
+        ? '<p class="keystone-ready-note">Editorially admitted. Exact-edition release certification remains open.</p>'
+        : blockers.length
         ? `<ul class="keystone-blockers">${blockers.map(blocker =>
           `<li>${escapeHtml(blocker.message)}</li>`).join('')}</ul>`
         : '<p class="keystone-ready-note">Exact source, media, and recitation admitted.</p>';
@@ -40,12 +75,15 @@ export class Keystones {
           <p class="keystone-axis">${escapeHtml(item.axis)}</p>
           <h2>${escapeHtml(item.title)}</h2>
           <p class="keystone-author">${escapeHtml(item.author)} × ${escapeHtml(item.relation)}</p>
-          <p class="keystone-state" data-state="${result?.ready ? 'ready' : 'pending'}">${status}</p>
+          <p class="keystone-state" data-state="${result?.ready ? 'ready' : result?.admitted ? 'admitted' : 'pending'}">${status}</p>
           ${details}
           <button class="btn-primary keystone-launch" data-keystone="${item.slug}"
             ${canLaunch ? '' : 'disabled'}>
-            ${result?.ready ? 'Begin' : canLaunch ? 'Review without missing media' : 'Not yet admitted'}
+            ${result?.ready || result?.admitted ? 'Begin' : canLaunch ? 'Review without missing media' : 'Not yet admitted'}
           </button>
+          ${mp4 ? `<a class="btn-ghost keystone-mp4" href="${escapeHtml(mp4.url)}">
+            Watch full MP4
+          </a>` : ''}
           <a class="keystone-route" href="${keystonePath(item.slug)}">${keystonePath(item.slug)}</a>
         </article>`;
     }).join('');
@@ -76,12 +114,16 @@ export class Keystones {
   async refresh() {
     const token = {};
     this._refreshToken = token;
-    const settled = await Promise.all(KEYSTONE_MANIFESTS.map(async item => [
-      item.slug,
-      await resolveKeystone(item.slug, { allowIncomplete: this.reviewMode })
-    ]));
+    const [settled, publishedMp4s] = await Promise.all([
+      Promise.all(KEYSTONE_MANIFESTS.map(async item => [
+        item.slug,
+        await resolveKeystone(item.slug, { allowIncomplete: this.reviewMode })
+      ])),
+      loadPublishedMp4s(this._controller.signal)
+    ]);
     if (this._refreshToken !== token) return;
     this.results = new Map(settled);
+    this.publishedMp4s = publishedMp4s;
     this._controller.abort();
     this._controller = new AbortController();
     this.render();

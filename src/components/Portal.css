@@ -156,7 +156,8 @@
 }
 
 .portal-nav .nav-secondary {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(140px, 1fr));
   gap: var(--space-lg);
   justify-content: center;
 }
@@ -481,9 +482,7 @@
     padding: var(--space-sm) var(--space-lg);
   }
 }
-/* Two primary acts rather than one. Chamber and Journeys are the same
- * act differently authored — a reading you assemble, and a reading
- * someone argued — so they sit at the same level with air between. */
+/* One primary act: the instrument itself. */
 .portal-nav .nav-primary {
   gap: var(--space-2xl);
 }
@@ -888,4 +887,64 @@
 
 .portal-sigil-vessel.is-seal:active {
   transform: none;
+}
+
+/* Try RISE is a public sample beneath the Library, not a second Chamber.
+   The three-column grid preserves the Portal's even horizontal measure. */
+.portal-nav .nav-secondary .nav-try {
+  grid-column: 2;
+  justify-self: center;
+  display: flex;
+  width: 96px;
+  height: 96px;
+  min-width: 96px;
+  padding: 10px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: 50%;
+  color: var(--color-cloud);
+  background: linear-gradient(180deg, rgba(48, 48, 56, 0.72), rgba(25, 25, 30, 0.9));
+}
+
+.nav-try .try-mark {
+  color: var(--color-threshold);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.nav-try .try-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.13em;
+  line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+  .portal-nav .nav-secondary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: 460px;
+  }
+}
+
+@media (max-width: 640px) {
+  .portal-nav .nav-secondary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 0;
+    row-gap: var(--space-md);
+  }
+
+  .portal-nav .nav-secondary .nav-try {
+    grid-column: 2;
+    width: 76px;
+    height: 76px;
+    min-width: 76px;
+    padding: 8px;
+    justify-content: center;
+    border-radius: 50%;
+    background: linear-gradient(180deg, rgba(48, 48, 56, 0.72), rgba(25, 25, 30, 0.9));
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
 }

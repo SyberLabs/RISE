@@ -44,6 +44,11 @@ import {
   availableVoicePacks,
   defaultVoicePackId
 } from '../audio/voice-pack.js';
+import {
+  SEQUENCE_CAPABILITIES,
+  normalizeSequenceCapabilities,
+  sequenceHasCapability
+} from '../core/sequence-capabilities.js';
 import './VisualInterlocutionPanel.css';
 
 // Last-used session settings survive across chamber visits (the orbital
@@ -86,6 +91,9 @@ export function createDefaultConfig() {
     sources: null,
     provenance: null,
     continuation: null,
+    // Launch-scoped authority. Capabilities travel with the reading that
+    // received them; they are never inferred from installed media or prefs.
+    capabilities: [],
     // Content-authored cue schedule. Launch identity, persisted with the
     // reading rather than with the user's reusable visual preferences.
     visualProgram: null,
@@ -239,13 +247,8 @@ export class ChamberOrbital {
       if (saved[key] !== undefined) this.config[key] = saved[key];
     }
 
-    // Recitation is an object, so it cannot ride the scalar list. Read
-    // only the field we understand: restored state is untrusted input,
-    // and copying it wholesale would let a stale or hand-edited entry
-    // introduce keys the runtime never validated.
-    if (saved.recitation && typeof saved.recitation === 'object') {
-      this.config.recitation = { enabled: saved.recitation.enabled === true };
-    }
+    // Recitation is intentionally not a preference: authority belongs to a
+    // particular loaded sequence and must never leak to an ordinary reading.
     // A saved q4f16-era voice must not resurrect browser inference.
     if (!STATIC_VOICE_IDS.has(this.config.voiceId)) {
       this.config.voiceId = DEFAULT_STATIC_VOICE_ID;
@@ -329,6 +332,7 @@ export class ChamberOrbital {
       sources,
       provenance,
       continuation,
+      capabilities,
       projection,
       visualProgram,
       readingVisualIdentity
@@ -341,6 +345,7 @@ export class ChamberOrbital {
       sources,
       provenance,
       continuation,
+      capabilities,
       projection,
       visualProgram,
       readingVisualIdentity
@@ -396,6 +401,16 @@ export class ChamberOrbital {
         this.config.origin = saved.origin || null;
         this.config.provenance = saved.provenance || null;
         this.config.continuation = saved.continuation || null;
+        this.config.capabilities = normalizeSequenceCapabilities(saved.capabilities);
+        const recitationAvailable = STATIC_VOICE_PACKS.length > 0
+          && sequenceHasCapability(
+            this.config.capabilities,
+            SEQUENCE_CAPABILITIES.RECITATION_AUDIO
+          );
+        this.config.recitation = {
+          enabled: recitationAvailable && saved.recitation?.enabled === true
+        };
+        if (this.config.recitation.enabled) this.config.chunkMode = 'phrase';
         this.config.verseLines = saved.verseLines === true;
         const persistedProgram = deserializeVisualProgram(saved.visualProgram);
         this.config.visualProgram = persistedProgram
@@ -467,6 +482,13 @@ export class ChamberOrbital {
           sources,
           provenance: this.config.provenance,
           continuation: this.config.continuation,
+          capabilities: normalizeSequenceCapabilities(this.config.capabilities),
+          recitation: {
+            enabled: sequenceHasCapability(
+              this.config.capabilities,
+              SEQUENCE_CAPABILITIES.RECITATION_AUDIO
+            ) && this.config.recitation?.enabled === true
+          },
           verseLines: this.config.verseLines === true,
           visualProgram: serializeVisualProgram(this.config.visualProgram),
           readingVisualIdentity: this.config.visualProgram
@@ -507,7 +529,7 @@ export class ChamberOrbital {
     this._normalizeAudioExclusivity();
     const { wpm, curve, chunkMode, revealMode, soundscape, audioPreset, entrainmentMode,
       entrainmentWaveform, voiceId, selectedSwellId,
-      recitation, visualInterlocution } = this.config;
+      visualInterlocution } = this.config;
     // atriumCollections and the visual program are LAUNCH-SCOPED
     // identity, not preferences — they belong to the specific reading
     // that was launched, never to the tab. Persisting them would
@@ -538,9 +560,6 @@ export class ChamberOrbital {
       revealMode: revealMode === 'progressive' ? 'progressive' : 'instant',
       soundscape, audioPreset, entrainmentMode,
       entrainmentWaveform, voiceId, selectedSwellId,
-      // Only the field we understand: the restore side reads the same
-      // way, so a hand-edited entry cannot introduce unvalidated keys.
-      recitation: { enabled: recitation?.enabled === true },
       visualInterlocution: normalizedVisuals
     };
     this._persistText();
@@ -695,7 +714,11 @@ export class ChamberOrbital {
   }
 
   renderModals() {
-    const recitationAvailable = STATIC_VOICE_PACKS.length > 0;
+    const recitationAvailable = STATIC_VOICE_PACKS.length > 0
+      && sequenceHasCapability(
+        this.config.capabilities,
+        SEQUENCE_CAPABILITIES.RECITATION_AUDIO
+      );
     const recitationEnabled =
       recitationAvailable && this.config.recitation?.enabled === true;
     const voiceOptions = STATIC_VOICE_PACKS.map(pack => `
@@ -824,7 +847,8 @@ export class ChamberOrbital {
               </div>
             </div>
             <!-- Recitation (RECITATION-SPEC): static voice packs, not speechSynthesis. -->
-            <div class="config-section">
+            <div class="config-section" data-recitation-capability
+              ${recitationAvailable ? '' : 'hidden'}>
               <label class="config-label">Recitation</label>
               <div class="chunk-options">
                 <button class="chunk-option ${!recitationEnabled ? 'active' : ''}"
@@ -1540,7 +1564,12 @@ export class ChamberOrbital {
   }
 
   syncUIWithConfig() {
-    const enabled = STATIC_VOICE_PACKS.length > 0
+    const available = STATIC_VOICE_PACKS.length > 0
+      && sequenceHasCapability(
+        this.config.capabilities,
+        SEQUENCE_CAPABILITIES.RECITATION_AUDIO
+      );
+    const enabled = available
       && this.config.recitation?.enabled === true;
     // Temporal Modal
     const wpmSlider = this.container.querySelector('#wpm-slider');
@@ -1579,9 +1608,12 @@ export class ChamberOrbital {
     if (pureToneControls) pureToneControls.hidden = this.config.audioPreset === 'silent';
 
     // Recitation, and the voice picker that only matters when it is on.
+    const recitationSection = this.container.querySelector('[data-recitation-capability]');
+    if (recitationSection) recitationSection.hidden = !available;
     this.container.querySelectorAll('[data-recitation]').forEach(opt => {
       opt.classList.toggle('active',
         (opt.dataset.recitation === 'on') === enabled);
+      opt.disabled = !available;
     });
     const note = this.container.querySelector('[data-recitation-note]');
     if (note) note.hidden = !enabled;
@@ -1651,6 +1683,16 @@ export class ChamberOrbital {
     // other reading identity above: a poem must not leave the flag set for
     // the prose that replaces it.
     this.config.verseLines = config.verseLines === true;
+    this.config.capabilities = normalizeSequenceCapabilities(config.capabilities);
+    const recitationAvailable = STATIC_VOICE_PACKS.length > 0
+      && sequenceHasCapability(
+        this.config.capabilities,
+        SEQUENCE_CAPABILITIES.RECITATION_AUDIO
+      );
+    this.config.recitation = {
+      enabled: recitationAvailable && config.recitation?.enabled === true
+    };
+    if (this.config.recitation.enabled) this.config.chunkMode = 'phrase';
 
     // Launch origin for the wayfinding chip (null when launched plainly)
     this.config.origin = config.origin || null;
@@ -1667,6 +1709,9 @@ export class ChamberOrbital {
     if (config.soundscape) this.config.soundscape = config.soundscape;
     if (config.entrainmentMode) this.config.entrainmentMode = config.entrainmentMode;
     if (config.entrainmentWaveform) this.config.entrainmentWaveform = config.entrainmentWaveform;
+    // Phrase assets are the unit of the admitted static voice pack. This
+    // authority wins over a conflicting authored chunkMode at the boundary.
+    if (this.config.recitation.enabled) this.config.chunkMode = 'phrase';
     // Provenance is set above, so this correctly KEEPS chant for a
     // Chapel launch and clears it for anything else
     this._sanitizeChapelExclusives();
@@ -1833,6 +1878,8 @@ export class ChamberOrbital {
     this.config.origin = null;
     this.config.sources = null;
     this.config.provenance = null;
+    this.config.capabilities = [];
+    this.config.recitation = { enabled: false };
     // LAUNCH-SCOPED VISUAL IDENTITY dies with the text that carried it
     // (2026-07 pill-leak fix): a Doré/Chapel/pericope reading's "From
     // this reading" pills, its program, and the Chapel-domain flag all
@@ -1879,6 +1926,7 @@ export class ChamberOrbital {
       origin: this.config.origin,
       provenance: this.config.provenance,
       continuation: this.config.continuation,
+      capabilities: normalizeSequenceCapabilities(this.config.capabilities),
       wpm: this.config.wpm,
       curve: this.config.curve,
       chunkMode: this.config.chunkMode,
@@ -1892,6 +1940,10 @@ export class ChamberOrbital {
       // Recitation rides through to the compiler, which normalises it.
       recitation: {
         enabled: STATIC_VOICE_PACKS.length > 0
+          && sequenceHasCapability(
+            this.config.capabilities,
+            SEQUENCE_CAPABILITIES.RECITATION_AUDIO
+          )
           && this.config.recitation?.enabled === true
       },
       selectedSwellId: this.config.selectedSwellId,

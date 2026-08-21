@@ -11,6 +11,7 @@ if (typeof globalThis.indexedDB === 'undefined') {
 }
 
 const { ChamberOrbital } = await import('./ChamberOrbital.js');
+const { SEQUENCE_CAPABILITIES } = await import('../core/sequence-capabilities.js');
 
 function createOrbital(onBeginSession = vi.fn()) {
     const container = document.createElement('div');
@@ -32,6 +33,9 @@ describe('ChamberOrbital static Recitation controls', () => {
 
     it('offers only Heart and locks Spoken sessions to Phrase atoms', () => {
         const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations', {
+            capabilities: [SEQUENCE_CAPABILITIES.RECITATION_AUDIO]
+        });
         const select = container.querySelector('#voice-select');
 
         expect([...select.options].map(option => option.value))
@@ -50,7 +54,7 @@ describe('ChamberOrbital static Recitation controls', () => {
         orbital.destroy();
     });
 
-    it('migrates stale runtime voice state without reviving browser speech', () => {
+    it('does not let a stale Recitation preference grant capability to ordinary text', () => {
         localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify({
             paceV2: true,
             chunkMode: 'word',
@@ -64,11 +68,13 @@ describe('ChamberOrbital static Recitation controls', () => {
         orbital.beginSession();
 
         expect(orbital.config.voiceId).toBe('af_heart');
-        expect(orbital.config.chunkMode).toBe('phrase');
+        expect(orbital.config.chunkMode).toBe('word');
+        expect(orbital.config.recitation).toEqual({ enabled: false });
         expect(onBeginSession).toHaveBeenCalledOnce();
         const payload = onBeginSession.mock.calls[0][0];
         expect(payload.voiceId).toBe('af_heart');
-        expect(payload.recitation).toEqual({ enabled: true });
+        expect(payload.recitation).toEqual({ enabled: false });
+        expect(payload.capabilities).toEqual([]);
         expect(payload).not.toHaveProperty('voiceEnabled');
 
         orbital.destroy();

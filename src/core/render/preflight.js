@@ -8,7 +8,13 @@
 import { validateExperienceProgram } from '../experience-program.js';
 import { sequenceAssetReferencesFromCue } from '../visual-score-lane.js';
 import { fail, RenderError } from './errors.js';
-import { contentHashOf, hashesEqual, parseContentHash, refuseUri } from './hash.js';
+import {
+  contentHashOf,
+  contentHashOfBytes,
+  hashesEqual,
+  parseContentHash,
+  refuseUri
+} from './hash.js';
 import {
   RENDER_LIMITS,
   RENDER_RIGHTS_STATUSES,
@@ -26,7 +32,7 @@ export const PREFLIGHT_VERDICTS = Object.freeze({
 
 const INVENTORY_ASSET_FIELDS = new Set([
   'assetId', 'contentHash', 'kind', 'mimeType', 'byteLength', 'rights',
-  'durationMs', 'width', 'height'
+  'durationMs', 'width', 'height', 'dataUrl'
 ]);
 const INVENTORY_SOURCE_FIELDS = new Set([
   'sourceId', 'contentHash', 'byteLength', 'characterCount',
@@ -64,6 +70,27 @@ function refusal(code, message, path, details = {}, repair = null) {
   return { code, message, path, details, repair };
 }
 
+function imageDataUrlBytes(value, mimeType, path) {
+  if (value == null) return null;
+  if (typeof value !== 'string') {
+    fail('RENDER_INVENTORY_DATA_URL', 'Image dataUrl must be a string', path);
+  }
+  const match = /^data:(image\/(?:png|jpe?g|webp));base64,([a-z0-9+/]+={0,2})$/iu.exec(value);
+  if (!match || match[1].toLowerCase() !== String(mimeType || '').toLowerCase()) {
+    fail('RENDER_INVENTORY_DATA_URL', 'Image dataUrl must match the admitted MIME type', path);
+  }
+  if (typeof globalThis.atob !== 'function') {
+    fail('RENDER_INVENTORY_DATA_URL', 'This renderer cannot decode embedded image bytes', path);
+  }
+  let binary;
+  try {
+    binary = globalThis.atob(match[2]);
+  } catch {
+    fail('RENDER_INVENTORY_DATA_URL', 'Image dataUrl contains invalid base64 bytes', path);
+  }
+  return Uint8Array.from(binary, character => character.charCodeAt(0));
+}
+
 function validateInventoryAsset(value, path) {
   const source = record(value, path);
   onlyKeys(source, INVENTORY_ASSET_FIELDS, path);
@@ -97,6 +124,14 @@ function validateInventoryAsset(value, path) {
   }
   if (Number.isInteger(source.width) && source.width > 0) asset.width = source.width;
   if (Number.isInteger(source.height) && source.height > 0) asset.height = source.height;
+  if (source.dataUrl != null) {
+    if (source.kind !== 'image') {
+      fail('RENDER_INVENTORY_DATA_URL', 'Only admitted image assets may carry dataUrl bytes',
+        `${path}.dataUrl`);
+    }
+    imageDataUrlBytes(source.dataUrl, asset.mimeType, `${path}.dataUrl`);
+    asset.dataUrl = source.dataUrl;
+  }
   return Object.freeze(asset);
 }
 
@@ -165,6 +200,31 @@ export async function preflightRenderJob(input = {}) {
     validateInventoryAsset(item, `$.inventory.assets[${index}]`));
   const sourcesById = new Map(sources.map(item => [item.sourceId, item]));
   const assetsById = new Map(assets.map(item => [item.assetId, item]));
+
+  for (const [index, asset] of assets.entries()) {
+    if (!asset.dataUrl) continue;
+    const bytes = imageDataUrlBytes(
+      asset.dataUrl,
+      asset.mimeType,
+      `$.inventory.assets[${index}].dataUrl`
+    );
+    if (bytes.byteLength !== asset.byteLength) {
+      push(refusal('RENDER_ASSET_SIZE_MISMATCH',
+        `Embedded bytes for ${asset.assetId} do not match the admitted byte length`,
+        `$.inventory.assets[${index}].dataUrl`,
+        { expected: asset.byteLength, actual: bytes.byteLength },
+        'Re-admit the exact image bytes.'));
+      continue;
+    }
+    const hash = await contentHashOfBytes(bytes);
+    if (!hashesEqual(hash, asset.contentHash)) {
+      push(refusal('RENDER_ASSET_HASH_MISMATCH',
+        `Embedded bytes for ${asset.assetId} do not match the admitted content hash`,
+        `$.inventory.assets[${index}].dataUrl`,
+        { expected: asset.contentHash, actual: hash },
+        'Re-admit the exact image bytes.'));
+    }
+  }
 
   for (const snapshot of job.sourceSnapshots) {
     const found = sourcesById.get(snapshot.sourceId);

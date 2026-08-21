@@ -46,6 +46,7 @@ Options:
   --voice <id>      Kokoro voice id (default: input voiceId or af_heart)
   --dtype <dtype>   Kokoro dtype (default: q8)
   --limit <count>   Generate only the first N unique phrases
+  --only <key>      Generate only one resolved asset key (for acoustic repair)
   --force           Regenerate assets already present in the manifest
   --dry-run         Resolve and count phrases without loading Kokoro
   --help            Show this help
@@ -58,6 +59,7 @@ function parseArgs(argv) {
         voice: null,
         dtype: 'q8',
         limit: Infinity,
+        only: null,
         force: false,
         dryRun: false,
         help: false
@@ -68,6 +70,7 @@ function parseArgs(argv) {
         else if (token === '--voice') args.voice = argv[++index];
         else if (token === '--dtype') args.dtype = argv[++index];
         else if (token === '--limit') args.limit = Number(argv[++index]);
+        else if (token === '--only') args.only = argv[++index];
         else if (token === '--force') args.force = true;
         else if (token === '--dry-run') args.dryRun = true;
         else if (token === '--help' || token === '-h') args.help = true;
@@ -127,13 +130,14 @@ function uniquePhrases(input, limit) {
         const key = voiceAssetKey(text);
         if (!key) continue;
         const prior = byKey.get(key);
-        if (prior && prior !== text) {
-            throw new Error(`Voice key collision between "${prior}" and "${text}"`);
+        if (prior && prior.text !== text) {
+            throw new Error(`Voice key collision between "${prior.text}" and "${text}"`);
         }
-        byKey.set(key, text);
+        const spokenText = normalizeVoiceText(input?.pronunciations?.[text]) || text;
+        byKey.set(key, { text, spokenText });
         if (byKey.size >= limit) break;
     }
-    return [...byKey].map(([key, text]) => ({ key, text }));
+    return [...byKey].map(([key, phrase]) => ({ key, ...phrase }));
 }
 
 function analyze(samples) {
@@ -200,7 +204,13 @@ async function main() {
 
     const input = await loadInput(args.input);
     const voiceId = args.voice || input?.voiceId || DEFAULT_VOICE_ID;
-    const phrases = uniquePhrases(input, args.limit);
+    let phrases = uniquePhrases(input, args.limit);
+    if (args.only) {
+        phrases = phrases.filter(({ key }) => key === args.only);
+        if (phrases.length === 0) {
+            throw new Error(`--only did not match a resolved phrase key: ${args.only}`);
+        }
+    }
     if (phrases.length === 0) throw new Error('Input contains no speakable phrases');
 
     console.log(
@@ -239,17 +249,19 @@ async function main() {
     let generated = 0;
     let retained = 0;
     for (let index = 0; index < phrases.length; index++) {
-        const { key, text } = phrases[index];
+        const { key, text, spokenText } = phrases[index];
         const prior = pack.entries[key];
         const output = resolve(PUBLIC_ROOT, 'audio', 'recitation', voiceId, `${key}.wav`);
-        if (!args.force && prior?.text === text && existsSync(output)) {
+        const priorSpokenText = prior?.spokenText || prior?.text;
+        if (!args.force && prior?.text === text && priorSpokenText === spokenText
+            && existsSync(output)) {
             retained++;
             console.log(`[voice-pack] ${index + 1}/${phrases.length} retained ${text}`);
             continue;
         }
 
         console.log(`[voice-pack] ${index + 1}/${phrases.length} generating ${text}`);
-        const audio = await tts.generate(text, { voice: voiceId });
+        const audio = await tts.generate(spokenText, { voice: voiceId });
         const samples = audio.audio;
         const sampleRate = audio.sampling_rate;
         const signal = analyze(samples);
@@ -258,6 +270,7 @@ async function main() {
 
         pack.entries[key] = {
             text,
+            ...(spokenText !== text ? { spokenText } : {}),
             asset: `/audio/recitation/${voiceId}/${key}.wav`,
             mimeType: 'audio/wav',
             sampleRate,

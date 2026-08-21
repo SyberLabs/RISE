@@ -28,11 +28,14 @@ describe('Portal', () => {
     it('nav holds the core tools', () => {
         const { portal, container } = makePortal();
 
-        // The nav row is tools operating on the reader's own material;
-        // curated experiences get their own doorways below it
-        const secondary = container.querySelectorAll('.nav-secondary .nav-item');
+        // The even row is tools operating on the reader's own material.
+        // Try RISE occupies a distinct circular threshold beneath Library.
+        const secondary = container.querySelectorAll(
+            '.nav-secondary .nav-item:not(.nav-try)'
+        );
         expect(secondary).toHaveLength(3);
         expect([...secondary].map(el => el.dataset.nav)).toEqual(['vault', 'library', 'workshop']);
+        expect(container.querySelector('.nav-secondary .nav-try')?.dataset.nav).toBe('keystones');
 
         portal.destroy();
         container.remove();

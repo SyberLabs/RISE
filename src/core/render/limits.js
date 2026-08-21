@@ -26,7 +26,7 @@ export const RENDER_LIMITS = Object.freeze({
   maxFrameRateDenominator: 1001,
   maxPixelRatio: 2,
   minDurationMs: 1,
-  maxDurationMs: 600_000,
+  maxDurationMs: 1_800_000,
   maxTitleLength: 200
 });
 
@@ -90,6 +90,19 @@ export const RENDER_PROFILES = Object.freeze({
     truePeakDbtp: -1,
     captionMode: 'sidecar',
     credits: 'sidecar',
+    includeCredits: true
+  }),
+  'keystone-landscape-1080': Object.freeze({
+    id: 'keystone-landscape-1080',
+    viewport: Object.freeze({ width: 1920, height: 1080, pixelRatio: 1 }),
+    frameRate: Object.freeze({ numerator: 30, denominator: 1 }),
+    codecProfile: 'h264-social-v1',
+    minDurationMs: 1_000,
+    maxDurationMs: 1_800_000,
+    loudnessLufs: -16,
+    truePeakDbtp: -1,
+    captionMode: 'sidecar',
+    credits: 'sidecar-and-closing-card',
     includeCredits: true
   })
 });

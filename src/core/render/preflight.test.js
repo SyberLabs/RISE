@@ -4,7 +4,7 @@ import {
   validateExperienceProgram
 } from '../experience-program.js';
 import { SEQUENCE_ASSET_PREFIX } from '../visual-score-lane.js';
-import { contentHashOf } from './hash.js';
+import { contentHashOf, contentHashOfBytes } from './hash.js';
 import { RENDER_JOB_SCHEMA } from './environment.js';
 import { pinnedRendererForProfile } from './job.js';
 import {
@@ -322,6 +322,50 @@ describe('render preflight', () => {
     expect(report.verdict).toBe(PREFLIGHT_VERDICTS.REFUSED);
     expect(report.refusals.some(item => item.code === 'RENDER_COLLECTION_UNPINNED')).toBe(true);
     expect(describePreflightFailure(report)).toMatch(/admit stills/i);
+  });
+
+  it('admits embedded still bytes only when length and hash match', async () => {
+    const program = collectionProgram();
+    const bytes = new Uint8Array([1, 2, 3, 4]);
+    const contentHash = await contentHashOfBytes(bytes);
+    const job = await jobFor(program, {
+      assetSnapshots: [{ assetId: IMAGE_ID, contentHash }]
+    });
+    const source = {
+      sourceId: job.sourceSnapshots[0].sourceId,
+      contentHash: job.sourceSnapshots[0].contentHash,
+      byteLength: 100,
+      characterCount: 40
+    };
+    const asset = {
+      assetId: IMAGE_ID,
+      contentHash,
+      kind: 'image',
+      mimeType: 'image/png',
+      byteLength: bytes.byteLength,
+      dataUrl: `data:image/png;base64,${Buffer.from(bytes).toString('base64')}`,
+      rights: { status: 'verified', distributionAllowed: true }
+    };
+
+    const accepted = await preflightRenderJob({
+      job,
+      program,
+      inventory: { sources: [source], assets: [asset] }
+    });
+    expect(accepted.verdict).toBe(PREFLIGHT_VERDICTS.RENDERABLE);
+
+    const refused = await preflightRenderJob({
+      job,
+      program,
+      inventory: {
+        sources: [source],
+        assets: [{
+          ...asset,
+          dataUrl: `data:image/png;base64,${Buffer.from([4, 3, 2, 1]).toString('base64')}`
+        }]
+      }
+    });
+    expect(refused.refusals.map(item => item.code)).toContain('RENDER_ASSET_HASH_MISMATCH');
   });
 
   it('refuses a program that does not match the job hash', async () => {

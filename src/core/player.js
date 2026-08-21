@@ -160,6 +160,10 @@ export class Player {
         this.transitionDuration = 300; // ms for fade transitions
         this.atomStartTime = null;
         this.currentAtomRemainingTime = null;
+        // Stable denominator for progress through the current atom. Remaining
+        // time is mutable (pause consumes it; speech may replace an estimate),
+        // so it cannot also define how far through the atom we are.
+        this.currentAtomDisplayTime = null;
         this.speedFactor = 1.0; // Dynamic multiplier (1.0 = normal, 0.5 = 2x speed)
 
         // THE SHUTTLE (LATERAL-TRAVERSAL-SPEC): signed traversal
@@ -242,6 +246,47 @@ export class Player {
             (atom.duration * this.speedFactor) / this.shuttle.durationDivisor,
             50
         );
+    }
+
+    /** Live presentation fraction of the current atom, including pause state. */
+    _currentAtomFraction() {
+        const remainingBudget = Number(this.currentAtomRemainingTime);
+        const displayBudget = Number(this.currentAtomDisplayTime);
+        const total = Number.isFinite(displayBudget) && displayBudget > 0
+            ? displayBudget
+            : (Number.isFinite(remainingBudget) && remainingBudget > 0
+                ? remainingBudget
+                : 0);
+        if (total <= 0) return 0;
+
+        const elapsedSinceSchedule = this.atomStartTime !== null
+            ? Math.max(0, performance.now() - this.atomStartTime)
+            : 0;
+        const liveRemaining = Math.max(
+            0,
+            (Number.isFinite(remainingBudget) ? remainingBudget : total)
+                - elapsedSinceSchedule
+        );
+        return Math.max(0, Math.min(1, (total - liveRemaining) / total));
+    }
+
+    /**
+     * The transport bar represents authored reading POSITION, not a quotient
+     * of elapsed wall time and a mutable duration forecast. Pace changes and
+     * lazy speech durations may change ETA; neither may move the reader back
+     * through text they have already traversed.
+     */
+    _authoredProgress() {
+        const index = this.sessionState.currentIndex;
+        const atomCount = this.sessionState.session.atomCount;
+        if (index >= atomCount) return 1;
+        if (this._totalAuthoredMs <= 0) return this.sessionState.progress;
+
+        const safeIndex = Math.max(0, Math.min(index, atomCount - 1));
+        const prefix = this._prefixDurations[safeIndex];
+        const atomDuration = this._prefixDurations[safeIndex + 1] - prefix;
+        const position = prefix + (atomDuration * this._currentAtomFraction());
+        return Math.max(0, Math.min(1, position / this._totalAuthoredMs));
     }
 
     // ─── Reading clock ───
@@ -388,6 +433,7 @@ export class Player {
             if (this.currentAtomRemainingTime === null) {
                 const atom = this.sessionState.currentAtom;
                 this.currentAtomRemainingTime = this._atomDisplayMs(atom);
+                this.currentAtomDisplayTime = this.currentAtomRemainingTime;
             }
             this.currentAtomRemainingTime = Math.max(0, this.currentAtomRemainingTime - consumed);
             this.atomStartTime = null;
@@ -437,6 +483,7 @@ export class Player {
         this.stopProgressAnimation();
         this.atomStartTime = null;
         this.currentAtomRemainingTime = null;
+        this.currentAtomDisplayTime = null;
         this.sessionWallStartTime = null;
         this._reading = { accumulatedMs: 0, tickAnchor: null };
         this._autoPausedByVisibility = false;
@@ -508,6 +555,7 @@ export class Player {
         if (!this.shuttleAvailable) return null;
         if (!['playing', 'interlocuting'].includes(this.sessionState.state)) return null;
         const before = this.shuttle.velocity;
+        const atomFraction = this._currentAtomFraction();
         const velocity = this.shuttle[step]();
         if (velocity === before) return velocity; // clamped at a ladder end
 
@@ -522,7 +570,8 @@ export class Player {
                 this.timerId = null;
             }
             this.atomStartTime = null;
-            this.currentAtomRemainingTime = null;
+            this.currentAtomDisplayTime = this._atomDisplayMs(this.sessionState.currentAtom);
+            this.currentAtomRemainingTime = this.currentAtomDisplayTime * (1 - atomFraction);
             this.scheduleNextAtom(false, { alreadyPrepared: true });
         }
         this.emit('shuttle', { velocity, reason: 'step' });
@@ -535,6 +584,7 @@ export class Player {
     advanceToNext() {
         if (this.sessionState.state !== 'playing') return;
         this.currentAtomRemainingTime = null;
+        this.currentAtomDisplayTime = null;
         
         if (this.timerId) {
             cancelAnimationFrame(this.timerId);
@@ -733,6 +783,7 @@ export class Player {
             concealed
         });
         this.currentAtomRemainingTime = this._atomDisplayMs(atom);
+        this.currentAtomDisplayTime = this.currentAtomRemainingTime;
         return true;
     }
 
@@ -759,6 +810,7 @@ export class Player {
             // Session complete — reading time from the monotonic clock,
             // wall time honestly separate
             this.sessionState.state = 'complete';
+            this.currentAtomDisplayTime = null;
             this._readingPause();
             this.sessionState.elapsedTime = Math.round(this._readingNow());
             const wallDurationMs = this.sessionWallStartTime === null
@@ -805,6 +857,7 @@ export class Player {
             // Re-read its duration now so pause/progress use the actual audio
             // budget rather than the concealed atom's authored fallback.
             this.currentAtomRemainingTime = this._atomDisplayMs(atom);
+            this.currentAtomDisplayTime = this.currentAtomRemainingTime;
             this.atomStartTime = performance.now();
             const currentSyncId = ++this.speechSyncId;
             Promise.resolve(completion)
@@ -821,6 +874,7 @@ export class Player {
                     this.timerId = null;
                     this.atomStartTime = null;
                     this.currentAtomRemainingTime = null;
+                    this.currentAtomDisplayTime = null;
                     void this.processNextNode();
                 })
                 .catch(() => {
@@ -856,6 +910,7 @@ export class Player {
                             
                             if (timestamp >= targetTime) {
                                 this.currentAtomRemainingTime = null;
+                                this.currentAtomDisplayTime = null;
                                 this.processNextNode();
                             } else {
                                 this.timerId = requestAnimationFrame(checkBuffer);
@@ -880,6 +935,7 @@ export class Player {
                     
                     if (timestamp >= targetTime) {
                         this.currentAtomRemainingTime = null;
+                        this.currentAtomDisplayTime = null;
                         this.processNextNode();
                     } else {
                         this.timerId = requestAnimationFrame(checkTime);
@@ -903,6 +959,7 @@ export class Player {
                 this.timerId = null;
                 this.atomStartTime = null;
                 this.currentAtomRemainingTime = null;
+                this.currentAtomDisplayTime = null;
                 void this.processNextNode();
             } else {
                 this.timerId = requestAnimationFrame(checkTime);
@@ -925,7 +982,7 @@ export class Player {
             const elapsed = this._readingNow();
             const remaining = this.calculateRemainingTime();
             const totalDuration = elapsed + remaining;
-            const progress = totalDuration > 0 ? Math.min(elapsed / totalDuration, 1) : 1;
+            const progress = this._authoredProgress();
 
             this.emit('progress', {
                 elapsed,
@@ -943,8 +1000,7 @@ export class Player {
         };
 
         // Paint an accurate initial value immediately, then let one animation
-        // frame loop own every subsequent update. Atom boundaries must not
-        // inject index-based values into this elapsed-time timeline.
+        // frame loop own every subsequent update.
         animate();
     }
 

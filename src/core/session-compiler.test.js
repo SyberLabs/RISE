@@ -9,6 +9,7 @@ import {
 } from './session-compiler.js';
 import { compileVisualScoreProgram } from './visual-score-lane.js';
 import { createEditorAsset } from './editor-asset.js';
+import { SEQUENCE_CAPABILITIES } from './sequence-capabilities.js';
 
 describe('session compiler', () => {
   it.each([
@@ -21,10 +22,22 @@ describe('session compiler', () => {
       text: 'One short phrase.',
       chunkMode: 'phrase',
       revealMode,
+      capabilities: spoken ? [SEQUENCE_CAPABILITIES.RECITATION_AUDIO] : [],
       recitation: { enabled: spoken }
     });
     expect(session.revealMode).toBe(revealMode);
     expect(session.recitation.enabled).toBe(spoken);
+  });
+
+  it('refuses Recitation when the loaded sequence did not receive that capability', () => {
+    const session = compileSession({
+      text: 'One short phrase.',
+      chunkMode: 'phrase',
+      recitation: { enabled: true }
+    });
+
+    expect(session.capabilities).toEqual([]);
+    expect(session.recitation).toEqual({ enabled: false });
   });
 
   it('carries stable sequence assets through the canonical visual-score program', () => {
