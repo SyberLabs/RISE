@@ -17,6 +17,11 @@ async function openJourneys(page) {
 /** Photosensitivity consent before Chamber when a Journey has imagery. */
 /** War card — Demonstration sits above it, so do not use bare `.journey-begin`. */
 const WAR = '[data-journey="journey-war"]';
+// War and the Demonstration are deliberately withdrawn while their quotation
+// anchors are re-authored against exact certified editions. These executable
+// contracts return when a Journey is admitted; the threshold/reachability test
+// above remains live during the deferral.
+const withdrawnJourneyTest = test.skip;
 
 async function enterReading(page) {
   await page.locator(`${WAR} .journey-begin`).click();
@@ -35,10 +40,11 @@ test('the Portal names one act, and the Vault opens the Journeys', async ({ page
   // The Portal fades its nav in; wait for it rather than racing it.
   await expect(page.locator('[data-nav="chamber"]')).toBeVisible({ timeout: 20000 });
 
-  // Portal primary act is Chamber only; Journeys open from Vault.
+  // The release threshold now leads with the three Keystone readings, then
+  // the general Chamber. Journeys remain a Vault room, never a Portal act.
   const primary = await page.evaluate(() =>
     [...document.querySelectorAll('.nav-primary .nav-item')].map(b => b.dataset.nav));
-  expect(primary).toEqual(['chamber']);
+  expect(primary).toEqual(['keystones', 'chamber']);
   await expect(page.locator('.portal [data-nav="journeys"]')).toHaveCount(0);
 
   // And it is genuinely reachable, one room in.
@@ -51,12 +57,7 @@ test('the Portal names one act, and the Vault opens the Journeys', async ({ page
   await expect(page.locator('.journeys-header [data-nav="vault"]')).toBeVisible();
 });
 
-// Published cards (War, Demonstration) are withdrawn — JOURNEYS = [] in
-// src/components/Journeys.js. Keep the door test above; these assume sits.
-test.describe('published Journey sits', () => {
-  test.skip(true, 'JOURNEYS = []; those sits are not shipped');
-
-test('War states its argument before asking for twenty minutes', async ({ page }) => {
+withdrawnJourneyTest('War states its argument before asking for twenty minutes', async ({ page }) => {
   await openJourneys(page);
 
   const card = await page.evaluate(() => {
@@ -81,7 +82,7 @@ test('War states its argument before asking for twenty minutes', async ({ page }
   expect(card.disabled).toBe(false);
 });
 
-test('the introduction hydrates with real editions and a real duration', async ({ page }) => {
+withdrawnJourneyTest('the introduction hydrates with real editions and a real duration', async ({ page }) => {
   await openJourneys(page);
   // Resolution reads whole books; give it room.
   await expect(page.locator(`${WAR} .journey-credits`)).toBeVisible({ timeout: 60000 });
@@ -107,7 +108,7 @@ test('the introduction hydrates with real editions and a real duration', async (
   expect(minutes).toBeGreaterThan(24);
 });
 
-test('Begin enters the reading directly, bypassing the orbital', async ({ page }) => {
+withdrawnJourneyTest('Begin enters the reading directly, bypassing the orbital', async ({ page }) => {
   test.setTimeout(180000);
   await openJourneys(page);
   await expect(page.locator(`${WAR} .journey-credits`)).toBeVisible({ timeout: 60000 });
@@ -140,7 +141,7 @@ test('Begin enters the reading directly, bypassing the orbital', async ({ page }
   expect(state.audioCues).toBeGreaterThan(0);
 });
 
-test('the movement title follows the reading', async ({ page }) => {
+withdrawnJourneyTest('the movement title follows the reading', async ({ page }) => {
   test.setTimeout(180000);
   await openJourneys(page);
   await expect(page.locator(`${WAR} .journey-credits`)).toBeVisible({ timeout: 60000 });
@@ -156,7 +157,7 @@ test('the movement title follows the reading', async ({ page }) => {
   expect(title.hidden).toBe(false);
 });
 
-test('the three reported faults are gone', async ({ page }) => {
+withdrawnJourneyTest('the three reported faults are gone', async ({ page }) => {
   test.setTimeout(240000);
   const cues = [];
   page.on('console', m => { if (m.text().includes('Cue activated')) cues.push(m.text()); });
@@ -242,7 +243,7 @@ test('the three reported faults are gone', async ({ page }) => {
   expect(visuals.procedural).toContain('paradise-lost');
 });
 
-test('the door stays open, and War asks nothing on the way in', async ({ page }) => {
+withdrawnJourneyTest('the door stays open, and War asks nothing on the way in', async ({ page }) => {
   test.setTimeout(240000);
   // WAR AUTHORS A CONTINUOUS SURFACE, so there is no notice to decline:
   // the photosensitivity warning belongs to behind-stream and full-frame,
@@ -282,7 +283,7 @@ test('the door stays open, and War asks nothing on the way in', async ({ page })
   expect(after.beginDisabled).toBe(false);
 });
 
-test("Milton's engines are alive, not photographs of themselves", async ({ page }) => {
+withdrawnJourneyTest("Milton's engines are alive, not photographs of themselves", async ({ page }) => {
   test.setTimeout(300000);
   // Engines must keep stepping (not a single still frame).
   const failures = [];
@@ -342,7 +343,7 @@ test("Milton's engines are alive, not photographs of themselves", async ({ page 
   expect(spread, 'the field is moving too fast to read against').toBeLessThan(0.5);
 });
 
-test('a movement\'s soundscape cue actually reaches the audio engine', async ({ page }) => {
+withdrawnJourneyTest('a movement\'s soundscape cue actually reaches the audio engine', async ({ page }) => {
   test.setTimeout(300000);
   // Audio cues must reach the engine by name (not only appear in logs).
   const delivered = [];
@@ -364,7 +365,7 @@ test('a movement\'s soundscape cue actually reaches the audio engine', async ({ 
   expect(delivered).toContain('war-ordered-field');
 });
 
-test('the Demonstration is the short door, and it opens', async ({ page }) => {
+withdrawnJourneyTest('the Demonstration is the short door, and it opens', async ({ page }) => {
   test.setTimeout(300000);
   // War is seventy-five minutes and should be. This is what you open in
   // front of somebody who has ten, and it runs on exactly the same
@@ -410,6 +411,4 @@ test('the Demonstration is the short door, and it opens', async ({ page }) => {
   console.log('DEMOCUES ' + JSON.stringify([...new Set(cues)]));
   // The reel is showing a NAMED engine, not the family at large.
   expect(cues.length).toBeGreaterThan(0);
-});
-
 });

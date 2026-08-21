@@ -452,6 +452,38 @@
   margin-bottom: 2.5rem;
   z-index: 1;
   width: 100%;
+  max-width: 680px;
+}
+
+.post-complete-actions > button {
+  flex: 1 1 0;
+  justify-content: center;
+  min-width: 0;
+}
+
+.post-btn-continue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.4rem;
+  background: rgba(139, 127, 212, 0.16);
+  border: 1px solid rgba(139, 127, 212, 0.5);
+  color: rgba(226, 222, 255, 0.95);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.post-btn-continue:hover:not(:disabled) {
+  background: rgba(139, 127, 212, 0.26);
+  border-color: rgba(170, 158, 255, 0.75);
+}
+
+.post-btn-continue:disabled {
+  opacity: 0.45;
+  cursor: wait;
 }
 
 /* Return — minimal ghost */

@@ -10,7 +10,12 @@ test.skip(true, 'JOURNEYS = []; those sits are not shipped');
 const GATE = { code: 'rise2025', name: 'Procedural', vault: null, timestamp: Date.now() };
 const WAR = '[data-journey="journey-war"]';
 
-test('a Journey pages, and its procedural movements are illustrated', async ({ page }) => {
+// The authored Journey remains in source, but no Journey is release-admitted:
+// its quotation anchors name editions that the certified shelf no longer
+// serves. Keep the end-to-end contract beside the implementation and make the
+// editorial withdrawal explicit instead of waiting four minutes for a card
+// that production correctly does not render.
+test.skip('a Journey pages, and its procedural movements are illustrated', async ({ page }) => {
     test.setTimeout(240000);
     await page.setViewportSize({ width: 1280, height: 900 });
 

@@ -15,7 +15,8 @@ import { fail } from './errors.js';
 import { encodeWav } from './wav.js';
 
 function resolveFfmpeg(explicit = null) {
-  if (explicit) return explicit;
+  const configured = explicit || process.env.RISE_FFMPEG_PATH;
+  if (configured) return configured;
   try {
     const out = execFileSync('where', ['ffmpeg'], { encoding: 'utf8' });
     const line = out.split(/\r?\n/).map(item => item.trim()).find(Boolean);
@@ -126,6 +127,7 @@ export async function encodeMp4({
   ];
 
   let stderr = '';
+  let frameCount = 0;
   await new Promise((resolve, reject) => {
     const child = spawn(ffmpeg, args, { stdio: ['pipe', 'ignore', 'pipe'] });
     child.stderr.on('data', chunk => { stderr += String(chunk); });
@@ -152,18 +154,21 @@ export async function encodeMp4({
     const pump = async () => {
       try {
         await writeChunk(child.stdin, probe.bytes);
+        frameCount += 1;
         if (iterator) {
           let index = 1;
           while (true) {
             const frame = await iterator(index);
             if (!frame) break;
             await writeChunk(child.stdin, png ? pngBytes(frame) : rgbaBytes(frame).bytes);
+            frameCount += 1;
             index += 1;
           }
         } else {
           for (let i = 1; i < frames.length; i += 1) {
             const frame = frames[i];
             await writeChunk(child.stdin, png ? pngBytes(frame) : rgbaBytes(frame).bytes);
+            frameCount += 1;
           }
         }
         child.stdin.end();
@@ -180,6 +185,8 @@ export async function encodeMp4({
     width,
     height,
     codec: 'h264-social-v1',
-    encoder: 'ffmpeg-libx264'
+    encoder: 'ffmpeg-libx264',
+    frameCount,
+    durationMs: Math.round((frameCount / fps) * 1000)
   });
 }

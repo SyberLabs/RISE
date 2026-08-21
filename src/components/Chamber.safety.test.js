@@ -146,6 +146,7 @@ describe('Chamber Recitation visual contract', () => {
     vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false })));
     const session = rhythmicSession();
     session.recitation = { enabled: true };
+    session.revealMode = 'progressive';
     session.atoms[1].content = 'Second phrase';
     session.visualConfig.interlocution.presentation = 'full-frame';
     const player = fakePlayer();

@@ -793,9 +793,11 @@ export class Library {
 
   readEntry(entryId) {
     const { text, divisions } = this._contents || {};
-    const entry = divisions?.entries.find(e => e.id === entryId);
+    const entryIndex = divisions?.entries.findIndex(e => String(e.id) === String(entryId));
+    const entry = entryIndex >= 0 ? divisions.entries[entryIndex] : null;
     if (!entry) return;
     const label = entry.title ? `${entry.label} — ${entry.title}` : entry.label;
+    const noun = contentsNoun(divisions).one;
     this.closeContents();
     this.onSelectText(entry.content, `${text.title} · ${label}`, {
       wpm: text.defaultWpm,
@@ -805,7 +807,17 @@ export class Library {
       // program — not this, which is how someone opens a poem. So Tintern
       // Abbey was still cut at Wordsworth's commas and glued across his line
       // ends after the fix was reported as shipped.
-      verseLines: entry.verse === true
+      verseLines: entry.verse === true,
+      ...(text.editionId && text.sourceRevision ? { continuation: {
+        kind: 'library-division',
+        workId: text.workId || text.id,
+        editionId: text.editionId,
+        sourceRevision: text.sourceRevision,
+        entryId: String(entry.id),
+        entryIndex,
+        entryCount: divisions.entries.length,
+        noun
+      } } : {})
     });
   }
 

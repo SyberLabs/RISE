@@ -44,6 +44,10 @@ import { divideSections } from './divisions.js';
 // once at build time rather than in every reader's browser — which is
 // what lets a card say "365 chapters" without downloading Tolstoy.
 import { STRUCTURED_IDS, withheldWorks } from './canon.js';
+import {
+    isArchiveEditionCertified,
+    withArchiveReleaseIdentity
+} from './certification.js';
 import DIVISION_INDEX from './division-index.json';
 
 // Exported for the reachability guard, which must weigh every catalogue
@@ -325,7 +329,27 @@ const WITHHELD = withheldWorks(BUILT.map(workId));
 /** Every work the Archive is prepared to serve. */
 export const WITHHELD_WORKS = WITHHELD;
 
-const WORKS = BUILT.filter(work => !Object.hasOwn(WITHHELD, workId(work)));
+const WORKS = BUILT.filter(work => !Object.hasOwn(WITHHELD, workId(work)))
+    .map(work => Object.freeze({
+        ...work,
+        meta: withArchiveReleaseIdentity(work.meta)
+    }));
+
+/**
+ * Candidate editions are visible only in an explicit review environment.
+ * Public builds fail closed until a certification record matches their exact
+ * source revision.  Development and the browser suite remain review tools.
+ */
+export function archiveReviewEnabled(env = import.meta.env) {
+    return env?.DEV === true || env?.VITE_RISE_ARCHIVE_REVIEW === '1';
+}
+
+export function releaseArchiveMetadata({ includeCandidates = archiveReviewEnabled() } = {}) {
+    const works = includeCandidates
+        ? WORKS
+        : WORKS.filter(work => isArchiveEditionCertified(work.meta));
+    return Object.freeze(works.map(work => work.meta));
+}
 
 /**
  * A long work is not one reading, and its own sections are not its
@@ -382,15 +406,19 @@ function sequencesFor(meta, sections) {
  * Begin — the second pass re-read Milton, Homer and Jünger from
  * nothing, and Begin sat on "Preparing…".
  */
-let registry = null;
+const registries = new Map();
 
-export function ingestedArchiveTexts() {
-    if (registry) return registry;
-    registry = WORKS.map(({ meta, load }) => {
+function registryFor(works, key) {
+    if (registries.has(key)) return registries.get(key);
+    const registry = works.map(({ meta, load }) => {
         let cached = null;
         let divisions = null;
         return {
             id: meta.id,
+            workId: meta.workId,
+            editionId: meta.editionId,
+            sourceRevision: meta.sourceRevision,
+            certificationStatus: meta.certificationStatus,
             title: meta.title,
             author: meta.author,
             category: meta.shelf,
@@ -455,11 +483,29 @@ export function ingestedArchiveTexts() {
             provenance: {
                 translator: meta.edition.translator,
                 year: meta.edition.year,
-                basis: meta.basis
+                basis: meta.basis,
+                workId: meta.workId,
+                editionId: meta.editionId,
+                sourceRevision: meta.sourceRevision,
+                certificationStatus: meta.certificationStatus
             }
         };
     });
+    registries.set(key, registry);
     return registry;
+}
+
+/** All admitted candidates, for audits and explicit review tooling. */
+export function ingestedArchiveTexts() {
+    return registryFor(WORKS, 'review');
+}
+
+/** Editions a reader-facing surface may expose in this build. */
+export function releaseArchiveTexts({ includeCandidates = archiveReviewEnabled() } = {}) {
+    const works = includeCandidates
+        ? WORKS
+        : WORKS.filter(work => isArchiveEditionCertified(work.meta));
+    return registryFor(works, includeCandidates ? 'review' : 'release');
 }
 
 /** The declared metadata, for tests that check it against the payloads. */

@@ -97,7 +97,9 @@ async function inventoryFromProject(project) {
       sourceId: source.id,
       contentHash: await contentHashOf(text),
       byteLength: new TextEncoder().encode(text).byteLength,
-      characterCount: text.length
+      characterCount: text.length,
+      editionId: source.metadata?.editionId || source.provenance?.editionId || source.id,
+      sourceRevision: source.metadata?.sourceRevision || source.provenance?.sourceRevision || null
     });
   }
   return { sources, assets: [] };
@@ -124,7 +126,8 @@ async function compileDraft(project) {
     sourceSnapshots: inventory.sources.map(item => ({
       sourceId: item.sourceId,
       contentHash: item.contentHash,
-      editionId: item.sourceId
+      editionId: item.editionId,
+      ...(item.sourceRevision ? { sourceRevision: item.sourceRevision } : {})
     })),
     assetSnapshots: [],
     profile: profile.id,

@@ -161,6 +161,10 @@ export class ArchiveTextProvider extends SourceProvider {
                 translator: text.provenance?.translator,
                 editionYear: text.provenance?.year,
                 rightsBasis: text.provenance?.basis,
+                workId: text.workId || text.id,
+                editionId: text.editionId,
+                sourceRevision: text.sourceRevision,
+                certificationStatus: text.certificationStatus,
                 extent: text.extent,
                 why: text.why,
                 tags: text.tags || []
@@ -208,7 +212,8 @@ export class ArchiveTextProvider extends SourceProvider {
                 label: entry.label || `Reading ${index + 1}`,
                 title: entry.title || '',
                 content: entry.content || '',
-                words: entry.words || String(entry.content || '').trim().split(/\s+/).filter(Boolean).length
+                words: entry.words || String(entry.content || '').trim().split(/\s+/).filter(Boolean).length,
+                verse: entry.verse === true
             }))
         };
     }

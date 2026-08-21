@@ -69,7 +69,10 @@ export class Router {
             this._pendingNav = { viewName, options };
             return;
         }
-        if (viewName === this.currentView) return;
+        // A completed division may hand the same immersive surface a fresh
+        // Session. Same-route navigation is normally a no-op; `force` is the
+        // explicit remount contract for that bounded continuation case.
+        if (viewName === this.currentView && options.force !== true) return;
 
         const newView = this.views.get(viewName);
         if (!newView) {
@@ -112,7 +115,8 @@ export class Router {
             await this.fadeIn(newView.container);
             newView.instance?.activate?.();
 
-            if (!options.replace && !options.skipStack && previousViewName) {
+            if (!options.replace && !options.skipStack && previousViewName
+                && previousViewName !== viewName) {
                 this.viewStack.push(previousViewName);
             }
             this.currentView = viewName;

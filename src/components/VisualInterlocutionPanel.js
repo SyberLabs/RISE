@@ -1108,8 +1108,8 @@ export class VisualInterlocutionPanel {
                                     // who takes the first is taking the one
                                     // that never flashes and never goes black.
                                     ['continuous', 'Gallery'],
-                                    ['behind-stream', 'Behind stream'],
-                                    ['full-frame', 'Full frame']
+                                    ['behind-stream', 'Background flash'],
+                                    ['full-frame', 'Foreground flash']
                                 ].map(([id, label]) => `
                                     <button type="button"
                                         class="vi-source-family-btn ${this.config.interlocution.presentation === id ? 'active' : ''}"

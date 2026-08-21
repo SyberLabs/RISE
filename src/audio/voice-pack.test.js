@@ -14,7 +14,7 @@ describe('shipped Recitation pack', () => {
         expect(availableVoicePacks()).toEqual([{
             id: 'af_heart',
             label: 'Heart — warm, the reference voice',
-            entryCount: 94
+            entryCount: 877
         }]);
     });
 

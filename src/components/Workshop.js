@@ -2450,7 +2450,13 @@ export class Workshop {
       // while a reader who expressed no preference was handed the one
       // that never does. The same choice should not have two answers
       // depending on which room you are standing in.
-      const presentations = [['continuous', 'Gallery'], ['behind-stream', 'Behind Stream'], ['full-frame', 'Rhythmic']];
+      // Persisted ids remain stable; labels state the visual relationship to
+      // the reading instead of exposing runtime vocabulary.
+      const presentations = [
+        ['continuous', 'Gallery'],
+        ['behind-stream', 'Background Flash'],
+        ['full-frame', 'Foreground Flash']
+      ];
       controls = `<label class="input-label">Presentation</label>
         <div class="studio-surface-options studio-presentation-options">${presentations.map(([id, label]) => `<button type="button"
           class="btn-secondary btn-compact ${interlocution.presentation === id || (!interlocution.presentation && id === 'continuous') ? 'active' : ''}"

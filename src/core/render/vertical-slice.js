@@ -184,6 +184,7 @@ export async function buildVerticalSlice() {
     sources: [{
       sourceId: SLICE_SOURCE_ID,
       contentHash: sourceHash,
+      editionId: 'slice-anna-1',
       byteLength: SLICE_TEXT.length,
       characterCount: SLICE_TEXT.length
     }],

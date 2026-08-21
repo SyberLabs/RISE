@@ -154,6 +154,7 @@ export function normalizeSessionConfig(input = {}) {
     const recitation = Object.freeze({
         enabled: input.recitation?.enabled === true
     });
+    const revealMode = input.revealMode === 'progressive' ? 'progressive' : 'instant';
 
     const experienceProgram = input.experienceProgram == null
         ? null
@@ -177,6 +178,7 @@ export function normalizeSessionConfig(input = {}) {
         chunkMode,
         curve,
         recitation,
+        revealMode,
         sequenceVisualAssets,
         ...(experienceProgram ? {
             experienceProgram,

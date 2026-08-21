@@ -65,6 +65,7 @@ voice-samples/
 
 # Generated render output
 out/
+tools/ffmpeg/
 met-*.html
 contact-sheet*.html
 science-sheet.html

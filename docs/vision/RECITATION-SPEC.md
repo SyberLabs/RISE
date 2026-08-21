@@ -1,4 +1,4 @@
-# Recitation — spoken reading, revealed text, acoustic balance
+# Recitation — spoken reading and acoustic balance
 
 *Written 2026-07-28, revised 2026-07-29 against a frame-by-frame reading
 of the reference reel and a measured TTS probe.*
@@ -7,14 +7,16 @@ of the reference reel and a measured TTS probe.*
 
 ## 0. What this is
 
-A presentation in which text arrives over a short duration rather than
-appearing whole, optionally spoken aloud, with the music yielding to the
-voice and returning.
+A spoken presentation of the authored source through a completely admitted
+static voice pack. Recitation may provide timing evidence to Progressive
+Reveal, but does not own text arrival. Reveal and speech are independently
+selectable.
 
-**A reading mode, not an export.** If a reel is wanted, the screen is
-recorded. JSON → MP4 stays deferred (NORTH-STAR §5.7) — but this makes
-the eventual export a *capture* problem rather than a *rendering* one,
-which is the harder half.
+**A reading mode and a renderable contract, not an export implementation.**
+Interactive playback and deterministic MP4 rendering now consume the same
+compiled timing authority. Recitation specifies the voice and reveal evidence
+that both paths receive; the render pipeline owns frames, encoding, and the
+artifact rather than screen-recording the browser.
 
 ### What the reference reel actually does
 
@@ -52,7 +54,7 @@ reveal *within* a phrase atom.
 | **Ducking** | The exact ramp pattern exists for the Shuttle. Not wired to voice. |
 | **Per-atom colour** | Living Text tints by valence. Driven by the wrong signal for this — see §3. |
 | **Keystroke sound** | `layerGains.typing` with a sampler and configured volume, built for something else. |
-| **Progressive reveal** | Nothing. The one genuinely new mechanism. |
+| **Progressive Reveal** | Implemented as an independent `revealMode`; voice may provide its word clock. |
 
 ---
 
@@ -329,8 +331,9 @@ presented. They are orthogonal — a recitation can run under a Gallery —
 so folding them into one control would be a category error of the kind
 the Library's shelves just went through.
 
-It belongs beside WPM and chunking, in the temporal orbit, because that
-is what it modifies.
+Recitation and Reveal both belong beside WPM and chunking in the temporal
+orbit, but remain separate controls. The four legal combinations are instant
+or progressive text, each with voice off or on.
 
 ---
 
