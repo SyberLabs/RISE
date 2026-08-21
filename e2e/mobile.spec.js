@@ -193,6 +193,36 @@ test('the Portal is one viewport, and does not scroll', async ({ page }) => {
     // Secondary door ink quieter than primary nav; tap targets stay ≥40px.
 });
 
+test('Try RISE owns its mobile scroll instead of clipping stacked readings', async ({ page }) => {
+    test.setTimeout(120000);
+    await enter(page, 390, 844);
+    await page.locator('[data-nav="keystones"]').first().click();
+    await expect(page).toHaveURL(/\/try-rise$/u);
+    await expect(page.locator('#keystone-tintern')).toBeVisible({ timeout: 30000 });
+
+    const scroll = await page.evaluate(() => {
+        const view = document.querySelector('.keystones');
+        const before = view.scrollTop;
+        view.scrollTop = view.scrollHeight;
+        const lastCard = document.querySelector('#keystone-tintern').getBoundingClientRect();
+        return {
+            before,
+            after: view.scrollTop,
+            clientHeight: view.clientHeight,
+            scrollHeight: view.scrollHeight,
+            viewportHeight: window.innerHeight,
+            overflowY: getComputedStyle(view).overflowY,
+            lastCardBottom: Math.round(lastCard.bottom)
+        };
+    });
+
+    expect(scroll.clientHeight).toBe(scroll.viewportHeight);
+    expect(scroll.scrollHeight).toBeGreaterThan(scroll.clientHeight);
+    expect(scroll.overflowY).toBe('auto');
+    expect(scroll.after).toBeGreaterThan(scroll.before);
+    expect(scroll.lastCardBottom).toBeLessThanOrEqual(scroll.viewportHeight);
+});
+
 test('the mode selector is one row with no empty cell', async ({ page }) => {
     // Five modes in one row; labels must not clip or break mid-word.
     test.setTimeout(240000);
