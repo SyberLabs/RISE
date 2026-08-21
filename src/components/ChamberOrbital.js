@@ -754,8 +754,13 @@ export class ChamberOrbital {
             <div class="config-section">
               <div class="config-label-row">
                 <label class="config-label">Soundscape</label>
-                <span class="config-info" data-tooltip="Living compositions synthesized in real time — slowly evolving, never looping. Aurora: a deep just-intoned pad visited by wandering harmonics. Plays alongside the pure tones below.">?</span>
+                <span class="config-info" data-tooltip="Living compositions synthesized in real time — slowly evolving, never looping. Aurora: a deep just-intoned pad visited by wandering harmonics.">?</span>
               </div>
+              <p class="audio-bed-note">
+                A Soundscape and a Pure Tone are two ways to fill the same
+                silence, so the panel plays one at a time. Choosing either
+                clears the other.
+              </p>
               <div class="audio-preset-options soundscape-options">
                 <button class="audio-preset-option ${this.config.soundscape === 'none' ? 'active' : ''}" data-soundscape="none">
                   <span class="preset-icon">○</span>

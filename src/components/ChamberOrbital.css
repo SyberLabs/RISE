@@ -899,6 +899,16 @@
   display: none;
 }
 
+/* The one rule that governs both bed sections, said in the open rather
+   than in a tooltip: the panel is used on a phone, where nothing hovers. */
+.audio-bed-note {
+  margin: 0 0 var(--space-sm);
+  color: var(--color-fog);
+  font-size: 12px;
+  line-height: 1.45;
+  max-width: 46ch;
+}
+
 /* Soundscapes sit three across — composed names need the width, and
    the different rhythm marks the section as its own kind of choice */
 .soundscape-options {
@@ -1320,6 +1330,14 @@
     grid-template-columns: 1fr;
   }
 
+  /* THE THREE SOUNDSCAPES ARE ONE CHOICE AND READ AS ONE ROW. The rules
+     above are written for the preset grids and catch this one by name, so
+     None / Aurora / Faded Signal broke two-and-one — which reads as a
+     stray option rather than a set of three. */
+  .soundscape-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .curve-options {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1544,6 +1562,10 @@
   .audio-waveform-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-xs);
+  }
+
+  .soundscape-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .orbital-modal .curve-options {
