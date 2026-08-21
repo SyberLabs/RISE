@@ -1,7 +1,20 @@
-import { cpus } from 'node:os';
+import { cpus, freemem } from 'node:os';
 import { defineConfig } from 'vite';
 import { curiaPlugin } from './scripts/curia-plugin.js';
 import { exportMp4Plugin } from './scripts/export-mp4-plugin.js';
+
+const GB = 1024 ** 3;
+
+// Held back for the vitest parent (~750 MB measured) and whatever else is
+// already resident while the suite runs.
+const RESERVED_GB = 2.5;
+
+// One test file per fork. Typical peak is 100–200 MB; the worst measured was
+// 594 MB, so a gigabyte a slot is the heavy file paying for itself.
+const PER_WORKER_GB = 1;
+
+const coreCeiling = Math.floor(cpus().length / 2);
+const memoryCeiling = Math.floor((freemem() / GB - RESERVED_GB) / PER_WORKER_GB);
 
 export default defineConfig({
   // Curia / Export MP4: apply:'serve' means the endpoints exist only on
@@ -93,8 +106,29 @@ export default defineConfig({
     // Scaled to the machine, because CI is not this machine. A GitHub runner
     // has four cores where a workstation has sixteen, and a fixed six would
     // oversubscribe the runner as surely as two throttles the workstation.
+    //
+    // COUNTING CORES WAS NOT ENOUGH. The workstation has sixteen of them and
+    // only sixteen gigabytes, so the core rule asked for six forks against
+    // memory that could not seat six. The failure did not look like a failing
+    // test: a fork was killed mid-file and the parent reported
+    // ERR_IPC_CHANNEL_CLOSED, usually over Workshop.test.js or
+    // visual-cortex.test.js, both of which pass alone. Measured here — 15.9 GB
+    // total, 4.7 GB free at rest; isolation gives each test file its own fork,
+    // and across one full run the forks peaked at 100–200 MB apiece with the
+    // heaviest at 594 MB, over a parent holding ~750 MB. Six of those spiking
+    // together do not fit; free memory fell to 1.85 GB with only three running.
+    // Two finishes clean in ~163s and was the hand-passed flag all session.
+    //
+    // So the ceiling is whichever runs out first, cores or memory. The reserve
+    // covers the vitest parent plus whatever else is resident — a dev server
+    // and an editor are normal here. Read once at config load, which is a
+    // snapshot and can be sampled at a bad moment; the floor of two and the
+    // ceiling of six keep a bad sample from turning into a one-fork crawl or
+    // an overcommit. The floor is the number that was measured good, not a
+    // guess. Nothing changes on a four-core runner, where cores still bind
+    // first and the answer is two either way.
     pool: 'forks',
-    maxWorkers: Math.max(2, Math.min(6, Math.floor(cpus().length / 2))),
+    maxWorkers: Math.max(2, Math.min(6, coreCeiling, memoryCeiling)),
     minWorkers: 1,
 
     include: ['src/**/*.{test,spec}.js'],

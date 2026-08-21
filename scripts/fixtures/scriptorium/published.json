@@ -1,0 +1,19 @@
+{
+  "schema": "rise.experience-program.v1",
+  "id": "a-journey-in-disguise",
+  "authority": "published",
+  "editable": true,
+  "tracks": [
+    {
+      "id": "movements",
+      "kind": "movement",
+      "clips": [
+        {
+          "id": "m1",
+          "anchor": { "sourceIds": ["sacred-tao-te-ching#40"] },
+          "data": { "index": 0, "title": "Chapter XL" }
+        }
+      ]
+    }
+  ]
+}

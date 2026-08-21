@@ -1,0 +1,31 @@
+{
+  "schema": "rise.experience-program.v1",
+  "id": "imagery-nobody-offers",
+  "authority": "proposed",
+  "editable": true,
+  "tracks": [
+    {
+      "id": "movements",
+      "kind": "movement",
+      "clips": [
+        {
+          "id": "m1",
+          "anchor": { "sourceIds": ["sacred-tao-te-ching#40"] },
+          "data": { "index": 0, "title": "Chapter XL" }
+        }
+      ]
+    },
+    {
+      "id": "visuals",
+      "kind": "visual",
+      "fallback": { "kind": "still" },
+      "clips": [
+        {
+          "id": "v1",
+          "anchor": { "sourceIds": ["sacred-tao-te-ching#40"] },
+          "cue": { "kind": "sourced", "collections": ["aic-nothing-like-this"] }
+        }
+      ]
+    }
+  ]
+}

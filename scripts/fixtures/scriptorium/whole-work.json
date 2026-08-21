@@ -1,0 +1,19 @@
+{
+  "schema": "rise.experience-program.v1",
+  "id": "a-whole-book",
+  "authority": "proposed",
+  "editable": true,
+  "tracks": [
+    {
+      "id": "movements",
+      "kind": "movement",
+      "clips": [
+        {
+          "id": "m1",
+          "anchor": { "sourceIds": ["sacred-tao-te-ching"] },
+          "data": { "index": 0, "title": "Tao Te Ching" }
+        }
+      ]
+    }
+  ]
+}

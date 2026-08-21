@@ -1,0 +1,24 @@
+{
+  "schema": "rise.experience-program.v1",
+  "id": "an-ordinal-spelled-oddly",
+  "authority": "proposed",
+  "editable": true,
+  "tracks": [
+    {
+      "id": "movements",
+      "kind": "movement",
+      "clips": [
+        {
+          "id": "m1",
+          "anchor": { "sourceIds": ["sacred-tao-te-ching#0040"] },
+          "data": { "index": 0, "title": "Chapter forty, spelled oddly" }
+        },
+        {
+          "id": "m2",
+          "anchor": { "sourceIds": ["sacred-tao-te-ching#40"] },
+          "data": { "index": 1, "title": "Chapter forty again" }
+        }
+      ]
+    }
+  ]
+}

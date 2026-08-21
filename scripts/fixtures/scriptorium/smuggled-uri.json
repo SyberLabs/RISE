@@ -1,0 +1,20 @@
+{
+  "schema": "rise.experience-program.v1",
+  "id": "a-score-carrying-bytes",
+  "authority": "proposed",
+  "editable": true,
+  "metadata": { "cover": "data:image/png;base64,iVBORw0KGgo=" },
+  "tracks": [
+    {
+      "id": "movements",
+      "kind": "movement",
+      "clips": [
+        {
+          "id": "m1",
+          "anchor": { "sourceIds": ["sacred-tao-te-ching#40"] },
+          "data": { "index": 0, "title": "Chapter XL" }
+        }
+      ]
+    }
+  ]
+}

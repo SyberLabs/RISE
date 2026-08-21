@@ -1,0 +1,11 @@
+{
+  "schema": "rise.agent-operation-set.v1",
+  "id": "ops-tone",
+  "projectId": "project-tone",
+  "baseRevision": 0,
+  "intent": "a tone preset nobody offers",
+  "operations": [
+    { "op": "add-source", "id": "op-source", "sourceId": "sacred-tao-te-ching#40" },
+    { "op": "set-atmosphere", "id": "op-atmosphere", "audioPreset": "no-such-tone-preset" }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "rise.experience-program.v1",
+  "id": "an-opening-with-no-boundary",
+  "authority": "proposed",
+  "editable": true,
+  "tracks": [
+    {
+      "id": "movements",
+      "kind": "movement",
+      "clips": [
+        {
+          "id": "m1",
+          "anchor": { "sourceIds": ["ulysses#18:200"] },
+          "data": { "index": 0, "title": "Penelope, opening" }
+        }
+      ]
+    }
+  ]
+}

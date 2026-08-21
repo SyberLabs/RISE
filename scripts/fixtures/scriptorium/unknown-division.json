@@ -1,0 +1,19 @@
+{
+  "schema": "rise.experience-program.v1",
+  "id": "a-division-that-is-not-there",
+  "authority": "proposed",
+  "editable": true,
+  "tracks": [
+    {
+      "id": "movements",
+      "kind": "movement",
+      "clips": [
+        {
+          "id": "m1",
+          "anchor": { "sourceIds": ["spoon-river-anthology#900"] },
+          "data": { "index": 0, "title": "The nine-hundredth epitaph" }
+        }
+      ]
+    }
+  ]
+}

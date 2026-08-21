@@ -1,0 +1,19 @@
+{
+  "schema": "rise.experience-program.v1",
+  "id": "a-fragment",
+  "authority": "proposed",
+  "editable": true,
+  "tracks": [
+    {
+      "id": "movements",
+      "kind": "movement",
+      "clips": [
+        {
+          "id": "m1",
+          "anchor": { "sourceIds": ["spoon-river-anthology#50:37"] },
+          "data": { "index": 0, "title": "An epitaph, cut short" }
+        }
+      ]
+    }
+  ]
+}

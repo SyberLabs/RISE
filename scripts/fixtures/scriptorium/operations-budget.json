@@ -1,0 +1,13 @@
+{
+  "schema": "rise.agent-operation-set.v1",
+  "id": "ops-longer-than-the-reader-asked-for",
+  "projectId": "project-1",
+  "baseRevision": 0,
+  "operations": [
+    {
+      "op": "add-source",
+      "id": "op-1",
+      "sourceId": "sacred-tao-te-ching"
+    }
+  ]
+}

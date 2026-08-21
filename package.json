@@ -16,6 +16,8 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "scriptorium": "vite-node scripts/scriptorium.mjs --",
+    "scriptorium:ci": "node scripts/scriptorium-ci.mjs",
     "probe:collections": "vite-node scripts/probe-collections.mjs",
     "study:chunking": "vite-node scripts/study-phrase-chunking.mjs",
     "sheet:chunks": "node scripts/chunk-contact-sheet.mjs",

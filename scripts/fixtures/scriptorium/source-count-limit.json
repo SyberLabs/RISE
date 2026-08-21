@@ -1,0 +1,100 @@
+{
+  "schema": "rise.experience-program.v1",
+  "id": "sixty-four-chapters",
+  "authority": "proposed",
+  "editable": true,
+  "tracks": [
+    {
+      "id": "movements",
+      "kind": "movement",
+      "clips": [
+        {
+          "id": "m1",
+          "anchor": {
+            "sourceIds": [
+              "sacred-tao-te-ching#1",
+              "sacred-tao-te-ching#2",
+              "sacred-tao-te-ching#3",
+              "sacred-tao-te-ching#4",
+              "sacred-tao-te-ching#5",
+              "sacred-tao-te-ching#6",
+              "sacred-tao-te-ching#7",
+              "sacred-tao-te-ching#8",
+              "sacred-tao-te-ching#9",
+              "sacred-tao-te-ching#10",
+              "sacred-tao-te-ching#11",
+              "sacred-tao-te-ching#12",
+              "sacred-tao-te-ching#13",
+              "sacred-tao-te-ching#14",
+              "sacred-tao-te-ching#15",
+              "sacred-tao-te-ching#16",
+              "sacred-tao-te-ching#17",
+              "sacred-tao-te-ching#18",
+              "sacred-tao-te-ching#19",
+              "sacred-tao-te-ching#20",
+              "sacred-tao-te-ching#21",
+              "sacred-tao-te-ching#22",
+              "sacred-tao-te-ching#23",
+              "sacred-tao-te-ching#24",
+              "sacred-tao-te-ching#25",
+              "sacred-tao-te-ching#26",
+              "sacred-tao-te-ching#27",
+              "sacred-tao-te-ching#28",
+              "sacred-tao-te-ching#29",
+              "sacred-tao-te-ching#30",
+              "sacred-tao-te-ching#31",
+              "sacred-tao-te-ching#32"
+            ]
+          },
+          "data": {
+            "index": 0,
+            "title": "First half"
+          }
+        },
+        {
+          "id": "m2",
+          "anchor": {
+            "sourceIds": [
+              "sacred-tao-te-ching#33",
+              "sacred-tao-te-ching#34",
+              "sacred-tao-te-ching#35",
+              "sacred-tao-te-ching#36",
+              "sacred-tao-te-ching#37",
+              "sacred-tao-te-ching#38",
+              "sacred-tao-te-ching#39",
+              "sacred-tao-te-ching#40",
+              "sacred-tao-te-ching#41",
+              "sacred-tao-te-ching#42",
+              "sacred-tao-te-ching#43",
+              "sacred-tao-te-ching#44",
+              "sacred-tao-te-ching#45",
+              "sacred-tao-te-ching#46",
+              "sacred-tao-te-ching#47",
+              "sacred-tao-te-ching#48",
+              "sacred-tao-te-ching#49",
+              "sacred-tao-te-ching#50",
+              "sacred-tao-te-ching#51",
+              "sacred-tao-te-ching#52",
+              "sacred-tao-te-ching#53",
+              "sacred-tao-te-ching#54",
+              "sacred-tao-te-ching#55",
+              "sacred-tao-te-ching#56",
+              "sacred-tao-te-ching#57",
+              "sacred-tao-te-ching#58",
+              "sacred-tao-te-ching#59",
+              "sacred-tao-te-ching#60",
+              "sacred-tao-te-ching#61",
+              "sacred-tao-te-ching#62",
+              "sacred-tao-te-ching#63",
+              "sacred-tao-te-ching#64"
+            ]
+          },
+          "data": {
+            "index": 1,
+            "title": "Second half"
+          }
+        }
+      ]
+    }
+  ]
+}

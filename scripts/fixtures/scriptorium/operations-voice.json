@@ -1,0 +1,17 @@
+{
+  "schema": "rise.agent-operation-set.v1",
+  "id": "ops-voice",
+  "projectId": "project-voice",
+  "baseRevision": 0,
+  "intent": "a narration voice nobody offers",
+  "operations": [
+    { "op": "add-source", "id": "op-source", "sourceId": "sacred-tao-te-ching#40" },
+    {
+      "op": "assign-narration",
+      "id": "op-narration",
+      "assignmentId": "n1",
+      "sourceId": "sacred-tao-te-ching#40",
+      "voiceId": "no-such-voice"
+    }
+  ]
+}

@@ -56,6 +56,25 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+  scriptorium:
+    name: Scriptorium CLI
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.19'
+          cache: npm
+      - run: npm ci
+      # The unit suite drives the CLI's argv shell in-process. This spawns it:
+      # `npm run scriptorium` must resolve, vite-node must load a graph that
+      # imports division-index.json, and a refusal code must arrive at the
+      # shell as the exit status the spec documents (§13). Its own job so a red
+      # run names which of those broke.
+      - name: A refusal is an exit status
+        run: npm run scriptorium:ci
+
   hygiene:
     name: Source hygiene
     runs-on: ubuntu-latest

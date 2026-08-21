@@ -1,0 +1,12 @@
+{
+  "schema": "rise.agent-operation-set.v1",
+  "id": "ops-empty-reading",
+  "projectId": "project-empty-reading",
+  "baseRevision": 0,
+  "intent": "a proposal that changes its mind and leaves no text behind",
+  "operations": [
+    { "op": "add-source", "id": "op-add", "sourceId": "sacred-tao-te-ching#40" },
+    { "op": "remove-source", "id": "op-remove", "sourceId": "sacred-tao-te-ching#40" },
+    { "op": "set-atmosphere", "id": "op-atmosphere", "soundscape": "aurora" }
+  ]
+}

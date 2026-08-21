@@ -1,0 +1,17 @@
+{
+  "schema": "rise.agent-operation-set.v1",
+  "id": "ops-museum",
+  "projectId": "project-museum",
+  "baseRevision": 0,
+  "intent": "ukiyo-e prints over a chapter — a sourced collection, not a generated field",
+  "operations": [
+    { "op": "add-source", "id": "op-source", "sourceId": "sacred-tao-te-ching#40" },
+    {
+      "op": "assign-visual",
+      "id": "op-visual",
+      "assignmentId": "v1",
+      "sourceId": "sacred-tao-te-ching#40",
+      "assetId": "aic-ukiyoe"
+    }
+  ]
+}

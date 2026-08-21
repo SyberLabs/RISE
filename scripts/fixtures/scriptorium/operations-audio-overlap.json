@@ -1,0 +1,24 @@
+{
+  "schema": "rise.agent-operation-set.v1",
+  "id": "ops-audio-overlap",
+  "projectId": "project-audio-overlap",
+  "baseRevision": 0,
+  "intent": "two beds over one passage — the commonest scoring mistake there is",
+  "operations": [
+    { "op": "add-source", "id": "op-source", "sourceId": "sacred-tao-te-ching#40" },
+    {
+      "op": "assign-audio",
+      "id": "op-first",
+      "assignmentId": "a1",
+      "sourceId": "sacred-tao-te-ching#40",
+      "assetId": "soundscape:aurora"
+    },
+    {
+      "op": "assign-audio",
+      "id": "op-second",
+      "assignmentId": "a2",
+      "sourceId": "sacred-tao-te-ching#40",
+      "assetId": "soundscape:faded-signal"
+    }
+  ]
+}

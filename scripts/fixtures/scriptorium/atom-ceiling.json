@@ -1,0 +1,19 @@
+{
+  "schema": "rise.experience-program.v1",
+  "id": "more-words-than-a-session-holds",
+  "authority": "proposed",
+  "editable": true,
+  "tracks": [
+    {
+      "id": "movements",
+      "kind": "movement",
+      "clips": [
+        {
+          "id": "m1",
+          "anchor": { "sourceIds": ["middlemarch"] },
+          "data": { "index": 0, "title": "Middlemarch" }
+        }
+      ]
+    }
+  ]
+}

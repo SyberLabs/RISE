@@ -1,0 +1,15 @@
+{
+  "schema": "rise.agent-operation-set.v1",
+  "id": "ops-atmosphere",
+  "projectId": "project-atmosphere",
+  "baseRevision": 0,
+  "intent": "a bed nobody offers, written into the project's reading defaults",
+  "operations": [
+    { "op": "add-source", "id": "op-source", "sourceId": "sacred-tao-te-ching#40" },
+    {
+      "op": "set-atmosphere",
+      "id": "op-atmosphere",
+      "soundscape": "no-such-soundscape-anywhere"
+    }
+  ]
+}

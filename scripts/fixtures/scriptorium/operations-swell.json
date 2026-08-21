@@ -1,0 +1,17 @@
+{
+  "schema": "rise.agent-operation-set.v1",
+  "id": "ops-swell",
+  "projectId": "project-swell",
+  "baseRevision": 0,
+  "intent": "a personal recording that belongs to nobody",
+  "operations": [
+    { "op": "add-source", "id": "op-source", "sourceId": "sacred-tao-te-ching#40" },
+    {
+      "op": "assign-audio",
+      "id": "op-audio",
+      "assignmentId": "a1",
+      "sourceId": "sacred-tao-te-ching#40",
+      "assetId": "swell:swell_9999_stolen"
+    }
+  ]
+}
