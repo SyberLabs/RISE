@@ -73,4 +73,20 @@ describe('ChamberOrbital static Recitation controls', () => {
 
         orbital.destroy();
     });
+
+    it('authors Progressive text arrival independently of Spoken voice', () => {
+        const onBeginSession = vi.fn();
+        const { container, orbital } = createOrbital(onBeginSession);
+        orbital.loadText('Silent words can still arrive progressively.', 'Test');
+
+        container.querySelector('[data-reveal="progressive"]').click();
+        expect(orbital.config.revealMode).toBe('progressive');
+        expect(orbital.config.recitation).toEqual({ enabled: false });
+
+        orbital.beginSession();
+        const payload = onBeginSession.mock.calls[0][0];
+        expect(payload.revealMode).toBe('progressive');
+        expect(payload.recitation).toEqual({ enabled: false });
+        orbital.destroy();
+    });
 });

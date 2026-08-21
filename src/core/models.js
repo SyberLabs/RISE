@@ -16,6 +16,7 @@ import {
   createSequenceVisualAsset,
   validateSequenceAssetReferences
 } from './visual-score-lane.js';
+import { createLibraryContinuation } from './reading-continuation.js';
 
 /**
  * Modality types for content atoms
@@ -217,8 +218,10 @@ export class Session {
    * @param {Object} [config.visualConfig] - Visual configuration
    * @param {Object|null} [config.origin=null] - Launch-surface return descriptor
    * @param {Object|null} [config.provenance=null] - Bounded session provenance
+   * @param {Object|null} [config.continuation=null] - Versioned ordinary-reading successor pointer
    * @param {boolean} [config.voiceEnabled=false] - Enable text-to-speech
    * @param {Object} [config.recitation] - Text presentation (RECITATION-SPEC)
+   * @param {'instant'|'progressive'} [config.revealMode='instant'] - Text arrival
    * @param {string|null} [config.voiceId=null] - Selected voice name
    */
   constructor({
@@ -238,13 +241,14 @@ export class Session {
     visualConfig = { enabled: false },
     origin = null,
     provenance = null,
+    continuation = null,
     customVisuals = [],
     sequenceVisualAssets = [],
-    // Recitation is a TEXT presentation — the reveal, its emphasis, and
-    // later its voice. Normalised by the session compiler, so the shape
-    // arriving here is already validated; the default keeps a hand-built
-    // Session (tests, restored state) from reading `undefined.enabled`.
+    // Recitation owns voice. Progressive Reveal independently owns text
+    // arrival; either feature can run without the other. The compiler
+    // normalises both before they reach this model.
     recitation = { enabled: false },
+    revealMode = 'instant',
     isCustom = false,
     voiceEnabled = false,
     voiceId = null,
@@ -287,6 +291,7 @@ export class Session {
     this.visualConfig = visualConfig;
     this.origin = origin;
     this.provenance = provenance;
+    this.continuation = createLibraryContinuation(continuation);
     this.customVisuals = customVisuals;
     if (Array.isArray(sequenceVisualAssets) && sequenceVisualAssets.length > 24) {
       throw new RangeError('A sequence may contain at most 24 visual assets.');
@@ -302,6 +307,7 @@ export class Session {
     // Frozen so a consumer cannot flip a reading into recitation after
     // compilation — the same discipline the visual config follows.
     this.recitation = Object.freeze({ enabled: recitation?.enabled === true });
+    this.revealMode = revealMode === 'progressive' ? 'progressive' : 'instant';
     this.isCustom = isCustom;
     this.voiceEnabled = voiceEnabled;
     this.voiceId = voiceId;

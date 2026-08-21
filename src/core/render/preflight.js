@@ -29,7 +29,8 @@ const INVENTORY_ASSET_FIELDS = new Set([
   'durationMs', 'width', 'height'
 ]);
 const INVENTORY_SOURCE_FIELDS = new Set([
-  'sourceId', 'contentHash', 'byteLength', 'characterCount'
+  'sourceId', 'contentHash', 'byteLength', 'characterCount',
+  'editionId', 'sourceRevision'
 ]);
 const ASSET_KINDS = new Set(['image', 'video', 'audio', 'font', 'document']);
 
@@ -103,12 +104,21 @@ function validateInventorySource(value, path) {
   const source = record(value, path);
   onlyKeys(source, INVENTORY_SOURCE_FIELDS, path);
   refuseUri(source.sourceId, `${path}.sourceId`);
-  return Object.freeze({
+  const inventorySource = {
     sourceId: source.sourceId,
     contentHash: parseContentHash(source.contentHash, `${path}.contentHash`),
     byteLength: Number.isInteger(source.byteLength) ? source.byteLength : 0,
     characterCount: Number.isInteger(source.characterCount) ? source.characterCount : 0
-  });
+  };
+  if (source.editionId != null) {
+    refuseUri(source.editionId, `${path}.editionId`);
+    inventorySource.editionId = source.editionId;
+  }
+  if (source.sourceRevision != null) {
+    inventorySource.sourceRevision = parseContentHash(
+      source.sourceRevision, `${path}.sourceRevision`);
+  }
+  return Object.freeze(inventorySource);
 }
 
 function expectedAssetKind(reference) {
@@ -172,6 +182,22 @@ export async function preflightRenderJob(input = {}) {
         '$.sourceSnapshots',
         { sourceId: snapshot.sourceId, expected: snapshot.contentHash, actual: found.contentHash },
         'Re-admit the job from the current edition, or restore the hashed bytes.'));
+    }
+    if (snapshot.editionId && found.editionId !== snapshot.editionId) {
+      push(refusal('RENDER_SOURCE_EDITION_MISMATCH',
+        `Source ${snapshot.sourceId} edition does not match the job snapshot`,
+        '$.sourceSnapshots',
+        { sourceId: snapshot.sourceId, expected: snapshot.editionId, actual: found.editionId || null },
+        'Re-admit the job from the current edition, or restore the named edition.'));
+    }
+    if (snapshot.sourceRevision
+      && (!found.sourceRevision || !hashesEqual(found.sourceRevision, snapshot.sourceRevision))) {
+      push(refusal('RENDER_SOURCE_REVISION_MISMATCH',
+        `Source ${snapshot.sourceId} revision does not match the job snapshot`,
+        '$.sourceSnapshots',
+        { sourceId: snapshot.sourceId, expected: snapshot.sourceRevision,
+          actual: found.sourceRevision || null },
+        'Migrate authored anchors to the current revision and admit a new job.'));
     }
   }
 

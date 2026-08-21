@@ -1,0 +1,706 @@
+{
+  "middlemarch": {
+    "workId": "middlemarch",
+    "editionId": "standard-ebooks:george-eliot/middlemarch",
+    "sourceRevision": "sha256:8fe93ecab80ada30e4d1bb77122e6033b27f802ab9e131b6d128bb82448297ba",
+    "edition": {
+      "publisher": "Standard Ebooks",
+      "year": 1872
+    },
+    "source": {
+      "label": "Standard Ebooks — george-eliot_middlemarch",
+      "url": "https://standardebooks.org/ebooks/george-eliot/middlemarch",
+      "repo": "https://raw.githubusercontent.com/standardebooks/george-eliot_middlemarch",
+      "files": [
+        "chapter-1.xhtml 7f62078df319ff561bc05f570334f3aa479b416205d281bfad6d2ece0795e26a",
+        "chapter-2.xhtml dc5dcc7e998dc09bd19df566e8ca0aedc2964d320db8fd4899f06d49f5e5c6a9",
+        "chapter-3.xhtml a2dab61774f44fb3ddb2ac80fb84513b1aeaf28c280cd332b4fea2cde85f47c8",
+        "chapter-4.xhtml 8835050852e7f802ba35654ba712a4364ac2b6985529f9cf7d4fb994b8f581d3",
+        "chapter-5.xhtml a6d6be1e642c08ed0accc7fb4f83dbe28d5e799b9985568c49bf8bb943259cdd",
+        "chapter-6.xhtml ba1038108d6740b410ae82e2c9d498a29b5485dda8fc66a972768e7f9ae7f835",
+        "chapter-7.xhtml 69bcb1136a671614e616517ed6f3d6bceff85197639f30fd2509dfbf771b734e",
+        "chapter-8.xhtml e3b72787eb539a314e6ea4efc0d3fed4f417ac29bfbd19f46d4abf48d1200e08",
+        "chapter-9.xhtml bd0598170e571a4c738a82163a4e1215e09f372355e98a8a0112001fe9e28d28",
+        "chapter-10.xhtml deb4f3490d99a606d6521f98141d3221177f89c96dd02110be482b542071546c",
+        "chapter-11.xhtml cd7bc714de1e49d0caed85a5c311977a39643a8dc4dee8c6ddaeede1c3968586",
+        "chapter-12.xhtml c9db70676ab4d07fddb42269da96cf3cafc5d82f507dc23baf1387ea5dd36e40",
+        "chapter-13.xhtml 6ee2af2afca0981c9b6c4d2ff34608d29b0ec0f3a04ecef1c62de249e4c2eadd",
+        "chapter-14.xhtml 3db6e71bc0f39cdbccc59f9faa27475052b7d875805e27fdd55265db9dbde4c8",
+        "chapter-15.xhtml 9034bef3b14e431b1fb4980c52332bf9125a84015ffb60026cbccd65b3de4f1d",
+        "chapter-16.xhtml f6a1a1e0965c3184572835f579305f81fc5046026af1122aa6bcb3270f8c841a",
+        "chapter-17.xhtml 838eed61cf00e8af2d9acc63f82f1976d1bd558bd660aae656ab755b9d4bb0e4",
+        "chapter-18.xhtml 0ba57c9f7810db2468928e8c2ff0da1e232cd67d196a4c3a8e788e3e652a904c",
+        "chapter-19.xhtml 6d83696b457bcd653ec08fabd0020ffae0fdb1870faa1370a90addfe219f43c3",
+        "chapter-20.xhtml 72abea952383a844ce18bb46dcb36177efb6a3d6d8362626d0ed49a67a4f4333",
+        "chapter-21.xhtml 2f1fe7083e978e50b9a2da7062638be7520d64efd7dba6429feaa24a84cd41f3",
+        "chapter-22.xhtml b2c74f1e74c8056c5bcfbe6fdb8b3a75b80617556bc32613f5492956aa7127f7",
+        "chapter-23.xhtml 269561cff60f5eec70c80391cf20fe0779e42ac4d655bd98df45d0f32a6bf6a0",
+        "chapter-24.xhtml 6aabbefd33bc24a80c7c9cd5335d31d90f89aee82ebeb35a774a2ac908662267",
+        "chapter-25.xhtml 9d24a77d06cbea8c340dc76af3332bb6c335dd1e676f4356d767b9c5a89fd55c",
+        "chapter-26.xhtml a09430dc1477d81c2da1b286a46d496cf12562dde2ca69f28a4132bf6df90eee",
+        "chapter-27.xhtml 15456dd0c358b5447acfe1622192be67ed0885d51a9a14a183773523ffadb127",
+        "chapter-28.xhtml 200c925f2d9672cb0517613b577842d1a236f153516c2cdaf79c93695c92beb5",
+        "chapter-29.xhtml 26cc5258deda84af879f9ba66308ee575559fee7d72714b94921ac2de40bb4e8",
+        "chapter-30.xhtml 2836a92fda3f4371e90b81e8a45282a83b955ada737c91337c420f20ef743bf5",
+        "chapter-31.xhtml 8292dabb8f5a5f78b6c73353b0a47b131f564fa9af990df01be41a6ab8a67cd2",
+        "chapter-32.xhtml b661a9a0214f48ff1b0d88ef985b27b1e1b481e981d2f2cc6d26feb5d4443636",
+        "chapter-33.xhtml e51024b857a35eb530ffc10e283c741f9873f5b001dcac2bb645b89f132b55db",
+        "chapter-34.xhtml 1bf58002380a6d1ca2dc1a433d5f5e50d6e651940dd320e9787caf7ac9f39d51",
+        "chapter-35.xhtml 38d792b50ec9f013920f5f0bf32d81eac52e5dd86c276c17bc14d83d2d3c513a",
+        "chapter-36.xhtml b99a59d42466d01591b3718bd033790ee0f551de969a9b1f03e99684c2887410",
+        "chapter-37.xhtml 5c5ee26905fd4ef3830e97ca151f85ed96e337937d03ed5226cd3528bfd9f26e",
+        "chapter-38.xhtml f22afb64d12e58f6da23bb6483c420805424e9b5bb8001661d0400b02c058620",
+        "chapter-39.xhtml ec3642c89d8bb5f34973e1a562cd024ee8f5778290aef967ef83030c9e158d8b",
+        "chapter-40.xhtml 58a97bc4e599fe867844221ca0a2f433fc41ff3b3079eb2a1b239c4921b1979b",
+        "chapter-41.xhtml d0e8d311e84841a6922d737621affae89cddc7ce5d933e7a85ef11af06c60402",
+        "chapter-42.xhtml 2572a439d1032db1120dc28a7a91f62a2617239f3bbf71811a2f504ac38464b2",
+        "chapter-43.xhtml 98944a1af2e7cf800a2a3556aaa7f292bdc1d635a3849dc9a37d8916636f97f0",
+        "chapter-44.xhtml e3e390b550344bcd8c0fbe521d372e93d169f525cd473095d86ab61e879325a6",
+        "chapter-45.xhtml ccb94f3d83d3a12ba0f70144641f9a39ab7f40cd72b60dae44995a801e32a2c5",
+        "chapter-46.xhtml 740a1374b2a02e53207c21afb8a2e715e0633926789094552f3830d5baf9b547",
+        "chapter-47.xhtml 0dd8dd4ec367cd7d82332be75a474c562c4f2cdfc7cd5511d72cefb50e91bde6",
+        "chapter-48.xhtml 0463dc880ec5e7636d3f3df0c17a87790d1b374a0a625bfc51529f591a45579c",
+        "chapter-49.xhtml 15500acd01176293137661924d5fcc301434379428239b3eaf91b932e9b6c9dd",
+        "chapter-50.xhtml 688cb6c74e303283d44a710dfb706ec542d6cb929dbfecb0ab2145cb442dc4c8",
+        "chapter-51.xhtml 04b88902aa6106b1fafdfb32df2b223758b437c5a8ecc8760860b79a976491b1",
+        "chapter-52.xhtml 5e66a38577bfd4e8ec5bd9f208b5d22db155f2c2b02b66ebad06e7c243f05558",
+        "chapter-53.xhtml c53bdfb9509e962f06fd3cbb77c331da63f8378f26c0b5a06adb7bc1a63a81d4",
+        "chapter-54.xhtml feb9e9e38e3d98043cb2ee5880bf70029cf3e870b99520de7b6765bb213a6f22",
+        "chapter-55.xhtml 1e7ec0ccb0def8a95617f9b1693b09f7a4b99e04544b3840f4529f169287c285",
+        "chapter-56.xhtml 7fe2cf2dfc8c48366afb724cf7320c33d72ea553ae3e4a1f2b6fddcb59b08ba9",
+        "chapter-57.xhtml 41deed64a949f36e13d419cff1ad54183b018a30931eb7394acf485f1cf48684",
+        "chapter-58.xhtml c27d219682ea0377116b7f4a6d4d0b394029eb4c45c36362a947de79d20028c2",
+        "chapter-59.xhtml a100da42a39bc643a7ff654bbb66cbec29340b6f71df5200fa8dd924ba973839",
+        "chapter-60.xhtml eb4a3d0b70f944e0c347acf37d4c48706c49dc167fe868c89ec259e556e65e42",
+        "chapter-61.xhtml c89b894bdbd83f212d900baf2dc57b4f7404cb9daa15a78d195ac042a59826b5",
+        "chapter-62.xhtml 733ac75d9813b5debd735b48afd0c3c5aeaeae0946db2cd5fb658abf6d301596",
+        "chapter-63.xhtml adf089be11e9cdf72885f502ff677f53ec58f313ce54a2886719d8910c94bcb3",
+        "chapter-64.xhtml f0e8a25b8400a756a9b0d2c34e36dc0989df48a5636cd212f2d50d6a07965ed2",
+        "chapter-65.xhtml 25229f1e83d319a59c272a36043d6d8a77ad5fa726843c4372c9792747118d68",
+        "chapter-66.xhtml c950c7c2548e2e352e531c08515a1a2dc75de196303a044cd44fbedbd287b21f",
+        "chapter-67.xhtml c0b39862f3cbbdba999f4f10bf9ac9d2409b3a11d337e5908624af39121593c6",
+        "chapter-68.xhtml bee95aed44fd61207920b55a15d859a034d1e7a0a642478ac71530c1d9c37bfe",
+        "chapter-69.xhtml 0e1086603329c6166e4257306e5a7ec25f983449d41ab3e902e9956a6076bbc2",
+        "chapter-70.xhtml e7c6c38499ca854adc6a8a67e08606aacc818f3f24ff787aa4d99bd69260612b",
+        "chapter-71.xhtml db05742805c1fe02d5b9ea19abeff7be07e48c82c4f9c5d1c8e8a5ba78669900",
+        "chapter-72.xhtml 506cf459389f034b48d4102e2760c9bb260ef5de618666a1ee8deae2a6033bf3",
+        "chapter-73.xhtml 1f3aa012efda2aa1d5cd5443cbc1217072b3191b02426a31fc8bba7efb6a2d8d",
+        "chapter-74.xhtml f243666fa1be6a22247a3657bddbb4db3f5e6759b5113c1c59f2c850f22727cd",
+        "chapter-75.xhtml 2a7e2d4a89c7c9ff34fd800928db2419aafde2ec85c5d5009749a92c43ef138a",
+        "chapter-76.xhtml 95e6e02020a69b595c5ae3c2fc269be9807a52af1a3efb7a88a45c3bcdf5780a",
+        "chapter-77.xhtml 051f0ccde85f97bb2f2b2fe7eb17acd35f25cfed19f4eab4d0d9094da514b0b5",
+        "chapter-78.xhtml 34354a1c60bd24331c8b9dead4f46e9f4ee9ef8e2f73b15feba53dc3f1332464",
+        "chapter-79.xhtml 915c0b2c42aabf0fc262d3e3f081612514b05e0dc2ded61b5dfa27a215f8f158",
+        "chapter-80.xhtml e387614535d909f23245e17ba44a2bd8956e1f9184341c774e91ff07c40fd994",
+        "chapter-81.xhtml da694575df4609638c9aba711d0760bdb9357bbd6163590fbf05a6cc32242ce4",
+        "chapter-82.xhtml 1c97741703f5f88ce710dd4145fbfb5a56a27f773d7247492a4b4ce2077bfc8e",
+        "chapter-83.xhtml 0eb4a8aca42526c7e81ae10b7a2455def5d2081fdad29555a4f2c7c75e627db4",
+        "chapter-84.xhtml 4d0d71f44eecf2e4f7c7dd0fc93478e12b84ee9b85f0ef8b0bed56446ad7110e",
+        "chapter-85.xhtml d2bd0ad986365b994c674e4254fb44b283cf2c3882174721026503f233b7a73a",
+        "chapter-86.xhtml 1954d81e41a4aa05ff3034240ccd81f56c5abe27a6b015c7b9fc59aca6b436ea",
+        "epilogue.xhtml 50d89d8f5df123ea05ff0e76582219fdd5011d38d5cb1814180af32be1cc30c9"
+      ],
+      "retrieved": "2026-08-19"
+    },
+    "rights": {
+      "basis": "pre-1930-us",
+      "territory": "US",
+      "evidence": "First published 1872; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record."
+    },
+    "parts": 87,
+    "chars": 1773933
+  },
+  "the-brothers-karamazov": {
+    "workId": "the-brothers-karamazov",
+    "editionId": "standard-ebooks:fyodor-dostoevsky/the-brothers-karamazov_constance-garnett",
+    "sourceRevision": "sha256:26ecd0f8e0d6db4dffb039f0fb96cbf912f8b91b8bd6bc4a8846a1bef8da4b4f",
+    "edition": {
+      "translator": "Constance Garnett",
+      "publisher": "Standard Ebooks",
+      "year": 1880
+    },
+    "source": {
+      "label": "Standard Ebooks — fyodor-dostoevsky_the-brothers-karamazov_constance-garnett",
+      "url": "https://standardebooks.org/ebooks/fyodor-dostoevsky/the-brothers-karamazov_constance-garnett",
+      "repo": "https://raw.githubusercontent.com/standardebooks/fyodor-dostoevsky_the-brothers-karamazov_constance-garnett",
+      "files": [
+        "chapter-1-1-1.xhtml 82092f1d21cafdf8d8229979a5cd829eb4fa8dc711d6cf1e94eb4bd98e3ec514",
+        "chapter-1-1-2.xhtml b7aae9c16725c30fbcc7cb801096cca940e1fe2ec4fd367e4a920076948612ab",
+        "chapter-1-1-3.xhtml 4e05119d29161f456083dcf1e7fbe8a262997157b3b57c45e980752da41ac2a9",
+        "chapter-1-1-4.xhtml b10b20c58c4acf22d5f3772152805b80d5a9b374deca2a28a9f49dba11ca1c7d",
+        "chapter-1-1-5.xhtml e8d5b4a3f8a83d1a09c1845673d0ed0decc470e4a319d504ce0405591a5b4d7e",
+        "chapter-1-2-1.xhtml cb848fc5f8b683652eeef331cbb92a06773cd497503c7d4eb65d2d8d3c761660",
+        "chapter-1-2-2.xhtml 22279887cb735824fda991078d6418643e9256a15191583e04a1fb08ffb68278",
+        "chapter-1-2-3.xhtml 0611a5016ecdd9835816bd1c2718e6a882e273c3fcade0c5a721749a46a4bebd",
+        "chapter-1-2-4.xhtml 967d213ef7f747e044ec144352c2f0ec3100a55811d1e1b7607e77de9d7b3a20",
+        "chapter-1-2-5.xhtml 94eb8956af8c1ced66472c4bc91b4238037a7f5638c28bd7ebb495dee66e1a0f",
+        "chapter-1-2-6.xhtml ffef9153eef8d869d35bfd832042de01e0d7f2a5be90d760c12627e84ca2634f",
+        "chapter-1-2-7.xhtml 2a5866d5aa60176fbb4ccd7d4832efc18199b7dabbf313c7bb3a17522268d77c",
+        "chapter-1-2-8.xhtml dbf8e13518be02a642fa35242f1622252fe579996d3e81a9ee5aac790a123f2f",
+        "chapter-1-3-1.xhtml aefd23c05195149df61757dd1c925173b037f869962c84053efe27ed7a91c697",
+        "chapter-1-3-2.xhtml a72bc6ab552384db4c2192f77c2c1271ab50d570a564e23556625bdeb3016843",
+        "chapter-1-3-3.xhtml 50ff2d0c734b87d065e8bd627003378a2eb7d0e0dc7a8a8598dcb3d3433c7e5a",
+        "chapter-1-3-4.xhtml 58139d5065aaabeead42380655191d814ade4ace93bafb019fe4776723c54355",
+        "chapter-1-3-5.xhtml 2a498bd130603cb8c8107bbbabf2fd6121d819293b3de7e89159398383b67d6e",
+        "chapter-1-3-6.xhtml c0598d0f6bf10ac46c6c95ebeb0c1016fa8d9af1bc9c14985114ae1ac6a3ece3",
+        "chapter-1-3-7.xhtml 487d77c4979770cf481e987c58e1aaf3f882853a768d3773abb4a22a90d421a1",
+        "chapter-1-3-8.xhtml 835ea3321486c06c94dad695063ea8a1905b6be3423d5fe0027c55850db65983",
+        "chapter-1-3-9.xhtml 6990dfea7710fa25e0f2585d6ad639d7dc9f67041493c34d993215db294d8372",
+        "chapter-1-3-10.xhtml 26db33279ec68cda157de7280937de6fb823c3336e6047cdb3641d49dcf4fd3b",
+        "chapter-1-3-11.xhtml 738c00c50c092361ef202e4d4ebf4bacfb6ce027c4fd1c037ce3d7875d6e8dc5",
+        "chapter-2-4-1.xhtml 202baa510e4af22d943b4f26ae986710d18d7712af59fab7dca53ce108ca093a",
+        "chapter-2-4-2.xhtml 037189ae3a161f71bca6a4ad14f1db6c3658842f4f44efa0a2e37aa1bfeadb4a",
+        "chapter-2-4-3.xhtml 0041a9c286c6974fd489960d37dec84300f2c906b0c8322e5296eb19bdde3db5",
+        "chapter-2-4-4.xhtml 1005aee3801635f05027ffa9c218a7bac16310d80372385bc7e475c04a4bcfc4",
+        "chapter-2-4-5.xhtml 0126e5080e3a1a97775f62b41c16b335f009048ab84acad1e9042be6fb3d1dfa",
+        "chapter-2-4-6.xhtml 85f7560ed55567c632f9bda49882c65fd716a46b3dc8c141409455f161c4862d",
+        "chapter-2-4-7.xhtml fa6e601dbcaadd1a6160fb945fec73993d1926c8c49209f8d89d12983322b1bc",
+        "chapter-2-5-1.xhtml eab28c227d7e44c0cab58cdce29de97f00815740634513336e4cfe282eddf5a0",
+        "chapter-2-5-2.xhtml 1b7ac27b8cea6d4138dd0eedbb58dc6c4e2a18963c7d5caf95f3306648d8fc07",
+        "chapter-2-5-3.xhtml 3dd174f8898597589cfedf1abd5e841ab2f54e9ea603a3285257917ecbd6d06b",
+        "chapter-2-5-4.xhtml 0156f06eb20bd08df09f39d88ba877f048a4a1a56b863adb8d249c66558f77e7",
+        "chapter-2-5-5.xhtml 02349f76f8d823fcd3d15eae556d378d9387439a6aa625e5bfdf53dbad65abbd",
+        "chapter-2-5-6.xhtml 81c47bb6858abefef015a5c69796432721bdddb64b29e67c8fe60d70af878db8",
+        "chapter-2-5-7.xhtml 48ebedcb31d7e8ef08312f9c9e21b723b1ac2e10cba1b974ef753cffb5684726",
+        "chapter-2-6-1.xhtml cb12b60accad2ef8cf4f0312bf6ee9ff83c68b940db8a17f577b83ce6f6bf091",
+        "chapter-2-6-2.xhtml ffa53ad284d6fd18026704aea7f04277818713a535da83e5dc344fb360058dec",
+        "chapter-2-6-3.xhtml 4c4804e20f1522b74f06c684e2b406d65cd7790af0e28c905f164f55d4750ccc",
+        "chapter-3-7-1.xhtml 54dcb1602d729fb8b462a734cdede5ffdd7ca95f32fc27865c63ec558c6dca36",
+        "chapter-3-7-2.xhtml 6bbd4bf84b3585e8887f7d8f5909378af7e35445950b0c494d525387437bff34",
+        "chapter-3-7-3.xhtml c6fa814f06b29c915fa5c8513096255095e4d327f6cdc36137057995f65b066e",
+        "chapter-3-7-4.xhtml 041ca3386c9d75c176ad90465b52b14d12f67244f6b31921bd05bbfc811e0743",
+        "chapter-3-8-1.xhtml af92ec8e09b04155fe013b05c1afa10cf0a0f52a626f75936c516449d48aa54d",
+        "chapter-3-8-2.xhtml 33e780ce09391dbfc256a98bc51c24dd7f86fefe5d8089b38bd1a5a0246bb459",
+        "chapter-3-8-3.xhtml 397d65b1d7360a2b652f0f59b910aabcf1dbb19a24cf94626dc87c4634283f54",
+        "chapter-3-8-4.xhtml e6a25551112bfa58c52ace563f9367a3056065e72ace7100c7fda691ccafc8f3",
+        "chapter-3-8-5.xhtml dbd8996bff886442014a0ca82ee62bc7b09cf57b3bdc5cf4f7cacf5be92f8f04",
+        "chapter-3-8-6.xhtml e9feb84edcf744afa265667404d765d57acc2397e53d4ec131cfae688cadfd54",
+        "chapter-3-8-7.xhtml 278dde49587b6e2d3de8c3cf735c8411450bf10ca37246fd8638eca31ca85842",
+        "chapter-3-8-8.xhtml 53bb7d718224d6c9ba76b37a7eed7ff6a225722a59d793292c53767cdd5359fb",
+        "chapter-3-9-1.xhtml 0be41f144ffae0f35ae6d6ab62e74824512bb83c1194fd414635de24c59f09ac",
+        "chapter-3-9-2.xhtml 75c9ca60b8e311ff5e3084a52735354270e461b4ac4b58eca6c45262cdf173dd",
+        "chapter-3-9-3.xhtml 90c7acc2589d6c8f7e7607535d96206222a193699ef72647272ac22e98990ea2",
+        "chapter-3-9-4.xhtml 263aea54d5eccc1daea410c03e631066e7a4f972483f7791c7189e3b2a06a4e5",
+        "chapter-3-9-5.xhtml c901ab222677bc686dacf3a02fc0bcf94d28917ce80a4c83b7c25c7c507b67f0",
+        "chapter-3-9-6.xhtml 688c2fd29da803f02c23cec40fb2a90de85ca3a7e2f46a17d975802645e32bdb",
+        "chapter-3-9-7.xhtml bf3c02fd6c87f44f582f7f2cb05dd23ca7cd50da0f8ca4b4e11f0dc9818f2634",
+        "chapter-3-9-8.xhtml bd016660d99b10deb2c3cd8689a77125c774edbc00d0653244fca25dcb62586d",
+        "chapter-3-9-9.xhtml 48eb1b1b48cbb78ead22888af34ace550e3a4e87dcf6bee46ef68bffc084c672",
+        "chapter-4-10-1.xhtml 086f565c03328ee3ccdc3b123ce85f0b33071b357794c43382d8e9fce9154ecd",
+        "chapter-4-10-2.xhtml 87ecee61d973358c4f68243ed844def6308ba65e669a23f0f6488f052e33a86a",
+        "chapter-4-10-3.xhtml 6752b8ed8a976d3459ba0591c1a16b0038cd7716d1b344ef8af0773dfc23ab3b",
+        "chapter-4-10-4.xhtml d39d21875495f24a5ccd756252226062475389d0ea9a813ad3afdf56499eab0e",
+        "chapter-4-10-5.xhtml 314900d602f5abc905610bd1606369fe0210c691cb2bfcfe1a3e5e8b9907b340",
+        "chapter-4-10-6.xhtml 95541e3d19590dd83f309cdbe3b99172e3471ca41172d30a3d0a34b956061b03",
+        "chapter-4-10-7.xhtml 3ebbd5244859dffdb8481948c582418558fa9c2e223feda0fc8992928a73564e",
+        "chapter-4-11-1.xhtml 46eebb534f0a981b4b347fd0e75948d14e3536cc7b07eedea232cc3613b50434",
+        "chapter-4-11-2.xhtml 7167ae577c0d148f81c10679922e333fe8709bd18ee2cb54ff8b9afe2021305d",
+        "chapter-4-11-3.xhtml 9c0461f71f98014098c9f7e47f5eaa703869b278b7c7b9ee57d4bf2dba1f79a2",
+        "chapter-4-11-4.xhtml 2762d5fc7159eb14c6cf2a62b57b55c8776b27b42da0d4b59d75e38c7b18beef",
+        "chapter-4-11-5.xhtml ab85cc477f55b06cdb1c061e34873a14783cbc6c29253ffcaf7079011ce8118c",
+        "chapter-4-11-6.xhtml 7541788acb747426eff58e3175567d807f32d12218f7d1ebf6cf5eb4c4cab02c",
+        "chapter-4-11-7.xhtml 0f554d97c860f20f65f16e992c66e0cc42d4869ef3551d57b12d9c119a038364",
+        "chapter-4-11-8.xhtml 034d8bb6d9c6b553b0f0fce23b7ab61356c66ffeb293b9e3eeffd5464dccfce2",
+        "chapter-4-11-9.xhtml 3e3dda7d975fd796ffa00fb7870578178e2bcdb65b5f6da771db71b44010e990",
+        "chapter-4-11-10.xhtml a1ef707c0c1da76be9776c208a497a55c12199933114970031020214da80dcb3",
+        "chapter-4-12-1.xhtml b7afb902c53fc4da91903de6a931833ce8346cc8fa9954d7c1650629056dbe9f",
+        "chapter-4-12-2.xhtml 8da2be19d48fb15681c2fd83a0d4dbd009d32a58b35df735c8066ff9283e28d8",
+        "chapter-4-12-3.xhtml 662b3832fd34eadaf09065198d027eb2565b16225f72e7a1b2360f96361e7aed",
+        "chapter-4-12-4.xhtml f801c660b258a74c8171e4bc89533f83963351780cd7e7a1b7b24998c537dcc1",
+        "chapter-4-12-5.xhtml d6df33c0f2b8a5b0cf2053fb1a7f448f09751441391a21d7ec8eb540577bab65",
+        "chapter-4-12-6.xhtml e08fa513ed104120cba43405066ccb321ee9ccdac6521dcbc14e27b343b51f26",
+        "chapter-4-12-7.xhtml 5b21ff227467fab471550ef2afae673c7697dfe4fb6c056a97dc1a474b9a397b",
+        "chapter-4-12-8.xhtml 3aa8c99d85cb169b55a22483a028f427f29c18eaa8e40e67ea5787ede4e4d257",
+        "chapter-4-12-9.xhtml 24263551999fd3e2a41028815330c1bd2179bfb88501c68be5a5737eeceba6b2",
+        "chapter-4-12-10.xhtml 2d8576c32dbb4d010477d29b8bb9beb70072f4ea00cf3524985959fdf94539c4",
+        "chapter-4-12-11.xhtml d279b66979cd658037ea7ad9b8620e310d2412889b27773c0d1177b4f34df762",
+        "chapter-4-12-12.xhtml c5be202c4d5c04d00502fd7ef1690ddae29e677c58dbf9d18eaa817bb22462b5",
+        "chapter-4-12-13.xhtml 5152a0f55c2ff98cc95a1256eedebaaa34989f6022ec4ab7105f3a26d0335fbf",
+        "chapter-4-12-14.xhtml 73146b8cbc7aebafec858b0e2cfeea9a300ea6f3e09edd3b066d82cd1395e1db",
+        "chapter-5-1.xhtml ca1a451783c3eb71a898b5fe08f8194fea4fd9ab98ff8f22f921d57964ed0a92",
+        "chapter-5-2.xhtml 6efc2e54564269f098921a7d9a80a71050309820a64a439d608e50ee23b0ea9d",
+        "chapter-5-3.xhtml 914e721312129d18c061c43f86376858f0f48e34794d989dde442d7a389a6540"
+      ],
+      "retrieved": "2026-08-19"
+    },
+    "rights": {
+      "basis": "pre-1930-us",
+      "territory": "US",
+      "evidence": "First published 1880; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record."
+    },
+    "parts": 96,
+    "chars": 1925772
+  },
+  "literary-meditations": {
+    "workId": "literary-meditations",
+    "editionId": "standard-ebooks:marcus-aurelius/meditations_george-long",
+    "sourceRevision": "sha256:1d5c3e8ca1cd6b9b98731ebc034a6408eea84b2642525844cd4e04f9445a2418",
+    "edition": {
+      "translator": "George Long",
+      "publisher": "Standard Ebooks",
+      "year": 1862
+    },
+    "source": {
+      "label": "Standard Ebooks — marcus-aurelius_meditations_george-long",
+      "url": "https://standardebooks.org/ebooks/marcus-aurelius/meditations_george-long",
+      "repo": "https://raw.githubusercontent.com/standardebooks/marcus-aurelius_meditations_george-long",
+      "files": [
+        "book-1.xhtml e0cbbcdbedfb9bc1c495bdbfc28a71cde28a3a367e3690445613b23e5a61f236",
+        "book-2.xhtml e3a9afab24ce370ce28a9bfc6ef2cb108cd9995866d51ea17c980af63f739714",
+        "book-3.xhtml 4657ce577927522c92a6a2d5cd30c4d4576e53f4c2d2086aec222a18330849ab",
+        "book-4.xhtml a9f1bee25bea606aa0f86334de946013c7bace8bf923cf46663811eb6d5f13bc",
+        "book-5.xhtml ad5ba17c239997dd4e805a507ecc82c90e2d9c655c31044a690c80d56c5045e0",
+        "book-6.xhtml 73c93faa0a14d4e48825cc90f818683ea8803a652fc78360d8408529d927e303",
+        "book-7.xhtml 3df16bdb27dc08657ac937757b52545d02b6e0f88b4561e75d19c98168ccf461",
+        "book-8.xhtml 0e1cb27d1f4ea65a24cb70487bf839fd2c137b49d04edb31d6d47415e93d661e",
+        "book-9.xhtml 1a8a9f25cb53899678f3e45e80e198642ce26ada7bad616433019f304d0ed92d",
+        "book-10.xhtml fea905282e22045ebd89ac11f629a0dcbad7e56fe85b468f5c04b2962533ad89",
+        "book-11.xhtml a56191508494509646988687706e1736b118217ca620381e2708eeb509a49092",
+        "book-12.xhtml ee438faa3d5dc3b06bfad44784a40140afaa91f265dfc5ae174211ca233ec6de"
+      ],
+      "retrieved": "2026-08-19"
+    },
+    "rights": {
+      "basis": "pre-1930-us",
+      "territory": "US",
+      "evidence": "First published 1862; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record."
+    },
+    "parts": 12,
+    "chars": 245937
+  },
+  "sacred-tao-te-ching": {
+    "workId": "sacred-tao-te-ching",
+    "editionId": "standard-ebooks:laozi/tao-te-ching_james-legge",
+    "sourceRevision": "sha256:93a404f327f00124bb7363149d5a628554b4aee72d5140d7108249398dcba7f9",
+    "edition": {
+      "translator": "James Legge",
+      "publisher": "Standard Ebooks",
+      "year": 1891
+    },
+    "source": {
+      "label": "Standard Ebooks — laozi_tao-te-ching_james-legge",
+      "url": "https://standardebooks.org/ebooks/laozi/tao-te-ching_james-legge",
+      "repo": "https://raw.githubusercontent.com/standardebooks/laozi_tao-te-ching_james-legge",
+      "files": [
+        "tao-te-ching.xhtml bebc6e57ede72caf9cc43dc34cc9d2c7ef728a439f454a84aae020fee89e356d"
+      ],
+      "retrieved": "2026-08-19"
+    },
+    "rights": {
+      "basis": "pre-1930-us",
+      "territory": "US",
+      "evidence": "First published 1891; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record."
+    },
+    "parts": 81,
+    "chars": 56846
+  },
+  "the-iliad": {
+    "workId": "the-iliad",
+    "editionId": "standard-ebooks:homer/the-iliad_william-cullen-bryant",
+    "sourceRevision": "sha256:0695d06ded3af9669b8f314f1ae76e8186b1d67e81b6a726992a8c5ed88cf143",
+    "edition": {
+      "translator": "William Cullen Bryant",
+      "publisher": "Standard Ebooks",
+      "year": 1870
+    },
+    "source": {
+      "label": "Standard Ebooks — homer_the-iliad_william-cullen-bryant",
+      "url": "https://standardebooks.org/ebooks/homer/the-iliad_william-cullen-bryant",
+      "repo": "https://raw.githubusercontent.com/standardebooks/homer_the-iliad_william-cullen-bryant",
+      "files": [
+        "book-1.xhtml 85df84804b8404a4dd5cdd9d2494c87118200fecdd5ee6f8958e5a6f2c27e85f",
+        "book-2.xhtml 4ad86e86500857d5cb3c4a7a2768ce2b53b61ec4353301820daf2de7334a7111",
+        "book-3.xhtml aed48a9d885a9ec1e01fd9429da4e19516287c63dae78aefafc039c404a0e827",
+        "book-4.xhtml aeb354a0ebdcf4c3899f522f829c766eed8d1983eb12399053719e3103654503",
+        "book-5.xhtml 4bdf8790412b54805523c56cf45ae3d262d0985b6e19352a4d3c05a7ae48d6c4",
+        "book-6.xhtml 62eb4813ecc4596580740c2e84cfe14ea5d7e1b275eca81320bb63709cdca72c",
+        "book-7.xhtml 0734202095a460f6adaaa40c02a3576a0f20499645b752c65093d6ea2a544fb6",
+        "book-8.xhtml dc526a3894a5688d2f288bd0d90300de90c746cc1bc7ebbeddc22d265e4207fd",
+        "book-9.xhtml 2e146042614081b68e8c189aabb1400897bbb38afba409159e11654aecd854a8",
+        "book-10.xhtml fa573bf95c4bb803144111b6afa62c52a51523af6b45cc2fae0979c0ebe4a4f6",
+        "book-11.xhtml 31904a9b113359da09b0421c9a01c2deb542b69da879b2315c152028bea6708f",
+        "book-12.xhtml 16c3691fc7368c9aab59e9354ad9a255730255f58feb4599ed060f02ede0aaab",
+        "book-13.xhtml 036a47229f64b44254b116001b47a8ab6940a055445d9da8be6338c597c00988",
+        "book-14.xhtml 62b348b4221078bba40cc6be0009d2450c1fecb641318b2a6b57b0324b7bd7b5",
+        "book-15.xhtml 63e0bf89c063db29f02dc2260b043b3e736c4181f081c150df302b80619117d9",
+        "book-16.xhtml 983cd0d7e2f3d58fd878c24493ec284f0a46a367d1c94cff431fb242fd8b24f5",
+        "book-17.xhtml a0a7b6990938e6674b0cb863f6e0927f36f9b451e848da01415ef9f5634c3b85",
+        "book-18.xhtml 81893212bbe78379e2d892c07ec389b9477b56f8ee20a47a6f32e1e5d9231780",
+        "book-19.xhtml e56a7f38e01d58caf6a9cb6b372ac7881dce0cb3c390c3c8253e27a954120607",
+        "book-20.xhtml 8bcd81a6ac76ac528cd50b4274c68dbf8d04485da8a9b8065ede30559321d7a9",
+        "book-21.xhtml 136fab50004679a7929a27ca0527f92cd78c50e28570fb47b254d9f57e1bf7d6",
+        "book-22.xhtml c5b88b194c09eac5dbf9e0bd7c3a4882fbeda3e6df63df233a3715d2eea98b2b",
+        "book-23.xhtml a6e77b1a426588889eb14100c47c9dd4d5c6f0ddf1b42acf2cd11dd549526582",
+        "book-24.xhtml 9f0ce64e034a1790a26fdbb5e56ef5a2d770e39a9c70dabe623e931b3a408a4d"
+      ],
+      "retrieved": "2026-08-19"
+    },
+    "rights": {
+      "basis": "pre-1930-us",
+      "territory": "US",
+      "evidence": "First published 1870; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record."
+    },
+    "parts": 24,
+    "chars": 844948
+  },
+  "the-divine-comedy": {
+    "workId": "the-divine-comedy",
+    "editionId": "standard-ebooks:dante-alighieri/the-divine-comedy_henry-wadsworth-longfellow",
+    "sourceRevision": "sha256:e46df1aad0df16c7632e589626b3d133cc30a32233ccb548f90eb9df1383625c",
+    "edition": {
+      "translator": "Henry Wadsworth Longfellow",
+      "publisher": "Standard Ebooks",
+      "year": 1867
+    },
+    "source": {
+      "label": "Standard Ebooks — dante-alighieri_the-divine-comedy_henry-wadsworth-longfellow",
+      "url": "https://standardebooks.org/ebooks/dante-alighieri/the-divine-comedy_henry-wadsworth-longfellow",
+      "repo": "https://raw.githubusercontent.com/standardebooks/dante-alighieri_the-divine-comedy_henry-wadsworth-longfellow",
+      "files": [
+        "inferno.xhtml f12367dd3488b28ecc1f7058cdd8a90c8da1132906af2f9742f35b0342f0c633",
+        "purgatorio.xhtml d232c93321700a81d208d3219b6ddd82deb96df1701376174deb0fac0e304a71",
+        "paradiso.xhtml 8d0eebf85038a303785d4a40e6741343cce982ad9322954c1778ad7813c6ed6d"
+      ],
+      "retrieved": "2026-08-19"
+    },
+    "rights": {
+      "basis": "pre-1930-us",
+      "territory": "US",
+      "evidence": "First published 1867; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record."
+    },
+    "parts": 103,
+    "chars": 613006
+  },
+  "metamorphoses": {
+    "workId": "metamorphoses",
+    "editionId": "standard-ebooks:ovid/metamorphoses_various-translators",
+    "sourceRevision": "sha256:6878e143e0db80039364eb328b65a33faf2c1a43a67696d74920c5a17a5bd17a",
+    "edition": {
+      "translator": "various translators",
+      "publisher": "Standard Ebooks",
+      "year": 1717
+    },
+    "source": {
+      "label": "Standard Ebooks — ovid_metamorphoses_various-translators",
+      "url": "https://standardebooks.org/ebooks/ovid/metamorphoses_various-translators",
+      "repo": "https://raw.githubusercontent.com/standardebooks/ovid_metamorphoses_various-translators",
+      "files": [
+        "book-1.xhtml a996980fdf49a49a02d00a8874ade2aff329a053a9b42de73756c16a7dd5653c",
+        "book-2.xhtml 900296a3dc35652c20d699447d319604181bb316744d5db4bfffc19b37a0fa80",
+        "book-3.xhtml b1ff0bc390b97e578c6f14cccdb6e71c44b01f607bb3c327cd7b7c78b83a126b",
+        "book-4.xhtml 54a1c612e931f7891773358bb36777657fb8fa75a0d84cef8b5b9e51c344abcc",
+        "book-5.xhtml 99f1a4ef112c4f0ed581dc696ed575c3bdc214a270461e8424a273ce5c38f350",
+        "book-6.xhtml 070d49138917309778eb74a582122d84b6be35227a6f264da72b1a81aed48223",
+        "book-7.xhtml 28e3c0382c28fa38c292da58e13372ddd081be21f76db99779d5499638b15675",
+        "book-8.xhtml d970a58f6fa7b8b52f75ada22ae721fe6c56dfb2bdc3533f6eac4880085cb062",
+        "book-9.xhtml 353fc8574e0369ca43ed2a628f90f12983fbe5398d0db75da4e6cbc5a3a6d20d",
+        "book-10.xhtml b67d3deb34502104893c22c3bc6f85c9df37d16a0cfaa940d19b47ea0b7ee3cc",
+        "book-11.xhtml ad75eb0dfd69fff9b72e8d1c185aefd1b21e2933723153ce36bb3339e5f683f4",
+        "book-12.xhtml f61aa828c46ec1166a167cf6f896c57863c310eb973ad67077776571404ef30d",
+        "book-13.xhtml f844bfa222afa3690e33c51dc657843563da1ec755cf6f6843447bb5a8371c57",
+        "book-14.xhtml c808d64681f528727c6d1675fc3fb9f16585ac75105e7c54397dbb6e7404c19a",
+        "book-15.xhtml ae9a1345b3f427e605851f39fd3cdb954d3453cab68a4f78a22a33a08c9c2785"
+      ],
+      "retrieved": "2026-08-19"
+    },
+    "rights": {
+      "basis": "pre-1930-us",
+      "territory": "US",
+      "evidence": "First published 1717; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record."
+    },
+    "parts": 147,
+    "chars": 739083
+  },
+  "spoon-river-anthology": {
+    "workId": "spoon-river-anthology",
+    "editionId": "standard-ebooks:edgar-lee-masters/spoon-river-anthology",
+    "sourceRevision": "sha256:c017904d7f16ac841dce0b600de8e8c0eb121954e3935d34c8ac44ce23b68834",
+    "edition": {
+      "publisher": "Standard Ebooks",
+      "year": 1916,
+      "statement": "the expanded 1916 edition"
+    },
+    "source": {
+      "label": "Standard Ebooks — edgar-lee-masters_spoon-river-anthology",
+      "url": "https://standardebooks.org/ebooks/edgar-lee-masters/spoon-river-anthology",
+      "repo": "https://raw.githubusercontent.com/standardebooks/edgar-lee-masters_spoon-river-anthology",
+      "files": [
+        "the-hill.xhtml ab94465727973062d35f904c79e80ad65bbebb567d6d1edb52ce207b992c3b55",
+        "spoon-river-anthology.xhtml 357df859aec36a3b30ac6aa2c47d077484fb1039ade955fb72ba22afe2558724",
+        "the-spooniad.xhtml 3581983916f3bae52de8efd36921d7eba8cc0f44229e787658f0af1a8a0110d5",
+        "epilogue.xhtml 7bde7024666a3ff0a9e988d9b72863e5abd1dbd7960e0887b29e430e8e25bb9f"
+      ],
+      "retrieved": "2026-08-19"
+    },
+    "rights": {
+      "basis": "pre-1930-us",
+      "territory": "US",
+      "evidence": "First published 1916; in the public domain in the United States. Standard Ebooks production work is released CC0. Public-domain status elsewhere is not established by this record."
+    },
+    "parts": 246,
+    "chars": 201119
+  },
+  "oedipus-rex": {
+    "workId": "oedipus-rex",
+    "editionId": "standard-ebooks:sophocles/oedipus-rex_francis-storr",
+    "sourceRevision": "sha256:eb2e082803731ad073425e03cc59d2c1ec8dbf1b257510838582136c0341e53e",
+    "edition": {
+      "translator": "Francis Storr",
+      "publisher": "Standard Ebooks",
+      "year": 1912
+    },
+    "source": {
+      "label": "Standard Ebooks — sophocles_oedipus-rex_francis-storr",
+      "url": "https://standardebooks.org/ebooks/sophocles/oedipus-rex_francis-storr",
+      "repo": "https://raw.githubusercontent.com/standardebooks/sophocles_oedipus-rex_francis-storr",
+      "files": [
+        "oedipus-rex.xhtml c0837c6a9efbfb25ecd7d77f143e1dcb51f18fd33c48f7d069ada9055fdd8a1d"
+      ],
+      "retrieved": "2026-08-19"
+    },
+    "rights": {
+      "basis": "pre-1930-us",
+      "territory": "US",
+      "evidence": "Francis Storr translation, Loeb Classical Library, 1912 — in the public domain in the United States. Standard Ebooks production work is released CC0. Public-domain status elsewhere is not established here."
+    },
+    "parts": 1,
+    "chars": 68429
+  },
+  "literary-walden": {
+    "workId": "literary-walden",
+    "editionId": "standard-ebooks:henry-david-thoreau/walden",
+    "sourceRevision": "sha256:3d8f22b6e22bbc61799a08d5d37e8a168e1ccef43f7df60b61edca53bfc90117",
+    "edition": {
+      "publisher": "Standard Ebooks",
+      "year": 1854,
+      "statement": "Ticknor and Fields, 1854"
+    },
+    "source": {
+      "label": "Standard Ebooks — henry-david-thoreau_walden",
+      "url": "https://standardebooks.org/ebooks/henry-david-thoreau/walden",
+      "repo": "https://raw.githubusercontent.com/standardebooks/henry-david-thoreau_walden",
+      "files": [
+        "economy.xhtml d8bf2989cda63443562a4951d3980cd96f2d983c9064dcccc7c5857619700f1e",
+        "where-i-lived-and-what-i-lived-for.xhtml 535f196347d6ded4c93b1597e26600587240fa43daeb8f883bdb4cd47dccff9e",
+        "reading.xhtml db97f59d5ae73e2ecdeafbc594adfb62a4e64f664962e17aa18f08147a272974",
+        "sounds.xhtml 37195b3a0fd077d52d87e5075b1ab398147bcd28ebd5ff0ff0fa08ce818728d8",
+        "solitude.xhtml 805fe7399d8c3fcdec47a2c7655e45fdfa299203cbcb7c00d24f6391b39c249f",
+        "visitors.xhtml 881769812fe78c558a1c71d932df407f69bb58702bbed4cd012a547cb95d6fda",
+        "the-bean-field.xhtml 8823b3d4c295d0798e935a71f321337c029a730a5e2a7a1dfc4b36d8e766ee42",
+        "the-village.xhtml 3a3a0fc0d38544b79a806645b805ef3f1f4c0a0cf351c7494b335db79d0100c2",
+        "the-ponds.xhtml 62eaf9ae98c2d2ea633004df55577a3ca3eb22216029649c4f52d453f04b45c4",
+        "baker-farm.xhtml 55ca1e8669f9ff861eda6143d65d250e1cce4caeb6fa12fd86ccccd7e41a356a",
+        "higher-laws.xhtml 892f1d59d5196ae919e75fe2ed34e05852f2b31317429033aa500cf7feda37a9",
+        "brute-neighbors.xhtml 3de4e25f6abf8ec20ad5c3a401211fc2a8614b9c17d6a408d28b803a4c3e3a2a",
+        "house-warming.xhtml 972195ccc53d548b6a72ebabcfda552606e1ca4317dd737873a02edd920ae8dc",
+        "former-inhabitants-and-winter-visitors.xhtml c0d5c645faf3368dceb6a503c159a9ceaf974a943b90c525c29502c47c9be505",
+        "winter-animals.xhtml 03ffc5a70c4239800e3b0e631651d87d52c9bbb8802ebebf73b3bf83acb72cc0",
+        "the-pond-in-winter.xhtml b00f305a5e6779b772ada9a6290a28fee814c0a0be678343f8e6222aa7c51996",
+        "spring.xhtml 2d1d6042bb2ebe0746c38583b1b7503dea11dfc7bd61a2fcf25a0716f5616ffb",
+        "conclusion.xhtml bf15e053f9f8b17859d0a02039d38d28b46bed10801d1b9a42e7b88a280bc821"
+      ],
+      "retrieved": "2026-08-19"
+    },
+    "rights": {
+      "basis": "pre-1930-us",
+      "territory": "US",
+      "evidence": "First published 1854; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans at the Internet Archive. Public-domain status elsewhere is not established by this record."
+    },
+    "parts": 18,
+    "chars": 578718
+  },
+  "ulysses": {
+    "workId": "ulysses",
+    "editionId": "standard-ebooks:james-joyce/ulysses",
+    "sourceRevision": "sha256:14f18abbee5b184493bc4b4356054f1767c3904d59c1653d896f294bf0691d85",
+    "edition": {
+      "publisher": "Standard Ebooks",
+      "year": 1922
+    },
+    "source": {
+      "label": "Standard Ebooks — james-joyce_ulysses",
+      "url": "https://standardebooks.org/ebooks/james-joyce/ulysses",
+      "repo": "https://raw.githubusercontent.com/standardebooks/james-joyce_ulysses",
+      "files": [
+        "chapter-1.xhtml bf87c57511d4e757384353d89b6cd0126d75dc83319a49e0aa3c9f3178662c54",
+        "chapter-2.xhtml 171dca17ae8565dff8783840f2520637701a5cdd44dd02fba543a416e73af1d9",
+        "chapter-3.xhtml 5071035bb351d9c08fb62c66506101d01e0e427ba89b824dc1df49bce56c7e0f",
+        "chapter-4.xhtml 2c831782a07fe84ae1f87aa0d8450810d1db91ba31e4fb66ce10047fd0a2d0e6",
+        "chapter-5.xhtml c16be56aec95299eb016fdda9aafde38cc4cc243710e00b1826ce9f0be47e51a",
+        "chapter-6.xhtml a00555ab98daca86fc3dd267354912ce05bc314805cb527ff821bc5a86316ca5",
+        "chapter-7.xhtml 8a3eec24fa2aa681cb68306766eefb032f0e3727f6902d04f9155dc883e3dbd1",
+        "chapter-8.xhtml 6e4b284a1b236e7b26536445ebf3d7de4ddb77d9b3496b970aba33cc724c7afa",
+        "chapter-9.xhtml 7572995fa52c4c4828e35d572287b5724c262a48d0c2ed946cd8974baaa2d0a1",
+        "chapter-10.xhtml aaac854c8577afa770d6fd578235a40c4e170f2b346ad5ea27de10044280ed7d",
+        "chapter-11.xhtml acdd5fcb6d9a8cd3f916f5088fa1e219da15aa6ae3ca92099ff4e2a1ea520717",
+        "chapter-12.xhtml 20628491bf814a79c1529affbf62553636d20d4101a1d26f2e500d252d509b50",
+        "chapter-13.xhtml 1d646015b9d2f00c194b712b9eade112437f46b62dfe1bd829dc376f1d2a8657",
+        "chapter-14.xhtml 8fee9a0097b8743f8c36d04ddc31e2145f964dad9d03c0adff792cd010d0a3da",
+        "chapter-15.xhtml d1540d6a54a1e743c61a5b62071bd01da3a5be7ce27f9b69f3932ce48280becd",
+        "chapter-16.xhtml 40c56b42d9ed2c0b4870b62b89d44b448aac9174d27317c5c5f11ec59a5d51b3",
+        "chapter-17.xhtml d72410cb618b71dc126688d34739977e900b4d8459d31a38b7175285a937952f",
+        "chapter-18.xhtml 8044255b888e4dc1b8021bdb84bd755aac53ff6cf1b3bb0adbd09fab459865bf"
+      ],
+      "retrieved": "2026-08-19"
+    },
+    "rights": {
+      "basis": "pre-1930-us",
+      "territory": "US",
+      "evidence": "First published 1922; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record."
+    },
+    "parts": 18,
+    "chars": 1503705
+  },
+  "paradise-lost": {
+    "workId": "paradise-lost",
+    "editionId": "standard-ebooks:john-milton/paradise-lost",
+    "sourceRevision": "sha256:e1f747c0f0e2d1b13433f6b2f51c9be28e53fe496c0ebb11904b8ef0c26c467e",
+    "edition": {
+      "publisher": "Standard Ebooks",
+      "year": 1667
+    },
+    "source": {
+      "label": "Standard Ebooks — john-milton_paradise-lost",
+      "url": "https://standardebooks.org/ebooks/john-milton/paradise-lost",
+      "repo": "https://raw.githubusercontent.com/standardebooks/john-milton_paradise-lost",
+      "files": [
+        "book-1.xhtml ad4895a8d54fe2892d1d4368533890d103291d4ebe82272cd23e4e71663fc380",
+        "book-2.xhtml bbc42ada82b7c8ee29fc9330282f207098b85e605920bc55d55b16484b20e242",
+        "book-3.xhtml ff5a60bfd0cf0b593c980e9f4e61193c47df79f4920a0d27b01b212df41cd28b",
+        "book-4.xhtml 8b84647f010ec037059c0f9bf9bec19b7ca826dbdf3eee11696dfd4973077cec",
+        "book-5.xhtml c6784ed187d09116b3bedf0204061d18e4652ed98d14d3513884789b37aa5640",
+        "book-6.xhtml 296e474696b524308aaa5b6e8ed03fc3397a17c032698e898a63abdbab653f06",
+        "book-7.xhtml 8352c9f9edf3d6f953c5c28e38822c70212e02caa3d2652db4563060b46554a3",
+        "book-8.xhtml 3651ecb70f054149d4ed2f5e7185a3c2d32765f901d5ff3945c2c3dfc9acf5d0",
+        "book-9.xhtml f24b387bb5692df58875ca21ab231ef3174dee7003406be1104523e5ea2fcc81",
+        "book-10.xhtml c7e3e3e89e80888417c333b857ca00cb6725d2f2fe8ba486b432b6a1b4ee1fe9",
+        "book-11.xhtml 4d21e68b97fd3222b38b38897b64d2dc63cab8b8ab3285404aebaf290e7b0832",
+        "book-12.xhtml b0f732fc743b84833a29a731643463e032cc8dab6d6fd801816e11d04fc84d8b"
+      ],
+      "retrieved": "2026-08-19"
+    },
+    "rights": {
+      "basis": "pre-1930-us",
+      "territory": "US",
+      "evidence": "First published 1667; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record."
+    },
+    "parts": 12,
+    "chars": 470767
+  },
+  "literary-essays-emerson": {
+    "workId": "literary-essays-emerson",
+    "editionId": "standard-ebooks:ralph-waldo-emerson/essays",
+    "sourceRevision": "sha256:54315365d0f668f414e4a115566332406e4c43b3fe9c8088931fcb629886cca3",
+    "edition": {
+      "publisher": "Standard Ebooks",
+      "year": 1841
+    },
+    "source": {
+      "label": "Standard Ebooks — ralph-waldo-emerson_essays",
+      "url": "https://standardebooks.org/ebooks/ralph-waldo-emerson/essays",
+      "repo": "https://raw.githubusercontent.com/standardebooks/ralph-waldo-emerson_essays",
+      "files": [
+        "history.xhtml 9e623cdc457065c5f9717cb8b2dcecee53e64b5f59ef1c076a703456632d9fae",
+        "self-reliance.xhtml 34316ff6161c426a50562bb8503dcf832dc4cd1ad4b3c7eb0b2618b63bfff938",
+        "compensation.xhtml ec7429d0530d48e37ecb2365be8e1ef326ece8e2d225cfdc60678e20b5e1ebbf",
+        "spiritual-laws.xhtml 1a07eb35f71f30b4da907076c7b35a8fca12b3b04930c13e96c6b8b4a373cd2e",
+        "love.xhtml 162ad7a23b62ae928c80241b55a6dff77cc97125e51c1bda19129afeb5ab5554",
+        "friendship.xhtml 5ed3c7801da8f436e46ee8729414ea396d91d8d146af47ead0cfb514d1855e50",
+        "prudence.xhtml 9dc195c84a7e4fa3fee62610d5f3b34b8a4499d36ce4b87ba381e395278973ad",
+        "heroism.xhtml 70611658276eff187ab83d43055933ed161046f57f1fe163bc451eda13a5d797",
+        "the-over-soul.xhtml bbbef77495b375cf1de5064d4ed7e99eef5aefb34ec579c7077988979639bdfd",
+        "circles.xhtml b0fb830c53943b215019835eb810ff539fa39d027a254d463ae38b4ef80c33cc",
+        "intellect.xhtml 5e4af263e9c8ef63331930c70a89c062e50ce50b1d0354e8c676d33bf552625f",
+        "art.xhtml f4681e0938a50a6b2bb33a4ed18ecbc86ad843e5cef4ef48e6a8fcf231d61131",
+        "the-poet.xhtml ed2f01055eb7f9e130e121a27e78c2fda5aa3c7e1c2d18a4b2dde0513ecbe16c",
+        "experience.xhtml 3ac1f5a6feb42d45a8087b0e09c8a760dd9b440547e925f9498df642d58119f4",
+        "character.xhtml 3bd5d2ef00ccd957a1b20e49c16cee6db55a69413907e24f132831d77f40b046",
+        "manners.xhtml 4e8da5901a7de1e440a904b431239e90586465e6cee437fa572b3954382aba5a",
+        "gifts.xhtml bc75d4cbdaa7bdc25fe1f4f0ed23bb930832627ed880f3e17ad504d2a66f2c53",
+        "nature.xhtml b5a613b660a2e33694593496ebc026dcc438ca9b888d5f7a72e88ac700aa881a",
+        "politics.xhtml 63403a15d4e7e00f3ab8f4d111dcaa40ebdd593d2f4a5de4f795d3efcf6be32a",
+        "nominalist-and-realist.xhtml b7827a07f88669391e781f62d33815f5070a574a6a6490dc5fb81c764dd84a7c",
+        "new-england-reformers.xhtml 8496015d4814094190b2b6b469734138fb5106eb036a8c8647cb808587150bc5"
+      ],
+      "retrieved": "2026-08-19"
+    },
+    "rights": {
+      "basis": "pre-1930-us",
+      "territory": "US",
+      "evidence": "First published 1841; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record."
+    },
+    "parts": 21,
+    "chars": 736429
+  },
+  "confucius-analects": {
+    "workId": "confucius-analects",
+    "editionId": "standard-ebooks:confucius/analects_james-legge",
+    "sourceRevision": "sha256:07a1a0df72a27ea7ab2dd96072d6ac9498b01bc4b1008b02464c14395dc3dc13",
+    "edition": {
+      "translator": "James Legge",
+      "publisher": "Standard Ebooks",
+      "year": 1861
+    },
+    "source": {
+      "label": "Standard Ebooks — confucius_analects_james-legge",
+      "url": "https://standardebooks.org/ebooks/confucius/analects_james-legge",
+      "repo": "https://raw.githubusercontent.com/standardebooks/confucius_analects_james-legge",
+      "files": [
+        "chapter-1.xhtml 7119009e3c7501e5dec78c1b24b18f9b202c46bd6a33f408f03e024c05f87609",
+        "chapter-2.xhtml d6728c35767debf8f58afdb5764e5e5edddfda51ec5b37fa3097d36ec32a1e36",
+        "chapter-3.xhtml f3474fb519414cea742235a4220f8857d577bfd2af27d689d1b302d26bf5f2ff",
+        "chapter-4.xhtml 5728137c91ffb58c733dfadea5ac9383591eaff069f2dc51fca35dcf4d3894bc",
+        "chapter-5.xhtml 6635290851d95a2cc0ec319c831656e8b9f9330f9dbf46be059051fb905fccdf",
+        "chapter-6.xhtml d27b2dd7836119558c48bec3e25f4f91afe3dcc984594230d692936bc7d90e03",
+        "chapter-7.xhtml 3bf45301387b6e32e2a367718b6b212d7c85740980a17637affda6b8ed5cb496",
+        "chapter-8.xhtml 50efe5831079f0391f40558abf6cb346073296f439e4c42efe34ce4534a7e1b2",
+        "chapter-9.xhtml 891d3ceb923421f18fc257b640cd8746a87c9dfc7b6f5c1d8a2eff8f5641a96d",
+        "chapter-10.xhtml 8d77483e7ed2ed40d212bd3ec253928f188f891a618e6e025914db6951d91b83",
+        "chapter-11.xhtml bff35debb5b14048b1d1ad7cded6e5d6926c21752c0ba4b074e6a8db12a08d93",
+        "chapter-12.xhtml f211f62cb87bbf98c1b507f3ff08df9ae9e917135381fdf4b24781d39338e882",
+        "chapter-13.xhtml 901e5c0046ff5c717c98a2c5e404b5fb02bbb1aa4f6f2ec403166c4ba97d18bc",
+        "chapter-14.xhtml 405cbf1afe04811a52dc8d1eddfd24b19001ed3d7110dd04e076e20d5b2c262f",
+        "chapter-15.xhtml 11e4947af0acc8e32f63dd893374f8b119c5c0f08aded8d731bf994a8776067c",
+        "chapter-16.xhtml 756d7fc06e0fb67b6e95c707dc50d1996461d41a5f0947a36df5c79bd659e551",
+        "chapter-17.xhtml 51254b71eee467f10da5833d54b016f43c9edf68698e7ef954bd4907267268de",
+        "chapter-18.xhtml c5074cd1ef69a121dd5ceb3576d07004b0eb7b40cffc021dfad532aa07238390",
+        "chapter-19.xhtml e1fbe0d70ed404075b525daa98085853f1fa690a23015fe86c150659e286c79b",
+        "chapter-20.xhtml 6c613a4b39c254f70176e079b91424d92d1b729a452e875f1c2684fd642478c6"
+      ],
+      "retrieved": "2026-08-19"
+    },
+    "rights": {
+      "basis": "pre-1930-us",
+      "territory": "US",
+      "evidence": "First published 1861; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record."
+    },
+    "parts": 20,
+    "chars": 156301
+  },
+  "lyrical-ballads": {
+    "workId": "lyrical-ballads",
+    "editionId": "standard-ebooks:william-wordsworth/samuel-taylor-coleridge_lyrical-ballads",
+    "sourceRevision": "sha256:24576576e9f5b402ff5c2b004c8888b5445f56e89ce9e9a52dca9c33636612d5",
+    "edition": {
+      "publisher": "Standard Ebooks",
+      "year": 1798
+    },
+    "source": {
+      "label": "Standard Ebooks — william-wordsworth_samuel-taylor-coleridge_lyrical-ballads",
+      "url": "https://standardebooks.org/ebooks/william-wordsworth/samuel-taylor-coleridge_lyrical-ballads",
+      "repo": "https://raw.githubusercontent.com/standardebooks/william-wordsworth_samuel-taylor-coleridge_lyrical-ballads",
+      "files": [
+        "volume-1.xhtml 73cd3d403f4a4edf32b12e9504ee3fb4beabf89b031ff50a7578cb7fb2110155",
+        "volume-2.xhtml f8ae9a643edbbccf4a206cff054e125a513b33410303380ce6a7346fc5a8cfa8"
+      ],
+      "retrieved": "2026-08-19"
+    },
+    "rights": {
+      "basis": "pre-1930-us",
+      "territory": "US",
+      "evidence": "First published 1798; in the public domain in the United States. Standard Ebooks production work is released CC0, proofread against page scans. Public-domain status elsewhere is not established by this record."
+    },
+    "parts": 58,
+    "chars": 229281
+  }
+}

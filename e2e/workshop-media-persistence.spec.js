@@ -57,11 +57,9 @@ test('project media survives a Library source arriving', async ({ page }) => {
     await page.getByRole('button', { name: 'Sources', exact: true }).click();
     await page.locator('[data-action="open-browser"]').first().click();
     await expect(page.locator('.sb-content-title')).toContainText('Curated Archive', { timeout: 20_000 });
-    // Waley's *A Hundred and Seventy Chinese Poems* is withheld from the
-    // launch canon. Walden is still on the shelf and has chapters to add.
-    await page.getByRole('searchbox', { name: 'Search the source library' }).fill('Walden');
+    await page.getByRole('searchbox', { name: 'Search the source library' }).fill('Middlemarch');
     await expect(page.locator('.sb-item')).toHaveCount(1, { timeout: 15_000 });
-    await page.getByRole('button', { name: /Open chapters of Walden/ }).click();
+    await page.getByRole('button', { name: /Open chapters of/ }).click();
     await expect(page.locator('.sb-contents')).toBeVisible({ timeout: 15_000 });
     await page.locator('.sb-chapter-add').first().click();
     await expect(page.locator('.source-browser-overlay')).toBeHidden({ timeout: 15_000 });

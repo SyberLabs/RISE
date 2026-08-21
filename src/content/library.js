@@ -19,7 +19,7 @@ import { curationFor } from './library-curation.js';
 import { isQuarantined } from './library-quarantine.js';
 // Works ingested from verified public-domain sources, each carrying its
 // own edition, source digest, and rights basis. See scripts/archive-ingest.mjs.
-import { ingestedArchiveTexts, WITHHELD_WORKS } from './archive/index.js';
+import { releaseArchiveTexts, WITHHELD_WORKS } from './archive/index.js';
 
 /**
  * Library categories
@@ -211,7 +211,7 @@ function registerLiteraryTexts() {
  * re-derive any of it; it carries what the ingest proved.
  */
 function registerIngestedWorks() {
-    for (const text of ingestedArchiveTexts()) registerText(text);
+    for (const text of releaseArchiveTexts()) registerText(text);
 }
 
 /**
@@ -431,7 +431,9 @@ registerIngestedWorks();         // Verified public-domain ingests
 // of unknown provenance is neither (ARCHIVE-CANON-SPEC §6).
 // registerDeepSacredTexts();
 
-registerExtendedSacredTexts();   // Legacy extended texts
+// Legacy extended texts remain import/compatibility material only. They are
+// not registered for discovery: received works enter through the exact,
+// certification-gated Archive projection above or they do not enter at all.
 // registerSimplifiedSacredTexts();
 registerStarterTexts();          // Original RISE compositions
 // registerLiteraryTexts();

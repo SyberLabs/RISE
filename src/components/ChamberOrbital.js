@@ -85,6 +85,7 @@ export function createDefaultConfig() {
     // configuration.
     sources: null,
     provenance: null,
+    continuation: null,
     // Content-authored cue schedule. Launch identity, persisted with the
     // reading rather than with the user's reusable visual preferences.
     visualProgram: null,
@@ -92,6 +93,8 @@ export function createDefaultConfig() {
     // The reading MEDIUM (SPATIAL-CHAMBER-SPEC): 'stream' (of Time) or
     // 'page' (of Space). A reusable preference, like wpm or soundscape.
     projection: 'stream',
+    // Text arrival and voice are orthogonal reader choices.
+    revealMode: 'instant',
     // Ordinary-reading collections are weaker than a visualProgram but still
     // belong to the loaded reading, never to reusable preferences.
     readingVisualIdentity: null,
@@ -123,7 +126,9 @@ export function createDefaultConfig() {
 
       // Living Text (semantic hue/glow on the text stream)
       livingText: {
-        enabled: false
+        // New ordinary readings should demonstrate RISE's semantic text
+        // condition without requiring discovery of a secondary control.
+        enabled: true
       },
 
       // Interlocution config (probabilistic interrupts).
@@ -228,7 +233,7 @@ export class ChamberOrbital {
     }
     if (!saved) return;
 
-    const scalarKeys = ['wpm', 'curve', 'chunkMode', 'soundscape', 'audioPreset',
+    const scalarKeys = ['wpm', 'curve', 'chunkMode', 'revealMode', 'soundscape', 'audioPreset',
       'entrainmentMode', 'entrainmentWaveform', 'voiceId', 'selectedSwellId'];
     for (const key of scalarKeys) {
       if (saved[key] !== undefined) this.config[key] = saved[key];
@@ -323,6 +328,7 @@ export class ChamberOrbital {
       origin,
       sources,
       provenance,
+      continuation,
       projection,
       visualProgram,
       readingVisualIdentity
@@ -334,6 +340,7 @@ export class ChamberOrbital {
       origin,
       sources,
       provenance,
+      continuation,
       projection,
       visualProgram,
       readingVisualIdentity
@@ -388,6 +395,8 @@ export class ChamberOrbital {
         this.config.projection = saved.projection === 'page' ? 'page' : 'stream';
         this.config.origin = saved.origin || null;
         this.config.provenance = saved.provenance || null;
+        this.config.continuation = saved.continuation || null;
+        this.config.verseLines = saved.verseLines === true;
         const persistedProgram = deserializeVisualProgram(saved.visualProgram);
         this.config.visualProgram = persistedProgram
           || recoverLegacyChapelVisualProgram({
@@ -457,6 +466,8 @@ export class ChamberOrbital {
           origin: this.config.origin,
           sources,
           provenance: this.config.provenance,
+          continuation: this.config.continuation,
+          verseLines: this.config.verseLines === true,
           visualProgram: serializeVisualProgram(this.config.visualProgram),
           readingVisualIdentity: this.config.visualProgram
             ? null
@@ -494,7 +505,7 @@ export class ChamberOrbital {
 
   _persistPrefs() {
     this._normalizeAudioExclusivity();
-    const { wpm, curve, chunkMode, soundscape, audioPreset, entrainmentMode,
+    const { wpm, curve, chunkMode, revealMode, soundscape, audioPreset, entrainmentMode,
       entrainmentWaveform, voiceId, selectedSwellId,
       recitation, visualInterlocution } = this.config;
     // atriumCollections and the visual program are LAUNCH-SCOPED
@@ -523,7 +534,9 @@ export class ChamberOrbital {
       // paceV2: this WPM was chosen under the honest temporal contract
       // (post-1.4375× repair) — never migrate it again
       paceV2: true,
-      wpm, curve, chunkMode, soundscape, audioPreset, entrainmentMode,
+      wpm, curve, chunkMode,
+      revealMode: revealMode === 'progressive' ? 'progressive' : 'instant',
+      soundscape, audioPreset, entrainmentMode,
       entrainmentWaveform, voiceId, selectedSwellId,
       // Only the field we understand: the restore side reads the same
       // way, so a hand-edited entry cannot introduce unvalidated keys.
@@ -779,10 +792,11 @@ export class ChamberOrbital {
                   <span class="preset-label">Gateway</span>
                 </button>
               </div>
-            </div>
+              <div class="pure-tone-controls" id="pure-tone-controls"
+                ${this.config.audioPreset === 'silent' ? 'hidden' : ''}>
 
-            <!-- Entrainment Type -->
-            <div class="config-section">
+            <!-- These parameters belong to the selected Pure Tone. -->
+            <div class="config-subsection">
               <div class="config-label-row">
                 <label class="config-label">Entrainment Type</label>
                 <span class="config-info" data-tooltip="The method used to deliver frequency stimulation. Binaural requires headphones (different tones per ear). Monaural works on speakers. Isochronic uses rhythmic pulses. Spatial rotates the sound field around your head.">?</span>
@@ -796,7 +810,7 @@ export class ChamberOrbital {
             </div>
 
             <!-- Waveform -->
-            <div class="config-section">
+            <div class="config-subsection">
               <div class="config-label-row">
                 <label class="config-label">Waveform</label>
                 <span class="config-info" data-tooltip="The shape of the audio wave. Sine is smooth and gentle. Triangle adds subtle harmonic texture. Saw is brighter and more present.">?</span>
@@ -805,6 +819,8 @@ export class ChamberOrbital {
                 <button class="audio-waveform-option ${this.config.entrainmentWaveform === 'sine' ? 'active' : ''}" data-waveform="sine">Sine</button>
                 <button class="audio-waveform-option ${this.config.entrainmentWaveform === 'triangle' ? 'active' : ''}" data-waveform="triangle">Triangle</button>
                 <button class="audio-waveform-option ${this.config.entrainmentWaveform === 'sawtooth' ? 'active' : ''}" data-waveform="sawtooth">Saw</button>
+              </div>
+            </div>
               </div>
             </div>
             <!-- Recitation (RECITATION-SPEC): static voice packs, not speechSynthesis. -->
@@ -926,6 +942,19 @@ export class ChamberOrbital {
                 file per phrase — so a reading cut any other way has no
                 recording to play and would run silent. Turn Recitation
                 off to read by word or by sentence.
+              </p>
+            </div>
+
+            <div class="config-section">
+              <label class="config-label">Text arrival</label>
+              <div class="chunk-options" role="group" aria-label="Text arrival">
+                <button class="chunk-option ${this.config.revealMode !== 'progressive' ? 'active' : ''}"
+                  data-reveal="instant">Instant</button>
+                <button class="chunk-option ${this.config.revealMode === 'progressive' ? 'active' : ''}"
+                  data-reveal="progressive">Progressive</button>
+              </div>
+              <p class="config-note text-mist">
+                Progressive reveals words across each beat. Voice remains an independent Audio choice.
               </p>
             </div>
 
@@ -1260,6 +1289,7 @@ export class ChamberOrbital {
     // teaches the rule, and one tap undoes it.
     const soundscapeOptions = this.container.querySelectorAll('[data-soundscape]');
     const presetOptions = this.container.querySelectorAll('[data-audio-preset]');
+    const pureToneControls = this.container.querySelector('#pure-tone-controls');
 
     soundscapeOptions.forEach(opt => {
       this._listen(opt, 'click', () => {
@@ -1268,6 +1298,7 @@ export class ChamberOrbital {
         if (opt.dataset.soundscape !== 'none' && this.config.audioPreset !== 'silent') {
           this.config.audioPreset = 'silent';
           presetOptions.forEach(o => o.classList.toggle('active', o.dataset.audioPreset === 'silent'));
+          if (pureToneControls) pureToneControls.hidden = true;
         }
         this.updateOrbitStatus('audio');
         soundscapeOptions.forEach(o => o.classList.remove('active'));
@@ -1279,6 +1310,7 @@ export class ChamberOrbital {
       this._listen(opt, 'click', () => {
         window.rise?.audioEngine?.playHiss();
         this.config.audioPreset = opt.dataset.audioPreset;
+        if (pureToneControls) pureToneControls.hidden = opt.dataset.audioPreset === 'silent';
         if (opt.dataset.audioPreset !== 'silent' && this.config.soundscape !== 'none') {
           this.config.soundscape = 'none';
           soundscapeOptions.forEach(o => o.classList.toggle('active', o.dataset.soundscape === 'none'));
@@ -1387,6 +1419,17 @@ export class ChamberOrbital {
         this.config.chunkMode = opt.dataset.chunk;
         chunkOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
+      });
+    });
+
+    const revealOptions = this.container.querySelectorAll('[data-reveal]');
+    revealOptions.forEach(opt => {
+      this._listen(opt, 'click', () => {
+        window.rise?.audioEngine?.playHiss();
+        this.config.revealMode = opt.dataset.reveal === 'progressive'
+          ? 'progressive' : 'instant';
+        revealOptions.forEach(candidate => candidate.classList.toggle(
+          'active', candidate === opt));
       });
     });
 
@@ -1517,6 +1560,10 @@ export class ChamberOrbital {
       opt.classList.toggle('active', opt.dataset.chunk === this.config.chunkMode);
       opt.disabled = enabled && opt.dataset.chunk !== 'phrase';
     });
+    this.container.querySelectorAll('[data-reveal]').forEach(opt => {
+      const selected = this.config.revealMode === 'progressive' ? 'progressive' : 'instant';
+      opt.classList.toggle('active', opt.dataset.reveal === selected);
+    });
 
     // Audio Modal
     const soundscapeOptions = this.container.querySelectorAll('[data-soundscape]');
@@ -1528,6 +1575,8 @@ export class ChamberOrbital {
     presetOptions.forEach(opt => {
       opt.classList.toggle('active', opt.dataset.audioPreset === this.config.audioPreset);
     });
+    const pureToneControls = this.container.querySelector('#pure-tone-controls');
+    if (pureToneControls) pureToneControls.hidden = this.config.audioPreset === 'silent';
 
     // Recitation, and the voice picker that only matters when it is on.
     this.container.querySelectorAll('[data-recitation]').forEach(opt => {
@@ -1570,6 +1619,7 @@ export class ChamberOrbital {
       ? config.sources.slice(0, 64)
       : null;
     this.config.provenance = config.provenance || null;
+    this.config.continuation = config.continuation || null;
 
     // A compiled visual program (PERICOPE-IMAGERY-SPEC §6) rides
     // through as reading identity. The orbital validates its generic
@@ -1610,6 +1660,9 @@ export class ChamberOrbital {
     if (config.wpm) this.config.wpm = config.wpm;
     if (config.curve) this.config.curve = config.curve;
     if (config.chunkMode) this.config.chunkMode = config.chunkMode;
+    if (config.revealMode) {
+      this.config.revealMode = config.revealMode === 'progressive' ? 'progressive' : 'instant';
+    }
     if (config.audioPreset) this.config.audioPreset = config.audioPreset;
     if (config.soundscape) this.config.soundscape = config.soundscape;
     if (config.entrainmentMode) this.config.entrainmentMode = config.entrainmentMode;
@@ -1825,9 +1878,11 @@ export class ChamberOrbital {
         : {}),
       origin: this.config.origin,
       provenance: this.config.provenance,
+      continuation: this.config.continuation,
       wpm: this.config.wpm,
       curve: this.config.curve,
       chunkMode: this.config.chunkMode,
+      revealMode: this.config.revealMode === 'progressive' ? 'progressive' : 'instant',
       verseLines: this.config.verseLines === true,
       audioPreset: this.config.audioPreset,
       soundscape: this.config.soundscape,

@@ -15,6 +15,12 @@ const PHONES = [
     { name: 'landscape', width: 844, height: 390 }
 ];
 
+// These contracts require the authored Demonstration Journey, which is
+// intentionally absent until its quotation anchors are re-authored against
+// certified editions. General mobile and Keystone release coverage remains
+// live; these return with Journey admission.
+const withdrawnJourneyTest = test.skip;
+
 async function enter(page, width, height) {
     await page.setViewportSize({ width, height });
     await page.addInitScript((g) => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
@@ -65,17 +71,15 @@ for (const phone of PHONES) {
     });
 }
 
-test('a live shelf card still fits the column', async ({ page }) => {
-    // The scan-URL card (romance-of-the-three-kingdoms / Brewitt-Taylor)
-    // is withheld from the launch canon. Assert a live card fits the
-    // column and the subtitle has no raw http.
+test('a card carrying a scan URL still fits the column', async ({ page }) => {
+    // Card with a long edition statement that once included raw URLs.
     test.setTimeout(120000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="library"]').first().click();
     await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 30000 });
 
     const card = await page.evaluate(() => {
-        const el = document.querySelector('[data-text-id="literary-walden"]');
+        const el = document.querySelector('[data-text-id="the-brothers-karamazov"]');
         if (!el) return null;
         const box = el.getBoundingClientRect();
         const subtitle = el.querySelector('.archive-subtitle');
@@ -93,12 +97,11 @@ test('a live shelf card still fits the column', async ({ page }) => {
     expect(card.subtitleRight).toBeLessThanOrEqual(card.viewport + 1);
     // Subtitle must not expose raw URLs.
     expect(card.subtitle).not.toContain('http');
+    expect(card.subtitle).toContain('Standard Ebooks');
 });
 
 test('a titled work opens its contents sheet', async ({ page }) => {
     // Titled schemes use noun null; the sheet must still open and label rows.
-    // ross-pure-design is withheld from the launch canon. literary-walden
-    // is live and divides by title (noun null): Economy, Solitude, Spring.
     test.setTimeout(120000);
     const errors = [];
     page.on('console', m => { if (m.type() === 'error') errors.push(m.text().slice(0, 160)); });
@@ -107,7 +110,7 @@ test('a titled work opens its contents sheet', async ({ page }) => {
     await page.locator('[data-nav="library"]').first().click();
     await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 30000 });
 
-    await page.locator('[data-text-id="literary-walden"] [data-action="select-text"]').click();
+    await page.locator('[data-text-id="middlemarch"] [data-action="select-text"]').click();
     await expect(page.locator('.toc-sheet')).toBeVisible({ timeout: 30000 });
 
     const sheet = await page.evaluate(() => ({
@@ -122,11 +125,10 @@ test('a titled work opens its contents sheet', async ({ page }) => {
     expect(sheet.entries).toBeGreaterThan(0);
     // Generic "entries" when the work never named a division unit.
     expect(sheet.noun).toBe('entries');
-    expect(sheet.first).toContain('Economy');
+    expect(sheet.first).toContain('Chapter I');
 });
 
-test('the Chamber reads as a band across the picture', async ({ page }) => {
-    test.skip(true, 'JOURNEYS = []; those sits are not shipped');
+withdrawnJourneyTest('the Chamber reads as a band across the picture', async ({ page }) => {
     // Phone: full-bleed reading band across the middle; imagery fills the rest.
     test.setTimeout(300000);
     await enter(page, 390, 844);
@@ -261,8 +263,7 @@ test('the orbit is centred in the phone rather than cropped by it', async ({ pag
     expect(Math.abs(ring.leftGap - ring.rightGap)).toBeLessThanOrEqual(3);
 });
 
-test('the Chamber control bar stays on the screen', async ({ page }) => {
-    test.skip(true, 'JOURNEYS = []; those sits are not shipped');
+withdrawnJourneyTest('the Chamber control bar stays on the screen', async ({ page }) => {
     // Control bar and every child must stay within the viewport.
     test.setTimeout(300000);
     await enter(page, 390, 844);
@@ -437,8 +438,7 @@ test('Begin Session can actually be pressed on a phone', async ({ page }) => {
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
 });
 
-test('the reading band holds steady while the reading fades', async ({ page }) => {
-    test.skip(true, 'JOURNEYS = []; those sits are not shipped');
+withdrawnJourneyTest('the reading band holds steady while the reading fades', async ({ page }) => {
     // Glass on #atom-band must stay lit while #atom-display fades or empties.
     test.setTimeout(300000);
     await enter(page, 390, 844);
@@ -520,8 +520,7 @@ test('the reading band holds steady while the reading fades', async ({ page }) =
     expect(band.empty.h).toBeGreaterThan(24);
 });
 
-test('the reading stays above the imagery it is presented over', async ({ page }) => {
-    test.skip(true, 'JOURNEYS = []; those sits are not shipped');
+withdrawnJourneyTest('the reading stays above the imagery it is presented over', async ({ page }) => {
     // #atom-band must stack above behind-stream imagery (z-index ≥ 10).
     test.setTimeout(300000);
     await enter(page, 390, 844);
@@ -575,15 +574,16 @@ test('the reading stays above the imagery it is presented over', async ({ page }
 });
 
 test('Page Mode keeps the whole measure on the screen', async ({ page }) => {
-    test.skip(true, 'JOURNEYS = []; those sits are not shipped');
     // Page measure and control bar must stay inside the phone viewport.
     test.setTimeout(300000);
     await enter(page, 390, 844);
-    await page.locator('[data-nav="vault"]').first().click();
-    await page.locator('[data-nav="journeys"]').first().click();
-    const DEMO = '[data-journey="demo-procedural"]';
-    await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 120000 });
-    await page.locator(`${DEMO} .journey-begin`).click();
+    await page.locator('[data-nav="library"]').first().click();
+    await expect(page.locator('[data-text-id="middlemarch"]')).toBeVisible({ timeout: 30000 });
+    await page.locator('[data-text-id="middlemarch"] [data-action="select-text"]').click();
+    await expect(page.locator('.toc-entry').first()).toBeVisible({ timeout: 30000 });
+    await page.locator('.toc-entry').first().click();
+    await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 30000 });
+    await page.locator('#begin-btn').click();
     const accept = page.locator('#safety-accept');
     await accept.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
     if (await accept.isVisible()) await accept.click();
@@ -677,7 +677,7 @@ test('the phone-only threshold renders nothing on a desktop', async ({ page }) =
     });
     console.log('DESKTOP ' + JSON.stringify(d));
 
-    expect(d.actLabel).toBe('CHAMBER');
+    expect(d.actLabel).toBe('TRY RISE');
     expect(d.rooms).toEqual(['VAULT', 'LIBRARY', 'WORKSHOP']);
     expect(d.vessel).toBe(180);
     for (const [part, display] of Object.entries(d.phoneOnly)) {
@@ -699,20 +699,15 @@ test('the threshold fits the phone in its widest state', async ({ page }) => {
     console.log('COLD ' + JSON.stringify(cold));
     expect(cold.display).toBe('none');
 
-    // JOURNEYS = []; demo-procedural is not shipped. Seed a Chamber
-    // reading so Continue appears, then return to the Portal.
-    await page.evaluate(() => {
-        localStorage.setItem('rise_orbital_text_v1', JSON.stringify({
-            text: 'The pendulum draws the chord it hears. '.repeat(40).trim(),
-            textSource: 'Seed',
-            origin: null
-        }));
-    });
-    await page.locator('[data-nav="chamber"]').first().click();
-    await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15000 });
-    await page.locator('#begin-btn').click({ timeout: 10000 });
+    await page.locator('[data-nav="library"]').first().click();
+    await expect(page.locator('[data-text-id="middlemarch"]')).toBeVisible({ timeout: 30000 });
+    await page.locator('[data-text-id="middlemarch"] [data-action="select-text"]').click();
+    await expect(page.locator('.toc-entry').first()).toBeVisible({ timeout: 30000 });
+    await page.locator('.toc-entry').first().click();
+    await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 30000 });
+    await page.locator('#begin-btn').click();
     const accept = page.locator('#safety-accept');
-    await accept.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});
+    await accept.waitFor({ state: 'visible', timeout: 60000 }).catch(() => {});
     if (await accept.isVisible()) await accept.click();
     await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
     await page.waitForTimeout(2000);

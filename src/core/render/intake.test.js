@@ -19,7 +19,15 @@ vi.mock('./artifact.js', () => ({
     job: { profile: request.profileId },
     plan: { frameCount: 6, durationMs: 200 },
     package: { 'captions.srt': '1\n00:00:00,000 --> 00:00:00,200\nHello\n' },
-    encoded: { path: request.outputPath, width: 108, height: 192, codec: 'h264', encoder: 'libx264' }
+    encoded: {
+      path: request.outputPath,
+      width: 108,
+      height: 192,
+      codec: 'h264',
+      encoder: 'libx264',
+      frameCount: 3,
+      durationMs: 100
+    }
   }))
 }));
 
@@ -103,11 +111,13 @@ describe('parseRenderCliArgs', () => {
   it('requires program or op-set JSON and keeps scale/painter/out', () => {
     expect(parseRenderCliArgs([]).error).toMatch(/Missing input JSON/);
     const parsed = parseRenderCliArgs([
-      'score.json', '--scale', '0.25', '--painter', 'clerk', '--out', 'out/reel'
+      'score.json', '--scale', '0.25', '--painter', 'clerk', '--out', 'out/reel',
+      '--ffmpeg', 'tools/ffmpeg'
     ], { cwd: process.cwd() });
     expect(parsed.scale).toBe(0.25);
     expect(parsed.painter).toBe('clerk');
     expect(parsed.profileId).toBe('social-portrait-1080');
+    expect(parsed.ffmpegPath).toBe('tools/ffmpeg');
     expect(parsed.mp4Path).toBe(join(process.cwd(), 'out', 'reel', 'experience.mp4'));
     expect(parsed.help).toBeUndefined();
   });
@@ -192,7 +202,10 @@ describe('render intake', () => {
     expect(saved.schema).toBe(KERNEL_REQUEST_SCHEMA);
     expect(saved.program.id).toBe('cli-score');
     expect(artifact.mp4Path).toBe(join(dir, 'experience.mp4'));
-    expect(readFileSync(join(dir, 'encode.json'), 'utf8')).toMatch(/jobHash/);
+    const encode = JSON.parse(readFileSync(join(dir, 'encode.json'), 'utf8'));
+    expect(encode.jobHash).toMatch(/^sha256:/);
+    expect(encode.frameCount).toBe(3);
+    expect(encode.durationMs).toBe(100);
     expect(renderArtifact).toHaveBeenCalledOnce();
   });
 });

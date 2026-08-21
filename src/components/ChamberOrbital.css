@@ -576,6 +576,23 @@
   margin-bottom: 0;
 }
 
+.pure-tone-controls {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border-left: 1px solid rgba(139, 127, 212, 0.32);
+  background: rgba(139, 127, 212, 0.035);
+}
+
+.pure-tone-controls[hidden] {
+  display: none;
+}
+
+.config-subsection + .config-subsection {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid rgba(139, 127, 212, 0.12);
+}
+
 .config-label {
   display: block;
   font-size: 11px;

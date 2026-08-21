@@ -61,7 +61,9 @@ test('Page Mode typesets a Gospel chapter in space, and holds the stream', async
     // One figure per imaged episode (same program as Stream).
     expect(stats.figures).toBe(7);
 
-    expect(stats.shown).toBeGreaterThanOrEqual(1);
+    // Network imagery may resolve or reverently absent itself; neither may
+    // leave a pending/broken figure frame in the completed page walk.
+    expect(stats.shown + stats.absent).toBe(stats.figures);
     expect(stats.pages).toBeGreaterThan(1);
     expect(stats.playerState).not.toBe('playing');
 

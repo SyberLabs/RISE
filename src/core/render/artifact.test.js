@@ -9,7 +9,8 @@ import { buildVerticalSlice } from './vertical-slice.js';
 import { RenderError } from './errors.js';
 import { EXPERIENCE_PROGRAM_SCHEMA } from '../experience-program.js';
 
-const ffmpeg = spawnSync('ffmpeg', ['-version'], { stdio: 'ignore' });
+const ffmpegCommand = process.env.RISE_FFMPEG_PATH || 'ffmpeg';
+const ffmpeg = spawnSync(ffmpegCommand, ['-version'], { stdio: 'ignore' });
 const hasFfmpeg = !ffmpeg.error && ffmpeg.status === 0;
 
 describe('renderArtifact kernel', () => {

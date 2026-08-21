@@ -43,6 +43,7 @@ import { normalizeVisualSelection } from './core/visual-selection.js';
 // Import styles
 import './design-system.css';
 import './components/Portal.css';
+import './components/Keystones.css';
 import './components/ChamberOrbital.css';
 import './components/Chamber.css';
 import './components/Library.css';
@@ -210,6 +211,12 @@ class App {
         // Register views
         this.registerViews();
 
+        // Keystone paths are durable public entry points.  They resolve to a
+        // threshold view first; admission and launch still happen through the
+        // exact manifest gate rather than from URL text alone.
+        const { keystoneSlugFromPath } = await import('./content/keystones.js');
+        const directKeystone = keystoneSlugFromPath(window.location.pathname);
+
         // A reload triggered by a stale build carries the destination
         // the reader was trying to reach, so recovery is invisible to
         // them rather than dumping them back at the start.
@@ -235,6 +242,8 @@ class App {
             await this.router.navigate(staleTarget, { data: staleData });
         } else if (isRosaryDoor()) {
             await this.router.navigate('rosarium', { data: { door: true } });
+        } else if (directKeystone) {
+            await this.router.navigate('keystones', { data: { slug: directKeystone } });
         } else if (options.personalizedVault) {
             console.log('[RISE] Navigating directly to personalized vault:', options.personalizedVault);
             await this.router.navigate('vault', { data: { personalizedVault: options.personalizedVault } });
@@ -335,6 +344,19 @@ class App {
                 return new Portal(container, {
                     onNavigate: this.handleNavigate,
                     onQuickAccess: () => this.quickAccess()
+                });
+            }
+        });
+
+        // Public release threshold
+        this.router.registerView('keystones', {
+            container: document.getElementById('view-keystones'),
+            init: async (container, data) => {
+                const { Keystones } = await import('./components/Keystones.js');
+                return new Keystones(container, {
+                    initialSlug: data?.slug || null,
+                    onNavigate: this.handleNavigate,
+                    onLaunch: slug => this.launchKeystone(slug)
                 });
             }
         });
@@ -723,7 +745,9 @@ class App {
                                 view.instance = null;
                             }
 
-                            if (reason === 'workshop' && data && data.text) {
+                            if (reason === 'continue') {
+                                void this.continueLibraryReading(session);
+                            } else if (reason === 'workshop' && data && data.text) {
                                 this.router.navigate('workshop', {
                                     data: { draftIntent: 'new-recursion', text: data.text }
                                 });
@@ -907,6 +931,13 @@ class App {
      * Handle navigation requests from components
      */
     handleNavigate(viewName, data) {
+        // Keystone URLs are real entry points, not a hash painted onto an
+        // unrelated view. Leaving the release corridor explicitly returns
+        // the browser to the application root so reload and Back agree with
+        // the surface the reader can actually see.
+        if (viewName === 'portal' && /^\/keystone(?:\/|$)/u.test(window.location.pathname)) {
+            window.history.pushState({}, '', '/');
+        }
         this.router.navigate(viewName, { data });
     }
 
@@ -995,6 +1026,74 @@ class App {
     }
 
     /**
+     * Continue an ordinary Archive work without weakening edition identity.
+     * Journeys and other authored programs never receive this descriptor and
+     * therefore retain authority over their own boundaries.
+     */
+    async continueLibraryReading(session) {
+        try {
+            const [{ ArchiveTextProvider }, { resolveNextLibraryDivision }] = await Promise.all([
+                import('./sources/text/archive.js'),
+                import('./core/reading-continuation.js')
+            ]);
+            const provider = new ArchiveTextProvider();
+            const contents = await provider.getContents(session?.continuation?.workId);
+            const next = resolveNextLibraryDivision(session?.continuation, contents);
+            if (!next) {
+                this.showToast('This was the final division in the work.', 3000);
+                this.router.navigate('library', { replace: true });
+                return;
+            }
+
+            const itemName = contents.item?.name || session.continuation.workId;
+            const entryLabel = next.entry.title
+                ? `${next.entry.label} — ${next.entry.title}`
+                : next.entry.label;
+            const visualConfig = {
+                ...(session.visualConfig || {}),
+                // Consent is granted to one temporal session, not forever to
+                // a work. A flashing successor must cross the boundary again.
+                consentScope: crypto.randomUUID()
+            };
+            const nextSession = compileSession({
+                title: `${itemName} · ${entryLabel}`,
+                text: next.entry.content,
+                textSource: `${itemName} · ${entryLabel}`,
+                wpm: session.wpm,
+                chunkMode: session.chunkMode,
+                curve: session.curve,
+                displayMode: session.displayMode,
+                verseLines: next.entry.verse === true,
+                revealMode: session.revealMode,
+                audioPreset: session.audioPreset,
+                soundscape: session.soundscape,
+                entrainmentMode: session.entrainmentMode,
+                entrainmentWaveform: session.entrainmentWaveform,
+                visualConfig,
+                origin: session.origin,
+                provenance: session.provenance,
+                continuation: next.continuation,
+                recitation: session.recitation,
+                voiceId: session.voiceId,
+                selectedSwellId: session.selectedSwellId,
+                projection: session.projection
+            });
+
+            this.currentSession = nextSession;
+            await this.router.navigate('chamber-session', {
+                data: nextSession,
+                force: true,
+                replace: true,
+                skipStack: true
+            });
+        } catch (error) {
+            console.error('[RISE] Archive continuation refused:', error);
+            this.showToast(error.message || 'The next Archive division could not be opened.', 5000);
+            await this.router.navigate('library', { replace: true });
+        }
+    }
+
+    /**
      * Create a full Session object from a starter sequence
      * @param {Object} sequence - Starter sequence data
      * @returns {Session} - Full session with atoms
@@ -1040,6 +1139,32 @@ class App {
         // Store and navigate to chamber-session (immersion)
         this.currentSession = session;
         this.router.navigate('chamber-session', { data: session });
+    }
+
+    /** Resolve, compile, and launch an exact canonical composition. */
+    async launchKeystone(slug) {
+        try {
+            const [keystones, archive] = await Promise.all([
+                import('./content/keystones.js'),
+                import('./content/archive/index.js')
+            ]);
+            const result = await keystones.resolveKeystone(slug, {
+                allowIncomplete: archive.archiveReviewEnabled()
+            });
+            if (!result.sessionInput) {
+                const reason = result.blockers[0]?.message || 'This Keystone is not yet admitted.';
+                this.showToast(reason, 5000);
+                return;
+            }
+            const path = keystones.keystonePath(slug);
+            if (window.location.pathname !== path) {
+                window.history.pushState({}, '', path);
+            }
+            await this.handleBeginSession(result.sessionInput);
+        } catch (error) {
+            console.error('[RISE] Keystone launch refused:', error);
+            this.showToast(error.message || 'This Keystone could not be opened.', 5000);
+        }
     }
 
     /**
@@ -1349,6 +1474,30 @@ class App {
         window.addEventListener('hashchange', () => {
             this.handleRosaryDoorHash();
         }, options);
+
+        // Router history is intentionally internal for most of RISE. The
+        // three public Keystone paths are the exception: browser Back and
+        // Forward must resolve the same threshold that a cold request does.
+        window.addEventListener('popstate', async () => {
+            // Hash navigation belongs to the Rosary door. Browsers may emit
+            // popstate alongside hashchange, and clearing the hash must not
+            // pull an in-progress prayer back to the Portal.
+            if (isRosaryDoor() || this.router?.getCurrentView() === 'rosarium') return;
+            const { keystoneSlugFromPath } = await import('./content/keystones.js');
+            const slug = keystoneSlugFromPath(window.location.pathname);
+            if (slug) {
+                await this.router?.navigate('keystones', {
+                    data: { slug },
+                    replace: true,
+                    skipStack: true
+                });
+                return;
+            }
+            await this.router?.navigate('portal', {
+                replace: true,
+                skipStack: true
+             });
+         }, options);
     }
 
     /**

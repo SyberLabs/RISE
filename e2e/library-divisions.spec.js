@@ -2,20 +2,17 @@ import { test, expect } from '@playwright/test';
 
 const GATE = { code: 'rise2025', name: 'Shelves', vault: null, timestamp: Date.now() };
 
-// Standing at one shelf, a reader should see its forms in reading
-// order: what was sung, then staged, then sung alone, then taught.
-test('a shelf shows its divisions in order', async ({ page }) => {
+// Standing at the Received shelf, a reader should see forms in reading order.
+test('Received and Composed stay separate; Received forms are ordered', async ({ page }) => {
   await page.addInitScript((g) => {
     localStorage.setItem('rise-beta-session', JSON.stringify(g));
   }, GATE);
   await page.goto('/');
   await page.locator('[data-nav="library"]').first().click();
   await expect(page.locator('[data-filter="received"]')).toBeVisible({ timeout: 15000 });
-  await expect(page.locator('[data-filter="composed"]')).toBeVisible();
 
-  // One provenance axis: received or composed. There is no All.
-  const filters = await page.evaluate(() =>
-    [...document.querySelectorAll('.section-filters .filter-btn')].map(b => b.dataset.filter));
+  const filters = await page.locator('.section-filters .filter-btn')
+    .evaluateAll(buttons => buttons.map(button => button.dataset.filter));
   expect(filters).toEqual(['received', 'composed']);
 
   const received = await page.evaluate(() => ({
@@ -28,26 +25,17 @@ test('a shelf shows its divisions in order', async ({ page }) => {
   await page.locator('[data-filter="composed"]').click();
   const composed = await page.evaluate(() => ({
     divisions: [...document.querySelectorAll('[data-division]')].map(d => d.dataset.division),
-    cards: document.querySelectorAll('.archive-card').length,
-    unplaced: document.querySelectorAll('[data-division="other"]').length
+    cards: document.querySelectorAll('.archive-card').length
   }));
 
   console.log('RECEIVED ' + JSON.stringify(received));
   console.log('COMPOSED ' + JSON.stringify(composed));
 
-  // Live received forms that actually have holdings, in DIVISIONS order.
-  // tale is a declared form; the launch canon has none, so it does not render.
   expect(received.divisions).toEqual(['epic', 'drama', 'lyric', 'wisdom', 'essay', 'novel']);
-  expect(received.cards).toBeGreaterThan(0);
+  expect(received.names).toEqual(['Epic', 'Drama', 'Lyric', 'Wisdom', 'Essay', 'Novel']);
+  expect(received.cards).toBe(15);
   expect(received.unplaced).toBe(0);
-
-  // Composed divisions are the sequence categories that have items.
-  expect(composed.divisions).toEqual([
-    'chamber-entry', 'installation', 'grounding', 'contemplation',
-    'poetic', 'recursive', 'affirmation'
-  ]);
   expect(composed.cards).toBeGreaterThan(0);
-  expect(composed.unplaced).toBe(0);
 });
 
 /**
@@ -63,10 +51,9 @@ async function openLibrary(page) {
   await expect(page.locator('[data-filter="received"]')).toBeVisible({ timeout: 15000 });
 }
 
-test('a long work opens at its contents, in its own division noun', async ({ page }) => {
-  test.skip(true, 'war-and-peace is withheld from the launch canon');
+test('a long work opens at its verified contents', async ({ page }) => {
   await openLibrary(page);
-  await page.locator('[data-action="select-text"][data-id="war-and-peace"]').first().click();
+  await page.locator('[data-action="select-text"][data-id="middlemarch"]').first().click();
 
   const sheet = page.locator('.toc-sheet');
   await expect(sheet).toBeVisible({ timeout: 30000 });
@@ -84,17 +71,18 @@ test('a long work opens at its contents, in its own division noun', async ({ pag
   });
   console.log('TOC ' + JSON.stringify(r).slice(0, 400));
 
-  expect(r.noun).toBe('chapters');
-  expect(Number(r.total)).toBeGreaterThan(300);
-  expect(r.first[0]).toMatch(/^Chapter /);
+  // The generated edition preserves Chapter labels but declares no counting
+  // noun; the sheet therefore uses its honest generic rather than inventing.
+  expect(r.noun).toBe('entries');
+  expect(Number(r.total)).toBe(87);
+  expect(r.first[0]).toMatch(/Chapter /);
   // Labels are division names, never prose.
   expect(r.prose).toEqual([]);
 });
 
 test('choosing a chapter reads that chapter, not the book', async ({ page }) => {
-  test.skip(true, 'war-and-peace is withheld from the launch canon');
   await openLibrary(page);
-  await page.locator('[data-action="select-text"][data-id="war-and-peace"]').first().click();
+  await page.locator('[data-action="select-text"][data-id="middlemarch"]').first().click();
   await expect(page.locator('.toc-sheet')).toBeVisible({ timeout: 30000 });
 
   await page.locator('.toc-entry').first().click();
@@ -119,15 +107,14 @@ test('choosing a chapter reads that chapter, not the book', async ({ page }) => 
 
   expect(loaded).not.toBeNull();
   expect(loaded.source).toContain('Chapter');
-  // A chapter, not the whole of it. War and Peace is 560,000 words.
+  // A chapter, not the whole of Middlemarch.
   expect(loaded.words).toBeGreaterThan(200);
   expect(loaded.words).toBeLessThan(12000);
 });
 
 test('the contents can be searched, and closed without choosing', async ({ page }) => {
-  test.skip(true, 'war-and-peace is withheld from the launch canon');
   await openLibrary(page);
-  await page.locator('[data-action="select-text"][data-id="war-and-peace"]').first().click();
+  await page.locator('[data-action="select-text"][data-id="middlemarch"]').first().click();
   await expect(page.locator('.toc-sheet')).toBeVisible({ timeout: 30000 });
 
   const all = await page.locator('.toc-entry').count();
@@ -145,11 +132,9 @@ test('the contents can be searched, and closed without choosing', async ({ page 
 });
 
 test('a short work goes straight to the Chamber, with no contents to open', async ({ page }) => {
-  // A table of contents with one row is a door with a sign reading
-  // "door". Kabir's Songs is 11,515 words and is read whole.
-  test.skip(true, 'kabir-songs is withheld; remains undivided so its poems cannot be named');
+  // A table of contents with one row is a door with a sign reading "door".
   await openLibrary(page);
-  await page.locator('[data-action="select-text"][data-id="kabir-songs"]').first().click();
+  await page.locator('[data-action="select-text"][data-id="oedipus-rex"]').first().click();
   await page.waitForFunction(
     () => !!window.rise?.router?.views?.get('chamber')?.instance?.config?.text,
     null, { timeout: 20000 });

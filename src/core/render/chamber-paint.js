@@ -156,7 +156,20 @@ export async function openChamberPainter({
   const server = await createServer({
     root: ROOT,
     configFile: join(ROOT, 'vite.config.js'),
-    server: { port: 4178, strictPort: false, open: false },
+    // The render stage transforms one known entry on demand. Repository-wide
+    // HTML discovery adds no value here and can outlive a short render,
+    // racing the next stage while the first server is closing.
+    optimizeDeps: { noDiscovery: true },
+    // A render job is a pinned snapshot. HMR or repository watching would let
+    // unrelated writes (for example voice-pack checkpoints) navigate the page
+    // between frames and violate that snapshot boundary.
+    server: {
+      port: 4178,
+      strictPort: false,
+      open: false,
+      hmr: false,
+      watch: { ignored: ['**/*'] }
+    },
     logLevel: 'error'
   });
   await server.listen();

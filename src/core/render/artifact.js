@@ -75,10 +75,15 @@ async function jobFromRequest(request, program, sources, sessionInput, inventory
   for (const source of sources || []) {
     const sourceId = source.id || source.sourceId;
     const text = source.data || '';
+    const editionId = source.metadata?.editionId || source.provenance?.editionId || null;
+    const sourceRevision = source.metadata?.sourceRevision
+      || source.provenance?.sourceRevision
+      || null;
     sourceSnapshots.push({
       sourceId,
       contentHash: await contentHashOf(text),
-      editionId: sourceId
+      ...(editionId ? { editionId } : {}),
+      ...(sourceRevision ? { sourceRevision } : {})
     });
   }
   const assetSnapshots = (inventory.assets || [])

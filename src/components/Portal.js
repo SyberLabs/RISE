@@ -156,6 +156,9 @@ export class Portal {
           <!-- Primary act: enter Chamber. Phone-only mark/verb/arrow
                are display:none above 640. -->
           <div class="nav-primary">
+            <button class="nav-item nav-act" data-nav="keystones" role="link">
+              <span class="act-mark" aria-hidden="true">✦</span><span class="act-label">Try RISE</span><span class="act-go" aria-hidden="true">→</span>
+            </button>
             <button class="nav-item nav-act" data-nav="chamber" role="link">
               <span class="act-mark" aria-hidden="true">✦</span><span class="act-label"><span class="act-verb">Enter </span>Chamber</span><span class="act-go" aria-hidden="true">→</span>
             </button>

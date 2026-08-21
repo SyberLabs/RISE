@@ -10,6 +10,7 @@ import { defineConfig } from '@playwright/test';
  */
 export default defineConfig({
     testDir: './e2e',
+    globalSetup: './scripts/playwright-global-setup.mjs',
     timeout: 45_000,
     retries: 1,
     workers: 1, // one browser, sequential — flows share an audio device
@@ -23,13 +24,5 @@ export default defineConfig({
             args: ['--autoplay-policy=no-user-gesture-required']
         }
     },
-    webServer: {
-        command: 'npm run build && npx vite preview --port 4317 --strictPort',
-        url: 'http://localhost:4317',
-        // Reusing a listener on 4317 also skips `command` — so a leftover
-        // preview server serves an old `dist` and the whole suite silently
-        // tests stale code. Refusing the port instead fails loudly.
-        reuseExistingServer: false,
-        timeout: 120_000
-    }
+    // globalSetup owns the production build and preview server transactionally.
 });

@@ -23,11 +23,13 @@ test('the Page keeps the reader’s place across a trip to the Stream', async ({
   await page.setViewportSize({ width: 390, height: 664 });
   await page.addInitScript((g) => localStorage.setItem('rise-beta-session', JSON.stringify(g)), GATE);
   await page.goto('/');
-  await page.locator('[data-nav="vault"]').first().click();
-  await page.locator('[data-nav="journeys"]').first().click();
-  const DEMO = '[data-journey="demo-procedural"]';
-  await expect(page.locator(`${DEMO} .journey-credits`)).toBeVisible({ timeout: 90000 });
-  await page.locator(`${DEMO} .journey-begin`).click();
+  await page.locator('[data-nav="library"]').first().click();
+  await expect(page.locator('[data-text-id="middlemarch"]')).toBeVisible({ timeout: 30000 });
+  await page.locator('[data-text-id="middlemarch"] [data-action="select-text"]').click();
+  await expect(page.locator('.toc-entry').first()).toBeVisible({ timeout: 30000 });
+  await page.locator('.toc-entry').first().click();
+  await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 30000 });
+  await page.locator('#begin-btn').click();
   const accept = page.locator('#safety-accept');
   await accept.waitFor({ state: 'visible', timeout: 30000 }).catch(() => {});
   if (await accept.isVisible().catch(() => false)) await accept.click();

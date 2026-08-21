@@ -32,7 +32,8 @@ function solidFrame(width, height, color) {
  * there would hide the very regression the install exists to prevent. There it
  * fails instead.
  */
-const ffmpeg = spawnSync('ffmpeg', ['-version'], { stdio: 'ignore' });
+const ffmpegCommand = process.env.RISE_FFMPEG_PATH || 'ffmpeg';
+const ffmpeg = spawnSync(ffmpegCommand, ['-version'], { stdio: 'ignore' });
 const hasFfmpeg = !ffmpeg.error && ffmpeg.status === 0;
 
 describe('H.264 encoder adapter', () => {
@@ -60,6 +61,8 @@ describe('H.264 encoder adapter', () => {
     const bytes = readFileSync(encoded.path);
     expect(bytes.subarray(4, 8).toString()).toBe('ftyp');
     expect(bytes.byteLength).toBeGreaterThan(1000);
+    expect(encoded.frameCount).toBe(3);
+    expect(encoded.durationMs).toBe(100);
     rmSync(dir, { recursive: true, force: true });
   }, 20_000);
 });

@@ -80,7 +80,7 @@ export const CANON_IDS = Object.freeze(new Set(CANON.map(entry => entry.id)));
  * Nothing here is certified yet; the campaign starts from the list, not from
  * an assertion that the list is already true.
  */
-export const CERTIFIED_IDS = Object.freeze(new Set([]));
+export { CERTIFIED_IDS } from './certification.js';
 
 /**
  * The standing reason, for a work withheld only because it is not in the

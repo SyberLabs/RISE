@@ -178,6 +178,12 @@ async function readManifest() {
     return parsed;
 }
 
+async function persistManifest(manifest) {
+    manifest.generatedAt = new Date().toISOString();
+    manifest.voices = sortObject(manifest.voices);
+    await atomicWrite(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
 function sortObject(value) {
     return Object.fromEntries(
         Object.entries(value).sort(([left], [right]) => left.localeCompare(right))
@@ -212,6 +218,14 @@ async function main() {
         entries: {}
     };
     pack.entries ||= {};
+    pack.model = MODEL_ID;
+    pack.dtype = args.dtype;
+    pack.format = 'wav';
+    pack.source = basename(args.input);
+    if (Array.isArray(input?.sourceRevisions)) {
+        pack.sourceRevisions = input.sourceRevisions.map(item => ({ ...item }));
+    }
+    manifest.model = MODEL_ID;
 
     // Dynamic import keeps ordinary scripts and production builds free of the
     // authoring runtime. kokoro-js remains a devDependency for this command.
@@ -252,20 +266,15 @@ async function main() {
             peak: Number(signal.peak.toFixed(6))
         };
         generated++;
+        // A full Keystone pack is hundreds of phrases. Persist each completed
+        // asset so interruption resumes from proven work instead of leaving a
+        // directory of unindexed WAV files that must all be synthesized again.
+        pack.entries = sortObject(pack.entries);
+        await persistManifest(manifest);
     }
 
     pack.entries = sortObject(pack.entries);
-    pack.model = MODEL_ID;
-    pack.dtype = args.dtype;
-    pack.format = 'wav';
-    pack.source = basename(args.input);
-    manifest.generatedAt = new Date().toISOString();
-    manifest.model = MODEL_ID;
-    manifest.voices = sortObject(manifest.voices);
-    await atomicWrite(
-        MANIFEST_PATH,
-        `${JSON.stringify(manifest, null, 2)}\n`
-    );
+    await persistManifest(manifest);
     console.log(
         `[voice-pack] Complete: ${generated} generated, ${retained} retained; `
         + `${Object.keys(pack.entries).length} total manifest entries`

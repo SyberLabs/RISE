@@ -9,7 +9,8 @@ import { exportRenderMp4 } from './export-mp4.js';
 import { mixAudio } from './audio-mix.js';
 import { buildVerticalSlice } from './vertical-slice.js';
 
-const ffmpeg = spawnSync('ffmpeg', ['-version'], { stdio: 'ignore' });
+const ffmpegCommand = process.env.RISE_FFMPEG_PATH || 'ffmpeg';
+const ffmpeg = spawnSync(ffmpegCommand, ['-version'], { stdio: 'ignore' });
 const hasFfmpeg = !ffmpeg.error && ffmpeg.status === 0;
 
 describe('exportRenderMp4', () => {

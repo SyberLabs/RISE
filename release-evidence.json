@@ -1,0 +1,22 @@
+{
+  "schema": "rise.release-evidence.v1",
+  "realDevices": [],
+  "acousticReview": {
+    "voiceId": "af_heart",
+    "manifestHash": null,
+    "phraseCount": 665,
+    "reviewedPhraseCount": 0,
+    "unresolvedDefectCount": null,
+    "reviewer": null,
+    "completedAt": null,
+    "decisions": {}
+  },
+  "strangerTesting": {
+    "completedAt": null,
+    "reviewer": null,
+    "participantCount": 0,
+    "entryUnderstood": false,
+    "readingCompleted": false,
+    "nextActionUnderstood": false
+  }
+}

@@ -69,5 +69,24 @@ describe('Chamber RGBA paint', () => {
       await stage?.close();
     }
   }, 120_000);
+
+  it.skipIf(!hasPlaywright)('can close and reopen stages sequentially', async () => {
+    const slice = await buildVerticalSlice();
+    const plan = compileRenderPlan(slice);
+    for (let pass = 0; pass < 2; pass += 1) {
+      const stage = await openChamberPainter({
+        plan,
+        scale: 0.1,
+        inventory: slice.inventory,
+        ffmpegLog: () => {}
+      });
+      try {
+        const frame = await stage.capture(0);
+        expect(frame.rgba.length).toBe(frame.width * frame.height * 4);
+      } finally {
+        await stage.close();
+      }
+    }
+  }, 120_000);
 });
 

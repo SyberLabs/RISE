@@ -52,6 +52,7 @@ try {
       scale: parsed.scale,
       painter: parsed.painter,
       profileId: parsed.profileId,
+      ffmpegPath: parsed.ffmpegPath,
       outputPath: parsed.mp4Path
     }
   });

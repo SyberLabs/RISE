@@ -29,6 +29,7 @@ import {
   applyVisualViewportBottom,
   clearVisualViewportBottom
 } from '../core/visual-viewport.js';
+import { hasNextLibraryDivision } from '../core/reading-continuation.js';
 
 /**
  * Chamber Component
@@ -64,11 +65,10 @@ export class Chamber {
     // The reader's place in the Page, kept across a trip to the Stream.
     this._lastPageIndex = 0;
 
-    // Recitation (RECITATION-SPEC): text arrives over a short duration
-    // rather than appearing whole. Off unless the reading asks for it,
-    // so an ordinary session pays nothing — no spans, no timers, and
-    // the same textContent path the Chamber has always used.
+    // Voice and text arrival are separate reader choices. An instant spoken
+    // reading and a silent progressive reading are both valid contracts.
     this.recitationEnabled = this.session?.recitation?.enabled === true;
+    this.progressiveRevealEnabled = this.session?.revealMode === 'progressive';
     this._revealTimers = null;
     // A full-frame interlocution lays the successor out while an opaque
     // presence still owns the screen. Keep its hidden word spans here so the
@@ -430,6 +430,11 @@ export class Chamber {
 
             <!-- Actions -->
             <div class="post-complete-actions">
+              ${hasNextLibraryDivision(this.session?.continuation) ? `
+              <button class="post-btn-continue" id="post-continue">
+                Next ${escapeHtml(this.session.continuation.noun)}
+                <span class="post-btn-icon" aria-hidden="true">→</span>
+              </button>` : ''}
               <button class="post-btn-return" id="post-return-chamber">
                 <span class="post-btn-icon">←</span>
                 Return
@@ -550,10 +555,16 @@ export class Chamber {
 
     // Post-session (Choice and Synthesis phase)
     const returnBtn = this.container.querySelector('#post-return-chamber');
+    const continueBtn = this.container.querySelector('#post-continue');
     const recursionBtn = this.container.querySelector('#post-recursion');
     const sealBtn = this.container.querySelector('#post-seal');
     const closeBtn = this.container.querySelector('#post-close');
 
+    continueBtn?.addEventListener('click', () => {
+      window.rise?.audioEngine?.playClick();
+      continueBtn.disabled = true;
+      this.onExit('continue');
+    });
     returnBtn?.addEventListener('click', () => {
       window.rise?.audioEngine?.playHiss();
       this.onExit('close');
@@ -1433,7 +1444,7 @@ export class Chamber {
       this.cancelReveal();
       this._concealedReveal = null;
       const reducedMotion = this._prefersReducedMotion();
-      const deferReveal = concealed && this.recitationEnabled && !reducedMotion;
+      const deferReveal = concealed && this.progressiveRevealEnabled && !reducedMotion;
       const spans = this.paintAtomText(
         atomDisplay,
         atom.content,
@@ -1464,7 +1475,7 @@ export class Chamber {
       // are spoken, and the utterance is the clock. Without one it
       // borrows a share of the atom's duration and never extends it.
       const reducedMotion = this._prefersReducedMotion();
-      const budget = this.recitationEnabled
+      const budget = this.progressiveRevealEnabled
         ? (spoken && !reducedMotion
           ? spoken.durationMs
           : revealBudget(atom.duration, { reducedMotion }))
@@ -1655,6 +1666,9 @@ export class Chamber {
       this.pageReader = new PageReader(host, {
         // One bar: the Chamber owns the page turn (see #page-turn).
         showPager: false,
+        // The public Page opens as one elongated composition. Pagination is
+        // retained as an explicit projection choice in the Chamber bar.
+        scrollUnderPages: Number.POSITIVE_INFINITY,
         onPageChange: (state) => this._syncPageTurn(state),
         session: this.session,
         // Session stores the compiled title as `name`; `title` is only an

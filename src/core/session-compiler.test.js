@@ -11,6 +11,22 @@ import { compileVisualScoreProgram } from './visual-score-lane.js';
 import { createEditorAsset } from './editor-asset.js';
 
 describe('session compiler', () => {
+  it.each([
+    ['instant', false],
+    ['instant', true],
+    ['progressive', false],
+    ['progressive', true]
+  ])('keeps %s text arrival independent when Spoken=%s', (revealMode, spoken) => {
+    const session = compileSession({
+      text: 'One short phrase.',
+      chunkMode: 'phrase',
+      revealMode,
+      recitation: { enabled: spoken }
+    });
+    expect(session.revealMode).toBe(revealMode);
+    expect(session.recitation.enabled).toBe(spoken);
+  });
+
   it('carries stable sequence assets through the canonical visual-score program', () => {
     const source = { id: 'alpha', name: 'Alpha', text: 'Still water.' };
     const asset = {

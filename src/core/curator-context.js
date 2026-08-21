@@ -14,7 +14,7 @@ import { WORKSHOP_AUDIO_ASSETS } from './workshop-audio.js';
 import { EXPERIENCE_PROGRAM_LIMITS } from './experience-program.js';
 import { READING_LIMITS } from './reading-limits.js';
 import { countWords } from './chunker.js';
-import { INGESTED_META } from '../content/archive/index.js';
+import { releaseArchiveMetadata } from '../content/archive/index.js';
 import DIVISION_INDEX from '../content/archive/division-index.json';
 
 export const CURATOR_CONTEXT_SCHEMA = 'rise.curator-context.v1';
@@ -440,7 +440,8 @@ function uniquePreserve(ids) {
  * (SCRIPTORIUM-SPEC §7).
  */
 export function buildLibraryCatalogue() {
-  return INGESTED_META.slice(0, CURATOR_CONTEXT_LIMITS.maxLibraryWorks).map(meta => {
+  return releaseArchiveMetadata()
+    .slice(0, CURATOR_CONTEXT_LIMITS.maxLibraryWorks).map(meta => {
     const div = DIVISION_INDEX[meta.id] || {};
     const entry = {
       id: meta.id,

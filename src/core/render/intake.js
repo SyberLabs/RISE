@@ -37,6 +37,7 @@ Options:
   --scale <n>        Paint scale (default: 1)
   --painter <name>   chamber | clerk (default: chamber)
   --profile <id>     Render profile (default: social-portrait-1080)
+  --ffmpeg <path>    Explicit ffmpeg binary (or set RISE_FFMPEG_PATH)
 `;
 
 function defined(value) {
@@ -47,7 +48,9 @@ function defined(value) {
   return out;
 }
 
-const CLI_FLAGS = new Set(['--in', '--sources', '--out', '--scale', '--painter', '--profile']);
+const CLI_FLAGS = new Set([
+  '--in', '--sources', '--out', '--scale', '--painter', '--profile', '--ffmpeg'
+]);
 
 function cliArgs(argv) {
   const raw = Array.isArray(argv) ? argv : [];
@@ -88,7 +91,8 @@ export function parseRenderCliArgs(argv, { cwd = process.cwd() } = {}) {
     mp4Path: join(outDir, 'experience.mp4'),
     scale,
     painter: values['--painter'] || 'chamber',
-    profileId: values['--profile'] || DEFAULT_RENDER_PROFILE_ID
+    profileId: values['--profile'] || DEFAULT_RENDER_PROFILE_ID,
+    ffmpegPath: values['--ffmpeg'] || process.env.RISE_FFMPEG_PATH || null
   };
 }
 
@@ -295,8 +299,8 @@ export function writeArtifactSidecars(outDir, artifact, extra = {}) {
     height: encoded.height,
     codec: encoded.codec,
     encoder: encoded.encoder,
-    frameCount: artifact.plan?.frameCount,
-    durationMs: artifact.plan?.durationMs,
+    frameCount: encoded.frameCount ?? artifact.plan?.frameCount,
+    durationMs: encoded.durationMs ?? artifact.plan?.durationMs,
     profile: artifact.job?.profile || extra.profileId || DEFAULT_RENDER_PROFILE_ID,
     jobHash: artifact.jobHash,
     scale: extra.scale,

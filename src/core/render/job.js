@@ -24,7 +24,9 @@ const JOB_FIELDS = new Set([
   'durationMs', 'seed', 'renderer', 'policies'
 ]);
 
-const SNAPSHOT_SOURCE_FIELDS = new Set(['sourceId', 'contentHash', 'editionId']);
+const SNAPSHOT_SOURCE_FIELDS = new Set([
+  'sourceId', 'contentHash', 'editionId', 'sourceRevision'
+]);
 const SNAPSHOT_ASSET_FIELDS = new Set(['assetId', 'contentHash']);
 const VIEWPORT_FIELDS = new Set(['width', 'height', 'pixelRatio']);
 const RENDERER_FIELDS = new Set(['version', 'environment', 'fontPackHash', 'codecProfile']);
@@ -157,6 +159,10 @@ function validateSourceSnapshot(value, path) {
   };
   if (source.editionId != null) {
     snapshot.editionId = exactId(source.editionId, `${path}.editionId`);
+  }
+  if (source.sourceRevision != null) {
+    snapshot.sourceRevision = parseContentHash(
+      source.sourceRevision, `${path}.sourceRevision`);
   }
   return snapshot;
 }

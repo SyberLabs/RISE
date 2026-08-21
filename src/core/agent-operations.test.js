@@ -249,6 +249,7 @@ describe('rise.agent-operation-set.v1', () => {
         sources: [{
           sourceId: SOURCE_ID,
           contentHash: sourceHash,
+          editionId: 'edition-1',
           byteLength: SOURCE_TEXT.length,
           characterCount: SOURCE_TEXT.length
         }],
