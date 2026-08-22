@@ -1501,3 +1501,143 @@ describe('Attractor listing chrome (FM-UI-6)', () => {
         container.remove();
     });
 });
+
+describe('source-family chips and word-fill hoist (FM-RISE-46)', () => {
+    const FAMILY_IDS = ['procedural', 'collections', 'personal', 'blend'];
+
+    function familyChips(container) {
+        return [...container.querySelectorAll('[data-source-family]')].map(btn => [
+            btn.dataset.sourceFamily,
+            btn.disabled,
+            btn.getAttribute('aria-disabled'),
+            getComputedStyle(btn).pointerEvents
+        ]);
+    }
+
+    function sourceGroup(container) {
+        return container.querySelector('[aria-label="Rhythmic source family"]')
+            || container.querySelector('[aria-label="Source family"]');
+    }
+
+    it('Collections / Personal / Blend stay selected and do not snap back to Procedural', () => {
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: {
+                presentation: 'continuous',
+                sourceFamily: 'procedural',
+                procedural: ['klee', 'harmonograph', 'attractor'],
+                sourced: []
+            }
+        });
+
+        for (const family of ['collections', 'personal', 'blend']) {
+            const chip = container.querySelector(`[data-source-family="${family}"]`);
+            expect(chip.disabled).toBe(false);
+            expect(chip.getAttribute('aria-disabled')).not.toBe('true');
+            expect(getComputedStyle(chip).pointerEvents).not.toBe('none');
+            chip.click();
+            expect(panel.getConfig().interlocution.sourceFamily).toBe(family);
+            expect(container.querySelector(`[data-source-family="${family}"]`)
+                .getAttribute('aria-pressed')).toBe('true');
+            expect(container.querySelector('[data-source-family="procedural"]')
+                .getAttribute('aria-pressed')).toBe('false');
+        }
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('selecting Collections unhides the collections accordion instead of leaving only Procedural', () => {
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: {
+                presentation: 'continuous',
+                sourceFamily: 'procedural',
+                procedural: ['fractal'],
+                sourced: []
+            }
+        });
+
+        container.querySelector('[data-source-family="collections"]').click();
+        expect(panel.getConfig().interlocution.sourceFamily).toBe('collections');
+        const museum = [...container.querySelectorAll('.vi-accordion-header')]
+            .find(btn => btn.textContent.includes('Museum Collections'))
+            ?.closest('.vi-accordion');
+        expect(museum).toBeTruthy();
+        expect(museum.hidden).toBe(false);
+        const procedural = [...container.querySelectorAll('.vi-accordion-header')]
+            .find(btn => btn.textContent.includes('Procedural Patterns'))
+            ?.closest('.vi-accordion');
+        expect(procedural.hidden).toBe(true);
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it.each(['off', 'attractor', 'genesis', 'interlocution'])(
+        'shows the four source chips and word-fill on %s',
+        (visualMode) => {
+            const { panel, container } = makePanel({
+                visualMode,
+                interlocution: {
+                    presentation: visualMode === 'interlocution' ? 'continuous' : undefined,
+                    sourceFamily: 'procedural',
+                    procedural: ['klee'],
+                    sourced: []
+                }
+            });
+
+            expect(familyChips(container).map(([id]) => id)).toEqual(FAMILY_IDS);
+            expect(familyChips(container).every(([, disabled, ariaDisabled, pointer]) => (
+                disabled === false && ariaDisabled !== 'true' && pointer !== 'none'
+            ))).toBe(true);
+            expect(container.querySelector('[data-word-fill]')).toBeTruthy();
+            expect(container.querySelector('[data-presentation="continuous-word"]')).toBeNull();
+            if (visualMode !== 'interlocution') {
+                expect(sourceGroup(container)?.querySelector('[data-word-fill]')).toBeNull();
+            }
+
+            panel.destroy();
+            container.remove();
+        }
+    );
+
+    it('keeps Focals free of source-family and word-fill chrome', () => {
+        const { panel, container } = makePanel({
+            visualMode: 'focals',
+            interlocution: {
+                sourceFamily: 'procedural',
+                procedural: ['klee'],
+                sourced: []
+            }
+        });
+
+        expect(container.querySelector('[data-source-family]')).toBeNull();
+        expect(container.querySelector('[data-word-fill]')).toBeNull();
+        expect(container.querySelector('.vi-focals-panel')).toBeTruthy();
+        expect(container.querySelector('.vi-focals-panel').hidden).toBe(false);
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('does not invent a fourth Presentation chip when word-fill is hoisted', async () => {
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: {
+                presentation: 'continuous',
+                sourceFamily: 'collections',
+                procedural: [],
+                sourced: ['aic-landscapes']
+            }
+        });
+
+        expect([...container.querySelectorAll('[data-presentation]')].map(btn => btn.dataset.presentation))
+            .toEqual(['continuous', 'behind-stream', 'full-frame']);
+        expect(container.querySelector('[data-presentation="continuous-word"]')).toBeNull();
+        expect(container.querySelector('[data-word-fill]')).toBeTruthy();
+
+        panel.destroy();
+        container.remove();
+    });
+});

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LISTED_PROCEDURAL_PATTERNS, PROCEDURAL_PATTERN_IDS } from './visual-registry.js';
 import {
+    inferVisualSourceFamily,
     normalizeVisualSelection,
     normalizeWordFill,
     wordFillIsDistinct
@@ -94,6 +95,67 @@ describe('normalizeVisualSelection procedural engine ids', () => {
             mode: 'pick',
             sourceFamily: 'procedural',
             procedural: ['attractor'],
+            sourced: []
+        });
+    });
+
+    it('an explicit Collections pick with leftover engines stays Collections', () => {
+        expect(normalizeVisualSelection({
+            sourceFamily: 'collections',
+            procedural: ['klee', 'harmonograph', 'attractor'],
+            sourced: []
+        })).toEqual({
+            sourceFamily: 'collections',
+            procedural: [],
+            sourced: []
+        });
+    });
+
+    it('an explicit Personal pick with leftover engines stays Personal', () => {
+        expect(normalizeVisualSelection({
+            sourceFamily: 'personal',
+            procedural: ['fractal'],
+            sourced: []
+        })).toEqual({
+            sourceFamily: 'personal',
+            procedural: [],
+            sourced: []
+        });
+    });
+
+    it('an explicit Blend pick is not rewritten to Procedural', () => {
+        expect(normalizeVisualSelection({
+            sourceFamily: 'blend',
+            procedural: ['klee'],
+            sourced: []
+        })).toEqual({
+            sourceFamily: 'blend',
+            procedural: ['klee'],
+            sourced: []
+        });
+    });
+
+    it('empty+empty keeps the last chosen family instead of inferring procedural', () => {
+        expect(inferVisualSourceFamily([], [], 'collections')).toBe('collections');
+        expect(inferVisualSourceFamily([], [], 'personal')).toBe('personal');
+        expect(inferVisualSourceFamily([], [], 'blend')).toBe('blend');
+        expect(normalizeVisualSelection({
+            sourceFamily: 'collections',
+            procedural: [],
+            sourced: []
+        })).toEqual({
+            sourceFamily: 'collections',
+            procedural: [],
+            sourced: []
+        });
+    });
+
+    it('a leaked engine without a family still becomes procedural', () => {
+        expect(normalizeVisualSelection({
+            sourced: ['procedural:fractal']
+        })).toEqual({
+            sourceFamily: 'procedural',
+            procedural: ['fractal'],
             sourced: []
         });
     });
