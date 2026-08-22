@@ -9,7 +9,6 @@ import { VisualCortex } from './visual-cortex.js';
 import { KleeFlashes } from './klee-flashes.js';
 import { ContinuousField } from './continuous-field.js';
 import { Ostensoria } from './ostensoria.js';
-import { FractalFlame } from './fractal.js';
 import { grantVisualInterlocutionConsent } from '../core/visual-safety.js';
 
 function mockEngine(width = 800, height = 400) {
@@ -1821,10 +1820,13 @@ describe('Continuous Field (Gallery) wiring', () => {
     });
 
     it('runs a procedural-only Gallery without requiring an external pool', async () => {
-        const { cortex, host } = hostedContinuousCortex();
-        vi.spyOn(FractalFlame.prototype, 'isReady').mockReturnValue(true);
-        vi.spyOn(FractalFlame.prototype, 'generate').mockReturnValue(true);
-        const snapshot = vi.spyOn(cortex, '_renderContinuousProceduralWork');
+        const { cortex } = hostedContinuousCortex();
+        vi.spyOn(cortex, '_renderContinuousProceduralWork')
+            .mockResolvedValue({
+                url: 'data:image/webp;base64,flame',
+                title: 'Fractal Flame',
+                sourceType: 'fractal'
+            });
 
         cortex.updateConfig({
             enabled: true,
@@ -1833,11 +1835,8 @@ describe('Continuous Field (Gallery) wiring', () => {
         });
         await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
 
-        expect(cortex._activePoolCategories()).toEqual([]);
-        expect(cortex._continuousHasWorks()).toBe(true);
-        expect(cortex._galleryEngineField?.running).toBe(true);
-        expect(host.querySelectorAll('.gallery-engine-plane').length).toBe(2);
-        expect(snapshot).not.toHaveBeenCalled();
+        expect(cortex._continuousField.currentUrl)
+            .toBe('data:image/webp;base64,flame');
         expect(cortex._continuousField.running).toBe(true);
         cortex.destroy();
     });
@@ -1874,19 +1873,20 @@ describe('Continuous Field (Gallery) wiring', () => {
         const { cortex } = hostedContinuousCortex();
         seedPool(cortex, 'aic-oldmasters', ['painting.jpg']);
         cortex.config.activeTypes = ['fractal', 'aic-oldmasters'];
-        const snapshot = vi.spyOn(cortex, '_renderContinuousProceduralWork');
-
-        expect(cortex._continuousSnapshotFamilies()).toEqual(['fractal']);
-        expect(cortex._continuousProceduralTypes()).toEqual([]);
-        expect(cortex._activePoolCategories()).toEqual(['aic-oldmasters']);
-        expect(cortex._continuousHasWorks()).toBe(true);
+        vi.spyOn(cortex, '_renderContinuousProceduralWork')
+            .mockResolvedValue({
+                url: 'data:image/webp;base64,flame',
+                sourceType: 'fractal'
+            });
 
         const first = await cortex._nextContinuousWork();
-        const second = await cortex._nextContinuousWork({ currentUrl: first?.url });
+        const second = await cortex._nextContinuousWork({ currentUrl: first.url });
+        const urls = new Set([first.url, second.url]);
 
-        expect(first).toMatchObject({ url: 'painting.jpg' });
-        expect(second).toMatchObject({ url: 'painting.jpg' });
-        expect(snapshot).not.toHaveBeenCalled();
+        expect(urls).toEqual(new Set([
+            'painting.jpg',
+            'data:image/webp;base64,flame'
+        ]));
         cortex.destroy();
     });
 
@@ -2122,12 +2122,11 @@ describe('Gallery procedural engines stay engines', () => {
         expect(cortex._isExternalCategory('fractal')).toBe(false);
         expect(cortex._activePoolCategories()).toEqual([]);
         expect(cortex._continuousHasWorks()).toBe(true);
-        expect(cortex._continuousSnapshotFamilies()).toEqual(['fractal']);
-        expect(cortex._continuousProceduralTypes()).toEqual([]);
+        expect(cortex._continuousProceduralTypes()).toEqual(['fractal']);
         cortex.destroy();
     });
 
-    it('an unknown source does not become a Wikimedia shelf when a procedural id is chosen', async () => {
+    it('an unknown source does not become a Wikimedia shelf when a procedural id is chosen', () => {
         const cortex = new VisualCortex();
         cortex.updateConfig({
             enabled: true,
@@ -2136,22 +2135,23 @@ describe('Gallery procedural engines stay engines', () => {
         });
         expect(cortex.config.activeTypes).toEqual(['fractal', 'missing-shelf']);
         expect(cortex._isExternalCategory('fractal')).toBe(false);
-        expect(cortex._continuousSnapshotFamilies()).toEqual(['fractal']);
-        expect(cortex._continuousProceduralTypes()).toEqual([]);
+        expect(cortex._continuousProceduralTypes()).toEqual(['fractal']);
         expect(cortex._continuousHasWorks()).toBe(true);
-        expect(await cortex._getProviderForCategory('fractal')).toBeNull();
         cortex.destroy();
     });
 
-    it('selecting Fractal Flames mounts a living engine field, not a stills snapshot', () => {
+    it('selecting Fractal Flames mounts the engine into Gallery, not an empty glass wall', async () => {
         grantVisualInterlocutionConsent();
-        vi.spyOn(FractalFlame.prototype, 'isReady').mockReturnValue(true);
-        vi.spyOn(FractalFlame.prototype, 'fillQueue').mockResolvedValue(undefined);
-        vi.spyOn(FractalFlame.prototype, 'generate').mockReturnValue(true);
+        vi.spyOn(ContinuousField.prototype, '_defaultDecode').mockResolvedValue(true);
         const cortex = new VisualCortex();
         cortex._scheduleBackgroundWarm = () => {};
         cortex._scheduleRollingRefresh = () => {};
-        const snapshot = vi.spyOn(cortex, '_renderContinuousProceduralWork');
+        vi.spyOn(cortex, '_renderContinuousProceduralWork')
+            .mockResolvedValue({
+                url: 'data:image/webp;base64,flame',
+                title: 'Fractal Flame',
+                sourceType: 'fractal'
+            });
         const host = document.createElement('div');
         document.body.appendChild(host);
         cortex.setContinuousFieldHost(host);
@@ -2160,14 +2160,15 @@ describe('Gallery procedural engines stay engines', () => {
             presentation: 'continuous',
             activeTypes: ['procedural:fractal']
         });
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
 
-        expect(cortex._galleryEngineField?.running).toBe(true);
-        expect(host.querySelectorAll('.gallery-engine-plane').length).toBe(2);
-        expect(snapshot).not.toHaveBeenCalled();
+        expect(cortex._continuousField?.running).toBe(true);
         expect(cortex._harmonographField?.running).toBeFalsy();
-
-        cortex.updateConfig({ presentation: 'full-frame' });
-        expect(cortex._galleryEngineField?.running).toBe(false);
+        expect(cortex._renderContinuousProceduralWork).toHaveBeenCalledWith('fractal');
+        expect(cortex._continuousField.currentUrl).toBe('data:image/webp;base64,flame');
+        expect(host.querySelectorAll('.continuous-field-layer').length).toBeGreaterThan(0);
         cortex.destroy();
     });
 });

@@ -41,6 +41,7 @@ import {
 } from '../core/visual-style-definitions.js';
 import { escapeHtml, safeUrl } from '../core/sanitize.js';
 import {
+    adoptWordFillWhenGalleryEmpty,
     hasVisualSelectionFields,
     isPersonalVisualSource,
     normalizeGlobalPoolSelection,
@@ -120,6 +121,10 @@ function wordFillControlValue(fill) {
     if (normalized.sourced[0]) return `sourced:${normalized.sourced[0]}`;
     if (normalized.procedural[0]) return `procedural:${normalized.procedural[0]}`;
     return 'same';
+}
+
+function sourceFamilyShowsProceduralPatterns(sourceFamily) {
+    return sourceFamily === 'procedural' || sourceFamily === 'blend';
 }
 
 function wordFillFromControlValue(value) {
@@ -208,6 +213,10 @@ export class VisualInterlocutionPanel {
             procedural,
             sourced
         });
+        const adopted = adoptWordFillWhenGalleryEmpty(
+            selection,
+            options.interlocution?.wordFill ?? options.wordFill
+        );
 
         // Configuration state
         // When a session follows a curated visual PROGRAM (a Gospel
@@ -254,7 +263,7 @@ export class VisualInterlocutionPanel {
             // arrive nested under options.interlocution; flattened keys are
             // honored as a fallback for legacy call sites.
             interlocution: {
-                ...selection,
+                ...adopted.selection,
                 globalPool: normalizeGlobalPoolSelection(
                     options.interlocution?.globalPool ?? options.globalPool
                 ),
@@ -281,9 +290,7 @@ export class VisualInterlocutionPanel {
                 // continuous (Gallery) is a persistent field behind it.
                 presentation: normalizePresentation(
                     options.interlocution?.presentation ?? options.presentation),
-                wordFill: normalizeWordFill(
-                    options.interlocution?.wordFill ?? options.wordFill
-                ),
+                wordFill: adopted.wordFill,
                 streamGlass: (options.interlocution?.streamGlass ?? options.streamGlass) !== false,
                 // Curated collections carried by an Atrium launch. Present
                 // only on Atrium-origin sessions; purely informational —
@@ -307,7 +314,9 @@ export class VisualInterlocutionPanel {
         };
 
         // UI State
-        this.activeAccordions = []; // 'procedural', 'universal', 'personal'
+        this.activeAccordions = sourceFamilyShowsProceduralPatterns(
+            this.config.interlocution.sourceFamily
+        ) ? ['procedural'] : [];
 
         this.locked = options.locked ?? false;
         this.lockedMessage = options.lockedMessage || 'Load text to configure visuals.';
@@ -522,6 +531,13 @@ export class VisualInterlocutionPanel {
                 this._chapelLaunch = nextAtriumCollections.some(
                     id => id.startsWith('chapel-') || id.startsWith('dore:'));
             }
+            const adopted = adoptWordFillWhenGalleryEmpty(
+                normalizeVisualSelection({
+                    ...selectionInput,
+                    ...migrated
+                }),
+                mergedInterlocution.wordFill
+            );
             this.config.interlocution = {
                 ...mergedInterlocution,
                 atriumCollections: nextAtriumCollections,
@@ -529,13 +545,10 @@ export class VisualInterlocutionPanel {
                 galleryCadence: normalizeGalleryCadence(mergedInterlocution.galleryCadence),
                 renderLanguage: 'native',   // retired; see the constructor
                 presentation: normalizePresentation(mergedInterlocution.presentation),
-                wordFill: normalizeWordFill(mergedInterlocution.wordFill),
                 streamGlass: mergedInterlocution.streamGlass !== false,
                 globalPool: normalizeGlobalPoolSelection(mergedInterlocution.globalPool),
-                ...normalizeVisualSelection({
-                    ...selectionInput,
-                    ...migrated
-                })
+                ...adopted.selection,
+                wordFill: adopted.wordFill
             };
         }
 
@@ -1646,8 +1659,18 @@ export class VisualInterlocutionPanel {
         });
 
         this.container.querySelector('[data-word-fill]')?.addEventListener('change', event => {
-            this.config.interlocution.wordFill = wordFillFromControlValue(event.target.value);
+            const adopted = adoptWordFillWhenGalleryEmpty(
+                this.config.interlocution,
+                wordFillFromControlValue(event.target.value)
+            );
+            this.config.interlocution = {
+                ...this.config.interlocution,
+                ...adopted.selection,
+                wordFill: adopted.wordFill
+            };
             this.emitChange();
+            this.render();
+            this.attachEvents();
         });
 
         // 3-way mode selector (Off / Focals / Interlocution)
@@ -1684,6 +1707,10 @@ export class VisualInterlocutionPanel {
                         sourceFamily: btn.dataset.sourceFamily
                     })
                 };
+                if (sourceFamilyShowsProceduralPatterns(btn.dataset.sourceFamily)
+                    && !this.activeAccordions.includes('procedural')) {
+                    this.activeAccordions.push('procedural');
+                }
                 if (window.rise?.audioEngine) {
                     window.rise.audioEngine.playHiss();
                 }

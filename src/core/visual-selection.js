@@ -149,3 +149,44 @@ export function normalizeWordFill(value) {
 export function wordFillIsDistinct(value) {
     return normalizeWordFill(value).mode === 'pick';
 }
+
+/**
+ * Word source is the control a stranger can see without opening
+ * Procedural Patterns. When the room is empty, that pick is the engine
+ * they chose — lift it onto the gallery so ContinuousField stills paint.
+ * A distinct word-fill stays distinct when the room already has works.
+ */
+export function adoptWordFillWhenGalleryEmpty(selection, wordFill) {
+    const nextSelection = normalizeVisualSelection(selection);
+    const nextFill = normalizeWordFill(wordFill);
+    const galleryEmpty = nextSelection.procedural.length === 0
+        && nextSelection.sourced.length === 0;
+    if (!galleryEmpty || nextFill.mode !== 'pick') {
+        return { selection: nextSelection, wordFill: nextFill };
+    }
+    return {
+        selection: normalizeVisualSelection({
+            sourceFamily: nextFill.sourceFamily,
+            procedural: nextFill.procedural,
+            sourced: nextFill.sourced
+        }),
+        wordFill: { mode: 'same' }
+    };
+}
+
+/**
+ * Session-start identity: canonicalize ids, then adopt a Word-source
+ * engine onto an empty room so the visible <select>, Blend-with-nothing,
+ * and stale presets all reach the stills path.
+ */
+export function resolveSessionVisualSelection(interlocution = {}) {
+    const input = interlocution && typeof interlocution === 'object' && !Array.isArray(interlocution)
+        ? interlocution
+        : {};
+    const adopted = adoptWordFillWhenGalleryEmpty(input, input.wordFill);
+    return {
+        ...input,
+        ...adopted.selection,
+        wordFill: adopted.wordFill
+    };
+}
