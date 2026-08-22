@@ -545,7 +545,27 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
         return container.querySelector('.chamber-mask-ground-plate');
     }
 
-    it('Astronomy room + Attractor fill puts a Dark plate under Layer A, not on the mask host', async () => {
+    function assertFillUnderstudy(container, ground) {
+        const layerA = galleryHost(container);
+        const wrapper = fillHost(container);
+        const understudy = plate(container);
+        expect(layerA).toBeTruthy();
+        expect(wrapper).toBeTruthy();
+        expect(understudy).toBeTruthy();
+        expect(understudy.dataset.ground).toBe(ground);
+        expect(wrapper.contains(understudy)).toBe(true);
+        expect(wrapper.firstElementChild).toBe(understudy);
+        expect(layerA.contains(understudy)).toBe(false);
+        expect(understudy.nextElementSibling).not.toBe(layerA);
+        expect(layerA.previousElementSibling).not.toBe(understudy);
+        expect(layerA.style.maskImage).toBeFalsy();
+        expect(wrapper.style.background).toBeFalsy();
+        expect(wrapper.style.backgroundColor).toBeFalsy();
+        expect(`${wrapper.style.maskImage} ${wrapper.style.webkitMaskImage}`).toMatch(/text/i);
+        return { layerA, wrapper, understudy };
+    }
+
+    it('Astronomy room + Attractor fill puts Dark plate inside the masked wrapper, behind the engine', async () => {
         const { chamber, container } = makeChamber(
             {
                 chunkMode: 'word',
@@ -577,22 +597,15 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
         }
         chamber.syncMaskGroundPlate();
 
-        const layerA = galleryHost(container);
-        const layerB = fillHost(container);
-        const ground = plate(container);
-        expect(layerA).toBeTruthy();
-        expect(layerB).toBeTruthy();
-        expect(ground).toBeTruthy();
-        expect(ground.dataset.ground).toBe('dark');
-        expect(ground.compareDocumentPosition(layerA) & Node.DOCUMENT_POSITION_FOLLOWING)
+        const { wrapper, understudy } = assertFillUnderstudy(container, 'dark');
+        const engine = [...wrapper.children].find(node => node !== understudy);
+        expect(engine).toBeTruthy();
+        expect(understudy.compareDocumentPosition(engine) & Node.DOCUMENT_POSITION_FOLLOWING)
             .toBeTruthy();
-        expect(layerB.contains(ground)).toBe(false);
-        expect(layerB.style.background).toBeFalsy();
-        expect(layerB.style.backgroundColor).toBeFalsy();
         chamber.destroy();
     });
 
-    it('Old Masters room + Fractal fill puts a Light (cream) plate under Layer A', async () => {
+    it('Old Masters room + Fractal fill puts Light cream plate inside the glyph wrapper', async () => {
         const { chamber, container } = makeChamber(
             {
                 chunkMode: 'word',
@@ -620,12 +633,7 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
         }
         chamber.syncMaskGroundPlate();
 
-        const ground = plate(container);
-        expect(ground).toBeTruthy();
-        expect(ground.dataset.ground).toBe('light');
-        expect(galleryHost(container).contains(ground)).toBe(false);
-        expect(fillHost(container)?.contains(ground)).toBe(false);
-        expect(fillHost(container)?.style.background).toBeFalsy();
+        assertFillUnderstudy(container, 'light');
         chamber.destroy();
     });
 
@@ -665,6 +673,7 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
 
         expect(plate(container)).toBeNull();
         expect(fillHost(container)?.style.background).toBeFalsy();
+        expect(galleryHost(container)?.style.maskImage).toBeFalsy();
         chamber.destroy();
     });
 });

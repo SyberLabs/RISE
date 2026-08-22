@@ -610,14 +610,14 @@ export class Chamber {
   }
 
   /**
-   * Plate under Layer A (the gallery host). Never a background on the
-   * mask / fill host — unmasked Layer B pixels stay transparent and punch
-   * through to A, then to this plate if A is missing.
+   * Fill understudy inside the glyph wrapper, behind the engine.
+   * The wrapper carries the mask and has no background. Layer A stays
+   * unmasked so counters show the room only.
    */
   syncMaskGroundPlate() {
-    const field = this.container.querySelector('#chamber-field');
+    const wrapper = this.fillFieldHost;
     const layerA = this.container.querySelector('#chamber-continuous-field');
-    if (!this.chamberMaskApplies() || !field || !layerA) {
+    if (!this.chamberMaskApplies() || !wrapper) {
       this._removeMaskGroundPlate();
       return;
     }
@@ -629,7 +629,7 @@ export class Chamber {
       : [...(interlocution.procedural || []), ...(interlocution.sourced || [])];
     const wordFill = visualCortex.config?.wordFill ?? interlocution.wordFill;
     const roomOpaque = Boolean(visualCortex._continuousField?.currentUrl)
-      || Boolean(layerA.querySelector('.continuous-field-artwork[src]'));
+      || Boolean(layerA?.querySelector('.continuous-field-artwork[src]'));
     const ground = maskGroundFromConfig({
       sourced: interlocution.sourced,
       procedural: interlocution.procedural,
@@ -643,20 +643,19 @@ export class Chamber {
       return;
     }
 
-    if (!this.maskGroundPlate || !this.maskGroundPlate.isConnected) {
-      const plate = document.createElement('div');
+    let plate = this.maskGroundPlate;
+    if (!plate || plate.parentNode !== wrapper) {
+      plate = document.createElement('div');
       plate.className = 'chamber-mask-ground-plate';
       plate.setAttribute('aria-hidden', 'true');
-      field.insertBefore(plate, layerA);
       this.maskGroundPlate = plate;
-    } else if (this.maskGroundPlate.nextElementSibling !== layerA) {
-      field.insertBefore(this.maskGroundPlate, layerA);
     }
-    this.maskGroundPlate.dataset.ground = ground;
-    if (this.fillFieldHost) {
-      this.fillFieldHost.style.removeProperty('background');
-      this.fillFieldHost.style.removeProperty('background-color');
+    if (wrapper.firstChild !== plate) {
+      wrapper.insertBefore(plate, wrapper.firstChild);
     }
+    plate.dataset.ground = ground;
+    wrapper.style.removeProperty('background');
+    wrapper.style.removeProperty('background-color');
   }
 
   _shouldMountFill() {

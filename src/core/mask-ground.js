@@ -2,8 +2,9 @@
  * Mask ground — color profiles + Firstmate combine().
  *
  * Every source declares Transparent | Light | Dark. The runtime pair
- * (room × word-fill) picks a plate that sits under Layer A. Never a
- * new visualMode. Never paint on the mask host (Layer B).
+ * (room × word-fill) picks a plate that sits inside the glyph wrapper,
+ * behind the engine. Never a new visualMode. Never paint the wrapper
+ * background. Layer A stays unmasked.
  *
  * Light = Cream plate (not white). Dark = Dark Slate plate (not black).
  * Transparent = no plate.
