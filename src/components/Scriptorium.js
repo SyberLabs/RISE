@@ -319,10 +319,13 @@ export class Scriptorium {
             placeholder="A sequence about memory and loss.">${escapeHtml(this.intent)}</textarea>
 
           <label class="scriptorium-label" for="scriptorium-length">How long should it be?</label>
+          <!-- NINE STOPS, NOT A THOUSAND. The control is an index over the
+               ladder; the session stores the rung's WORD value, so a
+               context.json and a CLI flag stay in words. -->
           <input id="scriptorium-length" class="scriptorium-length" type="range"
-            min="${SCRIPTORIUM_LENGTH.min}" max="${SCRIPTORIUM_LENGTH.max}"
-            step="${SCRIPTORIUM_LENGTH.step}"
-            value="${this.targetWords}"
+            min="0" max="${SCRIPTORIUM_LENGTH.rungs.length - 1}" step="1"
+            value="${SCRIPTORIUM_LENGTH.rungs.indexOf(this.targetWords)}"
+            aria-valuetext="${escapeHtml(this.session.describeLength())}"
             aria-describedby="scriptorium-length-readout">
           <p class="scriptorium-note" id="scriptorium-length-readout">${escapeHtml(this.session.describeLength())}</p>
           <p class="scriptorium-note">
@@ -438,11 +441,15 @@ export class Scriptorium {
 
     this.container.querySelector('#scriptorium-length')
       ?.addEventListener('input', (event) => {
-        this.session.setTargetWords(event.target.value);
+        this.session.setTargetWords(
+          SCRIPTORIUM_LENGTH.rungs[Number(event.target.value)]);
         // The readout alone, not a re-render: this room rebuilds its whole
         // DOM, which would take the slider's focus away mid-drag.
         const readout = this.container.querySelector('#scriptorium-length-readout');
         if (readout) readout.textContent = this.session.describeLength();
+        // A range reads its value aloud as a bare number, and the number here
+        // is an index into a ladder — "3" tells a screen reader nothing.
+        event.target.setAttribute('aria-valuetext', this.session.describeLength());
       });
 
     // COMMIT, NOT DRAG. The budget the gate measures against lives in the

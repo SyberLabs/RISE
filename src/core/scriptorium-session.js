@@ -57,30 +57,52 @@ import { EditorAssetError } from './editor-asset.js';
 /**
  * The length dial, in one place.
  *
- * The floor is an opening, not the shortest work in the library. The shortest
- * work on the shelf runs to 10,321 words, so a slider that filtered by whole
- * works had nowhere below that to go; a movement can name a division's
- * opening now (see library-extent.js), and 200 words is a passage worth
- * reading.
+ * NINE RUNGS, NOT A THOUSAND STOPS.
  *
- * The ceiling is the COMPILER's, not the budget's. maxAtoms counts atoms, and
- * word chunking emits a paragraph-break atom for every paragraph — so a
- * length equal to the atom cap passed the gate and threw at Begin, which made
- * the top of the slider's travel a trap. The gate refuses against the same
- * constant (experience-program-io.js), so neither surface offers a length the
- * gate would refuse rather than the two agreeing by arithmetic.
+ * The continuous range offered 1,044 positions and about 104 outcomes that
+ * changed the sitting: roughly nine tenths of its travel repeated a reading a
+ * neighbouring stop already gave, and two thirds of it sat above the longest
+ * division the shelf can serve whole. A dial whose travel mostly does nothing
+ * is not a control; it is an invitation to guess.
+ *
+ * Each rung differs from its neighbour by 1.33x to 2.5x, which is enough that
+ * every one of them changes what the shelf can offer:
+ *
+ *   400   2 min    43% of divisions whole      1,000   5 min    51%
+ *   2,000 10 min   70%                         3,000   15 min
+ *   4,000 20 min   83%                         6,000   30 min   93%
+ *   9,000 45 min                              12,000   60 min   99%
+ *   18,000 90 min  99.3%
+ *
+ * Minutes are the readout at READING_PACE.default and never the stored
+ * quantity: words are what a model can add up from the library it was handed,
+ * and minutes are their derivative at a pace this room does not set.
+ *
+ * THE SESSION STORES THE WORD VALUE, not the index, so a context.json and a
+ * CLI flag stay in words and mean the same thing a year from now.
+ *
+ * The ladder is the reader's dial and this module's clamp. It is NOT a new
+ * refusal: the gate still owns MAX_SAFE_TARGET_WORDS, and an imported context
+ * asking for 20,000 is a legal budget that simply is not a rung.
  */
 export const SCRIPTORIUM_LENGTH = Object.freeze({
-  min: 200,
-  step: 100,
-  max: MAX_SAFE_TARGET_WORDS,
-  default: 20_000
+  rungs: Object.freeze([400, 1000, 2000, 3000, 4000, 6000, 9000, 12000, 18000]),
+  default: 4000
 });
 
+/**
+ * The nearest rung, with a tie going to the shorter reading.
+ *
+ * Down rather than up on a tie because the room's failure was always
+ * offering more than the shelf could serve, and because a reader who wanted
+ * the longer sitting has a rung that says so.
+ */
 export function clampTargetWords(value) {
   const parsed = Math.round(Number(value));
   if (!Number.isFinite(parsed)) return SCRIPTORIUM_LENGTH.default;
-  return Math.max(SCRIPTORIUM_LENGTH.min, Math.min(SCRIPTORIUM_LENGTH.max, parsed));
+  return SCRIPTORIUM_LENGTH.rungs.reduce((best, rung) => (
+    Math.abs(rung - parsed) < Math.abs(best - parsed) ? rung : best
+  ));
 }
 
 /**

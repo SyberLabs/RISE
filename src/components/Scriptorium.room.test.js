@@ -26,6 +26,7 @@ import {
     READING_LIMITS,
     WORST_MEASURED_DIVISION
 } from '../core/reading-limits.js';
+import { clampTargetWords, SCRIPTORIUM_LENGTH } from '../core/scriptorium-session.js';
 import { resolveProgramLibrarySources } from '../core/scriptorium-resolve.js';
 
 vi.mock('../core/scriptorium-resolve.js', async (importOriginal) => ({
@@ -173,9 +174,10 @@ describe('the Scriptorium as the reader meets it', () => {
         field.dispatchEvent(new Event('input', { bubbles: true }));
     };
     const click = (action) => container.querySelector(`[data-action="${action}"]`).click();
+    /** The reader moves a nine-stop dial; the session stores the rung's words. */
     const slideTo = (words) => {
         const slider = container.querySelector('#scriptorium-length');
-        slider.value = String(words);
+        slider.value = String(SCRIPTORIUM_LENGTH.rungs.indexOf(clampTargetWords(words)));
         slider.dispatchEvent(new Event('input', { bubbles: true }));
         slider.dispatchEvent(new Event('change', { bubbles: true }));
     };
@@ -185,6 +187,22 @@ describe('the Scriptorium as the reader meets it', () => {
         return room.context.library
             .filter(entry => Number.isInteger(entry.words))
             .reduce((shortest, entry) => (entry.words < shortest.words ? entry : shortest));
+    };
+
+    /**
+     * The rung a reader would reach for to hold this work whole.
+     *
+     * The default was 20,000 words and is now 4,000, so a whole work no
+     * longer fits by default — and the shortest work on the shelf is 10,321.
+     * A test that wants a whole reading has to ask for the length a reader
+     * would have to ask for, which is the ladder doing its job rather than a
+     * fixture to work around.
+     */
+    const lengthHolding = (entry) => {
+        const rung = SCRIPTORIUM_LENGTH.rungs.find(words => words >= entry.words);
+        expect(rung, `no rung holds ${entry.id} (${entry.words} words)`).toBeTruthy();
+        slideTo(rung);
+        return rung;
     };
 
     beforeEach(() => {
@@ -220,6 +238,7 @@ describe('the Scriptorium as the reader meets it', () => {
         });
 
         it('keeps one Vault draft for one click on Keep', async () => {
+            lengthHolding(shortestWork());
             paste(score({ sourceId: shortestWork().id }));
             click('examine');
             click('keep');
@@ -234,9 +253,13 @@ describe('the Scriptorium as the reader meets it', () => {
             // An atom is not a word: word chunking adds a paragraph-break atom
             // per paragraph, so the atom cap as a word budget was a trap at the
             // top of the travel — accepted at the gate, thrown at Begin.
-            expect(Number(slider.max)).toBe(MAX_SAFE_TARGET_WORDS);
+            // The dial is an index over nine rungs; the budget it reaches is
+            // the top rung, which is what must compile.
+            expect(Number(slider.max)).toBe(SCRIPTORIUM_LENGTH.rungs.length - 1);
             slideTo(999_999);
-            expect(room.targetWords).toBe(MAX_SAFE_TARGET_WORDS);
+            const highest = SCRIPTORIUM_LENGTH.rungs[SCRIPTORIUM_LENGTH.rungs.length - 1];
+            expect(room.targetWords).toBe(highest);
+            expect(highest).toBeLessThanOrEqual(MAX_SAFE_TARGET_WORDS);
 
             // AND THE TOP OF THE TRAVEL IS A LENGTH THAT COMPILES, measured
             // against the densest division the shelf actually holds rather
@@ -247,20 +270,21 @@ describe('the Scriptorium as the reader meets it', () => {
             // was doing all the work.
             const densest = WORST_MEASURED_DIVISION.atoms / WORST_MEASURED_DIVISION.words;
             expect(
-                Math.ceil(Number(slider.max) * densest),
-                `a reading of ${Number(slider.max).toLocaleString()} words at the shelf's `
+                Math.ceil(highest * densest),
+                `a reading of ${highest.toLocaleString()} words at the shelf's `
                 + 'own worst density does not fit in one session'
             ).toBeLessThanOrEqual(READING_LIMITS.maxAtoms);
         });
 
         it('quotes the pace the reading will open at', () => {
             const readout = container.querySelector('#scriptorium-length-readout').textContent;
-            // 20,000 words at the reader's 220 wpm, not at a 320 nobody set.
+            // The default rung at the reader's 220 wpm, not at a 320 nobody set.
             expect(readout).toContain('220 wpm');
-            expect(readout).toContain('1h 31m');
+            expect(readout).toContain('18 min');
         });
 
         it('opens the reading at that same pace', async () => {
+            lengthHolding(shortestWork());
             paste(score({ sourceId: shortestWork().id }));
             click('examine');
             click('begin');
@@ -272,10 +296,11 @@ describe('the Scriptorium as the reader meets it', () => {
             // A take prepared at one length, then the slider raised — which is
             // exactly what the old refusal advised the reader to do.
             click('prepare-take');
-            const long = room.context.library
-                .find(entry => entry.words > 20_000 && entry.words <= MAX_SAFE_TARGET_WORDS);
-            expect(long, 'the shelf needs one work above the default budget').toBeTruthy();
-            slideTo(Math.min(MAX_SAFE_TARGET_WORDS, long.words + 100));
+            const highest = SCRIPTORIUM_LENGTH.rungs[SCRIPTORIUM_LENGTH.rungs.length - 1];
+            const long = room.context.library.find(entry =>
+                entry.words > SCRIPTORIUM_LENGTH.default && entry.words <= highest);
+            expect(long, 'the shelf needs one work above the default rung').toBeTruthy();
+            lengthHolding(long);
             paste(score({ sourceId: long.id }));
             click('examine');
             expect(room.verdict.text).toBeNull();
@@ -302,6 +327,7 @@ describe('the Scriptorium as the reader meets it', () => {
             const file = png();
             await room.addMaterials([file]);
             const assetId = room.materials[0].id;
+            lengthHolding(shortestWork());
             paste(score({ sourceId: shortestWork().id, assetId }));
             click('examine');
             click('begin');
@@ -329,6 +355,7 @@ describe('the Scriptorium as the reader meets it', () => {
 
             // The prompt teaches no video cue, so this is the score that comes
             // back for an MP4.
+            lengthHolding(shortestWork());
             paste(score({ sourceId: shortestWork().id, assetId }));
             click('examine');
             expect(room.verdict.ok).toBe(true);
@@ -348,7 +375,9 @@ describe('the Scriptorium as the reader meets it', () => {
             const clip = new File([PNG_BYTES], 'harbour.mp4', { type: 'video/mp4' });
             await room.addMaterials([clip]);
             const assetId = room.materials[0].id;
-            const sourceId = shortestWork().id;
+            const work = shortestWork();
+            const sourceId = work.id;
+            lengthHolding(work);
             paste(JSON.stringify({
                 schema: 'rise.experience-program.v1',
                 id: 'a-harbour',
@@ -391,6 +420,7 @@ describe('the Scriptorium as the reader meets it', () => {
             const file = png();
             await room.addMaterials([file]);
             const assetId = room.materials[0].id;
+            lengthHolding(shortestWork());
             paste(score({ sourceId: shortestWork().id, assetId }));
             click('examine');
             click('keep');
@@ -466,6 +496,7 @@ describe('the Scriptorium as the reader meets it', () => {
             // refused, and the room is searched for any of them. A shadow field
             // is caught whatever it is called, because what is looked for is the
             // VALUE the session has since discarded.
+            lengthHolding(shortestWork());
             paste(score({ sourceId: shortestWork().id }));
             click('examine');
             expect(room.verdict.ok).toBe(true);

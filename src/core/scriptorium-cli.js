@@ -238,8 +238,8 @@ Commands
 
 Options
   --intent "<text>"        what the reading should be about
-  --length <words>         what the reader asked for \
-(${SCRIPTORIUM_LENGTH.min}–${SCRIPTORIUM_LENGTH.max})
+  --length <words>         what the reader asked for, snapped to a rung
+                           (${SCRIPTORIUM_LENGTH.rungs.join(', ')})
   --material <path>        a file the reader brought (repeatable)
   --wpm <n>                the reader's pace, which no terminal can read
   --id <id>                fix the session id, for output that can be diffed
@@ -429,7 +429,17 @@ export async function runScriptoriumCli(argv = [], io = {}) {
     ...(options.id ? { mintId: () => options.id } : {})
   });
   session.setIntent(options.intent ?? '');
-  if (options.length != null) session.setTargetWords(options.length);
+  if (options.length != null) {
+    const asked = Math.round(Number(options.length));
+    session.setTargetWords(options.length);
+    // SAY WHICH RUNG IT WILL USE, and only when it moved. A terminal that
+    // silently rounds 5,000 to 4,000 and then refuses a score against 4,000
+    // has told the reader nothing about why.
+    if (session.targetWords !== asked) {
+      err(`scriptorium: --length ${options.length} reads at `
+        + `${session.targetWords} words, the nearest rung.`);
+    }
+  }
 
   for (const path of options.materials) {
     let taken;

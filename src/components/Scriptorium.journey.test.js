@@ -19,6 +19,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Scriptorium } from './Scriptorium.js';
+import { clampTargetWords, SCRIPTORIUM_LENGTH } from '../core/scriptorium-session.js';
 import { WorkshopMedia, WorkshopMediaError } from '../core/workshop-media.js';
 import { hydrateSessionSequenceAssets } from '../core/workshop-asset-durability.js';
 import { workshopProjectToSessionConfig } from '../core/workshop-project.js';
@@ -66,9 +67,10 @@ describe('one reader, one path, real Library', () => {
         field.dispatchEvent(new Event('input', { bubbles: true }));
     };
     const click = (action) => container.querySelector(`[data-action="${action}"]`).click();
+    /** The reader moves a nine-stop dial; the session stores the rung's words. */
     const slideTo = (words) => {
         const slider = container.querySelector('#scriptorium-length');
-        slider.value = String(words);
+        slider.value = String(SCRIPTORIUM_LENGTH.rungs.indexOf(clampTargetWords(words)));
         slider.dispatchEvent(new Event('input', { bubbles: true }));
         slider.dispatchEvent(new Event('change', { bubbles: true }));
     };
@@ -103,14 +105,14 @@ describe('one reader, one path, real Library', () => {
         expect(room.materials[0].kind).toBeUndefined();
 
         // ---- 2. a SHORT length --------------------------------------------
-        slideTo(900);
-        expect(room.targetWords).toBe(900);
+        slideTo(1000);
+        expect(room.targetWords).toBe(1000);
 
         // ---- 3. the prompt, built from the live context --------------------
         click('prepare-take');
         expect(room.promptText).toContain('cliff-at-dusk.png');
-        expect(room.promptText).toMatch(/about 900 words/);
-        expect(room.context.constraints.targetWords).toBe(900);
+        expect(room.promptText).toMatch(/about 1,?000 words/);
+        expect(room.context.constraints.targetWords).toBe(1000);
         expect(room.context.catalog.collections[`sequence-asset:${assetId}`])
             .toMatchObject({ mediaKind: 'image' });
 
@@ -154,7 +156,7 @@ describe('one reader, one path, real Library', () => {
         const charged = [WHOLE_DIVISION, OPENING].map(id => read(id).words);
         expect(charged.every(Number.isInteger)).toBe(true);
         const chargedTotal = charged.reduce((a, b) => a + b, 0);
-        expect(chargedTotal).toBeLessThanOrEqual(900);
+        expect(chargedTotal).toBeLessThanOrEqual(1000);
 
         // ---- 6. begin: real resolution, real bytes -------------------------
         click('begin');
@@ -206,7 +208,7 @@ describe('one reader, one path, real Library', () => {
             ).toBeLessThanOrEqual(read(source.id).words);
         }
         expect(actualTotal).toBeLessThanOrEqual(chargedTotal);
-        expect(actualTotal).toBeLessThanOrEqual(900);
+        expect(actualTotal).toBeLessThanOrEqual(1000);
 
         // ---- and it actually compiles ---------------------------------------
         const session = compileSession(sessionInput);
@@ -231,10 +233,10 @@ describe('one reader, one path, real Library', () => {
      */
     it('rebuilds the prompt the reader copies when the slider commits', () => {
         click('prepare-take');
-        expect(room.promptText).toMatch(/about 20,000 words/);
-        slideTo(900);
+        expect(room.promptText).toMatch(/about 4,?000 words/);
+        slideTo(1000);
         // No second press of Prepare. This is the Copy prompt button's text.
-        expect(room.promptText).toMatch(/about 900 words/);
-        expect(room.context.constraints.targetWords).toBe(900);
+        expect(room.promptText).toMatch(/about 1,?000 words/);
+        expect(room.context.constraints.targetWords).toBe(1000);
     });
 });

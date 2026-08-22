@@ -46,11 +46,11 @@ describe('the sequence, with no room around it', () => {
   it('walks intent, length, take, examine, read', async () => {
     const session = createScriptoriumSession({ mintId: () => 'fixed' });
     session.setIntent('A sequence about memory and loss.');
-    session.setTargetWords(200);
+    session.setTargetWords(400);
 
     const { context, promptText } = session.take();
     expect(context.id).toBe('fixed');
-    expect(context.constraints.targetWords).toBe(200);
+    expect(context.constraints.targetWords).toBe(400);
     expect(promptText).toContain('A sequence about memory and loss.');
 
     expect(session.examine(score([`${TAO}#40`]))).toMatchObject({ ok: true, kind: 'program' });
@@ -65,9 +65,9 @@ describe('the sequence, with no room around it', () => {
     session.setTargetWords(20_000);
     session.take();
     // The reader moves the dial and presses Examine without preparing again.
-    session.setTargetWords(200);
+    session.setTargetWords(400);
     session.examine(score([TAO]));
-    expect(session.context.constraints.targetWords).toBe(200);
+    expect(session.context.constraints.targetWords).toBe(400);
     expect(session.verdict.code).toBe('PROGRAM_IO_BUDGET_EXCEEDED');
   });
 
@@ -80,7 +80,7 @@ describe('the sequence, with no room around it', () => {
    */
   it('says what it is doing before it starts awaiting', async () => {
     const session = createScriptoriumSession();
-    session.setTargetWords(200);
+    session.setTargetWords(400);
     session.examine(score([`${TAO}#40`]));
     const reading = session.read();
     expect(session.status).toBe('Loading chosen works…');
@@ -109,7 +109,7 @@ describe('the sequence, with no room around it', () => {
   it('makes the reader\'s files durable through the hook it was given', async () => {
     const prepareAssets = vi.fn(async () => []);
     const session = createScriptoriumSession({ prepareAssets });
-    session.setTargetWords(200);
+    session.setTargetWords(400);
     session.addMaterial({ id: 'asset-1', name: 'cliff.png', color: '#fff' });
     session.examine(score([`${TAO}#40`]));
     await session.read();
@@ -121,10 +121,39 @@ describe('the length and the pace, in one place', () => {
   afterEach(() => { delete globalThis.rise; });
 
   it('offers no length the gate would refuse', () => {
-    expect(SCRIPTORIUM_LENGTH.max).toBe(MAX_SAFE_TARGET_WORDS);
-    expect(clampTargetWords(999_999)).toBe(MAX_SAFE_TARGET_WORDS);
-    expect(clampTargetWords(4)).toBe(SCRIPTORIUM_LENGTH.min);
+    // The property the deleted `max` was protecting: the dial cannot reach a
+    // budget the gate would then refuse. Asserted over every rung, because
+    // the ladder is nine numbers rather than one ceiling.
+    for (const rung of SCRIPTORIUM_LENGTH.rungs) {
+      expect(rung, `rung ${rung}`).toBeLessThanOrEqual(MAX_SAFE_TARGET_WORDS);
+    }
+    expect(SCRIPTORIUM_LENGTH.rungs).toContain(SCRIPTORIUM_LENGTH.default);
+  });
+
+  it('snaps to the nearest rung, and ties go to the shorter reading', () => {
+    const [lowest] = SCRIPTORIUM_LENGTH.rungs;
+    const highest = SCRIPTORIUM_LENGTH.rungs[SCRIPTORIUM_LENGTH.rungs.length - 1];
+    expect(clampTargetWords(999_999)).toBe(highest);
+    expect(clampTargetWords(4)).toBe(lowest);
     expect(clampTargetWords('not a number')).toBe(SCRIPTORIUM_LENGTH.default);
+    // Exactly between 400 and 1,000. Down, because this room's failure was
+    // always offering more than the shelf could serve.
+    expect(clampTargetWords(700)).toBe(400);
+    expect(clampTargetWords(701)).toBe(1000);
+    for (const rung of SCRIPTORIUM_LENGTH.rungs) {
+      expect(clampTargetWords(rung), `${rung} is already a rung`).toBe(rung);
+    }
+  });
+
+  it('changes what the shelf can serve at every step', () => {
+    // A dial whose travel repeats a sitting is not a control. Adjacent rungs
+    // differ by at least a third, which is what makes nine of them legible
+    // where a thousand stops were not.
+    const { rungs } = SCRIPTORIUM_LENGTH;
+    for (let i = 1; i < rungs.length; i += 1) {
+      expect(rungs[i] / rungs[i - 1], `rung ${i}`).toBeGreaterThanOrEqual(1.33);
+    }
+    expect([...rungs].sort((a, b) => a - b)).toEqual([...rungs]);
   });
 
   it('reads the setting the app actually stores', () => {
@@ -210,10 +239,13 @@ describe('the reader\'s gestures land on the session, not on the room', () => {
     intent.dispatchEvent(new Event('input', { bubbles: true }));
     expect(room.session.intent).toBe('Memory and loss.');
 
+    // The control is an INDEX over the ladder; the session stores the rung's
+    // word value. Setting 900 here used to mean 900 words and now means the
+    // ninth stop, which is why this writes an index and asserts words.
     const slider = container.querySelector('#scriptorium-length');
-    slider.value = '900';
+    slider.value = String(SCRIPTORIUM_LENGTH.rungs.indexOf(2000));
     slider.dispatchEvent(new Event('input', { bubbles: true }));
-    expect(room.session.targetWords).toBe(900);
+    expect(room.session.targetWords).toBe(2000);
 
     const paste = container.querySelector('#scriptorium-paste');
     paste.value = '{}';

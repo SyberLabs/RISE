@@ -45,7 +45,7 @@ import {
   runScriptoriumCli,
   SCRIPTORIUM_EXIT
 } from './scriptorium-cli.js';
-import { createScriptoriumSession } from './scriptorium-session.js';
+import { clampTargetWords, SCRIPTORIUM_LENGTH, createScriptoriumSession } from './scriptorium-session.js';
 import { describeImportFailure } from './experience-program-io.js';
 import { Scriptorium } from '../components/Scriptorium.js';
 import { MAX_SAFE_TARGET_WORDS } from './reading-limits.js';
@@ -159,8 +159,12 @@ describe('the CLI and the room reach the same verdict', () => {
 
   /** Exactly the reader's gestures: move the length, paste, press Examine. */
   const throughTheRoom = (text, length) => {
+    // THE DIAL IS AN INDEX OVER THE LADDER. A case may still ask for an
+    // arbitrary budget — the gate takes any whole number — but a reader
+    // reaches it by moving to the nearest rung, so that is what the room
+    // does here and what both surfaces are then compared against.
     const slider = container.querySelector('#scriptorium-length');
-    slider.value = String(length);
+    slider.value = String(SCRIPTORIUM_LENGTH.rungs.indexOf(clampTargetWords(length)));
     slider.dispatchEvent(new Event('input', { bubbles: true }));
     slider.dispatchEvent(new Event('change', { bubbles: true }));
     const field = container.querySelector('#scriptorium-paste');
@@ -312,7 +316,8 @@ describe('the CLI and the room reach the same verdict', () => {
       );
 
       // WHAT THE VERDICT IS. Neither surface is asked what the other said.
-      expect(room.targetWords, 'the slider did not reach the session').toBe(length);
+      expect(room.targetWords, 'the slider did not reach the session')
+        .toBe(clampTargetWords(length));
       expect(roomVerdict.code ?? null, `the room said ${roomVerdict.text}`).toBe(code);
       expect(roomVerdict.ok).toBe(code === null);
       expect(payload, `the CLI printed no JSON for ${what}`).toBeTruthy();
@@ -364,13 +369,13 @@ describe('the CLI and the room reach the same verdict', () => {
     // What makes PROGRAM_IO_BUDGET_EXCEEDED useful is the number, not the
     // code, and no agreement between surfaces asserts the number is right
     // because both read it from the same place.
-    const verdict = throughTheRoom(score([TAO]), 200);
+    const verdict = throughTheRoom(score([TAO]), 400);
     expect(verdict.code).toBe('PROGRAM_IO_BUDGET_EXCEEDED');
     // The Tao Te Ching is 10,321 words, which is what the reader is owed —
     // measured from the catalogue here rather than restated from the gate.
     const catalogued = room.context.library.find(entry => entry.id === TAO);
     expect(verdict.text).toContain(catalogued.words.toLocaleString('en-US'));
-    expect(verdict.text).toContain('200');
+    expect(verdict.text).toContain('400');
   });
 
   /**
@@ -1138,31 +1143,45 @@ describe('the argv shell refuses rather than guesses', () => {
 
 describe('the four commands', () => {
   it('hands out the capability document the room hands out', async () => {
-    const { status, stdout } = await cli(['context', '--length', '900', '--id', 'fixed']);
+    const { status, stdout } = await cli(['context', '--length', '1000', '--id', 'fixed']);
     expect(status).toBe(SCRIPTORIUM_EXIT.ok);
     const document = JSON.parse(stdout);
     expect(document.schema).toBe(CURATOR_CONTEXT_SCHEMA);
     expect(document.id).toBe('fixed');
-    expect(document.constraints.targetWords).toBe(900);
+    expect(document.constraints.targetWords).toBe(1000);
     expect(document.library.length).toBeGreaterThan(8);
     // No bytes leave, ever — the document's first law.
     expect(stdout).not.toMatch(/data:|blob:/u);
   });
 
-  it('clamps a length the gate would refuse rather than passing it on', async () => {
+  it('snaps a length to a rung rather than passing on what was typed', async () => {
+    // The property the old ceiling protected: a terminal never hands the gate
+    // a budget the room could not have produced. The bound is now the top
+    // rung rather than MAX_SAFE_TARGET_WORDS, and the gate still owns that
+    // ceiling for an imported context that was never typed here.
+    const { rungs } = SCRIPTORIUM_LENGTH;
+    const highest = rungs[rungs.length - 1];
     const { stdout } = await cli(['context', '--length', '999999', '--id', 'fixed']);
-    expect(JSON.parse(stdout).constraints.targetWords).toBe(MAX_SAFE_TARGET_WORDS);
+    expect(JSON.parse(stdout).constraints.targetWords).toBe(highest);
+    expect(highest).toBeLessThanOrEqual(MAX_SAFE_TARGET_WORDS);
     const { stdout: low } = await cli(['context', '--length', '4', '--id', 'fixed']);
-    expect(JSON.parse(low).constraints.targetWords).toBe(200);
+    expect(JSON.parse(low).constraints.targetWords).toBe(rungs[0]);
+  });
+
+  it('says which rung it will use, and only when the ask moved', async () => {
+    const moved = await cli(['context', '--length', '5000', '--id', 'fixed']);
+    expect(moved.stderr).toMatch(/4000 words, the nearest rung/);
+    const exact = await cli(['context', '--length', '4000', '--id', 'fixed']);
+    expect(exact.stderr, 'a rung is not a correction').not.toMatch(/nearest rung/);
   });
 
   it('writes a prompt whose examples come from the document beside it', async () => {
     const { status, payload } = await cli(
-      ['prompt', '--intent', 'A sequence about memory and loss.', '--length', '900', '--json']
+      ['prompt', '--intent', 'A sequence about memory and loss.', '--length', '1000', '--json']
     );
     expect(status).toBe(SCRIPTORIUM_EXIT.ok);
     expect(payload.prompt).toContain('A sequence about memory and loss.');
-    expect(payload.prompt).toMatch(/about 900 words/);
+    expect(payload.prompt).toMatch(/about 1,?000 words/);
     expect(payload.prompt).toContain(TAO);
   });
 
