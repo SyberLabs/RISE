@@ -10,6 +10,7 @@ import { KleeFlashes } from './klee-flashes.js';
 import { ContinuousField } from './continuous-field.js';
 import { Ostensoria } from './ostensoria.js';
 import { Apparitio } from './apparitio.js';
+import * as flameFillAdapter from './flame-fill-adapter.js';
 import { grantVisualInterlocutionConsent } from '../core/visual-safety.js';
 
 function mockEngine(width = 800, height = 400) {
@@ -2137,8 +2138,38 @@ describe('Continuous Field (Gallery) wiring', () => {
         expect(field.currentUrl).toMatch(/room-/);
         expect(field.currentProjectionUrl).toBe('data:image/webp;base64,flame-fill');
         expect(field.currentProjectionUrl).not.toBe(field.currentUrl);
-        expect(cortex._renderContinuousProceduralWork).toHaveBeenCalledWith('fractal');
+        expect(cortex._renderContinuousProceduralWork).toHaveBeenCalledWith('fractal', { wordFill: true });
         expect(document.querySelectorAll('video')).toHaveLength(0);
+        cortex.destroy();
+    });
+
+    it('word-fill fractal snapshots through the fill adapter; room stills do not', async () => {
+        const apply = vi.spyOn(flameFillAdapter, 'applyFlameFillToCanvas').mockReturnValue(true);
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.config.renderLanguage = 'native';
+        cortex.fractal = {
+            isReady: vi.fn(() => true),
+            fillQueue: vi.fn(),
+            generate: vi.fn(() => true)
+        };
+        cortex._fractalCanvas = {
+            width: 8,
+            height: 8,
+            toDataURL: vi.fn(() => 'data:image/webp;base64,flame')
+        };
+
+        const room = await cortex._renderContinuousProceduralWork('fractal');
+        expect(apply).not.toHaveBeenCalled();
+        expect(room.sourceType).toBe('fractal');
+
+        apply.mockClear();
+        const fill = await cortex._renderContinuousProceduralWork('fractal', { wordFill: true });
+        expect(apply).toHaveBeenCalledTimes(1);
+        expect(apply).toHaveBeenCalledWith(cortex._fractalCanvas, expect.objectContaining({
+            reducedMotion: expect.any(Boolean)
+        }));
+        expect(fill.sourceType).toBe('fractal');
         cortex.destroy();
     });
 
@@ -2226,7 +2257,7 @@ describe('Continuous Field (Gallery) wiring', () => {
                 title: id,
                 sourceType: id
             });
-            expect(render, id).toHaveBeenCalledWith(id);
+            expect(render, id).toHaveBeenCalledWith(id, { wordFill: true });
             expect(cortex.config.activeTypes, id).toEqual(['aic-landscapes']);
             render.mockRestore();
         }
