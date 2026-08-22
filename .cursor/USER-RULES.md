@@ -1,5 +1,7 @@
 # One-time Cursor User Rules (required for all devices)
 
+This repository already applies Karpathy + Elon principles to every RISE session in Cursor, Grok, Claude Code, and Codex via `AGENTS.md`, `CLAUDE.md`, and `.cursor/rules`. The User Rule below is only for work **outside** this repo.
+
 Cursor cannot make a skill always-on, and `~/.cursor/skills` does not sync to your Mac, Windows PC, or iPhone. Account **User Rules** do sync. Paste the block below once on any signed-in desktop. After that it applies to Agent on every machine, including Cloud Agents started from iPhone.
 
 ## Where to paste
