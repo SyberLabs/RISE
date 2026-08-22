@@ -64,6 +64,23 @@ export const PROCEDURAL_PATTERN_IDS = Object.freeze(
   PROCEDURAL_PATTERNS.map(pattern => pattern.id)
 );
 
+/**
+ * Gallery engines that used to be snapshotted as stills into
+ * ContinuousField. Harmonograph / Iris / Spectral already have living
+ * fields; these five shared the stills-vs-engine fork.
+ */
+export const SNAPSHOT_PROCEDURAL_IDS = Object.freeze([
+  'klee',
+  'turrell',
+  'fractal',
+  'neural',
+  'rockgarden'
+]);
+
+export function isSnapshotProcedural(id) {
+  return SNAPSHOT_PROCEDURAL_IDS.includes(id);
+}
+
 export function proceduralPattern(id) {
   return PROCEDURAL_PATTERNS.find(pattern => pattern.id === id) || null;
 }

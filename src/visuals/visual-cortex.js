@@ -36,6 +36,8 @@ import {
 import { WorkEngineField } from './work-engine-field.js';
 import { HarmonographField } from './harmonograph-field.js';
 import { PlateField, PLATE_FAMILIES } from './plate-field.js';
+import { GalleryEngineField } from './gallery-engine-field.js';
+import { SNAPSHOT_PROCEDURAL_IDS, isSnapshotProcedural } from '../core/visual-registry.js';
 import { SequenceVideoField } from './sequence-video-field.js';
 import { ShuffleBag } from '../sources/visual/shuffle-bag.js';
 import {
@@ -221,6 +223,7 @@ export class VisualCortex {
         this._workEngineField = null;
         this._harmonographField = null;
         this._plateField = null;
+        this._galleryEngineField = null;
         this._sequenceVideoField = null;
         this._sequenceVideoHost = null;
         this._activeVideoCue = null;
@@ -745,8 +748,7 @@ export class VisualCortex {
         if (!cue || ['still', 'field', 'focal', 'video'].includes(cue.kind)) return true;
         const key = this._admissionKeyForCue(cue);
         if (!key) return true;
-        if (cue.collections.every(id => id.startsWith?.('sequence-asset:')
-            || isWorkEngineFamily(id))) return true;
+        if (cue.collections.every(id => this._isLiveGalleryEngine(id))) return true;
         return this._admittedWorks.has(key);
     }
 
@@ -772,8 +774,7 @@ export class VisualCortex {
         task = (async () => {
             const works = [];
             for (const collectionId of cue.collections) {
-                if (collectionId.startsWith?.('sequence-asset:')
-                    || isWorkEngineFamily(collectionId)) continue;
+                if (this._isLiveGalleryEngine(collectionId)) continue;
                 const resolved = await this.resolveCollectionWorks(collectionId, {
                     limit: 1,
                     timeoutMs: 5000
@@ -1077,6 +1078,10 @@ export class VisualCortex {
             this._plateField.destroy();
             this._plateField = null;
         }
+        if (this._galleryEngineField) {
+            this._galleryEngineField.destroy();
+            this._galleryEngineField = null;
+        }
         this._continuousFieldHost = el || null;
         this._syncContinuousField();
         if (this._continuousField && this._continuousFieldProjectionHost) {
@@ -1158,8 +1163,10 @@ export class VisualCortex {
         const enginePaused = this._workEngineField?.pause?.() === true;
         const harmonographPaused = this._harmonographField?.pause?.() === true;
         const platePaused = this._plateField?.pause?.() === true;
+        const snapshotPaused = this._galleryEngineField?.pause?.() === true;
         const videoPaused = this._sequenceVideoField?.pause?.() === true;
-        return imagePaused || enginePaused || harmonographPaused || platePaused || videoPaused;
+        return imagePaused || enginePaused || harmonographPaused || platePaused
+            || snapshotPaused || videoPaused;
     }
 
     /** Resume exactly the Gallery presenters paused at the player boundary. */
@@ -1168,8 +1175,10 @@ export class VisualCortex {
         const engineResumed = this._workEngineField?.resume?.() === true;
         const harmonographResumed = this._harmonographField?.resume?.() === true;
         const plateResumed = this._plateField?.resume?.() === true;
+        const snapshotResumed = this._galleryEngineField?.resume?.() === true;
         const videoResumed = this._sequenceVideoField?.resume?.() === true;
-        return imageResumed || engineResumed || harmonographResumed || plateResumed || videoResumed;
+        return imageResumed || engineResumed || harmonographResumed || plateResumed
+            || snapshotResumed || videoResumed;
     }
 
     /**
@@ -1226,20 +1235,22 @@ export class VisualCortex {
      * frame. Snapshotting one here as well would put a frozen WebP of
      * the chariot into the crossfade rotation beside the turning one.
      *
-     * Harmonograph is the other living exception: in Gallery the pen
-     * waits out the dissolve, then traces across the remaining dwell.
-     * Rhythmic flashes still snapshot a finished figure via
-     * _renderContinuousProceduralWork.
+     * Harmonograph, plates, and the five snapshot engines (Klee,
+     * Turrell, Flames, Neural, Rock Garden) are living exceptions: in
+     * Gallery they paint their own canvases. Rhythmic flashes still
+     * snapshot a finished figure via _renderContinuousProceduralWork.
      */
     _continuousProceduralTypes() {
         const active = this.config.activeTypes || [];
         const liveHarmonograph = this._continuousHarmonographLive();
         const livePlates = this._continuousPlateFamilies();
+        const liveSnapshots = this._continuousSnapshotFamilies();
         return GALLERY_PROCEDURAL_TYPES.filter(type =>
             active.includes(type)
             && !isWorkEngineFamily(type)
             && !(type === 'harmonograph' && liveHarmonograph)
-            && !livePlates.includes(type));
+            && !livePlates.includes(type)
+            && !liveSnapshots.includes(type));
     }
 
     _continuousHarmonographLive() {
@@ -1255,6 +1266,26 @@ export class VisualCortex {
 
     _continuousPlateLive() {
         return this._continuousPlateFamilies().length > 0;
+    }
+
+    _continuousSnapshotFamilies() {
+        if (this.config.renderLanguage === 'ascii') return [];
+        const active = this.config.activeTypes || [];
+        return SNAPSHOT_PROCEDURAL_IDS.filter(id => active.includes(id));
+    }
+
+    _continuousSnapshotLive() {
+        return this._continuousSnapshotFamilies().length > 0;
+    }
+
+    _isLiveGalleryEngine(id) {
+        return typeof id === 'string' && (
+            id.startsWith('sequence-asset:')
+            || isWorkEngineFamily(id)
+            || isSnapshotProcedural(id)
+            || id === 'harmonograph'
+            || PLATE_FAMILIES.includes(id)
+        );
     }
 
     /** The families that get a living layer rather than a still. */
@@ -1276,6 +1307,7 @@ export class VisualCortex {
             || this._continuousWorkFamilies().length > 0
             || this._continuousHarmonographLive()
             || this._continuousPlateLive()
+            || this._continuousSnapshotLive()
             || this._activeSequenceAssets().length > 0
             || this._activePoolCategories().length > 0;
     }
@@ -1671,6 +1703,7 @@ export class VisualCortex {
         this._syncWorkEngineField(shouldRun);
         this._syncHarmonographField(shouldRun);
         this._syncPlateField(shouldRun);
+        this._syncGalleryEngineField(shouldRun);
     }
 
     /**
@@ -1767,6 +1800,35 @@ export class VisualCortex {
         this._plateField.reducedMotion = this._continuousReducedMotion();
         this._plateField.setFamilies(families);
         if (!this._plateField.running) this._plateField.start();
+    }
+
+    /**
+     * Gallery Klee / Turrell / Flames / Neural / Rock Garden: a living
+     * canvas under the image planes. The stills path used to snapshot
+     * these into ContinuousField; a failed snapshot became glass.
+     */
+    _syncGalleryEngineField(gateOpen) {
+        const families = this._continuousSnapshotFamilies();
+        const shouldRun = gateOpen && families.length > 0;
+        if (!shouldRun) {
+            if (this._galleryEngineField?.running) this._galleryEngineField.stop();
+            return;
+        }
+        if (!this._galleryEngineField) {
+            if (!this._continuousFieldHost) return;
+            const timings = galleryCadenceTimings(this.config.galleryCadence);
+            this._galleryEngineField = new GalleryEngineField(this._continuousFieldHost, {
+                families,
+                dwellMs: timings.dwellMs,
+                crossfadeMs: timings.crossfadeMs,
+                reducedMotion: this._continuousReducedMotion(),
+                getSignal: () => this._nextContinuousSignal() || {},
+                getKleePreset: () => this.config.kleePreset || 'random'
+            });
+        }
+        this._galleryEngineField.reducedMotion = this._continuousReducedMotion();
+        this._galleryEngineField.setFamilies(families);
+        if (!this._galleryEngineField.running) this._galleryEngineField.start();
     }
 
     /**
@@ -1909,6 +1971,10 @@ export class VisualCortex {
         }
         if ('galleryCadence' in nextConfig && this._plateField) {
             this._plateField.setCadence(
+                galleryCadenceTimings(this.config.galleryCadence));
+        }
+        if ('galleryCadence' in nextConfig && this._galleryEngineField) {
+            this._galleryEngineField.setCadence(
                 galleryCadenceTimings(this.config.galleryCadence));
         }
         if ('galleryCadence' in nextConfig && this._continuousField) {
@@ -2080,6 +2146,11 @@ export class VisualCortex {
         }
         // Defense in depth for direct provider calls. Normal configuration
         // paths migrate retired Met ids before hydration reaches this method.
+        if (GALLERY_PROCEDURAL_TYPES.includes(categoryId)
+            || isSnapshotProcedural(categoryId)
+            || categoryId.startsWith('procedural:')) {
+            return null;
+        }
         if (categoryId.startsWith('met-')) {
             return null;
         }
@@ -3828,6 +3899,10 @@ export class VisualCortex {
         if (this._plateField) {
             this._plateField.destroy();
             this._plateField = null;
+        }
+        if (this._galleryEngineField) {
+            this._galleryEngineField.destroy();
+            this._galleryEngineField = null;
         }
         if (this._sequenceVideoField) {
             this._sequenceVideoField.destroy();

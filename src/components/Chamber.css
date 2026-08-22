@@ -1380,7 +1380,8 @@
    never the field over the works. */
 .chamber-continuous-field .work-engine-plane,
 .chamber-continuous-field .harmonograph-plane,
-.chamber-continuous-field .plate-plane {
+.chamber-continuous-field .plate-plane,
+.chamber-continuous-field .gallery-engine-plane {
   position: absolute;
   inset: 0;
   width: 100%;
