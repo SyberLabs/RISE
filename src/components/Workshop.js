@@ -19,6 +19,7 @@ import {
   formatGalleryCadence,
   GALLERY_CADENCE_DEFAULT,
   galleryCadenceValueText,
+  isContinuousPresentation,
   normalizeGalleryCadence,
   VISUAL_PRESENCE_DEFAULT_MS
 } from '../core/visual-presence.js';
@@ -2459,7 +2460,7 @@ export class Workshop {
           class="btn-secondary btn-compact ${interlocution.presentation === id || (!interlocution.presentation && id === 'continuous') ? 'active' : ''}"
           data-action="set-scored-presentation" data-presentation="${id}"
           aria-pressed="${interlocution.presentation === id || (!interlocution.presentation && id === 'continuous')}">${label}</button>`).join('')}</div>
-        ${interlocution.presentation === 'continuous' ? `
+        ${isContinuousPresentation(interlocution.presentation) ? `
           <label class="input-label" for="studio-gallery-cadence">Gallery cadence</label>
           <div class="studio-cadence-control">
             <input type="range" class="slider" id="studio-gallery-cadence" data-visual-setting="gallery-cadence"

@@ -382,7 +382,7 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         const { panel, container } = makePanel({ ...SOL_DAWN_CONFIG });
         const order = [...container.querySelectorAll('[data-presentation]')]
             .map(b => b.dataset.presentation);
-        expect(order).toEqual(['continuous', 'behind-stream', 'full-frame']);
+        expect(order).toEqual(['continuous', 'continuous-word', 'behind-stream', 'full-frame']);
         panel.destroy();
         container.remove();
     });
@@ -812,10 +812,13 @@ describe('Stream-maintaining Rhythmic and Atrium collections', () => {
             interlocution: { sourceFamily: 'procedural', procedural: ['klee'], sourced: [] }
         });
 
-        // Three surfaces: Full frame, Behind stream, Gallery (the Continuous Field).
-        expect(container.querySelectorAll('[data-presentation]')).toHaveLength(3);
+        // Four surfaces: Gallery, Gallery in the word, background flash, foreground flash.
+        expect(container.querySelectorAll('[data-presentation]')).toHaveLength(4);
         expect(container.querySelector('[data-presentation="full-frame"]').classList.contains('active')).toBe(true);
         expect(container.querySelector('[data-presentation="continuous"]')).not.toBeNull();
+        expect(container.querySelector('[data-presentation="continuous-word"]')).not.toBeNull();
+        expect(container.querySelector('[data-presentation="continuous-word"]').textContent)
+            .toMatch(/Gallery in the word/i);
         expect(panel.getConfig().interlocution.presentation).toBe('full-frame');
 
         panel.destroy();
@@ -1122,6 +1125,44 @@ describe('the photosensitivity notice belongs to the surface that flashes', () =
         panel.destroy();
         container.remove();
         document.querySelector('#photosensitivity-modal')?.remove();
+        endVisualInterlocutionSession();
+    });
+
+    it('offers Gallery in the word beside Gallery and aliases chamberMask without adding a sixth mode', async () => {
+        endVisualInterlocutionSession();
+        const settings = { chamberMask: false, chamberFace: 'jp', fontSize: 'medium' };
+        globalThis.rise = {
+            settings,
+            handleSettingsChange(key, value) {
+                settings[key] = value;
+            }
+        };
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: { sourceFamily: 'procedural', procedural: ['klee'], sourced: [] }
+        });
+
+        const modes = [...container.querySelectorAll('[data-visual-mode]')].map(btn => btn.dataset.visualMode);
+        expect(modes).toEqual(['off', 'focals', 'attractor', 'genesis', 'interlocution']);
+        expect(container.querySelector('[data-presentation="continuous-word"]').textContent)
+            .toMatch(/Gallery in the word/i);
+
+        container.querySelector('[data-presentation="continuous-word"]').click();
+        await Promise.resolve();
+
+        expect(panel.getConfig().interlocution.presentation).toBe('continuous-word');
+        expect(settings.chamberMask).toBe(true);
+        expect(settings.chamberFace).toBe('jp');
+        expect(settings.fontSize).toBe('medium');
+        expect(container.querySelector('[data-presentation-glass]')).toBeNull();
+
+        container.querySelector('[data-presentation="continuous"]').click();
+        expect(settings.chamberMask).toBe(false);
+        expect(settings.chamberFace).toBe('jp');
+
+        panel.destroy();
+        container.remove();
+        delete globalThis.rise;
         endVisualInterlocutionSession();
     });
 

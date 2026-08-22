@@ -11,8 +11,6 @@ import { MemoryCore } from '../core/memory.js';
 import { AttractorField } from '../visuals/attractor.js';
 import { KleeField } from '../visuals/klee-field.js';
 import { VisualFieldDirector } from '../visuals/visual-field-director.js';
-import { ContinuousField } from '../visuals/continuous-field.js';
-import { SequenceVideoField } from '../visuals/sequence-video-field.js';
 import { escapeHtml } from '../core/sanitize.js';
 // The reveal and its emphasis notation are pure logic — no DOM, no
 // audio — so they live in core and are tested without a browser.
@@ -22,7 +20,11 @@ import {
 import { Voice } from '../audio/voice.js';
 import { scoreAtoms, planInterlocution } from '../core/conductor.js';
 import { VisualScheduleController } from '../core/visual-scheduler.js';
-import { authoredVisualTransition } from '../core/visual-presence.js';
+import {
+  authoredVisualTransition,
+  isContinuousPresentation,
+  isGalleryInTheWord
+} from '../core/visual-presence.js';
 import {
   MovementScheduleController,
   AudioScheduleController
@@ -83,12 +85,8 @@ export class Chamber {
     this.attractorField = null;
     this.kleeField = null;
     this._visualFieldDirector = null;
-    this._fillFieldDirector = null;
     this._fillMaskGeneration = 0;
     this.fillFieldHost = null;
-    this.fillField = null;
-    this.fillVideoField = null;
-    this._fillParkedSequenceVideoHost = false;
     this._scheduledVisualGeneration = 0;
     // Page Mode (PAGE-MODE-SPEC): the spatial projection, mounted lazily
     // on demand. Null until the reader opens it; nothing is paid before.
@@ -127,7 +125,7 @@ export class Chamber {
      * rhythmicVisualsEnabled: bar offer vs handler permission.
      */
     this.offersVisualsToggle = this.hasRhythmicVisuals
-        && this.session?.visualConfig?.interlocution?.presentation !== 'continuous';
+        && !isContinuousPresentation(this.session?.visualConfig?.interlocution?.presentation);
     this._spokenIndex = null;
     this._spokenPlayback = null;
     this._spokenMs = null;
@@ -538,8 +536,10 @@ export class Chamber {
   }
 
   chamberMaskApplies() {
-    return globalThis.rise?.settings?.chamberMask === true
-      && this.session?.chunkMode === 'word';
+    const settingsOn = globalThis.rise?.settings?.chamberMask === true;
+    const presentation = this.session?.visualConfig?.interlocution?.presentation;
+    const prepOn = isGalleryInTheWord(presentation);
+    return (settingsOn || prepOn) && this.session?.chunkMode === 'word';
   }
 
   applyChamberMask() {
@@ -556,78 +556,11 @@ export class Chamber {
     }
   }
 
-  _fillStillPool() {
-    const assets = this.session?.sequenceVisualAssets;
-    if (!Array.isArray(assets)) return [];
-    return assets
-      .filter((asset) => asset && asset.kind !== 'video' && (asset.uri || asset.url))
-      .map((asset) => ({
-        url: asset.uri || asset.url,
-        title: asset.name || '',
-        artworkLabel: null
-      }));
-  }
-
-  _fillVideoAsset() {
-    const assets = this.session?.sequenceVisualAssets;
-    if (!Array.isArray(assets)) return null;
-    const asset = assets.find((item) => item
-      && item.kind === 'video'
-      && item.mimeType === 'video/mp4'
-      && (item.uri || item.url));
-    if (!asset) return null;
-    return { ...asset, uri: asset.uri || asset.url };
-  }
-
-  /**
-   * FM-STEN-2 envelope: prefer 720p, cap at 1080p, 24–30fps, no audio
-   * track. Unknown fps is tolerated — we do not invent a decoder-quota API.
-   */
-  _fillVideoEnvelopeRejected(asset, video) {
-    if (!asset) return true;
-    const width = Number(video?.videoWidth || asset.width || asset.dimensions?.width || 0);
-    const height = Number(video?.videoHeight || asset.height || asset.dimensions?.height || 0);
-    if (width > 1920 || height > 1920) return true;
-    const fps = Number(asset.fps ?? asset.frameRate);
-    if (Number.isFinite(fps) && fps > 0 && (fps < 24 || fps > 30)) return true;
-    if (asset.hasAudio === true) return true;
-    if (asset.audioPolicy && asset.audioPolicy !== 'muted') return true;
-    if (video?.audioTracks && video.audioTracks.length > 0) return true;
-    if (video?.mozHasAudio === true) return true;
-    return false;
-  }
-
-  _fillRenderer() {
-    const video = this._fillVideoAsset();
-    if (video && !this._fillVideoEnvelopeRejected(video)) return 'sequence-video';
-    if (this._fillStillPool().length > 0) return 'continuous';
-    return null;
-  }
-
-  _fillReducedMotion() {
-    const settings = globalThis.rise?.settings;
-    return settings?.reducedMotion === true || settings?.photosensitivityMode === true;
-  }
-
-  _chamberDualMp4Enabled() {
-    if (this.session?.chamberDualMp4 === true) return true;
-    try {
-      return globalThis.localStorage?.getItem('rise-chamber-dual-mp4') === '1';
-    } catch {
-      return false;
-    }
-  }
-
-  _logDualMp4(event, detail) {
-    if (!this._chamberDualMp4Enabled()) return;
-    console.warn('[Chamber dual-mp4]', event, detail ?? '');
-  }
-
   _shouldMountFill() {
     return this.chamberMaskApplies()
       && !this.pageModeActive
       && !this._temporalVisualsDeferred
-      && this._fillRenderer() != null;
+      && visualCortex.hasContinuousFieldHost?.();
   }
 
   async _waitFontsReady() {
@@ -687,139 +620,8 @@ export class Chamber {
       this._insertBehindReading(field, host);
       this.fillFieldHost = host;
     }
-    if (!this._fillFieldDirector) {
-      this._fillFieldDirector = new VisualFieldDirector({
-        mount: (cue) => this.mountFillFieldCue(cue),
-        transitionMs: 0
-      });
-    }
+    visualCortex.setContinuousFieldProjectionHost(this.fillFieldHost);
     void this.syncFillGlyphMask();
-  }
-
-  _teardownFillPresenters() {
-    if (this.fillField) {
-      this.fillField.stop();
-      this.fillField = null;
-    }
-    if (this.fillVideoField) {
-      this.fillVideoField.destroy();
-      this.fillVideoField = null;
-    }
-  }
-
-  _suppressBackgroundVideoForFill() {
-    if (this._chamberDualMp4Enabled()) return;
-    if (visualCortex.hasSequenceVideoHost?.()) {
-      this._fillParkedSequenceVideoHost = true;
-      visualCortex.setSequenceVideoHost(null);
-    }
-  }
-
-  _restoreBackgroundVideoAfterFill() {
-    if (!this._fillParkedSequenceVideoHost) return;
-    this._fillParkedSequenceVideoHost = false;
-    if (this.pageModeActive || this._temporalVisualsDeferred) return;
-    const field = this.container.querySelector('#chamber-field');
-    if (field) visualCortex.setSequenceVideoHost(field);
-  }
-
-  _bindFillVideoGuards(field) {
-    const video = field.video;
-    video.addEventListener('loadedmetadata', () => {
-      if (this._fillVideoEnvelopeRejected(this._fillVideoAsset(), video)) {
-        this._fallbackFillToStills('envelope');
-      }
-    });
-    const previousError = video.onerror;
-    video.onerror = (event) => {
-      this._logDualMp4('decoder-error');
-      try { previousError?.call(video, event); } catch { /* hide() */ }
-      this._fallbackFillToStills('decoder-error');
-    };
-    const play = video.play.bind(video);
-    video.play = () => {
-      let result;
-      try {
-        result = play();
-      } catch (err) {
-        this._logDualMp4('play() rejected', err);
-        this._fallbackFillToStills('play-rejected');
-        throw err;
-      }
-      Promise.resolve(result).catch((err) => {
-        this._logDualMp4('play() rejected', err);
-        this._fallbackFillToStills('play-rejected');
-      });
-      return result;
-    };
-  }
-
-  _fallbackFillToStills() {
-    if (this.fillVideoField) {
-      this.fillVideoField.destroy();
-      this.fillVideoField = null;
-    }
-    if (this._fillStillPool().length > 0 && this.fillFieldHost && this._fillFieldDirector) {
-      this._fillFieldDirector.applyCue({
-        kind: 'field',
-        renderer: 'continuous',
-        config: {}
-      });
-      if (this.fillField && !this.fillField.running) this.fillField.start();
-      return;
-    }
-    this.destroyFillField();
-  }
-
-  mountFillFieldCue(cue) {
-    if (!this.fillFieldHost || cue?.kind !== 'field') return null;
-    this._teardownFillPresenters();
-    if (cue.renderer === 'sequence-video') {
-      const asset = this._fillVideoAsset();
-      if (!asset || this._fillVideoEnvelopeRejected(asset)) return null;
-      const field = new SequenceVideoField(this.fillFieldHost, {
-        reducedMotion: this._fillReducedMotion(),
-        presentation: 'full-frame'
-      });
-      this.fillVideoField = field;
-      this._bindFillVideoGuards(field);
-      const shown = field.show(asset, { timeMode: 'loop', presentation: 'full-frame' });
-      if (!shown) {
-        field.destroy();
-        this.fillVideoField = null;
-        return null;
-      }
-      field.video.loop = true;
-      this._suppressBackgroundVideoForFill();
-      return {
-        node: this.fillFieldHost,
-        pause: () => {
-          this._logDualMp4('pause');
-          return field.pause();
-        },
-        resume: () => field.resume(),
-        destroy: () => {
-          field.destroy();
-          if (this.fillVideoField === field) this.fillVideoField = null;
-        }
-      };
-    }
-    if (cue.renderer !== 'continuous') return null;
-    const field = new ContinuousField(this.fillFieldHost, {
-      getPool: () => this._fillStillPool(),
-      showArtworkLabels: false,
-      decode: (url) => Promise.resolve(!!url)
-    });
-    this.fillField = field;
-    return {
-      node: this.fillFieldHost,
-      pause: () => field.pause(),
-      resume: () => field.resume(),
-      destroy: () => {
-        field.stop();
-        if (this.fillField === field) this.fillField = null;
-      }
-    };
   }
 
   async syncFillGlyphMask() {
@@ -911,30 +713,7 @@ export class Chamber {
     this.fillFieldHost.style.maskPosition = '0 0';
     this.fillFieldHost.style.webkitMaskPosition = '0 0';
 
-    const renderer = this._fillRenderer();
-    if (!renderer) {
-      this.destroyFillField();
-      return;
-    }
-    this._fillFieldDirector?.applyCue({
-      kind: 'field',
-      renderer,
-      config: {}
-    });
-    if (renderer === 'sequence-video' && !this.fillVideoField) {
-      if (this._fillStillPool().length > 0) {
-        this._fillFieldDirector?.applyCue({
-          kind: 'field',
-          renderer: 'continuous',
-          config: {}
-        });
-      } else {
-        this.destroyFillField();
-        return;
-      }
-    }
-    if (this.fillField && !this.fillField.running) this.fillField.start();
-
+    visualCortex.setContinuousFieldProjectionHost(this.fillFieldHost);
     this.fillFieldHost.classList.remove('is-hidden');
     atomDisplay.classList.add('is-mask-ink');
     atomDisplay.style.color = 'transparent';
@@ -948,23 +727,11 @@ export class Chamber {
     if (atomDisplay?.style.color === 'transparent') {
       atomDisplay.style.removeProperty('color');
     }
-    if (this._fillFieldDirector) {
-      this._fillFieldDirector.destroy();
-      this._fillFieldDirector = null;
-    }
-    if (this.fillField) {
-      this.fillField.stop();
-      this.fillField = null;
-    }
-    if (this.fillVideoField) {
-      this.fillVideoField.destroy();
-      this.fillVideoField = null;
-    }
+    visualCortex.setContinuousFieldProjectionHost(null);
     if (this.fillFieldHost) {
       this.fillFieldHost.remove();
       this.fillFieldHost = null;
     }
-    this._restoreBackgroundVideoAfterFill();
   }
 
   attachEvents() {
@@ -1493,7 +1260,7 @@ export class Chamber {
   initializeContinuousField() {
     const visualConfig = this.session?.visualConfig;
     if (!visualConfig || visualConfig.visualMode !== 'interlocution') return;
-    if (visualConfig.interlocution?.presentation !== 'continuous') return;
+    if (!isContinuousPresentation(visualConfig.interlocution?.presentation)) return;
 
     const field = this.container.querySelector('#chamber-field');
     if (!field) return;
@@ -1515,6 +1282,7 @@ export class Chamber {
 
     visualCortex.setContinuousFieldHost(host);
     console.log('[Chamber] Continuous Field (Gallery) host mounted');
+    this.applyChamberMask();
   }
 
   /**

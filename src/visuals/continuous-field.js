@@ -286,7 +286,8 @@ export class ContinuousField {
         this._caf = options.caf || (id => cancelAnimationFrame(id));
 
         this._bag = new ShuffleBag();
-        this._layers = null;      // [{ root, backdrop, artwork, label, work }, ...]
+        this._layers = null;      // [{ root, backdrop, artwork, label, work, projection? }, ...]
+        this.projectionHost = null;
         this._front = 0;          // index of the visible layer
         this._currentUrl = null;
         this._running = false;
@@ -317,6 +318,9 @@ export class ContinuousField {
         if (this._layers && !this.reducedMotion) {
             for (const layer of this._layers) {
                 layer.root.style.transition = `opacity ${this.crossfadeMs}ms ease-in-out`;
+                if (layer.projection) {
+                    layer.projection.root.style.transition = layer.root.style.transition;
+                }
             }
         }
         if (this._running && !this.reducedMotion) {
@@ -329,6 +333,91 @@ export class ContinuousField {
         this.showArtworkLabels = visible !== false;
         if (!this._layers) return;
         for (const layer of this._layers) this._renderLayerLabel(layer);
+    }
+
+    /**
+     * A second live mount of the same clock. `_crossfadeTo` writes the
+     * same urls and opacities onto image pairs in this host. Labels stay
+     * on the gallery host. This is not a second field and not cloneNode
+     * of a detached tree.
+     */
+    setProjectionHost(host) {
+        if (this.projectionHost === host) return;
+        this._teardownProjectionLayers();
+        this.projectionHost = host || null;
+        if (!this.projectionHost) return;
+        this._ensureProjectionLayers();
+        if (this._layers) {
+            for (const layer of this._layers) this._syncProjectionLayer(layer);
+        }
+    }
+
+    _teardownProjectionLayers() {
+        if (this._layers) {
+            for (const layer of this._layers) {
+                if (!layer.projection) continue;
+                try { layer.projection.root.remove(); } catch { /* detached */ }
+                layer.projection = null;
+            }
+        }
+        if (this.projectionHost) {
+            this.projectionHost.querySelectorAll('.continuous-field-layer').forEach((node) => {
+                try { node.remove(); } catch { /* detached */ }
+            });
+        }
+    }
+
+    _ensureProjectionLayers() {
+        if (!this.projectionHost || !this._layers) return;
+        for (const layer of this._layers) {
+            if (layer.projection) continue;
+            const root = document.createElement('div');
+            root.className = 'continuous-field-layer';
+            root.setAttribute('aria-hidden', 'true');
+            root.style.opacity = layer.root.style.opacity || '0';
+            root.style.transition = layer.root.style.transition
+                || `opacity ${this.crossfadeMs}ms ease-in-out`;
+
+            const backdrop = document.createElement('img');
+            backdrop.className = 'continuous-field-backdrop';
+            backdrop.decoding = 'async';
+            backdrop.alt = '';
+            backdrop.draggable = false;
+            backdrop.style.objectFit = 'cover';
+
+            const artwork = document.createElement('img');
+            artwork.className = 'continuous-field-artwork';
+            artwork.decoding = 'async';
+            artwork.alt = '';
+            artwork.draggable = false;
+            artwork.style.objectFit = 'contain';
+
+            root.append(backdrop, artwork);
+            this.projectionHost.appendChild(root);
+            layer.projection = { root, backdrop, artwork };
+        }
+    }
+
+    _syncProjectionLayer(layer) {
+        const proj = layer?.projection;
+        if (!proj) return;
+        proj.root.style.transition = layer.root.style.transition;
+        proj.root.style.opacity = layer.root.style.opacity;
+        const url = layer.work?.url;
+        if (url) {
+            if (proj.artwork.getAttribute('src') !== url) proj.artwork.src = url;
+            if (layer.backdrop.hidden) {
+                proj.backdrop.hidden = true;
+                proj.backdrop.removeAttribute('src');
+            } else {
+                proj.backdrop.hidden = false;
+                if (proj.backdrop.getAttribute('src') !== url) proj.backdrop.src = url;
+            }
+        } else {
+            proj.artwork.removeAttribute('src');
+            proj.backdrop.hidden = true;
+            proj.backdrop.removeAttribute('src');
+        }
     }
 
     /** Mount the two layers (idempotent). */
@@ -373,6 +462,7 @@ export class ContinuousField {
             return layer;
         };
         this._layers = [make(), make()];
+        this._ensureProjectionLayers();
         if (typeof ResizeObserver === 'function') {
             this._resizeObserver = new ResizeObserver(this._boundRefreshLayers);
             this._resizeObserver.observe(this.host);
@@ -415,6 +505,7 @@ export class ContinuousField {
         } else {
             layer.backdrop.removeAttribute('src');
         }
+        this._syncProjectionLayer(layer);
     }
 
     _layoutLayerLabel(layer) {
@@ -481,6 +572,7 @@ export class ContinuousField {
         if (layer.artwork.complete && layer.artwork.naturalWidth) {
             this._syncLayerWash(layer);
         }
+        this._syncProjectionLayer(layer);
     }
 
     async _defaultDecode(url) {
@@ -595,6 +687,10 @@ export class ContinuousField {
             front.root.style.transition = 'none';
             this._setLayerWork(front, work);
             front.root.style.opacity = '1';
+            if (front.projection) {
+                front.projection.root.style.transition = 'none';
+                front.projection.root.style.opacity = '1';
+            }
             return;
         }
         const incoming = this._layers[1 - this._front];
@@ -606,11 +702,20 @@ export class ContinuousField {
         // same window — the double-buffer never passes through black.
         // Force a style flush so the transition runs from opacity 0.
         incoming.root.style.transition = `opacity ${crossfadeMs}ms ease-in-out`;
+        if (incoming.projection) {
+            incoming.projection.root.style.transition = incoming.root.style.transition;
+            void incoming.projection.root.offsetWidth;
+        }
         void incoming.root.offsetWidth;
         incoming.root.style.opacity = '1';
+        if (incoming.projection) incoming.projection.root.style.opacity = '1';
         if (!first) {
             outgoing.root.style.transition = `opacity ${crossfadeMs}ms ease-in-out`;
             outgoing.root.style.opacity = '0';
+            if (outgoing.projection) {
+                outgoing.projection.root.style.transition = outgoing.root.style.transition;
+                outgoing.projection.root.style.opacity = '0';
+            }
         }
         this._front = 1 - this._front;
     }
@@ -620,6 +725,10 @@ export class ContinuousField {
         for (const layer of this._layers) {
             layer.root.style.transition = `opacity ${this.crossfadeMs}ms ease-in-out`;
             layer.root.style.opacity = '0';
+            if (layer.projection) {
+                layer.projection.root.style.transition = layer.root.style.transition;
+                layer.projection.root.style.opacity = '0';
+            }
         }
         this._currentUrl = null;
     }
@@ -715,6 +824,7 @@ export class ContinuousField {
         if (typeof window !== 'undefined') {
             window.removeEventListener('resize', this._boundRefreshLayers);
         }
+        this._teardownProjectionLayers();
         if (this._layers) {
             for (const layer of this._layers) {
                 layer.backdrop.removeAttribute('src');

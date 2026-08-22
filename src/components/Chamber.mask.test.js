@@ -2,10 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
 import { visualCortex } from '../visuals/visual-cortex.js';
 import { ContinuousField } from '../visuals/continuous-field.js';
-import { SequenceVideoField } from '../visuals/sequence-video-field.js';
+import {
+    beginNonFlashingVisualSession,
+    endVisualInterlocutionSession
+} from '../core/visual-safety.js';
 
 const STILL = { id: 'still-1', kind: 'image', uri: 'https://example.test/still.jpg', name: 'Still' };
-const VIDEO = { id: 'vid-1', kind: 'video', uri: 'https://example.test/clip.mp4', name: 'Clip' };
 const MP4 = {
     id: 'mp4-1',
     kind: 'video',
@@ -15,37 +17,6 @@ const MP4 = {
     width: 1280,
     height: 720,
     fps: 24
-};
-const MP4_B = {
-    id: 'mp4-2',
-    kind: 'video',
-    mimeType: 'video/mp4',
-    uri: 'blob:http://localhost/clip-b',
-    name: 'Clip B',
-    width: 1280,
-    height: 720,
-    fps: 30
-};
-const MP4_4K = {
-    id: 'mp4-4k',
-    kind: 'video',
-    mimeType: 'video/mp4',
-    uri: 'blob:http://localhost/clip-4k',
-    name: 'Four K',
-    width: 3840,
-    height: 2160,
-    fps: 30
-};
-const MP4_AUDIO = {
-    id: 'mp4-audio',
-    kind: 'video',
-    mimeType: 'video/mp4',
-    uri: 'blob:http://localhost/clip-audio',
-    name: 'Audible',
-    width: 1280,
-    height: 720,
-    fps: 24,
-    hasAudio: true
 };
 
 function makeChamber(sessionExtra = {}, settings = {}) {
@@ -66,6 +37,10 @@ function makeChamber(sessionExtra = {}, settings = {}) {
 
 function fillHost(container) {
     return container.querySelector('.chamber-fill-field');
+}
+
+function galleryHost(container) {
+    return container.querySelector('#chamber-continuous-field');
 }
 
 function installFillMaskEnv({ fontsReady = Promise.resolve() } = {}) {
@@ -111,6 +86,32 @@ async function flushFillMask() {
 
 function atomDisplay(container) {
     return container.querySelector('#atom-display');
+}
+
+function wordGallerySession(presentation = 'continuous-word') {
+    return {
+        chunkMode: 'word',
+        visualConfig: {
+            visualMode: 'interlocution',
+            interlocution: { presentation }
+        }
+    };
+}
+
+function armGalleryField(presentation = 'continuous-word') {
+    beginNonFlashingVisualSession();
+    visualCortex.updateConfig({
+        enabled: true,
+        presentation,
+        activeTypes: []
+    });
+}
+
+function releaseGalleryField() {
+    visualCortex.setContinuousFieldProjectionHost?.(null);
+    visualCortex.setContinuousFieldHost(null);
+    visualCortex.updateConfig({ enabled: false, presentation: 'full-frame' });
+    endVisualInterlocutionSession();
 }
 
 describe('Chamber Mask', () => {
@@ -180,192 +181,167 @@ describe('Chamber Mask', () => {
         expect(atomDisplay(container).dataset.chamberFace).toBe('jp');
         chamber.destroy();
     });
+
+    it('adds is-mask from PREP Gallery-in-the-word without requiring Settings Mask', () => {
+        const { chamber, container } = makeChamber(
+            wordGallerySession(),
+            { chamberMask: false, chamberFace: 'literary', fontSize: 'medium' }
+        );
+        expect(atomDisplay(container).classList.contains('is-mask')).toBe(true);
+        expect(atomDisplay(container).dataset.chamberFace).toBe('literary');
+        chamber.destroy();
+    });
 });
 
-describe('Chamber Mask fill (slice 3)', () => {
+describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
     let restoreEnv;
 
     beforeEach(() => {
         restoreEnv = installFillMaskEnv();
+        armGalleryField();
     });
 
     afterEach(() => {
         restoreEnv?.();
+        releaseGalleryField();
         delete globalThis.rise;
         document.body.replaceChildren();
         vi.restoreAllMocks();
     });
 
-    it('mounts a second VisualFieldDirector and ContinuousField fill for Mask+Word+stills', async () => {
-        const cortexSpy = vi.spyOn(visualCortex, 'setContinuousFieldHost');
+    it('uses one ContinuousField instance on two mounts with the same url after a dissolve', async () => {
         const { chamber, container } = makeChamber(
-            { chunkMode: 'word', sequenceVisualAssets: [STILL, VIDEO] },
+            wordGallerySession(),
             { chamberMask: true }
         );
+        armGalleryField();
         chamber.displayAtom({ content: 'O', duration: 500 }, 0);
         await flushFillMask();
 
-        const host = fillHost(container);
-        expect(host).toBeTruthy();
-        expect(chamber._fillFieldDirector).toBeTruthy();
-        expect(chamber._visualFieldDirector).toBeTruthy();
-        expect(chamber._fillFieldDirector).not.toBe(chamber._visualFieldDirector);
-        expect(chamber.fillField).toBeInstanceOf(ContinuousField);
-        expect(chamber.fillField.showArtworkLabels).toBe(false);
-        expect(host.querySelector('video')).toBeNull();
-        expect(host.querySelector('.sequence-video-field')).toBeNull();
-        expect(cortexSpy).not.toHaveBeenCalledWith(host);
-        chamber.destroy();
-    });
+        const gallery = galleryHost(container);
+        const fill = fillHost(container);
+        const field = visualCortex._continuousField;
+        expect(gallery).toBeTruthy();
+        expect(fill).toBeTruthy();
+        expect(fill).not.toBe(gallery);
+        expect(field).toBeInstanceOf(ContinuousField);
+        expect(field.host).toBe(gallery);
+        expect(field.projectionHost).toBe(fill);
+        expect(chamber.fillField).toBeFalsy();
+        expect(chamber._fillFieldDirector).toBeFalsy();
+        expect(chamber.fillVideoField).toBeFalsy();
 
-    it('clips fill to glyph ink, not a bounding-box rectangle', async () => {
-        const { chamber, container } = makeChamber(
-            { chunkMode: 'word', sequenceVisualAssets: [STILL] },
-            { chamberMask: true }
-        );
-        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
-        await flushFillMask();
+        field._ensureLayers();
+        field.setProjectionHost(fill);
+        field._crossfadeTo({ url: 'https://example.test/a.jpg' }, true);
+        field._currentUrl = 'https://example.test/a.jpg';
+        field._crossfadeTo({ url: 'https://example.test/b.jpg' }, false);
+        field._currentUrl = 'https://example.test/b.jpg';
 
-        const host = fillHost(container);
-        const mask = `${host.style.maskImage} ${host.style.webkitMaskImage}`;
-        expect(mask).toMatch(/text/i);
-        expect(mask).not.toMatch(/rect/i);
+        const gallerySrcs = [...gallery.querySelectorAll('.continuous-field-artwork')]
+            .map(img => img.getAttribute('src'))
+            .filter(Boolean)
+            .sort();
+        const fillSrcs = [...fill.querySelectorAll('.continuous-field-artwork')]
+            .map(img => img.getAttribute('src'))
+            .filter(Boolean)
+            .sort();
+        expect(fillSrcs).toEqual(gallerySrcs);
+        expect(fillSrcs.some(src => src.includes('b.jpg'))).toBe(true);
+        expect(field.currentUrl).toBe('https://example.test/b.jpg');
+        expect(fill.style.maskImage + fill.style.webkitMaskImage).toMatch(/text/i);
         expect(atomDisplay(container).classList.contains('is-mask-ink')).toBe(true);
+        expect(container.querySelectorAll('video')).toHaveLength(0);
         chamber.destroy();
     });
 
-    it('does not mount fill when Mask is on and the session is phrase', async () => {
+    it('does not mount a stencil host in phrase mode', async () => {
         const { chamber, container } = makeChamber(
-            { chunkMode: 'phrase', sequenceVisualAssets: [STILL] },
+            {
+                chunkMode: 'phrase',
+                visualConfig: {
+                    visualMode: 'interlocution',
+                    interlocution: { presentation: 'continuous-word' }
+                }
+            },
             { chamberMask: true }
         );
+        chamber.displayAtom({ content: 'a phrase', duration: 500 }, 0);
         await flushFillMask();
         expect(fillHost(container)).toBeNull();
+        expect(galleryHost(container)).toBeTruthy();
         expect(chamber._fillFieldDirector).toBeFalsy();
         chamber.destroy();
     });
 
-    it('does not mount fill when Mask is off', async () => {
+    it('Page tears the projection host and does not clone the gallery', async () => {
         const { chamber, container } = makeChamber(
-            { chunkMode: 'word', sequenceVisualAssets: [STILL] },
-            { chamberMask: false }
-        );
-        await flushFillMask();
-        expect(fillHost(container)).toBeNull();
-        chamber.destroy();
-    });
-
-    it('does not mount fill when the session has no stills', async () => {
-        const { chamber, container } = makeChamber(
-            { chunkMode: 'word', sequenceVisualAssets: [VIDEO] },
+            wordGallerySession(),
             { chamberMask: true }
         );
-        await flushFillMask();
-        expect(fillHost(container)).toBeNull();
-        expect(atomDisplay(container).classList.contains('is-mask')).toBe(true);
-        expect(atomDisplay(container).classList.contains('is-mask-ink')).toBe(false);
-        chamber.destroy();
-    });
-
-    it('destroys the fill when Mask is turned off', async () => {
-        const { chamber, container } = makeChamber(
-            { chunkMode: 'word', sequenceVisualAssets: [STILL] },
-            { chamberMask: true }
-        );
+        armGalleryField();
         chamber.displayAtom({ content: 'Word', duration: 500 }, 0);
         await flushFillMask();
         expect(fillHost(container)).toBeTruthy();
-
-        globalThis.rise.settings.chamberMask = false;
-        chamber.applyChamberMask();
-        await flushFillMask();
-        expect(fillHost(container)).toBeNull();
-        expect(chamber._fillFieldDirector).toBeFalsy();
-        expect(atomDisplay(container).classList.contains('is-mask-ink')).toBe(false);
-        chamber.destroy();
-    });
-
-    it('destroys the fill when Page Mode suspends temporal visuals', async () => {
-        const { chamber, container } = makeChamber(
-            { chunkMode: 'word', sequenceVisualAssets: [STILL] },
-            { chamberMask: true }
-        );
-        chamber.displayAtom({ content: 'Word', duration: 500 }, 0);
-        await flushFillMask();
-        expect(fillHost(container)).toBeTruthy();
+        const gallery = galleryHost(container);
 
         chamber._suspendTemporalVisuals();
         expect(fillHost(container)).toBeNull();
-        expect(chamber._fillFieldDirector).toBeFalsy();
+        expect(visualCortex._continuousField).toBeFalsy();
+        expect(visualCortex.hasContinuousFieldHost()).toBe(false);
+        expect(container.querySelector('#page-reader .chamber-continuous-field')).toBeNull();
+        expect(gallery?.isConnected).toBe(true);
         chamber.destroy();
     });
 
-    it('destroys the fill when the session ends', async () => {
+    it('default path never mounts a second video in the fill host', async () => {
         const { chamber, container } = makeChamber(
-            { chunkMode: 'word', sequenceVisualAssets: [STILL] },
+            { ...wordGallerySession(), sequenceVisualAssets: [STILL, MP4] },
             { chamberMask: true }
         );
-        chamber.displayAtom({ content: 'Word', duration: 500 }, 0);
-        await flushFillMask();
-        expect(fillHost(container)).toBeTruthy();
-
-        chamber.destroy();
-        expect(fillHost(container)).toBeNull();
-        expect(chamber._fillFieldDirector).toBeFalsy();
-    });
-
-    it('keeps Word opaque and clears ink when the atom is empty or a seam', async () => {
-        const { chamber, container } = makeChamber(
-            { chunkMode: 'word', sequenceVisualAssets: [STILL] },
-            { chamberMask: true }
-        );
+        armGalleryField();
         chamber.displayAtom({ content: 'O', duration: 500 }, 0);
         await flushFillMask();
-        expect(atomDisplay(container).classList.contains('is-mask-ink')).toBe(true);
 
-        chamber.displayAtom({ content: '   ', duration: 200 }, 1);
-        await flushFillMask();
-        expect(atomDisplay(container).classList.contains('is-mask-ink')).toBe(false);
-        expect(fillHost(container)?.classList.contains('is-hidden')).toBe(true);
-
-        chamber.displayAtom({
-            content: '',
-            duration: 200,
-            seam: { depth: 'piece', label: 'II', name: 'Second' }
-        }, 2);
-        await flushFillMask();
-        expect(atomDisplay(container).classList.contains('is-mask-ink')).toBe(false);
-        expect(fillHost(container)?.classList.contains('is-hidden')).toBe(true);
+        expect(fillHost(container)?.querySelector('video')).toBeNull();
+        expect(fillHost(container)?.querySelector('.sequence-video-field')).toBeNull();
+        expect(chamber.fillVideoField).toBeFalsy();
+        expect(container.querySelectorAll('video')).toHaveLength(0);
         chamber.destroy();
     });
 
-    it('awaits document.fonts.ready before applying the glyph mask', async () => {
+    it('clips the projection host to glyph ink after fonts.ready', async () => {
         restoreEnv?.();
         let releaseFonts;
         const fontsReady = new Promise((resolve) => { releaseFonts = resolve; });
         restoreEnv = installFillMaskEnv({ fontsReady });
 
         const { chamber, container } = makeChamber(
-            { chunkMode: 'word', sequenceVisualAssets: [STILL] },
+            wordGallerySession(),
             { chamberMask: true }
         );
+        armGalleryField();
         chamber.displayAtom({ content: 'O', duration: 500 }, 0);
         await Promise.resolve();
         expect(atomDisplay(container).classList.contains('is-mask-ink')).toBe(false);
 
         releaseFonts();
         await flushFillMask();
+        const host = fillHost(container);
         expect(atomDisplay(container).classList.contains('is-mask-ink')).toBe(true);
+        expect(`${host.style.maskImage} ${host.style.webkitMaskImage}`).toMatch(/text/i);
+        expect(`${host.style.maskImage} ${host.style.webkitMaskImage}`).not.toMatch(/rect/i);
+        expect(galleryHost(container).style.maskImage).toBeFalsy();
         chamber.destroy();
     });
 
-    it('falls back to opaque thick Word when the mask cannot be built', async () => {
+    it('falls back to opaque Word when the mask cannot be built', async () => {
         restoreEnv?.();
         restoreEnv = installFillMaskEnv();
         globalThis.CSS.supports = () => false;
 
         const { chamber, container } = makeChamber(
-            { chunkMode: 'word', sequenceVisualAssets: [STILL] },
+            wordGallerySession(),
             { chamberMask: true }
         );
         chamber.displayAtom({ content: 'O', duration: 500 }, 0);
@@ -378,167 +354,24 @@ describe('Chamber Mask fill (slice 3)', () => {
         expect(fillHost(container)).toBeNull();
         chamber.destroy();
     });
-});
 
-describe('Chamber Mask fill video (slice 4 / FM-RISE-26)', () => {
-    let restoreEnv;
-
-    beforeEach(() => {
-        restoreEnv = installFillMaskEnv();
-        vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
-        vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
-        vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
-        localStorage.removeItem('rise-chamber-dual-mp4');
-    });
-
-    afterEach(() => {
-        restoreEnv?.();
-        delete globalThis.rise;
-        document.body.replaceChildren();
-        localStorage.removeItem('rise-chamber-dual-mp4');
-        visualCortex.setSequenceVideoHost(null);
-        vi.restoreAllMocks();
-    });
-
-    it('Mask+Word+mp4 mounts one muted playsinline SequenceVideoField in the fill host', async () => {
+    it('destroys the projection when Mask is turned off', async () => {
         const { chamber, container } = makeChamber(
-            { chunkMode: 'word', sequenceVisualAssets: [MP4] },
+            wordGallerySession('continuous'),
             { chamberMask: true }
         );
-        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
-        await flushFillMask();
-
-        const host = fillHost(container);
-        const video = host?.querySelector('video');
-        expect(host).toBeTruthy();
-        expect(host.querySelector('.sequence-video-field')).toBeTruthy();
-        expect(chamber.fillVideoField).toBeInstanceOf(SequenceVideoField);
-        expect(video).toBeTruthy();
-        expect(video.muted).toBe(true);
-        expect(video.playsInline).toBe(true);
-        expect(video.hasAttribute('playsinline')).toBe(true);
-        expect(container.querySelectorAll('video')).toHaveLength(1);
-        expect(atomDisplay(container).classList.contains('is-mask-ink')).toBe(true);
-        expect(atomDisplay(container).classList.contains('glass-tile')).toBe(false);
-        chamber.destroy();
-    });
-
-    it('Mask+Word+stills only keeps ContinuousField fill with no video', async () => {
-        const { chamber, container } = makeChamber(
-            { chunkMode: 'word', sequenceVisualAssets: [STILL] },
-            { chamberMask: true }
-        );
-        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
-        await flushFillMask();
-
-        const host = fillHost(container);
-        expect(chamber.fillField).toBeInstanceOf(ContinuousField);
-        expect(host.querySelector('video')).toBeNull();
-        expect(host.querySelector('.sequence-video-field')).toBeNull();
-        chamber.destroy();
-    });
-
-    it('Mask+phrase+mp4 does not mount fill video', async () => {
-        const { chamber, container } = makeChamber(
-            { chunkMode: 'phrase', sequenceVisualAssets: [MP4] },
-            { chamberMask: true }
-        );
-        await flushFillMask();
-        expect(fillHost(container)).toBeNull();
-        expect(container.querySelector('video')).toBeNull();
-        chamber.destroy();
-    });
-
-    it('reducedMotion holds the fill video as a poster', async () => {
-        const { chamber, container } = makeChamber(
-            { chunkMode: 'word', sequenceVisualAssets: [MP4] },
-            { chamberMask: true, reducedMotion: true }
-        );
-        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
-        await flushFillMask();
-
-        const field = chamber.fillVideoField;
-        expect(field.reducedMotion).toBe(true);
-        HTMLMediaElement.prototype.play.mockClear();
-        field.video.dispatchEvent(new Event('loadeddata'));
-        await Promise.resolve();
-        expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
-        chamber.destroy();
-    });
-
-    it('destroys fill video on Page, Mask off, and session end', async () => {
-        const { chamber, container } = makeChamber(
-            { chunkMode: 'word', sequenceVisualAssets: [MP4] },
-            { chamberMask: true }
-        );
+        armGalleryField('continuous');
         chamber.displayAtom({ content: 'Word', duration: 500 }, 0);
         await flushFillMask();
-        expect(fillHost(container)?.querySelector('video')).toBeTruthy();
-
-        chamber._suspendTemporalVisuals();
-        expect(fillHost(container)).toBeNull();
-        expect(chamber.fillVideoField).toBeFalsy();
-
-        chamber.applyChamberMask();
-        chamber.displayAtom({ content: 'Word', duration: 500 }, 0);
-        await flushFillMask();
-        expect(fillHost(container)?.querySelector('video')).toBeTruthy();
+        expect(fillHost(container)).toBeTruthy();
 
         globalThis.rise.settings.chamberMask = false;
+        chamber.session.visualConfig.interlocution.presentation = 'continuous';
         chamber.applyChamberMask();
         await flushFillMask();
         expect(fillHost(container)).toBeNull();
-
-        globalThis.rise.settings.chamberMask = true;
-        chamber.applyChamberMask();
-        chamber.displayAtom({ content: 'Word', duration: 500 }, 0);
-        await flushFillMask();
+        expect(visualCortex._continuousField?.projectionHost).toBeFalsy();
+        expect(atomDisplay(container).classList.contains('is-mask-ink')).toBe(false);
         chamber.destroy();
-        expect(container.querySelector('video')).toBeNull();
-        expect(chamber.fillVideoField).toBeFalsy();
-    });
-
-    it('flag off: even if the session has two mp4s, Chamber has only one video', async () => {
-        const { chamber, container } = makeChamber(
-            { chunkMode: 'word', sequenceVisualAssets: [MP4, MP4_B] },
-            { chamberMask: true }
-        );
-        const field = container.querySelector('#chamber-field');
-        visualCortex.setSequenceVideoHost(field);
-        visualCortex._sequenceVideoField = new SequenceVideoField(field);
-        visualCortex._sequenceVideoField.show(MP4_B, { timeMode: 'loop' });
-
-        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
-        await flushFillMask();
-
-        expect(container.querySelectorAll('video')).toHaveLength(1);
-        expect(fillHost(container).querySelector('video')).toBeTruthy();
-        expect(visualCortex._sequenceVideoField).toBeFalsy();
-        chamber.destroy();
-    });
-
-    it('4K or audible mp4 falls back to stills fill and keeps glyphs opaque if no stills', async () => {
-        const { chamber, container } = makeChamber(
-            { chunkMode: 'word', sequenceVisualAssets: [STILL, MP4_4K] },
-            { chamberMask: true }
-        );
-        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
-        await flushFillMask();
-        expect(fillHost(container).querySelector('video')).toBeNull();
-        expect(chamber.fillField).toBeInstanceOf(ContinuousField);
-        expect(atomDisplay(container).classList.contains('is-mask-ink')).toBe(true);
-        chamber.destroy();
-
-        const audible = makeChamber(
-            { chunkMode: 'word', sequenceVisualAssets: [MP4_AUDIO] },
-            { chamberMask: true }
-        );
-        audible.chamber.displayAtom({ content: 'O', duration: 500 }, 0);
-        await flushFillMask();
-        expect(fillHost(audible.container)).toBeNull();
-        expect(atomDisplay(audible.container).classList.contains('is-mask')).toBe(true);
-        expect(atomDisplay(audible.container).classList.contains('is-mask-ink')).toBe(false);
-        expect(atomDisplay(audible.container).style.color).not.toBe('transparent');
-        audible.chamber.destroy();
     });
 });

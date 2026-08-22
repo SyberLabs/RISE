@@ -16,7 +16,8 @@ import {
     GALLERY_CADENCE_DEFAULT,
     VISUAL_PRESENCE_DEFAULT_MS,
     normalizeGalleryCadence,
-    normalizePresentation
+    normalizePresentation,
+    isContinuousPresentation
 } from './core/visual-presence.js';
 import { compileSession } from './core/session-compiler.js';
 import {
@@ -447,7 +448,7 @@ class App {
                     // unstated presentation is treated as flashing —
                     // the cortex's own default is full-frame.
                     const presentation = session.visualConfig?.interlocution?.presentation;
-                    const flashes = presentation !== 'continuous';
+                    const flashes = !isContinuousPresentation(presentation);
                     if (visualMode === 'interlocution' && flashes) {
                         const consentScope = session.visualConfig?.consentScope;
                         const consented = await requestVisualInterlocutionConsent(consentScope);
@@ -677,7 +678,7 @@ class App {
                             activateDeferredVisuals = async () => {
                                 const directPresentation = session.visualConfig
                                   ?.interlocution?.presentation;
-                                const directFlashes = directPresentation !== 'continuous';
+                                const directFlashes = !isContinuousPresentation(directPresentation);
                                 const consentScope = session.visualConfig?.consentScope;
                                 const activated = directFlashes
                                   ? (await requestVisualInterlocutionConsent(consentScope))

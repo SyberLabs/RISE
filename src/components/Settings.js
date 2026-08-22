@@ -79,6 +79,7 @@ export class Settings {
               <div class="settings-label-group">
                 <label class="settings-label">Mask</label>
                 <p class="settings-hint text-mist">
+                  Same as PREP → Presentation → Gallery in the word.
                   Thick Word stream. Glass stays off. Phrase and sentence are unchanged.
                 </p>
               </div>
