@@ -15,7 +15,7 @@ import {
     isPersonalVisualSource,
     normalizeWordFill
 } from './visual-selection.js';
-import { LISTED_PROCEDURAL_PATTERNS, PROCEDURAL_PATTERN_IDS } from './visual-registry.js';
+import { LISTED_PROCEDURAL_PATTERNS } from './visual-registry.js';
 
 export const GROUNDS = Object.freeze({
     transparent: 'transparent',
@@ -23,10 +23,8 @@ export const GROUNDS = Object.freeze({
     dark: 'dark'
 });
 
-const ENGINE_IDS = new Set([
-    ...PROCEDURAL_PATTERN_IDS,
-    ...LISTED_PROCEDURAL_PATTERNS.map(pattern => pattern.id)
-]);
+/** LISTED_PROCEDURAL_PATTERNS is PROCEDURAL_PATTERNS plus Attractor. */
+const ENGINE_IDS = new Set(LISTED_PROCEDURAL_PATTERNS.map(pattern => pattern.id));
 
 /**
  * Profile assignments. Law is the profile + combine(), not an exhaustive
