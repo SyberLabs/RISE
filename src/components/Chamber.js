@@ -36,6 +36,13 @@ import {
 import { hasNextLibraryDivision } from '../core/reading-continuation.js';
 import { READING_PACE } from '../core/reading-limits.js';
 import { resolveChamberStreamFace } from '../core/chamber-stream-face.js';
+import {
+  estimateGlyphBox,
+  fitWordAtomPx,
+  isChamberWordFit,
+  resolveFontSize,
+  threeStepIntent
+} from '../core/chamber-type-size.js';
 
 /**
  * THE SEAM, AS THE CHAMBER IS WILLING TO DRAW IT.
@@ -257,6 +264,7 @@ export class Chamber {
 
     this.render();
     this.applyChamberStreamFace();
+    this.applyChamberTypeSize();
     this.attachEvents();
     this.bindVisualViewport();
     this.initializeDisplay();
@@ -547,6 +555,18 @@ export class Chamber {
     if (atomDisplay.classList.contains('is-mask')) {
       void this.syncFillGlyphMask();
     }
+    return true;
+  }
+
+  applyChamberTypeSize() {
+    const atomDisplay = this.container.querySelector('#atom-display');
+    if (!atomDisplay) return false;
+    atomDisplay.dataset.fontSize = resolveFontSize(
+      globalThis.rise?.settings?.fontSize
+    );
+    const content = (atomDisplay.textContent || '').trim();
+    if (content) this.sizeAtomText(atomDisplay, content);
+    void this.syncFillGlyphMask();
     return true;
   }
 
@@ -1147,6 +1167,7 @@ export class Chamber {
 
   beginSession() {
     this.applyChamberStreamFace();
+    this.applyChamberTypeSize();
     this.applyChamberMask();
     // Hide pre-session, show display
     const preSession = this.container.querySelector('#chamber-pre');
@@ -1693,7 +1714,85 @@ export class Chamber {
    */
   sizeAtomText(atomDisplay, content) {
     atomDisplay.style.removeProperty('font-size');
-    atomDisplay.style.setProperty('--atom-scale', String(sizeAtomScale(content)));
+    const fontSize = resolveFontSize(globalThis.rise?.settings?.fontSize);
+    atomDisplay.dataset.fontSize = fontSize;
+    atomDisplay.style.setProperty('--font-size-intent', String(threeStepIntent(fontSize)));
+
+    const useFit = isChamberWordFit(fontSize)
+      && this.session?.chunkMode === 'word'
+      && Boolean(stripEmphasis(content).trim());
+
+    if (!useFit) {
+      atomDisplay.classList.remove('is-word-fit');
+      atomDisplay.style.removeProperty('--atom-fit-px');
+      atomDisplay.style.setProperty('--atom-scale', String(sizeAtomScale(content)));
+      return;
+    }
+
+    const box = this._wordFitBox();
+    const cs = getComputedStyle(atomDisplay);
+    const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+    const padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    const shown = stripEmphasis(content);
+    const measured = this._measureWordGlyph(atomDisplay, shown);
+    const px = fitWordAtomPx({
+      fieldWidth: box.width,
+      fieldHeight: box.height,
+      padX,
+      padY,
+      measuredWidth: measured.width,
+      measuredHeight: measured.height,
+      measuredAt: measured.at
+    });
+    if (px == null) {
+      atomDisplay.classList.remove('is-word-fit');
+      atomDisplay.style.removeProperty('--atom-fit-px');
+      atomDisplay.style.setProperty('--atom-scale', String(sizeAtomScale(content)));
+      return;
+    }
+    atomDisplay.classList.add('is-word-fit');
+    atomDisplay.style.setProperty('--atom-fit-px', `${px}px`);
+    atomDisplay.style.setProperty('--atom-scale', '1');
+  }
+
+  _wordFitBox() {
+    const band = this.container.querySelector('#atom-band');
+    const field = this.container.querySelector('#chamber-field');
+    const bandW = band?.clientWidth || band?.getBoundingClientRect?.().width || 0;
+    const bandH = band?.clientHeight || band?.getBoundingClientRect?.().height || 0;
+    if (bandW > 1 && bandH > 1) {
+      return { width: bandW, height: bandH, source: 'atom-band' };
+    }
+    return {
+      width: field?.clientWidth || field?.getBoundingClientRect?.().width || 0,
+      height: field?.clientHeight || field?.getBoundingClientRect?.().height || 0,
+      source: 'chamber-field'
+    };
+  }
+
+  _measureWordGlyph(atomDisplay, text, atPx = 100) {
+    const at = atPx;
+    const cs = atomDisplay ? getComputedStyle(atomDisplay) : null;
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext?.('2d');
+      if (ctx && typeof ctx.measureText === 'function') {
+        const family = cs?.fontFamily || 'serif';
+        const weight = cs?.fontWeight || '400';
+        ctx.font = `${weight} ${at}px ${family}`;
+        const metrics = ctx.measureText(text || '');
+        const width = Number(metrics.width);
+        const height = (Number(metrics.actualBoundingBoxAscent) || 0)
+          + (Number(metrics.actualBoundingBoxDescent) || 0);
+        if (width > 0) {
+          return { width, height: height > 0 ? height : at * 1.15, at };
+        }
+      }
+    } catch {
+      /* jsdom and missing canvas fall through to the estimate. */
+    }
+    const box = estimateGlyphBox(text, at);
+    return { width: box.width, height: box.height, at };
   }
 
   applyLivingText(atomDisplay, index) {
@@ -1955,12 +2054,15 @@ export class Chamber {
             ? resolveChamberStreamFace(value)
             : key === 'chamberMask'
               ? value === true
-              : value;
+              : key === 'fontSize'
+                ? resolveFontSize(value)
+                : value;
         }
         if (key === 'chamberFace' || key === 'chamberMask') {
           this.applyChamberStreamFace();
           this.applyChamberMask();
         }
+        if (key === 'fontSize') this.applyChamberTypeSize();
         if (key === 'chamberFace') this._reportFaceApply(value);
       }
     });

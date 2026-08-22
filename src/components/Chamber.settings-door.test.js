@@ -118,6 +118,40 @@ describe('Chamber Settings door', () => {
     chamber.destroy();
   });
 
+  it('applies Font Size on the paused frame and rebuilds the mask', async () => {
+    const { chamber, container, player } = mount();
+    globalThis.rise = {
+      settings: { chamberFace: 'literary', fontSize: 'medium' },
+      handleSettingsChange(key, value) {
+        this.settings[key] = value;
+      }
+    };
+    chamber.session.chunkMode = 'word';
+    chamber.applyChamberTypeSize();
+    const sync = vi.spyOn(chamber, 'syncFillGlyphMask');
+
+    await chamber.openSettings();
+    expect(player.state).toBe('paused');
+    expect(container.querySelector('#font-size')).toBeNull();
+
+    container.querySelector('input[name="font-size"][value="large"]').click();
+    expect(globalThis.rise.settings.fontSize).toBe('large');
+    expect(container.querySelector('#atom-display').dataset.fontSize).toBe('large');
+    expect(sync).toHaveBeenCalled();
+
+    chamber.displayAtom({ content: 'Word', duration: 500 }, 0);
+    sync.mockClear();
+    container.querySelector('input[name="font-size"][value="fit"]').click();
+    expect(globalThis.rise.settings.fontSize).toBe('fit');
+    expect(container.querySelector('#atom-display').dataset.fontSize).toBe('fit');
+    expect(container.querySelector('#font-size-hint')?.textContent)
+        .toMatch(/Words fill the chamber|Fit waits for the chamber/);
+    expect(sync).toHaveBeenCalled();
+    expect(player.state).toBe('paused');
+
+    chamber.destroy();
+  });
+
   it('shows Face did not take when the paused atom does not receive the face', async () => {
     const { chamber, container } = mount();
     globalThis.rise = {

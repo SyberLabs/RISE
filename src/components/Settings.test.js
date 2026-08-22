@@ -74,25 +74,39 @@ describe('Settings display type', () => {
         return { container, settings, onChange };
     }
 
-    it('keeps the font-size slider on small / medium / large', () => {
+    it('keeps Size on S | M | L | Fit chips and drops the 0–2 slider', () => {
         const { container, settings, onChange } = mountSettings({ fontSize: 'medium' });
-        const slider = container.querySelector('#font-size');
-        const value = container.querySelector('#font-size-value');
+        const radios = [...container.querySelectorAll('input[name="font-size"]')];
 
-        expect(slider.value).toBe('1');
-        expect(value.textContent.trim()).toBe('medium');
+        expect(container.querySelector('#font-size')).toBeNull();
+        expect(radios.map((radio) => [
+            radio.dataset.fontSize,
+            radio.value,
+            radio.closest('label')?.textContent.replace(/\s+/g, ' ').trim()
+        ])).toEqual([
+            ['s', 'small', 'S'],
+            ['m', 'medium', 'M'],
+            ['l', 'large', 'L'],
+            ['fit', 'fit', 'Fit']
+        ]);
+        expect(radios.find((radio) => radio.value === 'medium').checked).toBe(true);
+        expect(container.querySelector('#font-size-hint')?.hidden).toBe(true);
 
-        slider.value = '0';
-        slider.dispatchEvent(new Event('input'));
-        expect(onChange).toHaveBeenCalledWith('fontSize', 'small');
-        expect(value.textContent.trim()).toBe('small');
-
-        slider.value = '2';
-        slider.dispatchEvent(new Event('input'));
+        radios.find((radio) => radio.value === 'large').click();
         expect(onChange).toHaveBeenCalledWith('fontSize', 'large');
-        expect(value.textContent.trim()).toBe('large');
 
-        expect(onChange.mock.calls.every(([key]) => key === 'fontSize')).toBe(true);
+        radios.find((radio) => radio.value === 'fit').click();
+        expect(onChange).toHaveBeenCalledWith('fontSize', 'fit');
+        expect(container.querySelector('#font-size-hint')?.hidden).toBe(false);
+        expect(container.querySelector('#font-size-hint')?.textContent)
+            .toMatch(/Fit waits for the chamber|Words fill the chamber/);
+
+        const forged = radios.find((radio) => radio.value === 'large');
+        forged.value = 'huge';
+        forged.checked = true;
+        forged.dispatchEvent(new Event('change'));
+        expect(onChange).not.toHaveBeenCalledWith('fontSize', 'huge');
+
         settings.destroy();
     });
 

@@ -1,5 +1,11 @@
 import { clearUserData, exportUserData } from '../core/user-data.js';
 import { CHAMBER_STREAM_FACES, resolveChamberStreamFace } from '../core/chamber-stream-face.js';
+import {
+    FONT_SIZE_CHIPS,
+    persistFontSize,
+    resolveFontSize,
+    sizeFitHint
+} from '../core/chamber-type-size.js';
 
 /**
  * Settings Component
@@ -51,20 +57,14 @@ export class Settings {
             <h2 id="display-heading" class="settings-section-title text-fog">Display</h2>
 
             <div class="settings-row">
-              <label class="settings-label" for="font-size">Font Size</label>
-              <div class="settings-control slider-container">
-                <input
-                  type="range"
-                  id="font-size"
-                  class="slider"
-                  min="0"
-                  max="2"
-                  value="${this.getFontSizeValue()}"
-                  aria-valuetext="${this.settings.fontSize || 'medium'}"
-                />
-                <span class="slider-value text-capitalize" id="font-size-value">
-                  ${this.settings.fontSize || 'medium'}
-                </span>
+              <div class="settings-label-group">
+                <span class="settings-label" id="font-size-label">Size</span>
+                <p class="settings-hint text-mist" id="font-size-hint" ${resolveFontSize(this.settings.fontSize) === 'fit' ? '' : 'hidden'}>
+                  ${this.fontSizeHint()}
+                </p>
+              </div>
+              <div class="settings-control" role="radiogroup" aria-labelledby="font-size-label">
+                ${this.renderFontSizeRadios()}
               </div>
             </div>
 
@@ -263,9 +263,28 @@ export class Settings {
     `;
     }
 
-    getFontSizeValue() {
-        const sizes = ['small', 'medium', 'large'];
-        return sizes.indexOf(this.settings.fontSize || 'medium');
+    fontSizeHint() {
+        if (resolveFontSize(this.settings.fontSize) !== 'fit') return '';
+        const atom = typeof document !== 'undefined'
+            ? document.querySelector('#atom-display')
+            : null;
+        return sizeFitHint(Boolean((atom?.textContent || '').trim()));
+    }
+
+    renderFontSizeRadios() {
+        const selected = resolveFontSize(this.settings.fontSize);
+        return FONT_SIZE_CHIPS.map((chip) => `
+          <label class="radio">
+            <input
+              type="radio"
+              name="font-size"
+              value="${chip.fontSize}"
+              data-font-size="${chip.id}"
+              ${chip.fontSize === selected ? 'checked' : ''}
+            />
+            <span class="radio-label">${chip.label}</span>
+          </label>
+        `).join('');
     }
 
     renderChamberFaceRadios() {
@@ -314,16 +333,19 @@ export class Settings {
             });
         });
 
-        // Font size slider
-        const fontSizeSlider = this.container.querySelector('#font-size');
-        const fontSizeValue = this.container.querySelector('#font-size-value');
-        fontSizeSlider?.addEventListener('input', (e) => {
-            const sizes = ['small', 'medium', 'large'];
-            const size = sizes[parseInt(e.target.value)];
-            fontSizeValue.textContent = size;
-            e.target.setAttribute('aria-valuetext', size);
-            this.settings.fontSize = size;
-            this.onChange('fontSize', size);
+        this.container.querySelectorAll('input[name="font-size"]').forEach((input) => {
+            input.addEventListener('change', (e) => {
+                const persist = persistFontSize(e.target.value);
+                if (!persist) return;
+                this.settings.fontSize = persist;
+                this.onChange('fontSize', persist);
+                const hint = this.container.querySelector('#font-size-hint');
+                if (hint) {
+                    const text = this.fontSizeHint();
+                    hint.textContent = text;
+                    hint.hidden = persist !== 'fit';
+                }
+            });
         });
 
         this.container.querySelectorAll('input[name="chamber-face"]').forEach((input) => {

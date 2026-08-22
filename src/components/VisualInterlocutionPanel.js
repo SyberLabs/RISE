@@ -11,6 +11,12 @@
  */
 
 import { resolveChamberStreamFace } from '../core/chamber-stream-face.js';
+import {
+    FONT_SIZE_CHIPS,
+    SIZE_HINT_FIT,
+    persistFontSize,
+    resolveFontSize
+} from '../core/chamber-type-size.js';
 import { WIKIMEDIA_CATEGORIES } from '../sources/visual/wikimedia.js';
 import { MUSEUM_CATEGORIES } from '../sources/visual/museum.js';
 import { ATRIUM_CATEGORIES } from '../content/imagery/atrium-categories.js';
@@ -795,6 +801,7 @@ export class VisualInterlocutionPanel {
                     </div>
 
                     ${this.renderChamberFaceRow()}
+                    ${this.renderChamberSizeRow()}
 
                     <!-- FOCALS: Persistent focal point (neurosensitive-friendly) -->
                     <div class="vi-focals-panel" ${mode === 'focals' ? '' : 'hidden'}>
@@ -1575,6 +1582,17 @@ export class VisualInterlocutionPanel {
             });
         });
 
+        this.container.querySelectorAll('[data-font-size]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const persist = persistFontSize(btn.dataset.fontSize);
+                if (!persist) return;
+                this._writeFontSize(persist);
+                if (window.rise?.audioEngine) window.rise.audioEngine.playHiss();
+                this.render();
+                this.attachEvents();
+            });
+        });
+
         if (this.locked) return;
 
         this.container.querySelectorAll('[data-presentation]').forEach(btn => {
@@ -2065,6 +2083,38 @@ export class VisualInterlocutionPanel {
             return;
         }
         if (window.rise?.settings) window.rise.settings.chamberFace = id;
+    }
+
+    renderChamberSizeRow() {
+        const selected = resolveFontSize(globalThis.rise?.settings?.fontSize);
+        const hint = selected === 'fit' ? SIZE_HINT_FIT : '';
+        return `
+                    <div class="vi-source-family vi-chamber-size" role="group" aria-label="Size">
+                        <div class="vi-source-family-label">Size</div>
+                        <div class="vi-source-family-options">
+                            ${FONT_SIZE_CHIPS.map((chip) => `
+                                <button type="button"
+                                    class="vi-source-family-btn ${selected === chip.fontSize ? 'active' : ''}"
+                                    data-font-size="${chip.id}"
+                                    aria-pressed="${selected === chip.fontSize}">
+                                    ${chip.label}
+                                </button>
+                            `).join('')}
+                        </div>
+                        ${hint ? `<p class="vi-source-family-hint text-mist">${hint}</p>` : ''}
+                    </div>
+        `;
+    }
+
+    _writeFontSize(id) {
+        const persist = persistFontSize(id);
+        if (!persist) return;
+        if (typeof window === 'undefined') return;
+        if (typeof window.rise?.handleSettingsChange === 'function') {
+            window.rise.handleSettingsChange('fontSize', persist);
+            return;
+        }
+        if (window.rise?.settings) window.rise.settings.fontSize = persist;
     }
 
     _aliasChamberMask(on) {

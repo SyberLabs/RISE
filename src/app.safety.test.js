@@ -146,4 +146,33 @@ describe('App safety orchestration', () => {
     app.handleSettingsChange('chamberMask', true);
     expect(applyChamberMask).toHaveBeenCalledTimes(2);
   });
+
+  it('allowlists fontSize and pushes a live size change onto the open Chamber', () => {
+    const app = new App();
+    app.loadSettings();
+    const applyChamberStreamFace = vi.fn();
+    const applyChamberMask = vi.fn();
+    const applyChamberTypeSize = vi.fn();
+    app.router = {
+      getViewInstance: (name) => name === 'chamber-session'
+        ? { applyChamberStreamFace, applyChamberMask, applyChamberTypeSize }
+        : null
+    };
+
+    app.handleSettingsChange('fontSize', 'large');
+    expect(app.settings.fontSize).toBe('large');
+    expect(JSON.parse(localStorage.getItem('rise-settings')).fontSize).toBe('large');
+    expect(document.documentElement.dataset.fontSize).toBe('large');
+    expect(applyChamberTypeSize).toHaveBeenCalled();
+
+    app.handleSettingsChange('fontSize', 'fit');
+    expect(app.settings.fontSize).toBe('fit');
+    expect(JSON.parse(localStorage.getItem('rise-settings')).fontSize).toBe('fit');
+    expect(document.documentElement.dataset.fontSize).toBe('fit');
+
+    app.handleSettingsChange('fontSize', 'huge');
+    expect(app.settings.fontSize).toBe('medium');
+    expect(applyChamberTypeSize).toHaveBeenCalledTimes(3);
+  });
 });
+
