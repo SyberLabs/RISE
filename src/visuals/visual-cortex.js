@@ -1949,11 +1949,17 @@ export class VisualCortex {
         this._attractorField = this._retargetLivingField(this._attractorField, primaryHost);
         if (!this._attractorField) {
             const cfg = this.config.attractor || {};
-            this._attractorField = new AttractorField(primaryHost, {
-                system: cfg.system,
-                palette: cfg.palette,
-                form: cfg.form
-            });
+            try {
+                this._attractorField = new AttractorField(primaryHost, {
+                    system: cfg.system,
+                    palette: cfg.palette,
+                    form: cfg.form
+                });
+            } catch (error) {
+                this._attractorField = null;
+                console.warn('Attractor will not run.', error);
+                return;
+            }
         }
         const projectTo = roomLive && fillLive && this._continuousFieldProjectionHost
             && this._continuousFieldProjectionHost !== primaryHost

@@ -2398,7 +2398,30 @@ describe('Continuous Field (Gallery) wiring', () => {
         expect(snapshot).not.toHaveBeenCalled();
         cortex.destroy();
     });
+
+    it('says “Attractor will not run.” when the Chamber engine cannot start', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const { cortex, host } = hostedContinuousCortex();
+        const append = host.appendChild.bind(host);
+        host.appendChild = (node) => {
+            if (node?.classList?.contains('attractor-canvas')) {
+                throw new Error('canvas refused');
+            }
+            return append(node);
+        };
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['attractor']
+        });
+        expect(warn.mock.calls.some(call => call[0] === 'Attractor will not run.')).toBe(true);
+        expect(cortex._attractorField).toBeFalsy();
+        expect(host.querySelector('.attractor-canvas')).toBeNull();
+        cortex.destroy();
+        warn.mockRestore();
+    });
 });
+
 
 describe('Gallery procedural engines stay engines', () => {
     afterEach(() => {
