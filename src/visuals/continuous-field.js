@@ -28,7 +28,6 @@ import {
 import { createRemoteImage } from './remote-image.js';
 
 const DEFAULT_TIMINGS = galleryCadenceTimings(GALLERY_CADENCE_DEFAULT);
-const MIN_TICK_MS = 250;             // the advance clock's coarsest check
 
 function clamp(value, min, max) {
     return Math.min(Math.max(value, min), Math.max(min, max));

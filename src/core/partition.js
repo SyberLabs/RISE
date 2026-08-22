@@ -41,9 +41,6 @@ import {
  */
 const PARAGRAPH_BREAK = String.raw`\r?\n[ \t]*(?:\r?\n)+`;
 
-/** Below this a snap is not worth offering: it makes a part of a line or two. */
-const MIN_SNAP_WORDS = 8;
-
 /**
  * A DATE LINE, conservatively.
  *

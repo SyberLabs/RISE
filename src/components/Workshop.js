@@ -100,7 +100,6 @@ import {
 import {
   describeImportFailure,
   downloadJsonFile,
-  importExperienceProgram,
   parseExperienceProgramJson,
   serializeExperienceProgram,
   unloadableLibrarySourcesError,
