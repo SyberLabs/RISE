@@ -21,6 +21,7 @@
 import { countWords } from './chunker.js';
 import {
   LOCAL_WORK_DEFAULT_NOUN,
+  authorship,
   localWorkParts,
   validateLocalWork
 } from './local-works.js';
@@ -180,11 +181,11 @@ function renumber(record, cuts, labels) {
 }
 
 function rebuilt(record, cuts, labels) {
-  return validateLocalWork({
-    ...record,
-    cuts,
-    labels: renumber(record, cuts, labels)
-  });
+  const named = renumber(record, cuts, labels);
+  // Authorship is read off the names by the same function the draft uses, so
+  // a record's `authored` can never disagree with the labels it describes.
+  const next = { ...record, cuts, labels: named };
+  return validateLocalWork({ ...next, ...authorship(next) });
 }
 
 /**
@@ -289,7 +290,8 @@ export function relabel(record, partIndex, label) {
   if (!text || partIndex < 0 || partIndex >= record.labels.length) return record;
   const labels = [...record.labels];
   labels[partIndex] = text;
-  return validateLocalWork({ ...record, labels });
+  const next = { ...record, labels };
+  return validateLocalWork({ ...next, ...authorship(next) });
 }
 
 /**

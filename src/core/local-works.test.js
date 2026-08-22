@@ -12,6 +12,7 @@
  * four-hop allowlist looked like the last time one of them dropped a field.
  */
 import { describe, expect, it } from 'vitest';
+import { relabel } from './partition.js';
 import { createScriptoriumSession } from './scriptorium-session.js';
 import {
     draftLocalWork,
@@ -43,13 +44,20 @@ describe('the record', () => {
         expect(countWords(rejoined)).toBe(countWords(BOOK));
     });
 
-    it('is a draft until a reader keeps it', () => {
-        // Save is the authoring act, and the prompt already reads this: an
-        // unauthored work is one the model should point at by progress rather
-        // than name as "Reading 4".
-        const work = draftLocalWork({ text: BOOK, sourceName: 'a-book.md' });
-        expect(work.authored).toBe(false);
-        expect(work.reason).toBe('measured');
+    it('says whose scheme it is by looking at the names', () => {
+        // The prompt reads this: a measured work is one the model should point
+        // at by progress rather than name as "Reading 4". A book whose own
+        // sections are titled is `titled` — the divider read the names, it did
+        // not invent them — and only a person typing makes it `reader`.
+        const wall = draftLocalWork({ text: 'a '.repeat(400), sourceName: 'wall.txt' });
+        expect(wall.labels).toEqual(['Reading 1']);
+        expect(wall).toMatchObject({ authored: false, reason: 'measured' });
+
+        const book = draftLocalWork({ text: BOOK, sourceName: 'a-book.md' });
+        expect(book).toMatchObject({ authored: true, reason: 'titled' });
+
+        const named = relabel(book, 0, 'What I called it');
+        expect(named).toMatchObject({ authored: true, reason: 'reader' });
     });
 
     it('refuses a partition that does not cover the text', () => {

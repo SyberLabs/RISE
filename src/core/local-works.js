@@ -37,6 +37,9 @@ export const LOCAL_WORK_PREFIX = 'local-';
 
 export const LOCAL_WORK_DEFAULT_NOUN = 'Reading';
 
+/** A line ending, whichever kind the reader's file uses. */
+const SPLIT_LINE = /\r?\n/u;
+
 export class LocalWorkError extends Error {
   constructor(message, code = 'LOCAL_WORK') {
     super(message);
@@ -128,10 +131,15 @@ export function validateLocalWork(record) {
 /**
  * The first draft — what the machine proposes, before anyone has looked.
  *
- * `authored: false` and `reason: 'measured'` say exactly that, and the prompt
- * already reads them: when a work is not authored it tells the model to
- * prefer progress and quotation over naming "Reading 4". Save is the
- * authoring act, and it is the reader's, not this function's.
+ * `authored` and `reason` are not set here; `authorship` reads them off the
+ * names, which is the only way they cannot drift from the names. A wall of
+ * text drafts to one part called "Reading 1" and is `measured` — the prompt
+ * reads that and tells the composer to name progress and quotation rather
+ * than "Reading 4". A file that titles its own sections drafts to `titled`,
+ * because the divider only read what the document already said.
+ *
+ * What this function never produces is `reader`. That word means a person
+ * typed a name, and no person has been here yet.
  */
 export function draftLocalWork({ text, sourceName = '', title = '', author = null, now = () => new Date() }) {
   const body = String(text ?? '');
@@ -145,10 +153,9 @@ export function draftLocalWork({ text, sourceName = '', title = '', author = nul
     sourceName: String(sourceName || ''),
     text: body,
     ...cutsFromDraft(body),
-    noun: LOCAL_WORK_DEFAULT_NOUN,
-    authored: false,
-    reason: 'measured'
+    noun: LOCAL_WORK_DEFAULT_NOUN
   };
+  Object.assign(record, authorship(record));
   return validateLocalWork(record);
 }
 
@@ -190,6 +197,41 @@ function cutsFromDraft(text) {
   }
   cuts.push(text.length);
   return { cuts, labels };
+}
+
+/**
+ * Whose scheme it is — READ OFF THE NAMES, not stored beside them.
+ *
+ * The prompt branches on this: when a scheme is measured it tells the
+ * composer to name progress or quotations RATHER THAN "Reading 4", because
+ * counted names say nothing about what is under them. A reader who titles
+ * their parts Pyramid, Sycamore, Railroad and ships `reason: 'measured'`
+ * therefore has the composer instructed to ignore the names they just typed.
+ *
+ * THREE STATES, and the archive already has the words for all three. Every
+ * name still `Noun N` is `measured` — the machine's, and saying nothing. A
+ * name that IS its part's opening line is `titled`: the document named
+ * itself and the divider only read it. A name that is neither came from a
+ * person, and that is `reader`.
+ *
+ * Derived rather than stored-and-updated, and used by every writer, so the
+ * field cannot drift from the labels it describes.
+ */
+export function authorship(record) {
+  const labels = Array.isArray(record?.labels) ? record.labels : [];
+  const noun = record?.noun || LOCAL_WORK_DEFAULT_NOUN;
+  const counted = new RegExp(String.raw`^${noun}\s+\d+$`, 'u');
+  const named = labels
+    .map(label => String(label ?? '').trim())
+    .filter(label => !counted.test(label));
+  if (!named.length) return { authored: false, reason: 'measured' };
+
+  const openings = new Set(
+    localWorkParts(record).map(part => part.content.split(SPLIT_LINE, 1)[0].trim())
+  );
+  return named.every(label => openings.has(label))
+    ? { authored: true, reason: 'titled' }
+    : { authored: true, reason: 'reader' };
 }
 
 /** The first line when it reads as a heading; otherwise the counted name. */
