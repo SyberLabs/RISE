@@ -9,9 +9,9 @@
  * vibrancy) and applies them as a session-locked 1D LUT so a glyph
  * reads as filled flame, not sparse black over cream.
  *
- * Transfer: gain from those knobs → log1p → gamma → knee → clamp.
- * Not hist-eq. Not per-frame auto-exposure. prefers-reduced-motion
- * uses a milder locked curve; it does not animate.
+ * Transfer: gain from those knobs → log1p → gamma → knee → clamp
+ * below white. Not hist-eq. Not per-frame auto-exposure.
+ * prefers-reduced-motion uses a milder locked curve; it does not animate.
  */
 
 /** Room wrapper defaults from `FractalFlame.generateToQueue` (raw mode). */
@@ -25,26 +25,29 @@ export const ROOM_FLAME_TONE = Object.freeze({
 export const FLAME_VOID = Object.freeze([10, 10, 12]);
 
 const FILL = Object.freeze({
-    brightnessScale: 1.85,
-    brightnessMin: 22,
-    brightnessMax: 36,
-    gammaScale: 0.78,
-    gammaMin: 1.35,
+    brightnessScale: 1.28,
+    brightnessMin: 16,
+    brightnessMax: 22,
+    gammaScale: 0.88,
+    gammaMin: 1.65,
     gammaMax: 2.05,
-    vibrancyScale: 1.12,
-    vibrancyMax: 1.85
+    vibrancyScale: 1.08,
+    vibrancyMax: 1.45
 });
 
 const REDUCED = Object.freeze({
-    brightnessScale: 1.45,
-    brightnessMin: 18,
-    brightnessMax: 28,
-    gammaScale: 0.88
+    brightnessScale: 1.16,
+    brightnessMin: 16,
+    brightnessMax: 20,
+    gammaScale: 0.94
 });
 
 const VOID_SLACK = 6;
-const KNEE_START = 0.78;
-const KNEE_STRENGTH = 0.45;
+const KNEE_START = 0.62;
+const KNEE_STRENGTH = 1.15;
+/** Occupied channels stay below #fff. Void stays #0A0A0C. */
+const HIGHLIGHT_CEILING = 220;
+const CHANNEL_FLOOR = 1;
 
 function clamp(value, lo, hi) {
     return Math.min(hi, Math.max(lo, value));
@@ -120,7 +123,7 @@ function transferChannel(x, tone) {
         / (ROOM_FLAME_TONE.brightness * ROOM_FLAME_TONE.vibrancy);
     const lifted = Math.log1p(gain * x) / Math.log1p(gain);
     const shaped = Math.pow(Math.max(0, lifted), 1 / tone.gamma);
-    return clamp(knee(shaped), 0, 1);
+    return clamp(knee(shaped), 0, HIGHLIGHT_CEILING / 255);
 }
 
 export function applyFlameFillLut(imageData, options = {}) {
@@ -142,9 +145,9 @@ export function applyFlameFillLut(imageData, options = {}) {
             dst[i + 2] = FLAME_VOID[2];
             continue;
         }
-        dst[i] = Math.round(transferChannel(r / 255, tone) * 255);
-        dst[i + 1] = Math.round(transferChannel(g / 255, tone) * 255);
-        dst[i + 2] = Math.round(transferChannel(b / 255, tone) * 255);
+        dst[i] = clamp(Math.round(transferChannel(r / 255, tone) * 255), CHANNEL_FLOOR, HIGHLIGHT_CEILING);
+        dst[i + 1] = clamp(Math.round(transferChannel(g / 255, tone) * 255), CHANNEL_FLOOR, HIGHLIGHT_CEILING);
+        dst[i + 2] = clamp(Math.round(transferChannel(b / 255, tone) * 255), CHANNEL_FLOOR, HIGHLIGHT_CEILING);
     }
     return out;
 }

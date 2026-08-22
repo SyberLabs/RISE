@@ -1,0 +1,16 @@
+---
+description: Superpowers bootstrap — check and invoke skills before any response or action.
+alwaysApply: true
+---
+
+# Superpowers
+
+Before any response or action, including clarifying questions, read and follow `.agents/skills/using-superpowers/SKILL.md`. If there is even a 1% chance a skill in `.agents/skills/` applies, read that skill and follow it exactly. You do not have a choice. Announce "Using [skill] to [purpose]". If a skill has a checklist, create a todo per item.
+
+Before entering plan mode, if you have not already brainstormed, use `.agents/skills/brainstorming/SKILL.md` first.
+
+Process skills come first, then implementation skills. "Let's build X" → brainstorming. "Fix this bug" → systematic-debugging.
+
+These thoughts mean STOP — you are rationalizing: "this is just a simple question", "I need more context first", "let me explore the codebase first", "the skill is overkill", "I'll just do this one thing first", "I remember this skill".
+
+User instructions in `AGENTS.md` take precedence over skills. Only skip a skill when the human partner has explicitly said to.
