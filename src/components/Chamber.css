@@ -237,6 +237,15 @@
   box-shadow: none;
 }
 
+/* Ink is a hole onto Layer B (the fill). Counters stay empty so Layer A
+   (the background field) shows through — not a bbox-shaped window. */
+.atom-display.is-mask.is-mask-ink {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  -webkit-text-stroke: 0.6px color-mix(in srgb, var(--color-light) 32%, transparent);
+  text-shadow: none;
+}
+
 .atom-display {
   font-family: var(--font-stream-face, var(--font-literary));
   /* The scale is published by sizeAtomText — a longer phrase gets a
@@ -1002,6 +1011,29 @@
   /* Behind atom text (z-index: 10) */
   pointer-events: none;
   overflow: hidden;
+}
+
+/* Layer B: gallery stills clipped to Word ink, between field (1) and atom (10). */
+.chamber-fill-field {
+  z-index: 5;
+}
+
+.chamber-fill-field.chamber-scheduled-field,
+.chamber-fill-field.chamber-scheduled-field.is-active,
+.chamber-fill-field.chamber-scheduled-field.is-leaving {
+  opacity: 1;
+}
+
+.chamber-fill-field.is-hidden {
+  visibility: hidden;
+}
+
+.chamber-fill-field .continuous-field-label {
+  display: none !important;
+}
+
+.chamber-fill-field.chamber-continuous-field::after {
+  content: none;
 }
 
 .chamber-continuous-field .continuous-field-layer {

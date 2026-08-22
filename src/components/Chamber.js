@@ -11,6 +11,7 @@ import { MemoryCore } from '../core/memory.js';
 import { AttractorField } from '../visuals/attractor.js';
 import { KleeField } from '../visuals/klee-field.js';
 import { VisualFieldDirector } from '../visuals/visual-field-director.js';
+import { ContinuousField } from '../visuals/continuous-field.js';
 import { escapeHtml } from '../core/sanitize.js';
 // The reveal and its emphasis notation are pure logic — no DOM, no
 // audio — so they live in core and are tested without a browser.
@@ -81,6 +82,10 @@ export class Chamber {
     this.attractorField = null;
     this.kleeField = null;
     this._visualFieldDirector = null;
+    this._fillFieldDirector = null;
+    this._fillMaskGeneration = 0;
+    this.fillFieldHost = null;
+    this.fillField = null;
     this._scheduledVisualGeneration = 0;
     // Page Mode (PAGE-MODE-SPEC): the spatial projection, mounted lazily
     // on demand. Null until the reader opens it; nothing is paid before.
@@ -540,8 +545,246 @@ export class Chamber {
     if (this.chamberMaskApplies()) {
       atomDisplay.classList.add('is-mask');
       atomDisplay.classList.remove('glass-tile');
+      this.ensureFillField();
     } else {
       atomDisplay.classList.remove('is-mask');
+      atomDisplay.classList.remove('is-mask-ink');
+      this.destroyFillField();
+    }
+  }
+
+  _fillStillPool() {
+    const assets = this.session?.sequenceVisualAssets;
+    if (!Array.isArray(assets)) return [];
+    return assets
+      .filter((asset) => asset && asset.kind !== 'video' && (asset.uri || asset.url))
+      .map((asset) => ({
+        url: asset.uri || asset.url,
+        title: asset.name || '',
+        artworkLabel: null
+      }));
+  }
+
+  _shouldMountFill() {
+    return this.chamberMaskApplies()
+      && !this.pageModeActive
+      && !this._temporalVisualsDeferred
+      && this._fillStillPool().length > 0;
+  }
+
+  async _waitFontsReady() {
+    try {
+      if (document.fonts?.ready) await document.fonts.ready;
+    } catch {
+      /* A font load failure must not leave transparent empty letters. */
+    }
+  }
+
+  _maskImageSupported() {
+    if (typeof CSS === 'undefined' || typeof CSS.supports !== 'function') return false;
+    try {
+      return CSS.supports('mask-image', 'url("#x")')
+        || CSS.supports('-webkit-mask-image', 'url("#x")')
+        || CSS.supports('mask-image', 'url(#x)');
+    } catch {
+      return false;
+    }
+  }
+
+  _atomHasWordInk(atomDisplay) {
+    if (!atomDisplay || atomDisplay.querySelector('.atom-seam')) return false;
+    return (atomDisplay.textContent || '').trim().length > 0;
+  }
+
+  _clearFillMask() {
+    if (!this.fillFieldHost) return;
+    this.fillFieldHost.style.maskImage = 'none';
+    this.fillFieldHost.style.webkitMaskImage = 'none';
+  }
+
+  _revertFillToOpaqueWord() {
+    const atomDisplay = this.container.querySelector('#atom-display');
+    atomDisplay?.classList.remove('is-mask-ink');
+    if (atomDisplay?.style.color === 'transparent') {
+      atomDisplay.style.removeProperty('color');
+    }
+    if (this.fillFieldHost) {
+      this.fillFieldHost.classList.add('is-hidden');
+      this._clearFillMask();
+    }
+  }
+
+  ensureFillField() {
+    if (!this._shouldMountFill() || !this._maskImageSupported()) {
+      this.destroyFillField();
+      return;
+    }
+    const field = this.container.querySelector('#chamber-field');
+    if (!field) return;
+    if (!this.fillFieldHost) {
+      const host = document.createElement('div');
+      host.className = 'chamber-fill-field chamber-continuous-field';
+      host.setAttribute('aria-hidden', 'true');
+      host.classList.add('is-hidden');
+      this._insertBehindReading(field, host);
+      this.fillFieldHost = host;
+    }
+    if (!this._fillFieldDirector) {
+      this._fillFieldDirector = new VisualFieldDirector({
+        mount: (cue) => this.mountFillFieldCue(cue),
+        transitionMs: 0
+      });
+    }
+    void this.syncFillGlyphMask();
+  }
+
+  mountFillFieldCue(cue) {
+    if (!this.fillFieldHost || cue?.kind !== 'field' || cue.renderer !== 'continuous') {
+      return null;
+    }
+    if (this.fillField) {
+      this.fillField.stop();
+      this.fillField = null;
+    }
+    const field = new ContinuousField(this.fillFieldHost, {
+      getPool: () => this._fillStillPool(),
+      showArtworkLabels: false,
+      decode: (url) => Promise.resolve(!!url)
+    });
+    this.fillField = field;
+    return {
+      node: this.fillFieldHost,
+      pause: () => field.pause(),
+      resume: () => field.resume(),
+      destroy: () => {
+        field.stop();
+        if (this.fillField === field) this.fillField = null;
+      }
+    };
+  }
+
+  async syncFillGlyphMask() {
+    const generation = ++this._fillMaskGeneration;
+    await this._waitFontsReady();
+    if (generation !== this._fillMaskGeneration) return;
+
+    if (!this._shouldMountFill()) {
+      this.destroyFillField();
+      return;
+    }
+    if (!this._maskImageSupported()) {
+      this.destroyFillField();
+      return;
+    }
+
+    const field = this.container.querySelector('#chamber-field');
+    const atomDisplay = this.container.querySelector('#atom-display');
+    if (!field || !atomDisplay || !this.fillFieldHost) return;
+
+    if (!this._atomHasWordInk(atomDisplay)) {
+      this._revertFillToOpaqueWord();
+      return;
+    }
+
+    const fieldRect = field.getBoundingClientRect();
+    const atomRect = atomDisplay.getBoundingClientRect();
+    const fieldWidth = field.clientWidth || fieldRect.width;
+    const fieldHeight = field.clientHeight || fieldRect.height;
+    if (fieldWidth < 2 || fieldHeight < 2 || atomRect.width < 1 || atomRect.height < 1) {
+      this._revertFillToOpaqueWord();
+      return;
+    }
+
+    const cs = getComputedStyle(atomDisplay);
+    const paddingLeft = parseFloat(cs.paddingLeft) || 0;
+    const paddingRight = parseFloat(cs.paddingRight) || 0;
+    const paddingTop = parseFloat(cs.paddingTop) || 0;
+    const paddingBottom = parseFloat(cs.paddingBottom) || 0;
+    const contentWidth = Math.max(0, atomRect.width - paddingLeft - paddingRight);
+    const contentHeight = Math.max(0, atomRect.height - paddingTop - paddingBottom);
+    const textX = (atomRect.left - fieldRect.left) + paddingLeft + (contentWidth / 2);
+    const textY = (atomRect.top - fieldRect.top) + paddingTop + (contentHeight / 2);
+    const text = (atomDisplay.textContent || '').trim();
+
+    const svgNs = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNs, 'svg');
+    svg.setAttribute('xmlns', svgNs);
+    svg.setAttribute('width', String(fieldWidth));
+    svg.setAttribute('height', String(fieldHeight));
+    svg.setAttribute('viewBox', `0 0 ${fieldWidth} ${fieldHeight}`);
+    const textEl = document.createElementNS(svgNs, 'text');
+    textEl.setAttribute('x', String(textX));
+    textEl.setAttribute('y', String(textY));
+    textEl.setAttribute('text-anchor', 'middle');
+    textEl.setAttribute('dominant-baseline', 'central');
+    textEl.setAttribute('fill', '#fff');
+    textEl.setAttribute('font-family', cs.fontFamily || 'sans-serif');
+    textEl.setAttribute('font-size', cs.fontSize || '96px');
+    textEl.setAttribute('font-weight', cs.fontWeight || '700');
+    textEl.setAttribute('font-style', cs.fontStyle || 'normal');
+    if (cs.letterSpacing && cs.letterSpacing !== 'normal') {
+      textEl.setAttribute('letter-spacing', cs.letterSpacing);
+    }
+    textEl.textContent = text;
+    svg.appendChild(textEl);
+
+    let markup = '';
+    try {
+      markup = new XMLSerializer().serializeToString(svg);
+    } catch {
+      this.destroyFillField();
+      return;
+    }
+    if (!markup || !/<text[\s>]/i.test(markup)) {
+      this.destroyFillField();
+      return;
+    }
+
+    const url = `url("data:image/svg+xml,${encodeURIComponent(markup)}")`;
+    this.fillFieldHost.style.maskImage = url;
+    this.fillFieldHost.style.webkitMaskImage = url;
+    this.fillFieldHost.style.maskMode = 'luminance';
+    this.fillFieldHost.style.webkitMaskMode = 'luminance';
+    this.fillFieldHost.style.maskRepeat = 'no-repeat';
+    this.fillFieldHost.style.webkitMaskRepeat = 'no-repeat';
+    this.fillFieldHost.style.maskSize = '100% 100%';
+    this.fillFieldHost.style.webkitMaskSize = '100% 100%';
+    this.fillFieldHost.style.maskPosition = '0 0';
+    this.fillFieldHost.style.webkitMaskPosition = '0 0';
+
+    if (!this._fillFieldDirector?.active) {
+      this._fillFieldDirector?.applyCue({
+        kind: 'field',
+        renderer: 'continuous',
+        config: {}
+      });
+    }
+    if (this.fillField && !this.fillField.running) this.fillField.start();
+
+    this.fillFieldHost.classList.remove('is-hidden');
+    atomDisplay.classList.add('is-mask-ink');
+    atomDisplay.style.color = 'transparent';
+    atomDisplay.style.removeProperty('text-shadow');
+  }
+
+  destroyFillField() {
+    this._fillMaskGeneration += 1;
+    const atomDisplay = this.container.querySelector('#atom-display');
+    atomDisplay?.classList.remove('is-mask-ink');
+    if (atomDisplay?.style.color === 'transparent') {
+      atomDisplay.style.removeProperty('color');
+    }
+    if (this._fillFieldDirector) {
+      this._fillFieldDirector.destroy();
+      this._fillFieldDirector = null;
+    }
+    if (this.fillField) {
+      this.fillField.stop();
+      this.fillField = null;
+    }
+    if (this.fillFieldHost) {
+      this.fillFieldHost.remove();
+      this.fillFieldHost = null;
     }
   }
 
@@ -1417,6 +1660,7 @@ export class Chamber {
 
     atomDisplay.style.transition = 'opacity 150ms var(--ease-out)';
     atomDisplay.style.opacity = '1';
+    void this.syncFillGlyphMask();
   }
 
   /**
@@ -1473,6 +1717,11 @@ export class Chamber {
   }
 
   applyLivingText(atomDisplay, index) {
+    if (atomDisplay?.classList.contains('is-mask-ink')) {
+      atomDisplay.style.color = 'transparent';
+      atomDisplay.style.removeProperty('text-shadow');
+      return;
+    }
     if (!this.semanticTrack) return;
     const sig = this.semanticTrack[index];
     if (!sig) return;
@@ -1507,6 +1756,7 @@ export class Chamber {
       console.error('[Chamber] No atom-display element found!');
       return;
     }
+    this.applyChamberMask();
 
     // Genesis field follows the passage's mood when Living Text has a track
     if (this.kleeField && this.semanticTrack) {
@@ -1529,6 +1779,7 @@ export class Chamber {
       atomDisplay.style.transition = 'opacity 150ms var(--ease-out)';
       atomDisplay.style.opacity = '0';
       atomDisplay.textContent = '';
+      void this.syncFillGlyphMask();
       return;
     }
 
@@ -1603,6 +1854,7 @@ export class Chamber {
         this.cancelReveal();
       }
     }
+    void this.syncFillGlyphMask();
   }
 
   /**
@@ -1722,6 +1974,7 @@ export class Chamber {
       } else {
         this._resumeTemporalVisuals();
       }
+      this.applyChamberMask();
       return false;
     }
 
@@ -1730,6 +1983,7 @@ export class Chamber {
     // the attractor's rAF keep running behind the page, contradicting the
     // Page's "no advance clock" principle and burning CPU/GPU/network for
     // imagery no one can see (red-team #4).
+    this.destroyFillField();
     if (!this._temporalVisualsDeferred) this._suspendTemporalVisuals();
     // Speech is temporal too: a page is read at the reader's pace, and
     // a voice narrating over it would be reading something else.
@@ -1911,6 +2165,7 @@ export class Chamber {
    * recorded so leaving the page restores exactly that and nothing more.
    */
   _suspendTemporalVisuals() {
+    this.destroyFillField();
     if (this._temporalSuspended) return;
     this._temporalSuspended = {
       gallery: false,
@@ -2235,6 +2490,7 @@ export class Chamber {
     const travel = bandTravelPx(field, band);
     const px = clampBandFraction(this._bandOffsetFraction ?? 0) * travel;
     field.style.setProperty('--band-offset', `${Math.round(px)}px`);
+    void this.syncFillGlyphMask();
   }
 
   showControls() {
@@ -2638,6 +2894,7 @@ export class Chamber {
     if (this.controlsTimeout) {
       clearTimeout(this.controlsTimeout);
     }
+    this.destroyFillField();
     this._visualFieldDirector?.destroy();
     this._visualFieldDirector = null;
     if (this.attractorField) {
