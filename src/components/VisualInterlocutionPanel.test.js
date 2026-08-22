@@ -1363,3 +1363,106 @@ describe('PREP Visual Settings Size (FM-RISE-36)', () => {
         panel.destroy();
     });
 });
+
+describe('stranger path: Word source and Procedural Patterns', () => {
+    function strangerGalleryPanel(extra = {}) {
+        return makePanel({
+            visualMode: 'interlocution',
+            interlocution: {
+                presentation: 'continuous',
+                sourceFamily: 'procedural',
+                procedural: [],
+                sourced: [],
+                ...extra
+            }
+        });
+    }
+
+    it('opens Procedural Patterns on Rhythmic + Procedural so Fractal Flames is not display:none', () => {
+        const { panel, container } = strangerGalleryPanel();
+        const accordion = container.querySelector('[data-toggle="procedural"]')?.closest('.vi-accordion');
+        const body = accordion?.querySelector('.vi-accordion-body');
+
+        expect(accordion).toBeTruthy();
+        expect(accordion.hasAttribute('hidden')).toBe(false);
+        expect(body.hasAttribute('hidden')).toBe(false);
+        expect(container.querySelector('[data-procedural="fractal"]')).toBeTruthy();
+        expect(container.querySelector('[data-word-fill]')).toBeTruthy();
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('still lets the reader collapse Procedural Patterns', () => {
+        const { panel, container } = strangerGalleryPanel();
+        container.querySelector('[data-toggle="procedural"]').click();
+        const body = container.querySelector('[data-toggle="procedural"]')
+            .closest('.vi-accordion')
+            .querySelector('.vi-accordion-body');
+        expect(body.hasAttribute('hidden')).toBe(true);
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('reveals the pattern checkboxes when switching to Procedural from Collections', () => {
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: {
+                presentation: 'continuous',
+                sourceFamily: 'collections',
+                procedural: [],
+                sourced: ['aic-ukiyoe']
+            }
+        });
+        const before = container.querySelector('[data-toggle="procedural"]')
+            ?.closest('.vi-accordion')
+            ?.querySelector('.vi-accordion-body');
+        expect(before?.hasAttribute('hidden')).toBe(true);
+
+        container.querySelector('[data-source-family="procedural"]').click();
+        const body = container.querySelector('[data-toggle="procedural"]')
+            .closest('.vi-accordion')
+            .querySelector('.vi-accordion-body');
+        expect(body.hasAttribute('hidden')).toBe(false);
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('Word-source Fractal Flames on an empty gallery becomes the field engine', () => {
+        const { panel, container } = strangerGalleryPanel();
+        const hook = container.querySelector('[data-word-fill]');
+        hook.value = 'procedural:fractal';
+        hook.dispatchEvent(new Event('change', { bubbles: true }));
+
+        expect(panel.getConfig().interlocution.procedural).toEqual(['fractal']);
+        expect(panel.getConfig().interlocution.sourced).toEqual([]);
+        expect(panel.getConfig().interlocution.wordFill).toEqual({ mode: 'same' });
+        expect(container.querySelector('[data-procedural="fractal"]').checked).toBe(true);
+        expect(container.querySelector('[data-word-fill]').value).toBe('same');
+
+        panel.destroy();
+        container.remove();
+    });
+
+    it('does not steal a populated gallery when Word source picks a different engine', () => {
+        const { panel, container } = strangerGalleryPanel({ procedural: ['klee'] });
+        const hook = container.querySelector('[data-word-fill]');
+        hook.value = 'procedural:fractal';
+        hook.dispatchEvent(new Event('change', { bubbles: true }));
+
+        expect(panel.getConfig().interlocution.procedural).toEqual(['klee']);
+        expect(panel.getConfig().interlocution.wordFill).toEqual({
+            mode: 'pick',
+            sourceFamily: 'procedural',
+            procedural: ['fractal'],
+            sourced: []
+        });
+        expect(container.querySelector('[data-procedural="klee"]').checked).toBe(true);
+        expect(container.querySelector('[data-procedural="fractal"]').checked).toBe(false);
+
+        panel.destroy();
+        container.remove();
+    });
+});

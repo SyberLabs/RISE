@@ -42,7 +42,7 @@ import { clampBandFraction } from './core/band-offset.js';
 import { resolveChamberStreamFace } from './core/chamber-stream-face.js';
 import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
-import { normalizeVisualSelection, normalizeWordFill } from './core/visual-selection.js';
+import { resolveSessionVisualSelection } from './core/visual-selection.js';
 
 // Import styles
 import './design-system.css';
@@ -566,13 +566,10 @@ class App {
                         this.updateLoadingStatus('Loading visual engine...');
                         const activeTypes = [];
                         const rawInterlocution = session.visualConfig.interlocution || {};
-                        const interlocution = {
+                        const interlocution = resolveSessionVisualSelection({
                             ...rawInterlocution,
-                            ...normalizeVisualSelection(rawInterlocution),
-                            wordFill: normalizeWordFill(
-                                rawInterlocution.wordFill ?? session.visualConfig?.wordFill
-                            )
-                        };
+                            wordFill: rawInterlocution.wordFill ?? session.visualConfig?.wordFill
+                        });
                         // Keep the runtime session truthful for diagnostics and
                         // downstream consumers. Procedural means no sourced art;
                         // mixed sources survive only under an explicit Blend.

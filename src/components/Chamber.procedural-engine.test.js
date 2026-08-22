@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
 import { visualCortex } from '../visuals/visual-cortex.js';
 import { PROCEDURAL_PATTERN_IDS } from '../core/visual-registry.js';
+import { resolveSessionVisualSelection } from '../core/visual-selection.js';
 import {
     beginNonFlashingVisualSession,
     endVisualInterlocutionSession
@@ -127,5 +128,40 @@ describe('Chamber procedural engine hook', () => {
 
             chamber.destroy();
         }
+    });
+
+    it('Word-source Fractal Flames on an empty gallery paints the stills field, not glass-as-field', () => {
+        const interlocution = resolveSessionVisualSelection({
+            presentation: 'continuous',
+            sourceFamily: 'procedural',
+            procedural: [],
+            sourced: [],
+            streamGlass: true,
+            wordFill: { mode: 'pick', procedural: ['procedural:fractal'], sourced: [] }
+        });
+        expect(interlocution.procedural).toEqual(['fractal']);
+        expect(interlocution.wordFill).toEqual({ mode: 'same' });
+
+        armGallery(interlocution.procedural);
+        const { chamber, container } = makeChamber({
+            visualConfig: {
+                visualMode: 'interlocution',
+                interlocution
+            }
+        });
+        const atom = container.querySelector('#atom-display');
+        const host = container.querySelector('#chamber-continuous-field');
+
+        expect(host).toBeTruthy();
+        expect(visualCortex.hasContinuousFieldHost()).toBe(true);
+        expect(visualCortex.config.activeTypes).toEqual(['fractal']);
+        expect(visualCortex._isExternalCategory('fractal')).toBe(false);
+        expect(visualCortex._continuousHasWorks()).toBe(true);
+        expect(visualCortex._continuousProceduralTypes()).toEqual(['fractal']);
+        expect(visualCortex._activePoolCategories()).toEqual([]);
+        expect(visualCortex._continuousProjectionPool?.() ?? null).toBeNull();
+        expect(atom.classList.contains('glass-tile')).toBe(true);
+
+        chamber.destroy();
     });
 });
