@@ -540,10 +540,22 @@ export class Chamber {
 
   applyChamberStreamFace() {
     const atomDisplay = this.container.querySelector('#atom-display');
-    if (!atomDisplay) return;
+    if (!atomDisplay) return false;
     atomDisplay.dataset.chamberFace = resolveChamberStreamFace(
       globalThis.rise?.settings?.chamberFace
     );
+    if (atomDisplay.classList.contains('is-mask')) {
+      void this.syncFillGlyphMask();
+    }
+    return true;
+  }
+
+  _reportFaceApply(requested) {
+    const fail = this.container.querySelector('#chamber-face-fail');
+    if (!fail) return;
+    const allowlisted = resolveChamberStreamFace(requested) === requested;
+    const atomDisplay = this.container.querySelector('#atom-display');
+    fail.hidden = allowlisted && atomDisplay?.dataset.chamberFace === requested;
   }
 
   chamberMaskApplies() {
@@ -1134,6 +1146,8 @@ export class Chamber {
   }
 
   beginSession() {
+    this.applyChamberStreamFace();
+    this.applyChamberMask();
     // Hide pre-session, show display
     const preSession = this.container.querySelector('#chamber-pre');
     const display = this.container.querySelector('#chamber-display');
@@ -1936,17 +1950,18 @@ export class Chamber {
       onChange: (key, value) => {
         if (typeof globalThis.rise?.handleSettingsChange === 'function') {
           globalThis.rise.handleSettingsChange(key, value);
-          return;
-        }
-        if (globalThis.rise?.settings) {
+        } else if (globalThis.rise?.settings) {
           globalThis.rise.settings[key] = key === 'chamberFace'
             ? resolveChamberStreamFace(value)
             : key === 'chamberMask'
               ? value === true
               : value;
         }
-        this.applyChamberStreamFace();
-        this.applyChamberMask();
+        if (key === 'chamberFace' || key === 'chamberMask') {
+          this.applyChamberStreamFace();
+          this.applyChamberMask();
+        }
+        if (key === 'chamberFace') this._reportFaceApply(value);
       }
     });
   }

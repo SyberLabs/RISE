@@ -35,4 +35,15 @@ describe('Chamber stream face', () => {
         expect(container.querySelector('#atom-display').dataset.chamberFace).toBe('literary');
         chamber.destroy();
     });
+
+    it('re-reads the latest persisted chamberFace when the session starts', () => {
+        globalThis.rise = { settings: { chamberFace: 'literary' } };
+        const { chamber, container } = makeChamber();
+        expect(container.querySelector('#atom-display').dataset.chamberFace).toBe('literary');
+
+        globalThis.rise.settings.chamberFace = 'thick';
+        chamber.beginSession();
+        expect(container.querySelector('#atom-display').dataset.chamberFace).toBe('thick');
+        chamber.destroy();
+    });
 });

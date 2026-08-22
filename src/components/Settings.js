@@ -75,6 +75,7 @@ export class Settings {
               </div>
               <div class="settings-control" role="radiogroup" aria-labelledby="chamber-face-label">
                 ${this.renderChamberFaceRadios()}
+                <p class="settings-fail" id="chamber-face-fail" hidden>Face did not take.</p>
               </div>
             </div>
 

@@ -10,6 +10,7 @@
  * Includes photosensitivity warning for Interlocution mode
  */
 
+import { resolveChamberStreamFace } from '../core/chamber-stream-face.js';
 import { WIKIMEDIA_CATEGORIES } from '../sources/visual/wikimedia.js';
 import { MUSEUM_CATEGORIES } from '../sources/visual/museum.js';
 import { ATRIUM_CATEGORIES } from '../content/imagery/atrium-categories.js';
@@ -793,6 +794,8 @@ export class VisualInterlocutionPanel {
                         </button>
                     </div>
 
+                    ${this.renderChamberFaceRow()}
+
                     <!-- FOCALS: Persistent focal point (neurosensitive-friendly) -->
                     <div class="vi-focals-panel" ${mode === 'focals' ? '' : 'hidden'}>
                         <div class="vi-focals-description text-fog">
@@ -1561,6 +1564,17 @@ export class VisualInterlocutionPanel {
             this.attachEvents();
         });
 
+        this.container.querySelectorAll('[data-chamber-face]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const requested = btn.dataset.chamberFace;
+                if (resolveChamberStreamFace(requested) !== requested) return;
+                this._writeChamberFace(requested);
+                if (window.rise?.audioEngine) window.rise.audioEngine.playHiss();
+                this.render();
+                this.attachEvents();
+            });
+        });
+
         if (this.locked) return;
 
         this.container.querySelectorAll('[data-presentation]').forEach(btn => {
@@ -2014,6 +2028,43 @@ export class VisualInterlocutionPanel {
             this.render();
             this.attachEvents();
         });
+    }
+
+    renderChamberFaceRow() {
+        const selected = resolveChamberStreamFace(globalThis.rise?.settings?.chamberFace);
+        const words = [
+            ['literary', 'Literary'],
+            ['display', 'Display'],
+            ['thick', 'Thick'],
+            ['jp', 'Japanese']
+        ];
+        return `
+                    <div class="vi-source-family vi-chamber-face" role="group" aria-label="Face">
+                        <div class="vi-source-family-label">Face</div>
+                        <div class="vi-source-family-options">
+                            ${words.map(([id, word]) => `
+                                <button type="button"
+                                    class="vi-source-family-btn ${selected === id ? 'active' : ''}"
+                                    data-chamber-face="${id}"
+                                    aria-pressed="${selected === id}"
+                                    ${id === 'jp' ? 'style="font-family: var(--font-jp, \'Noto Serif JP\', serif);"' : ''}>
+                                    ${word}
+                                </button>
+                            `).join('')}
+                        </div>
+                        <p class="vi-source-family-hint text-mist">The letters, not the room.</p>
+                    </div>
+        `;
+    }
+
+    _writeChamberFace(id) {
+        if (resolveChamberStreamFace(id) !== id) return;
+        if (typeof window === 'undefined') return;
+        if (typeof window.rise?.handleSettingsChange === 'function') {
+            window.rise.handleSettingsChange('chamberFace', id);
+            return;
+        }
+        if (window.rise?.settings) window.rise.settings.chamberFace = id;
     }
 
     _aliasChamberMask(on) {

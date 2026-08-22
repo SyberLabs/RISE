@@ -280,6 +280,10 @@
     line-height: 1.5;
 }
 
+.vi-chamber-face .vi-source-family-btn[data-chamber-face="jp"] {
+    font-family: var(--font-jp, 'Noto Serif JP', serif);
+}
+
 .vi-accordion {
     background: var(--color-void);
 }
