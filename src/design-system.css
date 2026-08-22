@@ -34,6 +34,10 @@
   --color-glow: #FFFFFF;
   /* Maximum emphasis (rare) */
 
+  /* Mask ground plate (FM-RISE-47). Never #000 / #fff. */
+  --color-dark-slate: #2f4a4e;
+  --color-cream: #e4d2ae;
+
   /* ═══ ACCENTS ═══ */
   --color-threshold: #8B7FD4;
   /* Primary accent (soft violet) */

@@ -43,6 +43,7 @@ import {
   resolveFontSize,
   threeStepIntent
 } from '../core/chamber-type-size.js';
+import { GROUNDS, maskGroundFromConfig } from '../core/mask-ground.js';
 
 /**
  * THE SEAM, AS THE CHAMBER IS WILLING TO DRAW IT.
@@ -99,6 +100,7 @@ export class Chamber {
     this._visualFieldDirector = null;
     this._fillMaskGeneration = 0;
     this.fillFieldHost = null;
+    this.maskGroundPlate = null;
     this._scheduledVisualGeneration = 0;
     // Page Mode (PAGE-MODE-SPEC): the spatial projection, mounted lazily
     // on demand. Null until the reader opens it; nothing is paid before.
@@ -592,10 +594,68 @@ export class Chamber {
       atomDisplay.classList.add('is-mask');
       atomDisplay.classList.remove('glass-tile');
       this.ensureFillField();
+      this.syncMaskGroundPlate();
     } else {
       atomDisplay.classList.remove('is-mask');
       atomDisplay.classList.remove('is-mask-ink');
       this.destroyFillField();
+    }
+  }
+
+  _removeMaskGroundPlate() {
+    if (this.maskGroundPlate) {
+      this.maskGroundPlate.remove();
+      this.maskGroundPlate = null;
+    }
+  }
+
+  /**
+   * Plate under Layer A (the gallery host). Never a background on the
+   * mask / fill host — unmasked Layer B pixels stay transparent and punch
+   * through to A, then to this plate if A is missing.
+   */
+  syncMaskGroundPlate() {
+    const field = this.container.querySelector('#chamber-field');
+    const layerA = this.container.querySelector('#chamber-continuous-field');
+    if (!this.chamberMaskApplies() || !field || !layerA) {
+      this._removeMaskGroundPlate();
+      return;
+    }
+
+    const interlocution = this.session?.visualConfig?.interlocution || {};
+    const cortexTypes = visualCortex.config?.activeTypes;
+    const activeTypes = Array.isArray(cortexTypes) && cortexTypes.length
+      ? cortexTypes
+      : [...(interlocution.procedural || []), ...(interlocution.sourced || [])];
+    const wordFill = visualCortex.config?.wordFill ?? interlocution.wordFill;
+    const roomOpaque = Boolean(visualCortex._continuousField?.currentUrl)
+      || Boolean(layerA.querySelector('.continuous-field-artwork[src]'));
+    const ground = maskGroundFromConfig({
+      sourced: interlocution.sourced,
+      procedural: interlocution.procedural,
+      activeTypes,
+      wordFill,
+      roomOpaque
+    });
+
+    if (ground === GROUNDS.transparent) {
+      this._removeMaskGroundPlate();
+      return;
+    }
+
+    if (!this.maskGroundPlate || !this.maskGroundPlate.isConnected) {
+      const plate = document.createElement('div');
+      plate.className = 'chamber-mask-ground-plate';
+      plate.setAttribute('aria-hidden', 'true');
+      field.insertBefore(plate, layerA);
+      this.maskGroundPlate = plate;
+    } else if (this.maskGroundPlate.nextElementSibling !== layerA) {
+      field.insertBefore(this.maskGroundPlate, layerA);
+    }
+    this.maskGroundPlate.dataset.ground = ground;
+    if (this.fillFieldHost) {
+      this.fillFieldHost.style.removeProperty('background');
+      this.fillFieldHost.style.removeProperty('background-color');
     }
   }
 
@@ -664,6 +724,7 @@ export class Chamber {
       this.fillFieldHost = host;
     }
     visualCortex.setContinuousFieldProjectionHost(this.fillFieldHost);
+    this.syncMaskGroundPlate();
     void this.syncFillGlyphMask();
   }
 
@@ -761,6 +822,7 @@ export class Chamber {
     atomDisplay.classList.add('is-mask-ink');
     atomDisplay.style.color = 'transparent';
     atomDisplay.style.removeProperty('text-shadow');
+    this.syncMaskGroundPlate();
   }
 
   destroyFillField() {
@@ -775,6 +837,7 @@ export class Chamber {
       this.fillFieldHost.remove();
       this.fillFieldHost = null;
     }
+    this._removeMaskGroundPlate();
   }
 
   attachEvents() {
@@ -1337,6 +1400,7 @@ export class Chamber {
     visualCortex.setContinuousFieldHost(host);
     console.log('[Chamber] Continuous Field (Gallery) host mounted');
     this.applyChamberMask();
+    this.syncMaskGroundPlate();
   }
 
   /**
@@ -3070,6 +3134,7 @@ export class Chamber {
       clearTimeout(this.controlsTimeout);
     }
     this.destroyFillField();
+    this._removeMaskGroundPlate();
     this._visualFieldDirector?.destroy();
     this._visualFieldDirector = null;
     if (this.attractorField) {

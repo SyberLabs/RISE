@@ -524,3 +524,148 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         chamber.destroy();
     });
 });
+
+describe('Chamber mask ground plate (FM-RISE-47)', () => {
+    let restoreEnv;
+
+    beforeEach(() => {
+        restoreEnv = installFillMaskEnv();
+        armGalleryField();
+    });
+
+    afterEach(() => {
+        restoreEnv?.();
+        releaseGalleryField();
+        delete globalThis.rise;
+        document.body.replaceChildren();
+        vi.restoreAllMocks();
+    });
+
+    function plate(container) {
+        return container.querySelector('.chamber-mask-ground-plate');
+    }
+
+    it('Astronomy room + Attractor fill puts a Dark plate under Layer A, not on the mask host', async () => {
+        const { chamber, container } = makeChamber(
+            {
+                chunkMode: 'word',
+                visualConfig: {
+                    visualMode: 'interlocution',
+                    interlocution: {
+                        presentation: 'continuous',
+                        sourced: ['sci-astronomy'],
+                        wordFill: { mode: 'pick', sourced: [], procedural: ['attractor'] }
+                    }
+                }
+            },
+            { chamberMask: true }
+        );
+        visualCortex._poolFor('sci-astronomy').images = [
+            { url: 'https://example.test/astro-a.jpg', name: 'astro-a' },
+            { url: 'https://example.test/astro-b.jpg', name: 'astro-b' }
+        ];
+        visualCortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['sci-astronomy'],
+            wordFill: { mode: 'pick', sourced: [], procedural: ['attractor'] }
+        });
+        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
+        await flushFillMask();
+        if (visualCortex._continuousField) {
+            visualCortex._continuousField._currentUrl = 'https://example.test/astro-a.jpg';
+        }
+        chamber.syncMaskGroundPlate();
+
+        const layerA = galleryHost(container);
+        const layerB = fillHost(container);
+        const ground = plate(container);
+        expect(layerA).toBeTruthy();
+        expect(layerB).toBeTruthy();
+        expect(ground).toBeTruthy();
+        expect(ground.dataset.ground).toBe('dark');
+        expect(ground.compareDocumentPosition(layerA) & Node.DOCUMENT_POSITION_FOLLOWING)
+            .toBeTruthy();
+        expect(layerB.contains(ground)).toBe(false);
+        expect(layerB.style.background).toBeFalsy();
+        expect(layerB.style.backgroundColor).toBeFalsy();
+        chamber.destroy();
+    });
+
+    it('Old Masters room + Fractal fill puts a Light (cream) plate under Layer A', async () => {
+        const { chamber, container } = makeChamber(
+            {
+                chunkMode: 'word',
+                visualConfig: {
+                    visualMode: 'interlocution',
+                    interlocution: {
+                        presentation: 'continuous',
+                        sourced: ['aic-oldmasters'],
+                        wordFill: { mode: 'pick', sourced: [], procedural: ['fractal'] }
+                    }
+                }
+            },
+            { chamberMask: true }
+        );
+        visualCortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-oldmasters'],
+            wordFill: { mode: 'pick', sourced: [], procedural: ['fractal'] }
+        });
+        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
+        await flushFillMask();
+        if (visualCortex._continuousField) {
+            visualCortex._continuousField._currentUrl = 'https://example.test/masters.jpg';
+        }
+        chamber.syncMaskGroundPlate();
+
+        const ground = plate(container);
+        expect(ground).toBeTruthy();
+        expect(ground.dataset.ground).toBe('light');
+        expect(galleryHost(container).contains(ground)).toBe(false);
+        expect(fillHost(container)?.contains(ground)).toBe(false);
+        expect(fillHost(container)?.style.background).toBeFalsy();
+        chamber.destroy();
+    });
+
+    it('two collection stills with an opaque Layer A mount no plate', async () => {
+        const { chamber, container } = makeChamber(
+            {
+                chunkMode: 'word',
+                visualConfig: {
+                    visualMode: 'interlocution',
+                    interlocution: {
+                        presentation: 'continuous',
+                        sourced: ['aic-landscapes'],
+                        wordFill: { mode: 'pick', sourced: ['aic-ukiyoe'], procedural: [] }
+                    }
+                }
+            },
+            { chamberMask: true }
+        );
+        visualCortex._poolFor('aic-landscapes').images = [
+            { url: 'https://example.test/room-a.jpg', name: 'room-a' }
+        ];
+        visualCortex._poolFor('aic-ukiyoe').images = [
+            { url: 'https://example.test/fill-x.jpg', name: 'fill-x' }
+        ];
+        visualCortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-landscapes'],
+            wordFill: { mode: 'pick', sourced: ['aic-ukiyoe'], procedural: [] }
+        });
+        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
+        await flushFillMask();
+        if (visualCortex._continuousField) {
+            visualCortex._continuousField._currentUrl = 'https://example.test/room-a.jpg';
+        }
+        chamber.syncMaskGroundPlate();
+
+        expect(plate(container)).toBeNull();
+        expect(fillHost(container)?.style.background).toBeFalsy();
+        chamber.destroy();
+    });
+});
+

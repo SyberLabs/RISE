@@ -1058,6 +1058,23 @@
   overflow: hidden;
 }
 
+/* Opaque floor under Layer A. Counters punch to A when A is opaque;
+   to this plate when A is missing/transparent. Never painted on Layer B. */
+.chamber-mask-ground-plate {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.chamber-mask-ground-plate[data-ground="dark"] {
+  background: var(--color-dark-slate);
+}
+
+.chamber-mask-ground-plate[data-ground="light"] {
+  background: var(--color-cream);
+}
+
 /* Layer B: gallery stills clipped to Word ink, between field (1) and atom (10). */
 .chamber-fill-field {
   z-index: 5;
