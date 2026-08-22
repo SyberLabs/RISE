@@ -16,6 +16,7 @@ import {
     describeMagnets,
     joinAt,
     nearestSnap,
+    layoutPartition,
     partitionByMagnet,
     placeJoint,
     relabel,
@@ -141,5 +142,35 @@ describe('cutting at every magnet', () => {
         const draft = work();
         expect(draft.labels).toHaveLength(1);
         expect(partitionByMagnet(draft, 'title').labels.length).toBeGreaterThan(1);
+    });
+});
+
+describe('what a surface is handed', () => {
+    it('gives every part its blocks, and only the joints a reader may place', () => {
+        const cut = placeJoint(work(), snapPoints(POEMS)[0].offset);
+        const [first, second] = layoutPartition(cut);
+
+        // The head of a part is not a joint: there is already one there.
+        expect(first.blocks[0].snap).toBeNull();
+        expect(second.blocks[0].snap).toBeNull();
+        // And the joint that IS placed is not offered a second time.
+        expect(first.blocks.every(block => block.offset < cut.cuts[1])).toBe(true);
+        expect(second.blocks.map(block => block.snap)).toEqual([null, 'title']);
+    });
+
+    it('leaves the view no arithmetic to do', () => {
+        const [part] = layoutPartition(work());
+        const placeable = part.blocks.filter(block => block.snap);
+        // The offset a block carries is the offset placeJoint wants, unchanged.
+        for (const block of placeable) {
+            expect(placeJoint(work(), block.offset).cuts).toContain(block.offset);
+        }
+        expect(placeable).toHaveLength(2);
+    });
+
+    it('carries the prose itself, split into paragraphs', () => {
+        const [part] = layoutPartition(work());
+        expect(part.blocks[0].paragraphs[0]).toContain('Pyramid');
+        expect(part.words).toBe(countWords(POEMS));
     });
 });

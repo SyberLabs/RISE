@@ -912,3 +912,57 @@
   padding-left: 0.75rem;
   border-left: 2px solid var(--color-shadow);
 }
+
+/* The shelf of a reader's own works, below the drop zone. */
+
+.local-work-shelf {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+.local-work {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.15rem;
+  background: var(--color-depth, #1A1A1E);
+  border: 1px solid var(--color-shadow, #2A2A30);
+}
+
+.local-work-body {
+  min-width: 12rem;
+  flex: 1;
+}
+
+.local-work-body h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.local-work-body p {
+  margin: 0;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.local-work-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 30rem) {
+  .local-work-actions {
+    /* Three buttons on a phone row become three unreadable stubs. */
+    width: 100%;
+  }
+
+  .local-work-actions button {
+    flex: 1;
+  }
+}

@@ -341,3 +341,50 @@ export function describePartition(record) {
     words: countWords(part.content)
   }));
 }
+
+/**
+ * The whole partition, laid out for a surface to draw — and no arithmetic left.
+ *
+ * A view that computes its own offsets is a second copy of the physics, and
+ * the second copy is the one that will be wrong: it would have to know that a
+ * snap is absolute into the whole text, that the first block of a part is the
+ * part's own start and NOT a joint a reader may place, and that a sentence
+ * snap falls inside a paragraph rather than at its head. Three chances to
+ * disagree with this file. So the view receives blocks and hands back the
+ * offset it was given, and every rule about where a joint may live stays here.
+ *
+ * Each block after the first in a part begins AT a snap, which is exactly the
+ * offset `placeJoint` wants. The first carries `snap: null` — there is already
+ * a joint there, and it is the one above it.
+ */
+export function layoutPartition(record, { rungWords } = {}) {
+  validateLocalWork(record);
+  const { text, cuts } = record;
+  const interior = new Set(cuts.slice(1, -1));
+  const points = snapPoints(text, { rungWords });
+
+  return localWorkParts(record).map((part, index) => {
+    const from = cuts[index];
+    const to = cuts[index + 1];
+    const inside = points
+      .filter(point => point.offset > from && point.offset < to && !interior.has(point.offset))
+      .map(point => point.offset);
+    const edges = [from, ...inside, to];
+
+    const blocks = [];
+    for (let i = 0; i < edges.length - 1; i += 1) {
+      const paragraphs = text.slice(edges[i], edges[i + 1])
+        .split(new RegExp(PARAGRAPH_BREAK, 'u'))
+        .map(block => block.trim())
+        .filter(Boolean);
+      if (!paragraphs.length) continue;
+      blocks.push({
+        offset: edges[i],
+        snap: i === 0 ? null : (magnetKind(paragraphs[0].split(/\r?\n/, 1)[0].trim()) || 'paragraph'),
+        paragraphs
+      });
+    }
+
+    return { ordinal: index + 1, label: part.label, words: countWords(part.content), blocks };
+  });
+}

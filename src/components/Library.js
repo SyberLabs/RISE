@@ -15,6 +15,8 @@ import { mostlyVerse } from '../content/archive/divisions.js';
 import { uncertifiedCount } from '../content/archive/index.js';
 import { escapeHtml } from '../core/sanitize.js';
 import { MemoryCore } from '../core/memory.js';
+import { LocalWorks } from '../core/local-work-store.js';
+import { Admit } from './Admit.js';
 
 /**
  * Edition statement for display: keep link labels, drop URLs and
@@ -80,11 +82,13 @@ export class Library {
     // induction written here — which is the distinction the shelves exist to
     // make.
     this.currentFilter = 'received';
+    this.localWorks = [];
     this._active = false;
     this.boundKeyboardHandler = this.handleKeyboard.bind(this);
 
     this.render();
     this.attachEvents();
+    this.refreshLocalWorks();
   }
 
   render() {
@@ -339,8 +343,8 @@ export class Library {
     return `
       <div class="library-section">
         <div class="section-header">
-          <h2 class="text-light">Local Experience Files</h2>
-          <p class="text-fog">Your own content added to the library</p>
+          <h2 class="text-light">Your Own Texts</h2>
+          <p class="text-fog">Files you have added, kept on this device</p>
         </div>
 
         <div class="personal-upload-zone" id="personal-upload-zone">
@@ -352,12 +356,87 @@ export class Library {
           </label>
         </div>
 
+        ${this.renderLocalShelf()}
+
         <div class="personal-instructions text-fog">
-          Upload your own text files to experience them through RISE's
-          audiovisual reading interface. All processing happens locally.
+          A file you drop opens as the parts it will become: name them, divide
+          them, or read it straight through. Nothing leaves this device.
         </div>
       </div>
     `;
+  }
+
+  /**
+   * The shelf — works a reader admitted, with what the Scriptorium can see.
+   *
+   * The part count is shown because it is the thing that makes a work
+   * addressable: a score can name `#4` of a work with four parts and cannot
+   * name anything at all in a work with one.
+   */
+  renderLocalShelf() {
+    if (!this.localWorks.length) return '';
+    const items = this.localWorks.map(work => {
+      const parts = work.labels.length;
+      return `
+        <article class="local-work" data-local-id="${escapeHtml(work.id)}">
+          <div class="local-work-body">
+            <h3 class="text-light">${escapeHtml(work.title)}</h3>
+            <p class="text-fog">
+              ${parts} ${parts === 1 ? 'part' : 'parts'} ·
+              ${escapeHtml(work.id)}
+            </p>
+          </div>
+          <div class="local-work-actions">
+            <button class="btn-secondary" data-action="edit-local">Divide</button>
+            <button class="btn-secondary" data-action="drop-local">Remove</button>
+            <button class="btn-primary" data-action="open-local">Read</button>
+          </div>
+        </article>
+      `;
+    }).join('');
+    return `<div class="local-work-shelf">${items}</div>`;
+  }
+
+  /**
+   * The shelf is read from IndexedDB and the section renders synchronously,
+   * so the list arrives on a second paint. An empty shelf renders as nothing
+   * at all rather than as "no texts" — a reader who has never added a file is
+   * being told about an absence they already know about.
+   */
+  async refreshLocalWorks() {
+    try {
+      this.localWorks = await LocalWorks.all();
+    } catch {
+      // No IndexedDB (private mode, an old browser): the drop zone still
+      // works and still reaches the Chamber. Only the shelf is unavailable.
+      this.localWorks = [];
+    }
+    if (this.currentSection === 'personal') this.updateContent();
+  }
+
+  /**
+   * The room a dropped file opens into.
+   *
+   * Both exits are wired here because both are real: admitting puts the work
+   * on the shelf where a score can point at its parts, and reading goes
+   * straight to the Chamber the way a dropped file always has.
+   */
+  openAdmit(options) {
+    return new Admit({
+      ...options,
+      onReadNow: (text, title) => this.onSelectText(text, `Local: ${title}`),
+      onAdmit: async record => {
+        try {
+          await LocalWorks.save(record);
+          await this.refreshLocalWorks();
+        } catch (error) {
+          console.error('[Library] Could not shelve this work:', error);
+          // The work is not lost for being unshelvable: the reader still
+          // gets the reading they asked for.
+          this.onSelectText(record.text, `Local: ${record.title}`);
+        }
+      }
+    });
   }
 
   attachFileUploadEvents() {
@@ -391,10 +470,7 @@ export class Library {
   }
 
   async handleFileUpload(file) {
-    const validTypes = ['text/plain', 'text/markdown', ''];
     const validExtensions = ['.txt', '.md'];
-
-    // Validate file
     const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
     if (!validExtensions.includes(ext)) {
       console.error('[Library] Invalid file type:', file.type);
@@ -407,10 +483,7 @@ export class Library {
         console.error('[Library] File is empty');
         return;
       }
-
-      // Use filename as source name
-      const sourceName = file.name.replace(/\.[^.]+$/, '');
-      this.onSelectText(text, `Local: ${sourceName}`);
+      this.openAdmit({ text, sourceName: file.name });
     } catch (err) {
       console.error('[Library] Failed to read file:', err);
     }
@@ -435,6 +508,7 @@ export class Library {
         this.currentSection = item.dataset.section;
         this.updateContent();
         this.updateActiveNav();
+        if (this.currentSection === 'personal') this.refreshLocalWorks();
       });
     });
 
@@ -475,6 +549,8 @@ export class Library {
         console.log('Preview sequence:', id);
       } else if (action === 'select-text' && id) {
         this.handleTextSelection(id);
+      } else if (action === 'open-local' || action === 'edit-local' || action === 'drop-local') {
+        this.handleLocalWork(action, target.closest('[data-local-id]')?.dataset.localId);
       } else if (action === 'delete-recursion' && id) {
         if (window.confirm('Delete this reflection? This cannot be undone.')) {
           MemoryCore.deleteRecursion(id);
@@ -483,6 +559,25 @@ export class Library {
       }
     });
 
+  }
+
+  /**
+   * The shelf's three verbs. The id is read off the card rather than off the
+   * button, so a card's buttons cannot disagree about which work they are on.
+   */
+  async handleLocalWork(action, id) {
+    const work = this.localWorks.find(record => record.id === id);
+    if (!work) return;
+
+    if (action === 'open-local') return this.onSelectText(work.text, work.title);
+    if (action === 'edit-local') return void this.openAdmit({ record: work });
+    if (action === 'drop-local') {
+      // A reader's own writing, and the only copy this device holds of the
+      // joints they placed in it. Ask.
+      if (!window.confirm(`Remove "${work.title}" from your Library? The file on your computer is untouched.`)) return;
+      await LocalWorks.drop(id);
+      await this.refreshLocalWorks();
+    }
   }
 
   handleKeyboard(e) {

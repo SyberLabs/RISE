@@ -460,7 +460,12 @@ Composition advice already covers stitching and seams. A local `#n` next to an a
 
 ### 9.1 Deleted
 
-- Library Local Files → immediate Chamber navigation.
+- ~~Library Local Files → immediate Chamber navigation.~~ **Reversed 2026-08-21.**
+  The direct read is KEPT, as a second button in the admit room ("Read it
+  now", beside "Add to Library"). This was the brief's only user-visible
+  regression, and the partition is an addition to what a dropped file could
+  already do rather than a toll on it. Held by
+  `src/components/Library.local.test.js` and `src/components/Admit.test.js`.
 - Continuous `SCRIPTORIUM_LENGTH` `{ min: 200, step: 100, max: MAX_SAFE, default: 20000 }`.
 - Any plan for a second Workshop-like highlight room.
 - Any plan for the model to write fresh prose into the Experience Program as a first-class source.
