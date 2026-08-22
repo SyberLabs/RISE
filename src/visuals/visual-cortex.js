@@ -58,7 +58,11 @@ import {
     normalizeVisualPresence,
     visualPresenceTransition
 } from '../core/visual-presence.js';
-import { normalizeWordFill, wordFillIsDistinct } from '../core/visual-selection.js';
+import {
+    canonicalizeProceduralEngineId,
+    normalizeWordFill,
+    wordFillIsDistinct
+} from '../core/visual-selection.js';
 
 // External imagery is globally bounded because HTMLImageElements may retain
 // decoded pixels, not merely compressed network bytes. One image per selected
@@ -305,14 +309,19 @@ export class VisualCortex {
             this.turrell = new Turrell(turrellField);
         }
 
-        const fractalCanvas = document.getElementById('fractal-canvas');
-        if (fractalCanvas) {
-            this._fractalCanvas = fractalCanvas;
-            this.fractal = new FractalFlame(fractalCanvas);
-            console.log('[Visual Cortex] Fractal canvas bound:', fractalCanvas);
-        } else {
-            console.warn('[Visual Cortex] #fractal-canvas not found in DOM!');
+        let fractalCanvas = document.getElementById('fractal-canvas');
+        if (!fractalCanvas) {
+            fractalCanvas = document.createElement('canvas');
+            fractalCanvas.id = 'fractal-canvas';
+            fractalCanvas.className = 'visual-canvas';
+            fractalCanvas.width = 1024;
+            fractalCanvas.height = 1024;
+            fractalCanvas.hidden = true;
+            this.container.appendChild(fractalCanvas);
         }
+        this._fractalCanvas = fractalCanvas;
+        this.fractal = new FractalFlame(fractalCanvas);
+        console.log('[Visual Cortex] Fractal canvas bound:', fractalCanvas);
 
         // Initialize Neural Network canvas
         let neuralCanvas = document.getElementById('neural-canvas');
@@ -2339,9 +2348,11 @@ export class VisualCortex {
     _normalizeActiveTypes(types) {
         if (!Array.isArray(types)) return [];
         const hadRetiredMet = types.some(type => this._isRetiredExternalType(type));
-        const supported = [...new Set(types.filter(type =>
-            typeof type === 'string' && !this._isRetiredExternalType(type)
-        ))];
+        const supported = [...new Set(types
+            .filter(type => typeof type === 'string' && !this._isRetiredExternalType(type))
+            .map(type => canonicalizeProceduralEngineId(type) || type)
+            .filter(Boolean)
+        )];
 
         // Preserve the retirement contract for a legacy Met-only preset.
         // Mixed presets simply drop the invisible stale entry so a currently
@@ -2763,12 +2774,17 @@ export class VisualCortex {
      */
     _isExternalCategory(type) {
         if (typeof type !== 'string' || this._isRetiredExternalType(type)) return false;
+        // A leaked `procedural:` prefix is an engine name, never a Wikimedia
+        // keyword. Searching Commons for it is how Fractal Flames became glass.
+        if (type.startsWith('procedural:')) return false;
+        const canonical = canonicalizeProceduralEngineId(type) || type;
         // Core types are internal or handled elsewhere
         const coreTypes = ['klee', 'turrell', 'fractal', 'neural', 'global', 'custom', 'rockgarden', 'harmonograph', 'ostensoria', 'apparitio', 'blueprint', 'freedom', 'diagram', 'global-pool',
             // Families authored for one work. Listed so selection does
             // not filter out a type the cortex can genuinely render.
             ...workEngineFamilies()];
-        if (coreTypes.includes(type) || type.startsWith('personal:')
+        if (coreTypes.includes(canonical) || GALLERY_PROCEDURAL_TYPES.includes(canonical)
+            || type.startsWith('personal:')
             || type.startsWith('sequence-asset:')) return false;
 
         // Otherwise assume it's a category for one of our external providers

@@ -2104,6 +2104,75 @@ describe('Continuous Field (Gallery) wiring', () => {
     });
 });
 
+describe('Gallery procedural engines stay engines', () => {
+    afterEach(() => {
+        document.body.replaceChildren();
+        vi.restoreAllMocks();
+    });
+
+    it('does not treat a prefixed Fractal Flames id as an empty gallery source', () => {
+        const cortex = new VisualCortex();
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['procedural:fractal']
+        });
+        expect(cortex.config.activeTypes).toEqual(['fractal']);
+        expect(cortex._isExternalCategory('procedural:fractal')).toBe(false);
+        expect(cortex._isExternalCategory('fractal')).toBe(false);
+        expect(cortex._activePoolCategories()).toEqual([]);
+        expect(cortex._continuousHasWorks()).toBe(true);
+        expect(cortex._continuousProceduralTypes()).toEqual(['fractal']);
+        cortex.destroy();
+    });
+
+    it('an unknown source does not become a Wikimedia shelf when a procedural id is chosen', () => {
+        const cortex = new VisualCortex();
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['procedural:fractal', 'missing-shelf']
+        });
+        expect(cortex.config.activeTypes).toEqual(['fractal', 'missing-shelf']);
+        expect(cortex._isExternalCategory('fractal')).toBe(false);
+        expect(cortex._continuousProceduralTypes()).toEqual(['fractal']);
+        expect(cortex._continuousHasWorks()).toBe(true);
+        cortex.destroy();
+    });
+
+    it('selecting Fractal Flames mounts the engine into Gallery, not an empty glass wall', async () => {
+        grantVisualInterlocutionConsent();
+        vi.spyOn(ContinuousField.prototype, '_defaultDecode').mockResolvedValue(true);
+        const cortex = new VisualCortex();
+        cortex._scheduleBackgroundWarm = () => {};
+        cortex._scheduleRollingRefresh = () => {};
+        vi.spyOn(cortex, '_renderContinuousProceduralWork')
+            .mockResolvedValue({
+                url: 'data:image/webp;base64,flame',
+                title: 'Fractal Flame',
+                sourceType: 'fractal'
+            });
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+        cortex.setContinuousFieldHost(host);
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['procedural:fractal']
+        });
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(cortex._continuousField?.running).toBe(true);
+        expect(cortex._harmonographField?.running).toBeFalsy();
+        expect(cortex._renderContinuousProceduralWork).toHaveBeenCalledWith('fractal');
+        expect(cortex._continuousField.currentUrl).toBe('data:image/webp;base64,flame');
+        expect(host.querySelectorAll('.continuous-field-layer').length).toBeGreaterThan(0);
+        cortex.destroy();
+    });
+});
+
 describe('a figure survives the crossing into the cortex', () => {
     // This exact seam — a vocabulary living in two files where only one
     // copy learns a new word — has failed four times on this feature:
