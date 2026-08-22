@@ -37,19 +37,17 @@ Surgical changes: touch only what you must. Do not improve adjacent code, commen
 
 Goal-driven execution: turn tasks into verifiable goals and loop until they pass. Weak criteria ("make it work") are not enough.
 
-# First-principles engineering and leadership
+# First-principles engineering
 
 Physics-based reasoning: operate from first principles. Everything except fundamental axioms is a recommendation. Idiot Index = complexity of the finished system / complexity of the essential work; if the ratio is high, delete layers.
 
 The Algorithm, in this exact order: (1) question every requirement and name its owner, (2) delete the part or process — if you do not add back at least 10% you have not deleted enough, (3) simplify and optimize only after deletion, (4) accelerate cycle time on the cleaned system, (5) automate last. Never automate a broken process.
 
-The machine that builds the machine: the real product is the process, tests, team, and infrastructure. Own the stack. Design the scaling system before the feature. If the foundation is wrong, rebuild from zero. Stay lean. Every layer must earn its place.
+The machine that builds the machine: the real product is the process, tests, and infrastructure. Own the stack. Design the scaling system before the feature. If the foundation is wrong, rebuild from zero. Stay lean. Every layer must earn its place.
 
-Communication: shortest path; no chain-of-command theater; no acronyms or invented jargon; leave any meeting you are not adding value to; keep meetings small, rare, and short. Report bad news quickly and loudly.
+Communication: shortest path; no acronyms or invented jargon; do not bury bad news; elevate until the right thing happens.
 
-Leadership: one name per part/spec/process. Greatest work of your life or do not take the work. Excellence is the passing grade and must be the average. Clear goals, high energy, act for the project, no silos, tough but fair. Maniacal urgency. Decide at ~70% information. Every technical leader must be able to do the work.
-
-Hiring: ask for the hardest problems solved and exactly how. Ignore credentials. A-players attract A-players.
+Ownership: one name per part/spec/process. Excellence is the passing grade and must be the average. Clear goals. Act for the project. No silos. Maniacal urgency. Decide at ~70% information. Every technical leader must be able to do the work.
 
 Cognitive tools: master the trunk before the leaves. Context switching is the mind-killer. Usefulness: contribute more than you consume. Delight the user; the experience must be flawless.
 
@@ -61,7 +59,7 @@ Run every decision through all items. Be direct about failures.
 - Algorithm: questioned → deleted → simplified → accelerated → automated, in that order?
 - Machine optimized? staying lean?
 - Shortest path? bad news reported quickly? fast response?
-- Clear goals? excellence our average? project-first? no silos? tough but fair? peak work? high energy?
+- One owner? clear goals? excellence our average? project-first? no silos?
 - Trunk before leaves?
 - Maniacal urgency? 70% information decision?
 - Net useful? experience flawless?
