@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
 import { sizeAtomScale } from '../core/recitation.js';
-import { TODAY_WORD_LARGE_PX, fitWordAtomPx } from '../core/chamber-type-size.js';
+import { fitWordAtomPx } from '../core/chamber-type-size.js';
 
 function makeChamber(sessionExtra = {}, settings = {}) {
     const container = document.createElement('div');
@@ -113,7 +113,7 @@ describe('Chamber type size (FM-RISE-36)', () => {
         const el = container.querySelector('#atom-display');
         const px = parseFloat(el.style.getPropertyValue('--atom-fit-px'));
         expect(el.classList.contains('is-word-fit')).toBe(true);
-        expect(px).toBeGreaterThan(TODAY_WORD_LARGE_PX * 1.5);
+        expect(px).toBeGreaterThan(72 * 1.5);
         expect(px).toBe(fitWordAtomPx({
             fieldWidth: 390,
             fieldHeight: 720,
