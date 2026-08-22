@@ -1,0 +1,4 @@
+Source: https://github.com/obra/superpowers
+Commit: b36e0829c6d0140e93cfef2ca599b1b07d4a7797
+License: MIT
+Copied the skills/ tree only. Update by replacing this directory from a newer checkout.

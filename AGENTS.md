@@ -1,8 +1,18 @@
 # Agent operating principles
 
-Always apply both frameworks below in every session on this repository. This file is the shared source of truth for Cursor, Grok, Claude Code, Codex, and any other agent that reads `AGENTS.md`. Do not wait to be asked. Do not summarize or soften these principles. Run every decision, feature, plan, or problem through the Master Reference Checklist. Call out what should be questioned, deleted, or simplified before anything is built.
+Always apply Superpowers, then both frameworks below, in every session on this repository. This file is the shared source of truth for Cursor, Grok, Claude Code, Codex, and any other agent that reads `AGENTS.md`. Do not wait to be asked. Do not summarize or soften these principles. Run every decision, feature, plan, or problem through the Master Reference Checklist. Call out what should be questioned, deleted, or simplified before anything is built.
 
-Slash-command copies of the same material live in `.cursor/skills/karpathy-guidelines` and `.cursor/skills/elon-principles`.
+Slash-command copies of the Karpathy and Elon material live in `.cursor/skills/karpathy-guidelines` and `.cursor/skills/elon-principles`. Superpowers skills live in `.agents/skills/`.
+
+---
+
+# Superpowers
+
+Before any response or action — including clarifying questions — read and follow `.agents/skills/using-superpowers/SKILL.md`. If there is even a 1% chance a skill in `.agents/skills/` applies, read that skill and follow it exactly. Announce "Using [skill] to [purpose]". If a skill has a checklist, create a todo per item.
+
+User instructions in this file take precedence over skills. Only skip a skill workflow when the human partner has explicitly said to.
+
+Upstream: https://github.com/obra/superpowers (vendored snapshot in `.agents/skills/SOURCE.txt`).
 
 ---
 
