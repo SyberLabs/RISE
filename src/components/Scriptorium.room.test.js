@@ -458,9 +458,9 @@ describe('the Scriptorium as the reader meets it', () => {
     describe('the room reads every field through to the session', () => {
         /** Exactly the state ScriptoriumSession owns. */
         const SEQUENCE_STATE = Object.freeze([
-            'intent', 'targetWords', 'materials', 'swells', 'context', 'promptText',
-            'pasted', 'program', 'operationSet', 'proposalRows', 'preview', 'rundown',
-            'verdict', 'projectId', 'status'
+            'intent', 'targetWords', 'materials', 'swells', 'localWorks',
+            'context', 'promptText', 'pasted', 'program', 'operationSet',
+            'proposalRows', 'preview', 'rundown', 'verdict', 'projectId', 'status'
         ]);
 
         it('covers every field the session holds, so the list cannot fall behind', () => {

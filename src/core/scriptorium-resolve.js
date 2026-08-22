@@ -6,6 +6,7 @@
  */
 
 import { ingestedArchiveTexts } from '../content/archive/index.js';
+import { isLocalWorkId, localWorkRuntime } from './local-works.js';
 import { mostlyVerse } from '../content/archive/divisions.js';
 import { assertQuotationAnchorsAgainstSources } from './source-span.js';
 import { createCuratorSourceReader } from './curator-context.js';
@@ -44,10 +45,22 @@ function sectionsToText(sections) {
  *   division holding no text — and told the reader the second when it was
  *   the first. Only this loop knows, so only this loop says.
  */
-export async function resolveLibrarySourceIds(ids = []) {
+/**
+ * @param {string[]} ids source ids, each `work`, `work#12` or `work#12:200`
+ * @param {{ localWorks?: Array }} [overlay] reader works the session holds,
+ *   as `rise.local-work.v1` records. Asked AFTER the archive, and reachable
+ *   only under the reserved `local-` prefix, so an id can belong to exactly
+ *   one registry — an overlay that could shadow a shelved work would make a
+ *   reader's file silently replace an edition RISE answers for.
+ */
+export async function resolveLibrarySourceIds(ids = [], { localWorks = [] } = {}) {
   const wanted = [...new Set(ids.filter(Boolean))];
   const registry = ingestedArchiveTexts();
   const byId = new Map(registry.map(work => [work.id, work]));
+  for (const record of Array.isArray(localWorks) ? localWorks : []) {
+    if (!record || !isLocalWorkId(record.id) || byId.has(record.id)) continue;
+    byId.set(record.id, localWorkRuntime(record));
+  }
   const sources = [];
   const missing = [];
   const refused = [];
@@ -101,7 +114,10 @@ export async function resolveLibrarySourceIds(ids = []) {
         // The id keeps its extent: a score that named a division must go on
         // naming it, and its media anchors are written against these ids.
         id,
-        providerId: 'archive-ingest',
+        // Where this reading came from, and the Vault will show it: a work
+        // RISE prepared is not a file the reader dropped in, and a saved
+        // project that cannot tell them apart is one nobody can audit.
+        providerId: work.providerId || 'archive-ingest',
         type: 'text/plain',
         ...source,
         metadata: {
@@ -193,8 +209,8 @@ async function resolveDivisionExtent(work, extent) {
  * @param {object} program validated experience program
  * @returns {Promise<{ sources: object[], missing: string[], refused: string[] }>}
  */
-export async function resolveProgramLibrarySources(program) {
-  return resolveLibrarySourceIds(programSourceIds(program));
+export async function resolveProgramLibrarySources(program, overlay = {}) {
+  return resolveLibrarySourceIds(programSourceIds(program), overlay);
 }
 
 export async function resolveOperationLibrarySources(operationSet) {

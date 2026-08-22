@@ -47,6 +47,11 @@ import {
   resolveOperationLibrarySources,
   resolveProgramLibrarySources
 } from './scriptorium-resolve.js';
+import {
+  localWorkCatalogue,
+  LocalWorkError,
+  validateLocalWork
+} from './local-works.js';
 import { SourceSpanResolutionError } from './source-span.js';
 import { VisualScoreLaneError } from './visual-score-lane.js';
 import { AudioScoreLaneError } from './audio-score-lane.js';
@@ -174,6 +179,7 @@ function isRefusal(error) {
     || error instanceof EditorAssetError
     || error instanceof CuratorContextValidationError
     || error instanceof WorkshopProjectError
+    || error instanceof LocalWorkError
     || error instanceof ProducerError;
 }
 
@@ -210,6 +216,14 @@ export class ScriptoriumSession {
     // certifies. Descriptors only — no bytes, no object URLs.
     this.swells = [];
     this.materials = [];
+    /**
+     * READER TEXT THAT BECAME A WORK. `rise.local-work.v1` records, held here
+     * rather than in a store, because the overlay is the product and
+     * IndexedDB is one hydrator of it — the CLI is another and a fixture is a
+     * third. Projections go out with the catalogue; the text goes out with
+     * nothing.
+     */
+    this.localWorks = [];
 
     this.context = null;
     this.promptText = '';
@@ -256,6 +270,32 @@ export class ScriptoriumSession {
     return this.materials;
   }
 
+  /**
+   * Admit reader text as a work, and rebuild the take.
+   *
+   * The take is stale the moment the catalogue changes — a reader who copied
+   * a prompt before admitting a file would hand the model a shelf that does
+   * not mention it, and then be refused for naming what they just added.
+   */
+  addLocalWork(record) {
+    const admitted = validateLocalWork(record);
+    if (this.localWorks.some(held => held.id === admitted.id)) {
+      throw new LocalWorkError(
+        `This session already holds ${admitted.id}.`, 'LOCAL_WORK_DUPLICATE');
+    }
+    this.localWorks.push(admitted);
+    if (this.context) this.take();
+    return admitted;
+  }
+
+  dropLocalWork(id) {
+    const held = this.localWorks.find(work => work.id === id);
+    if (!held) return null;
+    this.localWorks = this.localWorks.filter(work => work.id !== id);
+    if (this.context) this.take();
+    return held;
+  }
+
   addMaterial(material) {
     this.materials.push(material);
     return material;
@@ -284,6 +324,7 @@ export class ScriptoriumSession {
       id: this.mintId(),
       sources: [],
       includeLibrary: true,
+      localWorks: this.localWorks.map(localWorkCatalogue),
       // The reader's own audio, by id AND by name. Passing nothing here was
       // the whole of the seam: both rooms build the same document from the
       // same function, and this one handed it empty arrays.
@@ -367,7 +408,7 @@ export class ScriptoriumSession {
     this.status = 'Loading chosen works…';
     try {
       const { sources, missing, refused, reasons } =
-        await resolveProgramLibrarySources(this.program);
+        await resolveProgramLibrarySources(this.program, { localWorks: this.localWorks });
       if (missing.length || refused.length) {
         // ONE WORDING, TWO DOORS. What survives to here is what only the text
         // itself can settle, and the Workshop's Import score reaches it by

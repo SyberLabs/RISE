@@ -34,6 +34,7 @@ import { createScriptoriumSession, SCRIPTORIUM_LENGTH } from './scriptorium-sess
 import { serializeCuratorContext } from './curator-context.js';
 import { describeImportFailure } from './experience-program-io.js';
 import { inspectMaterial } from './materials.js';
+import { draftLocalWork } from './local-works.js';
 import {
   createSequenceVisualAsset,
   SEQUENCE_ASSET_STORAGE_IDB,
@@ -160,6 +161,14 @@ const PROGRAM_IO_EXIT = Object.freeze({
  * codes.
  */
 const EXIT_FAMILIES = Object.freeze([
+  /**
+   * A FILE THAT IS NOT A WORK YET, which is the same shape as a paste that is
+   * not a score yet: empty, larger than one session holds, or partitioned in
+   * a way that does not cover its own text. `document` already means "the
+   * thing handed in has not become the object it claims to be", and a reader
+   * admitting text meets exactly that or nothing.
+   */
+  ['LOCAL_WORK_', SCRIPTORIUM_EXIT.document],
   ['SOURCE_SPAN_', SCRIPTORIUM_EXIT.unloadable],
   ['VISUAL_SCORE_', SCRIPTORIUM_EXIT.unloadable],
   /**
@@ -241,6 +250,7 @@ Options
   --length <words>         what the reader asked for, snapped to a rung
                            (${SCRIPTORIUM_LENGTH.rungs.join(', ')})
   --material <path>        a file the reader brought (repeatable)
+  --text <path>            reader .txt/.md admitted as a work (repeatable)
   --wpm <n>                the reader's pace, which no terminal can read
   --id <id>                fix the session id, for output that can be diffed
   --json                   one JSON object on stdout
@@ -302,7 +312,7 @@ function materialFromPath(path, held) {
 }
 
 const COMMANDS = new Set(['context', 'prompt', 'examine', 'read']);
-const FLAGS_WITH_VALUES = new Set(['--intent', '--length', '--material', '--wpm', '--id']);
+const FLAGS_WITH_VALUES = new Set(['--intent', '--length', '--material', '--text', '--wpm', '--id']);
 
 /**
  * Strict argv. An unrecognised flag is a refusal, not an omission — the same
@@ -311,7 +321,8 @@ const FLAGS_WITH_VALUES = new Set(['--intent', '--length', '--material', '--wpm'
  */
 export function parseScriptoriumArgv(argv = []) {
   const args = [...argv];
-  const options = { materials: [], json: false, help: false };
+  const options = { materials: [],
+    texts: [], json: false, help: false };
   let command = null;
   let file = null;
 
@@ -330,6 +341,7 @@ export function parseScriptoriumArgv(argv = []) {
       const value = args.shift();
       if (token === '--intent') options.intent = value;
       else if (token === '--material') options.materials.push(value);
+      else if (token === '--text') options.texts.push(value);
       else if (token === '--id') options.id = value;
       else {
         const number = Number(value);
@@ -438,6 +450,21 @@ export async function runScriptoriumCli(argv = [], io = {}) {
     if (session.targetWords !== asked) {
       err(`scriptorium: --length ${options.length} reads at `
         + `${session.targetWords} words, the nearest rung.`);
+    }
+  }
+
+  // HEADLESS ADMIT. Node has no IndexedDB and does not pretend to: the file
+  // is read, drafted and pushed straight onto the session overlay, which is
+  // the same object a browser store would hydrate.
+  for (const path of options.texts) {
+    try {
+      session.addLocalWork(draftLocalWork({
+        text: readTextFile(path),
+        sourceName: basename(path)
+      }));
+    } catch (error) {
+      err(`scriptorium: ${path}: ${error.message}`);
+      return exitStatusForCode(error.code) ?? SCRIPTORIUM_EXIT.usage;
     }
   }
 

@@ -103,6 +103,7 @@ export class Scriptorium {
   get targetWords() { return this.session.targetWords; }
   get materials() { return this.session.materials; }
   get swells() { return this.session.swells; }
+  get localWorks() { return this.session.localWorks; }
   get context() { return this.session.context; }
   get promptText() { return this.session.promptText; }
   get pasted() { return this.session.pasted; }

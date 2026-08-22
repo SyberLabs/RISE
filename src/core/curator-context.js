@@ -709,9 +709,28 @@ function uniquePreserve(ids) {
  * or RISE-measured — ids and metadata only, never payloads
  * (docs/vision/SCRIPTORIUM-SPEC.md §7).
  */
-export function buildLibraryCatalogue() {
+/**
+ * The shelf as the composer sees it, plus whatever the reader brought.
+ *
+ * LOCAL WORKS FIRST, AND THEY NEVER DROP. They are why the reader opened the
+ * door; an archive work at the tail of a 128-long list is not. When the two
+ * together breach the cap it is the shelf that gives way, because the shelf is
+ * still there next time and the reader's file may not be.
+ *
+ * They arrive already projected (`localWorkCatalogue`) — the record's text
+ * never enters this document, which is `docs/vision/SCRIPTORIUM-SPEC.md` §1:
+ * no bytes out.
+ */
+export function buildLibraryCatalogue(localWorks = []) {
+  const local = (Array.isArray(localWorks) ? localWorks : [])
+    .slice(0, CURATOR_CONTEXT_LIMITS.maxLibraryWorks);
+  const room = Math.max(0, CURATOR_CONTEXT_LIMITS.maxLibraryWorks - local.length);
+  return [...local, ...archiveCatalogue(room)];
+}
+
+function archiveCatalogue(limit) {
   return releaseArchiveMetadata()
-    .slice(0, CURATOR_CONTEXT_LIMITS.maxLibraryWorks).map(meta => {
+    .slice(0, limit).map(meta => {
     const div = DIVISION_INDEX[meta.id] || {};
     const divisionWords = Array.isArray(div.divisionWords) ? div.divisionWords : null;
     const entry = {
@@ -760,6 +779,8 @@ export function buildLibraryCatalogue() {
  * @param {string} [surface.id]
  * @param {Array} [surface.sources]
  * @param {Array} [surface.assets] sequence visual assets
+ * @param {Array} [surface.localWorks] catalogue projections of reader text
+ *   (`localWorkCatalogue`), listed before the shelf and never dropped
  * @param {Array<string>} [surface.swellIds] personal swell ids
  * @param {Array} [surface.swells] personal swells, `{ id, name }`, so the
  *   catalogue can say which one is which
@@ -882,7 +903,7 @@ export function exportCuratorContext(surface = {}) {
     generatedAt: Date.now()
   };
   if (surface.includeLibrary !== false) {
-    payload.library = buildLibraryCatalogue();
+    payload.library = buildLibraryCatalogue(surface.localWorks);
   }
   return validateCuratorContext(payload);
 }
