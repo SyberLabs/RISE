@@ -76,6 +76,23 @@ export class Settings {
             </div>
 
             <div class="settings-row">
+              <div class="settings-label-group">
+                <label class="settings-label">Mask</label>
+                <p class="settings-hint text-mist">
+                  Thick Word stream. Glass stays off. Phrase and sentence are unchanged.
+                </p>
+              </div>
+              <label class="toggle">
+                <input
+                  type="checkbox"
+                  data-setting="chamberMask"
+                  ${this.settings.chamberMask === true ? 'checked' : ''}
+                />
+                <span class="toggle-switch"></span>
+              </label>
+            </div>
+
+            <div class="settings-row">
               <label class="settings-label">Show Progress</label>
               <label class="toggle">
                 <input

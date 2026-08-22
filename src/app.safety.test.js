@@ -105,4 +105,26 @@ describe('App safety orchestration', () => {
     expect(app.settings.chamberFace).toBe('literary');
     expect(document.documentElement.dataset.chamberFace).toBe('literary');
   });
+
+  it('persists chamberMask as a boolean and coerces anything else to false', () => {
+    const app = new App();
+    app.loadSettings();
+    expect(app.settings.chamberMask).toBe(false);
+
+    localStorage.setItem('rise-settings', JSON.stringify({ chamberMask: true }));
+    app.loadSettings();
+    expect(app.settings.chamberMask).toBe(true);
+
+    localStorage.setItem('rise-settings', JSON.stringify({ chamberMask: 'yes' }));
+    app.loadSettings();
+    expect(app.settings.chamberMask).toBe(false);
+
+    app.handleSettingsChange('chamberMask', true);
+    expect(app.settings.chamberMask).toBe(true);
+    expect(JSON.parse(localStorage.getItem('rise-settings')).chamberMask).toBe(true);
+
+    app.handleSettingsChange('chamberMask', 'yes');
+    expect(app.settings.chamberMask).toBe(false);
+    expect(JSON.parse(localStorage.getItem('rise-settings')).chamberMask).toBe(false);
+  });
 });

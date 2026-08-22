@@ -126,5 +126,24 @@ describe('Settings display type', () => {
         expect(onChange).not.toHaveBeenCalledWith('chamberFace', 'comic-sans');
         settings.destroy();
     });
+
+    it('emits chamberMask as a boolean and defaults the toggle off', () => {
+        const { container, settings, onChange } = mountSettings();
+        const toggle = container.querySelector('[data-setting="chamberMask"]');
+
+        expect(toggle).toBeTruthy();
+        expect(toggle.type).toBe('checkbox');
+        expect(toggle.checked).toBe(false);
+
+        toggle.checked = true;
+        toggle.dispatchEvent(new Event('change'));
+        expect(onChange).toHaveBeenCalledWith('chamberMask', true);
+        expect(onChange.mock.calls.every(([, value]) => typeof value === 'boolean')).toBe(true);
+
+        toggle.checked = false;
+        toggle.dispatchEvent(new Event('change'));
+        expect(onChange).toHaveBeenLastCalledWith('chamberMask', false);
+        settings.destroy();
+    });
 });
 

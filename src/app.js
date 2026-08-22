@@ -1272,6 +1272,7 @@ class App {
             // Display
             fontSize: 'medium',
             chamberFace: 'literary',
+            chamberMask: false,
             showProgress: true,
             showDuration: true,
             showArtworkLabels: true,
@@ -1310,7 +1311,8 @@ class App {
                 'enableAmbient',
                 'enableBinaural',
                 'photosensitivityMode',
-                'reducedMotion'
+                'reducedMotion',
+                'chamberMask'
             ];
             this.settings = {
                 ...defaultSettings,
@@ -1358,7 +1360,9 @@ class App {
             ? clampReadingWpm(value, this.settings.defaultWpm)
             : key === 'chamberFace'
                 ? resolveChamberStreamFace(value)
-                : value;
+                : key === 'chamberMask'
+                    ? value === true
+                    : value;
         this.saveSettings();
 
         // Apply certain settings immediately

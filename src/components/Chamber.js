@@ -249,6 +249,7 @@ export class Chamber {
     this.attachEvents();
     this.bindVisualViewport();
     this.initializeDisplay();
+    this.applyChamberMask();
 
     // A spatial reading opens as a page (SPATIAL-CHAMBER-SPEC §3).
     // projection === 'page' is parked in production UI; e2e/page-suspend.spec.js
@@ -526,6 +527,22 @@ export class Chamber {
     atomDisplay.dataset.chamberFace = resolveChamberStreamFace(
       globalThis.rise?.settings?.chamberFace
     );
+  }
+
+  chamberMaskApplies() {
+    return globalThis.rise?.settings?.chamberMask === true
+      && this.session?.chunkMode === 'word';
+  }
+
+  applyChamberMask() {
+    const atomDisplay = this.container.querySelector('#atom-display');
+    if (!atomDisplay) return;
+    if (this.chamberMaskApplies()) {
+      atomDisplay.classList.add('is-mask');
+      atomDisplay.classList.remove('glass-tile');
+    } else {
+      atomDisplay.classList.remove('is-mask');
+    }
   }
 
   attachEvents() {
@@ -1070,7 +1087,7 @@ export class Chamber {
 
     // Glass tile on by default — the text must stay legible over imagery
     // (the field's whole reason to exist is a presence behind the reading).
-    if (atomDisplay && visualConfig.interlocution?.streamGlass !== false) {
+    if (atomDisplay && visualConfig.interlocution?.streamGlass !== false && !this.chamberMaskApplies()) {
       atomDisplay.classList.add('glass-tile');
     }
 
@@ -1093,7 +1110,7 @@ export class Chamber {
     field?.classList.add('chamber-field-stream');
 
     const atomDisplay = this.container.querySelector('#atom-display');
-    if (atomDisplay && visualConfig.interlocution?.streamGlass !== false) {
+    if (atomDisplay && visualConfig.interlocution?.streamGlass !== false && !this.chamberMaskApplies()) {
       atomDisplay.classList.add('glass-tile');
     }
   }
@@ -1110,7 +1127,9 @@ export class Chamber {
     if (cue.renderer === 'genesis') {
       host.className = 'chamber-genesis';
       field.classList.add('chamber-field-genesis');
-      if (atomDisplay && config.glass !== false) atomDisplay.classList.add('glass-tile');
+      if (atomDisplay && config.glass !== false && !this.chamberMaskApplies()) {
+        atomDisplay.classList.add('glass-tile');
+      }
       this._insertBehindReading(field, host);
       controller = new KleeField(host, { preset: config.preset || 'random' });
       this.kleeField = controller;
