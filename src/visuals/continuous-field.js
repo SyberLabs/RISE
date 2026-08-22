@@ -355,6 +355,10 @@ export class ContinuousField {
      * of a detached tree.
      */
     setProjectionHost(host) {
+        // Projecting into our own host would make _teardownProjectionLayers
+        // sweep this field's real layers out of the gallery. PlateField,
+        // HarmonographField and AttractorField all guard the same way.
+        if (host === this.host) host = null;
         if (this.projectionHost === host) return;
         this._teardownProjectionLayers();
         this.projectionHost = host || null;

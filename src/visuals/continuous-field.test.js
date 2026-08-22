@@ -552,6 +552,23 @@ describe('Continuous Field projection mount', () => {
         projection.remove();
     });
 
+    it('refuses its own host, so teardown cannot sweep the gallery layers away', async () => {
+        const { field, host } = mount({ getPool: () => pool('a.jpg') });
+        field.start();
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(host.querySelectorAll('.continuous-field-layer').length).toBe(2);
+
+        field.setProjectionHost(host);
+        expect(field.projectionHost).toBeNull();
+        expect(host.querySelectorAll('.continuous-field-layer').length).toBe(2);
+
+        // A later clear must still not disturb the real layers.
+        field.setProjectionHost(null);
+        expect(host.querySelectorAll('.continuous-field-layer').length).toBe(2);
+        field.stop();
+    });
+
     it('setProjectionHost(null) tears the projection nodes and leaves the gallery host', async () => {
         const { field, host } = mount({ getPool: () => pool('a.jpg') });
         const projection = document.createElement('div');
