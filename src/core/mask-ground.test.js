@@ -1,0 +1,166 @@
+import { describe, expect, it } from 'vitest';
+import { LISTED_PROCEDURAL_PATTERNS, PROCEDURAL_PATTERN_IDS } from './visual-registry.js';
+import { MUSEUM_CATEGORIES } from '../sources/visual/museum.js';
+import { SCIENCE_CATEGORIES } from '../content/science/imagery/science-pins.js';
+import { ATRIUM_PINNED_COLLECTIONS } from '../content/imagery/collections.js';
+import {
+    GROUNDS,
+    MASK_GROUND_CSS,
+    combine,
+    describeSource,
+    isProceduralSource,
+    isStillSource,
+    maskGroundFromConfig,
+    profileFor
+} from './mask-ground.js';
+
+const LIVING_PLATES = ['harmonograph', 'ostensoria', 'apparitio', 'attractor'];
+
+describe('source color profiles', () => {
+    it('every listed procedural declares Transparent | Light | Dark', () => {
+        const ids = [...PROCEDURAL_PATTERN_IDS, ...LISTED_PROCEDURAL_PATTERNS.map(p => p.id)];
+        for (const id of new Set(ids)) {
+            expect(['transparent', 'light', 'dark'], id).toContain(profileFor(id));
+        }
+    });
+
+    it('Attractor is Dark and Fractal is Light', () => {
+        expect(profileFor('attractor')).toBe(GROUNDS.dark);
+        expect(profileFor('fractal')).toBe(GROUNDS.light);
+    });
+
+    it('living plates are Dark', () => {
+        for (const id of LIVING_PLATES) {
+            expect(profileFor(id), id).toBe(GROUNDS.dark);
+        }
+    });
+
+    it('every museum and science collection id has a profile', () => {
+        for (const id of Object.keys(MUSEUM_CATEGORIES)) {
+            expect(['transparent', 'light', 'dark'], `aic-${id}`).toContain(profileFor(`aic-${id}`));
+        }
+        for (const id of Object.keys(SCIENCE_CATEGORIES)) {
+            expect(['transparent', 'light', 'dark'], `sci-${id}`).toContain(profileFor(`sci-${id}`));
+        }
+        expect(profileFor('sci-astronomy')).toBe(GROUNDS.dark);
+        expect(profileFor('aic-oldmasters')).toBe(GROUNDS.dark);
+    });
+
+    it('personal, blend, and collection families declare a profile', () => {
+        expect(profileFor('personal')).toBe(GROUNDS.transparent);
+        expect(profileFor('blend')).toBe(GROUNDS.transparent);
+        expect(profileFor('collections')).toBe(GROUNDS.transparent);
+        expect(profileFor('global-pool')).toBe(GROUNDS.transparent);
+        expect(profileFor('personal:album')).toBe(GROUNDS.transparent);
+    });
+
+    it('atrium stills are still sources, not procedurals', () => {
+        for (const id of Object.keys(ATRIUM_PINNED_COLLECTIONS)) {
+            expect(isStillSource(id), id).toBe(true);
+            expect(isProceduralSource(id), id).toBe(false);
+            expect(['transparent', 'light', 'dark'], id).toContain(profileFor(id));
+        }
+    });
+
+    it('Light and Dark tokens are named CSS variables, never #000 or #fff', () => {
+        expect(MASK_GROUND_CSS.light).toBe('var(--color-cream)');
+        expect(MASK_GROUND_CSS.dark).toBe('var(--color-dark-slate)');
+        expect(MASK_GROUND_CSS.light).not.toMatch(/#fff|#ffffff|#000|#000000/i);
+        expect(MASK_GROUND_CSS.dark).not.toMatch(/#fff|#ffffff|#000|#000000/i);
+    });
+});
+
+describe('combine(A, B) — Firstmate law', () => {
+    it('1. a procedural fill starts from the fill profile', () => {
+        expect(combine('aic-landscapes', 'attractor', { roomOpaque: true })).toBe(GROUNDS.dark);
+        expect(combine('aic-landscapes', 'fractal', { roomOpaque: true })).toBe(GROUNDS.light);
+        expect(combine('aic-ukiyoe', 'harmonograph', { roomOpaque: true })).toBe(GROUNDS.dark);
+        expect(combine('aic-ukiyoe', 'neural', { roomOpaque: true })).toBe(GROUNDS.dark);
+    });
+
+    it('2. locked Astronomy + Attractor → Dark', () => {
+        expect(combine('sci-astronomy', 'attractor', { roomOpaque: true })).toBe(GROUNDS.dark);
+        expect(combine('astronomy', 'attractor', { roomOpaque: true })).toBe(GROUNDS.dark);
+    });
+
+    it('2. locked Old Masters + Fractal → Light', () => {
+        expect(combine('aic-oldmasters', 'fractal', { roomOpaque: true })).toBe(GROUNDS.light);
+        expect(combine('oldmasters', 'fractal', { roomOpaque: true })).toBe(GROUNDS.light);
+    });
+
+    it('3. two collection/still sources → Transparent when A is already opaque', () => {
+        expect(combine('sci-astronomy', 'aic-ukiyoe', { roomOpaque: true }))
+            .toBe(GROUNDS.transparent);
+        expect(combine('aic-oldmasters', 'aic-landscapes', { roomOpaque: true }))
+            .toBe(GROUNDS.transparent);
+        expect(combine('global-pool', 'aic-flowers', { roomOpaque: true }))
+            .toBe(GROUNDS.transparent);
+    });
+
+    it('4. Transparent result with A not yet opaque → Dark (never page punch)', () => {
+        expect(combine('sci-astronomy', 'aic-ukiyoe', { roomOpaque: false }))
+            .toBe(GROUNDS.dark);
+        expect(combine('aic-landscapes', 'aic-ukiyoe')).toBe(GROUNDS.dark);
+    });
+
+    it('a procedural room under a still fill is not both-still; missing A goes Dark', () => {
+        expect(combine('fractal', 'aic-ukiyoe', { roomOpaque: false })).toBe(GROUNDS.dark);
+        expect(isProceduralSource('fractal')).toBe(true);
+        expect(isStillSource('aic-ukiyoe')).toBe(true);
+    });
+
+    it('describeSource classifies engines vs collections', () => {
+        expect(describeSource('attractor')).toMatchObject({
+            id: 'attractor',
+            procedural: true,
+            still: false,
+            profile: GROUNDS.dark
+        });
+        expect(describeSource('sci-astronomy')).toMatchObject({
+            id: 'sci-astronomy',
+            family: 'astronomy',
+            procedural: false,
+            still: true,
+            profile: GROUNDS.dark
+        });
+        expect(describeSource('aic-oldmasters').family).toBe('oldmasters');
+    });
+});
+
+describe('maskGroundFromConfig', () => {
+    it('Astronomy room + Attractor word-fill → Dark', () => {
+        expect(maskGroundFromConfig({
+            activeTypes: ['sci-astronomy'],
+            sourced: ['sci-astronomy'],
+            wordFill: { mode: 'pick', sourced: [], procedural: ['attractor'] },
+            roomOpaque: true
+        })).toBe(GROUNDS.dark);
+    });
+
+    it('Old Masters room + Fractal word-fill → Light', () => {
+        expect(maskGroundFromConfig({
+            activeTypes: ['aic-oldmasters'],
+            sourced: ['aic-oldmasters'],
+            wordFill: { mode: 'pick', sourced: [], procedural: ['fractal'] },
+            roomOpaque: true
+        })).toBe(GROUNDS.light);
+    });
+
+    it('same-as-gallery collections stay Transparent once A is opaque', () => {
+        expect(maskGroundFromConfig({
+            activeTypes: ['aic-landscapes'],
+            sourced: ['aic-landscapes'],
+            wordFill: { mode: 'same' },
+            roomOpaque: true
+        })).toBe(GROUNDS.transparent);
+    });
+
+    it('two sourced stills stay Transparent', () => {
+        expect(maskGroundFromConfig({
+            activeTypes: ['sci-astronomy'],
+            sourced: ['sci-astronomy'],
+            wordFill: { mode: 'pick', sourced: ['aic-ukiyoe'], procedural: [] },
+            roomOpaque: true
+        })).toBe(GROUNDS.transparent);
+    });
+});

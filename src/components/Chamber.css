@@ -1058,6 +1058,24 @@
   overflow: hidden;
 }
 
+/* Fill understudy inside the glyph wrapper, behind the engine.
+   The wrapper carries the mask and has no background. Layer A is
+   unmasked — counters show the room only. */
+.chamber-fill-field > .chamber-mask-ground-plate {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.chamber-fill-field > .chamber-mask-ground-plate[data-ground="dark"] {
+  background: var(--color-dark-slate);
+}
+
+.chamber-fill-field > .chamber-mask-ground-plate[data-ground="light"] {
+  background: var(--color-cream);
+}
+
 /* Layer B: gallery stills clipped to Word ink, between field (1) and atom (10). */
 .chamber-fill-field {
   z-index: 5;

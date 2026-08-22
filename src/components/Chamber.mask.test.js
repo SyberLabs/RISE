@@ -524,3 +524,157 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         chamber.destroy();
     });
 });
+
+describe('Chamber mask ground plate (FM-RISE-47)', () => {
+    let restoreEnv;
+
+    beforeEach(() => {
+        restoreEnv = installFillMaskEnv();
+        armGalleryField();
+    });
+
+    afterEach(() => {
+        restoreEnv?.();
+        releaseGalleryField();
+        delete globalThis.rise;
+        document.body.replaceChildren();
+        vi.restoreAllMocks();
+    });
+
+    function plate(container) {
+        return container.querySelector('.chamber-mask-ground-plate');
+    }
+
+    function assertFillUnderstudy(container, ground) {
+        const layerA = galleryHost(container);
+        const wrapper = fillHost(container);
+        const understudy = plate(container);
+        expect(layerA).toBeTruthy();
+        expect(wrapper).toBeTruthy();
+        expect(understudy).toBeTruthy();
+        expect(understudy.dataset.ground).toBe(ground);
+        expect(wrapper.contains(understudy)).toBe(true);
+        expect(wrapper.firstElementChild).toBe(understudy);
+        expect(layerA.contains(understudy)).toBe(false);
+        expect(understudy.nextElementSibling).not.toBe(layerA);
+        expect(layerA.previousElementSibling).not.toBe(understudy);
+        expect(layerA.style.maskImage).toBeFalsy();
+        expect(wrapper.style.background).toBeFalsy();
+        expect(wrapper.style.backgroundColor).toBeFalsy();
+        expect(`${wrapper.style.maskImage} ${wrapper.style.webkitMaskImage}`).toMatch(/text/i);
+        return { layerA, wrapper, understudy };
+    }
+
+    it('Astronomy room + Attractor fill puts Dark plate inside the masked wrapper, behind the engine', async () => {
+        const { chamber, container } = makeChamber(
+            {
+                chunkMode: 'word',
+                visualConfig: {
+                    visualMode: 'interlocution',
+                    interlocution: {
+                        presentation: 'continuous',
+                        sourced: ['sci-astronomy'],
+                        wordFill: { mode: 'pick', sourced: [], procedural: ['attractor'] }
+                    }
+                }
+            },
+            { chamberMask: true }
+        );
+        visualCortex._poolFor('sci-astronomy').images = [
+            { url: 'https://example.test/astro-a.jpg', name: 'astro-a' },
+            { url: 'https://example.test/astro-b.jpg', name: 'astro-b' }
+        ];
+        visualCortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['sci-astronomy'],
+            wordFill: { mode: 'pick', sourced: [], procedural: ['attractor'] }
+        });
+        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
+        await flushFillMask();
+        if (visualCortex._continuousField) {
+            visualCortex._continuousField._currentUrl = 'https://example.test/astro-a.jpg';
+        }
+        chamber.syncMaskGroundPlate();
+
+        const { wrapper, understudy } = assertFillUnderstudy(container, 'dark');
+        const engine = [...wrapper.children].find(node => node !== understudy);
+        expect(engine).toBeTruthy();
+        expect(understudy.compareDocumentPosition(engine) & Node.DOCUMENT_POSITION_FOLLOWING)
+            .toBeTruthy();
+        chamber.destroy();
+    });
+
+    it('Old Masters room + Fractal fill puts Light cream plate inside the glyph wrapper', async () => {
+        const { chamber, container } = makeChamber(
+            {
+                chunkMode: 'word',
+                visualConfig: {
+                    visualMode: 'interlocution',
+                    interlocution: {
+                        presentation: 'continuous',
+                        sourced: ['aic-oldmasters'],
+                        wordFill: { mode: 'pick', sourced: [], procedural: ['fractal'] }
+                    }
+                }
+            },
+            { chamberMask: true }
+        );
+        visualCortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-oldmasters'],
+            wordFill: { mode: 'pick', sourced: [], procedural: ['fractal'] }
+        });
+        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
+        await flushFillMask();
+        if (visualCortex._continuousField) {
+            visualCortex._continuousField._currentUrl = 'https://example.test/masters.jpg';
+        }
+        chamber.syncMaskGroundPlate();
+
+        assertFillUnderstudy(container, 'light');
+        chamber.destroy();
+    });
+
+    it('two collection stills with an opaque Layer A mount no plate', async () => {
+        const { chamber, container } = makeChamber(
+            {
+                chunkMode: 'word',
+                visualConfig: {
+                    visualMode: 'interlocution',
+                    interlocution: {
+                        presentation: 'continuous',
+                        sourced: ['aic-landscapes'],
+                        wordFill: { mode: 'pick', sourced: ['aic-ukiyoe'], procedural: [] }
+                    }
+                }
+            },
+            { chamberMask: true }
+        );
+        visualCortex._poolFor('aic-landscapes').images = [
+            { url: 'https://example.test/room-a.jpg', name: 'room-a' }
+        ];
+        visualCortex._poolFor('aic-ukiyoe').images = [
+            { url: 'https://example.test/fill-x.jpg', name: 'fill-x' }
+        ];
+        visualCortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-landscapes'],
+            wordFill: { mode: 'pick', sourced: ['aic-ukiyoe'], procedural: [] }
+        });
+        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
+        await flushFillMask();
+        if (visualCortex._continuousField) {
+            visualCortex._continuousField._currentUrl = 'https://example.test/room-a.jpg';
+        }
+        chamber.syncMaskGroundPlate();
+
+        expect(plate(container)).toBeNull();
+        expect(fillHost(container)?.style.background).toBeFalsy();
+        expect(galleryHost(container)?.style.maskImage).toBeFalsy();
+        chamber.destroy();
+    });
+});
+
