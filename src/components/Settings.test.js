@@ -106,6 +106,10 @@ describe('Settings display type', () => {
             .toEqual(['Literary', 'Display', 'Thick', 'Japanese']);
         expect(radios.find((radio) => radio.value === 'literary').checked).toBe(true);
         expect(container.textContent).not.toMatch(/Inter|JetBrains/);
+        expect(container.textContent).not.toMatch(/Crimson Pro|Marcellus|Space Grotesk|Noto Serif/);
+        expect(container.querySelector('#chamber-face-fail')?.textContent.trim())
+            .toBe('Face did not take.');
+        expect(container.querySelector('#chamber-face-fail')?.hidden).toBe(true);
 
         radios.find((radio) => radio.value === 'thick').click();
         expect(onChange).toHaveBeenCalledWith('chamberFace', 'thick');

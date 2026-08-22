@@ -95,17 +95,17 @@ describe('Chamber Settings door', () => {
         this.settings[key] = key === 'chamberFace'
           ? resolveChamberStreamFace(value)
           : value;
-        chamber.applyChamberStreamFace();
-        chamber.applyChamberMask();
       }
     };
     chamber.applyChamberStreamFace();
 
     await chamber.openSettings();
     expect(player.state).toBe('paused');
+    expect(container.textContent).not.toMatch(/Crimson Pro|Marcellus|Space Grotesk|Noto Serif/);
 
     container.querySelector('input[name="chamber-face"][value="jp"]').click();
     expect(container.querySelector('#atom-display').dataset.chamberFace).toBe('jp');
+    expect(container.querySelector('#chamber-face-fail')?.hidden).toBe(true);
     expect(player.state).toBe('paused');
 
     const thick = container.querySelector('input[name="chamber-face"][value="thick"]');
@@ -114,6 +114,26 @@ describe('Chamber Settings door', () => {
     thick.dispatchEvent(new Event('change'));
     expect(container.querySelector('#atom-display').dataset.chamberFace).toBe('jp');
     expect(globalThis.rise.settings.chamberFace).toBe('jp');
+
+    chamber.destroy();
+  });
+
+  it('shows Face did not take when the paused atom does not receive the face', async () => {
+    const { chamber, container } = mount();
+    globalThis.rise = {
+      settings: { chamberFace: 'literary' },
+      handleSettingsChange() {}
+    };
+    await chamber.openSettings();
+    chamber.applyChamberStreamFace = () => {};
+
+    container.querySelector('input[name="chamber-face"][value="jp"]').click();
+
+    const fail = container.querySelector('#chamber-face-fail');
+    expect(fail).toBeTruthy();
+    expect(fail.hidden).toBe(false);
+    expect(fail.textContent.trim()).toBe('Face did not take.');
+    expect(container.querySelector('#atom-display').dataset.chamberFace).not.toBe('jp');
 
     chamber.destroy();
   });

@@ -1202,3 +1202,78 @@ describe('the photosensitivity notice belongs to the surface that flashes', () =
         endVisualInterlocutionSession();
     });
 });
+
+describe('PREP Visual Settings Face (FM-RISE-34)', () => {
+    afterEach(() => {
+        delete globalThis.rise;
+        document.body.replaceChildren();
+    });
+
+    function faceRow(container) {
+        const mode = container.querySelector('.vi-mode-selector');
+        return mode?.nextElementSibling;
+    }
+
+    it('places Literary | Display | Thick | Japanese chips under the mode selector on every mode', () => {
+        const { panel, container } = makePanel({ expanded: true, visualMode: 'off' });
+        const row = faceRow(container);
+
+        expect(container.querySelector('.vi-content')?.contains(row)).toBe(true);
+        expect(row.classList.contains('vi-source-family')).toBe(true);
+        expect([...row.querySelectorAll('[data-chamber-face]')].map((btn) => [
+            btn.dataset.chamberFace,
+            btn.textContent.replace(/\s+/g, ' ').trim(),
+            btn.classList.contains('vi-source-family-btn')
+        ])).toEqual([
+            ['literary', 'Literary', true],
+            ['display', 'Display', true],
+            ['thick', 'Thick', true],
+            ['jp', 'Japanese', true]
+        ]);
+        expect(row.querySelector('[data-chamber-face="jp"]').style.fontFamily)
+            .toMatch(/Noto Serif JP|var\(--font-jp\)/);
+        expect(row.textContent).toMatch(/The letters, not the room/);
+        expect(container.querySelector('.vi-focals-panel')?.querySelector('[data-chamber-face]')).toBeNull();
+        expect(container.querySelector('[data-presentation="continuous-word"]')).toBeNull();
+        expect([...container.querySelectorAll('[data-visual-mode]')].map((btn) => btn.dataset.visualMode))
+            .toEqual(['off', 'focals', 'attractor', 'genesis', 'interlocution']);
+
+        for (const id of ['off', 'focals', 'attractor', 'genesis', 'interlocution']) {
+            container.querySelector(`[data-visual-mode="${id}"]`).click();
+            expect(faceRow(container)?.querySelector('[data-chamber-face="thick"]')).toBeTruthy();
+        }
+
+        panel.destroy();
+    });
+
+    it('persists only allowlisted Face ids to rise.settings and never into visualConfig', () => {
+        const settings = { chamberFace: 'literary', fontSize: 'medium' };
+        const handleSettingsChange = vi.fn((key, value) => {
+            settings[key] = value;
+        });
+        const onChange = vi.fn();
+        globalThis.rise = { settings, handleSettingsChange };
+        const { panel, container } = makePanel({
+            expanded: true,
+            visualMode: 'off',
+            onChange
+        });
+
+        container.querySelector('[data-chamber-face="jp"]').click();
+        expect(handleSettingsChange).toHaveBeenCalledWith('chamberFace', 'jp');
+        expect(settings.chamberFace).toBe('jp');
+        expect(onChange).not.toHaveBeenCalled();
+        expect(panel.getConfig().chamberFace).toBeUndefined();
+        expect(panel.getConfig().interlocution.chamberFace).toBeUndefined();
+        expect(panel.getConfig().visualMode).toBe('off');
+
+        const forged = container.querySelector('[data-chamber-face="jp"]');
+        forged.dataset.chamberFace = 'papyrus';
+        forged.click();
+        expect(handleSettingsChange).not.toHaveBeenCalledWith('chamberFace', 'papyrus');
+        expect(settings.chamberFace).toBe('jp');
+        expect(settings.fontSize).toBe('medium');
+
+        panel.destroy();
+    });
+});
