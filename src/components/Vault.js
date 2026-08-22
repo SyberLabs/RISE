@@ -758,6 +758,3 @@ export class Vault {
     this.deactivate();
   }
 }
-
-// Export archetypes for use elsewhere
-export { ARCHETYPES };

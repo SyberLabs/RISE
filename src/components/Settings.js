@@ -289,12 +289,6 @@ export class Settings {
 
     renderChamberFaceRadios() {
         const selected = resolveChamberStreamFace(this.settings.chamberFace);
-        const chrome = {
-            literary: 'Literary',
-            display: 'Display',
-            thick: 'Thick',
-            jp: 'Japanese'
-        };
         return CHAMBER_STREAM_FACES.map((face) => `
           <label class="radio">
             <input
@@ -303,7 +297,7 @@ export class Settings {
               value="${face.id}"
               ${face.id === selected ? 'checked' : ''}
             />
-            <span class="radio-label">${chrome[face.id] || face.label}</span>
+            <span class="radio-label">${face.label}</span>
           </label>
         `).join('');
     }
