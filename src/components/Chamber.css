@@ -218,13 +218,14 @@
 }
 
 /* Mask is a live overlay: thick Word, large, glass off. It does not
-   rewrite the reader's saved chamberFace or fontSize. */
+   rewrite the reader's saved chamberFace or fontSize. Word size is
+   --atom-fit-px from Chamber JS, not this 96px fallback. */
 .atom-display.is-mask {
   font-family: var(--font-stream-thick);
   font-weight: var(--font-weight-bold);
   --font-stream-face: var(--font-stream-thick);
   --font-stream-weight: var(--font-weight-bold);
-  font-size: calc(96px * var(--atom-scale, 1));
+  font-size: calc(96px * var(--atom-scale, 1) * var(--font-size-intent, 1));
   background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -258,7 +259,7 @@
      smaller face — and the SIZE is decided here, where the viewport is
      known. It used to be written inline as a pixel value, which no
      stylesheet could answer. */
-  font-size: calc(72px * var(--atom-scale, 1));
+  font-size: calc(72px * var(--atom-scale, 1) * var(--font-size-intent, 1));
   font-weight: var(--font-stream-weight, var(--font-weight-regular));
   color: var(--color-light);
   text-align: center;
@@ -273,6 +274,16 @@
      in px by the Chamber, which is the only place the field's height is
      known. */
   transform: translateY(var(--band-offset, 0px));
+}
+
+/* Fit only. Chamber JS measured the current Word against
+   #atom-band / #chamber-field. S/M/L stay on the 72px / 96px
+   three-step. This is not the leftover 0.82em / 1.18em .atom-text
+   rules. */
+.atom-display.is-word-fit,
+.atom-display.is-mask.is-word-fit {
+  font-size: var(--atom-fit-px);
+  max-width: 95%;
 }
 
 /* Selected for moving. An outline rather than a border so the frame
@@ -994,6 +1005,9 @@
   display: none;
 }
 
+/* Leftover Settings steps. Phrase uses --font-size-intent on
+   #atom-display instead. Word uses --atom-fit-px. Do not route
+   Chamber type through these. */
 :root[data-font-size="small"] .atom-text { font-size: 0.82em; }
 :root[data-font-size="large"] .atom-text { font-size: 1.18em; }
 
@@ -1430,6 +1444,12 @@
     font-size: calc(clamp(20px, 6.1vw, 27px) * max(0.88, var(--atom-scale, 1)));
   }
 
+  .chamber-field .atom-display.is-word-fit,
+  .chamber-field .atom-display.is-mask.is-word-fit {
+    font-size: var(--atom-fit-px);
+    max-width: 100%;
+  }
+
   /* Glass lives on the band, not on #atom-display. Opacity on the
      display fades the whole subtree; full-bleed glass would strobe with
      every atom. The band is `display: contents` elsewhere, so desktop
@@ -1579,6 +1599,11 @@
     padding: var(--space-xs) var(--space-lg);
     overflow-wrap: anywhere;
     hyphens: auto;
+  }
+
+  .chamber-field .atom-display.is-word-fit,
+  .chamber-field .atom-display.is-mask.is-word-fit {
+    font-size: var(--atom-fit-px);
   }
 
   .chamber-field-stream .atom-display.glass-tile,

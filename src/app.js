@@ -40,6 +40,7 @@ import {
 } from './core/visual-safety.js';
 import { clampBandFraction } from './core/band-offset.js';
 import { resolveChamberStreamFace } from './core/chamber-stream-face.js';
+import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
 import { normalizeVisualSelection, normalizeWordFill } from './core/visual-selection.js';
 
@@ -1305,7 +1306,6 @@ class App {
             const candidate = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
             const merged = { ...defaultSettings, ...candidate };
             merged.bandOffset = clampBandFraction(merged.bandOffset);
-            const fontSizes = new Set(['small', 'medium', 'large']);
             const curves = new Set(['flat', 'induction', 'ascent', 'wave', 'climax']);
             const booleanKeys = [
                 'showProgress',
@@ -1319,7 +1319,7 @@ class App {
             ];
             this.settings = {
                 ...defaultSettings,
-                fontSize: fontSizes.has(merged.fontSize) ? merged.fontSize : defaultSettings.fontSize,
+                fontSize: resolveFontSize(merged.fontSize),
                 chamberFace: resolveChamberStreamFace(merged.chamberFace),
                 masterVolume: Number.isFinite(Number(merged.masterVolume))
                     ? Math.max(0, Math.min(1, Number(merged.masterVolume)))
@@ -1365,7 +1365,9 @@ class App {
                 ? resolveChamberStreamFace(value)
                 : key === 'chamberMask'
                     ? value === true
-                    : value;
+                    : key === 'fontSize'
+                        ? resolveFontSize(value)
+                        : value;
         this.saveSettings();
 
         // Apply certain settings immediately
@@ -1376,10 +1378,11 @@ class App {
         if (key === 'masterVolume' && this.audioEngine) {
             this.audioEngine.setMasterVolume(value);
         }
-        if (key === 'chamberFace' || key === 'chamberMask') {
+        if (key === 'chamberFace' || key === 'chamberMask' || key === 'fontSize') {
             const chamber = this.router?.getViewInstance?.('chamber-session');
             chamber?.applyChamberStreamFace?.();
             chamber?.applyChamberMask?.();
+            if (key === 'fontSize') chamber?.applyChamberTypeSize?.();
         }
         if (key === 'showArtworkLabels') {
             visualCortex.setArtworkLabelsVisible(value);
@@ -1424,7 +1427,7 @@ class App {
         // mode turns on, resumes it when the mode clears.
         visualCortex.syncSafety();
 
-        root.dataset.fontSize = this.settings?.fontSize || 'medium';
+        root.dataset.fontSize = resolveFontSize(this.settings?.fontSize);
         root.dataset.chamberFace = resolveChamberStreamFace(this.settings?.chamberFace);
         root.classList.toggle('hide-session-progress', this.settings?.showProgress === false);
         root.classList.toggle('hide-session-duration', this.settings?.showDuration === false);

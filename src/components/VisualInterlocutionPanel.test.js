@@ -1277,3 +1277,89 @@ describe('PREP Visual Settings Face (FM-RISE-34)', () => {
         panel.destroy();
     });
 });
+
+describe('PREP Visual Settings Size (FM-RISE-36)', () => {
+    afterEach(() => {
+        delete globalThis.rise;
+        document.body.replaceChildren();
+    });
+
+    function faceRow(container) {
+        const mode = container.querySelector('.vi-mode-selector');
+        return mode?.nextElementSibling;
+    }
+
+    function sizeRow(container) {
+        return faceRow(container)?.nextElementSibling;
+    }
+
+    it('places S | M | L | Fit chips with Face under the mode selector on every mode', () => {
+        const { panel, container } = makePanel({ expanded: true, visualMode: 'off' });
+        const row = sizeRow(container);
+
+        expect(container.querySelector('.vi-content')?.contains(row)).toBe(true);
+        expect(row.classList.contains('vi-source-family')).toBe(true);
+        expect([...row.querySelectorAll('[data-font-size]')].map((btn) => [
+            btn.dataset.fontSize,
+            btn.textContent.replace(/\s+/g, ' ').trim(),
+            btn.classList.contains('vi-source-family-btn')
+        ])).toEqual([
+            ['s', 'S', true],
+            ['m', 'M', true],
+            ['l', 'L', true],
+            ['fit', 'Fit', true]
+        ]);
+        expect(row.querySelector('[data-font-size="m"]').getAttribute('aria-pressed')).toBe('true');
+        expect(faceRow(container)?.querySelector('[data-chamber-face="thick"]')).toBeTruthy();
+        expect(container.querySelector('.vi-focals-panel')?.querySelector('[data-font-size]')).toBeNull();
+        expect(container.querySelector('[data-presentation="continuous-word"]')).toBeNull();
+        expect([...container.querySelectorAll('[data-visual-mode]')].map((btn) => btn.dataset.visualMode))
+            .toEqual(['off', 'focals', 'attractor', 'genesis', 'interlocution']);
+
+        for (const id of ['off', 'focals', 'attractor', 'genesis', 'interlocution']) {
+            container.querySelector(`[data-visual-mode="${id}"]`).click();
+            expect(sizeRow(container)?.querySelector('[data-font-size="fit"]')).toBeTruthy();
+            expect(faceRow(container)?.querySelector('[data-chamber-face="literary"]')).toBeTruthy();
+        }
+
+        panel.destroy();
+    });
+
+    it('persists s|m|l|fit as small|medium|large|fit and never into visualConfig', () => {
+        const settings = { chamberFace: 'literary', fontSize: 'medium' };
+        const handleSettingsChange = vi.fn((key, value) => {
+            settings[key] = value;
+        });
+        const onChange = vi.fn();
+        globalThis.rise = { settings, handleSettingsChange };
+        const { panel, container } = makePanel({
+            expanded: true,
+            visualMode: 'off',
+            onChange
+        });
+
+        container.querySelector('[data-font-size="l"]').click();
+        expect(handleSettingsChange).toHaveBeenCalledWith('fontSize', 'large');
+        expect(settings.fontSize).toBe('large');
+        expect(onChange).not.toHaveBeenCalled();
+        expect(panel.getConfig().fontSize).toBeUndefined();
+        expect(panel.getConfig().interlocution.fontSize).toBeUndefined();
+        expect(panel.getConfig().visualMode).toBe('off');
+        expect(sizeRow(container).textContent).not.toMatch(/Words fill the chamber/);
+
+        container.querySelector('[data-font-size="fit"]').click();
+        expect(handleSettingsChange).toHaveBeenCalledWith('fontSize', 'fit');
+        expect(settings.fontSize).toBe('fit');
+        expect(sizeRow(container).textContent).toMatch(/Words fill the chamber/);
+        expect(onChange).not.toHaveBeenCalled();
+
+        const forged = container.querySelector('[data-font-size="fit"]');
+        forged.dataset.fontSize = 'huge';
+        forged.click();
+        expect(handleSettingsChange).not.toHaveBeenCalledWith('fontSize', 'huge');
+        expect(settings.fontSize).toBe('fit');
+        expect(settings.chamberFace).toBe('literary');
+
+        panel.destroy();
+    });
+});
