@@ -6,7 +6,7 @@
  * and launch-time config all resolve to the same effective selection.
  */
 
-import { PROCEDURAL_PATTERN_IDS } from './visual-registry.js';
+import { LISTED_PROCEDURAL_PATTERNS, PROCEDURAL_PATTERN_IDS } from './visual-registry.js';
 
 export const VISUAL_SOURCE_FAMILIES = Object.freeze([
     'procedural',
@@ -18,7 +18,10 @@ export const VISUAL_SOURCE_FAMILIES = Object.freeze([
 const SOURCE_FAMILY_SET = new Set(VISUAL_SOURCE_FAMILIES);
 const GLOBAL_POOL_MODE_SET = new Set(['all', 'selected']);
 const PROCEDURAL_PREFIX = 'procedural:';
-const PROCEDURAL_ENGINE_IDS = new Set(PROCEDURAL_PATTERN_IDS);
+const PROCEDURAL_ENGINE_IDS = new Set([
+    ...PROCEDURAL_PATTERN_IDS,
+    ...LISTED_PROCEDURAL_PATTERNS.map(pattern => pattern.id)
+]);
 
 function uniqueStringIds(value) {
     return Array.isArray(value)

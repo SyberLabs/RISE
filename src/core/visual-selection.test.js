@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PROCEDURAL_PATTERN_IDS } from './visual-registry.js';
+import { LISTED_PROCEDURAL_PATTERNS, PROCEDURAL_PATTERN_IDS } from './visual-registry.js';
 import {
     normalizeVisualSelection,
     normalizeWordFill,
@@ -80,5 +80,21 @@ describe('normalizeVisualSelection procedural engine ids', () => {
                 sourced: []
             });
         }
+    });
+
+    it('lists Attractor among the browsable procedural engines', () => {
+        expect(LISTED_PROCEDURAL_PATTERNS.some(pattern => pattern.id === 'attractor'
+            && pattern.name === 'Attractor')).toBe(true);
+        expect(PROCEDURAL_PATTERN_IDS).not.toContain('attractor');
+        expect(normalizeWordFill({
+            mode: 'pick',
+            procedural: ['procedural:attractor'],
+            sourced: []
+        })).toEqual({
+            mode: 'pick',
+            sourceFamily: 'procedural',
+            procedural: ['attractor'],
+            sourced: []
+        });
     });
 });

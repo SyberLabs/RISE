@@ -60,6 +60,22 @@ export const PROCEDURAL_PATTERNS = Object.freeze([
   })
 ]);
 
+/**
+ * Gallery / PREP listing. Attractor is the existing Chamber field
+ * (`visualMode: 'attractor'` / AttractorField / VisualFieldDirector),
+ * not a sixth visualMode and not a new generator. It is listed here so
+ * a stranger can pick it the way they pick Flames. It is not folded into
+ * PROCEDURAL_PATTERN_IDS: that id is already a Storm of Steel work-engine.
+ */
+export const LISTED_PROCEDURAL_PATTERNS = Object.freeze([
+  ...PROCEDURAL_PATTERNS,
+  Object.freeze({
+    id: 'attractor', name: 'Attractor', icon: '∮',
+    description: 'A persistent strange-attractor filament of light around the reading — '
+      + 'gentle chaotic flow, no interrupts.'
+  })
+]);
+
 export const PROCEDURAL_PATTERN_IDS = Object.freeze(
   PROCEDURAL_PATTERNS.map(pattern => pattern.id)
 );

@@ -93,7 +93,7 @@ describe('Chamber procedural engine hook', () => {
         const liveFields = {
             harmonograph: () => visualCortex._harmonographField?.running === true,
             ostensoria: () => visualCortex._plateField?.running === true,
-            apparitio: () => visualCortex._plateField?.running === true
+            apparitio: () => visualCortex._plateField?.running === true,
         };
 
         for (const id of PROCEDURAL_PATTERN_IDS) {
@@ -127,5 +127,34 @@ describe('Chamber procedural engine hook', () => {
 
             chamber.destroy();
         }
+    });
+
+    it('Attractor is a listed procedural that mounts the existing Chamber engine', () => {
+        armGallery(['procedural:attractor']);
+        const { chamber, container } = makeChamber({
+            visualConfig: {
+                visualMode: 'interlocution',
+                interlocution: {
+                    presentation: 'continuous',
+                    sourceFamily: 'procedural',
+                    procedural: ['attractor'],
+                    sourced: [],
+                    streamGlass: false
+                }
+            }
+        });
+
+        expect(visualCortex.config.activeTypes).toEqual(['attractor']);
+        expect(visualCortex._isExternalCategory('attractor')).toBe(false);
+        expect(visualCortex._activePoolCategories()).toEqual([]);
+        expect(visualCortex._continuousHasWorks()).toBe(true);
+        expect(visualCortex._continuousProceduralTypes()).toEqual([]);
+        expect(visualCortex._attractorField).toBeTruthy();
+        expect(container.querySelector('#chamber-continuous-field')).toBeTruthy();
+        expect(container.querySelector('.attractor-canvas')).toBeTruthy();
+        expect(container.querySelector('#atom-display').classList.contains('glass-tile'))
+            .toBe(false);
+
+        chamber.destroy();
     });
 });

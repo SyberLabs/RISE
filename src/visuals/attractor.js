@@ -169,13 +169,16 @@ export class AttractorField {
         this.palette = PALETTES[options.palette] ? options.palette : DEFAULT_PALETTE;
         this.form = FORMS.includes(options.form) ? options.form : 'mirror';
         this.intensity = options.intensity ?? 0.65;
-        this.reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        this.reduced = typeof window.matchMedia === 'function'
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         this.canvas = document.createElement('canvas');
         this.canvas.className = 'attractor-canvas';
         this.canvas.setAttribute('aria-hidden', 'true');
         this.host.appendChild(this.canvas);
         this.ctx = this.canvas.getContext('2d');
+        this.projectionHost = null;
+        this.projectionCanvas = null;
 
         this.W = 0;
         this.H = 0;
@@ -186,8 +189,10 @@ export class AttractorField {
         this.integrate();
 
         this.resize = this.resize.bind(this);
-        this.resizeObserver = new ResizeObserver(this.resize);
-        this.resizeObserver.observe(this.host);
+        if (typeof ResizeObserver === 'function') {
+            this.resizeObserver = new ResizeObserver(this.resize);
+            this.resizeObserver.observe(this.host);
+        }
         window.addEventListener('resize', this.resize);
         this.resize();
 
@@ -258,7 +263,7 @@ export class AttractorField {
         this.H = this.host.clientHeight || window.innerHeight;
         this.canvas.width = Math.round(this.W * this.DPR);
         this.canvas.height = Math.round(this.H * this.DPR);
-        this.ctx.setTransform(this.DPR, 0, 0, this.DPR, 0, 0);
+        this.ctx?.setTransform(this.DPR, 0, 0, this.DPR, 0, 0);
     }
 
     strokeForm(X, Y, bkts, passes, mul, flick) {
@@ -321,6 +326,10 @@ export class AttractorField {
     }
 
     tick(now) {
+        if (!this.ctx) {
+            this.rafId = requestAnimationFrame(this.tick);
+            return;
+        }
         const frameStart = performance.now();
         const t = (now - this.t0) / 1000;
         const N = this.N;
@@ -435,7 +444,51 @@ export class AttractorField {
 
         ctx.globalCompositeOperation = 'source-over';
         this.measureQuality(performance.now() - frameStart);
+        this._syncProjection();
         this.rafId = requestAnimationFrame(this.tick);
+    }
+
+    /**
+     * A second live mount of the same filament. One rAF, two clips.
+     */
+    setProjectionHost(host) {
+        if (host === this.host) host = null;
+        if (this.projectionHost === host) return;
+        this._teardownProjection();
+        this.projectionHost = host || null;
+        if (!this.projectionHost) return;
+        this.projectionCanvas = document.createElement('canvas');
+        this.projectionCanvas.className = 'attractor-canvas';
+        this.projectionCanvas.setAttribute('aria-hidden', 'true');
+        this.projectionHost.appendChild(this.projectionCanvas);
+        this._syncProjection();
+    }
+
+    _teardownProjection() {
+        if (this.projectionCanvas) {
+            try { this.projectionCanvas.remove(); } catch { /* detached */ }
+        }
+        this.projectionCanvas = null;
+        if (this.projectionHost) {
+            this.projectionHost.querySelectorAll('.attractor-canvas').forEach((node) => {
+                try { node.remove(); } catch { /* detached */ }
+            });
+        }
+    }
+
+    _syncProjection() {
+        const src = this.canvas;
+        const dst = this.projectionCanvas;
+        if (!src || !dst) return;
+        if (dst.width !== src.width || dst.height !== src.height) {
+            dst.width = src.width;
+            dst.height = src.height;
+        }
+        const ctx = dst.getContext('2d');
+        if (!ctx || !this.ctx) return;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, dst.width, dst.height);
+        ctx.drawImage(src, 0, 0);
     }
 
     /**
@@ -550,8 +603,10 @@ export class AttractorField {
      * can suspend every persistent field the same way.
      */
     pause() {
-        if (this.rafId) cancelAnimationFrame(this.rafId);
+        if (!this.rafId) return false;
+        cancelAnimationFrame(this.rafId);
         this.rafId = null;
+        return true;
     }
 
     /** Resume integrating from wherever the field stood. */
@@ -565,6 +620,8 @@ export class AttractorField {
         this.rafId = null;
         this.resizeObserver?.disconnect();
         window.removeEventListener('resize', this.resize);
+        this._teardownProjection();
+        this.projectionHost = null;
         this.canvas.remove();
     }
 }
