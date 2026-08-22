@@ -40,6 +40,9 @@ export const LOCAL_WORK_DEFAULT_NOUN = 'Reading';
 /** A line ending, whichever kind the reader's file uses. */
 const SPLIT_LINE = /\r?\n/u;
 
+const TITLE_MAX_CHARS = 60;
+const TITLE_MAX_WORDS = 9;
+
 /**
  * A TITLE LINE — measured, not assumed.
  *
@@ -57,9 +60,6 @@ const SPLIT_LINE = /\r?\n/u;
  * title magnet decides a joint with it; two copies of this predicate is one
  * predicate and one thing that will disagree with it.
  */
-const TITLE_MAX_CHARS = 60;
-const TITLE_MAX_WORDS = 9;
-
 export function looksLikeTitle(line) {
   const text = String(line ?? '').trim();
   if (!text || text.length > TITLE_MAX_CHARS) return false;
