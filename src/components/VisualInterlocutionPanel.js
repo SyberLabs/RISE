@@ -10,7 +10,7 @@
  * Includes photosensitivity warning for Interlocution mode
  */
 
-import { resolveChamberStreamFace } from '../core/chamber-stream-face.js';
+import { CHAMBER_STREAM_FACES, resolveChamberStreamFace } from '../core/chamber-stream-face.js';
 import {
     FONT_SIZE_CHIPS,
     SIZE_HINT_FIT,
@@ -56,7 +56,6 @@ import {
     requestVisualInterlocutionConsent
 } from '../core/visual-safety.js';
 import {
-    GALLERY_CADENCE_DEFAULT,
     VISUAL_PRESENCE_DEFAULT_MS,
     VISUAL_PRESENCE_BEHIND_STREAM_DEFAULT_MS,
     VISUAL_PRESENCE_STEPS_MS,
@@ -260,14 +259,10 @@ export class VisualInterlocutionPanel {
                 ),
                 frequency: options.interlocution?.frequency ?? options.frequency ?? 0.2,
                 duration: normalizeVisualPresence(
-                    options.interlocution?.duration
-                    ?? options.duration
-                    ?? VISUAL_PRESENCE_DEFAULT_MS
+                    options.interlocution?.duration ?? options.duration
                 ),
                 galleryCadence: normalizeGalleryCadence(
-                    options.interlocution?.galleryCadence
-                    ?? options.galleryCadence
-                    ?? GALLERY_CADENCE_DEFAULT
+                    options.interlocution?.galleryCadence ?? options.galleryCadence
                 ),
                 // ASCII IS RETIRED FROM THE PANEL and every saved config
                 // that names it lands on `native`. A reader who once chose
@@ -1544,7 +1539,7 @@ export class VisualInterlocutionPanel {
             btn.addEventListener('click', () => {
                 const requested = btn.dataset.chamberFace;
                 if (resolveChamberStreamFace(requested) !== requested) return;
-                this._writeChamberFace(requested);
+                this._writeSetting('chamberFace', requested);
                 if (window.rise?.audioEngine) window.rise.audioEngine.playHiss();
                 this.render();
                 this.attachEvents();
@@ -1555,7 +1550,7 @@ export class VisualInterlocutionPanel {
             btn.addEventListener('click', () => {
                 const persist = persistFontSize(btn.dataset.fontSize);
                 if (!persist) return;
-                this._writeFontSize(persist);
+                this._writeSetting('fontSize', persist);
                 if (window.rise?.audioEngine) window.rise.audioEngine.playHiss();
                 this.render();
                 this.attachEvents();
@@ -1601,7 +1596,7 @@ export class VisualInterlocutionPanel {
                     }
                 }
                 this.config.interlocution.presentation = next;
-                this._aliasChamberMask(isGalleryInTheWord(next));
+                this._writeSetting('chamberMask', isGalleryInTheWord(next));
                 if (window.rise?.audioEngine) window.rise.audioEngine.playHiss();
                 this.emitChange();
                 this.render();
@@ -2020,26 +2015,18 @@ export class VisualInterlocutionPanel {
     renderSourceFamilyAndWordFill({ nestWordFill = false, showWordFill = false } = {}) {
         const sourceFamily = this.config.interlocution.sourceFamily;
         const current = wordFillControlValue(this.config.interlocution.wordFill);
-        const proceduralPatterns = LISTED_PROCEDURAL_PATTERNS;
-        const aicCategories = Object.entries(MUSEUM_CATEGORIES)
-            .map(([id, cat]) => ({ id: `aic-${id}`, name: cat.name }));
-        const scienceCategories = Object.entries(SCIENCE_CATEGORIES)
-            .map(([id, cat]) => ({ id: `sci-${id}`, name: cat.name }));
-        const diagramCategories = Object.entries(WIKIMEDIA_CATEGORIES)
-            .map(([id, cat]) => ({ id, name: cat.name }));
+        const sourcedCategories = [
+            ...Object.entries(MUSEUM_CATEGORIES).map(([id, cat]) => ({ id: `aic-${id}`, name: cat.name })),
+            ...Object.entries(SCIENCE_CATEGORIES).map(([id, cat]) => ({ id: `sci-${id}`, name: cat.name })),
+            ...Object.entries(WIKIMEDIA_CATEGORIES).map(([id, cat]) => ({ id, name: cat.name }))
+        ];
         const wordFillSelect = `
                                 <select data-word-fill aria-label="Word source">
                                     <option value="same" ${current === 'same' ? 'selected' : ''}>Same as gallery</option>
-                                    ${proceduralPatterns.map(p => `
+                                    ${LISTED_PROCEDURAL_PATTERNS.map(p => `
                                         <option value="procedural:${p.id}" ${current === `procedural:${p.id}` ? 'selected' : ''}>${escapeHtml(p.name)}</option>
                                     `).join('')}
-                                    ${aicCategories.map(c => `
-                                        <option value="sourced:${c.id}" ${current === `sourced:${c.id}` ? 'selected' : ''}>${escapeHtml(c.name)}</option>
-                                    `).join('')}
-                                    ${scienceCategories.map(c => `
-                                        <option value="sourced:${c.id}" ${current === `sourced:${c.id}` ? 'selected' : ''}>${escapeHtml(c.name)}</option>
-                                    `).join('')}
-                                    ${diagramCategories.map(c => `
+                                    ${sourcedCategories.map(c => `
                                         <option value="sourced:${c.id}" ${current === `sourced:${c.id}` ? 'selected' : ''}>${escapeHtml(c.name)}</option>
                                     `).join('')}
                                 </select>
@@ -2080,39 +2067,23 @@ export class VisualInterlocutionPanel {
 
     renderChamberFaceRow() {
         const selected = resolveChamberStreamFace(globalThis.rise?.settings?.chamberFace);
-        const words = [
-            ['literary', 'Literary'],
-            ['display', 'Display'],
-            ['thick', 'Thick'],
-            ['jp', 'Japanese']
-        ];
         return `
                     <div class="vi-source-family vi-chamber-face" role="group" aria-label="Face">
                         <div class="vi-source-family-label">Face</div>
                         <div class="vi-source-family-options">
-                            ${words.map(([id, word]) => `
+                            ${CHAMBER_STREAM_FACES.map(({ id, label }) => `
                                 <button type="button"
                                     class="vi-source-family-btn ${selected === id ? 'active' : ''}"
                                     data-chamber-face="${id}"
                                     aria-pressed="${selected === id}"
                                     ${id === 'jp' ? 'style="font-family: var(--font-jp, \'Noto Serif JP\', serif);"' : ''}>
-                                    ${word}
+                                    ${label}
                                 </button>
                             `).join('')}
                         </div>
                         <p class="vi-source-family-hint text-mist">The letters, not the room.</p>
                     </div>
         `;
-    }
-
-    _writeChamberFace(id) {
-        if (resolveChamberStreamFace(id) !== id) return;
-        if (typeof window === 'undefined') return;
-        if (typeof window.rise?.handleSettingsChange === 'function') {
-            window.rise.handleSettingsChange('chamberFace', id);
-            return;
-        }
-        if (window.rise?.settings) window.rise.settings.chamberFace = id;
     }
 
     renderChamberSizeRow() {
@@ -2136,25 +2107,19 @@ export class VisualInterlocutionPanel {
         `;
     }
 
-    _writeFontSize(id) {
-        const persist = persistFontSize(id);
-        if (!persist) return;
+    /**
+     * The one door from this panel to the reader's settings, for the three
+     * keys it writes. `handleSettingsChange` is the app's own writer, which
+     * persists and re-applies; poking `rise.settings` is the fallback for a
+     * panel mounted without the app around it.
+     */
+    _writeSetting(key, value) {
         if (typeof window === 'undefined') return;
         if (typeof window.rise?.handleSettingsChange === 'function') {
-            window.rise.handleSettingsChange('fontSize', persist);
+            window.rise.handleSettingsChange(key, value);
             return;
         }
-        if (window.rise?.settings) window.rise.settings.fontSize = persist;
-    }
-
-    _aliasChamberMask(on) {
-        const value = on === true;
-        if (typeof window === 'undefined') return;
-        if (typeof window.rise?.handleSettingsChange === 'function') {
-            window.rise.handleSettingsChange('chamberMask', value);
-            return;
-        }
-        if (window.rise?.settings) window.rise.settings.chamberMask = value;
+        if (window.rise?.settings) window.rise.settings[key] = value;
     }
 
     emitChange() {
