@@ -153,15 +153,20 @@ export class Portal {
           style="opacity: 0;"
           aria-label="Main navigation"
         >
-          <!-- Primary act: enter Chamber. Phone-only mark/verb/arrow
-               are display:none above 640. -->
+          <!-- Primary acts: Keystones, then Chamber. Phone-only mark/verb/arrow
+               are display:none above 640. Exactly one data-nav="keystones"
+               lives here so the corridor door is not doubled. -->
           <div class="nav-primary">
+            <button class="nav-item" data-nav="keystones" role="link">
+              <span class="act-label">Keystones</span>
+            </button>
             <button class="nav-item nav-act" data-nav="chamber" role="link">
               <span class="act-mark" aria-hidden="true">✦</span><span class="act-label"><span class="act-verb">Enter </span>Chamber</span><span class="act-go" aria-hidden="true">→</span>
             </button>
           </div>
 
-          <!-- Room index. Glyph/line are display:none above 640. -->
+          <!-- Room index. Glyph/line are display:none above 640.
+               Try RISE is the same Keystones door, not a fourth nav-item. -->
           <div class="nav-secondary">
             <button class="nav-item" data-nav="vault" role="link">
               <span class="room-glyph" aria-hidden="true">◈</span><span class="room-name">Vault</span><span class="room-line">Journeys and archetypes</span>
@@ -172,7 +177,7 @@ export class Portal {
             <button class="nav-item" data-nav="workshop" role="link">
               <span class="room-glyph" aria-hidden="true">✚</span><span class="room-name">Workshop</span><span class="room-line">Readings you compose</span>
             </button>
-            <button class="nav-item nav-try" data-nav="keystones" role="link">
+            <button class="nav-try" type="button" role="link">
               <span class="try-mark" aria-hidden="true">✦</span><span class="try-label">Try RISE</span>
             </button>
           </div>
@@ -226,6 +231,14 @@ export class Portal {
         const destination = item.dataset.nav;
         this.onNavigate(destination);
       });
+    });
+
+    // The circle is the Keystones door without a second data-nav="keystones".
+    this.container.querySelector('.nav-try')?.addEventListener('click', () => {
+      if (window.rise?.audioEngine) {
+        window.rise.audioEngine.playClick();
+      }
+      this.onNavigate('keystones');
     });
 
     // Sigil click only when it is a button (see prefersSealOnly).

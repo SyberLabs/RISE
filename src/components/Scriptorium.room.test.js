@@ -177,7 +177,7 @@ describe('the Scriptorium as the reader meets it', () => {
     /** The reader moves a nine-stop dial; the session stores the rung's words. */
     const slideTo = (words) => {
         const slider = container.querySelector('#scriptorium-length');
-        slider.value = String(SCRIPTORIUM_LENGTH.rungs.indexOf(clampTargetWords(words)));
+        slider.value = String(clampTargetWords(words));
         slider.dispatchEvent(new Event('input', { bubbles: true }));
         slider.dispatchEvent(new Event('change', { bubbles: true }));
     };
@@ -253,9 +253,10 @@ describe('the Scriptorium as the reader meets it', () => {
             // An atom is not a word: word chunking adds a paragraph-break atom
             // per paragraph, so the atom cap as a word budget was a trap at the
             // top of the travel — accepted at the gate, thrown at Begin.
-            // The dial is an index over nine rungs; the budget it reaches is
-            // the top rung, which is what must compile.
-            expect(Number(slider.max)).toBe(SCRIPTORIUM_LENGTH.rungs.length - 1);
+            // The dial's native value is words, snapped to nine rungs; the
+            // budget it reaches is the top rung, which is what must compile.
+            expect(Number(slider.max)).toBe(
+                SCRIPTORIUM_LENGTH.rungs[SCRIPTORIUM_LENGTH.rungs.length - 1]);
             slideTo(999_999);
             const highest = SCRIPTORIUM_LENGTH.rungs[SCRIPTORIUM_LENGTH.rungs.length - 1];
             expect(room.targetWords).toBe(highest);
@@ -458,7 +459,7 @@ describe('the Scriptorium as the reader meets it', () => {
     describe('the room reads every field through to the session', () => {
         /** Exactly the state ScriptoriumSession owns. */
         const SEQUENCE_STATE = Object.freeze([
-            'intent', 'targetWords', 'materials', 'swells', 'localWorks',
+            'intent', 'targetWords', 'lengthChosen', 'materials', 'swells', 'localWorks',
             'context', 'promptText', 'pasted', 'program', 'operationSet',
             'proposalRows', 'preview', 'rundown', 'verdict', 'projectId', 'status'
         ]);

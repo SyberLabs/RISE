@@ -59,6 +59,8 @@ import {
     normalizeGalleryCadence,
     normalizeVisualPresence,
     normalizePresentation,
+    isContinuousPresentation,
+    isGalleryInTheWord,
     visualPresenceStepIndex,
     visualPresenceValueText
 } from '../core/visual-presence.js';
@@ -716,7 +718,7 @@ export class VisualInterlocutionPanel {
             this.config.interlocution.galleryCadence
         );
         const galleryCadencePercent = Math.round(galleryCadence * 100);
-        const galleryPresentation = this.config.interlocution.presentation === 'continuous';
+        const galleryPresentation = isContinuousPresentation(this.config.interlocution.presentation);
         const responsivePresenceAvailable = mode === 'interlocution' && !galleryPresentation;
 
         this.container.innerHTML = `
@@ -1108,6 +1110,7 @@ export class VisualInterlocutionPanel {
                                     // who takes the first is taking the one
                                     // that never flashes and never goes black.
                                     ['continuous', 'Gallery'],
+                                    ['continuous-word', 'Gallery in the word'],
                                     ['behind-stream', 'Background flash'],
                                     ['full-frame', 'Foreground flash']
                                 ].map(([id, label]) => `
@@ -1120,7 +1123,9 @@ export class VisualInterlocutionPanel {
                                 `).join('')}
                             </div>
                             <p class="vi-source-family-hint text-mist">
-                                ${this.config.interlocution.presentation === 'continuous'
+                                ${this.config.interlocution.presentation === 'continuous-word'
+                                    ? 'The same gallery holds behind the words and fills the letters. Counters show the field; ink shows the same picture.'
+                                    : this.config.interlocution.presentation === 'continuous'
                                     ? 'A gallery of the reading’s imagery holds behind the words, crossfading slowly — never a flash, never black.'
                                     : this.config.interlocution.presentation === 'behind-stream'
                                     ? 'Imagery presents beneath the reading stream — the words never leave the screen.'
@@ -1549,6 +1554,7 @@ export class VisualInterlocutionPanel {
                     }
                 }
                 this.config.interlocution.presentation = next;
+                this._aliasChamberMask(isGalleryInTheWord(next));
                 if (window.rise?.audioEngine) window.rise.audioEngine.playHiss();
                 this.emitChange();
                 this.render();
@@ -1957,6 +1963,16 @@ export class VisualInterlocutionPanel {
             this.render();
             this.attachEvents();
         });
+    }
+
+    _aliasChamberMask(on) {
+        const value = on === true;
+        if (typeof window === 'undefined') return;
+        if (typeof window.rise?.handleSettingsChange === 'function') {
+            window.rise.handleSettingsChange('chamberMask', value);
+            return;
+        }
+        if (window.rise?.settings) window.rise.settings.chamberMask = value;
     }
 
     emitChange() {

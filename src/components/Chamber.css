@@ -157,6 +157,12 @@
   -webkit-backdrop-filter: blur(16px) saturate(1.12);
 }
 
+.chamber-field:has(.sequence-video-field:not([hidden])) .atom-display.is-mask {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 /* The wrapper that holds the phone's glass band. It generates no box
    at any other width, so every existing layout — the field's flex
    centring, the focal and genesis hosts stacked behind the reading —
@@ -166,14 +172,94 @@
   display: contents;
 }
 
+:root {
+  --font-stream-face: var(--font-literary);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
+:root[data-chamber-face="literary"] {
+  --font-stream-face: var(--font-literary);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
+:root[data-chamber-face="display"] {
+  --font-stream-face: var(--font-display);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
+:root[data-chamber-face="thick"] {
+  --font-stream-face: var(--font-stream-thick);
+  --font-stream-weight: var(--font-weight-bold);
+}
+
+:root[data-chamber-face="jp"] {
+  --font-stream-face: var(--font-jp);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
+.atom-display[data-chamber-face="literary"] {
+  --font-stream-face: var(--font-literary);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
+.atom-display[data-chamber-face="display"] {
+  --font-stream-face: var(--font-display);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
+.atom-display[data-chamber-face="thick"] {
+  --font-stream-face: var(--font-stream-thick);
+  --font-stream-weight: var(--font-weight-bold);
+}
+
+.atom-display[data-chamber-face="jp"] {
+  --font-stream-face: var(--font-jp);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
+/* Mask is a live overlay: thick Word, large, glass off. It does not
+   rewrite the reader's saved chamberFace or fontSize. */
+.atom-display.is-mask {
+  font-family: var(--font-stream-thick);
+  font-weight: var(--font-weight-bold);
+  --font-stream-face: var(--font-stream-thick);
+  --font-stream-weight: var(--font-weight-bold);
+  font-size: calc(96px * var(--atom-scale, 1));
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: none;
+}
+
+.chamber-field-stream .atom-display.is-mask,
+.chamber-field-genesis .atom-display.is-mask,
+.chamber-field-stream .atom-display.is-mask.glass-tile,
+.chamber-field-genesis .atom-display.is-mask.glass-tile {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  box-shadow: none;
+}
+
+/* Ink is a hole onto Layer B (the fill). Counters stay empty so Layer A
+   (the background field) shows through — not a bbox-shaped window. */
+.atom-display.is-mask.is-mask-ink {
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
+  -webkit-text-stroke: 0.6px color-mix(in srgb, var(--color-light) 32%, transparent);
+  text-shadow: none;
+}
+
 .atom-display {
-  font-family: var(--font-literary);
+  font-family: var(--font-stream-face, var(--font-literary));
   /* The scale is published by sizeAtomText — a longer phrase gets a
      smaller face — and the SIZE is decided here, where the viewport is
      known. It used to be written inline as a pixel value, which no
      stylesheet could answer. */
   font-size: calc(72px * var(--atom-scale, 1));
-  font-weight: var(--font-weight-regular);
+  font-weight: var(--font-stream-weight, var(--font-weight-regular));
   color: var(--color-light);
   text-align: center;
   max-width: 80%;
@@ -933,6 +1019,29 @@
   overflow: hidden;
 }
 
+/* Layer B: gallery stills clipped to Word ink, between field (1) and atom (10). */
+.chamber-fill-field {
+  z-index: 5;
+}
+
+.chamber-fill-field.chamber-scheduled-field,
+.chamber-fill-field.chamber-scheduled-field.is-active,
+.chamber-fill-field.chamber-scheduled-field.is-leaving {
+  opacity: 1;
+}
+
+.chamber-fill-field.is-hidden {
+  visibility: hidden;
+}
+
+.chamber-fill-field .continuous-field-label {
+  display: none !important;
+}
+
+.chamber-fill-field.chamber-continuous-field::after {
+  content: none;
+}
+
 .chamber-continuous-field .continuous-field-layer {
   position: absolute;
   inset: 0;
@@ -1292,6 +1401,10 @@
     hyphens: auto;
   }
 
+  .chamber-field .atom-display.is-mask {
+    font-size: calc(clamp(20px, 6.1vw, 27px) * max(0.88, var(--atom-scale, 1)));
+  }
+
   /* Glass lives on the band, not on #atom-display. Opacity on the
      display fades the whole subtree; full-bleed glass would strobe with
      every atom. The band is `display: contents` elsewhere, so desktop
@@ -1322,6 +1435,16 @@
     backdrop-filter: blur(12px) saturate(1.1);
     -webkit-backdrop-filter: blur(12px) saturate(1.1);
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.34);
+  }
+
+  .chamber-field-stream .atom-band:has(.atom-display.is-mask),
+  .chamber-field-genesis .atom-band:has(.atom-display.is-mask) {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+    border-top: none;
+    border-bottom: none;
   }
 
   .chamber-field-stream .atom-band:has(.atom-display.glass-tile) .atom-display,

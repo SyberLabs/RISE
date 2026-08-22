@@ -8,15 +8,29 @@
 export const VISUAL_PRESENCE_MIN_MS = 150;
 export const VISUAL_PRESENCE_DEFAULT_MS = 200;
 
-// The three interlocution presentation surfaces. 'full-frame' cuts to an
+// The interlocution presentation surfaces. 'full-frame' cuts to an
 // opaque overlay; 'behind-stream' flashes beneath the reading; 'continuous'
 // (Gallery) is a persistent crossfading field behind the reading
-// (CONTINUOUS-FIELD-SPEC). Shared here so persisted settings, the session
-// compiler, the panel, and playback cannot drift apart. Any other value
-// normalizes to 'full-frame'.
-export const PRESENTATION_SURFACES = Object.freeze(['full-frame', 'behind-stream', 'continuous']);
+// (CONTINUOUS-FIELD-SPEC). 'continuous-word' is the same field projected
+// into Word ink — one clock, two mounts. Shared here so persisted
+// settings, the session compiler, the panel, and playback cannot drift
+// apart. Any other value normalizes to 'full-frame'.
+export const PRESENTATION_SURFACES = Object.freeze([
+    'full-frame',
+    'behind-stream',
+    'continuous',
+    'continuous-word'
+]);
 export function normalizePresentation(value) {
     return PRESENTATION_SURFACES.includes(value) ? value : 'full-frame';
+}
+
+export function isContinuousPresentation(value) {
+    return value === 'continuous' || value === 'continuous-word';
+}
+
+export function isGalleryInTheWord(value) {
+    return value === 'continuous-word';
 }
 
 // Gallery has one temporal axis: how quickly one complete work yields to the

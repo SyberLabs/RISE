@@ -15,6 +15,8 @@ describe('App safety orchestration', () => {
     vi.restoreAllMocks();
     localStorage.clear();
     document.documentElement.classList.remove('photosensitivity-mode', 'reduced-motion');
+    delete document.documentElement.dataset.chamberFace;
+    delete document.documentElement.dataset.fontSize;
   });
 
   it('cancels a live presentation synchronously when Photosensitivity Mode turns on', () => {
@@ -67,5 +69,62 @@ describe('App safety orchestration', () => {
       expect.stringMatching(/combined character limit/),
       4000
     );
+  });
+
+  it('persists an allowlisted Chamber face on :root like fontSize', () => {
+    const app = new App();
+    app.loadSettings();
+    expect(app.settings.chamberFace).toBe('literary');
+    expect(app.settings.fontSize).toBe('medium');
+
+    localStorage.setItem('rise-settings', JSON.stringify({
+      fontSize: 'large',
+      chamberFace: 'jp'
+    }));
+    app.loadSettings();
+    expect(app.settings.fontSize).toBe('large');
+    expect(app.settings.chamberFace).toBe('jp');
+
+    app.applyAccessibilitySettings();
+    expect(document.documentElement.dataset.fontSize).toBe('large');
+    expect(document.documentElement.dataset.chamberFace).toBe('jp');
+
+    app.handleSettingsChange('chamberFace', 'thick');
+    expect(app.settings.chamberFace).toBe('thick');
+    expect(JSON.parse(localStorage.getItem('rise-settings')).chamberFace).toBe('thick');
+    expect(document.documentElement.dataset.chamberFace).toBe('thick');
+  });
+
+  it('coerces an unknown Chamber face to literary on load and change', () => {
+    const app = new App();
+    localStorage.setItem('rise-settings', JSON.stringify({ chamberFace: 'papyrus' }));
+    app.loadSettings();
+    expect(app.settings.chamberFace).toBe('literary');
+
+    app.handleSettingsChange('chamberFace', 'Inter');
+    expect(app.settings.chamberFace).toBe('literary');
+    expect(document.documentElement.dataset.chamberFace).toBe('literary');
+  });
+
+  it('persists chamberMask as a boolean and coerces anything else to false', () => {
+    const app = new App();
+    app.loadSettings();
+    expect(app.settings.chamberMask).toBe(false);
+
+    localStorage.setItem('rise-settings', JSON.stringify({ chamberMask: true }));
+    app.loadSettings();
+    expect(app.settings.chamberMask).toBe(true);
+
+    localStorage.setItem('rise-settings', JSON.stringify({ chamberMask: 'yes' }));
+    app.loadSettings();
+    expect(app.settings.chamberMask).toBe(false);
+
+    app.handleSettingsChange('chamberMask', true);
+    expect(app.settings.chamberMask).toBe(true);
+    expect(JSON.parse(localStorage.getItem('rise-settings')).chamberMask).toBe(true);
+
+    app.handleSettingsChange('chamberMask', 'yes');
+    expect(app.settings.chamberMask).toBe(false);
+    expect(JSON.parse(localStorage.getItem('rise-settings')).chamberMask).toBe(false);
   });
 });

@@ -111,6 +111,16 @@ export function clampTargetWords(value) {
 }
 
 /**
+ * The shortest rung that can hold `words` whole. Null when even the
+ * top of the ladder is too short — that score is still refused.
+ */
+export function holdingRung(words) {
+  const parsed = Math.round(Number(words));
+  if (!Number.isFinite(parsed)) return null;
+  return SCRIPTORIUM_LENGTH.rungs.find((rung) => rung >= parsed) ?? null;
+}
+
+/**
  * The pace this reading will actually open at.
  *
  * The settings object has no `wpm` — the app's key is `defaultWpm` — so every
@@ -211,6 +221,11 @@ export class ScriptoriumSession {
 
     this.intent = '';
     this.targetWords = SCRIPTORIUM_LENGTH.default;
+    // False until the reader (or a door that speaks for them) moves the
+    // dial. An unmoved dial is not a chosen budget: a pasted score that
+    // only fails because it is longer than the default sitting is sized
+    // to the rung that holds it.
+    this.lengthChosen = false;
     // WHAT THE READER BROUGHT. The Library is what RISE holds and answers
     // for; these are the reader's own, which RISE describes rather than
     // certifies. Descriptors only — no bytes, no object URLs.
@@ -253,6 +268,7 @@ export class ScriptoriumSession {
 
   setTargetWords(value) {
     this.targetWords = clampTargetWords(value);
+    this.lengthChosen = true;
     return this.targetWords;
   }
 
@@ -342,7 +358,7 @@ export class ScriptoriumSession {
   /**
    * The gate. A pasted document becomes a proposal, or a refusal to paste back.
    */
-  examine(text = this.pasted) {
+  examine(text = this.pasted, { _budgetRetry = false } = {}) {
     this.pasted = String(text ?? '');
     // The length IS the budget. A context built at another length judges the
     // score against a number the reader can no longer see, and the refusal
@@ -377,6 +393,17 @@ export class ScriptoriumSession {
       this.status = 'Score accepted at the gate. Read what it does, then begin.';
       return this.verdict;
     } catch (error) {
+      // An unmoved dial is the default sitting, not a chosen ceiling.
+      // Size the budget to the score and examine once more. A dial the
+      // reader actually moved still refuses.
+      if (!_budgetRetry && !this.lengthChosen && error?.code === 'PROGRAM_IO_BUDGET_EXCEEDED') {
+        const rung = holdingRung(error.details?.total);
+        if (rung) {
+          this.targetWords = rung;
+          this.take();
+          return this.examine(text, { _budgetRetry: true });
+        }
+      }
       this.program = null;
       this.operationSet = null;
       this.proposalRows = null;

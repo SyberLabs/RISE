@@ -53,6 +53,8 @@
   --font-display: 'Marcellus', 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-literary: 'Crimson Pro', Georgia, serif;
   --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  --font-jp: 'Noto Serif JP', 'Hiragino Mincho ProN', serif;
+  --font-stream-thick: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
 
   --font-weight-light: 300;
   --font-weight-regular: 400;

@@ -53,6 +53,7 @@ import {
     GALLERY_CADENCE_DEFAULT,
     VISUAL_PRESENCE_DEFAULT_MS,
     galleryCadenceTimings,
+    isContinuousPresentation,
     normalizeGalleryCadence,
     normalizeVisualPresence,
     visualPresenceTransition
@@ -208,6 +209,7 @@ export class VisualCortex {
         // as Rhythmic; it remains a presenter, never a second source system.
         this._continuousField = null;
         this._continuousFieldHost = null;
+        this._continuousFieldProjectionHost = null;
         // The living layer beneath it, for engines authored FOR a work.
         // They step and redraw every frame rather than being snapshotted,
         // so they share the host but not the gallery's image abstraction.
@@ -1066,6 +1068,22 @@ export class VisualCortex {
         }
         this._continuousFieldHost = el || null;
         this._syncContinuousField();
+        if (this._continuousField && this._continuousFieldProjectionHost) {
+            this._continuousField.setProjectionHost(this._continuousFieldProjectionHost);
+        }
+    }
+
+    /**
+     * Second mount of the same ContinuousField. Chamber applies the glyph
+     * mask to this host only. Clearing it does not stop the gallery.
+     */
+    setContinuousFieldProjectionHost(el) {
+        this._continuousFieldProjectionHost = el || null;
+        this._continuousField?.setProjectionHost(this._continuousFieldProjectionHost);
+    }
+
+    hasContinuousFieldProjectionHost() {
+        return !!this._continuousFieldProjectionHost;
     }
 
     /**
@@ -1172,7 +1190,8 @@ export class VisualCortex {
     }
 
     _isContinuousMode() {
-        return this.config.presentation === 'continuous' && this.config.enabled !== false;
+        return isContinuousPresentation(this.config.presentation)
+            && this.config.enabled !== false;
     }
 
     _continuousReducedMotion() {
@@ -1556,6 +1575,9 @@ export class VisualCortex {
             dwellMs: timings.dwellMs,
             crossfadeMs: timings.crossfadeMs
         });
+        if (this._continuousFieldProjectionHost) {
+            this._continuousField.setProjectionHost(this._continuousFieldProjectionHost);
+        }
     }
 
     /**
@@ -1821,7 +1843,7 @@ export class VisualCortex {
         // against a redundant double-advance by only notifying here when
         // the pool key actually moved and we did not just (re)start.
         if ('presentation' in nextConfig || 'enabled' in nextConfig
-            || this.config.presentation === 'continuous') {
+            || isContinuousPresentation(this.config.presentation)) {
             const wasRunning = !!this._continuousField?.running;
             this._syncContinuousField();
             const nowRunning = !!this._continuousField?.running;
@@ -2811,7 +2833,7 @@ export class VisualCortex {
             // Gallery has no flash-frequency demand estimate, but it still
             // needs a decoded first wall at session entry. Gate on two flames:
             // one for the opening still and one while the queue replenishes.
-            const count = this.config.presentation === 'continuous'
+            const count = isContinuousPresentation(this.config.presentation)
                 ? Math.max(2, estimatedCount)
                 : estimatedCount;
             preloadPromises.push(this.fractal.preload(count));
@@ -2821,7 +2843,7 @@ export class VisualCortex {
             this.ostensoria.beginSession();
             const ostensoriaShare = 1 / Math.max(1, this.config.activeTypes.length);
             const estimatedCount = Math.ceil(flashCount * ostensoriaShare * 1.5);
-            const count = this.config.presentation === 'continuous'
+            const count = isContinuousPresentation(this.config.presentation)
                 ? Math.max(2, estimatedCount)
                 : Math.max(1, estimatedCount);
             preloadPromises.push(this.ostensoria.preload(count));
@@ -3372,7 +3394,7 @@ export class VisualCortex {
         // source. In continuous mode the flash economy stands down entirely
         // — the field holds the imagery behind the reading, and a flash
         // here would be a discrete interrupt the mode exists to avoid.
-        if (this.config.presentation === 'continuous') {
+        if (isContinuousPresentation(this.config.presentation)) {
             return this._presentationResult(duration, 'continuous-field');
         }
         // Photosensitivity mode is a global safety override: no visual
@@ -3724,6 +3746,7 @@ export class VisualCortex {
             this._sequenceVideoField = null;
         }
         this._continuousFieldHost = null;
+        this._continuousFieldProjectionHost = null;
         this._sequenceVideoHost = null;
         this._activeVideoCue = null;
         this._assetAbortController.abort(createAbortError('Visual Cortex destroyed'));

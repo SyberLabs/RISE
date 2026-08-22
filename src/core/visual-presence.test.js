@@ -16,7 +16,10 @@ import {
     minimumVisualPresenceRest,
     nearestVisualPresenceStep,
     normalizeGalleryCadence,
+    normalizePresentation,
     normalizeVisualPresence,
+    isContinuousPresentation,
+    isGalleryInTheWord,
     responsiveVisualPresence,
     visualPresenceTransition,
     visualPresenceValueText
@@ -91,6 +94,17 @@ describe('Visual Presence policy', () => {
         expect(harmonographDrawMs(15_492)).toBe(12_992);
         expect(galleryDrawProgress(0, 8_000)).toBe(harmonographDrawProgress(0, 8_000));
         expect(galleryDrawMs(8_000)).toBe(harmonographDrawMs(8_000));
+    });
+
+    it('keeps Gallery and Gallery-in-the-word as continuous presentations', () => {
+        expect(normalizePresentation('continuous')).toBe('continuous');
+        expect(normalizePresentation('continuous-word')).toBe('continuous-word');
+        expect(normalizePresentation('gallery-in-the-word')).toBe('full-frame');
+        expect(isContinuousPresentation('continuous')).toBe(true);
+        expect(isContinuousPresentation('continuous-word')).toBe(true);
+        expect(isContinuousPresentation('behind-stream')).toBe(false);
+        expect(isGalleryInTheWord('continuous-word')).toBe(true);
+        expect(isGalleryInTheWord('continuous')).toBe(false);
     });
 
     it('normalizes missing, legacy, and oversized values', () => {

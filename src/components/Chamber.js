@@ -20,7 +20,11 @@ import {
 import { Voice } from '../audio/voice.js';
 import { scoreAtoms, planInterlocution } from '../core/conductor.js';
 import { VisualScheduleController } from '../core/visual-scheduler.js';
-import { authoredVisualTransition } from '../core/visual-presence.js';
+import {
+  authoredVisualTransition,
+  isContinuousPresentation,
+  isGalleryInTheWord
+} from '../core/visual-presence.js';
 import {
   MovementScheduleController,
   AudioScheduleController
@@ -31,6 +35,7 @@ import {
 } from '../core/visual-viewport.js';
 import { hasNextLibraryDivision } from '../core/reading-continuation.js';
 import { READING_PACE } from '../core/reading-limits.js';
+import { resolveChamberStreamFace } from '../core/chamber-stream-face.js';
 
 /**
  * THE SEAM, AS THE CHAMBER IS WILLING TO DRAW IT.
@@ -80,6 +85,8 @@ export class Chamber {
     this.attractorField = null;
     this.kleeField = null;
     this._visualFieldDirector = null;
+    this._fillMaskGeneration = 0;
+    this.fillFieldHost = null;
     this._scheduledVisualGeneration = 0;
     // Page Mode (PAGE-MODE-SPEC): the spatial projection, mounted lazily
     // on demand. Null until the reader opens it; nothing is paid before.
@@ -118,7 +125,7 @@ export class Chamber {
      * rhythmicVisualsEnabled: bar offer vs handler permission.
      */
     this.offersVisualsToggle = this.hasRhythmicVisuals
-        && this.session?.visualConfig?.interlocution?.presentation !== 'continuous';
+        && !isContinuousPresentation(this.session?.visualConfig?.interlocution?.presentation);
     this._spokenIndex = null;
     this._spokenPlayback = null;
     this._spokenMs = null;
@@ -244,9 +251,11 @@ export class Chamber {
     console.log('[Chamber] Auto-start:', this.autoStart);
 
     this.render();
+    this.applyChamberStreamFace();
     this.attachEvents();
     this.bindVisualViewport();
     this.initializeDisplay();
+    this.applyChamberMask();
 
     // A spatial reading opens as a page (SPATIAL-CHAMBER-SPEC §3).
     // projection === 'page' is parked in production UI; e2e/page-suspend.spec.js
@@ -516,6 +525,213 @@ export class Chamber {
         </div>
       </div>
     `;
+  }
+
+  applyChamberStreamFace() {
+    const atomDisplay = this.container.querySelector('#atom-display');
+    if (!atomDisplay) return;
+    atomDisplay.dataset.chamberFace = resolveChamberStreamFace(
+      globalThis.rise?.settings?.chamberFace
+    );
+  }
+
+  chamberMaskApplies() {
+    const settingsOn = globalThis.rise?.settings?.chamberMask === true;
+    const presentation = this.session?.visualConfig?.interlocution?.presentation;
+    const prepOn = isGalleryInTheWord(presentation);
+    return (settingsOn || prepOn) && this.session?.chunkMode === 'word';
+  }
+
+  applyChamberMask() {
+    const atomDisplay = this.container.querySelector('#atom-display');
+    if (!atomDisplay) return;
+    if (this.chamberMaskApplies()) {
+      atomDisplay.classList.add('is-mask');
+      atomDisplay.classList.remove('glass-tile');
+      this.ensureFillField();
+    } else {
+      atomDisplay.classList.remove('is-mask');
+      atomDisplay.classList.remove('is-mask-ink');
+      this.destroyFillField();
+    }
+  }
+
+  _shouldMountFill() {
+    return this.chamberMaskApplies()
+      && !this.pageModeActive
+      && !this._temporalVisualsDeferred
+      && visualCortex.hasContinuousFieldHost?.();
+  }
+
+  async _waitFontsReady() {
+    try {
+      if (document.fonts?.ready) await document.fonts.ready;
+    } catch {
+      /* A font load failure must not leave transparent empty letters. */
+    }
+  }
+
+  _maskImageSupported() {
+    if (typeof CSS === 'undefined' || typeof CSS.supports !== 'function') return false;
+    try {
+      return CSS.supports('mask-image', 'url("#x")')
+        || CSS.supports('-webkit-mask-image', 'url("#x")')
+        || CSS.supports('mask-image', 'url(#x)');
+    } catch {
+      return false;
+    }
+  }
+
+  _atomHasWordInk(atomDisplay) {
+    if (!atomDisplay || atomDisplay.querySelector('.atom-seam')) return false;
+    return (atomDisplay.textContent || '').trim().length > 0;
+  }
+
+  _clearFillMask() {
+    if (!this.fillFieldHost) return;
+    this.fillFieldHost.style.maskImage = 'none';
+    this.fillFieldHost.style.webkitMaskImage = 'none';
+  }
+
+  _revertFillToOpaqueWord() {
+    const atomDisplay = this.container.querySelector('#atom-display');
+    atomDisplay?.classList.remove('is-mask-ink');
+    if (atomDisplay?.style.color === 'transparent') {
+      atomDisplay.style.removeProperty('color');
+    }
+    if (this.fillFieldHost) {
+      this.fillFieldHost.classList.add('is-hidden');
+      this._clearFillMask();
+    }
+  }
+
+  ensureFillField() {
+    if (!this._shouldMountFill() || !this._maskImageSupported()) {
+      this.destroyFillField();
+      return;
+    }
+    const field = this.container.querySelector('#chamber-field');
+    if (!field) return;
+    if (!this.fillFieldHost) {
+      const host = document.createElement('div');
+      host.className = 'chamber-fill-field chamber-continuous-field';
+      host.setAttribute('aria-hidden', 'true');
+      host.classList.add('is-hidden');
+      this._insertBehindReading(field, host);
+      this.fillFieldHost = host;
+    }
+    visualCortex.setContinuousFieldProjectionHost(this.fillFieldHost);
+    void this.syncFillGlyphMask();
+  }
+
+  async syncFillGlyphMask() {
+    const generation = ++this._fillMaskGeneration;
+    await this._waitFontsReady();
+    if (generation !== this._fillMaskGeneration) return;
+
+    if (!this._shouldMountFill()) {
+      this.destroyFillField();
+      return;
+    }
+    if (!this._maskImageSupported()) {
+      this.destroyFillField();
+      return;
+    }
+
+    const field = this.container.querySelector('#chamber-field');
+    const atomDisplay = this.container.querySelector('#atom-display');
+    if (!field || !atomDisplay || !this.fillFieldHost) return;
+
+    if (!this._atomHasWordInk(atomDisplay)) {
+      this._revertFillToOpaqueWord();
+      return;
+    }
+
+    const fieldRect = field.getBoundingClientRect();
+    const atomRect = atomDisplay.getBoundingClientRect();
+    const fieldWidth = field.clientWidth || fieldRect.width;
+    const fieldHeight = field.clientHeight || fieldRect.height;
+    if (fieldWidth < 2 || fieldHeight < 2 || atomRect.width < 1 || atomRect.height < 1) {
+      this._revertFillToOpaqueWord();
+      return;
+    }
+
+    const cs = getComputedStyle(atomDisplay);
+    const paddingLeft = parseFloat(cs.paddingLeft) || 0;
+    const paddingRight = parseFloat(cs.paddingRight) || 0;
+    const paddingTop = parseFloat(cs.paddingTop) || 0;
+    const paddingBottom = parseFloat(cs.paddingBottom) || 0;
+    const contentWidth = Math.max(0, atomRect.width - paddingLeft - paddingRight);
+    const contentHeight = Math.max(0, atomRect.height - paddingTop - paddingBottom);
+    const textX = (atomRect.left - fieldRect.left) + paddingLeft + (contentWidth / 2);
+    const textY = (atomRect.top - fieldRect.top) + paddingTop + (contentHeight / 2);
+    const text = (atomDisplay.textContent || '').trim();
+
+    const svgNs = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNs, 'svg');
+    svg.setAttribute('xmlns', svgNs);
+    svg.setAttribute('width', String(fieldWidth));
+    svg.setAttribute('height', String(fieldHeight));
+    svg.setAttribute('viewBox', `0 0 ${fieldWidth} ${fieldHeight}`);
+    const textEl = document.createElementNS(svgNs, 'text');
+    textEl.setAttribute('x', String(textX));
+    textEl.setAttribute('y', String(textY));
+    textEl.setAttribute('text-anchor', 'middle');
+    textEl.setAttribute('dominant-baseline', 'central');
+    textEl.setAttribute('fill', '#fff');
+    textEl.setAttribute('font-family', cs.fontFamily || 'sans-serif');
+    textEl.setAttribute('font-size', cs.fontSize || '96px');
+    textEl.setAttribute('font-weight', cs.fontWeight || '700');
+    textEl.setAttribute('font-style', cs.fontStyle || 'normal');
+    if (cs.letterSpacing && cs.letterSpacing !== 'normal') {
+      textEl.setAttribute('letter-spacing', cs.letterSpacing);
+    }
+    textEl.textContent = text;
+    svg.appendChild(textEl);
+
+    let markup = '';
+    try {
+      markup = new XMLSerializer().serializeToString(svg);
+    } catch {
+      this.destroyFillField();
+      return;
+    }
+    if (!markup || !/<text[\s>]/i.test(markup)) {
+      this.destroyFillField();
+      return;
+    }
+
+    const url = `url("data:image/svg+xml,${encodeURIComponent(markup)}")`;
+    this.fillFieldHost.style.maskImage = url;
+    this.fillFieldHost.style.webkitMaskImage = url;
+    this.fillFieldHost.style.maskMode = 'luminance';
+    this.fillFieldHost.style.webkitMaskMode = 'luminance';
+    this.fillFieldHost.style.maskRepeat = 'no-repeat';
+    this.fillFieldHost.style.webkitMaskRepeat = 'no-repeat';
+    this.fillFieldHost.style.maskSize = '100% 100%';
+    this.fillFieldHost.style.webkitMaskSize = '100% 100%';
+    this.fillFieldHost.style.maskPosition = '0 0';
+    this.fillFieldHost.style.webkitMaskPosition = '0 0';
+
+    visualCortex.setContinuousFieldProjectionHost(this.fillFieldHost);
+    this.fillFieldHost.classList.remove('is-hidden');
+    atomDisplay.classList.add('is-mask-ink');
+    atomDisplay.style.color = 'transparent';
+    atomDisplay.style.removeProperty('text-shadow');
+  }
+
+  destroyFillField() {
+    this._fillMaskGeneration += 1;
+    const atomDisplay = this.container.querySelector('#atom-display');
+    atomDisplay?.classList.remove('is-mask-ink');
+    if (atomDisplay?.style.color === 'transparent') {
+      atomDisplay.style.removeProperty('color');
+    }
+    visualCortex.setContinuousFieldProjectionHost(null);
+    if (this.fillFieldHost) {
+      this.fillFieldHost.remove();
+      this.fillFieldHost = null;
+    }
   }
 
   attachEvents() {
@@ -1044,7 +1260,7 @@ export class Chamber {
   initializeContinuousField() {
     const visualConfig = this.session?.visualConfig;
     if (!visualConfig || visualConfig.visualMode !== 'interlocution') return;
-    if (visualConfig.interlocution?.presentation !== 'continuous') return;
+    if (!isContinuousPresentation(visualConfig.interlocution?.presentation)) return;
 
     const field = this.container.querySelector('#chamber-field');
     if (!field) return;
@@ -1060,12 +1276,13 @@ export class Chamber {
 
     // Glass tile on by default — the text must stay legible over imagery
     // (the field's whole reason to exist is a presence behind the reading).
-    if (atomDisplay && visualConfig.interlocution?.streamGlass !== false) {
+    if (atomDisplay && visualConfig.interlocution?.streamGlass !== false && !this.chamberMaskApplies()) {
       atomDisplay.classList.add('glass-tile');
     }
 
     visualCortex.setContinuousFieldHost(host);
     console.log('[Chamber] Continuous Field (Gallery) host mounted');
+    this.applyChamberMask();
   }
 
   /**
@@ -1083,7 +1300,7 @@ export class Chamber {
     field?.classList.add('chamber-field-stream');
 
     const atomDisplay = this.container.querySelector('#atom-display');
-    if (atomDisplay && visualConfig.interlocution?.streamGlass !== false) {
+    if (atomDisplay && visualConfig.interlocution?.streamGlass !== false && !this.chamberMaskApplies()) {
       atomDisplay.classList.add('glass-tile');
     }
   }
@@ -1100,7 +1317,9 @@ export class Chamber {
     if (cue.renderer === 'genesis') {
       host.className = 'chamber-genesis';
       field.classList.add('chamber-field-genesis');
-      if (atomDisplay && config.glass !== false) atomDisplay.classList.add('glass-tile');
+      if (atomDisplay && config.glass !== false && !this.chamberMaskApplies()) {
+        atomDisplay.classList.add('glass-tile');
+      }
       this._insertBehindReading(field, host);
       controller = new KleeField(host, { preset: config.preset || 'random' });
       this.kleeField = controller;
@@ -1388,6 +1607,7 @@ export class Chamber {
 
     atomDisplay.style.transition = 'opacity 150ms var(--ease-out)';
     atomDisplay.style.opacity = '1';
+    void this.syncFillGlyphMask();
   }
 
   /**
@@ -1444,6 +1664,11 @@ export class Chamber {
   }
 
   applyLivingText(atomDisplay, index) {
+    if (atomDisplay?.classList.contains('is-mask-ink')) {
+      atomDisplay.style.color = 'transparent';
+      atomDisplay.style.removeProperty('text-shadow');
+      return;
+    }
     if (!this.semanticTrack) return;
     const sig = this.semanticTrack[index];
     if (!sig) return;
@@ -1478,6 +1703,7 @@ export class Chamber {
       console.error('[Chamber] No atom-display element found!');
       return;
     }
+    this.applyChamberMask();
 
     // Genesis field follows the passage's mood when Living Text has a track
     if (this.kleeField && this.semanticTrack) {
@@ -1500,6 +1726,7 @@ export class Chamber {
       atomDisplay.style.transition = 'opacity 150ms var(--ease-out)';
       atomDisplay.style.opacity = '0';
       atomDisplay.textContent = '';
+      void this.syncFillGlyphMask();
       return;
     }
 
@@ -1574,6 +1801,7 @@ export class Chamber {
         this.cancelReveal();
       }
     }
+    void this.syncFillGlyphMask();
   }
 
   /**
@@ -1693,6 +1921,7 @@ export class Chamber {
       } else {
         this._resumeTemporalVisuals();
       }
+      this.applyChamberMask();
       return false;
     }
 
@@ -1701,6 +1930,7 @@ export class Chamber {
     // the attractor's rAF keep running behind the page, contradicting the
     // Page's "no advance clock" principle and burning CPU/GPU/network for
     // imagery no one can see (red-team #4).
+    this.destroyFillField();
     if (!this._temporalVisualsDeferred) this._suspendTemporalVisuals();
     // Speech is temporal too: a page is read at the reader's pace, and
     // a voice narrating over it would be reading something else.
@@ -1882,6 +2112,7 @@ export class Chamber {
    * recorded so leaving the page restores exactly that and nothing more.
    */
   _suspendTemporalVisuals() {
+    this.destroyFillField();
     if (this._temporalSuspended) return;
     this._temporalSuspended = {
       gallery: false,
@@ -2206,6 +2437,7 @@ export class Chamber {
     const travel = bandTravelPx(field, band);
     const px = clampBandFraction(this._bandOffsetFraction ?? 0) * travel;
     field.style.setProperty('--band-offset', `${Math.round(px)}px`);
+    void this.syncFillGlyphMask();
   }
 
   showControls() {
@@ -2609,6 +2841,7 @@ export class Chamber {
     if (this.controlsTimeout) {
       clearTimeout(this.controlsTimeout);
     }
+    this.destroyFillField();
     this._visualFieldDirector?.destroy();
     this._visualFieldDirector = null;
     if (this.attractorField) {

@@ -102,6 +102,7 @@ export class Scriptorium {
   // ── The sequence's state, read rather than copied ────────────────────────
   get intent() { return this.session.intent; }
   get targetWords() { return this.session.targetWords; }
+  get lengthChosen() { return this.session.lengthChosen; }
   get materials() { return this.session.materials; }
   get swells() { return this.session.swells; }
   get localWorks() { return this.session.localWorks; }
@@ -376,12 +377,14 @@ export class Scriptorium {
             placeholder="A sequence about memory and loss.">${escapeHtml(this.intent)}</textarea>
 
           <label class="scriptorium-label" for="scriptorium-length">How long should it be?</label>
-          <!-- NINE STOPS, NOT A THOUSAND. The control is an index over the
-               ladder; the session stores the rung's WORD value, so a
-               context.json and a CLI flag stay in words. -->
+          <!-- NINE STOPS, NOT A THOUSAND. The native value is words so a
+               fill of 6000 means 6,000 words; input snaps to the nearest
+               rung and the session stores that word value. -->
           <input id="scriptorium-length" class="scriptorium-length" type="range"
-            min="0" max="${SCRIPTORIUM_LENGTH.rungs.length - 1}" step="1"
-            value="${SCRIPTORIUM_LENGTH.rungs.indexOf(this.targetWords)}"
+            min="${SCRIPTORIUM_LENGTH.rungs[0]}"
+            max="${SCRIPTORIUM_LENGTH.rungs[SCRIPTORIUM_LENGTH.rungs.length - 1]}"
+            step="1"
+            value="${this.targetWords}"
             aria-valuetext="${escapeHtml(this.session.describeLength())}"
             aria-describedby="scriptorium-length-readout">
           <p class="scriptorium-note" id="scriptorium-length-readout">${escapeHtml(this.session.describeLength())}</p>
@@ -499,8 +502,8 @@ export class Scriptorium {
 
     this.container.querySelector('#scriptorium-length')
       ?.addEventListener('input', (event) => {
-        this.session.setTargetWords(
-          SCRIPTORIUM_LENGTH.rungs[Number(event.target.value)]);
+        this.session.setTargetWords(event.target.value);
+        event.target.value = String(this.session.targetWords);
         // The readout alone, not a re-render: this room rebuilds its whole
         // DOM, which would take the slider's focus away mid-drag.
         const readout = this.container.querySelector('#scriptorium-length-readout');

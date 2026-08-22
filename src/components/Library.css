@@ -824,20 +824,27 @@
     display: none;
   }
 
+  .library-header {
+    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-sm);
+  }
+
   .section-header h2 {
     font-size: 17px;
   }
 
   .section-header {
-    margin-bottom: var(--space-md);
+    margin-bottom: var(--space-sm);
   }
 
-  /* The Archive's preamble earns its place — it is where the shelf
-     states that every text is public domain and names its edition —
-     but not at four lines. */
-  .section-header p {
-    font-size: 12.5px;
-    line-height: 1.5;
+  /* The Archive's preamble earns its place on a desk. On a phone it
+     is three paragraphs before the first book, and the shelf fails
+     the first-screen contract. The heading and the provenance cut
+     stay; the essays wait. */
+  .section-header p,
+  .archive-orientation,
+  .archive-review-note {
+    display: none;
   }
 
   .archive-axes {

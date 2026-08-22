@@ -26,16 +26,24 @@ function makePortal(options = {}) {
 
 describe('Portal', () => {
     it('nav holds the core tools', () => {
-        const { portal, container } = makePortal();
+        const { portal, container, onNavigate } = makePortal();
+
+        const primary = [...container.querySelectorAll('.nav-primary .nav-item')]
+            .map(el => el.dataset.nav);
+        expect(primary).toEqual(['keystones', 'chamber']);
 
         // The even row is tools operating on the reader's own material.
-        // Try RISE occupies a distinct circular threshold beneath Library.
-        const secondary = container.querySelectorAll(
-            '.nav-secondary .nav-item:not(.nav-try)'
-        );
+        // Try RISE occupies a distinct circular threshold beneath Library
+        // and is not a fourth .nav-item.
+        const secondary = container.querySelectorAll('.nav-secondary .nav-item');
         expect(secondary).toHaveLength(3);
         expect([...secondary].map(el => el.dataset.nav)).toEqual(['vault', 'library', 'workshop']);
-        expect(container.querySelector('.nav-secondary .nav-try')?.dataset.nav).toBe('keystones');
+        expect(container.querySelectorAll('[data-nav="keystones"]')).toHaveLength(1);
+        const tryRise = container.querySelector('.nav-secondary .nav-try');
+        expect(tryRise).toBeTruthy();
+        expect(tryRise.dataset.nav).toBeUndefined();
+        tryRise.click();
+        expect(onNavigate).toHaveBeenCalledWith('keystones');
 
         portal.destroy();
         container.remove();

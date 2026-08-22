@@ -5,6 +5,8 @@
  * chooses a video, never enables audio, and never keeps decoding once its cue
  * is replaced. Reduced motion holds the first decoded frame as the poster.
  */
+import { isContinuousPresentation } from '../core/visual-presence.js';
+
 export function adaptiveVideoLayout({
   mediaWidth,
   mediaHeight,
@@ -33,7 +35,7 @@ export function adaptiveVideoLayout({
     : 1;
   const threshold = presentation === 'behind-stream'
     ? 0.78
-    : presentation === 'continuous' ? 0.68 : 0.62;
+    : isContinuousPresentation(presentation) ? 0.68 : 0.62;
   const fit = retained >= threshold ? 'cover' : 'contain';
 
   return Object.freeze({

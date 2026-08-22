@@ -516,3 +516,58 @@ describe('ContinuousField', () => {
         expect(field.running).toBe(false);
     });
 });
+
+describe('Continuous Field projection mount', () => {
+    it('one instance paints the same url onto both mounts after _crossfadeTo', async () => {
+        const { field, host } = mount({ getPool: () => pool('a.jpg', 'b.jpg') });
+        const projection = document.createElement('div');
+        projection.className = 'chamber-fill-field';
+        document.body.appendChild(projection);
+
+        field.setProjectionHost(projection);
+        field.start();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(field.projectionHost).toBe(projection);
+        expect(host.querySelectorAll('.continuous-field-layer').length).toBe(2);
+        expect(projection.querySelectorAll('.continuous-field-layer').length).toBe(2);
+
+        field._crossfadeTo({ url: 'https://example.test/next.jpg' }, false);
+        field._currentUrl = 'https://example.test/next.jpg';
+
+        const primarySrcs = [...host.querySelectorAll('.continuous-field-artwork')]
+            .map(img => img.getAttribute('src'))
+            .filter(Boolean)
+            .sort();
+        const projectionSrcs = [...projection.querySelectorAll('.continuous-field-artwork')]
+            .map(img => img.getAttribute('src'))
+            .filter(Boolean)
+            .sort();
+        expect(projectionSrcs).toEqual(primarySrcs);
+        expect(projectionSrcs.some(src => src.includes('next.jpg'))).toBe(true);
+        expect(field.currentUrl).toBe('https://example.test/next.jpg');
+        expect(projection.querySelector('.continuous-field-label')).toBeNull();
+        field.stop();
+        projection.remove();
+    });
+
+    it('setProjectionHost(null) tears the projection nodes and leaves the gallery host', async () => {
+        const { field, host } = mount({ getPool: () => pool('a.jpg') });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        field.setProjectionHost(projection);
+        field.start();
+        await Promise.resolve();
+        await Promise.resolve();
+        expect(projection.querySelectorAll('.continuous-field-layer').length).toBe(2);
+
+        field.setProjectionHost(null);
+        expect(field.projectionHost).toBeNull();
+        expect(projection.querySelectorAll('.continuous-field-layer').length).toBe(0);
+        expect(host.querySelectorAll('.continuous-field-layer').length).toBe(2);
+        expect(field.currentUrl).toBe('a.jpg');
+        field.stop();
+        projection.remove();
+    });
+});
