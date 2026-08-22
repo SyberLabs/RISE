@@ -127,4 +127,23 @@ describe('App safety orchestration', () => {
     expect(app.settings.chamberMask).toBe(false);
     expect(JSON.parse(localStorage.getItem('rise-settings')).chamberMask).toBe(false);
   });
+
+  it('pushes a live Chamber face or mask change onto the open session', () => {
+    const app = new App();
+    app.loadSettings();
+    const applyChamberStreamFace = vi.fn();
+    const applyChamberMask = vi.fn();
+    app.router = {
+      getViewInstance: (name) => name === 'chamber-session'
+        ? { applyChamberStreamFace, applyChamberMask }
+        : null
+    };
+
+    app.handleSettingsChange('chamberFace', 'jp');
+    expect(applyChamberStreamFace).toHaveBeenCalled();
+    expect(applyChamberMask).toHaveBeenCalled();
+
+    app.handleSettingsChange('chamberMask', true);
+    expect(applyChamberMask).toHaveBeenCalledTimes(2);
+  });
 });

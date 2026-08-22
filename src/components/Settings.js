@@ -17,6 +17,7 @@ export class Settings {
         this.container = container;
         this.settings = options.settings || {};
         this.onNavigate = options.onNavigate || (() => { });
+        this.onClose = typeof options.onClose === 'function' ? options.onClose : null;
         this.onChange = options.onChange || (() => { });
         this.onDataCleared = options.onDataCleared || (() => { });
         this._active = false;
@@ -27,15 +28,17 @@ export class Settings {
     }
 
     render() {
+        const backLabel = this.onClose ? 'Back' : 'Portal';
+        const backAria = this.onClose ? 'Back' : 'Back to Portal';
         this.container.innerHTML = `
-      <div class="settings" role="main" aria-labelledby="settings-title">
+      <form class="settings" role="main" aria-labelledby="settings-title">
         <a href="#settings-content" class="skip-link">Skip to settings</a>
 
         <!-- Header -->
         <header class="settings-header">
-          <button class="btn-ghost" data-action="back" aria-label="Back to Portal">
+          <button type="button" class="btn-ghost" data-action="back" aria-label="${backAria}">
             <span class="icon">←</span>
-            <span>Portal</span>
+            <span>${backLabel}</span>
           </button>
         </header>
 
@@ -255,7 +258,7 @@ export class Settings {
             </div>
           </section>
         </div>
-      </div>
+      </form>
     `;
     }
 
@@ -266,6 +269,12 @@ export class Settings {
 
     renderChamberFaceRadios() {
         const selected = resolveChamberStreamFace(this.settings.chamberFace);
+        const chrome = {
+            literary: 'Literary',
+            display: 'Display',
+            thick: 'Thick',
+            jp: 'Japanese'
+        };
         return CHAMBER_STREAM_FACES.map((face) => `
           <label class="radio">
             <input
@@ -274,15 +283,24 @@ export class Settings {
               value="${face.id}"
               ${face.id === selected ? 'checked' : ''}
             />
-            <span class="radio-label">${face.label}</span>
+            <span class="radio-label">${chrome[face.id] || face.label}</span>
           </label>
         `).join('');
     }
 
+    leave() {
+        if (this.onClose) this.onClose();
+        else this.onNavigate('portal');
+    }
+
     attachEvents() {
+        this.container.querySelector('form.settings')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+        });
+
         // Back button
         this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
-            this.onNavigate('portal');
+            this.leave();
         });
 
         // Toggle checkboxes
@@ -340,7 +358,7 @@ export class Settings {
 
     handleKeyboard(e) {
         if (e.key === 'Escape') {
-            this.onNavigate('portal');
+            this.leave();
         }
     }
 
