@@ -88,6 +88,13 @@ describe('combine(A, B) — Firstmate law', () => {
         expect(combine('oldmasters', 'fractal', { roomOpaque: true })).toBe(GROUNDS.light);
     });
 
+    it('2. locked Astronomy + Fractal → Light (cream), even when A is not opaque', () => {
+        expect(combine('sci-astronomy', 'fractal', { roomOpaque: true })).toBe(GROUNDS.light);
+        expect(combine('sci-astronomy', 'fractal', { roomOpaque: false })).toBe(GROUNDS.light);
+        expect(combine('astronomy', 'fractal')).toBe(GROUNDS.light);
+        expect(combine('sci-astronomy', 'fractal')).not.toBe(GROUNDS.dark);
+    });
+
     it('3. two collection/still sources → Transparent when A is already opaque', () => {
         expect(combine('sci-astronomy', 'aic-ukiyoe', { roomOpaque: true }))
             .toBe(GROUNDS.transparent);
@@ -141,6 +148,21 @@ describe('maskGroundFromConfig', () => {
         expect(maskGroundFromConfig({
             activeTypes: ['aic-oldmasters'],
             sourced: ['aic-oldmasters'],
+            wordFill: { mode: 'pick', sourced: [], procedural: ['fractal'] },
+            roomOpaque: true
+        })).toBe(GROUNDS.light);
+    });
+
+    it('Astronomy room + Fractal word-fill → Light (cream), A-not-opaque cannot force Dark', () => {
+        expect(maskGroundFromConfig({
+            activeTypes: ['sci-astronomy'],
+            sourced: ['sci-astronomy'],
+            wordFill: { mode: 'pick', sourced: [], procedural: ['fractal'] },
+            roomOpaque: false
+        })).toBe(GROUNDS.light);
+        expect(maskGroundFromConfig({
+            activeTypes: ['sci-astronomy'],
+            sourced: ['sci-astronomy'],
             wordFill: { mode: 'pick', sourced: [], procedural: ['fractal'] },
             roomOpaque: true
         })).toBe(GROUNDS.light);
