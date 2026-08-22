@@ -1,4 +1,5 @@
 import { clearUserData, exportUserData } from '../core/user-data.js';
+import { CHAMBER_STREAM_FACES, resolveChamberStreamFace } from '../core/chamber-stream-face.js';
 
 /**
  * Settings Component
@@ -61,6 +62,16 @@ export class Settings {
                 <span class="slider-value text-capitalize" id="font-size-value">
                   ${this.settings.fontSize || 'medium'}
                 </span>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-label-group">
+                <span class="settings-label" id="chamber-face-label">Chamber face</span>
+                <p class="settings-hint text-mist">Live Chamber stream only.</p>
+              </div>
+              <div class="settings-control" role="radiogroup" aria-labelledby="chamber-face-label">
+                ${this.renderChamberFaceRadios()}
               </div>
             </div>
 
@@ -235,6 +246,21 @@ export class Settings {
         return sizes.indexOf(this.settings.fontSize || 'medium');
     }
 
+    renderChamberFaceRadios() {
+        const selected = resolveChamberStreamFace(this.settings.chamberFace);
+        return CHAMBER_STREAM_FACES.map((face) => `
+          <label class="radio">
+            <input
+              type="radio"
+              name="chamber-face"
+              value="${face.id}"
+              ${face.id === selected ? 'checked' : ''}
+            />
+            <span class="radio-label">${face.label}</span>
+          </label>
+        `).join('');
+    }
+
     attachEvents() {
         // Back button
         this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
@@ -261,6 +287,15 @@ export class Settings {
             e.target.setAttribute('aria-valuetext', size);
             this.settings.fontSize = size;
             this.onChange('fontSize', size);
+        });
+
+        this.container.querySelectorAll('input[name="chamber-face"]').forEach((input) => {
+            input.addEventListener('change', (e) => {
+                const requested = e.target.value;
+                if (resolveChamberStreamFace(requested) !== requested) return;
+                this.settings.chamberFace = requested;
+                this.onChange('chamberFace', requested);
+            });
         });
 
         // Volume slider

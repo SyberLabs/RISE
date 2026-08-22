@@ -38,6 +38,7 @@ import {
     requestVisualInterlocutionConsent
 } from './core/visual-safety.js';
 import { clampBandFraction } from './core/band-offset.js';
+import { resolveChamberStreamFace } from './core/chamber-stream-face.js';
 import { clampReadingWpm } from './core/reading-limits.js';
 import { normalizeVisualSelection } from './core/visual-selection.js';
 
@@ -1270,6 +1271,7 @@ class App {
         const defaultSettings = {
             // Display
             fontSize: 'medium',
+            chamberFace: 'literary',
             showProgress: true,
             showDuration: true,
             showArtworkLabels: true,
@@ -1313,6 +1315,7 @@ class App {
             this.settings = {
                 ...defaultSettings,
                 fontSize: fontSizes.has(merged.fontSize) ? merged.fontSize : defaultSettings.fontSize,
+                chamberFace: resolveChamberStreamFace(merged.chamberFace),
                 masterVolume: Number.isFinite(Number(merged.masterVolume))
                     ? Math.max(0, Math.min(1, Number(merged.masterVolume)))
                     : defaultSettings.masterVolume,
@@ -1353,11 +1356,13 @@ class App {
         // overridden to 1,000 by every surface that later read it.
         this.settings[key] = key === 'defaultWpm'
             ? clampReadingWpm(value, this.settings.defaultWpm)
-            : value;
+            : key === 'chamberFace'
+                ? resolveChamberStreamFace(value)
+                : value;
         this.saveSettings();
 
         // Apply certain settings immediately
-        if (['reducedMotion', 'photosensitivityMode', 'fontSize', 'showProgress', 'showDuration'].includes(key)) {
+        if (['reducedMotion', 'photosensitivityMode', 'fontSize', 'chamberFace', 'showProgress', 'showDuration'].includes(key)) {
             this.applyAccessibilitySettings();
         }
 
@@ -1403,6 +1408,7 @@ class App {
         visualCortex.syncSafety();
 
         root.dataset.fontSize = this.settings?.fontSize || 'medium';
+        root.dataset.chamberFace = resolveChamberStreamFace(this.settings?.chamberFace);
         root.classList.toggle('hide-session-progress', this.settings?.showProgress === false);
         root.classList.toggle('hide-session-duration', this.settings?.showDuration === false);
         visualCortex.setArtworkLabelsVisible(this.settings?.showArtworkLabels !== false);

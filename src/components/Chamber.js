@@ -31,6 +31,7 @@ import {
 } from '../core/visual-viewport.js';
 import { hasNextLibraryDivision } from '../core/reading-continuation.js';
 import { READING_PACE } from '../core/reading-limits.js';
+import { resolveChamberStreamFace } from '../core/chamber-stream-face.js';
 
 /**
  * THE SEAM, AS THE CHAMBER IS WILLING TO DRAW IT.
@@ -244,6 +245,7 @@ export class Chamber {
     console.log('[Chamber] Auto-start:', this.autoStart);
 
     this.render();
+    this.applyChamberStreamFace();
     this.attachEvents();
     this.bindVisualViewport();
     this.initializeDisplay();
@@ -516,6 +518,14 @@ export class Chamber {
         </div>
       </div>
     `;
+  }
+
+  applyChamberStreamFace() {
+    const atomDisplay = this.container.querySelector('#atom-display');
+    if (!atomDisplay) return;
+    atomDisplay.dataset.chamberFace = resolveChamberStreamFace(
+      globalThis.rise?.settings?.chamberFace
+    );
   }
 
   attachEvents() {

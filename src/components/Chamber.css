@@ -166,14 +166,59 @@
   display: contents;
 }
 
+:root {
+  --font-stream-face: var(--font-literary);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
+:root[data-chamber-face="literary"] {
+  --font-stream-face: var(--font-literary);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
+:root[data-chamber-face="display"] {
+  --font-stream-face: var(--font-display);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
+:root[data-chamber-face="thick"] {
+  --font-stream-face: var(--font-stream-thick);
+  --font-stream-weight: var(--font-weight-bold);
+}
+
+:root[data-chamber-face="jp"] {
+  --font-stream-face: var(--font-jp);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
+.atom-display[data-chamber-face="literary"] {
+  --font-stream-face: var(--font-literary);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
+.atom-display[data-chamber-face="display"] {
+  --font-stream-face: var(--font-display);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
+.atom-display[data-chamber-face="thick"] {
+  --font-stream-face: var(--font-stream-thick);
+  --font-stream-weight: var(--font-weight-bold);
+}
+
+.atom-display[data-chamber-face="jp"] {
+  --font-stream-face: var(--font-jp);
+  --font-stream-weight: var(--font-weight-regular);
+}
+
 .atom-display {
-  font-family: var(--font-literary);
+  font-family: var(--font-stream-face, var(--font-literary));
   /* The scale is published by sizeAtomText — a longer phrase gets a
      smaller face — and the SIZE is decided here, where the viewport is
      known. It used to be written inline as a pixel value, which no
      stylesheet could answer. */
   font-size: calc(72px * var(--atom-scale, 1));
-  font-weight: var(--font-weight-regular);
+  font-weight: var(--font-stream-weight, var(--font-weight-regular));
   color: var(--color-light);
   text-align: center;
   max-width: 80%;
