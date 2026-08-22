@@ -159,12 +159,11 @@ describe('the CLI and the room reach the same verdict', () => {
 
   /** Exactly the reader's gestures: move the length, paste, press Examine. */
   const throughTheRoom = (text, length) => {
-    // THE DIAL IS AN INDEX OVER THE LADDER. A case may still ask for an
-    // arbitrary budget — the gate takes any whole number — but a reader
-    // reaches it by moving to the nearest rung, so that is what the room
-    // does here and what both surfaces are then compared against.
+    // THE DIAL'S NATIVE VALUE IS WORDS, SNAPPED TO THE LADDER. A case
+    // may still ask for an arbitrary budget — the gate takes any whole
+    // number — but a reader reaches it by moving to the nearest rung.
     const slider = container.querySelector('#scriptorium-length');
-    slider.value = String(SCRIPTORIUM_LENGTH.rungs.indexOf(clampTargetWords(length)));
+    slider.value = String(clampTargetWords(length));
     slider.dispatchEvent(new Event('input', { bubbles: true }));
     slider.dispatchEvent(new Event('change', { bubbles: true }));
     const field = container.querySelector('#scriptorium-paste');

@@ -70,7 +70,7 @@ describe('one reader, one path, real Library', () => {
     /** The reader moves a nine-stop dial; the session stores the rung's words. */
     const slideTo = (words) => {
         const slider = container.querySelector('#scriptorium-length');
-        slider.value = String(SCRIPTORIUM_LENGTH.rungs.indexOf(clampTargetWords(words)));
+        slider.value = String(clampTargetWords(words));
         slider.dispatchEvent(new Event('input', { bubbles: true }));
         slider.dispatchEvent(new Event('change', { bubbles: true }));
     };

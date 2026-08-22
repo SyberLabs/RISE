@@ -18,6 +18,7 @@ import {
   clampTargetWords,
   createScriptoriumSession,
   describeLength,
+  holdingRung,
   readerWpm,
   SCRIPTORIUM_LENGTH
 } from './scriptorium-session.js';
@@ -69,6 +70,18 @@ describe('the sequence, with no room around it', () => {
     session.examine(score([TAO]));
     expect(session.context.constraints.targetWords).toBe(400);
     expect(session.verdict.code).toBe('PROGRAM_IO_BUDGET_EXCEEDED');
+  });
+
+  it('sizes an unmoved dial to a pasted score that only exceeds the default sitting', () => {
+    const session = createScriptoriumSession();
+    expect(session.lengthChosen).toBe(false);
+    expect(session.targetWords).toBe(SCRIPTORIUM_LENGTH.default);
+    const verdict = session.examine(score(['oedipus-rex']));
+    expect(verdict.ok).toBe(true);
+    expect(session.rundown?.movements?.[0]?.title).toBe('oedipus-rex');
+    expect(session.rundown.totals.words).toBeGreaterThan(SCRIPTORIUM_LENGTH.default);
+    expect(session.targetWords).toBe(holdingRung(session.rundown.totals.words));
+    expect(session.lengthChosen).toBe(false);
   });
 
   /**
@@ -143,6 +156,9 @@ describe('the length and the pace, in one place', () => {
     for (const rung of SCRIPTORIUM_LENGTH.rungs) {
       expect(clampTargetWords(rung), `${rung} is already a rung`).toBe(rung);
     }
+    expect(holdingRung(12_592)).toBe(18_000);
+    expect(holdingRung(400)).toBe(400);
+    expect(holdingRung(200_000)).toBeNull();
   });
 
   it('changes what the shelf can serve at every step', () => {
@@ -239,11 +255,9 @@ describe('the reader\'s gestures land on the session, not on the room', () => {
     intent.dispatchEvent(new Event('input', { bubbles: true }));
     expect(room.session.intent).toBe('Memory and loss.');
 
-    // The control is an INDEX over the ladder; the session stores the rung's
-    // word value. Setting 900 here used to mean 900 words and now means the
-    // ninth stop, which is why this writes an index and asserts words.
+    // The control's native value is words, snapped to the nearest rung.
     const slider = container.querySelector('#scriptorium-length');
-    slider.value = String(SCRIPTORIUM_LENGTH.rungs.indexOf(2000));
+    slider.value = '2000';
     slider.dispatchEvent(new Event('input', { bubbles: true }));
     expect(room.session.targetWords).toBe(2000);
 
