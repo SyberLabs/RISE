@@ -247,11 +247,18 @@ export class Vault {
             </div>
           `}
 
-          <!-- The Journeys threshold stood here. Journeys are on ice
-               (ARCHIVE-CANON-SPEC §6) — their scores quote editions the
-               canon no longer serves — so the door is withdrawn rather
-               than left opening onto a room that cannot honour it. -->
-
+          <!-- JOURNEYS — the first thing in the Vault.
+               Individual Journey sits are withdrawn while their
+               quotations are re-authored; the door stays, because the
+               room is still one click from here and must not vanish
+               from the Vault's first screen. -->
+          <button class="vault-journeys-door" data-nav="journeys">
+            <span class="vjd-text">
+              <span class="vjd-name">Journeys</span>
+              <span class="vjd-line">Several works becoming movements in one argument</span>
+            </span>
+            <span class="vjd-chevron" aria-hidden="true">→</span>
+          </button>
 
           <!-- Section Navigation -->
           <nav class="library-nav nav" aria-label="Vault sections">
@@ -570,6 +577,11 @@ export class Vault {
     this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
       window.rise?.audioEngine?.playClick();
       this.onNavigate('portal');
+    });
+
+    this.container.querySelector('[data-nav="journeys"]')?.addEventListener('click', () => {
+      window.rise?.audioEngine?.playClick();
+      this.onNavigate('journeys');
     });
 
     // Section navigation
