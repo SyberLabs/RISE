@@ -83,3 +83,24 @@ export function hasVisualSelectionFields(value) {
         Object.hasOwn(value, 'sourced')
     ));
 }
+
+/**
+ * Word-fill is a secondary playlist inside Gallery, not a presentation.
+ * `{ mode: 'same' }` writes the room URL onto both mounts. `{ mode: 'pick' }`
+ * carries the same sourced/procedural shape as the room selection.
+ */
+export function normalizeWordFill(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return { mode: 'same' };
+    }
+    if (value.mode !== 'pick') return { mode: 'same' };
+    const selection = normalizeVisualSelection(value);
+    if (selection.procedural.length === 0 && selection.sourced.length === 0) {
+        return { mode: 'same' };
+    }
+    return { mode: 'pick', ...selection };
+}
+
+export function wordFillIsDistinct(value) {
+    return normalizeWordFill(value).mode === 'pick';
+}

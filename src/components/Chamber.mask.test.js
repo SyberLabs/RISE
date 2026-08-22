@@ -255,6 +255,54 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         chamber.destroy();
     });
 
+    it('a distinct wordFill pick yields a different projection url on the same clock', async () => {
+        vi.spyOn(ContinuousField.prototype, '_defaultDecode').mockResolvedValue(true);
+        beginNonFlashingVisualSession();
+        visualCortex._scheduleBackgroundWarm = () => {};
+        visualCortex._scheduleRollingRefresh = () => {};
+        const { chamber, container } = makeChamber(
+            {
+                chunkMode: 'word',
+                visualConfig: {
+                    visualMode: 'interlocution',
+                    interlocution: {
+                        presentation: 'continuous',
+                        wordFill: { mode: 'pick', sourced: ['aic-ukiyoe'], procedural: [] }
+                    }
+                }
+            },
+            { chamberMask: true }
+        );
+        visualCortex._poolFor('aic-landscapes').images = [
+            { url: 'https://example.test/room-a.jpg', name: 'room-a' },
+            { url: 'https://example.test/room-b.jpg', name: 'room-b' }
+        ];
+        visualCortex._poolFor('aic-ukiyoe').images = [
+            { url: 'https://example.test/fill-x.jpg', name: 'fill-x' },
+            { url: 'https://example.test/fill-y.jpg', name: 'fill-y' }
+        ];
+        visualCortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-landscapes'],
+            wordFill: { mode: 'pick', sourced: ['aic-ukiyoe'], procedural: [] }
+        });
+        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
+        await flushFillMask();
+
+        const field = visualCortex._continuousField;
+        expect(field).toBeInstanceOf(ContinuousField);
+        expect(fillHost(container)).toBeTruthy();
+        expect(galleryHost(container)).toBeTruthy();
+        await field._advance(false);
+        expect(field.currentUrl).toMatch(/room-/);
+        expect(field.currentProjectionUrl).toMatch(/fill-/);
+        expect(field.currentProjectionUrl).not.toBe(field.currentUrl);
+        expect(chamber._fillFieldDirector).toBeFalsy();
+        expect(container.querySelectorAll('video')).toHaveLength(0);
+        chamber.destroy();
+    });
+
     it('does not mount a stencil host in phrase mode', async () => {
         const { chamber, container } = makeChamber(
             {

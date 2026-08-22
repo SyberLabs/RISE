@@ -37,7 +37,8 @@ import {
     hasVisualSelectionFields,
     isPersonalVisualSource,
     normalizeGlobalPoolSelection,
-    normalizeVisualSelection
+    normalizeVisualSelection,
+    normalizeWordFill
 } from '../core/visual-selection.js';
 import {
     clearLaunchVisualSelection,
@@ -105,6 +106,33 @@ const CHAPEL_ICON_LABELS = Object.freeze({
 // original so the feature never breaks on an exotic format.
 const FOCAL_MAX_DIM = 1024;
 const FOCAL_PASSTHROUGH_BYTES = 150 * 1024;
+
+function wordFillControlValue(fill) {
+    const normalized = normalizeWordFill(fill);
+    if (normalized.mode !== 'pick') return 'same';
+    if (normalized.sourced[0]) return `sourced:${normalized.sourced[0]}`;
+    if (normalized.procedural[0]) return `procedural:${normalized.procedural[0]}`;
+    return 'same';
+}
+
+function wordFillFromControlValue(value) {
+    if (typeof value !== 'string' || value === 'same') return { mode: 'same' };
+    if (value.startsWith('sourced:')) {
+        return normalizeWordFill({
+            mode: 'pick',
+            sourced: [value.slice('sourced:'.length)],
+            procedural: []
+        });
+    }
+    if (value.startsWith('procedural:')) {
+        return normalizeWordFill({
+            mode: 'pick',
+            procedural: [value.slice('procedural:'.length)],
+            sourced: []
+        });
+    }
+    return { mode: 'same' };
+}
 
 function migrateRetiredMetSelection(proceduralValue, sourcedValue) {
     const procedural = Array.isArray(proceduralValue)
@@ -246,6 +274,9 @@ export class VisualInterlocutionPanel {
                 // continuous (Gallery) is a persistent field behind it.
                 presentation: normalizePresentation(
                     options.interlocution?.presentation ?? options.presentation),
+                wordFill: normalizeWordFill(
+                    options.interlocution?.wordFill ?? options.wordFill
+                ),
                 streamGlass: (options.interlocution?.streamGlass ?? options.streamGlass) !== false,
                 // Curated collections carried by an Atrium launch. Present
                 // only on Atrium-origin sessions; purely informational —
@@ -491,6 +522,7 @@ export class VisualInterlocutionPanel {
                 galleryCadence: normalizeGalleryCadence(mergedInterlocution.galleryCadence),
                 renderLanguage: 'native',   // retired; see the constructor
                 presentation: normalizePresentation(mergedInterlocution.presentation),
+                wordFill: normalizeWordFill(mergedInterlocution.wordFill),
                 streamGlass: mergedInterlocution.streamGlass !== false,
                 globalPool: normalizeGlobalPoolSelection(mergedInterlocution.globalPool),
                 ...normalizeVisualSelection({
@@ -1110,7 +1142,6 @@ export class VisualInterlocutionPanel {
                                     // who takes the first is taking the one
                                     // that never flashes and never goes black.
                                     ['continuous', 'Gallery'],
-                                    ['continuous-word', 'Gallery in the word'],
                                     ['behind-stream', 'Background flash'],
                                     ['full-frame', 'Foreground flash']
                                 ].map(([id, label]) => `
@@ -1123,9 +1154,7 @@ export class VisualInterlocutionPanel {
                                 `).join('')}
                             </div>
                             <p class="vi-source-family-hint text-mist">
-                                ${this.config.interlocution.presentation === 'continuous-word'
-                                    ? 'The same gallery holds behind the words and fills the letters. Counters show the field; ink shows the same picture.'
-                                    : this.config.interlocution.presentation === 'continuous'
+                                ${this.config.interlocution.presentation === 'continuous'
                                     ? 'A gallery of the reading’s imagery holds behind the words, crossfading slowly — never a flash, never black.'
                                     : this.config.interlocution.presentation === 'behind-stream'
                                     ? 'Imagery presents beneath the reading stream — the words never leave the screen.'
@@ -1163,6 +1192,23 @@ export class VisualInterlocutionPanel {
                                     ? 'Blend intentionally combines generated work, collections, and personal imagery.'
                                     : 'This source is exclusive. Choose Blend only when you want categories to intermingle.'}
                             </p>
+                            ${this.config.interlocution.presentation === 'continuous' ? `
+                                <select data-word-fill aria-label="Word source">
+                                    <option value="same" ${wordFillControlValue(this.config.interlocution.wordFill) === 'same' ? 'selected' : ''}>Same as gallery</option>
+                                    ${proceduralPatterns.map(p => `
+                                        <option value="procedural:${p.id}" ${wordFillControlValue(this.config.interlocution.wordFill) === `procedural:${p.id}` ? 'selected' : ''}>${escapeHtml(p.name)}</option>
+                                    `).join('')}
+                                    ${aicCategories.map(c => `
+                                        <option value="sourced:${c.id}" ${wordFillControlValue(this.config.interlocution.wordFill) === `sourced:${c.id}` ? 'selected' : ''}>${escapeHtml(c.name)}</option>
+                                    `).join('')}
+                                    ${scienceCategories.map(c => `
+                                        <option value="sourced:${c.id}" ${wordFillControlValue(this.config.interlocution.wordFill) === `sourced:${c.id}` ? 'selected' : ''}>${escapeHtml(c.name)}</option>
+                                    `).join('')}
+                                    ${diagramCategories.map(c => `
+                                        <option value="sourced:${c.id}" ${wordFillControlValue(this.config.interlocution.wordFill) === `sourced:${c.id}` ? 'selected' : ''}>${escapeHtml(c.name)}</option>
+                                    `).join('')}
+                                </select>
+                            ` : ''}
                         </div>
 
                         <!-- 1. Procedural Patterns -->
@@ -1564,6 +1610,11 @@ export class VisualInterlocutionPanel {
 
         this.container.querySelector('[data-presentation-glass]')?.addEventListener('change', event => {
             this.config.interlocution.streamGlass = event.target.checked;
+            this.emitChange();
+        });
+
+        this.container.querySelector('[data-word-fill]')?.addEventListener('change', event => {
+            this.config.interlocution.wordFill = wordFillFromControlValue(event.target.value);
             this.emitChange();
         });
 

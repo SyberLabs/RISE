@@ -264,6 +264,12 @@ export class ContinuousField {
         this.host = host;
         this.getPool = typeof options.getPool === 'function' ? options.getPool : () => [];
         this.poolKey = typeof options.poolKey === 'function' ? options.poolKey : () => 'default';
+        this.getProjectionPool = typeof options.getProjectionPool === 'function'
+            ? options.getProjectionPool
+            : null;
+        this.projectionPoolKey = typeof options.projectionPoolKey === 'function'
+            ? options.projectionPoolKey
+            : () => 'projection';
         this.getNextWork = typeof options.getNextWork === 'function'
             ? options.getNextWork
             : null;
@@ -286,10 +292,12 @@ export class ContinuousField {
         this._caf = options.caf || (id => cancelAnimationFrame(id));
 
         this._bag = new ShuffleBag();
+        this._projectionBag = new ShuffleBag();
         this._layers = null;      // [{ root, backdrop, artwork, label, work, projection? }, ...]
         this.projectionHost = null;
         this._front = 0;          // index of the visible layer
         this._currentUrl = null;
+        this._currentProjectionUrl = null;
         this._running = false;
         this._paused = false;
         this._rafId = null;
@@ -398,12 +406,29 @@ export class ContinuousField {
         }
     }
 
+    _usesDistinctProjection() {
+        return Array.isArray(this.getProjectionPool?.());
+    }
+
+    _drawProjectionWork() {
+        const pool = this.getProjectionPool?.() || [];
+        if (!pool.length) return null;
+        const key = this.projectionPoolKey() || 'projection';
+        let work = this._projectionBag.draw(key, pool);
+        if (work && pool.length > 1 && work.url === this._currentProjectionUrl) {
+            work = this._projectionBag.draw(key, pool) || work;
+        }
+        return work;
+    }
+
     _syncProjectionLayer(layer) {
         const proj = layer?.projection;
         if (!proj) return;
         proj.root.style.transition = layer.root.style.transition;
         proj.root.style.opacity = layer.root.style.opacity;
-        const url = layer.work?.url;
+        const url = (this._usesDistinctProjection() && layer.projectionWork?.url)
+            ? layer.projectionWork.url
+            : layer.work?.url;
         if (url) {
             if (proj.artwork.getAttribute('src') !== url) proj.artwork.src = url;
             if (layer.backdrop.hidden) {
@@ -561,8 +586,9 @@ export class ContinuousField {
         }
     }
 
-    _setLayerWork(layer, work) {
+    _setLayerWork(layer, work, projectionWork = null) {
         layer.work = work || null;
+        layer.projectionWork = projectionWork || null;
         // The wash starts unallocated. The foreground's intrinsic dimensions
         // decide whether a matte actually exists once it loads.
         layer.backdrop.hidden = true;
@@ -673,19 +699,37 @@ export class ContinuousField {
             // a decode failure holds the current work; the next tick retries
             return;
         }
-        this._crossfadeTo(work, first);
+
+        let projectionWork = null;
+        if (this._usesDistinctProjection()) {
+            projectionWork = this._drawProjectionWork();
+            if (projectionWork?.url && projectionWork.url !== url) {
+                const projOk = await this.decode(projectionWork.url);
+                if (!projOk || !this._running || this._paused || generation !== this._generation) {
+                    projectionWork = this._currentProjectionUrl
+                        ? { url: this._currentProjectionUrl }
+                        : null;
+                }
+            }
+            if (!projectionWork?.url) projectionWork = work;
+        }
+
+        this._crossfadeTo(work, first, projectionWork);
         this._currentUrl = url;
+        this._currentProjectionUrl = this._usesDistinctProjection()
+            ? (projectionWork?.url || this._currentProjectionUrl)
+            : url;
         this._advanceInFlight = false;
     }
 
-    _crossfadeTo(work, first) {
+    _crossfadeTo(work, first, projectionWork = null) {
         if (!this._layers) return;
         if (this.reducedMotion) {
             // One still work, no motion: set it on the front layer at
             // full opacity, no transition.
             const front = this._layers[this._front];
             front.root.style.transition = 'none';
-            this._setLayerWork(front, work);
+            this._setLayerWork(front, work, projectionWork);
             front.root.style.opacity = '1';
             if (front.projection) {
                 front.projection.root.style.transition = 'none';
@@ -697,7 +741,7 @@ export class ContinuousField {
         const outgoing = this._layers[this._front];
         const crossfadeMs = this._nextCrossfadeMs ?? this.crossfadeMs;
         this._nextCrossfadeMs = null;
-        this._setLayerWork(incoming, work);
+        this._setLayerWork(incoming, work, projectionWork);
         // Rise the incoming and (unless first) fall the outgoing over the
         // same window — the double-buffer never passes through black.
         // Force a style flush so the transition runs from opacity 0.
@@ -731,6 +775,7 @@ export class ContinuousField {
             }
         }
         this._currentUrl = null;
+        this._currentProjectionUrl = null;
     }
 
     /**
@@ -836,12 +881,19 @@ export class ContinuousField {
             this._layers = null;
         }
         this._currentUrl = null;
+        this._currentProjectionUrl = null;
         this._bag.clear();
+        this._projectionBag.clear();
     }
 
     /** Diagnostics: the currently displayed url (or null). */
     get currentUrl() {
         return this._currentUrl;
+    }
+
+    /** Layer B url. Same as currentUrl unless a distinct projection pool is on. */
+    get currentProjectionUrl() {
+        return this._usesDistinctProjection() ? this._currentProjectionUrl : this._currentUrl;
     }
 
     get running() {

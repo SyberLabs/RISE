@@ -382,7 +382,7 @@ describe('VisualInterlocutionPanel preset visibility', () => {
         const { panel, container } = makePanel({ ...SOL_DAWN_CONFIG });
         const order = [...container.querySelectorAll('[data-presentation]')]
             .map(b => b.dataset.presentation);
-        expect(order).toEqual(['continuous', 'continuous-word', 'behind-stream', 'full-frame']);
+        expect(order).toEqual(['continuous', 'behind-stream', 'full-frame']);
         panel.destroy();
         container.remove();
     });
@@ -812,13 +812,11 @@ describe('Stream-maintaining Rhythmic and Atrium collections', () => {
             interlocution: { sourceFamily: 'procedural', procedural: ['klee'], sourced: [] }
         });
 
-        // Four surfaces: Gallery, Gallery in the word, background flash, foreground flash.
-        expect(container.querySelectorAll('[data-presentation]')).toHaveLength(4);
+        // Three surfaces: Gallery, background flash, foreground flash.
+        expect(container.querySelectorAll('[data-presentation]')).toHaveLength(3);
         expect(container.querySelector('[data-presentation="full-frame"]').classList.contains('active')).toBe(true);
         expect(container.querySelector('[data-presentation="continuous"]')).not.toBeNull();
-        expect(container.querySelector('[data-presentation="continuous-word"]')).not.toBeNull();
-        expect(container.querySelector('[data-presentation="continuous-word"]').textContent)
-            .toMatch(/Gallery in the word/i);
+        expect(container.querySelector('[data-presentation="continuous-word"]')).toBeNull();
         expect(panel.getConfig().interlocution.presentation).toBe('full-frame');
 
         panel.destroy();
@@ -1128,15 +1126,10 @@ describe('the photosensitivity notice belongs to the surface that flashes', () =
         endVisualInterlocutionSession();
     });
 
-    it('offers Gallery in the word beside Gallery and aliases chamberMask without adding a sixth mode', async () => {
+    it('keeps three Presentation chips and hangs wordFill inside Gallery, not as a fourth surface', async () => {
         endVisualInterlocutionSession();
         const settings = { chamberMask: false, chamberFace: 'jp', fontSize: 'medium' };
-        globalThis.rise = {
-            settings,
-            handleSettingsChange(key, value) {
-                settings[key] = value;
-            }
-        };
+        globalThis.rise = { settings };
         const { panel, container } = makePanel({
             visualMode: 'interlocution',
             interlocution: { sourceFamily: 'procedural', procedural: ['klee'], sourced: [] }
@@ -1144,21 +1137,33 @@ describe('the photosensitivity notice belongs to the surface that flashes', () =
 
         const modes = [...container.querySelectorAll('[data-visual-mode]')].map(btn => btn.dataset.visualMode);
         expect(modes).toEqual(['off', 'focals', 'attractor', 'genesis', 'interlocution']);
-        expect(container.querySelector('[data-presentation="continuous-word"]').textContent)
-            .toMatch(/Gallery in the word/i);
-
-        container.querySelector('[data-presentation="continuous-word"]').click();
-        await Promise.resolve();
-
-        expect(panel.getConfig().interlocution.presentation).toBe('continuous-word');
-        expect(settings.chamberMask).toBe(true);
-        expect(settings.chamberFace).toBe('jp');
-        expect(settings.fontSize).toBe('medium');
-        expect(container.querySelector('[data-presentation-glass]')).toBeNull();
+        expect([...container.querySelectorAll('[data-presentation]')].map(btn => btn.dataset.presentation))
+            .toEqual(['continuous', 'behind-stream', 'full-frame']);
+        expect(container.querySelector('[data-presentation="continuous-word"]')).toBeNull();
+        expect(container.querySelector('[data-word-fill]')).toBeNull();
+        expect(panel.getConfig().interlocution.wordFill).toEqual({ mode: 'same' });
 
         container.querySelector('[data-presentation="continuous"]').click();
-        expect(settings.chamberMask).toBe(false);
+        await Promise.resolve();
+
+        expect(panel.getConfig().interlocution.presentation).toBe('continuous');
+        const hook = container.querySelector('[data-word-fill]');
+        expect(hook).toBeTruthy();
+        expect(container.querySelector('.vi-presentation-surface [data-word-fill]')).toBeNull();
+        expect(hook.value).toBe('same');
+
+        hook.value = 'sourced:aic-ukiyoe';
+        hook.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(panel.getConfig().interlocution.wordFill).toEqual({
+            mode: 'pick',
+            sourceFamily: 'collections',
+            sourced: ['aic-ukiyoe'],
+            procedural: []
+        });
+        expect(panel.getConfig().interlocution.presentation).toBe('continuous');
         expect(settings.chamberFace).toBe('jp');
+        expect(settings.fontSize).toBe('medium');
+        expect(settings.chamberMask).toBe(false);
 
         panel.destroy();
         container.remove();
