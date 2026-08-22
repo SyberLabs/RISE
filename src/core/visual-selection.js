@@ -67,7 +67,7 @@ export function isPersonalVisualSource(id) {
     return id === 'global-pool' || id === 'custom' || id.startsWith('personal:');
 }
 
-export function inferVisualSourceFamily(proceduralValue, sourcedValue) {
+export function inferVisualSourceFamily(proceduralValue, sourcedValue, preferredFamily) {
     const procedural = uniqueStringIds(proceduralValue);
     const sourced = uniqueStringIds(sourcedValue);
     const hasProcedural = procedural.length > 0;
@@ -79,6 +79,10 @@ export function inferVisualSourceFamily(proceduralValue, sourcedValue) {
     }
     if (hasCollections) return 'collections';
     if (hasPersonal) return 'personal';
+    // Empty+empty is stillness, not an instruction to snap back to
+    // Procedural. Honor the last chosen family when the user left both
+    // shelves empty on purpose.
+    if (SOURCE_FAMILY_SET.has(preferredFamily)) return preferredFamily;
     return 'procedural';
 }
 
@@ -89,13 +93,12 @@ export function normalizeVisualSelection(value = {}) {
     let sourced = sourcedWithoutEngines;
     let sourceFamily = SOURCE_FAMILY_SET.has(input.sourceFamily)
         ? input.sourceFamily
-        : inferVisualSourceFamily(procedural, sourced);
-    // A collections/personal label that only carried a leaked engine id is
-    // not an empty museum shelf. The engine is the selection.
-    if ((sourceFamily === 'collections' || sourceFamily === 'personal')
-        && sourced.length === 0 && procedural.length > 0) {
-        sourceFamily = inferVisualSourceFamily(procedural, sourced);
-    }
+        : inferVisualSourceFamily(procedural, sourced, input.sourceFamily);
+    // PR #30 lifted leaked `procedural:` ids out of sourced so Flames
+    // would not become an empty Wikimedia shelf. That lift must not
+    // rewrite an explicit Collections / Personal / Blend pick back to
+    // Procedural — leftover engines are exclusive-family residue and
+    // are cleared below.
 
     if (sourceFamily === 'procedural') {
         sourced = [];
