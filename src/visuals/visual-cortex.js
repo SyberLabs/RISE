@@ -2074,17 +2074,7 @@ export class VisualCortex {
         let assetGenerationRotated = false;
         // Detect if active external categories changed (room or word-fill).
         if ('activeTypes' in nextConfig || 'wordFill' in nextConfig || 'presentation' in nextConfig) {
-            const prospective = {
-                ...this.config,
-                ...nextConfig,
-                activeTypes: 'activeTypes' in nextConfig
-                    ? nextConfig.activeTypes
-                    : this.config.activeTypes,
-                wordFill: 'wordFill' in nextConfig ? nextConfig.wordFill : this.config.wordFill,
-                presentation: 'presentation' in nextConfig
-                    ? nextConfig.presentation
-                    : this.config.presentation
-            };
+            const prospective = { ...this.config, ...nextConfig };
             const oldExternal = this._poolCategoriesForTypes(this._typesForAssetGeneration(this.config));
             const newExternal = this._poolCategoriesForTypes(this._typesForAssetGeneration(prospective));
             
