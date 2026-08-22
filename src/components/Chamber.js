@@ -1029,6 +1029,9 @@ export class Chamber {
   }
 
   handleKeyboard(e) {
+    const settingsOverlay = this.container.querySelector('#chamber-settings-overlay');
+    if (settingsOverlay && !settingsOverlay.hidden) return;
+
     // Don't let spacebar trigger play/pause while user is typing in a field
     const tag = document.activeElement?.tagName;
     const isTyping = tag === 'TEXTAREA' || tag === 'INPUT' || document.activeElement?.isContentEditable;
@@ -1901,13 +1904,14 @@ export class Chamber {
       this._failSettingsDoor();
       return;
     }
-    this._pauseLikePlay();
     try {
       this._mountSettingsOverlay(Settings);
     } catch {
       this.closeSettings();
       this._failSettingsDoor();
+      return;
     }
+    this._pauseLikePlay();
   }
 
   _mountSettingsOverlay(Settings) {
@@ -1921,6 +1925,14 @@ export class Chamber {
       settings: globalThis.rise?.settings || {},
       onClose: () => this.closeSettings(),
       onNavigate: () => this.closeSettings(),
+      onDataCleared: () => {
+        if (typeof globalThis.rise?.handleDataCleared === 'function') {
+          globalThis.rise.handleDataCleared();
+          return;
+        }
+        if (globalThis.rise) globalThis.rise.currentSession = null;
+        window.setTimeout(() => window.location.reload(), 300);
+      },
       onChange: (key, value) => {
         if (typeof globalThis.rise?.handleSettingsChange === 'function') {
           globalThis.rise.handleSettingsChange(key, value);

@@ -101,6 +101,7 @@ class App {
         this.handleNavigate = this.handleNavigate.bind(this);
         this.handleCreateSession = this.handleCreateSession.bind(this);
         this.handleSettingsChange = this.handleSettingsChange.bind(this);
+        this.handleDataCleared = this.handleDataCleared.bind(this);
     }
 
     /**
@@ -838,10 +839,7 @@ class App {
                     settings: this.settings,
                     onNavigate: this.handleNavigate,
                     onChange: this.handleSettingsChange,
-                    onDataCleared: () => {
-                        this.currentSession = null;
-                        window.setTimeout(() => window.location.reload(), 300);
-                    }
+                    onDataCleared: this.handleDataCleared
                 });
             }
         });
@@ -1390,6 +1388,11 @@ class App {
             if (value) this.audioEngine.startAmbientPlaylist();
             else this.audioEngine.stopAmbient(true);
         }
+    }
+
+    handleDataCleared() {
+        this.currentSession = null;
+        window.setTimeout(() => window.location.reload(), 300);
     }
 
     /**

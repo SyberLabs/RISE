@@ -5,6 +5,7 @@
 
 .settings {
     min-height: 100vh;
+    margin: 0;
     padding: var(--space-lg);
     background: var(--color-void);
     overflow-y: auto;

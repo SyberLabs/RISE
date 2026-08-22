@@ -28,15 +28,17 @@ export class Settings {
     }
 
     render() {
+        const backLabel = this.onClose ? 'Back' : 'Portal';
+        const backAria = this.onClose ? 'Back' : 'Back to Portal';
         this.container.innerHTML = `
-      <div class="settings" role="main" aria-labelledby="settings-title">
+      <form class="settings" role="main" aria-labelledby="settings-title">
         <a href="#settings-content" class="skip-link">Skip to settings</a>
 
         <!-- Header -->
         <header class="settings-header">
-          <button class="btn-ghost" data-action="back" aria-label="Back to Portal">
+          <button type="button" class="btn-ghost" data-action="back" aria-label="${backAria}">
             <span class="icon">←</span>
-            <span>Portal</span>
+            <span>${backLabel}</span>
           </button>
         </header>
 
@@ -256,7 +258,7 @@ export class Settings {
             </div>
           </section>
         </div>
-      </div>
+      </form>
     `;
     }
 
@@ -292,6 +294,10 @@ export class Settings {
     }
 
     attachEvents() {
+        this.container.querySelector('form.settings')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+        });
+
         // Back button
         this.container.querySelector('[data-action="back"]')?.addEventListener('click', () => {
             this.leave();

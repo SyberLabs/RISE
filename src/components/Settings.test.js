@@ -161,6 +161,8 @@ describe('Settings display type', () => {
         overlay.querySelector('[data-action="back"]').click();
         expect(onClose).toHaveBeenCalledTimes(1);
         expect(overlayNavigate).not.toHaveBeenCalled();
+        expect(overlay.querySelector('[data-action="back"]').textContent).not.toMatch(/Portal/);
+        expect(overlay.querySelector('[data-action="back"]').getAttribute('aria-label')).not.toMatch(/Portal/i);
         overlaySettings.destroy();
 
         const route = document.createElement('div');

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
+import { Settings } from './Settings.js';
 import { resolveChamberStreamFace } from '../core/chamber-stream-face.js';
 
 function fakePlayer(initialState = 'playing') {
@@ -161,6 +162,40 @@ describe('Chamber Settings door', () => {
     expect(player.play).not.toHaveBeenCalled();
     expect(player.state).toBe('paused');
 
+    chamber.destroy();
+  });
+
+  it('does not resume from Space while Settings is open', async () => {
+    const { chamber, player } = mount();
+    await chamber.openSettings();
+    player.play.mockClear();
+    chamber._lastToggleTime = 0;
+
+    chamber.handleKeyboard({
+      code: 'Space',
+      key: ' ',
+      preventDefault() {}
+    });
+
+    expect(player.play).not.toHaveBeenCalled();
+    expect(player.state).toBe('paused');
+
+    chamber.destroy();
+  });
+
+  it('keeps overlay Face radios out of a Portal Settings group already in the document', async () => {
+    const portal = document.createElement('div');
+    document.body.appendChild(portal);
+    const portalSettings = new Settings(portal, { settings: { chamberFace: 'literary' } });
+    const { chamber, container } = mount();
+
+    await chamber.openSettings();
+    container.querySelector('input[name="chamber-face"][value="jp"]').click();
+
+    expect(portal.querySelector('input[name="chamber-face"][value="literary"]').checked).toBe(true);
+    expect(container.querySelector('input[name="chamber-face"][value="jp"]').checked).toBe(true);
+
+    portalSettings.destroy();
     chamber.destroy();
   });
 
