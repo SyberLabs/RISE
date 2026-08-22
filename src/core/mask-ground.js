@@ -187,9 +187,12 @@ function isOldMasters(source) {
  * combine(A, B) — Firstmate named this so the ship can leave.
  *
  * 1. If B is a procedural, start from B’s profile.
- * 2. Locked overrides: Astronomy+Attractor → Dark. Old Masters+Fractal → Light.
+ * 2. Locked overrides win last: Astronomy+Attractor → Dark.
+ *    Old Masters+Fractal → Light. Astronomy+Fractal → Light.
  * 3. If both A and B are collection/still: Transparent (no plate).
  * 4. If result is Transparent and A is not yet opaque: Dark (never page punch).
+ *    Step 4 must not overwrite a locked Light pair (Astronomy is Dark;
+ *    A-not-opaque is not a license to force Dark over Fractal cream).
  */
 export function combine(A, B, options = {}) {
     const room = describeSource(A);
@@ -202,19 +205,22 @@ export function combine(A, B, options = {}) {
         result = fill.profile;
     }
 
-    if (isAstronomy(room) && fill.id === 'attractor') {
-        result = GROUNDS.dark;
-    }
-    if (isOldMasters(room) && fill.id === 'fractal') {
-        result = GROUNDS.light;
-    }
-
     if (room.still && fill.still) {
         result = GROUNDS.transparent;
     }
 
     if (result === GROUNDS.transparent && !roomOpaque) {
         result = GROUNDS.dark;
+    }
+
+    if (isAstronomy(room) && fill.id === 'attractor') {
+        return GROUNDS.dark;
+    }
+    if (isOldMasters(room) && fill.id === 'fractal') {
+        return GROUNDS.light;
+    }
+    if (isAstronomy(room) && fill.id === 'fractal') {
+        return GROUNDS.light;
     }
 
     return result;
