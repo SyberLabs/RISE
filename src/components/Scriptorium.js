@@ -23,6 +23,7 @@
 
 import { MemoryCore } from '../core/memory.js';
 import { PersonalSwells } from '../core/personal-swells.js';
+import { LocalWorks } from '../core/local-work-store.js';
 import {
   describeMaterials,
   inspectMaterial,
@@ -135,18 +136,73 @@ export class Scriptorium {
    * correct and smaller; it is rebuilt when they land rather than blocking the
    * room on a database that may hold nothing.
    */
+  /**
+   * What this browser holds, offered to the sequence before it is composed.
+   *
+   * TWO STORES, TWO FAILURES. A reader with no IndexedDB and a reader with no
+   * swells reach the same early return in one try block, and putting the
+   * shelf inside it would let either one silently hide the other — the
+   * Library door would simply have no local works in it and nothing would say
+   * why. Each store is asked on its own, and the room renders if either
+   * answered.
+   */
   async loadMaterials() {
-    let swells = [];
-    try {
-      swells = await PersonalSwells.getAll();
-    } catch (error) {
-      console.warn('[Scriptorium] Personal audio unavailable:', error);
-      return;
+    const [swells, works] = await Promise.all([
+      PersonalSwells.getAll().catch(error => {
+        console.warn('[Scriptorium] Personal audio unavailable:', error);
+        return [];
+      }),
+      LocalWorks.all().catch(error => {
+        console.warn('[Scriptorium] Your own texts are unavailable:', error);
+        return [];
+      })
+    ]);
+
+    let arrived = false;
+    if (Array.isArray(swells) && swells.length) {
+      this.session.setSwells(swells);
+      arrived = true;
     }
-    if (!Array.isArray(swells) || !swells.length) return;
-    this.session.setSwells(swells);
+    for (const work of works) {
+      try {
+        this.session.addLocalWork(work);
+        arrived = true;
+      } catch (error) {
+        // One malformed record must not cost the reader the rest of the shelf.
+        console.warn('[Scriptorium] Skipped a local work:', error);
+      }
+    }
+    if (!arrived) return;
+
     this.session.take();
     this.render();
+  }
+
+  /**
+   * The reader's own works, named so a composer may be asked for one.
+   *
+   * Silence here would be the room's fault, not the reader's: the shelf is
+   * already in the prompt whether or not this line renders, and a reader who
+   * cannot see that their poems are on the table will never ask for them.
+   * Named parts are what makes a work addressable, so the count is shown.
+   */
+  renderOwnTexts() {
+    if (!this.localWorks.length) return '';
+    const named = this.localWorks.map(work => {
+      const parts = work.labels.length;
+      return `<li>${escapeHtml(work.title)} <span class="scriptorium-meta">${
+        parts === 1 ? 'whole' : `${parts} parts`
+      }</span></li>`;
+    }).join('');
+    return `
+      <p class="scriptorium-note"><strong>Your own texts are on the table</strong></p>
+      <ul class="scriptorium-source-list">${named}</ul>
+      <p class="scriptorium-note">
+        Ask for one by name in your intent and the composer may read from it
+        the same way it reads from the shelf. Add or divide them in the
+        Library, under Your Own Texts.
+      </p>
+    `;
   }
 
   renderRundown(rundown, preview) {
@@ -334,6 +390,7 @@ export class Scriptorium {
             opening — whichever is the largest that fits. A score longer than
             this is refused, not trimmed.
           </p>
+          ${this.renderOwnTexts()}
         </section>
 
         <section class="scriptorium-step">
