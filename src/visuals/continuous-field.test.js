@@ -632,4 +632,37 @@ describe('Continuous Field projection mount', () => {
         field.stop();
         projection.remove();
     });
+
+    it('getNextProjectionWork paints a generated still on the projection while the room stays on the pool', async () => {
+        const room = pool('room-a.jpg', 'room-b.jpg');
+        const { field, host, clock } = mount({
+            getPool: () => room,
+            getProjectionPool: () => [],
+            projectionPoolKey: () => 'word-fill:fractal',
+            getNextProjectionWork: async () => ({ url: 'data:image/webp;base64,flame' })
+        });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        field.setProjectionHost(projection);
+        field.start();
+        await Promise.resolve();
+        await Promise.resolve();
+        clock.tick(1000);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(field.currentUrl).toMatch(/room-/);
+        expect(field.currentProjectionUrl).toBe('data:image/webp;base64,flame');
+        expect(field.currentProjectionUrl).not.toBe(field.currentUrl);
+        const roomSrc = [...host.querySelectorAll('.continuous-field-artwork')]
+            .map(img => img.getAttribute('src'))
+            .find(src => src && src.includes('room-'));
+        const fillSrc = [...projection.querySelectorAll('.continuous-field-artwork')]
+            .map(img => img.getAttribute('src'))
+            .find(src => src && src.includes('flame'));
+        expect(roomSrc).toBeTruthy();
+        expect(fillSrc).toBeTruthy();
+        field.stop();
+        projection.remove();
+    });
 });

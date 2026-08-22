@@ -1304,6 +1304,18 @@ export class VisualCortex {
         return [...fill.procedural, ...fill.sourced];
     }
 
+    /**
+     * Engines the word-fill playlist may snapshot as stills. Living
+     * Gallery layers stay on the room; the glyph gets a finished WebP
+     * so Mask never grows a second director or decoder.
+     */
+    _wordFillProceduralTypes() {
+        if (!this._wordFillIsDistinct()) return [];
+        return GALLERY_PROCEDURAL_TYPES.filter(type =>
+            this._wordFillTypes().includes(type)
+        );
+    }
+
     _projectionPoolCategories() {
         if (!this._wordFillIsDistinct()) return [];
         return this._poolCategoriesForTypes(this._wordFillTypes());
@@ -1312,6 +1324,54 @@ export class VisualCortex {
     _continuousProjectionPool() {
         if (!this._wordFillIsDistinct()) return null;
         return this._poolWorksForCategories(this._projectionPoolCategories(), { warm: true });
+    }
+
+    /**
+     * Word-fill playlist. Same family bag as the room, keyed separately
+     * so a Fractal fill cannot steal Landscapes (or the reverse).
+     */
+    async _nextContinuousProjectionWork({ currentUrl = null } = {}) {
+        if (!this._wordFillIsDistinct()) return null;
+        const poolKey = this._continuousProjectionPoolKey();
+        const procedural = this._wordFillProceduralTypes();
+        const sourcedWorks = this._continuousProjectionPool() || [];
+        const families = [];
+        if (procedural.length) families.push('procedural');
+        if (sourcedWorks.length) families.push('sourced');
+        if (!families.length) return null;
+
+        const firstFamily = this._continuousWorkBag.draw(
+            `word-fill:families:${poolKey}`,
+            families
+        );
+        const familyOrder = firstFamily === 'procedural'
+            ? ['procedural', 'sourced']
+            : ['sourced', 'procedural'];
+
+        for (const family of familyOrder) {
+            if (family === 'sourced' && sourcedWorks.length) {
+                const key = `word-fill:external:${poolKey}`;
+                let work = this._continuousWorkBag.draw(key, sourcedWorks);
+                if (work && sourcedWorks.length > 1 && work.url === currentUrl) {
+                    work = this._continuousWorkBag.draw(key, sourcedWorks) || work;
+                }
+                if (work) return work;
+            }
+            if (family === 'procedural' && procedural.length) {
+                const attempted = new Set();
+                while (attempted.size < procedural.length) {
+                    const type = this._continuousWorkBag.draw(
+                        `word-fill:procedural:${poolKey}`,
+                        procedural
+                    );
+                    if (!type || attempted.has(type)) break;
+                    attempted.add(type);
+                    const work = await this._renderContinuousProceduralWork(type);
+                    if (work) return work;
+                }
+            }
+        }
+        return null;
     }
 
     _continuousProjectionPoolKey() {
@@ -1628,6 +1688,7 @@ export class VisualCortex {
             getPool: () => this._continuousPool(),
             getNextWork: context => this._nextContinuousWork(context),
             getProjectionPool: () => this._continuousProjectionPool(),
+            getNextProjectionWork: context => this._nextContinuousProjectionWork(context),
             projectionPoolKey: () => this._continuousProjectionPoolKey(),
             hasWorks: () => this._continuousHasWorks(),
             poolKey: () => this._continuousPoolKey(),

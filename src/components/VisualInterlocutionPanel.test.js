@@ -1171,6 +1171,40 @@ describe('the photosensitivity notice belongs to the surface that flashes', () =
         endVisualInterlocutionSession();
     });
 
+    it('a procedural word-fill pick does not steal a non-empty gallery collection', async () => {
+        const settings = { chamberMask: false, chamberFace: 'jp', fontSize: 'medium' };
+        globalThis.rise = { settings };
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            interlocution: {
+                sourceFamily: 'collections',
+                procedural: [],
+                sourced: ['aic-landscapes'],
+                presentation: 'continuous'
+            }
+        });
+
+        const hook = container.querySelector('[data-word-fill]');
+        expect(hook).toBeTruthy();
+        hook.value = 'procedural:fractal';
+        hook.dispatchEvent(new Event('change', { bubbles: true }));
+
+        expect(panel.getConfig().interlocution.sourced).toEqual(['aic-landscapes']);
+        expect(panel.getConfig().interlocution.procedural).toEqual([]);
+        expect(panel.getConfig().interlocution.sourceFamily).toBe('collections');
+        expect(panel.getConfig().interlocution.wordFill).toEqual({
+            mode: 'pick',
+            sourceFamily: 'procedural',
+            procedural: ['fractal'],
+            sourced: []
+        });
+
+        panel.destroy();
+        container.remove();
+        delete globalThis.rise;
+        endVisualInterlocutionSession();
+    });
+
     it.each(['behind-stream', 'full-frame'])('asks before %s', async (surface) => {
         endVisualInterlocutionSession();
         document.body.insertAdjacentHTML('beforeend', `

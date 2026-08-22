@@ -2102,6 +2102,136 @@ describe('Continuous Field (Gallery) wiring', () => {
         expect(document.querySelectorAll('video')).toHaveLength(0);
         cortex.destroy();
     });
+
+    it('wordFill fractal keeps Landscapes on Layer A and paints engine stills on Layer B', async () => {
+        const { cortex } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-landscapes', ['room-a.jpg', 'room-b.jpg']);
+        vi.spyOn(cortex, '_renderContinuousProceduralWork')
+            .mockResolvedValue({
+                url: 'data:image/webp;base64,flame-fill',
+                title: 'Fractal Flame',
+                sourceType: 'fractal'
+            });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-landscapes'],
+            wordFill: { mode: 'pick', sourced: [], procedural: ['fractal'] }
+        });
+        cortex.setContinuousFieldProjectionHost(projection);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        const field = cortex._continuousField;
+        expect(cortex.config.activeTypes).toEqual(['aic-landscapes']);
+        expect(cortex._continuousProceduralTypes()).toEqual([]);
+        expect(cortex._wordFillProceduralTypes()).toEqual(['fractal']);
+        expect(cortex._continuousPool().map(w => w.url).sort())
+            .toEqual(['room-a.jpg', 'room-b.jpg']);
+        expect(cortex._continuousProjectionPool()).toEqual([]);
+        expect(Array.isArray(cortex._continuousProjectionPool())).toBe(true);
+        await field._advance(false);
+        expect(field.currentUrl).toMatch(/room-/);
+        expect(field.currentProjectionUrl).toBe('data:image/webp;base64,flame-fill');
+        expect(field.currentProjectionUrl).not.toBe(field.currentUrl);
+        expect(cortex._renderContinuousProceduralWork).toHaveBeenCalledWith('fractal');
+        expect(document.querySelectorAll('video')).toHaveLength(0);
+        cortex.destroy();
+    });
+
+    it('wordFill collection on a fractal room keeps engine stills on Layer A', async () => {
+        const { cortex } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-ukiyoe', ['fill-x.jpg', 'fill-y.jpg']);
+        vi.spyOn(cortex, '_renderContinuousProceduralWork')
+            .mockResolvedValue({
+                url: 'data:image/webp;base64,flame-room',
+                title: 'Fractal Flame',
+                sourceType: 'fractal'
+            });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['fractal'],
+            wordFill: { mode: 'pick', sourced: ['aic-ukiyoe'], procedural: [] }
+        });
+        cortex.setContinuousFieldProjectionHost(projection);
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        const field = cortex._continuousField;
+        expect(cortex.config.activeTypes).toEqual(['fractal']);
+        expect(cortex._continuousProceduralTypes()).toEqual(['fractal']);
+        expect(cortex._wordFillProceduralTypes()).toEqual([]);
+        expect(cortex._continuousProjectionPool().map(w => w.url).sort())
+            .toEqual(['fill-x.jpg', 'fill-y.jpg']);
+        await field._advance(false);
+        expect(field.currentUrl).toBe('data:image/webp;base64,flame-room');
+        expect(field.currentProjectionUrl).toMatch(/fill-/);
+        expect(field.currentProjectionUrl).not.toBe(field.currentUrl);
+        expect(document.querySelectorAll('video')).toHaveLength(0);
+        cortex.destroy();
+    });
+
+    it('does not adopt a procedural word-fill onto a non-empty room', () => {
+        const { cortex } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-landscapes', ['room-a.jpg']);
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-landscapes'],
+            wordFill: { mode: 'pick', sourced: [], procedural: ['fractal'] }
+        });
+        expect(cortex.config.activeTypes).toEqual(['aic-landscapes']);
+        expect(cortex.config.wordFill).toEqual({
+            mode: 'pick',
+            sourceFamily: 'procedural',
+            procedural: ['fractal'],
+            sourced: []
+        });
+        expect(cortex._continuousProceduralTypes()).toEqual([]);
+        expect(cortex._wordFillProceduralTypes()).toEqual(['fractal']);
+        cortex.destroy();
+    });
+
+    it('wordFill snapshots each shared engine as a projection still', async () => {
+        const { cortex } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-landscapes', ['room-a.jpg']);
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-landscapes']
+        });
+        const engines = [
+            'klee', 'turrell', 'fractal', 'neural', 'rockgarden',
+            'harmonograph', 'ostensoria', 'apparitio'
+        ];
+        for (const id of engines) {
+            cortex.updateConfig({
+                wordFill: { mode: 'pick', sourced: [], procedural: [id] }
+            });
+            const render = vi.spyOn(cortex, '_renderContinuousProceduralWork')
+                .mockResolvedValue({
+                    url: `data:image/webp;base64,${id}-fill`,
+                    title: id,
+                    sourceType: id
+                });
+            const painted = await cortex._nextContinuousProjectionWork({ currentUrl: 'room-a.jpg' });
+            expect(painted, id).toEqual({
+                url: `data:image/webp;base64,${id}-fill`,
+                title: id,
+                sourceType: id
+            });
+            expect(render, id).toHaveBeenCalledWith(id);
+            expect(cortex.config.activeTypes, id).toEqual(['aic-landscapes']);
+            render.mockRestore();
+        }
+        cortex.destroy();
+    });
 });
 
 describe('Gallery procedural engines stay engines', () => {

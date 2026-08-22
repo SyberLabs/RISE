@@ -253,6 +253,9 @@ export class ContinuousField {
      *   - getNextWork: async ({ currentUrl }) => { url, title? } | null
      *       optional source adapter for generated works. When present it
      *       owns selection/materialization; the field remains a presenter.
+     *   - getNextProjectionWork: async ({ currentUrl }) => { url, title? } | null
+     *       optional adapter for a distinct word-fill playlist. Same clock
+     *       as getNextWork; used when the projection is not a URL pool.
      *   - hasWorks: () => boolean  whether the current identity has either
      *       ready or generatable works (used on live pool changes).
      *   - dwellMs / crossfadeMs: cadence overrides
@@ -272,6 +275,9 @@ export class ContinuousField {
             : () => 'projection';
         this.getNextWork = typeof options.getNextWork === 'function'
             ? options.getNextWork
+            : null;
+        this.getNextProjectionWork = typeof options.getNextProjectionWork === 'function'
+            ? options.getNextProjectionWork
             : null;
         this.hasWorks = typeof options.hasWorks === 'function'
             ? options.hasWorks
@@ -702,7 +708,18 @@ export class ContinuousField {
 
         let projectionWork = null;
         if (this._usesDistinctProjection()) {
-            projectionWork = this._drawProjectionWork();
+            if (this.getNextProjectionWork) {
+                try {
+                    projectionWork = await this.getNextProjectionWork({
+                        currentUrl: this._currentProjectionUrl,
+                        roomUrl: url,
+                        poolKey: this.projectionPoolKey()
+                    });
+                } catch {
+                    projectionWork = null;
+                }
+            }
+            if (!projectionWork?.url) projectionWork = this._drawProjectionWork();
             if (projectionWork?.url && projectionWork.url !== url) {
                 const projOk = await this.decode(projectionWork.url);
                 if (!projOk || !this._running || this._paused || generation !== this._generation) {
