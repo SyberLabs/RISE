@@ -1378,6 +1378,11 @@ class App {
         if (key === 'masterVolume' && this.audioEngine) {
             this.audioEngine.setMasterVolume(value);
         }
+        if (key === 'chamberFace' || key === 'chamberMask') {
+            const chamber = this.router?.getViewInstance?.('chamber-session');
+            chamber?.applyChamberStreamFace?.();
+            chamber?.applyChamberMask?.();
+        }
         if (key === 'showArtworkLabels') {
             visualCortex.setArtworkLabelsVisible(value);
         }

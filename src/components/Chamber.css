@@ -448,6 +448,31 @@
   color: var(--color-shadow);
 }
 
+.chamber-settings-btn {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.chamber-settings-btn.is-failed {
+  opacity: 0.75;
+}
+
+.chamber-settings-fail {
+  font-size: 11px;
+  color: var(--color-fog);
+}
+
+.chamber-settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150000;
+  overflow: auto;
+}
+
+.chamber-settings-overlay[hidden] {
+  display: none !important;
+}
+
 /* ─────────────────────────────────────────────────────────────
    POST-SESSION STATE
    ───────────────────────────────────────────────────────────── */

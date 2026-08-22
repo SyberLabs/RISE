@@ -82,6 +82,11 @@ export class Chamber {
 
     this.controlsTimeout = null;
     this.controlsVisible = false;
+    this._settingsInstance = null;
+    this._settingsFailed = false;
+    this.loadSettingsClass = typeof options.loadSettingsClass === 'function'
+      ? options.loadSettingsClass
+      : async () => (await import('./Settings.js')).Settings;
     this.attractorField = null;
     this.kleeField = null;
     this._visualFieldDirector = null;
@@ -426,9 +431,13 @@ export class Chamber {
               
             </span>
 
+            <button class="control-btn chamber-settings-btn" id="chamber-settings-btn"
+              type="button" aria-label="Settings">Settings</button>
+
             <button class="control-btn" id="exit-btn" aria-label="Exit" title="Escape">
               <span class="icon">✕</span>
             </button>
+            <span class="chamber-settings-fail" id="chamber-settings-fail" hidden>Settings will not open.</span>
           </div>
         </div>
 
@@ -507,6 +516,8 @@ export class Chamber {
             </div>
           </div>
         </div>
+
+        <div class="chamber-settings-overlay" id="chamber-settings-overlay" hidden></div>
 
         <!-- Custom Exit Confirmation Overlay -->
         <div id="exit-confirm-overlay" class="exit-overlay hidden" style="display: none;">
@@ -752,6 +763,7 @@ export class Chamber {
     const playPauseBtn = this.container.querySelector('#play-pause-btn');
     const volumeBtn = this.container.querySelector('#volume-btn');
     const visualsToggleBtn = this.container.querySelector('#visuals-toggle-btn');
+    const settingsBtn = this.container.querySelector('#chamber-settings-btn');
     const exitBtn = this.container.querySelector('#exit-btn');
 
     playPauseBtn?.addEventListener('click', () => {
@@ -786,6 +798,10 @@ export class Chamber {
     visualsToggleBtn?.addEventListener('click', () => {
       window.rise?.audioEngine?.playHiss();
       this.toggleRhythmicVisuals();
+    });
+    settingsBtn?.addEventListener('click', () => {
+      window.rise?.audioEngine?.playHiss();
+      void this.openSettings();
     });
     exitBtn?.addEventListener('click', () => {
       window.rise?.audioEngine?.playHiss();
@@ -1868,6 +1884,83 @@ export class Chamber {
     }
   }
 
+  _pauseLikePlay() {
+    if (!this.player) return;
+    if (this.player.state === 'playing' || this.player.state === 'interlocuting') {
+      this.togglePlayPause();
+    }
+  }
+
+  async openSettings() {
+    if (this._settingsFailed || this._settingsInstance) return;
+    let Settings;
+    try {
+      Settings = await this.loadSettingsClass();
+      if (typeof Settings !== 'function') throw new Error('Settings unavailable');
+    } catch {
+      this._failSettingsDoor();
+      return;
+    }
+    this._pauseLikePlay();
+    try {
+      this._mountSettingsOverlay(Settings);
+    } catch {
+      this.closeSettings();
+      this._failSettingsDoor();
+    }
+  }
+
+  _mountSettingsOverlay(Settings) {
+    const host = this.container.querySelector('#chamber-settings-overlay');
+    if (!host) {
+      this._failSettingsDoor();
+      return;
+    }
+    host.hidden = false;
+    this._settingsInstance = new Settings(host, {
+      settings: globalThis.rise?.settings || {},
+      onClose: () => this.closeSettings(),
+      onNavigate: () => this.closeSettings(),
+      onChange: (key, value) => {
+        if (typeof globalThis.rise?.handleSettingsChange === 'function') {
+          globalThis.rise.handleSettingsChange(key, value);
+          return;
+        }
+        if (globalThis.rise?.settings) {
+          globalThis.rise.settings[key] = key === 'chamberFace'
+            ? resolveChamberStreamFace(value)
+            : key === 'chamberMask'
+              ? value === true
+              : value;
+        }
+        this.applyChamberStreamFace();
+        this.applyChamberMask();
+      }
+    });
+  }
+
+  closeSettings() {
+    const host = this.container.querySelector('#chamber-settings-overlay');
+    this._settingsInstance?.destroy?.();
+    this._settingsInstance = null;
+    if (host) {
+      host.replaceChildren();
+      host.hidden = true;
+    }
+  }
+
+  _failSettingsDoor() {
+    this._settingsFailed = true;
+    const button = this.container.querySelector('#chamber-settings-btn');
+    const fail = this.container.querySelector('#chamber-settings-fail');
+    if (button) {
+      button.classList.add('is-failed');
+      button.disabled = true;
+      button.style.opacity = '0.75';
+    }
+    if (fail) fail.hidden = false;
+  }
+
   /**
    * Stream ⇄ Page — the two projections of one reading (PAGE-MODE-SPEC §4).
    *
@@ -2561,6 +2654,11 @@ export class Chamber {
   }
 
   handleEscape() {
+    const settingsOverlay = this.container.querySelector('#chamber-settings-overlay');
+    if (settingsOverlay && !settingsOverlay.hidden) {
+      this.closeSettings();
+      return true;
+    }
     const overlay = this.container.querySelector('#exit-confirm-overlay');
     const overlayVisible = overlay && overlay.style.display === 'flex' && !overlay.classList.contains('hidden');
     if (overlayVisible) {
@@ -2819,6 +2917,7 @@ export class Chamber {
   }
 
   destroy() {
+    this.closeSettings();
     this.unbindVisualViewport();
     this._bandMoveCleanup?.();
     this._bandMoveCleanup = null;

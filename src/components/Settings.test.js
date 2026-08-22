@@ -102,6 +102,8 @@ describe('Settings display type', () => {
         const ids = radios.map((radio) => radio.value);
 
         expect(ids).toEqual(['literary', 'display', 'thick', 'jp']);
+        expect(radios.map((radio) => radio.closest('label')?.textContent.replace(/\s+/g, ' ').trim()))
+            .toEqual(['Literary', 'Display', 'Thick', 'Japanese']);
         expect(radios.find((radio) => radio.value === 'literary').checked).toBe(true);
         expect(container.textContent).not.toMatch(/Inter|JetBrains/);
 
@@ -144,6 +146,30 @@ describe('Settings display type', () => {
         toggle.dispatchEvent(new Event('change'));
         expect(onChange).toHaveBeenLastCalledWith('chamberMask', false);
         settings.destroy();
+    });
+
+    it('returns through onClose when opened from Chamber and still goes Portal from the route', () => {
+        const overlay = document.createElement('div');
+        document.body.appendChild(overlay);
+        const onClose = vi.fn();
+        const overlayNavigate = vi.fn();
+        const overlaySettings = new Settings(overlay, {
+            onClose,
+            onNavigate: overlayNavigate
+        });
+
+        overlay.querySelector('[data-action="back"]').click();
+        expect(onClose).toHaveBeenCalledTimes(1);
+        expect(overlayNavigate).not.toHaveBeenCalled();
+        overlaySettings.destroy();
+
+        const route = document.createElement('div');
+        document.body.appendChild(route);
+        const onNavigate = vi.fn();
+        const portalSettings = new Settings(route, { onNavigate });
+        route.querySelector('[data-action="back"]').click();
+        expect(onNavigate).toHaveBeenCalledWith('portal');
+        portalSettings.destroy();
     });
 });
 
