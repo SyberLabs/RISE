@@ -41,7 +41,7 @@ import {
 import { clampBandFraction } from './core/band-offset.js';
 import { resolveChamberStreamFace } from './core/chamber-stream-face.js';
 import { clampReadingWpm } from './core/reading-limits.js';
-import { normalizeVisualSelection } from './core/visual-selection.js';
+import { normalizeVisualSelection, normalizeWordFill } from './core/visual-selection.js';
 
 // Import styles
 import './design-system.css';
@@ -566,7 +566,10 @@ class App {
                         const rawInterlocution = session.visualConfig.interlocution || {};
                         const interlocution = {
                             ...rawInterlocution,
-                            ...normalizeVisualSelection(rawInterlocution)
+                            ...normalizeVisualSelection(rawInterlocution),
+                            wordFill: normalizeWordFill(
+                                rawInterlocution.wordFill ?? session.visualConfig?.wordFill
+                            )
                         };
                         // Keep the runtime session truthful for diagnostics and
                         // downstream consumers. Procedural means no sourced art;
@@ -663,6 +666,7 @@ class App {
                                     ? MemoryCore.resolveGlobalImageUris(interlocution.globalPool)
                                     : [],
                                 sourced: interlocution.sourced || [],
+                                wordFill: interlocution.wordFill,
                                 semanticSignals: semanticSignals
                             });
 

@@ -570,4 +570,66 @@ describe('Continuous Field projection mount', () => {
         field.stop();
         projection.remove();
     });
+
+    it('same-as-gallery shares the room url after a dissolve and does not draw a second bag', async () => {
+        const room = pool('room-a.jpg', 'room-b.jpg');
+        const { field, host, clock } = mount({ getPool: () => room });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const draw = vi.spyOn(field._projectionBag, 'draw');
+        field.setProjectionHost(projection);
+        field.start();
+        await Promise.resolve();
+        await Promise.resolve();
+        clock.tick(1000);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(draw).not.toHaveBeenCalled();
+        expect(field.currentProjectionUrl).toBe(field.currentUrl);
+        const roomSrc = [...host.querySelectorAll('.continuous-field-artwork')]
+            .map(img => img.getAttribute('src'))
+            .find(Boolean);
+        const fillSrc = [...projection.querySelectorAll('.continuous-field-artwork')]
+            .map(img => img.getAttribute('src'))
+            .find(Boolean);
+        expect(fillSrc).toBe(roomSrc);
+        expect(fillSrc).toBe(field.currentUrl);
+        field.stop();
+        projection.remove();
+    });
+
+    it('a distinct projection pool yields a different url from the room after a dissolve', async () => {
+        const room = pool('room-a.jpg', 'room-b.jpg');
+        const fill = pool('fill-x.jpg', 'fill-y.jpg');
+        const { field, host, clock } = mount({
+            getPool: () => room,
+            getProjectionPool: () => fill,
+            projectionPoolKey: () => 'word-fill:test'
+        });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        field.setProjectionHost(projection);
+        field.start();
+        await Promise.resolve();
+        await Promise.resolve();
+        clock.tick(1000);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(field.currentUrl).toMatch(/room-/);
+        expect(field.currentProjectionUrl).toMatch(/fill-/);
+        expect(field.currentProjectionUrl).not.toBe(field.currentUrl);
+        const roomSrc = [...host.querySelectorAll('.continuous-field-artwork')]
+            .map(img => img.getAttribute('src'))
+            .find(src => src && src.includes('room-'));
+        const fillSrc = [...projection.querySelectorAll('.continuous-field-artwork')]
+            .map(img => img.getAttribute('src'))
+            .find(src => src && src.includes('fill-'));
+        expect(roomSrc).toBeTruthy();
+        expect(fillSrc).toBeTruthy();
+        expect(fillSrc).not.toBe(roomSrc);
+        field.stop();
+        projection.remove();
+    });
 });

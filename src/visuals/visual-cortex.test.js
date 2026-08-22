@@ -2044,6 +2044,64 @@ describe('Continuous Field (Gallery) wiring', () => {
         expect(cortex._continuousField.running).toBe(false);
         cortex.destroy();
     });
+
+    it('wordFill same leaves the projection as identical pixels (no second bag)', async () => {
+        const { cortex, host } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-landscapes', ['room-a.jpg', 'room-b.jpg']);
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-landscapes'],
+            wordFill: { mode: 'same' }
+        });
+        cortex.setContinuousFieldProjectionHost(projection);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        const field = cortex._continuousField;
+        expect(field).toBeInstanceOf(ContinuousField);
+        expect(cortex._continuousProjectionPool?.() ?? null).toBeNull();
+        expect(field.currentProjectionUrl).toBe(field.currentUrl);
+        const draw = vi.spyOn(field._projectionBag, 'draw');
+        await field._advance(false);
+        expect(draw).not.toHaveBeenCalled();
+        expect(field.currentProjectionUrl).toBe(field.currentUrl);
+        expect(host.querySelectorAll('.continuous-field-layer')).toHaveLength(2);
+        expect(projection.querySelectorAll('.continuous-field-layer')).toHaveLength(2);
+        cortex.destroy();
+    });
+
+    it('wordFill pick keeps the room pool and a distinct projection playlist on one field', async () => {
+        const { cortex } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-landscapes', ['room-a.jpg', 'room-b.jpg']);
+        seedPool(cortex, 'aic-ukiyoe', ['fill-x.jpg', 'fill-y.jpg']);
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-landscapes'],
+            wordFill: { mode: 'pick', sourced: ['aic-ukiyoe'], procedural: [] }
+        });
+        cortex.setContinuousFieldProjectionHost(projection);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        const field = cortex._continuousField;
+        expect(cortex._continuousPool().map(w => w.url).sort())
+            .toEqual(['room-a.jpg', 'room-b.jpg']);
+        expect(cortex._continuousProjectionPool().map(w => w.url).sort())
+            .toEqual(['fill-x.jpg', 'fill-y.jpg']);
+        await field._advance(false);
+        expect(field.currentUrl).toMatch(/room-/);
+        expect(field.currentProjectionUrl).toMatch(/fill-/);
+        expect(field.currentProjectionUrl).not.toBe(field.currentUrl);
+        expect(document.querySelectorAll('.continuous-field-layer').length).toBeGreaterThan(0);
+        expect(document.querySelectorAll('video')).toHaveLength(0);
+        cortex.destroy();
+    });
 });
 
 describe('a figure survives the crossing into the cortex', () => {

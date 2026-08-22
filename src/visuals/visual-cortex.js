@@ -58,6 +58,7 @@ import {
     normalizeVisualPresence,
     visualPresenceTransition
 } from '../core/visual-presence.js';
+import { normalizeWordFill, wordFillIsDistinct } from '../core/visual-selection.js';
 
 // External imagery is globally bounded because HTMLImageElements may retain
 // decoded pixels, not merely compressed network bytes. One image per selected
@@ -267,6 +268,7 @@ export class VisualCortex {
             // surface a reader picks and a surface the engine assumes are
             // two different constants that happened to share a value.
             presentation: 'full-frame',
+            wordFill: { mode: 'same' },
             customVisuals: [],
             sequenceVisualAssets: [],
             // null preserves legacy direct callers; App session entry always
@@ -1276,16 +1278,67 @@ export class VisualCortex {
      * cue swaps are picked up with no reset (CONTINUOUS-FIELD-SPEC §3.3).
      */
     _continuousPool() {
-        const categories = this._activePoolCategories();
+        return this._poolWorksForCategories(this._activePoolCategories(), {
+            warm: true,
+            includeSequence: true
+        });
+    }
+
+    _wordFillIsDistinct() {
+        return this.config.presentation === 'continuous'
+            && wordFillIsDistinct(this.config.wordFill);
+    }
+
+    _wordFillTypes() {
+        const fill = normalizeWordFill(this.config.wordFill);
+        if (fill.mode !== 'pick') return [];
+        return [...fill.procedural, ...fill.sourced];
+    }
+
+    _projectionPoolCategories() {
+        if (!this._wordFillIsDistinct()) return [];
+        return this._poolCategoriesForTypes(this._wordFillTypes());
+    }
+
+    _continuousProjectionPool() {
+        if (!this._wordFillIsDistinct()) return null;
+        return this._poolWorksForCategories(this._projectionPoolCategories(), { warm: true });
+    }
+
+    _continuousProjectionPoolKey() {
+        if (!this._wordFillIsDistinct()) return null;
+        const identities = this._wordFillTypes().slice().sort();
+        return identities.length
+            ? `word-fill:${this.config.renderLanguage || 'native'}:${identities.join('|')}`
+            : 'word-fill:empty';
+    }
+
+    _typesForAssetGeneration(config = this.config) {
+        const room = this._normalizeActiveTypes(config.activeTypes || []);
+        const fill = normalizeWordFill(config.wordFill);
+        if (config.presentation !== 'continuous' || fill.mode !== 'pick') return room;
+        return this._normalizeActiveTypes([...room, ...fill.sourced, ...fill.procedural]);
+    }
+
+    _warmingPoolCategories() {
+        return [...new Set([
+            ...this._activePoolCategories(),
+            ...this._projectionPoolCategories()
+        ])];
+    }
+
+    _poolWorksForCategories(categories, { warm = false, includeSequence = false } = {}) {
         const works = [];
         const seen = new Set();
-        for (const asset of this._activeSequenceAssets()) {
-            seen.add(asset.uri);
-            works.push({
-                url: asset.uri,
-                title: asset.name || 'Sequence Visual',
-                artworkLabel: null
-            });
+        if (includeSequence) {
+            for (const asset of this._activeSequenceAssets()) {
+                seen.add(asset.uri);
+                works.push({
+                    url: asset.uri,
+                    title: asset.name || 'Sequence Visual',
+                    artworkLabel: null
+                });
+            }
         }
         for (const categoryId of categories) {
             const pool = this._assetPools.get(categoryId);
@@ -1306,11 +1359,11 @@ export class VisualCortex {
         // must keep the pool filling toward target. Read cadence (~dwell)
         // is a fine warm cadence — a cold or under-target pool schedules a
         // warm, a full one a gentle rolling refresh.
-        if (categories.length > 0) {
+        if (warm && categories.length > 0) {
             const target = this._backgroundTarget();
             const needsWarmth = categories.some(id => this._poolFor(id).images.length < target);
             if (needsWarmth) this._scheduleBackgroundWarm(false);
-            else this._scheduleRollingRefresh();
+            else if (includeSequence) this._scheduleRollingRefresh();
         }
         return works;
     }
@@ -1565,6 +1618,8 @@ export class VisualCortex {
         this._continuousField = new ContinuousField(this._continuousFieldHost, {
             getPool: () => this._continuousPool(),
             getNextWork: context => this._nextContinuousWork(context),
+            getProjectionPool: () => this._continuousProjectionPool(),
+            projectionPoolKey: () => this._continuousProjectionPoolKey(),
             hasWorks: () => this._continuousHasWorks(),
             poolKey: () => this._continuousPoolKey(),
             showArtworkLabels: this.showArtworkLabels,
@@ -1777,6 +1832,9 @@ export class VisualCortex {
             // imagery it had no reason to owe.
             this._blendDebt = 0;
         }
+        if ('wordFill' in nextConfig) {
+            nextConfig.wordFill = normalizeWordFill(nextConfig.wordFill);
+        }
         if ('globalVisuals' in nextConfig) {
             nextConfig.globalVisuals = Array.isArray(nextConfig.globalVisuals)
                 ? [...new Set(nextConfig.globalVisuals.filter(uri =>
@@ -1784,10 +1842,21 @@ export class VisualCortex {
                 : [];
         }
         let assetGenerationRotated = false;
-        // Detect if active external categories changed
-        if ('activeTypes' in nextConfig) {
-            const oldExternal = this._poolCategoriesForTypes(this.config.activeTypes || []);
-            const newExternal = this._poolCategoriesForTypes(nextConfig.activeTypes);
+        // Detect if active external categories changed (room or word-fill).
+        if ('activeTypes' in nextConfig || 'wordFill' in nextConfig || 'presentation' in nextConfig) {
+            const prospective = {
+                ...this.config,
+                ...nextConfig,
+                activeTypes: 'activeTypes' in nextConfig
+                    ? nextConfig.activeTypes
+                    : this.config.activeTypes,
+                wordFill: 'wordFill' in nextConfig ? nextConfig.wordFill : this.config.wordFill,
+                presentation: 'presentation' in nextConfig
+                    ? nextConfig.presentation
+                    : this.config.presentation
+            };
+            const oldExternal = this._poolCategoriesForTypes(this._typesForAssetGeneration(this.config));
+            const newExternal = this._poolCategoriesForTypes(this._typesForAssetGeneration(prospective));
             
             // A category generation owns its own abort signal. Preserve pools
             // shared by both configurations, release removed categories, and
@@ -1799,7 +1868,7 @@ export class VisualCortex {
                 console.log(changed
                     ? '[Visual Cortex] Category change detected, rotating asset generation.'
                     : '[Visual Cortex] New reading detected, rotating asset generation.');
-                this._rotateAssetGeneration(nextConfig.activeTypes);
+                this._rotateAssetGeneration(this._typesForAssetGeneration(prospective));
                 assetGenerationRotated = true;
             }
         }
@@ -1808,7 +1877,10 @@ export class VisualCortex {
         // while preserving already-retained pools for a possible return.
         if (nextConfig.enabled === false && this.config.enabled !== false && !assetGenerationRotated) {
             this.cancelPresentation('aborted');
-            this._rotateAssetGeneration(nextConfig.activeTypes || this.config.activeTypes || []);
+            this._rotateAssetGeneration(this._typesForAssetGeneration({
+                ...this.config,
+                ...nextConfig
+            }));
         }
 
         const prevPresentation = this.config.presentation;
@@ -2623,7 +2695,7 @@ export class VisualCortex {
                 return { ...this.getExternalAssetStatus(), aborted: true };
             }
             const version = this._configVersion;
-            const categories = this._activePoolCategories();
+            const categories = this._warmingPoolCategories();
             if (categories.length === 0) return this._refreshExternalStatus('idle', target);
             if (categories.every(categoryId => this._poolFor(categoryId).images.length >= target)) {
                 return this._refreshExternalStatus('ready', target);
@@ -2655,7 +2727,7 @@ export class VisualCortex {
 
     _scheduleBackgroundWarm(immediate = false) {
         if (this._destroyed || !this.config.enabled) return;
-        const categories = this._activePoolCategories();
+        const categories = this._warmingPoolCategories();
         if (categories.length === 0 || this._backgroundWarmTimer) return;
         const target = this._backgroundTarget();
         if (categories.every(categoryId => this._poolFor(categoryId).images.length >= target)) {
