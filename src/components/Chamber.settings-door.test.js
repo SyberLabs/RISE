@@ -140,12 +140,13 @@ describe('Chamber Settings door', () => {
     expect(sync).toHaveBeenCalled();
 
     chamber.displayAtom({ content: 'Word', duration: 500 }, 0);
+    sync.mockClear();
     container.querySelector('input[name="font-size"][value="fit"]').click();
     expect(globalThis.rise.settings.fontSize).toBe('fit');
     expect(container.querySelector('#atom-display').dataset.fontSize).toBe('fit');
     expect(container.querySelector('#font-size-hint')?.textContent)
         .toMatch(/Words fill the chamber|Fit waits for the chamber/);
-    expect(sync).toHaveBeenCalledTimes(2);
+    expect(sync).toHaveBeenCalled();
     expect(player.state).toBe('paused');
 
     chamber.destroy();

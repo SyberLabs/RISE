@@ -104,6 +104,11 @@ describe('Chamber type size (FM-RISE-36)', () => {
             { chunkMode: 'word' },
             { fontSize: 'fit' }
         );
+        vi.spyOn(chamber, '_measureWordGlyph').mockReturnValue({
+            width: 240,
+            height: 115,
+            at: 100
+        });
         chamber.displayAtom({ content: 'Word', duration: 500 }, 0);
         const el = container.querySelector('#atom-display');
         const px = parseFloat(el.style.getPropertyValue('--atom-fit-px'));
