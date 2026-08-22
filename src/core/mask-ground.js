@@ -23,12 +23,6 @@ export const GROUNDS = Object.freeze({
     dark: 'dark'
 });
 
-/** Named tokens only. The plate stylesheet binds these; never #000/#fff. */
-export const MASK_GROUND_CSS = Object.freeze({
-    light: 'var(--color-cream)',
-    dark: 'var(--color-dark-slate)'
-});
-
 const ENGINE_IDS = new Set([
     ...PROCEDURAL_PATTERN_IDS,
     ...LISTED_PROCEDURAL_PATTERNS.map(pattern => pattern.id)
@@ -55,29 +49,18 @@ const SOURCE_PROFILES = Object.freeze({
     blend: GROUNDS.transparent,
 
     astronomy: GROUNDS.dark,
-    'sci-astronomy': GROUNDS.dark,
     oldmasters: GROUNDS.dark,
-    'aic-oldmasters': GROUNDS.dark,
     renaissance: GROUNDS.dark,
     impressionism: GROUNDS.light,
-    'aic-impressionism': GROUNDS.light,
     postimpressionism: GROUNDS.light,
-    'aic-postimpressionism': GROUNDS.light,
     ukiyoe: GROUNDS.light,
-    'aic-ukiyoe': GROUNDS.light,
     landscapes: GROUNDS.light,
-    'aic-landscapes': GROUNDS.light,
     romantic: GROUNDS.light,
     portraits: GROUNDS.dark,
-    'aic-portraits': GROUNDS.dark,
     flowers: GROUNDS.light,
-    'aic-flowers': GROUNDS.light,
     ships: GROUNDS.dark,
-    'aic-ships': GROUNDS.dark,
     animals: GROUNDS.light,
-    'aic-animals': GROUNDS.light,
     knights: GROUNDS.dark,
-    'aic-knights': GROUNDS.dark,
 
     atrium: GROUNDS.dark,
     chapel: GROUNDS.dark,
@@ -85,14 +68,15 @@ const SOURCE_PROFILES = Object.freeze({
     custom: GROUNDS.transparent
 });
 
+/**
+ * Only ids whose family cannot be derived by stripping the `aic-`/`sci-`
+ * prefix. Prefixed aliases resolve through `collectionFamilyOf`.
+ */
 const FAMILY_BY_ID = Object.freeze({
     astronomy: 'astronomy',
-    'sci-astronomy': 'astronomy',
     oldmasters: 'oldmasters',
-    'aic-oldmasters': 'oldmasters',
     renaissance: 'oldmasters',
     landscapes: 'landscapes',
-    'aic-landscapes': 'landscapes',
     romantic: 'landscapes'
 });
 
@@ -119,7 +103,7 @@ export function isStillSource(id) {
     return true;
 }
 
-export function collectionFamilyOf(id) {
+function collectionFamilyOf(id) {
     const canonical = canonicalizeProceduralEngineId(id);
     if (!canonical) return 'collections';
     if (isProceduralSource(canonical)) return 'procedural';
@@ -154,8 +138,7 @@ export function describeSource(ref) {
             family,
             procedural,
             still,
-            profile: ref.profile || profileFor(id || family),
-            opaque: ref.opaque === true
+            profile: ref.profile || profileFor(id || family)
         };
     }
     const id = firstId(ref);
@@ -166,61 +149,39 @@ export function describeSource(ref) {
         family,
         procedural,
         still: !procedural && Boolean(id),
-        profile: profileFor(id),
-        opaque: false
+        profile: profileFor(id)
     };
 }
 
-function isAstronomy(source) {
-    return source.family === 'astronomy'
-        || source.id === 'sci-astronomy'
-        || source.id === 'astronomy';
-}
-
-function isOldMasters(source) {
-    return source.family === 'oldmasters'
-        || source.id === 'aic-oldmasters'
-        || source.id === 'oldmasters';
-}
-
 /**
- * combine(A, B) — Firstmate named this so the ship can leave.
+ * combine(A, B) — the plate under the word-fill.
  *
- * 1. If B is a procedural, start from B’s profile.
- * 2. Locked overrides: Astronomy+Attractor → Dark. Old Masters+Fractal → Light.
- * 3. If both A and B are collection/still: Transparent (no plate).
- * 4. If result is Transparent and A is not yet opaque: Dark (never page punch).
+ * 1. A procedural fill contributes its own profile; a still fill contributes
+ *    no plate.
+ * 2. Transparent only survives once the room is already opaque, so the plate
+ *    never punches through to the page.
+ *
+ * The room id `A` is kept as the pair's left-hand term for call-site
+ * readability; opacity is the only property of the room that reaches the
+ * result, and it arrives via `options.roomOpaque`.
+ *
+ * Previously this also carried two "locked override" pairs (Astronomy +
+ * Attractor → Dark, Old Masters + Fractal → Light) and a both-still rule.
+ * All three were unreachable: Attractor's own profile is already Dark and
+ * Fractal's is already Light, and a still fill has already left the result
+ * Transparent by the time the both-still rule runs.
  */
 export function combine(A, B, options = {}) {
-    const room = describeSource(A);
     const fill = describeSource(B);
-    const roomOpaque = options.roomOpaque === true || room.opaque === true;
+    const result = fill.procedural ? fill.profile : GROUNDS.transparent;
 
-    let result = GROUNDS.transparent;
-
-    if (fill.procedural) {
-        result = fill.profile;
+    if (result === GROUNDS.transparent && options.roomOpaque !== true) {
+        return GROUNDS.dark;
     }
-
-    if (isAstronomy(room) && fill.id === 'attractor') {
-        result = GROUNDS.dark;
-    }
-    if (isOldMasters(room) && fill.id === 'fractal') {
-        result = GROUNDS.light;
-    }
-
-    if (room.still && fill.still) {
-        result = GROUNDS.transparent;
-    }
-
-    if (result === GROUNDS.transparent && !roomOpaque) {
-        result = GROUNDS.dark;
-    }
-
     return result;
 }
 
-export function resolveRoomSourceId({
+function resolveRoomSourceId({
     activeTypes,
     procedural,
     sourced
@@ -228,7 +189,7 @@ export function resolveRoomSourceId({
     return firstId(activeTypes) || firstId(procedural) || firstId(sourced);
 }
 
-export function resolveFillSourceId(roomId, wordFill) {
+function resolveFillSourceId(roomId, wordFill) {
     const fill = normalizeWordFill(wordFill);
     if (fill.mode !== 'pick') return roomId || '';
     return firstId(fill.procedural) || firstId(fill.sourced) || roomId || '';
