@@ -64,6 +64,10 @@ import {
     normalizeWordFill,
     wordFillIsDistinct
 } from '../core/visual-selection.js';
+import {
+    applyFlameFillToCanvas,
+    prefersFlameFillReducedMotion
+} from './flame-fill-adapter.js';
 
 // External imagery is globally bounded because HTMLImageElements may retain
 // decoded pixels, not merely compressed network bytes. One image per selected
@@ -1422,7 +1426,7 @@ export class VisualCortex {
                     );
                     if (!type || attempted.has(type)) break;
                     attempted.add(type);
-                    const work = await this._renderContinuousProceduralWork(type);
+                    const work = await this._renderContinuousProceduralWork(type, { wordFill: true });
                     if (work) return work;
                 }
             }
@@ -1536,8 +1540,13 @@ export class VisualCortex {
      * signal, render-language adapters, and session-owned queues as Rhythmic
      * flashes. The result is an immutable data URL: ContinuousField remains
      * image-only and never acquires generator or canvas lifecycle knowledge.
+     *
+     * `wordFill: true` is the Layer B path only. Fractal stills then run
+     * the fill adapter (existing brightness / gamma / vibrancy as a
+     * session-locked 1D LUT). The room still uses the classic engine.
      */
-    async _renderContinuousProceduralWork(type) {
+    async _renderContinuousProceduralWork(type, options = {}) {
+        const wordFill = options.wordFill === true;
         if (!GALLERY_PROCEDURAL_TYPES.includes(type)) return null;
         if (!this.initialized) this.init();
         const signal = this._nextContinuousSignal();
@@ -1595,6 +1604,12 @@ export class VisualCortex {
             } else {
                 rendered = this.fractal.generate(signal);
                 canvas = this._fractalCanvas;
+                if (rendered && wordFill) {
+                    applyFlameFillToCanvas(canvas, {
+                        reducedMotion: this._continuousReducedMotion()
+                            || prefersFlameFillReducedMotion()
+                    });
+                }
             }
         } else if (type === 'neural' && this.neural && this._neuralCanvas) {
             rendered = this.neural.generate();
