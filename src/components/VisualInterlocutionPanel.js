@@ -802,6 +802,9 @@ export class VisualInterlocutionPanel {
 
                     ${this.renderChamberFaceRow()}
                     ${this.renderChamberSizeRow()}
+                    ${(mode === 'off' || mode === 'attractor' || mode === 'genesis')
+                        ? this.renderSourceFamilyAndWordFill({ nestWordFill: false, showWordFill: true })
+                        : ''}
 
                     <!-- FOCALS: Persistent focal point (neurosensitive-friendly) -->
                     <div class="vi-focals-panel" ${mode === 'focals' ? '' : 'hidden'}>
@@ -1180,46 +1183,12 @@ export class VisualInterlocutionPanel {
                             ` : ''}
                         </div>
 
-                        <div class="vi-source-family" role="group" aria-label="Rhythmic source family">
-                            <div class="vi-source-family-label">Source</div>
-                            <div class="vi-source-family-options">
-                                ${[
-                                    ['procedural', 'Procedural'],
-                                    ['collections', 'Collections'],
-                                    ['personal', 'Personal'],
-                                    ['blend', 'Blend']
-                                ].map(([id, label]) => `
-                                    <button type="button"
-                                        class="vi-source-family-btn ${sourceFamily === id ? 'active' : ''}"
-                                        data-source-family="${id}"
-                                        aria-pressed="${sourceFamily === id}">
-                                        ${label}
-                                    </button>
-                                `).join('')}
-                            </div>
-                            <p class="vi-source-family-hint text-mist">
-                                ${sourceFamily === 'blend'
-                                    ? 'Blend intentionally combines generated work, collections, and personal imagery.'
-                                    : 'This source is exclusive. Choose Blend only when you want categories to intermingle.'}
-                            </p>
-                            ${this.config.interlocution.presentation === 'continuous' ? `
-                                <select data-word-fill aria-label="Word source">
-                                    <option value="same" ${wordFillControlValue(this.config.interlocution.wordFill) === 'same' ? 'selected' : ''}>Same as gallery</option>
-                                    ${proceduralPatterns.map(p => `
-                                        <option value="procedural:${p.id}" ${wordFillControlValue(this.config.interlocution.wordFill) === `procedural:${p.id}` ? 'selected' : ''}>${escapeHtml(p.name)}</option>
-                                    `).join('')}
-                                    ${aicCategories.map(c => `
-                                        <option value="sourced:${c.id}" ${wordFillControlValue(this.config.interlocution.wordFill) === `sourced:${c.id}` ? 'selected' : ''}>${escapeHtml(c.name)}</option>
-                                    `).join('')}
-                                    ${scienceCategories.map(c => `
-                                        <option value="sourced:${c.id}" ${wordFillControlValue(this.config.interlocution.wordFill) === `sourced:${c.id}` ? 'selected' : ''}>${escapeHtml(c.name)}</option>
-                                    `).join('')}
-                                    ${diagramCategories.map(c => `
-                                        <option value="sourced:${c.id}" ${wordFillControlValue(this.config.interlocution.wordFill) === `sourced:${c.id}` ? 'selected' : ''}>${escapeHtml(c.name)}</option>
-                                    `).join('')}
-                                </select>
-                            ` : ''}
-                        </div>
+                        ${mode === 'interlocution'
+                            ? this.renderSourceFamilyAndWordFill({
+                                nestWordFill: true,
+                                showWordFill: this.config.interlocution.presentation === 'continuous'
+                            })
+                            : ''}
 
                         <!-- 1. Procedural Patterns -->
                         <div class="vi-accordion ${this.activeAccordions.includes('procedural') ? 'active' : ''}"
@@ -2046,6 +2015,67 @@ export class VisualInterlocutionPanel {
             this.render();
             this.attachEvents();
         });
+    }
+
+    renderSourceFamilyAndWordFill({ nestWordFill = false, showWordFill = false } = {}) {
+        const sourceFamily = this.config.interlocution.sourceFamily;
+        const current = wordFillControlValue(this.config.interlocution.wordFill);
+        const proceduralPatterns = LISTED_PROCEDURAL_PATTERNS;
+        const aicCategories = Object.entries(MUSEUM_CATEGORIES)
+            .map(([id, cat]) => ({ id: `aic-${id}`, name: cat.name }));
+        const scienceCategories = Object.entries(SCIENCE_CATEGORIES)
+            .map(([id, cat]) => ({ id: `sci-${id}`, name: cat.name }));
+        const diagramCategories = Object.entries(WIKIMEDIA_CATEGORIES)
+            .map(([id, cat]) => ({ id, name: cat.name }));
+        const wordFillSelect = `
+                                <select data-word-fill aria-label="Word source">
+                                    <option value="same" ${current === 'same' ? 'selected' : ''}>Same as gallery</option>
+                                    ${proceduralPatterns.map(p => `
+                                        <option value="procedural:${p.id}" ${current === `procedural:${p.id}` ? 'selected' : ''}>${escapeHtml(p.name)}</option>
+                                    `).join('')}
+                                    ${aicCategories.map(c => `
+                                        <option value="sourced:${c.id}" ${current === `sourced:${c.id}` ? 'selected' : ''}>${escapeHtml(c.name)}</option>
+                                    `).join('')}
+                                    ${scienceCategories.map(c => `
+                                        <option value="sourced:${c.id}" ${current === `sourced:${c.id}` ? 'selected' : ''}>${escapeHtml(c.name)}</option>
+                                    `).join('')}
+                                    ${diagramCategories.map(c => `
+                                        <option value="sourced:${c.id}" ${current === `sourced:${c.id}` ? 'selected' : ''}>${escapeHtml(c.name)}</option>
+                                    `).join('')}
+                                </select>
+        `;
+        return `
+                        <div class="vi-source-family" role="group" aria-label="Source family">
+                            <div class="vi-source-family-label">Source</div>
+                            <div class="vi-source-family-options">
+                                ${[
+                                    ['procedural', 'Procedural'],
+                                    ['collections', 'Collections'],
+                                    ['personal', 'Personal'],
+                                    ['blend', 'Blend']
+                                ].map(([id, label]) => `
+                                    <button type="button"
+                                        class="vi-source-family-btn ${sourceFamily === id ? 'active' : ''}"
+                                        data-source-family="${id}"
+                                        aria-pressed="${sourceFamily === id}">
+                                        ${label}
+                                    </button>
+                                `).join('')}
+                            </div>
+                            <p class="vi-source-family-hint text-mist">
+                                ${sourceFamily === 'blend'
+                                    ? 'Blend intentionally combines generated work, collections, and personal imagery.'
+                                    : 'This source is exclusive. Choose Blend only when you want categories to intermingle.'}
+                            </p>
+                            ${nestWordFill && showWordFill ? wordFillSelect : ''}
+                        </div>
+                        ${!nestWordFill && showWordFill ? `
+                        <div class="vi-source-family vi-word-fill" role="group" aria-label="Word source">
+                            <div class="vi-source-family-label">Word source</div>
+                            ${wordFillSelect}
+                        </div>
+                        ` : ''}
+        `;
     }
 
     renderChamberFaceRow() {
