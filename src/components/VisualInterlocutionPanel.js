@@ -23,7 +23,7 @@ import { ATRIUM_CATEGORIES } from '../content/imagery/atrium-categories.js';
 import { ATRIUM_PINNED_COLLECTIONS } from '../content/imagery/collections.js';
 import { SCIENCE_CATEGORIES, SCIENCE_KIND_LABELS }
     from '../content/science/imagery/science-pins.js';
-import { PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
+import { LISTED_PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
 
 /**
  * Presentations that interrupt the reading with a presence.
@@ -646,7 +646,7 @@ export class VisualInterlocutionPanel {
             return;
         }
 
-        const proceduralPatterns = PROCEDURAL_PATTERNS;
+        const proceduralPatterns = LISTED_PROCEDURAL_PATTERNS;
         // NOT LISTED: 'blueprint' and 'freedom'. Both are Atrium-exclusive
         // patterns — a blueprint plate belongs to a passage about a
         // mechanism, and the liberation field is meaningless without the

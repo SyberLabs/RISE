@@ -55,7 +55,9 @@ export class PlateField {
 
         this.running = false;
         this.paused = false;
+        this.projectionHost = null;
         this._planes = null;
+        this._projectionPlanes = null;
         this._active = 0;
         this._cursor = 0;
         this._rafId = null;
@@ -82,6 +84,7 @@ export class PlateField {
             return { canvas, engine: null, elapsedMs: 0, holdPenMs: 0, drawDwellMs: 0 };
         };
         this._planes = [make(), make()];
+        this._ensureProjectionPlanes();
 
         if (typeof ResizeObserver === 'function') {
             this._resizeObserver = new ResizeObserver(this._resize);
@@ -131,9 +134,69 @@ export class PlateField {
     _draw(plane) {
         if (!plane?.engine) return;
         const progress = this._progress(plane);
-        if (progress >= 1 && plane._drawnComplete) return;
+        if (progress >= 1 && plane._drawnComplete) {
+            this._syncProjectionFor(plane);
+            return;
+        }
         const ok = plane.engine.render(plane.canvas, { progress });
         if (progress >= 1 && ok) plane._drawnComplete = true;
+        this._syncProjectionFor(plane);
+    }
+
+    /**
+     * A second live mount of the same plate clock. One field, two clips.
+     */
+    setProjectionHost(host) {
+        if (host === this.host) host = null;
+        if (this.projectionHost === host) return;
+        this._teardownProjectionPlanes();
+        this.projectionHost = host || null;
+        if (!this.projectionHost || !this._planes) return;
+        this._ensureProjectionPlanes();
+        for (const plane of this._planes) this._syncProjectionFor(plane);
+    }
+
+    _teardownProjectionPlanes() {
+        if (this._projectionPlanes) {
+            for (const plane of this._projectionPlanes) {
+                try { plane.canvas.remove(); } catch { /* detached */ }
+            }
+        }
+        this._projectionPlanes = null;
+        if (this.projectionHost) {
+            this.projectionHost.querySelectorAll('.plate-plane').forEach((node) => {
+                try { node.remove(); } catch { /* detached */ }
+            });
+        }
+    }
+
+    _ensureProjectionPlanes() {
+        if (!this.projectionHost || !this._planes || this._projectionPlanes) return;
+        this._projectionPlanes = this._planes.map((plane) => {
+            const canvas = document.createElement('canvas');
+            canvas.className = 'plate-plane';
+            canvas.setAttribute('aria-hidden', 'true');
+            canvas.style.opacity = plane.canvas.style.opacity || '0';
+            canvas.style.transition = plane.canvas.style.transition
+                || `opacity ${this.crossfadeMs}ms ease-in-out`;
+            this.projectionHost.appendChild(canvas);
+            return { canvas };
+        });
+    }
+
+    _syncProjectionFor(plane) {
+        if (!this._projectionPlanes || !this._planes) return;
+        const dest = this._projectionPlanes[this._planes.indexOf(plane)];
+        if (!dest) return;
+        dest.canvas.style.opacity = plane.canvas.style.opacity;
+        dest.canvas.style.transition = plane.canvas.style.transition;
+        if (dest.canvas.width !== plane.canvas.width
+            || dest.canvas.height !== plane.canvas.height) {
+            dest.canvas.width = plane.canvas.width;
+            dest.canvas.height = plane.canvas.height;
+        }
+        if (!plane.engine) return;
+        plane.engine.render(dest.canvas, { progress: this._progress(plane) });
     }
 
     _rotate(first) {
@@ -338,6 +401,7 @@ export class PlateField {
             if (this._planes) {
                 for (const plane of this._planes) {
                     plane.canvas.style.transition = `opacity ${this.crossfadeMs}ms ease-in-out`;
+                    this._syncProjectionFor(plane);
                 }
             }
         }
@@ -351,6 +415,8 @@ export class PlateField {
             window.removeEventListener('resize', this._resize);
             document.removeEventListener('visibilitychange', this._onVisibility);
         }
+        this._teardownProjectionPlanes();
+        this.projectionHost = null;
         if (this._planes) {
             for (const plane of this._planes) plane.canvas.remove();
         }

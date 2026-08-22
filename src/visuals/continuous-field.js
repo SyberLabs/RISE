@@ -434,7 +434,7 @@ export class ContinuousField {
         proj.root.style.opacity = layer.root.style.opacity;
         const url = (this._usesDistinctProjection() && layer.projectionWork?.url)
             ? layer.projectionWork.url
-            : layer.work?.url;
+            : (layer.projectionWork?.living ? null : layer.work?.url);
         if (url) {
             if (proj.artwork.getAttribute('src') !== url) proj.artwork.src = url;
             if (layer.backdrop.hidden) {
@@ -718,6 +718,13 @@ export class ContinuousField {
                 } catch {
                     projectionWork = null;
                 }
+            }
+            if (projectionWork?.living) {
+                this._crossfadeTo(work, first, { living: true });
+                this._currentUrl = url;
+                this._currentProjectionUrl = null;
+                this._advanceInFlight = false;
+                return;
             }
             if (!projectionWork?.url) projectionWork = this._drawProjectionWork();
             if (projectionWork?.url && projectionWork.url !== url) {

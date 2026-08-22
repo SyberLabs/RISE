@@ -9,6 +9,7 @@ import { VisualCortex } from './visual-cortex.js';
 import { KleeFlashes } from './klee-flashes.js';
 import { ContinuousField } from './continuous-field.js';
 import { Ostensoria } from './ostensoria.js';
+import { Apparitio } from './apparitio.js';
 import { grantVisualInterlocutionConsent } from '../core/visual-safety.js';
 
 function mockEngine(width = 800, height = 400) {
@@ -2198,7 +2199,7 @@ describe('Continuous Field (Gallery) wiring', () => {
         cortex.destroy();
     });
 
-    it('wordFill snapshots each shared engine as a projection still', async () => {
+    it('wordFill snapshots still engines as a projection still', async () => {
         const { cortex } = hostedContinuousCortex();
         seedPool(cortex, 'aic-landscapes', ['room-a.jpg']);
         cortex.updateConfig({
@@ -2207,8 +2208,7 @@ describe('Continuous Field (Gallery) wiring', () => {
             activeTypes: ['aic-landscapes']
         });
         const engines = [
-            'klee', 'turrell', 'fractal', 'neural', 'rockgarden',
-            'harmonograph', 'ostensoria', 'apparitio'
+            'klee', 'turrell', 'fractal', 'neural', 'rockgarden'
         ];
         for (const id of engines) {
             cortex.updateConfig({
@@ -2232,7 +2232,196 @@ describe('Continuous Field (Gallery) wiring', () => {
         }
         cortex.destroy();
     });
+
+    function stubLivingPlateEngines() {
+        vi.spyOn(Ostensoria.prototype, 'generate').mockImplementation(function generate() {
+            this.ready = true;
+            return true;
+        });
+        vi.spyOn(Ostensoria.prototype, 'beginBake').mockImplementation(function beginBake() {
+            this.ready = false;
+        });
+        vi.spyOn(Ostensoria.prototype, 'stepBake').mockImplementation(function stepBake() {
+            this.ready = true;
+            return true;
+        });
+        vi.spyOn(Ostensoria.prototype, 'render').mockReturnValue(true);
+        vi.spyOn(Apparitio.prototype, 'generate').mockImplementation(function generate() {
+            this.ready = true;
+            return true;
+        });
+        vi.spyOn(Apparitio.prototype, 'beginBake').mockImplementation(function beginBake() {
+            this.ready = false;
+        });
+        vi.spyOn(Apparitio.prototype, 'stepBake').mockImplementation(function stepBake() {
+            this.ready = true;
+            return true;
+        });
+        vi.spyOn(Apparitio.prototype, 'render').mockReturnValue(true);
+    }
+
+    it('Harmonograph / Iris / Spectral as the room stay on a living layer, not a still playlist', () => {
+        stubLivingPlateEngines();
+        const { cortex, host } = hostedContinuousCortex();
+        const snapshot = vi.spyOn(cortex, '_renderContinuousProceduralWork');
+        for (const id of ['harmonograph', 'ostensoria', 'apparitio']) {
+            cortex.updateConfig({
+                enabled: true,
+                presentation: 'continuous',
+                activeTypes: [id]
+            });
+            expect(cortex._continuousProceduralTypes(), id).toEqual([]);
+            expect(cortex._continuousHasWorks(), id).toBe(true);
+            expect(cortex._isExternalCategory(id), id).toBe(false);
+            if (id === 'harmonograph') {
+                expect(cortex._harmonographField?.running, id).toBe(true);
+                expect(host.querySelectorAll('.harmonograph-plane').length, id).toBeGreaterThan(0);
+            } else {
+                expect(cortex._plateField?.running, id).toBe(true);
+                expect(host.querySelectorAll('.plate-plane').length, id).toBeGreaterThan(0);
+            }
+        }
+        expect(snapshot).not.toHaveBeenCalled();
+        cortex.destroy();
+    });
+
+    it('word-fill of Harmonograph / Iris / Spectral ticks the living field in the glyph, not a snapshot', async () => {
+        stubLivingPlateEngines();
+        const { cortex, host } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-landscapes', ['room-a.jpg', 'room-b.jpg']);
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const snapshot = vi.spyOn(cortex, '_renderContinuousProceduralWork');
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-landscapes']
+        });
+        cortex.setContinuousFieldProjectionHost(projection);
+
+        const live = {
+            harmonograph: () => ({
+                running: cortex._harmonographField?.running === true,
+                host: cortex._harmonographField?.host,
+                planes: projection.querySelectorAll('.harmonograph-plane').length
+            }),
+            ostensoria: () => ({
+                running: cortex._plateField?.running === true,
+                host: cortex._plateField?.host,
+                planes: projection.querySelectorAll('.plate-plane').length
+            }),
+            apparitio: () => ({
+                running: cortex._plateField?.running === true,
+                host: cortex._plateField?.host,
+                planes: projection.querySelectorAll('.plate-plane').length
+            })
+        };
+
+        for (const id of ['harmonograph', 'ostensoria', 'apparitio']) {
+            cortex.updateConfig({
+                wordFill: { mode: 'pick', sourced: [], procedural: [id] }
+            });
+            const painted = await cortex._nextContinuousProjectionWork({ currentUrl: 'room-a.jpg' });
+            expect(painted?.living, id).toBe(true);
+            expect(painted?.url, id).toBeFalsy();
+            expect(cortex._wordFillProceduralTypes(), id).toEqual([]);
+            expect(cortex.config.activeTypes, id).toEqual(['aic-landscapes']);
+            expect(live[id]().running, id).toBe(true);
+            expect(live[id]().host, id).toBe(projection);
+            expect(live[id]().planes, id).toBeGreaterThan(0);
+            expect(host.querySelectorAll('.harmonograph-plane').length
+                + host.querySelectorAll('.plate-plane').length, id).toBe(0);
+        }
+        expect(snapshot).not.toHaveBeenCalled();
+        cortex.destroy();
+    });
+
+    it('Attractor is a listed procedural that mounts the existing Chamber engine', () => {
+        window.matchMedia = window.matchMedia || (() => ({ matches: false }));
+        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => ({
+            setTransform() {}, clearRect() {}, save() {}, restore() {},
+            translate() {}, rotate() {}, scale() {}, beginPath() {},
+            moveTo() {}, lineTo() {}, stroke() {}, fill() {}, arc() {},
+            drawImage() {},
+            createRadialGradient: () => ({ addColorStop() {} }),
+            globalCompositeOperation: '', strokeStyle: '', fillStyle: '',
+            lineWidth: 0, lineCap: '', lineJoin: ''
+        }));
+        const { cortex, host } = hostedContinuousCortex();
+        const snapshot = vi.spyOn(cortex, '_renderContinuousProceduralWork');
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['attractor']
+        });
+        expect(cortex.config.activeTypes).toEqual(['attractor']);
+        expect(cortex._isExternalCategory('attractor')).toBe(false);
+        expect(cortex._continuousProceduralTypes()).toEqual([]);
+        expect(cortex._continuousHasWorks()).toBe(true);
+        expect(cortex._attractorField).toBeTruthy();
+        expect(cortex._attractorField.host).toBe(host);
+        expect(host.querySelector('.attractor-canvas')).toBeTruthy();
+        expect(snapshot).not.toHaveBeenCalled();
+        cortex.destroy();
+    });
+
+    it('word-fill Attractor mounts the existing engine in the glyph host', async () => {
+        window.matchMedia = window.matchMedia || (() => ({ matches: false }));
+        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => ({
+            setTransform() {}, clearRect() {}, save() {}, restore() {},
+            translate() {}, rotate() {}, scale() {}, beginPath() {},
+            moveTo() {}, lineTo() {}, stroke() {}, fill() {}, arc() {},
+            drawImage() {},
+            createRadialGradient: () => ({ addColorStop() {} }),
+            globalCompositeOperation: '', strokeStyle: '', fillStyle: '',
+            lineWidth: 0, lineCap: '', lineJoin: ''
+        }));
+        const { cortex, host } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-landscapes', ['room-a.jpg']);
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const snapshot = vi.spyOn(cortex, '_renderContinuousProceduralWork');
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-landscapes'],
+            wordFill: { mode: 'pick', sourced: [], procedural: ['attractor'] }
+        });
+        cortex.setContinuousFieldProjectionHost(projection);
+        const painted = await cortex._nextContinuousProjectionWork({ currentUrl: 'room-a.jpg' });
+        expect(painted?.living).toBe(true);
+        expect(cortex._wordFillProceduralTypes()).toEqual([]);
+        expect(cortex._attractorField).toBeTruthy();
+        expect(cortex._attractorField.host).toBe(projection);
+        expect(projection.querySelector('.attractor-canvas')).toBeTruthy();
+        expect(host.querySelector('.attractor-canvas')).toBeNull();
+        expect(snapshot).not.toHaveBeenCalled();
+        cortex.destroy();
+    });
+
+    it('says “Attractor will not run.” when the Chamber engine cannot start', () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const { cortex, host } = hostedContinuousCortex();
+        const append = host.appendChild.bind(host);
+        host.appendChild = (node) => {
+            if (node?.classList?.contains('attractor-canvas')) {
+                throw new Error('canvas refused');
+            }
+            return append(node);
+        };
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['attractor']
+        });
+        expect(warn.mock.calls.some(call => call[0] === 'Attractor will not run.')).toBe(true);
+        expect(cortex._attractorField).toBeFalsy();
+        expect(host.querySelector('.attractor-canvas')).toBeNull();
+        cortex.destroy();
+        warn.mockRestore();
+    });
 });
+
 
 describe('Gallery procedural engines stay engines', () => {
     afterEach(() => {

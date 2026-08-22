@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PROCEDURAL_PATTERN_IDS } from './visual-registry.js';
+import { LISTED_PROCEDURAL_PATTERNS, PROCEDURAL_PATTERN_IDS } from './visual-registry.js';
 import {
     normalizeVisualSelection,
     normalizeWordFill,
@@ -81,4 +81,31 @@ describe('normalizeVisualSelection procedural engine ids', () => {
             });
         }
     });
+
+    it('lists Attractor among the browsable procedural engines', () => {
+        expect(LISTED_PROCEDURAL_PATTERNS.some(pattern => pattern.id === 'attractor'
+            && pattern.name === 'Attractor')).toBe(true);
+        expect(PROCEDURAL_PATTERN_IDS).not.toContain('attractor');
+        expect(normalizeWordFill({
+            mode: 'pick',
+            procedural: ['procedural:attractor'],
+            sourced: []
+        })).toEqual({
+            mode: 'pick',
+            sourceFamily: 'procedural',
+            procedural: ['attractor'],
+            sourced: []
+        });
+    });
+
+    it('keeps living procedurals Harmonograph · Iris Plate · Spectral Plate · Attractor last', () => {
+        const living = LISTED_PROCEDURAL_PATTERNS
+            .filter(pattern => ['harmonograph', 'ostensoria', 'apparitio', 'attractor'].includes(pattern.id));
+        expect(living.map(pattern => pattern.id))
+            .toEqual(['harmonograph', 'ostensoria', 'apparitio', 'attractor']);
+        expect(living.at(-1)).toEqual(expect.objectContaining({ id: 'attractor', name: 'Attractor' }));
+        expect(LISTED_PROCEDURAL_PATTERNS.map(pattern => pattern.name)).not.toContain('Storm of Steel');
+        expect(LISTED_PROCEDURAL_PATTERNS.some(pattern => /Live/.test(pattern.name))).toBe(false);
+    });
 });
+

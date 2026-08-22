@@ -36,6 +36,7 @@ import {
 import { WorkEngineField } from './work-engine-field.js';
 import { HarmonographField } from './harmonograph-field.js';
 import { PlateField, PLATE_FAMILIES } from './plate-field.js';
+import { AttractorField } from './attractor.js';
 import { SequenceVideoField } from './sequence-video-field.js';
 import { ShuffleBag } from '../sources/visual/shuffle-bag.js';
 import {
@@ -124,6 +125,7 @@ const GALLERY_PROCEDURAL_TYPES = Object.freeze([
     'harmonograph',
     'ostensoria',
     'apparitio',
+    'attractor',
     'blueprint',
     'freedom'
 ]);
@@ -136,6 +138,7 @@ const GALLERY_PROCEDURAL_TITLES = Object.freeze({
     harmonograph: 'Harmonograph',
     ostensoria: 'Iris Plates',
     apparitio: 'Spectral Plates',
+    attractor: 'Attractor',
     blueprint: 'Blueprint',
     freedom: 'Freedom Field'
 });
@@ -221,6 +224,7 @@ export class VisualCortex {
         this._workEngineField = null;
         this._harmonographField = null;
         this._plateField = null;
+        this._attractorField = null;
         this._sequenceVideoField = null;
         this._sequenceVideoHost = null;
         this._activeVideoCue = null;
@@ -1077,6 +1081,10 @@ export class VisualCortex {
             this._plateField.destroy();
             this._plateField = null;
         }
+        if (this._attractorField) {
+            this._attractorField.destroy();
+            this._attractorField = null;
+        }
         this._continuousFieldHost = el || null;
         this._syncContinuousField();
         if (this._continuousField && this._continuousFieldProjectionHost) {
@@ -1091,6 +1099,7 @@ export class VisualCortex {
     setContinuousFieldProjectionHost(el) {
         this._continuousFieldProjectionHost = el || null;
         this._continuousField?.setProjectionHost(this._continuousFieldProjectionHost);
+        if (this._isContinuousMode()) this._syncLivingLayers(this._livingFieldGateOpen());
     }
 
     hasContinuousFieldProjectionHost() {
@@ -1158,8 +1167,10 @@ export class VisualCortex {
         const enginePaused = this._workEngineField?.pause?.() === true;
         const harmonographPaused = this._harmonographField?.pause?.() === true;
         const platePaused = this._plateField?.pause?.() === true;
+        const attractorPaused = this._attractorField?.pause?.() === true;
         const videoPaused = this._sequenceVideoField?.pause?.() === true;
-        return imagePaused || enginePaused || harmonographPaused || platePaused || videoPaused;
+        return imagePaused || enginePaused || harmonographPaused || platePaused
+            || attractorPaused || videoPaused;
     }
 
     /** Resume exactly the Gallery presenters paused at the player boundary. */
@@ -1168,8 +1179,10 @@ export class VisualCortex {
         const engineResumed = this._workEngineField?.resume?.() === true;
         const harmonographResumed = this._harmonographField?.resume?.() === true;
         const plateResumed = this._plateField?.resume?.() === true;
+        const attractorResumed = this._attractorField?.resume?.() === true;
         const videoResumed = this._sequenceVideoField?.resume?.() === true;
-        return imageResumed || engineResumed || harmonographResumed || plateResumed || videoResumed;
+        return imageResumed || engineResumed || harmonographResumed || plateResumed
+            || attractorResumed || videoResumed;
     }
 
     /**
@@ -1239,7 +1252,8 @@ export class VisualCortex {
             active.includes(type)
             && !isWorkEngineFamily(type)
             && !(type === 'harmonograph' && liveHarmonograph)
-            && !livePlates.includes(type));
+            && !livePlates.includes(type)
+            && type !== 'attractor');
     }
 
     _continuousHarmonographLive() {
@@ -1255,6 +1269,35 @@ export class VisualCortex {
 
     _continuousPlateLive() {
         return this._continuousPlateFamilies().length > 0;
+    }
+
+    _continuousAttractorLive() {
+        return (this.config.activeTypes || []).includes('attractor');
+    }
+
+    _wordFillHarmonographLive() {
+        if (this.config.renderLanguage === 'ascii') return false;
+        if (!this._wordFillIsDistinct()) return this._continuousHarmonographLive();
+        return this._wordFillTypes().includes('harmonograph');
+    }
+
+    _wordFillPlateFamilies() {
+        if (this.config.renderLanguage === 'ascii') return [];
+        if (!this._wordFillIsDistinct()) return this._continuousPlateFamilies();
+        return PLATE_FAMILIES.filter(id => this._wordFillTypes().includes(id));
+    }
+
+    _wordFillAttractorLive() {
+        if (!this._wordFillIsDistinct()) return this._continuousAttractorLive();
+        return this._wordFillTypes().includes('attractor');
+    }
+
+    _wordFillHasLivingPick() {
+        if (!this._wordFillIsDistinct() || this.config.renderLanguage === 'ascii') return false;
+        const types = this._wordFillTypes();
+        return types.includes('harmonograph')
+            || types.includes('attractor')
+            || PLATE_FAMILIES.some(id => types.includes(id));
     }
 
     /** The families that get a living layer rather than a still. */
@@ -1276,6 +1319,7 @@ export class VisualCortex {
             || this._continuousWorkFamilies().length > 0
             || this._continuousHarmonographLive()
             || this._continuousPlateLive()
+            || this._continuousAttractorLive()
             || this._activeSequenceAssets().length > 0
             || this._activePoolCategories().length > 0;
     }
@@ -1306,13 +1350,23 @@ export class VisualCortex {
 
     /**
      * Engines the word-fill playlist may snapshot as stills. Living
-     * Gallery layers stay on the room; the glyph gets a finished WebP
-     * so Mask never grows a second director or decoder.
+     * Harmonograph / plates / Attractor stay on their own layer — one
+     * instance, two clips — so Mask never grows a second director.
      */
     _wordFillProceduralTypes() {
         if (!this._wordFillIsDistinct()) return [];
+        const types = this._wordFillTypes();
+        const liveHarmonograph = types.includes('harmonograph')
+            && this.config.renderLanguage !== 'ascii';
+        const livePlates = this.config.renderLanguage === 'ascii'
+            ? []
+            : PLATE_FAMILIES.filter(id => types.includes(id));
         return GALLERY_PROCEDURAL_TYPES.filter(type =>
-            this._wordFillTypes().includes(type)
+            types.includes(type)
+            && !isWorkEngineFamily(type)
+            && !(type === 'harmonograph' && liveHarmonograph)
+            && !livePlates.includes(type)
+            && type !== 'attractor'
         );
     }
 
@@ -1338,7 +1392,9 @@ export class VisualCortex {
         const families = [];
         if (procedural.length) families.push('procedural');
         if (sourcedWorks.length) families.push('sourced');
-        if (!families.length) return null;
+        if (!families.length) {
+            return this._wordFillHasLivingPick() ? { living: true } : null;
+        }
 
         const firstFamily = this._continuousWorkBag.draw(
             `word-fill:families:${poolKey}`,
@@ -1729,9 +1785,29 @@ export class VisualCortex {
         } else if (this._continuousField && this._continuousField.running) {
             this._continuousField.stop();
         }
-        this._syncWorkEngineField(shouldRun);
-        this._syncHarmonographField(shouldRun);
-        this._syncPlateField(shouldRun);
+        this._syncLivingLayers(shouldRun);
+    }
+
+    _livingFieldGateOpen() {
+        return this._isContinuousMode()
+            && !!this._continuousFieldHost
+            && !this._continuousPhotosensitive()
+            && !this._activeVideoCue
+            && hasVisualInterlocutionConsent();
+    }
+
+    _syncLivingLayers(gateOpen) {
+        this._syncWorkEngineField(gateOpen);
+        this._syncHarmonographField(gateOpen);
+        this._syncPlateField(gateOpen);
+        this._syncAttractorField(gateOpen);
+    }
+
+    _retargetLivingField(field, primaryHost) {
+        if (!field) return null;
+        if (field.host === primaryHost) return field;
+        field.destroy();
+        return null;
     }
 
     /**
@@ -1780,15 +1856,22 @@ export class VisualCortex {
      * this field — they keep a finished still.
      */
     _syncHarmonographField(gateOpen) {
-        const shouldRun = gateOpen && this._continuousHarmonographLive();
+        const roomLive = gateOpen && this._continuousHarmonographLive();
+        const fillLive = gateOpen && this._wordFillHarmonographLive();
+        const shouldRun = roomLive || fillLive;
         if (!shouldRun) {
             if (this._harmonographField?.running) this._harmonographField.stop();
+            this._harmonographField?.setProjectionHost?.(null);
             return;
         }
+        const primaryHost = roomLive
+            ? this._continuousFieldHost
+            : this._continuousFieldProjectionHost;
+        if (!primaryHost) return;
+        this._harmonographField = this._retargetLivingField(this._harmonographField, primaryHost);
         if (!this._harmonographField) {
-            if (!this._continuousFieldHost) return;
             const timings = galleryCadenceTimings(this.config.galleryCadence);
-            this._harmonographField = new HarmonographField(this._continuousFieldHost, {
+            this._harmonographField = new HarmonographField(primaryHost, {
                 dwellMs: timings.dwellMs,
                 crossfadeMs: timings.crossfadeMs,
                 reducedMotion: this._continuousReducedMotion(),
@@ -1797,6 +1880,11 @@ export class VisualCortex {
             });
         }
         this._harmonographField.reducedMotion = this._continuousReducedMotion();
+        const projectTo = roomLive && fillLive && this._continuousFieldProjectionHost
+            && this._continuousFieldProjectionHost !== primaryHost
+            ? this._continuousFieldProjectionHost
+            : null;
+        this._harmonographField.setProjectionHost(projectTo);
         if (!this._harmonographField.running) this._harmonographField.start();
     }
 
@@ -1808,16 +1896,23 @@ export class VisualCortex {
      * finished still.
      */
     _syncPlateField(gateOpen) {
-        const families = this._continuousPlateFamilies();
-        const shouldRun = gateOpen && families.length > 0;
+        const roomFamilies = gateOpen ? this._continuousPlateFamilies() : [];
+        const fillFamilies = gateOpen ? this._wordFillPlateFamilies() : [];
+        const families = roomFamilies.length ? roomFamilies : fillFamilies;
+        const shouldRun = families.length > 0;
         if (!shouldRun) {
             if (this._plateField?.running) this._plateField.stop();
+            this._plateField?.setProjectionHost?.(null);
             return;
         }
+        const primaryHost = roomFamilies.length
+            ? this._continuousFieldHost
+            : this._continuousFieldProjectionHost;
+        if (!primaryHost) return;
+        this._plateField = this._retargetLivingField(this._plateField, primaryHost);
         if (!this._plateField) {
-            if (!this._continuousFieldHost) return;
             const timings = galleryCadenceTimings(this.config.galleryCadence);
-            this._plateField = new PlateField(this._continuousFieldHost, {
+            this._plateField = new PlateField(primaryHost, {
                 families,
                 dwellMs: timings.dwellMs,
                 crossfadeMs: timings.crossfadeMs,
@@ -1827,7 +1922,50 @@ export class VisualCortex {
         }
         this._plateField.reducedMotion = this._continuousReducedMotion();
         this._plateField.setFamilies(families);
+        const projectTo = roomFamilies.length > 0 && fillFamilies.length > 0
+            && this._continuousFieldProjectionHost
+            && this._continuousFieldProjectionHost !== primaryHost
+            ? this._continuousFieldProjectionHost
+            : null;
+        this._plateField.setProjectionHost(projectTo);
         if (!this._plateField.running) this._plateField.start();
+    }
+
+    _syncAttractorField(gateOpen) {
+        const roomLive = gateOpen && this._continuousAttractorLive();
+        const fillLive = gateOpen && this._wordFillAttractorLive();
+        const shouldRun = roomLive || fillLive;
+        if (!shouldRun) {
+            if (this._attractorField) {
+                this._attractorField.destroy();
+                this._attractorField = null;
+            }
+            return;
+        }
+        const primaryHost = roomLive
+            ? this._continuousFieldHost
+            : this._continuousFieldProjectionHost;
+        if (!primaryHost) return;
+        this._attractorField = this._retargetLivingField(this._attractorField, primaryHost);
+        if (!this._attractorField) {
+            const cfg = this.config.attractor || {};
+            try {
+                this._attractorField = new AttractorField(primaryHost, {
+                    system: cfg.system,
+                    palette: cfg.palette,
+                    form: cfg.form
+                });
+            } catch (error) {
+                this._attractorField = null;
+                console.warn('Attractor will not run.', error);
+                return;
+            }
+        }
+        const projectTo = roomLive && fillLive && this._continuousFieldProjectionHost
+            && this._continuousFieldProjectionHost !== primaryHost
+            ? this._continuousFieldProjectionHost
+            : null;
+        this._attractorField.setProjectionHost(projectTo);
     }
 
     /**
@@ -2840,7 +2978,7 @@ export class VisualCortex {
         if (type.startsWith('procedural:')) return false;
         const canonical = canonicalizeProceduralEngineId(type) || type;
         // Core types are internal or handled elsewhere
-        const coreTypes = ['klee', 'turrell', 'fractal', 'neural', 'global', 'custom', 'rockgarden', 'harmonograph', 'ostensoria', 'apparitio', 'blueprint', 'freedom', 'diagram', 'global-pool',
+        const coreTypes = ['klee', 'turrell', 'fractal', 'neural', 'global', 'custom', 'rockgarden', 'harmonograph', 'ostensoria', 'apparitio', 'attractor', 'blueprint', 'freedom', 'diagram', 'global-pool',
             // Families authored for one work. Listed so selection does
             // not filter out a type the cortex can genuinely render.
             ...workEngineFamilies()];
@@ -3889,6 +4027,10 @@ export class VisualCortex {
         if (this._plateField) {
             this._plateField.destroy();
             this._plateField = null;
+        }
+        if (this._attractorField) {
+            this._attractorField.destroy();
+            this._attractorField = null;
         }
         if (this._sequenceVideoField) {
             this._sequenceVideoField.destroy();

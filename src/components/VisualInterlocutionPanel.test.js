@@ -1033,6 +1033,9 @@ describe('Atrium-exclusive pattern pills', () => {
         expect(container.querySelector('[data-procedural="freedom"]')).toBeNull();
         expect(container.querySelector('[data-procedural="ostensoria"]')).not.toBeNull();
         expect(container.querySelector('[data-procedural="apparitio"]')).not.toBeNull();
+        expect(container.querySelector('[data-procedural="attractor"]')).not.toBeNull();
+        expect(container.querySelector('[data-procedural="attractor"]')
+            .closest('label')?.textContent).toMatch(/Attractor/);
         panel.destroy();
         container.remove();
     });
@@ -1395,5 +1398,106 @@ describe('PREP Visual Settings Size (FM-RISE-36)', () => {
         expect(settings.chamberFace).toBe('literary');
 
         panel.destroy();
+    });
+});
+
+describe('Attractor listing chrome (FM-UI-6)', () => {
+    const LIVING_IDS = ['harmonograph', 'ostensoria', 'apparitio', 'attractor'];
+
+    function listedPanel() {
+        return makePanel({
+            visualMode: 'interlocution',
+            interlocution: {
+                presentation: 'continuous',
+                sourceFamily: 'procedural',
+                procedural: [],
+                sourced: []
+            }
+        });
+    }
+
+    it('names Attractor the same string on the chip and in the word-source list', () => {
+        const { panel, container } = listedPanel();
+        const chipLabel = container.querySelector('[data-procedural="attractor"]')
+            ?.closest('label')
+            ?.querySelector('.vi-checkbox-label')
+            ?.textContent;
+        const wordLabel = container.querySelector('option[value="procedural:attractor"]')?.textContent;
+        expect(chipLabel).toBe('Attractor');
+        expect(wordLabel).toBe('Attractor');
+        expect(chipLabel).toBe(wordLabel);
+        panel.destroy();
+        container.remove();
+    });
+
+    it('lists living procedurals Harmonograph · Iris Plate · Spectral Plate · Attractor, Attractor last', () => {
+        const { panel, container } = listedPanel();
+        const chipIds = [...container.querySelectorAll('[data-procedural]')].map(el => el.dataset.procedural);
+        const wordIds = [...container.querySelectorAll('[data-word-fill] option')]
+            .map(el => el.value)
+            .filter(value => value.startsWith('procedural:'))
+            .map(value => value.slice('procedural:'.length));
+        expect(chipIds.filter(id => LIVING_IDS.includes(id))).toEqual(LIVING_IDS);
+        expect(wordIds.filter(id => LIVING_IDS.includes(id))).toEqual(LIVING_IDS);
+        expect(chipIds.indexOf('attractor')).toBeGreaterThan(chipIds.indexOf('apparitio'));
+        expect(wordIds.indexOf('attractor')).toBeGreaterThan(wordIds.indexOf('apparitio'));
+        panel.destroy();
+        container.remove();
+    });
+
+    it('does not put a Live badge on Attractor', () => {
+        const { panel, container } = listedPanel();
+        const wrapper = container.querySelector('[data-procedural="attractor"]')?.closest('.vi-checkbox-wrapper');
+        expect(wrapper?.textContent).not.toMatch(/Live/);
+        expect(container.querySelector('option[value="procedural:attractor"]')?.textContent).not.toMatch(/Live/);
+        panel.destroy();
+        container.remove();
+    });
+
+    it('does not publish Storm of Steel', () => {
+        const { panel, container } = listedPanel();
+        const chips = [...container.querySelectorAll('[data-procedural]')]
+            .map(el => el.closest('label')?.textContent || '');
+        const words = [...container.querySelectorAll('[data-word-fill] option')].map(el => el.textContent);
+        expect([...chips, ...words].join('\n')).not.toMatch(/Storm of Steel|Drumfire/);
+        panel.destroy();
+        container.remove();
+    });
+
+    it('applies Attractor as a procedural instantly without adding a sixth visualMode', () => {
+        const onChange = vi.fn();
+        const { panel, container } = makePanel({
+            visualMode: 'interlocution',
+            onChange,
+            interlocution: {
+                presentation: 'continuous',
+                sourceFamily: 'procedural',
+                procedural: [],
+                sourced: []
+            }
+        });
+        expect([...container.querySelectorAll('[data-visual-mode]')].map(btn => btn.dataset.visualMode))
+            .toEqual(['off', 'focals', 'attractor', 'genesis', 'interlocution']);
+
+        container.querySelector('[data-procedural="attractor"]').click();
+        expect(onChange).toHaveBeenCalled();
+        expect(panel.getConfig().visualMode).toBe('interlocution');
+        expect(panel.getConfig().interlocution.procedural).toEqual(['attractor']);
+
+        const hook = container.querySelector('[data-word-fill]');
+        hook.value = 'procedural:attractor';
+        hook.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(panel.getConfig().visualMode).toBe('interlocution');
+        expect(panel.getConfig().interlocution.wordFill).toEqual({
+            mode: 'pick',
+            sourceFamily: 'procedural',
+            procedural: ['attractor'],
+            sourced: []
+        });
+        expect([...container.querySelectorAll('[data-visual-mode]')].map(btn => btn.dataset.visualMode))
+            .toEqual(['off', 'focals', 'attractor', 'genesis', 'interlocution']);
+
+        panel.destroy();
+        container.remove();
     });
 });
