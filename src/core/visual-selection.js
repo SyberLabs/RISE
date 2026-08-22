@@ -6,6 +6,8 @@
  * and launch-time config all resolve to the same effective selection.
  */
 
+import { PROCEDURAL_PATTERN_IDS } from './visual-registry.js';
+
 export const VISUAL_SOURCE_FAMILIES = Object.freeze([
     'procedural',
     'collections',
@@ -15,11 +17,47 @@ export const VISUAL_SOURCE_FAMILIES = Object.freeze([
 
 const SOURCE_FAMILY_SET = new Set(VISUAL_SOURCE_FAMILIES);
 const GLOBAL_POOL_MODE_SET = new Set(['all', 'selected']);
+const PROCEDURAL_PREFIX = 'procedural:';
+const PROCEDURAL_ENGINE_IDS = new Set(PROCEDURAL_PATTERN_IDS);
 
 function uniqueStringIds(value) {
     return Array.isArray(value)
         ? [...new Set(value.filter(id => typeof id === 'string' && id.length > 0))]
         : [];
+}
+
+/**
+ * Word-fill controls and editor assets name engines as `procedural:fractal`.
+ * The cortex's activeTypes and Gallery allowlist speak `fractal`. A leaked
+ * prefix is an empty Wikimedia shelf, which is how Fractal Flames became glass.
+ */
+export function canonicalizeProceduralEngineId(id) {
+    if (typeof id !== 'string' || !id) return '';
+    return id.startsWith(PROCEDURAL_PREFIX) ? id.slice(PROCEDURAL_PREFIX.length) : id;
+}
+
+function collectProceduralIds(ids) {
+    return [...new Set(uniqueStringIds(ids)
+        .map(canonicalizeProceduralEngineId)
+        .filter(Boolean))];
+}
+
+function liftEngineIdsFromSourced(sourcedIds) {
+    const lifted = [];
+    const sourced = [];
+    for (const id of uniqueStringIds(sourcedIds)) {
+        if (id.startsWith(PROCEDURAL_PREFIX)) {
+            const canonical = id.slice(PROCEDURAL_PREFIX.length);
+            if (canonical) lifted.push(canonical);
+            continue;
+        }
+        if (PROCEDURAL_ENGINE_IDS.has(id)) {
+            lifted.push(id);
+            continue;
+        }
+        sourced.push(id);
+    }
+    return { lifted, sourced };
 }
 
 export function isPersonalVisualSource(id) {
@@ -43,11 +81,18 @@ export function inferVisualSourceFamily(proceduralValue, sourcedValue) {
 
 export function normalizeVisualSelection(value = {}) {
     const input = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-    let procedural = uniqueStringIds(input.procedural);
-    let sourced = uniqueStringIds(input.sourced);
-    const sourceFamily = SOURCE_FAMILY_SET.has(input.sourceFamily)
+    const { lifted, sourced: sourcedWithoutEngines } = liftEngineIdsFromSourced(input.sourced);
+    let procedural = [...new Set([...collectProceduralIds(input.procedural), ...lifted])];
+    let sourced = sourcedWithoutEngines;
+    let sourceFamily = SOURCE_FAMILY_SET.has(input.sourceFamily)
         ? input.sourceFamily
         : inferVisualSourceFamily(procedural, sourced);
+    // A collections/personal label that only carried a leaked engine id is
+    // not an empty museum shelf. The engine is the selection.
+    if ((sourceFamily === 'collections' || sourceFamily === 'personal')
+        && sourced.length === 0 && procedural.length > 0) {
+        sourceFamily = inferVisualSourceFamily(procedural, sourced);
+    }
 
     if (sourceFamily === 'procedural') {
         sourced = [];
