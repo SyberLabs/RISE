@@ -1265,7 +1265,6 @@ export class Chamber {
     this.applyChamberStreamFace();
     this.applyChamberTypeSize();
     this.applyChamberMask();
-    // Hide pre-session, show display
     const preSession = this.container.querySelector('#chamber-pre');
     const display = this.container.querySelector('#chamber-display');
 
@@ -1288,7 +1287,6 @@ export class Chamber {
         });
       }
 
-      // Start player
       if (this.player) {
         this.player.play();
         if (window.rise?.audioEngine) {
@@ -2573,7 +2571,6 @@ export class Chamber {
       return;
     }
 
-    // Get current volume from app settings or default
     const currentVolume = window.rise?.settings?.masterVolume ?? 0.75;
 
     const modal = document.createElement('div');
@@ -2607,7 +2604,6 @@ export class Chamber {
 
     this.container.appendChild(modal);
 
-    // Attach events
     const slider = modal.querySelector('#volume-slider');
     const valueDisplay = modal.querySelector('#volume-value');
 
@@ -2626,7 +2622,6 @@ export class Chamber {
       });
     });
 
-    // Close on click outside
     const closeHandler = (e) => {
       if (!modal.contains(e.target) && e.target !== volumeBtn) {
         modal.remove();
@@ -2902,7 +2897,6 @@ export class Chamber {
   }
 
   exitSession() {
-    // Show custom confirmation modal
     const overlay = this.container.querySelector('#exit-confirm-overlay');
     if (overlay) {
       overlay.style.display = 'flex';
@@ -2946,7 +2940,6 @@ export class Chamber {
   }
 
   performExit() {
-    // Stop player
     if (this.player) {
       this.player.stop();
     }

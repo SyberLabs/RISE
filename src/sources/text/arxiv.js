@@ -216,7 +216,6 @@ export class ArxivProvider extends SourceProvider {
                 authors.push(this._getTagValue(authorTags[j], "name"));
             }
 
-            // Create standardized Source object structure
             results.push({
                 id: idUrl,
                 type: 'text',

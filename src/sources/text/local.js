@@ -56,19 +56,16 @@ export class LocalTextProvider extends SourceProvider {
 
         let sequences = Array.from(this._sequenceMap.values());
 
-        // Apply category filter
         if (filter.category) {
             sequences = sequences.filter(s => s.category === filter.category);
         }
 
-        // Apply tags filter
         if (filter.tags && filter.tags.length > 0) {
             sequences = sequences.filter(s =>
                 s.tags && filter.tags.some(tag => s.tags.includes(tag))
             );
         }
 
-        // Apply limit and offset
         if (filter.offset) {
             sequences = sequences.slice(filter.offset);
         }
@@ -109,7 +106,6 @@ export class LocalTextProvider extends SourceProvider {
             );
         });
 
-        // Apply additional filters
         if (filter.category) {
             sequences = sequences.filter(s => s.category === filter.category);
         }

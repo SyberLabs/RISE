@@ -677,7 +677,6 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
             }
         });
 
-        // Create atoms from chunks
         for (const chunk of chunks) {
             // Check for special markers inside chunk loop
             const marker = checkMarker(chunk);
@@ -787,7 +786,6 @@ export function chunkText(text, { mode = 'word', wpm = 220, source = '', sourceI
         }
     }
 
-    // Remove trailing paragraph break if present
     if (atoms.length > 0 && atoms[atoms.length - 1].tags.includes('paragraph-break')) {
         atoms.pop();
     }

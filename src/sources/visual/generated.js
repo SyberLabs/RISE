@@ -145,7 +145,6 @@ export class GeneratedVisualProvider extends SourceProvider {
             return null;
         }
 
-        // Check if we have a module loader for this type
         const moduleLoader = this._generatorModules[typeId];
         if (!moduleLoader) {
             console.warn(`[GeneratedVisualProvider] No module for type: ${typeId}`);

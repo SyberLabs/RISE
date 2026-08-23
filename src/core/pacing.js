@@ -211,7 +211,6 @@ export class PacingEngine {
             duration *= 1 + (complexity - 0.5) * 0.24 + (weight - 0.5) * 0.16;
         }
 
-        // Apply state curve based on position
         if (this.modifiers.position) {
             const curveMultiplier = this.stateCurve.at(position);
             duration *= curveMultiplier;
@@ -427,7 +426,6 @@ export class Interleaver {
             });
         }
 
-        // Add all text
         result.push(...textAtoms);
 
         return result;
