@@ -3,12 +3,17 @@
    Following design-system.css tokens
    ═══════════════════════════════════════════════════════════ */
 
+/* body is overflow:hidden; min-height alone grows with content and
+   never becomes a scroll container. Bound to the viewport so Face,
+   Size, and Accent stay reachable on a short phone. */
 .settings {
-    min-height: 100vh;
+    height: 100vh;
+    height: 100dvh;
     margin: 0;
     padding: var(--space-lg);
     background: var(--color-void);
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Header */
@@ -93,6 +98,13 @@
 .settings-control {
     flex: 1;
     max-width: 240px;
+}
+
+.settings-control[aria-labelledby="chamber-accent-label"] {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs);
 }
 
 /* Slider in settings */

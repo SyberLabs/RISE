@@ -17,6 +17,7 @@ describe('App safety orchestration', () => {
     document.documentElement.classList.remove('photosensitivity-mode', 'reduced-motion');
     delete document.documentElement.dataset.chamberFace;
     delete document.documentElement.dataset.fontSize;
+    delete document.documentElement.dataset.accent;
   });
 
   it('cancels a live presentation synchronously when Photosensitivity Mode turns on', async () => {
@@ -235,6 +236,47 @@ describe('App safety orchestration', () => {
     app.handleSettingsChange('fontSize', 'huge');
     expect(app.settings.fontSize).toBe('medium');
     expect(applyChamberTypeSize).toHaveBeenCalledTimes(3);
+  });
+
+  it('persists an allowlisted Chamber accent on :root with chamberFace and fontSize', () => {
+    const app = new App();
+    app.loadSettings();
+    expect(app.settings.chamberAccent).toBe('purple');
+    expect(app.settings.chamberFace).toBe('literary');
+    expect(app.settings.fontSize).toBe('medium');
+
+    localStorage.setItem('rise-settings', JSON.stringify({
+      fontSize: 'large',
+      chamberFace: 'jp',
+      chamberAccent: 'sunset'
+    }));
+    app.loadSettings();
+    expect(app.settings.fontSize).toBe('large');
+    expect(app.settings.chamberFace).toBe('jp');
+    expect(app.settings.chamberAccent).toBe('sunset');
+
+    app.applyAccessibilitySettings();
+    expect(document.documentElement.dataset.fontSize).toBe('large');
+    expect(document.documentElement.dataset.chamberFace).toBe('jp');
+    expect(document.documentElement.dataset.accent).toBe('sunset');
+
+    app.handleSettingsChange('chamberAccent', 'gecko');
+    expect(app.settings.chamberAccent).toBe('gecko');
+    expect(JSON.parse(localStorage.getItem('rise-settings')).chamberAccent).toBe('gecko');
+    expect(JSON.parse(localStorage.getItem('rise-settings')).chamberFace).toBe('jp');
+    expect(JSON.parse(localStorage.getItem('rise-settings')).fontSize).toBe('large');
+    expect(document.documentElement.dataset.accent).toBe('gecko');
+  });
+
+  it('coerces an unknown Chamber accent to purple on load and change', () => {
+    const app = new App();
+    localStorage.setItem('rise-settings', JSON.stringify({ chamberAccent: 'violet' }));
+    app.loadSettings();
+    expect(app.settings.chamberAccent).toBe('purple');
+
+    app.handleSettingsChange('chamberAccent', 'chartreuse');
+    expect(app.settings.chamberAccent).toBe('purple');
+    expect(document.documentElement.dataset.accent).toBe('purple');
   });
 });
 

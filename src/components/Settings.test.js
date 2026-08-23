@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { exportUserData } from '../core/user-data.js';
 import { Settings } from './Settings.js';
@@ -144,6 +147,68 @@ describe('Settings display type', () => {
 
         expect(onChange).not.toHaveBeenCalled();
         expect(onChange).not.toHaveBeenCalledWith('chamberFace', 'comic-sans');
+        settings.destroy();
+    });
+
+    it('places Accent after Face/Size with the five chrome chips and fail copy', () => {
+        const { container, settings, onChange } = mountSettings();
+        const radios = [...container.querySelectorAll('input[name="chamber-accent"]')];
+        const faceRow = container.querySelector('#chamber-face-label')?.closest('.settings-row');
+        const sizeRow = container.querySelector('#font-size-label')?.closest('.settings-row');
+        const accentRow = container.querySelector('#chamber-accent-label')?.closest('.settings-row');
+
+        expect(container.querySelector('#chamber-accent-label')?.textContent.trim()).toBe('Accent');
+        expect(faceRow.compareDocumentPosition(accentRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(sizeRow.compareDocumentPosition(accentRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(radios.map((radio) => [
+            radio.value,
+            radio.closest('label')?.textContent.replace(/\s+/g, ' ').trim()
+        ])).toEqual([
+            ['purple', 'Purple'],
+            ['cobalt', 'Cobalt Blue'],
+            ['amber', 'Amber Gold'],
+            ['sunset', 'Sunset Orange'],
+            ['gecko', 'Gecko Green']
+        ]);
+        expect(radios.find((radio) => radio.value === 'purple').checked).toBe(true);
+        expect(container.querySelector('#chamber-accent-fail')?.textContent.trim())
+            .toBe('Accent did not take.');
+        expect(container.querySelector('#chamber-accent-fail')?.hidden).toBe(true);
+
+        radios.find((radio) => radio.value === 'cobalt').click();
+        expect(onChange).toHaveBeenCalledWith('chamberAccent', 'cobalt');
+        expect(radios.every((radio) => radio.closest('[role="radiogroup"]')
+            === radios[0].closest('[role="radiogroup"]'))).toBe(true);
+        settings.destroy();
+    });
+
+    it('scrolls the existing Settings panel on a short phone', () => {
+        const css = readFileSync(
+            join(dirname(fileURLToPath(import.meta.url)), 'Settings.css'),
+            'utf8'
+        );
+        const rule = css.match(/^\.settings\s*\{[^}]+\}/m)?.[0];
+        expect(rule).toMatch(/overflow-y:\s*auto/);
+        expect(rule).toMatch(/-webkit-overflow-scrolling:\s*touch/);
+        expect(rule).toMatch(/height:\s*100(?:vh|dvh)/);
+        expect(css).toMatch(
+            /\.settings-control\[aria-labelledby="chamber-accent-label"\]\s*\{[^}]*flex-wrap:\s*wrap/s
+        );
+    });
+
+    it('coerces an unknown persisted accent to purple and ignores a forged radio value', () => {
+        const { container, settings, onChange } = mountSettings({ chamberAccent: 'violet' });
+        const radios = [...container.querySelectorAll('input[name="chamber-accent"]')];
+
+        expect(radios.find((radio) => radio.value === 'purple').checked).toBe(true);
+
+        const gecko = radios.find((radio) => radio.value === 'gecko');
+        gecko.value = 'chartreuse';
+        gecko.checked = true;
+        gecko.dispatchEvent(new Event('change'));
+
+        expect(onChange).not.toHaveBeenCalled();
+        expect(onChange).not.toHaveBeenCalledWith('chamberAccent', 'chartreuse');
         settings.destroy();
     });
 

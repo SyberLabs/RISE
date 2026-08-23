@@ -1399,6 +1399,18 @@ describe('PREP Visual Settings Size (FM-RISE-36)', () => {
 
         panel.destroy();
     });
+
+    it('has no Accent row', () => {
+        const { panel, container } = makePanel({ expanded: true, visualMode: 'off' });
+
+        expect(container.querySelector('#chamber-accent-label')).toBeNull();
+        expect(container.querySelector('input[name="chamber-accent"]')).toBeNull();
+        expect(container.querySelector('[data-chamber-accent]')).toBeNull();
+        expect(container.textContent).not.toMatch(/\bAccent\b/);
+        expect(container.textContent).not.toMatch(/Cobalt Blue|Amber Gold|Sunset Orange|Gecko Green/);
+
+        panel.destroy();
+    });
 });
 
 describe('Attractor listing chrome (FM-UI-6)', () => {

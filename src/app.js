@@ -36,6 +36,7 @@ import {
 } from './core/visual-safety.js';
 import { clampBandFraction } from './core/band-offset.js';
 import { resolveChamberStreamFace } from './core/chamber-stream-face.js';
+import { resolveChamberAccent } from './core/chamber-accent.js';
 import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
 import { normalizeVisualSelection, resolveSessionWordFill } from './core/visual-selection.js';
@@ -1312,6 +1313,7 @@ class App {
             // Display
             fontSize: 'medium',
             chamberFace: 'literary',
+            chamberAccent: 'purple',
             chamberMask: false,
             showProgress: true,
             showDuration: true,
@@ -1357,6 +1359,7 @@ class App {
                 ...defaultSettings,
                 fontSize: resolveFontSize(merged.fontSize),
                 chamberFace: resolveChamberStreamFace(merged.chamberFace),
+                chamberAccent: resolveChamberAccent(merged.chamberAccent),
                 masterVolume: Number.isFinite(Number(merged.masterVolume))
                     ? Math.max(0, Math.min(1, Number(merged.masterVolume)))
                     : defaultSettings.masterVolume,
@@ -1399,7 +1402,9 @@ class App {
             ? clampReadingWpm(value, this.settings.defaultWpm)
             : key === 'chamberFace'
                 ? resolveChamberStreamFace(value)
-                : key === 'chamberMask'
+                : key === 'chamberAccent'
+                    ? resolveChamberAccent(value)
+                    : key === 'chamberMask'
                     ? value === true
                     : key === 'fontSize'
                         ? resolveFontSize(value)
@@ -1407,7 +1412,7 @@ class App {
         this.saveSettings();
 
         // Apply certain settings immediately
-        if (['reducedMotion', 'photosensitivityMode', 'fontSize', 'chamberFace', 'showProgress', 'showDuration'].includes(key)) {
+        if (['reducedMotion', 'photosensitivityMode', 'fontSize', 'chamberFace', 'chamberAccent', 'showProgress', 'showDuration'].includes(key)) {
             this.applyAccessibilitySettings();
         }
 
@@ -1465,6 +1470,7 @@ class App {
 
         root.dataset.fontSize = resolveFontSize(this.settings?.fontSize);
         root.dataset.chamberFace = resolveChamberStreamFace(this.settings?.chamberFace);
+        root.dataset.accent = resolveChamberAccent(this.settings?.chamberAccent);
         root.classList.toggle('hide-session-progress', this.settings?.showProgress === false);
         root.classList.toggle('hide-session-duration', this.settings?.showDuration === false);
         this._visualCortex?.setArtworkLabelsVisible(this.settings?.showArtworkLabels !== false);
