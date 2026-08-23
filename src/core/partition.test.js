@@ -33,20 +33,42 @@ const POEMS = [
 ].join('\r\n');
 
 const work = (text = POEMS) => draftLocalWork({ text, sourceName: 'poems.txt' });
+
+/**
+ * The text a record actually holds — LF, because intake normalises once.
+ *
+ * Every offset in this file indexes THIS string, never the CRLF fixture above.
+ * Reading snaps off the fixture and applying them to the record is exactly the
+ * two-offset-spaces defect the normalisation exists to prevent, and doing it
+ * here failed four tests the moment intake started normalising.
+ */
+const TEXT = work().text;
 const shape = record => localWorkParts(record).map(part => part.label);
 const words = record => localWorkParts(record).map(part => countWords(part.content));
 
 describe('what counts as a joint', () => {
-    it('sees a blank line in a CRLF file', () => {
+    it('finds the joints in the text a record holds', () => {
+        expect(describeMagnets(TEXT).title).toBe(2);
+        expect(snapPoints(TEXT).every(point => point.offset > 0)).toBe(true);
+    });
+
+    it('still reads a CRLF text, which no record made today contains', () => {
         // The separator was `\n[ \t]*\n`, which cannot match `\r\n\r\n` — the
         // carriage return sits between the newlines and is neither space nor
         // tab. It reported zero breaks on a book of 105 poems.
+        //
+        // Intake normalises now, so a record drafted today is LF and this
+        // cannot recur through that door. It is asserted on the RAW fixture
+        // because the door it can still arrive through is a store written by
+        // an older build, and a magnet that only knew LF would find nothing
+        // in one — the reader would meet their own shelved book as one part.
+        expect(POEMS).toContain('\r\n');
         expect(describeMagnets(POEMS).title).toBe(2);
-        expect(snapPoints(POEMS).every(point => point.offset > 0)).toBe(true);
+        expect(snapPoints(POEMS)).toHaveLength(2);
     });
 
     it('prefers a title over the bare break it sits on', () => {
-        for (const point of snapPoints(POEMS)) expect(point.kind).toBe('title');
+        for (const point of snapPoints(TEXT)) expect(point.kind).toBe('title');
         // A line that ends in a full stop is prose, not a name.
         const prose = ['One.', 'two three', '', 'A sentence that ends properly.', 'more'].join('\r\n');
         expect(snapPoints(prose).map(p => p.kind)).toEqual(['paragraph']);
@@ -59,22 +81,22 @@ describe('what counts as a joint', () => {
     });
 
     it('resolves a pointer to the joint it meant, or to nothing', () => {
-        const [first] = snapPoints(POEMS);
-        expect(nearestSnap(POEMS, first.offset + 3, { within: 20 }).offset).toBe(first.offset);
-        expect(nearestSnap(POEMS, first.offset + 3, { within: 1 })).toBeNull();
+        const [first] = snapPoints(TEXT);
+        expect(nearestSnap(TEXT, first.offset + 3, { within: 20 }).offset).toBe(first.offset);
+        expect(nearestSnap(TEXT, first.offset + 3, { within: 1 })).toBeNull();
     });
 });
 
 describe('the three verbs', () => {
     it('place makes one part into two, and the new part reads its opening', () => {
-        const [first] = snapPoints(POEMS);
+        const [first] = snapPoints(TEXT);
         const cut = placeJoint(work(), first.offset);
         expect(shape(cut)).toEqual(['Reading 1', 'Sycamore']);
         expect(words(cut).every(count => count > 0)).toBe(true);
     });
 
     it('slide moves ONE number, and two parts change together', () => {
-        const points = snapPoints(POEMS);
+        const points = snapPoints(TEXT);
         const cut = placeJoint(work(), points[0].offset);
         const before = words(cut);
         const slid = slideJoint(cut, 1, points[1].offset);
@@ -89,7 +111,7 @@ describe('the three verbs', () => {
     it('join removes a joint and keeps the upper name', () => {
         // A reader joining downward is extending the part they were reading,
         // not starting a new one.
-        const cut = placeJoint(work(), snapPoints(POEMS)[0].offset);
+        const cut = placeJoint(work(), snapPoints(TEXT)[0].offset);
         const joined = joinAt(cut, 1);
         expect(shape(joined)).toEqual(['Reading 1']);
         expect(countWords(joined.text)).toBe(countWords(work().text));
@@ -108,7 +130,7 @@ describe('the three verbs', () => {
 
 describe('names', () => {
     it('never rewrites a label a reader typed', () => {
-        const points = snapPoints(POEMS);
+        const points = snapPoints(TEXT);
         let record = placeJoint(work(), points[0].offset);
         record = relabel(record, 0, 'The stone one');
         record = placeJoint(record, points[1].offset);
@@ -120,7 +142,7 @@ describe('names', () => {
     });
 
     it('renumbers only the counted form', () => {
-        const points = snapPoints(POEMS);
+        const points = snapPoints(TEXT);
         const cut = placeJoint(placeJoint(work(), points[1].offset), points[0].offset);
         const counted = shape(cut).filter(label => /^Reading \d+$/u.test(label));
         expect(counted).toEqual(['Reading 1']);
@@ -132,7 +154,7 @@ describe('cutting at every magnet', () => {
         const cut = partitionByMagnet(work(), 'title');
         expect(shape(cut)).toEqual(['Pyramid', 'Sycamore', 'Railroad']);
         // Every word survives the partition, once.
-        expect(words(cut).reduce((a, b) => a + b, 0)).toBe(countWords(POEMS));
+        expect(words(cut).reduce((a, b) => a + b, 0)).toBe(countWords(TEXT));
     });
 
     it('is the gesture a reader would otherwise make a hundred times', () => {
@@ -147,7 +169,7 @@ describe('cutting at every magnet', () => {
 
 describe('what a surface is handed', () => {
     it('gives every part its blocks, and only the joints a reader may place', () => {
-        const cut = placeJoint(work(), snapPoints(POEMS)[0].offset);
+        const cut = placeJoint(work(), snapPoints(TEXT)[0].offset);
         const [first, second] = layoutPartition(cut);
 
         // The head of a part is not a joint: there is already one there.
@@ -171,6 +193,6 @@ describe('what a surface is handed', () => {
     it('carries the prose itself, split into paragraphs', () => {
         const [part] = layoutPartition(work());
         expect(part.blocks[0].paragraphs[0]).toContain('Pyramid');
-        expect(part.words).toBe(countWords(POEMS));
+        expect(part.words).toBe(countWords(TEXT));
     });
 });

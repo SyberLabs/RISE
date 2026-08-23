@@ -11,12 +11,16 @@ import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Library } from './Library.js';
 import { LocalWorks } from '../core/local-work-store.js';
+import { normalizeReaderText } from '../core/local-works.js';
 
 const POEMS = [
     'Pyramid', 'a stone set on a stone', 'and the light going',
     '', 'Sycamore', 'the bark peels in strips', 'like a letter opened twice',
     '', 'Railroad', 'sleepers under the rain', 'counting themselves away'
 ].join('\r\n');
+
+/** The poems as a record holds them: intake settles line endings once. */
+const TEXT = normalizeReaderText(POEMS);
 
 let container = null;
 let library = null;
@@ -60,13 +64,13 @@ describe('dropping a file', () => {
         expect(onSelectText).not.toHaveBeenCalled();
     });
 
-    it('still reaches the Chamber in one more tap, text unchanged', async () => {
+    it('still reaches the Chamber in one more tap, with the whole text', async () => {
         // The direct read is a departure from SCRIPTORIUM-STRENGTHENING-SPEC
         // §9.1, which deletes it. Kept deliberately: the partition is an
         // addition to what a dropped file could do, not a toll on it.
         await library.handleFileUpload(dropped());
         click('[data-action="read"]');
-        expect(onSelectText).toHaveBeenCalledWith(POEMS, 'Local: poems');
+        expect(onSelectText).toHaveBeenCalledWith(TEXT, 'Local: poems');
     });
 
     it('refuses a file the picker should not have offered', async () => {
@@ -103,7 +107,7 @@ describe('admitting a work', () => {
 
         const id = library.localWorks[0].id;
         await library.handleLocalWork('open-local', id);
-        expect(onSelectText).toHaveBeenCalledWith(POEMS, 'poems');
+        expect(onSelectText).toHaveBeenCalledWith(TEXT, 'poems');
     });
 
     it('reopens a shelved work on the joints its reader placed', async () => {
@@ -143,7 +147,7 @@ describe('when the shelf is unavailable', () => {
         await library.handleFileUpload(dropped());
         click('[data-action="admit"]');
         await settled();
-        expect(onSelectText).toHaveBeenCalledWith(POEMS, 'Local: poems');
+        expect(onSelectText).toHaveBeenCalledWith(TEXT, 'Local: poems');
         vi.restoreAllMocks();
     });
 });

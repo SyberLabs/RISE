@@ -116,6 +116,9 @@ import {
 } from '../core/render/kernel-request.js';
 import { visualFallbackCueFromConfig } from '../core/visual-program.js';
 import { assertQuotationAnchorsAgainstSources } from '../core/source-span.js';
+import { normalizeReaderText } from '../core/local-works.js';
+import { LocalWorks } from '../core/local-work-store.js';
+import { Admit } from './Admit.js';
 import './SourceBrowser.css';
 import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
 import './Workshop.css';
@@ -1919,6 +1922,52 @@ export class Workshop {
     }, 2000);
   }
 
+  /**
+   * A dropped `.txt`, shown as the parts it will become — the same room the
+   * Library opens (SCRIPTORIUM-STRENGTHENING-SPEC §5).
+   *
+   * TWO DOORS FOR ONE FILE WAS THE DEFECT. The Library divided a file, named
+   * its parts and shelved it where a score could point at `local-…#4`; this
+   * room, the one built for authoring, read the same file into a flat blob
+   * with a timestamp for a name. The better door was the one outside the
+   * workshop.
+   *
+   * A shelved work keeps its own id here, so the source in this project and
+   * the work on the shelf are one identity rather than two names for the same
+   * prose. An unshelved import is minted `imported-…`: `local-` is reserved
+   * (local-works.js) precisely so that an id cannot mean two things, and a
+   * timestamp under that prefix was borrowing a namespace it had no claim to.
+   */
+  openAdmit(text, sourceName) {
+    return new Admit({
+      text,
+      sourceName,
+      directLabel: 'Use here only',
+      onReadNow: (body, title) => this.acceptText(body, title, `imported-${Date.now()}`),
+      onAdmit: async record => {
+        try {
+          await LocalWorks.save(record);
+        } catch (error) {
+          // Unshelvable is not unusable. The reader asked for the text in
+          // this project, and that part can still happen.
+          console.warn('[Workshop] Could not shelve this work:', error);
+          this.showToast('Kept in this project; the Library shelf is full or unavailable');
+        }
+        this.acceptText(record.text, record.title, record.id);
+      }
+    });
+  }
+
+  /** One source, whichever door it came through. */
+  acceptText(data, name, id) {
+    if (this.sessionData.sources.some(source => source.id === id)) {
+      this.showToast(`${name} is already in this project`);
+      return;
+    }
+    this.addSource({ id, name, type: 'text/plain', data, metadata: { source: 'local-file' } },
+      { id: 'local', name: 'Local File' });
+  }
+
   addSource(item, provider) {
     // Normalize array payloads (e.g. ArXiv search results returning multiple structured objects)
     let normalizedData = item.data;
@@ -1932,7 +1981,7 @@ export class Workshop {
     // Persist as pure string representation
     item.data = normalizedData;
 
-    // LINE ENDINGS ARE NORMALISED HERE, AND ONLY HERE.
+    // LINE ENDINGS ARE NORMALISED ONCE, AND `normalizeReaderText` IS THE ONCE.
     //
     // A passage span is a pair of character offsets into this string, and the
     // offsets are measured by walking the rendered text. The HTML parser turns
@@ -1944,8 +1993,13 @@ export class Workshop {
     // not overlap. Pasted articles and downloaded .txt files carry CRLF as a
     // matter of course; the Archive's own payloads never do, which is why this
     // only ever bit imported text.
+    //
+    // The rule moved to local-works.js when one file became able to be both a
+    // shelved work and a source here: a cut is an offset into reader text and
+    // so is a passage span, and two normalisers is one rule with one thing
+    // that will disagree with it.
     if (typeof item.data === 'string') {
-      item.data = item.data.replace(/\r\n?/gu, '\n');
+      item.data = normalizeReaderText(item.data);
     }
 
     // Count words in content
@@ -4834,13 +4888,7 @@ export class Workshop {
          }
       }
 
-      this.addSource({
-        id: `local-${Date.now()}`,
-        name: file.name,
-        type: file.type || 'text/plain',
-        data: text,
-        metadata: { source: 'local-file' }
-      }, { id: 'local', name: 'Local File' });
+      this.openAdmit(text, file.name);
 
       // Reset the input so the same file could be uploaded again if needed
       event.target.value = '';

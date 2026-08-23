@@ -49,6 +49,10 @@ export class Admit {
     this.onReadNow = options.onReadNow || (() => {});
     this.onCancel = options.onCancel || (() => {});
     this.rungWords = options.rungWords;
+    // The direct exit is the same act in both rooms — take the text and skip
+    // the shelf — but it is not the same sentence. "Read it now" in a room
+    // where nothing is read would describe a door that does not exist.
+    this.directLabel = options.directLabel || 'Read it now';
 
     // A work already on the shelf reopens with the joints its reader placed.
     // Re-drafting it would silently throw those away and hand back the
@@ -102,7 +106,7 @@ export class Admit {
         <div class="admit-body">${this.renderParts()}</div>
         <footer class="admit-footer">
           <button class="admit-action" data-action="cancel">Cancel</button>
-          <button class="admit-action" data-action="read">Read it now</button>
+          <button class="admit-action" data-action="read">${escapeHtml(this.directLabel)}</button>
           <button class="admit-action admit-action-primary" data-action="admit">
             Add to Library
           </button>

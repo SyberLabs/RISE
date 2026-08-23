@@ -474,6 +474,10 @@ Composition advice already covers stitching and seams. A local `#n` next to an a
 ### 9.2 Refused at the door (not repaired)
 
 - `.doc`, `.pdf`, typeless `.mp4` as text, images in the text picker.
+- A Workshop text source minted under the reserved `local-` prefix. An id
+  that is not a local work has no claim on the namespace reserved so that
+  an id cannot mean two things; unshelved imports are `imported-...`
+  (settled 2026-08-23, with §5).
 - Empty text, text over `maxTextCharacters`.
 - A cut that is not a snap.
 - A part with zero words.
