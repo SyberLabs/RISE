@@ -116,7 +116,7 @@ describe('publication pipeline', () => {
   });
 
   it('does not enqueue from render completion, and the agent has no publish op', () => {
-    for (const file of ['render/package.js', 'render/driver.js', 'render/distribution.js']) {
+    for (const file of ['render/package.js', 'render/artifact.js', 'render/distribution.js']) {
       const src = readFileSync(join(ROOT, file), 'utf8');
       expect(src).not.toMatch('enqueuePublicationReview');
       expect(src).not.toMatch('publication.js');
