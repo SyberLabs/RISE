@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import { installContentPlaneFetch } from './content-plane.js';
+import { installContentPlaneFetch } from '../../scripts/lib/content-plane-fetch.mjs';
 
 // Works arrive over fetch now, not through import(). jsdom has no server,
 // so this serves public/content/ the way the CDN will.

@@ -18,7 +18,7 @@
     "test:e2e": "playwright test",
     "measure:first-load": "node scripts/measure-first-load.mjs",
     "scriptorium": "vite-node scripts/scriptorium.mjs --",
-    "scriptorium:ci": "node scripts/scriptorium-ci.mjs",
+    "scriptorium:ci": "npm run content:build && node scripts/scriptorium-ci.mjs",
     "probe:collections": "vite-node scripts/probe-collections.mjs",
     "study:chunking": "vite-node scripts/study-phrase-chunking.mjs",
     "sheet:chunks": "node scripts/chunk-contact-sheet.mjs",
@@ -41,7 +41,8 @@
     "render:mill": "node scripts/render-mill.mjs",
     "render:catalog": "node scripts/render-catalog.mjs",
     "cursor:skills": "node scripts/install-cursor-skills.mjs",
-    "content:build": "vite-node scripts/build-content-plane.mjs"
+    "content:build": "vite-node scripts/build-content-plane.mjs",
+    "test:e2e:gate": "playwright test --project=gate"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

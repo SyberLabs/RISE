@@ -100,17 +100,40 @@ export class ContentStore {
      */
     constructor({
         manifest = null,
-        fetchImpl = globalThis.fetch?.bind(globalThis),
-        caches = globalThis.caches ?? null,
+        fetchImpl = null,
+        caches = undefined,
         manifestUrl = MANIFEST_URL
     } = {}) {
         this._manifest = manifest;
         this._manifestLoad = null;
         this._manifestUrl = manifestUrl;
-        this._fetch = fetchImpl;
-        this._caches = caches;
+        this._fetchImpl = fetchImpl;
+        this._cachesImpl = caches;
         this._sections = new Map();   // id → sections
         this._reads = new Map();      // id → in-flight read
+    }
+
+    /**
+     * RESOLVED PER CALL, NOT SNAPSHOTTED AT CONSTRUCTION.
+     *
+     * `contentStore` is a module singleton, so a constructor that captured
+     * `globalThis.fetch` captured whatever was installed the moment its
+     * module was first imported — and ESM hoists imports above any code
+     * that would replace it. The Scriptorium CLI installs a filesystem
+     * transport for `/content/...` because a Node process has no origin,
+     * and the snapshot silently ignored it: every work refused with
+     * PROGRAM_IO_LIBRARY_UNLOADABLE, the CLI suite went red, and the unit
+     * suite stayed green because vitest's setupFiles happen to run first.
+     * Reading the global when it is used has no such ordering.
+     */
+    get _fetch() {
+        return this._fetchImpl ?? globalThis.fetch?.bind(globalThis);
+    }
+
+    get _caches() {
+        return this._cachesImpl === undefined
+            ? (globalThis.caches ?? null)
+            : this._cachesImpl;
     }
 
     /** The manifest, fetched once. It is the only mutable pointer. */
