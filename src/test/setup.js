@@ -1,4 +1,9 @@
 import { vi } from 'vitest';
+import { installContentPlaneFetch } from './content-plane.js';
+
+// Works arrive over fetch now, not through import(). jsdom has no server,
+// so this serves public/content/ the way the CDN will.
+installContentPlaneFetch();
 
 function gradient() {
   return { addColorStop: vi.fn() };

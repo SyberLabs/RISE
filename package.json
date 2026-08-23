@@ -10,11 +10,11 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run content:build && vite build",
     "preview": "vite preview",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "test": "npm run content:build && vitest",
+    "test:run": "npm run content:build && vitest run",
+    "test:coverage": "npm run content:build && vitest run --coverage",
     "test:e2e": "playwright test",
     "measure:first-load": "node scripts/measure-first-load.mjs",
     "scriptorium": "vite-node scripts/scriptorium.mjs --",
@@ -40,7 +40,8 @@
     "render:mp4": "node scripts/render-mp4.mjs",
     "render:mill": "node scripts/render-mill.mjs",
     "render:catalog": "node scripts/render-catalog.mjs",
-    "cursor:skills": "node scripts/install-cursor-skills.mjs"
+    "cursor:skills": "node scripts/install-cursor-skills.mjs",
+    "content:build": "vite-node scripts/build-content-plane.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
