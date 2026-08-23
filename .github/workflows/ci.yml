@@ -161,21 +161,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - run: npm run build
-<<<<<<< HEAD
       # A first load can only stay small if something refuses to let it grow.
       # The build itself already fails on a deferral the bundler ignores;
       # this fails on the byte count that deferral was for.
       - name: The Portal's cost is a budget, not an aspiration
         run: npm run measure:first-load
-=======
-
-      # scripts/measure-first-load.mjs already priced what index.html names;
-      # nothing was holding it to a number. 207 KB brotli today, and #47 says
-      # the next pass goes lower — so lower the budget when it does. A ceiling
-      # that only ever rises is not a ceiling.
-      - name: The first screen stays within its budget
-        run: npm run check:first-load
->>>>>>> de71020 (Wire the first-load measurement that already exists, and delete mine)
 
   scriptorium:
     name: Scriptorium CLI

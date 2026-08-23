@@ -16,11 +16,7 @@
     "test:run": "npm run content:build && vitest run",
     "test:coverage": "npm run content:build && vitest run --coverage",
     "test:e2e": "playwright test",
-<<<<<<< HEAD
     "measure:first-load": "node scripts/measure-first-load.mjs",
-=======
-    "check:first-load": "node scripts/measure-first-load.mjs --budget 215",
->>>>>>> de71020 (Wire the first-load measurement that already exists, and delete mine)
     "docs:diagram": "node scripts/build-architecture-diagram.mjs",
     "scriptorium": "vite-node scripts/scriptorium.mjs --",
     "scriptorium:ci": "npm run content:build && node scripts/scriptorium-ci.mjs",

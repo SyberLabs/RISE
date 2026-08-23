@@ -152,27 +152,27 @@ flowchart LR
     audio["audio<br/>Web Audio, recitation<br/>6 modules"]
     components["components<br/>routed views<br/>29 modules"]
     content["content<br/>texts, imagery, journeys<br/>222 modules"]
-    core["core<br/>session, player, router<br/>105 modules"]
+    core["core<br/>session, player, router<br/>106 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
-    sources["sources<br/>text and visual providers<br/>21 modules"]
-    visuals["visuals<br/>procedural generation<br/>51 modules"]
+    sources["sources<br/>text and visual providers<br/>22 modules"]
+    visuals["visuals<br/>procedural generation<br/>53 modules"]
 
     app -.-> |2 lazy| audio
-    app --> |3| components
+    app --> |1| components
     app -.-> |6 lazy| content
     app --> |14| core
-    app --> |1| sources
-    app --> |1| visuals
+    app -.-> |1 lazy| sources
+    app -.-> |1 lazy| visuals
     audio --> |1| content
     audio --> |3| core
     components --> |2| audio
     components --> |22| content
     components --> |93| core
     components -.-> |1 lazy| page
-    components --> |5| sources
+    components --> |6| sources
     components --> |12| visuals
     content --> |3| audio
-    content --> |11| core
+    content --> |13| core
     content --> |17| sources
     content --> |1| visuals
     core --> |3| audio
