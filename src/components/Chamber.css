@@ -257,6 +257,10 @@
   text-shadow: none;
 }
 
+.atom-display.is-mask.is-mask-ink.is-word-fit {
+  -webkit-text-stroke-width: 0;
+}
+
 .atom-display {
   font-family: var(--font-stream-face, var(--font-literary));
   /* The scale is published by sizeAtomText — a longer phrase gets a

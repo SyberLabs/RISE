@@ -155,6 +155,9 @@ for (const [surface, viewport] of [
     expect(state.maxAtomOverflow).toBeLessThanOrEqual(1);
     expect(state.maxCentreDrift).toBeLessThanOrEqual(2);
     expect(fractalCacheMisses).toEqual([]);
+    await expect.poll(() => page.locator('#atom-display').evaluate((atom) => (
+      getComputedStyle(atom).webkitTextStrokeWidth
+    ))).toBe('0px');
     await expect(page.locator('.chamber-mask-ground-plate[data-ground="light"]'))
       .toBeAttached({ timeout: 20_000 });
 
