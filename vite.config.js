@@ -9,9 +9,36 @@ const GB = 1024 ** 3;
 // already resident while the suite runs.
 const RESERVED_GB = 2.5;
 
-// One test file per fork. Typical peak is 100–200 MB; the worst measured was
-// 594 MB, so a gigabyte a slot is the heavy file paying for itself.
-const PER_WORKER_GB = 1;
+// One test file per fork. The 100–200 MB typical peak below still holds, but
+// the 594 MB worst case no longer does: a fork now wants more than two
+// gigabytes, and V8's default cap is where it dies. See FORK_HEAP_MB.
+const PER_WORKER_GB = 3;
+
+// THE CAP THAT WAS KILLING CI, AND WHY IT IS A CAP RATHER THAN A LEAK.
+//
+// Main went red with `FATAL ERROR: Reached heap limit`, followed by the
+// ERR_IPC_CHANNEL_CLOSED the comment further down already describes. The
+// native stack says what ran out:
+//
+//     CompilationCache::LookupScript
+//       -> CompilationCacheTable::LookupScript
+//         -> String::SlowFlatten
+//           -> NewRawTwoByteString          <- out of memory here
+//
+// That is V8 flattening a module's SOURCE TEXT in order to compile it. The
+// modules with source text that size are the books: works/ holds 95 of them
+// as JavaScript, the largest 15 MB. A fork that imports one is asking the
+// JavaScript compiler to hold a novel, and it died at V8's default ~2 GB.
+//
+// Reproduced at 2 GB and green at 4 on a 4-core/15 GB machine, which is the
+// shape of a GitHub runner. Nothing is skipped or loosened to get there; the
+// runner has the memory and V8 simply would not use it.
+//
+// This is a cap raised around a cause that is still there. The cause is that
+// a book is compiled as a program at all — docs/specs/SYSTEM-DESIGN-REVIEW.
+// When payloads leave the module graph, both this number and the scheduling
+// arithmetic around it stop being load-bearing and should be deleted.
+const FORK_HEAP_MB = 4096;
 
 const coreCeiling = Math.floor(cpus().length / 2);
 const memoryCeiling = Math.floor((freemem() / GB - RESERVED_GB) / PER_WORKER_GB);
@@ -128,6 +155,14 @@ export default defineConfig({
     // guess. Nothing changes on a four-core runner, where cores still bind
     // first and the answer is two either way.
     pool: 'forks',
+    poolOptions: {
+      forks: {
+        // Set here rather than in the CI workflow: a contributor on a 16 GB
+        // laptop meets the same wall, and a green local run that only CI can
+        // fail is the kind of gap this repository has paid for before.
+        execArgv: [`--max-old-space-size=${FORK_HEAP_MB}`]
+      }
+    },
     maxWorkers: Math.max(2, Math.min(6, coreCeiling, memoryCeiling)),
     minWorkers: 1,
 
