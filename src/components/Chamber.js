@@ -36,6 +36,7 @@ import {
 import { hasNextLibraryDivision } from '../core/reading-continuation.js';
 import { READING_PACE } from '../core/reading-limits.js';
 import { resolveChamberStreamFace } from '../core/chamber-stream-face.js';
+import { applyChamberAccent, resolveChamberAccent } from '../core/chamber-accent.js';
 import {
   estimateGlyphBox,
   fitWordAtomPx,
@@ -579,6 +580,25 @@ export class Chamber {
     const allowlisted = resolveChamberStreamFace(requested) === requested;
     const atomDisplay = this.container.querySelector('#atom-display');
     fail.hidden = allowlisted && atomDisplay?.dataset.chamberFace === requested;
+  }
+
+  applyChamberAccent() {
+    return applyChamberAccent(
+      document.documentElement,
+      globalThis.rise?.settings?.chamberAccent
+    );
+  }
+
+  _reportAccentApply(requested) {
+    const fail = this.container.querySelector('#chamber-accent-fail');
+    if (!fail) return;
+    const allowlisted = resolveChamberAccent(requested) === requested;
+    const took = document.documentElement.dataset.accent === requested;
+    fail.hidden = allowlisted && took;
+    if (!fail.hidden) {
+      applyChamberAccent(document.documentElement, 'purple');
+      if (globalThis.rise?.settings) globalThis.rise.settings.chamberAccent = 'purple';
+    }
   }
 
   chamberMaskApplies() {
@@ -2123,7 +2143,9 @@ export class Chamber {
               ? value === true
               : key === 'fontSize'
                 ? resolveFontSize(value)
-                : value;
+                : key === 'chamberAccent'
+                  ? resolveChamberAccent(value)
+                  : value;
         }
         if (key === 'chamberFace' || key === 'chamberMask') {
           this.applyChamberStreamFace();
@@ -2131,6 +2153,10 @@ export class Chamber {
         }
         if (key === 'fontSize') this.applyChamberTypeSize();
         if (key === 'chamberFace') this._reportFaceApply(value);
+        if (key === 'chamberAccent') {
+          this.applyChamberAccent();
+          this._reportAccentApply(value);
+        }
       }
     });
   }

@@ -1,5 +1,6 @@
 import { clearUserData, exportUserData } from '../core/user-data.js';
 import { CHAMBER_STREAM_FACES, resolveChamberStreamFace } from '../core/chamber-stream-face.js';
+import { CHAMBER_ACCENTS, resolveChamberAccent } from '../core/chamber-accent.js';
 import './Settings.css';
 import {
     FONT_SIZE_CHIPS,
@@ -77,6 +78,16 @@ export class Settings {
               <div class="settings-control" role="radiogroup" aria-labelledby="chamber-face-label">
                 ${this.renderChamberFaceRadios()}
                 <p class="settings-fail" id="chamber-face-fail" hidden>Face did not take.</p>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-label-group">
+                <span class="settings-label" id="chamber-accent-label">Accent</span>
+              </div>
+              <div class="settings-control" role="radiogroup" aria-labelledby="chamber-accent-label">
+                ${this.renderChamberAccentRadios()}
+                <p class="settings-fail" id="chamber-accent-fail" hidden>Accent did not take.</p>
               </div>
             </div>
 
@@ -303,6 +314,21 @@ export class Settings {
         `).join('');
     }
 
+    renderChamberAccentRadios() {
+        const selected = resolveChamberAccent(this.settings.chamberAccent);
+        return CHAMBER_ACCENTS.map((accent) => `
+          <label class="radio">
+            <input
+              type="radio"
+              name="chamber-accent"
+              value="${accent.id}"
+              ${accent.id === selected ? 'checked' : ''}
+            />
+            <span class="radio-label">${accent.label}</span>
+          </label>
+        `).join('');
+    }
+
     leave() {
         if (this.onClose) this.onClose();
         else this.onNavigate('portal');
@@ -349,6 +375,15 @@ export class Settings {
                 if (resolveChamberStreamFace(requested) !== requested) return;
                 this.settings.chamberFace = requested;
                 this.onChange('chamberFace', requested);
+            });
+        });
+
+        this.container.querySelectorAll('input[name="chamber-accent"]').forEach((input) => {
+            input.addEventListener('change', (e) => {
+                const requested = e.target.value;
+                if (resolveChamberAccent(requested) !== requested) return;
+                this.settings.chamberAccent = requested;
+                this.onChange('chamberAccent', requested);
             });
         });
 

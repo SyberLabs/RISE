@@ -147,6 +147,52 @@ describe('Settings display type', () => {
         settings.destroy();
     });
 
+    it('places Accent after Face/Size with the five chrome chips and fail copy', () => {
+        const { container, settings, onChange } = mountSettings();
+        const radios = [...container.querySelectorAll('input[name="chamber-accent"]')];
+        const faceRow = container.querySelector('#chamber-face-label')?.closest('.settings-row');
+        const sizeRow = container.querySelector('#font-size-label')?.closest('.settings-row');
+        const accentRow = container.querySelector('#chamber-accent-label')?.closest('.settings-row');
+
+        expect(container.querySelector('#chamber-accent-label')?.textContent.trim()).toBe('Accent');
+        expect(faceRow.compareDocumentPosition(accentRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(sizeRow.compareDocumentPosition(accentRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+        expect(radios.map((radio) => [
+            radio.value,
+            radio.closest('label')?.textContent.replace(/\s+/g, ' ').trim()
+        ])).toEqual([
+            ['purple', 'Purple'],
+            ['cobalt', 'Cobalt Blue'],
+            ['amber', 'Amber Gold'],
+            ['sunset', 'Sunset Orange'],
+            ['gecko', 'Gecko Green']
+        ]);
+        expect(radios.find((radio) => radio.value === 'purple').checked).toBe(true);
+        expect(container.querySelector('#chamber-accent-fail')?.textContent.trim())
+            .toBe('Accent did not take.');
+        expect(container.querySelector('#chamber-accent-fail')?.hidden).toBe(true);
+
+        radios.find((radio) => radio.value === 'cobalt').click();
+        expect(onChange).toHaveBeenCalledWith('chamberAccent', 'cobalt');
+        settings.destroy();
+    });
+
+    it('coerces an unknown persisted accent to purple and ignores a forged radio value', () => {
+        const { container, settings, onChange } = mountSettings({ chamberAccent: 'violet' });
+        const radios = [...container.querySelectorAll('input[name="chamber-accent"]')];
+
+        expect(radios.find((radio) => radio.value === 'purple').checked).toBe(true);
+
+        const gecko = radios.find((radio) => radio.value === 'gecko');
+        gecko.value = 'chartreuse';
+        gecko.checked = true;
+        gecko.dispatchEvent(new Event('change'));
+
+        expect(onChange).not.toHaveBeenCalled();
+        expect(onChange).not.toHaveBeenCalledWith('chamberAccent', 'chartreuse');
+        settings.destroy();
+    });
+
     it('emits chamberMask as a boolean and defaults the toggle off', () => {
         const { container, settings, onChange } = mountSettings();
         const toggle = container.querySelector('[data-setting="chamberMask"]');

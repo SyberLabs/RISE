@@ -434,7 +434,7 @@
 }
 
 .control-btn:hover {
-  color: var(--color-light);
+  color: var(--color-accent);
 }
 
 .control-btn .icon {
@@ -637,7 +637,7 @@
 }
 
 .volume-preset:hover {
-  border-color: var(--color-threshold);
+  border-color: var(--color-accent);
   color: var(--color-light);
 }
 

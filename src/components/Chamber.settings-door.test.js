@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
 import { Settings } from './Settings.js';
 import { resolveChamberStreamFace } from '../core/chamber-stream-face.js';
+import { resolveChamberAccent } from '../core/chamber-accent.js';
 
 function fakePlayer(initialState = 'playing') {
   const player = {
@@ -84,6 +85,17 @@ describe('Chamber Settings door', () => {
       .map((input) => input.closest('label')?.textContent.replace(/\s+/g, ' ').trim());
     expect(labels).toEqual(['Literary', 'Display', 'Thick', 'Japanese']);
 
+    const accentLabels = [...container.querySelectorAll('input[name="chamber-accent"]')]
+      .map((input) => input.closest('label')?.textContent.replace(/\s+/g, ' ').trim());
+    expect(accentLabels).toEqual([
+      'Purple', 'Cobalt Blue', 'Amber Gold', 'Sunset Orange', 'Gecko Green'
+    ]);
+    expect(container.querySelector('#chamber-accent-label')?.textContent.trim()).toBe('Accent');
+    expect(container.querySelector('#chamber-field input[name="chamber-accent"]')).toBeNull();
+    expect(container.querySelector('.chamber-controls input[name="chamber-accent"]')).toBeNull();
+    expect(container.querySelector('#chamber-field [data-chamber-accent]')).toBeNull();
+    expect(container.querySelector('.chamber-controls [data-chamber-accent]')).toBeNull();
+
     chamber.destroy();
   });
 
@@ -150,6 +162,61 @@ describe('Chamber Settings door', () => {
     expect(player.state).toBe('paused');
 
     chamber.destroy();
+  });
+
+  it('applies an allowlisted accent on :root and ignores an unknown accent', async () => {
+    const { chamber, container, player } = mount();
+    delete document.documentElement.dataset.accent;
+    globalThis.rise = {
+      settings: { chamberFace: 'literary', chamberAccent: 'purple' },
+      handleSettingsChange(key, value) {
+        this.settings[key] = key === 'chamberAccent'
+          ? resolveChamberAccent(value)
+          : value;
+      }
+    };
+
+    await chamber.openSettings();
+    expect(player.state).toBe('paused');
+
+    container.querySelector('input[name="chamber-accent"][value="gecko"]').click();
+    expect(document.documentElement.dataset.accent).toBe('gecko');
+    expect(globalThis.rise.settings.chamberAccent).toBe('gecko');
+    expect(container.querySelector('#chamber-accent-fail')?.hidden).toBe(true);
+
+    const amber = container.querySelector('input[name="chamber-accent"][value="amber"]');
+    amber.value = 'chartreuse';
+    amber.checked = true;
+    amber.dispatchEvent(new Event('change'));
+    expect(document.documentElement.dataset.accent).toBe('gecko');
+    expect(globalThis.rise.settings.chamberAccent).toBe('gecko');
+
+    chamber.destroy();
+    delete document.documentElement.dataset.accent;
+  });
+
+  it('shows Accent did not take and stays Purple when the stamp does not take', async () => {
+    const { chamber, container } = mount();
+    delete document.documentElement.dataset.accent;
+    globalThis.rise = {
+      settings: { chamberAccent: 'purple' },
+      handleSettingsChange() {}
+    };
+    await chamber.openSettings();
+    chamber.applyChamberAccent = () => {};
+
+    container.querySelector('input[name="chamber-accent"][value="cobalt"]').click();
+
+    const fail = container.querySelector('#chamber-accent-fail');
+    expect(fail).toBeTruthy();
+    expect(fail.hidden).toBe(false);
+    expect(fail.textContent.trim()).toBe('Accent did not take.');
+    expect(document.documentElement.dataset.accent === 'cobalt').toBe(false);
+    expect(document.documentElement.dataset.accent === 'purple'
+      || document.documentElement.dataset.accent == null).toBe(true);
+
+    chamber.destroy();
+    delete document.documentElement.dataset.accent;
   });
 
   it('shows Face did not take when the paused atom does not receive the face', async () => {
