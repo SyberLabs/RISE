@@ -377,16 +377,11 @@ const TYPE_AFFINITY = {
 };
 
 /**
- * Scale the user's base flash probability by passage arousal.
- * The configured frequency is a hard ceiling (it is what the user consented
- * to in the safety flow): peak intensity (a=1) reaches exactly the base,
- * calm text (a=0) drops to 0.35× base.
+ * Lives in visual-presence.js beside responsiveVisualPresence, its pair.
+ * Re-exported here because the conductor's own callers reach for it, and
+ * because player.js must be able to have it without the lexicon above.
  */
-export function responsiveFrequency(baseFrequency, signal) {
-    if (!signal) return baseFrequency;
-    const scaled = baseFrequency * (0.35 + 0.65 * clamp(signal.arousal, 0, 1));
-    return clamp(scaled, 0, baseFrequency);
-}
+export { responsiveFrequency } from './visual-presence.js';
 
 /**
  * Choose flash parameters for one interlocution given the current signal.

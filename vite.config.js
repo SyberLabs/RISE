@@ -53,23 +53,47 @@ export default defineConfig({
     // Increase warning threshold slightly (visual engines are large)
     chunkSizeWarningLimit: 300,
 
-    // NO manualChunks. It was a grouping directive read as a deferral one.
+    // NO manualChunks. Three tunings of it moved three kilobytes, because a
+    // cache group is not a deferral: the config's own retired comment
+    // conceded "these are not route-lazy by themselves." Worse, the
+    // `content-texts` group was the ONLY dependency six sacred-text modules
+    // had — nothing in src/ imported them, so naming them here is what built
+    // them, and what modulepreloaded 89 KB of them before the Portal painted.
+    // A build configuration that can conjure a dependency out of nothing is
+    // the same defect class as the 82 MB of unreachable books, and it hid
+    // the real first load behind nine tidy filenames.
     //
-    // Naming a module here makes it a chunk the ENTRY depends on, so the shell
-    // emits a <link rel="modulepreload"> for it and a browser fetches it before
-    // the reader has chosen anything. That is the opposite of deferring it: the
-    // audio engine kept being preloaded after `app.js` was changed to import it
-    // dynamically, because this list still named it.
-    //
-    // It also cost nothing to remove. Measured three ways at 251 kB brotli of
-    // first load: as configured 251, this list deleted 250, one group deleted
-    // 248. It was moving three kilobytes while making the first-load graph look
-    // like nine tidy files instead of one large one — and it suppressed
-    // Rollup's own "dynamic import will not move module into another chunk"
-    // warnings, which are the report that a deferral has been defeated.
-    //
-    // Deferment happens at the import site or not at all. Rollup's default
-    // splitting already follows the dynamic imports we write.
+    // Deferment lives at the caller, as a dynamic import(), where it can be
+    // read. Grouping lives with Rollup, which does it well enough unaided.
+
+    rollupOptions: {
+      /**
+       * A DEFERRAL WRITTEN AT ONE SITE AND UNDONE AT ANOTHER IS NOW A BUILD
+       * FAILURE.
+       *
+       * Rollup reports it plainly — "dynamically imported by X but also
+       * statically imported by Y" — and the report sat on screen for every
+       * build of this project without being acted on. It is the same shape
+       * as the 82 MB of unreachable books and the same shape as the dead
+       * sacred texts: the bundler is the only witness, and a witness nobody
+       * reads is not a guard.
+       *
+       * Removing manualChunks turned two of these into nine, because the
+       * cache groups had been hiding the rest. All nine are fixed. This
+       * keeps the tenth from arriving quietly.
+       */
+      onwarn(warning, warn) {
+        if (/dynamic import will not move module/.test(warning.message || '')) {
+          throw new Error(
+            `${warning.message}\n\n`
+            + 'Either make the static importer lazy, or drop the import() and '
+            + 'admit the module belongs in the chunk. Do not leave the two '
+            + 'disagreeing — a deferral the bundler ignores reads as done.'
+          );
+        }
+        warn(warning);
+      }
+    }
   },
 
   // Test configuration

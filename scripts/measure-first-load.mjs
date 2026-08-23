@@ -1,85 +1,184 @@
 #!/usr/bin/env node
+
 /**
- * WHAT A READER DOWNLOADS BEFORE THEY HAVE CHOSEN ANYTHING.
+ * What a first-time visitor downloads before the Portal can paint.
  *
- * `dist/assets` totals tell you what was built. They do not tell you what a
- * first-time visitor pays to see the Portal, and those two numbers have been
- * far apart here. The bundler reports 18.7 MB; the visitor pays for whatever
- * `index.html` names — the entry chunk, every `modulepreload`, and the
- * stylesheet — and nothing else until they navigate.
+ * THE PROJECT HAS TUNED CHUNKING THREE TIMES WITHOUT THIS NUMBER. Three
+ * rounds of `manualChunks` moved three kilobytes, because the bytes are in
+ * `src/app.js`'s static import graph where no bundler configuration can
+ * reach them. A chunk table tells you how the graph was cut; it does not
+ * tell you what is fetched before anything is on screen. That is this.
  *
- * So this reads the built `index.html` and adds up exactly that set, at the
- * compression Netlify serves. Anything the shell does not name is not counted,
- * because a reader does not fetch it.
+ * The first-load set is exactly what `dist/index.html` asks for by itself:
+ * the entry module, every `modulepreload` the bundler decided is needed to
+ * run it, and every stylesheet. Anything reached by a later `import()` is
+ * not in it, which is the whole point of deferring one.
  *
- * Usage:
- *   node scripts/measure-first-load.mjs [dist-dir] [--json] [--budget <KB>]
+ * Sizes are brotli because that is what a CDN serves and what a reader
+ * actually waits for. Netlify compresses on the fly, so the bytes on disk
+ * are not the bytes on the wire.
  *
- * `--budget` exits nonzero when the brotli total exceeds the given kilobytes,
- * so a regression can fail a build rather than be noticed a release later.
+ *   node scripts/measure-first-load.mjs           report, and gate the budget
+ *   node scripts/measure-first-load.mjs --bundle  also account for all of dist/
+ *   node scripts/measure-first-load.mjs --json    machine-readable
  */
-import { readFileSync, existsSync } from 'node:fs';
-import { join, basename } from 'node:path';
-import { brotliCompressSync, gzipSync, constants } from 'node:zlib';
 
-const args = process.argv.slice(2);
-const asJson = args.includes('--json');
-const budgetIndex = args.indexOf('--budget');
-const budgetKb = budgetIndex === -1 ? null : Number(args[budgetIndex + 1]);
-const distDir = args.find(arg => !arg.startsWith('--') && arg !== args[budgetIndex + 1]) || 'dist';
+import { brotliCompressSync, constants } from 'node:zlib';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
-const shell = join(distDir, 'index.html');
-if (!existsSync(shell)) {
-    console.error(`No ${shell}. Run \`npm run build\` first.`);
-    process.exit(2);
+const ROOT = resolve(import.meta.dirname, '..');
+const DIST = resolve(ROOT, 'dist');
+
+/**
+ * Spec §16's target is 60 KB. The budget is set at the measured value plus
+ * headroom rather than at the target, so it ratchets: each delta that lands
+ * lowers it, and nothing can silently climb back. A budget set at a number
+ * nobody has reached yet fails on day one and gets deleted by day two.
+ */
+export const FIRST_LOAD_BUDGET_BYTES = 64 * 1024;
+
+const brotli = bytes => brotliCompressSync(bytes, {
+  params: { [constants.BROTLI_PARAM_QUALITY]: 11 }
+}).length;
+
+/** Assets `index.html` requests on its own, in the order it requests them. */
+export function firstLoadAssets(html) {
+  const assets = [];
+  const push = (kind, href) => {
+    if (href && href.startsWith('/')) assets.push({ kind, href });
+  };
+  for (const [, href] of html.matchAll(/<script[^>]+src="([^"]+)"/g)) {
+    push('script', href);
+  }
+  for (const [, rel, href] of html.matchAll(/<link[^>]+rel="(modulepreload|stylesheet)"[^>]+href="([^"]+)"/g)) {
+    push(rel, href);
+  }
+  return assets;
 }
 
-const html = readFileSync(shell, 'utf8');
-
-// The shell names its own critical set: the entry script, every modulepreload
-// the bundler decided the entry needs, and the stylesheet. A reference that
-// resolves to nothing on disk is a broken deploy, not a free byte, so it is
-// reported rather than skipped.
-const referenced = [...new Set([...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map(m => m[1]))];
-
-const missing = [];
-const files = [];
-for (const ref of referenced.sort()) {
-    const path = join(distDir, ref.replace(/^\//, ''));
-    if (!existsSync(path)) { missing.push(ref); continue; }
-    const bytes = readFileSync(path);
-    files.push({
-        name: basename(ref),
-        raw: bytes.length,
-        gzip: gzipSync(bytes, { level: 9 }).length,
-        brotli: brotliCompressSync(bytes, {
-            params: { [constants.BROTLI_PARAM_QUALITY]: 11 }
-        }).length
-    });
+function walk(dir, out = []) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) walk(path, out);
+    else out.push(path);
+  }
+  return out;
 }
 
-const sum = key => files.reduce((total, file) => total + file[key], 0);
-const total = { raw: sum('raw'), gzip: sum('gzip'), brotli: sum('brotli'), requests: files.length };
+/**
+ * Text masquerading as code. A chunk that is 95% string literal is a book
+ * the bundler was asked to parse as a program; spec §16 wants this at zero.
+ */
+function textShareOfJavaScript() {
+  const assetsDir = join(DIST, 'assets');
+  let total = 0;
+  let text = 0;
+  for (const path of walk(assetsDir)) {
+    if (!path.endsWith('.js')) continue;
+    const bytes = statSync(path).size;
+    total += bytes;
+    const source = readFileSync(path, 'utf8');
+    // A payload module is one whose bytes are overwhelmingly quoted string.
+    const quoted = (source.match(/"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`/g) || [])
+      .reduce((sum, literal) => sum + literal.length, 0);
+    if (quoted / Math.max(1, source.length) > 0.8) text += bytes;
+  }
+  return { total, text };
+}
 
-if (asJson) {
-    console.log(JSON.stringify({ schema: 'rise.first-load.v1', distDir, total, files, missing }, null, 2));
-} else {
-    const kb = n => `${(n / 1024).toFixed(0)} KB`;
-    console.log(`first load — what ${shell} names, before any navigation\n`);
-    for (const file of [...files].sort((a, b) => b.brotli - a.brotli)) {
-        console.log(`  ${file.name.padEnd(42)} raw ${kb(file.raw).padStart(8)}   gzip ${kb(file.gzip).padStart(7)}   brotli ${kb(file.brotli).padStart(7)}`);
+/**
+ * The Portal is a dynamic import, so it is not in `index.html`'s request
+ * set — but a reader stares at nothing until it arrives. Counting only what
+ * the shell asks for would flatter every delta that moves something behind
+ * an `import()`. Spec 12's target is stated as "shell + router + Portal +
+ * Portal.css", so that is what has to be weighed against it.
+ */
+function portalAssets() {
+  return readdirSync(join(DIST, 'assets'))
+    .filter(name => /^Portal-[^/]+\.(js|css)$/.test(name))
+    .map(name => ({ kind: 'portal', href: `/assets/${name}` }));
+}
+
+function weigh(assets) {
+  return assets.map(asset => {
+    const bytes = readFileSync(join(DIST, asset.href.replace(/^\//, '')));
+    return { ...asset, raw: bytes.length, brotli: brotli(bytes) };
+  });
+}
+
+export function measure() {
+  const html = readFileSync(join(DIST, 'index.html'), 'utf8');
+  const assets = weigh(firstLoadAssets(html));
+  const portal = weigh(portalAssets());
+  const shell = brotli(Buffer.from(html));
+  const sum = (list, key) => list.reduce((total, item) => total + item[key], 0);
+  return {
+    assets,
+    portal,
+    requests: assets.length + 1,           // index.html is a request too
+    raw: sum(assets, 'raw') + Buffer.byteLength(html),
+    brotli: sum(assets, 'brotli') + shell,
+    toPortalRequests: assets.length + portal.length + 1,
+    toPortalBrotli: sum(assets, 'brotli') + sum(portal, 'brotli') + shell
+  };
+}
+
+function kb(bytes) {
+  return `${(bytes / 1024).toFixed(1)} KB`;
+}
+
+function main() {
+  const argv = process.argv.slice(2);
+  const report = measure();
+
+  if (argv.includes('--json')) {
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    console.log('First load — what a visitor fetches before the Portal paints\n');
+    for (const asset of report.assets) {
+      console.log(
+        `  ${asset.kind.padEnd(14)} ${kb(asset.brotli).padStart(10)} br  `
+        + `${kb(asset.raw).padStart(10)} raw   ${asset.href}`
+      );
     }
-    console.log(`\n  ${'TOTAL'.padEnd(42)} raw ${kb(total.raw).padStart(8)}   gzip ${kb(total.gzip).padStart(7)}   brotli ${kb(total.brotli).padStart(7)}`);
-    console.log(`  ${total.requests} requests`);
-    for (const ref of missing) console.log(`\n  MISSING: ${ref} is named by the shell and is not on disk`);
+    console.log(
+      `\n  ${'TOTAL'.padEnd(14)} ${kb(report.brotli).padStart(10)} br  `
+      + `${kb(report.raw).padStart(10)} raw   ${report.requests} requests`
+    );
+    console.log(`  budget         ${kb(FIRST_LOAD_BUDGET_BYTES).padStart(10)} br`);
+
+    console.log();
+    for (const asset of report.portal) {
+      console.log(
+        `  ${asset.kind.padEnd(14)} ${kb(asset.brotli).padStart(10)} br  `
+        + `${kb(asset.raw).padStart(10)} raw   ${asset.href}`
+      );
+    }
+    console.log(
+      `  ${'TO PORTAL'.padEnd(14)} ${kb(report.toPortalBrotli).padStart(10)} br`
+      + `${''.padStart(18)}${report.toPortalRequests} requests`
+    );
+
+    if (argv.includes('--bundle')) {
+      const { total, text } = textShareOfJavaScript();
+      const share = total === 0 ? 0 : Math.round((text / total) * 100);
+      console.log(
+        `\n  dist/assets JavaScript: ${kb(total)}, of which text payloads `
+        + `${kb(text)} (${share}%)`
+      );
+    }
+  }
+
+  if (report.brotli > FIRST_LOAD_BUDGET_BYTES) {
+    console.error(
+      `\nFirst load is ${kb(report.brotli)} against a ${kb(FIRST_LOAD_BUDGET_BYTES)} budget.`
+    );
+    process.exitCode = 1;
+  }
 }
 
-if (missing.length) process.exit(1);
-
-if (budgetKb !== null) {
-    const brotliKb = total.brotli / 1024;
-    if (brotliKb > budgetKb) {
-        console.error(`\nfirst load is ${brotliKb.toFixed(0)} KB brotli, over the ${budgetKb} KB budget`);
-        process.exit(1);
-    }
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main();
 }

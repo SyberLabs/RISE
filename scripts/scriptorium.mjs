@@ -15,7 +15,11 @@
  *   npm run scriptorium -- examine score.json --length 900 --json
  */
 
+import { installContentPlaneFetch } from './lib/content-plane-fetch.mjs';
 import { runScriptoriumCli } from '../src/core/scriptorium-cli.js';
+
+// A work is fetched, and this process has no origin to fetch it from.
+installContentPlaneFetch();
 
 process.exitCode = await runScriptoriumCli(process.argv.slice(2), {
   out: (line) => process.stdout.write(`${line}\n`),

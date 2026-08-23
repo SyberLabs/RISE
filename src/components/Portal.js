@@ -10,6 +10,8 @@
  */
 
 
+import './Portal.css';
+
 export class Portal {
   constructor(container, options = {}) {
     this.container = container;

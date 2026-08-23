@@ -53,6 +53,7 @@ import {
   validateLocalWork
 } from './local-works.js';
 import { SourceSpanResolutionError } from './source-span.js';
+import { ContentStoreError } from './content-store.js';
 import { VisualScoreLaneError } from './visual-score-lane.js';
 import { AudioScoreLaneError } from './audio-score-lane.js';
 import { NarrationScoreLaneError } from './narration-score-lane.js';
@@ -176,6 +177,14 @@ export function describeLength(words, wpm = readerWpm()) {
  * AudioScoreLaneError, EditorAssetError and CuratorContextValidationError
  * arrived by that guard: two lanes' worth of ordinary scoring mistakes and
  * every malformed capability document reached readers as raw exceptions.
+ *
+ * ContentStoreError arrived by it too, the same day works stopped being
+ * modules. `scriptorium-resolve` reads a work with `getSections()`, which is
+ * now a fetch-and-verify rather than an `import()`, so an unreachable object
+ * or one that does not match the hash it was fetched by lands here. Those
+ * are refusals in the strictest sense the Archive has — an unverified work
+ * is absent — and they must be phrased as such rather than putting a digest
+ * comparison in a reader's status line.
  */
 function isRefusal(error) {
   return error instanceof ExperienceProgramIoError
@@ -190,6 +199,7 @@ function isRefusal(error) {
     || error instanceof CuratorContextValidationError
     || error instanceof WorkshopProjectError
     || error instanceof LocalWorkError
+    || error instanceof ContentStoreError
     || error instanceof ProducerError;
 }
 

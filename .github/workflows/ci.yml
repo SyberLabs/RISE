@@ -9,6 +9,10 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The browser matrix the pull-request gate leaves out. Nightly rather than
+  # per-change, because it is fifteen minutes nobody is waiting on.
+  schedule:
+    - cron: '0 7 * * *'
   workflow_dispatch:
 
 # A second push supersedes the first.
@@ -55,6 +59,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # A first load can only stay small if something refuses to let it grow.
+      # The build itself already fails on a deferral the bundler ignores;
+      # this fails on the byte count that deferral was for.
+      - name: The Portal's cost is a budget, not an aspiration
+        run: npm run measure:first-load
 
   scriptorium:
     name: Scriptorium CLI
@@ -89,13 +98,23 @@ jobs:
       - name: No secret may travel in a delivery URL
         run: node scripts/ci-hygiene.mjs
 
+  # THE GATE A PULL REQUEST MUST PASS, AND ONLY THAT.
+  #
+  # This was the whole suite behind a 45-minute cap, raised from 30 after CI
+  # #99 (1d6f41e) died at 29m 25s with no assertion. Raising a cap does not
+  # make a slow gate safe; it makes it slower, and a gate people wait a
+  # quarter of an hour for is one they learn to route around.
+  #
+  # Measured: 502 seconds of test time across 18 spec files, of which
+  # mobile.spec.js alone is 200. The gate project is 134 of those seconds —
+  # the corridor a reader walks, the safety warning, the voice, and the
+  # refusal panel. The other half runs in `e2e-full` below, on main and
+  # nightly. Nothing was deleted from the suite; the slower half was moved
+  # off the path between a change and knowing whether it is safe.
   e2e:
-    name: Browser smoke
+    name: Browser gate
     runs-on: ubuntu-latest
-    # Sequential e2e + Chromium install + production build preview now exceeds
-    # 30m. CI #99 (1d6f41e) died at 29m 25s of `test:e2e` with no assertion;
-    # the job cap killed it. Logs are login-gated, so the last spec is unnamed.
-    timeout-minutes: 45
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -108,11 +127,37 @@ jobs:
       - run: npx playwright install --with-deps chromium
       # playwright.config.js builds and previews on its own — what ships
       # is what gets tested.
+      - run: npm run test:e2e:gate
+      - uses: actions/upload-artifact@v4
+        if: failure() || cancelled()
+        with:
+          name: playwright-report-gate
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  # Everything the gate leaves out — mobile, Page typography and fields, the
+  # band, the Workshop. On main and nightly, where fifteen minutes is a cost
+  # nobody is waiting on.
+  e2e-full:
+    name: Browser matrix
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.19'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure() || cancelled()
         with:
-          name: playwright-report
+          name: playwright-report-full
           path: |
             playwright-report/
             test-results/

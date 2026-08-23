@@ -5,11 +5,11 @@
 
 import { SessionState } from './models.js';
 import { Shuttle } from './shuttle.js';
-import { responsiveFrequency } from './conductor.js';
 import {
     VISUAL_PRESENCE_DEFAULT_MS,
     minimumVisualPresenceRest,
-    normalizeVisualPresence
+    normalizeVisualPresence,
+    responsiveFrequency
 } from './visual-presence.js';
 
 function isInterlocutionEligibleAtom(atom) {
