@@ -32,8 +32,17 @@ const PAGES = new Map([
     ['AGENTS.md', 'AGENTS']
 ]);
 
+/**
+ * Working artifacts of the Superpowers workflow — design specs and
+ * task-by-task plans addressed to whoever is executing them. They are
+ * in-flight process, not documentation a reader came looking for, so they
+ * are neither published nor required in the index.
+ */
+const NOT_PUBLISHED = ['docs/superpowers'];
+
 /** Every .md under docs/, keyed by its repo-relative path. */
 function markdownUnder(dir, out = []) {
+    if (NOT_PUBLISHED.includes(dir)) return out;
     for (const entry of readdirSync(join(ROOT, dir)).sort()) {
         const path = `${dir}/${entry}`;
         if (statSync(join(ROOT, path)).isDirectory()) markdownUnder(path, out);

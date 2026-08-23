@@ -24,7 +24,6 @@ history, not a distinction; read the status column instead.
 | [PROJECT-KNOWLEDGE.md](PROJECT-KNOWLEDGE.md) | Record | The handover. Recurring defect patterns and the reasoning behind decisions that look arbitrary. Read section 2 twice. |
 | [specs/ARCHITECTURE.md](specs/ARCHITECTURE.md) | Contract | The canonical, living system design: the planes, the room register, the contracts, and every significant decision with the alternative it rejected. `src/core/system-design.test.js` fails a build when it drifts from the tree. |
 | [specs/SYSTEM-DESIGN-REVIEW-2026-08-22.md](specs/SYSTEM-DESIGN-REVIEW-2026-08-22.md) | Record | The review that produced the document above, measured against commit `bb44899` with the commands to reproduce each number. |
-| [superpowers/plans/2026-08-23-system-design-review-deltas.md](superpowers/plans/2026-08-23-system-design-review-deltas.md) | Record | How the review's deltas were executed, with the before and after for each. Dated; the design it settled is recorded in `specs/ARCHITECTURE.md` §8.2. |
 | [../AGENTS.md](../AGENTS.md) | Contract | Operating principles and project development notes, for humans and agents alike. |
 
 ## Release
@@ -127,6 +126,12 @@ The [GitHub wiki](https://github.com/SyberLabs/RISE/wiki) is generated from
 these files by `.github/workflows/wiki.yml` on every push to `main`. It is a
 published view, never a source — edit the wiki directly and the next push
 overwrites you. To change the wiki, change the Markdown here.
+
+Everything under `docs/` is published and must therefore appear in the tables
+above, or the build fails. The one exception is `docs/superpowers/`, which
+holds design specs and task-by-task plans belonging to the Superpowers
+workflow: in-flight process addressed to whoever is executing it, rather than
+documentation a reader came looking for. It is neither published nor indexed.
 
 Preview the generated pages without pushing:
 
