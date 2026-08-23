@@ -505,7 +505,6 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         expect(el.classList.contains('is-mask')).toBe(true);
         expect(el.classList.contains('is-mask-ink')).toBe(true);
         expect(el.style.color).toBe('transparent');
-        expect(el.style.color).not.toBe('var(--color-light)');
         expect(fillHost(container)?.classList.contains('is-hidden')).toBe(true);
 
         releaseFonts();

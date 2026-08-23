@@ -171,9 +171,10 @@ export function describeSource(ref) {
  * because a procedural fill never leaves the result Transparent. The pair
  * tests from #35 and #41 are kept and pass unchanged against this form.
  *
- * FM-RISE-53's real fix was in Chamber.syncMaskGroundPlate, which was
- * reading a stale cortex wordFill in preference to the declared session
- * pair. That fix is upstream of here and is untouched.
+ * FM-RISE-53 stopped Chamber from preferring a stale cortex wordFill
+ * over the declared session pair. FM-RISE-58 also resolves a missing
+ * wordFill here from the session pair (still room + engine → engine
+ * pick) so Astronomy × Fractal reaches combine() as Fractal on cold start.
  */
 export function combine(A, B, options = {}) {
     const fill = describeSource(B);
