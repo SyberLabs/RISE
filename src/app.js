@@ -25,7 +25,6 @@ import {
 } from './core/workshop-project.js';
 import { MemoryCore } from './core/memory.js';
 import { BetaGate } from './components/BetaGate.js';
-import './components/BetaGate.css';
 import { isRosaryDoor } from './core/rosary-door.js';
 
 import { errorBoundary, ErrorCategory, ErrorSeverity } from './core/error-boundary.js';
@@ -41,13 +40,12 @@ import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
 import { normalizeVisualSelection, normalizeWordFill } from './core/visual-selection.js';
 
-// Import styles
-// Only what paints the first screen. Every other room now imports its own
-// stylesheet, so the CSS arrives with the route rather than ahead of it —
-// a reader looking at the Portal was downloading Workshop's 82 kB and
-// Chamber's 50 kB before choosing anything.
+// THE SHELL'S OWN STYLES, AND ONLY THOSE. app.js used to import sixteen
+// stylesheets — every room's, not the Portal's — which is 220 KB of CSS
+// before a reader has entered a single room. A room's stylesheet now lives
+// with the room's module and arrives with it, so the Portal's cost no
+// longer grows every time a room is added.
 import './design-system.css';
-import './components/Portal.css';
 import './premium-additions.css';
 
 /**

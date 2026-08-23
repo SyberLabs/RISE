@@ -88,18 +88,40 @@ function textShareOfJavaScript() {
   return { total, text };
 }
 
-export function measure() {
-  const html = readFileSync(join(DIST, 'index.html'), 'utf8');
-  const assets = firstLoadAssets(html).map(asset => {
+/**
+ * The Portal is a dynamic import, so it is not in `index.html`'s request
+ * set — but a reader stares at nothing until it arrives. Counting only what
+ * the shell asks for would flatter every delta that moves something behind
+ * an `import()`. Spec 12's target is stated as "shell + router + Portal +
+ * Portal.css", so that is what has to be weighed against it.
+ */
+function portalAssets() {
+  return readdirSync(join(DIST, 'assets'))
+    .filter(name => /^Portal-[^/]+\.(js|css)$/.test(name))
+    .map(name => ({ kind: 'portal', href: `/assets/${name}` }));
+}
+
+function weigh(assets) {
+  return assets.map(asset => {
     const bytes = readFileSync(join(DIST, asset.href.replace(/^\//, '')));
     return { ...asset, raw: bytes.length, brotli: brotli(bytes) };
   });
+}
+
+export function measure() {
+  const html = readFileSync(join(DIST, 'index.html'), 'utf8');
+  const assets = weigh(firstLoadAssets(html));
+  const portal = weigh(portalAssets());
   const shell = brotli(Buffer.from(html));
+  const sum = (list, key) => list.reduce((total, item) => total + item[key], 0);
   return {
     assets,
+    portal,
     requests: assets.length + 1,           // index.html is a request too
-    raw: assets.reduce((sum, a) => sum + a.raw, 0) + Buffer.byteLength(html),
-    brotli: assets.reduce((sum, a) => sum + a.brotli, 0) + shell
+    raw: sum(assets, 'raw') + Buffer.byteLength(html),
+    brotli: sum(assets, 'brotli') + shell,
+    toPortalRequests: assets.length + portal.length + 1,
+    toPortalBrotli: sum(assets, 'brotli') + sum(portal, 'brotli') + shell
   };
 }
 
@@ -126,6 +148,18 @@ function main() {
       + `${kb(report.raw).padStart(10)} raw   ${report.requests} requests`
     );
     console.log(`  budget         ${kb(FIRST_LOAD_BUDGET_BYTES).padStart(10)} br`);
+
+    console.log();
+    for (const asset of report.portal) {
+      console.log(
+        `  ${asset.kind.padEnd(14)} ${kb(asset.brotli).padStart(10)} br  `
+        + `${kb(asset.raw).padStart(10)} raw   ${asset.href}`
+      );
+    }
+    console.log(
+      `  ${'TO PORTAL'.padEnd(14)} ${kb(report.toPortalBrotli).padStart(10)} br`
+      + `${''.padStart(18)}${report.toPortalRequests} requests`
+    );
 
     if (argv.includes('--bundle')) {
       const { total, text } = textShareOfJavaScript();
