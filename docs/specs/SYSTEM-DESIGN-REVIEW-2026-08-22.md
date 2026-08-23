@@ -44,6 +44,41 @@ made it necessary — which is Algorithm step 3 executed before step 2.
 
 ---
 
+## Status of this document
+
+**This is a dated review, not the living design.** The canonical, current
+system design is `docs/specs/ARCHITECTURE.md`, which carries the diagram, the
+contracts, and a decision register recording every rejected alternative. This
+file is the analysis that produced several of those entries, kept because the
+evidence and the measurements behind them are worth more than the conclusions.
+
+Acted on since it was written, and no longer open:
+
+| Delta | Landed in | Note |
+|---|---|---|
+| **D1** delete the orphaned `src/content/texts/` and its chunk group | #45 | found independently; the six modules had no importer |
+| **D20** retire `display/modes.js` and `ActiveSourcesModal.js` | #45 | plus `orbital-integration.js`, `core/sequencer.js`, a render barrel, and a debug logger nothing imported |
+| **D2** delete `manualChunks`; **D3** defer the audio engine; **D4** give each room its stylesheet; **D5a** fix the defeated dynamic imports | #47 | first load 248 kB → 207 kB brotli, 8 → 2 requests |
+| **D11** (in part) the vitest worker heuristic | #45 | replaced by a named fork heap ceiling; the sharper finding was that scaling worker count against system memory could never have prevented a single fork from hitting its own V8 limit |
+
+The load-bearing claim — that content is compiled as code, and that this is the
+root of the repository size, the bundle, the test-runner memory and the
+withheld-work machinery — is **unchanged and still open.** `ARCHITECTURE.md`
+§8.2 records it as an open decision rather than a settled one.
+
+Because the analysis below is evidence rather than instruction, it is left in
+the present tense as measured on 2026-08-22. Three paths it names have since
+been deleted and will not be found in the tree:
+`src/content/texts/`, `src/display/modes.js`, and
+`src/components/ActiveSourcesModal.js`.
+
+One thing this review got wrong is worth keeping visible: it reported three
+global `window` assignments as evidence of clean layering. There are three
+assignments and 237 production reads through `window.rise`. The correction is
+in §3.
+
+---
+
 # Part I — The system as built
 
 ## 1. What RISE is, structurally
