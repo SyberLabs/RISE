@@ -181,8 +181,8 @@ It ships as static files to Netlify.
        ▼                                          │  on any failure
   ┌──────────────────────────────────────────────────────────────────────┐
   │  THIRD PARTIES  Met · Art Institute · Cleveland · Rijksmuseum ·       │
-  │  Wikimedia · Gutenberg · arXiv   —  reached through corsproxy.io      │
-  │  (a proxy RISE does not own, on the critical path, named in the CSP)  │
+  │  Wikimedia · Gutenberg · arXiv                                        │
+  │  (the CSP also grants corsproxy.io, which nothing calls — see below)  │
   └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -373,7 +373,7 @@ The engine is lean. The pipe the engine's food travels through is not.
 | "Withheld works stay in the repository" | `ARCHIVE-CANON-SPEC §8` — withheld, never deleted. | **Real requirement, satisfied differently.** It requires the payload remain *reachable and reversible*, not that it live in the application's source tree. |
 | "`manualChunks` groups large subsystems" | Nobody. The config's own comment concedes "these are not route-lazy by themselves." | **Not a requirement.** Measured worth: 3 KB. Delete. |
 | "`src/content/texts/` ships six sacred texts" | **Nobody, and nothing imports them.** | **Dead.** See below. |
-| "Museum imagery reaches through `corsproxy.io`" | Nobody. A third-party proxy on the critical path, named in the CSP. | **Question hard.** RISE already harvests catalogs offline. Make harvest the rule. |
+| "The CSP must grant `corsproxy.io`" | Nobody. **Corrected after this review was first written:** no module under `src/`, `scripts/` or `e2e/` calls it. It is a stale allowance, not a dependency. | **Delete the grant.** A CSP entry nothing needs is a surface with no purpose. |
 | "No backend" | The privacy promise, stated in the README, `ARCHITECTURE.md`, and `DREAMS.md` ("Nothing leaves"). | **Real, load-bearing, and correct.** Keep. Defend. |
 
 **The dead-module finding, because it is exact.** `src/content/texts/` holds six
@@ -821,7 +821,7 @@ router and `Portal.js` actually need.
 | **D14** | **Generate `WORK_ENGINE_MANIFEST` at build time** from the engine modules. It is currently a hand-maintained twin kept honest by a test — the exact defect class `PROJECT-KNOWLEDGE §2.1` names as the most frequent in the codebase. | Duplication becomes impossible instead of test-guarded |
 | **D15** | **Give `src/core/` branches.** 148 files in one directory. Proposed: `core/text/` (chunker, source-span, boundaries), `core/session/` (compiler, pacing, player, clock), `core/score/` (experience-program, journey-compiler, visual-score-lane), `core/archive/` (certification, acquisition, publication), `core/scriptorium/`, `core/render/` (exists). Breaking the one cycle — `models → visual-score-lane → source-span → chunker → models` — falls out of drawing these lines, because `models.js` importing a score lane is what the boundary forbids. | Master the trunk before the leaves |
 | **D15a** | **Retire `window.rise` as a service locator.** 237 production references, concentrated in four components (`VisualInterlocutionPanel` 60, `Chamber` 52, `Workshop` 35, `ChamberOrbital` 26). Pass the audio engine, settings and router in through the constructor the way `onNavigate` already is. Do this incrementally, one component at a time — it is not a prerequisite for anything else. | A dependency absent from the module graph is harder to see, not absent |
-| **D16** | **Make harvested catalogs the rule and live museum APIs the exception**, removing `corsproxy.io` from the critical path and eventually from the CSP. RISE already builds the catalogs. | Deletes a third-party single point of failure it does not own |
+| **D16** | **Remove the `corsproxy.io` grant from the CSP.** This review originally called it a third-party proxy on the critical path; that was wrong, and checking rather than assuming is what found it. Nothing calls it. Harvested catalogs are already the rule — the grant is left over. | Deletes a granted origin nothing uses |
 
 ### Tier 3 — Accelerate, on the cleaned system.
 
