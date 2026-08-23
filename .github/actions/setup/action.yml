@@ -1,0 +1,44 @@
+# The three steps every CI job repeats, and the two system tools some of them
+# need. Six job definitions used to carry their own copy of the Node pin; now
+# it has one name, and upgrading it is one edit.
+#
+# Checkout is NOT here: a local action cannot be resolved before the repository
+# exists on disk, so the caller checks out first and then uses this.
+
+name: Set up RISE
+description: Node, dependencies, and the system tools a job asks for.
+
+inputs:
+  ffmpeg:
+    description: Install ffmpeg, which the MP4 encoder test hands real bytes to.
+    default: 'false'
+  chromium:
+    description: Install the Chromium build the browser tests drive.
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        # Matches the engines field in package.json.
+        node-version: '20.19'
+        cache: npm
+
+    - run: npm ci
+      shell: bash
+
+    # A stub would only prove we can satisfy our own stub, so encode-mp4.test.js
+    # hands bytes to the real binary. The runner image does not carry it.
+    - name: Install ffmpeg, which the encoder test encodes with
+      if: inputs.ffmpeg == 'true'
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+
+    # npm ci installs the package, not the browser. chamber-paint.test.js
+    # captures raw RGBA from a live Chamber stage, and the e2e suite drives the
+    # production build; both need an actual Chromium on disk.
+    - name: Install Chromium, which the browser tests paint with
+      if: inputs.chromium == 'true'
+      shell: bash
+      run: npx playwright install --with-deps chromium

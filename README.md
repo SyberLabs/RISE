@@ -286,6 +286,38 @@ Two worth reading before changing anything:
 - **[docs/PROJECT-KNOWLEDGE.md](docs/PROJECT-KNOWLEDGE.md)** — the defect patterns this project keeps rediscovering, and the reasoning behind decisions that look arbitrary from outside.
 - **[AGENTS.md](AGENTS.md)** — operating principles, followed by humans and coding agents alike.
 
+For a faster loop before pushing, the `gate` project is the corridor a reader
+actually walks — about two minutes rather than eight:
+
+```bash
+npm run test:e2e:gate
+```
+
+CI runs that corridor first as a fast no, then the whole suite sharded four
+ways. To run one shard the way CI does:
+
+```bash
+npm run test:e2e -- --shard=1/4
+```
+
+### What CI will ask of a change
+
+Every gate can be run locally, and a pull request has to pass all of them.
+
+```bash
+node scripts/ci-hygiene.mjs      # licences, icons, manifest, reader-facing names
+npm audit --omit=dev --audit-level=high
+npm run build && npm run measure:first-load   # brotli, against a ratcheting budget
+npm run docs:diagram             # regenerates the diagram; CI fails if it moved
+npx vitest run src/core/system-design.test.js
+npm run scriptorium:ci           # a refusal must arrive as an exit status
+```
+
+A change that touches only prose — `docs/`, `.agents/`, `.cursor/`, a root
+`*.md`, `LICENSE`, `NOTICE` — skips the unit, build, Scriptorium, and browser
+jobs, and finishes in under a minute. Hygiene and the system design document
+still run, because they read those files.
+
 ---
 
 ## Architecture
@@ -310,6 +342,10 @@ scripts/
 ├── source-quality studies
 └── offline media generation
 ```
+
+The subsystem dependency graph is generated from these directories rather than
+drawn by hand — see the diagram in
+[`docs/specs/ARCHITECTURE.md`](docs/specs/ARCHITECTURE.md).
 
 The project uses **Vitest** for unit and integration testing and **Playwright** for browser-level verification.
 
