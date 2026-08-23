@@ -21,6 +21,7 @@ import { buildStationsDefinition } from '../content/chapel/liturgy/stations-litu
 import { STATIONS, STATIONS_ATTRIBUTION, stationByNumber } from '../content/chapel/liturgy/stations.js';
 import { escapeHtml } from '../core/sanitize.js';
 import { REMOTE_IMAGE_ATTRS, createRemoteImage } from '../visuals/remote-image.js';
+import './Via.css';
 
 const ADVANCE_KEY = 'rise_via_advance_v1';
 const SOUND_KEY = 'rise_via_sound_v1';
