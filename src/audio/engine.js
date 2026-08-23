@@ -291,12 +291,10 @@ export class AudioEngine {
             try {
                 this.context = new (window.AudioContext || window.webkitAudioContext)();
 
-                // Create master gain
                 this.masterGain = this.context.createGain();
                 this.masterGain.gain.value = this.config.masterVolume;
                 this.masterGain.connect(this.context.destination);
 
-                // Create layer gain nodes
                 for (const layer of Object.keys(this.layerGains)) {
                     if (!this.layerGains[layer]) {
                         this.layerGains[layer] = this.context.createGain();
@@ -1609,7 +1607,6 @@ export class AudioEngine {
             this.stopDrone();
         }
 
-        // Apply volumes
         for (const layer of ['binaural', 'harmonics', 'noise', 'drone']) {
             this.setLayerVolume(layer, this.config.layerVolumes[layer], true);
         }

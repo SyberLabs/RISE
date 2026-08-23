@@ -91,7 +91,6 @@ class App {
         this._visualCortexLoad = null;
         this._audioEngineLoad = null;
 
-        // Bind methods
         this.handleNavigate = this.handleNavigate.bind(this);
         this.handleCreateSession = this.handleCreateSession.bind(this);
         this.handleSettingsChange = this.handleSettingsChange.bind(this);
@@ -157,7 +156,6 @@ class App {
      */
     async checkBetaAccess() {
         return new Promise((resolve) => {
-            // Create a container for the beta gate
             const gateContainer = document.createElement('div');
             gateContainer.id = 'beta-gate-container';
             document.body.appendChild(gateContainer);
@@ -233,7 +231,6 @@ class App {
         // providers when a surface browses sources. Nothing the Portal
         // shows reads any of them.
 
-        // Initialize router
         this.router = new Router({
             onViewChange: (view, data) => {
                 console.log(`[RISE] View: ${view}`);
@@ -286,7 +283,6 @@ class App {
             await this.router.navigate('portal');
         }
 
-        // Setup global utility listeners
         this.setupUtilityListeners();
 
         // Audio interaction listener is already set up in init()
@@ -571,7 +567,6 @@ class App {
                         this.audioEngine.sessionActive = true;
                     }
 
-                    // Create Player instance
                     this.updateLoadingStatus('Creating player...');
                     const player = new Player(session);
 
@@ -773,10 +768,8 @@ class App {
                     // Brief delay for smooth transition
                     await new Promise(resolve => setTimeout(resolve, 300));
 
-                    // Hide loading overlay
                     this.hideLoading();
 
-                    // Create Chamber instance with player
                     return new Chamber(container, {
                         session: session,
                         player: player,
@@ -1004,7 +997,6 @@ class App {
     async handleSequenceSelection(sequenceId) {
         console.log('[RISE] Sequence selected:', sequenceId);
 
-        // Import starter sequences
         const { STARTER_SEQUENCES } = await import('./content/starters.js');
 
         // Find the sequence
@@ -1532,7 +1524,6 @@ class App {
             toast.classList.add('visible');
         });
 
-        // Remove after duration
         setTimeout(() => {
             toast.classList.remove('visible');
             setTimeout(() => toast.remove(), 300);
@@ -1643,7 +1634,6 @@ class App {
     }
 }
 
-// Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
     window.rise = new App();
     window.rise.init().catch(err => {

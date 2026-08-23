@@ -82,7 +82,6 @@ class ErrorBoundary {
     if (this.isInitialized) return;
     if (typeof window === 'undefined') return;
 
-    // Handle uncaught errors
     window.addEventListener('error', (event) => {
       this.handleError(event.error || new Error(event.message), {
         category: ErrorCategory.UNKNOWN,
@@ -93,7 +92,6 @@ class ErrorBoundary {
 
     });
 
-    // Handle unhandled promise rejections
     window.addEventListener('unhandledrejection', (event) => {
       const error = event.reason instanceof Error
         ? event.reason
@@ -272,7 +270,6 @@ class ErrorBoundary {
       toast.classList.add('visible');
     });
 
-    // Remove after delay
     setTimeout(() => {
       toast.classList.remove('visible');
       setTimeout(() => toast.remove(), 300);

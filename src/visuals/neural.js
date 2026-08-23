@@ -98,7 +98,6 @@ export class NeuralNetwork {
         // Generate activation states
         this._generateActivations();
 
-        // Render the network
         this._render();
 
         return true;
@@ -164,7 +163,6 @@ export class NeuralNetwork {
             layers.push(size);
         }
 
-        // Create nodes
         const layerNodes = [];
         for (let l = 0; l < numLayers; l++) {
             const x = padding + l * layerSpacing;
@@ -188,7 +186,6 @@ export class NeuralNetwork {
             layerNodes.push(currentLayer);
         }
 
-        // Create connections between adjacent layers
         for (let l = 0; l < numLayers - 1; l++) {
             const fromLayer = layerNodes[l];
             const toLayer = layerNodes[l + 1];
@@ -289,7 +286,6 @@ export class NeuralNetwork {
         const cellWidth = (width - 2 * padding) / gridSize;
         const cellHeight = (height - 2 * padding) / gridSize;
 
-        // Create grid of nodes
         for (let row = 0; row < gridSize; row++) {
             for (let col = 0; col < gridSize; col++) {
                 const x = padding + (col + 0.5) * cellWidth;
@@ -421,7 +417,6 @@ export class NeuralNetwork {
         const height = this.canvas.height;
         const palette = this.currentPalette;
 
-        // Clear with background
         ctx.fillStyle = `rgb(${palette.background.join(',')})`;
         ctx.fillRect(0, 0, width, height);
 
@@ -462,7 +457,6 @@ export class NeuralNetwork {
             const midX = (fromNode.x + toNode.x) / 2;
             const midY = (fromNode.y + toNode.y) / 2;
 
-            // Add some curve
             const dx = toNode.x - fromNode.x;
             const dy = toNode.y - fromNode.y;
             const perpX = -dy * 0.15 * (Math.random() - 0.5);

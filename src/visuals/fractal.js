@@ -173,7 +173,6 @@ export class FractalFlame {
         // Store with metadata so we can validate dimensions at draw time
         // (and the signal the flame was built for, when in semantic mode)
         return { imageData, width, height, signal };
-        // console.log(`[FractalFlame] Generated ${width}x${height} flame. Queue: ${this.queue.length}`);
     }
 
     /**
