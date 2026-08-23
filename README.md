@@ -281,6 +281,28 @@ Run browser tests:
 npm run test:e2e
 ```
 
+Browser tests are sharded on CI. To run one shard the way CI does:
+
+```bash
+npm run test:e2e -- --shard=1/4
+```
+
+### What CI will ask of a change
+
+Every gate can be run locally, and a pull request has to pass all of them.
+
+```bash
+node scripts/ci-hygiene.mjs      # licences, icons, manifest, reader-facing names
+npm audit --omit=dev --audit-level=high
+npm run build && npm run check:first-load   # the first screen has a size budget
+npm run docs:diagram             # regenerates the diagram; CI fails if it moved
+npm run scriptorium:ci           # a refusal must arrive as an exit status
+```
+
+A change that touches only prose — `docs/`, `.agents/`, `.cursor/`, a root
+`*.md`, `LICENSE`, `NOTICE` — skips the unit, build, Scriptorium, and browser
+jobs. Hygiene and the generated docs still run, because they read those files.
+
 ---
 
 ## Architecture
@@ -293,7 +315,6 @@ src/
 ├── components/     Chamber, Portal, Chapel, Rosarium, Curia, Library, Journeys, Scriptorium, Workshop, Vault, Sol, Via, Guide, Settings, VisualInterlocutionPanel
 ├── content/        archive, chapel, imagery, journeys, science, texts, personalized
 ├── core/           Session compilation, chunking, pacing and shared models
-├── display/        Presentation surfaces for a compiled session
 ├── page/           Spatial composition and Page projection
 ├── sources/        Text and visual providers
 └── visuals/        Procedural and sourced visual systems
@@ -304,6 +325,10 @@ scripts/
 ├── source-quality studies
 └── offline media generation
 ```
+
+The subsystem dependency graph is generated from these directories rather than
+drawn by hand — see the diagram in
+[`docs/specs/ARCHITECTURE.md`](docs/specs/ARCHITECTURE.md).
 
 The project uses **Vitest** for unit and integration testing and **Playwright** for browser-level verification.
 
