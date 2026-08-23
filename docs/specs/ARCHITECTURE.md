@@ -502,10 +502,20 @@ of `settled`, `open`, `deferred`, or `reversed`.
   limit, and no number of workers changes that limit. The suite passed on a
   workstation and died on CI over nothing either machine was short of, because
   Node 20 and Node 22 default that ceiling differently. Naming it removes the
-  dependence on which Node picked the number. **This is a cap raised around a
-  cause that is still there** — V8 died flattening a module's source text to
-  compile it, and the modules that size are the books (§8.2).
-- **Status:** settled, and expected to be deleted if §8.2 resolves.
+  dependence on which Node picked the number.
+- **What this entry predicted, and got wrong.** It said the cap was raised
+  around a cause that was still there: V8 died in
+  `CompilationCache::LookupScript → String::SlowFlatten`, flattening a module's
+  source text to compile it, and the modules that size were the books — so the
+  ceiling was expected to come down once §8.2 removed them from the module
+  graph. §8.2 resolved, the books left, **and the ceiling is still needed.**
+  Measured rather than assumed: a fork capped at 2048 still dies, and the stack
+  is now an ordinary incremental-marking failure under the event loop.
+  Removing the books removed one file's ability to fill a heap by itself; it
+  did not change what a fork accumulates across the files it is handed.
+- **Status:** settled. Do not delete this on the theory that §8.2 made it
+  unnecessary — that theory was tested and is false. The test is one command:
+  cap a green run at 2048 and see whether it is still green.
 
 ### 8.15 Release admission fails closed, and humans hold the last gate
 
