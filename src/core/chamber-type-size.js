@@ -53,6 +53,27 @@ export function isChamberWordFit(id) {
     return persistFontSize(id) === 'fit';
 }
 
+/**
+ * One authority for projecting Gallery through Word ink.
+ *
+ * `legacyMask` preserves the explicit Settings switch for Word sessions.
+ * Everything else must satisfy the complete Fit contract; a font-size intent
+ * alone cannot silently create an empty mask on a flash or non-visual field.
+ */
+export function resolveFitMaskMode({
+    fontSize,
+    chunkMode,
+    visualMode,
+    presentation,
+    legacyMask = false
+} = {}) {
+    if (chunkMode !== 'word') return false;
+    if (legacyMask === true) return true;
+    if (visualMode !== 'interlocution') return false;
+    if (presentation === 'continuous-word') return true;
+    return presentation === 'continuous' && isChamberWordFit(fontSize);
+}
+
 /** Three-step multiplier. Fit is ignored (medium). */
 export function threeStepIntent(id) {
     const size = resolveFontSize(id);

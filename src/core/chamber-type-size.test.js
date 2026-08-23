@@ -5,6 +5,7 @@ import {
     fitWordAtomPx,
     isChamberWordFit,
     persistFontSize,
+    resolveFitMaskMode,
     resolveFontSize,
     sizeFitHint,
     threeStepIntent
@@ -55,6 +56,46 @@ describe('fitWordAtomPx (Fit only)', () => {
     it('returns null when the chamber box is missing so Fit can wait', () => {
         expect(fitWordAtomPx({ ...band, fieldWidth: 0 })).toBeNull();
         expect(fitWordAtomPx({ ...band, measuredWidth: 0 })).toBeNull();
+    });
+});
+
+describe('resolveFitMaskMode', () => {
+    const canonical = {
+        fontSize: 'fit',
+        chunkMode: 'word',
+        visualMode: 'interlocution',
+        presentation: 'continuous'
+    };
+
+    it('recognizes canonical Fit and the legacy Gallery-in-the-word alias', () => {
+        expect(resolveFitMaskMode(canonical)).toBe(true);
+        expect(resolveFitMaskMode({
+            ...canonical,
+            fontSize: 'medium',
+            presentation: 'continuous-word'
+        })).toBe(true);
+    });
+
+    it('refuses incomplete Fit configurations', () => {
+        expect(resolveFitMaskMode({ ...canonical, chunkMode: 'phrase' })).toBe(false);
+        expect(resolveFitMaskMode({ ...canonical, fontSize: 'large' })).toBe(false);
+        expect(resolveFitMaskMode({ ...canonical, visualMode: 'off' })).toBe(false);
+        expect(resolveFitMaskMode({ ...canonical, presentation: 'full-frame' })).toBe(false);
+    });
+
+    it('keeps the legacy setting scoped to Word atoms', () => {
+        expect(resolveFitMaskMode({
+            ...canonical,
+            fontSize: 'medium',
+            presentation: 'continuous',
+            legacyMask: true
+        })).toBe(true);
+        expect(resolveFitMaskMode({
+            ...canonical,
+            fontSize: 'medium',
+            chunkMode: 'sentence',
+            legacyMask: true
+        })).toBe(false);
     });
 });
 
