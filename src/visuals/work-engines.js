@@ -13,6 +13,9 @@
  * Stills held behind the reading.
  */
 
+import { PARADISE_LOST_ENGINE_META } from './paradise_lost/engines.meta.js';
+import { STORM_OF_STEEL_ENGINE_META } from './storm/engines.meta.js';
+
 /** family id → () => Promise<{id, name, engineClass}[]> */
 const FAMILIES = Object.freeze({
     'paradise-lost': () => import('./paradise_lost/index.js')
@@ -21,46 +24,33 @@ const FAMILIES = Object.freeze({
         .then(m => m.STORM_OF_STEEL_ENGINES)
 });
 
+/** family id → the same metadata each family's index.js builds from */
+const FAMILY_META = Object.freeze({
+    'paradise-lost': PARADISE_LOST_ENGINE_META,
+    'storm-of-steel': STORM_OF_STEEL_ENGINE_META
+});
+
 /**
- * Ids, names and categories WITHOUT the classes.
+ * Ids, names, categories and descriptions WITHOUT the classes.
  *
- * A second copy of what FAMILIES loads, and it exists because the two
- * cannot be one: the engine arrays interleave `engineClass` references,
- * so importing them synchronously would pull every generator into the
- * main bundle and undo the laziness above. Anything needing to NAME an
- * engine — the curator context, diagnostics — reads this.
+ * THIS USED TO BE A HAND-KEPT COPY of what FAMILIES loads, with
+ * descriptions that existed nowhere else, and a test comparing the two id
+ * for id. The copy had a real reason: the engine arrays interleave
+ * `engineClass` references, so importing one synchronously would pull
+ * every generator into the main bundle and undo the laziness above.
  *
- * work-engines.manifest.test.js asserts this matches what each family
- * actually loads, id for id and name for name.
+ * The reason was right and the answer was wrong. Splitting each family's
+ * metadata into its own module satisfies the constraint without a second
+ * vocabulary — each `index.js` zips the metadata with its classes, this
+ * reads the metadata alone, and there is now one place an engine is named.
+ * PROJECT-KNOWLEDGE §2.1 calls a vocabulary in two places the codebase's
+ * most frequent defect; the fix for that is one place, not a test.
  */
-export const WORK_ENGINE_MANIFEST = Object.freeze([
-    { id: 'heaven_in_order', family: 'paradise-lost', name: '0. Heaven in Order (The Perpetual Round)', category: 'DIMENSIONAL / SPATIAL',
-          description: 'Concentric rings and gates of light turning as rigid bodies — everything rotates or translates, nothing scatters, spawns or decays. The ordered state the rest of Book VI is measured against.' },
-    { id: 'fall_hypercube', family: 'paradise-lost', name: '1. Fall of the Rebel Angels (Mandelbrot Abyss)', category: 'DIMENSIONAL / SPATIAL',
-          description: 'A kaleidoscopic attractor above a falling red region textured with Mandelbrot and Julia sets, the divine bloom melting into the abyss with no horizon between them.' },
-    { id: 'chariot_deity', family: 'paradise-lost', name: '2. Chariot of Paternal Deity (Ezekiel Wheels)', category: 'DIMENSIONAL / SPATIAL',
-          description: 'Multi-ringed 3D strange attractors, wheel within wheel after Ezekiel, pulsing in sapphire and gold with lightning across them.' },
-    { id: 'flaming_sword', family: 'paradise-lost', name: '3. St. Michael\'s Flaming Sword (3D Inscribed)', category: 'DIMENSIONAL / SPATIAL',
-          description: 'A shaded 3D sword — winged crossguard, central fuller, tapered double edge — carrying Latin inscriptions along the blade. The most figurative of these surfaces.' },
-    { id: 'sulfur_magma', family: 'paradise-lost', name: '4. Sulfur & Brimstone Magma Network (Voronoi)', category: 'DIMENSIONAL / SPATIAL',
-          description: 'Branching rivers of magma creeping through cracked basalt crust, deep crimson underglow beneath lava-orange streams. Slow, viscous, and dark rather than bright.' },
-    { id: 'dark_ocean_chaos', family: 'paradise-lost', name: '5. The Dark Ocean of Chaos (Cosmic Flow Fields)', category: 'DIMENSIONAL / SPATIAL',
-          description: 'Divergence-free curl-noise flow: incompressible streams wandering an unbounded dark field, primordial and directionless. Continuous motion with no figure in it.' },
-    { id: 'voronoi', family: 'storm-of-steel', name: '1. Voronoi Trench Network', category: 'GEOMETRIC / STRUCTURAL',
-          description: 'Space divided into cell-like trench perimeters — mud fractures, barbed wire and shell craters as a hard tessellation. Angular and graphic.' },
-    { id: 'flowfield', family: 'storm-of-steel', name: '2. Steel Shrapnel Flow Field', category: 'ORGANIC / NATURAL',
-          description: 'Thousands of high-velocity particles following curl-noise vectors: tracer sparks, ricochets and iron dust drawn across open ground. Fast and directional.' },
-    { id: 'attractor', family: 'storm-of-steel', name: '3. Drumfire Strange Attractor', category: 'DIMENSIONAL / SPATIAL',
-          description: 'Lorenz, Clifford, De Jong and Aizawa attractors traced as fine continuous line — sustained drumfire as mathematics rather than as picture.' },
-    { id: 'flare_phosphene', family: 'storm-of-steel', name: '5. Magnesium Flare & Phosphenes', category: 'PERCEPTUAL / PHENOMENOLOGICAL',
-          description: 'A magnesium star-shell hanging over the parapet, with the lattices, spirals and tunnels the eye makes under that light. Blinding centre, afterimage at the edges.' },
-    { id: 'spirograph', family: 'storm-of-steel', name: '6. Ballistic Trajectory Spirograph', category: 'GEOMETRIC / STRUCTURAL',
-          description: 'Lissajous and harmonograph arcs plotting shell flight paths and counter-battery geometry. Thin, precise, almost diagrammatic.' },
-    { id: 'incendiary_blast', family: 'storm-of-steel', name: '7. Incendiary Shell Blast', category: 'DIMENSIONAL / SPATIAL',
-          description: 'A lit 3D terrain heightfield deformed in real time by impacts — craters with raised ejecta rims, molten cores, shrapnel streaks and smoke. The heaviest and most three-dimensional of the set.' },
-    { id: 'ascii_soldier', family: 'storm-of-steel', name: '8. ASCII Trench & Soldier Art', category: 'SYMBOLIC / NOTATIONAL',
-          description: 'A front-line soldier and the wire, trees and sandbags around him, drawn entirely from ASCII and Unicode characters. Typographic; reads as text before it reads as picture.' }
-].map(Object.freeze));
+export const WORK_ENGINE_MANIFEST = Object.freeze(
+    Object.entries(FAMILY_META).flatMap(([family, entries]) =>
+        entries.map(entry => Object.freeze({ ...entry, family }))
+    )
+);
 
 /** The work a named engine was authored for, or null if it is general. */
 export function workEngineFamilyOf(engineId) {

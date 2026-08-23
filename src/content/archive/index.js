@@ -39,6 +39,7 @@
 import { LITERATURE_WORKS } from './literature-catalog.js';
 import { LEGACY_REINGESTED_WORKS } from './legacy-catalog.js';
 import { divideSections } from './divisions.js';
+import { loadArchiveSections } from '../../core/content-store.js';
 // Precomputed by scripts/build-division-index.mjs. Divisions derive
 // deterministically from bytes already committed, so they are derived
 // once at build time rather than in every reader's browser — which is
@@ -70,8 +71,6 @@ export const CORE_WORKS = [
             edition: { publisher: 'Standard Ebooks', year: 1916, statement: 'the expanded 1916 edition' },
             basis: 'pre-1930-us'
         },
-        load: () => import('./works/spoon-river-anthology.js')
-            .then(m => m.SPOON_RIVER_ANTHOLOGY_SECTIONS)
     },
     {
         meta: {
@@ -82,8 +81,6 @@ export const CORE_WORKS = [
             edition: { translator: 'Francis Storr', publisher: 'Standard Ebooks', year: 1912 },
             basis: 'pre-1930-us'
         },
-        load: () => import('./works/oedipus-rex.js')
-            .then(m => m.OEDIPUS_REX_SECTIONS)
     },
     {
         meta: {
@@ -94,8 +91,6 @@ export const CORE_WORKS = [
             edition: { translator: 'James Legge', publisher: 'Standard Ebooks', year: 1861 },
             basis: 'pre-1930-us'
         },
-        load: () => import('./works/confucius-analects.js')
-            .then(m => m.CONFUCIUS_ANALECTS_SECTIONS)
     },
     {
         meta: {
@@ -106,8 +101,6 @@ export const CORE_WORKS = [
             edition: { publisher: 'Standard Ebooks', year: 1798 },
             basis: 'pre-1930-us'
         },
-        load: () => import('./works/lyrical-ballads.js')
-            .then(m => m.LYRICAL_BALLADS_SECTIONS)
     },
     {
         // Re-sourced 2026-08-18 from a structured edition. The Gutenberg
@@ -122,8 +115,6 @@ export const CORE_WORKS = [
             edition: { publisher: 'Standard Ebooks', year: 1854, statement: 'Ticknor and Fields, 1854' },
             basis: 'pre-1930-us'
         },
-        load: () => import('./works/literary-walden.js')
-            .then(m => m.LITERARY_WALDEN_SECTIONS)
     },
     {
         meta: {
@@ -437,7 +428,8 @@ const registries = new Map();
 
 function registryFor(works, key) {
     if (registries.has(key)) return registries.get(key);
-    const registry = works.map(({ meta, load }) => {
+    const registry = works.map(({ meta }) => {
+        const load = () => loadArchiveSections(meta.id);
         let cached = null;
         let divisions = null;
         return {

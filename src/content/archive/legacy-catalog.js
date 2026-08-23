@@ -34,24 +34,18 @@ export const LEGACY_REINGESTED_WORKS = [
         meta: {"id":"literary-poems-dickinson","title":"Poems by Emily Dickinson: Three Series, Complete","author":"Emily Dickinson","shelf":"received","edition":{"editors":"Mabel Loomis Todd and T. W. Higginson","publisher":"Roberts Brothers","year":1890,"statement":"three historical series, 1890–1896"},"basis":"pre-1930-us","chars":166720,"sections":274,"sourceSha256":"d063f4d9d85a11334dfd20030febe56c50bae2d0204763fb11205c1170376e0d","payloadChecksum":"36b104179ed97d91016c516269fa71b12d122e21d813a105b65a5673536653ac"},
     },
     {
-        meta: {"id":"literary-meditations","title":"Meditations","author":"Marcus Aurelius","shelf":"received","edition":{"translator":"George Long","publisher":"Standard Ebooks","year":1862},"basis":"pre-1930-us","chars":246195,"sections":12,"payloadChecksum":"9ff8dd73e8d699654fd6155d5bd04d0055f6781449494c012633e7b5cffd7159","structuredSource":"https://raw.githubusercontent.com/standardebooks/marcus-aurelius_meditations_george-long"},
-        load: () => import('./works/literary-meditations.js')
-            .then(module => module.LITERARY_MEDITATIONS_SECTIONS)
+        meta: {"id":"literary-meditations","title":"Meditations","author":"Marcus Aurelius","shelf":"received","edition":{"translator":"George Long","publisher":"Standard Ebooks","year":1862},"basis":"pre-1930-us","chars":246195,"sections":12,"payloadChecksum":"9ff8dd73e8d699654fd6155d5bd04d0055f6781449494c012633e7b5cffd7159","structuredSource":"https://raw.githubusercontent.com/standardebooks/marcus-aurelius_meditations_george-long"}
     },
     {
         meta: {"id":"literary-poems-blake","title":"Songs of Innocence and of Experience","author":"William Blake","shelf":"received","edition":{"publisher":"R. Brimley Johnson","year":1901},"basis":"pre-1930-us","chars":29759,"sections":1,"sourceSha256":"b0b5176d72ed7a56ac93fc9cbfd0cf0e688a97595fdf9f2fd1332a133a0d7748","payloadChecksum":"150874d16e2ad7da175f26aba911a1eca7653f125793b8b49417e92ae38670db"},
     },
     {
-        meta: {"id":"literary-essays-emerson","title":"Essays","author":"Ralph Waldo Emerson","shelf":"received","edition":{"publisher":"Standard Ebooks","year":1841},"basis":"pre-1930-us","chars":736429,"sections":21,"payloadChecksum":"c8857d2376f4ab3e1dff6728b8f7e6fbdcbed5a911b405fab38b79bff654f525","structuredSource":"https://raw.githubusercontent.com/standardebooks/ralph-waldo-emerson_essays"},
-        load: () => import('./works/literary-essays-emerson.js')
-            .then(module => module.LITERARY_ESSAYS_EMERSON_SECTIONS)
+        meta: {"id":"literary-essays-emerson","title":"Essays","author":"Ralph Waldo Emerson","shelf":"received","edition":{"publisher":"Standard Ebooks","year":1841},"basis":"pre-1930-us","chars":736429,"sections":21,"payloadChecksum":"c8857d2376f4ab3e1dff6728b8f7e6fbdcbed5a911b405fab38b79bff654f525","structuredSource":"https://raw.githubusercontent.com/standardebooks/ralph-waldo-emerson_essays"}
     },
     {
         meta: {"id":"sacred-yoga-sutras","title":"The Yoga Sutras of Patanjali: The Book of the Spiritual Man","author":"Patañjali","shelf":"received","edition":{"translator":"Charles Johnston","publisher":"Quarterly Book Department","year":1912},"basis":"pre-1930-us","chars":176222,"sections":6,"sourceSha256":"3576ab6b7f406e69ffe7ad3135cd24fabbaf8e584f21c49954409dcf951712aa","payloadChecksum":"6c53029032eb041da2ab8f1cefa8dfe5585fbe6d99f5eef2dc8a05eccf678471"},
     },
     {
-        meta: {"id":"sacred-tao-te-ching","title":"Tao Te Ching","author":"Laozi","shelf":"received","edition":{"translator":"James Legge","publisher":"Standard Ebooks","year":1891},"basis":"pre-1930-us","chars":57026,"sections":81,"payloadChecksum":"d55274df3803c5bf899640017858f04c284ec6450d1a5c01e1a3e8e5241968c2","structuredSource":"https://raw.githubusercontent.com/standardebooks/laozi_tao-te-ching_james-legge"},
-        load: () => import('./works/sacred-tao-te-ching.js')
-            .then(module => module.SACRED_TAO_TE_CHING_SECTIONS)
+        meta: {"id":"sacred-tao-te-ching","title":"Tao Te Ching","author":"Laozi","shelf":"received","edition":{"translator":"James Legge","publisher":"Standard Ebooks","year":1891},"basis":"pre-1930-us","chars":57026,"sections":81,"payloadChecksum":"d55274df3803c5bf899640017858f04c284ec6450d1a5c01e1a3e8e5241968c2","structuredSource":"https://raw.githubusercontent.com/standardebooks/laozi_tao-te-ching_james-legge"}
     }
 ];

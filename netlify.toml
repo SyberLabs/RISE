@@ -66,3 +66,24 @@
   for = "/audio/recitation/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# THE DATA PLANE. A work is an immutable object named by the SHA-256 of its
+# own bytes, so it can be cached forever with no invalidation problem: an
+# edition that changes is a different object at a different address, and the
+# reader's browser re-verifies the digest on arrival regardless of who served
+# it. This is what makes the corpus free to grow — the five hundredth work
+# costs one manifest line and one upload.
+[[headers]]
+  for = "/content/works/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "application/json"
+
+# The manifest is the one mutable pointer in the data plane, so it is the one
+# thing that must be revalidated — the same reasoning as index.html naming the
+# hashed chunks.
+[[headers]]
+  for = "/content/manifest.json"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Content-Type = "application/json"

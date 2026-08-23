@@ -174,6 +174,20 @@ describe('maskGroundFromConfig', () => {
         })).toBe(GROUNDS.light);
     });
 
+    it('undefined wordFill on an Astronomy × Fractal session still yields Light cream', () => {
+        expect(maskGroundFromConfig({
+            activeTypes: ['sci-astronomy'],
+            sourced: ['sci-astronomy'],
+            procedural: ['fractal'],
+            roomOpaque: false
+        })).toBe(GROUNDS.light);
+        expect(maskGroundFromConfig({
+            activeTypes: ['sci-astronomy'],
+            sourced: ['sci-astronomy'],
+            procedural: ['fractal']
+        })).not.toBe(GROUNDS.dark);
+    });
+
     it('same-as-gallery collections stay Transparent once A is opaque', () => {
         expect(maskGroundFromConfig({
             activeTypes: ['aic-landscapes'],

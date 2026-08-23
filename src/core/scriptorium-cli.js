@@ -172,6 +172,21 @@ const EXIT_FAMILIES = Object.freeze([
   ['SOURCE_SPAN_', SCRIPTORIUM_EXIT.unloadable],
   ['VISUAL_SCORE_', SCRIPTORIUM_EXIT.unloadable],
   /**
+   * A WORK THAT DID NOT ARRIVE, OR ARRIVED AS SOMETHING ELSE.
+   *
+   * Works stopped being modules: `getSections()` is a fetch against an
+   * immutable object addressed by the hash of its own bytes, so the ways it
+   * can fail are new — unreachable, withheld, or not matching the digest it
+   * was fetched by. Every one of them means the same thing to a score,
+   * which is that the work it named cannot be read, and `unloadable` is
+   * already the status for exactly that.
+   *
+   * A prefix rather than seven names, for the reason WORKSHOP_PROJECT_ is:
+   * the store refuses one kind of thing, and a code added there tomorrow
+   * gets the right status by construction rather than by memory.
+   */
+  ['CONTENT_', SCRIPTORIUM_EXIT.unloadable],
+  /**
    * THE LANE THAT HAD A STATUS AND ITS TWIN THAT HAD NONE.
    *
    * `VISUAL_SCORE_` was here and `AUDIO_SCORE_` was not, so the commonest

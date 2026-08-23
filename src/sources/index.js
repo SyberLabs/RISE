@@ -1,6 +1,11 @@
 /**
  * RISE Source System
  * Main barrel export
+ *
+ * This barrel names every provider statically, so importing anything from
+ * it pulls all of them. That is fine for a surface that browses sources and
+ * wrong for the composition root: bring the system up through
+ * `./bootstrap.js`, which reaches the providers by dynamic import.
  */
 
 // Core infrastructure
@@ -16,42 +21,4 @@ export { GUTENBERG_CATALOG, SACRED_TEXTS, ARXIV_CATEGORIES } from './text/index.
 export { GeneratedVisualProvider, VISUAL_TYPES } from './visual/index.js';
 export { WikimediaProvider, WIKIMEDIA_CATEGORIES } from './visual/index.js';
 
-import { SourceRegistry } from './registry.js';
-import { SourceCache } from './cache.js';
-import { ArchiveTextProvider, LocalTextProvider, GutenbergProvider, SacredTextProvider, ArxivProvider } from './text/index.js';
-import { GeneratedVisualProvider, WikimediaProvider } from './visual/index.js';
-
-/**
- * Initialize the source system with default providers
- * Call this early in app initialization
- * @returns {Promise<void>}
- */
-export async function initSourceSystem() {
-    console.log('[Sources] Initializing source system...');
-
-    await SourceCache.init();
-
-    // Register defaults once. Repeated bootstrap calls retain provider
-    // identity, cache state, and any in-flight provider initialization.
-    const defaults = [
-        new ArchiveTextProvider(),
-        new LocalTextProvider(),
-        new GutenbergProvider(),
-        new SacredTextProvider(),
-        new ArxivProvider(),
-        new GeneratedVisualProvider(),
-        new WikimediaProvider()
-    ];
-    for (const provider of defaults) {
-        if (!SourceRegistry.get(provider.id)) SourceRegistry.register(provider);
-    }
-
-    const status = await SourceRegistry.initAll();
-
-    console.log('[Sources] Source system ready');
-    console.log('[Sources] Stats:', SourceRegistry.getStats());
-    return status;
-}
-
-
-
+export { SOURCE_PROVIDER_IDS, ensureSourceSystem, resetSourceSystem } from './bootstrap.js';

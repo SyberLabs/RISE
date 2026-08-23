@@ -4,7 +4,8 @@
  * Supports both text and visual content with appropriate rendering
  */
 
-import { SourceRegistry } from '../sources/index.js';
+import { SourceRegistry } from '../sources/registry.js';
+import { ensureSourceSystem } from '../sources/bootstrap.js';
 import { escapeHtml, safeUrl } from '../core/sanitize.js';
 import { isAbortError } from '../sources/visual/request.js';
 
@@ -109,9 +110,21 @@ export class SourceBrowser {
         this.renderProviders();
         this.attachEvents();
 
-        if (this.autoSelectProviderId && SourceRegistry.get(this.autoSelectProviderId)) {
-            void this.loadProviderContent(this.autoSelectProviderId);
-        }
+        // The source system is built here rather than at application boot:
+        // this panel is the only reader of the registry, so this is the
+        // first moment anything needs seven providers and their payloads.
+        // The shell is already on screen, so the list fills in behind it.
+        this._providersReady = ensureSourceSystem()
+            .catch(error => {
+                console.error('[SourceBrowser] Source system unavailable:', error);
+            })
+            .then(() => {
+                if (this._destroyed) return;
+                this.renderProviders();
+                if (this.autoSelectProviderId && SourceRegistry.get(this.autoSelectProviderId)) {
+                    void this.loadProviderContent(this.autoSelectProviderId);
+                }
+            });
 
         // Animate in
         requestAnimationFrame(() => {
