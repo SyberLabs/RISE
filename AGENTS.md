@@ -190,15 +190,29 @@ from the Vite dev server.
 ## Testing / build gotchas
 
 - Full unit suite (`npm run test:run`) is large (~2800 tests, ~2 min). Two paths
-  need the system tools above: `src/core/render/encode-mp4.test.js` hands real
-  bytes to `ffmpeg`, and `src/core/render/chamber-paint.test.js` launches
-  Playwright Chromium against a live Chamber stage.
+ need the system tools above: `src/core/render/encode-mp4.test.js` hands real
+ bytes to `ffmpeg`, and `src/core/render/chamber-paint.test.js` launches
+ Playwright Chromium against a live Chamber stage.
 - E2E (`npm run test:e2e`) is self-contained: `scripts/playwright-global-setup.mjs`
-  builds the app and starts `vite preview` on `127.0.0.1:4317` itself, with
-  `VITE_RISE_ARCHIVE_REVIEW=1`. Do **not** start a server manually. It runs
-  Chromium only, single worker, with autoplay forced on (Web Audio).
-- There is **no lint script**. The closest CI gate is source hygiene:
-  `node scripts/ci-hygiene.mjs` (the `hygiene` CI job).
+ builds the app and starts `vite preview` on `127.0.0.1:4317` itself, with
+ `VITE_RISE_ARCHIVE_REVIEW=1`. Do **not** start a server manually. It runs
+ Chromium only, single worker, with autoplay forced on (Web Audio).
+- E2E is sharded four ways on CI (`--shard=N/4`). Playwright shards by file, and
+ `e2e/mobile.spec.js` alone is ~200s of the ~500s suite, so four is the smallest
+ count that reaches the floor. More shards buy nothing.
+- There is **no lint script**. The gates a pull request has to pass are:
+ `node scripts/ci-hygiene.mjs`, `npm audit --omit=dev --audit-level=high`
+ (`hygiene` job); `npm run build && npm run check:first-load`, a gzip budget on
+ what `dist/index.html` fetches before the app runs (`build` job); and
+ `npm run docs:diagram`, which must leave `docs/specs/ARCHITECTURE.md`
+ unchanged (`docs` job).
+- `docs/specs/ARCHITECTURE.md` carries a **generated** subsystem diagram between
+ `<!-- BEGIN GENERATED DIAGRAM -->` markers. Edit
+ `scripts/build-architecture-diagram.mjs`, never the diagram.
+- A change touching only `docs/`, `.agents/`, `.cursor/`, a root `*.md`,
+ `LICENSE`, or `NOTICE` skips the unit, build, Scriptorium, and browser jobs.
+ Anything else runs everything. `CI` is the one job that always reports and the
+ only name a branch ruleset should require.
 
 ## Running / manual testing
 
