@@ -138,6 +138,12 @@ for (const [surface, viewport] of [
   ['mobile', { width: 390, height: 844 }]
 ]) {
   test(`Fit keeps four changing Words inside a stable ${surface} stage`, async ({ page }) => {
+    const fractalCacheMisses = [];
+    page.on('console', (message) => {
+      if (message.text().includes('[FractalFlame] Cache miss! Queue empty.')) {
+        fractalCacheMisses.push(message.text());
+      }
+    });
     await openPrep(page, viewport);
     await chooseFit(page);
     await begin(page);
@@ -148,6 +154,7 @@ for (const [surface, viewport] of [
     expect(state.stageHeightDrift).toBeLessThanOrEqual(1);
     expect(state.maxAtomOverflow).toBeLessThanOrEqual(1);
     expect(state.maxCentreDrift).toBeLessThanOrEqual(2);
+    expect(fractalCacheMisses).toEqual([]);
     await expect(page.locator('.chamber-mask-ground-plate[data-ground="light"]'))
       .toBeAttached({ timeout: 20_000 });
 

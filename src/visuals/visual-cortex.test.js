@@ -965,6 +965,30 @@ describe('VisualCortex external asset hydration', () => {
         expect(cortex._sessionAssetTarget).toBe(15);
     });
 
+    it('warms a distinct Fractal word fill before an Old Masters Gallery starts', async () => {
+        const cortex = new VisualCortex();
+        cortex.initialized = true;
+        cortex.config = {
+            ...cortex.config,
+            presentation: 'continuous',
+            activeTypes: ['aic-oldmasters'],
+            wordFill: { mode: 'pick', sourced: [], procedural: ['fractal'] }
+        };
+        cortex.fractal = {
+            beginSession: vi.fn(),
+            preload: vi.fn().mockResolvedValue(undefined)
+        };
+        vi.spyOn(cortex, '_preloadDiagrams').mockResolvedValue({
+            state: 'ready', minimumReady: true, targetSatisfied: true
+        });
+        vi.spyOn(cortex, '_scheduleBackgroundWarm').mockImplementation(() => {});
+
+        await cortex.preload(0);
+
+        expect(cortex.fractal.beginSession).toHaveBeenCalledWith(undefined);
+        expect(cortex.fractal.preload).toHaveBeenCalledWith(2);
+    });
+
     it('shares one bounded offline pass across many joined callers', async () => {
         const cortex = new VisualCortex();
         cortex.config.activeTypes = ['aic-oldmasters'];
