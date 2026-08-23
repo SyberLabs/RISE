@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Chamber } from './Chamber.js';
 import { Settings } from './Settings.js';
@@ -97,6 +100,16 @@ describe('Chamber Settings door', () => {
     expect(container.querySelector('.chamber-controls [data-chamber-accent]')).toBeNull();
 
     chamber.destroy();
+  });
+
+  it('scrolls the existing Chamber Settings overlay on a short phone', () => {
+    const css = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), 'Chamber.css'),
+      'utf8'
+    );
+    const rule = css.match(/^\.chamber-settings-overlay\s*\{[^}]+\}/m)?.[0];
+    expect(rule).toMatch(/overflow(?:-y)?:\s*auto/);
+    expect(rule).toMatch(/-webkit-overflow-scrolling:\s*touch/);
   });
 
   it('applies an allowlisted face on the paused frame and ignores an unknown face', async () => {

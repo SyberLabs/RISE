@@ -478,6 +478,8 @@
   inset: 0;
   z-index: 150000;
   overflow: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .chamber-settings-overlay[hidden] {

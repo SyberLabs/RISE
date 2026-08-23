@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { exportUserData } from '../core/user-data.js';
 import { Settings } from './Settings.js';
@@ -174,7 +177,23 @@ describe('Settings display type', () => {
 
         radios.find((radio) => radio.value === 'cobalt').click();
         expect(onChange).toHaveBeenCalledWith('chamberAccent', 'cobalt');
+        expect(radios.every((radio) => radio.closest('[role="radiogroup"]')
+            === radios[0].closest('[role="radiogroup"]'))).toBe(true);
         settings.destroy();
+    });
+
+    it('scrolls the existing Settings panel on a short phone', () => {
+        const css = readFileSync(
+            join(dirname(fileURLToPath(import.meta.url)), 'Settings.css'),
+            'utf8'
+        );
+        const rule = css.match(/^\.settings\s*\{[^}]+\}/m)?.[0];
+        expect(rule).toMatch(/overflow-y:\s*auto/);
+        expect(rule).toMatch(/-webkit-overflow-scrolling:\s*touch/);
+        expect(rule).toMatch(/height:\s*100(?:vh|dvh)/);
+        expect(css).toMatch(
+            /\.settings-control\[aria-labelledby="chamber-accent-label"\]\s*\{[^}]*flex-wrap:\s*wrap/s
+        );
     });
 
     it('coerces an unknown persisted accent to purple and ignores a forged radio value', () => {
