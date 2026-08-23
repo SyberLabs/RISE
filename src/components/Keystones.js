@@ -5,6 +5,7 @@ import {
 } from '../content/keystones.js';
 import { archiveReviewEnabled } from '../content/archive/index.js';
 import { escapeHtml } from '../core/sanitize.js';
+import './Keystones.css';
 
 const DISTRIBUTION_MANIFEST_PATH = '/media/keystones/distribution.json';
 

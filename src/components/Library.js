@@ -17,6 +17,7 @@ import { escapeHtml } from '../core/sanitize.js';
 import { MemoryCore } from '../core/memory.js';
 import { LocalWorks } from '../core/local-work-store.js';
 import { Admit } from './Admit.js';
+import './Library.css';
 
 /**
  * Edition statement for display: keep link labels, drop URLs and

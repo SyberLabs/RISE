@@ -7,6 +7,7 @@
  * - Structured numinosity
  * - Interactive modal experience
  */
+import './Guide.css';
 
 export class Guide {
   constructor(container, options = {}) {

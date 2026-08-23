@@ -53,43 +53,23 @@ export default defineConfig({
     // Increase warning threshold slightly (visual engines are large)
     chunkSizeWarningLimit: 300,
 
-    rollupOptions: {
-      output: {
-        // Stable cache groups for large subsystems. These are not route-lazy
-        // by themselves; true deferment requires dynamic imports at callers.
-        manualChunks: {
-          // Visual generation engines
-          'visuals-klee': [
-            './src/visuals/klee.js',
-            './src/visuals/klee-enhanced.js'
-          ],
-          'visuals-fractal': [
-            './src/visuals/fractal.js',
-            './src/visuals/lib/fractal-engine.js'
-          ],
-          'visuals-other': [
-            './src/visuals/turrell.js',
-            './src/visuals/rockgarden.js'
-          ],
-
-          // Content source providers
-          'sources-text': [
-            './src/sources/text/gutenberg.js',
-            './src/sources/text/arxiv.js',
-            './src/sources/text/declassified.js'
-          ],
-          'sources-visual': [
-            './src/sources/visual/wikimedia.js',
-            './src/sources/visual/generated.js'
-          ],
-
-          // Audio engine (can be deferred)
-          'audio': [
-            './src/audio/engine.js'
-          ]
-        }
-      }
-    }
+    // NO manualChunks. It was a grouping directive read as a deferral one.
+    //
+    // Naming a module here makes it a chunk the ENTRY depends on, so the shell
+    // emits a <link rel="modulepreload"> for it and a browser fetches it before
+    // the reader has chosen anything. That is the opposite of deferring it: the
+    // audio engine kept being preloaded after `app.js` was changed to import it
+    // dynamically, because this list still named it.
+    //
+    // It also cost nothing to remove. Measured three ways at 251 kB brotli of
+    // first load: as configured 251, this list deleted 250, one group deleted
+    // 248. It was moving three kilobytes while making the first-load graph look
+    // like nine tidy files instead of one large one — and it suppressed
+    // Rollup's own "dynamic import will not move module into another chunk"
+    // warnings, which are the report that a deferral has been defeated.
+    //
+    // Deferment happens at the import site or not at all. Rollup's default
+    // splitting already follows the dynamic imports we write.
   },
 
   // Test configuration

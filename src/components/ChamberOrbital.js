@@ -50,6 +50,7 @@ import {
   sequenceHasCapability
 } from '../core/sequence-capabilities.js';
 import './VisualInterlocutionPanel.css';
+import './ChamberOrbital.css';
 
 // Last-used session settings survive across chamber visits (the orbital
 // instance itself is destroyed whenever a session runs in the shared view)
