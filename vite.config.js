@@ -9,8 +9,8 @@ import { exportMp4Plugin } from './scripts/export-mp4-plugin.js';
 // and it could not have worked: the thing that kills a fork is its own V8
 // old-space limit, and no number of workers changes that limit. So the suite
 // passed on a workstation and died on CI over nothing either machine was
-// short of — Node 20 defaults this ceiling to about 2 GB, Node 22 to about
-// 4 GB, and the heaviest file in the suite needs a little over 2 GB.
+// short of — Node 20 defaults this ceiling to about 2 GB and Node 22 to about
+// 4 GB, and .nvmrc pins CI to 20.19.
 //
 // The failure did not look like a failing test. A fork was killed mid-file
 // and the parent reported ERR_IPC_CHANNEL_CLOSED, 115 of 228 files in:
@@ -20,6 +20,24 @@ import { exportMp4Plugin } from './scripts/export-mp4-plugin.js';
 //
 // Reproduced by capping a passing local run at 2048 and by nothing else.
 // The ceiling is named here so it stops depending on which Node picked it.
+//
+// WHAT THIS IS NOT: a symptom of one enormous module. It was, once. The
+// original native stack died in CompilationCache::LookupScript ->
+// String::SlowFlatten, which is V8 flattening a module's source text to
+// compile it, and the modules that size were the books — so it was reasonable
+// to expect the ceiling to come down once they left the module graph.
+//
+// #48 cut the content seam and they did leave, and the ceiling is still
+// needed. Measured on the tree that landed it: a fork capped at 2048 still
+// dies, and the stack is now an ordinary incremental-marking failure under
+// the event loop rather than SlowFlatten. Removing the books removed one
+// file's ability to fill a heap by itself; it did not change what a fork
+// accumulates across the files it is handed.
+//
+// So do not delete this on the theory that #48 made it unnecessary. The test
+// is one command — cap a green run at 2048 and see whether it is still green:
+//
+//     npx vitest run --config <a config setting execArgv to 2048>
 const WORKER_HEAP_MB = 4096;
 
 // Cores bound the parallelism worth having; total memory bounds how many of
