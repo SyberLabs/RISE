@@ -17,6 +17,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "check:first-load": "node scripts/check-first-load-budget.mjs",
+    "docs:diagram": "node scripts/build-architecture-diagram.mjs",
     "scriptorium": "vite-node scripts/scriptorium.mjs --",
     "scriptorium:ci": "node scripts/scriptorium-ci.mjs",
     "probe:collections": "vite-node scripts/probe-collections.mjs",
