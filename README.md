@@ -234,6 +234,8 @@ Some visual modes retrieve publicly hosted images from external cultural or scie
 
 RISE is client-only. There is no backend, database, or service to stand up — the whole product runs from the Vite dev server.
 
+Engineering overview: [docs/ENGINEERING.md](docs/ENGINEERING.md).
+
 Requirements:
 
 - Node.js `>=20.19` or `>=22.12`. The repository pins `20.19.0` in `.nvmrc`.
