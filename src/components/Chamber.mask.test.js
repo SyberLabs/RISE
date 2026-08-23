@@ -472,7 +472,11 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         armGalleryField();
         chamber.displayAtom({ content: 'O', duration: 500 }, 0);
         await Promise.resolve();
-        expect(atomDisplay(container).classList.contains('is-mask-ink')).toBe(false);
+        const pending = atomDisplay(container);
+        // Cold first load: do not leave the atom as opaque --color-light
+        // (#E8E8EC) while document.fonts.ready is still pending.
+        expect(pending.classList.contains('is-mask-ink')).toBe(true);
+        expect(pending.style.color).toBe('transparent');
 
         releaseFonts();
         await flushFillMask();
@@ -481,6 +485,33 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
         expect(`${host.style.maskImage} ${host.style.webkitMaskImage}`).toMatch(/text/i);
         expect(`${host.style.maskImage} ${host.style.webkitMaskImage}`).not.toMatch(/rect/i);
         expect(galleryHost(container).style.maskImage).toBeFalsy();
+        chamber.destroy();
+    });
+
+    it('does not leave the glyph as --color-light while fonts.ready is pending', async () => {
+        restoreEnv?.();
+        let releaseFonts;
+        const fontsReady = new Promise((resolve) => { releaseFonts = resolve; });
+        restoreEnv = installFillMaskEnv({ fontsReady });
+
+        const { chamber, container } = makeChamber(
+            wordGallerySession(),
+            { chamberMask: true }
+        );
+        armGalleryField();
+        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
+
+        const el = atomDisplay(container);
+        expect(el.classList.contains('is-mask')).toBe(true);
+        expect(el.classList.contains('is-mask-ink')).toBe(true);
+        expect(el.style.color).toBe('transparent');
+        expect(el.style.color).not.toBe('var(--color-light)');
+        expect(fillHost(container)?.classList.contains('is-hidden')).toBe(true);
+
+        releaseFonts();
+        await flushFillMask();
+        expect(el.classList.contains('is-mask-ink')).toBe(true);
+        expect(fillHost(container)?.classList.contains('is-hidden')).toBe(false);
         chamber.destroy();
     });
 
@@ -602,6 +633,45 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
         expect(engine).toBeTruthy();
         expect(understudy.compareDocumentPosition(engine) & Node.DOCUMENT_POSITION_FOLLOWING)
             .toBeTruthy();
+        chamber.destroy();
+    });
+
+    it('undefined wordFill on Astronomy × Fractal still yields Light cream (cold start)', async () => {
+        const { chamber, container } = makeChamber(
+            {
+                chunkMode: 'word',
+                visualConfig: {
+                    visualMode: 'interlocution',
+                    interlocution: {
+                        presentation: 'continuous',
+                        sourced: ['sci-astronomy'],
+                        procedural: ['fractal']
+                    }
+                }
+            },
+            { chamberMask: true }
+        );
+        visualCortex._poolFor('sci-astronomy').images = [
+            { url: 'https://example.test/astro-a.jpg', name: 'astro-a' }
+        ];
+        // Cortex leftover is `same` (or a prior Attractor pick). The
+        // session pair is Astronomy × Fractal and must reach combine()
+        // as a Fractal pick even when wordFill was never declared.
+        visualCortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['sci-astronomy'],
+            wordFill: { mode: 'same' }
+        });
+        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
+        await flushFillMask();
+        chamber.syncMaskGroundPlate();
+
+        const { wrapper, understudy } = assertFillUnderstudy(container, 'light');
+        expect(understudy.dataset.ground).toBe('light');
+        expect(wrapper.contains(understudy)).toBe(true);
+        expect(galleryHost(container).contains(understudy)).toBe(false);
+        expect(chamber.session.visualConfig.interlocution.wordFill).toBeUndefined();
         chamber.destroy();
     });
 

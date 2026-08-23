@@ -3,6 +3,7 @@ import { LISTED_PROCEDURAL_PATTERNS, PROCEDURAL_PATTERN_IDS } from './visual-reg
 import {
     normalizeVisualSelection,
     normalizeWordFill,
+    resolveSessionWordFill,
     wordFillIsDistinct
 } from './visual-selection.js';
 
@@ -43,6 +44,62 @@ describe('normalizeWordFill', () => {
             procedural: ['fractal'],
             sourced: []
         });
+    });
+});
+
+describe('resolveSessionWordFill — cold-start pair (FM-RISE-58)', () => {
+    it('undefined wordFill on Astronomy × Fractal is a Fractal pick', () => {
+        expect(resolveSessionWordFill({
+            sourced: ['sci-astronomy'],
+            procedural: ['fractal']
+        })).toEqual({
+            mode: 'pick',
+            sourceFamily: 'procedural',
+            procedural: ['fractal'],
+            sourced: []
+        });
+    });
+
+    it('undefined wordFill on Old Masters × Fractal is a Fractal pick', () => {
+        expect(resolveSessionWordFill({
+            sourced: ['aic-oldmasters'],
+            procedural: ['fractal']
+        }).procedural).toEqual(['fractal']);
+    });
+
+    it('undefined wordFill on Astronomy × Attractor is an Attractor pick', () => {
+        expect(resolveSessionWordFill({
+            sourced: ['sci-astronomy'],
+            procedural: ['attractor']
+        }).procedural).toEqual(['attractor']);
+    });
+
+    it('an explicit same is not rewritten into a pick', () => {
+        expect(resolveSessionWordFill({
+            sourced: ['sci-astronomy'],
+            procedural: ['fractal'],
+            wordFill: { mode: 'same' }
+        })).toEqual({ mode: 'same' });
+    });
+
+    it('an explicit pick wins over the session pair leftover', () => {
+        expect(resolveSessionWordFill({
+            sourced: ['sci-astronomy'],
+            procedural: ['fractal'],
+            wordFill: { mode: 'pick', sourced: [], procedural: ['attractor'] }
+        })).toEqual({
+            mode: 'pick',
+            sourceFamily: 'procedural',
+            procedural: ['attractor'],
+            sourced: []
+        });
+    });
+
+    it('a room-only collection stays same-as-gallery', () => {
+        expect(resolveSessionWordFill({
+            sourced: ['sci-astronomy'],
+            procedural: []
+        })).toEqual({ mode: 'same' });
     });
 });
 
