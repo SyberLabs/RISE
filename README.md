@@ -294,14 +294,16 @@ Every gate can be run locally, and a pull request has to pass all of them.
 ```bash
 node scripts/ci-hygiene.mjs      # licences, icons, manifest, reader-facing names
 npm audit --omit=dev --audit-level=high
-npm run build && npm run check:first-load   # the first screen has a size budget
+npm run build && npm run check:first-load   # 215 KB brotli, and it should fall
 npm run docs:diagram             # regenerates the diagram; CI fails if it moved
+npx vitest run src/core/system-design.test.js
 npm run scriptorium:ci           # a refusal must arrive as an exit status
 ```
 
 A change that touches only prose — `docs/`, `.agents/`, `.cursor/`, a root
 `*.md`, `LICENSE`, `NOTICE` — skips the unit, build, Scriptorium, and browser
-jobs. Hygiene and the generated docs still run, because they read those files.
+jobs, and finishes in under a minute. Hygiene and the system design document
+still run, because they read those files.
 
 ---
 

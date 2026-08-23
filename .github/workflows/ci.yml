@@ -106,12 +106,18 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
 
   docs:
-    name: Generated docs
+    name: System design document
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
+
+      # src/core/system-design.test.js guards ARCHITECTURE.md, and it lives in
+      # the unit suite — which a prose-only change skips. Editing that document
+      # is exactly when its guard has to run, so it runs here too.
+      - name: The system design document does not lie
+        run: npx vitest run src/core/system-design.test.js
 
       # The diagram is written by the code it describes, so the only way it can
       # be wrong is if someone forgot to run the generator.
@@ -152,8 +158,10 @@ jobs:
       - uses: ./.github/actions/setup
       - run: npm run build
 
-      # What the browser fetches before the application runs. The build already
-      # sits here, so the measurement costs a second.
+      # scripts/measure-first-load.mjs already priced what index.html names;
+      # nothing was holding it to a number. 207 KB brotli today, and #47 says
+      # the next pass goes lower — so lower the budget when it does. A ceiling
+      # that only ever rises is not a ceiling.
       - name: The first screen stays within its budget
         run: npm run check:first-load
 

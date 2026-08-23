@@ -731,6 +731,14 @@ are checked by `src/core/system-design.test.js`, which fails a build when:
    or uses a status outside the fixed vocabulary;
 4. the production dependency list in §8.10 disagrees with `package.json`.
 
+The import graph in §3 is not checked, it is *generated*:
+`npm run docs:diagram` writes it out of `src/`, and CI fails when the committed
+copy is not what the tree produces. A claim that writes itself cannot drift.
+
+CI runs that guard and that generator in a job of their own, because both are
+about this file and both must run for a change that touches only this file —
+the unit suite, where the guard lives, is skipped for a prose-only change.
+
 What the test cannot check — whether the *reasoning* is still true — is why §8
 records reasons rather than conclusions. A reason that has stopped applying is
 visible to a reader; a conclusion is not.
@@ -740,7 +748,9 @@ visible to a reader; a conclusion is not.
 ```bash
 npm run test:run                       # includes the guard above
 npm run build
-npm run test:e2e
+npm run test:e2e                       # CI shards this four ways
+npm run docs:diagram                   # must leave this file unchanged
 node scripts/measure-first-load.mjs    # what a first visit actually costs
+npm run check:first-load               # the same, held to 215 KB brotli
 npm run release:check                  # fails closed; that is correct
 ```
