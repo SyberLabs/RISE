@@ -13,7 +13,7 @@
  * So the path is written out, and this reads the citations back out of the
  * source and looks each section up. A comment that cites §12b fails here.
  */
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { EXTENT_OVERSHOOT_LIMIT } from './library-extent.js';
@@ -189,9 +189,9 @@ describe('the numbers the spec states are the numbers the code computes', () => 
         { what: 'withheld', file: 'src/content/archive/division-index.withheld.json' }
     ]);
 
-    /** On disk as committed, and as a bundler embeds it. Rounded down. */
+    /** Canonical LF bytes as committed, and as a bundler embeds it. Rounded down. */
     const measureIndex = (file) => ({
-        onDisk: Math.floor(statSync(join(ROOT, file)).size / 1024),
+        onDisk: Math.floor(Buffer.byteLength(read(file).replaceAll('\r\n', '\n')) / 1024),
         embedded: Math.floor(Buffer.byteLength(JSON.stringify(JSON.parse(read(file)))) / 1024)
     });
 

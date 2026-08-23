@@ -1020,9 +1020,9 @@ describe('the sections these measurements govern state no figure twice (E)', () 
         'src/content/archive/division-index.withheld.json'
     ]);
 
-    /** On disk as committed, and as a bundler embeds it. Rounded down. */
+    /** Canonical LF bytes as committed, and as a bundler embeds it. Rounded down. */
     const measureIndex = (file) => [
-        Math.floor(statSync(join(ROOT, file)).size / 1024),
+        Math.floor(Buffer.byteLength(readRepo(file).replaceAll('\r\n', '\n')) / 1024),
         Math.floor(Buffer.byteLength(JSON.stringify(JSON.parse(readRepo(file)))) / 1024)
     ];
 

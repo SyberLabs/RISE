@@ -102,10 +102,14 @@ jobs:
       - name: No secret may travel in a delivery URL
         run: node scripts/ci-hygiene.mjs
 
-      # One dependency ships to readers. Dev dependencies are the noise that
-      # makes `npm audit` unusable as a gate, so they are not audited here.
-      - name: No shipped dependency may carry a known high-severity advisory
-        run: npm audit --omit=dev --audit-level=high
+      # Build and test tools execute repository-controlled inputs with the CI
+      # token's read authority, so their known high-severity flaws are part of
+      # the release boundary even when their bytes do not ship to readers.
+      - name: No dependency may carry a known high-severity advisory
+        run: npm run security:audit
+
+      - name: The voice authoring image adapter remains compatible
+        run: npm run security:compat
 
   docs:
     name: System design document

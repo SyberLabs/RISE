@@ -204,7 +204,8 @@ from the Vite dev server.
  count that reaches the floor. More shards buy nothing. `npm run test:e2e:gate`
  is the same corridor to run locally before pushing.
 - There is **no lint script**. The gates a pull request has to pass are:
- `node scripts/ci-hygiene.mjs` and `npm audit --omit=dev --audit-level=high`
+ `node scripts/ci-hygiene.mjs`, `npm run security:audit`, and
+ `npm run security:compat`
  (`hygiene` job); `npm run measure:first-load`, which holds what
  `dist/index.html` fetches to a ratcheting brotli budget declared in the script
  (`build` job); and `npx vitest run src/core/system-design.test.js` plus

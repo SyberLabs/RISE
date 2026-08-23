@@ -144,16 +144,18 @@ the budget deliberately set at *measured plus headroom* so it ratchets. There
 is nothing to add. The right contribution to a problem someone else has solved
 is zero lines.
 
-**A dependency audit.** One production dependency reaches readers.
-`npm audit --omit=dev --audit-level=high` takes about three seconds and ignores
-the dev-dependency noise that makes `npm audit` unusable as a gate. It runs as
-a step of `hygiene`, which already means "properties of the committed artifacts
-checked where a unit test cannot reach them".
+**A dependency audit.** Runtime dependencies reach readers; development
+dependencies execute repository-controlled inputs inside the release machine.
+`npm run security:audit` therefore rejects known high-severity advisories in the
+entire installed tree. It runs as a step of `hygiene`, which already means
+"properties of the committed artifacts checked where a unit test cannot reach
+them". `npm run security:compat` also exercises Kokoro with the intentionally
+overridden Sharp adapter, so a patched dependency cannot silently break voice
+authoring.
 
-**A least-privilege token.** The workflow declares no `permissions` block, so
-it inherits whatever the repository default is. Nothing in CI writes to the
-repository: `contents: read`, with `pull-requests: read` added only to the job
-that reads the file list.
+**A least-privilege token.** The workflow grants `contents: read` globally,
+with `pull-requests: read` added only to the change-classifier job. Nothing in
+CI writes to the repository.
 
 **Cancellation scoped to pull requests.** `main` runs are allowed to finish so
 a commit's health is recorded.
