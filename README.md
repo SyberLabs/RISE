@@ -288,7 +288,8 @@ actually walks — about two minutes rather than eight:
 npm run test:e2e:gate
 ```
 
-CI runs the whole suite, sharded four ways. To run one shard the way CI does:
+CI runs that corridor first as a fast no, then the whole suite sharded four
+ways. To run one shard the way CI does:
 
 ```bash
 npm run test:e2e -- --shard=1/4

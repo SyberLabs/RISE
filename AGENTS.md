@@ -197,12 +197,12 @@ from the Vite dev server.
  builds the app and starts `vite preview` on `127.0.0.1:4317` itself, with
  `VITE_RISE_ARCHIVE_REVIEW=1`. Do **not** start a server manually. It runs
  Chromium only, single worker, with autoplay forced on (Web Audio).
-- E2E is sharded four ways on CI (`--shard=N/4`), and CI runs the **whole**
- suite on every pull request. Playwright shards by file, and
+- Every pull request runs the **whole** browser suite, sharded four ways
+ (`Browser matrix N/4`, `--shard=N/4`), behind a `Browser gate` job that runs
+ the ~134s `gate` project first as a faster no. Playwright shards by file, and
  `e2e/mobile.spec.js` alone is ~200s of the ~500s suite, so four is the smallest
- count that reaches the floor. More shards buy nothing. The `gate` project in
- `playwright.config.js` is no longer a CI subset — it is the ~134s corridor to
- run locally before pushing (`npm run test:e2e:gate`).
+ count that reaches the floor. More shards buy nothing. `npm run test:e2e:gate`
+ is the same corridor to run locally before pushing.
 - There is **no lint script**. The gates a pull request has to pass are:
  `node scripts/ci-hygiene.mjs` and `npm audit --omit=dev --audit-level=high`
  (`hygiene` job); `npm run measure:first-load`, which holds what

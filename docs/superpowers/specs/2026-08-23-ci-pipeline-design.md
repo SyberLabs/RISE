@@ -71,27 +71,33 @@ buys ~30s for a real test refactor); building once and passing `dist/` to the
 shards as an artifact (the build is 3s, and the serialisation costs more than
 it saves).
 
-### Sharding versus the split #48 landed
+### What `main` did with this while it was being written
 
-While this was in flight, #48 attacked the same ten minutes from the other
-side: it partitioned the suite into a `gate` project of 134s that runs on pull
-requests and a `full` project that runs on `main` and nightly. Its argument is
-correct — *"a 45-minute required check is a gate people learn to route around"*
-— and its premise is a suite that runs end to end in one worker.
+The repository moved under this branch three times, and the browser half of
+the plan was overtaken by it.
 
-Sharding removes that premise, so the two are not competing fixes; one
-obsoletes the other's cost. The whole suite across four machines is 199s
-against the gate's 134s. That minute buys back `mobile`, Page typography and
-fields, `band-move` and the Workshop **on every pull request** instead of the
-morning after — which is precisely the "catch what should not be merged" half
-of the problem. On a public repository, runner minutes are free, so the four
-machines cost nothing but themselves.
+#48 attacked the same ten minutes from the other side: it partitioned the
+suite into a `gate` project of 134s on pull requests and a `full` project on
+`main` and nightly. Its argument was right — *"a 45-minute required check is a
+gate people learn to route around"* — and its premise was a suite running end
+to end in one worker. Sharding removes that premise rather than competing with
+it, so the two are not rival fixes; one obsoletes the other's cost.
 
-`e2e-full` and its nightly cron go with it: when every pull request and every
-push to `main` runs everything, there is nothing left for a nightly to find.
-The `gate` **project** stays in `playwright.config.js` — 134 seconds is a good
-local loop before pushing — with its comment corrected, because it no longer
-describes what CI does.
+#58 then landed exactly that conclusion, independently and with the same
+numbers: four shards, `mobile.spec.js` as the floor, the whole suite on every
+pull request. It also kept `Browser gate` in front as a fast no, which this
+design had proposed deleting. Keeping it is the better call — 134s is an
+earlier red than 200s for the corridor most changes break, the projects
+partition rather than overlap, and on a public repository the extra runner is
+free. **`main`'s topology is kept as it is; this branch adds nothing to it**
+beyond routing both browser jobs through the change filter and the composite
+setup.
+
+What is left of this section is the nightly. Its stated purpose was "the
+browser matrix the pull-request gate leaves out", and that matrix now runs on
+every pull request, so the cron is removed and `playwright.config.js`'s
+comment — which still said the other half runs nightly and before release —
+is corrected to describe what CI actually does.
 
 ## What changes
 

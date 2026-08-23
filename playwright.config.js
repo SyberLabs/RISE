@@ -36,11 +36,12 @@ import { defineConfig } from '@playwright/test';
  *   csp-live          the policy that governs every remote fetch
  *   curation          what the shelf is allowed to show
  *
- * CI no longer stops here. The 502 seconds shard four ways to 199, so a
- * pull request runs all of it and this list is what you run locally when
- * you want an answer in two minutes rather than eight. The two projects
- * partition the suite, so `playwright test` with no argument — which is
- * what each CI shard invokes — is still exactly one run of everything.
+ * CI no longer STOPS here. The 502 seconds shard four ways to ~200, so a
+ * pull request runs all of it; this list stays as the fast no, and as what
+ * you run locally when you want an answer in two minutes rather than eight.
+ * The two projects partition the suite, so `playwright test` with no
+ * argument — which is what each CI shard invokes — is still exactly one
+ * run of everything.
  */
 const GATE = [
     '**/csp-live.spec.js',
