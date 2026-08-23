@@ -1,7 +1,12 @@
-# CI: unit tests, production build, source hygiene, and browser smoke.
-# Jobs are separate so a red run names which promise broke.
+# CI: unit tests, production build, source hygiene, generated docs, and browser
+# smoke. Jobs are separate so a red run names which promise broke.
 #
-# Concurrency cancels superseded runs on the same ref.
+# The wall clock is the slowest job, not the sum. The browser suite is 90% of it
+# and is sharded four ways — the smallest count that reaches the floor, because
+# Playwright shards by file and mobile.spec.js is 199s that cannot be divided.
+#
+# A change that is only prose skips the expensive jobs. `ci` is the one job that
+# always reports, and the only name a branch ruleset should require.
 
 name: CI
 
@@ -11,62 +16,157 @@ on:
   pull_request:
   workflow_dispatch:
 
-# A second push supersedes the first.
+# A second push supersedes the first — on a pull request. A cancelled run on
+# main is a commit whose health was never recorded, so main's runs finish.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Nothing in CI writes to the repository.
+permissions:
+  contents: read
 
 jobs:
+  changes:
+    name: What changed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.classify.outputs.code }}
+    steps:
+      # Asking the API costs a couple of seconds; cloning enough history to
+      # diff against the base costs far more than the jobs this can skip.
+      - name: Prose alone cannot break the application
+        id: classify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # Only a pull request can be narrowed. A push to main and a manual
+          # dispatch always run everything.
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo 'code=true' >> "$GITHUB_OUTPUT"
+            echo 'Not a pull request — running every job.'
+            exit 0
+          fi
+
+          # A failed call must not block a merge, so it falls through to the
+          # empty case below rather than killing the job under `set -e`.
+          changed=$(gh api --paginate "repos/$REPO/pulls/$PR/files" --jq '.[].filename' || true)
+
+          # Fail safe: no answer means we do not know, and not knowing runs
+          # everything. Silence must never be read as "nothing to test".
+          if [ -z "$changed" ]; then
+            echo 'code=true' >> "$GITHUB_OUTPUT"
+            echo 'No file list came back — running every job.'
+            exit 0
+          fi
+
+          # Everything outside this allowlist is treated as code, so a path
+          # nobody anticipated errs toward running the suite.
+          code=$(printf '%s\n' "$changed" \
+            | grep -Ev '^(docs/|\.agents/|\.cursor/|[^/]+\.md$|LICENSE$|NOTICE$)' \
+            || true)
+
+          if [ -n "$code" ]; then
+            echo 'code=true' >> "$GITHUB_OUTPUT"
+            echo 'Code changed:'
+            printf '%s\n' "$code" | sed 's/^/  /'
+          else
+            echo 'code=false' >> "$GITHUB_OUTPUT"
+            echo 'Prose only — skipping unit tests, build, Scriptorium, and browser smoke.'
+            printf '%s\n' "$changed" | sed 's/^/  /'
+          fi
+
+  # ── Always runs ─────────────────────────────────────────────────────
+  #
+  # ci-hygiene.mjs reads README.md and NOTICE, and the architecture document
+  # can be edited by hand, so a prose-only change still has these to answer to.
+
+  hygiene:
+    name: Source hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: No secret may travel in a delivery URL
+        run: node scripts/ci-hygiene.mjs
+
+      # One dependency ships to readers. Dev dependencies are the noise that
+      # makes `npm audit` unusable as a gate, so they are not audited here.
+      - name: No shipped dependency may carry a known high-severity advisory
+        run: npm audit --omit=dev --audit-level=high
+
+  docs:
+    name: Generated docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      # The diagram is written by the code it describes, so the only way it can
+      # be wrong is if someone forgot to run the generator.
+      - name: The architecture diagram agrees with the source
+        run: |
+          npm run docs:diagram
+          if ! git diff --exit-code -- docs/specs/ARCHITECTURE.md; then
+            echo ''
+            echo 'The committed diagram is not what src/ generates.'
+            echo 'Run: npm run docs:diagram — then commit the result.'
+            exit 1
+          fi
+
+  # ── Runs when code changed ──────────────────────────────────────────
+
   test:
     name: Unit tests
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup
         with:
-          # Matches the engines field in package.json.
-          node-version: '20.19'
-          cache: npm
-      # The MP4 encoder adapter hands bytes to the real ffmpeg, because a stub
-      # would only prove we can satisfy our own stub. The runner image does not
-      # carry it, so the test skipped and nothing on CI ever proved an MP4
-      # could be produced at all.
-      - name: Install ffmpeg, which the encoder test encodes with
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
-      - run: npm ci
-      # chamber-paint launches Playwright Chromium to capture raw RGBA from a
-      # live Chamber stage. npm ci installs the package, not the browser. The
-      # runner image does not carry Chromium, so the test failed and nothing
-      # on CI ever painted a frame.
-      - name: Install Chromium, which the chamber-paint test paints with
-        run: npx playwright install --with-deps chromium
+          ffmpeg: 'true'
+          chromium: 'true'
       - run: npm run test:run
 
   build:
     name: Production build
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20.19'
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup
       - run: npm run build
+
+      # What the browser fetches before the application runs. The build already
+      # sits here, so the measurement costs a second.
+      - name: The first screen stays within its budget
+        run: npm run check:first-load
 
   scriptorium:
     name: Scriptorium CLI
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20.19'
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup
+
       # The unit suite drives the CLI's argv shell in-process. This spawns it:
       # `npm run scriptorium` must resolve, vite-node must load a graph that
       # imports division-index.json, and a refusal code must arrive at the
@@ -75,45 +175,64 @@ jobs:
       - name: A refusal is an exit status
         run: npm run scriptorium:ci
 
-  hygiene:
-    name: Source hygiene
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20.19'
-          cache: npm
-      - run: npm ci
-      - name: No secret may travel in a delivery URL
-        run: node scripts/ci-hygiene.mjs
-
   e2e:
-    name: Browser smoke
+    name: Browser smoke ${{ matrix.shard }}/4
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
-    # Sequential e2e + Chromium install + production build preview now exceeds
-    # 30m. CI #99 (1d6f41e) died at 29m 25s of `test:e2e` with no assertion;
-    # the job cap killed it. Logs are login-gated, so the last spec is unnamed.
-    timeout-minutes: 45
+    timeout-minutes: 20
+    strategy:
+      # A shard that fails should not hide the state of the other three.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup
         with:
-          node-version: '20.19'
-          cache: npm
-      - run: npm ci
-      # Only Chromium. The suite runs one worker against one audio
-      # device by design; a browser matrix would not be testing more.
-      - run: npx playwright install --with-deps chromium
-      # playwright.config.js builds and previews on its own — what ships
-      # is what gets tested.
-      - run: npm run test:e2e
+          chromium: 'true'
+
+      # Only Chromium, and still one worker — the flows share an audio device.
+      # The parallelism is across machines, not inside one.
+      #
+      # playwright.config.js builds and previews on its own, so every shard
+      # tests a build of the same commit: what ships is what gets tested.
+      - run: npm run test:e2e -- --shard=${{ matrix.shard }}/4
+
       - uses: actions/upload-artifact@v4
         if: failure() || cancelled()
         with:
-          name: playwright-report
+          # upload-artifact@v4 rejects a name a sibling already used.
+          name: playwright-report-shard-${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/
           retention-days: 7
+
+  # ── The gate ────────────────────────────────────────────────────────
+
+  ci:
+    name: CI
+    # Every other job can be skipped. This one cannot, because a required check
+    # that never reports blocks a merge forever.
+    if: always()
+    needs: [changes, hygiene, docs, test, build, scriptorium, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Skipped is allowed — skipping is what the change filter is for. Failed
+      # and cancelled are not.
+      - name: Every job that ran, passed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$RESULTS" | jq -r 'to_entries[] | "  \(.value.result)\t\(.key)"'
+          broken=$(printf '%s\n' "$RESULTS" \
+            | jq -r 'to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key')
+          if [ -n "$broken" ]; then
+            echo ''
+            echo 'Did not pass:'
+            printf '%s\n' "$broken" | sed 's/^/  /'
+            exit 1
+          fi
