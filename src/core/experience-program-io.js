@@ -42,6 +42,7 @@ import {
   SEQUENCE_ASSET_PREFIX,
   sequenceAssetReferencesFromCue
 } from './visual-score-lane.js';
+import { resolveSessionWordFill } from './visual-selection.js';
 
 /** Refuse multi-hundred-megabyte pastes before JSON.parse allocates. */
 export const PROGRAM_IO_MAX_JSON_BYTES = 2_000_000;
@@ -1095,7 +1096,8 @@ export function withVisualSurfaceForProgram(program, defaults = {}) {
         visualMode: 'interlocution',
         interlocution: {
           ...(config.interlocution || {}),
-          presentation: 'continuous'
+          presentation: 'continuous',
+          wordFill: resolveSessionWordFill(config.interlocution || {})
         }
       }
     }

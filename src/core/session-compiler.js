@@ -9,7 +9,11 @@ import { Atom, Session } from './models.js';
 import { chunkText, countWords, insertSourceScoreCuts } from './chunker.js';
 import { prepareChunkText } from './chunk-profiles.js';
 import { PacingEngine, StateCurve } from './pacing.js';
-import { normalizeGlobalPoolSelection, normalizeVisualSelection } from './visual-selection.js';
+import {
+    normalizeGlobalPoolSelection,
+    normalizeVisualSelection,
+    resolveSessionWordFill
+} from './visual-selection.js';
 import {
     validateExperienceProgram,
     lowerExperienceProgram,
@@ -272,7 +276,12 @@ export function normalizeVisualConfig(value = {}) {
                 : undefined,
             responsive: raw.responsive === true,
             responsiveMood: raw.responsiveMood !== false,
-            responsiveRhythm: raw.responsiveRhythm !== false
+            responsiveRhythm: raw.responsiveRhythm !== false,
+            wordFill: resolveSessionWordFill({
+                ...raw,
+                ...selection,
+                wordFill: raw.wordFill ?? input.wordFill
+            })
         }
     };
 }
