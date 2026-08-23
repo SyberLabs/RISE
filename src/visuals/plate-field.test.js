@@ -169,6 +169,33 @@ describe('PlateField', () => {
         field.destroy();
     });
 
+    it('projects a finished plate by copy, without re-rendering it every frame', () => {
+        vi.spyOn(performance, 'now').mockReturnValue(0);
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const field = new PlateField(host, {
+            families: ['apparitio'],
+            dwellMs: 8_000,
+            crossfadeMs: 1_200
+        });
+        field.start();
+        field.setProjectionHost(projection);
+        expect(projection.querySelectorAll('.plate-plane')).toHaveLength(2);
+
+        let t = 16;
+        for (; t <= 7_000 && progresses.at(-1) !== 1; t += 16) frame(t);
+        expect(progresses.at(-1)).toBe(1);
+
+        // The plate is done. Holding it must cost no further engine renders,
+        // on the gallery canvas or on the projection canvas.
+        const afterComplete = progresses.length;
+        for (; t <= 7_800; t += 16) frame(t);
+        expect(progresses.length).toBe(afterComplete);
+
+        field.destroy();
+        projection.remove();
+    });
+
     it('finishes a late bake at rotate instead of starting a new generate', () => {
         vi.spyOn(performance, 'now').mockReturnValue(0);
         vi.spyOn(Apparitio.prototype, 'stepBake').mockImplementation(function stepBake(budget) {

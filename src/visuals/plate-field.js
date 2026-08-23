@@ -196,7 +196,15 @@ export class PlateField {
             dest.canvas.height = plane.canvas.height;
         }
         if (!plane.engine) return;
-        plane.engine.render(dest.canvas, { progress: this._progress(plane) });
+        // Copy the plane we just drew rather than running the engine a
+        // second time. _draw() stops re-rendering a finished plate, but the
+        // projection used to re-render it every frame for the rest of the
+        // dwell. Same pixels, one render. AttractorField blits the same way.
+        const ctx = dest.canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, dest.canvas.width, dest.canvas.height);
+        ctx.drawImage(plane.canvas, 0, 0);
     }
 
     _rotate(first) {

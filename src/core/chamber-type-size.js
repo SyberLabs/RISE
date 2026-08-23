@@ -13,28 +13,25 @@ export const FONT_SIZE_CHIPS = Object.freeze([
     Object.freeze({ id: 'fit', fontSize: 'fit', label: 'Fit' })
 ]);
 
-export const DEFAULT_FONT_SIZE = 'medium';
-
-/** Desktop Word at Large before Fit: 72px * sizeAtomScale(1). */
-export const TODAY_WORD_LARGE_PX = 72;
+const DEFAULT_FONT_SIZE = 'medium';
 
 /** Old Settings steps on the 72px / 96px base. Not a chamber fill. */
-export const THREE_STEP_INTENT = Object.freeze({
+const THREE_STEP_INTENT = Object.freeze({
     small: 0.82,
     medium: 1,
     large: 1.18
 });
 
 /** Fit uses this fraction of the usable chamber/band box. */
-export const WORD_FIT_FILL = 0.88;
+const WORD_FIT_FILL = 0.88;
 
-export const WORD_FIT_MIN_PX = 16;
+const WORD_FIT_MIN_PX = 16;
 
 /** Cap as a fraction of the smaller usable axis. */
-export const WORD_FIT_MAX_PORTION = 0.95;
+const WORD_FIT_MAX_PORTION = 0.95;
 
 export const SIZE_HINT_FIT = 'Words fill the chamber.';
-export const SIZE_HINT_WAIT = 'Fit waits for the chamber.';
+const SIZE_HINT_WAIT = 'Fit waits for the chamber.';
 
 const PERSIST = new Map(
     FONT_SIZE_CHIPS.flatMap((chip) => [
@@ -84,8 +81,8 @@ export function fitWordAtomPx({
     measuredHeight,
     measuredAt = 100
 } = {}) {
-    const usableW = Number(fieldWidth) - Number(padX || 0);
-    const usableH = Number(fieldHeight) - Number(padY || 0);
+    const usableW = Number(fieldWidth) - Number(padX);
+    const usableH = Number(fieldHeight) - Number(padY);
     const glyphW = Number(measuredWidth);
     const glyphH = Number(measuredHeight);
     const at = Number(measuredAt);

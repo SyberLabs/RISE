@@ -28,7 +28,6 @@ import {
 import { createRemoteImage } from './remote-image.js';
 
 const DEFAULT_TIMINGS = galleryCadenceTimings(GALLERY_CADENCE_DEFAULT);
-const MIN_TICK_MS = 250;             // the advance clock's coarsest check
 
 function clamp(value, min, max) {
     return Math.min(Math.max(value, min), Math.max(min, max));
@@ -356,6 +355,10 @@ export class ContinuousField {
      * of a detached tree.
      */
     setProjectionHost(host) {
+        // Projecting into our own host would make _teardownProjectionLayers
+        // sweep this field's real layers out of the gallery. PlateField,
+        // HarmonographField and AttractorField all guard the same way.
+        if (host === this.host) host = null;
         if (this.projectionHost === host) return;
         this._teardownProjectionLayers();
         this.projectionHost = host || null;
