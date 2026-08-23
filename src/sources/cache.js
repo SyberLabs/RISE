@@ -95,7 +95,6 @@ export class SourceCacheClass {
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
 
-                // Create content store with indexes
                 if (!db.objectStoreNames.contains(STORE_NAME)) {
                     const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
                     store.createIndex('providerId', 'providerId', { unique: false });
@@ -225,12 +224,10 @@ export class SourceCacheClass {
 
                 // Check expiration
                 if (entry.expiresAt && Date.now() > entry.expiresAt) {
-                    // Remove expired entry
                     store.delete(key);
                     return;
                 }
 
-                // Update access time
                 entry.accessedAt = Date.now();
                 store.put(entry);
                 result = entry;

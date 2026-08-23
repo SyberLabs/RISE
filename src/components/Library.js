@@ -227,7 +227,6 @@ export class Library {
   }
 
   renderArchiveItems() {
-    // Get library texts
     let texts = LIBRARY_TEXTS || [];
 
     texts = texts.filter(t => t.category === this.currentFilter);
@@ -611,7 +610,6 @@ export class Library {
 
   async handleTextSelection(textId) {
     try {
-      // Import library utilities dynamically
       const { getTextById } = await import('../content/library.js');
       const text = getTextById(textId);
 
