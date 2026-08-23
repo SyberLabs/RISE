@@ -660,7 +660,7 @@ Stated plainly so it is never rediscovered as a surprise.
   it no longer travels through the module graph. §8.2 removed the build-time
   cost; *where the bytes live* is a separate question and is still open.
 - **Recitation ships uncompressed**, and is now by a very wide margin the
-  largest thing a deploy contains — the audio is roughly seventy-five times the
+  largest thing a deploy contains — the audio is roughly seventy times the
   size of all the JavaScript. §8.5. With the content seam cut, this is the
   single biggest remaining cost in the design.
 - **There is no single timeline.** §8.7.
