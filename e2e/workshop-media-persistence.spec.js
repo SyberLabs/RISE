@@ -37,9 +37,15 @@ test('project media survives a Library source arriving', async ({ page }) => {
 
     await page.getByRole('button', { name: 'Sources', exact: true }).click();
     await page.locator('#file-import-input').setInputFiles({
-        name: 'elon.txt', mimeType: 'text/plain',
+        name: 'notes.txt', mimeType: 'text/plain',
         buffer: Buffer.from('Alpha beta gamma delta epsilon zeta eta theta iota kappa.')
     });
+    // A dropped text opens the admit room now, the same one the Library opens
+    // (docs/vision/SCRIPTORIUM-STRENGTHENING-SPEC.md §5). "Use here only" is
+    // the exit that does what this input used to do on its own: one source in
+    // the project, nothing put on the shelf.
+    await expect(page.locator('.admit-overlay')).toBeVisible({ timeout: 20_000 });
+    await page.locator('.admit-overlay [data-action="read"]').click();
     await expect(page.locator('#visual-score-text')).toHaveCount(1, { timeout: 20_000 });
 
     for (const name of ['musk.png', 'ye.png']) {
