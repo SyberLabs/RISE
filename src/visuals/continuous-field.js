@@ -695,6 +695,31 @@ export class ContinuousField {
         }
         const url = work?.url;
         if (!url) {
+            if (!this._currentUrl && this._usesDistinctProjection() && this.projectionHost) {
+                let projectionWork = null;
+                if (this.getNextProjectionWork) {
+                    try {
+                        projectionWork = await this.getNextProjectionWork({
+                            currentUrl: this._currentProjectionUrl,
+                            roomUrl: null,
+                            poolKey: this.projectionPoolKey()
+                        });
+                    } catch {
+                        projectionWork = null;
+                    }
+                }
+                if (!projectionWork?.url) projectionWork = this._drawProjectionWork();
+                if (projectionWork?.url) {
+                    const projectionReady = await this.decode(projectionWork.url);
+                    if (projectionReady && this._running && !this._paused
+                        && generation === this._generation) {
+                        this._crossfadeProjectionTo(projectionWork, first);
+                        this._currentProjectionUrl = projectionWork.url;
+                        this._advanceInFlight = false;
+                        return;
+                    }
+                }
+            }
             if (first) this._fadeToNothing();
             this._advanceInFlight = false;
             return;
@@ -747,6 +772,36 @@ export class ContinuousField {
             ? (projectionWork?.url || this._currentProjectionUrl)
             : url;
         this._advanceInFlight = false;
+    }
+
+    _crossfadeProjectionTo(projectionWork, first) {
+        if (!this._layers) return;
+        if (this.reducedMotion) {
+            const front = this._layers[this._front];
+            front.projectionWork = projectionWork;
+            this._syncProjectionLayer(front);
+            if (front.projection) {
+                front.projection.root.style.transition = 'none';
+                front.projection.root.style.opacity = '1';
+            }
+            return;
+        }
+
+        const incoming = this._layers[1 - this._front];
+        const outgoing = this._layers[this._front];
+        const crossfadeMs = this._nextCrossfadeMs ?? this.crossfadeMs;
+        this._nextCrossfadeMs = null;
+        incoming.projectionWork = projectionWork;
+        this._syncProjectionLayer(incoming);
+        if (!incoming.projection) return;
+        incoming.projection.root.style.transition = `opacity ${crossfadeMs}ms ease-in-out`;
+        void incoming.projection.root.offsetWidth;
+        incoming.projection.root.style.opacity = '1';
+        if (!first && outgoing.projection) {
+            outgoing.projection.root.style.transition = incoming.projection.root.style.transition;
+            outgoing.projection.root.style.opacity = '0';
+        }
+        this._front = 1 - this._front;
     }
 
     _crossfadeTo(work, first, projectionWork = null) {

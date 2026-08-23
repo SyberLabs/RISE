@@ -3115,14 +3115,15 @@ export class VisualCortex {
         const flashCount = Number.isFinite(Number(estimatedFlashCount))
             ? Math.max(0, Number(estimatedFlashCount))
             : 0;
+        const generationTypes = this._typesForAssetGeneration();
 
         const preloadPromises = [];
         let externalPreload = null;
 
         // Preload fractals
-        if (this.fractal && this.config.activeTypes.includes('fractal')) {
+        if (this.fractal && generationTypes.includes('fractal')) {
             this.fractal.beginSession(this.config.semanticSignals);
-            const fractalShare = 1 / Math.max(1, this.config.activeTypes.length);
+            const fractalShare = 1 / Math.max(1, generationTypes.length);
             const estimatedCount = Math.ceil(flashCount * fractalShare * 1.5);
             // Gallery has no flash-frequency demand estimate, but it still
             // needs a decoded first wall at session entry. Gate on two flames:
@@ -3133,9 +3134,9 @@ export class VisualCortex {
             preloadPromises.push(this.fractal.preload(count));
         }
 
-        if (this.ostensoria && this.config.activeTypes.includes('ostensoria')) {
+        if (this.ostensoria && generationTypes.includes('ostensoria')) {
             this.ostensoria.beginSession();
-            const ostensoriaShare = 1 / Math.max(1, this.config.activeTypes.length);
+            const ostensoriaShare = 1 / Math.max(1, generationTypes.length);
             const estimatedCount = Math.ceil(flashCount * ostensoriaShare * 1.5);
             const count = isContinuousPresentation(this.config.presentation)
                 ? Math.max(2, estimatedCount)
@@ -3146,12 +3147,12 @@ export class VisualCortex {
         // Klee artworks are prepared as complete geometry/style snapshots.
         // One snapshot supports several static short flashes, so preload by
         // episode rather than by raw flash count.
-        if (this.kleeFlashes && this.config.activeTypes.includes('klee')) {
+        if (this.kleeFlashes && generationTypes.includes('klee')) {
             this.kleeFlashes.beginSession({
                 preset: this.config.kleePreset ?? 'random',
                 signals: this.config.semanticSignals
             });
-            const kleeShare = 1 / Math.max(1, this.config.activeTypes.length);
+            const kleeShare = 1 / Math.max(1, generationTypes.length);
             const estimatedKleeFlashes = Math.ceil(flashCount * kleeShare * 1.5);
             const episodeCount = Math.max(
                 this.config.kleePreset === 'random' ? KLEE_PRESET_NAMES.length : 1,
@@ -3199,7 +3200,7 @@ export class VisualCortex {
         if (this.config.renderLanguage === 'ascii') {
             // Precompile raster sources before the reading clock begins. The
             // flash path only selects and paints a small immutable frame.
-            if (this.fractal && this.config.activeTypes.includes('fractal')) {
+            if (this.fractal && generationTypes.includes('fractal')) {
                 await Promise.all((this.fractal.queue || []).map(async item => {
                     if (!item.asciiFrame) {
                         item.asciiFrame = await this.asciiCompiler.compileImageData(

@@ -682,4 +682,38 @@ describe('Continuous Field projection mount', () => {
         field.stop();
         projection.remove();
     });
+
+    it('reveals a generated projection while the room pool is still cold', async () => {
+        const getNextProjectionWork = vi.fn().mockResolvedValue({
+            url: 'data:image/webp;base64,flame'
+        });
+        const { field, host } = mount({
+            getPool: () => [],
+            getNextWork: async () => null,
+            getProjectionPool: () => [],
+            projectionPoolKey: () => 'word-fill:fractal',
+            getNextProjectionWork,
+            hasWorks: () => true
+        });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        field.setProjectionHost(projection);
+        field.start();
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(getNextProjectionWork).toHaveBeenCalledTimes(1);
+        expect(field.currentUrl).toBeNull();
+        expect(field.currentProjectionUrl).toBe('data:image/webp;base64,flame');
+        expect([...host.querySelectorAll('.continuous-field-layer')]
+            .some(layer => layer.style.opacity === '1')).toBe(false);
+        expect([...projection.querySelectorAll('.continuous-field-artwork')]
+            .some(img => img.getAttribute('src')?.includes('flame'))).toBe(true);
+        expect([...projection.querySelectorAll('.continuous-field-layer')]
+            .some(layer => layer.style.opacity === '1')).toBe(true);
+        field.stop();
+        projection.remove();
+    });
 });
