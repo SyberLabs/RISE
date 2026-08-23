@@ -1,20 +1,33 @@
-import { cpus, freemem } from 'node:os';
+import { cpus, totalmem } from 'node:os';
 import { defineConfig } from 'vite';
 import { curiaPlugin } from './scripts/curia-plugin.js';
 import { exportMp4Plugin } from './scripts/export-mp4-plugin.js';
 
-const GB = 1024 ** 3;
+// A FORK DIES AT ITS HEAP CEILING, NOT AT THE MACHINE'S.
+//
+// This was stated as a count of workers scaled against free system memory,
+// and it could not have worked: the thing that kills a fork is its own V8
+// old-space limit, and no number of workers changes that limit. So the suite
+// passed on a workstation and died on CI over nothing either machine was
+// short of — Node 20 defaults this ceiling to about 2 GB, Node 22 to about
+// 4 GB, and the heaviest file in the suite needs a little over 2 GB.
+//
+// The failure did not look like a failing test. A fork was killed mid-file
+// and the parent reported ERR_IPC_CHANNEL_CLOSED, 115 of 228 files in:
+//
+//     FATAL ERROR: Reached heap limit Allocation failed
+//     Mark-Compact 2127.6 (2134.6) -> 2126.4 (2137.6) MB
+//
+// Reproduced by capping a passing local run at 2048 and by nothing else.
+// The ceiling is named here so it stops depending on which Node picked it.
+const WORKER_HEAP_MB = 4096;
 
-// Held back for the vitest parent (~750 MB measured) and whatever else is
-// already resident while the suite runs.
-const RESERVED_GB = 2.5;
-
-// One test file per fork. Typical peak is 100–200 MB; the worst measured was
-// 594 MB, so a gigabyte a slot is the heavy file paying for itself.
-const PER_WORKER_GB = 1;
-
+// Cores bound the parallelism worth having; total memory bounds how many of
+// those heaps can be resident at once. Total, not free: free memory is a
+// snapshot, and reading it at config load turned a busy moment into a
+// one-fork crawl.
 const coreCeiling = Math.floor(cpus().length / 2);
-const memoryCeiling = Math.floor((freemem() / GB - RESERVED_GB) / PER_WORKER_GB);
+const memoryCeiling = Math.floor(totalmem() / (WORKER_HEAP_MB * 1024 ** 2));
 
 export default defineConfig({
   // Curia / Export MP4: apply:'serve' means the endpoints exist only on
@@ -85,39 +98,15 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.js'],
 
-    // A WORKER USED TO CARRY THE WHOLE ARCHIVE. Two was the ceiling because
-    // each fork loaded jsdom, the visual engines, and Library fixtures that
-    // linked ninety-five payloads — ninety-three megabytes, of which eighty-two
-    // belonged to works no reader could open. Unlinking the unreachable ones
-    // is the lighter setup the old note was waiting for: 168s → 81s here, and
-    // green at eight, which is where it was left rather than pushed.
-    //
-    // Scaled to the machine, because CI is not this machine. A GitHub runner
-    // has four cores where a workstation has sixteen, and a fixed six would
-    // oversubscribe the runner as surely as two throttles the workstation.
-    //
-    // COUNTING CORES WAS NOT ENOUGH. The workstation has sixteen of them and
-    // only sixteen gigabytes, so the core rule asked for six forks against
-    // memory that could not seat six. The failure did not look like a failing
-    // test: a fork was killed mid-file and the parent reported
-    // ERR_IPC_CHANNEL_CLOSED, usually over Workshop.test.js or
-    // visual-cortex.test.js, both of which pass alone. Measured here — 15.9 GB
-    // total, 4.7 GB free at rest; isolation gives each test file its own fork,
-    // and across one full run the forks peaked at 100–200 MB apiece with the
-    // heaviest at 594 MB, over a parent holding ~750 MB. Six of those spiking
-    // together do not fit; free memory fell to 1.85 GB with only three running.
-    // Two finishes clean in ~163s and was the hand-passed flag all session.
-    //
-    // So the ceiling is whichever runs out first, cores or memory. The reserve
-    // covers the vitest parent plus whatever else is resident — a dev server
-    // and an editor are normal here. Read once at config load, which is a
-    // snapshot and can be sampled at a bad moment; the floor of two and the
-    // ceiling of six keep a bad sample from turning into a one-fork crawl or
-    // an overcommit. The floor is the number that was measured good, not a
-    // guess. Nothing changes on a four-core runner, where cores still bind
-    // first and the answer is two either way.
+    // A fork reuses its heap across the files it is handed, so the ceiling has
+    // to cover the run rather than the file. The old note here budgeted 594 MB
+    // a fork from a measurement that only ever watched one; the number that
+    // matters is what a fork holds by the end, and that is over 2 GB.
     pool: 'forks',
-    maxWorkers: Math.max(2, Math.min(6, coreCeiling, memoryCeiling)),
+    poolOptions: {
+      forks: { execArgv: [`--max-old-space-size=${WORKER_HEAP_MB}`] }
+    },
+    maxWorkers: Math.max(1, Math.min(coreCeiling, memoryCeiling)),
     minWorkers: 1,
 
     include: ['src/**/*.{test,spec}.js'],
