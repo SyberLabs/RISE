@@ -388,6 +388,32 @@ describe('session compiler', () => {
       sourced: ['solar']
     });
   });
+
+  it('defaults missing wordFill on Astronomy × Fractal to a Fractal pick', () => {
+    const missing = normalizeVisualConfig({
+      visualMode: 'interlocution',
+      interlocution: {
+        sourced: ['sci-astronomy'],
+        procedural: ['fractal']
+      }
+    }).interlocution;
+    expect(missing.wordFill).toEqual({
+      mode: 'pick',
+      sourceFamily: 'procedural',
+      procedural: ['fractal'],
+      sourced: []
+    });
+
+    const declared = normalizeVisualConfig({
+      visualMode: 'interlocution',
+      interlocution: {
+        sourced: ['sci-astronomy'],
+        procedural: ['fractal'],
+        wordFill: { mode: 'same' }
+      }
+    }).interlocution;
+    expect(declared.wordFill).toEqual({ mode: 'same' });
+  });
 });
 
 describe('Temporal contract: effective WPM invariants', () => {

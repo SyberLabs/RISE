@@ -147,3 +147,25 @@ export function normalizeWordFill(value) {
 export function wordFillIsDistinct(value) {
     return normalizeWordFill(value).mode === 'pick';
 }
+
+/**
+ * Cold-start pair: a session that named a still room AND a procedural
+ * engine is Astronomy × Fractal (or Old Masters × Fractal, Astronomy ×
+ * Attractor) even when wordFill was never declared. Session wordFill
+ * still wins. Cortex leftover is not consulted here.
+ */
+export function resolveSessionWordFill(interlocution = {}) {
+    const input = interlocution && typeof interlocution === 'object' && !Array.isArray(interlocution)
+        ? interlocution
+        : {};
+    if (input.wordFill != null) return normalizeWordFill(input.wordFill);
+    const selection = normalizeVisualSelection(input);
+    if (selection.procedural.length > 0 && selection.sourced.length > 0) {
+        return normalizeWordFill({
+            mode: 'pick',
+            procedural: selection.procedural,
+            sourced: []
+        });
+    }
+    return { mode: 'same' };
+}
