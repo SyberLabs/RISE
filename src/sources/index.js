@@ -16,7 +16,6 @@ export { GUTENBERG_CATALOG, SACRED_TEXTS, ARXIV_CATEGORIES } from './text/index.
 export { GeneratedVisualProvider, VISUAL_TYPES } from './visual/index.js';
 export { WikimediaProvider, WIKIMEDIA_CATEGORIES } from './visual/index.js';
 
-// Initialization helper
 import { SourceRegistry } from './registry.js';
 import { SourceCache } from './cache.js';
 import { ArchiveTextProvider, LocalTextProvider, GutenbergProvider, SacredTextProvider, ArxivProvider } from './text/index.js';
@@ -30,7 +29,6 @@ import { GeneratedVisualProvider, WikimediaProvider } from './visual/index.js';
 export async function initSourceSystem() {
     console.log('[Sources] Initializing source system...');
 
-    // Initialize cache
     await SourceCache.init();
 
     // Register defaults once. Repeated bootstrap calls retain provider
@@ -48,7 +46,6 @@ export async function initSourceSystem() {
         if (!SourceRegistry.get(provider.id)) SourceRegistry.register(provider);
     }
 
-    // Initialize all registered providers
     const status = await SourceRegistry.initAll();
 
     console.log('[Sources] Source system ready');

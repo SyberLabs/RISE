@@ -331,10 +331,8 @@ export class VisualCortex {
         this.fractal = new FractalFlame(fractalCanvas);
         console.log('[Visual Cortex] Fractal canvas bound:', fractalCanvas);
 
-        // Initialize Neural Network canvas
         let neuralCanvas = document.getElementById('neural-canvas');
         if (!neuralCanvas) {
-            // Create neural canvas dynamically
             neuralCanvas = document.createElement('canvas');
             neuralCanvas.id = 'neural-canvas';
             neuralCanvas.className = 'visual-canvas';
@@ -397,7 +395,6 @@ export class VisualCortex {
             this.container.appendChild(this.imageWashEl);
         }
 
-        // Create diagram element if it doesn't exist
         this.diagramEl = document.getElementById('diagram-display');
         if (!this.diagramEl) {
             this.diagramEl = document.createElement('img');
@@ -405,7 +402,6 @@ export class VisualCortex {
             this.diagramEl.className = 'diagram-display';
             this.diagramEl.hidden = true;
             this.container.appendChild(this.diagramEl);
-            // console.log('[Visual Cortex] Created diagram display element');
         }
 
         // One caption surface serves every sourced flash, including its ASCII
@@ -421,7 +417,6 @@ export class VisualCortex {
             this.container.appendChild(this.artworkLabelEl);
         }
 
-        // Create custom visual display element if it doesn't exist
         this.customImageEl = document.getElementById('custom-visual-display');
         if (!this.customImageEl) {
             this.customImageEl = document.createElement('img');
@@ -429,7 +424,6 @@ export class VisualCortex {
             this.customImageEl.className = 'diagram-display'; // Reuse diagram styles for fullscreen
             this.customImageEl.hidden = true;
             this.container.appendChild(this.customImageEl);
-            // console.log('[Visual Cortex] Created custom visual display element');
         }
         // An element may survive destroy/init cycles, including one authored
         // by an older runtime that used `cover`. The foreground contract is
@@ -2250,11 +2244,12 @@ export class VisualCortex {
             }
             return null;
         }
-        // Atrium-scoped subject categories (atr-*) resolve through the
-        // Wikimedia provider once the Atrium content module has
-        // registered its resolver. A restored session can carry atr-
-        // ids without the Atrium ever loading this visit — import
-        // lazily so registration precedes resolution.
+        // The atr- prefix names a real museum accession. Its room is
+        // deleted; the namespace is data, and resolving it needs the
+        // imagery module to have registered its resolver first. A
+        // restored session can carry atr- ids without that module having
+        // loaded this visit — import lazily so registration precedes
+        // resolution.
         if (categoryId.startsWith('atr-')) {
             // A pinned collection wins: specific museum works, chosen and
             // reviewed, rather than whatever a keyword returned today.
@@ -3761,7 +3756,6 @@ export class VisualCortex {
         const neuralEl = document.getElementById('neural-canvas');
         const asciiMode = this.config.renderLanguage === 'ascii';
 
-        // Reset visibility
         if (kleeEl) kleeEl.hidden = true;
         if (turrellEl) turrellEl.hidden = true;
         if (fractalEl) fractalEl.hidden = true;

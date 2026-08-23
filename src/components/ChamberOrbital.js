@@ -1178,7 +1178,6 @@ export class ChamberOrbital {
       this.onNavigate('library');
     });
 
-    // Clear text
     this._listen(this.container.querySelector('[data-action="clear-text"]'), 'click', () => {
       window.rise?.audioEngine?.playHiss();
       this.clearText();
@@ -1198,7 +1197,6 @@ export class ChamberOrbital {
 
 
   attachModalEvents() {
-    // Close buttons
     const closeBtns = this.container.querySelectorAll('.modal-close');
     closeBtns.forEach(btn => {
       this._listen(btn, 'click', () => {
@@ -1376,7 +1374,6 @@ export class ChamberOrbital {
     });
 
 
-    // Initial active states
     this.container.querySelectorAll('[data-entrainment]').forEach(opt => {
       opt.classList.toggle('active', opt.dataset.entrainment === this.config.entrainmentMode);
     });
@@ -1411,11 +1408,9 @@ export class ChamberOrbital {
         console.error('[Orbital] Upload failed:', err);
       }
 
-      // Reset input
       swellUpload.value = '';
     });
 
-    // Initial render of pool
     this.renderPersonalPool();
   }
 
@@ -1799,7 +1794,6 @@ export class ChamberOrbital {
     // Sync HTML modal elements with new config state
     this.syncUIWithConfig();
 
-    // Update UI state for all orbits
     this.updateOrbitStatus('temporal');
     this.updateOrbitStatus('audio');
     this.updateOrbitStatus('visual');

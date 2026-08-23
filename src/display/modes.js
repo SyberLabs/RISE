@@ -101,7 +101,6 @@ export class ChamberRenderer extends BaseRenderer {
     }
 
     init() {
-        // Create canvas for particle field
         this.canvas = document.createElement('canvas');
         this.canvas.className = 'chamber-canvas';
         this.container.insertBefore(this.canvas, this.container.firstChild);
@@ -109,7 +108,6 @@ export class ChamberRenderer extends BaseRenderer {
         this.ctx = this.canvas.getContext('2d');
         this.resize();
 
-        // Get or create display element
         this.display = this.container.querySelector('.atom-display');
         if (!this.display) {
             this.display = document.createElement('div');
@@ -118,10 +116,8 @@ export class ChamberRenderer extends BaseRenderer {
         }
         this.display.classList.add('chamber-text');
 
-        // Initialize particles
         this.initParticles();
 
-        // Handle resize
         window.addEventListener('resize', () => this.resize());
     }
 
@@ -185,7 +181,6 @@ export class ChamberRenderer extends BaseRenderer {
         const now = Date.now() / 1000;
         this.breathPhase = Math.sin(now * this.entrainmentFreq * Math.PI * 2);
 
-        // Update particles
         for (const p of this.particles) {
             p.x += p.vx;
             p.y += p.vy;
@@ -197,7 +192,6 @@ export class ChamberRenderer extends BaseRenderer {
             if (p.y > window.innerHeight) p.y = 0;
         }
 
-        // Update glow intensity based on breath
         const glowMod = 1 + this.breathPhase * this.config.breathAmplitude;
         document.documentElement.style.setProperty('--chamber-glow', glowMod);
     }
@@ -305,7 +299,6 @@ export class OrbitalRenderer extends BaseRenderer {
         this.orbitContainer.className = 'orbit-container';
         this.container.appendChild(this.orbitContainer);
 
-        // Create orbit elements
         this.createOrbits();
     }
 
@@ -493,7 +486,6 @@ export class DisplayManager {
      * @param {import('../core/models.js').Atom} atom 
      */
     render(atom) {
-        // Handle different modalities
         switch (atom.modality) {
             case 'image':
                 this.renderImage(atom);
@@ -503,7 +495,6 @@ export class DisplayManager {
                 break;
             case 'text':
             default:
-                // Hide image if showing
                 this.hideImage();
                 this.activeRenderer.render(atom);
                 break;
@@ -515,13 +506,11 @@ export class DisplayManager {
      * @param {Object} atom 
      */
     renderImage(atom) {
-        // Hide text display
         const textDisplay = this.container.querySelector('.atom-display');
         if (textDisplay) {
             textDisplay.classList.remove('visible');
         }
 
-        // Show image
         this.imageElement.src = atom.url || atom.content;
         this.imageElement.style.opacity = '0';
 
@@ -530,10 +519,8 @@ export class DisplayManager {
             this.imageElement.style.opacity = '1';
         };
 
-        // Handle error
         this.imageElement.onerror = () => {
             console.warn('[DisplayManager] Failed to load image:', atom.url);
-            // Show placeholder text
             this.activeRenderer.render({ content: '[ image ]', modality: 'text' });
         };
     }
@@ -556,7 +543,6 @@ export class DisplayManager {
             content: atom.content
         });
 
-        // Remove symbol mode after render
         setTimeout(() => {
             if (textDisplay) {
                 textDisplay.classList.remove('symbol-mode');

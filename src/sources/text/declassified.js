@@ -112,7 +112,6 @@ export class DeclassifiedProvider extends SourceProvider {
     }
 
     async list(filter = {}) {
-        // Return list of available curated docs
         return Object.entries(DECLASSIFIED_LIBRARY).map(([id, doc]) => ({
             id: id,
             type: 'text',

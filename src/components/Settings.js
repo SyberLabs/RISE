@@ -323,7 +323,6 @@ export class Settings {
             this.leave();
         });
 
-        // Toggle checkboxes
         this.container.querySelectorAll('[data-setting]').forEach(input => {
             input.addEventListener('change', (e) => {
                 const setting = e.target.dataset.setting;
@@ -389,7 +388,6 @@ export class Settings {
         try {
             const data = await exportUserData(this.settings);
 
-            // Create download
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const revokeObjectURL = URL.revokeObjectURL.bind(URL);

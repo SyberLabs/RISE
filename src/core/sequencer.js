@@ -194,7 +194,6 @@ export class Sequencer {
             bySource.get(key).push(atom);
         }
 
-        // Create iterators
         const sources = Array.from(bySource.entries()).map(([id, atoms]) => ({
             id,
             atoms,
@@ -307,7 +306,6 @@ export class Sequencer {
             currentIndex += count;
         }
 
-        // Add remaining to body
         if (currentIndex < total) {
             phases.body.push(...atoms.slice(currentIndex));
         }

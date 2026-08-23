@@ -132,7 +132,6 @@ class KleeEngine {
     this._enhancementPromise = null;
     this._generationLineBudget = this.generationStyle.maxTotalLines;
 
-    // Initialize default palette
     this._generateDefaultPalette();
   }
 

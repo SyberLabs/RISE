@@ -205,7 +205,6 @@ export class SacredTextProvider extends SourceProvider {
      * @override
      */
     async _doInit() {
-        // Build indexes
         for (const [id, text] of Object.entries(SACRED_TEXTS)) {
             this._textIndex.set(id, text);
 

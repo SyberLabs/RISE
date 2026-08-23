@@ -38,7 +38,6 @@ export class ActiveSourcesModal {
             this.element.classList.add('open');
         });
 
-        // Load initial images
         this.loadImages();
     }
 
@@ -126,7 +125,6 @@ export class ActiveSourcesModal {
             </div>
         `).join('');
 
-        // Attach toggle events
         grid.querySelectorAll('.asm-image-toggle').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();

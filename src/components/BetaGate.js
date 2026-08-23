@@ -41,7 +41,6 @@ export class BetaGate {
     // Check for invite code in URL
     this.inviteCode = this.getInviteFromURL();
 
-    // Check if already authenticated
     this.session = this.loadSession();
 
     this.render();
@@ -111,14 +110,12 @@ export class BetaGate {
   }
 
   render() {
-    // Check if already authenticated
     if (this.session) {
       // If there's a URL invite code, ensure the session has the vault from that invite
       // This handles cases where user bookmarked the personalized link
       if (this.inviteCode) {
         const inviteData = this.validateCode(this.inviteCode);
         if (inviteData && inviteData.vault && this.session.vault !== inviteData.vault) {
-          // Update session with vault from URL invite
           this.session.vault = inviteData.vault;
           localStorage.setItem(BETA_SESSION_KEY, JSON.stringify(this.session));
         }

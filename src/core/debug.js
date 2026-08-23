@@ -13,7 +13,6 @@
  *   debug.error('[Component]', 'error'); // Always logs, even in production
  */
 
-// Check if we're in development mode
 const isDev = import.meta.env?.DEV ?? false;
 
 // Check for debug flag in localStorage (allows debugging in production)

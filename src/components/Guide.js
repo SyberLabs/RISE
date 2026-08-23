@@ -120,14 +120,12 @@ export class Guide {
     
     closeBtn.addEventListener('click', () => this.onClose());
     
-    // Close on overlay click
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) {
         this.onClose();
       }
     });
 
-    // Handle ESC key
     this._keyboardHandler = (e) => {
       if (e.key === 'Escape') {
         this.onClose();

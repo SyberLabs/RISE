@@ -62,7 +62,6 @@ export class SourceBrowser {
     }
 
     create() {
-        // Create overlay
         this.element = document.createElement('div');
         this.element.className = 'source-browser-overlay';
         this.element.innerHTML = `
@@ -329,7 +328,6 @@ export class SourceBrowser {
             return;
         }
 
-        // Check if this is a visual provider
         if (this.isVisualProvider(this.activeProvider)) {
             contentList.innerHTML = this.renderVisualContent();
         } else {

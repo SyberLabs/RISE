@@ -12,7 +12,6 @@ export function initOrbital(state, elements) {
   // Track which modal is open
   let currentModal = null;
 
-  // Get orbital elements
   const orbitalNodes = document.querySelectorAll('[data-orbit]');
   const modals = {
     temporal: document.getElementById('modal-temporal'),
@@ -39,7 +38,6 @@ export function initOrbital(state, elements) {
     });
   });
 
-  // Close modal on overlay click
   Object.values(modals).forEach(modal => {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
@@ -49,12 +47,10 @@ export function initOrbital(state, elements) {
   });
 
   function openModal(type) {
-    // Close current modal if any
     if (currentModal && modals[currentModal]) {
       modals[currentModal].hidden = true;
     }
 
-    // Open new modal
     if (modals[type]) {
       modals[type].hidden = false;
       currentModal = type;
@@ -68,7 +64,6 @@ export function initOrbital(state, elements) {
     }
   }
 
-  // Update orbital status displays
   function updateOrbitalStatus() {
     const temporalStatus = document.getElementById('temporal-status');
     const audioStatus = document.getElementById('audio-status');
@@ -176,7 +171,6 @@ export function initOrbital(state, elements) {
     });
   }
 
-  // Initial status update
   updateOrbitalStatus();
 
   console.log('[Orbital] Interface initialized');
