@@ -382,12 +382,20 @@ account for most of it:
 1. **`initSourceSystem()` constructs all seven providers at boot** —
    `ArchiveText`, `LocalText`, `Gutenberg`, `SacredText`, `Arxiv`,
    `GeneratedVisual`, `Wikimedia` — and several carry their data inline rather
-   than behind a loader: `sacred.js` is 22 KB of verse, `wikimedia.js` is 21 KB
-   around a category registry that is now **empty** (retired after an audit),
-   `LocalTextProvider` wraps `content/starters.js` (32 KB), and
-   `ArchiveTextProvider` reaches `content/library.js`, which pulls
-   `sacred_deep.js` (29 KB) and `literary_deep.js` (26 KB). A registry needs ids
-   and metadata; it is loading payloads.
+   than behind a loader: `sacred.js` is 22,170 bytes of verse, `wikimedia.js` is
+   21,197 bytes around a category registry that is now **empty** (retired after
+   an audit), `LocalTextProvider` wraps `content/starters.js` (32,221 bytes),
+   and `ArchiveTextProvider` reaches `content/library.js`, which pulls
+   `sacred_deep.js` (28,864 bytes) and `literary_deep.js` (26,195 bytes). A
+   registry needs ids and metadata; it is loading payloads.
+
+   (Sizes here are exact bytes rather than rounded kilobytes on purpose. This
+   document names `division-index.json`, which puts it inside the sweep in
+   `shelf-measurements.test.js` — and that guard reads *any* kilobyte figure in
+   a file that names an index as a claim about the index. A rounded kilobyte
+   figure for `starters.js` collided with the embedded size of the index itself
+   and failed the build: correct by the guard's design, wrong about this file.
+   See the note at the end of Part IV.)
 2. **`src/app.js` imports `AudioEngine`, `visualCortex`, and 16 room
    stylesheets** before the Portal paints. The CSS alone is 220 KB raw / 31 KB
    brotli, and it is every room's, not the Portal's.
@@ -794,6 +802,38 @@ router and `Portal.js` actually need.
 | # | Delta | Detail |
 |---|---|---|
 | **D21** | **Publishing a work becomes a manifest append plus a CDN upload**, with `release:check` gating it. Only after D6–D11 — never automate a broken process. | The 500th work costs what the 16th costs |
+
+### A note on the guard this document tripped, flagged rather than changed
+
+Writing this document failed CI, and the failure is worth recording because the
+guard is a good one and the interaction is not obvious.
+
+`shelf-measurements.test.js` sweeps every `.js`, `.mjs` and `.md` file under
+`src`, `scripts` and `docs` that names `division-index.json` or its withheld
+sibling, and asserts that every kilobyte figure in those files is one of the
+four measured index sizes — the two indexes as committed and as a bundler
+embeds them. Its stated assumption is explicit: *"a KiB claim in a file that
+names an index is a claim ABOUT an index; nothing else in these files is
+measured in KiB."*
+
+That assumption held until a document arrived whose subject is bytes. This
+review names `division-index.json` once, in the Alex Xu table, and therefore
+enters the sweep — after which a rounded kilobyte figure describing
+`content/starters.js` was read as the index's embedded size restated in the
+wrong unit, and the build went red.
+
+The guard is right and the document was ambiguous, so the document changed to
+exact byte counts, which are better documentation anyway. **The guard was not
+weakened, and should not be.** Note that the first attempt at this very
+paragraph failed too, because explaining the collision meant quoting the
+colliding figure — which is the clearest possible demonstration that the sweep
+does what it says. Its blast radius now includes any future document that
+discusses sizes and happens to mention an index. Two options, both cheap, and
+the choice is editorial rather than a machine's:
+
+- narrow the sweep to figures within a line or two of an index mention; or
+- leave it exactly as is and record the constraint where a writer will meet it,
+  which is what this note does.
 
 ## 15. What is deliberately not proposed
 
