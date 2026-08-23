@@ -108,9 +108,9 @@ jobs:
   # Measured: 502 seconds of test time across 18 spec files, of which
   # mobile.spec.js alone is 200. The gate project is 134 of those seconds —
   # the corridor a reader walks, the safety warning, the voice, and the
-  # refusal panel. The other half runs in `e2e-full` below, on main and
-  # nightly. Nothing was deleted from the suite; the slower half was moved
-  # off the path between a change and knowing whether it is safe.
+  # refusal panel. This is the fast no. `e2e-full` below runs the complete
+  # suite, sharded, on the same pull request, so nothing is deferred: this
+  # job only decides whether a change is dead on arrival.
   e2e:
     name: Browser gate
     runs-on: ubuntu-latest
@@ -137,14 +137,33 @@ jobs:
             test-results/
           retention-days: 7
 
-  # Everything the gate leaves out — mobile, Page typography and fields, the
-  # band, the Workshop. On main and nightly, where fifteen minutes is a cost
-  # nobody is waiting on.
+  # THE WHOLE SUITE, ON EVERY PULL REQUEST, IN THE TIME THE SLOWEST FILE TAKES.
+  #
+  # The reason this job skipped pull requests was latency, not coverage: a
+  # gate people wait a quarter of an hour for is one they learn to route
+  # around. Sharding pays that with parallelism instead of with coverage.
+  # Playwright shards by file, so mobile.spec.js at 200 s is the floor no
+  # shard count can go under — which makes four the smallest count that
+  # reaches it. 502 s of serial test time becomes ~200 s of wall clock.
+  #
+  # So the trade the split was making is no longer necessary. `test:e2e` runs
+  # both projects, which is all 89 tests in 21 files; verified partitioned
+  # 23 / 26 / 24 / 16 by `playwright test --list --shard=N/4`. A regression in
+  # the half that used to run after the merge now fails before it, and the
+  # nightly run stops being the first place anyone hears about it.
+  #
+  # `Browser gate` above stays: 134 s is a faster no than this job can give,
+  # and it covers the reader's corridor, so a broken corridor still fails
+  # first. This is the slower, complete answer behind it.
   e2e-full:
-    name: Browser matrix
-    if: github.event_name != 'pull_request'
+    name: Browser matrix ${{ matrix.shard }}/4
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
+    strategy:
+      # A failing shard must not hide the state of the other three.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -153,11 +172,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - run: npm run test:e2e -- --shard=${{ matrix.shard }}/4
       - uses: actions/upload-artifact@v4
         if: failure() || cancelled()
         with:
-          name: playwright-report-full
+          name: playwright-report-full-${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/
