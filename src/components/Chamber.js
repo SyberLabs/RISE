@@ -45,6 +45,7 @@ import {
   threeStepIntent
 } from '../core/chamber-type-size.js';
 import { GROUNDS, maskGroundFromConfig } from '../core/mask-ground.js';
+import { resolveSessionWordFill } from '../core/visual-selection.js';
 import './Chamber.css';
 
 /**
@@ -643,10 +644,13 @@ export class Chamber {
     const activeTypes = Array.isArray(cortexTypes) && cortexTypes.length
       ? cortexTypes
       : [...(interlocution.procedural || []), ...(interlocution.sourced || [])];
-    // Declared session pair wins. Cortex wordFill is a singleton leftover
-    // (default `same`, or a prior Attractor pick) and must not hide
-    // Astronomy×Fractal cream behind Astronomy Dark.
-    const wordFill = interlocution.wordFill ?? visualCortex.config?.wordFill;
+    // Declared session pair wins. Missing wordFill infers the engine
+    // from the session pair (Astronomy × Fractal → Fractal pick).
+    // Cortex leftover (default `same`, or a prior Attractor pick) must
+    // not hide cream behind Astronomy Dark.
+    const wordFill = interlocution.wordFill != null
+      ? interlocution.wordFill
+      : resolveSessionWordFill(interlocution);
     const roomOpaque = Boolean(visualCortex._continuousField?.currentUrl)
       || Boolean(layerA?.querySelector('.continuous-field-artwork[src]'));
     const ground = maskGroundFromConfig({
@@ -748,6 +752,17 @@ export class Chamber {
 
   async syncFillGlyphMask() {
     const generation = ++this._fillMaskGeneration;
+    // Do not leave the glyph as opaque --color-light while Space Grotesk
+    // 700 (display=swap) is still swapping. Ink before the font await.
+    const pendingAtom = this.container.querySelector('#atom-display');
+    if (
+      this._shouldMountFill()
+      && this._maskImageSupported()
+      && this._atomHasWordInk(pendingAtom)
+    ) {
+      pendingAtom.classList.add('is-mask-ink');
+      pendingAtom.style.color = 'transparent';
+    }
     await this._waitFontsReady();
     if (generation !== this._fillMaskGeneration) return;
 

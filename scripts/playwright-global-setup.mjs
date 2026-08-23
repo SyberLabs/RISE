@@ -1,4 +1,5 @@
 import { build, preview } from 'vite';
+import { buildContentPlane } from './lib/content-plane.mjs';
 
 /**
  * Build and serve the exact candidate inside Playwright's owning process.
@@ -7,6 +8,11 @@ import { build, preview } from 'vite';
  */
 export default async function prepareCandidate() {
   process.env.VITE_RISE_ARCHIVE_REVIEW = '1';
+  // The data plane is a build product, not a source file, and this setup
+  // calls Vite's API rather than `npm run build` — so it has to be asked
+  // for. Without it `dist` ships a shell with no corpus behind it and every
+  // reading refuses, correctly and uselessly.
+  await buildContentPlane();
   await build();
   const server = await preview({
     preview: {

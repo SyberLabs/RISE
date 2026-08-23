@@ -6,6 +6,7 @@
  * infernal sulfur magma Voronoi networks, and cosmic curl noise flow fields.
  */
 
+import { PARADISE_LOST_ENGINE_META } from './engines.meta.js';
 import { ParadiseFallHypercubeEngine } from './ParadiseFallHypercubeEngine.js';
 import { ParadiseChariotDeityEngine } from './ParadiseChariotDeityEngine.js';
 import { ParadiseFlamingSwordEngine } from './ParadiseFlamingSwordEngine.js';
@@ -22,15 +23,24 @@ export {
     ParadiseHeavenInOrderEngine
 };
 
-export const PARADISE_LOST_ENGINES = [
-    // Book VI in its own order: heaven before the breach, then the war.
-    { id: 'heaven_in_order', name: '0. Heaven in Order (The Perpetual Round)', engineClass: ParadiseHeavenInOrderEngine, category: 'DIMENSIONAL / SPATIAL' },
-    { id: 'fall_hypercube', name: '1. Fall of the Rebel Angels (Mandelbrot Abyss)', engineClass: ParadiseFallHypercubeEngine, category: 'DIMENSIONAL / SPATIAL' },
-    { id: 'chariot_deity', name: '2. Chariot of Paternal Deity (Ezekiel Wheels)', engineClass: ParadiseChariotDeityEngine, category: 'DIMENSIONAL / SPATIAL' },
-    { id: 'flaming_sword', name: '3. St. Michael\'s Flaming Sword (3D Inscribed)', engineClass: ParadiseFlamingSwordEngine, category: 'DIMENSIONAL / SPATIAL' },
-    { id: 'sulfur_magma', name: '4. Sulfur & Brimstone Magma Network (Voronoi)', engineClass: ParadiseSulfurMagmaEngine, category: 'DIMENSIONAL / SPATIAL' },
-    { id: 'dark_ocean_chaos', name: '5. The Dark Ocean of Chaos (Cosmic Flow Fields)', engineClass: ParadiseDarkOceanChaosEngine, category: 'DIMENSIONAL / SPATIAL' }
-];
+/**
+ * The engines, named by engines.meta.js and drawn by the classes above.
+ * Ordering and identity come from the metadata, so this file cannot
+ * introduce an engine the manifest has never heard of, or vice versa.
+ */
+const CLASSES = {
+    heaven_in_order: ParadiseHeavenInOrderEngine,
+    fall_hypercube: ParadiseFallHypercubeEngine,
+    chariot_deity: ParadiseChariotDeityEngine,
+    flaming_sword: ParadiseFlamingSwordEngine,
+    sulfur_magma: ParadiseSulfurMagmaEngine,
+    dark_ocean_chaos: ParadiseDarkOceanChaosEngine
+};
+
+export const PARADISE_LOST_ENGINES = PARADISE_LOST_ENGINE_META.map(entry => ({
+    ...entry,
+    engineClass: CLASSES[entry.id]
+}));
 
 export function createParadiseEngine(engineId) {
     const entry = PARADISE_LOST_ENGINES.find(e => e.id === engineId) || PARADISE_LOST_ENGINES[0];

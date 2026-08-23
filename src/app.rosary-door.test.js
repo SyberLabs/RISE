@@ -5,7 +5,6 @@ import { BetaGate } from './components/BetaGate.js';
 import { Rosarium } from './components/Rosarium.js';
 import { ROSARY_PRAYERS, mysterySetForDate } from './content/chapel/liturgy/rosary.js';
 import { isRosaryDoor, rosaryDoorHref, ROSARY_DOOR_HASH } from './core/rosary-door.js';
-import * as sources from './sources/index.js';
 
 const VIEW_IDS = [
   'view-portal', 'view-vault', 'view-chamber', 'view-library',
@@ -69,7 +68,8 @@ describe('Chapel Rosary door (#rosary)', () => {
       value: { writeText: vi.fn().mockResolvedValue(undefined) }
     });
     stubMedia();
-    vi.spyOn(sources, 'initSourceSystem').mockResolvedValue();
+    // The source system is no longer built at boot, so there is nothing to
+    // stub out of the way here — the door path never reaches it.
     plantShell();
   });
 

@@ -9,6 +9,7 @@ import {
   parseExperienceProgramJson,
   PROGRAM_IO_MAX_JSON_BYTES,
   serializeExperienceProgram,
+  withVisualSurfaceForProgram,
   workshopProjectFromImportedProgram
 } from './experience-program-io.js';
 import { WORKSHOP_PROJECT_SCHEMA } from './workshop-project.js';
@@ -346,6 +347,39 @@ describe('experience-program-io', () => {
       assets: [],
       id: 'import-missing'
     })).toThrow();
+  });
+
+  it('defaults missing wordFill on an Astronomy × Fractal visual surface to a Fractal pick', () => {
+    const defaults = withVisualSurfaceForProgram(baseProgram(), {
+      visual: {
+        config: {
+          interlocution: {
+            sourced: ['sci-astronomy'],
+            procedural: ['fractal']
+          }
+        }
+      }
+    });
+    expect(defaults.visual.config.interlocution.wordFill).toEqual({
+      mode: 'pick',
+      sourceFamily: 'procedural',
+      procedural: ['fractal'],
+      sourced: []
+    });
+    expect(defaults.visual.config.interlocution.presentation).toBe('continuous');
+
+    const declared = withVisualSurfaceForProgram(baseProgram(), {
+      visual: {
+        config: {
+          interlocution: {
+            sourced: ['sci-astronomy'],
+            procedural: ['fractal'],
+            wordFill: { mode: 'same' }
+          }
+        }
+      }
+    });
+    expect(declared.visual.config.interlocution.wordFill).toEqual({ mode: 'same' });
   });
 
   it('refuses invalid JSON', () => {
