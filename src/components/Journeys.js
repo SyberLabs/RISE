@@ -1,9 +1,9 @@
 /**
  * The Journeys threshold.
  *
- * A provisional home. When there are several Journeys this becomes a
- * landing page of its own; for now it is one room with one work in it,
- * and it is built so that adding the second costs nothing.
+ * A provisional home, currently empty — see the note above JOURNEYS below.
+ * When there are several it becomes a landing page of its own, and it is
+ * built so that adding each one costs nothing.
  *
  * WHAT A READER IS SHOWN BEFORE DECIDING (JOURNEYS-SPEC §3.1)
  * ──────────────────────────────────────────────────────────
@@ -30,15 +30,8 @@ import { resolveJourneyPassages } from '../content/journeys/passages.js';
 import './Journeys.css';
 
 /**
- * Everything published here, shortest first.
+ * Everything published here, shortest first — which is nothing.
  *
- * The Demonstration leads because it is the one a reader can afford to
- * try. It is not a Journey — §1.1 — and its card says so; it sits here
- * because this is where someone arrives, and asking them for
- * seventy-five minutes before they know what any of it is would lose
- * most of them at the door.
- */
-/**
  * ON ICE — 2026-08-18.
  *
  * A Journey names its sources and quotes their exact words, so it is a promise

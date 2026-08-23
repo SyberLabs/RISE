@@ -1,10 +1,10 @@
 # RISE — what one model learned building it
 
 **Written 2026-08-21.** A handover for whoever works here next, human or
-model. It is not a spec; the specs in `docs/specs/` are authoritative. This is
-the knowledge that sits *between* the specs — the defect patterns, the reasons
-behind decisions that look arbitrary, and the things measured rather than
-assumed.
+model. It is not a spec; the specs are authoritative, and `docs/README.md` says
+which of them still are. This is the knowledge that sits *between* the specs —
+the defect patterns, the reasons behind decisions that look arbitrary, and the
+things measured rather than assumed.
 
 Everything here was verified against the tree at the time of writing. Where I
 could not confirm something, it says so.
@@ -237,7 +237,8 @@ Leave these alone without new evidence.
 - **Materials descriptions** — the composer is told a filename and nothing
   else. `describes` / `describedBy` is the next step, and the one that makes
   *anchored* placement work rather than only gallery.
-- **Workshop on mobile** — see `docs/prompts/WORKSHOP-ANALYSIS.md`.
+- **Workshop on mobile** — the room is a desktop timeline (`Workshop.js`, five
+  thousand lines) with no phone architecture behind it.
 - **Journeys are on ice** — their scores quote editions the canon no longer
   serves. Re-anchoring is an editorial act, not a repair.
 

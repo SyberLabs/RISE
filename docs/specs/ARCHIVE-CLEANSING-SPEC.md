@@ -1,6 +1,9 @@
 # Archive Cleansing — a scope
 
-**Status:** proposed · not started · §2b decided 2026-08-04
+**Status:** CAMPAIGN ENDED. Cleansing 107 inherited works was abandoned for
+acquiring fifteen correct ones — see `ARCHIVE-CANON-SPEC`, which supersedes
+this as policy. What survives here is the defect vocabulary, which is still the
+regression suite: a detector named below must keep reporting zero.
 **Scale:** 107 shelved works
 **Prior art:** `scripts/audit-text-quality.mjs`, which already exists and already
 knows this defect class.

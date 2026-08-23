@@ -2026,7 +2026,6 @@ export class Workshop {
     this.closeSourcePreview?.();
     const returnFocus = document.activeElement;
 
-    // Create modal overlay
     const modal = document.createElement('div');
     modal.className = 'source-preview-modal';
     modal.setAttribute('role', 'dialog');
@@ -2053,7 +2052,6 @@ export class Workshop {
     // Animate in
     requestAnimationFrame(() => modal.classList.add('open'));
 
-    // Close handlers
     let closed = false;
     const closeModal = () => {
       if (closed) return;
@@ -4573,7 +4571,6 @@ export class Workshop {
       dropZone.addEventListener(event, unhighlight);
     });
 
-    // Handle drop
     dropZone.addEventListener('drop', (e) => {
       const files = e.dataTransfer?.files;
       if (!files || files.length === 0) return;
@@ -4770,7 +4767,6 @@ export class Workshop {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Check if the file is an image
     if (file.type.startsWith('image/')) {
         if (file.size > MAX_IMAGE_FILE_BYTES) {
             this.showToast('Images must be 8 MB or smaller');
@@ -4820,7 +4816,6 @@ export class Workshop {
 
     const reader = new FileReader();
 
-    // Handle text parsing
     reader.onload = (e) => {
       let text = e.target.result;
       

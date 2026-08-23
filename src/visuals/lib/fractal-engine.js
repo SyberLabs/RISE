@@ -164,7 +164,6 @@ export class FractalFlameGenerator {
 
             totalIterationsCompleted += batchIterations;
 
-            // Render intermediate result
             const intermediateImage = this._renderFlame(
                 density, colorR, colorG, colorB,
                 renderWidth, renderHeight,
@@ -186,7 +185,6 @@ export class FractalFlameGenerator {
             await new Promise(resolve => setTimeout(resolve, 0));
         }
 
-        // Return final image
         return this._renderFlame(
             density, colorR, colorG, colorB,
             renderWidth, renderHeight,
@@ -255,7 +253,6 @@ export class FractalFlameGenerator {
      */
     async _iterateFlameWithWorkers(density, colorR, colorG, colorB,
         width, height, iterations, skipIterations) {
-        // Initialize workers if needed
         if (this.workers.length === 0) {
             await this._initializeWorkers();
         }
@@ -271,7 +268,6 @@ export class FractalFlameGenerator {
         }
         const iterationsPerWorker = Math.floor(iterations / workerCount);
 
-        // Create serializable variation functions
         const variationCode = this._serializeVariations();
 
         // Dispatch work to workers
@@ -348,14 +344,12 @@ export class FractalFlameGenerator {
     async _initializeWorkers() {
         const workerCount = this.maxWorkers;
 
-        // Create variation code to send to workers
         const variationCode = this._serializeVariations();
 
         for (let i = 0; i < workerCount; i++) {
             try {
                 const worker = new Worker('/fractal-flame-worker.js');
 
-                // Initialize worker with variations
                 await new Promise((resolve, reject) => {
                     const timeoutId = setTimeout(() => {
                         worker.terminate();

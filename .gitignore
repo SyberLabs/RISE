@@ -63,6 +63,9 @@ src/sources/visual/museum-pins.js.tmp
 voice-probe.wav
 voice-samples/
 
+# Wiki pages built from docs/ by scripts/build-wiki.mjs — a view, not a source
+build/wiki/
+
 # Generated render output
 out/
 tools/ffmpeg/

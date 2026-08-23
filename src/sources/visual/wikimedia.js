@@ -83,9 +83,10 @@ const IMAGE_BLACKLIST = [
  */
 
 /**
- * Extension point: content modules (e.g. the Atrium) may register
- * additional category resolvers WITHOUT this provider depending on
- * them — sources must never import content. Registered resolvers are
+ * Extension point: a content module may register additional category
+ * resolvers WITHOUT this provider depending on it — sources must never
+ * import content. The imagery module is the one that does. Registered
+ * resolvers are
  * consulted only for ids absent from the public registry, and their
  * categories never enter random rotation.
  */
@@ -192,7 +193,6 @@ export class WikimediaProvider extends SourceProvider {
             throw new Error('Wikimedia Rate Limit Active');
         }
 
-        // Apply min interval
         const now = Date.now();
         const wait = Math.max(0, this._minRequestInterval - (now - this._lastRequestTime));
         if (wait > 0) {
@@ -416,7 +416,6 @@ export class WikimediaProvider extends SourceProvider {
             return null;
         }
 
-        // Get images in this category
         const images = await this.getImagesInCategory(category.category, 20);
 
         // Fetch full image info for each (with URLs)
@@ -480,7 +479,6 @@ export class WikimediaProvider extends SourceProvider {
         const category = resolveCategory(categoryId);
         if (!category) return null;
 
-        // Get images from category
         const images = await this.getImagesInCategory(
             category.category,
             RANDOM_CANDIDATE_LIMIT,
@@ -494,7 +492,6 @@ export class WikimediaProvider extends SourceProvider {
         const randomImage = this._candidateBag.draw(categoryId, images);
         if (!randomImage) return null;
 
-        // Get full image info
         const imageInfo = await this.getImageInfo(randomImage.title, options);
 
         if (!imageInfo) {

@@ -26,7 +26,6 @@ class AbstractFigureEngine {
       mountains: this._distributeMountains.bind(this)
     };
 
-    // Initialize built-in shape variations
     this._initializeVariations();
   }
 
@@ -230,7 +229,6 @@ class AbstractFigureEngine {
         allPoints.push(...layerPoints);
       }
 
-      // Return convex hull approximation
       return this._convexHull(allPoints);
     };
 
@@ -661,11 +659,9 @@ class AbstractFigureEngine {
     const height = config.height || 1024;
     const asymmetry = config.asymmetry || 0.5;
 
-    // Initialize
     this.shapes = [];
     this._initDensityGrid(width, height);
 
-    // Set default core if not set
     if (!this.core) {
       this.setCore({
         anchor: [width / 2, height / 2],
@@ -676,7 +672,6 @@ class AbstractFigureEngine {
     // Generate palette
     this.palette = this._generatePalette(8, this.core.styleIndex);
 
-    // Create initial core shape
     const coreVariation = this._selectVariation(this.core.variationWeights);
     const coreSize = Math.min(width, height) * (0.15 + Math.random() * 0.1);
     const corePoints = this.variations[coreVariation](this.core.anchor, coreSize, { seed: Math.random() * 1000 });
@@ -750,7 +745,6 @@ class AbstractFigureEngine {
       shape.color = this.palette[colorIndex];
     });
 
-    // Apply symmetry if specified
     if (this.core.symmetry > 0) {
       this._applySymmetry();
     }
@@ -798,7 +792,6 @@ class AbstractFigureEngine {
     const width = canvasElement.width;
     const height = canvasElement.height;
 
-    // Clear canvas with background
     const bgColor = config.backgroundColor || '#f5f5f0';
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, width, height);
@@ -811,7 +804,6 @@ class AbstractFigureEngine {
     // Sort shapes by density (render lighter/further shapes first)
     const sortedShapes = [...this.shapes].sort((a, b) => a.density - b.density);
 
-    // Render each shape
     sortedShapes.forEach(shape => {
       this._renderShape(ctx, shape, config);
     });
@@ -855,7 +847,6 @@ class AbstractFigureEngine {
     const outlineWidth = config.outlineWidth || 2;
     const textureIntensity = config.textureIntensity || 0.1;
 
-    // Create path
     ctx.beginPath();
     shape.points.forEach((point, i) => {
       if (i === 0) {
@@ -885,7 +876,6 @@ class AbstractFigureEngine {
 
     ctx.fill();
 
-    // Add subtle texture
     if (textureIntensity > 0) {
       this._addTexture(ctx, shape, textureIntensity);
     }
@@ -895,7 +885,6 @@ class AbstractFigureEngine {
     ctx.lineWidth = outlineWidth;
     ctx.stroke();
 
-    // Render rake lines if present
     if (shape.rakeLines && shape.rakeLines.length > 0) {
       ctx.strokeStyle = this._lightenColor(shape.color, 0.5);
       ctx.lineWidth = 1;
@@ -923,7 +912,6 @@ class AbstractFigureEngine {
     ctx.save();
     ctx.globalAlpha = intensity;
 
-    // Create noise texture
     for (let i = 0; i < 50; i++) {
       const x = bounds.minX + Math.random() * bounds.width;
       const y = bounds.minY + Math.random() * bounds.height;
@@ -1140,7 +1128,6 @@ class AbstractFigureEngine {
     // Random 50/50 selection between lateral and mountains distribution
     const distribution = config.distribution || (Math.random() < 0.5 ? 'lateral' : 'mountains');
 
-    // Initialize
     this.shapes = [];
     this._initDensityGrid(width, height);
 
@@ -1153,7 +1140,6 @@ class AbstractFigureEngine {
       waveDistorted: 0.1
     };
 
-    // Get distribution positions
     const positions = this.distributions[distribution](rockCount, width, height);
 
     // Generate rocks at distributed positions
@@ -1234,7 +1220,6 @@ class AbstractFigureEngine {
     const width = canvasElement.width;
     const height = canvasElement.height;
 
-    // Clear with background
     const bgColor = config.backgroundColor || '#f5f5f0';
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, width, height);
@@ -1244,7 +1229,6 @@ class AbstractFigureEngine {
       this._renderBackgroundRaking(ctx, width, height);
     }
 
-    // Render each rock as outline only
     this.shapes.forEach(shape => {
       if (config.brushStroke) {
         this._renderBrushStroke(ctx, shape, config);
