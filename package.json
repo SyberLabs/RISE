@@ -16,6 +16,7 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "measure:first-load": "node scripts/measure-first-load.mjs",
     "scriptorium": "vite-node scripts/scriptorium.mjs --",
     "scriptorium:ci": "node scripts/scriptorium-ci.mjs",
     "probe:collections": "vite-node scripts/probe-collections.mjs",
