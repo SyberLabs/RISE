@@ -1,9 +1,14 @@
 # CI: unit tests, production build, source hygiene, generated docs, and browser
 # smoke. Jobs are separate so a red run names which promise broke.
 #
-# A change that is only prose skips the jobs that only code can break, and
-# finishes in under a minute. `CI` is the one job that always reports, and the
-# only name a branch ruleset should require.
+# The wall clock is the slowest job, not the sum. The browser suite is most of
+# it and is sharded four ways — the smallest count that reaches the floor,
+# because Playwright shards by file and mobile.spec.js is ~200s that cannot be
+# divided.
+#
+# A change that is only prose skips every job only code can break, and finishes
+# in under a minute. `CI` is the one job that always reports, and the only name
+# a branch ruleset should require.
 
 name: CI
 
