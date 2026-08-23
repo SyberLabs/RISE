@@ -19,10 +19,11 @@ makes "nothing leaves" enforceable rather than promised, and it deletes the
 entire class of problems that most system design is about.
 
 Wrong: **content is compiled as code.** Ninety-five books are JavaScript
-modules. Rollup parses a 15 MB Mahabharata as a program. Fifteen novels are
-56% of the shipped JavaScript. Eight hundred and seventy-nine uncompressed WAV
-files — 240 MB — are served to every visitor's origin. The repository is 340 MB
-packed because a corpus lives in it.
+modules. Rollup parses a 15 MB Mahabharata as a program. **Eighty-three percent
+of the shipped JavaScript is book text** — 15.44 MB across 88 chunks — and only
+about 10% of the bundle is code anyone wrote. Eight hundred and seventy-nine
+uncompressed WAV files, 240 MB, are served to every visitor's origin. The
+repository is 340 MB packed because a corpus lives in it.
 
 Everything in Part II follows from that one sentence. Part III is what to do
 about it, and Part IV is the exact list.
@@ -91,8 +92,11 @@ It ships as static files to Netlify.
   │  vite build  (3.6 s)                               │   │  public/      │
   │  Rollup parses novels as JavaScript                │   │  copied whole │
   │  147 chunks, 18.7 MB                               │   │  243 MB       │
-  │   ├─ 10.4 MB = 15 books        (56% of all JS)     │   │  uncompressed │
-  │   └─  8.3 MB = code + catalogs + chapel + science  │   │  single voice │
+  │   ├─ 10.4 MB = 15 archive books   (15 chunks)      │   │  uncompressed │
+  │   ├─  5.0 MB = 73 Douay-Rheims books               │   │  single voice │
+  │   ├─  1.3 MB = catalogs + manifests, also as JS    │   │               │
+  │   └─  1.9 MB = code anyone wrote        (10%)      │   │               │
+  │      TEXT IS 83% OF THE SHIPPED JAVASCRIPT         │   │               │
   └───────────────────────┬────────────────────────────┘   └───────┬───────┘
                           │                                        │
                           ▼                                        ▼
@@ -168,8 +172,29 @@ never given a boundary, and everything else pays for it.
 
 One production dependency for a system with twenty visual engines, a Web Audio
 graph, a liturgy engine, a page compositor and an MP4 render path is a genuinely
-rare result. The layering discipline is real and enforced. This is a strong
-control plane and the review below does not ask for it to be rewritten.
+rare result. The layering discipline in the *import graph* is real and enforced.
+
+**But the import graph is not the whole coupling story, and three things hide
+behind it:**
+
+- **`window.rise` is a service locator with 237 production references.** Only
+  three globals are ever assigned, which looks clean — but components reach the
+  application through the global rather than through their constructor:
+  `VisualInterlocutionPanel` 60 references, `Chamber` 52, `Workshop` 35,
+  `ChamberOrbital` 26. Zero `components → app.js` imports is true and is not the
+  same as decoupled. A dependency that does not appear in the module graph is
+  harder to see, not absent.
+- **One import cycle**, confirmed by inspection:
+  `models.js → visual-score-lane.js → source-span.js → chunker.js → models.js`.
+  `models.js` imports `createSequenceVisualAsset`; `chunker.js` imports `Atom`.
+- **`src/display/modes.js` — 618 lines, zero production importers.** It exports
+  `FocalRenderer`, `ChamberRenderer`, `OrbitalRenderer` and `DisplayManager`;
+  `Chamber.js` reimplements rendering inline. It also contributes 2 of the 59
+  `requestAnimationFrame` call sites counted below, in code no reader reaches.
+
+The largest single source file in the repository is
+`src/visuals/visual-cortex.js` at **4,112 lines**, followed by
+`components/Workshop.js` at 5,554 and `components/Chamber.js` at 3,178.
 
 ### Data plane — the corpus. This is the problem.
 
@@ -181,8 +206,16 @@ control plane and the review below does not ask for it to be rewritten.
 | Works withheld but still on disk and in git | **80** |
 | `public/audio/recitation/` | **879 `.wav`, 240 MB, one voice, uncompressed** |
 | Shipped `dist/` | **264 MB** — 243 MB audio, 18.7 MB JavaScript |
-| Books as a share of shipped JavaScript | **10.4 MB, 56%** |
+| Archive books in the JS bundle | 10.42 MB, 15 chunks |
+| Douay-Rheims books in the JS bundle | 5.02 MB, 73 chunks |
+| **Text as a share of shipped JavaScript** | **15.44 MB — 83%, across 88 chunks** |
+| Of the remaining 3.25 MB, catalogs and manifests as JS | ~1.3 MB (`audubon` 435 KB, `content-texts` 323 KB, `arxiv_cache` 296 KB, `science-catalog` 260 KB, `voice-pack` manifest 205 KB) |
+| **Actual application code in the bundle** | **≈ 1.9 MB of 18.7 MB — about 10%** |
 | Packed git repository | **340 MB** across 522 commits |
+
+Nine tenths of the JavaScript RISE ships is not JavaScript anyone wrote. It is
+books, catalogs and manifests wearing a `.js` extension because that is the only
+door the build system offers.
 
 Every one of those numbers is a consequence of a single choice: the ingest
 script writes `.js`, so a book becomes a program, so the bundler owns it, so
@@ -208,6 +241,24 @@ This is better release engineering than most funded teams have. It is also the
 asset that makes Part III cheap, because the content is already
 content-addressed — the hashes exist, they are simply not used as the delivery
 key.
+
+### One more thing the planes hide: RISE has almost no URLs
+
+`src/core/router.js` (296 lines) is an **in-memory** view registry — a `Map` of
+containers, a back stack, and a 400 ms crossfade. Fourteen rooms are registered.
+**Two paths have real URLs:** the Keystone corridor (`/try-rise`,
+`/keystone/:slug`, which `handleNavigate` pushes to history) and `#rosary`.
+Everything else — Chamber, Chapel, Library, Workshop, Vault, Scriptorium, Curia,
+Journeys, Via, Rosarium, Settings — has no address. Browser Back does not
+meaningfully work in them, and nothing in RISE can be linked to.
+
+This is worth naming because `NORTH-STAR.md` defers JSON → MP4 as
+"distribution, not experience," and it is right to. But a URL *is* distribution,
+it is the cheapest form of it, and the router is already 90% of the way there —
+`handleNavigate` already knows how to push state; it just does it for one
+corridor. This is not on the critical path and is not proposed as a delta. It is
+recorded here because a review that measured the front door should say that most
+of the house has no address.
 
 ## 4. One reading, end to end
 
@@ -303,14 +354,61 @@ This is the defect class `PROJECT-KNOWLEDGE.md §2.2` already names — "a runti
 filter cannot remove a build-time dependency" — in its purest form. Here the
 build configuration *is* the only dependency.
 
+**And the build is already reporting the same class of defect out loud, on
+every run.** `npm run build` prints:
+
+```text
+(!) src/core/workshop-asset-durability.js is dynamically imported by src/app.js
+    but also statically imported by src/components/Scriptorium.js,
+    src/core/memory.js, dynamic import will not move module into another chunk.
+
+(!) src/sources/text/archive.js is dynamically imported by src/app.js
+    but also statically imported by src/sources/text/index.js,
+    dynamic import will not move module into another chunk.
+```
+
+Two deliberate `import()` calls in the composition root are defeated by a static
+import elsewhere, and Rollup says so in plain language every time anyone builds.
+That is the same shape as the 82 MB defect, the same shape as the dead sacred
+texts, and the same shape as the first-load measurement above: **a deferral
+written at one site, undone at another, with the bundler as the only witness.**
+The warning has been on screen for every build and has not been acted on, which
+is the strongest available argument that the fix is structural rather than a
+matter of attention.
+
+**What the 250 KB actually is.** Two eager decisions in the composition root
+account for most of it:
+
+1. **`initSourceSystem()` constructs all seven providers at boot** —
+   `ArchiveText`, `LocalText`, `Gutenberg`, `SacredText`, `Arxiv`,
+   `GeneratedVisual`, `Wikimedia` — and several carry their data inline rather
+   than behind a loader: `sacred.js` is 22 KB of verse, `wikimedia.js` is 21 KB
+   around a category registry that is now **empty** (retired after an audit),
+   `LocalTextProvider` wraps `content/starters.js` (32 KB), and
+   `ArchiveTextProvider` reaches `content/library.js`, which pulls
+   `sacred_deep.js` (29 KB) and `literary_deep.js` (26 KB). A registry needs ids
+   and metadata; it is loading payloads.
+2. **`src/app.js` imports `AudioEngine`, `visualCortex`, and 16 room
+   stylesheets** before the Portal paints. The CSS alone is 220 KB raw / 31 KB
+   brotli, and it is every room's, not the Portal's.
+
+**RISE has already solved this exact problem, once, correctly.**
+`src/visuals/work-engines.js` separates `WORK_ENGINE_MANIFEST` — ids, names and
+categories, no classes — from `FAMILIES`, a map of lazy loaders, precisely
+because "importing them synchronously would pull every generator into the main
+bundle." The source registry needs the same treatment and has not had it. The
+recommendation is not a new pattern; it is the pattern this codebase invented,
+applied to the other place that needs it.
+
 ### Step 2 — Delete
 
 Ordered by bytes deleted per line of code touched.
 
 1. **Delete the bundler from the content path.** Books stop being modules and
-   become content-addressed assets fetched at read time. Removes 10.4 MB from
-   `dist/assets`, 93 MB from the source tree, and ~330 MB from the packed
-   repository.
+   become content-addressed assets fetched at read time. Applied to the archive
+   and the Douay-Rheims alike, this removes 15.4 MB from `dist/assets` — 83% of
+   the shipped JavaScript — 98 MB from the source tree, and ~330 MB from the
+   packed repository.
 2. **Delete 228 MB of uncompressed audio.** Ship Opus. The WAV masters stay in
    the certification store, which is where the acoustic ledger already points.
 3. **Delete `manualChunks`.** Measured at 3 KB, but it is worse than useless —
@@ -349,12 +447,22 @@ means *not enough has been deleted*. So the list continues:
 
 ### Step 3 — Simplify, and only now
 
-- **One clock.** 59 `requestAnimationFrame` call sites across 21 files. `Player`
-  owns the authoritative clock for *text*, but each visual engine and several
-  components drive their own loop. Nothing can currently answer "what time is
-  it" for a session as a whole — which is exactly what a Journey, an MP4 render,
-  and the deferred virtual clock in `DREAMS.md` all need. One frame scheduler
-  with subscribers, one `sessionTime`.
+- **One clock — and RISE has already built it, in the wrong half of the system.**
+  There are 59 `requestAnimationFrame` call sites across 21 files. `Player` owns
+  the authoritative clock for *text*; every persistent visual field
+  (`WorkEngineField`, `PlateField`, `HarmonographField`, `KleeField`,
+  `AttractorField`, `RosaMystica`, `ContinuousField`) runs its own `_tick`, and
+  two more sites live in `display/modes.js`, which nothing imports. Nothing can
+  answer "what time is it" for a session as a whole.
+
+  Meanwhile `src/core/render/clock.js` is exactly that abstraction — a
+  deterministic rational frame clock whose own header states it is *not* `rAF`
+  and *not* `AudioContext.currentTime` — and it exists only in the offline MP4
+  path. The consequence is that a rendered MP4 and a live reading of the same
+  session are driven by two different notions of time. **The target design is
+  already written and tested; it simply has not been given to the live path.**
+  That is what makes D12 cheap: promote `clock.js`'s model to the runtime and
+  make the fields subscribers, rather than inventing a scheduler.
 - **`app.js` is a route table pretending to be a method.** `registerViews()`
   spans lines 346–942 — 596 lines, 37% of the file. A route table is data.
 - **The 16 eager stylesheet imports** are a symptom of the same thing: the
@@ -470,11 +578,11 @@ symptom.
 | **Algorithm applied in order?** | **No.** Step 3 ran before step 2. Three rounds of chunk-config optimization moved 3 KB; the deletion that would move 250 KB was never made. |
 | **Machine optimized? Staying lean?** | **Split.** One production dependency, 3.6 s build, machine-enforced ingest invariants — exemplary. A 340 MB repository, a 264 MB deploy, and a 45-minute browser gate — not lean. |
 | **Communication: shortest path? Bad news fast?** | **Yes, and it is the project's best habit.** "Eighty-two megabytes of unreachable books were built and deployed" is written in the codebase, in bold, at the top of the test that now prevents it. |
-| **Ownership: one name per part?** | **Partial.** Content, ingest, release and specs have clear ownership. The reading engine does not — 59 frame loops in 21 files means no single owner of time. |
+| **Ownership: one name per part?** | **Partial.** Content, ingest, release and specs have clear ownership. Time has no owner — 59 frame loops in 21 files, and the one deterministic clock that exists is reachable only from the offline render path. |
 | **Excellence the average?** | **Yes in the engine and the pipeline. No in delivery** — which is the layer the reader actually touches first. |
 | **Semantic tree: trunk before leaves?** | **Inverted in two places.** `src/core/` is 148 files in one flat directory: leaves with no branches. And a first-time reader downloads six dead sacred texts before the Portal paints. |
 | **Maniacal urgency? Decide at 70%?** | **Yes.** 522 commits in six weeks by one person and their agents. |
-| **Net useful? Experience flawless?** | **Net useful, clearly.** Not yet flawless: 251 KB and nine requests before a first-time visitor sees anything, of which roughly 55% is engine and content they have not asked for. |
+| **Net useful? Experience flawless?** | **Net useful, clearly.** Not yet flawless: 251 KB and nine requests before a first-time visitor sees anything, of which roughly 55% is engine and content they have not asked for — and twelve of the fourteen rooms they then walk into have no URL to return to or share. |
 
 ---
 
@@ -587,7 +695,7 @@ not a rewrite; it is cutting one seam that was never cut.
 |---|---|---|---|
 | First load | 251 KB brotli, 9 requests | ~60 KB, 2 requests | Portal needs a shell, a router and one component |
 | Shipped bytes | 264 MB | ~30 MB | Opus for voice; works fetched on demand |
-| Books in the JS bundle | 10.4 MB (56%) | **0** | A book is not a program |
+| Text in the JS bundle | 15.4 MB (83%, 88 chunks) | **0** | A book is not a program |
 | Packed repository | 340 MB | ~15 MB | The corpus leaves the code repo |
 | Adding the 16th work | edit a catalog, add a loader, rebuild, redeploy the app | append to the manifest | Content ships without shipping code |
 | Adding the 500th work | ~500 MB repo, hours of build, an unusable clone | identical to the 16th | **This is the scalability answer** |
@@ -630,9 +738,9 @@ first three and leaves the fourth honest.
 
 ## 14. The delta list
 
-Ordered by the Algorithm: question, delete, simplify, accelerate, automate.
-Each is independently shippable; none requires the next. Every one names what
-it removes and how to prove it worked.
+Twenty-four deltas, ordered by the Algorithm: question, delete, simplify,
+accelerate, automate. Each is independently shippable; none requires the next.
+Every one names what it removes and how to prove it worked.
 
 ### Tier 0 — Delete. No design work required.
 
@@ -641,8 +749,10 @@ it removes and how to prove it worked.
 | **D1** | Delete `src/content/texts/` (six modules, 72 KB) and the `content-texts` group from `manualChunks`. Nothing imports them. | 6 dead modules; 1 preload request | `rg TAO_TE_CHING_VERSES dist/` returns nothing |
 | **D2** | Delete the rest of `manualChunks`. Measured worth: 3 KB. It hides the real problem. | 41 lines of config | First load unchanged; then D3 becomes visible |
 | **D3** | Make `src/app.js` import `AudioEngine` and `visualCortex` dynamically — at first play and first visual, not at boot. | ~30 KB brotli from first load | First-load byte count, measured before and after |
+| **D3a** | **Split the source registry the way `work-engines.js` is already split**: a manifest of provider ids and metadata, with the provider modules behind lazy loaders, so `initSourceSystem()` stops constructing seven providers and their inline data at boot. While there, delete `wikimedia.js`'s empty retired category registry or record why it stays. | The inline verse, starter and `*_deep` payloads leave first load | First-load byte count; providers still resolve on demand |
 | **D4** | Move each room's CSS into the room's own module so it loads with the room. `app.js` currently imports 16 stylesheets eagerly. | ~25 KB brotli from first load | 220 KB `index.css` splits; Portal path measured |
 | **D5** | Transcode recitation to Opus. Keep WAV masters in the certification store; record both hashes; the acoustic ledger continues to bind the WAV. | **228 MB** from every deploy | `du -sh dist/audio`; acoustic ledger still validates |
+| **D5a** | Fix the two defeated dynamic imports Rollup names on every build: `core/workshop-asset-durability.js` (statically imported by `Scriptorium.js` and `core/memory.js`) and `sources/text/archive.js` (statically imported by `sources/text/index.js`). Then **make the warning fatal** so the next one cannot accumulate. | Two chunks that cannot currently split | `npm run build` emits no `(!) … dynamic import will not move module` lines |
 
 D1–D4 together should take first load from 251 KB to roughly 60 KB. That number
 is a target to measure, not a promise — the true floor is whatever the shell,
@@ -663,10 +773,11 @@ router and `Portal.js` actually need.
 
 | # | Delta | Detail |
 |---|---|---|
-| **D12** | **One frame scheduler.** Replace 59 `requestAnimationFrame` sites across 21 files with one scheduler exposing `sessionTime` and a subscribe/unsubscribe pair. `Player` remains the authoritative clock; visuals and audio become subscribers. | Unblocks Journeys, deterministic MP4 render, and the virtual clock `DREAMS.md` defers |
+| **D12** | **One frame scheduler.** Promote the model in `src/core/render/clock.js` — already deterministic, already tested, currently reachable only from the offline render path — to the live runtime. Replace 59 `requestAnimationFrame` sites across 21 files with one scheduler exposing `sessionTime`; `Player` stays authoritative, fields and audio become subscribers. | Makes a rendered MP4 and a live reading the same timeline. Unblocks Journeys and the virtual clock `DREAMS.md` defers |
 | **D13** | **Make the route table data.** `registerViews()` is 596 lines — 37% of `app.js`. A route table is `{id, import, css, mount}`. Composes with D3 and D4. | `app.js` should be ~400 lines |
 | **D14** | **Generate `WORK_ENGINE_MANIFEST` at build time** from the engine modules. It is currently a hand-maintained twin kept honest by a test — the exact defect class `PROJECT-KNOWLEDGE §2.1` names as the most frequent in the codebase. | Duplication becomes impossible instead of test-guarded |
-| **D15** | **Give `src/core/` branches.** 148 files in one directory. Proposed: `core/text/` (chunker, source-span, boundaries), `core/session/` (compiler, pacing, player, clock), `core/score/` (experience-program, journey-compiler, visual-score-lane), `core/archive/` (certification, acquisition, publication), `core/scriptorium/`, `core/render/` (exists). | Master the trunk before the leaves |
+| **D15** | **Give `src/core/` branches.** 148 files in one directory. Proposed: `core/text/` (chunker, source-span, boundaries), `core/session/` (compiler, pacing, player, clock), `core/score/` (experience-program, journey-compiler, visual-score-lane), `core/archive/` (certification, acquisition, publication), `core/scriptorium/`, `core/render/` (exists). Breaking the one cycle — `models → visual-score-lane → source-span → chunker → models` — falls out of drawing these lines, because `models.js` importing a score lane is what the boundary forbids. | Master the trunk before the leaves |
+| **D15a** | **Retire `window.rise` as a service locator.** 237 production references, concentrated in four components (`VisualInterlocutionPanel` 60, `Chamber` 52, `Workshop` 35, `ChamberOrbital` 26). Pass the audio engine, settings and router in through the constructor the way `onNavigate` already is. Do this incrementally, one component at a time — it is not a prerequisite for anything else. | A dependency absent from the module graph is harder to see, not absent |
 | **D16** | **Make harvested catalogs the rule and live museum APIs the exception**, removing `corsproxy.io` from the critical path and eventually from the CSP. RISE already builds the catalogs. | Deletes a third-party single point of failure it does not own |
 
 ### Tier 3 — Accelerate, on the cleaned system.
@@ -675,13 +786,14 @@ router and `Portal.js` actually need.
 |---|---|---|
 | **D17** | **Split the browser suite into a fast gate and a full matrix.** A 45-minute required check — after one run died at 29 m 25 s against a 30-minute cap — is a gate people route around. Keep a ≤5-minute smoke on every pull request; run the full matrix nightly and before release. | Cycle time is the thing being protected |
 | **D18** | **Add a real-browser contract layer.** `encode-mp4.test.js` and `chamber-paint.test.js` are the two tests that touch reality, and they are the model. Extend that treatment to Web Audio, IndexedDB, DPR resize and real animation frames — the list `ARCHITECTURE.md` already names as debt. | Fewer jsdom approximations of a canvas |
-| **D19** | **Enforce that every launch surface passes `session-compiler.js`.** It is declared canonical; nothing makes bypassing it fail. Given `PROJECT-KNOWLEDGE §2.3` — a reading has more than one entrance, and a fix at one is not a fix — this should be a test that enumerates entrances, not a convention. | Turns a documented rule into a guard that can fail |
+| **D19** | **Test the entrances, not the compiler.** Every launch surface does call `compileSession` — that part of the contract holds. What differs per entrance is the *configuration* that reaches it: `PROJECT-KNOWLEDGE §2.3` records a verse flag surviving `scriptorium-resolve` and being dropped at the first of four hops on the path a reader actually uses. The guard therefore belongs at the doors — a test that enumerates every entrance (Library contents sheet, Vault, Workshop, Scriptorium, Journeys, Keystone, Continue) and asserts each produces an equivalent `Session` for the same work. | Converts "a reading has more than one entrance" from a lesson into a guard that can fail |
+| **D20** | **Retire the orphans, or say why they stay.** `src/display/modes.js` (618 lines, zero production importers, 2 of the 59 frame-loop sites) and `src/components/ActiveSourcesModal.js` (257 lines, imported by nothing) are dead in the ordinary sense, not withheld in the archive's sense — no reason is recorded and no reader is being protected. The archive's own norm is that a withholding **states a reason**; apply it here or delete. | Removes 875 lines of code that no reader can reach and no test defends |
 
 ### Tier 4 — Automate, last.
 
 | # | Delta | Detail |
 |---|---|---|
-| **D20** | **Publishing a work becomes a manifest append plus a CDN upload**, with `release:check` gating it. Only after D6–D11 — never automate a broken process. | The 500th work costs what the 16th costs |
+| **D21** | **Publishing a work becomes a manifest append plus a CDN upload**, with `release:check` gating it. Only after D6–D11 — never automate a broken process. | The 500th work costs what the 16th costs |
 
 ## 15. What is deliberately not proposed
 
@@ -707,7 +819,9 @@ Numbers, not adjectives. Each is measurable today and after.
 |---|---|---|
 | First-load transfer (brotli) | **251 KB / 9 requests** | ≤ 60 KB / ≤ 3 requests |
 | `dist/` total | **264 MB** | ≤ 30 MB |
-| Books in `dist/assets` | **10.4 MB (56% of JS)** | 0 |
+| Text in `dist/assets` | **15.4 MB (83% of JS)** | 0 |
+| `window.rise` references | **237** | 0 — dependencies passed in |
+| Import cycles in `src/core/` | **1** | 0 |
 | Packed repository | **340 MB** | ≤ 15 MB |
 | `git clone` on a normal connection | minutes | seconds |
 | `requestAnimationFrame` call sites | **59 in 21 files** | 1 scheduler |
