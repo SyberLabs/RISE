@@ -53,17 +53,9 @@ describe('release Keystone manifests', () => {
     }
   });
 
-  it('admits editorial compositions; certified sources clear the publication gate', async () => {
-    const meditations = await resolveKeystone('meditations');
-    expect(meditations.ready).toBe(true);
-    expect(meditations.admitted).toBe(true);
-    expect(meditations.reviewable).toBe(true);
-    expect(meditations.sessionInput).toBeTruthy();
-    expect(meditations.blockers.map(item => item.code)).not.toContain('KEYSTONE_SOURCE_UNCERTIFIED');
-    expect(meditations.coverage.complete).toBe(true);
-
-    for (const slug of ['metamorphoses', 'tintern']) {
-      const result = await resolveKeystone(slug);
+  it('admits the editorial compositions while keeping certification fail-closed', async () => {
+    for (const manifest of KEYSTONE_MANIFESTS) {
+      const result = await resolveKeystone(manifest.slug);
       const codes = result.blockers.map(item => item.code);
       expect(result.ready).toBe(false);
       expect(result.admitted).toBe(true);
