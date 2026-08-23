@@ -197,14 +197,17 @@ from the Vite dev server.
  builds the app and starts `vite preview` on `127.0.0.1:4317` itself, with
  `VITE_RISE_ARCHIVE_REVIEW=1`. Do **not** start a server manually. It runs
  Chromium only, single worker, with autoplay forced on (Web Audio).
-- E2E is sharded four ways on CI (`--shard=N/4`). Playwright shards by file, and
+- E2E is sharded four ways on CI (`--shard=N/4`), and CI runs the **whole**
+ suite on every pull request. Playwright shards by file, and
  `e2e/mobile.spec.js` alone is ~200s of the ~500s suite, so four is the smallest
- count that reaches the floor. More shards buy nothing.
+ count that reaches the floor. More shards buy nothing. The `gate` project in
+ `playwright.config.js` is no longer a CI subset — it is the ~134s corridor to
+ run locally before pushing (`npm run test:e2e:gate`).
 - There is **no lint script**. The gates a pull request has to pass are:
  `node scripts/ci-hygiene.mjs` and `npm audit --omit=dev --audit-level=high`
- (`hygiene` job); `npm run build && npm run check:first-load`, which holds what
- `dist/index.html` fetches to 215 KB brotli and should be lowered as that number
- falls (`build` job); and `npx vitest run src/core/system-design.test.js` plus
+ (`hygiene` job); `npm run measure:first-load`, which holds what
+ `dist/index.html` fetches to a ratcheting brotli budget declared in the script
+ (`build` job); and `npx vitest run src/core/system-design.test.js` plus
  `npm run docs:diagram`, which must leave `docs/specs/ARCHITECTURE.md` unchanged
  (`docs` job).
 - `docs/specs/ARCHITECTURE.md` §3 carries a **generated** import graph between

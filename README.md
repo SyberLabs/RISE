@@ -281,7 +281,14 @@ Run browser tests:
 npm run test:e2e
 ```
 
-Browser tests are sharded on CI. To run one shard the way CI does:
+For a faster loop before pushing, the `gate` project is the corridor a reader
+actually walks — about two minutes rather than eight:
+
+```bash
+npm run test:e2e:gate
+```
+
+CI runs the whole suite, sharded four ways. To run one shard the way CI does:
 
 ```bash
 npm run test:e2e -- --shard=1/4
@@ -294,7 +301,7 @@ Every gate can be run locally, and a pull request has to pass all of them.
 ```bash
 node scripts/ci-hygiene.mjs      # licences, icons, manifest, reader-facing names
 npm audit --omit=dev --audit-level=high
-npm run build && npm run check:first-load   # 215 KB brotli, and it should fall
+npm run build && npm run measure:first-load   # brotli, against a ratcheting budget
 npm run docs:diagram             # regenerates the diagram; CI fails if it moved
 npx vitest run src/core/system-design.test.js
 npm run scriptorium:ci           # a refusal must arrive as an exit status

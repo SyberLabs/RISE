@@ -66,11 +66,32 @@ wall-clock gain. Each shard keeps `workers: 1` on its own machine, so the
 across machines, not inside one.
 
 Rejected alternatives: raising `workers` above 1 (violates that constraint);
-moving the browser suite off pull requests (it is exactly the class of defect
-we want blocked); splitting `mobile.spec.js` (its three slow tests are 170s,
-so isolating them buys ~30s for a real test refactor); building once and
-passing `dist/` to the shards as an artifact (the build is 3s, and the
-serialisation costs more than it saves).
+splitting `mobile.spec.js` (its three slow tests are 170s, so isolating them
+buys ~30s for a real test refactor); building once and passing `dist/` to the
+shards as an artifact (the build is 3s, and the serialisation costs more than
+it saves).
+
+### Sharding versus the split #48 landed
+
+While this was in flight, #48 attacked the same ten minutes from the other
+side: it partitioned the suite into a `gate` project of 134s that runs on pull
+requests and a `full` project that runs on `main` and nightly. Its argument is
+correct — *"a 45-minute required check is a gate people learn to route around"*
+— and its premise is a suite that runs end to end in one worker.
+
+Sharding removes that premise, so the two are not competing fixes; one
+obsoletes the other's cost. The whole suite across four machines is 199s
+against the gate's 134s. That minute buys back `mobile`, Page typography and
+fields, `band-move` and the Workshop **on every pull request** instead of the
+morning after — which is precisely the "catch what should not be merged" half
+of the problem. On a public repository, runner minutes are free, so the four
+machines cost nothing but themselves.
+
+`e2e-full` and its nightly cron go with it: when every pull request and every
+push to `main` runs everything, there is nothing left for a nightly to find.
+The `gate` **project** stays in `playwright.config.js` — 134 seconds is a good
+local loop before pushing — with its comment corrected, because it no longer
+describes what CI does.
 
 ## What changes
 
@@ -101,19 +122,21 @@ about five seconds for a new failure mode.
 
 ### Gates that do not exist today
 
-**A first-load budget.** The repository is actively fighting the size of its
-first screen and nothing was holding it to a number.
+**~~A first-load budget.~~ Withdrawn — `main` got there first, twice.**
 
-This design originally proposed a new script. It should not, and does not:
-`scripts/measure-first-load.mjs` landed in #47 while this work was in flight and
-already reads the set `dist/index.html` names, already prices it in brotli —
-which is what Netlify serves, and a truer number than gzip — and already takes
-`--budget`. Nothing called it. So the change is one npm script and one CI step,
-not a second implementation of the same measurement.
+This design proposed a new script to price and gate the first screen. It
+should not have, and in the end contributes nothing here.
 
-207 KB brotli today; the budget is 215. #47 records that the next pass goes
-lower — eight defeated dynamic imports are now visible and `visualCortex` still
-loads at boot — so the budget is a ratchet, to be lowered as the number falls.
+#47 added `scripts/measure-first-load.mjs`, which already read the set
+`dist/index.html` names and priced it in brotli. The plan narrowed to wiring a
+`--budget` onto it. Then #48 rewrote that script again: it now declares
+`FIRST_LOAD_BUDGET_BYTES = 64 * 1024`, sets `process.exitCode = 1` when the
+measurement exceeds it, and is already called from the `build` job.
+
+So the gate exists and already blocks a merge — 58.8 KB against 64 KB, with
+the budget deliberately set at *measured plus headroom* so it ratchets. There
+is nothing to add. The right contribution to a problem someone else has solved
+is zero lines.
 
 **A dependency audit.** One production dependency reaches readers.
 `npm audit --omit=dev --audit-level=high` takes about three seconds and ignores
@@ -165,19 +188,19 @@ the humans who own the architecture.
 
 | | Before | After |
 | --- | --- | --- |
-| Pull request touching code | ~9m 50s | ~4m 30s |
-| Pull request touching only prose | ~9m 50s | ~45s |
-| Merge blocked on first-load regression | no | yes |
+| Pull request touching code | ~9m 50s | ~4m 55s |
+| Pull request touching only prose | ~9m 50s | ~48s |
+| Browser coverage on a pull request | all of it, slowly | all of it |
 | Merge blocked on a high-severity advisory in a shipped dependency | no | yes |
 | Architecture diagram guaranteed to match the code | no | yes |
 | `main` runs cancelled by the next push | yes | no |
+| Ways to run the browser suite in CI | one | one |
 
 ## Verification
 
 - `npx playwright test --shard=i/4` green for each `i`, and the union of the
   four shards equal to the 89 tests the unsharded run collects.
-- `npm run check:first-load` passing at 207 KB against a 215 KB budget, and
-  failing when the budget is tightened to 200.
+- `npm run measure:first-load` still passing, unchanged by this branch.
 - `node scripts/build-architecture-diagram.mjs` idempotent, and the `docs`
   check red when the committed diagram is edited by hand.
 - `actionlint` clean on the workflow and the composite action.

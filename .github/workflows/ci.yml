@@ -14,10 +14,6 @@ on:
   push:
     branches: [main]
   pull_request:
-  # The browser matrix the pull-request gate leaves out. Nightly rather than
-  # per-change, because it is fifteen minutes nobody is waiting on.
-  schedule:
-    - cron: '0 7 * * *'
   workflow_dispatch:
 
 # A second push supersedes the first — on a pull request. A cancelled run on
@@ -185,6 +181,20 @@ jobs:
       - name: A refusal is an exit status
         run: npm run scriptorium:ci
 
+  # THE WHOLE SUITE IS THE GATE AGAIN, BECAUSE IT IS NO LONGER SLOW.
+  #
+  # #48 split this in two and sent the slower half to a nightly, on the premise
+  # that a 45-minute required check is one people learn to route around. That
+  # premise was right, and it was about a suite running end to end in ONE
+  # worker. Sharding removes it: Playwright shards by file, so four machines
+  # bring 502 seconds down to the ~200 that mobile.spec.js cannot be divided
+  # below, and no further — four is the smallest count that reaches the floor.
+  #
+  # The minute that separates #48's gate half from all of it buys back mobile,
+  # Page typography and fields, band-move and the Workshop on every pull
+  # request rather than the morning after. `e2e-full` and its nightly cron go
+  # with it: nothing is left for them to catch. The gate PROJECT stays in
+  # playwright.config.js, because ~134s is a good local loop before pushing.
   e2e:
     name: Browser smoke ${{ matrix.shard }}/4
     needs: changes

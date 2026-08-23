@@ -771,8 +771,8 @@ visible to a reader; a conclusion is not.
 npm run test:run                       # includes the guard above
 npm run build
 npm run test:e2e                       # CI shards this four ways
+npm run test:e2e:gate                  # the corridor only, for a fast local loop
 npm run docs:diagram                   # must leave this file unchanged
-node scripts/measure-first-load.mjs    # what a first visit actually costs
-npm run check:first-load               # the same, held to 215 KB brotli
+npm run measure:first-load             # what a first visit costs, against its budget
 npm run release:check                  # fails closed; that is correct
 ```
