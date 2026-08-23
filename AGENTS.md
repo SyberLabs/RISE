@@ -190,15 +190,37 @@ from the Vite dev server.
 ## Testing / build gotchas
 
 - Full unit suite (`npm run test:run`) is large (~2800 tests, ~2 min). Two paths
-  need the system tools above: `src/core/render/encode-mp4.test.js` hands real
-  bytes to `ffmpeg`, and `src/core/render/chamber-paint.test.js` launches
-  Playwright Chromium against a live Chamber stage.
+ need the system tools above: `src/core/render/encode-mp4.test.js` hands real
+ bytes to `ffmpeg`, and `src/core/render/chamber-paint.test.js` launches
+ Playwright Chromium against a live Chamber stage.
 - E2E (`npm run test:e2e`) is self-contained: `scripts/playwright-global-setup.mjs`
-  builds the app and starts `vite preview` on `127.0.0.1:4317` itself, with
-  `VITE_RISE_ARCHIVE_REVIEW=1`. Do **not** start a server manually. It runs
-  Chromium only, single worker, with autoplay forced on (Web Audio).
-- There is **no lint script**. The closest CI gate is source hygiene:
-  `node scripts/ci-hygiene.mjs` (the `hygiene` CI job).
+ builds the app and starts `vite preview` on `127.0.0.1:4317` itself, with
+ `VITE_RISE_ARCHIVE_REVIEW=1`. Do **not** start a server manually. It runs
+ Chromium only, single worker, with autoplay forced on (Web Audio).
+- Every pull request runs the **whole** browser suite, sharded four ways
+ (`Browser matrix N/4`, `--shard=N/4`), behind a `Browser gate` job that runs
+ the ~134s `gate` project first as a faster no. Playwright shards by file, and
+ `e2e/mobile.spec.js` alone is ~200s of the ~500s suite, so four is the smallest
+ count that reaches the floor. More shards buy nothing. `npm run test:e2e:gate`
+ is the same corridor to run locally before pushing.
+- There is **no lint script**. The gates a pull request has to pass are:
+ `node scripts/ci-hygiene.mjs` and `npm audit --omit=dev --audit-level=high`
+ (`hygiene` job); `npm run measure:first-load`, which holds what
+ `dist/index.html` fetches to a ratcheting brotli budget declared in the script
+ (`build` job); and `npx vitest run src/core/system-design.test.js` plus
+ `npm run docs:diagram`, which must leave `docs/specs/ARCHITECTURE.md` unchanged
+ (`docs` job).
+- `docs/specs/ARCHITECTURE.md` §3 carries a **generated** import graph between
+ `<!-- BEGIN GENERATED DIAGRAM -->` markers. Edit
+ `scripts/build-architecture-diagram.mjs`, never the diagram. The rest of that
+ file is hand-written and guarded by `src/core/system-design.test.js`.
+- A change touching only `docs/`, `.agents/`, `.cursor/`, a root `*.md`,
+ `LICENSE`, or `NOTICE` skips the unit, build, Scriptorium, and browser jobs.
+ Anything else runs everything. The system-design guard lives in the unit suite
+ but is **also** run by the `docs` job, because editing that document is exactly
+ when it has to run.
+- `CI` is the one job that always reports and the only name a branch ruleset
+ should require. A required check that never reports blocks a merge forever.
 
 ## Running / manual testing
 
