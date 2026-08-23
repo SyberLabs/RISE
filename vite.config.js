@@ -21,9 +21,8 @@ export default defineConfig({
   // the dev server; production builds carry no write path.
   plugins: [curiaPlugin(), exportMp4Plugin()],
 
-  // Note: We use a custom debug.js utility instead of dropping console statements.
-  // This allows: debug logging in dev, optional debug in prod via localStorage,
-  // and always-on error logging. Run RISE.enableDebug() in prod console to enable.
+  // Console statements are left in: error reporting has to survive the
+  // build, and the noisy paths are already gated by their own callers.
   esbuild: {
     drop: ['debugger'],
   },
