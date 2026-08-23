@@ -190,40 +190,76 @@ jobs:
   # bring 502 seconds down to the ~200 that mobile.spec.js cannot be divided
   # below, and no further — four is the smallest count that reaches the floor.
   #
-  # The minute that separates #48's gate half from all of it buys back mobile,
-  # Page typography and fields, band-move and the Workshop on every pull
-  # request rather than the morning after. `e2e-full` and its nightly cron go
-  # with it: nothing is left for them to catch. The gate PROJECT stays in
-  # playwright.config.js, because ~134s is a good local loop before pushing.
+  # Measured: 502 seconds of test time across 18 spec files, of which
+  # mobile.spec.js alone is 200. The gate project is 134 of those seconds —
+  # the corridor a reader walks, the safety warning, the voice, and the
+  # refusal panel. This is the fast no. `e2e-full` below runs the complete
+  # suite, sharded, on the same pull request, so nothing is deferred: this
+  # job only decides whether a change is dead on arrival.
   e2e:
-    name: Browser smoke ${{ matrix.shard }}/4
+    name: Browser gate
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: npx playwright install --with-deps chromium
+      # playwright.config.js builds and previews on its own — what ships
+      # is what gets tested.
+      - run: npm run test:e2e:gate
+      - uses: actions/upload-artifact@v4
+        if: failure() || cancelled()
+        with:
+          name: playwright-report-gate
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  # THE WHOLE SUITE, ON EVERY PULL REQUEST, IN THE TIME THE SLOWEST FILE TAKES.
+  #
+  # The reason this job skipped pull requests was latency, not coverage: a
+  # gate people wait a quarter of an hour for is one they learn to route
+  # around. Sharding pays that with parallelism instead of with coverage.
+  # Playwright shards by file, so mobile.spec.js at 200 s is the floor no
+  # shard count can go under — which makes four the smallest count that
+  # reaches it. 502 s of serial test time becomes ~200 s of wall clock.
+  #
+  # So the trade the split was making is no longer necessary. `test:e2e` runs
+  # both projects, which is all 89 tests in 21 files; verified partitioned
+  # 23 / 26 / 24 / 16 by `playwright test --list --shard=N/4`. A regression in
+  # the half that used to run after the merge now fails before it, and the
+  # nightly run stops being the first place anyone hears about it.
+  #
+  # `Browser gate` above stays: 134 s is a faster no than this job can give,
+  # and it covers the reader's corridor, so a broken corridor still fails
+  # first. This is the slower, complete answer behind it.
+  e2e-full:
+    name: Browser matrix ${{ matrix.shard }}/4
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
-      # A shard that fails should not hide the state of the other three.
+      # A failing shard must not hide the state of the other three.
       fail-fast: false
       matrix:
         shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup
+      - uses: actions/setup-node@v4
         with:
-          chromium: 'true'
-
-      # Only Chromium, and still one worker — the flows share an audio device.
-      # The parallelism is across machines, not inside one.
-      #
-      # playwright.config.js builds and previews on its own, so every shard
-      # tests a build of the same commit: what ships is what gets tested.
+          node-version: '20.19'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e -- --shard=${{ matrix.shard }}/4
-
       - uses: actions/upload-artifact@v4
         if: failure() || cancelled()
         with:
-          # upload-artifact@v4 rejects a name a sibling already used.
-          name: playwright-report-shard-${{ matrix.shard }}
+          name: playwright-report-full-${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/
@@ -236,7 +272,7 @@ jobs:
     # Every other job can be skipped. This one cannot, because a required check
     # that never reports blocks a merge forever.
     if: always()
-    needs: [changes, hygiene, docs, test, build, scriptorium, e2e]
+    needs: [changes, hygiene, docs, test, build, scriptorium, e2e, e2e-full]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
