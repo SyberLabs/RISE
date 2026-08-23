@@ -24,7 +24,6 @@ import {
     workshopProjectToSessionConfig
 } from './core/workshop-project.js';
 import { MemoryCore } from './core/memory.js';
-import { initSourceSystem } from './sources/index.js';
 import { BetaGate } from './components/BetaGate.js';
 import './components/BetaGate.css';
 import { isRosaryDoor } from './core/rosary-door.js';
@@ -230,12 +229,11 @@ class App {
         // Apply accessibility settings immediately
         this.applyAccessibilitySettings();
 
-        // The audio engine and the visual cortex are not created here. Both
-        // arrive at their first use — ensureAudioEngine on the first
-        // interaction, ensureVisualCortex when a reading opens.
-
-        // Initialize source providers
-        await initSourceSystem();
+        // The audio engine, the visual cortex and the source providers are
+        // not created here. Each arrives at its first use — the engine on
+        // the first interaction, the cortex when a reading opens, the
+        // providers when a surface browses sources. Nothing the Portal
+        // shows reads any of them.
 
         // Initialize router
         this.router = new Router({
