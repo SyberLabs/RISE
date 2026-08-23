@@ -71,16 +71,6 @@ export default defineConfig({
             './src/sources/visual/generated.js'
           ],
 
-          // Sacred texts content (significant size)
-          'content-texts': [
-            './src/content/texts/tao-te-ching.js',
-            './src/content/texts/heart-sutra.js',
-            './src/content/texts/yoga-sutras.js',
-            './src/content/texts/gospel-of-thomas.js',
-            './src/content/texts/upanishads.js',
-            './src/content/texts/hermetica.js'
-          ],
-
           // Audio engine (can be deferred)
           'audio': [
             './src/audio/engine.js'
