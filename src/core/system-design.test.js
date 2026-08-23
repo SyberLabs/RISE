@@ -107,6 +107,31 @@ describe('the system design document describes this tree', () => {
             .toEqual([]);
     });
 
+    /**
+     * The document claims core and visuals never import a component, and said
+     * so under the words "enforced by inspection" — which is not enforcement.
+     * The claim happened to be true; nothing kept it true. A guard nobody can
+     * break is decoration, so here is one that can.
+     */
+    it('is right that core and visuals never import a component', () => {
+        const offenders = [];
+        const walk = (dir) => {
+            for (const entry of readdirSync(join(ROOT, dir), { withFileTypes: true })) {
+                const rel = `${dir}/${entry.name}`;
+                if (entry.isDirectory()) { walk(rel); continue; }
+                if (!entry.name.endsWith('.js') || entry.name.endsWith('.test.js')) continue;
+                const source = readFileSync(join(ROOT, rel), 'utf8');
+                // Static and dynamic alike: a lazy import is still a dependency.
+                if (/from\s+['"][^'"]*\/components\/|import\(\s*['"][^'"]*\/components\//u.test(source)) {
+                    offenders.push(rel);
+                }
+            }
+        };
+        walk('src/core');
+        walk('src/visuals');
+        expect(offenders, `${DOC} §5 says this layer holds; it does not`).toEqual([]);
+    });
+
     it('states the production dependency count that package.json has', () => {
         const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
         const production = Object.keys(pkg.dependencies || {});
