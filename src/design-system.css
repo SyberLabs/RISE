@@ -719,7 +719,7 @@ small {
 }
 
 .radio input[type="radio"]:checked {
-  border-color: var(--color-accent);
+  border-color: var(--color-threshold);
 }
 
 .radio input[type="radio"]:checked::after {
@@ -730,8 +730,16 @@ small {
   transform: translate(-50%, -50%);
   width: 10px;
   height: 10px;
-  background: var(--color-accent);
+  background: var(--color-threshold);
   border-radius: 50%;
+}
+
+.settings .radio input[type="radio"]:checked {
+  border-color: var(--color-accent);
+}
+
+.settings .radio input[type="radio"]:checked::after {
+  background: var(--color-accent);
 }
 
 /* ─────────────────────────────────────────────────────────────

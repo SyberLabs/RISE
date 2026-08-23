@@ -593,12 +593,7 @@ export class Chamber {
     const fail = this.container.querySelector('#chamber-accent-fail');
     if (!fail) return;
     const allowlisted = resolveChamberAccent(requested) === requested;
-    const took = document.documentElement.dataset.accent === requested;
-    fail.hidden = allowlisted && took;
-    if (!fail.hidden) {
-      applyChamberAccent(document.documentElement, 'purple');
-      if (globalThis.rise?.settings) globalThis.rise.settings.chamberAccent = 'purple';
-    }
+    fail.hidden = allowlisted && document.documentElement.dataset.accent === requested;
   }
 
   chamberMaskApplies() {

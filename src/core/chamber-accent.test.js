@@ -68,6 +68,6 @@ describe('Chamber accent allowlist', () => {
             expect(css).toContain(`[data-accent="${id}"]`);
             expect(css).toContain(CHAMBER_ACCENT_TOKENS[id]['--color-accent']);
         }
-        expect(css).toMatch(/\.radio input\[type="radio"\]:checked\s*\{[^}]*--color-accent/s);
+        expect(css).toMatch(/\.settings \.radio input\[type="radio"\]:checked\s*\{[^}]*--color-accent/s);
     });
 });
