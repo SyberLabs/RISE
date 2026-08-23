@@ -2,6 +2,7 @@
 
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import { installContentPlaneFetch } from './lib/content-plane-fetch.mjs';
 import { ingestedArchiveTexts } from '../src/content/archive/index.js';
 import { ARCHIVE_CERTIFICATION_SCHEMA } from '../src/content/archive/certification.js';
 import DEFECT_REPORT from '../src/content/archive/defect-report.json';
@@ -15,6 +16,9 @@ function option(name) {
 function excerpt(value, limit = 360) {
   return String(value || '').replace(/\s+/gu, ' ').trim().slice(0, limit);
 }
+
+// Works are fetched by digest URL; Node has no origin to resolve them against.
+installContentPlaneFetch();
 
 const requestedWork = option('--work');
 const output = resolve(option('--out') || 'out/release/archive-certification-candidates.json');

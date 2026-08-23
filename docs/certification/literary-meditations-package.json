@@ -1,0 +1,64 @@
+{
+  "schema": "rise.archive-certification-package.v1",
+  "generatedAt": "2026-08-23T02:10:33.107Z",
+  "instructions": "Review the exact edition and every detector disposition. Automation must not change false/null certification fields.",
+  "candidates": [
+    {
+      "work": {
+        "workId": "literary-meditations",
+        "title": "Meditations",
+        "author": "Marcus Aurelius",
+        "editionId": "standard-ebooks:marcus-aurelius/meditations_george-long",
+        "sourceRevision": "sha256:1d5c3e8ca1cd6b9b98731ebc034a6408eea84b2642525844cd4e04f9445a2418",
+        "divisionCount": 12,
+        "opening": {
+          "id": 0,
+          "label": "Book I",
+          "text": "From my grandfather Verus I learned good morals and the government of my temper. From the reputation and remembrance of my father, modesty and a manly character. From my mother, piety and beneficence, and abstinence, not only from evil deeds, but even from evil thoughts; and further, simplicity in my way of living, far removed from the habits of the rich. Fr"
+        },
+        "closing": {
+          "id": 11,
+          "label": "Book XII",
+          "text": "All those things at which thou wishest to arrive by a circuitous road, thou canst have now, if thou dost not refuse them to thyself. And this means, if thou wilt take no notice of all the past, and trust the future to providence, and direct the present only conformably to piety and justice. Conformably to piety, that thou mayest be content with the lot which"
+        }
+      },
+      "automatedInspection": {
+        "apparatus": 0,
+        "gibberish": 0.00009015100292990759,
+        "furniture": 0,
+        "symbols": 0.0006166666666666666,
+        "score": 0.03007572684246112,
+        "sampleChars": 240000,
+        "lines": 527,
+        "warnings": [],
+        "signatureHits": []
+      },
+      "certificationTemplate": {
+        "schema": "rise.archive-certification.v1",
+        "workId": "literary-meditations",
+        "editionId": "standard-ebooks:marcus-aurelius/meditations_george-long",
+        "sourceRevision": "sha256:1d5c3e8ca1cd6b9b98731ebc034a6408eea84b2642525844cd4e04f9445a2418",
+        "editionChoice": {
+          "kind": null,
+          "rationale": null
+        },
+        "comparison": {
+          "reference": null,
+          "completedAt": null,
+          "structural": false,
+          "token": false
+        },
+        "dispositions": {
+          "reviewer": null,
+          "completedAt": null,
+          "count": null
+        },
+        "detectors": {
+          "registryRevision": "scripts/audit-defect-signatures.mjs",
+          "allZero": false
+        },
+        "certifiedAt": null
+      }
+    }
+  ]
+}

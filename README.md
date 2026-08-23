@@ -244,6 +244,8 @@ Some visual modes retrieve publicly hosted images from external cultural or scie
 
 ## Development
 
+Engineering overview for recruiters and hiring managers: [docs/ENGINEERING.md](docs/ENGINEERING.md).
+
 Requirements:
 
 - Node.js `>=20.19` or `>=22.12`
