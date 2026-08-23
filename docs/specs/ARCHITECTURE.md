@@ -115,10 +115,10 @@ else is a recommendation.
 ║  └─────────────┘   └──────────────────────────────────────────────────────┘  ║
 ║                                                                               ║
 ║   STORAGE  localStorage (settings, journals, blueprints, images, orbital) ·   ║
-║   sessionStorage (flash consent) · IndexedDB (workshop media, personal        ║
-║   swells, local works, source cache).  src/core/user-data.js is the export    ║
-║   and erase inventory — a store missing from it cannot be carried out or      ║
-║   cleared.                                                                    ║
+║   IndexedDB (workshop media, personal swells, local works, source cache) ·    ║
+║   flash consent is a ONE-USE IN-MEMORY capability, deliberately not           ║
+║   persisted (§8.18).  src/core/user-data.js is the export and erase           ║
+║   inventory — a store missing from it cannot be carried out or cleared.       ║
 ╚═══════════════════════════════════════════════════════════════════════════════╝
         │  anonymous · no-referrer · abort + timeout        ▲
         ▼                                                   │ failure ⇒ stillness
@@ -342,14 +342,23 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 - **Chosen:** Kokoro runs at build time; the deployed app plays same-origin
   audio addressed by normalized phrase text.
-- **Rejected:** running the model in the reader's browser.
-- **Why:** runtime inference would need a model host, a WebAssembly policy
-  exception, and a large first-run download, and it would make a reading depend
-  on a third party. Pre-building keeps the CSP free of any script or WASM
-  exception and makes recitation byte-identical and certifiable — the acoustic
-  review ledger binds a human verdict to exact audio bytes, which runtime
-  synthesis could not support. **The cost is size**: the packs are shipped
-  uncompressed, and that is the second-largest known cost in the design (§9).
+- **Rejected:** running the model in the reader's browser — and this one was
+  *measured* before it was rejected, not assumed. The browser path was built
+  and tried: `speechSynthesis` is a formant synthesiser and was never a
+  candidate; q8 WebAssembly ran at a real-time factor of 2.6–3.0 against a
+  budget of 0.75; q4f16 produced non-finite samples; the WebGPU path produced
+  numeric explosions large enough that the code now rejects WebGPU before
+  encoding. The record is kept in `docs/vision/RECITATION-SPEC.md` rather than
+  deleted with the code.
+- **Why:** beyond the measurements, runtime inference would need a model host,
+  a WebAssembly policy exception and a large first-run download, and would make
+  a reading depend on a third party. Pre-building keeps the CSP free of any
+  script or WASM exception and makes recitation byte-identical and certifiable
+  — the acoustic ledger binds a human verdict to exact audio bytes, which
+  runtime synthesis could not support. The governing rule was written as
+  "treat speech as unavailable rather than choosing a backend by feature
+  detection alone," which is §2.2 applied to sound. **The cost is size**: the
+  packs ship uncompressed, and that is the second-largest known cost (§9).
 - **Status:** settled for the mechanism; the delivery format is **open**.
 
 ### 8.6 MP4 render is an offline Node path, not in-browser capture
@@ -387,11 +396,18 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Why:** live search cannot be rate-limited across readers, cannot be
   rights-checked before display, and puts a third party on the reading path.
   Harvest-and-pin means a human approved every image and its rights before a
-  reader could meet it, which §2.3 requires. The cost is a smaller, slower-moving
-  collection, and a residual dependency on a CORS proxy for the live paths that
-  remain.
-- **Status:** settled in principle; removing the proxy from the critical path
-  is open.
+  reader could meet it, which §2.3 requires. Two rejections are recorded with
+  their evidence: the Wikimedia category registry is **empty by design** after
+  an audit found a category silently returning nothing for its whole life —
+  "a searched source can rot invisibly, and a pinned one cannot" — and the Met
+  provider was retired because its public API serves roughly 750-pixel
+  derivatives over pools too shallow to hold a reading. The cost is a smaller,
+  slower-moving collection.
+- **Status:** settled.
+- **Loose end:** `netlify.toml` still grants `connect-src` to `corsproxy.io`,
+  and **no module under `src/`, `scripts/` or `e2e/` calls it.** It is a stale
+  allowance rather than a live dependency — a CSP grant nothing needs is a
+  surface with no purpose, and it should be removed.
 
 ### 8.9 Fifteen certified editions, not eighty-eight acquired ones
 
@@ -487,6 +503,135 @@ of `settled`, `open`, `deferred`, or `reversed`.
 - **Status:** settled. Do not weaken the checker to obtain green; close the
   named evidence gap.
 
+### 8.16 A deploy must not strand an open tab
+
+- **Chosen:** a `vite:preloadError` listener and a router check treat a failed
+  chunk import as a stale build and reload **once**, guarded by a sentinel;
+  `index.html` is served `must-revalidate`.
+- **Rejected:** letting the tab break, and reloading unguarded.
+- **Why:** `index.html` names the hashed chunks, so a tab left open across a
+  release asks for a file the new deploy replaced, gets a 404, and can no longer
+  reach any view it had not already loaded. A stale chunk is not a transient
+  network error and retrying cannot fix it. The sentinel exists because an
+  unguarded reload turns a real network failure into a loop.
+- **Status:** settled.
+
+### 8.17 The catalogue is derived at build time
+
+- **Chosen:** `scripts/build-division-index.mjs` precomputes division structure;
+  withheld divisions go to a separate file nothing shipping imports.
+- **Rejected:** deriving divisions in every browser.
+- **Why:** it lets a card say how many chapters a work has without downloading
+  the work. Labels are verified against the divided text rather than against
+  counts, because a count-only check passed while chapter labels drifted and
+  broke Scriptorium navigation.
+- **Status:** settled.
+
+### 8.18 Visual consent is one-use and in memory
+
+- **Chosen:** consent to flashing imagery is an in-memory capability for one
+  presentation.
+- **Rejected:** the former browser-session grant held in `sessionStorage`.
+- **Why:** a persisted grant means a reader who consented once meets flashing
+  imagery later without being asked, including in a room they did not consent
+  in. `sessionStorage` is now only ever *cleared*, never written. Consent is
+  also never auto-granted from a preset or a saved configuration (§7).
+- **Status:** settled.
+
+### 8.19 A deleted room keeps its data
+
+- **Chosen:** when a room is deleted, its persisted keys and data namespaces
+  stay. The Solarium is gone and `rise_sol_plan_v1` remains in
+  `src/core/user-data.js`; the Atrium room is gone and its `atr-` accession ids
+  and `atriumCollections` field remain.
+- **Rejected:** deleting the keys with the room.
+- **Why:** "a key dropped from that registry is data that export cannot carry
+  out and erase cannot clear" — a reader who planned a day in the Solarium
+  still has one saved. Renaming a persisted key is a migration, not a cleanup,
+  **and doing it inside a deletion is how a deletion becomes an outage.** The
+  key is removed when nobody can still be holding one, which is not the same
+  day the room goes.
+- **Status:** settled.
+
+### 8.20 One source of truth for a limit
+
+- **Chosen:** `src/core/reading-limits.js` holds the pace bounds, and every
+  surface imports them.
+- **Rejected:** each surface carrying its own slider range.
+- **Why:** a reader who chose 60 wpm was silently overridden to 100, because a
+  narrow window was the min and max of one modal's slider, copied twice. This
+  is the defect class that recurs most in this codebase — a vocabulary living
+  in two places where only one learns a new word — and the standing rule is to
+  prefer deleting one copy to synchronising two. Where duplication is
+  unavoidable, a test asserts the two agree, which turns silent drift into
+  loud failure.
+- **Status:** settled.
+
+### 8.21 The public shelf serves candidates, and says so
+
+- **Chosen:** `RELEASE_SERVES_UNCERTIFIED` is `true`, written in source rather
+  than a build flag, and the shelf tells the reader a work is a candidate.
+- **Rejected:** failing closed until certifications land.
+- **Why:** failing closed was the right default and the wrong outcome — nothing
+  has ever been certified, so the public shelf served **nothing** while
+  development served everything. Putting the override in source rather than in
+  an environment variable means it is visible in review and cannot be set
+  accidentally by a deploy.
+- **Status:** open, and explicitly temporary. Set it to `false` the day the
+  certifications land.
+
+### 8.22 Gallery is the default visual surface
+
+- **Chosen:** a reader who has expressed no preference gets Gallery —
+  continuous imagery behind the text.
+- **Rejected:** rhythmic full-frame flashing as the default.
+- **Why:** Gallery is the only surface that never flashes and never goes black,
+  so it is what an unasked reader should meet, and it needs no consent prompt.
+  Raising a photosensitivity warning over a surface that does not carry the
+  risk asks a reader to accept a danger that is not there. A domain that
+  authors its own surface — Chapel, a Vault program — still wins, per the
+  three-layer law: content authors, the runtime follows, the cortex renders.
+- **Status:** settled.
+
+### 8.23 Production carries no write path
+
+- **Chosen:** the Curia apply endpoint and the MP4 export endpoint are Vite
+  plugins with `apply: 'serve'`, so they exist only on the dev server.
+- **Rejected:** shipping write endpoints with the static build.
+- **Why:** a static deploy with no write path cannot be made to write. The cost
+  is that the Workshop's export hands a reader a job description for the CLI
+  instead of a file, which §8.6 already accepts.
+- **Status:** settled. Production also ships no source maps, to keep the bundle
+  opaque.
+
+### 8.24 Deferred rather than deleted
+
+- **Chosen:** Journeys are on ice — the published list is empty while the
+  scores, tests and compiler stay. RISE Chain stays out of production.
+- **Rejected:** re-anchoring Journey scores quickly, and shipping Chain under
+  release pressure.
+- **Why:** Journey scores quote editions the canon no longer serves, so their
+  anchors broke — correctly. **Re-authoring someone's score against a new
+  translation is an editorial act, not a repair.** Chain was held back because
+  production pressure would immediately impose questions of attribution,
+  moderation, and whether generation could accidentally reproduce long source
+  passages — questions better answered before readers than after.
+- **Status:** deferred.
+
+### 8.25 The licence boundary is drawn by bytes, not directories
+
+- **Chosen:** code is Apache 2.0; authored strings, curated selections and
+  names are reserved; visual engine *output* is not reserved separately from
+  the engine.
+- **Rejected:** splitting the licence by directory, and reserving procedural
+  output as composition.
+- **Why:** the directory split "got two answers, which is the same as getting
+  none," because a directory holds both code and authored text. Reserving
+  engine output was dropped on the reasoning that **a grant to run and modify
+  the engine is a grant to the images it draws** — claiming otherwise while
+  licensing the engine Apache would be incoherent.
+- **Status:** settled.
+
 ---
 
 ## 9. What this design costs
@@ -501,6 +646,9 @@ Stated plainly so it is never rediscovered as a surprise.
 - **There is no single timeline.** §8.7.
 - **Most rooms have no address.** §8.12.
 - **Access control does not exist**, by choice. §8.1, §7.
+- **The public shelf serves uncertified candidates** under an override that is
+  explicitly temporary and should not become permanent by neglect. §8.21.
+- **The CSP grants an origin nothing calls.** §8.8.
 - **The release is gated on people**, and cannot be hurried by engineering.
   §8.15.
 
