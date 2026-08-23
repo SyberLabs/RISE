@@ -1,9 +1,14 @@
 # The Library — a world-class housing of public-domain texts
 
 *Written 2026-07-28. Implements North Star §5.2 (named journeys, editorial
-voice) at the surface where R.I.S.E. holds its texts. Draws its organizing
+voice) at the surface where RISE holds its texts. Draws its organizing
 principles from an early media-cluster note (since retired) and the
 Neorenaissance corpus.*
+
+**Status: SUPERSEDED as policy by `docs/specs/ARCHIVE-CANON-SPEC.md`.** This is
+the critique that produced the canon — kept because the faults it names are why
+the shelf is now fifteen works rather than a hundred, not because its remedies
+are the current plan.
 
 ---
 

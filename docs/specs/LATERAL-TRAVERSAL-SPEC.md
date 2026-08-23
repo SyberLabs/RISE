@@ -2,8 +2,8 @@
 
 **The Shuttle: continuous motion through the reading, DVD-grade.**
 
-Status: SPEC — no implementation yet. Rulings by the creator are
-marked ✦; open questions for future rulings are marked ⁇.
+Status: IMPLEMENTED in `src/core/shuttle.js`. Rulings by the creator
+are marked ✦; open questions for future rulings are marked ⁇.
 
 ---
 

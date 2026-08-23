@@ -1,6 +1,8 @@
 # The Corpus Reviewer — prompt and contract
 
-**Status:** ready to use · written 2026-08-04
+**Status:** RECORD. Written 2026-08-04 for a campaign that has since ended
+(`ARCHIVE-CLEANSING-SPEC`). Kept because `scripts/corpus-review-jobs.mjs` and
+`corpus-review-verdicts.mjs` still speak the format defined here.
 **Serves:** `ARCHIVE-CLEANSING-SPEC` §3 rung 3 and §4, the handoff.
 **Instrument:** a cheap, fast model (Gemini 3.6 Flash or similar), one bounded
 job at a time.

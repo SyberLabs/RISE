@@ -1,7 +1,10 @@
 # The Catholic Chamber — Specification
 
-**Status:** proposed
-**Ambition:** the highest expression of the R.I.S.E. system to date
+**Status:** BUILT. This is the proposal the room was built from, kept as the
+reasoning behind it; the Chapel, the Rosarium, and the Via are in
+`src/components/`. Where the code and this document disagree, the code is what
+readers meet.
+**Ambition:** the highest expression of the system to date
 **Constraint that governs everything else:** this room holds material that is
 sacred to its readers. Every design decision below is subordinate to treating
 it that way.

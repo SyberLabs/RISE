@@ -1,11 +1,10 @@
-# R.I.S.E. Architecture
+# RISE Architecture
 
-> Recursive Installation of Symbolic Experience
-> Runtime architecture and engineering contracts, July 2026
+> Runtime architecture and engineering contracts.
 
 ## Runtime shape
 
-R.I.S.E. is a Vite-served browser application. `index.html` provides the shared
+RISE is a Vite-served browser application. `index.html` provides the shared
 view and overlay containers; `src/app.js` owns application startup and wires the
 router, components, session compiler, audio engine, source registry, and visual
 cortex together.
@@ -14,7 +13,9 @@ cortex together.
 index.html
   -> App / BetaGate
      -> Router
-        -> Portal, Vault, Library, Workshop, SOL, Settings
+        -> Portal, Keystones, Vault, Library, Workshop, Settings
+        -> Chapel, Rosarium, Via (the devotional instrument)
+        -> Scriptorium, Curia, Journeys
         -> ChamberOrbital (session preparation)
         -> Chamber + Player (session playback)
      -> SourceRegistry -> providers -> SourceCache
@@ -201,8 +202,9 @@ Audio initialization errors are surfaced to the application failure boundary.
 
 Browser persistence is local-only:
 
-- settings, journals, blueprints, SOL plan, orbital preferences/text, and image
-  pools use localStorage;
+- settings, journals, blueprints, orbital preferences/text, and image pools use
+  localStorage — along with `rise_sol_plan_v1`, whose room is deleted but whose
+  key stays registered so export can still carry it out and erase can clear it;
 - visual-flash consent uses sessionStorage;
 - personal audio and source caches use separate IndexedDB databases.
 

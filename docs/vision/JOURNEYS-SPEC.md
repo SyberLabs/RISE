@@ -2,7 +2,10 @@
 
 *Written 2026-07-29. Reference production: **War**.*
 
-Status: **SPEC — architecture traced; implementation not begun.**
+Status: **ON ICE since 2026-08-18.** The compiler exists
+(`src/core/journey-compiler.js`) and the room routes, but `JOURNEYS` is empty
+and nothing is published to readers: the scores below quote editions the canon
+no longer serves. Re-anchoring them is an editorial act, not a repair.
 
 ---
 
