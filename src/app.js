@@ -19,17 +19,14 @@ import {
     isContinuousPresentation
 } from './core/visual-presence.js';
 import { compileSession } from './core/session-compiler.js';
+import { resolveNextLibraryDivision } from './core/reading-continuation.js';
 import {
     isWorkshopProject,
     workshopProjectToSessionConfig
 } from './core/workshop-project.js';
-import { MemoryCore } from './core/memory.js';
-import { initSourceSystem } from './sources/index.js';
 import { BetaGate } from './components/BetaGate.js';
-import './components/BetaGate.css';
 import { isRosaryDoor } from './core/rosary-door.js';
 
-import { visualCortex } from './visuals/visual-cortex.js';
 import { errorBoundary, ErrorCategory, ErrorSeverity } from './core/error-boundary.js';
 import {
     beginNonFlashingVisualSession,
@@ -43,13 +40,12 @@ import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
 import { normalizeVisualSelection, normalizeWordFill } from './core/visual-selection.js';
 
-// Import styles
-// Only what paints the first screen. Every other room now imports its own
-// stylesheet, so the CSS arrives with the route rather than ahead of it —
-// a reader looking at the Portal was downloading Workshop's 82 kB and
-// Chamber's 50 kB before choosing anything.
+// THE SHELL'S OWN STYLES, AND ONLY THOSE. app.js used to import sixteen
+// stylesheets — every room's, not the Portal's — which is 220 KB of CSS
+// before a reader has entered a single room. A room's stylesheet now lives
+// with the room's module and arrives with it, so the Portal's cost no
+// longer grows every time a room is added.
 import './design-system.css';
-import './components/Portal.css';
 import './premium-additions.css';
 
 /**
@@ -88,6 +84,13 @@ class App {
         this._audioInteractionController = null;
         this._utilityController = null;
 
+        // The two heaviest subsystems in the shell, both arriving on the
+        // first use rather than before the Portal paints. See
+        // ensureAudioEngine / ensureVisualCortex.
+        this._visualCortex = null;
+        this._visualCortexLoad = null;
+        this._audioEngineLoad = null;
+
         // Bind methods
         this.handleNavigate = this.handleNavigate.bind(this);
         this.handleCreateSession = this.handleCreateSession.bind(this);
@@ -103,25 +106,50 @@ class App {
         errorBoundary.init();
         this.setupErrorRecovery();
 
-        // Pre-create audio engine and set up first-interaction listener
-        // This ensures audio initializes on the BetaGate click, not after portal loads.
-        //
-        // The MODULE is fetched lazily and the engine is created as soon as it
-        // lands, which keeps the Web Audio graph out of the entry chunk without
-        // moving when audio becomes available: nothing can play before a user
-        // gesture anyway, and that gesture is the BetaGate click below. Callers
-        // that may run before the chunk resolves await `_audioReady`.
-        this._audioReady = import('./audio/engine.js')
-            .then(({ AudioEngine }) => (this.audioEngine ??= new AudioEngine()))
-            .catch(error => {
-                console.warn('[RISE] Audio engine unavailable:', error);
-                return null;
-            });
+        // Arm the first-interaction listener. The engine itself arrives with
+        // that interaction — the BetaGate click is still the moment audio
+        // starts, it is simply also the moment the engine is fetched.
         this.setupAudioInteraction();
 
         // Check beta access - this will call initializeApp when access is granted
         // (either immediately if already authenticated, or after user enters code)
         await this.checkBetaAccess();
+    }
+
+    /**
+     * The Web Audio engine, on first use.
+     *
+     * 87 KB of source plus soundscapes and chant beds, none of which a
+     * reader who opens the Portal and leaves has asked for. Every caller
+     * gets the same instance; concurrent callers share one import.
+     */
+    async ensureAudioEngine() {
+        if (this.audioEngine) return this.audioEngine;
+        this._audioEngineLoad ||= import('./audio/engine.js')
+            .then(({ AudioEngine }) => {
+                this.audioEngine ||= new AudioEngine();
+                this.audioEngine.setMasterVolume(this.settings?.masterVolume ?? 0.75);
+                return this.audioEngine;
+            });
+        return this._audioEngineLoad;
+    }
+
+    /**
+     * The visual cortex, on first use, initialized once.
+     *
+     * 179 KB of engines and a stylesheet behind one singleton. Nothing on
+     * the Portal path presents a visual, so nothing on the Portal path
+     * should pay for one.
+     */
+    async ensureVisualCortex() {
+        if (this._visualCortex) return this._visualCortex;
+        this._visualCortexLoad ||= import('./visuals/visual-cortex.js')
+            .then(({ visualCortex }) => {
+                this._visualCortex = visualCortex;
+                visualCortex.init();
+                return visualCortex;
+            });
+        return this._visualCortexLoad;
     }
 
     /**
@@ -191,25 +219,19 @@ class App {
      * @param {string} options.personalizedVault - Vault ID to load directly (skips portal)
      */
     async initializeApp(options = {}) {
-        // Load settings from localStorage
+        // Load settings from localStorage. The master volume is applied by
+        // ensureAudioEngine when the engine is actually created, which is the
+        // only moment there is anything to apply it to.
         this.loadSettings();
-        // Await the engine chunk rather than `?.`-skipping it: a saved master
-        // volume that silently fails to apply at boot is the kind of defect
-        // that only shows up as "it was loud again".
-        await this._audioReady;
-        this.audioEngine?.setMasterVolume(this.settings.masterVolume);
 
         // Apply accessibility settings immediately
         this.applyAccessibilitySettings();
 
-        // Audio engine is already created in init() before the gate
-        // No need to create it again here
-
-        // Initialize visual cortex
-        visualCortex.init();
-
-        // Initialize source providers
-        await initSourceSystem();
+        // The audio engine, the visual cortex and the source providers are
+        // not created here. Each arrives at its first use — the engine on
+        // the first interaction, the cortex when a reading opens, the
+        // providers when a surface browses sources. Nothing the Portal
+        // shows reads any of them.
 
         // Initialize router
         this.router = new Router({
@@ -287,14 +309,12 @@ class App {
         const listenerOptions = { signal: this._audioInteractionController.signal };
         const initAudio = async () => {
             try {
-                await this._audioReady;
-                if (this.audioEngine) {
-                    console.log('[RISE] First interaction - Initializing audio context');
-                    await this.audioEngine.init();
-                    await this.audioEngine.resume();
-                    if (this.settings?.enableAmbient) {
-                        this.audioEngine.startAmbientPlaylist();
-                    }
+                console.log('[RISE] First interaction - Initializing audio context');
+                const engine = await this.ensureAudioEngine();
+                await engine.init();
+                await engine.resume();
+                if (this.settings?.enableAmbient) {
+                    engine.startAmbientPlaylist();
                 }
             } catch (error) {
                 console.warn('[RISE] Audio initialization unavailable:', error);
@@ -324,7 +344,7 @@ class App {
         // Visual errors: disable visual interlocution
         errorBoundary.registerRecoveryHandler(ErrorCategory.VISUAL, (report) => {
             endVisualInterlocutionSession();
-            visualCortex.updateConfig({ enabled: false });
+            this._visualCortex?.updateConfig({ enabled: false });
         });
 
         // Navigation errors: return to portal
@@ -443,6 +463,14 @@ class App {
                 if (spatialLaunch) visualMode = 'off';
 
                 try {
+                    // A reading is the first thing that needs either of
+                    // these, so this is where they arrive. Chamber.js
+                    // imports the same cortex singleton, so opening the
+                    // Chamber was always going to pay for it; opening the
+                    // Portal no longer is.
+                    const visualCortex = await this.ensureVisualCortex();
+                    await this.ensureAudioEngine();
+
                     // Consent is an interaction phase, not a loading task. It
                     // must resolve before the opaque preparation overlay can
                     // cover the page, and before audio or Player ownership
@@ -631,6 +659,11 @@ class App {
                         // fractals (palette/variations/tone by signal) that cover
                         // the text's emotional arc. Null when responsive is off.
                         let semanticSignals = null;
+                        // MemoryCore reaches workshop-asset-durability and the
+                        // workshop project model; this one call for pinned
+                        // Global Pool URIs is the only thing app.js wants from
+                        // it, and it is on the reading path, not the shell's.
+                        const { MemoryCore } = await import('./core/memory.js');
                         if (interlocution.responsive && session.atoms?.length) {
                             const { scoreAtoms, sampleTrackSignals } = await import('./core/conductor.js');
                             session.semanticTrack = session.semanticTrack || scoreAtoms(session.atoms);
@@ -780,11 +813,13 @@ class App {
                     console.error('[RISE] Session initialization failed:', error);
                     recitationVoice?.destroy();
                     endVisualInterlocutionSession();
-                    visualCortex.updateConfig({ enabled: false });
-                    await this.audioEngine.stopSession({
+                    // Reached through the catch, so either subsystem may have
+                    // been what failed to arrive. Teardown must not need them.
+                    this._visualCortex?.updateConfig({ enabled: false });
+                    await this.audioEngine?.stopSession({
                         resumeAmbient: this.settings?.enableAmbient === true,
                         immediate: true
-                    }).catch(() => {});
+                    })?.catch(() => {});
                     this.hideLoading();
                     this.showToast('Failed to initialize session', 3000);
                     this.router.back();
@@ -1052,10 +1087,12 @@ class App {
      */
     async continueLibraryReading(session) {
         try {
-            const [{ ArchiveTextProvider }, { resolveNextLibraryDivision }] = await Promise.all([
-                import('./sources/text/archive.js'),
-                import('./core/reading-continuation.js')
-            ]);
+            // reading-continuation is NOT deferred here, and pretending it
+            // was is what Rollup kept reporting: models.js builds every
+            // Session through createLibraryContinuation, so the module is in
+            // the main chunk whatever this line says. Only the provider is
+            // genuinely deferrable.
+            const { ArchiveTextProvider } = await import('./sources/text/archive.js');
             const provider = new ArchiveTextProvider();
             const contents = await provider.getContents(session?.continuation?.workId);
             const next = resolveNextLibraryDivision(session?.continuation, contents);
@@ -1391,7 +1428,7 @@ class App {
             if (key === 'fontSize') chamber?.applyChamberTypeSize?.();
         }
         if (key === 'showArtworkLabels') {
-            visualCortex.setArtworkLabelsVisible(value);
+            this._visualCortex?.setArtworkLabelsVisible(value);
         }
         if (key === 'enableAmbient' && this.audioEngine?.isInitialized && !this.audioEngine.sessionActive) {
             if (value) this.audioEngine.startAmbientPlaylist();
@@ -1423,7 +1460,7 @@ class App {
         // Apply photosensitivity mode
         if (this.settings?.photosensitivityMode) {
             root.classList.add('photosensitivity-mode');
-            visualCortex.cancelPresentation('photosensitivity');
+            this._visualCortex?.cancelPresentation('photosensitivity');
         } else {
             root.classList.remove('photosensitivity-mode');
         }
@@ -1431,13 +1468,13 @@ class App {
         // photosensitivity toggle must be pushed to it (the flash economy
         // re-checks per flash; the field does not). Suspends it when the
         // mode turns on, resumes it when the mode clears.
-        visualCortex.syncSafety();
+        this._visualCortex?.syncSafety();
 
         root.dataset.fontSize = resolveFontSize(this.settings?.fontSize);
         root.dataset.chamberFace = resolveChamberStreamFace(this.settings?.chamberFace);
         root.classList.toggle('hide-session-progress', this.settings?.showProgress === false);
         root.classList.toggle('hide-session-duration', this.settings?.showDuration === false);
-        visualCortex.setArtworkLabelsVisible(this.settings?.showArtworkLabels !== false);
+        this._visualCortex?.setArtworkLabelsVisible(this.settings?.showArtworkLabels !== false);
     }
 
     /**

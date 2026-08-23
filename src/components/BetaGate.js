@@ -8,6 +8,8 @@
  * - Session persistence (localStorage)
  */
 
+import './BetaGate.css';
+
 // Beta access codes - add new invitees here
 const BETA_INVITES = {
   // General beta access

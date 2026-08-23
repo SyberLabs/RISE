@@ -19,9 +19,12 @@ describe('App safety orchestration', () => {
     delete document.documentElement.dataset.fontSize;
   });
 
-  it('cancels a live presentation synchronously when Photosensitivity Mode turns on', () => {
+  it('cancels a live presentation synchronously when Photosensitivity Mode turns on', async () => {
     const cancel = vi.spyOn(visualCortex, 'cancelPresentation').mockReturnValue(true);
     const app = new App();
+    // The cortex is loaded on demand, so a live presentation only exists
+    // once something has asked for one. This is that state.
+    await app.ensureVisualCortex();
     app.settings = {
       photosensitivityMode: true,
       reducedMotion: false,
@@ -36,7 +39,34 @@ describe('App safety orchestration', () => {
     expect(cancel).toHaveBeenCalledWith('photosensitivity');
   });
 
-  it('defaults artwork labels on, restores an explicit opt-out, and propagates it live', () => {
+  /**
+   * The cortex is 179 KB of engines that a reader who never opens a reading
+   * never downloads. Deferring it must not make the safety surfaces throw,
+   * and must not quietly make them asynchronous: a cortex that was never
+   * loaded is a cortex showing nothing, so there is nothing to cancel.
+   */
+  it('applies the safety surfaces before the cortex has ever been loaded', () => {
+    const app = new App();
+    app.settings = {
+      photosensitivityMode: true,
+      reducedMotion: true,
+      fontSize: 'large',
+      chamberFace: 'jp',
+      showProgress: false,
+      showDuration: false,
+      showArtworkLabels: false
+    };
+
+    expect(() => app.applyAccessibilitySettings()).not.toThrow();
+    expect(document.documentElement.classList.contains('photosensitivity-mode')).toBe(true);
+    expect(document.documentElement.classList.contains('reduced-motion')).toBe(true);
+    expect(document.documentElement.dataset.fontSize).toBe('large');
+
+    expect(() => app.handleSettingsChange('showArtworkLabels', true)).not.toThrow();
+    expect(app.settings.showArtworkLabels).toBe(true);
+  });
+
+  it('defaults artwork labels on, restores an explicit opt-out, and propagates it live', async () => {
     const app = new App();
     app.loadSettings();
     expect(app.settings.showArtworkLabels).toBe(true);
@@ -45,9 +75,41 @@ describe('App safety orchestration', () => {
     app.loadSettings();
     expect(app.settings.showArtworkLabels).toBe(false);
 
+    await app.ensureVisualCortex();
     const apply = vi.spyOn(visualCortex, 'setArtworkLabelsVisible');
     app.handleSettingsChange('showArtworkLabels', true);
     expect(apply).toHaveBeenLastCalledWith(true);
+  });
+
+  it('resolves one cortex and one audio engine however many callers ask', async () => {
+    const app = new App();
+    const [cortexA, cortexB] = await Promise.all([
+      app.ensureVisualCortex(),
+      app.ensureVisualCortex()
+    ]);
+    expect(cortexA).toBe(visualCortex);
+    expect(cortexB).toBe(visualCortex);
+
+    const [engineA, engineB] = await Promise.all([
+      app.ensureAudioEngine(),
+      app.ensureAudioEngine()
+    ]);
+    expect(engineA).toBe(engineB);
+    expect(app.audioEngine).toBe(engineA);
+  });
+
+  /**
+   * Arming the first-interaction listener must not itself be what pulls
+   * the 87 KB engine in. The engine arrives on the interaction, which is
+   * the earliest moment a reader can want a sound.
+   */
+  it('arms the audio listener without constructing an engine', async () => {
+    const app = new App();
+    app.setupAudioInteraction();
+    expect(app.audioEngine).toBe(null);
+
+    window.dispatchEvent(new window.MouseEvent('mousedown'));
+    await vi.waitFor(() => expect(app.audioEngine).not.toBe(null));
   });
 
   it('surfaces aggregate budget failures from orbital and Workshop launches', async () => {
