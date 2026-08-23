@@ -285,42 +285,60 @@ of `settled`, `open`, `deferred`, or `reversed`.
   that loss is accepted and named in §7 rather than hidden.
 - **Status:** settled.
 
-### 8.2 Content is compiled as JavaScript
+### 8.2 Content is data, addressed by its own hash
 
-- **Chosen:** works and chapel books are generated `.js` modules under
-  `src/content/`, reached by dynamic `import()` from a catalog.
-- **Rejected:** content-addressed data assets (`/content/<sha256>.json`) fetched
-  at read time behind a manifest and verified on arrival.
-- **Why:** the ingest writes `.js` and everything downstream followed; no spec
-  required it. It buys one real thing — Rollup hashes, splits and cache-busts
-  payloads for free, and a missing import is a build error rather than a 404.
-  It costs a great deal: the JavaScript compiler parses novels, the repository
-  carries the corpus, test forks need a raised heap ceiling to compile a book
-  (`vite.config.js`), and a withheld work must be unlinked from the catalog or
-  the bundler ships it anyway — a defect that once built and deployed 82 MB of
-  unreachable books.
-- **Status:** **open.** This is the largest known cost in the design. The
-  alternative in outline: the ingest already computes a payload checksum for
-  every work, so making that hash the delivery key costs a manifest
-  (`id → sha256 → bytes → url`) and a fetch-verify-cache module. The reading
-  pipeline does not change — it receives the same strings through a different
-  door — and a work becomes verifiable in the reader's browser on every read,
-  which the current design cannot do at any price. Not yet decided.
+- **Chosen:** a work is a content-addressed asset. `content/manifest.json`
+  (schema `rise.content-manifest.v1`) names every work; the payload lives at
+  `content/works/<sha256>.json` and is fetched at read time by
+  `src/core/content-store.js`, which verifies the digest on arrival. **The hash
+  is the URL**, so the address an object was fetched by is the digest it must
+  have.
+- **Rejected:** generated `.js` modules under `src/content/`, reached by dynamic
+  `import()` from a catalog — which is what this was until it was cut.
+- **Why:** compiling books bought one real thing — Rollup hashed, split and
+  cache-busted payloads for free, and a missing import was a build error rather
+  than a 404. It cost far more. The JavaScript compiler parsed novels; the
+  repository carried the corpus; a test fork needed a raised heap ceiling to
+  compile a single book; and a withheld work had to be unlinked from the
+  catalog or the bundler shipped it anyway — the defect that once built and
+  deployed 82 MB of unreachable books. Measured at the cut: shipped JavaScript
+  fell from 18.7 MB to 3.25 MB with **no book text left in it at all**, and
+  first load fell to 58.8 KB brotli over three requests.
+  **What the old design could not buy at any price** is what this one gets for
+  nothing: a payload is re-verified in the reader's browser on every read, so a
+  silently corrupted object is unreadable rather than readable-and-wrong. A
+  work that will not verify is *absent*, per §2.2 — never substituted.
+- **Status:** settled. Recorded as `open` when this register was written, and
+  closed by the change that cut the seam.
+
+### 8.2a Withholding is a manifest field, not a code path
+
+- **Chosen:** a withheld work appears in `content/manifest.json` with
+  `shelved: false` and its `withheldReason`, and its payload is simply not
+  addressed.
+- **Rejected:** the earlier mechanism, where a withheld work carried metadata
+  but no `load` function, and a test asserted that correspondence in both
+  directions.
+- **Why:** that test — `reachable-payloads.test.js` — existed to stop the
+  bundler shipping something a runtime filter could not remove. Once content is
+  not built, the bundler is not on the path, and the defect it guarded is not
+  merely fixed but **impossible**. Deleting a test because its subject ceased
+  to exist is the strongest available form of a fix, and is why the deletion
+  appears in the same change as the seam. `content-manifest.test.js` replaces
+  it, asserting what is now true: every shelved work resolves, and every
+  withheld one states a reason.
+- **Status:** settled.
 
 ### 8.3 A withheld work is unlinked, not deleted
 
 - **Chosen:** a withheld work keeps its metadata, provenance and a stated
-  reason, and carries **no `load` function**. The payload stays on disk and in
-  git.
-- **Rejected:** (a) filtering withheld works at runtime — tried, and it failed;
-  (b) deleting the payload.
-- **Why:** a runtime filter cannot remove a build-time dependency. The
-  catalogue filtered withheld works at runtime while every entry still carried
-  `load: () => import(...)`, so Rollup emitted a chunk for each — 82 MB of
-  books no reader could open, built and deployed on every push. Deleting the
-  payload was rejected because a withholding is an editorial act that must stay
-  reversible and legible to a future curator. Both directions are asserted by
-  `reachable-payloads.test.js`, because either half failing is silent.
+  reason. The payload stays on disk and in git.
+- **Rejected:** deleting the payload.
+- **Why:** a withholding is an editorial act, and it must stay reversible and
+  legible to a future curator — "withheld, never deleted," with every
+  withholding stating a reason, enforced by test. The *mechanism* for keeping a
+  withheld work off the wire has changed twice and is recorded in §8.2a; the
+  rule about not destroying the payload has not changed at all.
 - **Status:** settled.
 
 ### 8.4 No `manualChunks`
@@ -638,11 +656,13 @@ of `settled`, `open`, `deferred`, or `reversed`.
 
 Stated plainly so it is never rediscovered as a surprise.
 
-- **The corpus travels through the code path.** Books are JavaScript, so they
-  are in the repository, in the bundle, in the module graph and in the test
-  runner's heap. §8.2.
-- **Recitation ships uncompressed**, and is by a wide margin the largest thing
-  a deploy contains. §8.5.
+- **The corpus is still versioned in the application repository**, even though
+  it no longer travels through the module graph. §8.2 removed the build-time
+  cost; *where the bytes live* is a separate question and is still open.
+- **Recitation ships uncompressed**, and is now by a very wide margin the
+  largest thing a deploy contains — the audio is roughly seventy-five times the
+  size of all the JavaScript. §8.5. With the content seam cut, this is the
+  single biggest remaining cost in the design.
 - **There is no single timeline.** §8.7.
 - **Most rooms have no address.** §8.12.
 - **Access control does not exist**, by choice. §8.1, §7.
