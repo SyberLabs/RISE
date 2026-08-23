@@ -13,7 +13,7 @@
  * So the path is written out, and this reads the citations back out of the
  * source and looks each section up. A comment that cites §12b fails here.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { EXTENT_OVERSHOOT_LIMIT } from './library-extent.js';
@@ -33,10 +33,32 @@ const CITING_FILES = Object.freeze([
     // in the same pass, because the exit-status mapping a red team scripts
     // against cannot live only in a comment.
     'src/core/scriptorium-session.js',
-    'src/core/scriptorium-cli.js'
+    'src/core/scriptorium-cli.js',
+    // A reader's own text became a source the room composes from, so the
+    // record that makes it one is held to citing the section that states
+    // the law it obeys — §7a, written in the same pass for the same reason
+    // §10c was: the rule was obeyed in five files and stated in none.
+    'src/core/local-works.js'
 ]);
 
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
+
+/**
+ * Files citing the strengthening brief — FOUND, not listed.
+ *
+ * The list above is written by hand and has to be remembered; this one cannot
+ * be forgotten, because a file added tomorrow that names the brief is swept up
+ * by having named it. The list above stays hand-written only because it is the
+ * older arrangement and rewriting it is not this pass's work.
+ */
+const CITING_BRIEF = readdirSync(join(ROOT, 'src'), { recursive: true })
+    .map(entry => join('src', String(entry)))
+    .filter(path => path.endsWith('.js'))
+    // The sweep cannot be its own subject: naming the string it searches for
+    // makes this file match it, and the match is the search, not a citation.
+    .filter(path => !path.endsWith('scriptorium-spec.test.js'))
+    .filter(path => read(path).includes('SCRIPTORIUM-STRENGTHENING-SPEC'))
+    .sort();
 
 /** `## 10. Blocked on` and `### 10c. Part of a work` alike. */
 function headings(markdown) {
@@ -230,5 +252,70 @@ describe('the numbers the spec states are the numbers the code computes', () => 
                 ).toBe(true);
             }
         }
+    });
+});
+
+/**
+ * THE SAME LAW, ON THE SECOND DOCUMENT.
+ *
+ * Everything above holds SCRIPTORIUM-SPEC.md's citations to a path and a real
+ * heading, because a citation nobody can check is a label offered as evidence.
+ * Then the strengthening brief arrived and six files came to cite IT — §2.4,
+ * §5, §9.1 — and every one of them named it without a path, which is the
+ * precise failure the block above was written to end. A rule that reaches one
+ * document and not its sibling was never a rule; it was a fix.
+ *
+ * The heading grammar differs and that is not incidental. This document
+ * numbers `## 5. The partition` and `### 5.5 Default names` — a period after
+ * the integer, none after the dotted pair — so the pattern above (`\d+[a-z]?`
+ * followed by a period) matches `5` and cannot see `5.5` at all. Reusing it
+ * would have passed every citation in this file by finding no sections to
+ * disagree with.
+ */
+describe('every strengthening-brief citation resolves', () => {
+    const BRIEF = 'docs/vision/SCRIPTORIUM-STRENGTHENING-SPEC.md';
+    const brief = read(BRIEF);
+
+    /** `## 5. Title` and `### 5.5 Title` alike. */
+    const briefSections = new Set(
+        [...brief.matchAll(/^#{2,4}\s+(\d+(?:\.\d+)?)\.?\s/gmu)].map(match => match[1])
+    );
+
+    const briefCitations = source => [...source.matchAll(
+        /(\S*SCRIPTORIUM-STRENGTHENING-SPEC(?:\.md)?)\s*(?:§(\d+(?:\.\d+)?))?/gu
+    )].map(match => ({ path: match[1], section: match[2] || null }));
+
+    it('reads both heading depths, or it checks nothing', () => {
+        // A sweep that found only the top-level headings would pass every
+        // subsection citation below it without ever looking one up.
+        expect(briefSections.has('5')).toBe(true);
+        expect(briefSections.has('5.5')).toBe(true);
+        expect(briefSections.has('2.4')).toBe(true);
+        expect(briefSections.size).toBeGreaterThan(20);
+    });
+
+    it('names every file that cites the brief', () => {
+        // Discovered rather than listed: a file added tomorrow is held to the
+        // same rule without anyone remembering to add it here.
+        expect(CITING_BRIEF.length).toBeGreaterThanOrEqual(6);
+    });
+
+    for (const file of CITING_BRIEF) {
+        it(`${file} cites the brief by a path, at a section that exists`, () => {
+            for (const { path, section } of briefCitations(read(file))) {
+                expect(path, `${file} cites the brief without a path`).toContain(BRIEF);
+                if (section === null) continue;
+                expect(briefSections.has(section),
+                    `${file} cites §${section}, which is not a heading in ${BRIEF}`).toBe(true);
+            }
+        });
+    }
+
+    it('still records the one place the code departs from it', () => {
+        // §9.1 deletes "Local Files -> immediate Chamber". It is kept, as a
+        // second button. A brief whose deletion list silently regained that
+        // line would describe a build that does not exist.
+        expect(brief).toMatch(/Reversed 2026-08-21/u);
+        expect(brief).toMatch(/imported-/u);
     });
 });

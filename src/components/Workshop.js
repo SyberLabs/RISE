@@ -1924,7 +1924,7 @@ export class Workshop {
 
   /**
    * A dropped `.txt`, shown as the parts it will become — the same room the
-   * Library opens (SCRIPTORIUM-STRENGTHENING-SPEC §5).
+   * Library opens (docs/vision/SCRIPTORIUM-STRENGTHENING-SPEC.md §5).
    *
    * TWO DOORS FOR ONE FILE WAS THE DEFECT. The Library divided a file, named
    * its parts and shelved it where a score could point at `local-…#4`; this

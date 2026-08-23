@@ -65,7 +65,7 @@ describe('dropping a file', () => {
     });
 
     it('still reaches the Chamber in one more tap, with the whole text', async () => {
-        // The direct read is a departure from SCRIPTORIUM-STRENGTHENING-SPEC
+        // The direct read is a departure from docs/vision/SCRIPTORIUM-STRENGTHENING-SPEC.md
         // §9.1, which deletes it. Kept deliberately: the partition is an
         // addition to what a dropped file could do, not a toll on it.
         await library.handleFileUpload(dropped());

@@ -4,8 +4,9 @@
  * The physics have their own tests; these press the buttons. What is checked
  * here is the seam between the two — that the offsets on the DOM are the
  * offsets the verbs accept, that a tap-only reader can reach every result,
- * and that both exits still exist. The last one is a deliberate departure
- * from SCRIPTORIUM-STRENGTHENING-SPEC §9.1, which deletes the direct read.
+ * and that both exits still exist. The last one is a deliberate departure from
+ * docs/vision/SCRIPTORIUM-STRENGTHENING-SPEC.md §9.1, which deletes the
+ * direct read.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Admit } from './Admit.js';

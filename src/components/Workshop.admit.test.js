@@ -5,7 +5,7 @@
  * score could point at `local-…#4`. This room — the one built for authoring —
  * read the same file into a flat blob named after a timestamp. The better door
  * was the one outside the workshop, so the two are now one door
- * (SCRIPTORIUM-STRENGTHENING-SPEC §5).
+ * (docs/vision/SCRIPTORIUM-STRENGTHENING-SPEC.md §5).
  *
  * What is guarded here is mostly the seam: that a work shelved from this room
  * and the source added to the project are ONE identity, that the offsets in

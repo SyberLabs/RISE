@@ -11,7 +11,7 @@
  * This is deliberately NOT the Workshop's highlight. That paints character
  * spans for media assignment — spans that may overlap and may leave gaps, in
  * per-asset colours. A partition can do neither. Cloning that screen would
- * paint the wrong physics (SCRIPTORIUM-STRENGTHENING-SPEC §2.4).
+ * paint the wrong physics (docs/vision/SCRIPTORIUM-STRENGTHENING-SPEC.md §2.4).
  *
  * A JOINT MAY ONLY LAND ON A SNAP. Never mid-word, never inside a token the
  * word count would split. What counts as a snap is measured against real

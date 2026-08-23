@@ -1,9 +1,10 @@
 /**
  * A local work — reader text that became a Library work.
  *
- * The trunk of SCRIPTORIUM-STRENGTHENING-SPEC: a reader's `.txt` becomes a
- * catalogue work with named, addressable parts BEFORE the Scriptorium can
- * compose from it. Until it does, the extent grammar has nothing to point at
+ * The trunk of docs/vision/SCRIPTORIUM-STRENGTHENING-SPEC.md: a reader's
+ * `.txt` becomes a catalogue work with named, addressable parts BEFORE the
+ * Scriptorium can compose from it. Until it does, the extent grammar has
+ * nothing to point at
  * — `local-april-diary#4` and `sacred-tao-te-ching#40` are the same sentence,
  * and only one of them has ever had a work behind it.
  *
@@ -15,6 +16,9 @@
  * no IndexedDB and no DOM: the session overlay is the product, and a browser
  * store is one hydrator of it. The CLI is another. Tests are a third, and
  * they hand fixtures straight to the overlay.
+ *
+ * The law this record is held to is `docs/vision/SCRIPTORIUM-SPEC.md` §7a —
+ * the reserved prefix, whose scheme it is, and where line endings are settled.
  *
  * What this module does NOT do is decide where a reader's cuts should fall.
  * The divider may propose (`draftLocalWork`); a reader disposes. That is the
