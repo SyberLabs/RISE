@@ -511,7 +511,14 @@ describe('the division index agrees with the works it describes', () => {
 
         expect(offenders, `${offenders.join(', ')} would ship the withheld record`)
             .toEqual([]);
-    });
+        // A SWEEP NEEDS A SWEEP'S BUDGET. This reads every module under src/
+        // synchronously, which is comfortable alone and not comfortable while
+        // every other fork is doing its own work — it timed out at the default
+        // 5s in a full run and passed twice in isolation immediately after.
+        // The budget is widened rather than the pool narrowed, for the same
+        // reason furniture.test.js was: a guard that goes red on contention
+        // teaches people to re-run rather than to read.
+    }, 30_000);
 });
 
 describe('a misnamed head does not open the work', () => {
