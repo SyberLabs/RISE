@@ -242,8 +242,8 @@ execution-time consent and photosensitivity checks, and the presence lifecycle.
 Provider initialization is retryable; registry initialization is idempotent; a
 provider failure degrades that provider, not startup.
 
-**Layering, enforced by inspection and kept true by §10:** `src/core` and
-`src/visuals` never import from `src/components`. Rooms communicate with the
+**Layering, checked by §10:** `src/core` and `src/visuals` never import from
+`src/components`, statically or dynamically. Rooms communicate with the
 application through callbacks passed in at construction.
 
 ### The rooms
@@ -723,7 +723,7 @@ Stated plainly so it is never rediscovered as a surprise.
   it no longer travels through the module graph. §8.2 removed the build-time
   cost; *where the bytes live* is a separate question and is still open.
 - **Recitation ships uncompressed**, and is now by a very wide margin the
-  largest thing a deploy contains — the audio is roughly seventy-five times the
+  largest thing a deploy contains — the audio is roughly seventy times the
   size of all the JavaScript. §8.5. With the content seam cut, this is the
   single biggest remaining cost in the design.
 - **There is no single timeline.** §8.7.
@@ -749,7 +749,9 @@ are checked by `src/core/system-design.test.js`, which fails a build when:
    half failing is silent;
 3. a decision in §8 is missing **Chosen**, **Rejected**, **Why** or **Status**,
    or uses a status outside the fixed vocabulary;
-4. the production dependency list in §8.10 disagrees with `package.json`.
+4. the production dependency list in §8.10 disagrees with `package.json`;
+5. §5's layering claim stops being true — `src/core` or `src/visuals` reaches
+   into `src/components`, statically or dynamically.
 
 The import graph in §3 is not checked, it is *generated*:
 `npm run docs:diagram` writes it out of `src/`, and CI fails when the committed
