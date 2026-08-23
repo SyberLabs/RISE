@@ -191,6 +191,40 @@ describe('Chamber Mask', () => {
         expect(atomDisplay(container).dataset.chamberFace).toBe('literary');
         chamber.destroy();
     });
+
+    it('adds is-mask for canonical Fit Gallery without the legacy Mask setting', () => {
+        const { chamber, container } = makeChamber(
+            wordGallerySession('continuous'),
+            { chamberMask: false, fontSize: 'fit' }
+        );
+        expect(atomDisplay(container).classList.contains('is-mask')).toBe(true);
+        chamber.destroy();
+    });
+
+    it('does not let Fit mask a phrase', () => {
+        const { chamber, container } = makeChamber(
+            {
+                chunkMode: 'phrase',
+                visualConfig: {
+                    visualMode: 'interlocution',
+                    interlocution: { presentation: 'continuous' }
+                }
+            },
+            { chamberMask: false, fontSize: 'fit' }
+        );
+        expect(atomDisplay(container).classList.contains('is-mask')).toBe(false);
+        chamber.destroy();
+    });
+
+    it('keeps continuous Gallery mounted without a mask at Medium', () => {
+        const { chamber, container } = makeChamber(
+            wordGallerySession('continuous'),
+            { chamberMask: false, fontSize: 'medium' }
+        );
+        expect(galleryHost(container)).toBeTruthy();
+        expect(atomDisplay(container).classList.contains('is-mask')).toBe(false);
+        chamber.destroy();
+    });
 });
 
 describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
@@ -783,4 +817,3 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
         chamber.destroy();
     });
 });
-

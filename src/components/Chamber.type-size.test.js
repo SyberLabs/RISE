@@ -19,14 +19,42 @@ function makeChamber(sessionExtra = {}, settings = {}) {
     return { chamber, container };
 }
 
-function installField(width = 390, height = 720) {
+function installField(width = 390, height = 720, {
+    fieldWidth = width,
+    fieldHeight = height,
+    viewportWidth = width,
+    viewportHeight = height,
+    documentWidth = width,
+    documentHeight = height
+} = {}) {
     const proto = globalThis.HTMLElement?.prototype;
     const previousRect = proto?.getBoundingClientRect;
     const previousWidth = Object.getOwnPropertyDescriptor(proto, 'clientWidth');
     const previousHeight = Object.getOwnPropertyDescriptor(proto, 'clientHeight');
+    const previousViewport = Object.getOwnPropertyDescriptor(window, 'visualViewport');
+    const root = document.documentElement;
+    const previousDocumentWidth = Object.getOwnPropertyDescriptor(root, 'clientWidth');
+    const previousDocumentHeight = Object.getOwnPropertyDescriptor(root, 'clientHeight');
+    Object.defineProperty(window, 'visualViewport', {
+        configurable: true,
+        value: {
+            width: viewportWidth,
+            height: viewportHeight,
+            addEventListener() {},
+            removeEventListener() {}
+        }
+    });
+    Object.defineProperty(root, 'clientWidth', { configurable: true, value: documentWidth });
+    Object.defineProperty(root, 'clientHeight', { configurable: true, value: documentHeight });
     proto.getBoundingClientRect = function getBoundingClientRect() {
-        if (this.id === 'chamber-field' || this.classList?.contains('chamber-field')) {
+        if (this.id === 'chamber-display') {
             return { left: 0, top: 0, width, height, right: width, bottom: height };
+        }
+        if (this.id === 'chamber-field' || this.classList?.contains('chamber-field')) {
+            return {
+                left: 0, top: 0, width: fieldWidth, height: fieldHeight,
+                right: fieldWidth, bottom: fieldHeight
+            };
         }
         if (this.id === 'atom-band') {
             return { left: 0, top: 0, width: 0, height: 0, right: 0, bottom: 0 };
@@ -36,7 +64,8 @@ function installField(width = 390, height = 720) {
     Object.defineProperty(proto, 'clientWidth', {
         configurable: true,
         get() {
-            if (this.id === 'chamber-field' || this.classList?.contains('chamber-field')) return width;
+            if (this.id === 'chamber-display') return width;
+            if (this.id === 'chamber-field' || this.classList?.contains('chamber-field')) return fieldWidth;
             if (this.id === 'atom-band') return 0;
             return 180;
         }
@@ -44,7 +73,8 @@ function installField(width = 390, height = 720) {
     Object.defineProperty(proto, 'clientHeight', {
         configurable: true,
         get() {
-            if (this.id === 'chamber-field' || this.classList?.contains('chamber-field')) return height;
+            if (this.id === 'chamber-display') return height;
+            if (this.id === 'chamber-field' || this.classList?.contains('chamber-field')) return fieldHeight;
             if (this.id === 'atom-band') return 0;
             return 90;
         }
@@ -55,6 +85,12 @@ function installField(width = 390, height = 720) {
         else delete proto.clientWidth;
         if (previousHeight) Object.defineProperty(proto, 'clientHeight', previousHeight);
         else delete proto.clientHeight;
+        if (previousViewport) Object.defineProperty(window, 'visualViewport', previousViewport);
+        else delete window.visualViewport;
+        if (previousDocumentWidth) Object.defineProperty(root, 'clientWidth', previousDocumentWidth);
+        else delete root.clientWidth;
+        if (previousDocumentHeight) Object.defineProperty(root, 'clientHeight', previousDocumentHeight);
+        else delete root.clientHeight;
     };
 }
 
@@ -123,6 +159,34 @@ describe('Chamber type size (FM-RISE-36)', () => {
             measuredHeight: 115,
             measuredAt: 100
         }));
+        chamber.destroy();
+    });
+
+    it('fits against the bounded stage and ignores content-driven field growth', () => {
+        restoreField?.();
+        restoreField = installField(960, 640, {
+            fieldWidth: 9000,
+            fieldHeight: 7000,
+            viewportWidth: 900,
+            viewportHeight: 600,
+            documentWidth: 920,
+            documentHeight: 610
+        });
+        const { chamber, container } = makeChamber(
+            { chunkMode: 'word' },
+            { fontSize: 'fit' }
+        );
+
+        const before = chamber._wordFitBox();
+        const atom = container.querySelector('#atom-display');
+        atom.getBoundingClientRect = () => ({
+            left: -4000, top: -3000, width: 9000, height: 7000,
+            right: 5000, bottom: 4000
+        });
+        const after = chamber._wordFitBox();
+
+        expect(before).toEqual({ width: 900, height: 600, source: 'chamber-stage' });
+        expect(after).toEqual(before);
         chamber.destroy();
     });
 

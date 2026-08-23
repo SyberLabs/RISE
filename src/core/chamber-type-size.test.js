@@ -46,8 +46,8 @@ describe('fitWordAtomPx (Fit only)', () => {
         const px = fitWordAtomPx(band);
         expect(px).toBeGreaterThan(72 * 1.5);
         expect(px).toBeCloseTo(100 * Math.min(
-            (usableW * 0.88) / 240,
-            (usableH * 0.88) / 80
+            ((390 * 0.88) - 24) / 240,
+            ((720 * 0.88) - 16) / 140
         ), 5);
         expect(px).toBeLessThanOrEqual(Math.min(usableW, usableH) * 0.95);
         expect(px).toBeGreaterThanOrEqual(16);
@@ -56,6 +56,23 @@ describe('fitWordAtomPx (Fit only)', () => {
     it('returns null when the chamber box is missing so Fit can wait', () => {
         expect(fitWordAtomPx({ ...band, fieldWidth: 0 })).toBeNull();
         expect(fitWordAtomPx({ ...band, measuredWidth: 0 })).toBeNull();
+    });
+
+    it('fits the line box, not only the visible glyph', () => {
+        const fieldHeight = 300;
+        const padY = 20;
+        const px = fitWordAtomPx({
+            fieldWidth: 900,
+            fieldHeight,
+            padX: 0,
+            padY,
+            measuredWidth: 40,
+            measuredHeight: 20,
+            measuredAt: 100,
+            lineHeightRatio: 1.4
+        });
+
+        expect(px * 1.4 + padY).toBeLessThanOrEqual(fieldHeight * 0.88);
     });
 });
 

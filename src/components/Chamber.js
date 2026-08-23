@@ -22,8 +22,7 @@ import { scoreAtoms, planInterlocution } from '../core/conductor.js';
 import { VisualScheduleController } from '../core/visual-scheduler.js';
 import {
   authoredVisualTransition,
-  isContinuousPresentation,
-  isGalleryInTheWord
+  isContinuousPresentation
 } from '../core/visual-presence.js';
 import {
   MovementScheduleController,
@@ -41,6 +40,7 @@ import {
   estimateGlyphBox,
   fitWordAtomPx,
   isChamberWordFit,
+  resolveFitMaskMode,
   resolveFontSize,
   threeStepIntent
 } from '../core/chamber-type-size.js';
@@ -598,10 +598,16 @@ export class Chamber {
   }
 
   chamberMaskApplies() {
-    const settingsOn = globalThis.rise?.settings?.chamberMask === true;
+    const settings = globalThis.rise?.settings || {};
+    const visualConfig = this.session?.visualConfig;
     const presentation = this.session?.visualConfig?.interlocution?.presentation;
-    const prepOn = isGalleryInTheWord(presentation);
-    return (settingsOn || prepOn) && this.session?.chunkMode === 'word';
+    return resolveFitMaskMode({
+      fontSize: settings.fontSize,
+      chunkMode: this.session?.chunkMode,
+      visualMode: visualConfig?.visualMode,
+      presentation,
+      legacyMask: settings.chamberMask === true
+    });
   }
 
   applyChamberMask() {
@@ -1830,6 +1836,13 @@ export class Chamber {
     const padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
     const shown = stripEmphasis(content);
     const measured = this._measureWordGlyph(atomDisplay, shown);
+    const computedFontPx = parseFloat(cs.fontSize);
+    const computedLineHeight = parseFloat(cs.lineHeight);
+    const lineHeightRatio = Number.isFinite(computedLineHeight)
+      ? (Number.isFinite(computedFontPx) && computedFontPx > 0 && /px$/i.test(cs.lineHeight)
+        ? computedLineHeight / computedFontPx
+        : computedLineHeight)
+      : 1.4;
     const px = fitWordAtomPx({
       fieldWidth: box.width,
       fieldHeight: box.height,
@@ -1837,7 +1850,8 @@ export class Chamber {
       padY,
       measuredWidth: measured.width,
       measuredHeight: measured.height,
-      measuredAt: measured.at
+      measuredAt: measured.at,
+      lineHeightRatio
     });
     if (px == null) {
       atomDisplay.classList.remove('is-word-fit');
@@ -1851,17 +1865,20 @@ export class Chamber {
   }
 
   _wordFitBox() {
-    const band = this.container.querySelector('#atom-band');
-    const field = this.container.querySelector('#chamber-field');
-    const bandW = band?.clientWidth || band?.getBoundingClientRect?.().width || 0;
-    const bandH = band?.clientHeight || band?.getBoundingClientRect?.().height || 0;
-    if (bandW > 1 && bandH > 1) {
-      return { width: bandW, height: bandH, source: 'atom-band' };
-    }
+    const display = this.container.querySelector('#chamber-display');
+    const rect = display?.getBoundingClientRect?.();
+    const stageWidth = display?.clientWidth || rect?.width || 0;
+    const stageHeight = display?.clientHeight || rect?.height || 0;
+    const viewport = window.visualViewport;
+    const root = document.documentElement;
+    const smallestPositive = (...values) => {
+      const positive = values.map(Number).filter(value => value > 1);
+      return positive.length ? Math.min(...positive) : 0;
+    };
     return {
-      width: field?.clientWidth || field?.getBoundingClientRect?.().width || 0,
-      height: field?.clientHeight || field?.getBoundingClientRect?.().height || 0,
-      source: 'chamber-field'
+      width: smallestPositive(stageWidth, viewport?.width, root?.clientWidth),
+      height: smallestPositive(stageHeight, viewport?.height, root?.clientHeight),
+      source: 'chamber-stage'
     };
   }
 

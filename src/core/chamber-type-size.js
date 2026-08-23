@@ -100,21 +100,29 @@ export function fitWordAtomPx({
     padY = 0,
     measuredWidth,
     measuredHeight,
-    measuredAt = 100
+    measuredAt = 100,
+    lineHeightRatio = 1.4
 } = {}) {
     const usableW = Number(fieldWidth) - Number(padX);
     const usableH = Number(fieldHeight) - Number(padY);
     const glyphW = Number(measuredWidth);
     const glyphH = Number(measuredHeight);
     const at = Number(measuredAt);
+    const lineRatio = Number(lineHeightRatio);
 
     if (!(usableW > 0) || !(usableH > 0) || !(glyphW > 0) || !(glyphH > 0) || !(at > 0)) {
         return null;
     }
 
+    const verticalReference = Math.max(
+        glyphH,
+        at * (lineRatio > 0 ? lineRatio : 1.4)
+    );
+    const targetW = (Number(fieldWidth) * WORD_FIT_FILL) - Number(padX);
+    const targetH = (Number(fieldHeight) * WORD_FIT_FILL) - Number(padY);
     const px = at * Math.min(
-        (usableW * WORD_FIT_FILL) / glyphW,
-        (usableH * WORD_FIT_FILL) / glyphH
+        targetW / glyphW,
+        targetH / verticalReference
     );
     const cap = Math.min(usableW, usableH) * WORD_FIT_MAX_PORTION;
     return Math.max(WORD_FIT_MIN_PX, Math.min(px, cap));
