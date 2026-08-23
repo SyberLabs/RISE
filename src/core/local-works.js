@@ -25,7 +25,7 @@ import { countWords } from './chunker.js';
 import { divideSections } from '../content/archive/divisions.js';
 import { READING_LIMITS } from './reading-limits.js';
 
-export const LOCAL_WORK_SCHEMA = 'rise.local-work.v1';
+const LOCAL_WORK_SCHEMA = 'rise.local-work.v1';
 
 /**
  * RESERVED. Archive ingest may never mint an id under this prefix, which is
@@ -40,6 +40,33 @@ export const LOCAL_WORK_DEFAULT_NOUN = 'Reading';
 /** A line ending, whichever kind the reader's file uses. */
 const SPLIT_LINE = /\r?\n/u;
 
+const TITLE_MAX_CHARS = 60;
+const TITLE_MAX_WORDS = 9;
+
+/**
+ * A TITLE LINE — measured, not assumed.
+ *
+ * `paragraphIsHeading` wants ALL CAPS or an ordinal, and on a real book of
+ * poems it fired ZERO times: 105 blocks, 97 of whose first lines read as
+ * titles — Pyramid, Sycamore, Railroad — and not one of them shouting. A
+ * reader's own file is where this rule came from, which is the only place a
+ * rule about reader files can honestly come from.
+ *
+ * Conservative on purpose: a short line, no terminal punctuation, followed by
+ * something. A line of verse that happens to be short is the false positive
+ * this will make, and a reader joins it in one gesture.
+ *
+ * ONE COPY. `defaultLabel` names a drafted part with it and the partition's
+ * title magnet decides a joint with it; two copies of this predicate is one
+ * predicate and one thing that will disagree with it.
+ */
+export function looksLikeTitle(line) {
+  const text = String(line ?? '').trim();
+  if (!text || text.length > TITLE_MAX_CHARS) return false;
+  if (/[.,;:!?]$/u.test(text)) return false;
+  return countWords(text) <= TITLE_MAX_WORDS;
+}
+
 export class LocalWorkError extends Error {
   constructor(message, code = 'LOCAL_WORK') {
     super(message);
@@ -51,7 +78,7 @@ export class LocalWorkError extends Error {
 const fail = (code, message) => { throw new LocalWorkError(message, code); };
 
 /** A bounded, lowercase slug — the id a reader will see in a source id. */
-export function localWorkSlug(value) {
+function localWorkSlug(value) {
   const slug = String(value ?? '')
     .normalize('NFKD')
     .replace(/[̀-ͯ]/gu, '')
@@ -63,7 +90,7 @@ export function localWorkSlug(value) {
   return slug || 'text';
 }
 
-export function localWorkId(value) {
+function localWorkId(value) {
   return `${LOCAL_WORK_PREFIX}${localWorkSlug(value)}`;
 }
 
@@ -235,12 +262,10 @@ export function authorship(record) {
 }
 
 /** The first line when it reads as a heading; otherwise the counted name. */
-export function defaultLabel(content, index, noun = LOCAL_WORK_DEFAULT_NOUN) {
-  const first = String(content ?? '').trim().split(/\r?\n/, 1)[0].trim();
-  if (first && first.length <= 60 && !/[.!?,;:]$/u.test(first) && countWords(first) <= 9) {
-    return first;
-  }
-  return `${noun} ${index + 1}`;
+function defaultLabel(content, index) {
+  const first = String(content ?? '').trim().split(SPLIT_LINE, 1)[0].trim();
+  if (looksLikeTitle(first)) return first;
+  return `${LOCAL_WORK_DEFAULT_NOUN} ${index + 1}`;
 }
 
 /**

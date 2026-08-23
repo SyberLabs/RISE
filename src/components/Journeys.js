@@ -27,6 +27,7 @@
 
 import { createJourneyHandoff, journeyIntroduction } from '../content/journeys/handoff.js';
 import { resolveJourneyPassages } from '../content/journeys/passages.js';
+import './Journeys.css';
 
 /**
  * Everything published here, shortest first — which is nothing.

@@ -10,7 +10,6 @@
  */
 
 import { Router } from './core/router.js';
-import { AudioEngine } from './audio/engine.js';
 import { Player, estimateInterlocutionCount } from './core/player.js';
 import {
     GALLERY_CADENCE_DEFAULT,
@@ -44,21 +43,12 @@ import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
 import { normalizeVisualSelection, normalizeWordFill } from './core/visual-selection.js';
 
+// Only what paints the first screen. Every other room now imports its own
+// stylesheet, so the CSS arrives with the route rather than ahead of it —
+// a reader looking at the Portal was downloading Workshop's 82 kB and
+// Chamber's 50 kB before choosing anything.
 import './design-system.css';
 import './components/Portal.css';
-import './components/Keystones.css';
-import './components/ChamberOrbital.css';
-import './components/Chamber.css';
-import './components/Library.css';
-import './components/Workshop.css';
-import './components/Settings.css';
-import './components/Guide.css';
-import './components/Chapel.css';
-import './components/Rosarium.css';
-import './components/Via.css';
-import './components/Curia.css';
-import './components/Scriptorium.css';
-import './components/Journeys.css';
 import './premium-additions.css';
 
 /**
@@ -112,8 +102,19 @@ class App {
         this.setupErrorRecovery();
 
         // Pre-create audio engine and set up first-interaction listener
-        // This ensures audio initializes on the BetaGate click, not after portal loads
-        this.audioEngine = new AudioEngine();
+        // This ensures audio initializes on the BetaGate click, not after portal loads.
+        //
+        // The MODULE is fetched lazily and the engine is created as soon as it
+        // lands, which keeps the Web Audio graph out of the entry chunk without
+        // moving when audio becomes available: nothing can play before a user
+        // gesture anyway, and that gesture is the BetaGate click below. Callers
+        // that may run before the chunk resolves await `_audioReady`.
+        this._audioReady = import('./audio/engine.js')
+            .then(({ AudioEngine }) => (this.audioEngine ??= new AudioEngine()))
+            .catch(error => {
+                console.warn('[RISE] Audio engine unavailable:', error);
+                return null;
+            });
         this.setupAudioInteraction();
 
         // Check beta access - this will call initializeApp when access is granted
@@ -188,6 +189,10 @@ class App {
      */
     async initializeApp(options = {}) {
         this.loadSettings();
+        // Await the engine chunk rather than `?.`-skipping it: a saved master
+        // volume that silently fails to apply at boot is the kind of defect
+        // that only shows up as "it was loud again".
+        await this._audioReady;
         this.audioEngine?.setMasterVolume(this.settings.masterVolume);
 
         // Apply accessibility settings immediately
@@ -274,6 +279,7 @@ class App {
         const listenerOptions = { signal: this._audioInteractionController.signal };
         const initAudio = async () => {
             try {
+                await this._audioReady;
                 if (this.audioEngine) {
                     console.log('[RISE] First interaction - Initializing audio context');
                     await this.audioEngine.init();

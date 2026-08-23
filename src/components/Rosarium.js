@@ -33,6 +33,7 @@ import { RosaryStrand } from '../visuals/rosary-strand.js';
 import { escapeHtml } from '../core/sanitize.js';
 import { createRemoteImage } from '../visuals/remote-image.js';
 import { rosaryDoorHref } from '../core/rosary-door.js';
+import './Rosarium.css';
 
 const MODE_KEY = 'rise_chapel_rosary_mode_v1';
 const SOUND_KEY = 'rise_rosarium_sound_v1';

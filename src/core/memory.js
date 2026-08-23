@@ -11,16 +11,21 @@ import {
   workshopEditorDataToProject,
   workshopProjectToBlueprintView
 } from './workshop-project.js';
-import {
-  ensureWorkshopAssetsDurable,
-  hydrateWorkshopProjectView
-} from './workshop-asset-durability.js';
 import { WorkshopMedia } from './workshop-media.js';
 
 const STORAGE_KEY = 'rise_recursions_v1';
 const WORKSHOP_KEY = 'rise_workshop_v1';
 const GLOBAL_IMAGES_KEY = 'rise_global_images_v1';
 const MAX_GLOBAL_IMAGES = 20;
+
+// MemoryCore is on the boot path; durability is not. Both callers below are
+// already async and belong to Workshop, so importing here statically only put
+// the asset layer in front of a reader who may never open Workshop — and it
+// silently defeated app.js's own `await import()` of the same module, which
+// Rollup reported on every build.
+let durability = null;
+const workshopDurability = async () =>
+  (durability ??= await import('./workshop-asset-durability.js'));
 
 function stableGlobalImageId(uri) {
   // Deterministic FNV-1a fallback keeps legacy string records addressable even
@@ -156,6 +161,7 @@ export class MemoryCore {
    */
   static async getWorkshopBlueprintsHydrated() {
     try {
+      const { ensureWorkshopAssetsDurable, hydrateWorkshopProjectView } = await workshopDurability();
       const { stored } = this._readWorkshopStore();
       const nextStored = [];
       const views = [];
@@ -277,6 +283,7 @@ export class MemoryCore {
   static async saveWorkshopBlueprintAsync(blueprint, options = {}) {
     try {
       if (!blueprint || typeof blueprint !== 'object') return null;
+      const { ensureWorkshopAssetsDurable, hydrateWorkshopProjectView } = await workshopDurability();
       const { stored } = this._readWorkshopStore();
       const id = blueprint.id || `blueprint_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
       const updatedAt = Date.now();

@@ -22,6 +22,7 @@
 
 import { escapeHtml } from '../core/sanitize.js';
 import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
+import './Curia.css';
 
 const VERB_LABELS = {
     exclude: 'exclude',

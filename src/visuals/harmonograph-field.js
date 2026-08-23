@@ -182,10 +182,14 @@ export class HarmonographField {
             dest.canvas.height = plane.canvas.height;
         }
         if (!plane.engine) return;
-        plane.engine.render(dest.canvas, {
-            backgroundColor: KLEE_CHAMBER_BACKGROUND,
-            progress: this._progress(plane)
-        });
+        // Copy the plane we just drew rather than tracing the figure a
+        // second time. Same pixels, one render. AttractorField blits the
+        // same way.
+        const ctx = dest.canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, dest.canvas.width, dest.canvas.height);
+        ctx.drawImage(plane.canvas, 0, 0);
     }
 
     _rotate(first) {
