@@ -3,6 +3,7 @@ import { MemoryCore } from '../core/memory.js';
 import { VAULT_A_SEQUENCES, VAULT_A_ARCHETYPE } from '../content/personalized/vault-a.js';
 import { escapeHtml } from '../core/sanitize.js';
 import { VISUAL_PRESENCE_DEFAULT_MS } from '../core/visual-presence.js';
+import './Library.css';
 
 // Personalized vault configurations
 const PERSONALIZED_VAULTS = {
@@ -247,11 +248,9 @@ export class Vault {
             </div>
           `}
 
-          <!-- JOURNEYS — the first thing in the Vault.
-               Individual Journey sits are withdrawn while their
-               quotations are re-authored; the door stays, because the
-               room is still one click from here and must not vanish
-               from the Vault's first screen. -->
+          <!-- JOURNEYS — withdrawn until after 1.0. The room and its
+               scores stay in the tree; nothing on this screen points
+               there. Restore the button below when a Journey is admitted.
           <button class="vault-journeys-door" data-nav="journeys">
             <span class="vjd-text">
               <span class="vjd-name">Journeys</span>
@@ -259,6 +258,7 @@ export class Vault {
             </span>
             <span class="vjd-chevron" aria-hidden="true">→</span>
           </button>
+          -->
 
           <!-- Section Navigation -->
           <nav class="library-nav nav" aria-label="Vault sections">

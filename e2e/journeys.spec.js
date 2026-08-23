@@ -32,7 +32,7 @@ async function enterReading(page) {
   await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 90000 });
 }
 
-test('the Portal names one act, and the Vault opens the Journeys', async ({ page }) => {
+test('the Portal names one act, and the Vault does not offer Journeys', async ({ page }) => {
   await page.addInitScript((g) => {
     localStorage.setItem('rise-beta-session', JSON.stringify(g));
   }, GATE);
@@ -41,20 +41,16 @@ test('the Portal names one act, and the Vault opens the Journeys', async ({ page
   await expect(page.locator('[data-nav="chamber"]')).toBeVisible({ timeout: 20000 });
 
   // The release threshold now leads with the three Keystone readings, then
-  // the general Chamber. Journeys remain a Vault room, never a Portal act.
+  // the general Chamber. Journeys stay out of the Portal and the Vault.
   const primary = await page.evaluate(() =>
     [...document.querySelectorAll('.nav-primary .nav-item')].map(b => b.dataset.nav));
-  expect(primary).toEqual(['keystones', 'chamber']);
+  expect(primary).toEqual(['chamber']);
   await expect(page.locator('.portal [data-nav="journeys"]')).toHaveCount(0);
 
-  // And it is genuinely reachable, one room in.
   await page.locator('[data-nav="vault"]').first().click();
-  const door = page.locator('.vault-journeys-door');
-  await expect(door).toBeVisible({ timeout: 20000 });
-  await door.click();
-  await expect(page.locator('.journeys-title')).toBeVisible({ timeout: 20000 });
-  // Back goes where it came from.
-  await expect(page.locator('.journeys-header [data-nav="vault"]')).toBeVisible();
+  await expect(page.locator('.library.vault')).toBeVisible({ timeout: 20000 });
+  await expect(page.locator('[data-nav="journeys"]')).toHaveCount(0);
+  await expect(page.locator('.vault-journeys-note')).toHaveCount(0);
 });
 
 withdrawnJourneyTest('War states its argument before asking for twenty minutes', async ({ page }) => {

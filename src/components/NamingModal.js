@@ -19,7 +19,7 @@ export class NamingModal {
       .naming-modal-overlay {
         --modal-bg: var(--color-void, var(--void, #0A0A0C));
         --modal-depth: var(--color-depth, var(--void-surface, #1A1A1E));
-        --modal-accent: var(--color-threshold, var(--accent, #8B7FD4));
+        --modal-accent: var(--color-accent);
         --modal-text: var(--color-light, var(--glow, #E8E8EC));
         --modal-shadow: var(--color-shadow, var(--void-elevated, #2A2A30));
         
@@ -42,8 +42,8 @@ export class NamingModal {
         width: 100%;
         max-width: 440px;
         background: rgba(26, 26, 30, 0.7);
-        border: 1px solid rgba(139, 127, 212, 0.4);
-        box-shadow: 0 0 40px rgba(0, 0, 0, 0.6), 0 0 100px rgba(139, 127, 212, 0.1);
+        border: 1px solid rgba(var(--color-accent-rgb), 0.4);
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.6), 0 0 100px rgba(var(--color-accent-rgb), 0.1);
         padding: 48px;
         transform: translateY(20px) scale(0.98);
         animation: naming-modal-slide-up 0.4s forwards cubic-bezier(0.16, 1, 0.3, 1);
@@ -109,8 +109,8 @@ export class NamingModal {
 
       .naming-modal-input:focus {
         border-color: var(--modal-accent);
-        background: rgba(139, 127, 212, 0.05);
-        box-shadow: 0 0 15px rgba(139, 127, 212, 0.2);
+        background: rgba(var(--color-accent-rgb), 0.05);
+        box-shadow: 0 0 15px rgba(var(--color-accent-rgb), 0.2);
       }
 
       .naming-modal-actions {
@@ -144,14 +144,14 @@ export class NamingModal {
       }
 
       .naming-btn-submit {
-        background: rgba(139, 127, 212, 0.2);
+        background: rgba(var(--color-accent-rgb), 0.2);
         color: white;
         border-color: var(--modal-accent);
       }
 
       .naming-btn-submit:hover {
-        background: rgba(139, 127, 212, 0.4);
-        box-shadow: 0 0 20px rgba(139, 127, 212, 0.3);
+        background: rgba(var(--color-accent-rgb), 0.4);
+        box-shadow: 0 0 20px rgba(var(--color-accent-rgb), 0.3);
       }
 
       @keyframes naming-modal-fade-in { from { opacity: 0; } to { opacity: 1; } }

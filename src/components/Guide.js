@@ -27,7 +27,7 @@ export class Guide {
           <button class="guide-close" aria-label="Close guide">✕</button>
           
           <header class="guide-header">
-            <div class="guide-sigil">◊</div>
+            <div class="guide-sigil rise-mark" aria-hidden="true"></div>
             <h1 id="guide-title" class="guide-title">User Protocol</h1>
             <p class="guide-subtitle">RISE Operational Framework</p>
           </header>

@@ -17,6 +17,75 @@
   position: relative;
 }
 
+/* Quiet room doors: Curia + Scriptorium top-left, Chapel top-right.
+   Styled here so they paint on first Portal load — the room stylesheets
+   never ride this view. */
+.portal-orbs-start {
+  position: absolute;
+  top: calc(38px + var(--space-sm));
+  left: var(--space-md);
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.portal-orb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 48%, var(--color-light));
+  background:
+    radial-gradient(circle at 35% 30%, rgba(var(--color-accent-rgb), 0.16), transparent 62%),
+    var(--color-abyss);
+  color: var(--color-accent);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 0 14px rgba(var(--color-accent-rgb), 0.14);
+  transition:
+    transform var(--transition-fast) var(--ease-out),
+    box-shadow var(--transition-normal) var(--ease-default),
+    border-color var(--transition-normal) var(--ease-default);
+}
+
+.portal-orb:hover,
+.portal-orb:focus-visible {
+  outline: none;
+  transform: translateY(-1px);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 22px rgba(var(--color-accent-rgb), 0.42);
+}
+
+.portal-orb.portal-chapel-lamp {
+  position: absolute;
+  top: calc(38px + var(--space-sm));
+  right: var(--space-md);
+  z-index: 4;
+}
+
+@media (max-width: 640px) {
+  .portal-orbs-start {
+    left: var(--space-xs);
+    gap: 8px;
+  }
+
+  .portal-orb {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+
+  .portal-orb.portal-chapel-lamp {
+    right: var(--space-xs);
+  }
+}
+
 /* ─── The Sigil (Vessel Video) ─── */
 .portal-sigil-container {
   margin-bottom: var(--space-xl);
@@ -125,7 +194,7 @@
   --title-tracking: 0.32em;
   letter-spacing: var(--title-tracking);
   text-indent: var(--title-tracking);
-  color: var(--color-light);
+  color: var(--color-accent);
   margin-bottom: var(--space-sm);
   text-transform: uppercase;
 }
@@ -848,11 +917,7 @@
     font-size: 9px;
   }
 
-  .portal .portal-curia-door {
-    opacity: 0.22;
-  }
-
-  /* Clear of the bottom edge and of Curia's bottom-left door.
+  /* Clear of the bottom edge.
      No safe-area inset: without viewport-fit=cover, env(safe-area-*)
      is always 0, so adding it only looks protective. Revisit if the
      document opts into cover. */
@@ -860,13 +925,6 @@
     bottom: var(--space-lg);
     left: var(--space-md);
     right: var(--space-md);
-  }
-
-  /* Curia.css is imported after this file, so its own rule would
-     otherwise win on source order at equal specificity. */
-  .portal .portal-curia-door {
-    bottom: 2px;
-    left: var(--space-xs);
   }
 
 }

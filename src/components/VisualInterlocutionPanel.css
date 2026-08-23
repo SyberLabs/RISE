@@ -404,7 +404,7 @@
 
 .vi-checkbox:has(input:checked) {
     border-color: var(--color-threshold);
-    background: rgba(139, 127, 212, 0.1);
+    background: rgba(var(--color-accent-rgb), 0.1);
 }
 
 .vi-checkbox input[type="checkbox"] {
@@ -541,7 +541,7 @@
 .vi-global-thumbnail.selected {
     opacity: 1;
     border-color: var(--color-threshold);
-    box-shadow: 0 0 0 1px var(--color-threshold), 0 0 14px rgba(139, 127, 212, 0.15);
+    box-shadow: 0 0 0 1px var(--color-threshold), 0 0 14px rgba(var(--color-accent-rgb), 0.15);
 }
 
 .vi-global-thumbnail img {
@@ -1009,8 +1009,8 @@
 
 .vi-attractor-btn.selected {
     border-color: var(--color-threshold);
-    background: rgba(139, 127, 212, 0.12);
-    box-shadow: 0 0 12px rgba(139, 127, 212, 0.15);
+    background: rgba(var(--color-accent-rgb), 0.12);
+    box-shadow: 0 0 12px rgba(var(--color-accent-rgb), 0.15);
 }
 
 .vi-attractor-icon {
@@ -1077,7 +1077,7 @@
 
 .vi-radio.selected {
     border-color: var(--color-threshold);
-    background: rgba(139, 127, 212, 0.08);
+    background: rgba(var(--color-accent-rgb), 0.08);
 }
 
 .vi-radio input[type="radio"] {
@@ -1135,8 +1135,8 @@
 
 .vi-glyph-btn.selected {
     border-color: var(--color-threshold);
-    background: rgba(139, 127, 212, 0.12);
-    box-shadow: 0 0 12px rgba(139, 127, 212, 0.15);
+    background: rgba(var(--color-accent-rgb), 0.12);
+    box-shadow: 0 0 12px rgba(var(--color-accent-rgb), 0.15);
 }
 
 .vi-glyph-icon {
@@ -1241,7 +1241,7 @@
     border-radius: 50%;
     overflow: hidden;
     border: 2px solid var(--color-threshold);
-    box-shadow: 0 0 20px rgba(139, 127, 212, 0.2);
+    box-shadow: 0 0 20px rgba(var(--color-accent-rgb), 0.2);
 }
 
 .vi-personal-preview img {
@@ -1329,7 +1329,7 @@
     gap: var(--space-md);
     background: radial-gradient(
         ellipse at center,
-        rgba(139, 127, 212, 0.06) 0%,
+        rgba(var(--color-accent-rgb), 0.06) 0%,
         transparent 70%
     );
     border-top: 1px solid var(--color-shadow);
@@ -1426,8 +1426,8 @@
   padding: 3px 10px;
   border-radius: 12px;
   color: var(--color-cloud);
-  background: rgba(139, 127, 212, 0.12);
-  border: 1px solid rgba(139, 127, 212, 0.28);
+  background: rgba(var(--color-accent-rgb), 0.12);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.28);
 }
 
 /* ─── Chapel-scoped collection editing — ember register ─── */

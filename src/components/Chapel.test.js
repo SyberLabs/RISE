@@ -195,12 +195,11 @@ describe('the doorway (seam)', () => {
     expect(navBlock).not.toContain('chapel');
   });
 
-  it('the lamp breathes on an 8s cycle and falls still under reduced motion', () => {
-    expect(chapelCss).toMatch(/\.portal-chapel-lamp\.lamp-lit\s*\{[^}]*animation:\s*chapel-lamp-breath 8s/s);
-    const reducedMotion = chapelCss.slice(chapelCss.indexOf('prefers-reduced-motion'));
-    expect(reducedMotion).toMatch(/\.portal-chapel-lamp(,|\.lamp-lit)[^{]*\{[^}]*animation:\s*none/s);
-    // The portal reveal must actually light the lamp
-    expect(portalSource).toContain("classList.add('lamp-lit')");
+  it('the chapel door is a portal orb styled with the sitting accent', () => {
+    const portalCss = readFileSync(resolve('src/components/Portal.css'), 'utf8');
+    expect(portalCss).toMatch(/\.portal-orb\s*\{[^}]*--color-accent/s);
+    expect(portalCss).toMatch(/\.portal-orb\.portal-chapel-lamp\s*\{[^}]*right:/s);
+    expect(chapelCss).not.toMatch(/\.portal-chapel-lamp\s*\{/);
   });
 
   it('app.js registers the chapel view with a lazy handoff and reverent failure copy', () => {

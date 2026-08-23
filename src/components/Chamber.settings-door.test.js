@@ -91,7 +91,7 @@ describe('Chamber Settings door', () => {
     const accentLabels = [...container.querySelectorAll('input[name="chamber-accent"]')]
       .map((input) => input.closest('label')?.textContent.replace(/\s+/g, ' ').trim());
     expect(accentLabels).toEqual([
-      'Purple', 'Cobalt Blue', 'Amber Gold', 'Sunset Orange', 'Gecko Green'
+      'Ivory Cream', 'Purple', 'Cobalt Blue', 'Amber Gold', 'Sunset Orange', 'Gecko Green'
     ]);
     expect(container.querySelector('#chamber-accent-label')?.textContent.trim()).toBe('Accent');
     expect(container.querySelector('#chamber-field input[name="chamber-accent"]')).toBeNull();

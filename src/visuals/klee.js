@@ -17,7 +17,7 @@ export class Klee {
             light: 'rgba(232, 232, 236, 0.9)',      // --color-light
             cloud: 'rgba(197, 197, 205, 0.7)',      // --color-cloud
             fog: 'rgba(155, 155, 165, 0.5)',        // --color-fog
-            threshold: 'rgba(139, 127, 212, 0.8)',  // --color-threshold (violet)
+            threshold: `rgba(${getComputedStyle(document.documentElement).getPropertyValue('--color-accent-rgb').trim() || '139, 127, 212'}, 0.8)`,
             chamber: 'rgba(107, 159, 212, 0.7)',    // --color-chamber (blue)
             ember: 'rgba(212, 165, 116, 0.6)',      // --color-ember (amber)
         };

@@ -39,10 +39,10 @@
   --color-cream: #e4d2ae;
 
   /* ═══ ACCENTS ═══ */
-  --color-threshold: #8B7FD4;
-  /* Primary accent (soft violet) — reading field, words, gallery keep this. */
-  --color-accent: #8B7FD4;
-  --color-accent-rgb: 139, 127, 212;
+  --color-threshold: #E4D2AE;
+  /* Brand accent. [data-accent] retints both this and --color-accent. */
+  --color-accent: #E4D2AE;
+  --color-accent-rgb: 228, 210, 174;
   /* Chrome accent family. Swaps with [data-accent] (FM-UI-7). */
   --color-chamber: #6B9FD4;
   /* Secondary accent (soft blue) */
@@ -118,29 +118,40 @@
   --icon-lg: 32px;
 }
 
+:root[data-accent="ivory"] {
+  --color-accent: #E4D2AE;
+  --color-accent-rgb: 228, 210, 174;
+  --color-threshold: #E4D2AE;
+}
+
 :root[data-accent="purple"] {
   --color-accent: #8B7FD4;
   --color-accent-rgb: 139, 127, 212;
+  --color-threshold: #8B7FD4;
 }
 
 :root[data-accent="cobalt"] {
   --color-accent: #3A5FA8;
   --color-accent-rgb: 58, 95, 168;
+  --color-threshold: #3A5FA8;
 }
 
 :root[data-accent="amber"] {
   --color-accent: #C9A24A;
   --color-accent-rgb: 201, 162, 74;
+  --color-threshold: #C9A24A;
 }
 
 :root[data-accent="sunset"] {
   --color-accent: #D4783A;
   --color-accent-rgb: 212, 120, 58;
+  --color-threshold: #D4783A;
 }
 
 :root[data-accent="gecko"] {
   --color-accent: #4F9A5C;
   --color-accent-rgb: 79, 154, 92;
+  --color-threshold: #4F9A5C;
 }
 
 /* Phone density step: scale chrome tokens once at ≤640px so every view
@@ -329,13 +340,13 @@ small {
 
 /* Button variants */
 .btn-primary {
-  background: rgba(139, 127, 212, 0.2);
+  background: rgba(var(--color-accent-rgb), 0.2);
   border-color: var(--color-threshold);
   color: var(--color-light);
 }
 
 .btn-primary:hover {
-  background: rgba(139, 127, 212, 0.3);
+  background: rgba(var(--color-accent-rgb), 0.3);
   border-color: var(--color-threshold);
   color: var(--color-glow);
 }
@@ -465,7 +476,7 @@ small {
 }
 
 .card-interactive:active {
-  background: rgba(139, 127, 212, 0.1);
+  background: rgba(var(--color-accent-rgb), 0.1);
   border-color: var(--color-threshold);
 }
 
@@ -692,7 +703,7 @@ small {
 }
 
 .toggle input:checked+.toggle-switch {
-  background: rgba(139, 127, 212, 0.5);
+  background: rgba(var(--color-accent-rgb), 0.5);
 }
 
 .toggle input:checked+.toggle-switch::after {
@@ -1171,22 +1182,50 @@ small {
   gap: var(--space-lg);
 }
 
+.rise-mark {
+  display: block;
+  width: 64px;
+  height: 64px;
+  background-color: var(--color-accent);
+  -webkit-mask: url('/syber-clip.png') center / contain no-repeat;
+  mask: url('/syber-clip.png') center / contain no-repeat;
+}
+
 .loading-sigil {
   font-size: 64px;
-  color: var(--color-threshold);
+  color: var(--color-accent);
   animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.loading-sigil.rise-mark {
+  font-size: 0;
+  color: transparent;
+  animation: pulse-glow-mark 2s ease-in-out infinite;
 }
 
 @keyframes pulse-glow {
   0%, 100% {
     opacity: 0.4;
     transform: scale(1);
-    text-shadow: 0 0 20px rgba(139, 127, 212, 0.3);
+    text-shadow: 0 0 20px rgba(var(--color-accent-rgb), 0.3);
   }
   50% {
     opacity: 1;
     transform: scale(1.1);
-    text-shadow: 0 0 40px rgba(139, 127, 212, 0.6);
+    text-shadow: 0 0 40px rgba(var(--color-accent-rgb), 0.6);
+  }
+}
+
+@keyframes pulse-glow-mark {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+    filter: drop-shadow(0 0 12px rgba(var(--color-accent-rgb), 0.35));
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 22px rgba(var(--color-accent-rgb), 0.65));
   }
 }
 
@@ -1231,8 +1270,8 @@ small {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #9d91e0;
-  border-color: #9d91e0;
+  background: color-mix(in srgb, var(--color-accent) 72%, var(--color-light));
+  border-color: color-mix(in srgb, var(--color-accent) 72%, var(--color-light));
   transform: translateY(-1px);
 }
 
@@ -1395,7 +1434,7 @@ small {
 
 /* Selection styling */
 ::selection {
-  background: rgba(139, 127, 212, 0.3);
+  background: rgba(var(--color-accent-rgb), 0.3);
   color: var(--color-light);
 }
 
@@ -1443,7 +1482,7 @@ html {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(139, 127, 212, 0.1),
+    rgba(var(--color-accent-rgb), 0.1),
     transparent
   );
   animation: loading-shimmer 1.5s infinite;
@@ -1470,7 +1509,7 @@ input[type="text"]:focus,
 input[type="search"]:focus,
 textarea:focus {
   border-color: var(--color-threshold);
-  box-shadow: 0 0 0 3px rgba(139, 127, 212, 0.15);
+  box-shadow: 0 0 0 3px rgba(var(--color-accent-rgb), 0.15);
 }
 
 /* Placeholder styling */

@@ -1,25 +1,5 @@
-/* The Curia — the curation surface. Chamber-dark, utilitarian. */
-
-/* The door on the Portal: bottom-left, quieter than the lamp — a
-   curator's mark, nearly invisible until sought. */
-.portal-curia-door {
-    position: absolute;
-    bottom: var(--space-md, 16px);
-    left: var(--space-lg, 24px);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: #6a6480;
-    font-size: 13px;
-    line-height: 1;
-    padding: 6px 8px;
-    opacity: 0.14;
-    transition: opacity 400ms ease-out;
-}
-.portal-curia-door:hover,
-.portal-curia-door:focus-visible {
-    opacity: 0.75;
-}
+/* The Curia — the curation surface. Chamber-dark, utilitarian.
+   The Portal door is styled in Portal.css. */
 
 .curia {
     /* The app body is overflow:hidden (the Chamber's design);

@@ -134,12 +134,13 @@ export class BetaGate {
     this.container.innerHTML = `
       <div class="beta-gate">
         <div class="beta-gate-content">
-          <!-- Sigil -->
-          <div class="beta-sigil">◇</div>
-
-          <!-- Title -->
-          <h1 class="beta-title">RISE</h1>
-          <p class="beta-subtitle">Audiovisual Reader</p>
+          <div class="beta-identity">
+            <div class="beta-sigil rise-mark" aria-hidden="true"></div>
+            <div class="beta-identity-word">
+              <h1 class="beta-title">RISE</h1>
+              <p class="beta-subtitle">Audiovisual Reader</p>
+            </div>
+          </div>
 
           ${hasValidInvite ? this.renderPersonalizedWelcome(inviteData) : this.renderOpenThreshold()}
         </div>

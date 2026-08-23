@@ -153,29 +153,6 @@
   color: var(--scriptorium-accent);
 }
 
-.portal-scriptorium-door {
-  position: absolute;
-  bottom: 1.25rem;
-  right: 1.25rem;
-  width: 2rem;
-  height: 2rem;
-  border: 1px solid rgba(196, 165, 116, 0.35);
-  background: rgba(12, 11, 10, 0.55);
-  color: rgba(196, 165, 116, 0.85);
-  cursor: pointer;
-  font-size: 0.95rem;
-  line-height: 1;
-  display: grid;
-  place-items: center;
-  z-index: 3;
-}
-
-.portal-scriptorium-door:hover,
-.portal-scriptorium-door:focus-visible {
-  color: #e8e4dc;
-  border-color: rgba(196, 165, 116, 0.75);
-}
-
 /* Materials — what the reader brought, folded away until asked for. A reader
    composing from the Library alone should not have to decline an upload panel
    on the way past. */

@@ -682,7 +682,7 @@
   font-size: 180px;
   color: var(--color-threshold);
   opacity: 0.6;
-  text-shadow: 0 0 60px rgba(139, 127, 212, 0.3);
+  text-shadow: 0 0 60px rgba(var(--color-accent-rgb), 0.3);
 }
 
 /* Dynamic glyph animations */
@@ -824,7 +824,7 @@
     border-radius: 2px;
     object-fit: contain;
     opacity: 0.88;
-    box-shadow: 0 0 48px rgba(139, 127, 212, 0.16);
+    box-shadow: 0 0 48px rgba(var(--color-accent-rgb), 0.16);
     animation: focal-glow 8s ease-in-out infinite;
   }
 
@@ -833,12 +833,12 @@
   0%,
   100% {
     opacity: 0.4;
-    box-shadow: 0 0 60px rgba(139, 127, 212, 0.15);
+    box-shadow: 0 0 60px rgba(var(--color-accent-rgb), 0.15);
   }
 
   50% {
     opacity: 0.6;
-    box-shadow: 0 0 100px rgba(139, 127, 212, 0.3);
+    box-shadow: 0 0 100px rgba(var(--color-accent-rgb), 0.3);
   }
 }
 

@@ -36,7 +36,7 @@ import {
 } from './core/visual-safety.js';
 import { clampBandFraction } from './core/band-offset.js';
 import { resolveChamberStreamFace } from './core/chamber-stream-face.js';
-import { resolveChamberAccent } from './core/chamber-accent.js';
+import { DEFAULT_CHAMBER_ACCENT, resolveChamberAccent } from './core/chamber-accent.js';
 import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
 import { normalizeVisualSelection, resolveSessionWordFill } from './core/visual-selection.js';
@@ -1313,7 +1313,7 @@ class App {
             // Display
             fontSize: 'medium',
             chamberFace: 'literary',
-            chamberAccent: 'purple',
+            chamberAccent: DEFAULT_CHAMBER_ACCENT,
             chamberMask: false,
             showProgress: true,
             showDuration: true,

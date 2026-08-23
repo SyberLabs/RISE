@@ -6,6 +6,9 @@
  * is the nav, and one assertion that outlived both rooms and now covers them
  * together, because each of them left its door standing.
  */
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Portal } from './Portal.js';
 
@@ -30,20 +33,39 @@ describe('Portal', () => {
 
         const primary = [...container.querySelectorAll('.nav-primary .nav-item')]
             .map(el => el.dataset.nav);
-        expect(primary).toEqual(['keystones', 'chamber']);
+        expect(primary).toEqual(['chamber']);
 
-        // The even row is tools operating on the reader's own material.
-        // Try RISE occupies a distinct circular threshold beneath Library
-        // and is not a fourth .nav-item.
         const secondary = container.querySelectorAll('.nav-secondary .nav-item');
         expect(secondary).toHaveLength(3);
         expect([...secondary].map(el => el.dataset.nav)).toEqual(['vault', 'library', 'workshop']);
-        expect(container.querySelectorAll('[data-nav="keystones"]')).toHaveLength(1);
         const tryRise = container.querySelector('.nav-secondary .nav-try');
         expect(tryRise).toBeTruthy();
-        expect(tryRise.dataset.nav).toBeUndefined();
+        expect(tryRise.dataset.nav).toBe('keystones');
+        expect(container.querySelectorAll('[data-nav="keystones"]')).toHaveLength(1);
         tryRise.click();
         expect(onNavigate).toHaveBeenCalledWith('keystones');
+
+        portal.destroy();
+        container.remove();
+    });
+
+    it('places Curia and Scriptorium as orbs at the start, Chapel as an orb at the end', () => {
+        const { portal, container, onNavigate } = makePortal();
+        const start = container.querySelector('.portal-orbs-start');
+        expect(start).toBeTruthy();
+        expect([...start.querySelectorAll('[data-nav]')].map(el => el.dataset.nav))
+            .toEqual(['curia', 'scriptorium']);
+        const chapel = container.querySelector('.portal-orb[data-nav="chapel"]');
+        expect(chapel).toBeTruthy();
+        expect(start.contains(chapel)).toBe(false);
+        expect(container.querySelector('.chapel-lamp-name')).toBeNull();
+        chapel.click();
+        expect(onNavigate).toHaveBeenCalledWith('chapel');
+
+        const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'Portal.css'), 'utf8');
+        expect(css).toMatch(/\.portal-orb\s*\{[^}]*--color-accent/s);
+        expect(css).toMatch(/\.portal-orbs-start\s*\{[^}]*left:/s);
+        expect(css).toMatch(/\.portal-orb\.portal-chapel-lamp\s*\{[^}]*right:/s);
 
         portal.destroy();
         container.remove();
