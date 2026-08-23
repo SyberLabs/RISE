@@ -84,6 +84,89 @@
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   THE STANCE ROW — intentions, above the parameters
+
+   A visitor used to meet four orbits at once and read them as knobs.
+   This row is what they meet first now: three named postures, each one
+   tap, each setting a coherent slice of the ring below it. The ring is
+   unchanged and still holds every control — so this is a floor added
+   under a new reader, not a ceiling lowered on anyone.
+   ═══════════════════════════════════════════════════════════════ */
+.orbital-stances {
+  width: 100%;
+  max-width: 720px;
+  text-align: center;
+}
+
+.stance-question {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  margin-bottom: var(--space-md);
+}
+
+.stance-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+.stance-option {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-md) var(--space-sm);
+  background: var(--color-abyss);
+  border: 1px solid var(--color-shadow);
+  color: var(--color-fog);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-normal) var(--ease-default),
+    color var(--transition-normal) var(--ease-default),
+    background var(--transition-normal) var(--ease-default);
+}
+
+.stance-option:hover {
+  border-color: var(--color-accent);
+  color: var(--color-light);
+}
+
+/* The chosen posture is the only lit thing in the row, so a reader can
+   see at a glance which one they are standing in — and see it go dark
+   the moment they adjust a dial past it. */
+.stance-option.active {
+  border-color: var(--color-accent);
+  color: var(--color-light);
+  background: rgba(var(--color-accent-rgb), 0.08);
+}
+
+.stance-name {
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.stance-line {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--color-mist);
+}
+
+.stance-option.active .stance-line {
+  color: var(--color-fog);
+}
+
+.stance-note {
+  font-size: 11px;
+  line-height: 1.6;
+  margin-top: var(--space-sm);
+  max-width: 46ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 /* ─── Orbital Stage ─── */
 .orbital-stage {
   position: relative;
@@ -1340,6 +1423,24 @@
 
   .curve-options {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Three names still read as one choice on a phone; the sentence under
+     each name does not fit beside two others, and the note below the row
+     already says the thing a reader has to know. */
+  .stance-option {
+    align-items: center;
+    padding: var(--space-sm) 6px;
+  }
+
+  .stance-name {
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .stance-line,
+  .stance-note {
+    display: none;
   }
 }
 

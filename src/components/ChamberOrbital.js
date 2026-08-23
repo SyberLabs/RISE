@@ -49,6 +49,7 @@ import {
   normalizeSequenceCapabilities,
   sequenceHasCapability
 } from '../core/sequence-capabilities.js';
+import { STANCES, applyStance, matchStance } from '../core/stances.js';
 import './VisualInterlocutionPanel.css';
 import './ChamberOrbital.css';
 
@@ -609,6 +610,12 @@ export class ChamberOrbital {
         <!-- Launch origin chip (wayfinding back to SOL / Vault / Library) -->
         <div class="orbital-origin-slot" id="orbital-origin-slot">${this.renderOriginChip()}</div>
 
+        <!-- THE DOORWAY, ABOVE THE PARAMETERS (NORTH-STAR §4).
+             One named choice sets a coherent slice of all three orbits.
+             The orbits stay exactly where they were and still hold every
+             control a stance touched — this is disclosure, not amputation. -->
+        ${this.renderStances()}
+
         <!-- Orbital Interface -->
         <div class="orbital-stage">
           <!-- Orbit container -->
@@ -665,6 +672,68 @@ export class ChamberOrbital {
     `;
 
     this.initVisualPanel();
+  }
+
+  /**
+   * The stance row: intentions, above the parameters.
+   *
+   * Which one is marked is READ OFF the configuration rather than
+   * remembered, so the row cannot go on claiming a posture the reader has
+   * already adjusted away from. That is the whole of "a stance sets, it
+   * does not lock" — made visible instead of asserted.
+   */
+  renderStances() {
+    const standing = matchStance(this.config);
+    const options = STANCES.map(stance => {
+      const chosen = stance.id === standing;
+      return `
+        <button type="button" class="stance-option${chosen ? ' active' : ''}"
+          data-stance="${escapeHtml(stance.id)}" aria-pressed="${chosen}">
+          <span class="stance-name">${escapeHtml(stance.name)}</span>
+          <span class="stance-line">${escapeHtml(stance.line)}</span>
+        </button>
+      `;
+    }).join('');
+
+    return `
+      <section class="orbital-stances" aria-label="Stance">
+        <p class="stance-question text-fog">How do you want to read?</p>
+        <div class="stance-options">${options}</div>
+        <p class="stance-note text-mist">
+          A stance sets the orbits below. It does not lock them — open any
+          orbit and change whatever you like.
+        </p>
+      </section>
+    `;
+  }
+
+  /** Repaint which stance the configuration is standing in. */
+  _syncStanceRow() {
+    const standing = matchStance(this.config);
+    this.container.querySelectorAll('[data-stance]').forEach(button => {
+      const chosen = button.dataset.stance === standing;
+      button.classList.toggle('active', chosen);
+      button.setAttribute('aria-pressed', String(chosen));
+    });
+  }
+
+  /**
+   * Take a stance. The config it produces goes through exactly the paths a
+   * hand-built one goes through: this method sets no field the panels and
+   * the session compiler do not already validate.
+   */
+  chooseStance(id) {
+    this.config = applyStance(id, this.config);
+    // The visual panel keeps its own copy of the visual orbit, and its
+    // change event is what writes the normalized truth back here. Telling
+    // it leaves one answer in the room rather than two.
+    if (this.viPanel) this.viPanel.setConfig(this.config.visualInterlocution);
+    this._normalizeAudioExclusivity();
+    this.syncUIWithConfig();
+    this.updateOrbitStatus('temporal');
+    this.updateOrbitStatus('audio');
+    this.updateOrbitStatus('visual');
+    this._persistPrefs();
   }
 
   /**
@@ -1034,6 +1103,7 @@ export class ChamberOrbital {
               });
             }
             this.updateOrbitStatus('visual');
+            this._syncStanceRow();
             // Visual settings are the most-edited dials — durable immediately
             this._persistPrefs();
           }
@@ -1157,6 +1227,9 @@ export class ChamberOrbital {
     // Text source actions
     this.attachTextSourceEvents();
 
+    // Stance row (the doorway) sits above the orbits it sets
+    this.attachStanceEvents();
+
     // Orbit node clicks
     this.attachOrbitEvents();
 
@@ -1182,6 +1255,15 @@ export class ChamberOrbital {
     this._listen(this.container.querySelector('[data-action="clear-text"]'), 'click', () => {
       window.rise?.audioEngine?.playHiss();
       this.clearText();
+    });
+  }
+
+  attachStanceEvents() {
+    this.container.querySelectorAll('[data-stance]').forEach(button => {
+      this._listen(button, 'click', () => {
+        window.rise?.audioEngine?.playClick();
+        this.chooseStance(button.dataset.stance);
+      });
     });
   }
 
@@ -1331,6 +1413,7 @@ export class ChamberOrbital {
         this.updateOrbitStatus('audio');
         soundscapeOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
+        this._syncStanceRow();
       });
     });
 
@@ -1346,6 +1429,7 @@ export class ChamberOrbital {
         this.updateOrbitStatus('audio');
         presetOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
+        this._syncStanceRow();
       });
     });
 
@@ -1423,6 +1507,7 @@ export class ChamberOrbital {
       this.config.wpm = parseInt(wpmSlider.value, 10);
       wpmVal.textContent = `${wpmSlider.value} WPM`;
       this.updateOrbitStatus('temporal');
+      this._syncStanceRow();
     });
 
     // Curve options
@@ -1433,6 +1518,7 @@ export class ChamberOrbital {
         this.config.curve = opt.dataset.curve;
         curveOptions.forEach(o => o.classList.remove('active'));
         opt.classList.add('active');
+        this._syncStanceRow();
       });
     });
 
@@ -1622,6 +1708,7 @@ export class ChamberOrbital {
     if (voiceSection) voiceSection.hidden = !enabled;
     const voiceSelect = this.container.querySelector('#voice-select');
     if (voiceSelect && this.config.voiceId) voiceSelect.value = this.config.voiceId;
+    this._syncStanceRow();
   }
 
   loadText(text, source, config = {}) {
