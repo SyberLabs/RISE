@@ -257,6 +257,10 @@
   text-shadow: none;
 }
 
+.atom-display.is-mask.is-mask-ink.is-word-fit {
+  -webkit-text-stroke-width: 0;
+}
+
 .atom-display {
   font-family: var(--font-stream-face, var(--font-literary));
   /* The scale is published by sizeAtomText — a longer phrase gets a
@@ -1088,6 +1092,24 @@
 /* Layer B: gallery stills clipped to Word ink, between field (1) and atom (10). */
 .chamber-fill-field {
   z-index: 5;
+}
+
+.chamber-field.is-living-fit .chamber-fill-field {
+  isolation: isolate;
+  filter:
+    saturate(var(--living-fit-saturation, 1))
+    brightness(var(--living-fit-brightness, 1));
+}
+
+.chamber-field.is-living-fit .chamber-fill-field::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: var(--living-fit-color);
+  opacity: var(--living-fit-mix, 0);
+  mix-blend-mode: color;
 }
 
 .chamber-fill-field.chamber-scheduled-field,

@@ -1,7 +1,54 @@
 import { describe, it, expect } from 'vitest';
-import { scoreChunk, scoreAtoms, summarizeTrack, responsiveFrequency, planInterlocution, planFlame, sampleTrackSignals } from './conductor.js';
+import {
+    livingTextAppearance,
+    planFlame,
+    planInterlocution,
+    responsiveFrequency,
+    sampleTrackSignals,
+    scoreAtoms,
+    scoreChunk,
+    summarizeTrack
+} from './conductor.js';
 
 const mkAtoms = (...contents) => contents.map(c => ({ content: c, duration: 300 }));
+
+describe('livingTextAppearance', () => {
+    it('preserves the ordinary warm text palette and publishes bounded Fit modulation', () => {
+        expect(livingTextAppearance({ valence: 1, arousal: 1 }, 1)).toEqual({
+            color: 'rgb(255, 208, 131)',
+            rgb: [255, 208, 131],
+            glowRadius: 48,
+            glowAlpha: 0.6,
+            fitMix: 0.446,
+            fitSaturation: 1.22,
+            fitBrightness: 1.04
+        });
+    });
+
+    it('turns Fit modulation fully off at zero intensity without changing raw text defaults', () => {
+        expect(livingTextAppearance({ valence: -1, arousal: 1 }, 0)).toEqual({
+            color: 'rgb(232, 232, 236)',
+            rgb: [232, 232, 236],
+            glowRadius: 8,
+            glowAlpha: 0.15,
+            fitMix: 0,
+            fitSaturation: 1,
+            fitBrightness: 1
+        });
+    });
+
+    it('clamps signal and intensity before deriving CSS-safe values', () => {
+        expect(livingTextAppearance({ valence: -4, arousal: 5 }, 2)).toEqual({
+            color: 'rgb(141, 173, 255)',
+            rgb: [141, 173, 255],
+            glowRadius: 48,
+            glowAlpha: 0.6,
+            fitMix: 0.446,
+            fitSaturation: 1.22,
+            fitBrightness: 1.04
+        });
+    });
+});
 
 describe('scoreChunk', () => {
     it('scores positive words with positive valence', () => {

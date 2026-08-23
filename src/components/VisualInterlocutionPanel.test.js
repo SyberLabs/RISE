@@ -1475,8 +1475,6 @@ describe('PREP Visual Settings Size (FM-RISE-36)', () => {
 });
 
 describe('Attractor listing chrome (FM-UI-6)', () => {
-    const LIVING_IDS = ['harmonograph', 'ostensoria', 'apparitio', 'attractor'];
-
     function listedPanel() {
         return makePanel({
             visualMode: 'interlocution',
@@ -1503,17 +1501,20 @@ describe('Attractor listing chrome (FM-UI-6)', () => {
         container.remove();
     });
 
-    it('lists living procedurals Harmonograph · Iris Plate · Spectral Plate · Attractor, Attractor last', () => {
+    it('keeps every procedural in the gallery but offers only mask-suitable word fills', () => {
         const { panel, container } = listedPanel();
         const chipIds = [...container.querySelectorAll('[data-procedural]')].map(el => el.dataset.procedural);
         const wordIds = [...container.querySelectorAll('[data-word-fill] option')]
             .map(el => el.value)
             .filter(value => value.startsWith('procedural:'))
             .map(value => value.slice('procedural:'.length));
-        expect(chipIds.filter(id => LIVING_IDS.includes(id))).toEqual(LIVING_IDS);
-        expect(wordIds.filter(id => LIVING_IDS.includes(id))).toEqual(LIVING_IDS);
-        expect(chipIds.indexOf('attractor')).toBeGreaterThan(chipIds.indexOf('apparitio'));
-        expect(wordIds.indexOf('attractor')).toBeGreaterThan(wordIds.indexOf('apparitio'));
+        expect(chipIds).toEqual([
+            'klee', 'turrell', 'fractal', 'neural', 'rockgarden',
+            'harmonograph', 'ostensoria', 'apparitio', 'attractor'
+        ]);
+        expect(wordIds).toEqual([
+            'klee', 'turrell', 'fractal', 'harmonograph', 'ostensoria', 'attractor'
+        ]);
         panel.destroy();
         container.remove();
     });

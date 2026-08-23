@@ -18,7 +18,7 @@ import {
   splitWords, stripEmphasis, sizeAtomScale, revealBudget, revealSchedule
 } from '../core/recitation.js';
 import { Voice } from '../audio/voice.js';
-import { scoreAtoms, planInterlocution } from '../core/conductor.js';
+import { livingTextAppearance, scoreAtoms, planInterlocution } from '../core/conductor.js';
 import { VisualScheduleController } from '../core/visual-scheduler.js';
 import {
   authoredVisualTransition,
@@ -44,7 +44,7 @@ import {
   resolveFontSize,
   threeStepIntent
 } from '../core/chamber-type-size.js';
-import { GROUNDS, maskGroundFromConfig } from '../core/mask-ground.js';
+import { GROUNDS, maskFillFromConfig, maskGroundFromConfig } from '../core/mask-ground.js';
 import { resolveSessionWordFill } from '../core/visual-selection.js';
 import './Chamber.css';
 
@@ -637,6 +637,23 @@ export class Chamber {
    * The wrapper carries the mask and has no background. Layer A stays
    * unmasked so counters show the room only.
    */
+  _maskSourceConfig() {
+    const interlocution = this.session?.visualConfig?.interlocution || {};
+    const cortexTypes = visualCortex.config?.activeTypes;
+    const activeTypes = Array.isArray(cortexTypes) && cortexTypes.length
+      ? cortexTypes
+      : [...(interlocution.procedural || []), ...(interlocution.sourced || [])];
+    const wordFill = interlocution.wordFill != null
+      ? interlocution.wordFill
+      : resolveSessionWordFill(interlocution);
+    return {
+      sourced: interlocution.sourced,
+      procedural: interlocution.procedural,
+      activeTypes,
+      wordFill
+    };
+  }
+
   syncMaskGroundPlate() {
     const wrapper = this.fillFieldHost;
     const layerA = this.container.querySelector('#chamber-continuous-field');
@@ -645,25 +662,15 @@ export class Chamber {
       return;
     }
 
-    const interlocution = this.session?.visualConfig?.interlocution || {};
-    const cortexTypes = visualCortex.config?.activeTypes;
-    const activeTypes = Array.isArray(cortexTypes) && cortexTypes.length
-      ? cortexTypes
-      : [...(interlocution.procedural || []), ...(interlocution.sourced || [])];
     // Declared session pair wins. Missing wordFill infers the engine
     // from the session pair (Astronomy × Fractal → Fractal pick).
     // Cortex leftover (default `same`, or a prior Attractor pick) must
     // not hide cream behind Astronomy Dark.
-    const wordFill = interlocution.wordFill != null
-      ? interlocution.wordFill
-      : resolveSessionWordFill(interlocution);
+    const sourceConfig = this._maskSourceConfig();
     const roomOpaque = Boolean(visualCortex._continuousField?.currentUrl)
       || Boolean(layerA?.querySelector('.continuous-field-artwork[src]'));
     const ground = maskGroundFromConfig({
-      sourced: interlocution.sourced,
-      procedural: interlocution.procedural,
-      activeTypes,
-      wordFill,
+      ...sourceConfig,
       roomOpaque
     });
 
@@ -725,6 +732,7 @@ export class Chamber {
   }
 
   _revertFillToOpaqueWord() {
+    this._clearLivingFit();
     const atomDisplay = this.container.querySelector('#atom-display');
     atomDisplay?.classList.remove('is-mask-ink');
     if (atomDisplay?.style.color === 'transparent') {
@@ -865,6 +873,7 @@ export class Chamber {
   }
 
   destroyFillField() {
+    this._clearLivingFit();
     this._fillMaskGeneration += 1;
     const atomDisplay = this.container.querySelector('#atom-display');
     atomDisplay?.classList.remove('is-mask-ink');
@@ -1908,36 +1917,51 @@ export class Chamber {
   }
 
   applyLivingText(atomDisplay, index) {
+    this._clearLivingFit();
+    if (!this.semanticTrack) return;
+    const sig = this.semanticTrack[index];
+    if (!sig) return;
+
+    const intensity = this.session?.visualConfig?.livingText?.intensity ?? 1;
+    const appearance = livingTextAppearance(sig, intensity);
+    const proceduralFit = atomDisplay?.classList.contains('is-word-fit')
+      && this._shouldMountFill()
+      && maskFillFromConfig(this._maskSourceConfig()).procedural;
+
+    if (proceduralFit) {
+      this._applyLivingFit(appearance);
+      atomDisplay.style.color = 'transparent';
+      atomDisplay.style.removeProperty('text-shadow');
+      return;
+    }
     if (atomDisplay?.classList.contains('is-mask-ink')) {
       atomDisplay.style.color = 'transparent';
       atomDisplay.style.removeProperty('text-shadow');
       return;
     }
-    if (!this.semanticTrack) return;
-    const sig = this.semanticTrack[index];
-    if (!sig) return;
+    atomDisplay.style.color = appearance.color;
+    const [r, g, b] = appearance.rgb;
+    atomDisplay.style.textShadow = `0 0 ${appearance.glowRadius.toFixed(0)}px rgba(${r}, ${g}, ${b}, ${appearance.glowAlpha.toFixed(3)})`;
+  }
 
-    // Optional per-session intensity (0..1); default full strength
-    const intensity = this.session?.visualConfig?.livingText?.intensity ?? 1;
+  _clearLivingFit() {
+    const field = this.container.querySelector('#chamber-field');
+    if (!field) return;
+    field.classList.remove('is-living-fit');
+    field.style.removeProperty('--living-fit-color');
+    field.style.removeProperty('--living-fit-mix');
+    field.style.removeProperty('--living-fit-saturation');
+    field.style.removeProperty('--living-fit-brightness');
+  }
 
-    // Neutral matches --color-light so v=0 is indistinguishable from raw
-    const NEUTRAL = [232, 232, 236];
-    const WARM = [255, 208, 130];   // +1 valence — clear amber
-    const COOL = [140, 172, 255];   // -1 valence — clear blue-violet
-
-    // Smoothing compresses valence into roughly ±0.4, so apply a saturating
-    // gain: tanh(2.6·|v|) puts a typical ±0.25 passage ~57% toward its pole.
-    const pole = sig.valence >= 0 ? WARM : COOL;
-    const t = Math.tanh(Math.abs(sig.valence) * 2.6) * intensity;
-    const r = Math.round(NEUTRAL[0] + (pole[0] - NEUTRAL[0]) * t);
-    const g = Math.round(NEUTRAL[1] + (pole[1] - NEUTRAL[1]) * t);
-    const b = Math.round(NEUTRAL[2] + (pole[2] - NEUTRAL[2]) * t);
-
-    atomDisplay.style.color = `rgb(${r}, ${g}, ${b})`;
-
-    const glowRadius = 8 + sig.arousal * 40 * intensity;
-    const glowAlpha = 0.15 + sig.arousal * 0.45 * intensity;
-    atomDisplay.style.textShadow = `0 0 ${glowRadius.toFixed(0)}px rgba(${r}, ${g}, ${b}, ${glowAlpha.toFixed(3)})`;
+  _applyLivingFit(appearance) {
+    const field = this.container.querySelector('#chamber-field');
+    if (!field) return;
+    field.classList.add('is-living-fit');
+    field.style.setProperty('--living-fit-color', appearance.color);
+    field.style.setProperty('--living-fit-mix', appearance.fitMix.toFixed(3));
+    field.style.setProperty('--living-fit-saturation', appearance.fitSaturation.toFixed(3));
+    field.style.setProperty('--living-fit-brightness', appearance.fitBrightness.toFixed(3));
   }
 
   displayAtom(atom, index, { concealed = false, spoken = null } = {}) {

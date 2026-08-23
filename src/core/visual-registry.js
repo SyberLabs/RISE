@@ -32,12 +32,12 @@ export const PROCEDURAL_PATTERNS = Object.freeze([
       + 'busiest of these surfaces.'
   }),
   Object.freeze({
-    id: 'neural', name: 'Neural Networks', icon: '◉',
+    id: 'neural', name: 'Neural Networks', icon: '◉', wordFillCapable: false,
     description: 'Layered nodes joined by weighted, glowing connections, with pulses passing '
       + 'along them. Diagrammatic and regular — a legible structure rather than a texture.'
   }),
   Object.freeze({
-    id: 'rockgarden', name: 'Rock Garden', icon: '◯',
+    id: 'rockgarden', name: 'Rock Garden', icon: '◯', wordFillCapable: false,
     description: 'A few overlapping stone-like forms — ellipses, blobs, irregular polygons — '
       + 'placed asymmetrically in greyscale, after karesansui. Sparse, quiet and mostly '
       + 'empty space.'
@@ -54,7 +54,7 @@ export const PROCEDURAL_PATTERNS = Object.freeze([
       + 'spectral bands, and a dark halo on the chamber void. One seed, one plate, drawn once.'
   }),
   Object.freeze({
-    id: 'apparitio', name: 'Spectral Plates', icon: '☾',
+    id: 'apparitio', name: 'Spectral Plates', icon: '☾', wordFillCapable: false,
     description: 'An upright apparition on a single mirror axis: swept spectral wings, a '
       + 'filigree spine, a crowning halo on the chamber void. Each seed appears once.'
   })
@@ -75,6 +75,11 @@ export const LISTED_PROCEDURAL_PATTERNS = Object.freeze([
       + 'gentle chaotic flow, no interrupts.'
   })
 ]);
+
+/** Engines suitable for authoring inside letterforms. Runtime support is broader for legacy data. */
+export const WORD_FILL_PROCEDURAL_PATTERNS = Object.freeze(
+  LISTED_PROCEDURAL_PATTERNS.filter(pattern => pattern.wordFillCapable !== false)
+);
 
 export const PROCEDURAL_PATTERN_IDS = Object.freeze(
   PROCEDURAL_PATTERNS.map(pattern => pattern.id)

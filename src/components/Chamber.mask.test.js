@@ -817,3 +817,101 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
         chamber.destroy();
     });
 });
+
+describe('Chamber semantic Fit compositor', () => {
+    let restoreEnv;
+
+    beforeEach(() => {
+        restoreEnv = installFillMaskEnv();
+        armGalleryField('continuous');
+    });
+
+    afterEach(() => {
+        restoreEnv?.();
+        releaseGalleryField();
+        delete globalThis.rise;
+        document.body.replaceChildren();
+        vi.restoreAllMocks();
+    });
+
+    function semanticSession(wordFill) {
+        const atoms = Array(8).fill(null).map(() => ({
+            content: 'love joy light beautiful',
+            duration: 500
+        }));
+        return {
+            chunkMode: 'word',
+            atoms,
+            totalDuration: 4000,
+            atomCount: atoms.length,
+            visualConfig: {
+                visualMode: 'interlocution',
+                livingText: { enabled: true, intensity: 0.8 },
+                interlocution: {
+                    presentation: 'continuous',
+                    procedural: ['turrell'],
+                    sourced: [],
+                    wordFill
+                }
+            }
+        };
+    }
+
+    it('publishes semantic state for a procedural Fit and clears it with the fill field', async () => {
+        const { chamber, container } = makeChamber(
+            semanticSession({ mode: 'pick', sourced: [], procedural: ['fractal'] }),
+            { fontSize: 'fit' }
+        );
+
+        chamber.displayAtom(chamber.session.atoms[4], 4);
+        await flushFillMask();
+
+        const field = container.querySelector('#chamber-field');
+        expect(field.classList.contains('is-living-fit')).toBe(true);
+        expect(field.style.getPropertyValue('--living-fit-color')).toMatch(/^rgb\(/);
+        expect(Number(field.style.getPropertyValue('--living-fit-mix'))).toBeGreaterThan(0);
+        expect(Number(field.style.getPropertyValue('--living-fit-mix'))).toBeLessThanOrEqual(0.45);
+        expect(Number(field.style.getPropertyValue('--living-fit-saturation'))).toBeGreaterThanOrEqual(1);
+        expect(Number(field.style.getPropertyValue('--living-fit-brightness'))).toBeGreaterThan(0);
+
+        chamber.destroyFillField();
+        expect(field.classList.contains('is-living-fit')).toBe(false);
+        expect(field.style.getPropertyValue('--living-fit-color')).toBe('');
+        chamber.destroy();
+    });
+
+    it('does not tint collection artwork selected as the Fit source', async () => {
+        const session = semanticSession({
+            mode: 'pick',
+            sourced: ['aic-ukiyoe'],
+            procedural: []
+        });
+        session.visualConfig.interlocution.sourced = ['aic-oldmasters'];
+        session.visualConfig.interlocution.procedural = [];
+        const { chamber, container } = makeChamber(session, { fontSize: 'fit' });
+
+        chamber.displayAtom(chamber.session.atoms[4], 4);
+        await flushFillMask();
+
+        const field = container.querySelector('#chamber-field');
+        expect(field.classList.contains('is-living-fit')).toBe(false);
+        expect(field.style.getPropertyValue('--living-fit-mix')).toBe('');
+        chamber.destroy();
+    });
+
+    it('clears semantic Fit state when the mask falls back to opaque text', async () => {
+        const { chamber, container } = makeChamber(
+            semanticSession({ mode: 'pick', sourced: [], procedural: ['fractal'] }),
+            { fontSize: 'fit' }
+        );
+        chamber.displayAtom(chamber.session.atoms[4], 4);
+        await flushFillMask();
+        const field = container.querySelector('#chamber-field');
+        expect(field.classList.contains('is-living-fit')).toBe(true);
+
+        chamber._revertFillToOpaqueWord();
+        expect(field.classList.contains('is-living-fit')).toBe(false);
+        expect(container.querySelector('#atom-display').style.color).not.toBe('transparent');
+        chamber.destroy();
+    });
+});

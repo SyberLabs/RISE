@@ -19,6 +19,7 @@ const PREFS = {
   recitation: { enabled: true },
   visualInterlocution: {
     visualMode: 'interlocution',
+    livingText: { enabled: true, intensity: 0.8 },
     interlocution: {
       sourceFamily: 'procedural',
       procedural: ['turrell'],
