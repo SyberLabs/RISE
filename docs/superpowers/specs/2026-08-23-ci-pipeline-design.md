@@ -102,13 +102,18 @@ about five seconds for a new failure mode.
 ### Gates that do not exist today
 
 **A first-load budget.** The repository is actively fighting the size of its
-first screen and nothing measures it. `dist/index.html` names the whole set the
-browser fetches before the application runs: one entry script, six
-`modulepreload` chunks, one stylesheet. Gzipped that is 305.2 kB today. The
-budget is 320 kB — enough headroom for ordinary work, tight enough that a new
-subsystem landing in the entry chunk turns the check red. The script prints the
-per-asset breakdown whether it passes or fails, so the number is never a
-mystery.
+first screen and nothing was holding it to a number.
+
+This design originally proposed a new script. It should not, and does not:
+`scripts/measure-first-load.mjs` landed in #47 while this work was in flight and
+already reads the set `dist/index.html` names, already prices it in brotli —
+which is what Netlify serves, and a truer number than gzip — and already takes
+`--budget`. Nothing called it. So the change is one npm script and one CI step,
+not a second implementation of the same measurement.
+
+207 KB brotli today; the budget is 215. #47 records that the next pass goes
+lower — eight defeated dynamic imports are now visible and `visualCortex` still
+loads at boot — so the budget is a ratchet, to be lowered as the number falls.
 
 **A dependency audit.** One production dependency reaches readers.
 `npm audit --omit=dev --audit-level=high` takes about three seconds and ignores
@@ -132,16 +137,25 @@ safe to skip when something unconditional reports on their behalf.
 
 ### Documentation that cannot go stale
 
-`ARCHITECTURE.md` and `README.md` both carry hand-drawn ASCII trees that
-nothing forces anyone to update. `scripts/build-architecture-diagram.mjs`
-reads every non-test module under `src/`, resolves its relative imports,
-aggregates them to subsystem level, and writes a Mermaid diagram into
-`ARCHITECTURE.md` between generated markers. Static and dynamic imports are
-drawn differently, because a subsystem reached only through `import()` is not
-in the first load — which is the same question the budget check answers.
+#51 rewrote `ARCHITECTURE.md` into a canonical system design document while
+this work was in flight, and added `src/core/system-design.test.js` to fail a
+build when the document's checkable claims stop being true. That settles the
+half of the problem that is about *asserted* prose.
 
-The `docs` job regenerates the diagram and fails if the working tree moved.
-The diagram cannot disagree with the code, because the code writes it.
+The half it leaves open is the diagram. §3 is drawn by hand, so it is a claim
+like any other. `scripts/build-architecture-diagram.mjs` reads every non-test
+module under `src/`, resolves its relative imports, aggregates them to subsystem
+level, and writes a Mermaid graph into §3 between generated markers. Static and
+dynamic edges are drawn differently, because a subsystem reached only through
+`import()` is not in the first load — the same question the budget answers, and
+the shape §8.24 argues for. The `docs` job regenerates it and fails if the tree
+moved. A claim that writes itself cannot drift.
+
+**The two must run together.** `system-design.test.js` lives in the unit suite,
+which the change filter skips for a prose-only change — so a pull request
+editing `ARCHITECTURE.md` and nothing else would skip that document's own guard.
+The `docs` job runs the guard as well as the generator. One job, one file, and
+it never skips.
 
 Layering enforcement is deliberately **not** included. The diagram reports what
 the edges are; deciding which of them are forbidden is a separate decision for
@@ -162,8 +176,8 @@ the humans who own the architecture.
 
 - `npx playwright test --shard=i/4` green for each `i`, and the union of the
   four shards equal to the 89 tests the unsharded run collects.
-- `node scripts/check-first-load-budget.mjs` passing on the current build and
-  failing when the budget is lowered below the measured size.
+- `npm run check:first-load` passing at 207 KB against a 215 KB budget, and
+  failing when the budget is tightened to 200.
 - `node scripts/build-architecture-diagram.mjs` idempotent, and the `docs`
   check red when the committed diagram is edited by hand.
 - `actionlint` clean on the workflow and the composite action.
