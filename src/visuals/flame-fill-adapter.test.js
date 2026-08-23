@@ -210,17 +210,46 @@ describe('applyFlameFillLut', () => {
         expect(tone.mean).toBeLessThan(190);
         expect(tone.blownFraction).toBeLessThan(0.12);
         expect(tone.chroma).toBeGreaterThan(20);
-        expect([filled.data[0], filled.data[1], filled.data[2]]).toEqual([...FLAME_VOID]);
+        const distantVoid = 15 * 4;
+        expect([
+            filled.data[distantVoid],
+            filled.data[distantVoid + 1],
+            filled.data[distantVoid + 2]
+        ]).toEqual([...FLAME_VOID]);
+        expect(filled.data[distantVoid + 3]).toBe(0);
     });
 
-    it('leaves the void plate-holes alone so cream stays ground, not a baked PNG', () => {
+    it('makes source void transparent so the declared ground can show through', () => {
         const source = paintSparseFlame();
         const filled = applyFlameFillLut(source);
         const px = filled.data;
-        // Corner pixels were void and must stay void.
+        // Corner pixels were void and must become honest alpha holes.
         expect([px[0], px[1], px[2]]).toEqual([...FLAME_VOID]);
+        expect(px[3]).toBe(0);
         const last = (source.width * source.height - 1) * 4;
         expect([px[last], px[last + 1], px[last + 2]]).toEqual([...FLAME_VOID]);
+        expect(px[last + 3]).toBe(0);
+    });
+
+    it('expands one occupied pixel by exactly one frozen neighbourhood', () => {
+        const source = makeImage(5, 5);
+        for (let i = 0; i < source.data.length; i += 4) {
+            source.data.set([...FLAME_VOID, 255], i);
+        }
+        const center = (2 * 5 + 2) * 4;
+        source.data.set([120, 48, 20, 173], center);
+
+        const first = applyFlameFillLut(source);
+        const second = applyFlameFillLut(cloneImage(source));
+
+        for (let y = 0; y < 5; y += 1) {
+            for (let x = 0; x < 5; x += 1) {
+                const alpha = first.data[(y * 5 + x) * 4 + 3];
+                const immediate = Math.abs(x - 2) <= 1 && Math.abs(y - 2) <= 1;
+                expect(alpha, `${x},${y}`).toBe(immediate ? 173 : 0);
+            }
+        }
+        expect(Array.from(second.data)).toEqual(Array.from(first.data));
     });
 
     it('keeps generative uniqueness: different stills stay different after the same LUT', () => {
