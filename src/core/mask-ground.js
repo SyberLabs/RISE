@@ -196,6 +196,17 @@ function resolveFillSourceId(roomId, wordFill) {
     return firstId(fill.procedural) || firstId(fill.sourced) || roomId || '';
 }
 
+export function maskFillFromConfig({
+    sourced = [],
+    procedural = [],
+    wordFill,
+    activeTypes
+} = {}) {
+    const roomId = resolveRoomSourceId({ activeTypes, procedural, sourced });
+    const fill = resolveSessionWordFill({ sourced, procedural, wordFill });
+    return describeSource(resolveFillSourceId(roomId, fill));
+}
+
 export function maskGroundFromConfig({
     sourced = [],
     procedural = [],
@@ -204,7 +215,6 @@ export function maskGroundFromConfig({
     roomOpaque = false
 } = {}) {
     const roomId = resolveRoomSourceId({ activeTypes, procedural, sourced });
-    const fill = resolveSessionWordFill({ sourced, procedural, wordFill });
-    const fillId = resolveFillSourceId(roomId, fill);
-    return combine(roomId, fillId, { roomOpaque });
+    const fill = maskFillFromConfig({ sourced, procedural, wordFill, activeTypes });
+    return combine(roomId, fill, { roomOpaque });
 }

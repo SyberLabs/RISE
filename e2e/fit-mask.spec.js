@@ -19,6 +19,7 @@ const PREFS = {
   recitation: { enabled: true },
   visualInterlocution: {
     visualMode: 'interlocution',
+    livingText: { enabled: true, intensity: 0.8 },
     interlocution: {
       sourceFamily: 'procedural',
       procedural: ['turrell'],
@@ -158,6 +159,32 @@ for (const [surface, viewport] of [
     await expect.poll(() => page.locator('#atom-display').evaluate((atom) => (
       getComputedStyle(atom).webkitTextStrokeWidth
     ))).toBe('0px');
+    await expect(page.locator('#chamber-field')).toHaveClass(/is-living-fit/);
+    const semanticFill = await page.locator('#chamber-field').evaluate((field) => ({
+      color: field.style.getPropertyValue('--living-fit-color'),
+      mix: Number(field.style.getPropertyValue('--living-fit-mix')),
+      saturation: Number(field.style.getPropertyValue('--living-fit-saturation')),
+      brightness: Number(field.style.getPropertyValue('--living-fit-brightness'))
+    }));
+    expect(semanticFill.color).toMatch(/^rgb\(/);
+    expect(semanticFill.mix).toBeGreaterThan(0);
+    expect(semanticFill.mix).toBeLessThanOrEqual(0.45);
+    expect(semanticFill.saturation).toBeGreaterThanOrEqual(1);
+    expect(semanticFill.brightness).toBeGreaterThan(0);
+    const composite = await page.locator('.chamber-fill-field').evaluate((fill) => {
+      const fieldStyle = getComputedStyle(fill);
+      const overlay = getComputedStyle(fill, '::after');
+      return {
+        content: overlay.content,
+        blend: overlay.mixBlendMode,
+        opacity: Number(overlay.opacity),
+        filter: fieldStyle.filter
+      };
+    });
+    expect(composite.content).not.toBe('none');
+    expect(composite.blend).toBe('color');
+    expect(composite.opacity).toBeCloseTo(semanticFill.mix, 3);
+    expect(composite.filter).not.toBe('none');
     await expect(page.locator('.chamber-mask-ground-plate[data-ground="light"]'))
       .toBeAttached({ timeout: 20_000 });
 

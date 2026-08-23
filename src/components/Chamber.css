@@ -1094,6 +1094,24 @@
   z-index: 5;
 }
 
+.chamber-field.is-living-fit .chamber-fill-field {
+  isolation: isolate;
+  filter:
+    saturate(var(--living-fit-saturation, 1))
+    brightness(var(--living-fit-brightness, 1));
+}
+
+.chamber-field.is-living-fit .chamber-fill-field::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: var(--living-fit-color);
+  opacity: var(--living-fit-mix, 0);
+  mix-blend-mode: color;
+}
+
 .chamber-fill-field.chamber-scheduled-field,
 .chamber-fill-field.chamber-scheduled-field.is-active,
 .chamber-fill-field.chamber-scheduled-field.is-leaving {

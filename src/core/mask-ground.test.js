@@ -11,6 +11,7 @@ import {
     describeSource,
     isProceduralSource,
     isStillSource,
+    maskFillFromConfig,
     maskGroundFromConfig,
     profileFor
 } from './mask-ground.js';
@@ -140,6 +141,19 @@ describe('combine(A, B) — Firstmate law', () => {
 });
 
 describe('maskGroundFromConfig', () => {
+    it('describes the resolved procedural or collection fill from the same session pair', () => {
+        expect(maskFillFromConfig({
+            activeTypes: ['aic-oldmasters'],
+            sourced: ['aic-oldmasters'],
+            wordFill: { mode: 'pick', sourced: [], procedural: ['fractal'] }
+        })).toMatchObject({ id: 'fractal', procedural: true, still: false });
+        expect(maskFillFromConfig({
+            activeTypes: ['aic-oldmasters'],
+            sourced: ['aic-oldmasters'],
+            wordFill: { mode: 'pick', sourced: ['aic-ukiyoe'], procedural: [] }
+        })).toMatchObject({ id: 'aic-ukiyoe', procedural: false, still: true });
+    });
+
     it('Astronomy room + Attractor word-fill → Dark', () => {
         expect(maskGroundFromConfig({
             activeTypes: ['sci-astronomy'],

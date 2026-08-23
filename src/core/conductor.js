@@ -270,6 +270,38 @@ export function scoreChunk(text) {
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
+/**
+ * One semantic appearance contract for ordinary Living Text and Fit fills.
+ * Chamber decides where to apply it; this function only interprets signal.
+ */
+export function livingTextAppearance(signal, intensity = 1) {
+    const strength = clamp(Number(intensity) || 0, 0, 1);
+    const valence = clamp(Number(signal?.valence) || 0, -1, 1);
+    const arousal = clamp(Number(signal?.arousal ?? 0.3) || 0, 0, 1);
+    const neutral = [232, 232, 236];
+    const pole = valence >= 0 ? [255, 208, 130] : [140, 172, 255];
+    const mood = Math.tanh(Math.abs(valence) * 2.6);
+    const t = mood * strength;
+    const rgb = neutral.map((channel, index) => (
+        Math.round(channel + (pole[index] - channel) * t)
+    ));
+    const round3 = value => Number(value.toFixed(3));
+
+    return {
+        color: `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`,
+        rgb,
+        glowRadius: round3(8 + arousal * 40 * strength),
+        glowAlpha: round3(0.15 + arousal * 0.45 * strength),
+        fitMix: round3(clamp(
+            (0.10 + 0.35 * Math.max(mood, arousal * 0.25)) * strength,
+            0,
+            0.45
+        )),
+        fitSaturation: round3(1 + arousal * 0.22 * strength),
+        fitBrightness: round3(1 + (arousal * 0.06 - 0.02) * strength)
+    };
+}
+
 function ema(values, alphas) {
     const out = new Array(values.length);
     let acc = values[0];
