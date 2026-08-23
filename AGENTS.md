@@ -201,18 +201,23 @@ from the Vite dev server.
  `e2e/mobile.spec.js` alone is ~200s of the ~500s suite, so four is the smallest
  count that reaches the floor. More shards buy nothing.
 - There is **no lint script**. The gates a pull request has to pass are:
- `node scripts/ci-hygiene.mjs`, `npm audit --omit=dev --audit-level=high`
- (`hygiene` job); `npm run build && npm run check:first-load`, a gzip budget on
- what `dist/index.html` fetches before the app runs (`build` job); and
- `npm run docs:diagram`, which must leave `docs/specs/ARCHITECTURE.md`
- unchanged (`docs` job).
-- `docs/specs/ARCHITECTURE.md` carries a **generated** subsystem diagram between
+ `node scripts/ci-hygiene.mjs` and `npm audit --omit=dev --audit-level=high`
+ (`hygiene` job); `npm run build && npm run check:first-load`, which holds what
+ `dist/index.html` fetches to 215 KB brotli and should be lowered as that number
+ falls (`build` job); and `npx vitest run src/core/system-design.test.js` plus
+ `npm run docs:diagram`, which must leave `docs/specs/ARCHITECTURE.md` unchanged
+ (`docs` job).
+- `docs/specs/ARCHITECTURE.md` §3 carries a **generated** import graph between
  `<!-- BEGIN GENERATED DIAGRAM -->` markers. Edit
- `scripts/build-architecture-diagram.mjs`, never the diagram.
+ `scripts/build-architecture-diagram.mjs`, never the diagram. The rest of that
+ file is hand-written and guarded by `src/core/system-design.test.js`.
 - A change touching only `docs/`, `.agents/`, `.cursor/`, a root `*.md`,
  `LICENSE`, or `NOTICE` skips the unit, build, Scriptorium, and browser jobs.
- Anything else runs everything. `CI` is the one job that always reports and the
- only name a branch ruleset should require.
+ Anything else runs everything. The system-design guard lives in the unit suite
+ but is **also** run by the `docs` job, because editing that document is exactly
+ when it has to run.
+- `CI` is the one job that always reports and the only name a branch ruleset
+ should require. A required check that never reports blocks a merge forever.
 
 ## Running / manual testing
 

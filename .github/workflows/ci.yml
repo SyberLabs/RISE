@@ -110,12 +110,18 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
 
   docs:
-    name: Generated docs
+    name: System design document
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
+
+      # src/core/system-design.test.js guards ARCHITECTURE.md, and it lives in
+      # the unit suite — which a prose-only change skips. Editing that document
+      # is exactly when its guard has to run, so it runs here too.
+      - name: The system design document does not lie
+        run: npx vitest run src/core/system-design.test.js
 
       # The diagram is written by the code it describes, so the only way it can
       # be wrong is if someone forgot to run the generator.
@@ -155,11 +161,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
       - run: npm run build
+<<<<<<< HEAD
       # A first load can only stay small if something refuses to let it grow.
       # The build itself already fails on a deferral the bundler ignores;
       # this fails on the byte count that deferral was for.
       - name: The Portal's cost is a budget, not an aspiration
         run: npm run measure:first-load
+=======
+
+      # scripts/measure-first-load.mjs already priced what index.html names;
+      # nothing was holding it to a number. 207 KB brotli today, and #47 says
+      # the next pass goes lower — so lower the budget when it does. A ceiling
+      # that only ever rises is not a ceiling.
+      - name: The first screen stays within its budget
+        run: npm run check:first-load
+>>>>>>> de71020 (Wire the first-load measurement that already exists, and delete mine)
 
   scriptorium:
     name: Scriptorium CLI
