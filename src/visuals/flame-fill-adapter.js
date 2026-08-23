@@ -53,10 +53,8 @@ function clamp(value, lo, hi) {
     return Math.min(hi, Math.max(lo, value));
 }
 
-function createImageBuffer(width, height, data) {
-    const pixels = data
-        ? new Uint8ClampedArray(data)
-        : new Uint8ClampedArray(width * height * 4);
+function createImageBuffer(width, height) {
+    const pixels = new Uint8ClampedArray(width * height * 4);
     if (typeof ImageData === 'function') {
         try {
             return new ImageData(pixels, width, height);
@@ -118,22 +116,52 @@ function knee(x) {
  * Session-locked 1D curve. Same input channel always maps to the same
  * output; image histograms never move the gain.
  */
-function transferChannel(x, tone) {
-    const gain = (tone.brightness * tone.vibrancy)
-        / (ROOM_FLAME_TONE.brightness * ROOM_FLAME_TONE.vibrancy);
-    const lifted = Math.log1p(gain * x) / Math.log1p(gain);
+function transferChannel(x, tone, gain, gainNorm) {
+    const lifted = Math.log1p(gain * x) / gainNorm;
     const shaped = Math.pow(Math.max(0, lifted), 1 / tone.gamma);
     return clamp(knee(shaped), 0, HIGHLIGHT_CEILING / 255);
 }
 
-export function applyFlameFillLut(imageData, options = {}) {
-    if (!imageData?.data || !imageData.width || !imageData.height) return imageData;
-    const tone = options.tone || boundFlameFillTone(options.roomTone || ROOM_FLAME_TONE, {
+const lutCache = new Map();
+
+/**
+ * The curve as the 256-entry table it is. Channel input is always an
+ * integer byte, so the table reproduces `transferChannel` exactly while
+ * pulling two logs and a pow out of the per-pixel loop.
+ */
+function flameFillLut(tone) {
+    const key = `${tone.brightness}|${tone.gamma}|${tone.vibrancy}`;
+    const cached = lutCache.get(key);
+    if (cached) return cached;
+
+    const gain = (tone.brightness * tone.vibrancy)
+        / (ROOM_FLAME_TONE.brightness * ROOM_FLAME_TONE.vibrancy);
+    const gainNorm = Math.log1p(gain);
+    const table = new Uint8Array(256);
+    for (let v = 0; v < 256; v += 1) {
+        // FM-RISE-52's occupied-channel bounds fold into the table: they are
+        // a function of the input byte alone, like the rest of the curve.
+        table[v] = clamp(
+            Math.round(transferChannel(v / 255, tone, gain, gainNorm) * 255),
+            CHANNEL_FLOOR,
+            HIGHLIGHT_CEILING
+        );
+    }
+    lutCache.set(key, table);
+    return table;
+}
+
+function resolveTone(options) {
+    return options.tone || boundFlameFillTone(options.roomTone || ROOM_FLAME_TONE, {
         reducedMotion: options.reducedMotion === true
     });
-    const src = imageData.data;
-    const out = createImageBuffer(imageData.width, imageData.height);
-    const dst = out.data;
+}
+
+/**
+ * Each output pixel depends only on the same pixel's input, so `src` and
+ * `dst` may be the same array.
+ */
+function writeFlameFill(src, dst, lut) {
     for (let i = 0; i < src.length; i += 4) {
         const r = src[i];
         const g = src[i + 1];
@@ -145,10 +173,16 @@ export function applyFlameFillLut(imageData, options = {}) {
             dst[i + 2] = FLAME_VOID[2];
             continue;
         }
-        dst[i] = clamp(Math.round(transferChannel(r / 255, tone) * 255), CHANNEL_FLOOR, HIGHLIGHT_CEILING);
-        dst[i + 1] = clamp(Math.round(transferChannel(g / 255, tone) * 255), CHANNEL_FLOOR, HIGHLIGHT_CEILING);
-        dst[i + 2] = clamp(Math.round(transferChannel(b / 255, tone) * 255), CHANNEL_FLOOR, HIGHLIGHT_CEILING);
+        dst[i] = lut[r];
+        dst[i + 1] = lut[g];
+        dst[i + 2] = lut[b];
     }
+}
+
+export function applyFlameFillLut(imageData, options = {}) {
+    if (!imageData?.data || !imageData.width || !imageData.height) return imageData;
+    const out = createImageBuffer(imageData.width, imageData.height);
+    writeFlameFill(imageData.data, out.data, flameFillLut(resolveTone(options)));
     return out;
 }
 
@@ -161,8 +195,11 @@ export function applyFlameFillToCanvas(canvas, options = {}) {
     }
     const reducedMotion = options.reducedMotion
         ?? prefersFlameFillReducedMotion();
-    const src = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    ctx.putImageData(applyFlameFillLut(src, { ...options, reducedMotion }), 0, 0);
+    // getImageData already hands back a private copy, so fill it in place
+    // rather than allocating a second full-canvas buffer per flash.
+    const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    writeFlameFill(image.data, image.data, flameFillLut(resolveTone({ ...options, reducedMotion })));
+    ctx.putImageData(image, 0, 0);
     return true;
 }
 

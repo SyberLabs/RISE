@@ -15,7 +15,7 @@ export const VISUAL_PRESENCE_DEFAULT_MS = 200;
 // into Word ink — one clock, two mounts. Shared here so persisted
 // settings, the session compiler, the panel, and playback cannot drift
 // apart. Any other value normalizes to 'full-frame'.
-export const PRESENTATION_SURFACES = Object.freeze([
+const PRESENTATION_SURFACES = Object.freeze([
     'full-frame',
     'behind-stream',
     'continuous',
@@ -44,18 +44,14 @@ export function isGalleryInTheWord(value) {
 // bounded so lively mode remains gentle and contemplative mode never becomes
 // a five-second blur.
 export const GALLERY_CADENCE_DEFAULT = 0.5;
-export const GALLERY_DWELL_MIN_MS = 8_000;
-export const GALLERY_DWELL_MAX_MS = 30_000;
-export const GALLERY_CROSSFADE_MIN_MS = 1_200;
-export const GALLERY_CROSSFADE_MAX_MS = 2_500;
+const GALLERY_DWELL_MIN_MS = 8_000;
+const GALLERY_DWELL_MAX_MS = 30_000;
+const GALLERY_CROSSFADE_MIN_MS = 1_200;
+const GALLERY_CROSSFADE_MAX_MS = 2_500;
 
-export function normalizeGalleryCadence(value, fallback = GALLERY_CADENCE_DEFAULT) {
-    const fallbackNumber = Number(fallback);
-    const safeFallback = Number.isFinite(fallbackNumber)
-        ? fallbackNumber
-        : GALLERY_CADENCE_DEFAULT;
+export function normalizeGalleryCadence(value) {
     const parsed = Number(value);
-    const cadence = Number.isFinite(parsed) ? parsed : safeFallback;
+    const cadence = Number.isFinite(parsed) ? parsed : GALLERY_CADENCE_DEFAULT;
     return Math.round(Math.max(0, Math.min(1, cadence)) * 100) / 100;
 }
 
@@ -72,7 +68,7 @@ export function galleryCadenceTimings(value) {
     return Object.freeze({ cadence, dwellMs, crossfadeMs });
 }
 
-export function galleryCadenceRole(value) {
+function galleryCadenceRole(value) {
     const cadence = normalizeGalleryCadence(value);
     if (cadence < 0.34) return 'contemplative';
     if (cadence > 0.66) return 'lively';
@@ -94,12 +90,10 @@ export function galleryCadenceValueText(value) {
 // finish a few seconds before the next work, so the completed figure
 // can be seen still. Full-frame and behind-stream keep a finished still
 // (render progress defaults to 1).
-export const GALLERY_DRAW_HOLD_MS = 2_500;
-export const GALLERY_DRAW_MIN_MS = 4_000;
-export const HARMONOGRAPH_HOLD_MS = GALLERY_DRAW_HOLD_MS;
-export const HARMONOGRAPH_DRAW_MIN_MS = GALLERY_DRAW_MIN_MS;
+const GALLERY_DRAW_HOLD_MS = 2_500;
+const GALLERY_DRAW_MIN_MS = 4_000;
 
-export function galleryDrawMs(dwellMs) {
+function galleryDrawMs(dwellMs) {
     const dwell = Math.max(1, Number(dwellMs) || GALLERY_DWELL_MIN_MS);
     const spare = Math.min(GALLERY_DRAW_HOLD_MS, Math.max(800, dwell - GALLERY_DRAW_MIN_MS));
     return Math.max(1, dwell - spare);
@@ -111,10 +105,6 @@ export function galleryDrawProgress(elapsedMs, dwellMs) {
     return 1 - ((1 - t) ** 1.8);
 }
 
-export function harmonographDrawMs(dwellMs) {
-    return galleryDrawMs(dwellMs);
-}
-
 export function harmonographDrawProgress(elapsedMs, dwellMs) {
     return galleryDrawProgress(elapsedMs, dwellMs);
 }
@@ -122,7 +112,7 @@ export function harmonographDrawProgress(elapsedMs, dwellMs) {
 // CSS `ease-in-out` is cubic-bezier(0.42, 0, 0.58, 1). Cosine is the same
 // symmetry and a close enough dissolve that explicit-t frames match the
 // Chamber wall without solving a unit bezier per pixel.
-export function galleryEase(t) {
+function galleryEase(t) {
     const x = Math.max(0, Math.min(1, Number(t) || 0));
     return 0.5 - 0.5 * Math.cos(Math.PI * x);
 }
@@ -133,7 +123,7 @@ export function galleryEase(t) {
  * work can appear before the film ends. The dissolve never drops below
  * Gallery's gentle floor.
  */
-export function galleryTimingsForDuration(durationMs, count, cadence) {
+function galleryTimingsForDuration(durationMs, count, cadence) {
     const chamber = galleryCadenceTimings(cadence);
     const n = Math.max(0, count | 0);
     const duration = Number(durationMs);
@@ -191,9 +181,6 @@ export function galleryWallAt(timeMs, count, options = {}) {
         });
     }
     const cycle = Math.floor(t / period);
-    const into = t - cycle * period;
-    const incomingIndex = cycle % n;
-    const mix = cycle === 0 || into >= fade ? 1 : galleryEase(into / fade);
     if (cycle === 0) {
         return Object.freeze({
             outgoingIndex: null,
@@ -203,10 +190,11 @@ export function galleryWallAt(timeMs, count, options = {}) {
             crossfadeMs
         });
     }
+    const into = t - cycle * period;
     return Object.freeze({
         outgoingIndex: (cycle - 1) % n,
-        incomingIndex,
-        mix,
+        incomingIndex: cycle % n,
+        mix: into >= fade ? 1 : galleryEase(into / fade),
         dwellMs,
         crossfadeMs
     });
@@ -222,8 +210,8 @@ export const VISUAL_PRESENCE_STEPS_MS = Object.freeze([
 
 export const VISUAL_PRESENCE_WINDOW_MS = 12_000;
 export const VISUAL_PRESENCE_MAX_DUTY = 0.45;
-export const VISUAL_PRESENCE_MIN_REST_MS = 250;
-export const VISUAL_PRESENCE_REST_FACTOR = 1.25;
+const VISUAL_PRESENCE_MIN_REST_MS = 250;
+const VISUAL_PRESENCE_REST_FACTOR = 1.25;
 
 export function normalizeVisualPresence(value, fallback = VISUAL_PRESENCE_DEFAULT_MS) {
     const fallbackNumber = Number(fallback);
@@ -255,7 +243,7 @@ export function formatVisualPresence(value) {
     return `${(duration / 1000).toFixed(1)} s`;
 }
 
-export function visualPresenceRole(value) {
+function visualPresenceRole(value) {
     const duration = normalizeVisualPresence(value);
     if (duration < 250) return 'punctuation';
     if (duration < 500) return 'interruption';

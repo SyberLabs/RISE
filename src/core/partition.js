@@ -23,6 +23,7 @@ import {
   LOCAL_WORK_DEFAULT_NOUN,
   authorship,
   localWorkParts,
+  looksLikeTitle,
   validateLocalWork
 } from './local-works.js';
 
@@ -40,9 +41,6 @@ import {
  */
 const PARAGRAPH_BREAK = String.raw`\r?\n[ \t]*(?:\r?\n)+`;
 
-/** Below this a snap is not worth offering: it makes a part of a line or two. */
-const MIN_SNAP_WORDS = 8;
-
 /**
  * A DATE LINE, conservatively.
  *
@@ -54,33 +52,13 @@ const DATE_LINE =
   /^(?:\d{1,2}[./-]\d{1,2}(?:[./-]\d{2,4})?|(?:mon|tues|wednes|thurs|fri|satur|sun)day\b.*|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:,?\s*\d{4})?|\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?(?:,?\s*\d{4})?)$/iu;
 
 /**
- * A TITLE LINE — measured, not assumed.
- *
- * `paragraphIsHeading` wants ALL CAPS or an ordinal, and on a real book of
- * poems it fired ZERO times: 105 blocks, 97 of whose first lines read as
- * titles — Pyramid, Sycamore, Railroad — and not one of them shouting. A
- * reader's own file is where this rule came from, which is the only place a
- * rule about reader files can honestly come from.
- *
- * Conservative on purpose: a short line, no terminal punctuation, followed by
- * something. A line of verse that happens to be short is the false positive
- * this will make, and a reader joins it in one gesture.
- */
-const TITLE_MAX_CHARS = 60;
-const TITLE_MAX_WORDS = 9;
-
-function looksLikeTitle(line) {
-  const text = line.trim();
-  if (!text || text.length > TITLE_MAX_CHARS) return false;
-  if (/[.,;:!?]$/u.test(text)) return false;
-  return countWords(text) <= TITLE_MAX_WORDS;
-}
-
-/**
  * The magnets, strongest first. A magnet is a line whose START is a joint
  * worth preferring over the ordinary paragraph break beside it.
+ *
+ * `looksLikeTitle` lives in local-works.js, which names drafted parts with
+ * the same predicate — see the provenance for the rule there.
  */
-export const MAGNETS = Object.freeze([
+const MAGNETS = Object.freeze([
   Object.freeze({ kind: 'date', test: line => DATE_LINE.test(line.trim()) }),
   Object.freeze({ kind: 'title', test: looksLikeTitle })
 ]);
@@ -333,15 +311,6 @@ export function describeMagnets(text, { rungWords } = {}) {
   const counts = {};
   for (const point of points) counts[point.kind] = (counts[point.kind] || 0) + 1;
   return counts;
-}
-
-/** Parts with their word counts, for a readout that is not the prose. */
-export function describePartition(record) {
-  return localWorkParts(record).map((part, index) => ({
-    ordinal: index + 1,
-    label: part.label,
-    words: countWords(part.content)
-  }));
 }
 
 /**

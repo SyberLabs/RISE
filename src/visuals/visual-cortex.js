@@ -1826,6 +1826,18 @@ export class VisualCortex {
     }
 
     /**
+     * One instance, two clips: a living layer only projects when the room
+     * and the word-fill both want it and the fill has a host of its own.
+     * Otherwise the single instance already renders into `primaryHost`.
+     */
+    _livingProjectionHost(roomLive, fillLive, primaryHost) {
+        const projectionHost = this._continuousFieldProjectionHost;
+        return roomLive && fillLive && projectionHost && projectionHost !== primaryHost
+            ? projectionHost
+            : null;
+    }
+
+    /**
      * The living layer, under the gallery.
      *
      * It answers to exactly the same gate as the image field — mode,
@@ -1895,11 +1907,9 @@ export class VisualCortex {
             });
         }
         this._harmonographField.reducedMotion = this._continuousReducedMotion();
-        const projectTo = roomLive && fillLive && this._continuousFieldProjectionHost
-            && this._continuousFieldProjectionHost !== primaryHost
-            ? this._continuousFieldProjectionHost
-            : null;
-        this._harmonographField.setProjectionHost(projectTo);
+        this._harmonographField.setProjectionHost(
+            this._livingProjectionHost(roomLive, fillLive, primaryHost)
+        );
         if (!this._harmonographField.running) this._harmonographField.start();
     }
 
@@ -1937,12 +1947,11 @@ export class VisualCortex {
         }
         this._plateField.reducedMotion = this._continuousReducedMotion();
         this._plateField.setFamilies(families);
-        const projectTo = roomFamilies.length > 0 && fillFamilies.length > 0
-            && this._continuousFieldProjectionHost
-            && this._continuousFieldProjectionHost !== primaryHost
-            ? this._continuousFieldProjectionHost
-            : null;
-        this._plateField.setProjectionHost(projectTo);
+        this._plateField.setProjectionHost(this._livingProjectionHost(
+            roomFamilies.length > 0,
+            fillFamilies.length > 0,
+            primaryHost
+        ));
         if (!this._plateField.running) this._plateField.start();
     }
 
@@ -1976,11 +1985,9 @@ export class VisualCortex {
                 return;
             }
         }
-        const projectTo = roomLive && fillLive && this._continuousFieldProjectionHost
-            && this._continuousFieldProjectionHost !== primaryHost
-            ? this._continuousFieldProjectionHost
-            : null;
-        this._attractorField.setProjectionHost(projectTo);
+        this._attractorField.setProjectionHost(
+            this._livingProjectionHost(roomLive, fillLive, primaryHost)
+        );
     }
 
     /**
@@ -2067,17 +2074,7 @@ export class VisualCortex {
         let assetGenerationRotated = false;
         // Detect if active external categories changed (room or word-fill).
         if ('activeTypes' in nextConfig || 'wordFill' in nextConfig || 'presentation' in nextConfig) {
-            const prospective = {
-                ...this.config,
-                ...nextConfig,
-                activeTypes: 'activeTypes' in nextConfig
-                    ? nextConfig.activeTypes
-                    : this.config.activeTypes,
-                wordFill: 'wordFill' in nextConfig ? nextConfig.wordFill : this.config.wordFill,
-                presentation: 'presentation' in nextConfig
-                    ? nextConfig.presentation
-                    : this.config.presentation
-            };
+            const prospective = { ...this.config, ...nextConfig };
             const oldExternal = this._poolCategoriesForTypes(this._typesForAssetGeneration(this.config));
             const newExternal = this._poolCategoriesForTypes(this._typesForAssetGeneration(prospective));
             

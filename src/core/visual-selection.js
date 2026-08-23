@@ -6,22 +6,16 @@
  * and launch-time config all resolve to the same effective selection.
  */
 
-import { LISTED_PROCEDURAL_PATTERNS, PROCEDURAL_PATTERN_IDS } from './visual-registry.js';
+import { LISTED_PROCEDURAL_PATTERNS } from './visual-registry.js';
 
-export const VISUAL_SOURCE_FAMILIES = Object.freeze([
-    'procedural',
-    'collections',
-    'personal',
-    'blend'
-]);
-
-const SOURCE_FAMILY_SET = new Set(VISUAL_SOURCE_FAMILIES);
+const SOURCE_FAMILY_SET = new Set(['procedural', 'collections', 'personal', 'blend']);
 const GLOBAL_POOL_MODE_SET = new Set(['all', 'selected']);
 const PROCEDURAL_PREFIX = 'procedural:';
-const PROCEDURAL_ENGINE_IDS = new Set([
-    ...PROCEDURAL_PATTERN_IDS,
-    ...LISTED_PROCEDURAL_PATTERNS.map(pattern => pattern.id)
-]);
+// LISTED_PROCEDURAL_PATTERNS is PROCEDURAL_PATTERNS plus Attractor, so its ids
+// already contain PROCEDURAL_PATTERN_IDS.
+const PROCEDURAL_ENGINE_IDS = new Set(
+    LISTED_PROCEDURAL_PATTERNS.map(pattern => pattern.id)
+);
 
 function uniqueStringIds(value) {
     return Array.isArray(value)
@@ -67,7 +61,7 @@ export function isPersonalVisualSource(id) {
     return id === 'global-pool' || id === 'custom' || id.startsWith('personal:');
 }
 
-export function inferVisualSourceFamily(proceduralValue, sourcedValue, preferredFamily) {
+export function inferVisualSourceFamily(proceduralValue, sourcedValue) {
     const procedural = uniqueStringIds(proceduralValue);
     const sourced = uniqueStringIds(sourcedValue);
     const hasProcedural = procedural.length > 0;
@@ -79,10 +73,6 @@ export function inferVisualSourceFamily(proceduralValue, sourcedValue, preferred
     }
     if (hasCollections) return 'collections';
     if (hasPersonal) return 'personal';
-    // Empty+empty is stillness, not an instruction to snap back to
-    // Procedural. Honor the last chosen family when the user left both
-    // shelves empty on purpose.
-    if (SOURCE_FAMILY_SET.has(preferredFamily)) return preferredFamily;
     return 'procedural';
 }
 
@@ -91,9 +81,11 @@ export function normalizeVisualSelection(value = {}) {
     const { lifted, sourced: sourcedWithoutEngines } = liftEngineIdsFromSourced(input.sourced);
     let procedural = [...new Set([...collectProceduralIds(input.procedural), ...lifted])];
     let sourced = sourcedWithoutEngines;
-    let sourceFamily = SOURCE_FAMILY_SET.has(input.sourceFamily)
+    // Empty+empty is stillness, not an instruction to snap back to Procedural:
+    // an explicit family survives both shelves being left empty on purpose.
+    const sourceFamily = SOURCE_FAMILY_SET.has(input.sourceFamily)
         ? input.sourceFamily
-        : inferVisualSourceFamily(procedural, sourced, input.sourceFamily);
+        : inferVisualSourceFamily(procedural, sourced);
     // PR #30 lifted leaked `procedural:` ids out of sourced so Flames
     // would not become an empty Wikimedia shelf. That lift must not
     // rewrite an explicit Collections / Personal / Blend pick back to

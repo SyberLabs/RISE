@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LISTED_PROCEDURAL_PATTERNS, PROCEDURAL_PATTERN_IDS } from './visual-registry.js';
 import {
-    inferVisualSourceFamily,
     normalizeVisualSelection,
     normalizeWordFill,
     wordFillIsDistinct
@@ -136,9 +135,6 @@ describe('normalizeVisualSelection procedural engine ids', () => {
     });
 
     it('empty+empty keeps the last chosen family instead of inferring procedural', () => {
-        expect(inferVisualSourceFamily([], [], 'collections')).toBe('collections');
-        expect(inferVisualSourceFamily([], [], 'personal')).toBe('personal');
-        expect(inferVisualSourceFamily([], [], 'blend')).toBe('blend');
         expect(normalizeVisualSelection({
             sourceFamily: 'collections',
             procedural: [],
