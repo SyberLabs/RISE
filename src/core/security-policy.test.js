@@ -13,7 +13,18 @@ describe('dependency security policy', () => {
     });
 
     it('runs that command in CI without excluding development tools', () => {
-        expect(ciWorkflow).toContain('run: npm run security:audit');
-        expect(ciWorkflow).not.toContain('npm audit --omit=dev');
+        const auditRuns = ciWorkflow.match(/^\s*run:\s+npm run security:audit.*$/gm)
+            ?.map(line => line.trim()) ?? [];
+        expect(auditRuns).toEqual(['run: npm run security:audit']);
+        expect(ciWorkflow).not.toMatch(/--omit(?:=|\s+)dev\b/);
+    });
+
+    it('executes the Kokoro and Sharp compatibility probe in CI', () => {
+        expect(packageJson.scripts['security:compat'])
+            .toBe('node scripts/verify-security-dependencies.mjs');
+        const compatibilityRuns = ciWorkflow
+            .match(/^\s*run:\s+npm run security:compat\s*$/gm)
+            ?.map(line => line.trim()) ?? [];
+        expect(compatibilityRuns).toEqual(['run: npm run security:compat']);
     });
 });

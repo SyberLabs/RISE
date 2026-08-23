@@ -108,6 +108,9 @@ jobs:
       - name: No dependency may carry a known high-severity advisory
         run: npm run security:audit
 
+      - name: The voice authoring image adapter remains compatible
+        run: npm run security:compat
+
   docs:
     name: System design document
     runs-on: ubuntu-latest

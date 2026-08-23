@@ -149,12 +149,13 @@ dependencies execute repository-controlled inputs inside the release machine.
 `npm run security:audit` therefore rejects known high-severity advisories in the
 entire installed tree. It runs as a step of `hygiene`, which already means
 "properties of the committed artifacts checked where a unit test cannot reach
-them".
+them". `npm run security:compat` also exercises Kokoro with the intentionally
+overridden Sharp adapter, so a patched dependency cannot silently break voice
+authoring.
 
-**A least-privilege token.** The workflow declares no `permissions` block, so
-it inherits whatever the repository default is. Nothing in CI writes to the
-repository: `contents: read`, with `pull-requests: read` added only to the job
-that reads the file list.
+**A least-privilege token.** The workflow grants `contents: read` globally,
+with `pull-requests: read` added only to the change-classifier job. Nothing in
+CI writes to the repository.
 
 **Cancellation scoped to pull requests.** `main` runs are allowed to finish so
 a commit's health is recorded.
