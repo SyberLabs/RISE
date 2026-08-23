@@ -1,6 +1,6 @@
 # RISE — engineering overview
 
-A recruiter- and hiring-manager-scannable summary of what this codebase is and what was engineered. For the product story, see [README.md](README.md). For the full architecture, see [docs/specs/ARCHITECTURE.md](docs/specs/ARCHITECTURE.md).
+A recruiter- and hiring-manager-scannable summary of what this codebase is and what was engineered. For the product story, see [README.md](../README.md). For the full architecture, see [specs/ARCHITECTURE.md](specs/ARCHITECTURE.md).
 
 ## What it is (30 seconds)
 
