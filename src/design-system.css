@@ -40,7 +40,10 @@
 
   /* ═══ ACCENTS ═══ */
   --color-threshold: #8B7FD4;
-  /* Primary accent (soft violet) */
+  /* Primary accent (soft violet) — reading field, words, gallery keep this. */
+  --color-accent: #8B7FD4;
+  --color-accent-rgb: 139, 127, 212;
+  /* Chrome accent family. Swaps with [data-accent] (FM-UI-7). */
   --color-chamber: #6B9FD4;
   /* Secondary accent (soft blue) */
   --color-ember: #D4A574;
@@ -113,6 +116,31 @@
   --icon-sm: 16px;
   --icon-md: 24px;
   --icon-lg: 32px;
+}
+
+:root[data-accent="purple"] {
+  --color-accent: #8B7FD4;
+  --color-accent-rgb: 139, 127, 212;
+}
+
+:root[data-accent="cobalt"] {
+  --color-accent: #3A5FA8;
+  --color-accent-rgb: 58, 95, 168;
+}
+
+:root[data-accent="amber"] {
+  --color-accent: #C9A24A;
+  --color-accent-rgb: 201, 162, 74;
+}
+
+:root[data-accent="sunset"] {
+  --color-accent: #D4783A;
+  --color-accent-rgb: 212, 120, 58;
+}
+
+:root[data-accent="gecko"] {
+  --color-accent: #4F9A5C;
+  --color-accent-rgb: 79, 154, 92;
 }
 
 /* Phone density step: scale chrome tokens once at ≤640px so every view
@@ -704,6 +732,14 @@ small {
   height: 10px;
   background: var(--color-threshold);
   border-radius: 50%;
+}
+
+.settings .radio input[type="radio"]:checked {
+  border-color: var(--color-accent);
+}
+
+.settings .radio input[type="radio"]:checked::after {
+  background: var(--color-accent);
 }
 
 /* ─────────────────────────────────────────────────────────────

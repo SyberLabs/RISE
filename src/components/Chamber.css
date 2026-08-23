@@ -434,7 +434,7 @@
 }
 
 .control-btn:hover {
-  color: var(--color-light);
+  color: var(--color-accent);
 }
 
 .control-btn .icon {
@@ -478,6 +478,8 @@
   inset: 0;
   z-index: 150000;
   overflow: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .chamber-settings-overlay[hidden] {
@@ -637,7 +639,7 @@
 }
 
 .volume-preset:hover {
-  border-color: var(--color-threshold);
+  border-color: var(--color-accent);
   color: var(--color-light);
 }
 
