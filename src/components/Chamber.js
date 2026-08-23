@@ -627,7 +627,10 @@ export class Chamber {
     const activeTypes = Array.isArray(cortexTypes) && cortexTypes.length
       ? cortexTypes
       : [...(interlocution.procedural || []), ...(interlocution.sourced || [])];
-    const wordFill = visualCortex.config?.wordFill ?? interlocution.wordFill;
+    // Declared session pair wins. Cortex wordFill is a singleton leftover
+    // (default `same`, or a prior Attractor pick) and must not hide
+    // Astronomy×Fractal cream behind Astronomy Dark.
+    const wordFill = interlocution.wordFill ?? visualCortex.config?.wordFill;
     const roomOpaque = Boolean(visualCortex._continuousField?.currentUrl)
       || Boolean(layerA?.querySelector('.continuous-field-artwork[src]'));
     const ground = maskGroundFromConfig({

@@ -30,6 +30,93 @@ function occupancy(imageData, threshold = 40) {
     return n;
 }
 
+function isVoidRgb(r, g, b) {
+    return Math.abs(r - FLAME_VOID[0]) <= 6
+        && Math.abs(g - FLAME_VOID[1]) <= 6
+        && Math.abs(b - FLAME_VOID[2]) <= 6
+        && (r + g + b) < 50;
+}
+
+/**
+ * Engine-like Layer B still: void holes, dim filaments, and interiors the
+ * classic generateImage path already clips (brightness 15 × vibrancy 1.2).
+ * That is the live-Chamber case that blew to a white slab after #36.
+ */
+function paintTypicalEngineFlame(width = 16, height = 16) {
+    const image = makeImage(width, height);
+    const px = image.data;
+    for (let i = 0; i < px.length; i += 4) {
+        px[i] = FLAME_VOID[0];
+        px[i + 1] = FLAME_VOID[1];
+        px[i + 2] = FLAME_VOID[2];
+        px[i + 3] = 255;
+    }
+    const set = (index, rgb) => {
+        const o = index * 4;
+        px[o] = rgb[0];
+        px[o + 1] = rgb[1];
+        px[o + 2] = rgb[2];
+    };
+    // Dim edge filaments — occupancy must still climb above cream-holes.
+    for (const i of [17, 18, 33, 34, 49, 65, 81, 97, 113, 129]) {
+        set(i, [28, 12, 8]);
+    }
+    for (const i of [19, 35, 51, 67, 83, 99]) {
+        set(i, [80, 36, 18]);
+    }
+    // Mid chroma — color must survive the LUT.
+    for (const i of [36, 37, 52, 53, 68, 69]) {
+        set(i, [160, 58, 22]);
+    }
+    for (const i of [38, 54, 70]) {
+        set(i, [48, 72, 170]);
+    }
+    // Clipped IFS cores (what brightness 15 already writes on a typical still).
+    for (let i = 84; i <= 92; i += 1) set(i, [255, 168, 42]);
+    for (let i = 100; i <= 108; i += 1) set(i, [255, 220, 96]);
+    for (let i = 116; i <= 124; i += 1) set(i, [255, 244, 180]);
+    for (let i of [132, 133, 134, 148, 149, 150]) set(i, [255, 255, 210]);
+    for (let i of [166, 167, 182, 183]) set(i, [255, 255, 255]);
+    return image;
+}
+
+function occupiedTone(imageData) {
+    const px = imageData.data;
+    let n = 0;
+    let sum = 0;
+    let max = 0;
+    let white = 0;
+    let nearWhite = 0;
+    let blown = 0;
+    let chroma = 0;
+    for (let i = 0; i < px.length; i += 4) {
+        const r = px[i];
+        const g = px[i + 1];
+        const b = px[i + 2];
+        if (isVoidRgb(r, g, b)) continue;
+        n += 1;
+        const mean = (r + g + b) / 3;
+        const hi = Math.max(r, g, b);
+        const lo = Math.min(r, g, b);
+        sum += mean;
+        max = Math.max(max, hi);
+        chroma += hi - lo;
+        if (r === 255 && g === 255 && b === 255) white += 1;
+        if (r >= 248 && g >= 248 && b >= 248) nearWhite += 1;
+        if (lo >= 220) blown += 1;
+    }
+    return {
+        count: n,
+        mean: n ? sum / n : 0,
+        max,
+        white,
+        nearWhite,
+        blown,
+        blownFraction: n ? blown / n : 0,
+        chroma: n ? chroma / n : 0
+    };
+}
+
 function paintSparseFlame(width = 8, height = 8) {
     const image = makeImage(width, height);
     const px = image.data;
@@ -77,6 +164,7 @@ describe('boundFlameFillTone', () => {
         const room = ROOM_FLAME_TONE;
         const fill = boundFlameFillTone(room);
         expect(fill.brightness).toBeGreaterThan(room.brightness);
+        expect(fill.brightness).toBeLessThanOrEqual(22);
         expect(fill.gamma).toBeLessThan(room.gamma);
         expect(fill.vibrancy).toBeGreaterThanOrEqual(room.vibrancy);
     });
@@ -107,6 +195,22 @@ describe('applyFlameFillLut', () => {
         const filled = applyFlameFillLut(source);
         expect(occupancy(filled)).toBeGreaterThan(before);
         expect(occupancy(filled)).toBeGreaterThan(source.width);
+    });
+
+    it('does not blow a typical engine still to a #fff / cream slab', () => {
+        const source = paintTypicalEngineFlame();
+        const before = occupancy(source);
+        const filled = applyFlameFillLut(source);
+        const tone = occupiedTone(filled);
+
+        expect(occupancy(filled)).toBeGreaterThan(before);
+        expect(tone.white).toBe(0);
+        expect(tone.nearWhite).toBe(0);
+        expect(tone.max).toBeLessThan(230);
+        expect(tone.mean).toBeLessThan(190);
+        expect(tone.blownFraction).toBeLessThan(0.12);
+        expect(tone.chroma).toBeGreaterThan(20);
+        expect([filled.data[0], filled.data[1], filled.data[2]]).toEqual([...FLAME_VOID]);
     });
 
     it('leaves the void plate-holes alone so cream stays ground, not a baked PNG', () => {

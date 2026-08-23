@@ -163,11 +163,16 @@ export function describeSource(ref) {
  * readability; opacity is the only property of the room that reaches the
  * result, and it arrives via `options.roomOpaque`.
  *
- * Previously this also carried two "locked override" pairs (Astronomy +
- * Attractor → Dark, Old Masters + Fractal → Light) and a both-still rule.
- * All three were unreachable: Attractor's own profile is already Dark and
- * Fractal's is already Light, and a still fill has already left the result
- * Transparent by the time the both-still rule runs.
+ * The three "locked pairs" this function used to spell out are all rule 1
+ * restated. Attractor's own profile is Dark, so Astronomy+Attractor is Dark.
+ * Fractal's own profile is Light, so both Old Masters+Fractal and
+ * Astronomy+Fractal (FM-RISE-53) are Light. Rule 2 cannot reach any of them,
+ * because a procedural fill never leaves the result Transparent. The pair
+ * tests from #35 and #41 are kept and pass unchanged against this form.
+ *
+ * FM-RISE-53's real fix was in Chamber.syncMaskGroundPlate, which was
+ * reading a stale cortex wordFill in preference to the declared session
+ * pair. That fix is upstream of here and is untouched.
  */
 export function combine(A, B, options = {}) {
     const fill = describeSource(B);

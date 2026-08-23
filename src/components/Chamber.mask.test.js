@@ -605,6 +605,43 @@ describe('Chamber mask ground plate (FM-RISE-47)', () => {
         chamber.destroy();
     });
 
+    it('Astronomy room + Fractal fill puts Light cream plate inside the glyph wrapper', async () => {
+        const { chamber, container } = makeChamber(
+            {
+                chunkMode: 'word',
+                visualConfig: {
+                    visualMode: 'interlocution',
+                    interlocution: {
+                        presentation: 'continuous',
+                        sourced: ['sci-astronomy'],
+                        wordFill: { mode: 'pick', sourced: [], procedural: ['fractal'] }
+                    }
+                }
+            },
+            { chamberMask: true }
+        );
+        visualCortex._poolFor('sci-astronomy').images = [
+            { url: 'https://example.test/astro-a.jpg', name: 'astro-a' }
+        ];
+        // Stale cortex fill (Astronomy+Attractor is Dark). The declared
+        // session pair is Astronomy+Fractal and must reach combine().
+        visualCortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['sci-astronomy'],
+            wordFill: { mode: 'pick', sourced: [], procedural: ['attractor'] }
+        });
+        chamber.displayAtom({ content: 'O', duration: 500 }, 0);
+        await flushFillMask();
+        chamber.syncMaskGroundPlate();
+
+        const { wrapper, understudy } = assertFillUnderstudy(container, 'light');
+        expect(understudy.dataset.ground).toBe('light');
+        expect(wrapper.contains(understudy)).toBe(true);
+        expect(galleryHost(container).contains(understudy)).toBe(false);
+        chamber.destroy();
+    });
+
     it('Old Masters room + Fractal fill puts Light cream plate inside the glyph wrapper', async () => {
         const { chamber, container } = makeChamber(
             {

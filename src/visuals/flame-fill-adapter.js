@@ -9,9 +9,9 @@
  * vibrancy) and applies them as a session-locked 1D LUT so a glyph
  * reads as filled flame, not sparse black over cream.
  *
- * Transfer: gain from those knobs → log1p → gamma → knee → clamp.
- * Not hist-eq. Not per-frame auto-exposure. prefers-reduced-motion
- * uses a milder locked curve; it does not animate.
+ * Transfer: gain from those knobs → log1p → gamma → knee → clamp
+ * below white. Not hist-eq. Not per-frame auto-exposure.
+ * prefers-reduced-motion uses a milder locked curve; it does not animate.
  */
 
 /** Room wrapper defaults from `FractalFlame.generateToQueue` (raw mode). */
@@ -25,26 +25,29 @@ export const ROOM_FLAME_TONE = Object.freeze({
 export const FLAME_VOID = Object.freeze([10, 10, 12]);
 
 const FILL = Object.freeze({
-    brightnessScale: 1.85,
-    brightnessMin: 22,
-    brightnessMax: 36,
-    gammaScale: 0.78,
-    gammaMin: 1.35,
+    brightnessScale: 1.28,
+    brightnessMin: 16,
+    brightnessMax: 22,
+    gammaScale: 0.88,
+    gammaMin: 1.65,
     gammaMax: 2.05,
-    vibrancyScale: 1.12,
-    vibrancyMax: 1.85
+    vibrancyScale: 1.08,
+    vibrancyMax: 1.45
 });
 
 const REDUCED = Object.freeze({
-    brightnessScale: 1.45,
-    brightnessMin: 18,
-    brightnessMax: 28,
-    gammaScale: 0.88
+    brightnessScale: 1.16,
+    brightnessMin: 16,
+    brightnessMax: 20,
+    gammaScale: 0.94
 });
 
 const VOID_SLACK = 6;
-const KNEE_START = 0.78;
-const KNEE_STRENGTH = 0.45;
+const KNEE_START = 0.62;
+const KNEE_STRENGTH = 1.15;
+/** Occupied channels stay below #fff. Void stays #0A0A0C. */
+const HIGHLIGHT_CEILING = 220;
+const CHANNEL_FLOOR = 1;
 
 function clamp(value, lo, hi) {
     return Math.min(hi, Math.max(lo, value));
@@ -116,7 +119,7 @@ function knee(x) {
 function transferChannel(x, tone, gain, gainNorm) {
     const lifted = Math.log1p(gain * x) / gainNorm;
     const shaped = Math.pow(Math.max(0, lifted), 1 / tone.gamma);
-    return clamp(knee(shaped), 0, 1);
+    return clamp(knee(shaped), 0, HIGHLIGHT_CEILING / 255);
 }
 
 const lutCache = new Map();
@@ -136,7 +139,13 @@ function flameFillLut(tone) {
     const gainNorm = Math.log1p(gain);
     const table = new Uint8Array(256);
     for (let v = 0; v < 256; v += 1) {
-        table[v] = Math.round(transferChannel(v / 255, tone, gain, gainNorm) * 255);
+        // FM-RISE-52's occupied-channel bounds fold into the table: they are
+        // a function of the input byte alone, like the rest of the curve.
+        table[v] = clamp(
+            Math.round(transferChannel(v / 255, tone, gain, gainNorm) * 255),
+            CHANNEL_FLOOR,
+            HIGHLIGHT_CEILING
+        );
     }
     lutCache.set(key, table);
     return table;
