@@ -215,15 +215,47 @@ build-filter path, the vitest `maxWorkers` heuristic.
 
 ## How to know this worked (spec §16)
 
-| Metric | Today | Target | Command |
-|---|---|---|---|
-| First-load transfer (brotli) | 251 KB / 9 requests | ≤ 60 KB / ≤ 3 | `node scripts/measure-first-load.mjs` |
-| `dist/` total | 264 MB | ≤ 30 MB | `du -sh dist` |
-| Text in `dist/assets` | 15.4 MB (83% of JS) | 0 | `node scripts/measure-first-load.mjs --bundle` |
-| `window.rise` references | 237 | 0 | `rg -c 'window\.rise' src --glob '!*.test.js'` |
-| Import cycles in `src/core/` | 1 | 0 | inspection |
-| Packed repository | 340 MB | ≤ 15 MB | `git count-objects -vH` |
-| `requestAnimationFrame` sites | 59 in 21 files | 1 scheduler | `rg -c requestAnimationFrame src --glob '!*.test.js'` |
-| `src/app.js` | 1,610 lines | ≤ 400 | `wc -l src/app.js` |
-| Largest `src/core/` directory | 148 files | ≤ 30 | `ls src/core/*.js \| wc -l` |
-| Required browser gate | 45 min cap | ≤ 5 min on PR | `.github/workflows/ci.yml` |
+Measured on this branch. "Today" is the tree at `bb44899`, which the review
+measured; "now" is after the deltas below.
+
+| Metric | Today | Now | Target | Command |
+|---|---|---|---|---|
+| First-load transfer (brotli) | 252.2 KB / 10 requests | **58.8 KB / 3** | ≤ 60 KB / ≤ 3 | `npm run measure:first-load` |
+| Through the Portal painting | ~255 KB / 11 | **64.0 KB / 5** | — | same |
+| `dist/assets` JavaScript | 18.2 MB | **3.2 MB** | — | `du -sh dist/assets` |
+| Book text in `dist/assets` | 15.4 MB (83% of JS) | **0** | 0 | `npm run measure:first-load -- --bundle` |
+| Rollup deferral warnings | 2 reported (9 real) | **0, and fatal** | 0 | `npm run build` |
+| Required browser gate | 45 min cap | **134 s** | ≤ 5 min on PR | `npm run test:e2e:gate` |
+| `requestAnimationFrame` sites | 59 in 21 files | 56 in 19 files | 1 scheduler | `rg -c requestAnimationFrame src --glob '!*.test.js'` |
+| `window.rise` references | 237 | 224 | 0 | `rg -c 'window\.rise' src --glob '!*.test.js'` |
+| Import cycles in `src/core/` | 1 | 1 | 0 | `npm run build` reports it |
+| `src/app.js` | 1,610 lines | 1,652 | ≤ 400 | `wc -l src/app.js` |
+| Largest `src/core/` directory | 148 files | 144 | ≤ 30 | `ls src/core/*.js \| wc -l` |
+| Packed repository | 340 MB | 340 MB | ≤ 15 MB | `git count-objects -vH` |
+
+## Status
+
+**Landed:** the measurement instrument, D1, D2, D3, D3a, D4, D5a, D20 (Tier 0
+complete); D6, D7, D8, D9, D11 (the Tier 1 seam, archive and Chapel); D14, D17.
+
+**Not done, and what each needs:**
+
+- **D5 (Opus).** The acoustic ledger binds `manifestHash` over records that
+  include each WAV's byte hash, and `check-release-readiness` compares `dist`
+  WAVs byte-for-byte against source. Shipping Opus means moving the masters out
+  of `public/` into a certification store that `release-voice-evidence.mjs`
+  still reads, recording both digests, and teaching the distribution gate to
+  check the derived object. Touches the release corridor, so it wants its own
+  change.
+- **D10 (works out of the repository).** Needs a destination the project owns —
+  a content release, a separate repository, or release assets — and a decision
+  about how `withheld, never deleted` is honoured there. The runtime no longer
+  depends on the modules being in `src/`, so this is now purely a hosting
+  question.
+- **D12 (one frame scheduler).** 56 `requestAnimationFrame` sites across 19
+  files, each a persistent visual field with its own `_tick`. Promoting
+  `core/render/clock.js` to the live runtime is the largest single change in
+  the review and should not ride alongside anything else.
+- **D13 (route table as data), D15 (`core/` subdirectories), D15a
+  (`window.rise`), D16 (harvested catalogs), D19 (entrance test), D21
+  (publishing automation).** Each independent; D21 is explicitly last.
