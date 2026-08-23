@@ -1,0 +1,88 @@
+# Publish the wiki from the Markdown in this repository.
+#
+# The wiki is a view, not a source. Nothing is authored there — the pages are
+# built from docs/, the README, and AGENTS.md, so the two cannot drift. An edit
+# made in the wiki UI is overwritten by the next push to main; every page says
+# so in its footer.
+#
+# The build refuses to publish a document missing from docs/README.md or a link
+# that does not resolve, so this job doubles as a docs check on pull requests,
+# where it builds without pushing.
+
+name: Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'AGENTS.md'
+      - 'scripts/build-wiki.mjs'
+      - '.github/workflows/wiki.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'AGENTS.md'
+      - 'scripts/build-wiki.mjs'
+      - '.github/workflows/wiki.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: wiki-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.19'
+
+      # No dependencies: the builder is plain Node against node:fs.
+      - name: Build the pages
+        run: node scripts/build-wiki.mjs --out "$RUNNER_TEMP/wiki"
+
+      # A pull request gets the checks above and stops there. Only main
+      # publishes, so a branch cannot rewrite what readers see.
+      - name: Publish
+        if: github.event_name != 'pull_request'
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # A wiki that has never had a page does not exist as a git remote.
+          # Say that plainly rather than failing on a clone error nobody can
+          # read: it is fixed once, by hand, by creating any page in the UI.
+          if ! git ls-remote "https://x-access-token:$TOKEN@github.com/$GITHUB_REPOSITORY.wiki.git" >/dev/null 2>&1; then
+            echo "::error::The wiki has never been initialised. Create any page at https://github.com/$GITHUB_REPOSITORY/wiki once, then re-run this job."
+            exit 1
+          fi
+
+          git clone --depth 1 "https://x-access-token:$TOKEN@github.com/$GITHUB_REPOSITORY.wiki.git" "$RUNNER_TEMP/wiki-repo"
+
+          # Mirror rather than merge: a page deleted from docs/ must
+          # disappear from the wiki, or the stale copy outlives its source.
+          find "$RUNNER_TEMP/wiki-repo" -maxdepth 1 -name '*.md' -delete
+          cp "$RUNNER_TEMP"/wiki/*.md "$RUNNER_TEMP/wiki-repo/"
+
+          cd "$RUNNER_TEMP/wiki-repo"
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo 'Wiki already matches the repository.'
+            exit 0
+          fi
+
+          git commit -m "Publish wiki from ${GITHUB_SHA:0:7}"
+          git push
