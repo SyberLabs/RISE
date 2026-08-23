@@ -24,7 +24,7 @@
  */
 
 import { brotliCompressSync, constants } from 'node:zlib';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -101,22 +101,36 @@ function portalAssets() {
     .map(name => ({ kind: 'portal', href: `/assets/${name}` }));
 }
 
+/**
+ * A reference that resolves to nothing on disk is a broken deploy, not a
+ * free byte — so it is reported rather than skipped. Silently omitting it
+ * would make the worst possible build measure as the smallest.
+ */
 function weigh(assets) {
-  return assets.map(asset => {
-    const bytes = readFileSync(join(DIST, asset.href.replace(/^\//, '')));
-    return { ...asset, raw: bytes.length, brotli: brotli(bytes) };
-  });
+  const missing = [];
+  const weighed = [];
+  for (const asset of assets) {
+    const path = join(DIST, asset.href.replace(/^\//, ''));
+    if (!existsSync(path)) {
+      missing.push(asset.href);
+      continue;
+    }
+    const bytes = readFileSync(path);
+    weighed.push({ ...asset, raw: bytes.length, brotli: brotli(bytes) });
+  }
+  return { weighed, missing };
 }
 
 export function measure() {
   const html = readFileSync(join(DIST, 'index.html'), 'utf8');
-  const assets = weigh(firstLoadAssets(html));
-  const portal = weigh(portalAssets());
+  const { weighed: assets, missing } = weigh(firstLoadAssets(html));
+  const { weighed: portal } = weigh(portalAssets());
   const shell = brotli(Buffer.from(html));
   const sum = (list, key) => list.reduce((total, item) => total + item[key], 0);
   return {
     assets,
     portal,
+    missing,
     requests: assets.length + 1,           // index.html is a request too
     raw: sum(assets, 'raw') + Buffer.byteLength(html),
     brotli: sum(assets, 'brotli') + shell,
@@ -169,6 +183,14 @@ function main() {
         + `${kb(text)} (${share}%)`
       );
     }
+  }
+
+  if (report.missing.length) {
+    console.error(
+      `\nThe shell names ${report.missing.length} asset(s) that are not in dist: `
+      + `${report.missing.join(', ')}. That is a broken deploy, not a saving.`
+    );
+    process.exitCode = 1;
   }
 
   if (report.brotli > FIRST_LOAD_BUDGET_BYTES) {

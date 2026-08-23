@@ -17,6 +17,7 @@
     "test:coverage": "npm run content:build && vitest run --coverage",
     "test:e2e": "playwright test",
     "measure:first-load": "node scripts/measure-first-load.mjs",
+    "docs:diagram": "node scripts/build-architecture-diagram.mjs",
     "scriptorium": "vite-node scripts/scriptorium.mjs --",
     "scriptorium:ci": "npm run content:build && node scripts/scriptorium-ci.mjs",
     "probe:collections": "vite-node scripts/probe-collections.mjs",
@@ -42,7 +43,8 @@
     "render:catalog": "node scripts/render-catalog.mjs",
     "cursor:skills": "node scripts/install-cursor-skills.mjs",
     "content:build": "vite-node scripts/build-content-plane.mjs",
-    "test:e2e:gate": "playwright test --project=gate"
+    "test:e2e:gate": "playwright test --project=gate",
+    "wiki:build": "node scripts/build-wiki.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

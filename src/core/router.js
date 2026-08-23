@@ -37,7 +37,6 @@ export class Router {
         // Callbacks
         this.onViewChange = options.onViewChange || (() => { });
 
-        // Bind keyboard handler
         this.handleKeydown = this.handleKeydown.bind(this);
         document.addEventListener('keydown', this.handleKeydown);
     }

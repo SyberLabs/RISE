@@ -7,11 +7,11 @@ import { defineConfig } from '@playwright/test';
  * ships is what gets tested.
  *
  *   npm run test:e2e         everything, in two projects, each spec once
- *   npm run test:e2e:gate    the corridor a pull request must not break
+ *   npm run test:e2e:gate    the corridor, for a fast loop before pushing
  */
 
 /**
- * THE GATE, AND WHY THESE SPECS.
+ * THE CORRIDOR, AND WHY THESE SPECS.
  *
  * A 45-minute required check is a gate people learn to route around, and
  * this one had already proved it: CI run #99 died at 29m 25s against a
@@ -20,7 +20,7 @@ import { defineConfig } from '@playwright/test';
  *
  * Measured on this suite, one worker, production build: 502 seconds of
  * test time across 18 spec files, of which `mobile.spec.js` alone is 200.
- * The gate below is 134 seconds of that — the corridor a reader actually
+ * The list below is 134 seconds of that — the corridor a reader actually
  * walks, plus the two things that must never silently break.
  *
  *   smoke             the portal, a reading, audio resuming, and the
@@ -36,9 +36,12 @@ import { defineConfig } from '@playwright/test';
  *   csp-live          the policy that governs every remote fetch
  *   curation          what the shelf is allowed to show
  *
- * EVERYTHING ELSE STILL RUNS — nightly and before release, as the `full`
- * project. Nothing was deleted from the suite; a slower half was moved off
- * the path between a change and knowing whether it is safe.
+ * CI no longer STOPS here. The 502 seconds shard four ways to ~200, so a
+ * pull request runs all of it; this list stays as the fast no, and as what
+ * you run locally when you want an answer in two minutes rather than eight.
+ * The two projects partition the suite, so `playwright test` with no
+ * argument — which is what each CI shard invokes — is still exactly one
+ * run of everything.
  */
 const GATE = [
     '**/csp-live.spec.js',

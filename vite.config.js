@@ -9,8 +9,8 @@ import { exportMp4Plugin } from './scripts/export-mp4-plugin.js';
 // and it could not have worked: the thing that kills a fork is its own V8
 // old-space limit, and no number of workers changes that limit. So the suite
 // passed on a workstation and died on CI over nothing either machine was
-// short of — Node 20 defaults this ceiling to about 2 GB, Node 22 to about
-// 4 GB, and the heaviest file in the suite needs a little over 2 GB.
+// short of — Node 20 defaults this ceiling to about 2 GB and Node 22 to about
+// 4 GB, and .nvmrc pins CI to 20.19.
 //
 // The failure did not look like a failing test. A fork was killed mid-file
 // and the parent reported ERR_IPC_CHANNEL_CLOSED, 115 of 228 files in:
@@ -20,6 +20,24 @@ import { exportMp4Plugin } from './scripts/export-mp4-plugin.js';
 //
 // Reproduced by capping a passing local run at 2048 and by nothing else.
 // The ceiling is named here so it stops depending on which Node picked it.
+//
+// WHAT THIS IS NOT: a symptom of one enormous module. It was, once. The
+// original native stack died in CompilationCache::LookupScript ->
+// String::SlowFlatten, which is V8 flattening a module's source text to
+// compile it, and the modules that size were the books — so it was reasonable
+// to expect the ceiling to come down once they left the module graph.
+//
+// #48 cut the content seam and they did leave, and the ceiling is still
+// needed. Measured on the tree that landed it: a fork capped at 2048 still
+// dies, and the stack is now an ordinary incremental-marking failure under
+// the event loop rather than SlowFlatten. Removing the books removed one
+// file's ability to fill a heap by itself; it did not change what a fork
+// accumulates across the files it is handed.
+//
+// So do not delete this on the theory that #48 made it unnecessary. The test
+// is one command — cap a green run at 2048 and see whether it is still green:
+//
+//     npx vitest run --config <a config setting execArgv to 2048>
 const WORKER_HEAP_MB = 4096;
 
 // Cores bound the parallelism worth having; total memory bounds how many of
@@ -53,18 +71,29 @@ export default defineConfig({
     // Increase warning threshold slightly (visual engines are large)
     chunkSizeWarningLimit: 300,
 
-    // NO manualChunks. Three tunings of it moved three kilobytes, because a
-    // cache group is not a deferral: the config's own retired comment
-    // conceded "these are not route-lazy by themselves." Worse, the
-    // `content-texts` group was the ONLY dependency six sacred-text modules
-    // had — nothing in src/ imported them, so naming them here is what built
-    // them, and what modulepreloaded 89 KB of them before the Portal painted.
-    // A build configuration that can conjure a dependency out of nothing is
-    // the same defect class as the 82 MB of unreachable books, and it hid
-    // the real first load behind nine tidy filenames.
+    // NO manualChunks. It was a grouping directive read as a deferral one.
     //
-    // Deferment lives at the caller, as a dynamic import(), where it can be
-    // read. Grouping lives with Rollup, which does it well enough unaided.
+    // Naming a module here makes it a chunk the ENTRY depends on, so the shell
+    // emits a <link rel="modulepreload"> for it and a browser fetches it
+    // before the reader has chosen anything. That is the opposite of
+    // deferring it: the audio engine kept being preloaded after app.js was
+    // changed to import it dynamically, because this list still named it.
+    //
+    // Worse, the `content-texts` group was the ONLY dependency six
+    // sacred-text modules had — nothing in src/ imported them, so naming them
+    // here is what built them, and what modulepreloaded 89 KB of them before
+    // the Portal painted. A build configuration that can conjure a dependency
+    // out of nothing is the same defect class as the 82 MB of unreachable
+    // books, and it hid the real first load behind nine tidy filenames.
+    //
+    // Measured three ways at 251 kB brotli of first load: as configured 251,
+    // this list deleted 250, one group deleted 248. It was moving three
+    // kilobytes while suppressing Rollup's own "dynamic import will not move
+    // module into another chunk" warnings — the report that a deferral has
+    // been defeated.
+    //
+    // Deferment happens at the import site or not at all. Rollup's default
+    // splitting already follows the dynamic imports we write.
 
     rollupOptions: {
       /**
