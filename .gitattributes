@@ -1,1 +1,12 @@
+# A shebang line only works with LF. `core.autocrlf=true` checks these out with
+# CRLF on a Windows working copy, and then two things break at once: the kernel
+# looks for an interpreter called "node\r", and esbuild refuses the file
+# outright — importing any shebang script from a test fails with "Invalid or
+# unexpected token" while CI, which checks out LF, stays green.
+#
+# Measured on src/test/measure-first-load.test.js, 2026-08-22: one suite red on
+# Windows and green on Linux, for a file neither had changed.
+*.mjs text eol=lf
+*.sh text eol=lf
+
 public/audio/recitation/**/*.wav binary

@@ -61,6 +61,15 @@ import { LITERARY_DEEP } from '../src/sources/text/data/literary_deep.js';
 import { ingestedArchiveTexts } from '../src/content/archive/index.js';
 import { VAULT_A_SEQUENCES } from '../src/content/personalized/vault-a.js';
 import { chunkText } from '../src/core/chunker.js';
+import { installContentPlaneFetch } from './lib/content-plane-fetch.mjs';
+// A Node process has no origin, so `/content/...` is not a URL it can fetch.
+// Installed at the entry rather than inside the store: the store fetches a URL
+// and checks the bytes against the digest that URL names, and teaching it about
+// a filesystem would give the corpus a second code path where the point of this
+// seam is that there is one. `_fetch` is read at call time, so installing after
+// ESM has hoisted every import is in time — provided no import did the reading
+// itself. See release-voice-evidence.mjs for the one that did.
+installContentPlaneFetch();
 
 const argv = process.argv.slice(2);
 const json = argv.includes('--json');

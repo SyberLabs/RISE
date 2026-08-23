@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import voicePlan from '../voice-packs/keystones.mjs';
 import {
   DEFAULT_VOICE_ID,
   normalizeVoiceText,
@@ -40,7 +39,20 @@ async function readVerifiedAsset(root, key, entry, issues) {
   }
 }
 
-function keystoneUses() {
+/**
+ * The keystone plan, imported when it is needed rather than when this file is.
+ *
+ * `voice-packs/keystones.mjs` resolves and compiles every keystone session in
+ * a top-level await, so a STATIC import of it did that work as a side effect
+ * of importing this module — before the importing script's own body had run.
+ * `check-release-readiness.mjs` therefore read the corpus before it could
+ * install the transport a Node process needs for `/content/...`, and the
+ * release gate died on an unparseable URL instead of reporting on the release.
+ * A script cannot set anything up ahead of its own imports; the only fix is
+ * for the work not to happen in one.
+ */
+async function keystoneUses() {
+  const { default: voicePlan } = await import('../voice-packs/keystones.mjs');
   const uses = [];
   const seen = new Set();
   for (let sessionIndex = 0; sessionIndex < voicePlan.sessions.length; sessionIndex += 1) {
@@ -93,7 +105,7 @@ export async function inspectReleaseVoiceAssets({
 
   const reviewIssues = [];
   const records = [];
-  for (const use of keystoneUses()) {
+  for (const use of await keystoneUses()) {
     const entry = pack?.entries?.[use.key];
     const asset = sourceAssets.get(use.key);
     if (!entry || entry.text !== use.text || !asset) {
