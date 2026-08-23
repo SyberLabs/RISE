@@ -181,3 +181,5 @@ the humans who own the architecture.
 - `node scripts/build-architecture-diagram.mjs` idempotent, and the `docs`
   check red when the committed diagram is edited by hand.
 - `actionlint` clean on the workflow and the composite action.
+
+<!-- Probe commit: verifies that a prose-only pull request skips the expensive CI jobs. -->
