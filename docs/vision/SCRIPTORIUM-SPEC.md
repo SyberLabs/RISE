@@ -177,10 +177,10 @@ Consequences, stated rather than discovered later:
 `scripts/build-division-index.mjs` writes the whole corpus's divisions in a
 single pass over the committed bytes, and splits the result by shelf state:
 
-- `src/content/archive/division-index.json` — the 15 served works. **40 KiB on
+- `src/content/archive/division-index.json` — the 15 served works. **41 KiB on
   disk, 32 KiB embedded.** The only one anything under `src/` imports outside a
   test.
-- `src/content/archive/division-index.withheld.json` — the other 80. **53 KiB on
+- `src/content/archive/division-index.withheld.json` — the other 80. **54 KiB on
   disk, 49 KiB embedded.** Corpus audits only.
 
 Per work both carry `{divided, titled, reason, authored, noun, count, labels?,

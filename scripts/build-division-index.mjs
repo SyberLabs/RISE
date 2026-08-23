@@ -27,7 +27,7 @@
  *
  * That 49 KiB is `division-index.withheld.json` as a bundler embeds it — the
  * parsed JSON, without the indentation the committed file carries, which is
- * 53 KiB. The two figures were stated in three places and agreed in none, so
+ * 54 KiB. The two figures were stated in three places and agreed in none, so
  * both now live in SCRIPTORIUM-SPEC §7 with the measurement each one is, and
  * scriptorium-spec.test.js re-measures the files against them.
  *
