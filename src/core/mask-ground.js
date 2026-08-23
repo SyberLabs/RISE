@@ -29,20 +29,16 @@ const ENGINE_IDS = new Set(LISTED_PROCEDURAL_PATTERNS.map(pattern => pattern.id)
 
 /**
  * Profile assignments. Law is the profile + combine(), not an exhaustive
- * pair list. Locked natives: Attractor Dark, Fractal Light, living plates Dark.
+ * pair list. Procedurals default to Light cream; only engines whose imagery
+ * needs a dark ground override it here.
  */
 const SOURCE_PROFILES = Object.freeze({
     attractor: GROUNDS.dark,
-    fractal: GROUNDS.light,
     harmonograph: GROUNDS.dark,
-    ostensoria: GROUNDS.dark,
-    apparitio: GROUNDS.dark,
-    neural: GROUNDS.dark,
     klee: GROUNDS.dark,
     turrell: GROUNDS.dark,
-    rockgarden: GROUNDS.light,
 
-    procedural: GROUNDS.dark,
+    procedural: GROUNDS.light,
     collections: GROUNDS.transparent,
     personal: GROUNDS.transparent,
     blend: GROUNDS.transparent,

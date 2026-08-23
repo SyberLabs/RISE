@@ -23,7 +23,10 @@ import { ATRIUM_CATEGORIES } from '../content/imagery/atrium-categories.js';
 import { ATRIUM_PINNED_COLLECTIONS } from '../content/imagery/collections.js';
 import { SCIENCE_CATEGORIES, SCIENCE_KIND_LABELS }
     from '../content/science/imagery/science-pins.js';
-import { LISTED_PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
+import {
+    LISTED_PROCEDURAL_PATTERNS,
+    WORD_FILL_PROCEDURAL_PATTERNS
+} from '../core/visual-registry.js';
 
 /**
  * Presentations that interrupt the reading with a presence.
@@ -2034,7 +2037,7 @@ export class VisualInterlocutionPanel {
         const wordFillSelect = `
                                 <select data-word-fill aria-label="Word source">
                                     <option value="same" ${current === 'same' ? 'selected' : ''}>Same as gallery</option>
-                                    ${LISTED_PROCEDURAL_PATTERNS.map(p => `
+                                    ${WORD_FILL_PROCEDURAL_PATTERNS.map(p => `
                                         <option value="procedural:${p.id}" ${current === `procedural:${p.id}` ? 'selected' : ''}>${escapeHtml(p.name)}</option>
                                     `).join('')}
                                     ${sourcedCategories.map(c => `

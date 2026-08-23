@@ -15,8 +15,6 @@ import {
     profileFor
 } from './mask-ground.js';
 
-const LIVING_PLATES = ['harmonograph', 'ostensoria', 'apparitio', 'attractor'];
-
 describe('source color profiles', () => {
     it('every listed procedural declares Transparent | Light | Dark', () => {
         const ids = [...PROCEDURAL_PATTERN_IDS, ...LISTED_PROCEDURAL_PATTERNS.map(p => p.id)];
@@ -25,14 +23,15 @@ describe('source color profiles', () => {
         }
     });
 
-    it('Attractor is Dark and Fractal is Light', () => {
-        expect(profileFor('attractor')).toBe(GROUNDS.dark);
-        expect(profileFor('fractal')).toBe(GROUNDS.light);
+    it('uses Dark only for the four procedural engines that need it', () => {
+        for (const id of ['attractor', 'turrell', 'klee', 'harmonograph']) {
+            expect(profileFor(id), id).toBe(GROUNDS.dark);
+        }
     });
 
-    it('living plates are Dark', () => {
-        for (const id of LIVING_PLATES) {
-            expect(profileFor(id), id).toBe(GROUNDS.dark);
+    it('uses Light cream for the procedural default and legacy mask ids', () => {
+        for (const id of ['fractal', 'ostensoria', 'neural', 'rockgarden', 'apparitio']) {
+            expect(profileFor(id), id).toBe(GROUNDS.light);
         }
     });
 
@@ -81,7 +80,7 @@ describe('combine(A, B) — Firstmate law', () => {
         expect(combine('aic-landscapes', 'attractor', { roomOpaque: true })).toBe(GROUNDS.dark);
         expect(combine('aic-landscapes', 'fractal', { roomOpaque: true })).toBe(GROUNDS.light);
         expect(combine('aic-ukiyoe', 'harmonograph', { roomOpaque: true })).toBe(GROUNDS.dark);
-        expect(combine('aic-ukiyoe', 'neural', { roomOpaque: true })).toBe(GROUNDS.dark);
+        expect(combine('aic-ukiyoe', 'neural', { roomOpaque: true })).toBe(GROUNDS.light);
     });
 
     it('2. Astronomy + Attractor → Dark, via Attractor’s own profile', () => {
