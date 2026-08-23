@@ -18,6 +18,7 @@
  *
  *   npm run docs:diagram
  */
+import { execSync } from 'node:child_process';
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 
@@ -58,7 +59,7 @@ function modules(dir, out = []) {
  * the root-level modules that wire the rest together.
  */
 function subsystemOf(path) {
-    const parts = relative(SRC, path).split('/');
+    const parts = relative(SRC, path).replaceAll('\\', '/').split('/');
     return parts.length === 1 ? 'app' : parts[0];
 }
 
@@ -86,7 +87,18 @@ function resolveLocal(fromFile, spec) {
     return null;
 }
 
-const files = modules(SRC).filter(file => !NOT_SHIPPED.has(subsystemOf(file)));
+// Gitignored local files (private ingest, etc.) are not the shipped tree.
+const tracked = new Set(
+    execSync('git ls-files src', { encoding: 'utf8' })
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .map(path => path.replaceAll('\\', '/'))
+);
+
+const files = modules(SRC).filter(file => {
+    const posix = file.replaceAll('\\', '/');
+    return tracked.has(posix) && !NOT_SHIPPED.has(subsystemOf(file));
+});
 
 const fileCount = new Map();
 const edges = new Map();                              // "from→to" -> { static, dynamic }

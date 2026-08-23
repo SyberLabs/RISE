@@ -7,7 +7,7 @@
   padding: clamp(24px, 5vw, 72px);
   color: var(--color-light);
   background:
-    radial-gradient(circle at 50% 0%, rgba(139, 127, 212, 0.09), transparent 42%),
+    radial-gradient(circle at 50% 0%, rgba(var(--color-accent-rgb), 0.09), transparent 42%),
     var(--color-void);
 }
 
@@ -55,12 +55,12 @@
   flex-direction: column;
   min-height: 430px;
   padding: clamp(20px, 3vw, 34px);
-  border: 1px solid rgba(139, 127, 212, 0.22);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.22);
   background: rgba(14, 14, 17, 0.8);
 }
 
-.keystone-card.is-target { border-color: rgba(139, 127, 212, 0.7); }
-.keystone-number { color: rgba(139, 127, 212, 0.4); font: 11px var(--font-mono); }
+.keystone-card.is-target { border-color: rgba(var(--color-accent-rgb), 0.7); }
+.keystone-number { color: rgba(var(--color-accent-rgb), 0.4); font: 11px var(--font-mono); }
 .keystone-axis { margin-top: 48px; color: var(--color-threshold); font-size: 10px; }
 .keystone-card h2 { margin: 8px 0; font: 300 clamp(25px, 3vw, 38px) var(--font-display); }
 .keystone-author { min-height: 48px; color: var(--color-fog); font: italic 15px/1.5 var(--font-literary); }

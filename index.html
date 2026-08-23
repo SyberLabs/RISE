@@ -31,6 +31,18 @@
   <link rel="canonical" href="https://rise-v2-symbolic-experience.netlify.app/">
 
   <!-- Styles imported via app.js module -->
+  <script>
+    (function () {
+      try {
+        var allowed = { ivory: 1, purple: 1, cobalt: 1, amber: 1, sunset: 1, gecko: 1 };
+        var stored = JSON.parse(localStorage.getItem('rise-settings') || '{}');
+        var id = stored && stored.chamberAccent;
+        document.documentElement.dataset.accent = allowed[id] ? id : 'ivory';
+      } catch (e) {
+        document.documentElement.dataset.accent = 'ivory';
+      }
+    })();
+  </script>
 </head>
 
 <body>
@@ -55,7 +67,7 @@
   <!-- Loading Overlay -->
   <div id="loading-overlay" class="loading-overlay hidden" role="status" aria-live="polite">
     <div class="loading-content">
-      <div class="loading-sigil">◇</div>
+      <div class="loading-sigil rise-mark" aria-hidden="true"></div>
       <div class="loading-text">Preparing Session</div>
       <div class="loading-status" id="loading-status">Initializing...</div>
     </div>

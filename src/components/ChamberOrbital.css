@@ -317,12 +317,12 @@
   height: 260px;
   border-radius: 50%;
 
-  /* Stronger presence than satellites */
-  border: 3px solid var(--color-light);
+  /* Lighter tint of the sitting accent — satellites keep the full hue. */
+  border: 3px solid color-mix(in srgb, var(--color-accent) 48%, var(--color-light));
   background: var(--color-depth);
   box-shadow:
-    0 0 0 8px rgba(232, 232, 236, 0.05),
-    0 0 64px rgba(232, 232, 236, 0.1);
+    0 0 0 8px color-mix(in srgb, var(--color-accent) 10%, transparent),
+    0 0 64px color-mix(in srgb, var(--color-accent) 18%, transparent);
 
   display: flex;
   align-items: center;
@@ -372,7 +372,7 @@
 
 .text-choose-btn:hover .choose-sigil {
   color: var(--color-light);
-  text-shadow: 0 0 24px rgba(139, 127, 212, 0.6);
+  text-shadow: 0 0 24px rgba(var(--color-accent-rgb), 0.6);
 }
 
 .text-choose-btn:hover .choose-label {
@@ -538,12 +538,12 @@
   cursor: pointer;
 
   transition: all var(--transition-normal) var(--ease-default);
-  box-shadow: 0 0 24px rgba(139, 127, 212, 0.4);
+  box-shadow: 0 0 24px rgba(var(--color-accent-rgb), 0.4);
 }
 
 .btn-large:hover {
-  background: var(--color-light);
-  box-shadow: 0 0 32px rgba(232, 232, 236, 0.6);
+  background: color-mix(in srgb, var(--color-accent) 72%, var(--color-light));
+  box-shadow: 0 0 32px rgba(var(--color-accent-rgb), 0.55);
   transform: translateY(-2px);
 }
 
@@ -662,8 +662,8 @@
 .pure-tone-controls {
   margin-top: var(--space-md);
   padding: var(--space-md);
-  border-left: 1px solid rgba(139, 127, 212, 0.32);
-  background: rgba(139, 127, 212, 0.035);
+  border-left: 1px solid rgba(var(--color-accent-rgb), 0.32);
+  background: rgba(var(--color-accent-rgb), 0.035);
 }
 
 .pure-tone-controls[hidden] {
@@ -673,7 +673,7 @@
 .config-subsection + .config-subsection {
   margin-top: var(--space-md);
   padding-top: var(--space-md);
-  border-top: 1px solid rgba(139, 127, 212, 0.12);
+  border-top: 1px solid rgba(var(--color-accent-rgb), 0.12);
 }
 
 .config-label {
@@ -898,7 +898,7 @@
 
 .slider::-webkit-slider-thumb:hover {
   background: var(--color-light);
-  box-shadow: 0 0 12px rgba(139, 127, 212, 0.6);
+  box-shadow: 0 0 12px rgba(var(--color-accent-rgb), 0.6);
 }
 
 .slider::-moz-range-thumb {
@@ -913,7 +913,7 @@
 
 .slider::-moz-range-thumb:hover {
   background: var(--color-light);
-  box-shadow: 0 0 12px rgba(139, 127, 212, 0.6);
+  box-shadow: 0 0 12px rgba(var(--color-accent-rgb), 0.6);
 }
 
 /* Mode options (Display) */
@@ -942,14 +942,14 @@
 .mode-option:hover {
   border-color: var(--color-threshold);
   color: var(--color-light);
-  background: rgba(139, 127, 212, 0.05);
+  background: rgba(var(--color-accent-rgb), 0.05);
 }
 
 .mode-option.active {
   border-color: var(--color-threshold);
-  background: rgba(139, 127, 212, 0.15);
+  background: rgba(var(--color-accent-rgb), 0.15);
   color: var(--color-light);
-  box-shadow: inset 0 0 16px rgba(139, 127, 212, 0.2);
+  box-shadow: inset 0 0 16px rgba(var(--color-accent-rgb), 0.2);
 }
 
 .mode-icon {
@@ -1014,14 +1014,14 @@
 .audio-preset-option:hover {
   border-color: var(--color-threshold);
   color: var(--color-light);
-  background: rgba(139, 127, 212, 0.05);
+  background: rgba(var(--color-accent-rgb), 0.05);
 }
 
 .audio-preset-option.active {
   border-color: var(--color-threshold);
-  background: rgba(139, 127, 212, 0.15);
+  background: rgba(var(--color-accent-rgb), 0.15);
   color: var(--color-light);
-  box-shadow: inset 0 0 16px rgba(139, 127, 212, 0.2);
+  box-shadow: inset 0 0 16px rgba(var(--color-accent-rgb), 0.2);
 }
 
 .audio-mode-options {
@@ -1053,15 +1053,15 @@
 .audio-waveform-option:hover {
   border-color: var(--color-threshold);
   color: var(--color-light);
-  background: rgba(139, 127, 212, 0.05);
+  background: rgba(var(--color-accent-rgb), 0.05);
 }
 
 .audio-mode-option.active,
 .audio-waveform-option.active {
   border-color: var(--color-threshold);
-  background: rgba(139, 127, 212, 0.15);
+  background: rgba(var(--color-accent-rgb), 0.15);
   color: var(--color-light);
-  box-shadow: inset 0 0 12px rgba(139, 127, 212, 0.2);
+  box-shadow: inset 0 0 12px rgba(var(--color-accent-rgb), 0.2);
 }
 
 .preset-icon {
@@ -1103,14 +1103,14 @@
 .orbital-modal .curve-option:hover {
   border-color: var(--color-threshold);
   color: var(--color-light);
-  background: rgba(139, 127, 212, 0.05);
+  background: rgba(var(--color-accent-rgb), 0.05);
 }
 
 .orbital-modal .curve-option.active {
   border-color: var(--color-threshold);
-  background: rgba(139, 127, 212, 0.15);
+  background: rgba(var(--color-accent-rgb), 0.15);
   color: var(--color-light);
-  box-shadow: inset 0 0 12px rgba(139, 127, 212, 0.2);
+  box-shadow: inset 0 0 12px rgba(var(--color-accent-rgb), 0.2);
 }
 
 .curve-icon {
@@ -1139,14 +1139,14 @@
 .chunk-option:hover {
   border-color: var(--color-threshold);
   color: var(--color-light);
-  background: rgba(139, 127, 212, 0.05);
+  background: rgba(var(--color-accent-rgb), 0.05);
 }
 
 .chunk-option.active {
   border-color: var(--color-threshold);
-  background: rgba(139, 127, 212, 0.15);
+  background: rgba(var(--color-accent-rgb), 0.15);
   color: var(--color-light);
-  box-shadow: inset 0 0 12px rgba(139, 127, 212, 0.2);
+  box-shadow: inset 0 0 12px rgba(var(--color-accent-rgb), 0.2);
 }
 
 /* Voice selector */
@@ -1175,7 +1175,7 @@
 .voice-select:focus {
   outline: none;
   border-color: var(--color-threshold);
-  box-shadow: 0 0 0 2px rgba(139, 127, 212, 0.2);
+  box-shadow: 0 0 0 2px rgba(var(--color-accent-rgb), 0.2);
 }
 
 .voice-select option,
@@ -1203,7 +1203,7 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  background: rgba(139, 127, 212, 0.1);
+  background: rgba(var(--color-accent-rgb), 0.1);
   border: 1px solid var(--color-shadow);
   border-radius: var(--radius-sm);
   color: var(--color-threshold);
@@ -1213,9 +1213,9 @@
 }
 
 .pool-upload-btn:hover {
-  background: rgba(139, 127, 212, 0.2);
+  background: rgba(var(--color-accent-rgb), 0.2);
   border-color: var(--color-threshold);
-  box-shadow: 0 0 12px rgba(139, 127, 212, 0.2);
+  box-shadow: 0 0 12px rgba(var(--color-accent-rgb), 0.2);
 }
 
 .personal-swell-list {
@@ -1250,12 +1250,12 @@
 }
 
 .swell-item:hover {
-  background: rgba(139, 127, 212, 0.05);
+  background: rgba(var(--color-accent-rgb), 0.05);
   cursor: pointer;
 }
 
 .swell-item.selected {
-  background: rgba(139, 127, 212, 0.15);
+  background: rgba(var(--color-accent-rgb), 0.15);
   border-left: 3px solid var(--color-threshold);
 }
 
@@ -1296,7 +1296,7 @@
 
 .preview-btn:hover {
   color: var(--color-threshold);
-  background: rgba(139, 127, 212, 0.1);
+  background: rgba(var(--color-accent-rgb), 0.1);
 }
 
 .delete-btn:hover {
@@ -1491,7 +1491,7 @@
   .orbital-stage {
     /* The radius the three nodes ride on. Everything below is derived
        from it, so the ring can be retuned by changing one number. */
-    /* 33 rather than 30: the anchor carries a white ring and an outer
+    /* 33 rather than 30: the anchor carries a ring and an outer
        glow well past its 108px box, so a gap computed from the boxes
        alone still read as two discs touching. */
     --orb-r: 33vw;

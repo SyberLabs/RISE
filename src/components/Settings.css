@@ -155,7 +155,7 @@
 }
 
 .toggle input:checked+.toggle-switch {
-    background: rgba(139, 127, 212, 0.5);
+    background: rgba(var(--color-accent-rgb), 0.5);
 }
 
 .toggle input:checked+.toggle-switch::after {

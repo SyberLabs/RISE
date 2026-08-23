@@ -1,9 +1,10 @@
 /**
  * A local work — reader text that became a Library work.
  *
- * The trunk of SCRIPTORIUM-STRENGTHENING-SPEC: a reader's `.txt` becomes a
- * catalogue work with named, addressable parts BEFORE the Scriptorium can
- * compose from it. Until it does, the extent grammar has nothing to point at
+ * The trunk of docs/vision/SCRIPTORIUM-STRENGTHENING-SPEC.md: a reader's
+ * `.txt` becomes a catalogue work with named, addressable parts BEFORE the
+ * Scriptorium can compose from it. Until it does, the extent grammar has
+ * nothing to point at
  * — `local-april-diary#4` and `sacred-tao-te-ching#40` are the same sentence,
  * and only one of them has ever had a work behind it.
  *
@@ -15,6 +16,9 @@
  * no IndexedDB and no DOM: the session overlay is the product, and a browser
  * store is one hydrator of it. The CLI is another. Tests are a third, and
  * they hand fixtures straight to the overlay.
+ *
+ * The law this record is held to is `docs/vision/SCRIPTORIUM-SPEC.md` §7a —
+ * the reserved prefix, whose scheme it is, and where line endings are settled.
  *
  * What this module does NOT do is decide where a reader's cuts should fall.
  * The divider may propose (`draftLocalWork`); a reader disposes. That is the
@@ -39,6 +43,30 @@ export const LOCAL_WORK_DEFAULT_NOUN = 'Reading';
 
 /** A line ending, whichever kind the reader's file uses. */
 const SPLIT_LINE = /\r?\n/u;
+
+/**
+ * READER TEXT ARRIVES WITH LF, OR TWO SETS OF OFFSETS DISAGREE.
+ *
+ * A cut is a character offset into `text`, and a Workshop passage span is a
+ * character offset into the same reader text. The Workshop already normalised
+ * carriage returns for its own reason — the HTML parser turns CRLF into LF, so
+ * a source that keeps them is one the editor and the rendered text disagree
+ * about, by one character per line before the selection.
+ *
+ * The moment one file can be BOTH a shelved work and a Workshop source, those
+ * two offset spaces have to be the same space. A record whose cuts index a
+ * CRLF string, handed to a room holding the LF copy, is off by the number of
+ * lines above every joint — and a Windows `.txt` is the ordinary case, not the
+ * exotic one.
+ *
+ * So it happens once, at intake, before anything measures anything. The
+ * partition still reads `\r?\n` because a record can arrive from a store
+ * written by an older build, and a magnet that only knows LF would find
+ * nothing in it.
+ */
+export function normalizeReaderText(value) {
+  return String(value ?? '').replace(/\r\n?/gu, '\n');
+}
 
 const TITLE_MAX_CHARS = 60;
 const TITLE_MAX_WORDS = 9;
@@ -169,7 +197,7 @@ export function validateLocalWork(record) {
  * typed a name, and no person has been here yet.
  */
 export function draftLocalWork({ text, sourceName = '', title = '', author = null, now = () => new Date() }) {
-  const body = String(text ?? '');
+  const body = normalizeReaderText(text);
   const name = String(title || sourceName).replace(/\.[a-z0-9]+$/iu, '').trim();
   const record = {
     schema: LOCAL_WORK_SCHEMA,

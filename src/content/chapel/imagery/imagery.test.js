@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { CHAPEL_PINNED_COLLECTIONS, hasChapelCollection } from './collections.js';
@@ -101,12 +101,24 @@ describe('Chapel icons', () => {
       expect(['PUBLIC_DOMAIN', 'PERMISSION'], id).toContain(icon.rights);
       expect(icon.rightsBasis, id).toMatch(/verified 2026|permission from the Registrar/);
       expect(icon.attribution, id).toBeTruthy();
-      expect(icon.image, id).toMatch(/^https:\/\//);
+      expect(icon.image, id).toMatch(
+        icon.source === 'iconmuseum' ? /^\/chapel\/icons\// : /^https:\/\//
+      );
       expect(icon.sourceUrl, id).toMatch(/^https:\/\//);
     }
     // The Icon Museum grant's stated condition, honored verbatim
     expect(CHAPEL_ICONS['icon-pantocrator-iconmuseum'].attribution)
       .toContain('Icon Museum and Study Center, Clinton MA');
+
+    // Icon Museum pins live on this origin. Hotlinking iconmuseum.org
+    // fails: Cloudflare challenges the request and the thumb never
+    // hydrates. The Registrar's grant is to use downloaded files.
+    for (const [id, icon] of Object.entries(CHAPEL_ICONS)) {
+      if (icon.source !== 'iconmuseum') continue;
+      expect(icon.image, id).not.toMatch(/iconmuseum\.org/);
+      const relative = icon.image.replace(/^\//, '');
+      expect(existsSync(resolve('public', relative)), `${id} missing ${relative}`).toBe(true);
+    }
     expect(CHAPEL_ICON_DEFAULTS.pantocrator).toBe('icon-pantocrator-sinai');
     expect(CHAPEL_ICON_DEFAULTS.marian).toBe('icon-salus-populi-romani');
     expect(findChapelIcon('icon-of-nowhere')).toBeNull();

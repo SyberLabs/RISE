@@ -96,9 +96,11 @@ public-domain text.
 
 ## 6. Visual works — held by reference, each under its own licence
 
-**RISE does not redistribute image files.** A pinned work is an identifier, a
-credit and a rights basis; the pixels are fetched from the institution that
-holds them. What this repository contains is metadata and curation.
+**RISE holds pixels only when the institution's host will not serve them.**
+A pinned work is otherwise an identifier, a credit and a rights basis; the
+pixels are fetched from the institution that holds them. The exception is
+the nine Icon Museum Chapel icons under `public/chapel/icons/`, held by
+written permission because `iconmuseum.org` now challenges hotlinks.
 
 ### Science catalogue — 216 works
 

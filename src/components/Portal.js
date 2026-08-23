@@ -93,23 +93,17 @@ export class Portal {
           </div>
         </header>
 
-        <!-- The sanctuary lamp — a small constant light in the top-right
-             corner, the only entrance to the Chapel. It does not
-             advertise; it burns. Hover reveals a single name. -->
-        <button class="portal-chapel-lamp" data-nav="chapel" style="opacity: 0;" title="The Chapel" aria-label="The Chapel">
+        <div class="portal-orbs-start">
+          <button class="portal-orb portal-curia-door" data-nav="curia" title="The Curia" aria-label="The Curia">
+            <span aria-hidden="true">▣</span>
+          </button>
+          <button class="portal-orb portal-scriptorium-door" data-nav="scriptorium" title="The Scriptorium"
+                  aria-label="The Scriptorium">
+            <span aria-hidden="true">✎</span>
+          </button>
+        </div>
+        <button class="portal-orb portal-chapel-lamp" data-nav="chapel" title="The Chapel" aria-label="The Chapel">
           <span aria-hidden="true">✛</span>
-          <span class="chapel-lamp-name" aria-hidden="true">The Chapel</span>
-        </button>
-
-        <!-- The Curia's door — bottom-left, quieter still than the lamp.
-             The room where the visual canon is governed; a curator's
-             entrance, harmless to stumble into. -->
-        <button class="portal-curia-door" data-nav="curia" title="The Curia" aria-label="The Curia">
-          <span aria-hidden="true">▣</span>
-        </button>
-        <button class="portal-scriptorium-door" data-nav="scriptorium" title="The Scriptorium"
-                aria-label="The Scriptorium">
-          <span aria-hidden="true">✎</span>
         </button>
 
         <!-- The Sigil - Center of attention.
@@ -155,20 +149,15 @@ export class Portal {
           style="opacity: 0;"
           aria-label="Main navigation"
         >
-          <!-- Primary acts: Keystones, then Chamber. Phone-only mark/verb/arrow
-               are display:none above 640. Exactly one data-nav="keystones"
-               lives here so the corridor door is not doubled. -->
+          <!-- Primary act: Chamber. Phone-only mark/verb/arrow are
+               display:none above 640. Try RISE is the Keystones door. -->
           <div class="nav-primary">
-            <button class="nav-item" data-nav="keystones" role="link">
-              <span class="act-label">Keystones</span>
-            </button>
             <button class="nav-item nav-act" data-nav="chamber" role="link">
               <span class="act-mark" aria-hidden="true">✦</span><span class="act-label"><span class="act-verb">Enter </span>Chamber</span><span class="act-go" aria-hidden="true">→</span>
             </button>
           </div>
 
-          <!-- Room index. Glyph/line are display:none above 640.
-               Try RISE is the same Keystones door, not a fourth nav-item. -->
+          <!-- Room index. Glyph/line are display:none above 640. -->
           <div class="nav-secondary">
             <button class="nav-item" data-nav="vault" role="link">
               <span class="room-glyph" aria-hidden="true">◈</span><span class="room-name">Vault</span><span class="room-line">Journeys and archetypes</span>
@@ -179,7 +168,7 @@ export class Portal {
             <button class="nav-item" data-nav="workshop" role="link">
               <span class="room-glyph" aria-hidden="true">✚</span><span class="room-name">Workshop</span><span class="room-line">Readings you compose</span>
             </button>
-            <button class="nav-try" type="button" role="link">
+            <button class="nav-try" type="button" role="link" data-nav="keystones">
               <span class="try-mark" aria-hidden="true">✦</span><span class="try-label">Try RISE</span>
             </button>
           </div>
@@ -233,14 +222,6 @@ export class Portal {
         const destination = item.dataset.nav;
         this.onNavigate(destination);
       });
-    });
-
-    // The circle is the Keystones door without a second data-nav="keystones".
-    this.container.querySelector('.nav-try')?.addEventListener('click', () => {
-      if (window.rise?.audioEngine) {
-        window.rise.audioEngine.playClick();
-      }
-      this.onNavigate('keystones');
     });
 
     // Sigil click only when it is a button (see prefersSealOnly).
@@ -345,22 +326,6 @@ export class Portal {
       nav.style.opacity = '1';
     }, 1100);
 
-
-    // The sanctuary lamp is lit last and quietly: the class hands
-    // opacity over to CSS (the 8s breath, or stillness under
-    // reduced-motion) once the inline reveal value is cleared.
-    const chapelLamp = this.container.querySelector('.portal-chapel-lamp');
-    revealTimeout(() => {
-      if (chapelLamp) {
-        chapelLamp.style.transition = 'opacity 900ms var(--ease-out)';
-        chapelLamp.style.opacity = '0.34';
-        this._revealTimers.push(setTimeout(() => {
-          chapelLamp.style.removeProperty('opacity');
-          chapelLamp.style.removeProperty('transition');
-          chapelLamp.classList.add('lamp-lit');
-        }, 950));
-      }
-    }, 1900);
 
     const footer = this.container.querySelector('.portal-footer');
     revealTimeout(() => {

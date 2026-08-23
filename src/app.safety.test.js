@@ -241,7 +241,7 @@ describe('App safety orchestration', () => {
   it('persists an allowlisted Chamber accent on :root with chamberFace and fontSize', () => {
     const app = new App();
     app.loadSettings();
-    expect(app.settings.chamberAccent).toBe('purple');
+    expect(app.settings.chamberAccent).toBe('ivory');
     expect(app.settings.chamberFace).toBe('literary');
     expect(app.settings.fontSize).toBe('medium');
 
@@ -268,15 +268,15 @@ describe('App safety orchestration', () => {
     expect(document.documentElement.dataset.accent).toBe('gecko');
   });
 
-  it('coerces an unknown Chamber accent to purple on load and change', () => {
+  it('coerces an unknown Chamber accent to ivory on load and change', () => {
     const app = new App();
     localStorage.setItem('rise-settings', JSON.stringify({ chamberAccent: 'violet' }));
     app.loadSettings();
-    expect(app.settings.chamberAccent).toBe('purple');
+    expect(app.settings.chamberAccent).toBe('ivory');
 
     app.handleSettingsChange('chamberAccent', 'chartreuse');
-    expect(app.settings.chamberAccent).toBe('purple');
-    expect(document.documentElement.dataset.accent).toBe('purple');
+    expect(app.settings.chamberAccent).toBe('ivory');
+    expect(document.documentElement.dataset.accent).toBe('ivory');
   });
 });
 

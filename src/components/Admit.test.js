@@ -4,17 +4,30 @@
  * The physics have their own tests; these press the buttons. What is checked
  * here is the seam between the two — that the offsets on the DOM are the
  * offsets the verbs accept, that a tap-only reader can reach every result,
- * and that both exits still exist. The last one is a deliberate departure
- * from SCRIPTORIUM-STRENGTHENING-SPEC §9.1, which deletes the direct read.
+ * and that both exits still exist. The last one is a deliberate departure from
+ * docs/vision/SCRIPTORIUM-STRENGTHENING-SPEC.md §9.1, which deletes the
+ * direct read.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Admit } from './Admit.js';
+import { normalizeReaderText } from '../core/local-works.js';
 
 const POEMS = [
     'Pyramid', 'a stone set on a stone', 'and the light going',
     '', 'Sycamore', 'the bark peels in strips', 'like a letter opened twice',
     '', 'Railroad', 'sleepers under the rain', 'counting themselves away'
 ].join('\r\n');
+
+/**
+ * The same poems as a record holds them after intake.
+ *
+ * Line endings are settled once, at intake, because a cut is an offset into
+ * reader text and so is a Workshop passage span — and one file can now be both
+ * a shelved work and a source there. The direct exit therefore hands back
+ * NORMALISED text, and asserting the raw fixture would assert the older of two
+ * offset spaces.
+ */
+const TEXT = normalizeReaderText(POEMS);
 
 let room = null;
 const open = (options = {}) => {
@@ -97,13 +110,13 @@ describe('the two exits', () => {
         expect(record.labels).toHaveLength(3);
     });
 
-    it('still reads straight through to the Chamber, text unchanged', () => {
+    it('still reads straight through to the Chamber, with the whole text', () => {
         // §9.1 deletes this door. It is kept: the partition is an addition to
         // what a dropped file could already do, never a toll on it.
         const onReadNow = vi.fn();
         open({ onReadNow });
         click(room.element.querySelector('[data-action="read"]'));
-        expect(onReadNow).toHaveBeenCalledWith(POEMS, 'poems');
+        expect(onReadNow).toHaveBeenCalledWith(TEXT, 'poems');
     });
 
     it('leaves nothing behind on any exit', () => {

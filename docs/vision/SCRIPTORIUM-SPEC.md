@@ -13,7 +13,9 @@ copyable refusals (`describeImportFailure`), generated export prompt
 (separate from context.json), Library catalogue in context, quotation-only
 anchors, the Scriptorium door beside the Curia, and — 2026-08-10 — the
 reading track, which makes the room a **composer**; and — 2026-08-21 — the
-extent grammar (§10c), which lets a score spend a length on part of a work.
+extent grammar (§10c), which lets a score spend a length on part of a work;
+and — 2026-08-23 — a reader's own text as a Library work with named,
+addressable parts (§7a).
 Workshop curator buttons remain until the room is proven by a hand-run loop.
 Rulings by the creator are marked ✦; open questions ⁇.
 
@@ -171,6 +173,52 @@ Consequences, stated rather than discovered later:
   before anything is fetched.
 - **No payloads leave.** Titles, authors, division counts and lengths only —
   *IDs only, no bytes* holds unchanged.
+
+### 7a. A reader's own text is a source ✦ *(2026-08-23)*
+
+The catalogue this room ships was the Archive's alone, which made the room
+able to compose only from what someone else had prepared. A reader's own
+`.txt` could be READ, in the Chamber, immediately — and could not be pointed
+at, because pointing needs a work with named parts and an id.
+
+It is one now. `rise.local-work.v1` (local-works.js) is one text and an
+ordered list of joints; parts are derived from the joints and never stored
+beside them, because two copies of a text is one copy and one thing that will
+disagree with it. The overlay goes into `buildLibraryCatalogue` ahead of the
+archive, so a score may name `local-samay#2` exactly as it names
+`sacred-tao-te-ching#40`, and §10c's extent grammar needs nothing added.
+
+What this section exists to state, because the code cites it:
+
+- **`local-` is reserved.** Archive ingest may never mint under it. That is
+  what makes "an id in both registries" impossible rather than merely
+  unlikely: the overlay is asked after the archive, so a collision would
+  silently shadow a reader's own book. A Workshop text source that is NOT a
+  shelved work is minted `imported-...` for the same reason.
+- **Whose scheme it is, is read off the names.** Every part still `Reading N`
+  is `measured`; a name that IS its part's opening line is `titled`, the
+  document having named itself; anything else is `reader`. Derived rather than
+  stored, because the prompt branches on it — a `measured` scheme tells the
+  composer to name progress and quotation RATHER THAN "Reading 4", and a
+  reader who titled their parts and shipped `measured` would have the composer
+  instructed to ignore the names they had just typed.
+- **Line endings are settled once, at intake.** A cut is a character offset
+  into reader text and so is a Workshop passage span. One file can be both a
+  shelved work and a source there, so the two offset spaces must be one space;
+  a record whose cuts index CRLF, handed to a room holding the LF copy, is
+  adrift by the line count above every joint.
+- **Two doors, one room.** The Library and the Workshop open the same admit
+  surface. Both keep a direct exit that skips the shelf entirely — the
+  strengthening brief deletes it (§9.1 there); it is kept, and the reversal is
+  recorded at the line that asked for the deletion.
+- **The shelf is the browser's, and refusals are sentences.** Forty works, and
+  a record this build cannot validate is skipped rather than thrown on: one
+  row from an older schema must not cost a reader every other work they
+  admitted.
+
+Nothing here changes what leaves the building. A local work contributes a
+title, a part count, part names and word counts to the catalogue — the same
+fields an archive work contributes, and §6's *IDs only, no bytes* holds.
 
 ### Catalogue size ✦ *(settled 2026-08-21)*
 

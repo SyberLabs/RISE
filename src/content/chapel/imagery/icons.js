@@ -10,7 +10,9 @@
  * The two Commons works carry the file's own SHA-1 as captured at
  * curation, so a silent upstream file replacement is detectable. The
  * Princeton work resolves through the museum's IIIF service by object
- * number.
+ * number. Icon Museum pins are served from /chapel/icons — Cloudflare
+ * now challenges hotlinks to iconmuseum.org, so the Registrar's grant
+ * to download and display is how those thumbs hydrate.
  *
  * Reverent degradation (#5): if an image fails to load, the focal
  * falls back to stillness — never to a different image.
@@ -76,7 +78,7 @@ export const CHAPEL_ICONS = freezeManifest({
     medium: 'Oil on wood',
     source: 'iconmuseum',
     sourceId: 'R2017.4',
-    image: 'https://www.iconmuseum.org/wp-content/uploads/2026/03/R2017_4-Lord-Almighty-main-scaled.jpg',
+    image: '/chapel/icons/R2017.4.jpg',
     sourceUrl: 'https://www.iconmuseum.org/collection/christ-pantocrator-12/',
     rights: 'PERMISSION',
     rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt; required citation honored in the attribution line',
@@ -99,7 +101,7 @@ export const CHAPEL_ICONS = freezeManifest({
     medium: 'Egg tempera on wood',
     source: 'iconmuseum',
     sourceId: 'R2009.8',
-    image: 'https://www.iconmuseum.org/wp-content/uploads/2023/12/R2009_8--scaled.webp',
+    image: '/chapel/icons/R2009.8.jpg',
     sourceUrl: 'https://www.iconmuseum.org/collection/christ-in-majesty/',
     rights: 'PERMISSION',
     rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt',
@@ -114,7 +116,7 @@ export const CHAPEL_ICONS = freezeManifest({
     medium: 'Egg tempera on wood',
     source: 'iconmuseum',
     sourceId: 'R2000.16',
-    image: 'https://www.iconmuseum.org/wp-content/uploads/2023/09/R2000_16-scaled.webp',
+    image: '/chapel/icons/R2000.16.jpg',
     sourceUrl: 'https://www.iconmuseum.org/collection/christ-enthroned/',
     rights: 'PERMISSION',
     rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt',
@@ -129,7 +131,7 @@ export const CHAPEL_ICONS = freezeManifest({
     medium: 'Egg tempera on wood, gold leaf',
     source: 'iconmuseum',
     sourceId: 'R2017.6.092',
-    image: 'https://www.iconmuseum.org/wp-content/uploads/2026/03/R2017_6_092-Christ-Enthroned-main.jpg',
+    image: '/chapel/icons/R2017.6.092.jpg',
     sourceUrl: 'https://www.iconmuseum.org/collection/christ-enthroned-3/',
     rights: 'PERMISSION',
     rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt',
@@ -144,7 +146,7 @@ export const CHAPEL_ICONS = freezeManifest({
     medium: 'Egg tempera on wood',
     source: 'iconmuseum',
     sourceId: 'R2005.29',
-    image: 'https://www.iconmuseum.org/wp-content/uploads/2025/03/R2005_29-Transfiguration-scaled.jpg',
+    image: '/chapel/icons/R2005.29.jpg',
     sourceUrl: 'https://www.iconmuseum.org/collection/the-transfiguration-of-christ-4/',
     rights: 'PERMISSION',
     rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt',
@@ -159,7 +161,7 @@ export const CHAPEL_ICONS = freezeManifest({
     medium: 'Egg tempera on wood, gold leaf, metal basma',
     source: 'iconmuseum',
     sourceId: 'R2014.3.9',
-    image: 'https://www.iconmuseum.org/wp-content/uploads/2026/02/R2014_3_9-Transfiguration-scaled.jpg',
+    image: '/chapel/icons/R2014.3.9.jpg',
     sourceUrl: 'https://www.iconmuseum.org/collection/the-transfiguration-of-christ-6/',
     rights: 'PERMISSION',
     rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt',
@@ -174,7 +176,7 @@ export const CHAPEL_ICONS = freezeManifest({
     medium: 'Egg tempera on wood',
     source: 'iconmuseum',
     sourceId: 'R2007.38',
-    image: 'https://www.iconmuseum.org/wp-content/uploads/2025/01/R2007_38-scaled.jpg',
+    image: '/chapel/icons/R2007.38.jpg',
     sourceUrl: 'https://www.iconmuseum.org/collection/the-ascension-of-christ/',
     rights: 'PERMISSION',
     rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt',
@@ -189,7 +191,7 @@ export const CHAPEL_ICONS = freezeManifest({
     medium: 'Egg tempera on wood',
     source: 'iconmuseum',
     sourceId: 'R1998.25',
-    image: 'https://www.iconmuseum.org/wp-content/uploads/2025/02/R1998_25--scaled.jpg',
+    image: '/chapel/icons/R1998.25.jpg',
     sourceUrl: 'https://www.iconmuseum.org/collection/the-mother-of-god-nursing-the-christ-child-2/',
     rights: 'PERMISSION',
     rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt',
@@ -204,7 +206,7 @@ export const CHAPEL_ICONS = freezeManifest({
     medium: 'Egg tempera on wood, gold leaf',
     source: 'iconmuseum',
     sourceId: 'R2019.4.2',
-    image: 'https://www.iconmuseum.org/wp-content/uploads/2026/03/R2019_4_2-main.jpg',
+    image: '/chapel/icons/R2019.4.2.jpg',
     sourceUrl: 'https://www.iconmuseum.org/collection/archangel-gabriel-2/',
     rights: 'PERMISSION',
     rightsBasis: 'Written permission from the Registrar, 2026-07-22 — see docs/icon-museum-permission.txt',

@@ -22,7 +22,7 @@ export function renderWorkshopStudioShell(view) {
           ${renderAssetLibrary(view)}
           ${renderScoreCanvas(view)}
           ${renderStudioInspector(view)}
-          <input type="file" id="file-import-input" accept=".txt" hidden />
+          <input type="file" id="file-import-input" accept=".txt,.md" hidden />
           <input type="file" id="image-import-input" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,.mp4" hidden />
           <input type="file" id="personal-focal-import-input" accept="image/jpeg,image/png,image/webp,image/gif" hidden />
           <input type="file" id="global-import-input" accept="image/jpeg,image/png,image/webp,image/gif" hidden />
