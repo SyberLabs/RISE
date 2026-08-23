@@ -3,10 +3,11 @@
 **Verse-precise sacred accompaniment: a chapter becomes a
 deterministic visual schedule, not one undifferentiated pool.**
 
-Status: SPEC — no implementation yet. Rulings by the creator are
-marked ✦; open questions are marked ⁇. This spec operationalizes
-`image_map/RISE_GOSPEL_ART_CONCORDANCE.md` (the research draft), the
-first campaign of the Scholastic program.
+Status: IMPLEMENTED in `src/content/chapel/imagery/pericopes.js` and
+`pericope-program.js`, built by `npm run build:pericopes`. Rulings by
+the creator are marked ✦; open questions are marked ⁇. This spec
+operationalizes `image_map/RISE_GOSPEL_ART_CONCORDANCE.md` (the
+research draft), the first campaign of the Scholastic program.
 
 ---
 

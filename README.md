@@ -147,6 +147,8 @@ Rather than adding a separate playback engine, Journeys compile into the same un
 
 They are compositions *through* RISE rather than videos exported from it.
 
+**No Journey is currently published.** The compiler and the room are built, but the existing scores quote editions the Library no longer serves, and re-anchoring a composition to a different edition is an editorial act rather than a repair. They are on ice until that work is done properly.
+
 ---
 
 ## Workshop and Vault
@@ -169,20 +171,6 @@ source
 ```
 
 This model is designed so that a composition can eventually be authored by hand, generated with assistance, saved, exchanged, revisited, and interpreted through multiple reading projections without becoming a collection of unrelated media timelines.
-
----
-
-## Solarium
-
-The **Solarium** gives RISE a relationship to lived time.
-
-A day is divided into temporal windows — dawn, morning, midday, afternoon, evening, night, and deep night — which can hold recurring reading practices and compositions.
-
-The Solarium is not intended as another content library.
-
-It answers a different question:
-
-> **When should an experience return?**
 
 ---
 
@@ -244,9 +232,11 @@ Some visual modes retrieve publicly hosted images from external cultural or scie
 
 ## Development
 
+RISE is client-only. There is no backend, database, or service to stand up — the whole product runs from the Vite dev server.
+
 Requirements:
 
-- Node.js `>=20.19` or `>=22.12`
+- Node.js `>=20.19` or `>=22.12`. The repository pins `20.19.0` in `.nvmrc`.
 - npm
 
 Install:
@@ -254,14 +244,16 @@ Install:
 ```bash
 git clone https://github.com/SyberLabs/RISE.git
 cd RISE
-npm install
+npm ci
 ```
 
-Run locally:
+Run locally on `http://localhost:5173/`:
 
 ```bash
 npm run dev
 ```
+
+To see the reading experience quickly: **Try RISE** → choose a reading → **Begin**. Text then streams over time with generative visuals, and the **Page** control switches to the paginated view.
 
 Build:
 
@@ -269,17 +261,30 @@ Build:
 npm run build
 ```
 
-Run unit tests:
+### Testing
 
 ```bash
-npm run test:run
+npm run test:run     # unit and integration (Vitest, ~2800 tests)
+npm run test:e2e     # browser tests (Playwright, Chromium)
+node scripts/ci-hygiene.mjs   # properties of the committed artifacts
 ```
 
-Run browser tests:
+Two suites reach outside the browser and need system tools installed. `src/core/render/encode-mp4.test.js` hands real bytes to **`ffmpeg`**, and `src/core/render/chamber-paint.test.js` drives a live Chamber through **Playwright Chromium** (`npx playwright install chromium`). Without them those tests fail rather than quietly stubbing themselves.
 
-```bash
-npm run test:e2e
-```
+The end-to-end suite builds the app and starts its own preview server, so do not start one yourself.
+
+`ci-hygiene.mjs` is the closest thing to a lint gate. It checks properties of shipped artifacts that no unit test can reach: that no credential travels in a delivery URL, that every work owing a credit carries one, that every icon the page promises actually ships, and that no retired name appears in anything a stranger reads.
+
+---
+
+## Documentation
+
+**[docs/README.md](docs/README.md)** indexes every document and says which are contracts the code is held to, which are historical records, and which describe work not yet built. The same pages are published to the [wiki](https://github.com/SyberLabs/RISE/wiki), generated from this repository.
+
+Two worth reading before changing anything:
+
+- **[docs/PROJECT-KNOWLEDGE.md](docs/PROJECT-KNOWLEDGE.md)** — the defect patterns this project keeps rediscovering, and the reasoning behind decisions that look arbitrary from outside.
+- **[AGENTS.md](AGENTS.md)** — operating principles, followed by humans and coding agents alike.
 
 For a faster loop before pushing, the `gate` project is the corridor a reader
 actually walks — about two minutes rather than eight:
@@ -322,7 +327,9 @@ RISE is primarily a client-side JavaScript application built with Vite.
 ```text
 src/
 ├── audio/          Web Audio, recitation, voice and sound systems
-├── components/     Chamber, Portal, Chapel, Rosarium, Curia, Library, Journeys, Scriptorium, Workshop, Vault, Sol, Via, Guide, Settings, VisualInterlocutionPanel
+├── components/     Portal, Keystones, Chamber, Library, Workshop, Vault,
+│                   Chapel, Rosarium, Via, Scriptorium, Curia, Journeys,
+│                   Guide, Settings, VisualInterlocutionPanel
 ├── content/        archive, chapel, imagery, journeys, science, texts, personalized
 ├── core/           Session compilation, chunking, pacing and shared models
 ├── page/           Spatial composition and Page projection
@@ -341,6 +348,8 @@ drawn by hand — see the diagram in
 [`docs/specs/ARCHITECTURE.md`](docs/specs/ARCHITECTURE.md).
 
 The project uses **Vitest** for unit and integration testing and **Playwright** for browser-level verification.
+
+`docs/specs/ARCHITECTURE.md` holds the engineering contracts these directories are expected to keep.
 
 ---
 

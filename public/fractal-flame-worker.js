@@ -28,7 +28,6 @@ self.onmessage = function (e) {
         VARIATIONS = LOCAL_VARIATIONS;
 
         // Debug
-        // console.log('[Worker] Worker initialized. Variations loaded.');
 
         self.postMessage({ type: 'ready', workerId });
         return;

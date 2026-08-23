@@ -43,7 +43,8 @@
     "render:catalog": "node scripts/render-catalog.mjs",
     "cursor:skills": "node scripts/install-cursor-skills.mjs",
     "content:build": "vite-node scripts/build-content-plane.mjs",
-    "test:e2e:gate": "playwright test --project=gate"
+    "test:e2e:gate": "playwright test --project=gate",
+    "wiki:build": "node scripts/build-wiki.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

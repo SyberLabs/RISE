@@ -446,7 +446,6 @@ export class Player {
 
         this.stopProgressAnimation();
         
-        // Stop any ongoing speech immediately
         if (this.voiceSyncEnabled && this.speakFn) {
             this.speakFn(null, { stop: true });
         }

@@ -4,8 +4,9 @@
 black, crossfading slowly among a pool, swapping smoothly at each
 pericope boundary.**
 
-Status: SPEC — no implementation yet. Rulings by the creator are
-marked ✦; open questions are marked ⁇.
+Status: IMPLEMENTED in `src/visuals/continuous-field.js`, wired through
+the visual cortex. Rulings by the creator are marked ✦; open questions
+are marked ⁇.
 
 ---
 
