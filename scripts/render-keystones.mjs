@@ -26,6 +26,9 @@ import { RENDER_JOB_SCHEMA } from '../src/core/render/environment.js';
 import { pinnedRendererForProfile } from '../src/core/render/job.js';
 import { renderProfile } from '../src/core/render/limits.js';
 import { materializeExportJob } from '../src/core/render/intake.js';
+import { installContentPlaneFetch } from './lib/content-plane-fetch.mjs';
+// A Node process has no origin, so `/content/...` is not a URL it can fetch.
+installContentPlaneFetch();
 
 const PROFILE_ID = 'keystone-landscape-1080';
 const DEFAULT_OUT = join('out', 'release', 'keystones');

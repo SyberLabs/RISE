@@ -22,6 +22,15 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { divideSections } from '../src/content/archive/divisions.js';
+import { installContentPlaneFetch } from './lib/content-plane-fetch.mjs';
+// A Node process has no origin, so `/content/...` is not a URL it can fetch.
+// Installed at the entry rather than inside the store: the store fetches a URL
+// and checks the bytes against the digest that URL names, and teaching it about
+// a filesystem would give the corpus a second code path where the point of this
+// seam is that there is one. `_fetch` is read at call time, so installing after
+// ESM has hoisted every import is in time — provided no import did the reading
+// itself. See release-voice-evidence.mjs for the one that did.
+installContentPlaneFetch();
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WORKS_DIR = join(HERE, '..', 'src', 'content', 'archive', 'works');
