@@ -17,6 +17,7 @@
     "test:coverage": "npm run content:build && vitest run --coverage",
     "test:e2e": "playwright test",
     "measure:first-load": "node scripts/measure-first-load.mjs",
+    "security:audit": "npm audit --audit-level=high",
     "docs:diagram": "node scripts/build-architecture-diagram.mjs",
     "scriptorium": "vite-node scripts/scriptorium.mjs --",
     "scriptorium:ci": "npm run content:build && node scripts/scriptorium-ci.mjs",

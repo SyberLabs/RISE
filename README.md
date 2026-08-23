@@ -308,7 +308,7 @@ Every gate can be run locally, and a pull request has to pass all of them.
 
 ```bash
 node scripts/ci-hygiene.mjs      # licences, icons, manifest, reader-facing names
-npm audit --omit=dev --audit-level=high
+npm run security:audit           # production and development dependency tree
 npm run build && npm run measure:first-load   # brotli, against a ratcheting budget
 npm run docs:diagram             # regenerates the diagram; CI fails if it moved
 npx vitest run src/core/system-design.test.js
