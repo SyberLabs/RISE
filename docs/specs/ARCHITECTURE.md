@@ -152,7 +152,7 @@ flowchart LR
     audio["audio<br/>Web Audio, recitation<br/>6 modules"]
     components["components<br/>routed views<br/>29 modules"]
     content["content<br/>texts, imagery, journeys<br/>222 modules"]
-    core["core<br/>session, player, router<br/>107 modules"]
+    core["core<br/>session, player, router<br/>108 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
     sources["sources<br/>text and visual providers<br/>22 modules"]
     visuals["visuals<br/>procedural generation<br/>53 modules"]
@@ -167,7 +167,7 @@ flowchart LR
     audio --> |3| core
     components --> |2| audio
     components --> |22| content
-    components --> |96| core
+    components --> |97| core
     components -.-> |1 lazy| page
     components --> |6| sources
     components --> |12| visuals
@@ -721,6 +721,26 @@ of `settled`, `open`, `deferred`, or `reversed`.
   engine output was dropped on the reasoning that **a grant to run and modify
   the engine is a grant to the images it draws** — claiming otherwise while
   licensing the engine Apache would be incoherent.
+- **Status:** settled.
+
+### 8.26 The doorway is a preset over the engine, not a second engine
+
+- **Chosen:** a stance (`src/core/stances.js`) is a named partial of the
+  configuration the Orbital already builds. It writes fields in the visual,
+  audio and temporal orbits, and what it emits takes the same road as a
+  hand-built configuration: the Orbital's persistence normalizers, then
+  `normalizeVisualConfig` in the session compiler. Which stance a reader is
+  standing in is derived from the configuration, never stored.
+- **Rejected:** a simplified reading mode with its own path to the cortex; and
+  hiding the orbits behind the stance row.
+- **Why:** the parameters are not the problem — meeting forty of them with no
+  orientation is. A second path would double the validation surface that
+  §7 depends on, for a layer whose entire job is to *name* points in the space
+  the validators already police. Storing the chosen stance was rejected for a
+  smaller reason with the same shape: a remembered choice would keep claiming a
+  posture the reader had adjusted away from, so the row would lie. Deriving it
+  cannot. There is no `study` stance yet; it is the entry to Page mode, which
+  is sequenced after this step.
 - **Status:** settled.
 
 ---
