@@ -55,6 +55,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      # A first load can only stay small if something refuses to let it grow.
+      # The build itself already fails on a deferral the bundler ignores;
+      # this fails on the byte count that deferral was for.
+      - name: The Portal's cost is a budget, not an aspiration
+        run: npm run measure:first-load
 
   scriptorium:
     name: Scriptorium CLI

@@ -65,6 +65,35 @@ export default defineConfig({
     //
     // Deferment lives at the caller, as a dynamic import(), where it can be
     // read. Grouping lives with Rollup, which does it well enough unaided.
+
+    rollupOptions: {
+      /**
+       * A DEFERRAL WRITTEN AT ONE SITE AND UNDONE AT ANOTHER IS NOW A BUILD
+       * FAILURE.
+       *
+       * Rollup reports it plainly — "dynamically imported by X but also
+       * statically imported by Y" — and the report sat on screen for every
+       * build of this project without being acted on. It is the same shape
+       * as the 82 MB of unreachable books and the same shape as the dead
+       * sacred texts: the bundler is the only witness, and a witness nobody
+       * reads is not a guard.
+       *
+       * Removing manualChunks turned two of these into nine, because the
+       * cache groups had been hiding the rest. All nine are fixed. This
+       * keeps the tenth from arriving quietly.
+       */
+      onwarn(warning, warn) {
+        if (/dynamic import will not move module/.test(warning.message || '')) {
+          throw new Error(
+            `${warning.message}\n\n`
+            + 'Either make the static importer lazy, or drop the import() and '
+            + 'admit the module belongs in the chunk. Do not leave the two '
+            + 'disagreeing — a deferral the bundler ignores reads as done.'
+          );
+        }
+        warn(warning);
+      }
+    }
   },
 
   // Test configuration

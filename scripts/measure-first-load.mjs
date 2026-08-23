@@ -37,7 +37,7 @@ const DIST = resolve(ROOT, 'dist');
  * lowers it, and nothing can silently climb back. A budget set at a number
  * nobody has reached yet fails on day one and gets deleted by day two.
  */
-export const FIRST_LOAD_BUDGET_BYTES = 72 * 1024;
+export const FIRST_LOAD_BUDGET_BYTES = 64 * 1024;
 
 const brotli = bytes => brotliCompressSync(bytes, {
   params: { [constants.BROTLI_PARAM_QUALITY]: 11 }

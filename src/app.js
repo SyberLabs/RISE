@@ -19,11 +19,11 @@ import {
     isContinuousPresentation
 } from './core/visual-presence.js';
 import { compileSession } from './core/session-compiler.js';
+import { resolveNextLibraryDivision } from './core/reading-continuation.js';
 import {
     isWorkshopProject,
     workshopProjectToSessionConfig
 } from './core/workshop-project.js';
-import { MemoryCore } from './core/memory.js';
 import { BetaGate } from './components/BetaGate.js';
 import { isRosaryDoor } from './core/rosary-door.js';
 
@@ -659,6 +659,11 @@ class App {
                         // fractals (palette/variations/tone by signal) that cover
                         // the text's emotional arc. Null when responsive is off.
                         let semanticSignals = null;
+                        // MemoryCore reaches workshop-asset-durability and the
+                        // workshop project model; this one call for pinned
+                        // Global Pool URIs is the only thing app.js wants from
+                        // it, and it is on the reading path, not the shell's.
+                        const { MemoryCore } = await import('./core/memory.js');
                         if (interlocution.responsive && session.atoms?.length) {
                             const { scoreAtoms, sampleTrackSignals } = await import('./core/conductor.js');
                             session.semanticTrack = session.semanticTrack || scoreAtoms(session.atoms);
@@ -1082,10 +1087,12 @@ class App {
      */
     async continueLibraryReading(session) {
         try {
-            const [{ ArchiveTextProvider }, { resolveNextLibraryDivision }] = await Promise.all([
-                import('./sources/text/archive.js'),
-                import('./core/reading-continuation.js')
-            ]);
+            // reading-continuation is NOT deferred here, and pretending it
+            // was is what Rollup kept reporting: models.js builds every
+            // Session through createLibraryContinuation, so the module is in
+            // the main chunk whatever this line says. Only the provider is
+            // genuinely deferrable.
+            const { ArchiveTextProvider } = await import('./sources/text/archive.js');
             const provider = new ArchiveTextProvider();
             const contents = await provider.getContents(session?.continuation?.workId);
             const next = resolveNextLibraryDivision(session?.continuation, contents);

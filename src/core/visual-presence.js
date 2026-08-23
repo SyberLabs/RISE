@@ -268,6 +268,25 @@ export function responsiveVisualPresence(value, arousal = 0) {
     );
 }
 
+/**
+ * Scale the user's base flash probability by passage arousal.
+ * The configured frequency is a hard ceiling (it is what the user consented
+ * to in the safety flow): peak intensity (a=1) reaches exactly the base,
+ * calm text (a=0) drops to 0.35× base.
+ *
+ * This is `responsiveVisualPresence`'s pair — one shapes how long a
+ * presence holds, the other how often one lands — and it lived in
+ * conductor.js next to a 39 KB sentiment lexicon it does not use. Player
+ * needs these four lines and was pulling the lexicon into the main bundle
+ * to get them. conductor.js still re-exports it for its own callers.
+ */
+export function responsiveFrequency(baseFrequency, signal) {
+    if (!signal) return baseFrequency;
+    const energy = Math.max(0, Math.min(1, Number(signal.arousal) || 0));
+    const scaled = baseFrequency * (0.35 + 0.65 * energy);
+    return Math.max(0, Math.min(baseFrequency, scaled));
+}
+
 export function visualPresenceTransition(value) {
     const duration = normalizeVisualPresence(value);
     if (duration < 250) return Object.freeze({ enterMs: 0, exitMs: 0 });
