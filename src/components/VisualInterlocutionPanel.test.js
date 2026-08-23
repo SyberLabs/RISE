@@ -1362,17 +1362,32 @@ describe('PREP Visual Settings Size (FM-RISE-36)', () => {
         panel.destroy();
     });
 
-    it('persists s|m|l|fit as small|medium|large|fit and never into visualConfig', () => {
+    it('persists ordinary sizes without changing visuals and makes Fit one Gallery mode', () => {
         const settings = { chamberFace: 'literary', fontSize: 'medium' };
         const handleSettingsChange = vi.fn((key, value) => {
             settings[key] = value;
         });
         const onChange = vi.fn();
+        const onFitRequested = vi.fn();
         globalThis.rise = { settings, handleSettingsChange };
         const { panel, container } = makePanel({
             expanded: true,
             visualMode: 'off',
-            onChange
+            interlocution: {
+                presentation: 'full-frame',
+                streamGlass: false,
+                sourceFamily: 'collections',
+                sourced: ['aic-landscapes'],
+                procedural: [],
+                wordFill: {
+                    mode: 'pick',
+                    sourceFamily: 'procedural',
+                    procedural: ['fractal'],
+                    sourced: []
+                }
+            },
+            onChange,
+            onFitRequested
         });
 
         container.querySelector('[data-font-size="l"]').click();
@@ -1388,7 +1403,18 @@ describe('PREP Visual Settings Size (FM-RISE-36)', () => {
         expect(handleSettingsChange).toHaveBeenCalledWith('fontSize', 'fit');
         expect(settings.fontSize).toBe('fit');
         expect(sizeRow(container).textContent).toMatch(/Words fill the chamber/);
-        expect(onChange).not.toHaveBeenCalled();
+        expect(onFitRequested).toHaveBeenCalledOnce();
+        expect(onChange).toHaveBeenCalledOnce();
+        expect(panel.getConfig().visualMode).toBe('interlocution');
+        expect(panel.getConfig().interlocution.presentation).toBe('continuous');
+        expect(panel.getConfig().interlocution.streamGlass).toBe(false);
+        expect(panel.getConfig().interlocution.sourced).toEqual(['aic-landscapes']);
+        expect(panel.getConfig().interlocution.wordFill).toEqual({
+            mode: 'pick',
+            sourceFamily: 'procedural',
+            procedural: ['fractal'],
+            sourced: []
+        });
 
         const forged = container.querySelector('[data-font-size="fit"]');
         forged.dataset.fontSize = 'huge';
@@ -1397,6 +1423,41 @@ describe('PREP Visual Settings Size (FM-RISE-36)', () => {
         expect(settings.fontSize).toBe('fit');
         expect(settings.chamberFace).toBe('literary');
 
+        panel.destroy();
+    });
+
+    it('does not request Fit or erase source identity for S, M, or L', () => {
+        const settings = { chamberFace: 'literary', fontSize: 'fit' };
+        const onFitRequested = vi.fn();
+        globalThis.rise = {
+            settings,
+            handleSettingsChange(key, value) { settings[key] = value; }
+        };
+        const { panel, container } = makePanel({
+            expanded: true,
+            visualMode: 'interlocution',
+            interlocution: {
+                presentation: 'continuous',
+                sourceFamily: 'procedural',
+                procedural: ['turrell'],
+                sourced: [],
+                wordFill: {
+                    mode: 'pick',
+                    sourceFamily: 'collections',
+                    sourced: ['aic-ukiyoe'],
+                    procedural: []
+                }
+            },
+            onFitRequested
+        });
+
+        for (const size of ['s', 'm', 'l']) {
+            container.querySelector(`[data-font-size="${size}"]`).click();
+        }
+
+        expect(onFitRequested).not.toHaveBeenCalled();
+        expect(panel.getConfig().interlocution.procedural).toEqual(['turrell']);
+        expect(panel.getConfig().interlocution.wordFill.sourced).toEqual(['aic-ukiyoe']);
         panel.destroy();
     });
 

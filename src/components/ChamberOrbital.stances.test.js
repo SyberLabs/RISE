@@ -142,6 +142,23 @@ describe('choosing a stance', () => {
         orbital.destroy();
     });
 
+    it('makes a Fit request authoritative over phrase chunking and Recitation', () => {
+        const { container, orbital } = createOrbital();
+        orbital.loadText('Begin the morning', 'Meditations');
+        orbital.config.chunkMode = 'phrase';
+        orbital.config.recitation = { enabled: true };
+        orbital.syncUIWithConfig();
+
+        container.querySelector('[data-font-size="fit"]').click();
+
+        expect(orbital.config.chunkMode).toBe('word');
+        expect(orbital.config.recitation).toEqual({ enabled: false });
+        expect(container.querySelector('[data-chunk="word"]').classList).toContain('active');
+        const saved = JSON.parse(localStorage.getItem('rise_orbital_prefs_v1'));
+        expect(saved.chunkMode).toBe('word');
+        orbital.destroy();
+    });
+
     it('carries the whole slice into the session', () => {
         const onBeginSession = vi.fn();
         const { container, orbital } = createOrbital(onBeginSession);

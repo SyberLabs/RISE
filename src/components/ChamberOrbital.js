@@ -1083,6 +1083,17 @@ export class ChamberOrbital {
             ? { episodes: this.config.visualProgram.segments.length }
             : null,
           readingVisualDomain: this.config.readingVisualIdentity?.domain || null,
+          onFitRequested: () => {
+            // Fit's text mask has Word atoms as a hard input contract.
+            // Recitation owns phrase recordings, so choosing Fit is also an
+            // explicit choice to leave Recitation rather than produce silence.
+            this.config.chunkMode = 'word';
+            this.config.recitation = { enabled: false };
+            this.syncUIWithConfig();
+            this.updateOrbitStatus('temporal');
+            this._syncStanceRow();
+            this._persistPrefs();
+          },
           onChange: (config) => {
             const previouslyHeld = isLaunchHeldFocal(
               this.config.visualInterlocution?.focals

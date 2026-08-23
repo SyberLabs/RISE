@@ -85,8 +85,9 @@
 
 .chamber-display {
   position: relative;
-  min-height: 100vh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -95,6 +96,9 @@
 
 .chamber-field {
   flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -284,6 +288,9 @@
 .atom-display.is-mask.is-word-fit {
   font-size: var(--atom-fit-px);
   max-width: 95%;
+  max-height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 /* Selected for moving. An outline rather than a border so the frame

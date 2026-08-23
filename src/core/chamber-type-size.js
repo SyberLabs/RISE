@@ -53,6 +53,27 @@ export function isChamberWordFit(id) {
     return persistFontSize(id) === 'fit';
 }
 
+/**
+ * One authority for projecting Gallery through Word ink.
+ *
+ * `legacyMask` preserves the explicit Settings switch for Word sessions.
+ * Everything else must satisfy the complete Fit contract; a font-size intent
+ * alone cannot silently create an empty mask on a flash or non-visual field.
+ */
+export function resolveFitMaskMode({
+    fontSize,
+    chunkMode,
+    visualMode,
+    presentation,
+    legacyMask = false
+} = {}) {
+    if (chunkMode !== 'word') return false;
+    if (legacyMask === true) return true;
+    if (visualMode !== 'interlocution') return false;
+    if (presentation === 'continuous-word') return true;
+    return presentation === 'continuous' && isChamberWordFit(fontSize);
+}
+
 /** Three-step multiplier. Fit is ignored (medium). */
 export function threeStepIntent(id) {
     const size = resolveFontSize(id);
@@ -79,21 +100,29 @@ export function fitWordAtomPx({
     padY = 0,
     measuredWidth,
     measuredHeight,
-    measuredAt = 100
+    measuredAt = 100,
+    lineHeightRatio = 1.4
 } = {}) {
     const usableW = Number(fieldWidth) - Number(padX);
     const usableH = Number(fieldHeight) - Number(padY);
     const glyphW = Number(measuredWidth);
     const glyphH = Number(measuredHeight);
     const at = Number(measuredAt);
+    const lineRatio = Number(lineHeightRatio);
 
     if (!(usableW > 0) || !(usableH > 0) || !(glyphW > 0) || !(glyphH > 0) || !(at > 0)) {
         return null;
     }
 
+    const verticalReference = Math.max(
+        glyphH,
+        at * (lineRatio > 0 ? lineRatio : 1.4)
+    );
+    const targetW = (Number(fieldWidth) * WORD_FIT_FILL) - Number(padX);
+    const targetH = (Number(fieldHeight) * WORD_FIT_FILL) - Number(padY);
     const px = at * Math.min(
-        (usableW * WORD_FIT_FILL) / glyphW,
-        (usableH * WORD_FIT_FILL) / glyphH
+        targetW / glyphW,
+        targetH / verticalReference
     );
     const cap = Math.min(usableW, usableH) * WORD_FIT_MAX_PORTION;
     return Math.max(WORD_FIT_MIN_PX, Math.min(px, cap));

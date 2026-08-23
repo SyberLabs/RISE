@@ -193,6 +193,7 @@ export class VisualInterlocutionPanel {
     constructor(container, options = {}) {
         this.container = container;
         this.onChange = options.onChange || (() => { });
+        this.onFitRequested = options.onFitRequested || (() => { });
         this.onRequestSafetyModal = options.onRequestSafetyModal || null;
         this.consentScope = options.consentScope;
 
@@ -1551,6 +1552,16 @@ export class VisualInterlocutionPanel {
                 const persist = persistFontSize(btn.dataset.fontSize);
                 if (!persist) return;
                 this._writeSetting('fontSize', persist);
+                if (persist === 'fit') {
+                    // Fit is Gallery projected through Word ink, not a fourth
+                    // independent dial. Canonicalize the visual half here;
+                    // the Orbital callback owns temporal Word chunking.
+                    this.config.visualMode = 'interlocution';
+                    this.config.interlocution.presentation = 'continuous';
+                    this._writeSetting('chamberMask', false);
+                    this.onFitRequested();
+                    this.emitChange();
+                }
                 if (window.rise?.audioEngine) window.rise.audioEngine.playHiss();
                 this.render();
                 this.attachEvents();

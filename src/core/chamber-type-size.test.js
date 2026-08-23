@@ -5,6 +5,7 @@ import {
     fitWordAtomPx,
     isChamberWordFit,
     persistFontSize,
+    resolveFitMaskMode,
     resolveFontSize,
     sizeFitHint,
     threeStepIntent
@@ -45,8 +46,8 @@ describe('fitWordAtomPx (Fit only)', () => {
         const px = fitWordAtomPx(band);
         expect(px).toBeGreaterThan(72 * 1.5);
         expect(px).toBeCloseTo(100 * Math.min(
-            (usableW * 0.88) / 240,
-            (usableH * 0.88) / 80
+            ((390 * 0.88) - 24) / 240,
+            ((720 * 0.88) - 16) / 140
         ), 5);
         expect(px).toBeLessThanOrEqual(Math.min(usableW, usableH) * 0.95);
         expect(px).toBeGreaterThanOrEqual(16);
@@ -55,6 +56,63 @@ describe('fitWordAtomPx (Fit only)', () => {
     it('returns null when the chamber box is missing so Fit can wait', () => {
         expect(fitWordAtomPx({ ...band, fieldWidth: 0 })).toBeNull();
         expect(fitWordAtomPx({ ...band, measuredWidth: 0 })).toBeNull();
+    });
+
+    it('fits the line box, not only the visible glyph', () => {
+        const fieldHeight = 300;
+        const padY = 20;
+        const px = fitWordAtomPx({
+            fieldWidth: 900,
+            fieldHeight,
+            padX: 0,
+            padY,
+            measuredWidth: 40,
+            measuredHeight: 20,
+            measuredAt: 100,
+            lineHeightRatio: 1.4
+        });
+
+        expect(px * 1.4 + padY).toBeLessThanOrEqual(fieldHeight * 0.88);
+    });
+});
+
+describe('resolveFitMaskMode', () => {
+    const canonical = {
+        fontSize: 'fit',
+        chunkMode: 'word',
+        visualMode: 'interlocution',
+        presentation: 'continuous'
+    };
+
+    it('recognizes canonical Fit and the legacy Gallery-in-the-word alias', () => {
+        expect(resolveFitMaskMode(canonical)).toBe(true);
+        expect(resolveFitMaskMode({
+            ...canonical,
+            fontSize: 'medium',
+            presentation: 'continuous-word'
+        })).toBe(true);
+    });
+
+    it('refuses incomplete Fit configurations', () => {
+        expect(resolveFitMaskMode({ ...canonical, chunkMode: 'phrase' })).toBe(false);
+        expect(resolveFitMaskMode({ ...canonical, fontSize: 'large' })).toBe(false);
+        expect(resolveFitMaskMode({ ...canonical, visualMode: 'off' })).toBe(false);
+        expect(resolveFitMaskMode({ ...canonical, presentation: 'full-frame' })).toBe(false);
+    });
+
+    it('keeps the legacy setting scoped to Word atoms', () => {
+        expect(resolveFitMaskMode({
+            ...canonical,
+            fontSize: 'medium',
+            presentation: 'continuous',
+            legacyMask: true
+        })).toBe(true);
+        expect(resolveFitMaskMode({
+            ...canonical,
+            fontSize: 'medium',
+            chunkMode: 'sentence',
+            legacyMask: true
+        })).toBe(false);
     });
 });
 

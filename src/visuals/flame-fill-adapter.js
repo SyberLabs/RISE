@@ -45,7 +45,7 @@ const REDUCED = Object.freeze({
 const VOID_SLACK = 6;
 const KNEE_START = 0.62;
 const KNEE_STRENGTH = 1.15;
-/** Occupied channels stay below #fff. Void stays #0A0A0C. */
+/** Occupied channels stay below #fff. Transparent void keeps #0A0A0C RGB. */
 const HIGHLIGHT_CEILING = 220;
 const CHANNEL_FLOOR = 1;
 
@@ -158,31 +158,72 @@ function resolveTone(options) {
 }
 
 /**
- * Each output pixel depends only on the same pixel's input, so `src` and
- * `dst` may be the same array.
+ * Transform occupied flame and add one frozen pixel of support. Original
+ * occupancy is captured before expansion, so new pixels cannot cascade.
+ * `src` and `dst` may be the same array.
  */
-function writeFlameFill(src, dst, lut) {
-    for (let i = 0; i < src.length; i += 4) {
+function writeFlameFill(src, dst, lut, width, height) {
+    const pixelCount = width * height;
+    const occupied = new Uint8Array(pixelCount);
+
+    for (let pixel = 0; pixel < pixelCount; pixel += 1) {
+        const i = pixel * 4;
         const r = src[i];
         const g = src[i + 1];
         const b = src[i + 2];
-        dst[i + 3] = src[i + 3];
-        if (isVoidPixel(r, g, b)) {
+        const alpha = src[i + 3];
+        const hasFlame = alpha > 0 && !isVoidPixel(r, g, b);
+        occupied[pixel] = hasFlame ? 1 : 0;
+        if (!hasFlame) {
             dst[i] = FLAME_VOID[0];
             dst[i + 1] = FLAME_VOID[1];
             dst[i + 2] = FLAME_VOID[2];
+            dst[i + 3] = 0;
             continue;
         }
         dst[i] = lut[r];
         dst[i + 1] = lut[g];
         dst[i + 2] = lut[b];
+        dst[i + 3] = alpha;
+    }
+
+    for (let pixel = 0; pixel < pixelCount; pixel += 1) {
+        if (occupied[pixel]) continue;
+        const x = pixel % width;
+        const y = Math.floor(pixel / width);
+        let strongest = -1;
+        let strongestValue = -1;
+        for (let ny = Math.max(0, y - 1); ny <= Math.min(height - 1, y + 1); ny += 1) {
+            for (let nx = Math.max(0, x - 1); nx <= Math.min(width - 1, x + 1); nx += 1) {
+                const neighbour = ny * width + nx;
+                if (!occupied[neighbour]) continue;
+                const offset = neighbour * 4;
+                const strength = dst[offset] + dst[offset + 1] + dst[offset + 2];
+                if (strength > strongestValue) {
+                    strongest = offset;
+                    strongestValue = strength;
+                }
+            }
+        }
+        if (strongest < 0) continue;
+        const i = pixel * 4;
+        dst[i] = dst[strongest];
+        dst[i + 1] = dst[strongest + 1];
+        dst[i + 2] = dst[strongest + 2];
+        dst[i + 3] = dst[strongest + 3];
     }
 }
 
 export function applyFlameFillLut(imageData, options = {}) {
     if (!imageData?.data || !imageData.width || !imageData.height) return imageData;
     const out = createImageBuffer(imageData.width, imageData.height);
-    writeFlameFill(imageData.data, out.data, flameFillLut(resolveTone(options)));
+    writeFlameFill(
+        imageData.data,
+        out.data,
+        flameFillLut(resolveTone(options)),
+        imageData.width,
+        imageData.height
+    );
     return out;
 }
 
@@ -198,7 +239,13 @@ export function applyFlameFillToCanvas(canvas, options = {}) {
     // getImageData already hands back a private copy, so fill it in place
     // rather than allocating a second full-canvas buffer per flash.
     const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    writeFlameFill(image.data, image.data, flameFillLut(resolveTone({ ...options, reducedMotion })));
+    writeFlameFill(
+        image.data,
+        image.data,
+        flameFillLut(resolveTone({ ...options, reducedMotion })),
+        canvas.width,
+        canvas.height
+    );
     ctx.putImageData(image, 0, 0);
     return true;
 }
