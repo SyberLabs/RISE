@@ -26,6 +26,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { CONTENT_MANIFEST_SCHEMA } from '../../../scripts/lib/content-plane.mjs';
+import { CHAPEL_BOOKS } from '../../content/chapel/corpus/manifest.js';
 import { WITHHELD_WORKS, ingestedArchiveTexts } from './index.js';
 
 const PUBLIC = resolve(process.cwd(), 'public');
@@ -100,6 +101,40 @@ describe('the content manifest', () => {
         for (const work of shelved) {
             expect(work.payloadChecksum, `${work.id} lost its ingest checksum`)
                 .toMatch(/^[0-9a-f]{64}$/);
+        }
+    });
+});
+
+/**
+ * Scripture was already content-addressed: CHAPEL_BOOKS has carried each
+ * book's SHA-256 since the corpus was ingested, and handoff.js has refused a
+ * book that did not match it for just as long. Publishing at that digest
+ * makes the integrity contract and the delivery address the same fact, so
+ * these assert they have not drifted apart.
+ */
+describe('the Chapel corpus in the manifest', () => {
+    const chapel = manifest.chapel ?? [];
+
+    it('names every book of the corpus, and no other', () => {
+        expect(chapel.map(book => book.id).sort())
+            .toEqual(CHAPEL_BOOKS.map(book => book.id).sort());
+    });
+
+    it('publishes each book at the digest the corpus manifest already declared', () => {
+        const declared = new Map(CHAPEL_BOOKS.map(book => [book.id, book.checksum]));
+        for (const book of chapel) {
+            expect(book.sha256, `${book.id} is published under a different digest`)
+                .toBe(declared.get(book.id));
+            expect(book.url).toBe(`/content/chapel/${book.sha256}.txt`);
+        }
+    });
+
+    it('publishes bytes that hash to the address they are published at', () => {
+        for (const book of chapel) {
+            const bytes = readFileSync(resolve(PUBLIC, book.url.replace(/^\//, '')));
+            expect(bytes.length, `${book.id} is the wrong size`).toBe(book.bytes);
+            expect(createHash('sha256').update(bytes).digest('hex'),
+                `${book.id} does not hash to its own URL`).toBe(book.sha256);
         }
     });
 });

@@ -9,10 +9,12 @@ import { buildContentPlane } from './lib/content-plane.mjs';
 
 const manifest = await buildContentPlane();
 const shelved = manifest.works.filter(work => work.shelved);
-const bytes = shelved.reduce((total, work) => total + work.bytes, 0);
+const mb = list => (list.reduce((total, item) => total + item.bytes, 0) / 1024 / 1024)
+  .toFixed(2);
+
 console.log(
-  `[content-plane] ${shelved.length} works, `
-  + `${(bytes / 1024 / 1024).toFixed(2)} MB, `
-  + `${manifest.works.length - shelved.length} withheld with reasons, `
+  `[content-plane] ${shelved.length} works ${mb(shelved)} MB · `
+  + `${manifest.chapel.length} Chapel books ${mb(manifest.chapel)} MB · `
+  + `${manifest.works.length - shelved.length} withheld with reasons · `
   + `revision ${manifest.revision}`
 );

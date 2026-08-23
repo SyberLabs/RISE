@@ -54,6 +54,43 @@ async function sha256Hex(bytes) {
         .join('');
 }
 
+/**
+ * The two shapes a verified payload takes. Both run only on bytes that have
+ * already matched the address they were fetched by, so a failure here is a
+ * malformed object rather than a substituted one.
+ */
+function asSections(entry, text) {
+    let sections;
+    try {
+        sections = JSON.parse(text);
+    } catch (error) {
+        throw new ContentStoreError(
+            'CONTENT_PAYLOAD_MALFORMED',
+            `"${entry.id}" is not readable JSON.`,
+            { workId: entry.id, cause: error }
+        );
+    }
+    if (!Array.isArray(sections) || sections.length === 0) {
+        throw new ContentStoreError(
+            'CONTENT_PAYLOAD_MALFORMED',
+            `"${entry.id}" carries no sections.`,
+            { workId: entry.id }
+        );
+    }
+    return sections;
+}
+
+function asText(entry, text) {
+    if (typeof text !== 'string' || !text.trim()) {
+        throw new ContentStoreError(
+            'CONTENT_PAYLOAD_MALFORMED',
+            `"${entry.id}" carries no text.`,
+            { workId: entry.id }
+        );
+    }
+    return text;
+}
+
 export class ContentStore {
     /**
      * @param {Object} [options]
@@ -106,14 +143,18 @@ export class ContentStore {
         }
     }
 
-    async entry(id) {
+    /**
+     * @param {string} id
+     * @param {'works'|'chapel'} shelf - which list of the manifest names it
+     */
+    async entry(id, shelf = 'works') {
         const manifest = await this.manifest();
-        const found = manifest?.works?.find(work => work.id === id);
+        const found = manifest?.[shelf]?.find(work => work.id === id);
         if (!found) {
             throw new ContentStoreError(
                 'CONTENT_UNKNOWN_WORK',
                 `The manifest does not name "${id}".`,
-                { workId: id }
+                { workId: id, shelf }
             );
         }
         if (found.shelved !== true) {
@@ -133,30 +174,42 @@ export class ContentStore {
      * Rejects rather than degrading; the caller shows stillness.
      */
     async getSections(id) {
-        if (this._sections.has(id)) return this._sections.get(id);
-        if (this._reads.has(id)) return this._reads.get(id);
+        return this._once(`works:${id}`, () => this._read(id, 'works', asSections));
+    }
 
-        const read = this._read(id)
-            .then(sections => {
-                this._sections.set(id, sections);
-                return sections;
-            })
-            .finally(() => this._reads.delete(id));
-
-        this._reads.set(id, read);
-        return read;
+    /**
+     * One book of scripture, as the single verse-sentinelled string the
+     * Chapel reads. Its digest was already the integrity contract; here it
+     * is also the address, so the check and the fetch are the same act.
+     */
+    async getChapelBook(id) {
+        return this._once(`chapel:${id}`, () => this._read(id, 'chapel', asText));
     }
 
     /** Drop the in-session copy. Cache Storage keeps its own. */
     forget(id) {
-        this._sections.delete(id);
+        this._sections.delete(`works:${id}`);
+        this._sections.delete(`chapel:${id}`);
     }
 
-    async _read(id) {
-        const entry = await this.entry(id);
+    _once(key, read) {
+        if (this._sections.has(key)) return this._sections.get(key);
+        if (this._reads.has(key)) return this._reads.get(key);
+        const pending = read()
+            .then(value => {
+                this._sections.set(key, value);
+                return value;
+            })
+            .finally(() => this._reads.delete(key));
+        this._reads.set(key, pending);
+        return pending;
+    }
+
+    async _read(id, shelf, parse) {
+        const entry = await this.entry(id, shelf);
         const cache = await this._openCache();
 
-        const cached = await this._readCached(cache, entry);
+        const cached = await this._readCached(cache, entry, parse);
         if (cached !== null) return cached;
 
         let response;
@@ -178,7 +231,7 @@ export class ContentStore {
         }
 
         const text = await response.text();
-        const sections = await this._verify(entry, text);
+        const payload = await this._verify(entry, text, parse);
 
         // Stored only after it verified, so the durable layer can never
         // hold bytes this store would refuse.
@@ -189,10 +242,10 @@ export class ContentStore {
                 console.warn('[ContentStore] Could not cache', entry.url, error);
             }
         }
-        return sections;
+        return payload;
     }
 
-    async _readCached(cache, entry) {
+    async _readCached(cache, entry, parse) {
         if (!cache) return null;
         let text;
         try {
@@ -204,7 +257,7 @@ export class ContentStore {
             return null;
         }
         try {
-            return await this._verify(entry, text);
+            return await this._verify(entry, text, parse);
         } catch (error) {
             // A stored object that no longer verifies is evicted rather than
             // served. Falling through to the network is correct here: the
@@ -215,7 +268,7 @@ export class ContentStore {
         }
     }
 
-    async _verify(entry, text) {
+    async _verify(entry, text, parse) {
         const bytes = new TextEncoder().encode(text);
         const digest = await sha256Hex(bytes);
         if (digest !== entry.sha256) {
@@ -225,24 +278,7 @@ export class ContentStore {
                 { workId: entry.id, expected: entry.sha256, actual: digest }
             );
         }
-        let sections;
-        try {
-            sections = JSON.parse(text);
-        } catch (error) {
-            throw new ContentStoreError(
-                'CONTENT_PAYLOAD_MALFORMED',
-                `"${entry.id}" is not readable JSON.`,
-                { workId: entry.id, cause: error }
-            );
-        }
-        if (!Array.isArray(sections) || sections.length === 0) {
-            throw new ContentStoreError(
-                'CONTENT_PAYLOAD_MALFORMED',
-                `"${entry.id}" carries no sections.`,
-                { workId: entry.id }
-            );
-        }
-        return sections;
+        return parse(entry, text);
     }
 
     async _openCache() {
@@ -262,4 +298,9 @@ export const contentStore = new ContentStore();
 /** What a catalogue entry's loader calls. */
 export function loadArchiveSections(id) {
     return contentStore.getSections(id);
+}
+
+/** What the Chapel's handoff calls. */
+export function loadChapelBook(id) {
+    return contentStore.getChapelBook(id);
 }

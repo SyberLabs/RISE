@@ -12,6 +12,7 @@
  */
 
 import { CHAPEL_TRANSLATION, findChapelBook } from './corpus/manifest.js';
+import { loadChapelBook } from '../../core/content-store.js';
 import { findChapelIcon } from './imagery/icons.js';
 import {
   compileVisualProgram,
@@ -39,10 +40,6 @@ async function sha256Hex(text) {
   return [...new Uint8Array(digest)]
     .map(value => value.toString(16).padStart(2, '0'))
     .join('');
-}
-
-function payloadExportName(bookId) {
-  return `BOOK_${bookId.toUpperCase().replace(/-/g, '_')}`;
 }
 
 /** What a division of this book is called in its own tradition. */
@@ -406,10 +403,12 @@ export async function createChapelHandoff(bookId, options = {}) {
     }
   }
 
-  const loadPayload = options.loadPayload || (async id => {
-    const module = await import(`./corpus/books/${id}.js`);
-    return module[payloadExportName(id)];
-  });
+  // A book is fetched, not imported. Its checksum was already the integrity
+  // contract — the refusal below has enforced it since the corpus was
+  // written — and it is now the address as well, so the CDN cannot hand back
+  // anything this would have refused. 5 MB of Douay-Rheims stops being
+  // JavaScript.
+  const loadPayload = options.loadPayload || loadChapelBook;
 
   let text;
   try {
