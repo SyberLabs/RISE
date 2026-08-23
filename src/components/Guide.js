@@ -70,15 +70,15 @@ export class Guide {
                 <div class="step">
                   <span class="step-num">Ⅴ</span>
                   <div class="step-body">
-                    <strong>The Vault &amp; SOL</strong>
-                    <p>Two faster doors. The Vault holds pre-configured archetypes and your saved sequences; SOL suggests sequences aligned with the hour of day, under a live solar dial.</p>
+                    <strong>The Vault &amp; Keystones</strong>
+                    <p>Two faster doors. The Vault holds pre-configured archetypes and your saved sequences; Keystones are finished readings, each bound to one exact edition, that you can enter without preparing anything.</p>
                   </div>
                 </div>
                 <div class="step">
                   <span class="step-num">Ⅵ</span>
                   <div class="step-body">
-                    <strong>Reflections</strong>
-                    <p>After each session, seal a reflection in the Synthesis stage. Everything you write is kept in the Library under Reflections — output becomes input.</p>
+                    <strong>The Chapel</strong>
+                    <p>Scripture, read as an act. The Douay-Rheims in seventy-three books, with the Rosary and the Stations of the Cross prayed at a measured pace alongside sacred art shown under verified rights.</p>
                   </div>
                 </div>
               </div>
