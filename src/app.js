@@ -41,7 +41,7 @@ import { clampBandFraction } from './core/band-offset.js';
 import { resolveChamberStreamFace } from './core/chamber-stream-face.js';
 import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
-import { normalizeVisualSelection, normalizeWordFill } from './core/visual-selection.js';
+import { normalizeVisualSelection, resolveSessionWordFill } from './core/visual-selection.js';
 
 // Import styles
 // Only what paints the first screen. Every other room now imports its own
@@ -575,9 +575,10 @@ class App {
                         const interlocution = {
                             ...rawInterlocution,
                             ...normalizeVisualSelection(rawInterlocution),
-                            wordFill: normalizeWordFill(
-                                rawInterlocution.wordFill ?? session.visualConfig?.wordFill
-                            )
+                            wordFill: resolveSessionWordFill({
+                                ...rawInterlocution,
+                                wordFill: rawInterlocution.wordFill ?? session.visualConfig?.wordFill
+                            })
                         };
                         // Keep the runtime session truthful for diagnostics and
                         // downstream consumers. Procedural means no sourced art;

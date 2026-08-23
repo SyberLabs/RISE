@@ -13,7 +13,8 @@
 import {
     canonicalizeProceduralEngineId,
     isPersonalVisualSource,
-    normalizeWordFill
+    normalizeWordFill,
+    resolveSessionWordFill
 } from './visual-selection.js';
 import { LISTED_PROCEDURAL_PATTERNS } from './visual-registry.js';
 
@@ -206,6 +207,7 @@ export function maskGroundFromConfig({
     roomOpaque = false
 } = {}) {
     const roomId = resolveRoomSourceId({ activeTypes, procedural, sourced });
-    const fillId = resolveFillSourceId(roomId, wordFill);
+    const fill = resolveSessionWordFill({ sourced, procedural, wordFill });
+    const fillId = resolveFillSourceId(roomId, fill);
     return combine(roomId, fillId, { roomOpaque });
 }
