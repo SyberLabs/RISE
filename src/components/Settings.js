@@ -1,5 +1,6 @@
 import { clearUserData, exportUserData } from '../core/user-data.js';
 import { CHAMBER_STREAM_FACES, resolveChamberStreamFace } from '../core/chamber-stream-face.js';
+import './Settings.css';
 import {
     FONT_SIZE_CHIPS,
     persistFontSize,

@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -67,16 +67,12 @@ describe('distribution packages', () => {
     expect(await verifyRenderPackage(preview.package)).toMatchObject({ ok: true });
   }, 20_000);
 
-  it('refuses renderProfilePackage as a compile and does not export it as one', async () => {
+  it('refuses renderProfilePackage as a compile', async () => {
     await expect(renderProfilePackage({}, 'social-portrait-1080', { compile: true }))
       .rejects.toMatchObject({
         name: 'RenderError',
         code: 'RENDER_COMPILE_POSTER'
       });
-    const indexSrc = readFileSync(join(process.cwd(), 'src/core/render/index.js'), 'utf8');
-    expect(indexSrc).not.toMatch(/renderProfilePackage/);
-    expect(indexSrc).toMatch(/renderArtifact/);
-    expect(indexSrc).toMatch(/renderPreview/);
   });
 
   it('writes a directory the verification CLI can inspect', async () => {

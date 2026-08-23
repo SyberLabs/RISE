@@ -1,24 +1,24 @@
-import { cpus, freemem } from 'node:os';
+import { cpus, totalmem } from 'node:os';
 import { defineConfig } from 'vite';
 import { curiaPlugin } from './scripts/curia-plugin.js';
 import { exportMp4Plugin } from './scripts/export-mp4-plugin.js';
 
-const GB = 1024 ** 3;
-
-// Held back for the vitest parent (~750 MB measured) and whatever else is
-// already resident while the suite runs.
-const RESERVED_GB = 2.5;
-
-// One test file per fork. The 100–200 MB typical peak below still holds, but
-// the 594 MB worst case no longer does: a fork now wants more than two
-// gigabytes, and V8's default cap is where it dies. See FORK_HEAP_MB.
-const PER_WORKER_GB = 3;
-
-// THE CAP THAT WAS KILLING CI, AND WHY IT IS A CAP RATHER THAN A LEAK.
+// A FORK DIES AT ITS HEAP CEILING, NOT AT THE MACHINE'S.
 //
-// Main went red with `FATAL ERROR: Reached heap limit`, followed by the
-// ERR_IPC_CHANNEL_CLOSED the comment further down already describes. The
-// native stack says what ran out:
+// This was stated as a count of workers scaled against free system memory,
+// and it could not have worked: the thing that kills a fork is its own V8
+// old-space limit, and no number of workers changes that limit. So the suite
+// passed on a workstation and died on CI over nothing either machine was
+// short of — Node 20 defaults this ceiling to about 2 GB and Node 22 to about
+// 4 GB, and .nvmrc pins CI to 20.19.
+//
+// The failure did not look like a failing test. A fork was killed mid-file
+// and the parent reported ERR_IPC_CHANNEL_CLOSED, 115 of 228 files in:
+//
+//     FATAL ERROR: Reached heap limit Allocation failed
+//     Mark-Compact 2127.6 (2134.6) -> 2126.4 (2137.6) MB
+//
+// The native stack says what ran out, and it is not the tests:
 //
 //     CompilationCache::LookupScript
 //       -> CompilationCacheTable::LookupScript
@@ -28,29 +28,32 @@ const PER_WORKER_GB = 3;
 // That is V8 flattening a module's SOURCE TEXT in order to compile it. The
 // modules with source text that size are the books: works/ holds 95 of them
 // as JavaScript, the largest 15 MB. A fork that imports one is asking the
-// JavaScript compiler to hold a novel, and it died at V8's default ~2 GB.
+// JavaScript compiler to hold a novel.
 //
-// Reproduced at 2 GB and green at 4 on a 4-core/15 GB machine, which is the
-// shape of a GitHub runner. Nothing is skipped or loosened to get there; the
-// runner has the memory and V8 simply would not use it.
+// Reproduced by capping a passing local run at 2048 and by nothing else, and
+// green at 4096 on the same run. Nothing is skipped or loosened to get there;
+// the runner has the memory and V8 simply would not use it.
 //
-// This is a cap raised around a cause that is still there. The cause is that
-// a book is compiled as a program at all — docs/specs/SYSTEM-DESIGN-REVIEW.
-// When payloads leave the module graph, both this number and the scheduling
-// arithmetic around it stop being load-bearing and should be deleted.
-const FORK_HEAP_MB = 4096;
+// So this is a cap raised around a cause that is still standing: that a book
+// is compiled as a program at all — docs/specs/SYSTEM-DESIGN-REVIEW-2026-08-22.
+// When payloads leave the module graph, this number and the scheduling
+// arithmetic under it both stop being load-bearing and should go.
+const WORKER_HEAP_MB = 4096;
 
+// Cores bound the parallelism worth having; total memory bounds how many of
+// those heaps can be resident at once. Total, not free: free memory is a
+// snapshot, and reading it at config load turned a busy moment into a
+// one-fork crawl.
 const coreCeiling = Math.floor(cpus().length / 2);
-const memoryCeiling = Math.floor((freemem() / GB - RESERVED_GB) / PER_WORKER_GB);
+const memoryCeiling = Math.floor(totalmem() / (WORKER_HEAP_MB * 1024 ** 2));
 
 export default defineConfig({
   // Curia / Export MP4: apply:'serve' means the endpoints exist only on
   // the dev server; production builds carry no write path.
   plugins: [curiaPlugin(), exportMp4Plugin()],
 
-  // Note: We use a custom debug.js utility instead of dropping console statements.
-  // This allows: debug logging in dev, optional debug in prod via localStorage,
-  // and always-on error logging. Run RISE.enableDebug() in prod console to enable.
+  // Console statements are left in: error reporting has to survive the
+  // build, and the noisy paths are already gated by their own callers.
   esbuild: {
     drop: ['debugger'],
   },
@@ -68,53 +71,23 @@ export default defineConfig({
     // Increase warning threshold slightly (visual engines are large)
     chunkSizeWarningLimit: 300,
 
-    rollupOptions: {
-      output: {
-        // Stable cache groups for large subsystems. These are not route-lazy
-        // by themselves; true deferment requires dynamic imports at callers.
-        manualChunks: {
-          // Visual generation engines
-          'visuals-klee': [
-            './src/visuals/klee.js',
-            './src/visuals/klee-enhanced.js'
-          ],
-          'visuals-fractal': [
-            './src/visuals/fractal.js',
-            './src/visuals/lib/fractal-engine.js'
-          ],
-          'visuals-other': [
-            './src/visuals/turrell.js',
-            './src/visuals/rockgarden.js'
-          ],
-
-          // Content source providers
-          'sources-text': [
-            './src/sources/text/gutenberg.js',
-            './src/sources/text/arxiv.js',
-            './src/sources/text/declassified.js'
-          ],
-          'sources-visual': [
-            './src/sources/visual/wikimedia.js',
-            './src/sources/visual/generated.js'
-          ],
-
-          // Sacred texts content (significant size)
-          'content-texts': [
-            './src/content/texts/tao-te-ching.js',
-            './src/content/texts/heart-sutra.js',
-            './src/content/texts/yoga-sutras.js',
-            './src/content/texts/gospel-of-thomas.js',
-            './src/content/texts/upanishads.js',
-            './src/content/texts/hermetica.js'
-          ],
-
-          // Audio engine (can be deferred)
-          'audio': [
-            './src/audio/engine.js'
-          ]
-        }
-      }
-    }
+    // NO manualChunks. It was a grouping directive read as a deferral one.
+    //
+    // Naming a module here makes it a chunk the ENTRY depends on, so the shell
+    // emits a <link rel="modulepreload"> for it and a browser fetches it before
+    // the reader has chosen anything. That is the opposite of deferring it: the
+    // audio engine kept being preloaded after `app.js` was changed to import it
+    // dynamically, because this list still named it.
+    //
+    // It also cost nothing to remove. Measured three ways at 251 kB brotli of
+    // first load: as configured 251, this list deleted 250, one group deleted
+    // 248. It was moving three kilobytes while making the first-load graph look
+    // like nine tidy files instead of one large one — and it suppressed
+    // Rollup's own "dynamic import will not move module into another chunk"
+    // warnings, which are the report that a deferral has been defeated.
+    //
+    // Deferment happens at the import site or not at all. Rollup's default
+    // splitting already follows the dynamic imports we write.
   },
 
   // Test configuration
@@ -123,47 +96,19 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.js'],
 
-    // A WORKER USED TO CARRY THE WHOLE ARCHIVE. Two was the ceiling because
-    // each fork loaded jsdom, the visual engines, and Library fixtures that
-    // linked ninety-five payloads — ninety-three megabytes, of which eighty-two
-    // belonged to works no reader could open. Unlinking the unreachable ones
-    // is the lighter setup the old note was waiting for: 168s → 81s here, and
-    // green at eight, which is where it was left rather than pushed.
-    //
-    // Scaled to the machine, because CI is not this machine. A GitHub runner
-    // has four cores where a workstation has sixteen, and a fixed six would
-    // oversubscribe the runner as surely as two throttles the workstation.
-    //
-    // COUNTING CORES WAS NOT ENOUGH. The workstation has sixteen of them and
-    // only sixteen gigabytes, so the core rule asked for six forks against
-    // memory that could not seat six. The failure did not look like a failing
-    // test: a fork was killed mid-file and the parent reported
-    // ERR_IPC_CHANNEL_CLOSED, usually over Workshop.test.js or
-    // visual-cortex.test.js, both of which pass alone. Measured here — 15.9 GB
-    // total, 4.7 GB free at rest; isolation gives each test file its own fork,
-    // and across one full run the forks peaked at 100–200 MB apiece with the
-    // heaviest at 594 MB, over a parent holding ~750 MB. Six of those spiking
-    // together do not fit; free memory fell to 1.85 GB with only three running.
-    // Two finishes clean in ~163s and was the hand-passed flag all session.
-    //
-    // So the ceiling is whichever runs out first, cores or memory. The reserve
-    // covers the vitest parent plus whatever else is resident — a dev server
-    // and an editor are normal here. Read once at config load, which is a
-    // snapshot and can be sampled at a bad moment; the floor of two and the
-    // ceiling of six keep a bad sample from turning into a one-fork crawl or
-    // an overcommit. The floor is the number that was measured good, not a
-    // guess. Nothing changes on a four-core runner, where cores still bind
-    // first and the answer is two either way.
+    // A fork reuses its heap across the files it is handed, so the ceiling has
+    // to cover the run rather than the file. The old note here budgeted 594 MB
+    // a fork from a measurement that only ever watched one.
     pool: 'forks',
     poolOptions: {
       forks: {
-        // Set here rather than in the CI workflow: a contributor on a 16 GB
-        // laptop meets the same wall, and a green local run that only CI can
-        // fail is the kind of gap this repository has paid for before.
-        execArgv: [`--max-old-space-size=${FORK_HEAP_MB}`]
+        // Set here rather than in the CI workflow: a contributor on Node 20
+        // meets the same wall, and a green local run that only CI can fail is
+        // the kind of gap this repository has paid for before.
+        execArgv: [`--max-old-space-size=${WORKER_HEAP_MB}`]
       }
     },
-    maxWorkers: Math.max(2, Math.min(6, coreCeiling, memoryCeiling)),
+    maxWorkers: Math.max(1, Math.min(coreCeiling, memoryCeiling)),
     minWorkers: 1,
 
     include: ['src/**/*.{test,spec}.js'],

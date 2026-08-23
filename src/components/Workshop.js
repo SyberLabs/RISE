@@ -118,6 +118,7 @@ import { visualFallbackCueFromConfig } from '../core/visual-program.js';
 import { assertQuotationAnchorsAgainstSources } from '../core/source-span.js';
 import './SourceBrowser.css';
 import { REMOTE_IMAGE_ATTRS } from '../visuals/remote-image.js';
+import './Workshop.css';
 
 const MAX_TEXT_FILE_BYTES = READING_LIMITS.maxTextCharacters;
 const MAX_IMAGE_FILE_BYTES = READING_LIMITS.maxImageFileBytes;

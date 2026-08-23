@@ -44,6 +44,7 @@ import {
   threeStepIntent
 } from '../core/chamber-type-size.js';
 import { GROUNDS, maskGroundFromConfig } from '../core/mask-ground.js';
+import './Chamber.css';
 
 /**
  * THE SEAM, AS THE CHAMBER IS WILLING TO DRAW IT.

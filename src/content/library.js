@@ -320,7 +320,7 @@ function registerExtendedSacredTexts() {
  * Register a text with the library
  * @param {SacredText} text - Text metadata
  */
-export function registerText(text) {
+function registerText(text) {
     if (LIBRARY_TEXTS.find(t => t.id === text.id)) return;
 
     // A work whose rights are not established is withheld at the door.
