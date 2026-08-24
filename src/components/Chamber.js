@@ -606,6 +606,7 @@ export class Chamber {
       chunkMode: this.session?.chunkMode,
       visualMode: visualConfig?.visualMode,
       presentation,
+      wordFill: visualConfig?.interlocution?.wordFill,
       legacyMask: settings.chamberMask === true
     });
   }

@@ -8,6 +8,13 @@ import {
 } from './visual-selection.js';
 
 describe('normalizeWordFill', () => {
+    it('preserves an explicit accent ink without inventing a visual playlist', () => {
+        expect(normalizeWordFill({ mode: 'accent' })).toEqual({ mode: 'accent' });
+        expect(wordFillIsDistinct({ mode: 'accent' })).toBe(false);
+        expect(resolveSessionWordFill({ wordFill: { mode: 'accent' } }))
+            .toEqual({ mode: 'accent' });
+    });
+
     it('defaults to same-as-gallery', () => {
         expect(normalizeWordFill()).toEqual({ mode: 'same' });
         expect(normalizeWordFill(null)).toEqual({ mode: 'same' });

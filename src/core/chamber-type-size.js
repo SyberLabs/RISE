@@ -65,10 +65,12 @@ export function resolveFitMaskMode({
     chunkMode,
     visualMode,
     presentation,
+    wordFill,
     legacyMask = false
 } = {}) {
     if (chunkMode !== 'word') return false;
     if (legacyMask === true) return true;
+    if (wordFill?.mode === 'accent') return false;
     if (visualMode !== 'interlocution') return false;
     if (presentation === 'continuous-word') return true;
     return presentation === 'continuous' && isChamberWordFit(fontSize);

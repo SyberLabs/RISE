@@ -136,6 +136,7 @@ export function normalizeWordFill(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         return { mode: 'same' };
     }
+    if (value.mode === 'accent') return { mode: 'accent' };
     if (value.mode !== 'pick') return { mode: 'same' };
     const selection = normalizeVisualSelection(value);
     if (selection.procedural.length === 0 && selection.sourced.length === 0) {

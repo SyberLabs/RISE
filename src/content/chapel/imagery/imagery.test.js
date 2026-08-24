@@ -150,7 +150,7 @@ describe('Chapel provider scoping', () => {
   });
 
   it('never appears in the browsable panel: chapel ids are chip labels only', () => {
-    const panel = readFileSync(resolve('src/components/VisualInterlocutionPanel.js'), 'utf8');
+    const panel = readFileSync(resolve('src/components/VisualNavigator.js'), 'utf8');
     // The chapel case exists for the "From this reading" chips…
     expect(panel).toContain("id.startsWith('chapel-')");
     // …and no chapel-* id is offered as a selectable collection option

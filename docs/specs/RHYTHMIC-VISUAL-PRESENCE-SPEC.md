@@ -400,8 +400,8 @@ Expected runtime changes:
 | `src/core/visual-safety.js` | Rest and rolling occupancy budget |
 | `src/visuals/visual-cortex.js` | Structured result, gate commit, deterministic total visibility |
 | `src/visuals/visuals.css` | Tiered opacity transitions and reduced-motion override |
-| `src/components/VisualInterlocutionPanel.js` | Presence steps, formatting, accessible copy |
-| `src/components/VisualInterlocutionPanel.css` | Stepped-control presentation |
+| `src/components/VisualNavigator.js` | Gallery cadence steps, program lock, and accessible copy |
+| `src/components/VisualNavigator.css` | Hierarchical field controls and stepped-cadence presentation |
 | `src/components/ChamberOrbital.js` | New default and saved preference normalization |
 | `src/components/Chamber.js` | Responsive request/result handoff |
 | `src/app.js` | Presence-aware preload target |

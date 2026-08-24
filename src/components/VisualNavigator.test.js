@@ -8,15 +8,16 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { VisualNavigator } from './VisualNavigator.js';
+import { MemoryCore } from '../core/memory.js';
 
 let nav = null;
 let onChange = null;
 
-const mount = (visualConfig = {}) => {
+const mount = (visualConfig = {}, options = {}) => {
   const container = document.createElement('div');
   document.body.appendChild(container);
   onChange = vi.fn();
-  nav = new VisualNavigator(container, { visualConfig, onChange });
+  nav = new VisualNavigator(container, { visualConfig, onChange, ...options });
   return nav;
 };
 const node = id => nav.container.querySelector(`.vnav-node[data-id="${id}"]`);
@@ -24,7 +25,13 @@ const click = el => el.dispatchEvent(new MouseEvent('click', { bubbles: true }))
 const descend = (...ids) => ids.forEach(id => click(node(id)));   // re-query each step
 const lastPatch = () => onChange.mock.calls.at(-1)[0];
 
-afterEach(() => { nav?.destroy(); nav = null; });
+afterEach(() => {
+  nav?.destroy();
+  nav = null;
+  delete window.rise;
+  localStorage.removeItem('rise_global_images_v1');
+  localStorage.removeItem('rise_workshop_v1');
+});
 
 describe('walking the tree', () => {
   it('opens with the two roots and no entry', () => {
@@ -42,6 +49,197 @@ describe('walking the tree', () => {
     // Its three benches, from the shared definitions.
     const labels = [...entry.querySelectorAll('.vnav-bench-label')].map(l => l.textContent);
     expect(labels).toEqual(['System', 'Filament', 'Form']);
+  });
+
+  it('keeps Field and Text as two named groups in the root column', () => {
+    mount();
+    expect(nav.container.querySelector('[data-group="field"]')?.textContent).toBe('Field');
+    expect(nav.container.querySelector('[data-group="text"]')?.textContent).toBe('Text');
+    expect(node('face')).toBeTruthy();
+    expect(node('size')).toBeTruthy();
+    expect(node('ink')).toBeTruthy();
+  });
+});
+
+describe('the text', () => {
+  it('writes Face through the app settings seam', () => {
+    const handleSettingsChange = vi.fn();
+    window.rise = {
+      settings: { chamberFace: 'literary', fontSize: 'medium' },
+      handleSettingsChange
+    };
+    mount();
+    click(node('face'));
+    click(nav.container.querySelector('[data-chamber-face="display"]'));
+    expect(handleSettingsChange).toHaveBeenCalledWith('chamberFace', 'display');
+  });
+
+  it('makes Fit explicit, canonicalises Gallery, and fires the temporal coupling', () => {
+    const onFitRequested = vi.fn();
+    window.rise = {
+      settings: { chamberFace: 'literary', fontSize: 'medium' },
+      handleSettingsChange: vi.fn()
+    };
+    mount({}, { onFitRequested });
+    click(node('size'));
+    click(nav.container.querySelector('[data-font-size="fit"]'));
+    expect(window.rise.handleSettingsChange).toHaveBeenCalledWith('fontSize', 'fit');
+    expect(onFitRequested).toHaveBeenCalledOnce();
+    expect(lastPatch()).toMatchObject({
+      visualMode: 'interlocution',
+      interlocution: { presentation: 'continuous' }
+    });
+  });
+
+  it('locks Ink until Fit and reuses an engine full style bench when opened', () => {
+    window.rise = {
+      settings: { chamberFace: 'literary', fontSize: 'medium' },
+      handleSettingsChange: vi.fn()
+    };
+    mount();
+    click(node('ink'));
+    expect(nav.container.querySelector('.vnav-text-locked')?.textContent).toContain('Size');
+    expect(nav.container.querySelector('[data-word-fill="procedural:attractor"]')).toBeNull();
+
+    window.rise.settings.fontSize = 'fit';
+    click(node('ink'));
+    click(nav.container.querySelector('[data-word-fill="procedural:attractor"]'));
+    expect(nav.container.querySelector('[data-sub="system"][data-val="thomas"]')).toBeTruthy();
+  });
+});
+
+describe('reader-facing state', () => {
+  it('emits Living Text as an independent visual setting', () => {
+    mount({ livingText: { enabled: false } });
+    const toggle = nav.container.querySelector('[data-action="living-text"]');
+    toggle.checked = true;
+    toggle.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(lastPatch().livingText).toEqual({ enabled: true });
+  });
+
+  it('offers one Gallery cadence control and emits the chosen pace', () => {
+    mount();
+    descend('visual', 'gallery', 'gallery-procedural', 'fractal');
+    expect(nav.container.querySelectorAll('[data-gallery-cadence]')).toHaveLength(3);
+    click(nav.container.querySelector('[data-gallery-cadence="1"]'));
+    expect(lastPatch().interlocution.galleryCadence).toBe(1);
+  });
+
+  it('reuses the shared Global Pool picker for an exact personal subset', () => {
+    MemoryCore.saveGlobalImage('data:image/png;base64,AAAA', { name: 'Alpha' });
+    MemoryCore.saveGlobalImage('data:image/png;base64,BBBB', { name: 'Beta' });
+    mount({
+      visualMode: 'interlocution',
+      interlocution: {
+        sourceFamily: 'personal',
+        sourced: ['global-pool'],
+        globalPool: { mode: 'all', assetIds: [] }
+      }
+    });
+    descend('visual', 'gallery', 'personal');
+    click(nav.container.querySelector('[data-global-pool-mode="selected"]'));
+    const assets = nav.container.querySelectorAll('[data-global-asset-id]');
+    expect(assets).toHaveLength(2);
+    click(assets[0]);
+    expect(lastPatch().interlocution.globalPool).toEqual({
+      mode: 'selected', assetIds: [assets[0].dataset.globalAssetId]
+    });
+  });
+
+  it('reuses saved Workshop image bundles in the Personal leaf', () => {
+    const saved = MemoryCore.saveWorkshopBlueprint({
+      title: 'Night garden',
+      sources: [{ id: 'source-1', name: 'Source', data: 'Text.' }],
+      visualConfig: { visualMode: 'off' },
+      customVisuals: ['data:image/png;base64,AAAA']
+    });
+    mount();
+    descend('visual', 'gallery', 'personal');
+    const choice = nav.container.querySelector(`[data-pool="personal:${saved.id}"]`);
+    expect(choice?.textContent).toContain('Night garden');
+    click(choice);
+    click(nav.container.querySelector('[data-action="toggle"]'));
+    expect(lastPatch().interlocution.sourced).toEqual([`personal:${saved.id}`]);
+  });
+
+  it('names a curated program and makes every field-owned control read-only', () => {
+    window.rise = { settings: { fontSize: 'fit' } };
+    mount({
+      visualMode: 'interlocution',
+      livingText: { enabled: true, intensity: 0.4 },
+      interlocution: {
+        sourceFamily: 'collections',
+        sourced: ['aic-impressionism'],
+        galleryCadence: 0.5
+      }
+    }, { programInfo: { episodes: 4 } });
+    expect(nav.container.querySelector('[data-program-lock]')?.textContent)
+      .toContain('Special Collection · 4 episodes');
+    descend('visual', 'gallery', 'gallery-sourced', 'by-manner');
+    expect(nav.container.querySelector('[data-pool="aic-ukiyoe"]')?.disabled).toBe(true);
+    expect([...nav.container.querySelectorAll('[data-gallery-cadence]')]
+      .every(control => control.disabled)).toBe(true);
+    expect(nav.container.querySelector('[data-action="living-text"]')?.disabled).toBe(true);
+
+    nav.setCadence(1);
+    nav.setLivingText(false);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(nav.getConfig()).toMatchObject({
+      livingText: { enabled: true, intensity: 0.4 },
+      interlocution: { galleryCadence: 0.5 }
+    });
+
+    nav.setConfig({ visualMode: 'genesis', genesis: { preset: 'harmonic', glass: true } });
+    expect([...nav.container.querySelectorAll('[data-sub]')]
+      .every(control => control.disabled)).toBe(true);
+    expect(nav.container.querySelector('[data-action="glass"]')?.disabled).toBe(true);
+
+    click(node('ink'));
+    expect([...nav.container.querySelectorAll('[data-word-fill]')]
+      .every(control => control.disabled)).toBe(true);
+
+    nav.setConfig({
+      visualMode: 'focals',
+      focals: { type: 'personal', personalImage: 'data:image/png;base64,AAAA' }
+    });
+    expect(nav.container.querySelector('[data-action="remove-personal-focal"]')?.disabled).toBe(true);
+  });
+
+  it('releases a launch-held focal directly into its curated program', () => {
+    mount({
+      visualMode: 'focals',
+      focals: { type: 'icon', iconId: 'icon-transfiguration' },
+      interlocution: {
+        sourceFamily: 'collections',
+        procedural: [],
+        sourced: ['chapel-gospel-transfiguration']
+      }
+    }, { programInfo: { episodes: 1 } });
+    click(nav.container.querySelector('[data-action="release-to-program"]'));
+    expect(lastPatch()).toMatchObject({
+      visualMode: 'interlocution',
+      focals: { type: 'standard', iconId: null },
+      interlocution: { sourced: ['chapel-gospel-transfiguration'] }
+    });
+  });
+
+  it('names a launch-held focal and releases it when a glyph is chosen', () => {
+    mount({ visualMode: 'focals', focals: { type: 'rose', roseMode: 'verbum' } });
+    expect(nav.container.querySelector('[data-held-focal]')?.textContent)
+      .toContain('Rosa Mystica · Verbum');
+    click(nav.container.querySelector('[data-glyph="breath"]'));
+    expect(lastPatch().focals).toMatchObject({ type: 'standard', standardGlyph: 'breath' });
+  });
+
+  it('shows and removes a user-owned personal focal', () => {
+    mount({
+      visualMode: 'focals',
+      focals: { type: 'personal', personalImage: 'data:image/png;base64,AAAA' }
+    });
+    expect(nav.container.querySelector('[data-personal-focal-preview]')).toBeTruthy();
+    click(nav.container.querySelector('[data-action="remove-personal-focal"]'));
+    expect(lastPatch().focals).toMatchObject({ type: 'personal', personalImage: null });
+    expect(nav.container.querySelector('[data-input="personal-focal"]')).toBeTruthy();
   });
 });
 

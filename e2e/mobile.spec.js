@@ -223,8 +223,9 @@ test('Try RISE owns its mobile scroll instead of clipping stacked readings', asy
     expect(scroll.lastCardBottom).toBeLessThanOrEqual(scroll.viewportHeight);
 });
 
-test('the mode selector is one row with no empty cell', async ({ page }) => {
-    // Five modes in one row; labels must not clip or break mid-word.
+test('the visual navigator exposes complete Field and Text roots without a mobile dead lane', async ({ page }) => {
+    // The retired five-mode strip is now an explicit two-root hierarchy.
+    // Every root must be populated, stay inside the viewport, and lead to its entry.
     test.setTimeout(240000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="library"]').first().click();
@@ -237,30 +238,85 @@ test('the mode selector is one row with no empty cell', async ({ page }) => {
     await expect(page.locator('.orbital-stage')).toBeVisible({ timeout: 30000 });
     await page.locator('.orbit-visual').click();
     await expect(page.locator('#modal-visual')).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('.vi-mode-selector')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.vnav')).toBeVisible({ timeout: 15000 });
 
-    const selector = await page.evaluate(() => {
-        const el = document.querySelector('.vi-mode-selector');
-        if (!el) return null;
-        const btns = [...el.querySelectorAll('.vi-mode-btn')];
+    const roots = await page.evaluate(() => {
+        const el = document.querySelector('.vnav');
+        const first = el?.querySelector('.vnav-col');
+        if (!el || !first) return null;
+        const groups = [...first.querySelectorAll('.vnav-group')];
         return {
-            modes: btns.length,
-            columns: getComputedStyle(el).gridTemplateColumns.split(' ').length,
-            rows: new Set(btns.map(b => Math.round(b.getBoundingClientRect().top))).size,
-            height: Math.round(el.getBoundingClientRect().height),
-            clipped: btns.filter(b => {
-                const n = b.querySelector('.vi-mode-name');
-                return n && n.scrollWidth > n.clientWidth + 1;
-            }).map(b => b.textContent.trim().slice(0, 12))
+            groups: groups.map(group => group.textContent.trim()),
+            nodes: [...first.querySelectorAll('.vnav-node')].map(node => node.dataset.id),
+            sideways: Math.max(0, el.scrollWidth - el.clientWidth),
+            emptyGroups: groups.filter(group => {
+                let sibling = group.nextElementSibling;
+                while (sibling && !sibling.classList.contains('vnav-group')) {
+                    if (sibling.classList.contains('vnav-node')) return false;
+                    sibling = sibling.nextElementSibling;
+                }
+                return true;
+            }).map(group => group.textContent.trim())
         };
     });
-    console.log('SELECTOR ' + JSON.stringify(selector));
+    console.log('NAVIGATOR ' + JSON.stringify(roots));
 
-    expect(selector, 'no mode selector found').not.toBeNull();
-    expect(selector.columns).toBe(selector.modes);
-    expect(selector.rows).toBe(1);
-    expect(selector.clipped, 'a mode label is cut off').toEqual([]);
-    expect(selector.height).toBeLessThan(110);
+    expect(roots, 'no visual navigator found').not.toBeNull();
+    expect(roots.groups).toEqual(['Field', 'Text']);
+    expect(roots.nodes).toEqual(['off', 'visual', 'face', 'size', 'ink']);
+    expect(roots.emptyGroups).toEqual([]);
+    expect(roots.sideways).toBe(0);
+
+    await page.locator('.vnav-node[data-id="size"]').click();
+    await expect(page.locator('[data-font-size="fit"]')).toBeVisible();
+
+    await page.locator('.vnav-node[data-id="visual"]').click();
+    await page.locator('.vnav-node[data-id="gallery"]').click();
+    await page.locator('.vnav-node[data-id="gallery-sourced"]').click();
+    await page.locator('.vnav-node[data-id="by-manner"]').click();
+    await expect(page.locator('.vnav-entry h3')).toHaveText('By Manner');
+
+    const phone = await page.evaluate(() => {
+        const nav = document.querySelector('.vnav');
+        const entry = nav.querySelector('.vnav-entry').getBoundingClientRect();
+        return {
+            visibleColumns: [...nav.querySelectorAll('.vnav-col')]
+                .filter(column => getComputedStyle(column).display !== 'none').length,
+            sideways: Math.max(0, nav.scrollWidth - nav.clientWidth),
+            entryWidth: Math.round(entry.width),
+            entryRight: Math.round(entry.right),
+            viewport: window.innerWidth
+        };
+    });
+    expect(phone.visibleColumns).toBe(1);
+    expect(phone.sideways).toBe(0);
+    expect(phone.entryWidth).toBeGreaterThan(250);
+    expect(phone.entryRight).toBeLessThanOrEqual(phone.viewport);
+
+    await expect(page.locator('[data-action="navigator-back"]')).toBeVisible();
+    await page.locator('[data-action="navigator-back"]').click();
+    await expect(page.locator('.vnav-node[data-id="gallery-sourced"]')).toBeVisible();
+
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.locator('.vnav-node[data-id="gallery-sourced"]').click();
+    await page.locator('.vnav-node[data-id="by-manner"]').click();
+    const desktop = await page.evaluate(() => {
+        const nav = document.querySelector('.vnav');
+        const modal = document.querySelector('#modal-visual .modal-content').getBoundingClientRect();
+        const entry = nav.querySelector('.vnav-entry').getBoundingClientRect();
+        return {
+            visibleColumns: [...nav.querySelectorAll('.vnav-col')]
+                .filter(column => getComputedStyle(column).display !== 'none').length,
+            sideways: Math.max(0, nav.scrollWidth - nav.clientWidth),
+            entryWidth: Math.round(entry.width),
+            entryRight: Math.round(entry.right),
+            modalRight: Math.round(modal.right)
+        };
+    });
+    expect(desktop.visibleColumns).toBe(4);
+    expect(desktop.sideways).toBe(0);
+    expect(desktop.entryWidth).toBeGreaterThan(250);
+    expect(desktop.entryRight).toBeLessThanOrEqual(desktop.modalRight);
 });
 
 test('the orbit is centred in the phone rather than cropped by it', async ({ page }) => {
@@ -386,9 +442,9 @@ test('the configuration panels are not several screens of picture tiles', async 
     await page.locator('[data-nav="library"]').first().click();
     await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 30000 });
     await page.locator('[data-text-id="the-iliad"] [data-action="select-text"]').click();
-    await page.waitForTimeout(1500);
     const toc = page.locator('.toc-entry').first();
-    if (await toc.isVisible().catch(() => false)) { await toc.click(); }
+    await expect(toc).toBeVisible({ timeout: 40000 });
+    await toc.click();
     await expect(page.locator('.orbital-stage')).toBeVisible({ timeout: 30000 });
 
     const panels = [

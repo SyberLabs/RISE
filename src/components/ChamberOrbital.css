@@ -603,6 +603,10 @@
   animation: modal-slide-up 0.4s var(--ease-out);
 }
 
+#modal-visual .modal-content {
+  max-width: min(96vw, 1040px);
+}
+
 @keyframes modal-slide-up {
   from {
     transform: translateY(32px);

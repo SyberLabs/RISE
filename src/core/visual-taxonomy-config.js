@@ -33,7 +33,12 @@ import {
   categoryOf,
   taxonomyLeaves
 } from './visual-taxonomy.js';
-import { normalizeVisualSelection } from './visual-selection.js';
+import { normalizeVisualSelection, normalizeWordFill } from './visual-selection.js';
+import {
+  GALLERY_CADENCE_DEFAULT,
+  normalizeGalleryCadence
+} from './visual-presence.js';
+import { isLaunchHeldFocal, releaseLaunchHeldFocal } from './visual-identity.js';
 
 /* Procedural engines by role, read off the tree so they cannot drift from it. */
 const ENGINE_LEAVES = taxonomyLeaves().filter(l => l.engineId && !l.pool);
@@ -71,12 +76,20 @@ const DEFAULT_POOL = Object.freeze({
 const emptySelection = () => ({
   enabled: new Set(),
   style: {
-    focal: { glyph: 'breath' },
+    focal: { type: 'standard', glyph: 'breath' },
     attractor: { system: 'aizawa', palette: 'white', form: 'mirror' },
     klee: { preset: 'random', glass: true },
     harmonograph: { climate: 'auto' }
   },
-  pool: { ...DEFAULT_POOL }
+  pool: { ...DEFAULT_POOL },
+  livingText: { enabled: false },
+  galleryCadence: GALLERY_CADENCE_DEFAULT,
+  wordFill: { mode: 'same' },
+  emptyGallery: false,
+  preserveBaseSelection: false,
+  focalDirty: false,
+  programLocked: false,
+  config: {}
 });
 
 /**
@@ -89,9 +102,19 @@ const emptySelection = () => ({
 export function selectionFromConfig(visualConfig = {}) {
   const sel = emptySelection();
   const cfg = visualConfig || {};
+  sel.config = cloneVisualConfig(cfg);
+  sel.livingText = {
+    ...(cfg.livingText || {}),
+    enabled: cfg.livingText?.enabled === true
+  };
+  sel.galleryCadence = normalizeGalleryCadence(
+    cfg.interlocution?.galleryCadence ?? GALLERY_CADENCE_DEFAULT
+  );
+  sel.wordFill = cloneWordFill(cfg.interlocution?.wordFill);
   const mode = cfg.visualMode || 'off';
 
   if (cfg.focals?.standardGlyph) sel.style.focal.glyph = cfg.focals.standardGlyph;
+  if (cfg.focals?.type === 'personal') sel.style.focal.type = 'personal';
   if (cfg.attractor) sel.style.attractor = { ...sel.style.attractor, ...cfg.attractor };
   if (cfg.genesis) sel.style.klee = { ...sel.style.klee, ...cfg.genesis };
 
@@ -101,6 +124,7 @@ export function selectionFromConfig(visualConfig = {}) {
   if (mode === 'genesis') { sel.enabled.add('klee'); return sel; }
 
   // interlocution — the shared procedural + sourced pool.
+  sel.emptyGallery = true;
   const inter = normalizeVisualSelection(cfg.interlocution || {});
   const procedural = inter.procedural || [];
   const dynamicProc = procedural.filter(id => DYNAMIC_PROCEDURAL.has(id));
@@ -114,6 +138,7 @@ export function selectionFromConfig(visualConfig = {}) {
   // An exclusive Dynamic field: one drawn-in-time engine, nothing else.
   if (dynamicProc.length === 1 && galleryProc.length === 0 && sourced.length === 0) {
     sel.enabled.add(dynamicProc[0]);
+    sel.emptyGallery = false;
     return sel;
   }
 
@@ -124,6 +149,9 @@ export function selectionFromConfig(visualConfig = {}) {
     if (!hit) continue;
     if (!sel.enabled.has(hit.leaf)) { sel.enabled.add(hit.leaf); sel.pool[hit.leaf] = hit.pool; }
   }
+  sel.emptyGallery = sel.enabled.size === 0;
+  sel.preserveBaseSelection = sel.emptyGallery
+    && (procedural.length > 0 || sourced.length > 0);
   return sel;
 }
 
@@ -135,13 +163,35 @@ export function selectionFromConfig(visualConfig = {}) {
  * interlocution it writes is normalised, so what it hands back is exactly what
  * the Chamber will keep — no family it declares can silently prune a shelf.
  */
-export function configPatch(selection) {
+function fieldPatch(selection) {
   const { enabled, style, pool } = selection;
   const on = [...enabled];
 
-  if (!on.length) return { visualMode: 'off' };
+  if (!on.length) {
+    if (selection.emptyGallery) {
+      const held = selection.programLocked || selection.preserveBaseSelection
+        ? (selection.config?.interlocution || {})
+        : {};
+      return {
+        visualMode: 'interlocution',
+        interlocution: withNormalised({
+          ...held,
+          sourceFamily: held.sourceFamily || 'procedural',
+          procedural: Array.isArray(held.procedural) ? held.procedural : [],
+          sourced: Array.isArray(held.sourced) ? held.sourced : [],
+          presentation: 'continuous'
+        })
+      };
+    }
+    return { visualMode: 'off' };
+  }
   if (enabled.has('focal')) {
-    return { visualMode: 'focals', focals: { type: 'standard', standardGlyph: style.focal.glyph } };
+    return {
+      visualMode: 'focals',
+      focals: style.focal.type === 'personal'
+        ? { type: 'personal' }
+        : { type: 'standard', standardGlyph: style.focal.glyph }
+    };
   }
   if (enabled.has('attractor')) return { visualMode: 'attractor', attractor: { ...style.attractor } };
   if (enabled.has('klee')) return { visualMode: 'genesis', genesis: { ...style.klee } };
@@ -162,11 +212,14 @@ export function configPatch(selection) {
   }
 
   const procedural = on.filter(id => GALLERY_PROCEDURAL.has(id));
-  const sourced = on
+  const selectedSourced = on
     .filter(id => classifySourced(pool[id] || '') || pool[id])
     .filter(id => ['by-manner', 'by-subject', 'science', 'personal'].includes(id))
     .map(id => pool[id])
     .filter(Boolean);
+  const preservedSourced = normalizeVisualSelection(selection.config?.interlocution || {}).sourced
+    .filter(id => !classifySourced(id));
+  const sourced = [...new Set([...selectedSourced, ...preservedSourced])];
 
   return {
     visualMode: 'interlocution',
@@ -176,6 +229,48 @@ export function configPatch(selection) {
       sourced,
       presentation: 'continuous'
     })
+  };
+}
+
+/**
+ * The complete visual configuration emitted by the Navigator.
+ *
+ * The tree owns field selection; the preserved base owns runtime settings the
+ * reader is not editing here. Rich engine styles remain present even while a
+ * different field occupies the room, because Ink may reference them. This is
+ * the sole merge boundary — the component never reconstructs visualConfig.
+ */
+export function configPatch(selection) {
+  const base = cloneVisualConfig(selection.config || {});
+  const field = fieldPatch(selection);
+  const held = isLaunchHeldFocal(base.focals);
+  let focals = {
+    type: 'standard',
+    standardGlyph: selection.style.focal.glyph,
+    ...(base.focals || {})
+  };
+
+  if (field.visualMode === 'focals') {
+    if (!held || selection.focalDirty) {
+      focals = { ...focals, ...(field.focals || {}) };
+    }
+  } else {
+    focals = releaseLaunchHeldFocal(focals) || focals;
+  }
+
+  return {
+    ...base,
+    ...field,
+    focals,
+    attractor: { ...(base.attractor || {}), ...selection.style.attractor },
+    genesis: { ...(base.genesis || {}), ...selection.style.klee },
+    livingText: { ...(base.livingText || {}), ...selection.livingText },
+    interlocution: {
+      ...(base.interlocution || {}),
+      ...(field.interlocution || {}),
+      galleryCadence: normalizeGalleryCadence(selection.galleryCadence),
+      wordFill: cloneWordFill(selection.wordFill)
+    }
   };
 }
 
@@ -195,6 +290,33 @@ function galleryFamily(procedural, sourced) {
 function withNormalised(inter) {
   const norm = normalizeVisualSelection(inter);
   return { ...inter, ...norm };
+}
+
+function cloneWordFill(value) {
+  const fill = normalizeWordFill(value);
+  if (fill.mode !== 'pick') return { mode: fill.mode };
+  return {
+    ...fill,
+    procedural: [...fill.procedural],
+    sourced: [...fill.sourced]
+  };
+}
+
+function cloneVisualConfig(value) {
+  const config = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  return {
+    ...config,
+    focals: { ...(config.focals || {}) },
+    attractor: { ...(config.attractor || {}) },
+    genesis: { ...(config.genesis || {}) },
+    livingText: { ...(config.livingText || {}) },
+    interlocution: {
+      ...(config.interlocution || {}),
+      ...(config.interlocution?.wordFill
+        ? { wordFill: cloneWordFill(config.interlocution.wordFill) }
+        : {})
+    }
+  };
 }
 
 /**

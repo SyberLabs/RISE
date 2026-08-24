@@ -100,6 +100,17 @@ describe('resolveFitMaskMode', () => {
         expect(resolveFitMaskMode({ ...canonical, presentation: 'full-frame' })).toBe(false);
     });
 
+    it('keeps explicit Accent ink as ordinary text instead of opening the mask', () => {
+        expect(resolveFitMaskMode({
+            ...canonical,
+            wordFill: { mode: 'accent' }
+        })).toBe(false);
+        expect(resolveFitMaskMode({
+            ...canonical,
+            wordFill: { mode: 'same' }
+        })).toBe(true);
+    });
+
     it('keeps the legacy setting scoped to Word atoms', () => {
         expect(resolveFitMaskMode({
             ...canonical,

@@ -161,7 +161,7 @@ describe('Chamber accent allowlist', () => {
             'components/NamingModal.css',
             'components/NamingModal.js',
             'components/Settings.css',
-            'components/VisualInterlocutionPanel.css',
+            'components/VisualNavigator.css',
             'components/BetaGate.css'
         ];
         const leftover = /rgba\(\s*139,\s*127,\s*212\s*,/g;
@@ -267,6 +267,17 @@ describe('the colourway dresses the whole cluster', () => {
     expect(tile).toMatch(/color:\s*var\(--btn-ink\)/);
     // The old frozen slate gradient is gone from the tile.
     expect(tile).not.toMatch(/rgba\(42, 42, 48/);
+  });
+
+  it('the actual Try RISE circle carries the sitting accent and its contrast ink', () => {
+    const portal = read('components/Portal.css');
+    const circle = portal.match(/\.portal-nav \.nav-secondary \.nav-try\s*\{[^}]+\}/)[0];
+    expect(circle).toMatch(/color:\s*var\(--color-on-accent\)/);
+    expect(circle).toMatch(/background:[^;]*var\(--color-accent\)/s);
+    expect(circle).toMatch(/border[^;]*var\(--accent-bevel\)/);
+    expect(circle).toMatch(/box-shadow:[^}]*var\(--accent-halo\)/s);
+    expect(portal).toMatch(/\.nav-try \.try-mark\s*\{[^}]*color:\s*currentColor/s);
+    expect(portal).not.toMatch(/\.nav-try\s*\{[^}]*rgba\(48, 48, 56/s);
   });
 
   it('the new sittings clear WCAG AA for their chosen ink', () => {

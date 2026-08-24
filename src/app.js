@@ -649,7 +649,7 @@ class App {
                         }
 
                         // Custom visuals from this session are now handled via the 'custom' flag in interlocution.sourced
-                        // which is managed by the VisualInterlocutionPanel
+                        // which is managed by the Chamber's VisualNavigator
 
                         // Responsive interlocutions: score the session's timeline
                         // before preload so the flame queue renders plan-driven
