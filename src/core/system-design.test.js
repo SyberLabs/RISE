@@ -64,7 +64,8 @@ describe('the system design document describes this tree', () => {
         'Admit.js',              // edition admission dialog, opened from Library
         'NamingModal.js',        // shared naming prompt
         'SourceBrowser.js',      // source picker, embedded in Workshop
-        'VisualInterlocutionPanel.js' // visual controls, embedded in ChamberOrbital
+        'VisualInterlocutionPanel.js', // visual controls, embedded in ChamberOrbital
+        'VisualNavigator.js'     // the field directory, embedded in ChamberOrbital (Step 4)
     ]);
 
     const roomsOnDisk = () => readdirSync(join(ROOT, 'src/components'))

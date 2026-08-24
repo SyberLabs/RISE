@@ -1,0 +1,148 @@
+/* VisualNavigator — the field directory, in RISE's own chrome.
+   Uses the app tokens so the accent that now travels (feat/accent-travels)
+   lights the selection here too. Single dark world, painted from tokens. */
+
+.vnav {
+  --vnav-edge: var(--color-shadow, #2A2A30);
+  --vnav-panel: var(--color-abyss, #121214);
+  --vnav-raise: var(--color-depth, #1A1A1E);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  color: var(--color-cloud, #C5C5CD);
+  background: var(--color-void, #0A0A0C);
+  border: 1px solid var(--vnav-edge);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.vnav-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--vnav-edge);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.vnav-path { color: var(--color-accent, #E4D2AE); display: flex; align-items: center; gap: 0.4em; flex-wrap: wrap; }
+.vnav-path span { color: var(--color-fog, #9B9BA5); }
+.vnav-path span.here { color: var(--color-accent, #E4D2AE); }
+.vnav-path i { color: var(--color-mist, #6B6B75); font-style: normal; }
+.vnav-field { margin-left: auto; color: var(--color-light, #E8E8EC); }
+
+.vnav-body {
+  display: grid;
+  grid-template-columns: repeat(var(--vnav-cols, 3), minmax(9rem, 12rem)) 1fr;
+  min-height: 22rem;
+}
+
+.vnav-col {
+  border-right: 1px solid var(--vnav-edge);
+  padding: 0.4rem;
+  overflow-y: auto;
+  max-height: 26rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--vnav-edge) transparent;
+}
+
+.vnav-node {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.6rem;
+  margin-bottom: 2px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--color-fog, #9B9BA5);
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms, color 120ms;
+}
+.vnav-node:hover { background: var(--vnav-raise); color: var(--color-cloud, #C5C5CD); }
+.vnav-node .g { width: 1.2rem; text-align: center; color: var(--color-accent, #E4D2AE); flex-shrink: 0; }
+.vnav-node .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vnav-node .arw { color: var(--color-mist, #6B6B75); font-size: 0.7rem; }
+.vnav-node .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent, #E4D2AE);
+  box-shadow: 0 0 7px var(--color-accent, #E4D2AE); flex-shrink: 0; }
+.vnav-node.sel {
+  background: linear-gradient(90deg, rgba(var(--color-accent-rgb, 228,210,174), 0.16), rgba(var(--color-accent-rgb, 228,210,174), 0.03));
+  border-color: rgba(var(--color-accent-rgb, 228,210,174), 0.5);
+  color: var(--color-light, #E8E8EC);
+}
+.vnav-node.sel .g { color: var(--color-light, #E8E8EC); }
+.vnav-node.on .nm { color: var(--color-accent, #E4D2AE); }
+
+/* ── entry (the Pokédex panel) ────────────────────────────────────────── */
+.vnav-entry { padding: 1rem 1.15rem 1.3rem; overflow-y: auto; max-height: 26rem; }
+.vnav-empty {
+  height: 100%; display: grid; place-items: center; text-align: center;
+  color: var(--color-mist, #6B6B75); font-size: 0.78rem; letter-spacing: 0.12em; padding: 2rem;
+}
+.vnav-empty span { display: block; font-size: 1.8rem; opacity: 0.5; margin-bottom: 0.6rem; }
+
+.vnav-entry-head { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.9rem; }
+.vnav-glyph { font-size: 1.7rem; color: var(--color-accent, #E4D2AE); }
+.vnav-entry-head h3 { margin: 0; font-family: var(--font-display, 'Marcellus', serif); font-weight: 400;
+  color: var(--color-light, #E8E8EC); font-size: 1.4rem; line-height: 1; }
+.vnav-kind { margin: 0.35rem 0 0; font-size: 0.62rem; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--color-mist, #6B6B75); }
+.vnav-kind b { color: var(--color-accent, #E4D2AE); }
+
+.vnav-preview {
+  position: relative; width: 100%; aspect-ratio: 16 / 9; margin-bottom: 0.9rem;
+  border: 1px solid var(--vnav-edge); border-radius: 4px;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(var(--color-accent-rgb, 228,210,174), 0.06), transparent 70%),
+    var(--color-void, #0A0A0C);
+  display: grid; place-items: center; gap: 0.5rem;
+}
+.vnav-preview-glyph { font-size: 2.4rem; color: rgba(var(--color-accent-rgb, 228,210,174), 0.5); }
+.vnav-preview-note { font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-mist, #6B6B75); }
+
+.vnav-desc { font-family: var(--font-literary, 'Crimson Pro', serif); font-size: 1rem; line-height: 1.5;
+  color: var(--color-cloud, #C5C5CD); margin: 0 0 1rem; }
+
+.vnav-bench { margin-bottom: 0.8rem; }
+.vnav-bench-label { display: block; font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--color-mist, #6B6B75); margin-bottom: 0.45rem; }
+.vnav-opts { display: flex; flex-wrap: wrap; gap: 5px; }
+.vnav-opt {
+  font: inherit; font-size: 0.74rem; color: var(--color-fog, #9B9BA5);
+  background: var(--vnav-raise); border: 1px solid var(--vnav-edge); border-radius: 4px;
+  padding: 0.4rem 0.65rem; cursor: pointer; transition: all 120ms;
+  display: inline-flex; align-items: center; gap: 0.4rem;
+}
+.vnav-opt:hover { color: var(--color-cloud, #C5C5CD); }
+.vnav-opt.on { border-color: rgba(var(--color-accent-rgb, 228,210,174), 0.6); color: var(--color-light, #E8E8EC);
+  background: linear-gradient(180deg, rgba(var(--color-accent-rgb, 228,210,174), 0.12), transparent); }
+.vnav-opt.swatch i { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); }
+
+.vnav-glass { display: flex; align-items: center; gap: 0.5rem; font-size: 0.76rem; color: var(--color-fog, #9B9BA5);
+  margin: 0.2rem 0 0.9rem; cursor: pointer; }
+
+.vnav-commit { display: flex; align-items: center; gap: 0.8rem; padding-top: 0.9rem;
+  border-top: 1px solid var(--vnav-edge); margin-top: 0.4rem; }
+.vnav-toggle {
+  --w: 54px; position: relative; width: var(--w); height: 26px; border-radius: 999px; flex-shrink: 0;
+  background: var(--color-void, #0A0A0C); border: 1px solid var(--vnav-edge); cursor: pointer; transition: all 160ms;
+}
+.vnav-toggle .knob { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--color-mist, #6B6B75); transition: all 180ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.vnav-toggle.on { border-color: rgba(var(--color-accent-rgb, 228,210,174), 0.6);
+  background: linear-gradient(90deg, rgba(var(--color-accent-rgb, 228,210,174), 0.1), rgba(var(--color-accent-rgb, 228,210,174), 0.22)); }
+.vnav-toggle.on .knob { left: calc(var(--w) - 22px); background: var(--color-accent, #E4D2AE);
+  box-shadow: 0 0 10px var(--color-accent, #E4D2AE); }
+.vnav-commit-label { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-fog, #9B9BA5); }
+
+/* ── responsive: columns collapse to a single drill-down ──────────────── */
+@media (max-width: 720px) {
+  .vnav-body { grid-template-columns: 1fr; }
+  .vnav-col { border-right: none; border-bottom: 1px solid var(--vnav-edge); max-height: none; }
+  .vnav-entry { max-height: none; }
+}

@@ -196,3 +196,26 @@ function withNormalised(inter) {
   const norm = normalizeVisualSelection(inter);
   return { ...inter, ...norm };
 }
+
+/**
+ * The pools a Sourced or Personal leaf offers — its dropdown, from the
+ * registries. One pool is chosen per leaf (decision A), so these are the
+ * options that one choice ranges over. Manner and subject are the museum's
+ * own `kind`; Science is its own registry; Personal is the two shared shelves
+ * a reader always has (blueprint pools are added by the app at mount).
+ */
+export function poolOptions(leafId) {
+  const museum = kind => Object.entries(MUSEUM_CATEGORIES)
+    .filter(([, cat]) => cat.kind === kind)
+    .map(([id, cat]) => ({ id: `aic-${id}`, label: cat.name }));
+  switch (leafId) {
+    case 'by-manner': return museum('style');
+    case 'by-subject': return museum('subject');
+    case 'science': return [{ id: 'sci-astronomy', label: 'Astronomy' }];
+    case 'personal': return [
+      { id: 'global-pool', label: 'Shared pool' },
+      { id: 'custom', label: 'This session' }
+    ];
+    default: return [];
+  }
+}
