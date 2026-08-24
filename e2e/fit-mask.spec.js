@@ -569,6 +569,59 @@ for (const [surface, viewport] of [
   });
 }
 
+test('glyph local projection keeps the Fractal viewport inside the field and the word centred', async ({ page }) => {
+  await openPrep(page, { width: 1280, height: 800 });
+  await chooseMaskFit(page);
+  await begin(page);
+  await expectAtomicMaskReady(page);
+
+  // Observe several Fit words (short and long) as the reading advances; each
+  // ready mask must place a finite, glyph-local viewport inside the field and
+  // no larger than it, with the word centred on the stage.
+  const samples = await page.evaluate(async () => {
+    const seen = [];
+    const centre = rect => rect.left + rect.width / 2;
+    const middle = rect => rect.top + rect.height / 2;
+    for (let i = 0; i < 4; i += 1) {
+      await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 260)));
+      const atom = document.querySelector('#atom-display');
+      const field = document.querySelector('.chamber-fill-field');
+      const viewport = document.querySelector('.chamber-fill-viewport');
+      const stage = document.querySelector('#chamber-display');
+      if (!atom || !field || !viewport || !stage) continue;
+      if (atom.dataset.maskState !== 'ready') continue;
+      const f = field.getBoundingClientRect();
+      const v = viewport.getBoundingClientRect();
+      const a = atom.getBoundingClientRect();
+      const s = stage.getBoundingClientRect();
+      seen.push({
+        word: (atom.textContent || '').trim(),
+        finite: v.width > 0 && v.height > 0 && Number.isFinite(v.width) && Number.isFinite(v.height),
+        inside: v.left >= f.left - 1 && v.top >= f.top - 1
+          && v.right <= f.right + 1 && v.bottom <= f.bottom + 1,
+        // never larger than the stage — the scale cap
+        withinField: v.width <= f.width + 1 && v.height <= f.height + 1,
+        // glyph-local: the viewport is centred on the WORD, not the stage
+        glyphDrift: Math.max(Math.abs(centre(v) - centre(a)), Math.abs(middle(v) - middle(a))),
+        // and the word itself is centred on the stage
+        centreDrift: Math.abs(centre(a) - centre(s))
+      });
+    }
+    return seen;
+  });
+
+  const distinct = new Set(samples.map(sample => sample.word));
+  expect(samples.length).toBeGreaterThanOrEqual(2);
+  expect(distinct.size).toBeGreaterThanOrEqual(2);   // short and long words
+  for (const sample of samples) {
+    expect(sample.finite, sample.word).toBe(true);
+    expect(sample.inside, sample.word).toBe(true);
+    expect(sample.withinField, sample.word).toBe(true);
+    expect(sample.glyphDrift, sample.word).toBeLessThanOrEqual(3);
+    expect(sample.centreDrift, sample.word).toBeLessThanOrEqual(2);
+  }
+});
+
 test('Old Masters atomic readiness keeps a readable fallback until the first sourced response after hard reload', async ({ page }) => {
   const sourceGate = await installOldMastersSourceGate(page);
   await openPrep(page, { width: 1280, height: 800 });

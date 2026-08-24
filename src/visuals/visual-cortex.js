@@ -222,6 +222,11 @@ export class VisualCortex {
         this._continuousField = null;
         this._continuousFieldHost = null;
         this._continuousFieldProjectionHost = null;
+        // How much of the Fractal fill the glyph reveals (fit-projection.js).
+        // 1 = a full window; the adapter lifts density below it. Reset when the
+        // projection host clears so a stale sparse word cannot over-brighten a
+        // later full one.
+        this._fillProjectionVisibleAreaRatio = 1;
         this._projectionReadyHost = null;
         this._projectionReadyPromise = null;
         this._projectionReadyResolve = null;
@@ -1107,12 +1112,25 @@ export class VisualCortex {
             }
             this._continuousFieldProjectionHost = host;
             this._projectionPaintedHost = null;
+            if (!host) this._fillProjectionVisibleAreaRatio = 1;
             if (host && this._projectionReadyHost !== host) {
                 this._beginProjectionReadiness(host);
             }
         }
         this._continuousField?.setProjectionHost(this._continuousFieldProjectionHost);
         if (this._isContinuousMode()) this._syncLivingLayers(this._livingFieldGateOpen());
+    }
+
+    /**
+     * The glyph's share of its material, from fit-projection.js — the Fractal
+     * fill adapter lifts density when a whitespace-heavy word reveals little.
+     * Clamped to [0,1]; a non-finite value resets to a full window.
+     */
+    setFillProjectionVisibleAreaRatio(ratio) {
+        const value = Number(ratio);
+        this._fillProjectionVisibleAreaRatio = Number.isFinite(value)
+            ? Math.min(1, Math.max(0, value))
+            : 1;
     }
 
     whenContinuousFieldProjectionReady(host) {
@@ -1687,7 +1705,8 @@ export class VisualCortex {
                 if (rendered && wordFill) {
                     applyFlameFillToCanvas(canvas, {
                         reducedMotion: this._continuousReducedMotion()
-                            || prefersFlameFillReducedMotion()
+                            || prefersFlameFillReducedMotion(),
+                        visibleAreaRatio: this._fillProjectionVisibleAreaRatio
                     });
                 }
             }

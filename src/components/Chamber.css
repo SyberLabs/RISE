@@ -1102,6 +1102,21 @@
   z-index: 5;
 }
 
+/* The glyph-local projection viewport. The material's Continuous Field layers
+   mount inside it and cover/contain relative to it, so a Fractal or artwork
+   fills the letters rather than the stage. It defaults to the whole field
+   (inset:0) — the first, readiness paint matches the old stage-aligned
+   projection — and syncFillGlyphMask sizes it to the glyph (setting
+   left/top/width/height and clearing right/bottom) once geometry is measured.
+   The stage-aligned SVG mask on .chamber-fill-field then carves the exact
+   letter shapes out of it. */
+.chamber-fill-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 1;
+}
+
 .chamber-field.is-living-fit .chamber-fill-field {
   isolation: isolate;
   filter:

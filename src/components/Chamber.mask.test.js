@@ -40,6 +40,12 @@ function fillHost(container) {
     return container.querySelector('.chamber-fill-field');
 }
 
+// The material now projects into a glyph-local viewport child; the mask stays
+// on the stage-aligned .chamber-fill-field.
+function fillViewport(container) {
+    return container.querySelector('.chamber-fill-viewport');
+}
+
 function galleryHost(container) {
     return container.querySelector('#chamber-continuous-field');
 }
@@ -299,19 +305,24 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
 
         const gallery = galleryHost(container);
         const fill = fillHost(container);
+        const viewport = fillViewport(container);
         const field = visualCortex._continuousField;
         expect(gallery).toBeTruthy();
         expect(fill).toBeTruthy();
+        expect(viewport).toBeTruthy();
         expect(fill).not.toBe(gallery);
         expect(field).toBeInstanceOf(ContinuousField);
         expect(field.host).toBe(gallery);
-        expect(field.projectionHost).toBe(fill);
+        // The material projects into the glyph-local viewport; the mask stays
+        // on the stage-aligned field.
+        expect(field.projectionHost).toBe(viewport);
+        expect(viewport.parentElement).toBe(fill);
         expect(chamber.fillField).toBeFalsy();
         expect(chamber._fillFieldDirector).toBeFalsy();
         expect(chamber.fillVideoField).toBeFalsy();
 
         field._ensureLayers();
-        field.setProjectionHost(fill);
+        field.setProjectionHost(viewport);
         field._crossfadeTo({ url: 'https://example.test/a.jpg' }, true);
         field._currentUrl = 'https://example.test/a.jpg';
         field._crossfadeTo({ url: 'https://example.test/b.jpg' }, false);
@@ -321,7 +332,7 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
             .map(img => img.getAttribute('src'))
             .filter(Boolean)
             .sort();
-        const fillSrcs = [...fill.querySelectorAll('.continuous-field-artwork')]
+        const fillSrcs = [...viewport.querySelectorAll('.continuous-field-artwork')]
             .map(img => img.getAttribute('src'))
             .filter(Boolean)
             .sort();

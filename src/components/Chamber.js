@@ -44,6 +44,7 @@ import {
   threeStepIntent
 } from '../core/chamber-type-size.js';
 import { resolveTextMaterialCapability } from '../core/chamber-text-material.js';
+import { resolveFitProjection } from '../core/fit-projection.js';
 import { GROUNDS, maskFillFromConfig, maskGroundFromConfig } from '../core/mask-ground.js';
 import { resolveSessionWordFill } from '../core/visual-selection.js';
 import './Chamber.css';
@@ -103,6 +104,7 @@ export class Chamber {
     this._visualFieldDirector = null;
     this._fillMaskGeneration = 0;
     this.fillFieldHost = null;
+    this.fillViewport = null;
     this.maskGroundPlate = null;
     this._scheduledVisualGeneration = 0;
     // Page Mode (PAGE-MODE-SPEC): the spatial projection, mounted lazily
@@ -782,7 +784,19 @@ export class Chamber {
       this._insertBehindReading(field, host);
       this.fillFieldHost = host;
     }
-    visualCortex.setContinuousFieldProjectionHost(this.fillFieldHost);
+    if (!this.fillViewport || this.fillViewport.parentElement !== this.fillFieldHost) {
+      // The stage-aligned field carries the glyph mask and the ground plate;
+      // the material projects into this child viewport, which syncFillGlyphMask
+      // sizes to the glyph so a Fractal fills the letters rather than the stage
+      // (fit-projection.js §7). Its default inset:0 makes the first (readiness)
+      // paint identical to the old stage-aligned projection — the glyph-local
+      // size is applied only once the geometry is measured.
+      const viewport = document.createElement('div');
+      viewport.className = 'chamber-fill-viewport';
+      this.fillFieldHost.appendChild(viewport);
+      this.fillViewport = viewport;
+    }
+    visualCortex.setContinuousFieldProjectionHost(this.fillViewport);
     this.syncMaskGroundPlate();
     void this.syncFillGlyphMask();
   }
@@ -797,7 +811,7 @@ export class Chamber {
 
     if (!context.capability.maskActive) return;
     if (!this._shouldMountFill() || !this._maskImageSupported()) return;
-    if (!field || !atomDisplay || !this.fillFieldHost) return;
+    if (!field || !atomDisplay || !this.fillFieldHost || !this.fillViewport) return;
 
     if (!this._atomHasWordInk(atomDisplay)) {
       this._revertFillToOpaqueWord();
@@ -805,6 +819,10 @@ export class Chamber {
     }
 
     const host = this.fillFieldHost;
+    // The material paints into the glyph-local viewport, so readiness is the
+    // viewport's — not the stage-aligned field's. The field still carries the
+    // mask below.
+    const viewport = this.fillViewport;
     const text = (atomDisplay.textContent || '').trim();
     const materialKey = context.materialKey;
     atomDisplay.dataset.maskState = 'preparing';
@@ -812,7 +830,7 @@ export class Chamber {
     try {
       const [fontReady] = await Promise.all([
         this._waitThickFontReady(text),
-        visualCortex.whenContinuousFieldProjectionReady(host)
+        visualCortex.whenContinuousFieldProjectionReady(viewport)
       ]);
       if (!fontReady) {
         if (generation === this._fillMaskGeneration) this._revertFillToOpaqueWord();
@@ -832,6 +850,7 @@ export class Chamber {
         && atomDisplay === this.container.querySelector('#atom-display')
         && (atomDisplay.textContent || '').trim() === text
         && this.fillFieldHost === host
+        && this.fillViewport === viewport
         && current.capability.maskActive
         && current.materialKey === materialKey;
     };
@@ -866,6 +885,37 @@ export class Chamber {
     const contentHeight = Math.max(0, atomRect.height - paddingTop - paddingBottom);
     const textX = (atomRect.left - fieldRect.left) + paddingLeft + (contentWidth / 2);
     const textY = (atomRect.top - fieldRect.top) + paddingTop + (contentHeight / 2);
+
+    // Size the projection viewport to the glyph so the material fills the
+    // letters, not the stage, and hand the Fractal adapter how much of itself
+    // the glyph reveals. The viewport carries the render; the SVG below carves
+    // the exact letter shapes out of it. sourceKind 'procedural' yields the
+    // glyph's share of the stage — the density signal; a sourced image ignores
+    // it and covers/contains inside the same viewport by CSS.
+    const projection = resolveFitProjection({
+      fieldRect: { left: 0, top: 0, width: fieldWidth, height: fieldHeight },
+      glyphRect: {
+        left: (atomRect.left - fieldRect.left) + paddingLeft,
+        top: (atomRect.top - fieldRect.top) + paddingTop,
+        width: contentWidth,
+        height: contentHeight
+      },
+      sourceKind: 'procedural',
+      devicePixelRatio: window.devicePixelRatio || 1
+    });
+    if (!projection) {
+      this._revertFillToOpaqueWord();
+      return;
+    }
+    const view = projection.projection;
+    viewport.style.left = `${view.left}px`;
+    viewport.style.top = `${view.top}px`;
+    viewport.style.width = `${view.width}px`;
+    viewport.style.height = `${view.height}px`;
+    viewport.style.right = 'auto';
+    viewport.style.bottom = 'auto';
+    visualCortex.setFillProjectionVisibleAreaRatio(projection.visibleAreaRatio);
+
     const svgNs = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(svgNs, 'svg');
     svg.setAttribute('xmlns', svgNs);
@@ -941,6 +991,7 @@ export class Chamber {
       atomDisplay.style.removeProperty('color');
     }
     visualCortex.setContinuousFieldProjectionHost(null);
+    this.fillViewport = null;
     if (this.fillFieldHost) {
       this.fillFieldHost.remove();
       this.fillFieldHost = null;
