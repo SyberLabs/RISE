@@ -347,7 +347,14 @@ export function localWorkRuntime(record) {
       noun: record.noun || LOCAL_WORK_DEFAULT_NOUN,
       reason: record.reason || 'measured',
       authored: record.authored === true,
-      entries: parts.map((part, index) => ({ ...part, ordinal: index + 1 }))
+      // `words` is not decoration: the contents sheet sums it to say how long
+      // a work is and how long each part takes. An entry without it totalled
+      // NaN, which reads as a work of no length at all.
+      entries: parts.map((part, index) => ({
+        ...part,
+        ordinal: index + 1,
+        words: countWords(part.content)
+      }))
     })
   };
 }
