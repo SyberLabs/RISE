@@ -498,19 +498,22 @@ export class VisualNavigator {
         '<p class="vnav-text-locked">Ink unlocks at Size → Fit.</p>');
     }
     const value = wordFillValue(this.selection.wordFill);
+    const fieldLocked = Boolean(this.locked || this.programInfo);
     const engines = WORD_FILL_PROCEDURAL_PATTERNS.map(item => ({
       id: item.id, label: item.name, on: value === `procedural:${item.id}`,
+      disabled: fieldLocked,
       attr: `data-word-fill="procedural:${escapeHtml(item.id)}"`
     }));
     const pools = inkPoolOptions().map(item => ({
       id: item.id, label: item.label, on: value === `sourced:${item.id}`,
+      disabled: fieldLocked,
       attr: `data-word-fill="sourced:${escapeHtml(item.id)}"`
     }));
     const styles = this.inkFocus ? this.renderStyleBenches(this.inkFocus) : '';
     return this.renderTextShell('Ink', 'Paint the gallery through the letters.', `
       ${bench('Ink', [
-        { id: 'accent', label: 'Accent', on: value === 'accent', attr: 'data-word-fill="accent"' },
-        { id: 'same', label: 'Same as field', on: value === 'same', attr: 'data-word-fill="same"' }
+        { id: 'accent', label: 'Accent', on: value === 'accent', disabled: fieldLocked, attr: 'data-word-fill="accent"' },
+        { id: 'same', label: 'Same as field', on: value === 'same', disabled: fieldLocked, attr: 'data-word-fill="same"' }
       ])}
       ${bench('Engines', engines)}
       ${bench('Pools', pools)}
@@ -628,7 +631,7 @@ export class VisualNavigator {
       if (personal) {
         html += image ? `<div class="vnav-personal-focal" data-personal-focal-preview>
           <img src="${safeUrl(image)}" alt="Personal focal">
-          <button type="button" data-action="remove-personal-focal">Remove</button></div>`
+          <button type="button" data-action="remove-personal-focal" ${fieldLocked ? 'disabled' : ''}>Remove</button></div>`
           : `<label class="vnav-personal-upload" data-action="upload-personal-focal">Upload focal image
             <input type="file" accept="image/*" hidden data-input="personal-focal" ${fieldLocked ? 'disabled' : ''}></label>`;
       }

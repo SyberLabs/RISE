@@ -163,6 +163,7 @@ describe('reader-facing state', () => {
   });
 
   it('names a curated program and makes every field-owned control read-only', () => {
+    window.rise = { settings: { fontSize: 'fit' } };
     mount({
       visualMode: 'interlocution',
       livingText: { enabled: true, intensity: 0.4 },
@@ -192,6 +193,16 @@ describe('reader-facing state', () => {
     expect([...nav.container.querySelectorAll('[data-sub]')]
       .every(control => control.disabled)).toBe(true);
     expect(nav.container.querySelector('[data-action="glass"]')?.disabled).toBe(true);
+
+    click(node('ink'));
+    expect([...nav.container.querySelectorAll('[data-word-fill]')]
+      .every(control => control.disabled)).toBe(true);
+
+    nav.setConfig({
+      visualMode: 'focals',
+      focals: { type: 'personal', personalImage: 'data:image/png;base64,AAAA' }
+    });
+    expect(nav.container.querySelector('[data-action="remove-personal-focal"]')?.disabled).toBe(true);
   });
 
   it('releases a launch-held focal directly into its curated program', () => {
