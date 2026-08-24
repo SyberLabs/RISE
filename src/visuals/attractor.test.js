@@ -115,6 +115,38 @@ describe('Attractor forms', () => {
     expect(onProjectionPaint).toHaveBeenCalledTimes(1);
   });
 
+  it('reports replacement B, not A, when replacement happens before the first frame', () => {
+    const host = makeHost();
+    const first = document.createElement('div');
+    const second = document.createElement('div');
+    document.body.append(first, second);
+    const onProjectionPaint = vi.fn();
+    const field = new AttractorField(host, { onProjectionPaint });
+
+    field.setProjectionHost(first);
+    field.setProjectionHost(second);
+    field.tick(performance.now());
+
+    expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+    expect(onProjectionPaint.mock.calls[0][0]).toBe(second);
+    expect(onProjectionPaint).not.toHaveBeenCalledWith(first);
+    field.destroy();
+  });
+
+  it('does not report when destroyed before its first frame', () => {
+    const host = makeHost();
+    const projection = document.createElement('div');
+    document.body.appendChild(projection);
+    const onProjectionPaint = vi.fn();
+    const field = new AttractorField(host, { onProjectionPaint });
+
+    field.setProjectionHost(projection);
+    field.destroy();
+
+    expect(onProjectionPaint).not.toHaveBeenCalled();
+    expect(projection.querySelector('.attractor-canvas')).toBeNull();
+  });
+
   it('changes symmetry in place — the mid-session control', () => {
     const field = new AttractorField(makeHost(), {});
     const points = field.px;

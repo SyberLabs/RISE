@@ -622,6 +622,53 @@ describe('Continuous Field projection mount', () => {
         field.stop();
     });
 
+    it('does not publish A decode work into replacement host B', async () => {
+        let finishDecode;
+        const onProjectionPaint = vi.fn();
+        const { field } = mount({
+            getPool: () => pool('a.jpg'),
+            decode: vi.fn(() => new Promise(resolve => { finishDecode = resolve; })),
+            onProjectionPaint
+        });
+        const first = document.createElement('div');
+        const second = document.createElement('div');
+        document.body.append(first, second);
+
+        field.setProjectionHost(first);
+        field.start();
+        field.setProjectionHost(second);
+        finishDecode(true);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        expect([...second.querySelectorAll('.continuous-field-artwork')]
+            .some(image => image.getAttribute('src'))).toBe(false);
+        field.stop();
+    });
+
+    it('does not publish a decode that finishes after stop', async () => {
+        let finishDecode;
+        const onProjectionPaint = vi.fn();
+        const { field } = mount({
+            getPool: () => pool('a.jpg'),
+            decode: vi.fn(() => new Promise(resolve => { finishDecode = resolve; })),
+            onProjectionPaint
+        });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+
+        field.setProjectionHost(projection);
+        field.start();
+        field.stop();
+        finishDecode(true);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        expect(projection.querySelectorAll('.continuous-field-layer')).toHaveLength(0);
+    });
+
     it('one instance paints the same url onto both mounts after _crossfadeTo', async () => {
         const { field, host } = mount({ getPool: () => pool('a.jpg', 'b.jpg') });
         const projection = document.createElement('div');

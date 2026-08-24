@@ -223,6 +223,11 @@ export class HarmonographField {
         incoming.holdPenMs = this.reducedMotion || first ? 0 : this.crossfadeMs;
         incoming.drawDwellMs = Math.max(1, this.dwellMs - incoming.holdPenMs);
         this._draw(incoming);
+        if (!incoming._painted) {
+            incoming.canvas.style.opacity = '0';
+            incoming.engine = null;
+            return;
+        }
         incoming.canvas.style.transition = this.reducedMotion || first
             ? 'none'
             : `opacity ${this.crossfadeMs}ms ease-in-out`;

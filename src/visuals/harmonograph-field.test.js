@@ -74,6 +74,56 @@ describe('HarmonographField', () => {
         projection.remove();
     });
 
+    it('reports replacement B, not A, when replacement happens before start', () => {
+        const first = document.createElement('div');
+        const second = document.createElement('div');
+        document.body.append(first, second);
+        const onProjectionPaint = vi.fn();
+        const field = new HarmonographField(host, { onProjectionPaint });
+
+        field.setProjectionHost(first);
+        field.setProjectionHost(second);
+        field.start();
+
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        expect(onProjectionPaint).toHaveBeenCalledWith(second);
+        expect(onProjectionPaint).not.toHaveBeenCalledWith(first);
+        field.destroy();
+        first.remove();
+        second.remove();
+    });
+
+    it('does not report when destroyed before its first draw', () => {
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const onProjectionPaint = vi.fn();
+        const field = new HarmonographField(host, { onProjectionPaint });
+
+        field.setProjectionHost(projection);
+        field.destroy();
+
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        expect(projection.querySelectorAll('.harmonograph-plane')).toHaveLength(0);
+        projection.remove();
+    });
+
+    it('keeps a failed draw hidden and unready', () => {
+        vi.mocked(Harmonograph.prototype.render).mockReturnValue(false);
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const onProjectionPaint = vi.fn();
+        const field = new HarmonographField(host, { onProjectionPaint });
+
+        field.setProjectionHost(projection);
+        field.start();
+
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        expect([...projection.querySelectorAll('.harmonograph-plane')]
+            .some(canvas => canvas.style.opacity === '1')).toBe(false);
+        field.destroy();
+        projection.remove();
+    });
+
     it('starts the pen at the beginning of the dwell', () => {
         const field = new HarmonographField(host, { dwellMs: 8_000, crossfadeMs: 1_200 });
         field.start();

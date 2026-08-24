@@ -226,7 +226,7 @@ export class VisualCortex {
         this._projectionReadyPromise = null;
         this._projectionReadyResolve = null;
         this._projectionReadyReject = null;
-        this._projectionPainted = false;
+        this._projectionPaintedHost = null;
         // The living layer beneath it, for engines authored FOR a work.
         // They step and redraw every frame rather than being snapshotted,
         // so they share the host but not the gallery's image abstraction.
@@ -1102,12 +1102,14 @@ export class VisualCortex {
     setContinuousFieldProjectionHost(el) {
         const host = el || null;
         if (this._continuousFieldProjectionHost !== host) {
-            if (!host) {
+            if (!host || this._projectionReadyHost !== host) {
                 this._cancelProjectionReadiness('Projection host cleared');
-            } else if (this._projectionReadyHost !== host) {
-                this._beginProjectionReadiness(host);
             }
             this._continuousFieldProjectionHost = host;
+            this._projectionPaintedHost = null;
+            if (host && this._projectionReadyHost !== host) {
+                this._beginProjectionReadiness(host);
+            }
         }
         this._continuousField?.setProjectionHost(this._continuousFieldProjectionHost);
         if (this._isContinuousMode()) this._syncLivingLayers(this._livingFieldGateOpen());
@@ -1119,8 +1121,14 @@ export class VisualCortex {
             rejected.catch(() => {});
             return rejected;
         }
+        if (host === this._continuousFieldProjectionHost
+            && host === this._projectionPaintedHost) {
+            if (this._projectionReadyHost && this._projectionReadyHost !== host) {
+                this._cancelProjectionReadiness('Projection readiness superseded');
+            }
+            return Promise.resolve();
+        }
         if (this._projectionReadyHost !== host) this._beginProjectionReadiness(host);
-        if (this._projectionPainted) return Promise.resolve();
         return this._projectionReadyPromise;
     }
 
@@ -1140,28 +1148,22 @@ export class VisualCortex {
         this._projectionReadyPromise = promise;
         this._projectionReadyResolve = resolveReady;
         this._projectionReadyReject = rejectReady;
-        this._projectionPainted = false;
     }
 
     _cancelProjectionReadiness(message) {
         const reject = this._projectionReadyReject;
-        const pending = !!this._projectionReadyPromise && !this._projectionPainted;
+        const pending = typeof reject === 'function';
         this._projectionReadyHost = null;
         this._projectionReadyPromise = null;
         this._projectionReadyResolve = null;
         this._projectionReadyReject = null;
-        this._projectionPainted = false;
         if (pending) reject?.(createAbortError(message));
     }
 
     _reportContinuousFieldProjectionPaint(host) {
-        if (!host
-            || host !== this._continuousFieldProjectionHost
-            || host !== this._projectionReadyHost
-            || this._projectionPainted) {
-            return;
-        }
-        this._projectionPainted = true;
+        if (!host || host !== this._continuousFieldProjectionHost) return;
+        this._projectionPaintedHost = host;
+        if (host !== this._projectionReadyHost) return;
         const resolve = this._projectionReadyResolve;
         this._projectionReadyResolve = null;
         this._projectionReadyReject = null;
@@ -1914,6 +1916,7 @@ export class VisualCortex {
 
         if (!shouldRun) {
             if (this._workEngineField?.running) this._workEngineField.stop();
+            this._workEngineField?.setProjectionHost?.(null);
             return;
         }
         if (!this._workEngineField) {
@@ -1930,6 +1933,7 @@ export class VisualCortex {
             });
         }
         this._workEngineField.reducedMotion = this._continuousReducedMotion();
+        this._workEngineField.setProjectionHost(this._continuousFieldProjectionHost);
         const engines = this.config.workEngines || [];
         if (this._workEngineField.running) {
             this._workEngineField.setFamilies(families, engines);
@@ -4119,6 +4123,7 @@ export class VisualCortex {
         this._continuousFieldHost = null;
         this._cancelProjectionReadiness('Visual Cortex destroyed');
         this._continuousFieldProjectionHost = null;
+        this._projectionPaintedHost = null;
         this._sequenceVideoHost = null;
         this._activeVideoCue = null;
         this._assetAbortController.abort(createAbortError('Visual Cortex destroyed'));

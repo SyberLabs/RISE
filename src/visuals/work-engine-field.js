@@ -61,6 +61,8 @@ export class WorkEngineField {
         this._projectionPlanes = null;
         this._projectionPainted = false;
         this._projectionHostCleared = false;
+        this._projectionGeneration = 0;
+        this._loadGeneration = 0;
         this._active = 0;
         this._rafId = null;
         this._lastFrameAt = 0;
@@ -116,6 +118,15 @@ export class WorkEngineField {
             // An engine holding geometry sized to the old canvas must be
             // asked to lay itself out again.
             plane.engine?.generate?.({}, plane.engine.seed);
+            if (plane.engine) {
+                this._draw(plane);
+            } else if (this._projectionPlanes) {
+                const dest = this._projectionPlanes[this._planes.indexOf(plane)]?.canvas;
+                if (dest) {
+                    dest.width = w;
+                    dest.height = h;
+                }
+            }
         }
     }
 
@@ -263,6 +274,7 @@ export class WorkEngineField {
         const previousHost = this.projectionHost;
         this._teardownProjectionPlanes();
         this.projectionHost = host || null;
+        this._projectionGeneration += 1;
         this._projectionPainted = false;
         this._projectionHostCleared = !!previousHost && !this.projectionHost;
         if (!this.projectionHost || !this._planes) return;
@@ -363,10 +375,16 @@ export class WorkEngineField {
         this.running = true;
         this.paused = false;
         this._mount();
+        const loadGeneration = ++this._loadGeneration;
+        const projectionGeneration = this._projectionGeneration;
+        const projectionHost = this.projectionHost;
         await this._loadEngines();
         // A family that will not load leaves the field still rather than
         // substituting a general generator (work-engines.js).
-        if (!this._engines.length || !this.running) return;
+        if (!this._engines.length || !this.running
+            || loadGeneration !== this._loadGeneration
+            || projectionGeneration !== this._projectionGeneration
+            || projectionHost !== this.projectionHost) return;
 
         this._cursor = 0;
         this._rotate(true);
@@ -389,12 +407,21 @@ export class WorkEngineField {
         this.running = false;
         this.paused = false;
         this._remainingRotateMs = 0;
+        this._loadGeneration += 1;
         this._cancel();
         if (this._planes) {
             for (const plane of this._planes) {
                 plane.canvas.style.opacity = '0';
                 plane.engine = null;
                 plane.entry = null;
+                plane._painted = false;
+            }
+        }
+        if (this._projectionPlanes) {
+            for (const plane of this._projectionPlanes) {
+                plane.canvas.style.opacity = '0';
+                const ctx = plane.canvas.getContext('2d');
+                ctx?.clearRect(0, 0, plane.canvas.width, plane.canvas.height);
             }
         }
     }
@@ -440,8 +467,14 @@ export class WorkEngineField {
         this._engines = [];
         if (!this.running) return;
         this._cancel();
+        const loadGeneration = ++this._loadGeneration;
+        const projectionGeneration = this._projectionGeneration;
+        const projectionHost = this.projectionHost;
         await this._loadEngines();
-        if (!this.running) return;
+        if (!this.running
+            || loadGeneration !== this._loadGeneration
+            || projectionGeneration !== this._projectionGeneration
+            || projectionHost !== this.projectionHost) return;
         if (!this._engines.length) {
             this.stop();
             this.running = false;

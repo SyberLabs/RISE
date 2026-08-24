@@ -315,12 +315,14 @@ export class ContinuousField {
         this._remainingDwellMs = 0;
         this._pendingPoolChange = null;
         this._advanceInFlight = false;
+        this._pendingProjectionAdvance = false;
         this._resizeObserver = null;
         this._boundRefreshLayers = () => this._refreshLayerGeometry();
         // A monotone token: an advance whose token is stale when its
         // decode resolves must not enter a layer (the SOL-review
         // principle — the moment that requested it must still exist).
         this._generation = 0;
+        this._projectionGeneration = 0;
     }
 
     /**
@@ -368,6 +370,10 @@ export class ContinuousField {
         const previousHost = this.projectionHost;
         this._teardownProjectionLayers();
         this.projectionHost = host || null;
+        this._projectionGeneration += 1;
+        this._pendingProjectionAdvance = !!(
+            this._running && this._advanceInFlight && this.projectionHost
+        );
         this._projectionPainted = false;
         this._projectionHostCleared = !!previousHost && !this.projectionHost;
         if (!this.projectionHost) return;
@@ -682,6 +688,8 @@ export class ContinuousField {
     async _advance(first) {
         this._advanceInFlight = true;
         const generation = this._generation;
+        const projectionGeneration = this._projectionGeneration;
+        const projectionHost = this.projectionHost;
         let work = null;
         try {
             if (this.getNextWork) {
@@ -711,8 +719,10 @@ export class ContinuousField {
             work = null;
         }
 
-        if (!this._running || this._paused || generation !== this._generation) {
-            this._advanceInFlight = false;
+        if (!this._running || this._paused || generation !== this._generation
+            || projectionGeneration !== this._projectionGeneration
+            || projectionHost !== this.projectionHost) {
+            this._finishAdvance();
             return;
         }
         const url = work?.url;
@@ -734,24 +744,28 @@ export class ContinuousField {
                 if (projectionWork?.url) {
                     const projectionReady = await this.decode(projectionWork.url);
                     if (projectionReady && this._running && !this._paused
-                        && generation === this._generation) {
+                        && generation === this._generation
+                        && projectionGeneration === this._projectionGeneration
+                        && projectionHost === this.projectionHost) {
                         this._crossfadeProjectionTo(projectionWork, first);
                         this._currentProjectionUrl = projectionWork.url;
-                        this._advanceInFlight = false;
+                        this._finishAdvance();
                         return;
                     }
                 }
             }
             if (first) this._fadeToNothing();
-            this._advanceInFlight = false;
+            this._finishAdvance();
             return;
         }
 
         const ok = await this.decode(url);
         // The moment that requested this must still exist, and nothing
         // newer must have superseded it.
-        if (!ok || !this._running || this._paused || generation !== this._generation) {
-            this._advanceInFlight = false;
+        if (!ok || !this._running || this._paused || generation !== this._generation
+            || projectionGeneration !== this._projectionGeneration
+            || projectionHost !== this.projectionHost) {
+            this._finishAdvance();
             // a decode failure holds the current work; the next tick retries
             return;
         }
@@ -769,17 +783,24 @@ export class ContinuousField {
                     projectionWork = null;
                 }
             }
+            if (projectionGeneration !== this._projectionGeneration
+                || projectionHost !== this.projectionHost) {
+                this._finishAdvance();
+                return;
+            }
             if (projectionWork?.living) {
                 this._crossfadeTo(work, first, { living: true });
                 this._currentUrl = url;
                 this._currentProjectionUrl = null;
-                this._advanceInFlight = false;
+                this._finishAdvance();
                 return;
             }
             if (!projectionWork?.url) projectionWork = this._drawProjectionWork();
             if (projectionWork?.url && projectionWork.url !== url) {
                 const projOk = await this.decode(projectionWork.url);
-                if (!projOk || !this._running || this._paused || generation !== this._generation) {
+                if (!projOk || !this._running || this._paused || generation !== this._generation
+                    || projectionGeneration !== this._projectionGeneration
+                    || projectionHost !== this.projectionHost) {
                     projectionWork = this._currentProjectionUrl
                         ? { url: this._currentProjectionUrl }
                         : null;
@@ -788,12 +809,25 @@ export class ContinuousField {
             if (!projectionWork?.url) projectionWork = work;
         }
 
+        if (projectionGeneration !== this._projectionGeneration
+            || projectionHost !== this.projectionHost) {
+            this._finishAdvance();
+            return;
+        }
+
         this._crossfadeTo(work, first, projectionWork);
         this._currentUrl = url;
         this._currentProjectionUrl = this._usesDistinctProjection()
             ? (projectionWork?.url || this._currentProjectionUrl)
             : url;
+        this._finishAdvance();
+    }
+
+    _finishAdvance() {
         this._advanceInFlight = false;
+        if (!this._pendingProjectionAdvance || !this._running || this._paused) return;
+        this._pendingProjectionAdvance = false;
+        this._advance(false);
     }
 
     _crossfadeProjectionTo(projectionWork, first) {
@@ -960,6 +994,10 @@ export class ContinuousField {
         const pending = this._pendingPoolChange;
         this._pendingPoolChange = null;
         if (pending) this.poolChanged(pending);
+        if (this._pendingProjectionAdvance && !this._advanceInFlight) {
+            this._pendingProjectionAdvance = false;
+            this._advance(false);
+        }
         if (!this.reducedMotion && this._rafId == null) this._loop();
         return true;
     }
@@ -970,6 +1008,7 @@ export class ContinuousField {
         this._paused = false;
         this._remainingDwellMs = 0;
         this._pendingPoolChange = null;
+        this._pendingProjectionAdvance = false;
         this._generation += 1;
         if (this._rafId != null) { this._caf(this._rafId); this._rafId = null; }
         this._resizeObserver?.disconnect();

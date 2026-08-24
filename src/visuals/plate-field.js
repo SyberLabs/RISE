@@ -241,6 +241,11 @@ export class PlateField {
         incoming.drawDwellMs = Math.max(1, this.dwellMs - incoming.holdPenMs);
         incoming._drawnComplete = false;
         this._draw(incoming);
+        if (!incoming._painted) {
+            incoming.canvas.style.opacity = '0';
+            incoming.engine = null;
+            return;
+        }
         incoming.canvas.style.transition = this.reducedMotion || first
             ? 'none'
             : `opacity ${this.crossfadeMs}ms ease-in-out`;
