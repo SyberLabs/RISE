@@ -43,6 +43,37 @@ function frame(at) {
 }
 
 describe('HarmonographField', () => {
+    it('reports only the first visible projection draw for the current host', () => {
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const onProjectionPaint = vi.fn();
+        const field = new HarmonographField(host, {
+            dwellMs: 8_000,
+            crossfadeMs: 1_200,
+            onProjectionPaint
+        });
+
+        field.setProjectionHost(projection);
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        field.start();
+
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        expect(onProjectionPaint).toHaveBeenCalledWith(projection);
+        expect(onProjectionPaint).not.toHaveBeenCalledWith(host);
+        expect([...projection.querySelectorAll('.harmonograph-plane')]
+            .some(canvas => canvas.style.opacity === '1')).toBe(true);
+        frame(16);
+        frame(32);
+        field.setProjectionHost(projection);
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        field.setProjectionHost(null);
+        field._rotate(false);
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        field.destroy();
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        projection.remove();
+    });
+
     it('starts the pen at the beginning of the dwell', () => {
         const field = new HarmonographField(host, { dwellMs: 8_000, crossfadeMs: 1_200 });
         field.start();

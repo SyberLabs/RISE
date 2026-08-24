@@ -45,12 +45,17 @@ export class HarmonographField {
         this.getClimate = typeof options.getClimate === 'function'
             ? options.getClimate
             : () => 'auto';
+        this.onProjectionPaint = typeof options.onProjectionPaint === 'function'
+            ? options.onProjectionPaint
+            : () => {};
 
         this.running = false;
         this.paused = false;
         this.projectionHost = null;
         this._planes = null;
         this._projectionPlanes = null;
+        this._projectionPainted = false;
+        this._projectionHostCleared = false;
         this._active = 0;
         this._cursor = 0;
         this._rafId = null;
@@ -121,10 +126,10 @@ export class HarmonographField {
 
     _draw(plane) {
         if (!plane?.engine) return;
-        plane.engine.render(plane.canvas, {
+        plane._painted = plane.engine.render(plane.canvas, {
             backgroundColor: KLEE_CHAMBER_BACKGROUND,
             progress: this._progress(plane)
-        });
+        }) !== false;
         this._syncProjectionFor(plane);
     }
 
@@ -135,8 +140,11 @@ export class HarmonographField {
     setProjectionHost(host) {
         if (host === this.host) host = null;
         if (this.projectionHost === host) return;
+        const previousHost = this.projectionHost;
         this._teardownProjectionPlanes();
         this.projectionHost = host || null;
+        this._projectionPainted = false;
+        this._projectionHostCleared = !!previousHost && !this.projectionHost;
         if (!this.projectionHost || !this._planes) return;
         this._ensureProjectionPlanes();
         for (const plane of this._planes) this._syncProjectionFor(plane);
@@ -181,7 +189,7 @@ export class HarmonographField {
             dest.canvas.width = plane.canvas.width;
             dest.canvas.height = plane.canvas.height;
         }
-        if (!plane.engine) return;
+        if (!plane.engine || !plane._painted) return;
         // Copy the plane we just drew rather than tracing the figure a
         // second time. Same pixels, one render. AttractorField blits the
         // same way.
@@ -190,6 +198,15 @@ export class HarmonographField {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, dest.canvas.width, dest.canvas.height);
         ctx.drawImage(plane.canvas, 0, 0);
+        if (dest.canvas.style.opacity === '1') this._reportProjectionPaint();
+    }
+
+    _reportProjectionPaint() {
+        if (this._projectionPainted) return;
+        const host = this.projectionHost || this.host;
+        if (!host || (!this.projectionHost && this._projectionHostCleared)) return;
+        this._projectionPainted = true;
+        this.onProjectionPaint(host);
     }
 
     _rotate(first) {
@@ -210,6 +227,8 @@ export class HarmonographField {
             ? 'none'
             : `opacity ${this.crossfadeMs}ms ease-in-out`;
         incoming.canvas.style.opacity = '1';
+        if (this.projectionHost) this._syncProjectionFor(incoming);
+        else if (incoming._painted) this._reportProjectionPaint();
         if (outgoing) {
             outgoing.canvas.style.opacity = '0';
             const retire = outgoing;

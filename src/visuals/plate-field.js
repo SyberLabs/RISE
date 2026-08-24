@@ -52,12 +52,17 @@ export class PlateField {
         this.getSignal = typeof options.getSignal === 'function'
             ? options.getSignal
             : () => null;
+        this.onProjectionPaint = typeof options.onProjectionPaint === 'function'
+            ? options.onProjectionPaint
+            : () => {};
 
         this.running = false;
         this.paused = false;
         this.projectionHost = null;
         this._planes = null;
         this._projectionPlanes = null;
+        this._projectionPainted = false;
+        this._projectionHostCleared = false;
         this._active = 0;
         this._cursor = 0;
         this._rafId = null;
@@ -139,6 +144,7 @@ export class PlateField {
             return;
         }
         const ok = plane.engine.render(plane.canvas, { progress });
+        plane._painted = ok !== false;
         if (progress >= 1 && ok) plane._drawnComplete = true;
         this._syncProjectionFor(plane);
     }
@@ -149,8 +155,11 @@ export class PlateField {
     setProjectionHost(host) {
         if (host === this.host) host = null;
         if (this.projectionHost === host) return;
+        const previousHost = this.projectionHost;
         this._teardownProjectionPlanes();
         this.projectionHost = host || null;
+        this._projectionPainted = false;
+        this._projectionHostCleared = !!previousHost && !this.projectionHost;
         if (!this.projectionHost || !this._planes) return;
         this._ensureProjectionPlanes();
         for (const plane of this._planes) this._syncProjectionFor(plane);
@@ -195,7 +204,7 @@ export class PlateField {
             dest.canvas.width = plane.canvas.width;
             dest.canvas.height = plane.canvas.height;
         }
-        if (!plane.engine) return;
+        if (!plane.engine || !plane._painted) return;
         // Copy the plane we just drew rather than running the engine a
         // second time. _draw() stops re-rendering a finished plate, but the
         // projection used to re-render it every frame for the rest of the
@@ -205,6 +214,15 @@ export class PlateField {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, dest.canvas.width, dest.canvas.height);
         ctx.drawImage(plane.canvas, 0, 0);
+        if (dest.canvas.style.opacity === '1') this._reportProjectionPaint();
+    }
+
+    _reportProjectionPaint() {
+        if (this._projectionPainted) return;
+        const host = this.projectionHost || this.host;
+        if (!host || (!this.projectionHost && this._projectionHostCleared)) return;
+        this._projectionPainted = true;
+        this.onProjectionPaint(host);
     }
 
     _rotate(first) {
@@ -227,6 +245,8 @@ export class PlateField {
             ? 'none'
             : `opacity ${this.crossfadeMs}ms ease-in-out`;
         incoming.canvas.style.opacity = '1';
+        if (this.projectionHost) this._syncProjectionFor(incoming);
+        else if (incoming._painted) this._reportProjectionPaint();
         if (outgoing) {
             outgoing.canvas.style.opacity = '0';
             const retire = outgoing;

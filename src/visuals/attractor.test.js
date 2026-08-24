@@ -25,6 +25,7 @@ const ctxStub = () => ({
   setTransform: vi.fn(), clearRect: vi.fn(), save: vi.fn(), restore: vi.fn(),
   translate: vi.fn(), rotate: vi.fn(), scale: vi.fn(), beginPath: vi.fn(),
   moveTo: vi.fn(), lineTo: vi.fn(), stroke: vi.fn(), fill: vi.fn(), arc: vi.fn(),
+  drawImage: vi.fn(),
   createRadialGradient: () => ({ addColorStop: vi.fn() }),
   globalCompositeOperation: '', strokeStyle: '', fillStyle: '',
   lineWidth: 0, lineCap: '', lineJoin: ''
@@ -89,6 +90,31 @@ describe('Attractor palettes', () => {
 });
 
 describe('Attractor forms', () => {
+  it('reports only the first completed projection frame for the current host', () => {
+    const host = makeHost();
+    const projection = document.createElement('div');
+    document.body.appendChild(projection);
+    const onProjectionPaint = vi.fn();
+    const field = new AttractorField(host, { onProjectionPaint });
+
+    field.setProjectionHost(projection);
+    expect(onProjectionPaint).not.toHaveBeenCalled();
+    field.tick(performance.now());
+
+    expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+    expect(onProjectionPaint.mock.calls[0][0]).toBe(projection);
+    expect(onProjectionPaint.mock.calls[0][0]).not.toBe(host);
+    expect(projection.querySelector('.attractor-canvas')).toBeTruthy();
+    field.tick(performance.now() + 16);
+    field.setProjectionHost(projection);
+    expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+    field.setProjectionHost(null);
+    field.tick(performance.now() + 32);
+    expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+    field.destroy();
+    expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+  });
+
   it('changes symmetry in place — the mid-session control', () => {
     const field = new AttractorField(makeHost(), {});
     const points = field.px;

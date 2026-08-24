@@ -518,6 +518,110 @@ describe('ContinuousField', () => {
 });
 
 describe('Continuous Field projection mount', () => {
+    it('reports the first decoded visible projection paint once for each host identity', async () => {
+        const onProjectionPaint = vi.fn();
+        const { field, host } = mount({
+            getPool: () => pool('a.jpg', 'b.jpg'),
+            onProjectionPaint
+        });
+        const projection = document.createElement('div');
+        const replacement = document.createElement('div');
+        document.body.append(projection, replacement);
+
+        field.setProjectionHost(projection);
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        field.start();
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        expect(onProjectionPaint).toHaveBeenLastCalledWith(projection);
+        expect([...projection.querySelectorAll('.continuous-field-layer')]
+            .some(layer => layer.style.opacity === '1')).toBe(true);
+        expect([...projection.querySelectorAll('.continuous-field-artwork')]
+            .some(image => image.getAttribute('src'))).toBe(true);
+        expect(onProjectionPaint).not.toHaveBeenCalledWith(host);
+
+        field._crossfadeTo({ url: 'next.jpg' }, false);
+        field.setProjectionHost(projection);
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+
+        field.setProjectionHost(replacement);
+        expect(onProjectionPaint).toHaveBeenCalledTimes(2);
+        expect(onProjectionPaint).toHaveBeenLastCalledWith(replacement);
+        field.setProjectionHost(null);
+        field._crossfadeTo({ url: 'after-teardown.jpg' }, false);
+        expect(onProjectionPaint).toHaveBeenCalledTimes(2);
+        field.stop();
+    });
+
+    it('does not report a failed decode as a projection paint', async () => {
+        const onProjectionPaint = vi.fn();
+        const { field } = mount({
+            getPool: () => pool('a.jpg'),
+            decode: vi.fn(async () => false),
+            onProjectionPaint
+        });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+
+        field.setProjectionHost(projection);
+        field.start();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        field.stop();
+    });
+
+    it('does not report a stale generation as a projection paint', async () => {
+        let finishDecode;
+        const decode = vi.fn(() => new Promise(resolve => { finishDecode = resolve; }));
+        const onProjectionPaint = vi.fn();
+        const { field } = mount({
+            getPool: () => pool('a.jpg'),
+            decode,
+            onProjectionPaint
+        });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+
+        field.setProjectionHost(projection);
+        field.start();
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        field.poolChanged();
+        finishDecode(true);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        field.stop();
+    });
+
+    it('does not report decoded work after projection teardown', async () => {
+        let finishDecode;
+        const decode = vi.fn(() => new Promise(resolve => { finishDecode = resolve; }));
+        const onProjectionPaint = vi.fn();
+        const { field } = mount({
+            getPool: () => pool('a.jpg'),
+            decode,
+            onProjectionPaint
+        });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+
+        field.setProjectionHost(projection);
+        field.start();
+        field.setProjectionHost(null);
+        finishDecode(true);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        field.stop();
+    });
+
     it('one instance paints the same url onto both mounts after _crossfadeTo', async () => {
         const { field, host } = mount({ getPool: () => pool('a.jpg', 'b.jpg') });
         const projection = document.createElement('div');

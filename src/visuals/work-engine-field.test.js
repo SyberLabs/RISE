@@ -134,6 +134,39 @@ describe('reduced motion is honoured, not approximated', () => {
     });
 });
 
+describe('projection readiness', () => {
+    it('reports only the first visible copied frame for the current projection host', async () => {
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const onProjectionPaint = vi.fn();
+        const field = new WorkEngineField(host, {
+            families: ['fake-work'],
+            onProjectionPaint
+        });
+
+        field.setProjectionHost(projection);
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        await field.start();
+
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        expect(onProjectionPaint).toHaveBeenCalledWith(projection);
+        expect(onProjectionPaint).not.toHaveBeenCalledWith(host);
+        expect([...projection.querySelectorAll('.work-engine-plane')]
+            .some(canvas => canvas.style.opacity === '1')).toBe(true);
+
+        frame(field, 1000);
+        frame(field, 1016);
+        field.setProjectionHost(projection);
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        field.setProjectionHost(null);
+        field._rotate(false);
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        field.destroy();
+        expect(onProjectionPaint).toHaveBeenCalledTimes(1);
+        projection.remove();
+    });
+});
+
 describe('the reading clock may hold a bound field', () => {
     it('pauses without discarding engines and resumes without catch-up', async () => {
         const field = new WorkEngineField(host, { families: ['fake-work'] });

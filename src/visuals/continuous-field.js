@@ -291,6 +291,9 @@ export class ContinuousField {
         this._nextCrossfadeMs = null;
         this.reducedMotion = !!options.reducedMotion;
         this.showArtworkLabels = options.showArtworkLabels !== false;
+        this.onProjectionPaint = typeof options.onProjectionPaint === 'function'
+            ? options.onProjectionPaint
+            : () => {};
 
         this._now = options.now || (() => performance.now());
         this._raf = options.raf || (cb => requestAnimationFrame(cb));
@@ -300,6 +303,8 @@ export class ContinuousField {
         this._projectionBag = new ShuffleBag();
         this._layers = null;      // [{ root, backdrop, artwork, label, work, projection? }, ...]
         this.projectionHost = null;
+        this._projectionPainted = false;
+        this._projectionHostCleared = false;
         this._front = 0;          // index of the visible layer
         this._currentUrl = null;
         this._currentProjectionUrl = null;
@@ -360,8 +365,11 @@ export class ContinuousField {
         // HarmonographField and AttractorField all guard the same way.
         if (host === this.host) host = null;
         if (this.projectionHost === host) return;
+        const previousHost = this.projectionHost;
         this._teardownProjectionLayers();
         this.projectionHost = host || null;
+        this._projectionPainted = false;
+        this._projectionHostCleared = !!previousHost && !this.projectionHost;
         if (!this.projectionHost) return;
         this._ensureProjectionLayers();
         if (this._layers) {
@@ -452,6 +460,20 @@ export class ContinuousField {
             proj.backdrop.hidden = true;
             proj.backdrop.removeAttribute('src');
         }
+        this._reportProjectionPaint();
+    }
+
+    _reportProjectionPaint() {
+        if (this._projectionPainted || !this._layers) return;
+        const host = this.projectionHost || this.host;
+        if (!host || (!this.projectionHost && this._projectionHostCleared)) return;
+        const visible = this.projectionHost
+            ? this._layers.some(layer => layer.projection?.root.style.opacity === '1'
+                && !!layer.projection.artwork.getAttribute('src'))
+            : this._layers.some(layer => layer.root.style.opacity === '1' && !!layer.work?.url);
+        if (!visible) return;
+        this._projectionPainted = true;
+        this.onProjectionPaint(host);
     }
 
     /** Mount the two layers (idempotent). */
@@ -784,6 +806,7 @@ export class ContinuousField {
                 front.projection.root.style.transition = 'none';
                 front.projection.root.style.opacity = '1';
             }
+            this._reportProjectionPaint();
             return;
         }
 
@@ -802,6 +825,7 @@ export class ContinuousField {
             outgoing.projection.root.style.opacity = '0';
         }
         this._front = 1 - this._front;
+        this._reportProjectionPaint();
     }
 
     _crossfadeTo(work, first, projectionWork = null) {
@@ -817,6 +841,7 @@ export class ContinuousField {
                 front.projection.root.style.transition = 'none';
                 front.projection.root.style.opacity = '1';
             }
+            this._reportProjectionPaint();
             return;
         }
         const incoming = this._layers[1 - this._front];
@@ -844,6 +869,7 @@ export class ContinuousField {
             }
         }
         this._front = 1 - this._front;
+        this._reportProjectionPaint();
     }
 
     _fadeToNothing() {

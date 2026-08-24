@@ -222,6 +222,11 @@ export class VisualCortex {
         this._continuousField = null;
         this._continuousFieldHost = null;
         this._continuousFieldProjectionHost = null;
+        this._projectionReadyHost = null;
+        this._projectionReadyPromise = null;
+        this._projectionReadyResolve = null;
+        this._projectionReadyReject = null;
+        this._projectionPainted = false;
         // The living layer beneath it, for engines authored FOR a work.
         // They step and redraw every frame rather than being snapshotted,
         // so they share the host but not the gallery's image abstraction.
@@ -1095,9 +1100,72 @@ export class VisualCortex {
      * mask to this host only. Clearing it does not stop the gallery.
      */
     setContinuousFieldProjectionHost(el) {
-        this._continuousFieldProjectionHost = el || null;
+        const host = el || null;
+        if (this._continuousFieldProjectionHost !== host) {
+            if (!host) {
+                this._cancelProjectionReadiness('Projection host cleared');
+            } else if (this._projectionReadyHost !== host) {
+                this._beginProjectionReadiness(host);
+            }
+            this._continuousFieldProjectionHost = host;
+        }
         this._continuousField?.setProjectionHost(this._continuousFieldProjectionHost);
         if (this._isContinuousMode()) this._syncLivingLayers(this._livingFieldGateOpen());
+    }
+
+    whenContinuousFieldProjectionReady(host) {
+        if (!host) {
+            const rejected = Promise.reject(createAbortError('Projection host required'));
+            rejected.catch(() => {});
+            return rejected;
+        }
+        if (this._projectionReadyHost !== host) this._beginProjectionReadiness(host);
+        if (this._projectionPainted) return Promise.resolve();
+        return this._projectionReadyPromise;
+    }
+
+    _beginProjectionReadiness(host) {
+        this._cancelProjectionReadiness('Projection host replaced');
+        let resolveReady;
+        let rejectReady;
+        const promise = new Promise((resolve, reject) => {
+            resolveReady = resolve;
+            rejectReady = reject;
+        });
+        // Cancellation is expected when Chamber replaces a glyph host. Keep
+        // that ordinary teardown from becoming an unhandled rejection while
+        // returning this original rejecting promise to callers.
+        promise.catch(() => {});
+        this._projectionReadyHost = host;
+        this._projectionReadyPromise = promise;
+        this._projectionReadyResolve = resolveReady;
+        this._projectionReadyReject = rejectReady;
+        this._projectionPainted = false;
+    }
+
+    _cancelProjectionReadiness(message) {
+        const reject = this._projectionReadyReject;
+        const pending = !!this._projectionReadyPromise && !this._projectionPainted;
+        this._projectionReadyHost = null;
+        this._projectionReadyPromise = null;
+        this._projectionReadyResolve = null;
+        this._projectionReadyReject = null;
+        this._projectionPainted = false;
+        if (pending) reject?.(createAbortError(message));
+    }
+
+    _reportContinuousFieldProjectionPaint(host) {
+        if (!host
+            || host !== this._continuousFieldProjectionHost
+            || host !== this._projectionReadyHost
+            || this._projectionPainted) {
+            return;
+        }
+        this._projectionPainted = true;
+        const resolve = this._projectionReadyResolve;
+        this._projectionReadyResolve = null;
+        this._projectionReadyReject = null;
+        resolve?.();
     }
 
     hasContinuousFieldProjectionHost() {
@@ -1763,7 +1831,8 @@ export class VisualCortex {
             // works, so this second decode is near-instant and cached.
             reducedMotion: this._continuousReducedMotion(),
             dwellMs: timings.dwellMs,
-            crossfadeMs: timings.crossfadeMs
+            crossfadeMs: timings.crossfadeMs,
+            onProjectionPaint: host => this._reportContinuousFieldProjectionPaint(host)
         });
         if (this._continuousFieldProjectionHost) {
             this._continuousField.setProjectionHost(this._continuousFieldProjectionHost);
@@ -1856,7 +1925,8 @@ export class VisualCortex {
                 dwellMs: timings.dwellMs,
                 crossfadeMs: timings.crossfadeMs,
                 reducedMotion: this._continuousReducedMotion(),
-                getSignal: () => this._nextContinuousSignal() || {}
+                getSignal: () => this._nextContinuousSignal() || {},
+                onProjectionPaint: host => this._reportContinuousFieldProjectionPaint(host)
             });
         }
         this._workEngineField.reducedMotion = this._continuousReducedMotion();
@@ -1897,7 +1967,8 @@ export class VisualCortex {
                 crossfadeMs: timings.crossfadeMs,
                 reducedMotion: this._continuousReducedMotion(),
                 getSignal: () => this._nextContinuousSignal(),
-                getClimate: () => this.config.harmonographClimate || 'auto'
+                getClimate: () => this.config.harmonographClimate || 'auto',
+                onProjectionPaint: host => this._reportContinuousFieldProjectionPaint(host)
             });
         }
         this._harmonographField.reducedMotion = this._continuousReducedMotion();
@@ -1936,7 +2007,8 @@ export class VisualCortex {
                 dwellMs: timings.dwellMs,
                 crossfadeMs: timings.crossfadeMs,
                 reducedMotion: this._continuousReducedMotion(),
-                getSignal: () => this._nextContinuousSignal()
+                getSignal: () => this._nextContinuousSignal(),
+                onProjectionPaint: host => this._reportContinuousFieldProjectionPaint(host)
             });
         }
         this._plateField.reducedMotion = this._continuousReducedMotion();
@@ -1971,7 +2043,8 @@ export class VisualCortex {
                 this._attractorField = new AttractorField(primaryHost, {
                     system: cfg.system,
                     palette: cfg.palette,
-                    form: cfg.form
+                    form: cfg.form,
+                    onProjectionPaint: host => this._reportContinuousFieldProjectionPaint(host)
                 });
             } catch (error) {
                 this._attractorField = null;
@@ -4044,6 +4117,7 @@ export class VisualCortex {
             this._sequenceVideoField = null;
         }
         this._continuousFieldHost = null;
+        this._cancelProjectionReadiness('Visual Cortex destroyed');
         this._continuousFieldProjectionHost = null;
         this._sequenceVideoHost = null;
         this._activeVideoCue = null;

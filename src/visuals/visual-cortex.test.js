@@ -1707,6 +1707,59 @@ describe('Continuous Field (Gallery) wiring', () => {
         return { cortex, host };
     }
 
+    it('resolves readiness only after the requested current projection host paints', async () => {
+        const { cortex } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-oldmasters', ['a.jpg']);
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['aic-oldmasters']
+        });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+
+        const pending = cortex.whenContinuousFieldProjectionReady(projection);
+        cortex.setContinuousFieldProjectionHost(projection);
+        await expect(pending).resolves.toBeUndefined();
+
+        expect([...projection.querySelectorAll('.continuous-field-layer')]
+            .some(layer => layer.style.opacity === '1')).toBe(true);
+        await expect(cortex.whenContinuousFieldProjectionReady(projection))
+            .resolves.toBeUndefined();
+        cortex.destroy();
+    });
+
+    it('rejects a pending readiness promise when its host is replaced or cleared', async () => {
+        const cortex = new VisualCortex();
+        const first = document.createElement('div');
+        const second = document.createElement('div');
+        document.body.append(first, second);
+
+        const firstPending = cortex.whenContinuousFieldProjectionReady(first);
+        expect(cortex.whenContinuousFieldProjectionReady(first)).toBe(firstPending);
+        cortex.setContinuousFieldProjectionHost(first);
+        cortex.setContinuousFieldProjectionHost(second);
+        await expect(firstPending).rejects.toMatchObject({ name: 'AbortError' });
+
+        const secondPending = cortex.whenContinuousFieldProjectionReady(second);
+        let settled = false;
+        secondPending.then(() => { settled = true; });
+        cortex._reportContinuousFieldProjectionPaint(first);
+        await Promise.resolve();
+        expect(settled).toBe(false);
+        cortex._reportContinuousFieldProjectionPaint(second);
+        await expect(secondPending).resolves.toBeUndefined();
+
+        const third = document.createElement('div');
+        cortex.setContinuousFieldProjectionHost(third);
+        const thirdPending = cortex.whenContinuousFieldProjectionReady(third);
+        cortex.setContinuousFieldProjectionHost(null);
+        await expect(thirdPending).rejects.toMatchObject({ name: 'AbortError' });
+        await expect(cortex.whenContinuousFieldProjectionReady(null))
+            .rejects.toMatchObject({ name: 'AbortError' });
+        cortex.destroy();
+    });
+
     it('does NOT start the field until mode, host, and consent all hold', () => {
         const { cortex, host } = hostedContinuousCortex();
         // host present + consent, but not in continuous mode

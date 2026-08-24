@@ -50,10 +50,17 @@ export class WorkEngineField {
         this.getSignal = typeof options.getSignal === 'function'
             ? options.getSignal
             : () => ({});
+        this.onProjectionPaint = typeof options.onProjectionPaint === 'function'
+            ? options.onProjectionPaint
+            : () => {};
 
         this.running = false;
         this.paused = false;
+        this.projectionHost = null;
         this._planes = null;
+        this._projectionPlanes = null;
+        this._projectionPainted = false;
+        this._projectionHostCleared = false;
         this._active = 0;
         this._rafId = null;
         this._lastFrameAt = 0;
@@ -85,6 +92,7 @@ export class WorkEngineField {
             return { canvas, engine: null, entry: null };
         };
         this._planes = [make(), make()];
+        this._ensureProjectionPlanes();
 
         if (typeof ResizeObserver === 'function') {
             this._resizeObserver = new ResizeObserver(this._resize);
@@ -207,11 +215,15 @@ export class WorkEngineField {
 
         // Draw one frame before revealing, so the crossfade never opens
         // on an empty canvas.
-        this._draw(incoming);
+        const painted = this._draw(incoming);
         incoming.canvas.style.transition = this.reducedMotion || first
             ? 'none'
             : `opacity ${this.crossfadeMs}ms ease-in-out`;
         incoming.canvas.style.opacity = '1';
+        if (painted) {
+            if (this.projectionHost) this._syncProjectionFor(incoming);
+            else this._reportProjectionPaint();
+        }
         if (outgoing) {
             outgoing.canvas.style.opacity = '0';
             // Release the retired engine only once it is invisible.
@@ -227,17 +239,90 @@ export class WorkEngineField {
     }
 
     _draw(plane) {
-        if (!plane?.engine) return;
+        if (!plane?.engine) return false;
         try {
-            plane.engine.render(plane.canvas, {
+            const painted = plane.engine.render(plane.canvas, {
                 width: plane.canvas.width,
                 height: plane.canvas.height
-            });
+            }) !== false;
+            plane._painted = painted;
+            if (painted) this._syncProjectionFor(plane);
+            return painted;
         } catch (error) {
             console.warn(`[WorkEngines] ${plane.entry?.familyId}/${plane.entry?.id} failed:`,
                 error?.message || error);
             plane.engine = null;
+            plane._painted = false;
+            return false;
         }
+    }
+
+    setProjectionHost(host) {
+        if (host === this.host) host = null;
+        if (this.projectionHost === host) return;
+        const previousHost = this.projectionHost;
+        this._teardownProjectionPlanes();
+        this.projectionHost = host || null;
+        this._projectionPainted = false;
+        this._projectionHostCleared = !!previousHost && !this.projectionHost;
+        if (!this.projectionHost || !this._planes) return;
+        this._ensureProjectionPlanes();
+        for (const plane of this._planes) this._syncProjectionFor(plane);
+    }
+
+    _teardownProjectionPlanes() {
+        if (this._projectionPlanes) {
+            for (const plane of this._projectionPlanes) {
+                try { plane.canvas.remove(); } catch { /* detached */ }
+            }
+        }
+        this._projectionPlanes = null;
+        if (this.projectionHost) {
+            this.projectionHost.querySelectorAll('.work-engine-plane').forEach((node) => {
+                try { node.remove(); } catch { /* detached */ }
+            });
+        }
+    }
+
+    _ensureProjectionPlanes() {
+        if (!this.projectionHost || !this._planes || this._projectionPlanes) return;
+        this._projectionPlanes = this._planes.map((plane) => {
+            const canvas = document.createElement('canvas');
+            canvas.className = 'work-engine-plane';
+            canvas.setAttribute('aria-hidden', 'true');
+            canvas.style.opacity = plane.canvas.style.opacity || '0';
+            canvas.style.transition = plane.canvas.style.transition
+                || `opacity ${this.crossfadeMs}ms ease-in-out`;
+            this.projectionHost.appendChild(canvas);
+            return { canvas };
+        });
+    }
+
+    _syncProjectionFor(plane) {
+        if (!plane?._painted || !this._projectionPlanes || !this._planes) return;
+        const dest = this._projectionPlanes[this._planes.indexOf(plane)];
+        if (!dest) return;
+        dest.canvas.style.opacity = plane.canvas.style.opacity;
+        dest.canvas.style.transition = plane.canvas.style.transition;
+        if (dest.canvas.width !== plane.canvas.width
+            || dest.canvas.height !== plane.canvas.height) {
+            dest.canvas.width = plane.canvas.width;
+            dest.canvas.height = plane.canvas.height;
+        }
+        const ctx = dest.canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, dest.canvas.width, dest.canvas.height);
+        ctx.drawImage(plane.canvas, 0, 0);
+        if (dest.canvas.style.opacity === '1') this._reportProjectionPaint();
+    }
+
+    _reportProjectionPaint() {
+        if (this._projectionPainted) return;
+        const host = this.projectionHost || this.host;
+        if (!host || (!this.projectionHost && this._projectionHostCleared)) return;
+        this._projectionPainted = true;
+        this.onProjectionPaint(host);
     }
 
     _tick(timestamp) {
@@ -381,6 +466,8 @@ export class WorkEngineField {
         this._resizeObserver = null;
         window.removeEventListener('resize', this._resize);
         document.removeEventListener('visibilitychange', this._onVisibility);
+        this._teardownProjectionPlanes();
+        this.projectionHost = null;
         if (this._planes) {
             for (const plane of this._planes) plane.canvas.remove();
         }
