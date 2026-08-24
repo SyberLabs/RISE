@@ -63,6 +63,8 @@ export class WorkEngineField {
         this._projectionHostCleared = false;
         this._projectionGeneration = 0;
         this._loadGeneration = 0;
+        this._loadInFlight = false;
+        this._pendingProjectionLoad = false;
         this._active = 0;
         this._rafId = null;
         this._lastFrameAt = 0;
@@ -115,16 +117,20 @@ export class WorkEngineField {
             if (plane.canvas.width === w && plane.canvas.height === h) continue;
             plane.canvas.width = w;
             plane.canvas.height = h;
+            const dest = this._projectionPlanes?.[this._planes.indexOf(plane)]?.canvas;
+            if (dest) {
+                dest.width = w;
+                dest.height = h;
+            }
             // An engine holding geometry sized to the old canvas must be
             // asked to lay itself out again.
             plane.engine?.generate?.({}, plane.engine.seed);
             if (plane.engine) {
-                this._draw(plane);
-            } else if (this._projectionPlanes) {
-                const dest = this._projectionPlanes[this._planes.indexOf(plane)]?.canvas;
-                if (dest) {
-                    dest.width = w;
-                    dest.height = h;
+                const painted = this._draw(plane);
+                if (!painted && dest) {
+                    dest.style.opacity = '0';
+                    const ctx = dest.getContext('2d');
+                    ctx?.clearRect(0, 0, dest.width, dest.height);
                 }
             }
         }
@@ -275,6 +281,9 @@ export class WorkEngineField {
         this._teardownProjectionPlanes();
         this.projectionHost = host || null;
         this._projectionGeneration += 1;
+        this._pendingProjectionLoad = !!(
+            this.running && this._loadInFlight && this.projectionHost
+        );
         this._projectionPainted = false;
         this._projectionHostCleared = !!previousHost && !this.projectionHost;
         if (!this.projectionHost || !this._planes) return;
@@ -375,21 +384,45 @@ export class WorkEngineField {
         this.running = true;
         this.paused = false;
         this._mount();
+        return this._loadAndReveal(true, false);
+    }
+
+    async _loadAndReveal(first, stopWhenEmpty) {
         const loadGeneration = ++this._loadGeneration;
         const projectionGeneration = this._projectionGeneration;
         const projectionHost = this.projectionHost;
-        await this._loadEngines();
+        this._loadInFlight = true;
+        try {
+            await this._loadEngines();
+        } catch (error) {
+            if (loadGeneration === this._loadGeneration) this._loadInFlight = false;
+            throw error;
+        }
+        if (loadGeneration !== this._loadGeneration) return;
+        this._loadInFlight = false;
+        if (!this.running) return;
+        if (projectionGeneration !== this._projectionGeneration
+            || projectionHost !== this.projectionHost) {
+            if (this._pendingProjectionLoad && this.projectionHost) {
+                this._pendingProjectionLoad = false;
+                this._loading = null;
+                this._engines = [];
+                return this._loadAndReveal(first, stopWhenEmpty);
+            }
+            return;
+        }
+        this._pendingProjectionLoad = false;
         // A family that will not load leaves the field still rather than
         // substituting a general generator (work-engines.js).
-        if (!this._engines.length || !this.running
-            || loadGeneration !== this._loadGeneration
-            || projectionGeneration !== this._projectionGeneration
-            || projectionHost !== this.projectionHost) return;
+        if (!this._engines.length) {
+            if (stopWhenEmpty) this.stop();
+            return;
+        }
 
         this._cursor = 0;
-        this._rotate(true);
+        this._rotate(first);
 
-        if (this.reducedMotion) {
+        if (this.reducedMotion || this.paused) {
             // One frame, held. The imagery is present; nothing moves.
             return;
         }
@@ -408,6 +441,8 @@ export class WorkEngineField {
         this.paused = false;
         this._remainingRotateMs = 0;
         this._loadGeneration += 1;
+        this._loadInFlight = false;
+        this._pendingProjectionLoad = false;
         this._cancel();
         if (this._planes) {
             for (const plane of this._planes) {
@@ -467,25 +502,7 @@ export class WorkEngineField {
         this._engines = [];
         if (!this.running) return;
         this._cancel();
-        const loadGeneration = ++this._loadGeneration;
-        const projectionGeneration = this._projectionGeneration;
-        const projectionHost = this.projectionHost;
-        await this._loadEngines();
-        if (!this.running
-            || loadGeneration !== this._loadGeneration
-            || projectionGeneration !== this._projectionGeneration
-            || projectionHost !== this.projectionHost) return;
-        if (!this._engines.length) {
-            this.stop();
-            this.running = false;
-            return;
-        }
-        this._cursor = 0;
-        this._rotate(false);
-        if (this.reducedMotion || this.paused) return;
-        this._lastFrameAt = 0;
-        this._nextRotateAt = performance.now() + this.dwellMs;
-        this._rafId = requestAnimationFrame(this._tick);
+        return this._loadAndReveal(false, true);
     }
 
     setCadence({ dwellMs, crossfadeMs } = {}) {

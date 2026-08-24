@@ -1793,6 +1793,25 @@ describe('Continuous Field (Gallery) wiring', () => {
         cortex.destroy();
     });
 
+    it('returns one pending original after host-first setup until that field paints', async () => {
+        const cortex = new VisualCortex();
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        cortex.setContinuousFieldProjectionHost(projection);
+
+        const pending = cortex.whenContinuousFieldProjectionReady(projection);
+        expect(cortex.whenContinuousFieldProjectionReady(projection)).toBe(pending);
+        let settled = false;
+        pending.then(() => { settled = true; }, () => {});
+        await Promise.resolve();
+        expect(settled).toBe(false);
+
+        cortex._reportContinuousFieldProjectionPaint(projection);
+
+        await expect(pending).resolves.toBeUndefined();
+        cortex.destroy();
+    });
+
     it('rejects pending readiness when the cortex is destroyed', async () => {
         const cortex = new VisualCortex();
         const projection = document.createElement('div');
@@ -1829,7 +1848,8 @@ describe('Continuous Field (Gallery) wiring', () => {
             enabled: true,
             presentation: 'continuous',
             activeTypes: ['paradise-lost'],
-            workEngines: ['flaming_sword']
+            workEngines: ['flaming_sword'],
+            wordFill: { mode: 'same' }
         });
         await Promise.resolve();
         await Promise.resolve();
@@ -1841,6 +1861,58 @@ describe('Continuous Field (Gallery) wiring', () => {
         expect([...projection.querySelectorAll('.work-engine-plane')]
             .some(canvas => canvas.style.opacity === '1')).toBe(true);
         expect(host.querySelectorAll('.work-engine-plane')).toHaveLength(2);
+        cortex.destroy();
+        load.mockRestore();
+    });
+
+    it('leaves distinct sourced fill readiness to that fill, not the room WorkEngine', async () => {
+        class ReadyWorkEngine {
+            generate() {}
+            render() { return true; }
+        }
+        const load = vi.spyOn(WorkEngineField.prototype, '_loadEngines')
+            .mockImplementation(async function loadEngines() {
+                this._engines = [{
+                    familyId: 'paradise-lost',
+                    id: 'flaming_sword',
+                    engineClass: ReadyWorkEngine
+                }];
+                return this._engines;
+            });
+        let finishDecode;
+        decodeSpy.mockImplementation(() => new Promise(resolve => { finishDecode = resolve; }));
+        const { cortex } = hostedContinuousCortex();
+        seedPool(cortex, 'aic-oldmasters', ['fill.jpg']);
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        cortex.setContinuousFieldProjectionHost(projection);
+        const pending = cortex.whenContinuousFieldProjectionReady(projection);
+        let settled = false;
+        pending.then(() => { settled = true; }, () => {});
+
+        cortex.updateConfig({
+            enabled: true,
+            presentation: 'continuous',
+            activeTypes: ['paradise-lost'],
+            workEngines: ['flaming_sword'],
+            wordFill: {
+                mode: 'pick',
+                sourceFamily: 'sourced',
+                procedural: [],
+                sourced: ['aic-oldmasters'],
+                border: 'cream'
+            }
+        });
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(settled).toBe(false);
+        expect(projection.querySelectorAll('.work-engine-plane')).toHaveLength(0);
+
+        finishDecode(true);
+        await expect(pending).resolves.toBeUndefined();
+        expect([...projection.querySelectorAll('.continuous-field-layer')]
+            .some(layer => layer.style.opacity === '1')).toBe(true);
         cortex.destroy();
         load.mockRestore();
     });

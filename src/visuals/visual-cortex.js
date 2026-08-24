@@ -1365,6 +1365,7 @@ export class VisualCortex {
         const types = this._wordFillTypes();
         return types.includes('harmonograph')
             || types.includes('attractor')
+            || this._wordFillUsesRoomWorkField()
             || PLATE_FAMILIES.some(id => types.includes(id));
     }
 
@@ -1372,6 +1373,21 @@ export class VisualCortex {
     _continuousWorkFamilies() {
         const active = this.config.activeTypes || [];
         return workEngineFamilies().filter(type => active.includes(type));
+    }
+
+    _wordFillWorkFamilies() {
+        if (this.config.renderLanguage === 'ascii') return [];
+        if (!this._wordFillIsDistinct()) return this._continuousWorkFamilies();
+        const types = this._wordFillTypes();
+        return workEngineFamilies().filter(type => types.includes(type));
+    }
+
+    _wordFillUsesRoomWorkField() {
+        const room = this._continuousWorkFamilies();
+        const fill = this._wordFillWorkFamilies();
+        return room.length > 0
+            && room.length === fill.length
+            && room.every((family, index) => family === fill[index]);
     }
 
     _activeSequenceAssets() {
@@ -1933,7 +1949,12 @@ export class VisualCortex {
             });
         }
         this._workEngineField.reducedMotion = this._continuousReducedMotion();
-        this._workEngineField.setProjectionHost(this._continuousFieldProjectionHost);
+        const projectionHost = this._livingProjectionHost(
+            shouldRun,
+            shouldRun && this._wordFillUsesRoomWorkField(),
+            this._continuousFieldHost
+        );
+        this._workEngineField.setProjectionHost(projectionHost);
         const engines = this.config.workEngines || [];
         if (this._workEngineField.running) {
             this._workEngineField.setFamilies(families, engines);
