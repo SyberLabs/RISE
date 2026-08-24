@@ -241,7 +241,7 @@ describe('App safety orchestration', () => {
   it('persists an allowlisted Chamber accent on :root with chamberFace and fontSize', () => {
     const app = new App();
     app.loadSettings();
-    expect(app.settings.chamberAccent).toBe('ivory');
+    expect(app.settings.chamberAccent).toBe('slate');
     expect(app.settings.chamberFace).toBe('literary');
     expect(app.settings.fontSize).toBe('medium');
 
@@ -268,15 +268,16 @@ describe('App safety orchestration', () => {
     expect(document.documentElement.dataset.accent).toBe('gecko');
   });
 
-  it('coerces an unknown Chamber accent to ivory on load and change', () => {
+  it('coerces an unknown Chamber accent to slate on load and change', () => {
     const app = new App();
     localStorage.setItem('rise-settings', JSON.stringify({ chamberAccent: 'violet' }));
     app.loadSettings();
-    expect(app.settings.chamberAccent).toBe('ivory');
+    expect(app.settings.chamberAccent).toBe('slate');
 
     app.handleSettingsChange('chamberAccent', 'chartreuse');
-    expect(app.settings.chamberAccent).toBe('ivory');
-    expect(document.documentElement.dataset.accent).toBe('ivory');
+    expect(app.settings.chamberAccent).toBe('slate');
+    // Slate is the bare :root — coercing to it clears the attribute entirely.
+    expect(document.documentElement.dataset.accent).toBeUndefined();
   });
 });
 
