@@ -54,6 +54,10 @@ beforeEach(async () => {
 
 afterEach(() => {
     admitRoom()?.remove();
+    // The contents sheet is pinned to document.body, not the Library
+    // container. Leaving it up lets the next test see the previous work's
+    // table of contents — which is how "a work of one part" failed in CI.
+    document.querySelector('.toc-scrim')?.remove();
     container?.remove();
 });
 
@@ -149,5 +153,74 @@ describe('when the shelf is unavailable', () => {
         await settled();
         expect(onSelectText).toHaveBeenCalledWith(TEXT, 'Local: poems');
         vi.restoreAllMocks();
+    });
+});
+
+describe('reading a work the reader divided', () => {
+    /** Shelve the poems, cut at every title, and come back to the shelf. */
+    const shelveDivided = async () => {
+        await library.handleFileUpload(dropped());
+        click('[data-magnet="title"]');
+        click('[data-action="admit"]');
+        await settled();
+        return library.localWorks[0].id;
+    };
+
+    it('opens at its contents rather than handing back the whole book', async () => {
+        // The parts are named and addressable by now. Handing back one
+        // undifferentiated run would show a reader a book they had already
+        // indexed — and would be the only door in this Library that does.
+        const id = await shelveDivided();
+        await library.handleLocalWork('open-local', id);
+
+        expect(document.querySelector('.toc-scrim')).not.toBeNull();
+        expect(onSelectText).not.toHaveBeenCalled();
+        const rows = [...document.querySelectorAll('.toc-scrim [data-entry]')];
+        expect(rows.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('reads one part, named, when the reader picks it', async () => {
+        await shelveDivided();
+        await library.handleLocalWork('open-local', library.localWorks[0].id);
+        library.readEntry(1);
+
+        const [content, label] = onSelectText.mock.calls[0];
+        expect(content).toContain('the bark peels in strips');
+        expect(content).not.toContain('Pyramid');
+        expect(label).toContain('Sycamore');
+    });
+
+    it('still offers the whole work, with every word of it', async () => {
+        await shelveDivided();
+        await library.handleLocalWork('open-local', library.localWorks[0].id);
+        library.readWhole();
+
+        const [content] = onSelectText.mock.calls[0];
+        for (const line of ['Pyramid', 'Sycamore', 'Railroad']) {
+            expect(content).toContain(line);
+        }
+    });
+
+    it('counts the words of every part, so the sheet can say how long it is', async () => {
+        // An entry without `words` totalled NaN, which renders as a work of
+        // no length at all beside a reader's own book.
+        await shelveDivided();
+        const divisions = await library.localRuntime(library.localWorks[0].id).getDivisions();
+        for (const entry of divisions.entries) {
+            expect(Number.isFinite(entry.words), entry.label).toBe(true);
+            expect(entry.words).toBeGreaterThan(0);
+        }
+    });
+
+    it('hands back the whole text for a work of one part', async () => {
+        // Nothing to index, so no sheet: the contents of a single part is the
+        // part, and a sheet with one row is a door in front of a door.
+        await library.handleFileUpload(dropped());
+        click('[data-action="admit"]');
+        await settled();
+
+        await library.handleLocalWork('open-local', library.localWorks[0].id);
+        expect(document.querySelector('.toc-scrim')).toBeNull();
+        expect(onSelectText).toHaveBeenCalledWith(TEXT, 'poems');
     });
 });

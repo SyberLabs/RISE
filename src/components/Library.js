@@ -16,6 +16,7 @@ import { uncertifiedCount } from '../content/archive/index.js';
 import { escapeHtml } from '../core/sanitize.js';
 import { MemoryCore } from '../core/memory.js';
 import { LocalWorks } from '../core/local-work-store.js';
+import { localWorkRuntime } from '../core/local-works.js';
 import { Admit } from './Admit.js';
 import './Library.css';
 
@@ -569,7 +570,15 @@ export class Library {
     const work = this.localWorks.find(record => record.id === id);
     if (!work) return;
 
-    if (action === 'open-local') return this.onSelectText(work.text, work.title);
+    if (action === 'open-local') {
+      // A divided work opens at its contents, exactly as a divided archive
+      // work does — the parts are named and addressable, and handing back the
+      // whole text would be showing a reader a book they had already indexed
+      // as one undifferentiated run. `openWork` returns false for a work of
+      // one part, which falls through to the whole text below.
+      if (await this.openWork(id)) return;
+      return this.onSelectText(work.text, work.title);
+    }
     if (action === 'edit-local') return void this.openAdmit({ record: work });
     if (action === 'drop-local') {
       // A reader's own writing, and the only copy this device holds of the
@@ -722,8 +731,22 @@ export class Library {
    * straight to the Chamber, because a table of contents with one row
    * is a door with a sign on it saying "door".
    */
+  /**
+   * A shelved work, in the shape this room already knows how to open.
+   *
+   * `localWorkRuntime` answers the same questions an archive work answers —
+   * that is what it exists for — so the contents sheet, `readEntry` and
+   * `readWhole` all work on it unchanged. One code path opening two kinds of
+   * work is the only arrangement in which they cannot drift apart.
+   */
+  localRuntime(id) {
+    const record = this.localWorks.find(work => work.id === id);
+    return record ? localWorkRuntime(record) : null;
+  }
+
   async openWork(textId) {
-    const text = (LIBRARY_TEXTS || []).find(t => t.id === textId);
+    const text = (LIBRARY_TEXTS || []).find(t => t.id === textId)
+      || this.localRuntime(textId);
     if (!text || typeof text.getDivisions !== 'function') return false;
 
     const card = this.container.querySelector(`[data-text-id="${textId}"]`);
