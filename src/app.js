@@ -95,6 +95,7 @@ class App {
         this.handleNavigate = this.handleNavigate.bind(this);
         this.handleCreateSession = this.handleCreateSession.bind(this);
         this.handleSettingsChange = this.handleSettingsChange.bind(this);
+        this.handleSettingsTransaction = this.handleSettingsTransaction.bind(this);
         this.handleDataCleared = this.handleDataCleared.bind(this);
     }
 
@@ -1394,11 +1395,11 @@ class App {
     /**
      * Handle settings changes
      */
-    handleSettingsChange(key, value) {
+    normalizeSettingsChange(key, value) {
         // A pace is bounded where it is chosen, not where it is read. Stored
         // unbounded, a 5,000 would sit in Settings looking accepted and be
         // overridden to 1,000 by every surface that later read it.
-        this.settings[key] = key === 'defaultWpm'
+        return key === 'defaultWpm'
             ? clampReadingWpm(value, this.settings.defaultWpm)
             : key === 'chamberFace'
                 ? resolveChamberStreamFace(value)
@@ -1409,29 +1410,41 @@ class App {
                     : key === 'fontSize'
                         ? resolveFontSize(value)
                         : value;
+    }
+
+    handleSettingsTransaction(changes) {
+        const next = Object.fromEntries(
+            Object.entries(changes).map(([key, value]) => [key, this.normalizeSettingsChange(key, value)])
+        );
+        const keys = Object.keys(next);
+        Object.assign(this.settings, next);
         this.saveSettings();
 
         // Apply certain settings immediately
-        if (['reducedMotion', 'photosensitivityMode', 'fontSize', 'chamberFace', 'chamberAccent', 'showProgress', 'showDuration'].includes(key)) {
+        if (keys.some(key => ['reducedMotion', 'photosensitivityMode', 'fontSize', 'chamberFace', 'chamberAccent', 'showProgress', 'showDuration'].includes(key))) {
             this.applyAccessibilitySettings();
         }
 
-        if (key === 'masterVolume' && this.audioEngine) {
-            this.audioEngine.setMasterVolume(value);
+        if (Object.hasOwn(next, 'masterVolume') && this.audioEngine) {
+            this.audioEngine.setMasterVolume(this.settings.masterVolume);
         }
-        if (key === 'chamberFace' || key === 'chamberMask' || key === 'fontSize') {
+        if (keys.some(key => ['chamberFace', 'chamberMask', 'fontSize'].includes(key))) {
             const chamber = this.router?.getViewInstance?.('chamber-session');
             chamber?.applyChamberStreamFace?.();
             chamber?.applyChamberMask?.();
-            if (key === 'fontSize') chamber?.applyChamberTypeSize?.();
+            if (Object.hasOwn(next, 'fontSize')) chamber?.applyChamberTypeSize?.();
         }
-        if (key === 'showArtworkLabels') {
-            this._visualCortex?.setArtworkLabelsVisible(value);
+        if (Object.hasOwn(next, 'showArtworkLabels')) {
+            this._visualCortex?.setArtworkLabelsVisible(this.settings.showArtworkLabels);
         }
-        if (key === 'enableAmbient' && this.audioEngine?.isInitialized && !this.audioEngine.sessionActive) {
-            if (value) this.audioEngine.startAmbientPlaylist();
+        if (Object.hasOwn(next, 'enableAmbient') && this.audioEngine?.isInitialized && !this.audioEngine.sessionActive) {
+            if (this.settings.enableAmbient) this.audioEngine.startAmbientPlaylist();
             else this.audioEngine.stopAmbient(true);
         }
+    }
+
+    handleSettingsChange(key, value) {
+        this.handleSettingsTransaction({ [key]: value });
     }
 
     handleDataCleared() {

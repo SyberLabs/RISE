@@ -83,21 +83,26 @@ describe('the text', () => {
     expect(handleSettingsChange).toHaveBeenCalledWith('chamberFace', 'display');
   });
 
-  it('makes Fit explicit, canonicalises Gallery, and fires the temporal coupling', () => {
-    const onFitRequested = vi.fn();
+  it('makes Fit one canonical text-material transaction', () => {
+    const onTextMaterialTransaction = vi.fn();
     window.rise = {
       settings: { chamberFace: 'literary', fontSize: 'medium' },
       handleSettingsChange: vi.fn()
     };
-    mount({}, { onFitRequested });
+    mount({}, { onTextMaterialTransaction });
     click(node('size'));
     click(nav.container.querySelector('[data-font-size="fit"]'));
-    expect(window.rise.handleSettingsChange).toHaveBeenCalledWith('fontSize', 'fit');
-    expect(onFitRequested).toHaveBeenCalledOnce();
-    expect(lastPatch()).toMatchObject({
-      visualMode: 'interlocution',
-      interlocution: { presentation: 'continuous' }
-    });
+    expect(onTextMaterialTransaction).toHaveBeenCalledOnce();
+    expect(onTextMaterialTransaction).toHaveBeenCalledWith(expect.objectContaining({
+      settings: { chamberFace: 'literary', fontSize: 'fit', chamberMask: false },
+      temporal: { chunkMode: 'word', recitation: false },
+      visualConfig: expect.objectContaining({
+        visualMode: 'interlocution',
+        interlocution: expect.objectContaining({ presentation: 'continuous' })
+      })
+    }));
+    expect(window.rise.handleSettingsChange).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it('keeps Accent available before Fit and opens visual-mask engine benches at Fit', () => {

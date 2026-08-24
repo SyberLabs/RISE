@@ -17,6 +17,7 @@ if (typeof globalThis.indexedDB === 'undefined') {
 
 const { ChamberOrbital, createDefaultConfig } = await import('./ChamberOrbital.js');
 const { STANCES, matchStance } = await import('../core/stances.js');
+const { default: App } = await import('../app.js');
 
 function createOrbital(onBeginSession = vi.fn()) {
     const container = document.createElement('div');
@@ -146,7 +147,14 @@ describe('choosing a stance', () => {
 
     it('persists a Thick + Fit text-material transaction as one synchronized state change', () => {
         const { container, orbital } = createOrbital();
-        globalThis.rise = { settings: { chamberFace: 'literary', fontSize: 'medium' } };
+        Object.defineProperty(window, 'matchMedia', {
+            configurable: true,
+            value: vi.fn(() => ({ matches: false }))
+        });
+        const app = new App();
+        app.loadSettings();
+        const handleSettingsTransaction = vi.spyOn(app, 'handleSettingsTransaction');
+        globalThis.rise = app;
         orbital.loadText('Begin the morning', 'Meditations');
         orbital.config.chunkMode = 'phrase';
         orbital.config.recitation = { enabled: true };
@@ -167,6 +175,11 @@ describe('choosing a stance', () => {
         expect(saved.chunkMode).toBe('word');
         expect(saved.visualInterlocution.interlocution.wordFill)
             .toEqual({ mode: 'same', border: 'cream' });
+        expect(handleSettingsTransaction).toHaveBeenCalledOnce();
+        expect(handleSettingsTransaction).toHaveBeenCalledWith({ chamberFace: 'thick', fontSize: 'fit' });
+        const restored = new App();
+        restored.loadSettings();
+        expect(restored.settings).toMatchObject({ chamberFace: 'thick', fontSize: 'fit' });
         expect(syncSpy).toHaveBeenCalledTimes(1);
         expect(persistSpy).toHaveBeenCalledTimes(1);
         orbital.destroy();
@@ -186,7 +199,10 @@ describe('choosing a stance', () => {
             }
         ]) {
             const { container, orbital } = createOrbital();
-            globalThis.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+            globalThis.rise = {
+                settings: { chamberFace: 'thick', fontSize: 'fit' },
+                handleSettingsTransaction: vi.fn(settings => Object.assign(globalThis.rise.settings, settings))
+            };
             orbital.loadText('Begin the morning', 'Meditations', {
                 visualConfig: {
                     visualMode: 'interlocution',
@@ -197,7 +213,19 @@ describe('choosing a stance', () => {
                 settings: globalThis.rise.settings,
                 config: orbital.config
             });
-            const syncSpy = vi.spyOn(orbital, 'syncUIWithConfig');
+            const syncUIWithConfig = orbital.syncUIWithConfig.bind(orbital);
+            const syncSnapshots = [];
+            const syncSpy = vi.spyOn(orbital, 'syncUIWithConfig').mockImplementation(() => {
+                syncSnapshots.push(structuredClone({
+                    settings: globalThis.rise.settings,
+                    temporal: {
+                        chunkMode: orbital.config.chunkMode,
+                        recitation: orbital.config.recitation
+                    },
+                    wordFill: orbital.config.visualInterlocution.interlocution.wordFill
+                }));
+                return syncUIWithConfig();
+            });
             const persistSpy = vi.spyOn(orbital, '_persistPrefs');
 
             container.querySelector(`.vnav-node[data-id="${change.entry}"]`).click();
@@ -217,6 +245,11 @@ describe('choosing a stance', () => {
                 .toEqual({ mode: 'accent' });
             expect(orbital.visualNavigator.getConfig().interlocution.wordFill)
                 .toEqual({ mode: 'accent' });
+            expect(syncSnapshots).toEqual([{
+                settings: change.settings,
+                temporal: { chunkMode: 'word', recitation: { enabled: false } },
+                wordFill: { mode: 'accent' }
+            }]);
             expect(syncSpy).toHaveBeenCalledTimes(1);
             expect(persistSpy).toHaveBeenCalledTimes(1);
             orbital.destroy();

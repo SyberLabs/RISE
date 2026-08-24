@@ -1083,17 +1083,6 @@ export class ChamberOrbital {
           readingVisualDomain: this.config.readingVisualIdentity?.domain || null,
           onOpenPersonal: () => this.onNavigate('workshop'),
           onTextMaterialTransaction: transaction => this.applyTextMaterialTransaction(transaction),
-          onFitRequested: () => {
-            // Fit's text mask has Word atoms as a hard input contract.
-            // Recitation owns phrase recordings, so choosing Fit is also an
-            // explicit choice to leave Recitation rather than produce silence.
-            this.config.chunkMode = 'word';
-            this.config.recitation = { enabled: false };
-            this.syncUIWithConfig();
-            this.updateOrbitStatus('temporal');
-            this._syncStanceRow();
-            this._persistPrefs();
-          },
           onChange: (config) => {
             const previouslyHeld = isLaunchHeldFocal(
               this.config.visualInterlocution?.focals
@@ -1127,7 +1116,7 @@ export class ChamberOrbital {
   }
 
   applyTextMaterialTransaction({ settings = {}, temporal = null, visualConfig }) {
-    Object.assign(globalThis.rise.settings, settings);
+    globalThis.rise.handleSettingsTransaction(settings);
     if (temporal?.chunkMode) this.config.chunkMode = temporal.chunkMode;
     if (temporal?.recitation === false) this.config.recitation = { enabled: false };
     this.config.visualInterlocution = visualConfig;

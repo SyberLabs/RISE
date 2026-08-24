@@ -83,7 +83,6 @@ export class VisualNavigator {
   constructor(container, options = {}) {
     this.container = container;
     this.onChange = options.onChange || (() => {});
-    this.onFitRequested = options.onFitRequested || (() => {});
     this.onTextMaterialTransaction = options.onTextMaterialTransaction || (() => {});
     this.onOpenPersonal = options.onOpenPersonal || (() => {});
     this.locked = options.locked === true;
@@ -305,13 +304,13 @@ export class VisualNavigator {
     return this.textMaterialCapability().maskActive;
   }
 
-  requestTextMaterialTransaction({ face, fontSize, wordFill, temporal = null }) {
+  requestTextMaterialTransaction({ face, fontSize, wordFill, temporal = null, settings = null }) {
     const next = normalizeWordFill(wordFill);
     this.selection.wordFill = next;
     const visualConfig = configPatch(this.selection);
     this.selection.config = visualConfig;
     this.onTextMaterialTransaction({
-      settings: { chamberFace: face, fontSize },
+      settings: settings || { chamberFace: face, fontSize },
       temporal,
       visualConfig
     });
@@ -410,16 +409,21 @@ export class VisualNavigator {
       return this.confirmMaskInvalidation({ face: settings.face, fontSize: persist, returnFocus });
     }
     if (persist === 'fit' && this.locked) return;
-    this.writeSetting('fontSize', persist);
     if (persist === 'fit') {
       const gallery = this.selection.enabled.size > 0
         && [...this.selection.enabled].every(id => categoryOf(id) === FIELD.GALLERY);
       if (!gallery) this.selection.enabled = new Set();
       this.selection.emptyGallery = !gallery;
       if (!gallery) this.selection.preserveBaseSelection = false;
-      this.writeSetting('chamberMask', false);
-      this.onFitRequested();
-      this.emit();
+      this.requestTextMaterialTransaction({
+        face: settings.face,
+        fontSize: persist,
+        wordFill: this.selection.wordFill,
+        temporal: { chunkMode: 'word', recitation: false },
+        settings: { chamberFace: settings.face, fontSize: persist, chamberMask: false }
+      });
+    } else {
+      this.writeSetting('fontSize', persist);
     }
     this.render();
   }

@@ -210,6 +210,69 @@ describe('App safety orchestration', () => {
     expect(applyChamberMask).toHaveBeenCalledTimes(2);
   });
 
+  it('installs normalized text-material settings atomically before one live Chamber update', () => {
+    const app = new App();
+    app.loadSettings();
+    expect(app.handleSettingsTransaction).toBeTypeOf('function');
+    const save = vi.spyOn(app, 'saveSettings');
+    const accessibility = vi.spyOn(app, 'applyAccessibilitySettings');
+    const visibleStates = [];
+    const applyChamberStreamFace = vi.fn(() => visibleStates.push({
+      chamberFace: app.settings.chamberFace,
+      fontSize: app.settings.fontSize,
+      chamberMask: app.settings.chamberMask
+    }));
+    const applyChamberMask = vi.fn();
+    const applyChamberTypeSize = vi.fn();
+    app.router = {
+      getViewInstance: () => ({ applyChamberStreamFace, applyChamberMask, applyChamberTypeSize })
+    };
+
+    app.handleSettingsTransaction({
+      chamberFace: 'thick',
+      fontSize: 'fit',
+      chamberMask: 'yes',
+      defaultWpm: 5000
+    });
+
+    expect(app.settings).toMatchObject({
+      chamberFace: 'thick',
+      fontSize: 'fit',
+      chamberMask: false,
+      defaultWpm: 1000
+    });
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(accessibility).toHaveBeenCalledTimes(1);
+    expect(applyChamberStreamFace).toHaveBeenCalledTimes(1);
+    expect(applyChamberMask).toHaveBeenCalledTimes(1);
+    expect(applyChamberTypeSize).toHaveBeenCalledTimes(1);
+    expect(visibleStates).toEqual([{ chamberFace: 'thick', fontSize: 'fit', chamberMask: false }]);
+    expect(JSON.parse(localStorage.getItem('rise-settings'))).toMatchObject(app.settings);
+
+    const restored = new App();
+    restored.loadSettings();
+    expect(restored.settings).toMatchObject({
+      chamberFace: 'thick',
+      fontSize: 'fit',
+      chamberMask: false,
+      defaultWpm: 1000
+    });
+  });
+
+  it('keeps the legacy single-key settings API compatible through the transaction seam', () => {
+    const app = new App();
+    app.loadSettings();
+    expect(app.handleSettingsTransaction).toBeTypeOf('function');
+    const transaction = vi.spyOn(app, 'handleSettingsTransaction');
+
+    app.handleSettingsChange('chamberFace', 'jp');
+
+    expect(transaction).toHaveBeenCalledOnce();
+    expect(transaction).toHaveBeenCalledWith({ chamberFace: 'jp' });
+    expect(app.settings.chamberFace).toBe('jp');
+    expect(JSON.parse(localStorage.getItem('rise-settings')).chamberFace).toBe('jp');
+  });
+
   it('allowlists fontSize and pushes a live size change onto the open Chamber', () => {
     const app = new App();
     app.loadSettings();
