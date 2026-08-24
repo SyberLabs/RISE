@@ -150,7 +150,7 @@ it, and CI fails when the committed copy is not what `src/` produces.
 flowchart LR
     app["app<br/>composition root<br/>1 module"]
     audio["audio<br/>Web Audio, recitation<br/>6 modules"]
-    components["components<br/>routed views<br/>30 modules"]
+    components["components<br/>routed views<br/>29 modules"]
     content["content<br/>texts, imagery, journeys<br/>222 modules"]
     core["core<br/>session, player, router<br/>110 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -166,10 +166,10 @@ flowchart LR
     audio --> |1| content
     audio --> |3| core
     components --> |2| audio
-    components --> |22| content
-    components --> |104| core
+    components --> |19| content
+    components --> |101| core
     components -.-> |1 lazy| page
-    components --> |6| sources
+    components --> |4| sources
     components --> |12| visuals
     content --> |3| audio
     content --> |13| core
@@ -274,7 +274,7 @@ outliving its room, fails a build.
 Four modules in `src/components/` are deliberately not rooms, because they only
 ever appear inside one: `src/components/Admit.js`,
 `src/components/NamingModal.js`, `src/components/SourceBrowser.js` and
-`src/components/VisualInterlocutionPanel.js`.
+`src/components/VisualNavigator.js`.
 
 ---
 

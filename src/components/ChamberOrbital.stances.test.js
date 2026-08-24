@@ -122,9 +122,9 @@ describe('choosing a stance', () => {
             .toContain('active');
         expect(container.querySelector('[data-audio-preset="silent"]').classList)
             .toContain('active');
-        // The visual panel holds its own copy; a stance it was never told
-        // about would be reverted the next time the panel emitted a change.
-        expect(orbital.viPanel.config.visualMode).toBe('focals');
+        // The Navigator holds its own mapped selection; a stance it was never
+        // told about would be reverted the next time it emitted a change.
+        expect(orbital.visualNavigator.getConfig().visualMode).toBe('focals');
         orbital.destroy();
     });
 
@@ -149,6 +149,7 @@ describe('choosing a stance', () => {
         orbital.config.recitation = { enabled: true };
         orbital.syncUIWithConfig();
 
+        container.querySelector('.vnav-node[data-id="size"]').click();
         container.querySelector('[data-font-size="fit"]').click();
 
         expect(orbital.config.chunkMode).toBe('word');

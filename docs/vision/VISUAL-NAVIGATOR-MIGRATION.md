@@ -1,7 +1,6 @@
 # Visual Navigator — migration into the Chamber
 
-Status: **Intent / plan awaiting approval.** No code until the decisions in §4
-are signed off. This is the map for replacing the Orbital's
+Status: **Implemented 2026-08-23.** Decisions D1–D4 were approved. This is the map used to replace the Orbital's
 `VisualInterlocutionPanel` (VIP) with the `VisualNavigator`
 (SCRIPTORIUM redesign, Step 4).
 
@@ -78,4 +77,7 @@ consent gate), and the live engine preview in the navigator's Pokédex slot.
   *Recommend yes*, once nothing imports it — it is Chamber-only, so the mount
   swap makes it dead code.
 
-Approve §4 (or amend), and I start at commit 1.
+Decisions D1–D4 were approved and the five-step sequence was completed. The
+Navigator now owns the Chamber field and text controls, preserves curated
+reading identity, reuses personal focal and shared-pool management, and is the
+only visual control mounted by `ChamberOrbital`.

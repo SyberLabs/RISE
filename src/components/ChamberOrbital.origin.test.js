@@ -39,6 +39,17 @@ describe('ChamberOrbital origin chip', () => {
         localStorage.removeItem('rise_orbital_text_v1');
     });
 
+    it('mounts the Visual Navigator as the sole Chamber visual control', () => {
+        const { orbital, container } = makeOrbital();
+
+        expect(orbital.visualNavigator).toBeTruthy();
+        expect(container.querySelector('.vnav')).not.toBeNull();
+        expect(container.querySelector('.vi-panel')).toBeNull();
+
+        orbital.destroy();
+        container.remove();
+    });
+
     it('shows no chip for a plain session', () => {
         const { orbital, container } = makeOrbital();
         expect(container.querySelector('.orbital-origin-chip')).toBeNull();
@@ -427,23 +438,20 @@ describe('ChamberOrbital origin chip', () => {
             audioPreset: 'silent',
             soundscape: 'none',
             visualInterlocution: {
-                visualMode: 'interlocution',
-                interlocution: {
-                    sourceFamily: 'procedural',
-                    procedural: ['klee'],
-                    sourced: [],
-                    kleePreset: 'random'
-                }
+                visualMode: 'genesis',
+                genesis: { preset: 'random', glass: true }
             }
         }));
 
         const { orbital, container } = makeOrbital();
         container.querySelector('[data-audio-preset="focus"]').click();
         expect(orbital.config.audioPreset).toBe('focus');
+        expect([...orbital.visualNavigator.selection.enabled]).toEqual(['klee']);
+        expect(orbital.visualNavigator.focus?.id).toBe('klee');
 
         // Visual chips deliberately retain their own data-preset contract.
         // They must never be observed by the audio settings handler.
-        container.querySelector('[data-preset="harmonic"]').click();
+        container.querySelector('[data-sub="preset"][data-val="harmonic"]').click();
         expect(orbital.config.audioPreset).toBe('focus');
 
         let payload = null;
@@ -869,7 +877,7 @@ describe('ordinary reading visual identity persistence', () => {
         const onBeginSession = vi.fn();
         const restored = makeOrbital(onBeginSession);
         expect(restored.orbital.config.visualInterlocution.interlocution.sourced).toEqual([]);
-        expect(restored.container.querySelector('.vi-chapel-collections')).not.toBeNull();
+        expect(restored.container.querySelector('.vnav-chapel-collections')).not.toBeNull();
         expect(restored.container.querySelector('[data-chapel-remove]')).toBeNull();
         expect(restored.container.querySelector('[data-action="chapel-add-toggle"]'))
             .not.toBeNull();
@@ -894,7 +902,7 @@ describe('ordinary reading visual identity persistence', () => {
         expect(restored.orbital.config.text).toBe('Plain prose.');
         expect(restored.orbital.config.readingVisualIdentity).toBeNull();
         expect(restored.orbital.config.visualInterlocution.interlocution.sourced).toEqual([]);
-        expect(restored.container.querySelector('.vi-chapel-collections')).toBeNull();
+        expect(restored.container.querySelector('.vnav-chapel-collections')).toBeNull();
         restored.orbital.destroy();
         restored.container.remove();
     });
@@ -919,8 +927,8 @@ describe('ordinary reading visual identity persistence', () => {
             .toEqual(['chapel-gospel-before-pilate']);
         expect(restored.orbital.config.visualInterlocution.interlocution.sourced)
             .not.toContain('chapel-passion');
-        expect(restored.container.querySelector('.vi-program-active')).not.toBeNull();
-        expect(restored.container.querySelector('.vi-chapel-collections')).toBeNull();
+        expect(restored.container.querySelector('[data-program-lock]')).not.toBeNull();
+        expect(restored.container.querySelector('.vnav-chapel-collections')).toBeNull();
         restored.orbital.destroy();
         restored.container.remove();
     });
@@ -963,7 +971,7 @@ describe('clearText resets launch-scoped visual identity (2026-07 Doré leak)', 
             orbital.clearText();
             expect(orbital.config.visualInterlocution.interlocution.atriumCollections).toEqual([]);
             expect(orbital.config.visualInterlocution.interlocution.sourced).toEqual([]);
-            expect(orbital.viPanel._chapelLaunch).toBe(false);
+            expect(orbital.visualNavigator._chapelLaunch).toBe(false);
             orbital.destroy();
         });
     }
@@ -1072,8 +1080,7 @@ describe('clearText resets launch-scoped visual identity (2026-07 Doré leak)', 
         });
         expect(orbital.config.visualProgram.enabled).toBe(false);
 
-        orbital.viPanel.hasConsent = true;
-        container.querySelector('[data-visual-mode="interlocution"]').click();
+        container.querySelector('[data-action="release-to-program"]').click();
 
         expect(orbital.config.visualInterlocution.visualMode).toBe('interlocution');
         expect(orbital.config.visualInterlocution.focals).toMatchObject({
@@ -1128,8 +1135,7 @@ describe('clearText resets launch-scoped visual identity (2026-07 Doré leak)', 
             }
         });
 
-        orbital.viPanel.hasConsent = true;
-        container.querySelector('[data-visual-mode="interlocution"]').click();
+        container.querySelector('[data-action="release-to-program"]').click();
 
         expect(orbital.config.visualInterlocution.focals.type).toBe('standard');
         expect(orbital.config.visualProgram).toMatchObject({

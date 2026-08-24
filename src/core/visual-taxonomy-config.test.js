@@ -14,7 +14,7 @@ const inter = patch => normalizeVisualSelection(patch.interlocution || {});
 
 describe('the exclusive fields map to their modes', () => {
   it('off', () => {
-    expect(configPatch(selectionFromConfig({ visualMode: 'off' }))).toEqual({ visualMode: 'off' });
+    expect(configPatch(selectionFromConfig({ visualMode: 'off' }))).toMatchObject({ visualMode: 'off' });
   });
 
   it('focal keeps its glyph across the round trip', () => {
@@ -105,14 +105,83 @@ describe('the Gallery blends, one pool per sourced leaf', () => {
     expect(sel.pool['by-manner']).toBe('aic-impressionism');
     expect(inter(configPatch(sel)).sourced).toEqual(['aic-impressionism']);
   });
+
+  it('preserves reading-curated collections that are not Navigator pool choices', () => {
+    const cfg = {
+      visualMode: 'interlocution',
+      interlocution: {
+        sourceFamily: 'collections',
+        sourced: ['dore:numbers'],
+        atriumCollections: ['dore:numbers'],
+        presentation: 'continuous'
+      }
+    };
+
+    const selection = selectionFromConfig(cfg);
+    expect([...selection.enabled]).toEqual([]);
+    expect(selection.preserveBaseSelection).toBe(true);
+    expect(configPatch(selection).interlocution).toMatchObject({
+      sourced: ['dore:numbers'],
+      atriumCollections: ['dore:numbers']
+    });
+  });
 });
 
-describe('a field-choice patch touches only its own fields', () => {
-  it('never carries pace, living text, or word settings', () => {
-    const patch = configPatch(selectionFromConfig({ visualMode: 'attractor', attractor: {} }));
-    expect(patch).not.toHaveProperty('livingText');
-    expect(patch).not.toHaveProperty('wordFill');
-    expect(Object.keys(patch).sort()).toEqual(['attractor', 'visualMode']);
+describe('the adapter emits the complete visual configuration', () => {
+  it('round-trips Living Text, cadence, word ink, and unedited runtime settings', () => {
+    const cfg = {
+      visualMode: 'interlocution',
+      livingText: { enabled: true },
+      interlocution: {
+        sourceFamily: 'blend',
+        procedural: ['fractal'],
+        sourced: ['aic-impressionism'],
+        presentation: 'continuous',
+        galleryCadence: 0.82,
+        wordFill: { mode: 'pick', sourceFamily: 'procedural', procedural: ['attractor'], sourced: [] },
+        responsive: true,
+        frequency: 0.37
+      }
+    };
+    const patch = configPatch(selectionFromConfig(cfg));
+    expect(patch.livingText).toEqual({ enabled: true });
+    expect(patch.interlocution).toMatchObject({
+      presentation: 'continuous',
+      galleryCadence: 0.82,
+      wordFill: { mode: 'pick', procedural: ['attractor'], sourced: [] },
+      responsive: true,
+      frequency: 0.37
+    });
+  });
+
+  it('keeps the rich styles available while another field occupies the room', () => {
+    const patch = configPatch(selectionFromConfig({
+      visualMode: 'interlocution',
+      attractor: { system: 'thomas', palette: 'gold', form: 'kaleido' },
+      genesis: { preset: 'gravitational', glass: false },
+      interlocution: { procedural: ['fractal'], presentation: 'continuous' }
+    }));
+    expect(patch.attractor).toEqual({ system: 'thomas', palette: 'gold', form: 'kaleido' });
+    expect(patch.genesis).toEqual({ preset: 'gravitational', glass: false });
+  });
+
+  it('preserves a launch-held focal until the reader explicitly changes it', () => {
+    const patch = configPatch(selectionFromConfig({
+      visualMode: 'focals',
+      focals: { type: 'rose', roseMode: 'verbum', standardGlyph: 'breath' }
+    }));
+    expect(patch.focals).toMatchObject({ type: 'rose', roseMode: 'verbum' });
+  });
+
+  it('round-trips a user-owned personal focal without converting it to a glyph', () => {
+    const patch = configPatch(selectionFromConfig({
+      visualMode: 'focals',
+      focals: { type: 'personal', personalImage: 'data:image/png;base64,AAAA' }
+    }));
+    expect(patch).toMatchObject({
+      visualMode: 'focals',
+      focals: { type: 'personal', personalImage: 'data:image/png;base64,AAAA' }
+    });
   });
 });
 

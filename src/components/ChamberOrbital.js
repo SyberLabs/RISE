@@ -8,7 +8,7 @@
  * - Drag handles to rotate entire structure (aesthetic only)
  */
 
-import { VisualInterlocutionPanel } from './VisualInterlocutionPanel.js';
+import { VisualNavigator } from './VisualNavigator.js';
 import { PersonalSwells } from '../core/personal-swells.js';
 import { namingModal } from './NamingModal.js';
 import { escapeHtml } from '../core/sanitize.js';
@@ -50,7 +50,7 @@ import {
   sequenceHasCapability
 } from '../core/sequence-capabilities.js';
 import { STANCES, applyStance, matchStance } from '../core/stances.js';
-import './VisualInterlocutionPanel.css';
+import './VisualNavigator.css';
 import './ChamberOrbital.css';
 
 // Last-used session settings survive across chamber visits (the orbital
@@ -211,8 +211,8 @@ export class ChamberOrbital {
     // Active modal
     this.activeModal = null;
 
-    // Visual interlocution panel instance
-    this.viPanel = null;
+    // The Chamber's single visual-control surface.
+    this.visualNavigator = null;
 
     // One abortable event scope owns every listener installed by this
     // Orbital. The Chamber and immersive session reuse the same container,
@@ -360,10 +360,10 @@ export class ChamberOrbital {
         );
     }
 
-    // The visual panel holds its own copy of the config — rebuild it
-    if (this.viPanel) {
-      this.viPanel.destroy();
-      this.viPanel = null;
+    // The Navigator holds its own mapped selection — rebuild it.
+    if (this.visualNavigator) {
+      this.visualNavigator.destroy();
+      this.visualNavigator = null;
     }
     this.render();
     this.attachEvents();
@@ -727,7 +727,7 @@ export class ChamberOrbital {
     // The visual panel keeps its own copy of the visual orbit, and its
     // change event is what writes the normalized truth back here. Telling
     // it leaves one answer in the room rather than two.
-    if (this.viPanel) this.viPanel.setConfig(this.config.visualInterlocution);
+    if (this.visualNavigator) this.visualNavigator.setConfig(this.config.visualInterlocution);
     this._normalizeAudioExclusivity();
     this.syncUIWithConfig();
     this.updateOrbitStatus('temporal');
@@ -807,7 +807,7 @@ export class ChamberOrbital {
           </div>
           <div class="modal-body">
             <!-- Visual Interlocution -->
-            <div id="orbital-vi-panel-container" class="config-section"></div>
+            <div id="orbital-visual-navigator" class="config-section"></div>
           </div>
         </div>
       </div>
@@ -1065,24 +1065,23 @@ export class ChamberOrbital {
 
   initVisualPanel() {
     try {
-      const container = this.container.querySelector('#orbital-vi-panel-container');
+      const container = this.container.querySelector('#orbital-visual-navigator');
       console.log('[ChamberOrbital] initVisualPanel - container found:', !!container);
       if (!container) {
-        console.error('[ChamberOrbital] orbital-vi-panel-container not found in DOM!');
+        console.error('[ChamberOrbital] orbital-visual-navigator not found in DOM!');
         return;
       }
-      if (!this.viPanel) {
-        console.log('[ChamberOrbital] Instantiating VisualInterlocutionPanel...');
-        this.viPanel = new VisualInterlocutionPanel(container, {
-          ...this.config.visualInterlocution,
-          consentScope: this.visualConsentScope,
-          expanded: true,
+      if (!this.visualNavigator) {
+        console.log('[ChamberOrbital] Instantiating VisualNavigator...');
+        this.visualNavigator = new VisualNavigator(container, {
+          visualConfig: this.config.visualInterlocution,
           locked: !this.config.text,
           lockedMessage: 'Please load a text source first to configure Visuals.',
           programInfo: this.config.visualProgram?.segments?.length
             ? { episodes: this.config.visualProgram.segments.length }
             : null,
           readingVisualDomain: this.config.readingVisualIdentity?.domain || null,
+          onOpenPersonal: () => this.onNavigate('workshop'),
           onFitRequested: () => {
             // Fit's text mask has Word atoms as a hard input contract.
             // Recitation owns phrase recordings, so choosing Fit is also an
@@ -1103,7 +1102,7 @@ export class ChamberOrbital {
             if (releasedHeldFocal) {
               this._unlockVisualProgramAfterFocalRelease();
             }
-            // Store the panel's config verbatim — never mix in activeTypes
+            // Store the Navigator's config verbatim — never mix in activeTypes
             // (cortex vocabulary); app.js derives those from procedural +
             // sourced at session start.
             this.config.visualInterlocution = { ...config };
@@ -1119,10 +1118,10 @@ export class ChamberOrbital {
             this._persistPrefs();
           }
         });
-        console.log('[ChamberOrbital] InnerHTML after instantiation length:', container.innerHTML.length);
+        console.log('[ChamberOrbital] Navigator mounted; HTML length:', container.innerHTML.length);
       }
     } catch (err) {
-      console.error('[ChamberOrbital] Error initializing viPanel:', err);
+      console.error('[ChamberOrbital] Error initializing VisualNavigator:', err);
     }
   }
 
@@ -1724,7 +1723,6 @@ export class ChamberOrbital {
 
   loadText(text, source, config = {}) {
     this.visualConsentScope = crypto.randomUUID();
-    this.viPanel?.setConsentScope(this.visualConsentScope);
 
     // Each load begins from a clean launch identity: the prior
     // reading's pills, program, and domain are cleared before this
@@ -1856,14 +1854,14 @@ export class ChamberOrbital {
         }
       };
 
-      // Update the VisualInterlocutionPanel if it exists
-      if (this.viPanel) {
-        this.viPanel.setConfig(config.visualConfig);
+      // Update the Visual Navigator if it exists.
+      if (this.visualNavigator) {
+        this.visualNavigator.setConfig(this.config.visualInterlocution);
         // A curated visual program (a Gospel chapter's pericope
         // schedule) makes the panel show its read-only Special
         // Collection banner. Cleared for ordinary readings.
         const program = this.config.visualProgram;
-        this.viPanel.setProgramInfo(
+        this.visualNavigator.setProgramInfo(
           program && Array.isArray(program.segments) && program.segments.length
             ? { episodes: program.segments.length }
             : null
@@ -1898,8 +1896,8 @@ export class ChamberOrbital {
     this.updateOrbitStatus('visual');
 
     // Unlock visual interlocution
-    if (this.viPanel) {
-      this.viPanel.setLocked(false);
+    if (this.visualNavigator) {
+      this.visualNavigator.setLocked(false);
     }
 
     // Re-render text source area
@@ -1948,8 +1946,8 @@ export class ChamberOrbital {
     // a Personal image are user choices, never Chapel-held: they survive.
     const released = releaseLaunchHeldFocal(visual?.focals);
     if (released) visual.focals = released;
-    if (this.viPanel) {
-      this.viPanel.clearLaunchVisualIdentity();
+    if (this.visualNavigator) {
+      this.visualNavigator.clearLaunchVisualIdentity();
     }
   }
 
@@ -1988,8 +1986,8 @@ export class ChamberOrbital {
     this._persistPrefs(); // clears both the reading and its effective pool
 
     // Lock visual interlocution again
-    if (this.viPanel) {
-      this.viPanel.setLocked(true);
+    if (this.visualNavigator) {
+      this.visualNavigator.setLocked(true);
       this.updateOrbitStatus('visual');
     }
 
@@ -2092,8 +2090,8 @@ export class ChamberOrbital {
     this._eventController = null;
 
     // Cleanup
-    if (this.viPanel) {
-      this.viPanel.destroy();
+    if (this.visualNavigator) {
+      this.visualNavigator.destroy();
     }
   }
 }
