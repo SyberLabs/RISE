@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { normalizeVisualSelection } from './visual-selection.js';
-import { classifySourced, configPatch, selectionFromConfig } from './visual-taxonomy-config.js';
+import { classifySourced, configPatch, poolOptions, selectionFromConfig } from './visual-taxonomy-config.js';
 
 const inter = patch => normalizeVisualSelection(patch.interlocution || {});
 
@@ -113,5 +113,16 @@ describe('a field-choice patch touches only its own fields', () => {
     expect(patch).not.toHaveProperty('livingText');
     expect(patch).not.toHaveProperty('wordFill');
     expect(Object.keys(patch).sort()).toEqual(['attractor', 'visualMode']);
+  });
+});
+
+describe('pool options for the sourced leaves', () => {
+  it('splits museum categories by manner and subject, and names the personal shelves', () => {
+    expect(poolOptions('by-manner').map(o => o.id)).toContain('aic-impressionism');
+    expect(poolOptions('by-manner').some(o => o.id === 'aic-ships')).toBe(false);
+    expect(poolOptions('by-subject').map(o => o.id)).toContain('aic-ships');
+    expect(poolOptions('science')[0].id).toBe('sci-astronomy');
+    expect(poolOptions('personal').map(o => o.id)).toEqual(['global-pool', 'custom']);
+    expect(poolOptions('fractal')).toEqual([]);
   });
 });
