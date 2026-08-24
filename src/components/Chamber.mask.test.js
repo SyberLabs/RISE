@@ -22,7 +22,7 @@ const MP4 = {
 function makeChamber(sessionExtra = {}, settings = {}) {
     const container = document.createElement('div');
     document.body.appendChild(container);
-    globalThis.rise = { settings };
+    globalThis.rise = { settings: { chamberFace: 'thick', fontSize: 'fit', ...settings } };
     const session = {
         title: 'Mask',
         atoms: [{ content: 'hello', duration: 500 }],
@@ -93,7 +93,7 @@ function wordGallerySession(presentation = 'continuous-word') {
         chunkMode: 'word',
         visualConfig: {
             visualMode: 'interlocution',
-            interlocution: { presentation }
+            interlocution: { presentation, wordFill: { mode: 'same' } }
         }
     };
 }
@@ -153,7 +153,7 @@ describe('Chamber Mask', () => {
                 chunkMode: 'word',
                 visualConfig: {
                     visualMode: 'interlocution',
-                    interlocution: { presentation: 'behind-stream' }
+                    interlocution: { presentation: 'continuous', wordFill: { mode: 'same' } }
                 }
             },
             { chamberMask: true }
@@ -185,10 +185,10 @@ describe('Chamber Mask', () => {
     it('adds is-mask from PREP Gallery-in-the-word without requiring Settings Mask', () => {
         const { chamber, container } = makeChamber(
             wordGallerySession(),
-            { chamberMask: false, chamberFace: 'literary', fontSize: 'medium' }
+            { chamberMask: false }
         );
         expect(atomDisplay(container).classList.contains('is-mask')).toBe(true);
-        expect(atomDisplay(container).dataset.chamberFace).toBe('literary');
+        expect(atomDisplay(container).dataset.chamberFace).toBe('thick');
         chamber.destroy();
     });
 
@@ -569,8 +569,10 @@ describe('Chamber Gallery-in-the-word projection (FM-RISE-28)', () => {
     });
 
     it('destroys the projection when Mask is turned off', async () => {
+        const session = wordGallerySession('continuous');
+        delete session.visualConfig.interlocution.wordFill;
         const { chamber, container } = makeChamber(
-            wordGallerySession('continuous'),
+            session,
             { chamberMask: true }
         );
         armGalleryField('continuous');

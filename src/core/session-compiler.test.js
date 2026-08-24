@@ -399,6 +399,7 @@ describe('session compiler', () => {
     }).interlocution;
     expect(missing.wordFill).toEqual({
       mode: 'pick',
+      border: 'cream',
       sourceFamily: 'procedural',
       procedural: ['fractal'],
       sourced: []
@@ -412,7 +413,7 @@ describe('session compiler', () => {
         wordFill: { mode: 'same' }
       }
     }).interlocution;
-    expect(declared.wordFill).toEqual({ mode: 'same' });
+    expect(declared.wordFill).toEqual({ mode: 'same', border: 'cream' });
   });
 });
 

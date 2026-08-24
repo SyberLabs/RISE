@@ -294,7 +294,8 @@ function withNormalised(inter) {
 
 function cloneWordFill(value) {
   const fill = normalizeWordFill(value);
-  if (fill.mode !== 'pick') return { mode: fill.mode };
+  if (fill.mode === 'plain' || fill.mode === 'accent') return { mode: fill.mode };
+  if (fill.mode === 'same') return { mode: 'same', ...(fill.border ? { border: fill.border } : {}) };
   return {
     ...fill,
     procedural: [...fill.procedural],

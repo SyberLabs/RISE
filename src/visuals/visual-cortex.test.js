@@ -2245,6 +2245,7 @@ describe('Continuous Field (Gallery) wiring', () => {
         expect(cortex.config.activeTypes).toEqual(['aic-landscapes']);
         expect(cortex.config.wordFill).toEqual({
             mode: 'pick',
+            border: 'cream',
             sourceFamily: 'procedural',
             procedural: ['fractal'],
             sourced: []

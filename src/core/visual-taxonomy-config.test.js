@@ -157,7 +157,7 @@ describe('the adapter emits the complete visual configuration', () => {
         sourced: ['aic-impressionism'],
         presentation: 'continuous',
         galleryCadence: 0.82,
-        wordFill: { mode: 'pick', sourceFamily: 'procedural', procedural: ['attractor'], sourced: [] },
+        wordFill: { mode: 'pick', sourceFamily: 'procedural', procedural: ['attractor'], sourced: [], border: 'accent' },
         responsive: true,
         frequency: 0.37
       }
@@ -167,10 +167,18 @@ describe('the adapter emits the complete visual configuration', () => {
     expect(patch.interlocution).toMatchObject({
       presentation: 'continuous',
       galleryCadence: 0.82,
-      wordFill: { mode: 'pick', procedural: ['attractor'], sourced: [] },
+      wordFill: { mode: 'pick', procedural: ['attractor'], sourced: [], border: 'accent' },
       responsive: true,
       frequency: 0.37
     });
+  });
+
+  it('preserves Plain word ink without adding a visual-mask border', () => {
+    const patch = configPatch(selectionFromConfig({
+      visualMode: 'interlocution',
+      interlocution: { wordFill: { mode: 'plain' } }
+    }));
+    expect(patch.interlocution.wordFill).toEqual({ mode: 'plain' });
   });
 
   it('keeps the rich styles available while another field occupies the room', () => {

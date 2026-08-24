@@ -206,23 +206,29 @@ describe('Chamber type size (FM-RISE-36)', () => {
         chamber.destroy();
     });
 
-    it('rebuilds the glyph mask after a size change and keeps Mask thick-face override', async () => {
+    it('updates glyph sizing without activating a new mask before mask application runs', async () => {
         const { chamber, container } = makeChamber(
-            { chunkMode: 'word' },
-            { fontSize: 'medium', chamberMask: true, chamberFace: 'jp' }
+            {
+                chunkMode: 'word',
+                visualConfig: {
+                    visualMode: 'interlocution',
+                    interlocution: { presentation: 'continuous', wordFill: { mode: 'same' } }
+                }
+            },
+            { fontSize: 'medium', chamberMask: true, chamberFace: 'thick' }
         );
         const el = container.querySelector('#atom-display');
         chamber.displayAtom({ content: 'Word', duration: 500 }, 0);
-        expect(el.classList.contains('is-mask')).toBe(true);
-        expect(el.dataset.chamberFace).toBe('jp');
+        expect(el.classList.contains('is-mask')).toBe(false);
+        expect(el.dataset.chamberFace).toBe('thick');
 
         const sync = vi.spyOn(chamber, 'syncFillGlyphMask');
         globalThis.rise.settings.fontSize = 'fit';
         chamber.applyChamberTypeSize();
 
         expect(el.dataset.fontSize).toBe('fit');
-        expect(el.classList.contains('is-mask')).toBe(true);
-        expect(el.dataset.chamberFace).toBe('jp');
+        expect(el.classList.contains('is-mask')).toBe(false);
+        expect(el.dataset.chamberFace).toBe('thick');
         expect(sync).toHaveBeenCalled();
         chamber.destroy();
     });

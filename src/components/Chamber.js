@@ -40,10 +40,10 @@ import {
   estimateGlyphBox,
   fitWordAtomPx,
   isChamberWordFit,
-  resolveFitMaskMode,
   resolveFontSize,
   threeStepIntent
 } from '../core/chamber-type-size.js';
+import { resolveFitMaskMode } from '../core/chamber-text-material.js';
 import { GROUNDS, maskFillFromConfig, maskGroundFromConfig } from '../core/mask-ground.js';
 import { resolveSessionWordFill } from '../core/visual-selection.js';
 import './Chamber.css';
@@ -602,6 +602,7 @@ export class Chamber {
     const visualConfig = this.session?.visualConfig;
     const presentation = this.session?.visualConfig?.interlocution?.presentation;
     return resolveFitMaskMode({
+      face: settings.chamberFace,
       fontSize: settings.fontSize,
       chunkMode: this.session?.chunkMode,
       visualMode: visualConfig?.visualMode,

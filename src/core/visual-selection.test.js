@@ -2,12 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { LISTED_PROCEDURAL_PATTERNS, PROCEDURAL_PATTERN_IDS } from './visual-registry.js';
 import {
     normalizeVisualSelection,
+    normalizeFitBorder,
     normalizeWordFill,
     resolveSessionWordFill,
     wordFillIsDistinct
 } from './visual-selection.js';
 
 describe('normalizeWordFill', () => {
+    it('keeps Plain as explicit ordinary ink', () => {
+        expect(normalizeWordFill({ mode: 'plain' })).toEqual({ mode: 'plain' });
+    });
+
     it('preserves an explicit accent ink without inventing a visual playlist', () => {
         expect(normalizeWordFill({ mode: 'accent' })).toEqual({ mode: 'accent' });
         expect(wordFillIsDistinct({ mode: 'accent' })).toBe(false);
@@ -18,7 +23,7 @@ describe('normalizeWordFill', () => {
     it('defaults to same-as-gallery', () => {
         expect(normalizeWordFill()).toEqual({ mode: 'same' });
         expect(normalizeWordFill(null)).toEqual({ mode: 'same' });
-        expect(normalizeWordFill({ mode: 'same' })).toEqual({ mode: 'same' });
+        expect(normalizeWordFill({ mode: 'same' })).toEqual({ mode: 'same', border: 'cream' });
         expect(wordFillIsDistinct({ mode: 'same' })).toBe(false);
     });
 
@@ -47,10 +52,22 @@ describe('normalizeWordFill', () => {
             sourced: []
         })).toEqual({
             mode: 'pick',
+            border: 'cream',
             sourceFamily: 'procedural',
             procedural: ['fractal'],
             sourced: []
         });
+    });
+
+    it('defaults explicit visual masks to a cream border and accepts its three border values', () => {
+        expect(normalizeWordFill({ mode: 'same', border: 'accent' }))
+            .toEqual({ mode: 'same', border: 'accent' });
+        expect(normalizeWordFill({
+            mode: 'pick', procedural: ['procedural:fractal'], border: 'off'
+        })).toMatchObject({ mode: 'pick', procedural: ['fractal'], border: 'off' });
+        expect(normalizeFitBorder('off')).toBe('off');
+        expect(normalizeFitBorder('accent')).toBe('accent');
+        expect(normalizeFitBorder('invalid', 'off')).toBe('off');
     });
 });
 
@@ -61,6 +78,7 @@ describe('resolveSessionWordFill — cold-start pair (FM-RISE-58)', () => {
             procedural: ['fractal']
         })).toEqual({
             mode: 'pick',
+            border: 'cream',
             sourceFamily: 'procedural',
             procedural: ['fractal'],
             sourced: []
@@ -86,7 +104,7 @@ describe('resolveSessionWordFill — cold-start pair (FM-RISE-58)', () => {
             sourced: ['sci-astronomy'],
             procedural: ['fractal'],
             wordFill: { mode: 'same' }
-        })).toEqual({ mode: 'same' });
+        })).toEqual({ mode: 'same', border: 'cream' });
     });
 
     it('an explicit pick wins over the session pair leftover', () => {
@@ -96,6 +114,7 @@ describe('resolveSessionWordFill — cold-start pair (FM-RISE-58)', () => {
             wordFill: { mode: 'pick', sourced: [], procedural: ['attractor'] }
         })).toEqual({
             mode: 'pick',
+            border: 'cream',
             sourceFamily: 'procedural',
             procedural: ['attractor'],
             sourced: []
@@ -156,6 +175,7 @@ describe('normalizeVisualSelection procedural engine ids', () => {
             sourced: []
         })).toEqual({
             mode: 'pick',
+            border: 'cream',
             sourceFamily: 'procedural',
             procedural: ['attractor'],
             sourced: []
