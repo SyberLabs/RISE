@@ -11,51 +11,66 @@ import {
 } from './chamber-accent.js';
 
 describe('Chamber accent allowlist', () => {
-    it('exposes exactly the six allowlisted ids in chip order', () => {
+    it('exposes exactly the ten allowlisted ids in chip order', () => {
         expect(CHAMBER_ACCENTS.map((accent) => [accent.id, accent.label])).toEqual([
-            ['ivory', 'Ivory Cream'],
-            ['purple', 'Purple'],
-            ['cobalt', 'Cobalt Blue'],
-            ['amber', 'Amber Gold'],
-            ['sunset', 'Sunset Orange'],
-            ['gecko', 'Gecko Green']
+            ['slate', 'Slate'],
+            ['ivory', 'Ivory'],
+            ['purple', 'Amethyst'],
+            ['cobalt', 'Cobalt'],
+            ['amber', 'Amber'],
+            ['sunset', 'Sunset'],
+            ['gecko', 'Jade'],
+            ['garnet', 'Garnet'],
+            ['teal', 'Teal'],
+            ['orchid', 'Orchid']
         ]);
     });
 
-    it('passes through each allowlisted id and defaults unknown to ivory', () => {
-        for (const id of ['ivory', 'purple', 'cobalt', 'amber', 'sunset', 'gecko']) {
+    it('passes through each allowlisted id and defaults unknown to slate', () => {
+        for (const id of ['slate', 'ivory', 'purple', 'cobalt', 'amber', 'sunset', 'gecko', 'garnet', 'teal', 'orchid']) {
             expect(persistChamberAccent(id)).toBe(id);
             expect(resolveChamberAccent(id)).toBe(id);
         }
         expect(persistChamberAccent('violet')).toBeNull();
         for (const bad of [undefined, null, '', 'violet', 'purple ', 0, 'visualMode']) {
-            expect(resolveChamberAccent(bad), String(bad)).toBe('ivory');
+            expect(resolveChamberAccent(bad), String(bad)).toBe('slate');
         }
     });
 
     it('round-trips persist through resolve', () => {
         expect(resolveChamberAccent(persistChamberAccent('sunset'))).toBe('sunset');
-        expect(resolveChamberAccent(persistChamberAccent('nope'))).toBe('ivory');
+        expect(resolveChamberAccent(persistChamberAccent('nope'))).toBe('slate');
     });
 
-    it('stamps data-accent on the root and reports when the stamp does not take', () => {
+    it('stamps a colourway but CLEARS the attribute for Slate', () => {
         const root = document.documentElement;
         delete root.dataset.accent;
 
         expect(applyChamberAccent(root, 'cobalt')).toBe(true);
         expect(root.dataset.accent).toBe('cobalt');
 
+        // Slate is the bare :root — choosing it removes the attribute, so the
+        // full-colourway rule (:root[data-accent]) no longer matches.
+        expect(applyChamberAccent(root, 'slate')).toBe(true);
+        expect(root.dataset.accent).toBeUndefined();
+
+        // An unknown id resolves to Slate, and so also clears the attribute.
+        root.dataset.accent = 'cobalt';
         expect(applyChamberAccent(root, 'papyrus')).toBe(true);
-        expect(root.dataset.accent).toBe('ivory');
+        expect(root.dataset.accent).toBeUndefined();
 
         expect(applyChamberAccent(null, 'gecko')).toBe(false);
+    });
+
+    it('has no token block for slate — it is the bare :root', () => {
+        expect(CHAMBER_ACCENT_TOKENS.slate).toBeUndefined();
     });
 
     it('maps each id to the chrome token set that replaces --color-threshold', () => {
         expect(CHAMBER_ACCENT_TOKENS.ivory['--color-accent']).toBe('#E4D2AE');
         expect(CHAMBER_ACCENT_TOKENS.ivory['--color-accent-rgb']).toBe('228, 210, 174');
-        expect(CHAMBER_ACCENT_TOKENS.purple['--color-accent']).toBe('#8B7FD4');
-        expect(CHAMBER_ACCENT_TOKENS.purple['--color-accent-rgb']).toBe('139, 127, 212');
+        expect(CHAMBER_ACCENT_TOKENS.purple['--color-accent']).toBe('#9C86DB');
+        expect(CHAMBER_ACCENT_TOKENS.purple['--color-accent-rgb']).toBe('156, 134, 219');
         expect(CHAMBER_ACCENT_TOKENS.cobalt['--color-accent']).toMatch(/^#[0-9A-Fa-f]{6}$/);
         expect(CHAMBER_ACCENT_TOKENS.amber['--color-accent']).toMatch(/^#[0-9A-Fa-f]{6}$/);
         expect(CHAMBER_ACCENT_TOKENS.sunset['--color-accent']).toMatch(/^#[0-9A-Fa-f]{6}$/);
@@ -214,4 +229,53 @@ describe('the accent carries a legible ink for full fills', () => {
         // No lavender literal survives anywhere in the Portal's chrome.
         expect(portal).not.toMatch(/1(?:39|60|40|20),\s*(?:127|145|125|110),\s*(?:180|200|160)/);
     });
+});
+
+describe('the colourway dresses the whole cluster', () => {
+  const read = rel => readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', rel), 'utf8');
+
+  it('Slate defines neutral button tokens on the bare :root', () => {
+    const css = read('design-system.css');
+    const root = css.match(/:root\s*\{[\s\S]*?\n\}/)[0];
+    // The ground state: a neutral slate surface and the accent only on glow.
+    expect(root).toMatch(/--btn-top:\s*rgba\(42, 42, 48/);
+    expect(root).toMatch(/--btn-ink:\s*var\(--color-fog\)/);
+    expect(root).toMatch(/--hero-top:/);
+  });
+
+  it('a chosen sitting derives its button surfaces from the accent, not a literal', () => {
+    const css = read('design-system.css');
+    const block = css.match(/:root\[data-accent\]\s*\{([^}]+)\}/);
+    expect(block, ':root[data-accent]').toBeTruthy();
+    // Derived — mixed from --color-accent — so a new sitting themes itself.
+    expect(block[1]).toMatch(/--btn-top:\s*color-mix\(in srgb,\s*var\(--color-accent\)/);
+    expect(block[1]).toMatch(/--hero-top:\s*color-mix\(in srgb,\s*var\(--color-accent\)/);
+    expect(block[1]).toMatch(/--btn-ink:\s*color-mix\(in srgb,\s*var\(--color-light\)/);
+  });
+
+  it('every non-slate sitting has its own [data-accent] block', () => {
+    const css = read('design-system.css');
+    for (const id of Object.keys(CHAMBER_ACCENT_TOKENS)) {
+      expect(css, id).toContain(`:root[data-accent="${id}"]`);
+    }
+  });
+
+  it('the Portal buttons read from the surface tokens, not frozen slate', () => {
+    const portal = read('components/Portal.css');
+    const tile = portal.match(/\.portal-nav \.nav-item\s*\{[^}]+\}/)[0];
+    expect(tile).toMatch(/background:\s*\n?\s*linear-gradient\(180deg,\s*\n?\s*var\(--btn-top\)/);
+    expect(tile).toMatch(/color:\s*var\(--btn-ink\)/);
+    // The old frozen slate gradient is gone from the tile.
+    expect(tile).not.toMatch(/rgba\(42, 42, 48/);
+  });
+
+  it('the new sittings clear WCAG AA for their chosen ink', () => {
+    const chan = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    const lum = hex => { const n = parseInt(hex.slice(1), 16); return 0.2126 * chan(n >> 16 & 255) + 0.7152 * chan(n >> 8 & 255) + 0.0722 * chan(n & 255); };
+    const contrast = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+    for (const id of ['garnet', 'teal', 'orchid']) {
+      const t = CHAMBER_ACCENT_TOKENS[id];
+      expect(contrast(t['--color-on-accent'], t['--color-accent']), id).toBeGreaterThanOrEqual(4.5);
+    }
+  });
 });

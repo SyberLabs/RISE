@@ -56,6 +56,26 @@
   --accent-wash: rgba(var(--color-accent-rgb), 0.10);
   --accent-bevel: rgba(var(--color-accent-rgb), 0.45);
   --accent-halo: rgba(var(--color-accent-rgb), 0.14);
+
+  /* Portal button surfaces — Slate, the ground state. Neutral cool tiles with
+     the accent only on the hero's bevel and a faint glow: exactly today's
+     look. A chosen sitting overrides these under :root[data-accent] with a
+     dark tint of its hue, DERIVED from --color-accent so a new sitting themes
+     its buttons for free. */
+  --btn-top: rgba(42, 42, 48, 0.6);
+  --btn-bot: rgba(26, 26, 30, 0.8);
+  --btn-top-hover: rgba(50, 50, 58, 0.7);
+  --btn-bot-hover: rgba(30, 30, 36, 0.85);
+  --btn-bevel: rgba(80, 80, 90, 0.4);
+  --btn-ink: var(--color-fog);
+  --btn-ink-hover: var(--color-cloud);
+  --btn-glow: rgba(var(--color-accent-rgb), 0.06);
+  --hero-top: rgba(46, 46, 54, 0.7);
+  --hero-bot: rgba(28, 28, 35, 0.85);
+  --hero-top-hover: rgba(56, 56, 66, 0.75);
+  --hero-bot-hover: rgba(34, 34, 42, 0.88);
+  --hero-bevel: rgba(var(--color-accent-rgb), 0.25);
+
   /* Chrome accent family. Swaps with [data-accent] (FM-UI-7). */
   --color-chamber: #6B9FD4;
   /* Secondary accent (soft blue) */
@@ -131,6 +151,29 @@
   --icon-lg: 32px;
 }
 
+/* A CHOSEN SITTING DRESSES THE WHOLE CLUSTER. Any data-accent value overrides
+   the neutral Slate button tokens with a dark tint of the accent — the surface
+   is the accent mixed a little into the void, the bevel and glow the accent at
+   low alpha, the ink a whisper of the accent over light. Derived from
+   --color-accent (set per family below), so each sitting themes its own
+   buttons and a new sitting needs nothing added here. Slate is the bare :root
+   and matches none of this. */
+:root[data-accent] {
+  --btn-top: color-mix(in srgb, var(--color-accent) 12%, var(--color-void));
+  --btn-bot: color-mix(in srgb, var(--color-accent) 6%, var(--color-void));
+  --btn-top-hover: color-mix(in srgb, var(--color-accent) 17%, var(--color-void));
+  --btn-bot-hover: color-mix(in srgb, var(--color-accent) 9%, var(--color-void));
+  --btn-bevel: rgba(var(--color-accent-rgb), 0.42);
+  --btn-ink: color-mix(in srgb, var(--color-light) 86%, var(--color-accent));
+  --btn-ink-hover: var(--color-light);
+  --btn-glow: rgba(var(--color-accent-rgb), 0.16);
+  --hero-top: color-mix(in srgb, var(--color-accent) 20%, var(--color-void));
+  --hero-bot: color-mix(in srgb, var(--color-accent) 10%, var(--color-void));
+  --hero-top-hover: color-mix(in srgb, var(--color-accent) 26%, var(--color-void));
+  --hero-bot-hover: color-mix(in srgb, var(--color-accent) 13%, var(--color-void));
+  --hero-bevel: rgba(var(--color-accent-rgb), 0.55);
+}
+
 :root[data-accent="ivory"] {
   --color-accent: #E4D2AE;
   --color-accent-rgb: 228, 210, 174;
@@ -139,37 +182,58 @@
 }
 
 :root[data-accent="purple"] {
-  --color-accent: #8B7FD4;
-  --color-accent-rgb: 139, 127, 212;
-  --color-threshold: #8B7FD4;
+  --color-accent: #9C86DB;
+  --color-accent-rgb: 156, 134, 219;
+  --color-threshold: #9C86DB;
   --color-on-accent: #0A0A0C;
 }
 
 :root[data-accent="cobalt"] {
-  --color-accent: #3A5FA8;
-  --color-accent-rgb: 58, 95, 168;
-  --color-threshold: #3A5FA8;
+  --color-accent: #3C61AA;
+  --color-accent-rgb: 60, 97, 170;
+  --color-threshold: #3C61AA;
   --color-on-accent: #E8E8EC;
 }
 
 :root[data-accent="amber"] {
-  --color-accent: #C9A24A;
-  --color-accent-rgb: 201, 162, 74;
-  --color-threshold: #C9A24A;
+  --color-accent: #D2A64F;
+  --color-accent-rgb: 210, 166, 79;
+  --color-threshold: #D2A64F;
   --color-on-accent: #0A0A0C;
 }
 
 :root[data-accent="sunset"] {
-  --color-accent: #D4783A;
-  --color-accent-rgb: 212, 120, 58;
-  --color-threshold: #D4783A;
+  --color-accent: #D9793F;
+  --color-accent-rgb: 217, 121, 63;
+  --color-threshold: #D9793F;
   --color-on-accent: #0A0A0C;
 }
 
 :root[data-accent="gecko"] {
-  --color-accent: #4F9A5C;
-  --color-accent-rgb: 79, 154, 92;
-  --color-threshold: #4F9A5C;
+  --color-accent: #57A46E;
+  --color-accent-rgb: 87, 164, 110;
+  --color-threshold: #57A46E;
+  --color-on-accent: #0A0A0C;
+}
+
+:root[data-accent="garnet"] {
+  --color-accent: #C56A7B;
+  --color-accent-rgb: 197, 106, 123;
+  --color-threshold: #C56A7B;
+  --color-on-accent: #0A0A0C;
+}
+
+:root[data-accent="teal"] {
+  --color-accent: #3E9C93;
+  --color-accent-rgb: 62, 156, 147;
+  --color-threshold: #3E9C93;
+  --color-on-accent: #0A0A0C;
+}
+
+:root[data-accent="orchid"] {
+  --color-accent: #BE7ACB;
+  --color-accent-rgb: 190, 122, 203;
+  --color-threshold: #BE7ACB;
   --color-on-accent: #0A0A0C;
 }
 

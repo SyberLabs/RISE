@@ -36,7 +36,7 @@ import {
 } from './core/visual-safety.js';
 import { clampBandFraction } from './core/band-offset.js';
 import { resolveChamberStreamFace } from './core/chamber-stream-face.js';
-import { DEFAULT_CHAMBER_ACCENT, resolveChamberAccent } from './core/chamber-accent.js';
+import { DEFAULT_CHAMBER_ACCENT, applyChamberAccent, resolveChamberAccent } from './core/chamber-accent.js';
 import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
 import { normalizeVisualSelection, resolveSessionWordFill } from './core/visual-selection.js';
@@ -1470,7 +1470,9 @@ class App {
 
         root.dataset.fontSize = resolveFontSize(this.settings?.fontSize);
         root.dataset.chamberFace = resolveChamberStreamFace(this.settings?.chamberFace);
-        root.dataset.accent = resolveChamberAccent(this.settings?.chamberAccent);
+        // Slate is the bare :root, so it must CLEAR data-accent, not stamp it —
+        // applyChamberAccent owns that rule for both the app and the Chamber.
+        applyChamberAccent(root, this.settings?.chamberAccent);
         root.classList.toggle('hide-session-progress', this.settings?.showProgress === false);
         root.classList.toggle('hide-session-duration', this.settings?.showDuration === false);
         this._visualCortex?.setArtworkLabelsVisible(this.settings?.showArtworkLabels !== false);

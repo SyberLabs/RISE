@@ -34,12 +34,17 @@
   <script>
     (function () {
       try {
-        var allowed = { ivory: 1, purple: 1, cobalt: 1, amber: 1, sunset: 1, gecko: 1 };
+        // Colourways only. Slate is the default and is the ABSENCE of the
+        // attribute (neutral :root), so an unknown or unset accent removes it
+        // rather than stamping anything — this runs before the app to beat the
+        // flash. Keep in step with CHAMBER_ACCENTS.
+        var allowed = { ivory: 1, purple: 1, cobalt: 1, amber: 1, sunset: 1, gecko: 1, garnet: 1, teal: 1, orchid: 1 };
         var stored = JSON.parse(localStorage.getItem('rise-settings') || '{}');
         var id = stored && stored.chamberAccent;
-        document.documentElement.dataset.accent = allowed[id] ? id : 'ivory';
+        if (allowed[id]) document.documentElement.dataset.accent = id;
+        else document.documentElement.removeAttribute('data-accent');
       } catch (e) {
-        document.documentElement.dataset.accent = 'ivory';
+        document.documentElement.removeAttribute('data-accent');
       }
     })();
   </script>
