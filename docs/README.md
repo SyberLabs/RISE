@@ -65,6 +65,7 @@ history, not a distinction; read the status column instead.
 | Document | Status | What it is |
 | --- | --- | --- |
 | [vision/PAGE-MODE-SPEC.md](vision/PAGE-MODE-SPEC.md) | Contract | Page projection, v1. Matches `src/page/`. |
+| [vision/VISUAL-NAVIGATOR-MIGRATION.md](vision/VISUAL-NAVIGATOR-MIGRATION.md) | Record | The completed migration from the Chamber's Visual Interlocution Panel to the Visual Navigator. |
 | [specs/RHYTHMIC-VISUAL-PRESENCE-SPEC.md](specs/RHYTHMIC-VISUAL-PRESENCE-SPEC.md) | Contract | Rhythmic visual presence, as built. |
 | [specs/LATERAL-TRAVERSAL-SPEC.md](specs/LATERAL-TRAVERSAL-SPEC.md) | Contract | The Shuttle. Implemented in `src/core/shuttle.js`. |
 | [specs/CONTINUOUS-FIELD-SPEC.md](specs/CONTINUOUS-FIELD-SPEC.md) | Contract | Gallery's continuous field. Implemented in `src/visuals/continuous-field.js`. |
