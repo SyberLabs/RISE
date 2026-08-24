@@ -206,7 +206,7 @@ describe('Chamber type size (FM-RISE-36)', () => {
         chamber.destroy();
     });
 
-    it('updates glyph sizing without activating a new mask before mask application runs', async () => {
+    it('rebuilds the glyph mask after a fit size change is reconciled', async () => {
         const { chamber, container } = makeChamber(
             {
                 chunkMode: 'word',
@@ -225,9 +225,10 @@ describe('Chamber type size (FM-RISE-36)', () => {
         const sync = vi.spyOn(chamber, 'syncFillGlyphMask');
         globalThis.rise.settings.fontSize = 'fit';
         chamber.applyChamberTypeSize();
+        chamber.applyChamberMask();
 
         expect(el.dataset.fontSize).toBe('fit');
-        expect(el.classList.contains('is-mask')).toBe(false);
+        expect(el.classList.contains('is-mask')).toBe(true);
         expect(el.dataset.chamberFace).toBe('thick');
         expect(sync).toHaveBeenCalled();
         chamber.destroy();

@@ -608,6 +608,7 @@ export class Chamber {
       visualMode: visualConfig?.visualMode,
       presentation,
       wordFill: visualConfig?.interlocution?.wordFill,
+      wordFillDeclared: visualConfig?.interlocution?.wordFillDeclared,
       legacyMask: settings.chamberMask === true
     });
   }
@@ -2202,7 +2203,10 @@ export class Chamber {
           this.applyChamberStreamFace();
           this.applyChamberMask();
         }
-        if (key === 'fontSize') this.applyChamberTypeSize();
+        if (key === 'fontSize') {
+          this.applyChamberTypeSize();
+          this.applyChamberMask();
+        }
         if (key === 'chamberFace') this._reportFaceApply(value);
         if (key === 'chamberAccent') {
           this.applyChamberAccent();

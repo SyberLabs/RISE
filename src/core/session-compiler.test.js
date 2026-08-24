@@ -404,6 +404,7 @@ describe('session compiler', () => {
       procedural: ['fractal'],
       sourced: []
     });
+    expect(missing.wordFillDeclared).toBe(false);
 
     const declared = normalizeVisualConfig({
       visualMode: 'interlocution',
@@ -414,6 +415,7 @@ describe('session compiler', () => {
       }
     }).interlocution;
     expect(declared.wordFill).toEqual({ mode: 'same', border: 'cream' });
+    expect(declared.wordFillDeclared).toBe(true);
   });
 });
 

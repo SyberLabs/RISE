@@ -6,6 +6,7 @@ import {
     beginNonFlashingVisualSession,
     endVisualInterlocutionSession
 } from '../core/visual-safety.js';
+import { compileSession } from '../core/session-compiler.js';
 
 const STILL = { id: 'still-1', kind: 'image', uri: 'https://example.test/still.jpg', name: 'Still' };
 const MP4 = {
@@ -168,6 +169,29 @@ describe('Chamber Mask', () => {
         const { chamber, container } = makeChamber(
             { chunkMode: 'word' },
             { chamberMask: false }
+        );
+        expect(atomDisplay(container).classList.contains('is-mask')).toBe(false);
+        chamber.destroy();
+    });
+
+    it('does not mask an inferred material from a compiled Gallery session', () => {
+        const session = compileSession({
+            text: 'A word.',
+            chunkMode: 'word',
+            visualConfig: {
+                visualMode: 'interlocution',
+                interlocution: {
+                    presentation: 'continuous',
+                    sourced: ['sci-astronomy'],
+                    procedural: ['fractal']
+                }
+            }
+        });
+        expect(session.visualConfig.interlocution.wordFillDeclared).toBe(false);
+
+        const { chamber, container } = makeChamber(
+            session,
+            { chamberFace: 'thick', fontSize: 'fit', chamberMask: false }
         );
         expect(atomDisplay(container).classList.contains('is-mask')).toBe(false);
         chamber.destroy();
