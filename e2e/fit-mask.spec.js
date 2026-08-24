@@ -212,3 +212,42 @@ test('leaving Fit for Medium preserves the Turrell × Fractal Gallery but remove
   await expect(page.locator('#atom-display')).not.toHaveClass(/is-word-fit/);
   await expect(page.locator('#atom-display')).not.toHaveClass(/is-mask/);
 });
+
+test('material controls explain locked masks, transact Thick + Fit, and preserve the selected border', async ({ page }) => {
+  await openPrep(page, { width: 1280, height: 800 });
+  await chooseFit(page);
+  await page.locator('.vnav-node[data-id="ink"]').click();
+
+  // Browsers dispatch pointer events to aria-disabled controls; Playwright
+  // suppresses them unless forced. This choice must remain explanatory.
+  await page.locator('[data-word-fill="same"]').click({ force: true });
+  const dialog = page.locator('[role="dialog"]');
+  await expect(dialog).toContainText('Visual masks require Thick + Fit.');
+  await expect(dialog.getByRole('button', { name: 'Use Thick + Fit' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Use Thick + Fit' }).click();
+  await expect(dialog).toBeHidden();
+
+  const accent = page.locator('[data-word-fill="accent"]');
+  await accent.click();
+  await expect(accent).toHaveClass(/is-selected/);
+  await accent.click();
+  await expect(accent).not.toHaveClass(/is-selected/);
+
+  await page.locator('.vnav-node[data-id="face"]').click();
+  await page.locator('[data-chamber-face="thick"]').click();
+  await page.locator('.vnav-node[data-id="ink"]').click();
+  await page.locator('[data-word-fill="same"]').click();
+  await expect(page.locator('[data-word-fill-border="cream"]')).toHaveClass(/is-selected/);
+  await page.locator('[data-word-fill-border="accent"]').click();
+  await page.locator('[data-word-fill="procedural:fractal"]').click();
+  await expect(page.locator('[data-word-fill-border="accent"]')).toHaveClass(/is-selected/);
+  await expect(page.getByText('Neural Networks')).toHaveCount(0);
+  await expect(page.getByText('Rock Garden')).toHaveCount(0);
+  await expect(page.getByText('Spectral Plates')).toHaveCount(0);
+
+  await page.locator('.vnav-node[data-id="size"]').click();
+  await page.locator('[data-font-size="m"]').click();
+  await expect(dialog).toContainText('This change cannot keep the current visual mask. Continue with Accent ink?');
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).toBeHidden();
+});

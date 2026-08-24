@@ -133,7 +133,29 @@
 .vnav-opt:disabled { cursor: not-allowed; opacity: 0.42; }
 .vnav-opt.on { border-color: rgba(var(--color-accent-rgb, 228,210,174), 0.6); color: var(--color-light, #E8E8EC);
   background: linear-gradient(180deg, rgba(var(--color-accent-rgb, 228,210,174), 0.12), transparent); }
+.vnav-opt.is-blocked,
+.vnav-opt[aria-disabled="true"] { cursor: pointer; opacity: 0.62; }
+.vnav-opt.is-blocked { border-style: dashed; }
+.vnav-opt.is-special { color: var(--color-accent, #E4D2AE); }
+.vnav-opt:focus-visible,
+.vnav-dialog button:focus-visible { outline: 2px solid var(--color-accent, #E4D2AE); outline-offset: 2px; }
 .vnav-opt.swatch i { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); }
+
+.vnav-face-grid .vnav-opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.vnav-face-grid .vnav-opt { justify-content: center; }
+.vnav-control-explanation { margin: -0.25rem 0 0.9rem; color: var(--color-accent, #E4D2AE); font-size: 0.68rem; }
+.vnav-control-explanation[hidden] { display: none; }
+
+.vnav-dialog-backdrop { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; padding: 1rem;
+  background: rgba(0, 0, 0, 0.68); }
+.vnav { position: relative; }
+.vnav-dialog { width: min(28rem, 100%); padding: 1.1rem; border: 1px solid rgba(var(--color-accent-rgb, 228,210,174), 0.5);
+  border-radius: 5px; background: var(--vnav-panel); color: var(--color-cloud, #C5C5CD); box-shadow: 0 1rem 3rem rgba(0,0,0,0.45); }
+.vnav-dialog h3 { margin: 0; color: var(--color-light, #E8E8EC); font: 400 1.12rem var(--font-display, 'Marcellus', serif); }
+.vnav-dialog p { margin: 0.7rem 0 0; color: var(--color-fog, #9B9BA5); font-size: 0.78rem; line-height: 1.5; }
+.vnav-dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
+.vnav-dialog-actions button { border: 1px solid var(--vnav-edge); border-radius: 4px; padding: 0.42rem 0.65rem;
+  background: var(--vnav-raise); color: var(--color-cloud, #C5C5CD); font: inherit; font-size: 0.72rem; cursor: pointer; }
 
 .vnav-glass { display: flex; align-items: center; gap: 0.5rem; font-size: 0.76rem; color: var(--color-fog, #9B9BA5);
   margin: 0.2rem 0 0.9rem; cursor: pointer; }

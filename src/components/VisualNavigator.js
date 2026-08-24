@@ -38,6 +38,7 @@ import {
   persistFontSize,
   resolveFontSize
 } from '../core/chamber-type-size.js';
+import { resolveTextMaterialCapability } from '../core/chamber-text-material.js';
 import { WORD_FILL_PROCEDURAL_PATTERNS } from '../core/visual-registry.js';
 import { normalizeGlobalPoolSelection, normalizeWordFill } from '../core/visual-selection.js';
 import { MemoryCore } from '../core/memory.js';
@@ -83,6 +84,7 @@ export class VisualNavigator {
     this.container = container;
     this.onChange = options.onChange || (() => {});
     this.onFitRequested = options.onFitRequested || (() => {});
+    this.onTextMaterialTransaction = options.onTextMaterialTransaction || (() => {});
     this.onOpenPersonal = options.onOpenPersonal || (() => {});
     this.locked = options.locked === true;
     this.lockedMessage = options.lockedMessage || 'Load text to configure visuals.';
@@ -93,6 +95,9 @@ export class VisualNavigator {
       || readingCollections(this.selection.config).some(isChapelCollection);
     this._chapelTrayOpen = false;
     this.inkFocus = inkFocusFrom(this.selection.wordFill);
+    this.dialog = null;
+    this._dialogReturnFocusSelector = null;
+    this._faceHint = false;
     this.path = [];          // branch nodes descended, under ROOT
     this.focus = null;       // the open leaf, or null
     this._destroyed = false;
@@ -276,16 +281,130 @@ export class VisualNavigator {
     }
   }
 
-  setFace(value) {
+  textMaterialSettings() {
+    return {
+      face: resolveChamberStreamFace(globalThis.rise?.settings?.chamberFace),
+      fontSize: resolveFontSize(globalThis.rise?.settings?.fontSize)
+    };
+  }
+
+  textMaterialCapability(wordFill = this.selection.wordFill, settings = this.textMaterialSettings()) {
+    return resolveTextMaterialCapability({
+      face: settings.face,
+      fontSize: settings.fontSize,
+      chunkMode: 'word',
+      visualMode: 'interlocution',
+      presentation: 'continuous',
+      wordFill,
+      programOwned: Boolean(this.programInfo)
+    });
+  }
+
+  hasActiveMask() {
+    return this.textMaterialCapability().maskActive;
+  }
+
+  requestTextMaterialTransaction({ face, fontSize, wordFill, temporal = null }) {
+    const next = normalizeWordFill(wordFill);
+    this.selection.wordFill = next;
+    const visualConfig = configPatch(this.selection);
+    this.selection.config = visualConfig;
+    this.onTextMaterialTransaction({
+      settings: { chamberFace: face, fontSize },
+      temporal,
+      visualConfig
+    });
+  }
+
+  openDialog(dialog, returnFocus = document.activeElement) {
+    this.dialog = dialog;
+    this._dialogReturnFocusSelector = [
+      'data-chamber-face',
+      'data-font-size',
+      'data-word-fill',
+      'data-word-fill-border'
+    ].map(attribute => {
+      const value = returnFocus?.getAttribute?.(attribute);
+      return value == null ? null : `[${attribute}=${JSON.stringify(value)}]`;
+    }).find(Boolean) || null;
+    this.render();
+    queueMicrotask(() => this.container.querySelector('[data-dialog-primary]')?.focus());
+  }
+
+  closeDialog() {
+    const returnFocusSelector = this._dialogReturnFocusSelector;
+    this.dialog = null;
+    this._dialogReturnFocusSelector = null;
+    this.render();
+    this.container.querySelector(returnFocusSelector)?.focus();
+  }
+
+  explainProgramOwnership(returnFocus) {
+    this.openDialog({
+      title: 'This text material is owned by the curated program.',
+      body: 'The curated program controls its text material for this reading.',
+      primaryLabel: 'Close',
+      confirm: () => this.closeDialog()
+    }, returnFocus);
+  }
+
+  explainBlockedMask(wordFill, returnFocus) {
+    this.openDialog({
+      title: 'Visual masks require Thick + Fit.',
+      body: 'Bold, chamber-filling words provide enough surface for imagery.',
+      primaryLabel: 'Use Thick + Fit',
+      primaryAction: 'use-thick-fit',
+      confirm: () => {
+        this.selection.emptyGallery = true;
+        this.selection.preserveBaseSelection = true;
+        this.requestTextMaterialTransaction({
+          face: 'thick',
+          fontSize: 'fit',
+          wordFill,
+          temporal: { chunkMode: 'word', recitation: false }
+        });
+        this.closeDialog();
+      }
+    }, returnFocus);
+  }
+
+  confirmMaskInvalidation({ face, fontSize, returnFocus }) {
+    this.openDialog({
+      title: 'This change cannot keep the current visual mask. Continue with Accent ink?',
+      body: '',
+      primaryLabel: 'Continue with Accent',
+      primaryAction: 'dialog-confirm',
+      confirm: () => {
+        this.requestTextMaterialTransaction({
+          face,
+          fontSize,
+          wordFill: { mode: 'accent' }
+        });
+        this.closeDialog();
+      }
+    }, returnFocus);
+  }
+
+  setFace(value, returnFocus) {
     if (resolveChamberStreamFace(value) !== value) return;
+    if (this.programInfo) return this.explainProgramOwnership(returnFocus);
+    const settings = this.textMaterialSettings();
+    if (this.hasActiveMask() && value !== settings.face) {
+      return this.confirmMaskInvalidation({ face: value, fontSize: settings.fontSize, returnFocus });
+    }
     this.writeSetting('chamberFace', value);
     this.render();
   }
 
-  setSize(value) {
+  setSize(value, returnFocus) {
     const persist = persistFontSize(value);
     if (!persist) return;
-    if (persist === 'fit' && (this.locked || this.programInfo)) return;
+    if (this.programInfo) return this.explainProgramOwnership(returnFocus);
+    const settings = this.textMaterialSettings();
+    if (this.hasActiveMask() && persist !== settings.fontSize) {
+      return this.confirmMaskInvalidation({ face: settings.face, fontSize: persist, returnFocus });
+    }
+    if (persist === 'fit' && this.locked) return;
     this.writeSetting('fontSize', persist);
     if (persist === 'fit') {
       const gallery = this.selection.enabled.size > 0
@@ -300,24 +419,51 @@ export class VisualNavigator {
     this.render();
   }
 
-  setWordFill(value) {
-    if (this.locked || this.programInfo) return;
-    if (resolveFontSize(globalThis.rise?.settings?.fontSize) !== 'fit') return;
+  setWordFill(value, returnFocus) {
+    if (this.locked) return;
+    if (this.programInfo) return this.explainProgramOwnership(returnFocus);
+    const settings = this.textMaterialSettings();
+    let wordFill = null;
     if (value === 'accent') {
-      this.selection.wordFill = { mode: 'accent' };
+      wordFill = wordFillValue(this.selection.wordFill) === 'accent'
+        ? { mode: 'plain' }
+        : { mode: 'accent' };
       this.inkFocus = null;
     } else if (value === 'same') {
-      this.selection.wordFill = { mode: 'same' };
+      wordFill = { mode: 'same', border: normalizeWordFill(this.selection.wordFill).border || 'cream' };
       this.inkFocus = null;
     } else if (value.startsWith('procedural:')) {
       const engineId = value.slice('procedural:'.length);
-      this.selection.wordFill = { mode: 'pick', sourceFamily: 'procedural', procedural: [engineId], sourced: [] };
+      wordFill = {
+        mode: 'pick', sourceFamily: 'procedural', procedural: [engineId], sourced: [],
+        border: normalizeWordFill(this.selection.wordFill).border || 'cream'
+      };
       this.inkFocus = engineId;
     } else if (value.startsWith('sourced:')) {
       const sourceId = value.slice('sourced:'.length);
-      this.selection.wordFill = { mode: 'pick', sourceFamily: 'collections', procedural: [], sourced: [sourceId] };
+      wordFill = {
+        mode: 'pick', sourceFamily: 'collections', procedural: [], sourced: [sourceId],
+        border: normalizeWordFill(this.selection.wordFill).border || 'cream'
+      };
       this.inkFocus = null;
     } else return;
+
+    if (wordFill.mode === 'accent' || wordFill.mode === 'plain') {
+      this.requestTextMaterialTransaction({ ...settings, wordFill });
+    } else if (!this.textMaterialCapability(wordFill, settings).available) {
+      this.explainBlockedMask(wordFill, returnFocus);
+      return;
+    } else {
+      this.selection.wordFill = normalizeWordFill(wordFill);
+      this.emit();
+    }
+    this.render();
+  }
+
+  setWordFillBorder(border, returnFocus) {
+    if (this.programInfo) return this.explainProgramOwnership(returnFocus);
+    if (!this.hasActiveMask() || !['off', 'cream', 'accent'].includes(border)) return;
+    this.selection.wordFill = normalizeWordFill({ ...this.selection.wordFill, border });
     this.emit();
     this.render();
   }
@@ -399,6 +545,7 @@ export class VisualNavigator {
           <div class="vnav-entry">${this.renderEntry()}</div>
         </div>
         ${this.renderReaderControls()}
+        ${this.renderDialog()}
       </div>`;
     this.attach();
   }
@@ -477,48 +624,71 @@ export class VisualNavigator {
 
   renderTextEntry(id) {
     if (id === 'face') {
-      const selected = resolveChamberStreamFace(globalThis.rise?.settings?.chamberFace);
+      const selected = this.textMaterialSettings().face;
       return this.renderTextShell('Face', 'The letters, not the room.', bench('Face',
         CHAMBER_STREAM_FACES.map(item => ({
-          id: item.id, label: item.label, on: item.id === selected,
-          attr: `data-chamber-face="${escapeHtml(item.id)}"`
-        }))));
+          id: item.id, label: item.id === 'thick' ? 'Thick ★' : item.label, on: item.id === selected,
+          readOnly: Boolean(this.programInfo), special: item.id === 'thick',
+          attr: `data-chamber-face="${escapeHtml(item.id)}"${item.id === 'thick' ? ' aria-describedby="vnav-thick-explanation"' : ''}`
+        })), 'vnav-face-grid') + `<p id="vnav-thick-explanation" class="vnav-control-explanation"
+          ${this._faceHint ? '' : 'hidden'}>Thick is the mask-ready face.</p>`);
     }
     if (id === 'size') {
-      const selected = resolveFontSize(globalThis.rise?.settings?.fontSize);
+      const selected = this.textMaterialSettings().fontSize;
       return this.renderTextShell('Size', selected === 'fit' ? SIZE_HINT_FIT : 'Choose the scale of the reading.',
         bench('Size', FONT_SIZE_CHIPS.map(item => ({
           id: item.id, label: item.label, on: item.fontSize === selected,
+          readOnly: Boolean(this.programInfo),
           attr: `data-font-size="${escapeHtml(item.id)}"`
         }))));
     }
-    const fit = resolveFontSize(globalThis.rise?.settings?.fontSize) === 'fit';
-    if (!fit) {
-      return this.renderTextShell('Ink', 'What fills the letters.',
-        '<p class="vnav-text-locked">Ink unlocks at Size → Fit.</p>');
-    }
     const value = wordFillValue(this.selection.wordFill);
-    const fieldLocked = Boolean(this.locked || this.programInfo);
+    const settings = this.textMaterialSettings();
+    const fieldLocked = Boolean(this.locked);
+    const programLocked = Boolean(this.programInfo);
+    const maskAvailable = this.textMaterialCapability({ mode: 'same' }, settings).available;
     const engines = WORD_FILL_PROCEDURAL_PATTERNS.map(item => ({
       id: item.id, label: item.name, on: value === `procedural:${item.id}`,
       disabled: fieldLocked,
+      readOnly: programLocked,
+      blocked: !maskAvailable && !programLocked,
       attr: `data-word-fill="procedural:${escapeHtml(item.id)}"`
     }));
     const pools = inkPoolOptions().map(item => ({
       id: item.id, label: item.label, on: value === `sourced:${item.id}`,
       disabled: fieldLocked,
+      readOnly: programLocked,
+      blocked: !maskAvailable && !programLocked,
       attr: `data-word-fill="sourced:${escapeHtml(item.id)}"`
     }));
     const styles = this.inkFocus ? this.renderStyleBenches(this.inkFocus) : '';
     return this.renderTextShell('Ink', 'Paint the gallery through the letters.', `
       ${bench('Ink', [
-        { id: 'accent', label: 'Accent', on: value === 'accent', disabled: fieldLocked, attr: 'data-word-fill="accent"' },
-        { id: 'same', label: 'Same as field', on: value === 'same', disabled: fieldLocked, attr: 'data-word-fill="same"' }
+        { id: 'accent', label: 'Accent', on: value === 'accent', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill="accent"' },
+        { id: 'same', label: 'Visual Mask', on: value === 'same', disabled: fieldLocked, readOnly: programLocked, blocked: !maskAvailable && !programLocked, attr: 'data-word-fill="same"' }
       ])}
       ${bench('Engines', engines)}
       ${bench('Pools', pools)}
+      ${this.hasActiveMask() ? bench('Border', [
+        { id: 'off', label: 'Off', on: normalizeWordFill(this.selection.wordFill).border === 'off', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill-border="off"' },
+        { id: 'cream', label: 'Cream', on: normalizeWordFill(this.selection.wordFill).border === 'cream', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill-border="cream"' },
+        { id: 'accent', label: 'Accent', on: normalizeWordFill(this.selection.wordFill).border === 'accent', disabled: fieldLocked, readOnly: programLocked, attr: 'data-word-fill-border="accent"' }
+      ]) : ''}
       ${styles}
       <p class="vnav-fit-coupling">Fit paints the gallery through the letters. Words step one at a time; Recitation and phrase chunking stand aside.</p>`);
+  }
+
+  renderDialog() {
+    if (!this.dialog) return '';
+    return `<div class="vnav-dialog-backdrop"><section class="vnav-dialog" role="dialog" aria-modal="true"
+      aria-labelledby="vnav-dialog-title" tabindex="-1">
+      <h3 id="vnav-dialog-title">${escapeHtml(this.dialog.title)}</h3>
+      ${this.dialog.body ? `<p>${escapeHtml(this.dialog.body)}</p>` : ''}
+      <div class="vnav-dialog-actions">
+        <button type="button" data-action="dialog-cancel">Cancel</button>
+        <button type="button" class="is-special" data-dialog-primary data-action="${escapeHtml(this.dialog.primaryAction || 'dialog-primary')}">${escapeHtml(this.dialog.primaryLabel)}</button>
+      </div>
+    </section></div>`;
   }
 
   renderTextShell(title, desc, body) {
@@ -718,12 +888,36 @@ export class VisualNavigator {
     q('[data-action="open-personal"]')?.addEventListener('click', () => this.onOpenPersonal());
     this.container.querySelectorAll('[data-action="release-to-program"]').forEach(b =>
       b.onclick = () => this.releaseToProgram());
-    this.container.querySelectorAll('[data-chamber-face]').forEach(b =>
-      b.onclick = () => this.setFace(b.dataset.chamberFace));
+    this.container.querySelectorAll('[data-chamber-face]').forEach(b => {
+      b.onclick = () => this.setFace(b.dataset.chamberFace, b);
+      if (b.dataset.chamberFace === 'thick') {
+        for (const type of ['pointerenter', 'focus', 'pointerup']) {
+          b.addEventListener(type, event => {
+            if (!this._faceHint
+              && (type !== 'pointerup' || event.pointerType === 'touch' || !event.pointerType)) {
+              this._faceHint = true;
+              this.render();
+            }
+          });
+        }
+      }
+    });
     this.container.querySelectorAll('[data-font-size]').forEach(b =>
-      b.onclick = () => this.setSize(b.dataset.fontSize));
+      b.onclick = () => this.setSize(b.dataset.fontSize, b));
     this.container.querySelectorAll('[data-word-fill]').forEach(b =>
-      b.onclick = () => this.setWordFill(b.dataset.wordFill));
+      b.onclick = () => this.setWordFill(b.dataset.wordFill, b));
+    this.container.querySelectorAll('[data-word-fill-border]').forEach(b =>
+      b.onclick = () => this.setWordFillBorder(b.dataset.wordFillBorder, b));
+    if (this.programInfo) {
+      this.container.querySelectorAll('[data-chamber-face], [data-font-size], [data-word-fill], [data-word-fill-border]')
+        .forEach(b => ['pointerenter', 'focus', 'pointerup'].forEach(type =>
+          b.addEventListener(type, () => this.explainProgramOwnership(b))));
+    }
+    q('[data-action="dialog-cancel"]')?.addEventListener('click', () => this.closeDialog());
+    q('[data-dialog-primary]')?.addEventListener('click', () => this.dialog?.confirm());
+    q('[role="dialog"]')?.addEventListener('keydown', event => {
+      if (event.key === 'Escape') this.closeDialog();
+    });
     this.container.querySelectorAll('[data-gallery-cadence]').forEach(b =>
       b.onclick = () => this.setCadence(b.dataset.galleryCadence));
     this.container.querySelectorAll('[data-sub]').forEach(b =>
@@ -768,14 +962,14 @@ function glyphFor(node) {
   return glyphs[node.id] || '·';
 }
 
-function bench(label, opts) {
+function bench(label, opts, className = '') {
   return `
-    <div class="vnav-bench">
+    <div class="vnav-bench ${className}">
       <span class="vnav-bench-label">${escapeHtml(label)}</span>
       <div class="vnav-opts">
         ${opts.map(o => `
-          <button type="button" class="vnav-opt ${o.on ? 'on' : ''} ${o.swatch ? 'swatch' : ''}"
-            ${o.disabled ? 'disabled' : ''} ${o.attr}>
+          <button type="button" class="vnav-opt ${o.on ? 'on is-selected' : ''} ${o.swatch ? 'swatch' : ''} ${o.blocked ? 'is-blocked' : ''} ${o.special ? 'is-special' : ''}"
+            ${o.disabled ? 'disabled' : ''} ${o.readOnly || o.blocked ? 'aria-disabled="true"' : ''} ${o.attr}>
             ${o.swatch ? `<i style="background:${escapeHtml(o.swatch)}"></i>` : ''}${escapeHtml(String(o.label))}
           </button>`).join('')}
       </div>
