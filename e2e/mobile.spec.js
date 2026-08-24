@@ -223,8 +223,9 @@ test('Try RISE owns its mobile scroll instead of clipping stacked readings', asy
     expect(scroll.lastCardBottom).toBeLessThanOrEqual(scroll.viewportHeight);
 });
 
-test('the mode selector is one row with no empty cell', async ({ page }) => {
-    // Five modes in one row; labels must not clip or break mid-word.
+test('the visual navigator exposes complete Field and Text roots without a mobile dead lane', async ({ page }) => {
+    // The retired five-mode strip is now an explicit two-root hierarchy.
+    // Every root must be populated, stay inside the viewport, and lead to its entry.
     test.setTimeout(240000);
     await enter(page, 390, 844);
     await page.locator('[data-nav="library"]').first().click();
@@ -237,30 +238,37 @@ test('the mode selector is one row with no empty cell', async ({ page }) => {
     await expect(page.locator('.orbital-stage')).toBeVisible({ timeout: 30000 });
     await page.locator('.orbit-visual').click();
     await expect(page.locator('#modal-visual')).toBeVisible({ timeout: 15000 });
-    await expect(page.locator('.vi-mode-selector')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('.vnav')).toBeVisible({ timeout: 15000 });
 
-    const selector = await page.evaluate(() => {
-        const el = document.querySelector('.vi-mode-selector');
-        if (!el) return null;
-        const btns = [...el.querySelectorAll('.vi-mode-btn')];
+    const roots = await page.evaluate(() => {
+        const el = document.querySelector('.vnav');
+        const first = el?.querySelector('.vnav-col');
+        if (!el || !first) return null;
+        const groups = [...first.querySelectorAll('.vnav-group')];
         return {
-            modes: btns.length,
-            columns: getComputedStyle(el).gridTemplateColumns.split(' ').length,
-            rows: new Set(btns.map(b => Math.round(b.getBoundingClientRect().top))).size,
-            height: Math.round(el.getBoundingClientRect().height),
-            clipped: btns.filter(b => {
-                const n = b.querySelector('.vi-mode-name');
-                return n && n.scrollWidth > n.clientWidth + 1;
-            }).map(b => b.textContent.trim().slice(0, 12))
+            groups: groups.map(group => group.textContent.trim()),
+            nodes: [...first.querySelectorAll('.vnav-node')].map(node => node.dataset.id),
+            sideways: Math.max(0, el.scrollWidth - el.clientWidth),
+            emptyGroups: groups.filter(group => {
+                let sibling = group.nextElementSibling;
+                while (sibling && !sibling.classList.contains('vnav-group')) {
+                    if (sibling.classList.contains('vnav-node')) return false;
+                    sibling = sibling.nextElementSibling;
+                }
+                return true;
+            }).map(group => group.textContent.trim())
         };
     });
-    console.log('SELECTOR ' + JSON.stringify(selector));
+    console.log('NAVIGATOR ' + JSON.stringify(roots));
 
-    expect(selector, 'no mode selector found').not.toBeNull();
-    expect(selector.columns).toBe(selector.modes);
-    expect(selector.rows).toBe(1);
-    expect(selector.clipped, 'a mode label is cut off').toEqual([]);
-    expect(selector.height).toBeLessThan(110);
+    expect(roots, 'no visual navigator found').not.toBeNull();
+    expect(roots.groups).toEqual(['Field', 'Text']);
+    expect(roots.nodes).toEqual(['off', 'visual', 'face', 'size', 'ink']);
+    expect(roots.emptyGroups).toEqual([]);
+    expect(roots.sideways).toBe(0);
+
+    await page.locator('.vnav-node[data-id="size"]').click();
+    await expect(page.locator('[data-font-size="fit"]')).toBeVisible();
 });
 
 test('the orbit is centred in the phone rather than cropped by it', async ({ page }) => {

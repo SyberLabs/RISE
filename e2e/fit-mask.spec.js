@@ -49,6 +49,8 @@ async function openPrep(page, viewport) {
   await page.locator('[data-nav="chamber"]').first().click();
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
   await page.locator('[data-orbit="visual"]').click();
+  await expect(page.locator('.vnav')).toBeVisible();
+  await page.locator('.vnav-node[data-id="size"]').click();
   await expect(page.locator('[data-font-size="fit"]')).toBeVisible();
 }
 
