@@ -958,6 +958,7 @@
   grid-column: 2;
   justify-self: center;
   display: flex;
+  box-sizing: border-box;
   width: 96px;
   height: 96px;
   min-width: 96px;
@@ -967,12 +968,48 @@
   flex-direction: column;
   gap: 6px;
   border-radius: 50%;
-  color: var(--color-cloud);
-  background: linear-gradient(180deg, rgba(48, 48, 56, 0.72), rgba(25, 25, 30, 0.9));
+  cursor: pointer;
+  color: var(--color-on-accent);
+  background: linear-gradient(
+    180deg,
+    var(--color-accent) 0%,
+    color-mix(in srgb, var(--color-accent) 88%, var(--color-void)) 100%
+  );
+  border: 1px solid var(--accent-bevel);
+  box-shadow:
+    0 3px 8px rgba(0, 0, 0, 0.32),
+    0 0 22px var(--accent-halo),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  transition:
+    transform 80ms var(--ease-out),
+    box-shadow 150ms var(--ease-default),
+    filter 150ms var(--ease-default);
+}
+
+.portal-nav .nav-secondary .nav-try:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow:
+    0 5px 12px rgba(0, 0, 0, 0.36),
+    0 0 30px var(--accent-halo),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.portal-nav .nav-secondary .nav-try:active {
+  filter: brightness(0.94);
+  transform: translateY(1px);
+}
+
+.portal-nav .nav-secondary .nav-try:focus-visible {
+  outline: 2px solid var(--color-void);
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 4px var(--color-accent),
+    0 0 26px var(--accent-halo);
 }
 
 .nav-try .try-mark {
-  color: var(--color-accent);
+  color: currentColor;
   font-size: 16px;
   line-height: 1;
 }
@@ -1007,7 +1044,5 @@
     padding: 8px;
     justify-content: center;
     border-radius: 50%;
-    background: linear-gradient(180deg, rgba(48, 48, 56, 0.72), rgba(25, 25, 30, 0.9));
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
 }

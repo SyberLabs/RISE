@@ -269,6 +269,17 @@ describe('the colourway dresses the whole cluster', () => {
     expect(tile).not.toMatch(/rgba\(42, 42, 48/);
   });
 
+  it('the actual Try RISE circle carries the sitting accent and its contrast ink', () => {
+    const portal = read('components/Portal.css');
+    const circle = portal.match(/\.portal-nav \.nav-secondary \.nav-try\s*\{[^}]+\}/)[0];
+    expect(circle).toMatch(/color:\s*var\(--color-on-accent\)/);
+    expect(circle).toMatch(/background:[^;]*var\(--color-accent\)/s);
+    expect(circle).toMatch(/border[^;]*var\(--accent-bevel\)/);
+    expect(circle).toMatch(/box-shadow:[^}]*var\(--accent-halo\)/s);
+    expect(portal).toMatch(/\.nav-try \.try-mark\s*\{[^}]*color:\s*currentColor/s);
+    expect(portal).not.toMatch(/\.nav-try\s*\{[^}]*rgba\(48, 48, 56/s);
+  });
+
   it('the new sittings clear WCAG AA for their chosen ink', () => {
     const chan = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
     const lum = hex => { const n = parseInt(hex.slice(1), 16); return 0.2126 * chan(n >> 16 & 255) + 0.7152 * chan(n >> 8 & 255) + 0.0722 * chan(n & 255); };
