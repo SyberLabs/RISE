@@ -274,15 +274,19 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
  * One semantic appearance contract for ordinary Living Text and Fit fills.
  * Chamber decides where to apply it; this function only interprets signal.
  */
-export function livingTextAppearance(signal, intensity = 1) {
+export function livingTextAppearance(signal, intensity = 1, options = {}) {
     const strength = clamp(Number(intensity) || 0, 0, 1);
     const valence = clamp(Number(signal?.valence) || 0, -1, 1);
     const arousal = clamp(Number(signal?.arousal ?? 0.3) || 0, 0, 1);
     const neutral = [232, 232, 236];
     const pole = valence >= 0 ? [255, 208, 130] : [140, 172, 255];
     const mood = Math.tanh(Math.abs(valence) * 2.6);
-    const t = mood * strength;
-    const rgb = neutral.map((channel, index) => (
+    const hasBaseRgb = Array.isArray(options?.baseRgb) && options.baseRgb.length === 3;
+    const base = hasBaseRgb
+        ? options.baseRgb.map(channel => clamp(Math.round(Number(channel) || 0), 0, 255))
+        : neutral;
+    const t = mood * strength * (hasBaseRgb ? 0.22 : 1);
+    const rgb = base.map((channel, index) => (
         Math.round(channel + (pole[index] - channel) * t)
     ));
     const round3 = value => Number(value.toFixed(3));

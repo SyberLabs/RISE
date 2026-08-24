@@ -899,11 +899,33 @@ describe('Chamber semantic Fit compositor', () => {
         expect(Number(field.style.getPropertyValue('--living-fit-mix'))).toBeLessThanOrEqual(0.45);
         expect(Number(field.style.getPropertyValue('--living-fit-saturation'))).toBeGreaterThanOrEqual(1);
         expect(Number(field.style.getPropertyValue('--living-fit-brightness'))).toBeGreaterThan(0);
+        expect(atomDisplay(container).style.color).toBe('transparent');
+        expect(atomDisplay(container).style.textShadow).toBe('');
 
         chamber.destroyFillField();
         expect(field.classList.contains('is-living-fit')).toBe(false);
         expect(field.style.getPropertyValue('--living-fit-color')).toBe('');
         chamber.destroy();
+    });
+
+    it('maps Fit contour borders directly from the visual-mask material', async () => {
+        for (const [border, color] of [
+            ['off', ''],
+            ['cream', 'var(--color-light)'],
+            ['accent', 'var(--color-accent)']
+        ]) {
+            const { chamber, container } = makeChamber(
+                semanticSession({ mode: 'same', border }),
+                { fontSize: 'fit' }
+            );
+
+            chamber.displayAtom(chamber.session.atoms[4], 4);
+            await flushFillMask();
+            expect(atomDisplay(container).style.getPropertyValue('--fit-border-color')).toBe(color);
+
+            chamber.destroy();
+            container.remove();
+        }
     });
 
     it('does not tint collection artwork selected as the Fit source', async () => {

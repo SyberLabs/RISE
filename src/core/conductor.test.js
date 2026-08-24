@@ -48,6 +48,16 @@ describe('livingTextAppearance', () => {
             fitBrightness: 1.04
         });
     });
+
+    it('keeps an explicit accent recognisable while moving it toward the semantic pole', () => {
+        const base = [60, 97, 170];
+        const result = livingTextAppearance({ valence: 1, arousal: 1 }, 1, { baseRgb: base });
+
+        expect(result.rgb).not.toEqual(base);
+        expect(result.rgb[2]).toBeGreaterThan(result.rgb[1]);
+        expect(result.rgb[1]).toBeGreaterThan(result.rgb[0]);
+        expect(result.rgb.every((channel, index) => Math.abs(channel - base[index]) <= 48)).toBe(true);
+    });
 });
 
 describe('scoreChunk', () => {

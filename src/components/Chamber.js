@@ -619,11 +619,20 @@ export class Chamber {
     if (this.chamberMaskApplies()) {
       atomDisplay.classList.add('is-mask');
       atomDisplay.classList.remove('glass-tile');
+      const border = this._maskSourceConfig().wordFill?.border;
+      const borderColor = border === 'cream'
+        ? 'var(--color-light)'
+        : border === 'accent'
+          ? 'var(--color-accent)'
+          : '';
+      if (borderColor) atomDisplay.style.setProperty('--fit-border-color', borderColor);
+      else atomDisplay.style.removeProperty('--fit-border-color');
       this.ensureFillField();
       this.syncMaskGroundPlate();
     } else {
       atomDisplay.classList.remove('is-mask');
       atomDisplay.classList.remove('is-mask-ink');
+      atomDisplay.style.removeProperty('--fit-border-color');
       this.destroyFillField();
     }
   }
@@ -1926,7 +1935,16 @@ export class Chamber {
     if (!sig) return;
 
     const intensity = this.session?.visualConfig?.livingText?.intensity ?? 1;
-    const appearance = livingTextAppearance(sig, intensity);
+    const wordFill = this.session?.visualConfig?.interlocution?.wordFill;
+    const accentRgb = wordFill?.mode === 'accent'
+      ? getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-accent-rgb')
+        .split(',')
+        .map(channel => Number(channel.trim()))
+      : null;
+    const appearance = accentRgb
+      ? livingTextAppearance(sig, intensity, { baseRgb: accentRgb })
+      : livingTextAppearance(sig, intensity);
     const proceduralFit = atomDisplay?.classList.contains('is-word-fit')
       && this._shouldMountFill()
       && maskFillFromConfig(this._maskSourceConfig()).procedural;

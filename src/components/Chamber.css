@@ -257,8 +257,16 @@
   text-shadow: none;
 }
 
-.atom-display.is-mask.is-mask-ink.is-word-fit {
-  -webkit-text-stroke-width: 0;
+.atom-display.is-word-fit.is-mask-ink {
+  -webkit-text-stroke: clamp(0.75px, 0.1em, 2px) var(--fit-border-color, transparent);
+  paint-order: stroke fill;
+  text-shadow: none;
+}
+
+@supports not (-webkit-text-stroke: 1px currentColor) {
+  .atom-display.is-word-fit.is-mask-ink {
+    -webkit-text-stroke: 0;
+  }
 }
 
 .atom-display {
