@@ -314,6 +314,37 @@ describe('the text', () => {
     }
   });
 
+  it('dismisses a keyboard-opened program ownership dialog without reopening on restored focus', async () => {
+    for (const close of ['cancel', 'escape', 'primary']) {
+      window.rise = { settings: { chamberFace: 'thick', fontSize: 'fit' } };
+      mount({}, { programInfo: { episodes: 2 } });
+      click(node('ink'));
+      const trigger = nav.container.querySelector('[data-word-fill="accent"]');
+
+      trigger.focus();
+      await Promise.resolve();
+      const primary = nav.container.querySelector('[data-dialog-primary]');
+      expect(document.activeElement).toBe(primary);
+
+      if (close === 'cancel') {
+        click(nav.container.querySelector('[data-action="dialog-cancel"]'));
+      } else if (close === 'escape') {
+        primary.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      } else {
+        click(primary);
+      }
+
+      expect(nav.container.querySelector('[role="dialog"]')).toBeNull();
+      const liveTrigger = nav.container.querySelector('[data-word-fill="accent"]');
+      expect(document.activeElement).toBe(liveTrigger);
+
+      node('face').focus();
+      liveTrigger.focus();
+      expect(nav.container.querySelector('[role="dialog"]')).toBeTruthy();
+      unmount();
+    }
+  });
+
   it('focuses the primary dialog action and restores the live trigger after Cancel, Escape, and primary action', async () => {
     const onTextMaterialTransaction = vi.fn();
     window.rise = {

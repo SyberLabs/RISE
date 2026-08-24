@@ -97,6 +97,7 @@ export class VisualNavigator {
     this.inkFocus = inkFocusFrom(this.selection.wordFill);
     this.dialog = null;
     this._dialogReturnFocusSelector = null;
+    this._restoringDialogFocus = false;
     this._faceHint = false;
     this.path = [];          // branch nodes descended, under ROOT
     this.focus = null;       // the open leaf, or null
@@ -336,7 +337,11 @@ export class VisualNavigator {
     this.dialog = null;
     this._dialogReturnFocusSelector = null;
     this.render();
-    this.container.querySelector(returnFocusSelector)?.focus();
+    const returnFocus = this.container.querySelector(returnFocusSelector);
+    if (!returnFocus) return;
+    this._restoringDialogFocus = true;
+    returnFocus.focus();
+    this._restoringDialogFocus = false;
   }
 
   explainProgramOwnership(returnFocus) {
@@ -896,7 +901,7 @@ export class VisualNavigator {
             if (!this._faceHint
               && (type !== 'pointerup' || event.pointerType === 'touch' || !event.pointerType)) {
               this._faceHint = true;
-              this.render();
+              this.container.querySelector('#vnav-thick-explanation')?.removeAttribute('hidden');
             }
           });
         }
@@ -911,7 +916,10 @@ export class VisualNavigator {
     if (this.programInfo) {
       this.container.querySelectorAll('[data-chamber-face], [data-font-size], [data-word-fill], [data-word-fill-border]')
         .forEach(b => ['pointerenter', 'focus', 'pointerup'].forEach(type =>
-          b.addEventListener(type, () => this.explainProgramOwnership(b))));
+          b.addEventListener(type, () => {
+            if (type === 'focus' && this._restoringDialogFocus) return;
+            this.explainProgramOwnership(b);
+          })));
     }
     q('[data-action="dialog-cancel"]')?.addEventListener('click', () => this.closeDialog());
     q('[data-dialog-primary]')?.addEventListener('click', () => this.dialog?.confirm());

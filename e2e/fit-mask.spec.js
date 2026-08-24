@@ -226,6 +226,7 @@ test('material controls explain locked masks, transact Thick + Fit, and preserve
   await expect(dialog.getByRole('button', { name: 'Use Thick + Fit' })).toBeVisible();
   await dialog.getByRole('button', { name: 'Use Thick + Fit' }).click();
   await expect(dialog).toBeHidden();
+  await expect(page.locator('[data-word-fill="same"]')).toHaveClass(/is-selected/);
 
   const accent = page.locator('[data-word-fill="accent"]');
   await accent.click();
@@ -234,7 +235,10 @@ test('material controls explain locked masks, transact Thick + Fit, and preserve
   await expect(accent).not.toHaveClass(/is-selected/);
 
   await page.locator('.vnav-node[data-id="face"]').click();
-  await page.locator('[data-chamber-face="thick"]').click();
+  const thick = page.locator('.vnav-opt[data-chamber-face="thick"]');
+  await thick.focus();
+  await page.keyboard.press('Enter');
+  await expect(thick).toHaveClass(/is-selected/);
   await page.locator('.vnav-node[data-id="ink"]').click();
   await page.locator('[data-word-fill="same"]').click();
   await expect(page.locator('[data-word-fill-border="cream"]')).toHaveClass(/is-selected/);
