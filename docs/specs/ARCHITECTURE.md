@@ -150,7 +150,7 @@ it, and CI fails when the committed copy is not what `src/` produces.
 flowchart LR
     app["app<br/>composition root<br/>1 module"]
     audio["audio<br/>Web Audio, recitation<br/>6 modules"]
-    components["components<br/>routed views<br/>29 modules"]
+    components["components<br/>routed views<br/>30 modules"]
     content["content<br/>texts, imagery, journeys<br/>222 modules"]
     core["core<br/>session, player, router<br/>110 modules"]
     page["page<br/>spatial projection<br/>4 modules"]
@@ -167,7 +167,7 @@ flowchart LR
     audio --> |3| core
     components --> |2| audio
     components --> |22| content
-    components --> |100| core
+    components --> |104| core
     components -.-> |1 lazy| page
     components --> |6| sources
     components --> |12| visuals
