@@ -54,6 +54,10 @@ beforeEach(async () => {
 
 afterEach(() => {
     admitRoom()?.remove();
+    // The contents sheet is pinned to document.body, not the Library
+    // container. Leaving it up lets the next test see the previous work's
+    // table of contents — which is how "a work of one part" failed in CI.
+    document.querySelector('.toc-scrim')?.remove();
     container?.remove();
 });
 
