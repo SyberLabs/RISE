@@ -171,17 +171,18 @@ export class WorkEngineField {
      * may assign the fields directly and it still cannot be wrong.
      */
     async _loadEngines() {
-        const key = `${this.families.join(',')}|${this.only.join(',')}`;
+        const families = [...this.families];
+        const only = [...this.only];
+        const key = `${families.join(',')}|${only.join(',')}`;
         if (this._loading && this._loadedKey === key) return this._loading;
         this._loadedKey = key;
         this._loading = (async () => {
             const collected = [];
-            for (const familyId of this.families) {
+            for (const familyId of families) {
                 const engines = await loadWorkEngines(familyId);
                 for (const entry of engines) collected.push({ ...entry, familyId });
             }
-            this._engines = this._narrow(collected);
-            return this._engines;
+            return this._narrow(collected, only);
         })();
         return this._loading;
     }
@@ -191,13 +192,13 @@ export class WorkEngineField {
      * is an authoring error: do not fall back to the whole family —
      * leave the field still.
      */
-    _narrow(all) {
-        if (!this.only.length) return all;
-        const found = this.only
+    _narrow(all, only = this.only) {
+        if (!only.length) return all;
+        const found = only
             .map(id => all.find(entry => entry.id === id))
             .filter(Boolean);
-        if (found.length !== this.only.length) {
-            const missing = this.only.filter(id => !all.some(e => e.id === id));
+        if (found.length !== only.length) {
+            const missing = only.filter(id => !all.some(e => e.id === id));
             console.warn('[WorkEngines] figure names engines that do not exist:',
                 missing.join(', '));
         }
@@ -389,16 +390,19 @@ export class WorkEngineField {
 
     async _loadAndReveal(first, stopWhenEmpty) {
         const loadGeneration = ++this._loadGeneration;
+        const familyKey = `${this.families.join(',')}|${this.only.join(',')}`;
         const projectionGeneration = this._projectionGeneration;
         const projectionHost = this.projectionHost;
         this._loadInFlight = true;
+        let candidates;
         try {
-            await this._loadEngines();
+            candidates = await this._loadEngines();
         } catch (error) {
             if (loadGeneration === this._loadGeneration) this._loadInFlight = false;
             throw error;
         }
-        if (loadGeneration !== this._loadGeneration) return;
+        const currentFamilyKey = `${this.families.join(',')}|${this.only.join(',')}`;
+        if (loadGeneration !== this._loadGeneration || familyKey !== currentFamilyKey) return;
         this._loadInFlight = false;
         if (!this.running) return;
         if (projectionGeneration !== this._projectionGeneration
@@ -412,6 +416,7 @@ export class WorkEngineField {
             return;
         }
         this._pendingProjectionLoad = false;
+        this._engines = candidates;
         // A family that will not load leaves the field still rather than
         // substituting a general generator (work-engines.js).
         if (!this._engines.length) {

@@ -628,6 +628,53 @@ describe('one movement never bleeds into the next', () => {
         field.destroy();
     });
 
+    it('never commits a stale family load that resolves after the current family', async () => {
+        const finishLoad = {};
+        const rendered = [];
+        class StaleAEngine extends FakeEngine {
+            render() { rendered.push('A'); return true; }
+        }
+        class CurrentBEngine extends FakeEngine {
+            render() { rendered.push('B'); return false; }
+        }
+        engineLoader = familyId => new Promise((resolve) => {
+            finishLoad[familyId] = resolve;
+        });
+        const projection = document.createElement('div');
+        document.body.appendChild(projection);
+        const onProjectionPaint = vi.fn();
+        const field = new WorkEngineField(host, {
+            families: ['fake-work'],
+            reducedMotion: true,
+            onProjectionPaint
+        });
+        field.setProjectionHost(projection);
+
+        const startingA = field.start();
+        const changingToB = field.setFamilies(['other-work']);
+        finishLoad['other-work']([{
+            id: 'current-b', name: 'Current B', engineClass: CurrentBEngine
+        }]);
+        await changingToB;
+        finishLoad['fake-work']([{
+            id: 'stale-a', name: 'Stale A', engineClass: StaleAEngine
+        }]);
+        await startingA;
+
+        field._rotate(false);
+
+        expect(field.families).toEqual(['other-work']);
+        expect(field._engines.map(entry => `${entry.familyId}/${entry.id}`))
+            .toEqual(['other-work/current-b']);
+        expect(rendered).toEqual(['B', 'B']);
+        expect(field._planes[field._active].entry.familyId).toBe('other-work');
+        expect(onProjectionPaint).not.toHaveBeenCalled();
+        expect([...projection.querySelectorAll('.work-engine-plane')]
+            .some(canvas => canvas.style.opacity === '1')).toBe(false);
+        field.destroy();
+        projection.remove();
+    });
+
     it('still caches when nothing changed', async () => {
         // The guard must not turn every cue into a reload; a movement
         // sends its cue on every atom.
