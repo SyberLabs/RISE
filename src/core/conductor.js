@@ -270,6 +270,29 @@ export function scoreChunk(text) {
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
+function preserveAccentDominance(base, rgb) {
+    const lower = base.map(channel => Math.max(0, channel - 48));
+    const upper = base.map(channel => Math.min(255, channel + 48));
+    const bounded = rgb.map((channel, index) => clamp(channel, lower[index], upper[index]));
+    const baseMax = Math.max(...base);
+    const leaders = base.flatMap((channel, index) => channel === baseMax ? [index] : []);
+    const followers = base.flatMap((channel, index) => channel === baseMax ? [] : [index]);
+    const followerMax = followers.length ? Math.max(...followers.map(index => bounded[index])) : -Infinity;
+    const leaderCeiling = Math.min(...leaders.map(index => upper[index]));
+    const leaderValue = Math.min(
+        leaderCeiling,
+        Math.max(...leaders.map(index => bounded[index]), followerMax + 1)
+    );
+
+    for (const index of leaders) bounded[index] = leaderValue;
+    for (const index of followers) {
+        if (bounded[index] >= leaderValue) {
+            bounded[index] = Math.max(lower[index], leaderValue - 1);
+        }
+    }
+    return bounded;
+}
+
 /**
  * One semantic appearance contract for ordinary Living Text and Fit fills.
  * Chamber decides where to apply it; this function only interprets signal.
@@ -289,6 +312,9 @@ export function livingTextAppearance(signal, intensity = 1, options = {}) {
     const rgb = base.map((channel, index) => (
         Math.round(channel + (pole[index] - channel) * t)
     ));
+    if (hasBaseRgb) {
+        rgb.splice(0, rgb.length, ...preserveAccentDominance(base, rgb));
+    }
     const round3 = value => Number(value.toFixed(3));
 
     return {
