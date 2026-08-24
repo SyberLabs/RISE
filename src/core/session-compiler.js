@@ -209,12 +209,20 @@ export function normalizeSessionConfig(input = {}) {
     };
 }
 
+function selectWordFill(input, raw) {
+    const valid = value => value != null && typeof value === 'object' && !Array.isArray(value);
+    if (valid(raw.wordFill)) return { value: raw.wordFill, declared: true };
+    if (valid(input.wordFill)) return { value: input.wordFill, declared: true };
+    return { value: undefined, declared: false };
+}
+
 export function normalizeVisualConfig(value = {}) {
     const input = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
     const visualMode = VISUAL_MODES.has(input.visualMode) ? input.visualMode : 'off';
     const raw = input.interlocution && typeof input.interlocution === 'object'
         ? input.interlocution
         : {};
+    const selectedWordFill = selectWordFill(input, raw);
     const uniqueIds = ids => Array.isArray(ids)
         ? [...new Set(ids.filter(id => typeof id === 'string').map(id => id.slice(0, 120)))].slice(0, 32)
         : [];
@@ -279,11 +287,11 @@ export function normalizeVisualConfig(value = {}) {
             responsiveRhythm: raw.responsiveRhythm !== false,
             wordFillDeclared: typeof raw.wordFillDeclared === 'boolean'
                 ? raw.wordFillDeclared
-                : Object.hasOwn(raw, 'wordFill'),
+                : selectedWordFill.declared,
             wordFill: resolveSessionWordFill({
                 ...raw,
                 ...selection,
-                wordFill: raw.wordFill ?? input.wordFill
+                wordFill: selectedWordFill.value
             })
         }
     };
