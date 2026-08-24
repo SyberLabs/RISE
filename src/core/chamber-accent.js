@@ -30,32 +30,38 @@ export const CHAMBER_ACCENT_TOKENS = Object.freeze({
     ivory: Object.freeze({
         '--color-accent': '#E4D2AE',
         '--color-accent-rgb': '228, 210, 174',
-        '--color-threshold': '#E4D2AE'
+        '--color-threshold': '#E4D2AE',
+        '--color-on-accent': '#0A0A0C'
     }),
     purple: Object.freeze({
         '--color-accent': '#8B7FD4',
         '--color-accent-rgb': '139, 127, 212',
-        '--color-threshold': '#8B7FD4'
+        '--color-threshold': '#8B7FD4',
+        '--color-on-accent': '#0A0A0C'
     }),
     cobalt: Object.freeze({
         '--color-accent': '#3A5FA8',
         '--color-accent-rgb': '58, 95, 168',
-        '--color-threshold': '#3A5FA8'
+        '--color-threshold': '#3A5FA8',
+        '--color-on-accent': '#E8E8EC'
     }),
     amber: Object.freeze({
         '--color-accent': '#C9A24A',
         '--color-accent-rgb': '201, 162, 74',
-        '--color-threshold': '#C9A24A'
+        '--color-threshold': '#C9A24A',
+        '--color-on-accent': '#0A0A0C'
     }),
     sunset: Object.freeze({
         '--color-accent': '#D4783A',
         '--color-accent-rgb': '212, 120, 58',
-        '--color-threshold': '#D4783A'
+        '--color-threshold': '#D4783A',
+        '--color-on-accent': '#0A0A0C'
     }),
     gecko: Object.freeze({
         '--color-accent': '#4F9A5C',
         '--color-accent-rgb': '79, 154, 92',
-        '--color-threshold': '#4F9A5C'
+        '--color-threshold': '#4F9A5C',
+        '--color-on-accent': '#0A0A0C'
     })
 });
 

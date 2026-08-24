@@ -157,3 +157,61 @@ describe('Chamber accent allowlist', () => {
         }
     });
 });
+
+describe('the accent carries a legible ink for full fills', () => {
+    // WCAG relative luminance and contrast, computed here rather than restated,
+    // so a future accent whose --color-on-accent fails is caught by the math —
+    // not by a number someone remembered to update. The panel's own guard.
+    const channel = (v) => {
+        const c = v / 255;
+        return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    };
+    const luminance = (hex) => {
+        const n = parseInt(hex.slice(1), 16);
+        return 0.2126 * channel(n >> 16 & 255) + 0.7152 * channel(n >> 8 & 255) + 0.0722 * channel(n & 255);
+    };
+    const contrast = (a, b) => {
+        const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+        return (hi + 0.05) / (lo + 0.05);
+    };
+
+    it('gives every family an --color-on-accent that clears AA (4.5:1)', () => {
+        for (const [id, tokens] of Object.entries(CHAMBER_ACCENT_TOKENS)) {
+            const ink = tokens['--color-on-accent'];
+            expect(ink, `${id} declares an ink`).toMatch(/^#[0-9A-Fa-f]{6}$/);
+            expect(contrast(ink, tokens['--color-accent']),
+                `${id}: ${ink} on ${tokens['--color-accent']}`).toBeGreaterThanOrEqual(4.5);
+        }
+    });
+
+    it('chose the ink that actually wins — void or light, whichever reads better', () => {
+        for (const [id, tokens] of Object.entries(CHAMBER_ACCENT_TOKENS)) {
+            const accent = tokens['--color-accent'];
+            const better = contrast('#0A0A0C', accent) >= contrast('#E8E8EC', accent) ? '#0A0A0C' : '#E8E8EC';
+            expect(tokens['--color-on-accent'], `${id} takes the higher-contrast ink`).toBe(better);
+        }
+    });
+
+    it('writes the ink into every design-system block', () => {
+        const css = readFileSync(
+            join(dirname(fileURLToPath(import.meta.url)), '..', 'design-system.css'), 'utf8');
+        for (const [id, tokens] of Object.entries(CHAMBER_ACCENT_TOKENS)) {
+            const block = css.match(new RegExp(`:root\\[data-accent="${id}"\\]\\s*\\{([^}]+)\\}`));
+            expect(block, id).toBeTruthy();
+            expect(block[1]).toContain(`--color-on-accent: ${tokens['--color-on-accent']}`);
+        }
+        // The bare :root default and the derived washes are declared once.
+        expect(css).toMatch(/:root\s*\{[\s\S]*--color-on-accent:\s*#0A0A0C/);
+        expect(css).toContain('--accent-wash: rgba(var(--color-accent-rgb)');
+    });
+
+    it('the Portal hero bevel travels with the accent, not a frozen purple', () => {
+        const portal = readFileSync(
+            join(dirname(fileURLToPath(import.meta.url)), '..', 'components', 'Portal.css'), 'utf8');
+        const hero = portal.match(/\.portal-nav \.nav-primary \.nav-item\s*\{[^}]+\}/);
+        expect(hero, '.nav-primary .nav-item').toBeTruthy();
+        expect(hero[0]).toMatch(/var\(--color-accent-rgb\)/);
+        // No lavender literal survives anywhere in the Portal's chrome.
+        expect(portal).not.toMatch(/1(?:39|60|40|20),\s*(?:127|145|125|110),\s*(?:180|200|160)/);
+    });
+});

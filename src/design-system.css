@@ -43,6 +43,19 @@
   /* Brand accent. [data-accent] retints both this and --color-accent. */
   --color-accent: #E4D2AE;
   --color-accent-rgb: 228, 210, 174;
+  /* The contrast partner: the ink that stays legible ON a full accent fill.
+     Default (ivory) is a light ground, so it takes void ink; each [data-accent]
+     block overrides only where the accent is dark enough for light ink. A
+     control that fills with the accent pairs background:var(--color-accent)
+     with color:var(--color-on-accent) and can never strand its own text. */
+  --color-on-accent: #0A0A0C;
+  /* Accent washes, derived from the rgb triple so every family inherits the
+     same depth for free — surface tint, bevel edge, and outer glow. Chrome that
+     wants the accent's depth uses these instead of a frozen literal, and it
+     then travels with the sitting. */
+  --accent-wash: rgba(var(--color-accent-rgb), 0.10);
+  --accent-bevel: rgba(var(--color-accent-rgb), 0.45);
+  --accent-halo: rgba(var(--color-accent-rgb), 0.14);
   /* Chrome accent family. Swaps with [data-accent] (FM-UI-7). */
   --color-chamber: #6B9FD4;
   /* Secondary accent (soft blue) */
@@ -122,36 +135,42 @@
   --color-accent: #E4D2AE;
   --color-accent-rgb: 228, 210, 174;
   --color-threshold: #E4D2AE;
+  --color-on-accent: #0A0A0C;
 }
 
 :root[data-accent="purple"] {
   --color-accent: #8B7FD4;
   --color-accent-rgb: 139, 127, 212;
   --color-threshold: #8B7FD4;
+  --color-on-accent: #0A0A0C;
 }
 
 :root[data-accent="cobalt"] {
   --color-accent: #3A5FA8;
   --color-accent-rgb: 58, 95, 168;
   --color-threshold: #3A5FA8;
+  --color-on-accent: #E8E8EC;
 }
 
 :root[data-accent="amber"] {
   --color-accent: #C9A24A;
   --color-accent-rgb: 201, 162, 74;
   --color-threshold: #C9A24A;
+  --color-on-accent: #0A0A0C;
 }
 
 :root[data-accent="sunset"] {
   --color-accent: #D4783A;
   --color-accent-rgb: 212, 120, 58;
   --color-threshold: #D4783A;
+  --color-on-accent: #0A0A0C;
 }
 
 :root[data-accent="gecko"] {
   --color-accent: #4F9A5C;
   --color-accent-rgb: 79, 154, 92;
   --color-threshold: #4F9A5C;
+  --color-on-accent: #0A0A0C;
 }
 
 /* Phone density step: scale chrome tokens once at ≤640px so every view
