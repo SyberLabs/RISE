@@ -220,14 +220,29 @@ async function expectAtomicMaskReady(page) {
 async function installFirstDataDecodeGate(page) {
   await page.addInitScript(() => {
     const nativeDecode = HTMLImageElement.prototype.decode;
+    const nativeToDataUrl = HTMLCanvasElement.prototype.toDataURL;
+    const fractalUrls = new Set();
     let held = false;
     const armed = sessionStorage.getItem('__fitMaskDelayFirstDecode') === 'true';
     sessionStorage.removeItem('__fitMaskDelayFirstDecode');
-    window.__fitMaskDecodeGate = { armed, pending: false, release: null };
+    window.__fitMaskDecodeGate = {
+      armed,
+      pending: false,
+      heldUrl: null,
+      heldFromFractalCanvas: false,
+      release: null
+    };
+    HTMLCanvasElement.prototype.toDataURL = function trackedToDataUrl(...args) {
+      const url = nativeToDataUrl.apply(this, args);
+      if (this.id === 'fractal-canvas') fractalUrls.add(url);
+      return url;
+    };
     HTMLImageElement.prototype.decode = function gatedDecode() {
-      if (window.__fitMaskDecodeGate.armed && !held && this.src.startsWith('data:image/')) {
+      if (window.__fitMaskDecodeGate.armed && !held && fractalUrls.has(this.src)) {
         held = true;
         window.__fitMaskDecodeGate.pending = true;
+        window.__fitMaskDecodeGate.heldUrl = this.src;
+        window.__fitMaskDecodeGate.heldFromFractalCanvas = fractalUrls.has(this.src);
         return new Promise((resolve, reject) => {
           window.__fitMaskDecodeGate.release = () => {
             window.__fitMaskDecodeGate.release = null;
@@ -257,6 +272,27 @@ async function armFirstDataDecode(page) {
 
 async function releaseFirstDataDecode(page) {
   await page.evaluate(() => window.__fitMaskDecodeGate?.release?.());
+}
+
+async function expectHeldFractalProjection(page) {
+  expect(await page.evaluate(() => {
+    const gate = window.__fitMaskDecodeGate;
+    const projectionUrls = [...document.querySelectorAll(
+      '.chamber-fill-field .continuous-field-artwork[src]'
+    )].map(image => image.src);
+    const roomUrls = [...document.querySelectorAll(
+      '#chamber-continuous-field .continuous-field-artwork[src]'
+    )].map(image => image.src);
+    return {
+      heldFromFractalCanvas: gate?.heldFromFractalCanvas,
+      projectionOwnsHeldUrl: projectionUrls.includes(gate?.heldUrl),
+      roomOwnsHeldUrl: roomUrls.includes(gate?.heldUrl)
+    };
+  })).toEqual({
+    heldFromFractalCanvas: true,
+    projectionOwnsHeldUrl: true,
+    roomOwnsHeldUrl: false
+  });
 }
 
 async function chooseOldMastersFit(page) {
@@ -304,7 +340,14 @@ async function installOldMastersSourceGate(page) {
   let released = false;
   let armed = false;
   let phase = 'idle';
+  let capturedObjectUrl = null;
+  let visualUrl = null;
+  let digitalUrl = null;
+  let imageUrl = null;
+  let fullImageUrl = null;
+  const requestedChain = [];
   const readiness = new Promise(resolve => { release = resolve; });
+  const base = 'https://id.rijksmuseum.nl';
   const headers = {
     'access-control-allow-origin': '*',
     'content-type': 'application/json'
@@ -320,56 +363,66 @@ async function installOldMastersSourceGate(page) {
     body: JSON.stringify({ data: null })
   }));
   await page.route('https://id.rijksmuseum.nl/**', async route => {
-    const url = new URL(route.request().url());
-    const base = 'https://id.rijksmuseum.nl';
-    if (url.pathname === '/200106038') {
-      if (!armed) {
-        await route.fulfill({ status: 404, headers, body: '{}' });
-        return;
-      }
+    const requestUrl = route.request().url();
+    const url = new URL(requestUrl);
+    const objectMatch = url.pathname.match(/^\/(\d+)$/);
+    if (armed && capturedObjectUrl === null && objectMatch) {
+      const objectId = objectMatch[1];
+      capturedObjectUrl = requestUrl;
+      visualUrl = `${base}/visual/${objectId}`;
+      digitalUrl = `${base}/digital/${objectId}`;
+      fullImageUrl = `https://iiif.micr.io/rise-fit-${objectId}/full/max/0/default.jpg`;
+      imageUrl = fullImageUrl.replace('/full/max/', '/full/843,/');
+      requestedChain.push(requestUrl);
       phase = 'object';
       pending = true;
       if (!released) await readiness;
       await route.fulfill({
         headers,
         body: JSON.stringify({
-          id: `${base}/200106038`,
+          id: capturedObjectUrl,
           identified_by: [
             { type: 'Name', content: 'Rembrandt study' },
             { type: 'Identifier', content: 'SK-A-1' }
           ],
-          shows: [{ id: `${base}/visual/rise-fit` }],
+          shows: [{ id: visualUrl }],
           produced_by: { carried_out_by: [{ _label: 'Rembrandt van Rijn' }] }
         })
       });
       return;
     }
-    if (url.pathname === '/visual/rise-fit') {
+    if (requestUrl === visualUrl) {
+      requestedChain.push(requestUrl);
       phase = 'visual';
       await route.fulfill({
         headers,
         body: JSON.stringify({
-          id: `${base}/visual/rise-fit`,
+          id: visualUrl,
           rights: 'https://creativecommons.org/publicdomain/mark/1.0/',
-          digitally_shown_by: [{ id: `${base}/digital/rise-fit` }]
+          digitally_shown_by: [{ id: digitalUrl }]
         })
       });
       return;
     }
-    if (url.pathname === '/digital/rise-fit') {
+    if (requestUrl === digitalUrl) {
+      requestedChain.push(requestUrl);
       phase = 'digital';
       await route.fulfill({
         headers,
         body: JSON.stringify({
-          id: `${base}/digital/rise-fit`,
-          access_point: [{ id: 'https://iiif.micr.io/rise-fit/full/max/0/default.jpg' }]
+          id: digitalUrl,
+          access_point: [{ id: fullImageUrl }]
         })
       });
       return;
     }
     await route.fulfill({ status: 404, headers, body: '{}' });
   });
-  await page.route('https://iiif.micr.io/rise-fit/**', route => {
+  await page.route('https://iiif.micr.io/**', route => {
+    if (route.request().url() !== imageUrl) {
+      return route.fulfill({ status: 404, body: '' });
+    }
+    requestedChain.push(route.request().url());
     phase = 'image';
     return route.fulfill({
       status: 200,
@@ -383,6 +436,8 @@ async function installOldMastersSourceGate(page) {
   return {
     arm: () => { armed = true; },
     isPending: () => pending,
+    capturedObjectUrl: () => capturedObjectUrl,
+    requestedChain: () => [...requestedChain],
     phase: () => phase,
     release: () => {
       released = true;
@@ -500,6 +555,9 @@ for (const [surface, viewport] of [
     await expect.poll(() => page.evaluate(
       () => window.__fitMaskDecodeGate?.pending === true
     ), { timeout: 20_000 }).toBe(true);
+    expect(await page.evaluate(
+      () => window.__fitMaskDecodeGate?.heldFromFractalCanvas
+    )).toBe(true);
     const pending = await observeReadablePendingWords(page);
     expect(pending.words).toBeGreaterThanOrEqual(2);
     expect(pending.centreDrift).toBeLessThanOrEqual(2);
@@ -507,6 +565,7 @@ for (const [surface, viewport] of [
 
     await releaseFirstDataDecode(page);
     await expectAtomicMaskReady(page);
+    await expectHeldFractalProjection(page);
   });
 }
 
@@ -520,6 +579,9 @@ test('Old Masters atomic readiness keeps a readable fallback until the first sou
   const beginning = begin(page);
 
   await expect.poll(sourceGate.isPending, { timeout: 20_000 }).toBe(true);
+  const capturedObjectUrl = sourceGate.capturedObjectUrl();
+  expect(capturedObjectUrl).not.toBeNull();
+  expect(capturedObjectUrl).toMatch(/^https:\/\/id\.rijksmuseum\.nl\/\d+$/);
   const pending = await pendingWords;
   expect(pending.words).toBeGreaterThanOrEqual(2);
   expect(pending.centreDrift).toBeLessThanOrEqual(2);
@@ -527,6 +589,13 @@ test('Old Masters atomic readiness keeps a readable fallback until the first sou
 
   sourceGate.release();
   await expect.poll(sourceGate.phase, { timeout: 20_000 }).toBe('image');
+  const objectId = new URL(capturedObjectUrl).pathname.slice(1);
+  expect(sourceGate.requestedChain()).toEqual([
+    capturedObjectUrl,
+    `https://id.rijksmuseum.nl/visual/${objectId}`,
+    `https://id.rijksmuseum.nl/digital/${objectId}`,
+    `https://iiif.micr.io/rise-fit-${objectId}/full/843,/0/default.jpg`
+  ]);
   await beginning;
   await expectAtomicMaskReady(page);
 });
