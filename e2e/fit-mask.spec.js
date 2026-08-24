@@ -36,15 +36,42 @@ const PREFS = {
   }
 };
 
+const OLD_MASTERS_PREFS = {
+  ...PREFS,
+  visualInterlocution: {
+    ...PREFS.visualInterlocution,
+    interlocution: {
+      ...PREFS.visualInterlocution.interlocution,
+      sourceFamily: 'procedural',
+      procedural: ['paradise-lost'],
+      sourced: [],
+      presentation: 'continuous',
+      wordFill: {
+        mode: 'pick',
+        sourceFamily: 'sourced',
+        procedural: [],
+        sourced: ['aic-oldmasters']
+      }
+    }
+  }
+};
+
 test.describe.configure({ timeout: 90_000 });
 
-async function openPrep(page, viewport) {
+async function openPrep(page, viewport, prefs = PREFS) {
   await page.setViewportSize(viewport);
   await page.addInitScript(({ gate, seed, prefs }) => {
+    const reloadPrefs = sessionStorage.getItem('__fitMaskReloadPrefs');
+    if (reloadPrefs) {
+      localStorage.setItem('rise_orbital_prefs_v1', reloadPrefs);
+      sessionStorage.removeItem('__fitMaskReloadPrefs');
+    }
+    if (sessionStorage.getItem('__fitMaskSeeded') === 'true') return;
+    sessionStorage.setItem('__fitMaskSeeded', 'true');
     localStorage.setItem('rise-beta-session', JSON.stringify(gate));
     localStorage.setItem('rise_orbital_text_v1', JSON.stringify(seed));
     localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(prefs));
-  }, { gate: GATE, seed: SEED, prefs: PREFS });
+  }, { gate: GATE, seed: SEED, prefs });
   await page.goto('/');
   await page.locator('[data-nav="chamber"]').first().click();
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
@@ -58,6 +85,15 @@ async function openPrep(page, viewport) {
   }
   await size.click();
   await expect(page.locator('[data-font-size="fit"]')).toBeVisible();
+}
+
+async function hardReloadPrep(page) {
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  const beginButton = page.locator('#begin-btn');
+  if (!await beginButton.isVisible()) {
+    await page.locator('[data-nav="chamber"]').first().click();
+  }
+  await expect(beginButton).toBeEnabled({ timeout: 15_000 });
 }
 
 async function chooseFit(page) {
@@ -87,9 +123,272 @@ async function begin(page) {
   const closeVisual = page.locator('#modal-visual [data-close="visual"]');
   if (await closeVisual.isVisible()) await closeVisual.click();
   await page.locator('#begin-btn').click();
-  await expect(page.locator('#photosensitivity-modal')).toBeHidden();
-  await expect(page.locator('#chamber-display')).toBeVisible({ timeout: 20_000 });
+  const warning = page.locator('#photosensitivity-modal');
+  const display = page.locator('#chamber-display');
+  await Promise.race([
+    warning.waitFor({ state: 'visible', timeout: 20_000 }),
+    display.waitFor({ state: 'visible', timeout: 20_000 })
+  ]);
+  if (await warning.isVisible()) await warning.locator('#safety-accept').click();
+  await expect(display).toBeVisible({ timeout: 20_000 });
   await page.waitForFunction(() => window.rise?.router && !window.rise.router.transitioning);
+}
+
+async function observeReadablePendingWords(page, minimumWords = 2) {
+  return page.evaluate(minimum => new Promise((resolve, reject) => {
+    let stage;
+    let atom;
+    const words = new Set();
+    let observer;
+    let mountObserver;
+    let deadline;
+    const finish = value => {
+      observer?.disconnect();
+      mountObserver?.disconnect();
+      clearTimeout(deadline);
+      resolve(value);
+    };
+    const fail = message => {
+      observer?.disconnect();
+      mountObserver?.disconnect();
+      clearTimeout(deadline);
+      reject(new Error(message));
+    };
+    const inspect = () => {
+      const text = atom.textContent.trim();
+      if (!text) return;
+      const state = atom.dataset.maskState;
+      const style = getComputedStyle(atom);
+      const stageRect = stage.getBoundingClientRect();
+      const atomRect = atom.getBoundingClientRect();
+      const centreDrift = Math.abs(
+        (atomRect.left + atomRect.width / 2) - (stageRect.left + stageRect.width / 2)
+      );
+      const overflow = Math.max(
+        stageRect.left - atomRect.left,
+        atomRect.right - stageRect.right,
+        stageRect.top - atomRect.top,
+        atomRect.bottom - stageRect.bottom,
+        0
+      );
+      if (state !== 'fallback' && state !== 'preparing') {
+        fail(`Mask became ${state || 'unset'} before readiness for ${text}`);
+        return;
+      }
+      if (atom.classList.contains('is-mask-ink')
+          || style.color === 'rgba(0, 0, 0, 0)'
+          || style.webkitTextFillColor === 'rgba(0, 0, 0, 0)') {
+        fail(`Atom became transparent before readiness for ${text}`);
+        return;
+      }
+      if (centreDrift > 2 || overflow > 1) {
+        fail(`Pending atom moved: centre=${centreDrift}, overflow=${overflow}`);
+        return;
+      }
+      words.add(text);
+      if (words.size >= minimum) finish({ words: words.size, centreDrift, overflow });
+    };
+    deadline = setTimeout(() => fail(`Only observed ${words.size} pending Words`), 15_000);
+    const mount = () => {
+      stage = document.querySelector('#chamber-display');
+      atom = document.querySelector('#atom-display');
+      if (!stage || !atom) return;
+      mountObserver?.disconnect();
+      observer = new MutationObserver(inspect);
+      observer.observe(atom, {
+        attributes: true,
+        attributeFilter: ['class', 'data-mask-state', 'style'],
+        childList: true,
+        characterData: true,
+        subtree: true
+      });
+      inspect();
+    };
+    mountObserver = new MutationObserver(mount);
+    mountObserver.observe(document.documentElement, { childList: true, subtree: true });
+    mount();
+  }), minimumWords);
+}
+
+async function expectAtomicMaskReady(page) {
+  const atom = page.locator('#atom-display');
+  await expect(atom).toHaveAttribute('data-mask-state', 'ready', { timeout: 20_000 });
+  await expect(atom).toHaveClass(/is-mask-ink/);
+  await expect(atom).toHaveClass(/is-mask-ready/);
+}
+
+async function installFirstDataDecodeGate(page) {
+  await page.addInitScript(() => {
+    const nativeDecode = HTMLImageElement.prototype.decode;
+    let held = false;
+    const armed = sessionStorage.getItem('__fitMaskDelayFirstDecode') === 'true';
+    sessionStorage.removeItem('__fitMaskDelayFirstDecode');
+    window.__fitMaskDecodeGate = { armed, pending: false, release: null };
+    HTMLImageElement.prototype.decode = function gatedDecode() {
+      if (window.__fitMaskDecodeGate.armed && !held && this.src.startsWith('data:image/')) {
+        held = true;
+        window.__fitMaskDecodeGate.pending = true;
+        return new Promise((resolve, reject) => {
+          window.__fitMaskDecodeGate.release = () => {
+            window.__fitMaskDecodeGate.release = null;
+            Promise.resolve(nativeDecode.call(this)).then(resolve, reject);
+          };
+        });
+      }
+      return nativeDecode.call(this);
+    };
+  });
+}
+
+async function chooseMaskFit(page) {
+  await chooseFit(page);
+  await page.locator('.vnav-node[data-id="face"]').click();
+  await page.locator('.vnav-opt[data-chamber-face="thick"]').click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(
+    localStorage.getItem('rise-settings') || '{}'
+  ).chamberFace)).toBe('thick');
+}
+
+async function armFirstDataDecode(page) {
+  await page.evaluate(() => {
+    sessionStorage.setItem('__fitMaskDelayFirstDecode', 'true');
+  });
+}
+
+async function releaseFirstDataDecode(page) {
+  await page.evaluate(() => window.__fitMaskDecodeGate?.release?.());
+}
+
+async function chooseOldMastersFit(page) {
+  await chooseMaskFit(page);
+  await page.evaluate(oldMasters => {
+    const prefs = JSON.parse(localStorage.getItem('rise_orbital_prefs_v1') || '{}');
+    prefs.visualInterlocution = {
+      ...(prefs.visualInterlocution || {}),
+      interlocution: {
+        ...(prefs.visualInterlocution?.interlocution || {}),
+        ...oldMasters.visualInterlocution.interlocution
+      }
+    };
+    localStorage.setItem('rise_orbital_prefs_v1', JSON.stringify(prefs));
+    sessionStorage.setItem('__fitMaskReloadPrefs', JSON.stringify(prefs));
+  }, OLD_MASTERS_PREFS);
+  await expect.poll(() => page.evaluate(() => {
+    const prefs = JSON.parse(localStorage.getItem('rise_orbital_prefs_v1') || '{}');
+    const settings = JSON.parse(localStorage.getItem('rise-settings') || '{}');
+    return {
+      chunkMode: prefs.chunkMode,
+      chamberFace: settings.chamberFace,
+      fontSize: settings.fontSize,
+      presentation: prefs.visualInterlocution?.interlocution?.presentation,
+      procedural: prefs.visualInterlocution?.interlocution?.procedural,
+      sourced: prefs.visualInterlocution?.interlocution?.sourced,
+      wordFillMode: prefs.visualInterlocution?.interlocution?.wordFill?.mode,
+      wordFillSourced: prefs.visualInterlocution?.interlocution?.wordFill?.sourced
+    };
+  })).toEqual({
+    chunkMode: 'word',
+    chamberFace: 'thick',
+    fontSize: 'fit',
+    presentation: 'continuous',
+    procedural: ['paradise-lost'],
+    sourced: [],
+    wordFillMode: 'pick',
+    wordFillSourced: ['aic-oldmasters']
+  });
+}
+
+async function installOldMastersSourceGate(page) {
+  let release;
+  let pending = false;
+  let released = false;
+  let armed = false;
+  let phase = 'idle';
+  const readiness = new Promise(resolve => { release = resolve; });
+  const headers = {
+    'access-control-allow-origin': '*',
+    'content-type': 'application/json'
+  };
+  await page.route('https://openaccess-api.clevelandart.org/**', route => route.fulfill({
+    status: 404,
+    headers,
+    body: JSON.stringify({ data: null })
+  }));
+  await page.route('https://api.artic.edu/api/v1/artworks/**', route => route.fulfill({
+    status: 404,
+    headers,
+    body: JSON.stringify({ data: null })
+  }));
+  await page.route('https://id.rijksmuseum.nl/**', async route => {
+    const url = new URL(route.request().url());
+    const base = 'https://id.rijksmuseum.nl';
+    if (url.pathname === '/200106038') {
+      if (!armed) {
+        await route.fulfill({ status: 404, headers, body: '{}' });
+        return;
+      }
+      phase = 'object';
+      pending = true;
+      if (!released) await readiness;
+      await route.fulfill({
+        headers,
+        body: JSON.stringify({
+          id: `${base}/200106038`,
+          identified_by: [
+            { type: 'Name', content: 'Rembrandt study' },
+            { type: 'Identifier', content: 'SK-A-1' }
+          ],
+          shows: [{ id: `${base}/visual/rise-fit` }],
+          produced_by: { carried_out_by: [{ _label: 'Rembrandt van Rijn' }] }
+        })
+      });
+      return;
+    }
+    if (url.pathname === '/visual/rise-fit') {
+      phase = 'visual';
+      await route.fulfill({
+        headers,
+        body: JSON.stringify({
+          id: `${base}/visual/rise-fit`,
+          rights: 'https://creativecommons.org/publicdomain/mark/1.0/',
+          digitally_shown_by: [{ id: `${base}/digital/rise-fit` }]
+        })
+      });
+      return;
+    }
+    if (url.pathname === '/digital/rise-fit') {
+      phase = 'digital';
+      await route.fulfill({
+        headers,
+        body: JSON.stringify({
+          id: `${base}/digital/rise-fit`,
+          access_point: [{ id: 'https://iiif.micr.io/rise-fit/full/max/0/default.jpg' }]
+        })
+      });
+      return;
+    }
+    await route.fulfill({ status: 404, headers, body: '{}' });
+  });
+  await page.route('https://iiif.micr.io/rise-fit/**', route => {
+    phase = 'image';
+    return route.fulfill({
+      status: 200,
+      contentType: 'image/png',
+      body: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z6kQAAAAASUVORK5CYII=',
+        'base64'
+      )
+    });
+  });
+  return {
+    arm: () => { armed = true; },
+    isPending: () => pending,
+    phase: () => phase,
+    release: () => {
+      released = true;
+      release();
+    }
+  };
 }
 
 async function sampleFittedWords(page) {
@@ -154,7 +453,7 @@ for (const [surface, viewport] of [
       }
     });
     await openPrep(page, viewport);
-    await chooseFit(page);
+    await chooseMaskFit(page);
     await begin(page);
 
     const state = await sampleFittedWords(page);
@@ -185,6 +484,52 @@ for (const [surface, viewport] of [
     }
   });
 }
+
+for (const [surface, viewport] of [
+  ['desktop', { width: 1280, height: 800 }],
+  ['mobile', { width: 390, height: 844 }]
+]) {
+  test(`Fractal Flames atomic readiness keeps a readable ${surface} fallback across hard reload`, async ({ page }) => {
+    await installFirstDataDecodeGate(page);
+    await openPrep(page, viewport);
+    await chooseMaskFit(page);
+    await armFirstDataDecode(page);
+    await hardReloadPrep(page);
+    await begin(page);
+
+    await expect.poll(() => page.evaluate(
+      () => window.__fitMaskDecodeGate?.pending === true
+    ), { timeout: 20_000 }).toBe(true);
+    const pending = await observeReadablePendingWords(page);
+    expect(pending.words).toBeGreaterThanOrEqual(2);
+    expect(pending.centreDrift).toBeLessThanOrEqual(2);
+    expect(pending.overflow).toBeLessThanOrEqual(1);
+
+    await releaseFirstDataDecode(page);
+    await expectAtomicMaskReady(page);
+  });
+}
+
+test('Old Masters atomic readiness keeps a readable fallback until the first sourced response after hard reload', async ({ page }) => {
+  const sourceGate = await installOldMastersSourceGate(page);
+  await openPrep(page, { width: 1280, height: 800 });
+  await chooseOldMastersFit(page);
+  sourceGate.arm();
+  await hardReloadPrep(page);
+  const pendingWords = observeReadablePendingWords(page);
+  const beginning = begin(page);
+
+  await expect.poll(sourceGate.isPending, { timeout: 20_000 }).toBe(true);
+  const pending = await pendingWords;
+  expect(pending.words).toBeGreaterThanOrEqual(2);
+  expect(pending.centreDrift).toBeLessThanOrEqual(2);
+  expect(pending.overflow).toBeLessThanOrEqual(1);
+
+  sourceGate.release();
+  await expect.poll(sourceGate.phase, { timeout: 20_000 }).toBe('image');
+  await beginning;
+  await expectAtomicMaskReady(page);
+});
 
 test('leaving Fit for Medium preserves the Turrell × Fractal Gallery but removes Word masking', async ({ page }) => {
   await openPrep(page, { width: 1280, height: 800 });

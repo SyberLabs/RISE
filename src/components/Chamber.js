@@ -43,7 +43,7 @@ import {
   resolveFontSize,
   threeStepIntent
 } from '../core/chamber-type-size.js';
-import { resolveFitMaskMode } from '../core/chamber-text-material.js';
+import { resolveTextMaterialCapability } from '../core/chamber-text-material.js';
 import { GROUNDS, maskFillFromConfig, maskGroundFromConfig } from '../core/mask-ground.js';
 import { resolveSessionWordFill } from '../core/visual-selection.js';
 import './Chamber.css';
@@ -598,10 +598,14 @@ export class Chamber {
   }
 
   chamberMaskApplies() {
+    return this._textMaterialCapabilityContext().capability.maskActive;
+  }
+
+  _textMaterialCapabilityContext() {
     const settings = globalThis.rise?.settings || {};
     const visualConfig = this.session?.visualConfig;
     const presentation = this.session?.visualConfig?.interlocution?.presentation;
-    return resolveFitMaskMode({
+    const input = {
       face: settings.chamberFace,
       fontSize: settings.fontSize,
       chunkMode: this.session?.chunkMode,
@@ -610,7 +614,11 @@ export class Chamber {
       wordFill: visualConfig?.interlocution?.wordFill,
       wordFillDeclared: visualConfig?.interlocution?.wordFillDeclared,
       legacyMask: settings.chamberMask === true
-    });
+    };
+    return {
+      capability: resolveTextMaterialCapability(input),
+      materialKey: JSON.stringify(input)
+    };
   }
 
   applyChamberMask() {
@@ -631,7 +639,8 @@ export class Chamber {
       this.syncMaskGroundPlate();
     } else {
       atomDisplay.classList.remove('is-mask');
-      atomDisplay.classList.remove('is-mask-ink');
+      atomDisplay.classList.remove('is-mask-ink', 'is-mask-ready');
+      atomDisplay.dataset.maskState = 'inactive';
       atomDisplay.style.removeProperty('--fit-border-color');
       this.destroyFillField();
     }
@@ -713,12 +722,10 @@ export class Chamber {
       && visualCortex.hasContinuousFieldHost?.();
   }
 
-  async _waitFontsReady() {
-    try {
-      if (document.fonts?.ready) await document.fonts.ready;
-    } catch {
-      /* A font load failure must not leave transparent empty letters. */
-    }
+  async _waitThickFontReady(text) {
+    if (!document.fonts?.load) return true;
+    const loaded = await document.fonts.load('700 1em "Space Grotesk"', text);
+    return loaded.length > 0;
   }
 
   _maskImageSupported() {
@@ -743,10 +750,14 @@ export class Chamber {
     this.fillFieldHost.style.webkitMaskImage = 'none';
   }
 
-  _revertFillToOpaqueWord() {
-    this._clearLivingFit();
-    const atomDisplay = this.container.querySelector('#atom-display');
-    atomDisplay?.classList.remove('is-mask-ink');
+  _revertFillToOpaqueWord(
+    maskState = 'fallback',
+    atomDisplay = this.container.querySelector('#atom-display'),
+    { clearLiving = true } = {}
+  ) {
+    if (clearLiving) this._clearLivingFit();
+    atomDisplay?.classList.remove('is-mask-ink', 'is-mask-ready');
+    if (atomDisplay) atomDisplay.dataset.maskState = maskState;
     if (atomDisplay?.style.color === 'transparent') {
       atomDisplay.style.removeProperty('color');
     }
@@ -778,35 +789,62 @@ export class Chamber {
 
   async syncFillGlyphMask() {
     const generation = ++this._fillMaskGeneration;
-    // Do not leave the glyph as opaque --color-light while Space Grotesk
-    // 700 (display=swap) is still swapping. Ink before the font await.
-    const pendingAtom = this.container.querySelector('#atom-display');
-    if (
-      this._shouldMountFill()
-      && this._maskImageSupported()
-      && this._atomHasWordInk(pendingAtom)
-    ) {
-      pendingAtom.classList.add('is-mask-ink');
-      pendingAtom.style.color = 'transparent';
-    }
-    await this._waitFontsReady();
-    if (generation !== this._fillMaskGeneration) return;
-
-    if (!this._shouldMountFill()) {
-      this.destroyFillField();
-      return;
-    }
-    if (!this._maskImageSupported()) {
-      this.destroyFillField();
-      return;
-    }
-
     const field = this.container.querySelector('#chamber-field');
     const atomDisplay = this.container.querySelector('#atom-display');
+    const context = this._textMaterialCapabilityContext();
+    const fallbackState = context.capability.maskActive ? 'fallback' : 'inactive';
+    this._revertFillToOpaqueWord(fallbackState, atomDisplay, { clearLiving: false });
+
+    if (!context.capability.maskActive) return;
+    if (!this._shouldMountFill() || !this._maskImageSupported()) return;
     if (!field || !atomDisplay || !this.fillFieldHost) return;
 
     if (!this._atomHasWordInk(atomDisplay)) {
       this._revertFillToOpaqueWord();
+      return;
+    }
+
+    const host = this.fillFieldHost;
+    const text = (atomDisplay.textContent || '').trim();
+    const materialKey = context.materialKey;
+    atomDisplay.dataset.maskState = 'preparing';
+
+    try {
+      const [fontReady] = await Promise.all([
+        this._waitThickFontReady(text),
+        visualCortex.whenContinuousFieldProjectionReady(host)
+      ]);
+      if (!fontReady) {
+        if (generation === this._fillMaskGeneration) this._revertFillToOpaqueWord();
+        return;
+      }
+    } catch {
+      if (generation === this._fillMaskGeneration
+        && atomDisplay === this.container.querySelector('#atom-display')) {
+        this._revertFillToOpaqueWord();
+      }
+      return;
+    }
+
+    const contextStillCurrent = () => {
+      const current = this._textMaterialCapabilityContext();
+      return generation === this._fillMaskGeneration
+        && atomDisplay === this.container.querySelector('#atom-display')
+        && (atomDisplay.textContent || '').trim() === text
+        && this.fillFieldHost === host
+        && current.capability.maskActive
+        && current.materialKey === materialKey;
+    };
+
+    const rejectChangedContext = () => {
+      if (generation !== this._fillMaskGeneration
+        || atomDisplay !== this.container.querySelector('#atom-display')) return;
+      const current = this._textMaterialCapabilityContext();
+      this._revertFillToOpaqueWord(current.capability.maskActive ? 'fallback' : 'inactive');
+    };
+
+    if (!contextStillCurrent()) {
+      rejectChangedContext();
       return;
     }
 
@@ -828,8 +866,6 @@ export class Chamber {
     const contentHeight = Math.max(0, atomRect.height - paddingTop - paddingBottom);
     const textX = (atomRect.left - fieldRect.left) + paddingLeft + (contentWidth / 2);
     const textY = (atomRect.top - fieldRect.top) + paddingTop + (contentHeight / 2);
-    const text = (atomDisplay.textContent || '').trim();
-
     const svgNs = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(svgNs, 'svg');
     svg.setAttribute('xmlns', svgNs);
@@ -856,39 +892,51 @@ export class Chamber {
     try {
       markup = new XMLSerializer().serializeToString(svg);
     } catch {
-      this.destroyFillField();
+      this._revertFillToOpaqueWord();
       return;
     }
     if (!markup || !/<text[\s>]/i.test(markup)) {
-      this.destroyFillField();
+      this._revertFillToOpaqueWord();
       return;
     }
 
     const url = `url("data:image/svg+xml,${encodeURIComponent(markup)}")`;
-    this.fillFieldHost.style.maskImage = url;
-    this.fillFieldHost.style.webkitMaskImage = url;
-    this.fillFieldHost.style.maskMode = 'luminance';
-    this.fillFieldHost.style.webkitMaskMode = 'luminance';
-    this.fillFieldHost.style.maskRepeat = 'no-repeat';
-    this.fillFieldHost.style.webkitMaskRepeat = 'no-repeat';
-    this.fillFieldHost.style.maskSize = '100% 100%';
-    this.fillFieldHost.style.webkitMaskSize = '100% 100%';
-    this.fillFieldHost.style.maskPosition = '0 0';
-    this.fillFieldHost.style.webkitMaskPosition = '0 0';
+    if (!contextStillCurrent()) {
+      rejectChangedContext();
+      return;
+    }
+    host.style.maskImage = url;
+    host.style.webkitMaskImage = url;
+    host.style.maskMode = 'luminance';
+    host.style.webkitMaskMode = 'luminance';
+    host.style.maskRepeat = 'no-repeat';
+    host.style.webkitMaskRepeat = 'no-repeat';
+    host.style.maskSize = '100% 100%';
+    host.style.webkitMaskSize = '100% 100%';
+    host.style.maskPosition = '0 0';
+    host.style.webkitMaskPosition = '0 0';
 
-    visualCortex.setContinuousFieldProjectionHost(this.fillFieldHost);
-    this.fillFieldHost.classList.remove('is-hidden');
-    atomDisplay.classList.add('is-mask-ink');
-    atomDisplay.style.color = 'transparent';
-    atomDisplay.style.removeProperty('text-shadow');
-    this.syncMaskGroundPlate();
+    await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        if (contextStillCurrent()) {
+          host.classList.remove('is-hidden');
+          atomDisplay.classList.add('is-mask-ink', 'is-mask-ready');
+          atomDisplay.dataset.maskState = 'ready';
+          atomDisplay.style.color = 'transparent';
+          atomDisplay.style.removeProperty('text-shadow');
+          this.syncMaskGroundPlate();
+        }
+        resolve();
+      });
+    });
   }
 
   destroyFillField() {
     this._clearLivingFit();
     this._fillMaskGeneration += 1;
     const atomDisplay = this.container.querySelector('#atom-display');
-    atomDisplay?.classList.remove('is-mask-ink');
+    atomDisplay?.classList.remove('is-mask-ink', 'is-mask-ready');
+    if (atomDisplay) atomDisplay.dataset.maskState = 'inactive';
     if (atomDisplay?.style.color === 'transparent') {
       atomDisplay.style.removeProperty('color');
     }
@@ -1951,11 +1999,8 @@ export class Chamber {
 
     if (proceduralFit) {
       this._applyLivingFit(appearance);
-      atomDisplay.style.color = 'transparent';
-      atomDisplay.style.removeProperty('text-shadow');
-      return;
     }
-    if (atomDisplay?.classList.contains('is-mask-ink')) {
+    if (atomDisplay?.classList.contains('is-mask-ready')) {
       atomDisplay.style.color = 'transparent';
       atomDisplay.style.removeProperty('text-shadow');
       return;

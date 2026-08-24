@@ -233,4 +233,19 @@ describe('Chamber type size (FM-RISE-36)', () => {
         expect(sync).toHaveBeenCalled();
         chamber.destroy();
     });
+
+    it('loads only Thick 700 for the current mask text', async () => {
+        const previousFonts = document.fonts;
+        const load = vi.fn().mockResolvedValue([{}]);
+        document.fonts = { load };
+        const { chamber } = makeChamber();
+
+        await expect(chamber._waitThickFontReady('Word')).resolves.toBe(true);
+        expect(load).toHaveBeenCalledOnce();
+        expect(load).toHaveBeenCalledWith('700 1em "Space Grotesk"', 'Word');
+
+        chamber.destroy();
+        if (previousFonts === undefined) delete document.fonts;
+        else document.fonts = previousFonts;
+    });
 });
