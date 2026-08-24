@@ -417,6 +417,50 @@ describe('session compiler', () => {
     expect(declared.wordFill).toEqual({ mode: 'same', border: 'cream' });
     expect(declared.wordFillDeclared).toBe(true);
   });
+
+  it('preserves word-fill provenance across a compiled continuation', () => {
+    const visualConfig = {
+      visualMode: 'interlocution',
+      interlocution: {
+        presentation: 'continuous',
+        sourced: ['sci-astronomy'],
+        procedural: ['fractal']
+      }
+    };
+    const initial = compileSession({ text: 'First division.', chunkMode: 'word', visualConfig });
+    const continued = compileSession({
+      text: 'Second division.',
+      chunkMode: 'word',
+      visualConfig: initial.visualConfig
+    });
+    expect(initial.visualConfig.interlocution.wordFillDeclared).toBe(false);
+    expect(continued.visualConfig.interlocution.wordFillDeclared).toBe(false);
+
+    const authored = compileSession({
+      text: 'Authored division.',
+      chunkMode: 'word',
+      visualConfig: {
+        ...visualConfig,
+        interlocution: { ...visualConfig.interlocution, wordFill: { mode: 'same' } }
+      }
+    });
+    const authoredContinuation = compileSession({
+      text: 'Authored continuation.',
+      chunkMode: 'word',
+      visualConfig: authored.visualConfig
+    });
+    expect(authoredContinuation.visualConfig.interlocution.wordFillDeclared).toBe(true);
+
+    const spoofed = normalizeVisualConfig({
+      ...visualConfig,
+      interlocution: {
+        ...visualConfig.interlocution,
+        wordFill: { mode: 'same' },
+        wordFillDeclared: 'false'
+      }
+    });
+    expect(spoofed.interlocution.wordFillDeclared).toBe(true);
+  });
 });
 
 describe('Temporal contract: effective WPM invariants', () => {
