@@ -50,7 +50,13 @@ async function openPrep(page, viewport) {
   await expect(page.locator('#begin-btn')).toBeEnabled({ timeout: 15_000 });
   await page.locator('[data-orbit="visual"]').click();
   await expect(page.locator('.vnav')).toBeVisible();
-  await page.locator('.vnav-node[data-id="size"]').click();
+  const size = page.locator('.vnav-node[data-id="size"]');
+  for (let depth = 0; depth < 4 && !(await size.isVisible()); depth += 1) {
+    const back = page.locator('[data-action="navigator-back"]');
+    await expect(back).toBeVisible();
+    await back.click();
+  }
+  await size.click();
   await expect(page.locator('[data-font-size="fit"]')).toBeVisible();
 }
 
