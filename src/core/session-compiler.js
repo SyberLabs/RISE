@@ -285,8 +285,8 @@ export function normalizeVisualConfig(value = {}) {
             responsive: raw.responsive === true,
             responsiveMood: raw.responsiveMood !== false,
             responsiveRhythm: raw.responsiveRhythm !== false,
-            wordFillDeclared: typeof raw.wordFillDeclared === 'boolean'
-                ? raw.wordFillDeclared
+            wordFillDeclared: raw.wordFillDeclared === false
+                ? false
                 : selectedWordFill.declared,
             wordFill: resolveSessionWordFill({
                 ...raw,

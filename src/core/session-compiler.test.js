@@ -489,6 +489,35 @@ describe('session compiler', () => {
     }
   });
 
+  it('does not trust true provenance without valid authored material', () => {
+    for (const wordFill of [undefined, null, []]) {
+      const session = compileSession({
+        text: 'Untrusted provenance.',
+        chunkMode: 'word',
+        visualConfig: {
+          visualMode: 'interlocution',
+          interlocution: {
+            presentation: 'continuous',
+            sourced: ['sci-astronomy'],
+            procedural: ['fractal'],
+            wordFill,
+            wordFillDeclared: true
+          }
+        }
+      });
+      const { interlocution } = session.visualConfig;
+      expect(interlocution.wordFillDeclared).toBe(false);
+      const capability = resolveTextMaterialCapability({
+        face: 'thick', fontSize: 'fit', chunkMode: 'word',
+        visualMode: 'interlocution', presentation: 'continuous',
+        wordFill: interlocution.wordFill,
+        wordFillDeclared: interlocution.wordFillDeclared
+      });
+      expect(capability.maskRequested).toBe(false);
+      expect(capability.maskActive).toBe(false);
+    }
+  });
+
   it('retains valid root-level legacy word fill as authored material', () => {
     for (const [wordFill, mode] of [
       [{ mode: 'same' }, 'same'],
