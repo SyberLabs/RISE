@@ -186,6 +186,26 @@ describe('boundFlameFillTone', () => {
         expect(boundFlameFillTone(ROOM_FLAME_TONE, { reducedMotion: true }))
             .toEqual(still);
     });
+
+    it('lifts density for a sparse glyph window and leaves a full window untouched', () => {
+        const full = boundFlameFillTone(ROOM_FLAME_TONE, { visibleAreaRatio: 1 });
+        const sparse = boundFlameFillTone(ROOM_FLAME_TONE, { visibleAreaRatio: 0.15 });
+        // A whitespace-heavy word reveals little, so its density climbs.
+        expect(sparse.brightness).toBeGreaterThan(full.brightness);
+        // Never past the existing fill ceiling — the lift multiplies before the clamp.
+        expect(sparse.brightness).toBeLessThanOrEqual(22);
+        // A full window is byte-for-byte the no-ratio default.
+        expect(full).toEqual(boundFlameFillTone(ROOM_FLAME_TONE));
+    });
+
+    it('treats an absent or malformed visible ratio as a full window', () => {
+        const base = boundFlameFillTone(ROOM_FLAME_TONE);
+        expect(boundFlameFillTone(ROOM_FLAME_TONE, { visibleAreaRatio: undefined })).toEqual(base);
+        expect(boundFlameFillTone(ROOM_FLAME_TONE, { visibleAreaRatio: NaN })).toEqual(base);
+        // Out-of-range clamps rather than overshooting the ceiling.
+        expect(boundFlameFillTone(ROOM_FLAME_TONE, { visibleAreaRatio: -5 }).brightness)
+            .toBeLessThanOrEqual(22);
+    });
 });
 
 describe('applyFlameFillLut', () => {
