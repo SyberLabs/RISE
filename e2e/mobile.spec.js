@@ -394,9 +394,9 @@ test('the configuration panels are not several screens of picture tiles', async 
     await page.locator('[data-nav="library"]').first().click();
     await expect(page.locator('.archive-card').first()).toBeVisible({ timeout: 30000 });
     await page.locator('[data-text-id="the-iliad"] [data-action="select-text"]').click();
-    await page.waitForTimeout(1500);
     const toc = page.locator('.toc-entry').first();
-    if (await toc.isVisible().catch(() => false)) { await toc.click(); }
+    await expect(toc).toBeVisible({ timeout: 40000 });
+    await toc.click();
     await expect(page.locator('.orbital-stage')).toBeVisible({ timeout: 30000 });
 
     const panels = [
