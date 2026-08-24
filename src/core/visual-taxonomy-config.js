@@ -103,7 +103,10 @@ export function selectionFromConfig(visualConfig = {}) {
   const sel = emptySelection();
   const cfg = visualConfig || {};
   sel.config = cloneVisualConfig(cfg);
-  sel.livingText = { enabled: cfg.livingText?.enabled === true };
+  sel.livingText = {
+    ...(cfg.livingText || {}),
+    enabled: cfg.livingText?.enabled === true
+  };
   sel.galleryCadence = normalizeGalleryCadence(
     cfg.interlocution?.galleryCadence ?? GALLERY_CADENCE_DEFAULT
   );
@@ -209,11 +212,14 @@ function fieldPatch(selection) {
   }
 
   const procedural = on.filter(id => GALLERY_PROCEDURAL.has(id));
-  const sourced = on
+  const selectedSourced = on
     .filter(id => classifySourced(pool[id] || '') || pool[id])
     .filter(id => ['by-manner', 'by-subject', 'science', 'personal'].includes(id))
     .map(id => pool[id])
     .filter(Boolean);
+  const preservedSourced = normalizeVisualSelection(selection.config?.interlocution || {}).sourced
+    .filter(id => !classifySourced(id));
+  const sourced = [...new Set([...selectedSourced, ...preservedSourced])];
 
   return {
     visualMode: 'interlocution',
@@ -258,7 +264,7 @@ export function configPatch(selection) {
     focals,
     attractor: { ...(base.attractor || {}), ...selection.style.attractor },
     genesis: { ...(base.genesis || {}), ...selection.style.klee },
-    livingText: { ...selection.livingText },
+    livingText: { ...(base.livingText || {}), ...selection.livingText },
     interlocution: {
       ...(base.interlocution || {}),
       ...(field.interlocution || {}),

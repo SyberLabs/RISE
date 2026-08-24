@@ -162,15 +162,36 @@ describe('reader-facing state', () => {
     expect(lastPatch().interlocution.sourced).toEqual([`personal:${saved.id}`]);
   });
 
-  it('names a curated program and prevents its pool from being replaced', () => {
+  it('names a curated program and makes every field-owned control read-only', () => {
     mount({
       visualMode: 'interlocution',
-      interlocution: { sourceFamily: 'collections', sourced: ['aic-impressionism'] }
+      livingText: { enabled: true, intensity: 0.4 },
+      interlocution: {
+        sourceFamily: 'collections',
+        sourced: ['aic-impressionism'],
+        galleryCadence: 0.5
+      }
     }, { programInfo: { episodes: 4 } });
     expect(nav.container.querySelector('[data-program-lock]')?.textContent)
       .toContain('Special Collection · 4 episodes');
     descend('visual', 'gallery', 'gallery-sourced', 'by-manner');
     expect(nav.container.querySelector('[data-pool="aic-ukiyoe"]')?.disabled).toBe(true);
+    expect([...nav.container.querySelectorAll('[data-gallery-cadence]')]
+      .every(control => control.disabled)).toBe(true);
+    expect(nav.container.querySelector('[data-action="living-text"]')?.disabled).toBe(true);
+
+    nav.setCadence(1);
+    nav.setLivingText(false);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(nav.getConfig()).toMatchObject({
+      livingText: { enabled: true, intensity: 0.4 },
+      interlocution: { galleryCadence: 0.5 }
+    });
+
+    nav.setConfig({ visualMode: 'genesis', genesis: { preset: 'harmonic', glass: true } });
+    expect([...nav.container.querySelectorAll('[data-sub]')]
+      .every(control => control.disabled)).toBe(true);
+    expect(nav.container.querySelector('[data-action="glass"]')?.disabled).toBe(true);
   });
 
   it('releases a launch-held focal directly into its curated program', () => {

@@ -31,10 +31,11 @@
 .vnav-path span.here { color: var(--color-accent, #E4D2AE); }
 .vnav-path i { color: var(--color-mist, #6B6B75); font-style: normal; }
 .vnav-field { margin-left: auto; color: var(--color-light, #E8E8EC); }
+.vnav-back { display: none; }
 
 .vnav-body {
   display: grid;
-  grid-template-columns: repeat(var(--vnav-cols, 3), minmax(9rem, 12rem)) 1fr;
+  grid-template-columns: repeat(var(--vnav-cols, 3), minmax(8rem, 10rem)) 1fr;
   min-height: 22rem;
 }
 
@@ -275,10 +276,22 @@
 .vnav-manage:hover { color: var(--color-accent, #E4D2AE); }
 
 /* ── responsive: columns collapse to a single drill-down ──────────────── */
-@media (max-width: 720px) {
+@media (max-width: 960px) {
   .vnav-body { grid-template-columns: 1fr; }
-  .vnav-col { border-right: none; border-bottom: 1px solid var(--vnav-edge); max-height: none; }
+  .vnav-col { display: none; border-right: none; border-bottom: 1px solid var(--vnav-edge); max-height: none; }
+  .vnav-col.vnav-current { display: block; }
   .vnav-entry { max-height: none; }
   .vnav-reader-controls { align-items: flex-start; flex-direction: column; }
   .vnav-cadence { margin-left: 0; flex-wrap: wrap; }
+  .vnav-back {
+    display: inline-flex;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--color-accent, #E4D2AE);
+    font: inherit;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+  }
 }

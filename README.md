@@ -332,7 +332,7 @@ src/
 ├── audio/          Web Audio, recitation, voice and sound systems
 ├── components/     Portal, Keystones, Chamber, Library, Workshop, Vault,
 │                   Chapel, Rosarium, Via, Scriptorium, Curia, Journeys,
-│                   Guide, Settings, VisualInterlocutionPanel
+│                   Guide, Settings, VisualNavigator
 ├── content/        archive, chapel, imagery, journeys, science, texts, personalized
 ├── core/           Session compilation, chunking, pacing and shared models
 ├── page/           Spatial composition and Page projection

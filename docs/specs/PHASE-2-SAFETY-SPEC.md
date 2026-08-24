@@ -133,10 +133,10 @@ with instant enter/exit — that contract already exists and is tested.)
   wording implying medical validation of the duty ceiling / flash gate.
   Describe them as engineering limits designed to reduce risk — not as
   a medical safeguard. Do not weaken the warnings themselves.
-- `VisualInterlocutionPanel.js` (~194): cancelling the safety warning
-  flips the panel's internal mode to Off but does not emit that change
-  to its owner — emit it, so the orbital's status line and persisted
-  config agree with reality.
+- Reader-path controls no longer own photosensitivity consent. `VisualNavigator`
+  emits only continuous fields; the app/session boundary owns the runtime warning,
+  refusal, and immediate visual cancellation so displayed state and execution
+  remain consistent. Workshop-authored flashes retain their consent path.
 
 ### 7. Aggregate compile budget
 `session-compiler.js` (`SESSION_LIMITS`): per-source limits exist but

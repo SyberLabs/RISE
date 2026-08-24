@@ -178,6 +178,13 @@ export class VisualNavigator {
     this.render();
   }
 
+  navigateBack() {
+    if (!this.path.length) return;
+    this.path = this.path.slice(0, -1);
+    this.focus = null;
+    this.render();
+  }
+
   setFocalType(type) {
     if (this.locked || this.programInfo || !['standard', 'personal'].includes(type)) return;
     this.selection.style.focal = { ...this.selection.style.focal, type };
@@ -278,6 +285,7 @@ export class VisualNavigator {
   setSize(value) {
     const persist = persistFontSize(value);
     if (!persist) return;
+    if (persist === 'fit' && (this.locked || this.programInfo)) return;
     this.writeSetting('fontSize', persist);
     if (persist === 'fit') {
       const gallery = this.selection.enabled.size > 0
@@ -293,6 +301,7 @@ export class VisualNavigator {
   }
 
   setWordFill(value) {
+    if (this.locked || this.programInfo) return;
     if (resolveFontSize(globalThis.rise?.settings?.fontSize) !== 'fit') return;
     if (value === 'accent') {
       this.selection.wordFill = { mode: 'accent' };
@@ -314,11 +323,16 @@ export class VisualNavigator {
   }
 
   setLivingText(enabled) {
-    this.selection.livingText = { enabled: enabled === true };
+    if (this.locked || this.programInfo) return;
+    this.selection.livingText = {
+      ...this.selection.livingText,
+      enabled: enabled === true
+    };
     this.emit();
   }
 
   setCadence(value) {
+    if (this.locked || this.programInfo) return;
     this.selection.galleryCadence = normalizeGalleryCadence(value);
     this.emit();
     this.render();
@@ -373,6 +387,7 @@ export class VisualNavigator {
     this.container.innerHTML = `
       <div class="vnav">
         <div class="vnav-bar">
+          ${this.path.length ? '<button type="button" class="vnav-back" data-action="navigator-back">‹ Back</button>' : ''}
           <span class="vnav-path">${this.pathBar()}</span>
           <span class="vnav-field">${escapeHtml(describeField(this.selection.enabled))}</span>
         </div>
@@ -380,7 +395,7 @@ export class VisualNavigator {
         ${this.renderReadingCollections()}
         ${this.locked ? `<div class="vnav-lock" role="status">${escapeHtml(this.lockedMessage)}</div>` : ''}
         <div class="vnav-body" style="--vnav-cols:${cols.length}">
-          ${cols.map((nodes, i) => this.renderColumn(nodes, i)).join('')}
+          ${cols.map((nodes, i) => this.renderColumn(nodes, i, i === cols.length - 1)).join('')}
           <div class="vnav-entry">${this.renderEntry()}</div>
         </div>
         ${this.renderReaderControls()}
@@ -394,7 +409,7 @@ export class VisualNavigator {
     return names.length ? names.join('<i>/</i>') : '<span>field</span>';
   }
 
-  renderColumn(nodes, colIndex) {
+  renderColumn(nodes, colIndex, current = false) {
     const row = n => {
       const selected = this.path[colIndex] === n || this.focus === n;
       const on = categoryOf(n.id) && this.selection.enabled.has(n.id);
@@ -413,7 +428,7 @@ export class VisualNavigator {
          <span class="vnav-group" data-group="text">Text</span>
          ${TEXT.map(row).join('')}`
       : nodes.map(row).join('');
-    return `<div class="vnav-col">${rows}</div>`;
+    return `<div class="vnav-col ${current ? 'vnav-current' : ''}">${rows}</div>`;
   }
 
   renderEntry() {
@@ -513,20 +528,22 @@ export class VisualNavigator {
     const style = this.styleOf(engineId);
     return substylesFor(engineId).map(b => bench(b.label, b.options.map(o => ({
       id: optId(o), label: optLabel(o), on: style[b.key] === optId(o), swatch: o.swatch,
+      disabled: Boolean(this.locked || this.programInfo),
       attr: `data-sub="${escapeHtml(b.key)}" data-val="${escapeHtml(optId(o))}" data-engine="${escapeHtml(engineId)}"`
     })))).join('');
   }
 
   renderReaderControls() {
+    const fieldLocked = Boolean(this.locked || this.programInfo);
     const galleryContext = [...this.selection.enabled].some(id => categoryOf(id) === FIELD.GALLERY)
       || categoryOf(this.focus?.id) === FIELD.GALLERY
       || this.selection.emptyGallery;
     return `<div class="vnav-reader-controls">
       <label class="vnav-living"><input type="checkbox" data-action="living-text"
-        ${this.selection.livingText.enabled ? 'checked' : ''}> <span>Living Text</span></label>
+        ${this.selection.livingText.enabled ? 'checked' : ''} ${fieldLocked ? 'disabled' : ''}> <span>Living Text</span></label>
       ${galleryContext ? `<div class="vnav-cadence"><span>Cadence</span>${CADENCE.map(item => `
         <button type="button" class="vnav-opt ${this.selection.galleryCadence === item.value ? 'on' : ''}"
-          data-gallery-cadence="${item.value}">${item.label}</button>`).join('')}</div>` : ''}
+          data-gallery-cadence="${item.value}" ${fieldLocked ? 'disabled' : ''}>${item.label}</button>`).join('')}</div>` : ''}
     </div>`;
   }
 
@@ -596,14 +613,16 @@ export class VisualNavigator {
     let html = '';
 
     if (leaf.id === 'focal') {
+      const fieldLocked = Boolean(this.locked || this.programInfo);
       const personal = this.selection.style.focal.type === 'personal';
       const image = this.selection.config.focals?.personalImage;
       html += bench('Source', [
-        { id: 'standard', label: 'Glyph', on: !personal, attr: 'data-focal-type="standard"' },
-        { id: 'personal', label: 'Personal', on: personal, attr: 'data-focal-type="personal"' }
+        { id: 'standard', label: 'Glyph', on: !personal, disabled: fieldLocked, attr: 'data-focal-type="standard"' },
+        { id: 'personal', label: 'Personal', on: personal, disabled: fieldLocked, attr: 'data-focal-type="personal"' }
       ]);
       html += bench('Glyph', FOCAL_GLYPHS.map(g => ({
         id: g.id, label: g.glyph || g.id, on: this.selection.style.focal.glyph === g.id,
+        disabled: fieldLocked,
         attr: `data-glyph="${escapeHtml(g.id)}"`
       })));
       if (personal) {
@@ -611,7 +630,7 @@ export class VisualNavigator {
           <img src="${safeUrl(image)}" alt="Personal focal">
           <button type="button" data-action="remove-personal-focal">Remove</button></div>`
           : `<label class="vnav-personal-upload" data-action="upload-personal-focal">Upload focal image
-            <input type="file" accept="image/*" hidden data-input="personal-focal"></label>`;
+            <input type="file" accept="image/*" hidden data-input="personal-focal" ${fieldLocked ? 'disabled' : ''}></label>`;
       }
     }
 
@@ -620,12 +639,14 @@ export class VisualNavigator {
       for (const b of substylesFor(leaf.engineId)) {
         html += bench(b.label, b.options.map(o => ({
           id: optId(o), label: optLabel(o), on: style[b.key] === optId(o), swatch: o.swatch,
+          disabled: Boolean(this.locked || this.programInfo),
           attr: `data-sub="${escapeHtml(b.key)}" data-val="${escapeHtml(optId(o))}"`
         })));
       }
       if (leaf.engineId === 'klee') {
         html += `<label class="vnav-glass"><input type="checkbox" data-action="glass"
-          ${this.selection.style.klee.glass !== false ? 'checked' : ''}> Glass tile behind the text</label>`;
+          ${this.selection.style.klee.glass !== false ? 'checked' : ''}
+          ${this.locked || this.programInfo ? 'disabled' : ''}> Glass tile behind the text</label>`;
       }
     }
 
@@ -642,8 +663,8 @@ export class VisualNavigator {
       const cur = this.selection.pool[leaf.id];
       html += bench('Pool', options.map(o => ({
         id: o.id, label: o.label, on: cur === o.id,
-        disabled: Boolean(this.programInfo),
-        attr: `data-pool="${escapeHtml(o.id)}" ${this.programInfo ? 'disabled' : ''}`
+        disabled: Boolean(this.locked || this.programInfo),
+        attr: `data-pool="${escapeHtml(o.id)}"`
       })));
       if (leaf.id === 'personal') {
         html += this.renderGlobalPoolPicker();
@@ -664,13 +685,13 @@ export class VisualNavigator {
       return '<div class="vnav-global-picker"><b>Global Pool</b><p>The shared pool is empty. Add images from the Workshop Studio Shelf.</p></div>';
     }
     const modes = `<div class="vnav-global-mode" role="group" aria-label="Global Pool selection mode">
-      <button type="button" class="vnav-opt ${pool.mode === 'all' ? 'on' : ''}" data-global-pool-mode="all">All Images</button>
-      <button type="button" class="vnav-opt ${pool.mode === 'selected' ? 'on' : ''}" data-global-pool-mode="selected">Selected Images</button></div>`;
+      <button type="button" class="vnav-opt ${pool.mode === 'all' ? 'on' : ''}" data-global-pool-mode="all" ${this.locked || this.programInfo ? 'disabled' : ''}>All Images</button>
+      <button type="button" class="vnav-opt ${pool.mode === 'selected' ? 'on' : ''}" data-global-pool-mode="selected" ${this.locked || this.programInfo ? 'disabled' : ''}>Selected Images</button></div>`;
     const body = pool.mode === 'selected'
       ? `<div class="vnav-global-assets">${assets.map(asset => {
         const selected = pool.assetIds.includes(asset.id);
         return `<button type="button" class="${selected ? 'on' : ''}" data-global-asset-id="${escapeHtml(asset.id)}"
-          aria-pressed="${selected}" title="${escapeHtml(asset.name)}"><img src="${safeUrl(asset.uri)}" alt="${escapeHtml(asset.name)}"></button>`;
+          aria-pressed="${selected}" title="${escapeHtml(asset.name)}" ${this.locked || this.programInfo ? 'disabled' : ''}><img src="${safeUrl(asset.uri)}" alt="${escapeHtml(asset.name)}"></button>`;
       }).join('')}</div>`
       : '<p>New shared images join this sequence automatically.</p>';
     const count = pool.mode === 'all'
@@ -687,6 +708,7 @@ export class VisualNavigator {
         if (node) this.navigate(col, node);
       });
     const q = sel => this.container.querySelector(sel);
+    q('[data-action="navigator-back"]')?.addEventListener('click', () => this.navigateBack());
     q('[data-action="toggle"]')?.addEventListener('click', () => this.toggleEnabled());
     q('[data-action="glass"]')?.addEventListener('change', e => this.setGlass(e.target.checked));
     q('[data-action="living-text"]')?.addEventListener('change', e => this.setLivingText(e.target.checked));
@@ -749,7 +771,8 @@ function bench(label, opts) {
       <span class="vnav-bench-label">${escapeHtml(label)}</span>
       <div class="vnav-opts">
         ${opts.map(o => `
-          <button type="button" class="vnav-opt ${o.on ? 'on' : ''} ${o.swatch ? 'swatch' : ''}" ${o.attr}>
+          <button type="button" class="vnav-opt ${o.on ? 'on' : ''} ${o.swatch ? 'swatch' : ''}"
+            ${o.disabled ? 'disabled' : ''} ${o.attr}>
             ${o.swatch ? `<i style="background:${escapeHtml(o.swatch)}"></i>` : ''}${escapeHtml(String(o.label))}
           </button>`).join('')}
       </div>

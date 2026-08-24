@@ -269,6 +269,54 @@ test('the visual navigator exposes complete Field and Text roots without a mobil
 
     await page.locator('.vnav-node[data-id="size"]').click();
     await expect(page.locator('[data-font-size="fit"]')).toBeVisible();
+
+    await page.locator('.vnav-node[data-id="visual"]').click();
+    await page.locator('.vnav-node[data-id="gallery"]').click();
+    await page.locator('.vnav-node[data-id="gallery-sourced"]').click();
+    await page.locator('.vnav-node[data-id="by-manner"]').click();
+    await expect(page.locator('.vnav-entry h3')).toHaveText('By Manner');
+
+    const phone = await page.evaluate(() => {
+        const nav = document.querySelector('.vnav');
+        const entry = nav.querySelector('.vnav-entry').getBoundingClientRect();
+        return {
+            visibleColumns: [...nav.querySelectorAll('.vnav-col')]
+                .filter(column => getComputedStyle(column).display !== 'none').length,
+            sideways: Math.max(0, nav.scrollWidth - nav.clientWidth),
+            entryWidth: Math.round(entry.width),
+            entryRight: Math.round(entry.right),
+            viewport: window.innerWidth
+        };
+    });
+    expect(phone.visibleColumns).toBe(1);
+    expect(phone.sideways).toBe(0);
+    expect(phone.entryWidth).toBeGreaterThan(250);
+    expect(phone.entryRight).toBeLessThanOrEqual(phone.viewport);
+
+    await expect(page.locator('[data-action="navigator-back"]')).toBeVisible();
+    await page.locator('[data-action="navigator-back"]').click();
+    await expect(page.locator('.vnav-node[data-id="gallery-sourced"]')).toBeVisible();
+
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.locator('.vnav-node[data-id="gallery-sourced"]').click();
+    await page.locator('.vnav-node[data-id="by-manner"]').click();
+    const desktop = await page.evaluate(() => {
+        const nav = document.querySelector('.vnav');
+        const modal = document.querySelector('#modal-visual .modal-content').getBoundingClientRect();
+        const entry = nav.querySelector('.vnav-entry').getBoundingClientRect();
+        return {
+            visibleColumns: [...nav.querySelectorAll('.vnav-col')]
+                .filter(column => getComputedStyle(column).display !== 'none').length,
+            sideways: Math.max(0, nav.scrollWidth - nav.clientWidth),
+            entryWidth: Math.round(entry.width),
+            entryRight: Math.round(entry.right),
+            modalRight: Math.round(modal.right)
+        };
+    });
+    expect(desktop.visibleColumns).toBe(4);
+    expect(desktop.sideways).toBe(0);
+    expect(desktop.entryWidth).toBeGreaterThan(250);
+    expect(desktop.entryRight).toBeLessThanOrEqual(desktop.modalRight);
 });
 
 test('the orbit is centred in the phone rather than cropped by it', async ({ page }) => {

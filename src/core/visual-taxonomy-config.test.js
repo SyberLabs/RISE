@@ -125,13 +125,32 @@ describe('the Gallery blends, one pool per sourced leaf', () => {
       atriumCollections: ['dore:numbers']
     });
   });
+
+  it('preserves reading-curated collections beside a Navigator pool choice', () => {
+    const cfg = {
+      visualMode: 'interlocution',
+      interlocution: {
+        sourceFamily: 'collections',
+        sourced: ['aic-impressionism', 'dore:numbers'],
+        atriumCollections: ['dore:numbers'],
+        presentation: 'continuous'
+      }
+    };
+
+    const selection = selectionFromConfig(cfg);
+    expect([...selection.enabled]).toEqual(['by-manner']);
+    expect(configPatch(selection).interlocution).toMatchObject({
+      sourced: ['aic-impressionism', 'dore:numbers'],
+      atriumCollections: ['dore:numbers']
+    });
+  });
 });
 
 describe('the adapter emits the complete visual configuration', () => {
   it('round-trips Living Text, cadence, word ink, and unedited runtime settings', () => {
     const cfg = {
       visualMode: 'interlocution',
-      livingText: { enabled: true },
+      livingText: { enabled: true, intensity: 0.25 },
       interlocution: {
         sourceFamily: 'blend',
         procedural: ['fractal'],
@@ -144,7 +163,7 @@ describe('the adapter emits the complete visual configuration', () => {
       }
     };
     const patch = configPatch(selectionFromConfig(cfg));
-    expect(patch.livingText).toEqual({ enabled: true });
+    expect(patch.livingText).toEqual({ enabled: true, intensity: 0.25 });
     expect(patch.interlocution).toMatchObject({
       presentation: 'continuous',
       galleryCadence: 0.82,

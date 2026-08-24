@@ -738,9 +738,9 @@ Recommended surfaces:
 | `src/components/workshop/ResponsiveStudioShell.js` | Desktop panes and tablet/mobile drawers/sheets. |
 | `src/components/workshop/workshop-studio.css` | Layout tokens and responsive presentation. |
 
-`VisualInterlocutionPanel` remains available to Chamber and other settings
-surfaces. The Workshop stops embedding it after its controls reach parity in
-the Studio asset library and Inspector.
+The Workshop retains its score-specific asset library and Inspector. Chamber
+uses `VisualNavigator` for reader-level Field and Text choices; the two surfaces
+share canonical visual configuration without duplicating authoring controls.
 
 ### 13.1 State ownership
 
