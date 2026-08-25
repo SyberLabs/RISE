@@ -35,7 +35,8 @@ test('the control bar condenses in Page Mode and restores on return', async ({ p
     return {
       play: vis('#play-pause-btn'), time: vis('#time-display'),
       visuals: vis('#visuals-toggle-btn'), music: vis('#volume-btn'),
-      pageBtn: vis('#page-mode-btn'), exit: vis('#exit-btn')
+      pageBtn: vis('#page-mode-btn'), exit: vis('#exit-btn'),
+      elongate: vis('#page-elongate')
     };
   });
 
@@ -54,10 +55,13 @@ test('the control bar condenses in Page Mode and restores on return', async ({ p
 
   console.log('BAR ' + JSON.stringify({ inStream, inPage, restored }));
 
-  // Stream: the full transport is present.
+  // Stream: the full transport is present. Elongate is a Page
+  // projection — .control-btn { display:flex } must not keep it
+  // on this bar just because the hidden attribute lost the cascade.
   expect(inStream.play).toBe(true);
   expect(inStream.time).toBe(true);
   expect(inStream.visuals).toBe(true);
+  expect(inStream.elongate, 'Elongate belongs to the Page').toBe(false);
 
   // Page: only what a reader needs — page toggle, music, exit.
   expect(inPage.play).toBe(false);
