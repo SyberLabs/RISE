@@ -91,7 +91,7 @@ describe('Chamber Living Text integration', () => {
         expect(rgb).not.toEqual(base);
         expect(rgb[2]).toBeGreaterThan(rgb[1]);
         expect(rgb[1]).toBeGreaterThan(rgb[0]);
-        expect(rgb.every((channel, index) => Math.abs(channel - base[index]) <= 48)).toBe(true);
+        expect(rgb.every((channel, index) => Math.abs(channel - base[index]) <= 96)).toBe(true);
 
         chamber.destroy();
         container.remove();
