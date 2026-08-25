@@ -36,7 +36,7 @@ import {
 } from './core/visual-safety.js';
 import { clampBandFraction } from './core/band-offset.js';
 import { resolveChamberStreamFace } from './core/chamber-stream-face.js';
-import { DEFAULT_CHAMBER_ACCENT, applyChamberAccent, resolveChamberAccent } from './core/chamber-accent.js';
+import { DEFAULT_CHAMBER_ACCENT, applyChamberAccent, migrateChamberAccent, resolveChamberAccent } from './core/chamber-accent.js';
 import { resolveFontSize } from './core/chamber-type-size.js';
 import { clampReadingWpm } from './core/reading-limits.js';
 import { normalizeVisualSelection, resolveSessionWordFill } from './core/visual-selection.js';
@@ -1360,7 +1360,11 @@ class App {
                 ...defaultSettings,
                 fontSize: resolveFontSize(merged.fontSize),
                 chamberFace: resolveChamberStreamFace(merged.chamberFace),
-                chamberAccent: resolveChamberAccent(merged.chamberAccent),
+                chamberAccent: resolveChamberAccent(
+                    migrateChamberAccent(merged.chamberAccent, merged.chamberAccentNamed)),
+                // Marks this blob as written after Slate became a hue of its
+                // own, so a stored 'slate' is never mistaken for the default.
+                chamberAccentNamed: true,
                 masterVolume: Number.isFinite(Number(merged.masterVolume))
                     ? Math.max(0, Math.min(1, Number(merged.masterVolume)))
                     : defaultSettings.masterVolume,
@@ -1483,8 +1487,8 @@ class App {
 
         root.dataset.fontSize = resolveFontSize(this.settings?.fontSize);
         root.dataset.chamberFace = resolveChamberStreamFace(this.settings?.chamberFace);
-        // Slate is the bare :root, so it must CLEAR data-accent, not stamp it —
-        // applyChamberAccent owns that rule for both the app and the Chamber.
+        // The default is the bare :root, so it must CLEAR data-accent, not stamp
+        // it — applyChamberAccent owns that rule for the app and the Chamber both.
         applyChamberAccent(root, this.settings?.chamberAccent);
         root.classList.toggle('hide-session-progress', this.settings?.showProgress === false);
         root.classList.toggle('hide-session-duration', this.settings?.showDuration === false);

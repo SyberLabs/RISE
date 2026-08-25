@@ -1,6 +1,10 @@
 import { clearUserData, exportUserData } from '../core/user-data.js';
 import { CHAMBER_STREAM_FACES, resolveChamberStreamFace } from '../core/chamber-stream-face.js';
-import { CHAMBER_ACCENTS, resolveChamberAccent } from '../core/chamber-accent.js';
+import {
+    CHAMBER_ACCENTS,
+    CHAMBER_ACCENT_TOKENS,
+    resolveChamberAccent
+} from '../core/chamber-accent.js';
 import './Settings.css';
 import {
     FONT_SIZE_CHIPS,
@@ -21,10 +25,24 @@ import './Settings.css';
  * - Toggle/slider controls per spec
  */
 
+/**
+ * A READING CANNOT BE RESUMED ONCE ABANDONED — the exit overlay says so:
+ * "The current sequence will be abandoned." So the panel a reader opens from
+ * inside a reading is not the panel they visit from the Portal. It carries
+ * what can rescue a reading in progress — the type, the chrome, the volume,
+ * the two safety switches — and none of what is meaningless or destructive
+ * there: the LOBBY drone does not play during a reading, and exporting or
+ * CLEARING personal data mid-reading wipes the session and reloads the page.
+ * The in-session surface is the control bar; this door only widens it.
+ */
+const SESSION_SCOPE = 'session';
+
 export class Settings {
     constructor(container, options = {}) {
         this.container = container;
         this.settings = options.settings || {};
+        this.scope = options.scope === SESSION_SCOPE ? SESSION_SCOPE : 'portal';
+
         this.onNavigate = options.onNavigate || (() => { });
         this.onClose = typeof options.onClose === 'function' ? options.onClose : null;
         this.onChange = options.onChange || (() => { });
@@ -34,6 +52,10 @@ export class Settings {
 
         this.render();
         this.attachEvents();
+    }
+
+    get inSession() {
+        return this.scope === SESSION_SCOPE;
     }
 
     render() {
@@ -157,6 +179,7 @@ export class Settings {
           <section class="settings-section" aria-labelledby="audio-heading">
             <h2 id="audio-heading" class="settings-section-title text-fog">Audio</h2>
 
+            ${this.inSession ? '' : `
             <div class="settings-row">
               <div class="settings-label-group">
                 <label class="settings-label">Lobby Drone</label>
@@ -175,6 +198,7 @@ export class Settings {
                 <span class="toggle-switch"></span>
               </label>
             </div>
+            `}
 
             <div class="settings-row">
               <label class="settings-label" for="master-volume">Master Volume</label>
@@ -245,6 +269,7 @@ export class Settings {
           </section>
 
           <!-- Data Section -->
+          ${this.inSession ? '' : `
           <section class="settings-section" aria-labelledby="data-heading">
             <h2 id="data-heading" class="settings-section-title text-fog">Data</h2>
 
@@ -254,10 +279,17 @@ export class Settings {
               </button>
             </div>
 
-            <div class="settings-row">
-              <button class="btn-secondary btn-caution" data-action="clear-history">
-                Clear All Personal Data
-              </button>
+            <div class="settings-row settings-danger">
+              <div class="settings-label-group">
+                <p class="settings-hint text-mist">
+                  Removes every reading, sequence, and preference held in this
+                  browser. There is no copy elsewhere — export first if you
+                  want one.
+                </p>
+                <button class="btn-secondary btn-caution" data-action="clear-history">
+                  Clear All Personal Data
+                </button>
+              </div>
             </div>
           </section>
 
@@ -271,6 +303,7 @@ export class Settings {
               <p class="about-attribution text-mist">SyberLabs · 2026</p>
             </div>
           </section>
+          `}
         </div>
       </form>
     `;
@@ -315,10 +348,22 @@ export class Settings {
         `).join('');
     }
 
+    /**
+     * A COLOUR PICKER HAS TO SHOW THE COLOUR. These eleven read as words with
+     * eleven identical grey rings — the ring paints from --color-accent, the
+     * one already in force, so every option wore the same hue and none wore
+     * its own. Each chip now carries its real token, and the default carries
+     * both halves of what it actually is: a slate surface under ivory.
+     */
     renderChamberAccentRadios() {
         const selected = resolveChamberAccent(this.settings.chamberAccent);
-        return CHAMBER_ACCENTS.map((accent) => `
-          <label class="radio">
+        return CHAMBER_ACCENTS.map((accent) => {
+            const hue = CHAMBER_ACCENT_TOKENS[accent.id]?.['--color-accent'];
+            const swatch = hue
+                ? `--swatch: ${hue}; --swatch-far: ${hue}`
+                : '--swatch: #2A2A30; --swatch-far: #E4D2AE';
+            return `
+          <label class="radio radio-swatch" style="${swatch}">
             <input
               type="radio"
               name="chamber-accent"
@@ -327,7 +372,8 @@ export class Settings {
             />
             <span class="radio-label">${accent.label}</span>
           </label>
-        `).join('');
+        `;
+        }).join('');
     }
 
     leave() {
